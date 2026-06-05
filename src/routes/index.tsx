@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, FileText, Globe, Presentation, ExternalLink, Settings, Eye } from "lucide-react";
 import { listItems, type Item, type ItemCategory } from "@/lib/items.functions";
+import { listSettings, type Settings } from "@/lib/settings.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -15,11 +16,11 @@ export const Route = createFileRoute("/")({
   component: KioskPage,
 });
 
-const CATEGORY_LABELS: Record<ItemCategory, string> = {
-  websites: "Websites",
-  presentations: "Presentations",
-  docs: "Google Docs",
-};
+const CATEGORY_SETTING_KEY = {
+  websites: "label_websites",
+  presentations: "label_presentations",
+  docs: "label_docs",
+} as const;
 
 function CategoryIcon({ category, className }: { category: ItemCategory; className?: string }) {
   const Icon = category === "websites" ? Globe : category === "presentations" ? Presentation : FileText;

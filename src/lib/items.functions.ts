@@ -40,7 +40,7 @@ export const createItem = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     let favicon = data.favicon_url ?? null;
-    if (!favicon && data.category === "websites") {
+    if (!favicon) {
       try {
         const host = new URL(data.url).hostname;
         favicon = `https://www.google.com/s2/favicons?domain=${host}&sz=64`;

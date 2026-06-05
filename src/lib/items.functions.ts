@@ -115,16 +115,22 @@ export const moveItem = createServerFn({ method: "POST" })
     if (e1) throw new Error(e1.message);
     if (!current) throw new Error("Item not found");
 
-    const op = data.direction === "up" ? "lt" : "gt";
-    const order = data.direction === "up" ? false : true;
-    const { data: neighbor } = await supabaseAdmin
+    const baseQuery = supabaseAdmin
       .from("items")
       .select("*")
-      .eq("category", current.category)
-      [op]("sort_order", current.sort_order)
-      .order("sort_order", { ascending: order })
-      .limit(1)
-      .maybeSingle();
+      .eq("category", current.category);
+    const { data: neighbor } =
+      data.direction === "up"
+        ? await baseQuery
+            .lt("sort_order", current.sort_order)
+            .order("sort_order", { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        : await baseQuery
+            .gt("sort_order", current.sort_order)
+            .order("sort_order", { ascending: true })
+            .limit(1)
+            .maybeSingle();
     if (!neighbor) return { ok: true };
 
     const { error: e2 } = await supabaseAdmin

@@ -2,7 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, FileText, Globe, Presentation, ExternalLink, Settings as SettingsIcon, Eye } from "lucide-react";
+import {
+  ChevronDown,
+  FileText,
+  Globe,
+  Presentation,
+  ExternalLink,
+  Settings as SettingsIcon,
+  Eye,
+} from "lucide-react";
 import { listItems, type Item, type ItemCategory } from "@/lib/items.functions";
 import { listSettings, type Settings } from "@/lib/settings.functions";
 
@@ -10,7 +18,10 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "EyeFrame — Kiosk" },
-      { name: "description", content: "Full-screen browser demonstration system." },
+      {
+        name: "description",
+        content: "Full-screen browser demonstration system.",
+      },
     ],
   }),
   component: KioskPage,
@@ -23,7 +34,8 @@ const CATEGORY_SETTING_KEY = {
 } as const;
 
 function CategoryIcon({ category, className }: { category: ItemCategory; className?: string }) {
-  const Icon = category === "websites" ? Globe : category === "presentations" ? Presentation : FileText;
+  const Icon =
+    category === "websites" ? Globe : category === "presentations" ? Presentation : FileText;
   return <Icon className={className} />;
 }
 
@@ -97,7 +109,11 @@ function KioskPage() {
     return (
       <div
         className="flex h-screen w-screen items-center justify-center px-6 text-center"
-        style={{ backgroundColor: "var(--eyeframe-bg)", color: "var(--eyeframe-text)", fontFamily: "var(--font-sans)" }}
+        style={{
+          backgroundColor: "var(--eyeframe-bg)",
+          color: "var(--eyeframe-text)",
+          fontFamily: "var(--font-sans)",
+        }}
       >
         <p className="text-base">EyeFrame is optimized for desktop</p>
       </div>
@@ -134,7 +150,7 @@ function KioskPage() {
           >
             <span className="flex items-center gap-2">
               <Eye className="h-4 w-4" style={{ color: "var(--eyeframe-accent)" }} />
-              <span>{labels.kiosk_title}</span>
+              <span>{labels.admin_title}</span>
               <span className="opacity-60">·</span>
               <span className="opacity-90">{CATEGORY_LABELS[category]}</span>
             </span>
@@ -178,7 +194,9 @@ function KioskPage() {
           style={{ scrollbarWidth: "thin" }}
         >
           {visible.length === 0 && (
-            <span className="text-xs opacity-60">No items in this category. Add some in /admin.</span>
+            <span className="text-xs opacity-60">
+              No items in this category. Add some in /admin.
+            </span>
           )}
           {visible.map((item) => {
             const isActive = active?.id === item.id;
@@ -197,18 +215,14 @@ function KioskPage() {
                 }}
               >
                 {item.favicon_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={item.favicon_url}
                     alt=""
                     className="h-5 w-5 shrink-0 rounded"
-                    onError={(e) => ((e.currentTarget.style.display = "none"))}
+                    onError={(e) => (e.currentTarget.style.display = "none")}
                   />
                 ) : (
-                  <CategoryIcon
-                    category={item.category}
-                    className="h-5 w-5 shrink-0 opacity-80"
-                  />
+                  <CategoryIcon category={item.category} className="h-5 w-5 shrink-0 opacity-80" />
                 )}
                 <span className="truncate text-sm" style={{ color: "var(--eyeframe-text)" }}>
                   {item.label}
@@ -242,7 +256,7 @@ function KioskPage() {
             >
               <Eye className="h-10 w-10" style={{ color: "var(--eyeframe-accent)" }} />
             </div>
-            <div className="text-2xl font-semibold tracking-tight">EyeFrame</div>
+            <div className="text-2xl font-semibold tracking-tight">{labels.admin_title}</div>
             <div className="text-sm opacity-70">Select a resource above to begin</div>
           </div>
         )}

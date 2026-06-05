@@ -188,6 +188,11 @@ function AdminPage() {
     onSuccess: invalidateSettings,
   });
 
+  const refreshMut = useMutation({
+    mutationFn: () => refresh(),
+    onSuccess: invalidateItems,
+  });
+
   return (
     <div
       className="min-h-screen w-full px-6 py-8"

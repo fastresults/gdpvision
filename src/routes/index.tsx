@@ -150,7 +150,7 @@ function KioskPage() {
           >
             <span className="flex items-center gap-2">
               <Eye className="h-4 w-4" style={{ color: "var(--eyeframe-accent)" }} />
-              <span>{labels.admin_title}</span>
+              <span>{labels.kiosk_title}</span>
               <span className="opacity-60">·</span>
               <span className="opacity-90">{CATEGORY_LABELS[category]}</span>
             </span>

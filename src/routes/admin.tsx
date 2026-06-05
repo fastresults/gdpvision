@@ -2,12 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Eye, Pencil, Plus, Trash2, X, Check } from "lucide-react";
+import { ArrowDown, ArrowUp, Eye, Pencil, Plus, RefreshCw, Trash2, X, Check } from "lucide-react";
 import {
   createItem,
   deleteItem,
   listItems,
   moveItem,
+  refreshFavicons,
   updateItem,
   type Item,
   type ItemCategory,
@@ -104,6 +105,7 @@ function AdminPage() {
   const remove = useServerFn(deleteItem);
   const move = useServerFn(moveItem);
   const saveSetting = useServerFn(updateSetting);
+  const refresh = useServerFn(refreshFavicons);
 
   const { data: items = [] } = useQuery({
     queryKey: ["items"],
@@ -186,6 +188,11 @@ function AdminPage() {
     onSuccess: invalidateSettings,
   });
 
+  const refreshMut = useMutation({
+    mutationFn: () => refresh(),
+    onSuccess: invalidateItems,
+  });
+
   return (
     <div
       className="min-h-screen w-full px-6 py-8"
@@ -217,17 +224,34 @@ function AdminPage() {
               />
             </div>
           </div>
-          <Link
-            to="/"
-            className="rounded-md border px-3 py-2 text-sm transition-colors hover:brightness-125"
-            style={{
-              backgroundColor: "var(--eyeframe-topbar)",
-              borderColor: "var(--eyeframe-border)",
-            }}
-          >
-            Open Kiosk
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => refreshMut.mutate()}
+              disabled={refreshMut.isPending}
+              className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:brightness-125 disabled:opacity-50"
+              style={{
+                backgroundColor: "var(--eyeframe-topbar)",
+                borderColor: "var(--eyeframe-border)",
+              }}
+              title="Re-fetch favicons for all items"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshMut.isPending ? "animate-spin" : ""}`} />
+              Refresh favicons
+            </button>
+            <Link
+              to="/"
+              className="rounded-md border px-3 py-2 text-sm transition-colors hover:brightness-125"
+              style={{
+                backgroundColor: "var(--eyeframe-topbar)",
+                borderColor: "var(--eyeframe-border)",
+              }}
+            >
+              Open Kiosk
+            </Link>
+          </div>
         </header>
+
 
         <div className="mb-6 flex flex-wrap gap-2">
           {tabs.map((t) => {

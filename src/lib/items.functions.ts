@@ -40,7 +40,7 @@ export const createItem = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     let favicon = data.favicon_url ?? null;
-    if (!favicon && data.category === "websites") {
+    if (!favicon) {
       try {
         const host = new URL(data.url).hostname;
         favicon = `https://www.google.com/s2/favicons?domain=${host}&sz=64`;
@@ -80,17 +80,50 @@ export const updateItem = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let favicon = data.favicon_url ?? null;
+    if (!favicon) {
+      try {
+        const host = new URL(data.url).hostname;
+        favicon = `https://www.google.com/s2/favicons?domain=${host}&sz=64`;
+      } catch {
+        // ignore
+      }
+    }
     const { error } = await supabaseAdmin
       .from("items")
       .update({
         label: data.label,
         url: data.url,
-        favicon_url: data.favicon_url ?? null,
+        favicon_url: favicon,
       })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const refreshFavicons = createServerFn({ method: "POST" }).handler(async () => {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: rows, error } = await supabaseAdmin
+    .from("items")
+    .select("id, url, favicon_url");
+  if (error) throw new Error(error.message);
+  let updated = 0;
+  for (const row of rows ?? []) {
+    if (row.favicon_url) continue;
+    try {
+      const host = new URL(row.url).hostname;
+      const favicon = `https://www.google.com/s2/favicons?domain=${host}&sz=64`;
+      const { error: ue } = await supabaseAdmin
+        .from("items")
+        .update({ favicon_url: favicon })
+        .eq("id", row.id);
+      if (!ue) updated += 1;
+    } catch {
+      // skip invalid URLs
+    }
+  }
+  return { ok: true, updated };
+});
 
 export const deleteItem = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))

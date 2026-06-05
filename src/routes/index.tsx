@@ -29,11 +29,30 @@ function CategoryIcon({ category, className }: { category: ItemCategory; classNa
 
 function KioskPage() {
   const fetchItems = useServerFn(listItems);
+  const fetchSettings = useServerFn(listSettings);
   const { data: items = [] } = useQuery({
     queryKey: ["items"],
     queryFn: () => fetchItems(),
     refetchOnWindowFocus: true,
   });
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ["settings"],
+    queryFn: () => fetchSettings(),
+    refetchOnWindowFocus: true,
+  });
+  const labels: Settings = settings ?? {
+    admin_title: "EyeFrame Admin",
+    kiosk_title: "EyeFrame",
+    label_websites: "Websites",
+    label_presentations: "Presentations",
+    label_docs: "Google Docs",
+  };
+  const CATEGORY_LABELS: Record<ItemCategory, string> = {
+    websites: labels.label_websites,
+    presentations: labels.label_presentations,
+    docs: labels.label_docs,
+  };
+  void CATEGORY_SETTING_KEY;
 
   const [category, setCategory] = useState<ItemCategory>("websites");
   const [active, setActive] = useState<Item | null>(null);

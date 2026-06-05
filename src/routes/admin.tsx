@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Eye, Pencil, Plus, Trash2, X, Check } from "lucide-react";
 import {
   createItem,
@@ -12,6 +12,12 @@ import {
   type Item,
   type ItemCategory,
 } from "@/lib/items.functions";
+import {
+  listSettings,
+  updateSetting,
+  type SettingKey,
+  type Settings,
+} from "@/lib/settings.functions";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -23,24 +29,107 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-const TABS: { key: ItemCategory; label: string }[] = [
-  { key: "websites", label: "Websites" },
-  { key: "presentations", label: "Presentations" },
-  { key: "docs", label: "Google Docs" },
-];
+const CATEGORY_KEYS: ItemCategory[] = ["websites", "presentations", "docs"];
+
+const CATEGORY_TO_SETTING: Record<ItemCategory, SettingKey> = {
+  websites: "label_websites",
+  presentations: "label_presentations",
+  docs: "label_docs",
+};
+
+function InlineEditable({
+  value,
+  onSave,
+  className,
+  inputClassName,
+}: {
+  value: string;
+  onSave: (v: string) => void;
+  className?: string;
+  inputClassName?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
+
+  const commit = () => {
+    const v = draft.trim();
+    if (v && v !== value) onSave(v);
+    setEditing(false);
+  };
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className={`group inline-flex items-center gap-2 ${className ?? ""}`}
+        title="Click to rename"
+      >
+        <span>{value}</span>
+        <Pencil className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-60" />
+      </button>
+    );
+  }
+
+  return (
+    <input
+      autoFocus
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") commit();
+        if (e.key === "Escape") {
+          setDraft(value);
+          setEditing(false);
+        }
+      }}
+      className={`rounded-md border px-2 py-1 outline-none ${inputClassName ?? ""}`}
+      style={{
+        backgroundColor: "var(--eyeframe-card)",
+        borderColor: "var(--eyeframe-accent)",
+        color: "var(--eyeframe-text)",
+      }}
+    />
+  );
+}
 
 function AdminPage() {
   const qc = useQueryClient();
   const fetchItems = useServerFn(listItems);
+  const fetchSettings = useServerFn(listSettings);
   const create = useServerFn(createItem);
   const update = useServerFn(updateItem);
   const remove = useServerFn(deleteItem);
   const move = useServerFn(moveItem);
+  const saveSetting = useServerFn(updateSetting);
 
   const { data: items = [] } = useQuery({
     queryKey: ["items"],
     queryFn: () => fetchItems(),
   });
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ["settings"],
+    queryFn: () => fetchSettings(),
+  });
+
+  const labels: Settings = settings ?? {
+    admin_title: "EyeFrame Admin",
+    kiosk_title: "EyeFrame",
+    label_websites: "Websites",
+    label_presentations: "Presentations",
+    label_docs: "Google Docs",
+  };
+
+  const tabs = useMemo(
+    () =>
+      CATEGORY_KEYS.map((key) => ({
+        key,
+        label: labels[CATEGORY_TO_SETTING[key]],
+      })),
+    [labels],
+  );
 
   const [tab, setTab] = useState<ItemCategory>("websites");
   const [label, setLabel] = useState("");
@@ -57,35 +146,44 @@ function AdminPage() {
     [items, tab],
   );
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["items"] });
+  const invalidateItems = () => qc.invalidateQueries({ queryKey: ["items"] });
+  const invalidateSettings = () => qc.invalidateQueries({ queryKey: ["settings"] });
 
   const createMut = useMutation({
     mutationFn: () => create({ data: { category: tab, label, url } }),
     onSuccess: () => {
       setLabel("");
       setUrl("");
-      invalidate();
+      invalidateItems();
     },
   });
 
   const updateMut = useMutation({
     mutationFn: (item: Item) =>
-      update({ data: { id: item.id, label: editLabel, url: editUrl, favicon_url: item.favicon_url } }),
+      update({
+        data: { id: item.id, label: editLabel, url: editUrl, favicon_url: item.favicon_url },
+      }),
     onSuccess: () => {
       setEditingId(null);
-      invalidate();
+      invalidateItems();
     },
   });
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => remove({ data: { id } }),
-    onSuccess: invalidate,
+    onSuccess: invalidateItems,
   });
 
   const moveMut = useMutation({
     mutationFn: ({ id, direction }: { id: string; direction: "up" | "down" }) =>
       move({ data: { id, direction } }),
-    onSuccess: invalidate,
+    onSuccess: invalidateItems,
+  });
+
+  const settingMut = useMutation({
+    mutationFn: ({ key, value }: { key: SettingKey; value: string }) =>
+      saveSetting({ data: { key, value } }),
+    onSuccess: invalidateSettings,
   });
 
   return (
@@ -101,7 +199,13 @@ function AdminPage() {
         <header className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Eye className="h-6 w-6" style={{ color: "var(--eyeframe-accent)" }} />
-            <h1 className="text-2xl font-semibold tracking-tight">EyeFrame Admin</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              <InlineEditable
+                value={labels.admin_title}
+                onSave={(v) => settingMut.mutate({ key: "admin_title", value: v })}
+                inputClassName="text-2xl font-semibold tracking-tight"
+              />
+            </h1>
           </div>
           <Link
             to="/"
@@ -115,22 +219,34 @@ function AdminPage() {
           </Link>
         </header>
 
-        <div className="mb-6 flex gap-2">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setTab(t.key)}
-              className="rounded-md border px-4 py-2 text-sm font-medium transition-colors"
-              style={{
-                backgroundColor: tab === t.key ? "var(--eyeframe-accent)" : "var(--eyeframe-card)",
-                color: tab === t.key ? "var(--eyeframe-bg)" : "var(--eyeframe-text)",
-                borderColor: tab === t.key ? "var(--eyeframe-accent)" : "var(--eyeframe-border)",
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
+        <div className="mb-6 flex flex-wrap gap-2">
+          {tabs.map((t) => {
+            const isActive = tab === t.key;
+            return (
+              <div
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className="flex cursor-pointer items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors"
+                style={{
+                  backgroundColor: isActive ? "var(--eyeframe-accent)" : "var(--eyeframe-card)",
+                  color: isActive ? "var(--eyeframe-bg)" : "var(--eyeframe-text)",
+                  borderColor: isActive ? "var(--eyeframe-accent)" : "var(--eyeframe-border)",
+                }}
+              >
+                <InlineEditable
+                  value={t.label}
+                  onSave={(v) =>
+                    settingMut.mutate({ key: CATEGORY_TO_SETTING[t.key], value: v })
+                  }
+                  inputClassName="text-sm font-medium"
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mb-4 text-xs opacity-60">
+          Tip: click any title or category name to rename it. The kiosk updates automatically.
         </div>
 
         {/* Add form */}
@@ -146,7 +262,9 @@ function AdminPage() {
             borderColor: "var(--eyeframe-border)",
           }}
         >
-          <div className="mb-3 text-sm font-medium opacity-80">Add to {TABS.find((t) => t.key === tab)?.label}</div>
+          <div className="mb-3 text-sm font-medium opacity-80">
+            Add to {tabs.find((t) => t.key === tab)?.label}
+          </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_2fr_auto]">
             <input
               value={label}

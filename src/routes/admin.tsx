@@ -197,15 +197,25 @@ function AdminPage() {
     >
       <div className="mx-auto max-w-5xl">
         <header className="mb-8 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Eye className="h-6 w-6" style={{ color: "var(--eyeframe-accent)" }} />
-            <h1 className="text-2xl font-semibold tracking-tight">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-3">
+              <Eye className="h-6 w-6" style={{ color: "var(--eyeframe-accent)" }} />
+              <h1 className="text-2xl font-semibold tracking-tight">
+                <InlineEditable
+                  value={labels.admin_title}
+                  onSave={(v) => settingMut.mutate({ key: "admin_title", value: v })}
+                  inputClassName="text-2xl font-semibold tracking-tight"
+                />
+              </h1>
+            </div>
+            <div className="pl-9 text-xs opacity-70">
+              Kiosk title:&nbsp;
               <InlineEditable
-                value={labels.admin_title}
-                onSave={(v) => settingMut.mutate({ key: "admin_title", value: v })}
-                inputClassName="text-2xl font-semibold tracking-tight"
+                value={labels.kiosk_title}
+                onSave={(v) => settingMut.mutate({ key: "kiosk_title", value: v })}
+                inputClassName="text-xs"
               />
-            </h1>
+            </div>
           </div>
           <Link
             to="/"

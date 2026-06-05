@@ -39,6 +39,8 @@ function KioskPage() {
     queryKey: ["settings"],
     queryFn: () => fetchSettings(),
     refetchOnWindowFocus: true,
+    refetchInterval: 5000,
+    staleTime: 0,
   });
   const labels: Settings = settings ?? {
     admin_title: "EyeFrame Admin",

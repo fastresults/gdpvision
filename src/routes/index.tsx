@@ -134,7 +134,7 @@ function KioskPage() {
           >
             <span className="flex items-center gap-2">
               <Eye className="h-4 w-4" style={{ color: "var(--eyeframe-accent)" }} />
-              <span>{labels.kiosk_title}</span>
+              <span>{labels.admin_title}</span>
               <span className="opacity-60">·</span>
               <span className="opacity-90">{CATEGORY_LABELS[category]}</span>
             </span>
@@ -242,7 +242,7 @@ function KioskPage() {
             >
               <Eye className="h-10 w-10" style={{ color: "var(--eyeframe-accent)" }} />
             </div>
-            <div className="text-2xl font-semibold tracking-tight">EyeFrame</div>
+            <div className="text-2xl font-semibold tracking-tight">{labels.admin_title}</div>
             <div className="text-sm opacity-70">Select a resource above to begin</div>
           </div>
         )}

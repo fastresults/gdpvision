@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, FileText, Globe, Presentation, ExternalLink, Settings, Eye } from "lucide-react";
+import { ChevronDown, FileText, Globe, Presentation, ExternalLink, Settings as SettingsIcon, Eye } from "lucide-react";
 import { listItems, type Item, type ItemCategory } from "@/lib/items.functions";
 import { listSettings, type Settings } from "@/lib/settings.functions";
 

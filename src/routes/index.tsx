@@ -193,7 +193,9 @@ function KioskPage() {
           style={{ scrollbarWidth: "thin" }}
         >
           {visible.length === 0 && (
-            <span className="text-xs opacity-60">No items in this category. Add some in /admin.</span>
+            <span className="text-xs opacity-60">
+              No items in this category. Add some in /admin.
+            </span>
           )}
           {visible.map((item) => {
             const isActive = active?.id === item.id;
@@ -212,18 +214,14 @@ function KioskPage() {
                 }}
               >
                 {item.favicon_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={item.favicon_url}
                     alt=""
                     className="h-5 w-5 shrink-0 rounded"
-                    onError={(e) => ((e.currentTarget.style.display = "none"))}
+                    onError={(e) => (e.currentTarget.style.display = "none")}
                   />
                 ) : (
-                  <CategoryIcon
-                    category={item.category}
-                    className="h-5 w-5 shrink-0 opacity-80"
-                  />
+                  <CategoryIcon category={item.category} className="h-5 w-5 shrink-0 opacity-80" />
                 )}
                 <span className="truncate text-sm" style={{ color: "var(--eyeframe-text)" }}>
                   {item.label}

@@ -224,17 +224,34 @@ function AdminPage() {
               />
             </div>
           </div>
-          <Link
-            to="/"
-            className="rounded-md border px-3 py-2 text-sm transition-colors hover:brightness-125"
-            style={{
-              backgroundColor: "var(--eyeframe-topbar)",
-              borderColor: "var(--eyeframe-border)",
-            }}
-          >
-            Open Kiosk
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => refreshMut.mutate()}
+              disabled={refreshMut.isPending}
+              className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:brightness-125 disabled:opacity-50"
+              style={{
+                backgroundColor: "var(--eyeframe-topbar)",
+                borderColor: "var(--eyeframe-border)",
+              }}
+              title="Re-fetch favicons for all items"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshMut.isPending ? "animate-spin" : ""}`} />
+              Refresh favicons
+            </button>
+            <Link
+              to="/"
+              className="rounded-md border px-3 py-2 text-sm transition-colors hover:brightness-125"
+              style={{
+                backgroundColor: "var(--eyeframe-topbar)",
+                borderColor: "var(--eyeframe-border)",
+              }}
+            >
+              Open Kiosk
+            </Link>
+          </div>
         </header>
+
 
         <div className="mb-6 flex flex-wrap gap-2">
           {tabs.map((t) => {

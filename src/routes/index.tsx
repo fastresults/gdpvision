@@ -225,7 +225,7 @@ function KioskPage() {
             color: "var(--eyeframe-text)",
           }}
         >
-          <Settings className="h-4 w-4" />
+          <SettingsIcon className="h-4 w-4" />
           Admin
         </Link>
       </div>

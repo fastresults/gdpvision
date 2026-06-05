@@ -105,6 +105,7 @@ function AdminPage() {
   const remove = useServerFn(deleteItem);
   const move = useServerFn(moveItem);
   const saveSetting = useServerFn(updateSetting);
+  const refresh = useServerFn(refreshFavicons);
 
   const { data: items = [] } = useQuery({
     queryKey: ["items"],

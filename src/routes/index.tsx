@@ -34,7 +34,8 @@ const CATEGORY_SETTING_KEY = {
 } as const;
 
 function CategoryIcon({ category, className }: { category: ItemCategory; className?: string }) {
-  const Icon = category === "websites" ? Globe : category === "presentations" ? Presentation : FileText;
+  const Icon =
+    category === "websites" ? Globe : category === "presentations" ? Presentation : FileText;
   return <Icon className={className} />;
 }
 

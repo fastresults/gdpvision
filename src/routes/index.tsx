@@ -2,7 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, FileText, Globe, Presentation, ExternalLink, Settings as SettingsIcon, Eye } from "lucide-react";
+import {
+  ChevronDown,
+  FileText,
+  Globe,
+  Presentation,
+  ExternalLink,
+  Settings as SettingsIcon,
+  Eye,
+} from "lucide-react";
 import { listItems, type Item, type ItemCategory } from "@/lib/items.functions";
 import { listSettings, type Settings } from "@/lib/settings.functions";
 
@@ -10,7 +18,10 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "EyeFrame — Kiosk" },
-      { name: "description", content: "Full-screen browser demonstration system." },
+      {
+        name: "description",
+        content: "Full-screen browser demonstration system.",
+      },
     ],
   }),
   component: KioskPage,
@@ -97,7 +108,11 @@ function KioskPage() {
     return (
       <div
         className="flex h-screen w-screen items-center justify-center px-6 text-center"
-        style={{ backgroundColor: "var(--eyeframe-bg)", color: "var(--eyeframe-text)", fontFamily: "var(--font-sans)" }}
+        style={{
+          backgroundColor: "var(--eyeframe-bg)",
+          color: "var(--eyeframe-text)",
+          fontFamily: "var(--font-sans)",
+        }}
       >
         <p className="text-base">EyeFrame is optimized for desktop</p>
       </div>

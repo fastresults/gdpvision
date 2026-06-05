@@ -2,8 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, FileText, Globe, Presentation, ExternalLink, Settings, Eye } from "lucide-react";
+import { ChevronDown, FileText, Globe, Presentation, ExternalLink, Settings as SettingsIcon, Eye } from "lucide-react";
 import { listItems, type Item, type ItemCategory } from "@/lib/items.functions";
+import { listSettings, type Settings } from "@/lib/settings.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -15,11 +16,11 @@ export const Route = createFileRoute("/")({
   component: KioskPage,
 });
 
-const CATEGORY_LABELS: Record<ItemCategory, string> = {
-  websites: "Websites",
-  presentations: "Presentations",
-  docs: "Google Docs",
-};
+const CATEGORY_SETTING_KEY = {
+  websites: "label_websites",
+  presentations: "label_presentations",
+  docs: "label_docs",
+} as const;
 
 function CategoryIcon({ category, className }: { category: ItemCategory; className?: string }) {
   const Icon = category === "websites" ? Globe : category === "presentations" ? Presentation : FileText;
@@ -28,11 +29,30 @@ function CategoryIcon({ category, className }: { category: ItemCategory; classNa
 
 function KioskPage() {
   const fetchItems = useServerFn(listItems);
+  const fetchSettings = useServerFn(listSettings);
   const { data: items = [] } = useQuery({
     queryKey: ["items"],
     queryFn: () => fetchItems(),
     refetchOnWindowFocus: true,
   });
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ["settings"],
+    queryFn: () => fetchSettings(),
+    refetchOnWindowFocus: true,
+  });
+  const labels: Settings = settings ?? {
+    admin_title: "EyeFrame Admin",
+    kiosk_title: "EyeFrame",
+    label_websites: "Websites",
+    label_presentations: "Presentations",
+    label_docs: "Google Docs",
+  };
+  const CATEGORY_LABELS: Record<ItemCategory, string> = {
+    websites: labels.label_websites,
+    presentations: labels.label_presentations,
+    docs: labels.label_docs,
+  };
+  void CATEGORY_SETTING_KEY;
 
   const [category, setCategory] = useState<ItemCategory>("websites");
   const [active, setActive] = useState<Item | null>(null);
@@ -112,7 +132,7 @@ function KioskPage() {
           >
             <span className="flex items-center gap-2">
               <Eye className="h-4 w-4" style={{ color: "var(--eyeframe-accent)" }} />
-              <span>EyeFrame</span>
+              <span>{labels.kiosk_title}</span>
               <span className="opacity-60">·</span>
               <span className="opacity-90">{CATEGORY_LABELS[category]}</span>
             </span>
@@ -205,7 +225,7 @@ function KioskPage() {
             color: "var(--eyeframe-text)",
           }}
         >
-          <Settings className="h-4 w-4" />
+          <SettingsIcon className="h-4 w-4" />
           Admin
         </Link>
       </div>

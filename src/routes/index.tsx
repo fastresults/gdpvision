@@ -120,8 +120,15 @@ function KioskPage() {
           </button>
           {menuOpen && (
             <div
-              className="absolute left-0 top-full z-50 mt-1 w-full overflow-hidden rounded-md border shadow-xl"
-              style={{ backgroundColor: "var(--eyeframe-card)", borderColor: "var(--eyeframe-border)" }}
+              className="fixed mt-1 overflow-hidden rounded-md border shadow-xl"
+              style={{
+                left: 12,
+                top: "8vh",
+                width: 180,
+                zIndex: 9999,
+                backgroundColor: "var(--eyeframe-card)",
+                borderColor: "var(--eyeframe-border)",
+              }}
             >
               {(Object.keys(CATEGORY_LABELS) as ItemCategory[]).map((c) => (
                 <button

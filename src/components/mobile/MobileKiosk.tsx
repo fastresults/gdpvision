@@ -30,6 +30,115 @@ function CategoryIcon({ category, className }: { category: ItemCategory; classNa
   return <Icon className={className} />;
 }
 
+function ThumbnailCard({
+  item,
+  categoryLabel,
+  onClick,
+}: {
+  item: Item;
+  categoryLabel: string;
+  onClick: () => void;
+}) {
+  const isVideo = VIDEO_CATEGORIES.includes(item.category);
+  const thumbUrl = getHeroThumbnail(item.url, item.category);
+  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const showFallback = failed || (!thumbUrl && !isVideo) || (isVideo && failed);
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex flex-col overflow-hidden rounded-2xl border text-left transition-all active:scale-[0.97]"
+      style={{
+        backgroundColor: "var(--eyeframe-card)",
+        borderColor: "var(--eyeframe-border)",
+      }}
+    >
+      {/* Thumbnail area */}
+      <div
+        className="relative aspect-[16/10] w-full overflow-hidden"
+        style={{
+          background:
+            "linear-gradient(135deg, color-mix(in oklch, var(--eyeframe-accent) 18%, var(--eyeframe-bg)) 0%, var(--eyeframe-bg) 100%)",
+        }}
+      >
+        {/* Shimmer while loading */}
+        {!loaded && !showFallback && (
+          <div
+            className="absolute inset-0 animate-pulse"
+            style={{
+              background:
+                "linear-gradient(90deg, transparent, color-mix(in oklch, var(--eyeframe-text) 6%, transparent), transparent)",
+            }}
+          />
+        )}
+
+        {/* Website screenshot */}
+        {thumbUrl && !isVideo && !failed && (
+          <img
+            src={thumbUrl}
+            alt={item.label}
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            onLoad={() => setLoaded(true)}
+            onError={() => setFailed(true)}
+            className="h-full w-full object-cover object-top"
+          />
+        )}
+
+        {/* Video poster frame */}
+        {isVideo && !failed && (
+          <video
+            src={item.url}
+            preload="metadata"
+            muted
+            playsInline
+            onLoadedData={() => setLoaded(true)}
+            onError={() => setFailed(true)}
+            className="h-full w-full object-cover"
+          />
+        )}
+
+        {/* Fallback */}
+        {showFallback && (
+          <div className="flex h-full w-full items-center justify-center">
+            <CategoryIcon
+              category={item.category}
+              className="h-10 w-10 opacity-60"
+            />
+          </div>
+        )}
+
+        {/* Bottom gradient for legibility against bright screenshots if label overlays in future */}
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-12"
+          style={{
+            background:
+              "linear-gradient(to top, color-mix(in oklch, var(--eyeframe-card) 70%, transparent), transparent)",
+          }}
+        />
+      </div>
+
+      {/* Meta */}
+      <div className="flex flex-col gap-1 p-3">
+        <div
+          className="line-clamp-2 text-sm font-semibold leading-tight"
+          style={{ color: "var(--eyeframe-text)" }}
+        >
+          {item.label}
+        </div>
+        <div className="flex items-center gap-1 text-[11px] opacity-50">
+          <CategoryIcon category={item.category} className="h-3 w-3" />
+          {categoryLabel}
+        </div>
+      </div>
+    </button>
+  );
+}
+
 export function MobileKiosk({ items, settings }: { items: Item[]; settings: Settings }) {
   const labels = settings;
   const CATEGORY_LABELS: Record<ItemCategory, string> = {

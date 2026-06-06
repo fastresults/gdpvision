@@ -121,6 +121,8 @@ function AdminPage() {
   const move = useServerFn(moveItem);
   const saveSetting = useServerFn(updateSetting);
   const refresh = useServerFn(refreshFavicons);
+  const genThumb = useServerFn(generateItemThumbnail);
+  const refreshThumbs = useServerFn(refreshAllThumbnails);
 
   const { data: items = [] } = useQuery({
     queryKey: ["items"],

@@ -255,16 +255,29 @@ function KioskPage() {
       {/* Preview area */}
       <div className="relative h-full w-full" style={{ backgroundColor: "var(--eyeframe-bg)" }}>
         {!active && (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-4">
-            <div
-              className="flex h-20 w-20 items-center justify-center rounded-full border"
-              style={{ borderColor: "var(--eyeframe-accent)" }}
-            >
-              <Eye className="h-10 w-10" style={{ color: "var(--eyeframe-accent)" }} />
+          labels.idle_image_url ? (
+            <div className="relative flex h-full w-full items-center justify-center" style={{ backgroundColor: "var(--eyeframe-bg)" }}>
+              <img
+                src={labels.idle_image_url}
+                alt={labels.kiosk_title}
+                className="h-full w-full object-contain"
+              />
+              <div className="pointer-events-none absolute bottom-6 left-0 right-0 text-center text-sm opacity-70">
+                {labels.kiosk_title}
+              </div>
             </div>
-            <div className="text-2xl font-semibold tracking-tight">{labels.admin_title}</div>
-            <div className="text-sm opacity-70">Select a resource above to begin</div>
-          </div>
+          ) : (
+            <div className="flex h-full w-full flex-col items-center justify-center gap-4">
+              <div
+                className="flex h-20 w-20 items-center justify-center rounded-full border"
+                style={{ borderColor: "var(--eyeframe-accent)" }}
+              >
+                <Eye className="h-10 w-10" style={{ color: "var(--eyeframe-accent)" }} />
+              </div>
+              <div className="text-2xl font-semibold tracking-tight">{labels.admin_title}</div>
+              <div className="text-sm opacity-70">Select a resource above to begin</div>
+            </div>
+          )
         )}
 
         {active && VIDEO_CATEGORIES.includes(active.category) && (

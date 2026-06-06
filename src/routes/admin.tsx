@@ -184,7 +184,7 @@ function AdminPage() {
         const { publicUrl } = await uploadVideo({ data: fd });
         finalUrl = publicUrl;
       }
-      return create({ data: { category: tab, label, url: finalUrl } });
+      return create({ data: { category: categoryTab, label, url: finalUrl } });
     },
     onSuccess: () => {
       setLabel("");

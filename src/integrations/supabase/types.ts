@@ -36,6 +36,7 @@ export type Database = {
         Row: {
           category: string
           created_at: string
+          favicon_asset_id: string | null
           favicon_url: string | null
           id: string
           label: string
@@ -45,6 +46,7 @@ export type Database = {
         Insert: {
           category: string
           created_at?: string
+          favicon_asset_id?: string | null
           favicon_url?: string | null
           id?: string
           label: string
@@ -54,11 +56,53 @@ export type Database = {
         Update: {
           category?: string
           created_at?: string
+          favicon_asset_id?: string | null
           favicon_url?: string | null
           id?: string
           label?: string
           sort_order?: number
           url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "items_favicon_asset_id_fkey"
+            columns: ["favicon_asset_id"]
+            isOneToOne: false
+            referencedRelation: "media_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_assets: {
+        Row: {
+          created_at: string
+          filename: string
+          id: string
+          kind: string
+          mime_type: string
+          public_url: string
+          size_bytes: number
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          filename: string
+          id?: string
+          kind: string
+          mime_type: string
+          public_url: string
+          size_bytes: number
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          filename?: string
+          id?: string
+          kind?: string
+          mime_type?: string
+          public_url?: string
+          size_bytes?: number
+          storage_path?: string
         }
         Relationships: []
       }

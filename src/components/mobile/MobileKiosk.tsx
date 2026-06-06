@@ -95,16 +95,19 @@ function ThumbnailCard({
         )}
 
         {/* Website screenshot */}
-        {thumbUrl && !isVideo && !failed && (
+        {srcWithRetry && !failed && (
           <img
-            src={thumbUrl}
+            ref={imgRef}
+            key={retry}
+            src={srcWithRetry}
             alt={item.label}
             loading="lazy"
             decoding="async"
             referrerPolicy="no-referrer"
-            onLoad={() => setLoaded(true)}
+            onLoad={handleImgLoad}
             onError={() => setFailed(true)}
             className="h-full w-full object-cover object-top"
+            style={{ opacity: loaded ? 1 : 0, transition: "opacity 300ms" }}
           />
         )}
 

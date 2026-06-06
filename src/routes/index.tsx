@@ -266,7 +266,18 @@ function KioskPage() {
           </div>
         )}
 
-        {active && (
+        {active && VIDEO_CATEGORIES.includes(active.category) && (
+          <video
+            key={active.id}
+            src={active.url}
+            controls
+            autoPlay
+            playsInline
+            className="h-full w-full bg-black object-contain"
+          />
+        )}
+
+        {active && !VIDEO_CATEGORIES.includes(active.category) && (
           <>
             <iframe
               key={active.id}

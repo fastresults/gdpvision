@@ -4,24 +4,16 @@ import type { ItemCategory } from "@/lib/items.functions";
  * Returns a CDN-cached screenshot URL for the given page URL, or null
  * if the category should not get a website thumbnail (videos use their own poster).
  *
- * Uses Microlink's free screenshot API. `embed=screenshot.url` makes the
- * endpoint return the image bytes directly, so it slots straight into <img src>.
+ * Uses WordPress.com's mShots service — free, no API key, no rate limit,
+ * globally cached. First request for a new URL returns a placeholder while
+ * the screenshot generates (usually 5-15s); subsequent requests are instant.
  */
 export function getHeroThumbnail(url: string, category: ItemCategory): string | null {
   if (category === "videos" || category === "brand") return null;
   try {
-    // Validate URL
     new URL(url);
   } catch {
     return null;
   }
-  const params = new URLSearchParams({
-    url,
-    screenshot: "true",
-    embed: "screenshot.url",
-    "viewport.width": "1280",
-    "viewport.height": "720",
-    waitUntil: "networkidle0",
-  });
-  return `https://api.microlink.io/?${params.toString()}`;
+  return `https://s.wordpress.com/mshots/v1/${encodeURIComponent(url)}?w=800&h=500`;
 }

@@ -318,8 +318,8 @@ function KioskPage() {
                     borderColor: "var(--eyeframe-border)",
                   }}
                 >
-                  {active.favicon_url ? (
-                    <img src={active.favicon_url} alt="" className="h-10 w-10 rounded" />
+                  {active.favicon_asset_url || active.favicon_url ? (
+                    <img src={active.favicon_asset_url ?? active.favicon_url ?? ""} alt="" className="h-10 w-10 rounded" />
                   ) : (
                     <CategoryIcon category={active.category} className="h-10 w-10" />
                   )}

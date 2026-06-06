@@ -1,65 +1,75 @@
-# Media Hub Plan
+# Mobile-First Experience Plan
 
-A central media library in the admin where you upload files once and reuse them anywhere: as item favicons, as the kiosk's idle (pre-selection) screen image, or as the URL backing a video/presentation/doc item. Filterable by file type.
+Today, mobile users hit a dead end: a single line saying "GDP Vision is optimized for desktop." We replace that with a polished, native-feeling mobile experience that mirrors the desktop kiosk's purpose (browse resources by category and view them) but reimagined for touch, one-thumb use, and small screens.
 
-## What you'll see
+## Goals
 
-**New "Media Library" tab in /admin** (alongside Websites, Presentations, Google Docs, Past Events, Brand Building):
-- Drop zone / "Upload" button. Accepts images (png, jpg, webp, svg, gif), videos (mp4, webm, mov), PDFs, and Office docs (pdf, doc/docx, ppt/pptx).
-- Grid of uploaded files showing thumbnail (image preview, video poster, or type icon), filename, size, upload date.
-- Filter chips at the top: **All / Images / Videos / PDFs / Documents**.
-- Each tile: copy URL, set as Idle Image (images only), rename, delete.
+- Feel like a premium mobile app, not a shrunken desktop site
+- One-thumb reachable: primary controls live in the bottom half
+- Fast category switching and content discovery
+- Graceful handling of iframes that block mobile embedding
 
-**Idle screen on kiosk (/)**:
-- Replaces the eye-icon placeholder shown before a resource is selected.
-- If an idle image is set in admin, it displays full-screen (object-contain, centered) with the kiosk title overlaid at the bottom.
-- If none is set, the existing eye-icon placeholder stays as fallback.
-- Admin tab has a small "Idle Screen" panel showing the current image with "Change" / "Clear" actions, also accessible from any image tile's "Set as Idle Image" action.
+## Experience
 
-**Custom favicons for items**:
-- In every existing category tab (Websites / Presentations / Docs), the row's favicon becomes clickable. Clicking opens a small picker showing images from the library; choosing one overrides the auto-derived favicon. A "Reset to auto" option restores the Google-derived favicon.
-- Past Events / Brand Building rows keep the Film badge (no favicon concept for videos).
+### 1. Idle / Home screen
+- Full-bleed dark canvas with the admin-uploaded idle image centered (capped ~55% of viewport height on mobile, with soft radial glow behind it)
+- Large bold kiosk title beneath the image
+- Subtle "Swipe up to explore" affordance with an animated chevron
+- Tapping anywhere or swiping up reveals the category browser
 
-**Video/doc items via library**:
-- When adding to Past Events or Brand Building, in addition to the existing direct upload, a "Pick from Library" button opens a video-filtered picker.
-- When adding to Presentations or Google Docs, a "Pick from Library" button opens a PDF/doc-filtered picker that fills the URL field with the file's public URL.
+### 2. Category browser (bottom sheet, primary surface)
+- Persistent bottom sheet, two snap points: peek (shows category pills) and expanded (shows resource grid)
+- Top of sheet: horizontally scrollable category pills (Websites, Presentations, Docs, Past Events, Brand) with the active pill highlighted using the accent color
+- Below pills: 2-column tappable card grid of items in the active category
+  - Each card: favicon/thumbnail, label (2-line clamp), category icon badge
+  - Generous 44pt+ tap targets, springy press states
+- Empty state per category with friendly copy
 
-## How it works (technical)
+### 3. Resource viewer (full-screen takeover)
+- Tapping a card pushes a full-screen view with slide-up transition
+- Top bar: back chevron (left), label (center, truncated), "Open in browser" external-link icon (right) — all 44pt targets
+- Iframes: rendered full viewport below the top bar
+- Videos: native `<video controls playsInline>` filling the viewport, black letterbox
+- If iframe is blocked (existing 3.5s timer logic): bottom card slides up with favicon, label, "This site can't be embedded on mobile," and a prominent "Open in browser" CTA
 
-**Storage**: new private bucket `media-library` (separate from `event-videos` so existing video items are untouched). Signed URLs with 10-year expiry, same pattern as `uploadEventVideo`.
+### 4. Admin access
+- Small settings gear in the top-right of the idle screen only (out of the way during browsing)
 
-**DB**: new table `public.media_assets` with columns:
-- `id uuid pk`, `filename text`, `mime_type text`, `size_bytes bigint`, `storage_path text`, `public_url text`, `kind text` (one of `image | video | pdf | document`), `created_at timestamptz`.
-- RLS: public read (same posture as `items`); writes go through service-role server fns. Standard GRANTs for `anon`, `authenticated`, `service_role`.
+## Interaction details
 
-**Settings**: add one new key `idle_image_url` to `settings.functions.ts` (default empty string → kiosk uses eye-icon fallback).
+- Bottom-sheet drag with momentum; snap points at peek (~110px) and expanded (~75vh)
+- Safe-area insets honored (notch + home indicator) via `env(safe-area-inset-*)`
+- Haptic-style micro-animations: pill activation, card press scale 0.97, sheet snap easing
+- All transitions use existing CSS variables; no new color tokens needed
+- Respect `prefers-reduced-motion`
 
-**Items table**: add nullable `favicon_asset_id uuid` column (FK to `media_assets.id`, on delete set null). When set, kiosk and admin prefer this over `favicon_url`. The existing auto-derived `favicon_url` keeps working unchanged.
+## Scope guardrails
 
-**Server functions** in new `src/lib/media.functions.ts`:
-- `listMedia({ kind? })` — returns assets, optionally filtered by kind.
-- `uploadMedia(FormData)` — validates MIME, derives `kind`, max 500 MB for video / 50 MB for everything else, uploads to `media-library`, signs URL, inserts row.
-- `renameMedia({ id, filename })`, `deleteMedia({ id })` — admin maintenance (delete removes both row and storage object).
-- `setItemFaviconAsset({ itemId, assetId | null })` — sets/clears the override.
+- Desktop experience is unchanged — branch on `isMobile` and render an entirely separate `MobileKiosk` component
+- No backend, schema, or admin changes
+- Reuses existing `listItems` / `listSettings` server functions and `VIDEO_CATEGORIES` logic
+- Reuses existing `--eyeframe-*` color tokens
 
-**Admin UI**: new `MediaTab` component in `src/routes/admin.tsx`, added to `CATEGORY_KEYS` UX as a sibling tab but rendering its own grid instead of the items list. Filter chips set local state. Existing item rows get a small popover picker for favicon override.
+## Technical approach
 
-**Kiosk UI**: in `src/routes/index.tsx`, the idle state checks `labels.idle_image_url`; if present, renders `<img src={...} className="h-full w-full object-contain" />` with the title overlay; otherwise keeps the current eye-icon block. Item favicon resolution becomes `item.favicon_asset?.public_url ?? item.favicon_url`.
+```text
+src/routes/index.tsx
+  └─ if (isMobile) return <MobileKiosk items settings />
+  └─ else                 existing desktop layout (untouched)
 
-## Files touched
+src/components/mobile/MobileKiosk.tsx   (new)
+  ├─ IdleScreen          (image + title + swipe-up hint)
+  ├─ CategorySheet       (bottom sheet, pills + grid)
+  └─ ResourceViewer      (full-screen iframe/video + blocked overlay)
+```
 
-- new migration: `media_assets` table + GRANTs + RLS, `items.favicon_asset_id` column, `media-library` bucket policy on `storage.objects`
-- new bucket `media-library` (private, via storage tool)
-- new: `src/lib/media.functions.ts`
-- edit: `src/lib/settings.functions.ts` (add `idle_image_url`)
-- edit: `src/lib/items.functions.ts` (return joined favicon asset; add favicon-asset server fn)
-- edit: `src/routes/admin.tsx` (Media Library tab, idle-image panel, favicon picker)
-- edit: `src/routes/index.tsx` (idle image rendering, favicon resolution)
+- Bottom sheet implemented with a lightweight controlled component using transform + touch handlers (no new dependency); falls back cleanly without JS gestures
+- Reuses `CategoryIcon`, `VIDEO_CATEGORIES`, and the existing blocked-iframe timer pattern
+- Mobile detection stays at the 768px breakpoint already in use
 
-No new npm packages.
+## Out of scope
 
-## Out of scope (per your answers)
-
-- Category usage / search / date filters — only file-type filter.
-- Replacing the URL-based add flow for Websites etc. — those stay as-is; the library is additive.
-- Looping idle video — single image only; can revisit later.
+- PWA install prompt / service worker
+- Offline caching
+- Tablet-specific layout (tablets continue to get the desktop layout for now — can be a follow-up)
+- Any change to `/admin`

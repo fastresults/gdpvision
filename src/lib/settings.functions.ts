@@ -23,8 +23,8 @@ export const SETTING_KEYS: SettingKey[] = [
 export type Settings = Record<SettingKey, string>;
 
 const DEFAULTS: Settings = {
-  admin_title: "EyeFrame Admin",
-  kiosk_title: "EyeFrame",
+  admin_title: "GDP Vision Admin",
+  kiosk_title: "GDP Vision",
   label_websites: "Websites",
   label_presentations: "Presentations",
   label_docs: "Google Docs",

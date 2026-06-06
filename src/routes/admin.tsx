@@ -398,7 +398,15 @@ function AdminPage() {
                   borderColor: "var(--eyeframe-border)",
                 }}
               >
-                {item.favicon_url ? (
+                {VIDEO_CATEGORIES.includes(item.category) ? (
+                  <div
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded"
+                    style={{ backgroundColor: "var(--eyeframe-card)", color: "var(--eyeframe-accent)" }}
+                    title="Video"
+                  >
+                    <Film className="h-3.5 w-3.5" />
+                  </div>
+                ) : item.favicon_url ? (
                   <img src={item.favicon_url} alt="" className="h-6 w-6 shrink-0 rounded" />
                 ) : (
                   <div

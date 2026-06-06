@@ -453,13 +453,43 @@ function AdminPage() {
                   >
                     <Film className="h-3.5 w-3.5" />
                   </div>
-                ) : item.favicon_url ? (
-                  <img src={item.favicon_url} alt="" className="h-6 w-6 shrink-0 rounded" />
+                ) : (item.favicon_asset_url || item.favicon_url) ? (
+                  <img
+                    src={item.favicon_asset_url ?? item.favicon_url ?? ""}
+                    alt=""
+                    className="h-6 w-6 shrink-0 rounded"
+                    title={item.favicon_asset_url ? "Custom favicon" : "Auto favicon"}
+                  />
                 ) : (
                   <div
                     className="h-6 w-6 shrink-0 rounded"
                     style={{ backgroundColor: "var(--eyeframe-card)" }}
                   />
+                )}
+                {isEditing && !VIDEO_CATEGORIES.includes(item.category) && (
+                  <select
+                    value={item.favicon_asset_id ?? ""}
+                    onChange={(e) =>
+                      faviconAssetMut.mutate({
+                        itemId: item.id,
+                        assetId: e.target.value || null,
+                      })
+                    }
+                    className="rounded-md border px-2 py-1 text-xs outline-none"
+                    style={{
+                      backgroundColor: "var(--eyeframe-card)",
+                      borderColor: "var(--eyeframe-border)",
+                      color: "var(--eyeframe-text)",
+                    }}
+                    title="Custom favicon"
+                  >
+                    <option value="">Auto favicon</option>
+                    {mediaImages.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.filename}
+                      </option>
+                    ))}
+                  </select>
                 )}
                 {isEditing ? (
                   <>

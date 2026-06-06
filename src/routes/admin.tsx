@@ -11,6 +11,8 @@ import {
   refreshFavicons,
   updateItem,
   uploadEventVideo,
+  generateItemThumbnail,
+  refreshAllThumbnails,
   VIDEO_CATEGORIES,
   type Item,
   type ItemCategory,

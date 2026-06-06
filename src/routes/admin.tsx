@@ -556,6 +556,36 @@ function AdminPage() {
                   </>
                 )}
                 <div className="flex shrink-0 items-center gap-1">
+                  {!VIDEO_CATEGORIES.includes(item.category) && (
+                    <button
+                      type="button"
+                      title={
+                        item.thumbnail_error
+                          ? `Thumbnail: ${item.thumbnail_status} — ${item.thumbnail_error}`
+                          : `Thumbnail: ${item.thumbnail_status}`
+                      }
+                      onClick={() => regenOneMut.mutate(item.id)}
+                      disabled={regenOneMut.isPending}
+                      className="rounded-md border px-2 py-1 text-[10px] uppercase tracking-wider transition-colors hover:brightness-125 disabled:opacity-50"
+                      style={{
+                        backgroundColor: "var(--eyeframe-card)",
+                        borderColor:
+                          item.thumbnail_status === "ready"
+                            ? "var(--eyeframe-accent)"
+                            : item.thumbnail_status === "failed"
+                              ? "#ff8a8a"
+                              : "var(--eyeframe-border)",
+                        color:
+                          item.thumbnail_status === "ready"
+                            ? "var(--eyeframe-accent)"
+                            : item.thumbnail_status === "failed"
+                              ? "#ff8a8a"
+                              : "var(--eyeframe-text)",
+                      }}
+                    >
+                      {item.thumbnail_status}
+                    </button>
+                  )}
                   <button
                     type="button"
                     title="Move up"

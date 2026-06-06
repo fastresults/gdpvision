@@ -1,10 +1,36 @@
-Shrink the kiosk top bar by 20% and scale its inner controls to match.
+Add two new categories — **"Past Events"** and **"Brand Building"** — that play uploaded video files full-screen in the kiosk's lower pane.
 
-In `src/routes/index.tsx`:
-- Grid rows: `8vh 92vh` → `6.4vh 93.6vh`.
-- Top bar gap/padding: `gap-3 px-3` → `gap-2 px-2`.
-- Category dropdown button: `h-10` → `h-8`, width `180` → `144`, dropdown menu width and `top` offset updated to match (`top: "6.4vh"`, width 144), icons `h-4 w-4` → `h-3.5 w-3.5`, text stays `text-sm`.
-- Thumbnail strip tab buttons: height `h-[52px]` → `h-[42px]`, width `160` → `128`, padding `px-3` → `px-2`, text `text-sm` → `text-xs`.
-- Admin link: `h-10` → `h-8`, padding `px-3` → `px-2`, keep `text-xs`.
+## Database
+- Create a private storage bucket `event-videos` (shared by both new categories) with a public read policy on `storage.objects`. Admin uploads via the service role; kiosk plays via public URL.
+- No `items` table change needed — `category` is free-text. New values: `"videos"` (Past Events) and `"brand"` (Brand Building). `items.url` stores the public MP4 URL; `favicon_url` stays null.
 
-No logic changes, no business-rule changes.
+## Settings
+- Add two new setting keys:
+  - `label_videos` → default `"Past Events"`
+  - `label_brand` → default `"Brand Building"`
+- Update `src/lib/settings.functions.ts`: add both keys to `SettingKey`, `SETTING_KEYS`, `DEFAULTS`, and the `updateSetting` zod enum.
+
+## Server functions (`src/lib/items.functions.ts`)
+- Extend `ItemCategory` and `categorySchema` to include `"videos"` and `"brand"`.
+- Add `uploadEventVideo` server fn: accepts `FormData` with a `file` field, validates MIME (`video/mp4`, `video/webm`, `video/quicktime`) and max size (~500 MB), uploads to `event-videos` with a uuid path, returns `{ publicUrl }`. Same fn is reused for both categories.
+- Skip Google favicon derivation in `createItem` when category is `videos` or `brand`.
+
+## Admin UI (`src/routes/admin.tsx`)
+- Add `videos` and `brand` to `CATEGORY_KEYS`; map `videos → label_videos`, `brand → label_brand` in `CATEGORY_TO_SETTING`.
+- When the active tab is a video category, replace the URL text input with a file picker. Submitting calls `uploadEventVideo`, then `createItem` with the returned URL and the user-typed label.
+- Show upload pending state and inline errors.
+- List rows for video items show a small "video" badge instead of a favicon.
+
+## Kiosk UI (`src/routes/index.tsx`)
+- Add `videos` and `brand` to `CATEGORY_LABELS`, sourced from the new settings.
+- Add a video icon (lucide `Film`) for both in the dropdown.
+- When the active item's category is `videos` or `brand`, render `<video src={url} controls autoPlay playsInline className="h-full w-full bg-black object-contain" />` instead of the iframe. Skip the "iframe blocked" fallback for these.
+
+## Files touched
+- supabase migration (new bucket + storage policy)
+- `src/lib/settings.functions.ts`
+- `src/lib/items.functions.ts`
+- `src/routes/admin.tsx`
+- `src/routes/index.tsx`
+
+No new packages.

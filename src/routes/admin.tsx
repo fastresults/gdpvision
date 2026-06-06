@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Eye, Pencil, Plus, RefreshCw, Trash2, X, Check } from "lucide-react";
+import { ArrowDown, ArrowUp, Eye, Pencil, Plus, RefreshCw, Trash2, X, Check, Film } from "lucide-react";
 import {
   createItem,
   deleteItem,
@@ -10,6 +10,8 @@ import {
   moveItem,
   refreshFavicons,
   updateItem,
+  uploadEventVideo,
+  VIDEO_CATEGORIES,
   type Item,
   type ItemCategory,
 } from "@/lib/items.functions";
@@ -30,12 +32,14 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-const CATEGORY_KEYS: ItemCategory[] = ["websites", "presentations", "docs"];
+const CATEGORY_KEYS: ItemCategory[] = ["websites", "presentations", "docs", "videos", "brand"];
 
 const CATEGORY_TO_SETTING: Record<ItemCategory, SettingKey> = {
   websites: "label_websites",
   presentations: "label_presentations",
   docs: "label_docs",
+  videos: "label_videos",
+  brand: "label_brand",
 };
 
 function InlineEditable({
@@ -122,6 +126,8 @@ function AdminPage() {
     label_websites: "Websites",
     label_presentations: "Presentations",
     label_docs: "Google Docs",
+    label_videos: "Past Events",
+    label_brand: "Brand Building",
   };
 
   const tabs = useMemo(
@@ -136,9 +142,13 @@ function AdminPage() {
   const [tab, setTab] = useState<ItemCategory>("websites");
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState("");
   const [editUrl, setEditUrl] = useState("");
+
+  const isVideoTab = VIDEO_CATEGORIES.includes(tab);
+  const uploadVideo = useServerFn(uploadEventVideo);
 
   const visible = useMemo(
     () =>
@@ -152,10 +162,21 @@ function AdminPage() {
   const invalidateSettings = () => qc.invalidateQueries({ queryKey: ["settings"] });
 
   const createMut = useMutation({
-    mutationFn: () => create({ data: { category: tab, label, url } }),
+    mutationFn: async () => {
+      let finalUrl = url;
+      if (isVideoTab) {
+        if (!file) throw new Error("Please choose a video file");
+        const fd = new FormData();
+        fd.append("file", file);
+        const { publicUrl } = await uploadVideo({ data: fd });
+        finalUrl = publicUrl;
+      }
+      return create({ data: { category: tab, label, url: finalUrl } });
+    },
     onSuccess: () => {
       setLabel("");
       setUrl("");
+      setFile(null);
       invalidateItems();
     },
   });
@@ -287,7 +308,12 @@ function AdminPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (!label.trim() || !url.trim()) return;
+            if (!label.trim()) return;
+            if (isVideoTab) {
+              if (!file) return;
+            } else if (!url.trim()) {
+              return;
+            }
             createMut.mutate();
           }}
           className="mb-8 rounded-lg border p-4"
@@ -311,17 +337,31 @@ function AdminPage() {
                 color: "var(--eyeframe-text)",
               }}
             />
-            <input
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://…"
-              className="rounded-md border px-3 py-2 text-sm outline-none"
-              style={{
-                backgroundColor: "var(--eyeframe-card)",
-                borderColor: "var(--eyeframe-border)",
-                color: "var(--eyeframe-text)",
-              }}
-            />
+            {isVideoTab ? (
+              <input
+                type="file"
+                accept="video/mp4,video/webm,video/quicktime"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                className="rounded-md border px-3 py-2 text-sm outline-none"
+                style={{
+                  backgroundColor: "var(--eyeframe-card)",
+                  borderColor: "var(--eyeframe-border)",
+                  color: "var(--eyeframe-text)",
+                }}
+              />
+            ) : (
+              <input
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://…"
+                className="rounded-md border px-3 py-2 text-sm outline-none"
+                style={{
+                  backgroundColor: "var(--eyeframe-card)",
+                  borderColor: "var(--eyeframe-border)",
+                  color: "var(--eyeframe-text)",
+                }}
+              />
+            )}
             <button
               type="submit"
               disabled={createMut.isPending}
@@ -329,7 +369,7 @@ function AdminPage() {
               style={{ backgroundColor: "var(--eyeframe-accent)", color: "var(--eyeframe-bg)" }}
             >
               <Plus className="h-4 w-4" />
-              Add
+              {isVideoTab ? (createMut.isPending ? "Uploading…" : "Upload") : "Add"}
             </button>
           </div>
           {createMut.isError && (
@@ -358,7 +398,15 @@ function AdminPage() {
                   borderColor: "var(--eyeframe-border)",
                 }}
               >
-                {item.favicon_url ? (
+                {VIDEO_CATEGORIES.includes(item.category) ? (
+                  <div
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded"
+                    style={{ backgroundColor: "var(--eyeframe-card)", color: "var(--eyeframe-accent)" }}
+                    title="Video"
+                  >
+                    <Film className="h-3.5 w-3.5" />
+                  </div>
+                ) : item.favicon_url ? (
                   <img src={item.favicon_url} alt="" className="h-6 w-6 shrink-0 rounded" />
                 ) : (
                   <div

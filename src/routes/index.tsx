@@ -10,8 +10,10 @@ import {
   ExternalLink,
   Settings as SettingsIcon,
   Eye,
+  Film,
+  Sparkles,
 } from "lucide-react";
-import { listItems, type Item, type ItemCategory } from "@/lib/items.functions";
+import { listItems, VIDEO_CATEGORIES, type Item, type ItemCategory } from "@/lib/items.functions";
 import { listSettings, type Settings } from "@/lib/settings.functions";
 
 export const Route = createFileRoute("/")({
@@ -31,11 +33,21 @@ const CATEGORY_SETTING_KEY = {
   websites: "label_websites",
   presentations: "label_presentations",
   docs: "label_docs",
+  videos: "label_videos",
+  brand: "label_brand",
 } as const;
 
 function CategoryIcon({ category, className }: { category: ItemCategory; className?: string }) {
   const Icon =
-    category === "websites" ? Globe : category === "presentations" ? Presentation : FileText;
+    category === "websites"
+      ? Globe
+      : category === "presentations"
+        ? Presentation
+        : category === "docs"
+          ? FileText
+          : category === "videos"
+            ? Film
+            : Sparkles;
   return <Icon className={className} />;
 }
 
@@ -60,11 +72,15 @@ function KioskPage() {
     label_websites: "Websites",
     label_presentations: "Presentations",
     label_docs: "Google Docs",
+    label_videos: "Past Events",
+    label_brand: "Brand Building",
   };
   const CATEGORY_LABELS: Record<ItemCategory, string> = {
     websites: labels.label_websites,
     presentations: labels.label_presentations,
     docs: labels.label_docs,
+    videos: labels.label_videos,
+    brand: labels.label_brand,
   };
   void CATEGORY_SETTING_KEY;
 
@@ -250,7 +266,18 @@ function KioskPage() {
           </div>
         )}
 
-        {active && (
+        {active && VIDEO_CATEGORIES.includes(active.category) && (
+          <video
+            key={active.id}
+            src={active.url}
+            controls
+            autoPlay
+            playsInline
+            className="h-full w-full bg-black object-contain"
+          />
+        )}
+
+        {active && !VIDEO_CATEGORIES.includes(active.category) && (
           <>
             <iframe
               key={active.id}

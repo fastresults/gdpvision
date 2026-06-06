@@ -431,48 +431,12 @@ export function MobileKiosk({ items, settings }: { items: Item[]; settings: Sett
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {visible.map((item) => (
-                <button
+                <ThumbnailCard
                   key={item.id}
-                  type="button"
+                  item={item}
+                  categoryLabel={CATEGORY_LABELS[item.category]}
                   onClick={() => setActive(item)}
-                  className="group flex aspect-[4/5] flex-col items-start justify-between rounded-2xl border p-4 text-left transition-all active:scale-[0.97]"
-                  style={{
-                    backgroundColor: "var(--eyeframe-bg)",
-                    borderColor: "var(--eyeframe-border)",
-                  }}
-                >
-                  <div
-                    className="flex h-12 w-12 items-center justify-center rounded-xl"
-                    style={{
-                      backgroundColor: "color-mix(in oklch, var(--eyeframe-accent) 15%, transparent)",
-                    }}
-                  >
-                    {item.favicon_asset_url || item.favicon_url ? (
-                      <img
-                        src={item.favicon_asset_url ?? item.favicon_url ?? ""}
-                        alt=""
-                        className="h-7 w-7 rounded"
-                      />
-                    ) : (
-                      <CategoryIcon
-                        category={item.category}
-                        className="h-6 w-6"
-                      />
-                    )}
-                  </div>
-                  <div className="w-full">
-                    <div
-                      className="line-clamp-2 text-sm font-semibold leading-tight"
-                      style={{ color: "var(--eyeframe-text)" }}
-                    >
-                      {item.label}
-                    </div>
-                    <div className="mt-1 flex items-center gap-1 text-[11px] opacity-50">
-                      <CategoryIcon category={item.category} className="h-3 w-3" />
-                      {CATEGORY_LABELS[item.category]}
-                    </div>
-                  </div>
-                </button>
+                />
               ))}
             </div>
           )}

@@ -8,7 +8,8 @@ export type SettingKey =
   | "label_presentations"
   | "label_docs"
   | "label_videos"
-  | "label_brand";
+  | "label_brand"
+  | "idle_image_url";
 
 export const SETTING_KEYS: SettingKey[] = [
   "admin_title",
@@ -18,6 +19,7 @@ export const SETTING_KEYS: SettingKey[] = [
   "label_docs",
   "label_videos",
   "label_brand",
+  "idle_image_url",
 ];
 
 export type Settings = Record<SettingKey, string>;
@@ -30,6 +32,7 @@ const DEFAULTS: Settings = {
   label_docs: "Google Docs",
   label_videos: "Past Events",
   label_brand: "Brand Building",
+  idle_image_url: "",
 };
 
 export const listSettings = createServerFn({ method: "GET" }).handler(async () => {
@@ -57,8 +60,9 @@ export const updateSetting = createServerFn({ method: "POST" })
           "label_docs",
           "label_videos",
           "label_brand",
+          "idle_image_url",
         ]),
-        value: z.string().min(1).max(200),
+        value: z.string().max(2000),
       })
       .parse(d),
   )

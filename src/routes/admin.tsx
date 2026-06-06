@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Eye, Pencil, Plus, RefreshCw, Trash2, X, Check, Film } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowDown, ArrowUp, Eye, Pencil, Plus, RefreshCw, Trash2, X, Check, Film, FileText, Library, Upload, Copy, Star } from "lucide-react";
 import {
   createItem,
   deleteItem,
@@ -15,6 +15,15 @@ import {
   type Item,
   type ItemCategory,
 } from "@/lib/items.functions";
+import {
+  listMedia,
+  uploadMedia,
+  deleteMedia,
+  renameMedia,
+  setItemFaviconAsset,
+  type MediaAsset,
+  type MediaKind,
+} from "@/lib/media.functions";
 import {
   listSettings,
   updateSetting,
@@ -128,9 +137,10 @@ function AdminPage() {
     label_docs: "Google Docs",
     label_videos: "Past Events",
     label_brand: "Brand Building",
+    idle_image_url: "",
   };
 
-  const tabs = useMemo(
+  const categoryTabs = useMemo(
     () =>
       CATEGORY_KEYS.map((key) => ({
         key,
@@ -139,7 +149,10 @@ function AdminPage() {
     [labels],
   );
 
-  const [tab, setTab] = useState<ItemCategory>("websites");
+  type TabKey = ItemCategory | "media";
+  const [tab, setTab] = useState<TabKey>("websites");
+  const isMediaTab = tab === "media";
+  const categoryTab = (isMediaTab ? "websites" : tab) as ItemCategory;
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -147,15 +160,15 @@ function AdminPage() {
   const [editLabel, setEditLabel] = useState("");
   const [editUrl, setEditUrl] = useState("");
 
-  const isVideoTab = VIDEO_CATEGORIES.includes(tab);
+  const isVideoTab = !isMediaTab && VIDEO_CATEGORIES.includes(categoryTab);
   const uploadVideo = useServerFn(uploadEventVideo);
 
   const visible = useMemo(
     () =>
       items
-        .filter((i) => i.category === tab)
+        .filter((i) => i.category === categoryTab)
         .sort((a, b) => a.sort_order - b.sort_order),
-    [items, tab],
+    [items, categoryTab],
   );
 
   const invalidateItems = () => qc.invalidateQueries({ queryKey: ["items"] });
@@ -171,7 +184,7 @@ function AdminPage() {
         const { publicUrl } = await uploadVideo({ data: fd });
         finalUrl = publicUrl;
       }
-      return create({ data: { category: tab, label, url: finalUrl } });
+      return create({ data: { category: categoryTab, label, url: finalUrl } });
     },
     onSuccess: () => {
       setLabel("");
@@ -179,6 +192,13 @@ function AdminPage() {
       setFile(null);
       invalidateItems();
     },
+  });
+
+  const fetchMedia = useServerFn(listMedia);
+  const setFaviconAsset = useServerFn(setItemFaviconAsset);
+  const { data: mediaImages = [] } = useQuery({
+    queryKey: ["media", "image"],
+    queryFn: () => fetchMedia({ data: { kind: "image" } }),
   });
 
   const updateMut = useMutation({
@@ -190,6 +210,12 @@ function AdminPage() {
       setEditingId(null);
       invalidateItems();
     },
+  });
+
+  const faviconAssetMut = useMutation({
+    mutationFn: ({ itemId, assetId }: { itemId: string; assetId: string | null }) =>
+      setFaviconAsset({ data: { itemId, assetId } }),
+    onSuccess: invalidateItems,
   });
 
   const deleteMut = useMutation({
@@ -275,7 +301,7 @@ function AdminPage() {
 
 
         <div className="mb-6 flex flex-wrap gap-2">
-          {tabs.map((t) => {
+          {categoryTabs.map((t) => {
             const isActive = tab === t.key;
             return (
               <div
@@ -298,7 +324,28 @@ function AdminPage() {
               </div>
             );
           })}
+          <div
+            onClick={() => setTab("media")}
+            className="flex cursor-pointer items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors"
+            style={{
+              backgroundColor: tab === "media" ? "var(--eyeframe-accent)" : "var(--eyeframe-card)",
+              color: tab === "media" ? "var(--eyeframe-bg)" : "var(--eyeframe-text)",
+              borderColor: tab === "media" ? "var(--eyeframe-accent)" : "var(--eyeframe-border)",
+            }}
+          >
+            <Library className="h-4 w-4" />
+            Media Hub
+          </div>
         </div>
+
+        {isMediaTab ? (
+          <MediaHub
+            idleImageUrl={labels.idle_image_url}
+            onSetIdle={(v) => settingMut.mutate({ key: "idle_image_url", value: v })}
+          />
+        ) : (
+        <>
+
 
         <div className="mb-4 text-xs opacity-60">
           Tip: click any title or category name to rename it. The kiosk updates automatically.
@@ -323,7 +370,7 @@ function AdminPage() {
           }}
         >
           <div className="mb-3 text-sm font-medium opacity-80">
-            Add to {tabs.find((t) => t.key === tab)?.label}
+            Add to {categoryTabs.find((t) => t.key === categoryTab)?.label}
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_2fr_auto]">
             <input
@@ -406,13 +453,43 @@ function AdminPage() {
                   >
                     <Film className="h-3.5 w-3.5" />
                   </div>
-                ) : item.favicon_url ? (
-                  <img src={item.favicon_url} alt="" className="h-6 w-6 shrink-0 rounded" />
+                ) : (item.favicon_asset_url || item.favicon_url) ? (
+                  <img
+                    src={item.favicon_asset_url ?? item.favicon_url ?? ""}
+                    alt=""
+                    className="h-6 w-6 shrink-0 rounded"
+                    title={item.favicon_asset_url ? "Custom favicon" : "Auto favicon"}
+                  />
                 ) : (
                   <div
                     className="h-6 w-6 shrink-0 rounded"
                     style={{ backgroundColor: "var(--eyeframe-card)" }}
                   />
+                )}
+                {isEditing && !VIDEO_CATEGORIES.includes(item.category) && (
+                  <select
+                    value={item.favicon_asset_id ?? ""}
+                    onChange={(e) =>
+                      faviconAssetMut.mutate({
+                        itemId: item.id,
+                        assetId: e.target.value || null,
+                      })
+                    }
+                    className="rounded-md border px-2 py-1 text-xs outline-none"
+                    style={{
+                      backgroundColor: "var(--eyeframe-card)",
+                      borderColor: "var(--eyeframe-border)",
+                      color: "var(--eyeframe-text)",
+                    }}
+                    title="Custom favicon"
+                  >
+                    <option value="">Auto favicon</option>
+                    {mediaImages.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.filename}
+                      </option>
+                    ))}
+                  </select>
                 )}
                 {isEditing ? (
                   <>
@@ -517,6 +594,314 @@ function AdminPage() {
               </div>
             );
           })}
+        </div>
+        </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MediaHub({ idleImageUrl, onSetIdle }: { idleImageUrl: string; onSetIdle: (v: string) => void }) {
+  const qc = useQueryClient();
+  const fetchMedia = useServerFn(listMedia);
+  const upload = useServerFn(uploadMedia);
+  const remove = useServerFn(deleteMedia);
+  const rename = useServerFn(renameMedia);
+
+  const [filter, setFilter] = useState<MediaKind | "all">("all");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const { data: assets = [] } = useQuery({
+    queryKey: ["media"],
+    queryFn: () => fetchMedia({ data: {} }),
+  });
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["media"] });
+
+  const uploadMut = useMutation({
+    mutationFn: async (files: FileList) => {
+      for (const f of Array.from(files)) {
+        const fd = new FormData();
+        fd.append("file", f);
+        await upload({ data: fd });
+      }
+    },
+    onSuccess: invalidate,
+  });
+
+  const renameMut = useMutation({
+    mutationFn: ({ id, filename }: { id: string; filename: string }) =>
+      rename({ data: { id, filename } }),
+    onSuccess: invalidate,
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => remove({ data: { id } }),
+    onSuccess: invalidate,
+  });
+
+  const filtered = useMemo(
+    () => (filter === "all" ? assets : assets.filter((a) => a.kind === filter)),
+    [assets, filter],
+  );
+
+  const FILTERS: { key: MediaKind | "all"; label: string }[] = [
+    { key: "all", label: "All" },
+    { key: "image", label: "Images" },
+    { key: "video", label: "Videos" },
+    { key: "pdf", label: "PDFs" },
+    { key: "document", label: "Documents" },
+  ];
+
+  const formatSize = (b: number) => {
+    if (b < 1024) return `${b} B`;
+    if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+    if (b < 1024 * 1024 * 1024) return `${(b / 1024 / 1024).toFixed(1)} MB`;
+    return `${(b / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  };
+
+  return (
+    <div>
+      {/* Idle screen panel */}
+      <div
+        className="mb-6 rounded-lg border p-4"
+        style={{ backgroundColor: "var(--eyeframe-topbar)", borderColor: "var(--eyeframe-border)" }}
+      >
+        <div className="mb-3 flex items-center gap-2 text-sm font-medium opacity-80">
+          <Star className="h-4 w-4" /> Kiosk idle screen image
+        </div>
+        <div className="flex items-center gap-4">
+          <div
+            className="flex h-24 w-40 shrink-0 items-center justify-center overflow-hidden rounded border"
+            style={{ backgroundColor: "var(--eyeframe-card)", borderColor: "var(--eyeframe-border)" }}
+          >
+            {idleImageUrl ? (
+              <img src={idleImageUrl} alt="Idle" className="h-full w-full object-contain" />
+            ) : (
+              <Eye className="h-8 w-8 opacity-40" />
+            )}
+          </div>
+          <div className="flex-1 text-xs opacity-70">
+            {idleImageUrl
+              ? "This image is shown full-screen on the kiosk before any resource is selected."
+              : "No idle image set. The kiosk shows the eye-icon placeholder. Choose an image below and click the star to set it."}
+          </div>
+          {idleImageUrl && (
+            <button
+              type="button"
+              onClick={() => onSetIdle("")}
+              className="rounded-md border px-3 py-2 text-xs"
+              style={{ backgroundColor: "var(--eyeframe-card)", borderColor: "var(--eyeframe-border)" }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Upload */}
+      <div
+        className="mb-6 rounded-lg border p-4"
+        style={{ backgroundColor: "var(--eyeframe-topbar)", borderColor: "var(--eyeframe-border)" }}
+      >
+        <div className="flex items-center gap-3">
+          <input
+            ref={inputRef}
+            type="file"
+            multiple
+            accept="image/*,video/mp4,video/webm,video/quicktime,application/pdf,.doc,.docx,.ppt,.pptx"
+            onChange={(e) => {
+              if (e.target.files?.length) uploadMut.mutate(e.target.files);
+              if (inputRef.current) inputRef.current.value = "";
+            }}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploadMut.isPending}
+            className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium disabled:opacity-60"
+            style={{ backgroundColor: "var(--eyeframe-accent)", color: "var(--eyeframe-bg)" }}
+          >
+            <Upload className="h-4 w-4" />
+            {uploadMut.isPending ? "Uploading…" : "Upload files"}
+          </button>
+          <div className="text-xs opacity-60">
+            Images (PNG, JPG, WebP, SVG, GIF), Videos (MP4, WebM, MOV), PDFs, Word & PowerPoint.
+          </div>
+        </div>
+        {uploadMut.isError && (
+          <div className="mt-2 text-xs text-red-400">{(uploadMut.error as Error).message}</div>
+        )}
+      </div>
+
+      {/* Filters */}
+      <div className="mb-4 flex flex-wrap gap-2">
+        {FILTERS.map((f) => {
+          const isActive = filter === f.key;
+          return (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setFilter(f.key)}
+              className="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors"
+              style={{
+                backgroundColor: isActive ? "var(--eyeframe-accent)" : "var(--eyeframe-card)",
+                color: isActive ? "var(--eyeframe-bg)" : "var(--eyeframe-text)",
+                borderColor: isActive ? "var(--eyeframe-accent)" : "var(--eyeframe-border)",
+              }}
+            >
+              {f.label}
+            </button>
+          );
+        })}
+        <div className="ml-auto self-center text-xs opacity-60">{filtered.length} items</div>
+      </div>
+
+      {/* Grid */}
+      {filtered.length === 0 ? (
+        <div
+          className="rounded-lg border px-4 py-12 text-center text-sm opacity-60"
+          style={{ borderColor: "var(--eyeframe-border)" }}
+        >
+          No media yet. Upload some files to get started.
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+          {filtered.map((a) => (
+            <MediaCard
+              key={a.id}
+              asset={a}
+              isIdle={a.public_url === idleImageUrl}
+              onSetIdle={() => onSetIdle(a.public_url)}
+              onRename={(filename) => renameMut.mutate({ id: a.id, filename })}
+              onDelete={() => {
+                if (confirm(`Delete "${a.filename}"?`)) deleteMut.mutate(a.id);
+              }}
+              formatSize={formatSize}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MediaCard({
+  asset,
+  isIdle,
+  onSetIdle,
+  onRename,
+  onDelete,
+  formatSize,
+}: {
+  asset: MediaAsset;
+  isIdle: boolean;
+  onSetIdle: () => void;
+  onRename: (filename: string) => void;
+  onDelete: () => void;
+  formatSize: (b: number) => string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(asset.filename);
+
+  const copyUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(asset.public_url);
+    } catch {
+      // ignore
+    }
+  };
+
+  return (
+    <div
+      className="flex flex-col overflow-hidden rounded-lg border"
+      style={{ backgroundColor: "var(--eyeframe-topbar)", borderColor: isIdle ? "var(--eyeframe-accent)" : "var(--eyeframe-border)" }}
+    >
+      <div
+        className="flex aspect-video items-center justify-center overflow-hidden"
+        style={{ backgroundColor: "var(--eyeframe-card)" }}
+      >
+        {asset.kind === "image" ? (
+          <img src={asset.public_url} alt={asset.filename} className="h-full w-full object-cover" />
+        ) : asset.kind === "video" ? (
+          <video src={asset.public_url} className="h-full w-full object-cover" muted />
+        ) : asset.kind === "pdf" ? (
+          <FileText className="h-12 w-12 opacity-50" />
+        ) : (
+          <FileText className="h-12 w-12 opacity-50" />
+        )}
+      </div>
+      <div className="flex flex-1 flex-col gap-2 p-3">
+        {editing ? (
+          <input
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={() => {
+              const v = draft.trim();
+              if (v && v !== asset.filename) onRename(v);
+              setEditing(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              if (e.key === "Escape") {
+                setDraft(asset.filename);
+                setEditing(false);
+              }
+            }}
+            className="rounded-md border px-2 py-1 text-xs outline-none"
+            style={{ backgroundColor: "var(--eyeframe-card)", borderColor: "var(--eyeframe-border)", color: "var(--eyeframe-text)" }}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            title="Click to rename"
+            className="truncate text-left text-xs font-medium"
+          >
+            {asset.filename}
+          </button>
+        )}
+        <div className="flex items-center justify-between text-[10px] uppercase tracking-wide opacity-60">
+          <span>{asset.kind}</span>
+          <span>{formatSize(asset.size_bytes)}</span>
+        </div>
+        <div className="mt-1 flex items-center gap-1">
+          <button
+            type="button"
+            onClick={copyUrl}
+            title="Copy URL"
+            className="flex-1 rounded-md border px-2 py-1.5 text-xs"
+            style={{ backgroundColor: "var(--eyeframe-card)", borderColor: "var(--eyeframe-border)" }}
+          >
+            <Copy className="mx-auto h-3.5 w-3.5" />
+          </button>
+          {asset.kind === "image" && (
+            <button
+              type="button"
+              onClick={onSetIdle}
+              title={isIdle ? "Current idle image" : "Set as idle image"}
+              className="rounded-md border px-2 py-1.5 text-xs"
+              style={{
+                backgroundColor: isIdle ? "var(--eyeframe-accent)" : "var(--eyeframe-card)",
+                color: isIdle ? "var(--eyeframe-bg)" : "var(--eyeframe-text)",
+                borderColor: isIdle ? "var(--eyeframe-accent)" : "var(--eyeframe-border)",
+              }}
+            >
+              <Star className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onDelete}
+            title="Delete"
+            className="rounded-md border px-2 py-1.5 text-xs"
+            style={{ backgroundColor: "var(--eyeframe-card)", borderColor: "var(--eyeframe-border)", color: "#ff8a8a" }}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
     </div>

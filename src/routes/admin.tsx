@@ -344,7 +344,7 @@ function AdminPage() {
             onSetIdle={(v) => settingMut.mutate({ key: "idle_image_url", value: v })}
           />
         ) : (
-        <>
+        <div>
 
 
         <div className="mb-4 text-xs opacity-60">
@@ -595,7 +595,7 @@ function AdminPage() {
             );
           })}
         </div>
-        </>
+        </div>
         )}
       </div>
     </div>

@@ -622,7 +622,7 @@ function MediaHub({ idleImageUrl, onSetIdle }: { idleImageUrl: string; onSetIdle
   const invalidate = () => qc.invalidateQueries({ queryKey: ["media"] });
 
   const uploadMut = useMutation({
-    mutationFn: async (files: FileList) => {
+    mutationFn: async (files: FileList | File[]) => {
       for (const f of Array.from(files)) {
         const fd = new FormData();
         fd.append("file", f);
@@ -630,6 +630,18 @@ function MediaHub({ idleImageUrl, onSetIdle }: { idleImageUrl: string; onSetIdle
       }
     },
     onSuccess: invalidate,
+  });
+
+  const uploadIdleMut = useMutation({
+    mutationFn: async (file: File) => {
+      const fd = new FormData();
+      fd.append("file", file);
+      return (await upload({ data: fd })) as { public_url: string };
+    },
+    onSuccess: (asset) => {
+      invalidate();
+      if (asset?.public_url) onSetIdle(asset.public_url);
+    },
   });
 
   const renameMut = useMutation({

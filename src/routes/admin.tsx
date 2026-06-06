@@ -610,7 +610,9 @@ function MediaHub({ idleImageUrl, onSetIdle }: { idleImageUrl: string; onSetIdle
   const rename = useServerFn(renameMedia);
 
   const [filter, setFilter] = useState<MediaKind | "all">("all");
+  const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const idleInputRef = useRef<HTMLInputElement>(null);
 
   const { data: assets = [] } = useQuery({
     queryKey: ["media"],

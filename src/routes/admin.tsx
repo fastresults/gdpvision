@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Eye, Pencil, Plus, RefreshCw, Trash2, X, Check } from "lucide-react";
+import { ArrowDown, ArrowUp, Eye, Pencil, Plus, RefreshCw, Trash2, X, Check, Film } from "lucide-react";
 import {
   createItem,
   deleteItem,
@@ -10,6 +10,8 @@ import {
   moveItem,
   refreshFavicons,
   updateItem,
+  uploadEventVideo,
+  VIDEO_CATEGORIES,
   type Item,
   type ItemCategory,
 } from "@/lib/items.functions";
@@ -30,12 +32,14 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-const CATEGORY_KEYS: ItemCategory[] = ["websites", "presentations", "docs"];
+const CATEGORY_KEYS: ItemCategory[] = ["websites", "presentations", "docs", "videos", "brand"];
 
 const CATEGORY_TO_SETTING: Record<ItemCategory, SettingKey> = {
   websites: "label_websites",
   presentations: "label_presentations",
   docs: "label_docs",
+  videos: "label_videos",
+  brand: "label_brand",
 };
 
 function InlineEditable({

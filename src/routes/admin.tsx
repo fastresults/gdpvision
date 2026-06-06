@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Eye, Pencil, Plus, RefreshCw, Trash2, X, Check, Film } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowDown, ArrowUp, Eye, Pencil, Plus, RefreshCw, Trash2, X, Check, Film, Image as ImageIcon, FileText, Library, Upload, Copy, Star } from "lucide-react";
 import {
   createItem,
   deleteItem,
@@ -15,6 +15,15 @@ import {
   type Item,
   type ItemCategory,
 } from "@/lib/items.functions";
+import {
+  listMedia,
+  uploadMedia,
+  deleteMedia,
+  renameMedia,
+  setItemFaviconAsset,
+  type MediaAsset,
+  type MediaKind,
+} from "@/lib/media.functions";
 import {
   listSettings,
   updateSetting,

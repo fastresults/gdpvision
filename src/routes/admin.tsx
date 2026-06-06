@@ -357,7 +357,7 @@ function AdminPage() {
           }}
         >
           <div className="mb-3 text-sm font-medium opacity-80">
-            Add to {tabs.find((t) => t.key === tab)?.label}
+            Add to {categoryTabs.find((t) => t.key === categoryTab)?.label}
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_2fr_auto]">
             <input

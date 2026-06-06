@@ -670,7 +670,7 @@ function AdminPage() {
 function MediaHub({ idleImageUrl, onSetIdle }: { idleImageUrl: string; onSetIdle: (v: string) => void }) {
   const qc = useQueryClient();
   const fetchMedia = useServerFn(listMedia);
-  const upload = useServerFn(uploadMedia);
+  
   const remove = useServerFn(deleteMedia);
   const rename = useServerFn(renameMedia);
 

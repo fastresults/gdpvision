@@ -188,7 +188,14 @@ function AdminPage() {
         const { publicUrl } = await uploadVideo({ data: fd });
         finalUrl = publicUrl;
       }
-      return create({ data: { category: categoryTab, label, url: finalUrl } });
+      const res = await create({ data: { category: categoryTab, label, url: finalUrl } });
+      // Kick off thumbnail generation for non-video items (don't block UI)
+      if (res?.id && !VIDEO_CATEGORIES.includes(categoryTab)) {
+        genThumb({ data: { id: res.id } })
+          .then(() => qc.invalidateQueries({ queryKey: ["items"] }))
+          .catch(() => {});
+      }
+      return res;
     },
     onSuccess: () => {
       setLabel("");

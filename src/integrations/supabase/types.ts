@@ -41,6 +41,10 @@ export type Database = {
           id: string
           label: string
           sort_order: number
+          thumbnail_error: string | null
+          thumbnail_status: string
+          thumbnail_updated_at: string | null
+          thumbnail_url: string | null
           url: string
         }
         Insert: {
@@ -51,6 +55,10 @@ export type Database = {
           id?: string
           label: string
           sort_order?: number
+          thumbnail_error?: string | null
+          thumbnail_status?: string
+          thumbnail_updated_at?: string | null
+          thumbnail_url?: string | null
           url: string
         }
         Update: {
@@ -61,6 +69,10 @@ export type Database = {
           id?: string
           label?: string
           sort_order?: number
+          thumbnail_error?: string | null
+          thumbnail_status?: string
+          thumbnail_updated_at?: string | null
+          thumbnail_url?: string | null
           url?: string
         }
         Relationships: [

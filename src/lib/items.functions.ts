@@ -113,15 +113,19 @@ export const createItem = createServerFn({ method: "POST" })
       .limit(1)
       .maybeSingle();
     const nextOrder = (maxRow?.sort_order ?? 0) + 10;
-    const { error } = await supabaseAdmin.from("items").insert({
-      category: data.category,
-      label: data.label,
-      url: data.url,
-      favicon_url: favicon,
-      sort_order: nextOrder,
-    });
+    const { data: inserted, error } = await supabaseAdmin
+      .from("items")
+      .insert({
+        category: data.category,
+        label: data.label,
+        url: data.url,
+        favicon_url: favicon,
+        sort_order: nextOrder,
+      })
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
-    return { ok: true };
+    return { ok: true, id: inserted?.id ?? null };
   });
 
 export const updateItem = createServerFn({ method: "POST" })

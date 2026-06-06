@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Eye, Pencil, Plus, RefreshCw, Trash2, X, Check, Film, Image as ImageIcon, FileText, Library, Upload, Copy, Star } from "lucide-react";
+import { ArrowDown, ArrowUp, Eye, Pencil, Plus, RefreshCw, Trash2, X, Check, Film, FileText, Library, Upload, Copy, Star } from "lucide-react";
 import {
   createItem,
   deleteItem,

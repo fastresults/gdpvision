@@ -74,6 +74,7 @@ function KioskPage() {
     label_docs: "Google Docs",
     label_videos: "Past Events",
     label_brand: "Brand Building",
+    idle_image_url: "",
   };
   const CATEGORY_LABELS: Record<ItemCategory, string> = {
     websites: labels.label_websites,

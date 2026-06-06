@@ -308,7 +308,12 @@ function AdminPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (!label.trim() || !url.trim()) return;
+            if (!label.trim()) return;
+            if (isVideoTab) {
+              if (!file) return;
+            } else if (!url.trim()) {
+              return;
+            }
             createMut.mutate();
           }}
           className="mb-8 rounded-lg border p-4"
@@ -332,17 +337,31 @@ function AdminPage() {
                 color: "var(--eyeframe-text)",
               }}
             />
-            <input
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://…"
-              className="rounded-md border px-3 py-2 text-sm outline-none"
-              style={{
-                backgroundColor: "var(--eyeframe-card)",
-                borderColor: "var(--eyeframe-border)",
-                color: "var(--eyeframe-text)",
-              }}
-            />
+            {isVideoTab ? (
+              <input
+                type="file"
+                accept="video/mp4,video/webm,video/quicktime"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                className="rounded-md border px-3 py-2 text-sm outline-none"
+                style={{
+                  backgroundColor: "var(--eyeframe-card)",
+                  borderColor: "var(--eyeframe-border)",
+                  color: "var(--eyeframe-text)",
+                }}
+              />
+            ) : (
+              <input
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://…"
+                className="rounded-md border px-3 py-2 text-sm outline-none"
+                style={{
+                  backgroundColor: "var(--eyeframe-card)",
+                  borderColor: "var(--eyeframe-border)",
+                  color: "var(--eyeframe-text)",
+                }}
+              />
+            )}
             <button
               type="submit"
               disabled={createMut.isPending}
@@ -350,7 +369,7 @@ function AdminPage() {
               style={{ backgroundColor: "var(--eyeframe-accent)", color: "var(--eyeframe-bg)" }}
             >
               <Plus className="h-4 w-4" />
-              Add
+              {isVideoTab ? (createMut.isPending ? "Uploading…" : "Upload") : "Add"}
             </button>
           </div>
           {createMut.isError && (

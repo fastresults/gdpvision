@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { listItems, VIDEO_CATEGORIES, type Item, type ItemCategory } from "@/lib/items.functions";
 import { listSettings, type Settings } from "@/lib/settings.functions";
+import { MobileKiosk } from "@/components/mobile/MobileKiosk";
 
 export const Route = createFileRoute("/")({
   head: () => ({

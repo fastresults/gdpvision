@@ -244,6 +244,16 @@ function AdminPage() {
     onSuccess: invalidateItems,
   });
 
+  const regenOneMut = useMutation({
+    mutationFn: (id: string) => genThumb({ data: { id } }),
+    onSuccess: invalidateItems,
+  });
+
+  const refreshThumbsMut = useMutation({
+    mutationFn: (force: boolean) => refreshThumbs({ data: { force } }),
+    onSuccess: invalidateItems,
+  });
+
   return (
     <div
       className="min-h-screen w-full px-6 py-8"

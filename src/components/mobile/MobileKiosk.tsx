@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { VIDEO_CATEGORIES, type Item, type ItemCategory } from "@/lib/items.functions";
 import type { Settings } from "@/lib/settings.functions";
+import { getHeroThumbnail } from "@/lib/thumbnail";
 
 function CategoryIcon({ category, className }: { category: ItemCategory; className?: string }) {
   const Icon =

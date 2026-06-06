@@ -295,6 +295,20 @@ function AdminPage() {
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={() => refreshThumbsMut.mutate(false)}
+              disabled={refreshThumbsMut.isPending}
+              className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:brightness-125 disabled:opacity-50"
+              style={{
+                backgroundColor: "var(--eyeframe-topbar)",
+                borderColor: "var(--eyeframe-border)",
+              }}
+              title="Generate thumbnails for pending or failed items"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshThumbsMut.isPending ? "animate-spin" : ""}`} />
+              {refreshThumbsMut.isPending ? "Generating…" : "Refresh thumbnails"}
+            </button>
+            <button
+              type="button"
               onClick={() => refreshMut.mutate()}
               disabled={refreshMut.isPending}
               className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:brightness-125 disabled:opacity-50"

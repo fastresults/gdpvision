@@ -128,6 +128,7 @@ function AdminPage() {
     label_docs: "Google Docs",
     label_videos: "Past Events",
     label_brand: "Brand Building",
+    idle_image_url: "",
   };
 
   const tabs = useMemo(

@@ -124,7 +124,7 @@ function KioskPage() {
     <div
       className="grid h-screen w-screen overflow-hidden"
       style={{
-        gridTemplateRows: "8vh 92vh",
+        gridTemplateRows: "6.4vh 93.6vh",
         backgroundColor: "var(--eyeframe-bg)",
         color: "var(--eyeframe-text)",
         fontFamily: "var(--font-sans)",
@@ -132,16 +132,16 @@ function KioskPage() {
     >
       {/* Top bar */}
       <div
-        className="flex h-full w-full items-center gap-3 px-3"
+        className="flex h-full w-full items-center gap-2 px-2"
         style={{ backgroundColor: "var(--eyeframe-topbar)", overflow: "hidden" }}
       >
         {/* Dropdown */}
-        <div className="relative shrink-0" style={{ width: 180 }}>
+        <div className="relative shrink-0" style={{ width: 144 }}>
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
             onBlur={() => setTimeout(() => setMenuOpen(false), 120)}
-            className="flex h-10 w-full items-center justify-between rounded-md border px-3 text-sm font-medium transition-colors"
+            className="flex h-8 w-full items-center justify-between rounded-md border px-2 text-sm font-medium transition-colors"
             style={{
               backgroundColor: "var(--eyeframe-card)",
               borderColor: "var(--eyeframe-border)",
@@ -149,18 +149,18 @@ function KioskPage() {
             }}
           >
             <span className="flex items-center gap-2">
-              <Eye className="h-4 w-4" style={{ color: "var(--eyeframe-accent)" }} />
+              <Eye className="h-3.5 w-3.5" style={{ color: "var(--eyeframe-accent)" }} />
               <span>{CATEGORY_LABELS[category]}</span>
             </span>
-            <ChevronDown className="h-4 w-4 opacity-70" />
+            <ChevronDown className="h-3.5 w-3.5 opacity-70" />
           </button>
           {menuOpen && (
             <div
               className="fixed mt-1 overflow-hidden rounded-md border shadow-xl"
               style={{
-                left: 12,
-                top: "8vh",
-                width: 180,
+                left: 8,
+                top: "6.4vh",
+                width: 144,
                 zIndex: 9999,
                 backgroundColor: "var(--eyeframe-card)",
                 borderColor: "var(--eyeframe-border)",
@@ -175,10 +175,10 @@ function KioskPage() {
                     setCategory(c);
                     setMenuOpen(false);
                   }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:brightness-125"
+                  className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm transition-colors hover:brightness-125"
                   style={{ color: "var(--eyeframe-text)" }}
                 >
-                  <CategoryIcon category={c} className="h-4 w-4 opacity-80" />
+                  <CategoryIcon category={c} className="h-3.5 w-3.5 opacity-80" />
                   {CATEGORY_LABELS[c]}
                 </button>
               ))}
@@ -204,15 +204,15 @@ function KioskPage() {
                 type="button"
                 onClick={() => setActive(item)}
                 title={item.label}
-                className="group flex h-[52px] shrink-0 items-center justify-center gap-2 rounded-md border px-3 transition-all hover:brightness-125"
+                className="group flex h-[42px] shrink-0 items-center justify-center gap-2 rounded-md border px-2 transition-all hover:brightness-125"
                 style={{
-                  width: 160,
+                  width: 128,
                   backgroundColor: "var(--eyeframe-card)",
                   borderColor: isActive ? "var(--eyeframe-accent)" : "var(--eyeframe-border)",
                   borderBottomWidth: isActive ? 3 : 1,
                 }}
               >
-                <span className="w-full truncate text-center text-sm" style={{ color: "var(--eyeframe-text)" }}>
+                <span className="w-full truncate text-center text-xs" style={{ color: "var(--eyeframe-text)" }}>
                   {item.label}
                 </span>
               </button>
@@ -222,17 +222,18 @@ function KioskPage() {
 
         <Link
           to="/admin"
-          className="flex h-10 shrink-0 items-center gap-1 rounded-md border px-3 text-xs transition-colors hover:brightness-125"
+          className="flex h-8 shrink-0 items-center gap-1 rounded-md border px-2 text-xs transition-colors hover:brightness-125"
           style={{
             backgroundColor: "var(--eyeframe-card)",
             borderColor: "var(--eyeframe-border)",
             color: "var(--eyeframe-text)",
           }}
         >
-          <SettingsIcon className="h-4 w-4" />
+          <SettingsIcon className="h-3.5 w-3.5" />
           Admin
         </Link>
       </div>
+
 
       {/* Preview area */}
       <div className="relative h-full w-full" style={{ backgroundColor: "var(--eyeframe-bg)" }}>

@@ -204,7 +204,7 @@ function KioskPage() {
                 type="button"
                 onClick={() => setActive(item)}
                 title={item.label}
-                className="group flex h-[52px] shrink-0 items-center gap-2 rounded-md border px-3 transition-all hover:brightness-125"
+                className="group flex h-[52px] shrink-0 items-center justify-center gap-2 rounded-md border px-3 transition-all hover:brightness-125"
                 style={{
                   width: 160,
                   backgroundColor: "var(--eyeframe-card)",
@@ -212,7 +212,7 @@ function KioskPage() {
                   borderBottomWidth: isActive ? 3 : 1,
                 }}
               >
-                <span className="truncate text-sm" style={{ color: "var(--eyeframe-text)" }}>
+                <span className="w-full truncate text-center text-sm" style={{ color: "var(--eyeframe-text)" }}>
                   {item.label}
                 </span>
               </button>

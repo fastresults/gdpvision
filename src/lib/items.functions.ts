@@ -11,6 +11,8 @@ export type Item = {
   label: string;
   url: string;
   favicon_url: string | null;
+  favicon_asset_id: string | null;
+  favicon_asset_url: string | null;
   sort_order: number;
   created_at: string;
 };

@@ -124,7 +124,7 @@ function KioskPage() {
     <div
       className="grid h-screen w-screen overflow-hidden"
       style={{
-        gridTemplateRows: "5.12vh 94.88vh",
+        gridTemplateRows: "4.6vh 95.4vh",
         backgroundColor: "var(--eyeframe-bg)",
         color: "var(--eyeframe-text)",
         fontFamily: "var(--font-sans)",
@@ -141,7 +141,7 @@ function KioskPage() {
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
             onBlur={() => setTimeout(() => setMenuOpen(false), 120)}
-            className="flex h-[26px] w-full items-center justify-between rounded-md border px-2 text-xs font-medium transition-colors"
+            className="flex h-[23px] w-full items-center justify-between rounded-md border px-2 text-xs font-medium transition-colors"
             style={{
               backgroundColor: "var(--eyeframe-card)",
               borderColor: "var(--eyeframe-border)",
@@ -159,7 +159,7 @@ function KioskPage() {
               className="fixed mt-1 overflow-hidden rounded-md border shadow-xl"
               style={{
                 left: 8,
-                top: "5.12vh",
+                top: "4.6vh",
                 width: 144,
                 zIndex: 9999,
                 backgroundColor: "var(--eyeframe-card)",
@@ -204,9 +204,9 @@ function KioskPage() {
                 type="button"
                 onClick={() => setActive(item)}
                 title={item.label}
-                className="group flex h-[34px] shrink-0 items-center justify-center gap-2 rounded-md border px-2 transition-all hover:brightness-125"
+                className="group flex h-[31px] shrink-0 items-center justify-center gap-2 rounded-md border px-2 transition-all hover:brightness-125"
                 style={{
-                  width: 112,
+                  width: 101,
                   backgroundColor: "var(--eyeframe-card)",
                   borderColor: isActive ? "var(--eyeframe-accent)" : "var(--eyeframe-border)",
                   borderBottomWidth: isActive ? 3 : 1,
@@ -222,7 +222,7 @@ function KioskPage() {
 
         <Link
           to="/admin"
-          className="flex h-[26px] shrink-0 items-center gap-1 rounded-md border px-2 text-xs transition-colors hover:brightness-125"
+          className="flex h-[23px] shrink-0 items-center gap-1 rounded-md border px-2 text-xs transition-colors hover:brightness-125"
           style={{
             backgroundColor: "var(--eyeframe-card)",
             borderColor: "var(--eyeframe-border)",

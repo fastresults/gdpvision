@@ -40,30 +40,18 @@ function ThumbnailCard({
   onClick: () => void;
 }) {
   const isVideo = VIDEO_CATEGORIES.includes(item.category);
-  const thumbUrl = getHeroThumbnail(item.url, item.category);
+  const thumbUrl = getItemThumbnail(item);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [retry, setRetry] = useState(0);
-  const imgRef = useRef<HTMLImageElement | null>(null);
 
-  // mShots returns a small placeholder gif while the real screenshot is being
-  // generated. Detect that (placeholder is ~400x300) and retry with cache-bust
-  // until the real image loads, up to 5 tries over ~25s.
-  const handleImgLoad = () => {
-    const img = imgRef.current;
-    if (!img) return;
-    const isPlaceholder = img.naturalWidth > 0 && img.naturalWidth <= 400;
-    if (isPlaceholder && retry < 5) {
-      setTimeout(() => setRetry((r) => r + 1), 5000);
-      return;
-    }
-    setLoaded(true);
-  };
-
-  const srcWithRetry =
-    thumbUrl && !isVideo ? `${thumbUrl}${retry > 0 ? `&_r=${retry}` : ""}` : null;
-
-  const showFallback = failed || (!thumbUrl && !isVideo) || (isVideo && failed);
+  const showProcessing =
+    !isVideo &&
+    !thumbUrl &&
+    (item.thumbnail_status === "pending" || item.thumbnail_status === "processing");
+  const showFallback =
+    failed ||
+    (!isVideo && !thumbUrl && item.thumbnail_status === "failed") ||
+    (isVideo && failed);
 
   return (
     <button
@@ -83,28 +71,26 @@ function ThumbnailCard({
             "linear-gradient(135deg, color-mix(in oklch, var(--eyeframe-accent) 18%, var(--eyeframe-bg)) 0%, var(--eyeframe-bg) 100%)",
         }}
       >
-        {/* Shimmer while loading */}
-        {!loaded && !showFallback && (
+        {/* Shimmer while loading / processing */}
+        {(showProcessing || (!loaded && thumbUrl && !showFallback)) && (
           <div
             className="absolute inset-0 animate-pulse"
             style={{
               background:
-                "linear-gradient(90deg, transparent, color-mix(in oklch, var(--eyeframe-text) 6%, transparent), transparent)",
+                "linear-gradient(90deg, transparent, color-mix(in oklch, var(--eyeframe-text) 8%, transparent), transparent)",
             }}
           />
         )}
 
-        {/* Website screenshot */}
-        {srcWithRetry && !failed && (
+        {/* Saved website screenshot */}
+        {thumbUrl && !failed && (
           <img
-            ref={imgRef}
-            key={retry}
-            src={srcWithRetry}
+            src={thumbUrl}
             alt={item.label}
             loading="lazy"
             decoding="async"
             referrerPolicy="no-referrer"
-            onLoad={handleImgLoad}
+            onLoad={() => setLoaded(true)}
             onError={() => setFailed(true)}
             className="h-full w-full object-cover object-top"
             style={{ opacity: loaded ? 1 : 0, transition: "opacity 300ms" }}
@@ -124,17 +110,22 @@ function ThumbnailCard({
           />
         )}
 
-        {/* Fallback */}
-        {showFallback && (
-          <div className="flex h-full w-full items-center justify-center">
-            <CategoryIcon
-              category={item.category}
-              className="h-10 w-10 opacity-60"
-            />
+        {/* Processing label */}
+        {showProcessing && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 opacity-70">
+            <CategoryIcon category={item.category} className="h-9 w-9" />
+            <div className="text-[10px] uppercase tracking-wider">Generating preview…</div>
           </div>
         )}
 
-        {/* Bottom gradient for legibility against bright screenshots if label overlays in future */}
+        {/* Fallback (failed or unavailable) */}
+        {showFallback && (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 opacity-70">
+            <CategoryIcon category={item.category} className="h-10 w-10" />
+          </div>
+        )}
+
+        {/* Bottom gradient for legibility */}
         <div
           className="pointer-events-none absolute inset-x-0 bottom-0 h-12"
           style={{

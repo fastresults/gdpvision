@@ -222,7 +222,7 @@ function KioskPage() {
 
         <Link
           to="/admin"
-          className="flex h-[23px] shrink-0 items-center gap-1 rounded-md border px-2 text-xs transition-colors hover:brightness-125"
+          className="flex h-[23px] shrink-0 items-center gap-1 rounded-md border px-2 text-xs opacity-70 transition-colors hover:brightness-125"
           style={{
             backgroundColor: "var(--eyeframe-card)",
             borderColor: "var(--eyeframe-border)",

@@ -6,7 +6,9 @@ export type SettingKey =
   | "kiosk_title"
   | "label_websites"
   | "label_presentations"
-  | "label_docs";
+  | "label_docs"
+  | "label_videos"
+  | "label_brand";
 
 export const SETTING_KEYS: SettingKey[] = [
   "admin_title",
@@ -14,6 +16,8 @@ export const SETTING_KEYS: SettingKey[] = [
   "label_websites",
   "label_presentations",
   "label_docs",
+  "label_videos",
+  "label_brand",
 ];
 
 export type Settings = Record<SettingKey, string>;
@@ -24,6 +28,8 @@ const DEFAULTS: Settings = {
   label_websites: "Websites",
   label_presentations: "Presentations",
   label_docs: "Google Docs",
+  label_videos: "Past Events",
+  label_brand: "Brand Building",
 };
 
 export const listSettings = createServerFn({ method: "GET" }).handler(async () => {
@@ -49,6 +55,8 @@ export const updateSetting = createServerFn({ method: "POST" })
           "label_websites",
           "label_presentations",
           "label_docs",
+          "label_videos",
+          "label_brand",
         ]),
         value: z.string().min(1).max(200),
       })

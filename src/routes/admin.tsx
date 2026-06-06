@@ -142,9 +142,13 @@ function AdminPage() {
   const [tab, setTab] = useState<ItemCategory>("websites");
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState("");
   const [editUrl, setEditUrl] = useState("");
+
+  const isVideoTab = VIDEO_CATEGORIES.includes(tab);
+  const uploadVideo = useServerFn(uploadEventVideo);
 
   const visible = useMemo(
     () =>
@@ -158,10 +162,21 @@ function AdminPage() {
   const invalidateSettings = () => qc.invalidateQueries({ queryKey: ["settings"] });
 
   const createMut = useMutation({
-    mutationFn: () => create({ data: { category: tab, label, url } }),
+    mutationFn: async () => {
+      let finalUrl = url;
+      if (isVideoTab) {
+        if (!file) throw new Error("Please choose a video file");
+        const fd = new FormData();
+        fd.append("file", file);
+        const { publicUrl } = await uploadVideo({ data: fd });
+        finalUrl = publicUrl;
+      }
+      return create({ data: { category: tab, label, url: finalUrl } });
+    },
     onSuccess: () => {
       setLabel("");
       setUrl("");
+      setFile(null);
       invalidateItems();
     },
   });

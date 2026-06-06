@@ -260,7 +260,7 @@ function KioskPage() {
               <img
                 src={labels.idle_image_url}
                 alt={labels.kiosk_title}
-                className="h-full w-full object-contain"
+                className="max-h-[30%] max-w-[30%] object-contain"
               />
               <div className="pointer-events-none absolute bottom-6 left-0 right-0 text-center text-sm opacity-70">
                 {labels.kiosk_title}

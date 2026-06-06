@@ -212,16 +212,6 @@ function KioskPage() {
                   borderBottomWidth: isActive ? 3 : 1,
                 }}
               >
-                {item.favicon_url ? (
-                  <img
-                    src={item.favicon_url}
-                    alt=""
-                    className="h-5 w-5 shrink-0 rounded"
-                    onError={(e) => (e.currentTarget.style.display = "none")}
-                  />
-                ) : (
-                  <CategoryIcon category={item.category} className="h-5 w-5 shrink-0 opacity-80" />
-                )}
                 <span className="truncate text-sm" style={{ color: "var(--eyeframe-text)" }}>
                   {item.label}
                 </span>

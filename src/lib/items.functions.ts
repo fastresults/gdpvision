@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-export type ItemCategory = "websites" | "presentations" | "docs";
+export type ItemCategory = "websites" | "presentations" | "docs" | "videos" | "brand";
+
+export const VIDEO_CATEGORIES: ItemCategory[] = ["videos", "brand"];
 
 export type Item = {
   id: string;
@@ -13,7 +15,40 @@ export type Item = {
   created_at: string;
 };
 
-const categorySchema = z.enum(["websites", "presentations", "docs"]);
+const categorySchema = z.enum(["websites", "presentations", "docs", "videos", "brand"]);
+
+const ALLOWED_VIDEO_MIME = ["video/mp4", "video/webm", "video/quicktime"];
+const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
+
+export const uploadEventVideo = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => {
+    if (!(d instanceof FormData)) throw new Error("Expected FormData");
+    const file = d.get("file");
+    if (!(file instanceof File)) throw new Error("Missing file");
+    if (!ALLOWED_VIDEO_MIME.includes(file.type)) {
+      throw new Error(`Unsupported file type: ${file.type}`);
+    }
+    if (file.size > MAX_VIDEO_BYTES) {
+      throw new Error("File exceeds 500 MB limit");
+    }
+    return { file };
+  })
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const file = data.file;
+    const ext = file.name.split(".").pop() || "mp4";
+    const path = `${crypto.randomUUID()}.${ext}`;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from("event-videos")
+      .upload(path, bytes, { contentType: file.type, upsert: false });
+    if (uploadError) throw new Error(uploadError.message);
+    const { data: signed, error: signError } = await supabaseAdmin.storage
+      .from("event-videos")
+      .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+    if (signError || !signed) throw new Error(signError?.message || "Failed to sign URL");
+    return { publicUrl: signed.signedUrl };
+  });
 
 export const listItems = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

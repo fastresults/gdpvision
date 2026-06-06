@@ -19,7 +19,6 @@ import {
 } from "@/lib/items.functions";
 import {
   listMedia,
-  uploadMedia,
   deleteMedia,
   renameMedia,
   setItemFaviconAsset,

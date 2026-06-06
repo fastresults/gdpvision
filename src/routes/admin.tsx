@@ -126,6 +126,8 @@ function AdminPage() {
     label_websites: "Websites",
     label_presentations: "Presentations",
     label_docs: "Google Docs",
+    label_videos: "Past Events",
+    label_brand: "Brand Building",
   };
 
   const tabs = useMemo(

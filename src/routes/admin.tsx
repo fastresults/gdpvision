@@ -685,7 +685,41 @@ function MediaHub({ idleImageUrl, onSetIdle }: { idleImageUrl: string; onSetIdle
         <div className="mb-3 flex items-center gap-2 text-sm font-medium opacity-80">
           <Star className="h-4 w-4" /> Kiosk idle screen image
         </div>
-        <div className="flex items-center gap-4">
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragging(false);
+            const f = e.dataTransfer.files?.[0];
+            if (!f) return;
+            if (!f.type.startsWith("image/")) {
+              alert("Please drop an image file (PNG, JPG, SVG, WebP, GIF).");
+              return;
+            }
+            uploadIdleMut.mutate(f);
+          }}
+          onClick={() => idleInputRef.current?.click()}
+          className="flex cursor-pointer items-center gap-4 rounded-md border-2 border-dashed p-3 transition-colors"
+          style={{
+            borderColor: isDragging ? "var(--eyeframe-accent)" : "var(--eyeframe-border)",
+            backgroundColor: isDragging ? "color-mix(in oklab, var(--eyeframe-accent) 10%, transparent)" : "transparent",
+          }}
+        >
+          <input
+            ref={idleInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) uploadIdleMut.mutate(f);
+              if (idleInputRef.current) idleInputRef.current.value = "";
+            }}
+          />
           <div
             className="flex h-24 w-40 shrink-0 items-center justify-center overflow-hidden rounded border"
             style={{ backgroundColor: "var(--eyeframe-card)", borderColor: "var(--eyeframe-border)" }}
@@ -697,14 +731,26 @@ function MediaHub({ idleImageUrl, onSetIdle }: { idleImageUrl: string; onSetIdle
             )}
           </div>
           <div className="flex-1 text-xs opacity-70">
-            {idleImageUrl
-              ? "This image is shown full-screen on the kiosk before any resource is selected."
-              : "No idle image set. The kiosk shows the eye-icon placeholder. Choose an image below and click the star to set it."}
+            {uploadIdleMut.isPending ? (
+              "Uploading…"
+            ) : isDragging ? (
+              <span style={{ color: "var(--eyeframe-accent)" }}>Drop image to set as idle screen</span>
+            ) : idleImageUrl ? (
+              "This image is shown full-screen on the kiosk before any resource is selected. Drag & drop or click to replace."
+            ) : (
+              "Drag & drop an image here (PNG, JPG, SVG, WebP, GIF) or click to upload. You can also pick from the library below."
+            )}
+            {uploadIdleMut.isError && (
+              <div className="mt-1 text-red-400">{(uploadIdleMut.error as Error).message}</div>
+            )}
           </div>
           {idleImageUrl && (
             <button
               type="button"
-              onClick={() => onSetIdle("")}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSetIdle("");
+              }}
               className="rounded-md border px-3 py-2 text-xs"
               style={{ backgroundColor: "var(--eyeframe-card)", borderColor: "var(--eyeframe-border)" }}
             >

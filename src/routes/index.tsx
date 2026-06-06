@@ -256,13 +256,13 @@ function KioskPage() {
       <div className="relative h-full w-full" style={{ backgroundColor: "var(--eyeframe-bg)" }}>
         {!active && (
           labels.idle_image_url ? (
-            <div className="relative flex h-full w-full items-center justify-center" style={{ backgroundColor: "var(--eyeframe-bg)" }}>
+            <div className="relative flex h-full w-full flex-col items-center justify-center gap-4" style={{ backgroundColor: "var(--eyeframe-bg)" }}>
               <img
                 src={labels.idle_image_url}
                 alt={labels.kiosk_title}
                 className="max-h-[30%] max-w-[30%] object-contain"
               />
-              <div className="pointer-events-none absolute bottom-6 left-0 right-0 text-center text-sm opacity-70">
+              <div className="text-center text-sm opacity-70">
                 {labels.kiosk_title}
               </div>
             </div>

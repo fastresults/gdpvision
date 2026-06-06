@@ -43,6 +43,25 @@ function ThumbnailCard({
   const thumbUrl = getHeroThumbnail(item.url, item.category);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+
+  // mShots returns a small placeholder gif while the real screenshot is being
+  // generated. Detect that (placeholder is ~400x300) and retry with cache-bust
+  // until the real image loads, up to 5 tries over ~25s.
+  const handleImgLoad = () => {
+    const img = imgRef.current;
+    if (!img) return;
+    const isPlaceholder = img.naturalWidth > 0 && img.naturalWidth <= 400;
+    if (isPlaceholder && retry < 5) {
+      setTimeout(() => setRetry((r) => r + 1), 5000);
+      return;
+    }
+    setLoaded(true);
+  };
+
+  const srcWithRetry =
+    thumbUrl && !isVideo ? `${thumbUrl}${retry > 0 ? `&_r=${retry}` : ""}` : null;
 
   const showFallback = failed || (!thumbUrl && !isVideo) || (isVideo && failed);
 

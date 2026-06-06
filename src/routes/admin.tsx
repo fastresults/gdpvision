@@ -288,7 +288,7 @@ function AdminPage() {
 
 
         <div className="mb-6 flex flex-wrap gap-2">
-          {tabs.map((t) => {
+          {categoryTabs.map((t) => {
             const isActive = tab === t.key;
             return (
               <div
@@ -311,7 +311,28 @@ function AdminPage() {
               </div>
             );
           })}
+          <div
+            onClick={() => setTab("media")}
+            className="flex cursor-pointer items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors"
+            style={{
+              backgroundColor: tab === "media" ? "var(--eyeframe-accent)" : "var(--eyeframe-card)",
+              color: tab === "media" ? "var(--eyeframe-bg)" : "var(--eyeframe-text)",
+              borderColor: tab === "media" ? "var(--eyeframe-accent)" : "var(--eyeframe-border)",
+            }}
+          >
+            <Library className="h-4 w-4" />
+            Media Hub
+          </div>
         </div>
+
+        {isMediaTab ? (
+          <MediaHub
+            idleImageUrl={labels.idle_image_url}
+            onSetIdle={(v) => settingMut.mutate({ key: "idle_image_url", value: v })}
+          />
+        ) : (
+        <>
+
 
         <div className="mb-4 text-xs opacity-60">
           Tip: click any title or category name to rename it. The kiosk updates automatically.

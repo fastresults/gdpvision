@@ -194,6 +194,13 @@ function AdminPage() {
     },
   });
 
+  const fetchMedia = useServerFn(listMedia);
+  const setFaviconAsset = useServerFn(setItemFaviconAsset);
+  const { data: mediaImages = [] } = useQuery({
+    queryKey: ["media", "image"],
+    queryFn: () => fetchMedia({ data: { kind: "image" } }),
+  });
+
   const updateMut = useMutation({
     mutationFn: (item: Item) =>
       update({
@@ -203,6 +210,12 @@ function AdminPage() {
       setEditingId(null);
       invalidateItems();
     },
+  });
+
+  const faviconAssetMut = useMutation({
+    mutationFn: ({ itemId, assetId }: { itemId: string; assetId: string | null }) =>
+      setFaviconAsset({ data: { itemId, assetId } }),
+    onSuccess: invalidateItems,
   });
 
   const deleteMut = useMutation({

@@ -686,26 +686,39 @@ function MediaHub({ idleImageUrl, onSetIdle }: { idleImageUrl: string; onSetIdle
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["media"] });
 
+  const uploadOne = async (f: File) => {
+    const fd = new FormData();
+    fd.append("file", f);
+    const res = await fetch("/api/upload-media", { method: "POST", body: fd });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(body?.error || `Upload failed (${res.status})`);
+    }
+    return (await res.json()) as MediaAsset;
+  };
+
   const uploadMut = useMutation({
     mutationFn: async (files: FileList | File[]) => {
       for (const f of Array.from(files)) {
-        const fd = new FormData();
-        fd.append("file", f);
-        await upload({ data: fd });
+        await uploadOne(f);
       }
     },
     onSuccess: invalidate,
+    onError: (err) => {
+      console.error("[uploadMedia] failed:", err);
+      alert(`Upload failed: ${err instanceof Error ? err.message : String(err)}`);
+    },
   });
 
   const uploadIdleMut = useMutation({
-    mutationFn: async (file: File) => {
-      const fd = new FormData();
-      fd.append("file", file);
-      return (await upload({ data: fd })) as { public_url: string };
-    },
+    mutationFn: (file: File) => uploadOne(file),
     onSuccess: (asset) => {
       invalidate();
       if (asset?.public_url) onSetIdle(asset.public_url);
+    },
+    onError: (err) => {
+      console.error("[uploadMedia idle] failed:", err);
+      alert(`Upload failed: ${err instanceof Error ? err.message : String(err)}`);
     },
   });
 

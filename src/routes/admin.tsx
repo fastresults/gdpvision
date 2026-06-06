@@ -163,7 +163,7 @@ function AdminPage() {
   const updateMut = useMutation({
     mutationFn: (item: Item) =>
       update({
-        data: { id: item.id, label: editLabel, url: editUrl, favicon_url: item.favicon_url },
+        data: { id: item.id, label: editLabel, url: editUrl },
       }),
     onSuccess: () => {
       setEditingId(null);

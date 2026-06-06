@@ -1,0 +1,1 @@
+UPDATE public.items SET favicon_url='https://www.google.com/s2/favicons?domain=cis27.com&sz=64' WHERE label='CIS ''27';

@@ -25,8 +25,8 @@ import {
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
-      { title: "EyeFrame — Admin" },
-      { name: "description", content: "Manage EyeFrame kiosk resources." },
+      { title: "GDP Vision — Admin" },
+      { name: "description", content: "Manage GDP Vision kiosk resources." },
     ],
   }),
   component: AdminPage,
@@ -121,8 +121,8 @@ function AdminPage() {
   });
 
   const labels: Settings = settings ?? {
-    admin_title: "EyeFrame Admin",
-    kiosk_title: "EyeFrame",
+    admin_title: "GDP Vision Admin",
+    kiosk_title: "GDP Vision",
     label_websites: "Websites",
     label_presentations: "Presentations",
     label_docs: "Google Docs",

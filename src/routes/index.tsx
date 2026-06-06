@@ -19,7 +19,7 @@ import { listSettings, type Settings } from "@/lib/settings.functions";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "EyeFrame — Kiosk" },
+      { title: "GDP Vision — Kiosk" },
       {
         name: "description",
         content: "Full-screen browser demonstration system.",
@@ -67,8 +67,8 @@ function KioskPage() {
     staleTime: 0,
   });
   const labels: Settings = settings ?? {
-    admin_title: "EyeFrame Admin",
-    kiosk_title: "EyeFrame",
+    admin_title: "GDP Vision Admin",
+    kiosk_title: "GDP Vision",
     label_websites: "Websites",
     label_presentations: "Presentations",
     label_docs: "Google Docs",
@@ -131,7 +131,7 @@ function KioskPage() {
           fontFamily: "var(--font-sans)",
         }}
       >
-        <p className="text-base">EyeFrame is optimized for desktop</p>
+        <p className="text-base">GDP Vision is optimized for desktop</p>
       </div>
     );
   }

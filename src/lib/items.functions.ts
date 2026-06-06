@@ -74,6 +74,10 @@ export const listItems = createServerFn({ method: "GET" }).handler(async () => {
     favicon_url: r.favicon_url,
     favicon_asset_id: r.favicon_asset_id,
     favicon_asset_url: r.favicon_asset?.public_url ?? null,
+    thumbnail_url: r.thumbnail_url ?? null,
+    thumbnail_status: (r.thumbnail_status ?? "pending") as ThumbnailStatus,
+    thumbnail_error: r.thumbnail_error ?? null,
+    thumbnail_updated_at: r.thumbnail_updated_at ?? null,
     sort_order: r.sort_order,
     created_at: r.created_at,
   })) as Item[];

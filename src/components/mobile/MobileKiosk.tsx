@@ -441,7 +441,95 @@ export function MobileKiosk({ items, settings }: { items: Item[]; settings: Sett
             </div>
           )}
         </div>
+      </BottomSheet>
+    </div>
+  );
+}
+
+const PEEK_HEIGHT = 150;
+
+function BottomSheet({
+  open,
+  onOpenChange,
+  children,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  children: React.ReactNode;
+}) {
+  const [dragOffset, setDragOffset] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const startYRef = useRef<number | null>(null);
+  const startOpenRef = useRef(open);
+  const sheetRef = useRef<HTMLDivElement | null>(null);
+
+  // Closed = sheet pushed down so only PEEK_HEIGHT is visible.
+  // Open = sheet at top (offset 0).
+  const sheetHeight =
+    typeof window !== "undefined" ? window.innerHeight * 0.85 : 600;
+  const closedTranslate = sheetHeight - PEEK_HEIGHT;
+  const baseTranslate = open ? 0 : closedTranslate;
+  const translateY = Math.max(
+    0,
+    Math.min(closedTranslate, baseTranslate + dragOffset),
+  );
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    startYRef.current = e.clientY;
+    startOpenRef.current = open;
+    setDragging(true);
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (startYRef.current == null) return;
+    setDragOffset(e.clientY - startYRef.current);
+  };
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (startYRef.current == null) return;
+    const delta = e.clientY - startYRef.current;
+    startYRef.current = null;
+    setDragging(false);
+    setDragOffset(0);
+    // Threshold ~60px: drag up opens, drag down closes
+    if (startOpenRef.current && delta > 60) onOpenChange(false);
+    else if (!startOpenRef.current && delta < -60) onOpenChange(true);
+  };
+
+  return (
+    <div
+      ref={sheetRef}
+      className="absolute inset-x-0 bottom-0 z-30 flex flex-col rounded-t-3xl border-t shadow-2xl"
+      style={{
+        height: "85dvh",
+        transform: `translateY(${translateY}px)`,
+        transition: dragging ? "none" : "transform 300ms cubic-bezier(0.32, 0.72, 0, 1)",
+        backgroundColor: "var(--eyeframe-card)",
+        borderColor: "var(--eyeframe-border)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+        touchAction: "none",
+      }}
+    >
+      {/* Drag handle */}
+      <div
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onClick={() => {
+          if (Math.abs(dragOffset) < 4) onOpenChange(!open);
+        }}
+        className="flex w-full shrink-0 cursor-grab flex-col items-center gap-2 pt-3 pb-3 active:cursor-grabbing"
+        role="button"
+        aria-label={open ? "Collapse" : "Expand"}
+        style={{ touchAction: "none" }}
+      >
+        <div
+          className="h-1.5 w-12 rounded-full"
+          style={{ backgroundColor: "var(--eyeframe-border)" }}
+        />
       </div>
+
+      {children}
     </div>
   );
 }

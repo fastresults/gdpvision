@@ -11,6 +11,8 @@ import {
   refreshFavicons,
   updateItem,
   uploadEventVideo,
+  generateItemThumbnail,
+  refreshAllThumbnails,
   VIDEO_CATEGORIES,
   type Item,
   type ItemCategory,
@@ -119,6 +121,8 @@ function AdminPage() {
   const move = useServerFn(moveItem);
   const saveSetting = useServerFn(updateSetting);
   const refresh = useServerFn(refreshFavicons);
+  const genThumb = useServerFn(generateItemThumbnail);
+  const refreshThumbs = useServerFn(refreshAllThumbnails);
 
   const { data: items = [] } = useQuery({
     queryKey: ["items"],
@@ -184,7 +188,14 @@ function AdminPage() {
         const { publicUrl } = await uploadVideo({ data: fd });
         finalUrl = publicUrl;
       }
-      return create({ data: { category: categoryTab, label, url: finalUrl } });
+      const res = await create({ data: { category: categoryTab, label, url: finalUrl } });
+      // Kick off thumbnail generation for non-video items (don't block UI)
+      if (res?.id && !VIDEO_CATEGORIES.includes(categoryTab)) {
+        genThumb({ data: { id: res.id } })
+          .then(() => qc.invalidateQueries({ queryKey: ["items"] }))
+          .catch(() => {});
+      }
+      return res;
     },
     onSuccess: () => {
       setLabel("");
@@ -240,6 +251,16 @@ function AdminPage() {
     onSuccess: invalidateItems,
   });
 
+  const regenOneMut = useMutation({
+    mutationFn: (id: string) => genThumb({ data: { id } }),
+    onSuccess: invalidateItems,
+  });
+
+  const refreshThumbsMut = useMutation({
+    mutationFn: (force: boolean) => refreshThumbs({ data: { force } }),
+    onSuccess: invalidateItems,
+  });
+
   return (
     <div
       className="min-h-screen w-full px-6 py-8"
@@ -272,6 +293,20 @@ function AdminPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => refreshThumbsMut.mutate(false)}
+              disabled={refreshThumbsMut.isPending}
+              className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:brightness-125 disabled:opacity-50"
+              style={{
+                backgroundColor: "var(--eyeframe-topbar)",
+                borderColor: "var(--eyeframe-border)",
+              }}
+              title="Generate thumbnails for pending or failed items"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshThumbsMut.isPending ? "animate-spin" : ""}`} />
+              {refreshThumbsMut.isPending ? "Generating…" : "Refresh thumbnails"}
+            </button>
             <button
               type="button"
               onClick={() => refreshMut.mutate()}
@@ -521,6 +556,36 @@ function AdminPage() {
                   </>
                 )}
                 <div className="flex shrink-0 items-center gap-1">
+                  {!VIDEO_CATEGORIES.includes(item.category) && (
+                    <button
+                      type="button"
+                      title={
+                        item.thumbnail_error
+                          ? `Thumbnail: ${item.thumbnail_status} — ${item.thumbnail_error}`
+                          : `Thumbnail: ${item.thumbnail_status}`
+                      }
+                      onClick={() => regenOneMut.mutate(item.id)}
+                      disabled={regenOneMut.isPending}
+                      className="rounded-md border px-2 py-1 text-[10px] uppercase tracking-wider transition-colors hover:brightness-125 disabled:opacity-50"
+                      style={{
+                        backgroundColor: "var(--eyeframe-card)",
+                        borderColor:
+                          item.thumbnail_status === "ready"
+                            ? "var(--eyeframe-accent)"
+                            : item.thumbnail_status === "failed"
+                              ? "#ff8a8a"
+                              : "var(--eyeframe-border)",
+                        color:
+                          item.thumbnail_status === "ready"
+                            ? "var(--eyeframe-accent)"
+                            : item.thumbnail_status === "failed"
+                              ? "#ff8a8a"
+                              : "var(--eyeframe-text)",
+                      }}
+                    >
+                      {item.thumbnail_status}
+                    </button>
+                  )}
                   <button
                     type="button"
                     title="Move up"

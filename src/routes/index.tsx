@@ -59,6 +59,15 @@ function KioskPage() {
     queryKey: ["items"],
     queryFn: () => fetchItems(),
     refetchOnWindowFocus: true,
+    // Poll while any item is still generating its thumbnail so the kiosk
+    // reflects newly-ready previews without a manual refresh.
+    refetchInterval: (q) => {
+      const data = q.state.data as Item[] | undefined;
+      const pending = (data ?? []).some(
+        (i) => i.thumbnail_status === "pending" || i.thumbnail_status === "processing",
+      );
+      return pending ? 4000 : false;
+    },
   });
   const { data: settings } = useQuery<Settings>({
     queryKey: ["settings"],

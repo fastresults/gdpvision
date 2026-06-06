@@ -5,6 +5,8 @@ export type ItemCategory = "websites" | "presentations" | "docs" | "videos" | "b
 
 export const VIDEO_CATEGORIES: ItemCategory[] = ["videos", "brand"];
 
+export type ThumbnailStatus = "pending" | "processing" | "ready" | "failed";
+
 export type Item = {
   id: string;
   category: ItemCategory;
@@ -13,6 +15,10 @@ export type Item = {
   favicon_url: string | null;
   favicon_asset_id: string | null;
   favicon_asset_url: string | null;
+  thumbnail_url: string | null;
+  thumbnail_status: ThumbnailStatus;
+  thumbnail_error: string | null;
+  thumbnail_updated_at: string | null;
   sort_order: number;
   created_at: string;
 };
@@ -68,6 +74,10 @@ export const listItems = createServerFn({ method: "GET" }).handler(async () => {
     favicon_url: r.favicon_url,
     favicon_asset_id: r.favicon_asset_id,
     favicon_asset_url: r.favicon_asset?.public_url ?? null,
+    thumbnail_url: r.thumbnail_url ?? null,
+    thumbnail_status: (r.thumbnail_status ?? "pending") as ThumbnailStatus,
+    thumbnail_error: r.thumbnail_error ?? null,
+    thumbnail_updated_at: r.thumbnail_updated_at ?? null,
     sort_order: r.sort_order,
     created_at: r.created_at,
   })) as Item[];
@@ -103,15 +113,19 @@ export const createItem = createServerFn({ method: "POST" })
       .limit(1)
       .maybeSingle();
     const nextOrder = (maxRow?.sort_order ?? 0) + 10;
-    const { error } = await supabaseAdmin.from("items").insert({
-      category: data.category,
-      label: data.label,
-      url: data.url,
-      favicon_url: favicon,
-      sort_order: nextOrder,
-    });
+    const { data: inserted, error } = await supabaseAdmin
+      .from("items")
+      .insert({
+        category: data.category,
+        label: data.label,
+        url: data.url,
+        favicon_url: favicon,
+        sort_order: nextOrder,
+      })
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
-    return { ok: true };
+    return { ok: true, id: inserted?.id ?? null };
   });
 
 export const updateItem = createServerFn({ method: "POST" })
@@ -230,3 +244,158 @@ export const moveItem = createServerFn({ method: "POST" })
     if (e3) throw new Error(e3.message);
     return { ok: true };
   });
+
+// ----- Thumbnails (homepage screenshots) -----
+
+const MSHOTS_W = 1200;
+const MSHOTS_H = 750;
+// mShots returns a small 400x300 placeholder PNG while it generates the real
+// screenshot. Real screenshots are MUCH larger (typically >40KB) and at the
+// requested dimensions. We use Content-Length + a few retries to detect the
+// transition from placeholder to real image.
+const PLACEHOLDER_MAX_BYTES = 8 * 1024; // placeholder is ~3-5KB
+const MAX_POLL_ATTEMPTS = 8;
+const POLL_DELAY_MS = 3000;
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchScreenshotBytes(
+  sourceUrl: string,
+): Promise<{ bytes: Uint8Array; contentType: string } | null> {
+  const mshots = `https://s.wordpress.com/mshots/v1/${encodeURIComponent(sourceUrl)}?w=${MSHOTS_W}&h=${MSHOTS_H}`;
+  for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(mshots, {
+        redirect: "follow",
+        headers: { "User-Agent": "GDPVision-Thumbnailer/1.0" },
+      });
+      if (!res.ok) {
+        await sleep(POLL_DELAY_MS);
+        continue;
+      }
+      const buf = new Uint8Array(await res.arrayBuffer());
+      const contentType = res.headers.get("content-type") || "image/jpeg";
+      if (buf.byteLength > PLACEHOLDER_MAX_BYTES) {
+        return { bytes: buf, contentType };
+      }
+    } catch {
+      // network blip — retry
+    }
+    await sleep(POLL_DELAY_MS);
+  }
+  return null;
+}
+
+export const generateItemThumbnail = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: item, error: fetchErr } = await supabaseAdmin
+      .from("items")
+      .select("id, url, category, thumbnail_url")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (fetchErr) throw new Error(fetchErr.message);
+    if (!item) throw new Error("Item not found");
+    if (VIDEO_CATEGORIES.includes(item.category as ItemCategory)) {
+      return { ok: true, status: "skipped" as const };
+    }
+
+    await supabaseAdmin
+      .from("items")
+      .update({ thumbnail_status: "processing", thumbnail_error: null })
+      .eq("id", item.id);
+
+    try {
+      const result = await fetchScreenshotBytes(item.url);
+      if (!result) {
+        await supabaseAdmin
+          .from("items")
+          .update({
+            thumbnail_status: "failed",
+            thumbnail_error: "Screenshot provider did not return a real image in time",
+            thumbnail_updated_at: new Date().toISOString(),
+          })
+          .eq("id", item.id);
+        return { ok: false, status: "failed" as const };
+      }
+
+      const ext = result.contentType.includes("png") ? "png" : "jpg";
+      const storagePath = `${item.id}-${Date.now()}.${ext}`;
+
+      const { error: upErr } = await supabaseAdmin.storage
+        .from("thumbnails")
+        .upload(storagePath, result.bytes, {
+          contentType: result.contentType,
+          upsert: true,
+          cacheControl: "31536000",
+        });
+      if (upErr) throw new Error(upErr.message);
+
+      const { data: signed, error: signErr } = await supabaseAdmin.storage
+        .from("thumbnails")
+        .createSignedUrl(storagePath, 60 * 60 * 24 * 365 * 10);
+      if (signErr || !signed) throw new Error(signErr?.message || "Failed to sign URL");
+
+      await supabaseAdmin
+        .from("items")
+        .update({
+          thumbnail_url: signed.signedUrl,
+          thumbnail_status: "ready",
+          thumbnail_error: null,
+          thumbnail_updated_at: new Date().toISOString(),
+        })
+        .eq("id", item.id);
+
+      return { ok: true, status: "ready" as const, url: signed.signedUrl };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      await supabaseAdmin
+        .from("items")
+        .update({
+          thumbnail_status: "failed",
+          thumbnail_error: msg.slice(0, 500),
+          thumbnail_updated_at: new Date().toISOString(),
+        })
+        .eq("id", item.id);
+      return { ok: false, status: "failed" as const, error: msg };
+    }
+  });
+
+export const refreshAllThumbnails = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({ force: z.boolean().optional() }).optional().parse(d),
+  )
+  .handler(async ({ data }) => {
+    const force = data?.force ?? false;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("items")
+      .select("id, category, thumbnail_status");
+    if (error) throw new Error(error.message);
+
+    const targets = (rows ?? []).filter((r) => {
+      if (VIDEO_CATEGORIES.includes(r.category as ItemCategory)) return false;
+      if (force) return true;
+      return r.thumbnail_status !== "ready";
+    });
+
+    // Run in parallel; mShots is CDN-cached per URL so concurrency is fine.
+    const results = await Promise.allSettled(
+      targets.map(async (r) => {
+        // Inline call to keep one network/storage path per item.
+        const fn = generateItemThumbnail as unknown as (args: {
+          data: { id: string };
+        }) => Promise<{ ok: boolean }>;
+        return fn({ data: { id: r.id } });
+      }),
+    );
+
+    const ok = results.filter((x) => x.status === "fulfilled" && x.value.ok).length;
+    const failed = results.length - ok;
+    return { ok: true, processed: results.length, ready: ok, failed };
+  });
+

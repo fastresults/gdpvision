@@ -385,29 +385,7 @@ export function MobileKiosk({ items, settings }: { items: Item[]; settings: Sett
       )}
 
       {/* Bottom sheet */}
-      <div
-        className="absolute inset-x-0 bottom-0 z-30 flex flex-col rounded-t-3xl border-t shadow-2xl transition-transform duration-300 ease-out"
-        style={{
-          height: sheetOpen ? "85dvh" : "150px",
-          transform: "translateY(0)",
-          backgroundColor: "var(--eyeframe-card)",
-          borderColor: "var(--eyeframe-border)",
-          paddingBottom: "env(safe-area-inset-bottom)",
-        }}
-      >
-        {/* Grabber */}
-        <button
-          type="button"
-          onClick={() => setSheetOpen((v) => !v)}
-          className="flex w-full shrink-0 flex-col items-center gap-2 pt-3 pb-2"
-          aria-label={sheetOpen ? "Collapse" : "Expand"}
-        >
-          <div
-            className="h-1.5 w-12 rounded-full"
-            style={{ backgroundColor: "var(--eyeframe-border)" }}
-          />
-        </button>
-
+      <BottomSheet open={sheetOpen} onOpenChange={setSheetOpen}>
         {/* Category pills */}
         <div
           className="flex shrink-0 gap-2 overflow-x-auto px-4 pb-3"

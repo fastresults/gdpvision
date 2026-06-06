@@ -262,7 +262,7 @@ function KioskPage() {
                 alt={labels.kiosk_title}
                 className="max-h-[30%] max-w-[30%] object-contain"
               />
-              <div className="text-center text-sm opacity-70">
+              <div className="text-center text-[2.625rem] font-bold leading-tight opacity-90">
                 {labels.kiosk_title}
               </div>
             </div>

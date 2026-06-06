@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { listItems, VIDEO_CATEGORIES, type Item, type ItemCategory } from "@/lib/items.functions";
 import { listSettings, type Settings } from "@/lib/settings.functions";
+import { MobileKiosk } from "@/components/mobile/MobileKiosk";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -123,18 +124,7 @@ function KioskPage() {
   }, [active]);
 
   if (isMobile) {
-    return (
-      <div
-        className="flex h-screen w-screen items-center justify-center px-6 text-center"
-        style={{
-          backgroundColor: "var(--eyeframe-bg)",
-          color: "var(--eyeframe-text)",
-          fontFamily: "var(--font-sans)",
-        }}
-      >
-        <p className="text-base">GDP Vision is optimized for desktop</p>
-      </div>
-    );
+    return <MobileKiosk items={items} settings={labels} />;
   }
 
   return (

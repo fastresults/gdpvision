@@ -5,6 +5,8 @@ export type ItemCategory = "websites" | "presentations" | "docs" | "videos" | "b
 
 export const VIDEO_CATEGORIES: ItemCategory[] = ["videos", "brand"];
 
+export type ThumbnailStatus = "pending" | "processing" | "ready" | "failed";
+
 export type Item = {
   id: string;
   category: ItemCategory;
@@ -13,6 +15,10 @@ export type Item = {
   favicon_url: string | null;
   favicon_asset_id: string | null;
   favicon_asset_url: string | null;
+  thumbnail_url: string | null;
+  thumbnail_status: ThumbnailStatus;
+  thumbnail_error: string | null;
+  thumbnail_updated_at: string | null;
   sort_order: number;
   created_at: string;
 };

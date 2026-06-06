@@ -140,7 +140,7 @@ function AdminPage() {
     idle_image_url: "",
   };
 
-  const tabs = useMemo(
+  const categoryTabs = useMemo(
     () =>
       CATEGORY_KEYS.map((key) => ({
         key,
@@ -149,7 +149,10 @@ function AdminPage() {
     [labels],
   );
 
-  const [tab, setTab] = useState<ItemCategory>("websites");
+  type TabKey = ItemCategory | "media";
+  const [tab, setTab] = useState<TabKey>("websites");
+  const isMediaTab = tab === "media";
+  const categoryTab = (isMediaTab ? "websites" : tab) as ItemCategory;
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);

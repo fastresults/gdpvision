@@ -160,15 +160,15 @@ function AdminPage() {
   const [editLabel, setEditLabel] = useState("");
   const [editUrl, setEditUrl] = useState("");
 
-  const isVideoTab = VIDEO_CATEGORIES.includes(tab);
+  const isVideoTab = !isMediaTab && VIDEO_CATEGORIES.includes(categoryTab);
   const uploadVideo = useServerFn(uploadEventVideo);
 
   const visible = useMemo(
     () =>
       items
-        .filter((i) => i.category === tab)
+        .filter((i) => i.category === categoryTab)
         .sort((a, b) => a.sort_order - b.sort_order),
-    [items, tab],
+    [items, categoryTab],
   );
 
   const invalidateItems = () => qc.invalidateQueries({ queryKey: ["items"] });

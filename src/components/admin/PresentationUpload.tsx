@@ -1,8 +1,9 @@
 import { useCallback, useRef, useState } from "react";
 import { Upload, FileText, X } from "lucide-react";
 import { pdfjs } from "react-pdf";
+import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
 async function renderFirstPagePng(file: File): Promise<Blob | null> {
   try {

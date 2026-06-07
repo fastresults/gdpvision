@@ -239,7 +239,7 @@ export function MobileKiosk({ items, settings }: { items: Item[]; settings: Sett
                 </div>
               }
             >
-              <PdfViewer url={active.url} />
+              <PdfViewer url={active.url} label={active.label} />
             </Suspense>
           ) : isVideo ? (
             <video

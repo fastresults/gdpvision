@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import {
   ChevronLeft,
@@ -27,10 +27,20 @@ export default function PdfViewer({ url, label }: { url: string; label?: string 
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
-  useEffect(() => {
+  // Measure synchronously before paint so the first <Page> render already has
+  // the correct width. This prevents the width-change render race that drops
+  // mid-decode image XObjects (the "Dependent image isn't ready yet" warning
+  // that blanks raster images on the canvas).
+  useLayoutEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const update = () => setBaseWidth(el.clientWidth - 24); // account for padding
+    const update = () => {
+      const next = Math.floor(el.clientWidth - 24); // account for padding
+      if (next <= 0) return;
+      // Only commit when the integer width actually changes — suppresses
+      // sub-pixel ResizeObserver thrash that would cancel in-flight renders.
+      setBaseWidth((prev) => (prev === next ? prev : next));
+    };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);

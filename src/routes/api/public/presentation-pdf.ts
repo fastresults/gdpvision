@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 const PDF_PATH_PATTERN = /^[a-f0-9-]+\.pdf$/i;
 
-export const Route = createFileRoute("/api/presentation-pdf")({
+export const Route = createFileRoute("/api/public/presentation-pdf")({
   server: {
     handlers: {
       GET: async ({ request }) => {

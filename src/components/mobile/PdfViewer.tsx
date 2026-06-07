@@ -16,7 +16,7 @@ export default function PdfViewer({
   const [reloadKey, setReloadKey] = useState(0);
 
   const pdfUrl = useMemo(
-    () => storagePath ? `/api/presentation-pdf?path=${encodeURIComponent(storagePath)}` : url,
+    () => storagePath ? `/api/public/presentation-pdf?path=${encodeURIComponent(storagePath)}` : url,
     [storagePath, url],
   );
   const viewerUrl = `${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1&zoom=${zoom}`;

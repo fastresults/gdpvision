@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ExternalLink, Minus, Plus, RefreshCw } from "lucide-react";
 
 export default function PdfViewer({
@@ -20,6 +20,11 @@ export default function PdfViewer({
     [storagePath, url],
   );
   const viewerUrl = `${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1&zoom=${zoom}`;
+
+  useEffect(() => {
+    setLoaded(false);
+    setError(null);
+  }, [pdfUrl]);
 
   return (
     <div
@@ -49,14 +54,18 @@ export default function PdfViewer({
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setReloadKey((k) => k + 1)}
+                    onClick={() => {
+                      setLoaded(false);
+                      setError(null);
+                      setReloadKey((k) => k + 1);
+                    }}
                     className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
                     style={{ borderColor: "var(--eyeframe-border)" }}
                   >
                     <RefreshCw className="h-4 w-4" /> Retry
                   </button>
                   <a
-                    href={url}
+                    href={pdfUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"

@@ -5,6 +5,14 @@ export type ItemCategory = "websites" | "presentations" | "docs" | "videos" | "b
 
 export const VIDEO_CATEGORIES: ItemCategory[] = ["videos", "brand"];
 
+// Categories that should not be auto-screenshotted by mShots.
+// Presentations are PDF uploads and generate their own thumbnail at upload time.
+export const NO_AUTO_THUMBNAIL_CATEGORIES: ItemCategory[] = [
+  "videos",
+  "brand",
+  "presentations",
+];
+
 export type ThumbnailStatus = "pending" | "processing" | "ready" | "failed";
 
 export type Item = {
@@ -19,6 +27,7 @@ export type Item = {
   thumbnail_status: ThumbnailStatus;
   thumbnail_error: string | null;
   thumbnail_updated_at: string | null;
+  pdf_storage_path: string | null;
   sort_order: number;
   created_at: string;
 };

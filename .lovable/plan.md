@@ -1,57 +1,70 @@
-# Presentations as PDF Uploads
+# Fix PDF Presentation Viewer
 
-Replace the link-based Presentations category with a PDF upload + viewer workflow. Other categories (Websites, Google Docs, Past Events, Brand Building) stay unchanged.
+## What's broken
 
-## Admin (`/admin`)
+I opened CEIS '27 in the preview. The PDF file is downloaded successfully from Supabase (200 OK, 2 MB, CORS allowed), but the viewer never moves past "Loading PDF…". No `pdf.worker.min.mjs` request is ever made — meaning pdfjs's web worker fails to start, so `getDocument()` hangs and `onLoadSuccess` never fires. There is also a latent version mismatch: the project pins `pdfjs-dist@^6.0.227` at the top level while `react-pdf@10.4.1` requires `pdfjs-dist@5.4.296`. Loading the worker from `unpkg.com` based on `pdfjs.version` makes this fragile (CDN flakiness, version skew, occasional CORS issues for module workers).
 
-When the active category is `presentations`, swap the "Add to Presentations" card for an upload UI:
+There's also no zoom, no fit-to-page, no error UI beyond a string, and no loading spinner — so even when it works, it doesn't feel elegant.
 
-- A drop zone (drag-and-drop + click to browse) that accepts a single `.pdf` (`application/pdf`, max 50 MB).
-- A "Label" field above it (defaults to the file name minus extension; editable).
-- On drop: upload directly to a new `presentations` storage bucket via a new `/api/upload-presentation` server route (same FormData pattern as `/api/upload-media`, since the seroval/FormData issue still applies). The route stores the file, creates a 10-year signed URL, and inserts an `items` row with `category='presentations'`, `url = signed URL`, `pdf_storage_path = path`.
-- Show inline progress + error states (toast/alert on failure).
-- Existing presentation rows render with a PDF icon + filename instead of the long URL; edit pencil lets the user rename the label or replace the file (re-upload). Delete also removes the storage object.
+## Fix
 
-## Kiosk (front-facing UI)
+### 1. Serve the pdfjs worker locally via Vite
 
-In `MobileKiosk.tsx` (and the equivalent desktop tile click handler if present):
+Replace the CDN worker URL with a Vite-bundled worker that's guaranteed to match the installed pdfjs version, in both `src/components/mobile/PdfViewer.tsx` and `src/components/admin/PresentationUpload.tsx`:
 
-- Presentations tiles still show the existing thumbnail card. Tapping a presentations item opens a full-screen in-app **PDF viewer** instead of navigating to an external URL.
-- Viewer: use `react-pdf` (wraps pdf.js) rendered in a modal/sheet with:
-  - Page canvas sized to the viewport, pinch/scroll for zoom on touch.
-  - Prev / Next page buttons + "Page X of Y" indicator.
-  - Close (X) button to return to the kiosk.
-  - Loading spinner while the PDF fetches; error fallback with retry.
-- The pdf.js worker is loaded from the bundled `pdfjs-dist` (set `pdfjs.GlobalWorkerOptions.workerSrc` to the Vite-imported `?url` worker file) so it runs offline-friendly in the kiosk.
+```ts
+import { pdfjs } from "react-pdf";
+import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+```
 
-## Thumbnails
+This removes the unpkg dependency, eliminates CORS/version-skew failure modes, and the worker is requested from the same origin so the browser actually starts it.
 
-mShots only works on web URLs, so PDFs need a different path:
+### 2. Align `pdfjs-dist` with what `react-pdf` ships
 
-- On upload, server-side render page 1 with `pdfjs-dist` in the server function, capture a PNG via `@napi-rs/canvas` or `node-canvas`… **NOT viable in the Cloudflare Workers runtime** (no native canvas, see `<server-runtime>`).
-- Practical alternative: render page 1 on the **client** in the admin upload flow (`react-pdf` → `canvas.toBlob`), POST the resulting PNG as a second multipart field on `/api/upload-presentation`. Server stores it in the `thumbnails` bucket and sets `thumbnail_url` + `thumbnail_status='ready'` in the same insert. No mShots polling needed for presentations.
-- `generateItemThumbnail` / `refreshAllThumbnails` skip `presentations` going forward (same way they already skip video categories via `VIDEO_CATEGORIES`).
+Pin `pdfjs-dist` to `5.4.296` (what `react-pdf@10` peer-depends on) so the `?url` import resolves the same build that react-pdf calls into. This prevents subtle parsing differences between the worker and the main-thread API.
 
-## Data model
+### 3. Make the viewer feel polished
 
-Migration (single migration, with grants already in place from prior migrations):
+Rework `src/components/mobile/PdfViewer.tsx`:
 
-- `ALTER TABLE public.items ADD COLUMN pdf_storage_path text NULL;`
-- Add `presentations` to the constants list of categories that bypass URL-based thumbnailing in `src/lib/items.functions.ts` (code-only, no SQL).
-- Create `presentations` storage bucket (private) via `supabase--storage_create_bucket`. RLS: only service role writes; signed URLs are used for reads, so no public policy needed.
+- Real loading state: centered spinner + "Loading presentation…" instead of bare text.
+- Clear error state with a Retry button (calls `setReloadKey(k => k + 1)` to remount `Document`).
+- Fit-to-width by default, plus zoom controls (`−` / `100%` / `+`) and a "Fit width" reset. Cap zoom 50–250%.
+- Smooth scroll-to-top on page change.
+- Keyboard shortcuts: `←` / `→` for page nav, `+` / `−` for zoom (only when viewer is mounted).
+- Disable text/annotation layers (already done) for speed; keep `renderMode="canvas"`.
+- Replace the `#111` hardcode with `var(--eyeframe-bg)` so it matches the kiosk theme.
+- Page indicator stays at the bottom bar; add subtle border + safe-area padding for mobile.
 
-Existing `presentations` rows (e.g. the CAFS '27 Google Slides link) are preserved — the kiosk falls back to opening `url` in the existing iframe/external viewer when `pdf_storage_path` is null, so nothing breaks. Admin shows them with an "External link (legacy)" badge and a "Replace with PDF" action.
+### 4. Robust `Document` props
+
+Pass `options` once (memoized) including `cMapUrl`, `cMapPacked: true`, `standardFontDataUrl` — pointing at same-origin Vite-bundled assets:
+
+```ts
+import cMapUrl from "pdfjs-dist/cmaps/?url"; // or use new URL(...) pattern
+```
+
+If `?url` on a directory isn't supported, fall back to the unpkg URLs for cmaps/fonts only (these are optional assets; missing them just falls back to default fonts, not a hang). The worker MUST be local; cmaps can stay remote.
+
+### 5. Surface failures during PDF parsing
+
+In `onLoadError`, log to console and show the actual `error.message` plus the file label, so when a future upload is corrupt we see why immediately instead of staring at "Loading PDF…".
 
 ## Files touched
 
-- New: `src/routes/api/upload-presentation.ts`, `src/components/admin/PresentationUpload.tsx`, `src/components/mobile/PdfViewer.tsx`, migration for `pdf_storage_path`.
-- Edited: `src/routes/admin.tsx` (conditional render for presentations category, delete also removes storage object), `src/components/mobile/MobileKiosk.tsx` (open `PdfViewer` for presentations with a `pdf_storage_path`), `src/lib/items.functions.ts` (skip presentations in thumbnail generation; `deleteItem` removes the PDF object when present).
-- Dependencies: `bun add react-pdf pdfjs-dist`.
+- `src/components/mobile/PdfViewer.tsx` — rewrite with bundled worker, zoom, error/retry, theme tokens, keyboard nav.
+- `src/components/admin/PresentationUpload.tsx` — switch to the bundled worker URL (same one-line change) so admin thumbnail generation also stops depending on unpkg.
+- `package.json` — pin `pdfjs-dist` to `5.4.296` to match `react-pdf@10`'s peer.
 
-## Open question
+## Verification
 
-The current `CAFS '27` row is a Google Slides URL, not a PDF. Should the migration:
-1. Leave it as-is and just let the new uploader coexist (recommended), or
-2. Delete legacy non-PDF presentation rows so the category is PDF-only?
+1. Open `/` → Presentations → CEIS '27 in preview. PDF should render the first page within ~1 s.
+2. Network panel should show a `pdf.worker.min.mjs` request from the lovableproject origin (not unpkg).
+3. Page next/prev, zoom in/out, fit-to-width all work; mobile and desktop both render the same component.
+4. Upload a fresh PDF in `/admin` — admin thumbnail generation still works (uses the same worker path).
 
-I'll default to (1) unless you say otherwise.
+## Out of scope
+
+- Pinch-to-zoom gestures on mobile (browser pinch-zoom on the page still works; in-component pinch can be a follow-up).
+- Continuous scroll of all pages at once (current paginated viewer is faster for large decks).

@@ -387,7 +387,21 @@ function AdminPage() {
           Tip: click any title or category name to rename it. The kiosk updates automatically.
         </div>
 
-        {/* Add form */}
+        {categoryTab === "presentations" ? (
+          <Suspense
+            fallback={
+              <div className="mb-8 rounded-lg border p-4 text-sm opacity-60"
+                style={{
+                  backgroundColor: "var(--eyeframe-topbar)",
+                  borderColor: "var(--eyeframe-border)",
+                }}>
+                Loading uploader…
+              </div>
+            }
+          >
+            <PresentationUpload onUploaded={invalidateItems} />
+          </Suspense>
+        ) : (
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -461,6 +475,7 @@ function AdminPage() {
             </div>
           )}
         </form>
+        )}
 
         {/* List */}
         <div

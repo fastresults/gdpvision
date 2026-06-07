@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { ClientOnly } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronUp,
@@ -232,15 +233,23 @@ export function MobileKiosk({ items, settings }: { items: Item[]; settings: Sett
 
         <div className="relative flex-1">
           {isPdf ? (
-            <Suspense
+            <ClientOnly
               fallback={
                 <div className="flex h-full w-full items-center justify-center text-sm opacity-70">
                   Loading PDF viewer…
                 </div>
               }
             >
-              <PdfViewer url={active.url} label={active.label} storagePath={active.pdf_storage_path} />
-            </Suspense>
+              <Suspense
+                fallback={
+                  <div className="flex h-full w-full items-center justify-center text-sm opacity-70">
+                    Loading PDF viewer…
+                  </div>
+                }
+              >
+                <PdfViewer url={active.url} label={active.label} storagePath={active.pdf_storage_path} />
+              </Suspense>
+            </ClientOnly>
           ) : isVideo ? (
             <video
               key={active.id}

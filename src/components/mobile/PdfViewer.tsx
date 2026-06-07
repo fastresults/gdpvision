@@ -1,29 +1,100 @@
-import { useEffect, useMemo, useState } from "react";
-import { ExternalLink, RefreshCw } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ExternalLink, Minus, Plus, RefreshCw } from "lucide-react";
+import { getDocument, GlobalWorkerOptions, type PDFDocumentProxy } from "pdfjs-dist/build/pdf.mjs";
+import { EventBus, PDFLinkService, PDFViewer as PdfJsViewer } from "pdfjs-dist/web/pdf_viewer.mjs";
+import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import "pdfjs-dist/web/pdf_viewer.css";
+
+GlobalWorkerOptions.workerSrc = workerUrl;
 
 export default function PdfViewer({
   url,
   label,
-  storagePath: _storagePath,
+  storagePath,
 }: {
   url: string;
   label?: string;
   storagePath?: string | null;
 }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const viewerRef = useRef<HTMLDivElement | null>(null);
+  const pdfViewerRef = useRef<PdfJsViewer | null>(null);
+  const pdfDocRef = useRef<PDFDocumentProxy | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [slowLoad, setSlowLoad] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    setLoaded(false);
-    setSlowLoad(false);
+    if (loaded) return;
     const timer = window.setTimeout(() => setSlowLoad(true), 4500);
     return () => window.clearTimeout(timer);
-  }, [url, reloadKey]);
+  }, [loaded]);
 
-  const viewerUrl = useMemo(() => {
-    return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(url)}`;
-  }, [url]);
+  const pdfUrl = useMemo(
+    () => storagePath ? `/api/presentation-pdf?path=${encodeURIComponent(storagePath)}` : url,
+    [storagePath, url],
+  );
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const viewer = viewerRef.current;
+    if (!container || !viewer) return;
+
+    let cancelled = false;
+    setLoaded(false);
+    setSlowLoad(false);
+    setError(null);
+    viewer.replaceChildren();
+    pdfViewerRef.current = null;
+    pdfDocRef.current = null;
+
+    const eventBus = new EventBus();
+    const linkService = new PDFLinkService({ eventBus });
+    const pdfViewer = new PdfJsViewer({
+      container,
+      viewer,
+      eventBus,
+      linkService,
+      removePageBorders: true,
+      textLayerMode: 0,
+      annotationMode: 0,
+    });
+    linkService.setViewer(pdfViewer);
+    pdfViewerRef.current = pdfViewer;
+    eventBus.on("pagesinit", () => {
+      pdfViewer.currentScaleValue = "page-width";
+      setLoaded(true);
+    });
+
+    const task = getDocument({ url: pdfUrl });
+    task.promise
+      .then((pdf) => {
+        if (cancelled) {
+          pdf.destroy();
+          return;
+        }
+        pdfDocRef.current = pdf;
+        pdfViewer.setDocument(pdf);
+        linkService.setDocument(pdf, null);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load PDF");
+      });
+
+    return () => {
+      cancelled = true;
+      task.destroy();
+      pdfDocRef.current?.destroy();
+    };
+  }, [pdfUrl, reloadKey]);
+
+  const zoom = (delta: number) => {
+    const viewer = pdfViewerRef.current;
+    if (!viewer) return;
+    const current = typeof viewer.currentScale === "number" ? viewer.currentScale : 1;
+    viewer.currentScale = Math.max(0.5, Math.min(3, current + delta));
+  };
 
   return (
     <div
@@ -31,20 +102,24 @@ export default function PdfViewer({
       style={{ backgroundColor: "var(--eyeframe-bg)", color: "var(--eyeframe-text)" }}
     >
       <div className="relative min-h-0 flex-1 overflow-hidden">
-        {!loaded && (
+        {(!loaded || error) && (
           <div
             className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 text-center"
             style={{ backgroundColor: "var(--eyeframe-bg)" }}
           >
-            <div
-              className="h-8 w-8 animate-spin rounded-full border-2 border-current border-t-transparent"
-              style={{ color: "var(--eyeframe-accent)" }}
-            />
-            <div className="text-sm opacity-80">Loading presentation…</div>
-            {slowLoad && (
+            {!error && (
+              <div
+                className="h-8 w-8 animate-spin rounded-full border-2 border-current border-t-transparent"
+                style={{ color: "var(--eyeframe-accent)" }}
+              />
+            )}
+            <div className="text-sm opacity-80">
+              {error ? `Couldn't load ${label ?? "this presentation"}.` : "Loading presentation…"}
+            </div>
+            {(slowLoad || error) && (
               <div className="flex max-w-md flex-col items-center gap-3 px-6">
                 <div className="text-xs opacity-60">
-                  If the PDF viewer does not appear, open it directly.
+                  {error ?? "If the PDF viewer does not appear, open it directly."}
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -72,14 +147,19 @@ export default function PdfViewer({
             )}
           </div>
         )}
-        <iframe
-          key={reloadKey}
-          src={viewerUrl}
-          title={label ?? "PDF presentation"}
-          className="h-full w-full"
-          style={{ border: 0, display: "block", backgroundColor: "var(--eyeframe-bg)" }}
-          onLoad={() => setLoaded(true)}
-        />
+        <div ref={containerRef} className="absolute inset-0 overflow-auto" style={{ backgroundColor: "oklch(0.16 0 0)" }}>
+          <div ref={viewerRef} className="pdfViewer" />
+        </div>
+        {loaded && !error && (
+          <div className="absolute bottom-4 right-4 z-20 flex gap-2">
+            <button type="button" onClick={() => zoom(-0.15)} className="flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur" style={{ backgroundColor: "var(--eyeframe-topbar)", borderColor: "var(--eyeframe-border)" }} aria-label="Zoom out">
+              <Minus className="h-4 w-4" />
+            </button>
+            <button type="button" onClick={() => zoom(0.15)} className="flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur" style={{ backgroundColor: "var(--eyeframe-topbar)", borderColor: "var(--eyeframe-border)" }} aria-label="Zoom in">
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

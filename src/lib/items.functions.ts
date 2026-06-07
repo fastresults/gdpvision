@@ -1,9 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-
-export type ItemCategory = "websites" | "presentations" | "docs" | "videos" | "brand";
-
-export const VIDEO_CATEGORIES: ItemCategory[] = ["videos", "brand"];
+import { VIDEO_CATEGORIES, type Item, type ItemCategory, type ThumbnailStatus } from "./kiosk-types";
 
 // Categories that should not be auto-screenshotted by mShots.
 // Presentations are PDF uploads and generate their own thumbnail at upload time.
@@ -13,24 +10,7 @@ export const NO_AUTO_THUMBNAIL_CATEGORIES: ItemCategory[] = [
   "presentations",
 ];
 
-export type ThumbnailStatus = "pending" | "processing" | "ready" | "failed";
-
-export type Item = {
-  id: string;
-  category: ItemCategory;
-  label: string;
-  url: string;
-  favicon_url: string | null;
-  favicon_asset_id: string | null;
-  favicon_asset_url: string | null;
-  thumbnail_url: string | null;
-  thumbnail_status: ThumbnailStatus;
-  thumbnail_error: string | null;
-  thumbnail_updated_at: string | null;
-  pdf_storage_path: string | null;
-  sort_order: number;
-  created_at: string;
-};
+export { VIDEO_CATEGORIES, type Item, type ItemCategory, type ThumbnailStatus };
 
 const categorySchema = z.enum(["websites", "presentations", "docs", "videos", "brand"]);
 

@@ -1,5 +1,4 @@
 import { createFileRoute, Link, ClientOnly } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 const PdfViewer = lazy(() => import("@/components/mobile/PdfViewer"));
@@ -14,8 +13,7 @@ import {
   Film,
   Sparkles,
 } from "lucide-react";
-import { listItems, VIDEO_CATEGORIES, type Item, type ItemCategory } from "@/lib/items.functions";
-import { listSettings, type Settings } from "@/lib/settings.functions";
+import { DEFAULT_SETTINGS, VIDEO_CATEGORIES, type Item, type ItemCategory, type Settings } from "@/lib/kiosk-types";
 import { MobileKiosk } from "@/components/mobile/MobileKiosk";
 
 export const Route = createFileRoute("/")({
@@ -39,6 +37,14 @@ const CATEGORY_SETTING_KEY = {
   brand: "label_brand",
 } as const;
 
+type KioskData = { items: Item[]; settings: Settings };
+
+async function fetchKioskData(): Promise<KioskData> {
+  const response = await fetch("/api/kiosk-data");
+  if (!response.ok) throw new Error("Failed to load kiosk data");
+  return response.json();
+}
+
 function CategoryIcon({ category, className }: { category: ItemCategory; className?: string }) {
   const Icon =
     category === "websites"
@@ -54,39 +60,19 @@ function CategoryIcon({ category, className }: { category: ItemCategory; classNa
 }
 
 function KioskPage() {
-  const fetchItems = useServerFn(listItems);
-  const fetchSettings = useServerFn(listSettings);
-  const { data: items = [] } = useQuery({
-    queryKey: ["items"],
-    queryFn: () => fetchItems(),
+  const { data } = useQuery({
+    queryKey: ["kiosk-data"],
+    queryFn: fetchKioskData,
     refetchOnWindowFocus: true,
-    // Poll while any item is still generating its thumbnail so the kiosk
-    // reflects newly-ready previews without a manual refresh.
     refetchInterval: (q) => {
-      const data = q.state.data as Item[] | undefined;
-      const pending = (data ?? []).some(
+      const pending = (q.state.data?.items ?? []).some(
         (i) => i.thumbnail_status === "pending" || i.thumbnail_status === "processing",
       );
       return pending ? 4000 : false;
     },
   });
-  const { data: settings } = useQuery<Settings>({
-    queryKey: ["settings"],
-    queryFn: () => fetchSettings(),
-    refetchOnWindowFocus: true,
-    refetchInterval: 5000,
-    staleTime: 0,
-  });
-  const labels: Settings = settings ?? {
-    admin_title: "GDP Vision Admin",
-    kiosk_title: "GDP Vision",
-    label_websites: "Websites",
-    label_presentations: "Presentations",
-    label_docs: "Google Docs",
-    label_videos: "Past Events",
-    label_brand: "Brand Building",
-    idle_image_url: "",
-  };
+  const items = data?.items ?? [];
+  const labels: Settings = data?.settings ?? DEFAULT_SETTINGS;
   const CATEGORY_LABELS: Record<ItemCategory, string> = {
     websites: labels.label_websites,
     presentations: labels.label_presentations,

@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Eye, Pencil, Plus, RefreshCw, Trash2, X, Check, Film, FileText, Library, Upload, Copy, Star } from "lucide-react";
+
+const PresentationUpload = lazy(() => import("@/components/admin/PresentationUpload"));
 import {
   createItem,
   deleteItem,
@@ -385,7 +387,21 @@ function AdminPage() {
           Tip: click any title or category name to rename it. The kiosk updates automatically.
         </div>
 
-        {/* Add form */}
+        {categoryTab === "presentations" ? (
+          <Suspense
+            fallback={
+              <div className="mb-8 rounded-lg border p-4 text-sm opacity-60"
+                style={{
+                  backgroundColor: "var(--eyeframe-topbar)",
+                  borderColor: "var(--eyeframe-border)",
+                }}>
+                Loading uploader…
+              </div>
+            }
+          >
+            <PresentationUpload onUploaded={invalidateItems} />
+          </Suspense>
+        ) : (
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -459,6 +475,7 @@ function AdminPage() {
             </div>
           )}
         </form>
+        )}
 
         {/* List */}
         <div

@@ -5,6 +5,14 @@ export type ItemCategory = "websites" | "presentations" | "docs" | "videos" | "b
 
 export const VIDEO_CATEGORIES: ItemCategory[] = ["videos", "brand"];
 
+// Categories that should not be auto-screenshotted by mShots.
+// Presentations are PDF uploads and generate their own thumbnail at upload time.
+export const NO_AUTO_THUMBNAIL_CATEGORIES: ItemCategory[] = [
+  "videos",
+  "brand",
+  "presentations",
+];
+
 export type ThumbnailStatus = "pending" | "processing" | "ready" | "failed";
 
 export type Item = {
@@ -19,6 +27,7 @@ export type Item = {
   thumbnail_status: ThumbnailStatus;
   thumbnail_error: string | null;
   thumbnail_updated_at: string | null;
+  pdf_storage_path: string | null;
   sort_order: number;
   created_at: string;
 };
@@ -78,6 +87,7 @@ export const listItems = createServerFn({ method: "GET" }).handler(async () => {
     thumbnail_status: (r.thumbnail_status ?? "pending") as ThumbnailStatus,
     thumbnail_error: r.thumbnail_error ?? null,
     thumbnail_updated_at: r.thumbnail_updated_at ?? null,
+    pdf_storage_path: r.pdf_storage_path ?? null,
     sort_order: r.sort_order,
     created_at: r.created_at,
   })) as Item[];
@@ -195,8 +205,17 @@ export const deleteItem = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Look up the row so we can also remove any uploaded PDF object from storage.
+    const { data: row } = await supabaseAdmin
+      .from("items")
+      .select("pdf_storage_path")
+      .eq("id", data.id)
+      .maybeSingle();
     const { error } = await supabaseAdmin.from("items").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    if (row?.pdf_storage_path) {
+      await supabaseAdmin.storage.from("presentations").remove([row.pdf_storage_path]);
+    }
     return { ok: true };
   });
 
@@ -300,7 +319,7 @@ export const generateItemThumbnail = createServerFn({ method: "POST" })
       .maybeSingle();
     if (fetchErr) throw new Error(fetchErr.message);
     if (!item) throw new Error("Item not found");
-    if (VIDEO_CATEGORIES.includes(item.category as ItemCategory)) {
+    if (NO_AUTO_THUMBNAIL_CATEGORIES.includes(item.category as ItemCategory)) {
       return { ok: true, status: "skipped" as const };
     }
 
@@ -378,7 +397,7 @@ export const refreshAllThumbnails = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     const targets = (rows ?? []).filter((r) => {
-      if (VIDEO_CATEGORIES.includes(r.category as ItemCategory)) return false;
+      if (NO_AUTO_THUMBNAIL_CATEGORIES.includes(r.category as ItemCategory)) return false;
       if (force) return true;
       return r.thumbnail_status !== "ready";
     });

@@ -1,65 +1,57 @@
-## Goal
-Make the mobile tray thumbnails predictable: each website card should either show a saved homepage/hero preview, show a clear “generating” state, or fall back gracefully without broken/clunky behavior.
+# Presentations as PDF Uploads
 
-## Current problem
-The mobile tray currently builds screenshot URLs directly in the browser using WordPress mShots. That service is asynchronous and can return a placeholder while it generates the real screenshot. Because the app does not save thumbnail status or a successfully generated image, every session is dependent on an external live image request. That creates intermittent missing thumbnails.
+Replace the link-based Presentations category with a PDF upload + viewer workflow. Other categories (Websites, Google Docs, Past Events, Brand Building) stay unchanged.
 
-## Plan
+## Admin (`/admin`)
 
-### 1. Add saved thumbnail state to items
-Add database fields on `items` for website thumbnails:
-- `thumbnail_url` — URL of the saved/generated thumbnail to display
-- `thumbnail_status` — `pending`, `processing`, `ready`, or `failed`
-- `thumbnail_error` — short failure reason for admin/debug visibility
-- `thumbnail_updated_at` — when it was last attempted
+When the active category is `presentations`, swap the "Add to Presentations" card for an upload UI:
 
-This gives the UI a predictable source of truth instead of guessing from `<img>` load behavior.
+- A drop zone (drag-and-drop + click to browse) that accepts a single `.pdf` (`application/pdf`, max 50 MB).
+- A "Label" field above it (defaults to the file name minus extension; editable).
+- On drop: upload directly to a new `presentations` storage bucket via a new `/api/upload-presentation` server route (same FormData pattern as `/api/upload-media`, since the seroval/FormData issue still applies). The route stores the file, creates a 10-year signed URL, and inserts an `items` row with `category='presentations'`, `url = signed URL`, `pdf_storage_path = path`.
+- Show inline progress + error states (toast/alert on failure).
+- Existing presentation rows render with a PDF icon + filename instead of the long URL; edit pencil lets the user rename the label or replace the file (re-upload). Delete also removes the storage object.
 
-### 2. Generate thumbnails server-side
-Add TanStack server functions to:
-- request a screenshot URL for each website/doc/presentation item
-- verify that the returned image is usable rather than a placeholder
-- save the final usable thumbnail URL/status back to the item
-- mark failures explicitly instead of leaving cards stuck in an invisible loading state
+## Kiosk (front-facing UI)
 
-I will keep this Worker-compatible: no Puppeteer, no native image libraries, no long-running browser automation.
+In `MobileKiosk.tsx` (and the equivalent desktop tile click handler if present):
 
-### 3. Use a safer provider fallback chain
-Update `src/lib/thumbnail.ts` so thumbnail generation has multiple deterministic candidates instead of one brittle endpoint:
-1. saved `item.thumbnail_url` if ready
-2. generated screenshot URL candidate
-3. fallback visual placeholder if generation is pending/failed
+- Presentations tiles still show the existing thumbnail card. Tapping a presentations item opens a full-screen in-app **PDF viewer** instead of navigating to an external URL.
+- Viewer: use `react-pdf` (wraps pdf.js) rendered in a modal/sheet with:
+  - Page canvas sized to the viewport, pinch/scroll for zoom on touch.
+  - Prev / Next page buttons + "Page X of Y" indicator.
+  - Close (X) button to return to the kiosk.
+  - Loading spinner while the PDF fetches; error fallback with retry.
+- The pdf.js worker is loaded from the bundled `pdfjs-dist` (set `pdfjs.GlobalWorkerOptions.workerSrc` to the Vite-imported `?url` worker file) so it runs offline-friendly in the kiosk.
 
-The tray will prefer saved thumbnails first and only trigger generation when needed.
+## Thumbnails
 
-### 4. Update the mobile tray UX
-Update `MobileKiosk.tsx` so each card shows a clear state:
-- **Ready:** saved homepage thumbnail
-- **Processing:** non-jumpy shimmer/skeleton with category icon, not an empty black box
-- **Failed/unavailable:** clean branded placeholder with category icon and label
+mShots only works on web URLs, so PDFs need a different path:
 
-This prevents broken images and makes the tray feel stable even when a screenshot provider is delayed.
+- On upload, server-side render page 1 with `pdfjs-dist` in the server function, capture a PNG via `@napi-rs/canvas` or `node-canvas`… **NOT viable in the Cloudflare Workers runtime** (no native canvas, see `<server-runtime>`).
+- Practical alternative: render page 1 on the **client** in the admin upload flow (`react-pdf` → `canvas.toBlob`), POST the resulting PNG as a second multipart field on `/api/upload-presentation`. Server stores it in the `thumbnails` bucket and sets `thumbnail_url` + `thumbnail_status='ready'` in the same insert. No mShots polling needed for presentations.
+- `generateItemThumbnail` / `refreshAllThumbnails` skip `presentations` going forward (same way they already skip video categories via `VIDEO_CATEGORIES`).
 
-### 5. Add admin refresh controls
-Update `/admin` so the existing “Refresh favicons” concept becomes thumbnail-aware:
-- add a “Refresh thumbnails” action
-- allow refreshing all items or a single item
-- show status beside each item so it’s obvious which thumbnails are ready, processing, or failed
+## Data model
 
-### 6. Keep mobile performance stable
-Avoid loading every external screenshot directly in the tray on every open. Once thumbnails are saved, mobile loads the saved/stable URL. Cards remain tappable regardless of thumbnail status.
+Migration (single migration, with grants already in place from prior migrations):
 
-## Technical files likely to change
-- `src/lib/items.functions.ts` — item shape, list query, thumbnail generation/refresh server functions
-- `src/lib/thumbnail.ts` — thumbnail URL/status helpers
-- `src/components/mobile/MobileKiosk.tsx` — card rendering states
-- `src/routes/admin.tsx` — refresh/status controls
-- new migration under `supabase/migrations/` — thumbnail columns and safe defaults
+- `ALTER TABLE public.items ADD COLUMN pdf_storage_path text NULL;`
+- Add `presentations` to the constants list of categories that bypass URL-based thumbnailing in `src/lib/items.functions.ts` (code-only, no SQL).
+- Create `presentations` storage bucket (private) via `supabase--storage_create_bucket`. RLS: only service role writes; signed URLs are used for reads, so no public policy needed.
 
-## Validation
-After implementation I will verify:
-- mobile tray opens and shows every card in a stable visual state
-- saved thumbnails display when available
-- failed thumbnails show the fallback, not a broken/missing image
-- refresh action updates thumbnail status
-- no SSR/runtime errors on `/` or `/admin`
+Existing `presentations` rows (e.g. the CAFS '27 Google Slides link) are preserved — the kiosk falls back to opening `url` in the existing iframe/external viewer when `pdf_storage_path` is null, so nothing breaks. Admin shows them with an "External link (legacy)" badge and a "Replace with PDF" action.
+
+## Files touched
+
+- New: `src/routes/api/upload-presentation.ts`, `src/components/admin/PresentationUpload.tsx`, `src/components/mobile/PdfViewer.tsx`, migration for `pdf_storage_path`.
+- Edited: `src/routes/admin.tsx` (conditional render for presentations category, delete also removes storage object), `src/components/mobile/MobileKiosk.tsx` (open `PdfViewer` for presentations with a `pdf_storage_path`), `src/lib/items.functions.ts` (skip presentations in thumbnail generation; `deleteItem` removes the PDF object when present).
+- Dependencies: `bun add react-pdf pdfjs-dist`.
+
+## Open question
+
+The current `CAFS '27` row is a Google Slides URL, not a PDF. Should the migration:
+1. Leave it as-is and just let the new uploader coexist (recommended), or
+2. Delete legacy non-PDF presentation rows so the category is PDF-only?
+
+I'll default to (1) unless you say otherwise.

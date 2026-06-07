@@ -40,6 +40,7 @@ export type Database = {
           favicon_url: string | null
           id: string
           label: string
+          pdf_storage_path: string | null
           sort_order: number
           thumbnail_error: string | null
           thumbnail_status: string
@@ -54,6 +55,7 @@ export type Database = {
           favicon_url?: string | null
           id?: string
           label: string
+          pdf_storage_path?: string | null
           sort_order?: number
           thumbnail_error?: string | null
           thumbnail_status?: string
@@ -68,6 +70,7 @@ export type Database = {
           favicon_url?: string | null
           id?: string
           label?: string
+          pdf_storage_path?: string | null
           sort_order?: number
           thumbnail_error?: string | null
           thumbnail_status?: string

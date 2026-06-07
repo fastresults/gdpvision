@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronUp,
   ChevronLeft,
@@ -15,6 +15,8 @@ import {
 import { VIDEO_CATEGORIES, type Item, type ItemCategory } from "@/lib/items.functions";
 import type { Settings } from "@/lib/settings.functions";
 import { getItemThumbnail } from "@/lib/thumbnail";
+
+const PdfViewer = lazy(() => import("./PdfViewer"));
 
 function CategoryIcon({ category, className }: { category: ItemCategory; className?: string }) {
   const Icon =
@@ -191,6 +193,7 @@ export function MobileKiosk({ items, settings }: { items: Item[]; settings: Sett
   // Resource viewer (full-screen)
   if (active) {
     const isVideo = VIDEO_CATEGORIES.includes(active.category);
+    const isPdf = active.category === "presentations" && !!active.pdf_storage_path;
     return (
       <div
         className="fixed inset-0 flex flex-col animate-in slide-in-from-bottom duration-300"
@@ -228,7 +231,17 @@ export function MobileKiosk({ items, settings }: { items: Item[]; settings: Sett
         </div>
 
         <div className="relative flex-1">
-          {isVideo ? (
+          {isPdf ? (
+            <Suspense
+              fallback={
+                <div className="flex h-full w-full items-center justify-center text-sm opacity-70">
+                  Loading PDF viewer…
+                </div>
+              }
+            >
+              <PdfViewer url={active.url} />
+            </Suspense>
+          ) : isVideo ? (
             <video
               key={active.id}
               src={active.url}

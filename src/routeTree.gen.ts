@@ -13,6 +13,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiUploadPresentationRouteImport } from './routes/api/upload-presentation'
 import { Route as ApiUploadMediaRouteImport } from './routes/api/upload-media'
+import { Route as ApiPresentationPdfRouteImport } from './routes/api/presentation-pdf'
 
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
@@ -34,16 +35,23 @@ const ApiUploadMediaRoute = ApiUploadMediaRouteImport.update({
   path: '/api/upload-media',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPresentationPdfRoute = ApiPresentationPdfRouteImport.update({
+  id: '/api/presentation-pdf',
+  path: '/api/presentation-pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/api/presentation-pdf': typeof ApiPresentationPdfRoute
   '/api/upload-media': typeof ApiUploadMediaRoute
   '/api/upload-presentation': typeof ApiUploadPresentationRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/api/presentation-pdf': typeof ApiPresentationPdfRoute
   '/api/upload-media': typeof ApiUploadMediaRoute
   '/api/upload-presentation': typeof ApiUploadPresentationRoute
 }
@@ -51,18 +59,30 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/api/presentation-pdf': typeof ApiPresentationPdfRoute
   '/api/upload-media': typeof ApiUploadMediaRoute
   '/api/upload-presentation': typeof ApiUploadPresentationRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/api/upload-media' | '/api/upload-presentation'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/api/presentation-pdf'
+    | '/api/upload-media'
+    | '/api/upload-presentation'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/api/upload-media' | '/api/upload-presentation'
+  to:
+    | '/'
+    | '/admin'
+    | '/api/presentation-pdf'
+    | '/api/upload-media'
+    | '/api/upload-presentation'
   id:
     | '__root__'
     | '/'
     | '/admin'
+    | '/api/presentation-pdf'
     | '/api/upload-media'
     | '/api/upload-presentation'
   fileRoutesById: FileRoutesById
@@ -70,6 +90,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  ApiPresentationPdfRoute: typeof ApiPresentationPdfRoute
   ApiUploadMediaRoute: typeof ApiUploadMediaRoute
   ApiUploadPresentationRoute: typeof ApiUploadPresentationRoute
 }
@@ -104,15 +125,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiUploadMediaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/presentation-pdf': {
+      id: '/api/presentation-pdf'
+      path: '/api/presentation-pdf'
+      fullPath: '/api/presentation-pdf'
+      preLoaderRoute: typeof ApiPresentationPdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  ApiPresentationPdfRoute: ApiPresentationPdfRoute,
   ApiUploadMediaRoute: ApiUploadMediaRoute,
   ApiUploadPresentationRoute: ApiUploadPresentationRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

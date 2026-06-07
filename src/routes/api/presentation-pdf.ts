@@ -1,0 +1,45 @@
+import { createFileRoute } from "@tanstack/react-router";
+
+const PDF_PATH_PATTERN = /^[a-f0-9-]+\.pdf$/i;
+
+export const Route = createFileRoute("/api/presentation-pdf")({
+  server: {
+    handlers: {
+      GET: async ({ request }) => {
+        try {
+          const url = new URL(request.url);
+          const path = url.searchParams.get("path") ?? "";
+
+          if (!PDF_PATH_PATTERN.test(path)) {
+            return Response.json({ error: "Invalid PDF path" }, { status: 400 });
+          }
+
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data, error } = await supabaseAdmin.storage
+            .from("presentations")
+            .download(path);
+
+          if (error || !data) {
+            return Response.json(
+              { error: error?.message || "PDF not found" },
+              { status: 404 },
+            );
+          }
+
+          return new Response(data, {
+            status: 200,
+            headers: {
+              "Content-Type": "application/pdf",
+              "Content-Disposition": `inline; filename="${path}"`,
+              "Cache-Control": "private, max-age=300",
+              "X-Content-Type-Options": "nosniff",
+            },
+          });
+        } catch (e) {
+          const message = e instanceof Error ? e.message : "Failed to load PDF";
+          return Response.json({ error: message }, { status: 500 });
+        }
+      },
+    },
+  },
+});

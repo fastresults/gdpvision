@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronUp,
   ChevronLeft,
@@ -15,6 +15,8 @@ import {
 import { VIDEO_CATEGORIES, type Item, type ItemCategory } from "@/lib/items.functions";
 import type { Settings } from "@/lib/settings.functions";
 import { getItemThumbnail } from "@/lib/thumbnail";
+
+const PdfViewer = lazy(() => import("./PdfViewer"));
 
 function CategoryIcon({ category, className }: { category: ItemCategory; className?: string }) {
   const Icon =

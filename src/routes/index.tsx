@@ -293,11 +293,9 @@ function KioskPage() {
 
         {active && !VIDEO_CATEGORIES.includes(active.category) && active.category === "presentations" && active.pdf_storage_path && (
           <ClientOnly fallback={<div className="flex h-full w-full items-center justify-center text-sm opacity-70">Loading PDF viewer…</div>}>
-            {() => (
-              <Suspense fallback={<div className="flex h-full w-full items-center justify-center text-sm opacity-70">Loading PDF viewer…</div>}>
-                <PdfViewer url={active.url} label={active.label} storagePath={active.pdf_storage_path} />
-              </Suspense>
-            )}
+            <Suspense fallback={<div className="flex h-full w-full items-center justify-center text-sm opacity-70">Loading PDF viewer…</div>}>
+              <PdfViewer url={active.url} label={active.label} storagePath={active.pdf_storage_path} />
+            </Suspense>
           </ClientOnly>
         )}
 

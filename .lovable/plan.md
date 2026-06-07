@@ -1,44 +1,49 @@
-# Forensic findings: blank images in PDF presentations
+## Plan: replace the current PDF canvas renderer with a native embedded PDF viewer
 
-## What's actually happening
+The current presentation viewer still relies on `react-pdf` / pdf.js rendering each page into a canvas. The blank/solid-color pages are consistent with pdf.js failing to paint embedded image layers in some of these presentation PDFs. A native browser PDF renderer is a better fit here because it uses the browser’s built-in PDF engine instead of the app’s JavaScript canvas renderer.
 
-The PDF text and vector shapes render correctly, but embedded raster images come out blank. The console confirms the cause:
+## What I’ll change
 
-```
-Warning: Dependent image isn't ready yet
-  at _CanvasGraphics.paintImageXObject (react-pdf.js)
-  at _CanvasGraphics.executeOperatorList
-```
+1. **Replace the front-facing presentation renderer**
+   - Refactor `src/components/mobile/PdfViewer.tsx` so it no longer uses `react-pdf`, `<Document>`, or `<Page>` for the kiosk presentation display.
+   - Render the uploaded PDF URL through a native embedded PDF surface, using an `<iframe>` / `<object>` style viewer.
+   - Keep the existing full-screen layout, dark background, and app chrome so it still feels integrated with the kiosk.
 
-This is a well-known pdf.js symptom. When `paintImageXObject` runs and its image stream hasn't finished decoding, pdf.js skips that image and continues painting everything else — so the page looks "fine" except images are missing/blank.
+2. **Use a clean embedded PDF URL**
+   - Pass the signed PDF URL directly to the embedded viewer.
+   - Add PDF URL fragments where supported, such as hiding native toolbar controls if the browser honors them.
+   - Avoid re-processing the PDF bytes in JavaScript, which is the source of the blank image-layer issue.
 
-The image stream gets dropped because the **render task is being canceled and restarted while images are still being decoded**. The trigger in `PdfViewer.tsx` is the `width` prop on `<Page>`:
+3. **Add graceful fallbacks**
+   - If the browser refuses to embed the PDF, show a polished fallback with:
+     - presentation name
+     - “Open PDF” action
+     - retry/reload action
+   - Keep the existing external-open button in the kiosk header.
 
-1. On mount, `baseWidth` is `undefined`, so `<Page>` renders at the pdfjs default width and kicks off image decoding.
-2. `ResizeObserver` fires immediately after layout, setting `baseWidth` to the real container width.
-3. React re-renders `<Page>` with a new `width`. react-pdf cancels the in-flight render task; the image XObjects that were mid-decode are discarded.
-4. The second render reuses the cached operator list but the dependent image objects are gone → `paintImageXObject` → "Dependent image isn't ready yet" → blank.
+4. **Keep upload/admin thumbnail generation separate**
+   - Leave `PresentationUpload.tsx` thumbnail generation alone for now, because the reported issue is the front-facing viewing experience, not upload storage.
+   - If thumbnails later show blank too, we can separately change thumbnail rendering to a different strategy.
 
-This also fires again any time the container size changes (orientation, zoom, sidebar opening, etc.).
+5. **Clean up unused viewer dependencies if safe**
+   - Once the front-facing viewer no longer imports `react-pdf`, remove unused imports from `PdfViewer.tsx`.
+   - Keep `react-pdf`/`pdfjs-dist` installed if admin upload thumbnail generation still depends on them.
 
-## Plan
+6. **Verify the exact workflow**
+   - Open the kiosk.
+   - Switch to the **Presentations** category, not the Websites category.
+   - Select the affected presentation.
+   - Confirm page 4 of 15 renders as an actual PDF page instead of a blank/solid blue canvas.
+   - Check console logs for absence of pdf.js image warnings from the front-facing viewer.
 
-Scope: `src/components/mobile/PdfViewer.tsx` only. No business logic, no schema, no upload changes.
+## Technical notes
 
-1. **Don't render `<Page>` until we know the width.** Gate the `<Page>` element on `baseWidth !== undefined`. Show the existing spinner until layout has been measured once. This eliminates the first-render-then-resize race that's causing the blank images on initial open.
+- This is a viewer swap, not a database or upload change.
+- The strongest fix is to stop using pdf.js canvas rendering for the presentation display, because these PDFs appear to contain image-heavy/vector-heavy slide content that pdf.js is not painting reliably in the current setup.
+- Native embedded rendering trades custom page/zoom controls for reliability. The browser’s own PDF controls handle scrolling, zooming, and page navigation.
 
-2. **Measure width synchronously before paint.** Switch the measurement effect from `useEffect` to `useLayoutEffect` and round the width to an integer. This guarantees `baseWidth` is set in the same commit as the first `<Page>` render and prevents sub-pixel ResizeObserver thrash from triggering re-renders.
+## Files expected to change
 
-3. **Debounce/quantize ResizeObserver updates.** Only call `setBaseWidth` when the new integer width actually differs from the current one. Pdfjs treats every width change as "re-render the whole page", so suppressing no-op changes prevents mid-decode cancellations during scroll/zoom.
+- `src/components/mobile/PdfViewer.tsx`
 
-4. **Keep `renderTextLayer={false}` and `renderAnnotationLayer={false}`** — they are not the cause and removing them would slow rendering. The fix is purely about not interrupting the canvas render task.
-
-5. **Verification.** After the change, open a presentation (e.g. CEIS '27), confirm:
-   - No "Dependent image isn't ready yet" warnings in the console.
-   - All page images visible on first open and after page navigation.
-   - Resizing the window or rotating doesn't blank images on subsequent pages.
-
-## Out of scope
-
-- No change to upload, storage, signed URLs, or thumbnail generation — the bytes on disk are fine; this is purely a viewer-side render race.
-- No pdfjs/react-pdf version changes; current pinned versions are correct.
+Possibly no other files are needed because both desktop and mobile already route presentations through this component.

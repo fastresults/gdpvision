@@ -164,6 +164,7 @@ export default function PdfViewer({ url, label }: { url: string; label?: string 
                 }
               />
             )}
+          </Document>
         )}
       </div>
 

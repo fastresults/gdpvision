@@ -397,7 +397,7 @@ export const refreshAllThumbnails = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     const targets = (rows ?? []).filter((r) => {
-      if (VIDEO_CATEGORIES.includes(r.category as ItemCategory)) return false;
+      if (NO_AUTO_THUMBNAIL_CATEGORIES.includes(r.category as ItemCategory)) return false;
       if (force) return true;
       return r.thumbnail_status !== "ready";
     });

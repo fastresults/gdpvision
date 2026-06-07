@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { ExternalLink, RefreshCw } from "lucide-react";
 
-export default function PdfViewer({ url, label }: { url: string; label?: string }) {
+export default function PdfViewer({
+  url,
+  label,
+  storagePath,
+}: {
+  url: string;
+  label?: string;
+  storagePath?: string | null;
+}) {
   const [loaded, setLoaded] = useState(false);
   const [slowLoad, setSlowLoad] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -14,9 +22,12 @@ export default function PdfViewer({ url, label }: { url: string; label?: string 
   }, [url, reloadKey]);
 
   const viewerUrl = useMemo(() => {
-    const separator = url.includes("#") ? "&" : "#";
-    return `${url}${separator}toolbar=1&navpanes=0&scrollbar=1&view=FitH`;
-  }, [url]);
+    const base = storagePath
+      ? `/api/presentation-pdf?path=${encodeURIComponent(storagePath)}`
+      : url;
+    const separator = base.includes("#") ? "&" : "#";
+    return `${base}${separator}toolbar=1&navpanes=0&scrollbar=1&view=FitH`;
+  }, [storagePath, url]);
 
   return (
     <div

@@ -319,7 +319,7 @@ export const generateItemThumbnail = createServerFn({ method: "POST" })
       .maybeSingle();
     if (fetchErr) throw new Error(fetchErr.message);
     if (!item) throw new Error("Item not found");
-    if (VIDEO_CATEGORIES.includes(item.category as ItemCategory)) {
+    if (NO_AUTO_THUMBNAIL_CATEGORIES.includes(item.category as ItemCategory)) {
       return { ok: true, status: "skipped" as const };
     }
 

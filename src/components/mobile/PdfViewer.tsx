@@ -153,16 +153,17 @@ export default function PdfViewer({ url, label }: { url: string; label?: string 
               <div className="m-auto text-sm opacity-80">Failed to load PDF.</div>
             }
           >
-            <Page
-              pageNumber={page}
-              width={renderWidth}
-              renderAnnotationLayer={false}
-              renderTextLayer={false}
-              loading={
-                <div className="m-auto p-8 opacity-60 text-sm">Rendering page…</div>
-              }
-            />
-          </Document>
+            {baseWidth !== undefined && (
+              <Page
+                pageNumber={page}
+                width={renderWidth}
+                renderAnnotationLayer={false}
+                renderTextLayer={false}
+                loading={
+                  <div className="m-auto p-8 opacity-60 text-sm">Rendering page…</div>
+                }
+              />
+            )}
         )}
       </div>
 

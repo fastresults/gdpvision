@@ -205,8 +205,17 @@ export const deleteItem = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Look up the row so we can also remove any uploaded PDF object from storage.
+    const { data: row } = await supabaseAdmin
+      .from("items")
+      .select("pdf_storage_path")
+      .eq("id", data.id)
+      .maybeSingle();
     const { error } = await supabaseAdmin.from("items").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    if (row?.pdf_storage_path) {
+      await supabaseAdmin.storage.from("presentations").remove([row.pdf_storage_path]);
+    }
     return { ok: true };
   });
 

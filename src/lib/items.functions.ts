@@ -87,6 +87,7 @@ export const listItems = createServerFn({ method: "GET" }).handler(async () => {
     thumbnail_status: (r.thumbnail_status ?? "pending") as ThumbnailStatus,
     thumbnail_error: r.thumbnail_error ?? null,
     thumbnail_updated_at: r.thumbnail_updated_at ?? null,
+    pdf_storage_path: r.pdf_storage_path ?? null,
     sort_order: r.sort_order,
     created_at: r.created_at,
   })) as Item[];

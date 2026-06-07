@@ -291,7 +291,13 @@ function KioskPage() {
           />
         )}
 
-        {active && !VIDEO_CATEGORIES.includes(active.category) && (
+        {active && !VIDEO_CATEGORIES.includes(active.category) && active.category === "presentations" && active.pdf_storage_path && (
+          <Suspense fallback={<div className="flex h-full w-full items-center justify-center text-sm opacity-70">Loading PDF viewer…</div>}>
+            <PdfViewer url={active.url} />
+          </Suspense>
+        )}
+
+        {active && !VIDEO_CATEGORIES.includes(active.category) && !(active.category === "presentations" && active.pdf_storage_path) && (
           <>
             <iframe
               key={active.id}

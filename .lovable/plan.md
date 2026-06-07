@@ -1,70 +1,44 @@
-# Fix PDF Presentation Viewer
+# Forensic findings: blank images in PDF presentations
 
-## What's broken
+## What's actually happening
 
-I opened CEIS '27 in the preview. The PDF file is downloaded successfully from Supabase (200 OK, 2 MB, CORS allowed), but the viewer never moves past "Loading PDF…". No `pdf.worker.min.mjs` request is ever made — meaning pdfjs's web worker fails to start, so `getDocument()` hangs and `onLoadSuccess` never fires. There is also a latent version mismatch: the project pins `pdfjs-dist@^6.0.227` at the top level while `react-pdf@10.4.1` requires `pdfjs-dist@5.4.296`. Loading the worker from `unpkg.com` based on `pdfjs.version` makes this fragile (CDN flakiness, version skew, occasional CORS issues for module workers).
+The PDF text and vector shapes render correctly, but embedded raster images come out blank. The console confirms the cause:
 
-There's also no zoom, no fit-to-page, no error UI beyond a string, and no loading spinner — so even when it works, it doesn't feel elegant.
-
-## Fix
-
-### 1. Serve the pdfjs worker locally via Vite
-
-Replace the CDN worker URL with a Vite-bundled worker that's guaranteed to match the installed pdfjs version, in both `src/components/mobile/PdfViewer.tsx` and `src/components/admin/PresentationUpload.tsx`:
-
-```ts
-import { pdfjs } from "react-pdf";
-import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+```
+Warning: Dependent image isn't ready yet
+  at _CanvasGraphics.paintImageXObject (react-pdf.js)
+  at _CanvasGraphics.executeOperatorList
 ```
 
-This removes the unpkg dependency, eliminates CORS/version-skew failure modes, and the worker is requested from the same origin so the browser actually starts it.
+This is a well-known pdf.js symptom. When `paintImageXObject` runs and its image stream hasn't finished decoding, pdf.js skips that image and continues painting everything else — so the page looks "fine" except images are missing/blank.
 
-### 2. Align `pdfjs-dist` with what `react-pdf` ships
+The image stream gets dropped because the **render task is being canceled and restarted while images are still being decoded**. The trigger in `PdfViewer.tsx` is the `width` prop on `<Page>`:
 
-Pin `pdfjs-dist` to `5.4.296` (what `react-pdf@10` peer-depends on) so the `?url` import resolves the same build that react-pdf calls into. This prevents subtle parsing differences between the worker and the main-thread API.
+1. On mount, `baseWidth` is `undefined`, so `<Page>` renders at the pdfjs default width and kicks off image decoding.
+2. `ResizeObserver` fires immediately after layout, setting `baseWidth` to the real container width.
+3. React re-renders `<Page>` with a new `width`. react-pdf cancels the in-flight render task; the image XObjects that were mid-decode are discarded.
+4. The second render reuses the cached operator list but the dependent image objects are gone → `paintImageXObject` → "Dependent image isn't ready yet" → blank.
 
-### 3. Make the viewer feel polished
+This also fires again any time the container size changes (orientation, zoom, sidebar opening, etc.).
 
-Rework `src/components/mobile/PdfViewer.tsx`:
+## Plan
 
-- Real loading state: centered spinner + "Loading presentation…" instead of bare text.
-- Clear error state with a Retry button (calls `setReloadKey(k => k + 1)` to remount `Document`).
-- Fit-to-width by default, plus zoom controls (`−` / `100%` / `+`) and a "Fit width" reset. Cap zoom 50–250%.
-- Smooth scroll-to-top on page change.
-- Keyboard shortcuts: `←` / `→` for page nav, `+` / `−` for zoom (only when viewer is mounted).
-- Disable text/annotation layers (already done) for speed; keep `renderMode="canvas"`.
-- Replace the `#111` hardcode with `var(--eyeframe-bg)` so it matches the kiosk theme.
-- Page indicator stays at the bottom bar; add subtle border + safe-area padding for mobile.
+Scope: `src/components/mobile/PdfViewer.tsx` only. No business logic, no schema, no upload changes.
 
-### 4. Robust `Document` props
+1. **Don't render `<Page>` until we know the width.** Gate the `<Page>` element on `baseWidth !== undefined`. Show the existing spinner until layout has been measured once. This eliminates the first-render-then-resize race that's causing the blank images on initial open.
 
-Pass `options` once (memoized) including `cMapUrl`, `cMapPacked: true`, `standardFontDataUrl` — pointing at same-origin Vite-bundled assets:
+2. **Measure width synchronously before paint.** Switch the measurement effect from `useEffect` to `useLayoutEffect` and round the width to an integer. This guarantees `baseWidth` is set in the same commit as the first `<Page>` render and prevents sub-pixel ResizeObserver thrash from triggering re-renders.
 
-```ts
-import cMapUrl from "pdfjs-dist/cmaps/?url"; // or use new URL(...) pattern
-```
+3. **Debounce/quantize ResizeObserver updates.** Only call `setBaseWidth` when the new integer width actually differs from the current one. Pdfjs treats every width change as "re-render the whole page", so suppressing no-op changes prevents mid-decode cancellations during scroll/zoom.
 
-If `?url` on a directory isn't supported, fall back to the unpkg URLs for cmaps/fonts only (these are optional assets; missing them just falls back to default fonts, not a hang). The worker MUST be local; cmaps can stay remote.
+4. **Keep `renderTextLayer={false}` and `renderAnnotationLayer={false}`** — they are not the cause and removing them would slow rendering. The fix is purely about not interrupting the canvas render task.
 
-### 5. Surface failures during PDF parsing
-
-In `onLoadError`, log to console and show the actual `error.message` plus the file label, so when a future upload is corrupt we see why immediately instead of staring at "Loading PDF…".
-
-## Files touched
-
-- `src/components/mobile/PdfViewer.tsx` — rewrite with bundled worker, zoom, error/retry, theme tokens, keyboard nav.
-- `src/components/admin/PresentationUpload.tsx` — switch to the bundled worker URL (same one-line change) so admin thumbnail generation also stops depending on unpkg.
-- `package.json` — pin `pdfjs-dist` to `5.4.296` to match `react-pdf@10`'s peer.
-
-## Verification
-
-1. Open `/` → Presentations → CEIS '27 in preview. PDF should render the first page within ~1 s.
-2. Network panel should show a `pdf.worker.min.mjs` request from the lovableproject origin (not unpkg).
-3. Page next/prev, zoom in/out, fit-to-width all work; mobile and desktop both render the same component.
-4. Upload a fresh PDF in `/admin` — admin thumbnail generation still works (uses the same worker path).
+5. **Verification.** After the change, open a presentation (e.g. CEIS '27), confirm:
+   - No "Dependent image isn't ready yet" warnings in the console.
+   - All page images visible on first open and after page navigation.
+   - Resizing the window or rotating doesn't blank images on subsequent pages.
 
 ## Out of scope
 
-- Pinch-to-zoom gestures on mobile (browser pinch-zoom on the page still works; in-component pinch can be a follow-up).
-- Continuous scroll of all pages at once (current paginated viewer is faster for large decks).
+- No change to upload, storage, signed URLs, or thumbnail generation — the bytes on disk are fine; this is purely a viewer-side render race.
+- No pdfjs/react-pdf version changes; current pinned versions are correct.

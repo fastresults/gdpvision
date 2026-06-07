@@ -13,8 +13,7 @@ import {
   Sparkles,
   Eye,
 } from "lucide-react";
-import { VIDEO_CATEGORIES, type Item, type ItemCategory } from "@/lib/items.functions";
-import type { Settings } from "@/lib/settings.functions";
+import { VIDEO_CATEGORIES, type Item, type ItemCategory, type Settings } from "@/lib/kiosk-types";
 import { getItemThumbnail } from "@/lib/thumbnail";
 
 const PdfViewer = lazy(() => import("./PdfViewer"));

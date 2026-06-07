@@ -1,4 +1,4 @@
-import type { Item, ItemCategory } from "@/lib/items.functions";
+import type { Item, ItemCategory } from "@/lib/kiosk-types";
 
 /**
  * Decide what thumbnail (if any) to show for an item.

@@ -33,6 +33,15 @@ import {
   type SettingKey,
   type Settings,
 } from "@/lib/settings.functions";
+import {
+  listIdleImages,
+  addIdleImage,
+  updateIdleImage,
+  removeIdleImage,
+  moveIdleImage,
+  type IdleImage,
+} from "@/lib/idle-images.functions";
+
 
 export const Route = createFileRoute("/admin")({
   head: () => ({

@@ -387,11 +387,9 @@ function AdminPage() {
         </div>
 
         {isMediaTab ? (
-          <MediaHub
-            idleImageUrl={labels.idle_image_url}
-            onSetIdle={(v) => settingMut.mutate({ key: "idle_image_url", value: v })}
-          />
+          <MediaHub />
         ) : (
+
         <div>
 
 

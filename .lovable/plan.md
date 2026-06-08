@@ -1,26 +1,23 @@
 ## Plan
 
-The presentation viewer is not failing inside React anymore; the browser is refusing to inline-render the proxied PDF. The network log shows the iframe request to `/api/presentation-pdf?...` ends as `net::ERR_ABORTED`, and Chrome falls back to its generic file tile with an **Open** button instead of displaying pages.
+Replace the current custom canvas renderer with the previously tried official PDF.js web viewer approach, using the existing same-origin `/api/public/presentation-pdf` proxy so uploaded presentation PDFs are loaded from a stable app URL.
 
-## What I’ll change
+## Changes
 
-1. **Stop relying on Chrome’s native PDF plugin inside the kiosk iframe**
-   - Replace the current native `<iframe>` PDF embed in `PdfViewer.tsx`.
-   - Use a bundled viewer page instead, so the PDF is rendered inside our app rather than by the browser’s file-preview fallback.
+1. **Update `PdfViewer.tsx`**
+   - Remove the hand-written `pdfjs.getDocument()` page-by-page canvas rendering.
+   - Render the PDF through PDF.js’ packaged viewer UI instead.
+   - Keep the existing public proxy URL logic for `pdf_storage_path`.
+   - Preserve loading/error fallback controls and an “Open PDF” fallback link.
 
-2. **Add a dedicated PDF.js viewer route**
-   - Create a client-only route like `/pdf-viewer` that loads PDF.js only in the browser.
-   - Fetch the same `/api/presentation-pdf?path=...` URL and render pages into a scrollable presentation surface.
-   - This keeps PDF.js out of SSR and avoids the previous SSR failures.
+2. **Keep the public PDF proxy**
+   - Leave `src/routes/api/public/presentation-pdf.ts` in place.
+   - Do not recreate the old `/api/presentation-pdf` route, since that caused stale route/auth redirect issues.
 
-3. **Make the kiosk iframe point to the viewer route**
-   - `PdfViewer.tsx` will embed `/pdf-viewer?path=...&label=...` instead of embedding the raw PDF file.
-   - Keep the dark full-screen kiosk styling and current fallback actions.
+3. **Verify the route tree issue stays fixed**
+   - Confirm generated routing no longer references `src/routes/api/presentation-pdf.ts`.
+   - If the dev server still has stale module references, restart it after the code change.
 
-4. **Improve loading/error detection**
-   - Add an iframe-to-parent `postMessage` handshake so the kiosk can distinguish “viewer loaded” from “PDF render failed”.
-   - If the PDF fetch/render fails, show the existing retry/open fallback instead of an indefinite blank/loading screen.
-
-5. **Verify the exact reported case**
-   - Open the preview, select **Presentations → CEIS '27**, and confirm the viewer no longer shows the generic PDF tile/blank screen.
-   - Check the network request for `/api/presentation-pdf` and browser console for render errors.
+4. **Validate in preview**
+   - Open a presentation PDF in the kiosk flow.
+   - Check that the viewer loads without a blank white screen and that later pages render rather than showing solid-color/blank pages.

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ExternalLink, RefreshCw } from "lucide-react";
 
 type Props = {
@@ -6,6 +6,30 @@ type Props = {
   label?: string;
   storagePath?: string | null;
 };
+
+// Register the web component on the client only.
+if (typeof window !== "undefined") {
+  void import("pdfjs-viewer-element");
+}
+
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace JSX {
+    interface IntrinsicElements {
+      "pdfjs-viewer-element": React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & {
+          src?: string;
+          viewer?: string;
+          "iframe-title"?: string;
+          page?: string | number;
+          zoom?: string;
+          pagemode?: string;
+        },
+        HTMLElement
+      >;
+    }
+  }
+}
 
 export default function PdfViewer({ url, label, storagePath }: Props) {
   const pdfUrl = useMemo(
@@ -18,11 +42,31 @@ export default function PdfViewer({ url, label, storagePath }: Props) {
 
   const [reloadKey, setReloadKey] = useState(0);
   const [errored, setErrored] = useState(false);
+  const elRef = useRef<HTMLElement | null>(null);
 
-  // Use the browser's native PDF viewer via <object>, with an iframe fallback
-  // and an "Open PDF" link as a last resort. This was the approach that worked
-  // most reliably on real devices in earlier iterations.
-  const src = `${pdfUrl}#toolbar=1&navpanes=0&view=FitH`;
+  useEffect(() => {
+    setErrored(false);
+    const el = elRef.current as
+      | (HTMLElement & { initPromise?: Promise<unknown> })
+      | null;
+    if (!el) return;
+    let cancelled = false;
+    const t = setTimeout(() => {
+      // If the viewer never resolves init within 15s, surface fallback.
+      if (!cancelled && !el.initPromise) setErrored(true);
+    }, 15000);
+    el.initPromise
+      ?.then(() => {
+        clearTimeout(t);
+      })
+      .catch(() => {
+        if (!cancelled) setErrored(true);
+      });
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [pdfUrl, reloadKey]);
 
   return (
     <div
@@ -30,21 +74,16 @@ export default function PdfViewer({ url, label, storagePath }: Props) {
       style={{ backgroundColor: "var(--eyeframe-bg)", color: "var(--eyeframe-text)" }}
     >
       <div className="relative min-h-0 flex-1 overflow-hidden">
-        <object
-          key={`${src}-${reloadKey}`}
-          data={src}
-          type="application/pdf"
-          className="h-full w-full"
-          onError={() => setErrored(true)}
-        >
-          <iframe
-            src={src}
-            title={label ?? "Presentation"}
-            className="h-full w-full"
-            style={{ border: 0, display: "block" }}
-            onError={() => setErrored(true)}
-          />
-        </object>
+        <pdfjs-viewer-element
+          key={`${pdfUrl}-${reloadKey}`}
+          ref={(node) => {
+            elRef.current = node;
+          }}
+          src={pdfUrl}
+          iframe-title={label ?? "Presentation"}
+          zoom="page-width"
+          style={{ display: "block", width: "100%", height: "100%" }}
+        />
 
         {errored && (
           <div

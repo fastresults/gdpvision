@@ -26,12 +26,15 @@ export const Route = createFileRoute("/api/public/presentation-pdf")({
             );
           }
 
-          return new Response(data, {
+          const buf = await data.arrayBuffer();
+          return new Response(buf, {
             status: 200,
             headers: {
               "Content-Type": "application/pdf",
+              "Content-Length": String(buf.byteLength),
               "Content-Disposition": `inline; filename="${path}"`,
               "Cache-Control": "private, max-age=300",
+              "Accept-Ranges": "bytes",
               "X-Content-Type-Options": "nosniff",
             },
           });

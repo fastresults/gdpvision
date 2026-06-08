@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ExternalLink, RefreshCw } from "lucide-react";
+// @ts-expect-error - package ships types under a non-exported path
+import "pdfjs-viewer-element";
 
 type Props = {
   url: string;
@@ -7,13 +9,7 @@ type Props = {
   storagePath?: string | null;
 };
 
-// Register the web component on the client only.
-if (typeof window !== "undefined") {
-  void import("pdfjs-viewer-element");
-}
-
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
+declare module "react" {
   namespace JSX {
     interface IntrinsicElements {
       "pdfjs-viewer-element": React.DetailedHTMLProps<
@@ -76,7 +72,7 @@ export default function PdfViewer({ url, label, storagePath }: Props) {
       <div className="relative min-h-0 flex-1 overflow-hidden">
         <pdfjs-viewer-element
           key={`${pdfUrl}-${reloadKey}`}
-          ref={(node) => {
+          ref={(node: HTMLElement | null) => {
             elRef.current = node;
           }}
           src={pdfUrl}

@@ -284,6 +284,9 @@ export default function PdfViewer({ url, label, storagePath, showToolbar = false
           </a>
         </div>
       </div>
+      )}
+
+
 
       <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-auto">
         <div ref={pagesRef} className="mx-auto min-h-full w-full px-3 py-4" />

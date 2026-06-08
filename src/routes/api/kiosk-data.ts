@@ -55,6 +55,7 @@ export const Route = createFileRoute("/api/kiosk-data")({
           thumbnail_error: row.thumbnail_error ?? null,
           thumbnail_updated_at: row.thumbnail_updated_at ?? null,
           pdf_storage_path: row.pdf_storage_path ?? null,
+          tooltip: row.tooltip ?? null,
           sort_order: row.sort_order,
           created_at: row.created_at,
         }));

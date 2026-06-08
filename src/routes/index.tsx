@@ -50,7 +50,7 @@ const CATEGORY_SETTING_KEY = {
   brand: "label_brand",
 } as const;
 
-type KioskData = { items: Item[]; settings: Settings };
+type KioskData = { items: Item[]; settings: Settings; idleImages?: IdleImage[] };
 
 async function fetchKioskData(): Promise<KioskData> {
   const response = await fetch("/api/kiosk-data");

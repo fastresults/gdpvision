@@ -171,6 +171,11 @@ export function MobileKiosk({ items, settings }: { items: Item[]; settings: Sett
   const [active, setActive] = useState<Item | null>(null);
   const [blocked, setBlocked] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pdfToolbarOpen, setPdfToolbarOpen] = useState(false);
+
+  useEffect(() => {
+    setPdfToolbarOpen(false);
+  }, [active?.id]);
 
   const visible = useMemo(
     () => items.filter((i) => i.category === category).sort((a, b) => a.sort_order - b.sort_order),

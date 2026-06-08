@@ -562,31 +562,50 @@ function AdminPage() {
                   </select>
                 )}
                 {isEditing ? (
-                  <>
+                  <div className="flex min-w-0 flex-1 flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={editLabel}
+                        onChange={(e) => setEditLabel(e.target.value)}
+                        className="w-48 rounded-md border px-2 py-1 text-sm outline-none"
+                        style={{
+                          backgroundColor: "var(--eyeframe-card)",
+                          borderColor: "var(--eyeframe-border)",
+                          color: "var(--eyeframe-text)",
+                        }}
+                      />
+                      <input
+                        value={editUrl}
+                        onChange={(e) => setEditUrl(e.target.value)}
+                        className="min-w-0 flex-1 rounded-md border px-2 py-1 text-sm outline-none"
+                        style={{
+                          backgroundColor: "var(--eyeframe-card)",
+                          borderColor: "var(--eyeframe-border)",
+                          color: "var(--eyeframe-text)",
+                        }}
+                      />
+                    </div>
                     <input
-                      value={editLabel}
-                      onChange={(e) => setEditLabel(e.target.value)}
-                      className="w-48 rounded-md border px-2 py-1 text-sm outline-none"
+                      value={editTooltip}
+                      onChange={(e) => setEditTooltip(e.target.value)}
+                      placeholder="Tooltip (optional)"
+                      maxLength={300}
+                      className="w-full rounded-md border px-2 py-1 text-xs outline-none"
                       style={{
                         backgroundColor: "var(--eyeframe-card)",
                         borderColor: "var(--eyeframe-border)",
                         color: "var(--eyeframe-text)",
                       }}
                     />
-                    <input
-                      value={editUrl}
-                      onChange={(e) => setEditUrl(e.target.value)}
-                      className="min-w-0 flex-1 rounded-md border px-2 py-1 text-sm outline-none"
-                      style={{
-                        backgroundColor: "var(--eyeframe-card)",
-                        borderColor: "var(--eyeframe-border)",
-                        color: "var(--eyeframe-text)",
-                      }}
-                    />
-                  </>
+                  </div>
                 ) : (
                   <>
-                    <div className="w-48 shrink-0 truncate text-sm font-medium">{item.label}</div>
+                    <div className="w-48 shrink-0 truncate text-sm font-medium">
+                      {item.label}
+                      {item.tooltip && (
+                        <div className="truncate text-[10px] font-normal opacity-60">{item.tooltip}</div>
+                      )}
+                    </div>
                     <div className="min-w-0 flex-1 truncate text-xs opacity-70">{item.url}</div>
                   </>
                 )}

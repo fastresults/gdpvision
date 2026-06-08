@@ -248,6 +248,7 @@ function KioskPage() {
             }}
           >
             {pdfToolbarOpen ? <PanelTopClose className="h-3 w-3" /> : <PanelTopOpen className="h-3 w-3" />}
+            <span>{pdfToolbarOpen ? "Hide Toolbar" : "PDF Toolbar"}</span>
           </button>
         )}
 

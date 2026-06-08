@@ -393,3 +393,41 @@ function KioskPage() {
     </div>
   );
 }
+
+function IdleCarousel({ images }: { images: IdleImage[] }) {
+  const autoplay = useRef(
+    Autoplay({ delay: 6000, stopOnInteraction: false, stopOnMouseEnter: false }),
+  );
+  return (
+    <div className="absolute inset-0">
+      <Carousel
+        className="h-full w-full"
+        opts={{ loop: true }}
+        plugins={[autoplay.current]}
+      >
+        <CarouselContent className="-ml-0 h-full" style={{ height: "100%" }}>
+          {images.map((img) => (
+            <CarouselItem key={img.id} className="basis-full pl-0">
+              <div
+                className="flex h-full w-full flex-col items-center justify-center gap-4"
+                style={{ height: "95.4vh" }}
+              >
+                <img
+                  src={img.image_url}
+                  alt={img.caption ?? ""}
+                  className="max-h-[80%] max-w-[85%] object-contain"
+                />
+                {img.caption && (
+                  <div className="text-center text-3xl font-semibold leading-tight opacity-90">
+                    {img.caption}
+                  </div>
+                )}
+              </div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+      </Carousel>
+    </div>
+  );
+}
+

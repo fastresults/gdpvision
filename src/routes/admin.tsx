@@ -1215,8 +1215,13 @@ function MediaHub() {
             <MediaCard
               key={a.id}
               asset={a}
-              isIdle={a.public_url === idleImageUrl}
-              onSetIdle={() => onSetIdle(a.public_url)}
+              isIdle={idleUrls.has(a.public_url)}
+              onSetIdle={() => {
+                const existing = idleImages.find((i) => i.image_url === a.public_url);
+                if (existing) removeFromCarouselMut.mutate(existing.id);
+                else addToCarouselMut.mutate(a);
+              }}
+
               onRename={(filename) => renameMut.mutate({ id: a.id, filename })}
               onDelete={() => {
                 if (confirm(`Delete "${a.filename}"?`)) deleteMut.mutate(a.id);

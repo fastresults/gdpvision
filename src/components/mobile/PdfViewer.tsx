@@ -117,11 +117,74 @@ export default function PdfViewer({ url, label, storagePath }: Props) {
     };
   }, [pdfUrl, reloadKey]);
 
+  const fileName = useMemo(() => {
+    const base = (label ?? "presentation").replace(/[^\w\-]+/g, "_").replace(/^_+|_+$/g, "");
+    return `${base || "presentation"}.pdf`;
+  }, [label]);
+
   return (
     <div
       className="flex h-full w-full flex-col"
       style={{ backgroundColor: "var(--eyeframe-bg)", color: "var(--eyeframe-text)" }}
     >
+      <div
+        className="flex items-center justify-between gap-2 border-b px-3 py-2"
+        style={{ borderColor: "var(--eyeframe-border)", backgroundColor: "var(--eyeframe-surface)" }}
+      >
+        <div className="truncate text-sm font-medium opacity-90">{label ?? "Presentation"}</div>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setReloadKey((k) => k + 1)}
+            title="Reload"
+            aria-label="Reload PDF"
+            className="inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs"
+            style={{ borderColor: "var(--eyeframe-border)" }}
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+          <a
+            href={pdfUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open in new tab"
+            aria-label="Open PDF in new tab"
+            className="inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs"
+            style={{ borderColor: "var(--eyeframe-border)" }}
+          >
+            <ExternalLink className="h-4 w-4" />
+          </a>
+          <button
+            type="button"
+            onClick={() => {
+              const w = window.open(pdfUrl, "_blank");
+              if (w) {
+                w.addEventListener("load", () => {
+                  try { w.print(); } catch { /* ignore */ }
+                });
+              }
+            }}
+            title="Print"
+            aria-label="Print PDF"
+            className="inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs"
+            style={{ borderColor: "var(--eyeframe-border)" }}
+          >
+            <Printer className="h-4 w-4" />
+          </button>
+          <a
+            href={pdfUrl}
+            download={fileName}
+            title="Download"
+            aria-label="Download PDF"
+            className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium"
+            style={{ backgroundColor: "var(--eyeframe-accent)", color: "var(--eyeframe-bg)" }}
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Download</span>
+          </a>
+        </div>
+      </div>
+
       <div className="relative min-h-0 flex-1 overflow-auto">
         <div ref={pagesRef} className="mx-auto min-h-full w-full px-3 py-4" />
 

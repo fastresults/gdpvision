@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ExternalLink, RefreshCw } from "lucide-react";
+import { Download, ExternalLink, Printer, RefreshCw } from "lucide-react";
 
 type Props = {
   url: string;

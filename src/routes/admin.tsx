@@ -1261,11 +1261,25 @@ function MediaCard({
     }
   };
 
+  const isImage = asset.kind === "image";
   return (
     <div
+      draggable={isImage}
+      onDragStart={(e) => {
+        if (!isImage) return;
+        const payload = JSON.stringify({ id: asset.id, url: asset.public_url });
+        e.dataTransfer.setData("application/x-media-asset", payload);
+        e.dataTransfer.setData("text/plain", asset.public_url);
+        e.dataTransfer.effectAllowed = "copy";
+      }}
       className="flex flex-col overflow-hidden rounded-lg border"
-      style={{ backgroundColor: "var(--eyeframe-topbar)", borderColor: isIdle ? "var(--eyeframe-accent)" : "var(--eyeframe-border)" }}
+      style={{
+        backgroundColor: "var(--eyeframe-topbar)",
+        borderColor: isIdle ? "var(--eyeframe-accent)" : "var(--eyeframe-border)",
+        cursor: isImage ? "grab" : undefined,
+      }}
     >
+
       <div
         className="flex aspect-video items-center justify-center overflow-hidden"
         style={{ backgroundColor: "var(--eyeframe-card)" }}

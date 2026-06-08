@@ -263,7 +263,7 @@ export function MobileKiosk({ items, settings }: { items: Item[]; settings: Sett
                   </div>
                 }
               >
-                <PdfViewer url={active.url} label={active.label} storagePath={active.pdf_storage_path} />
+                <PdfViewer url={active.url} label={active.label} storagePath={active.pdf_storage_path} showToolbar={pdfToolbarOpen} />
               </Suspense>
             </ClientOnly>
           ) : isVideo ? (

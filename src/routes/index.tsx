@@ -13,7 +13,7 @@ import {
   Film,
   Sparkles,
 } from "lucide-react";
-import { DEFAULT_SETTINGS, VIDEO_CATEGORIES, type Item, type ItemCategory, type Settings } from "@/lib/kiosk-types";
+import { DEFAULT_SETTINGS, PDF_CATEGORIES, VIDEO_CATEGORIES, type Item, type ItemCategory, type Settings } from "@/lib/kiosk-types";
 import { MobileKiosk } from "@/components/mobile/MobileKiosk";
 
 export const Route = createFileRoute("/")({
@@ -113,7 +113,11 @@ function KioskPage() {
       return;
     }
     setBlocked(false);
-    timerRef.current = setTimeout(() => setBlocked(true), 3500);
+    const isPdfActive = PDF_CATEGORIES.includes(active.category) && !!active.pdf_storage_path;
+    const isVideoActive = VIDEO_CATEGORIES.includes(active.category);
+    if (!isPdfActive && !isVideoActive) {
+      timerRef.current = setTimeout(() => setBlocked(true), 3500);
+    }
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
@@ -277,7 +281,7 @@ function KioskPage() {
           />
         )}
 
-        {active && !VIDEO_CATEGORIES.includes(active.category) && active.category === "presentations" && active.pdf_storage_path && (
+        {active && !VIDEO_CATEGORIES.includes(active.category) && PDF_CATEGORIES.includes(active.category) && active.pdf_storage_path && (
           <ClientOnly fallback={<div className="flex h-full w-full items-center justify-center text-sm opacity-70">Loading PDF viewer…</div>}>
             <Suspense fallback={<div className="flex h-full w-full items-center justify-center text-sm opacity-70">Loading PDF viewer…</div>}>
               <PdfViewer url={active.url} label={active.label} storagePath={active.pdf_storage_path} />
@@ -285,7 +289,7 @@ function KioskPage() {
           </ClientOnly>
         )}
 
-        {active && !VIDEO_CATEGORIES.includes(active.category) && !(active.category === "presentations" && active.pdf_storage_path) && (
+        {active && !VIDEO_CATEGORIES.includes(active.category) && !(PDF_CATEGORIES.includes(active.category) && active.pdf_storage_path) && (
           <>
             <iframe
               key={active.id}

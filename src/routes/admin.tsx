@@ -936,6 +936,28 @@ function MediaHub() {
           onDrop={(e) => {
             e.preventDefault();
             setIsDragging(false);
+            // 1) dragged from media library
+            const assetPayload = e.dataTransfer.getData("application/x-media-asset");
+            if (assetPayload) {
+              try {
+                const { id, url } = JSON.parse(assetPayload) as { id: string; url: string };
+                if (idleUrls.has(url)) return; // already in carousel
+                addToCarouselMut.mutate({
+                  id,
+                  public_url: url,
+                  filename: "",
+                  mime_type: "",
+                  size_bytes: 0,
+                  storage_path: "",
+                  kind: "image",
+                  created_at: "",
+                });
+              } catch {
+                // ignore malformed payload
+              }
+              return;
+            }
+            // 2) file dropped from OS
             const f = e.dataTransfer.files?.[0];
             if (!f) return;
             if (!f.type.startsWith("image/")) {
@@ -951,6 +973,7 @@ function MediaHub() {
             backgroundColor: isDragging ? "color-mix(in oklab, var(--eyeframe-accent) 10%, transparent)" : "transparent",
           }}
         >
+
           <input
             ref={idleInputRef}
             type="file"

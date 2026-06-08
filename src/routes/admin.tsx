@@ -752,18 +752,66 @@ function MediaHub({ idleImageUrl, onSetIdle }: { idleImageUrl: string; onSetIdle
     return (await res.json()) as MediaAsset;
   };
 
-  const uploadMut = useMutation({
-    mutationFn: async (files: FileList | File[]) => {
-      for (const f of Array.from(files)) {
-        await uploadOne(f);
-      }
-    },
-    onSuccess: invalidate,
-    onError: (err) => {
-      console.error("[uploadMedia] failed:", err);
-      alert(`Upload failed: ${err instanceof Error ? err.message : String(err)}`);
-    },
-  });
+  type QueueItem = {
+    id: string;
+    file: File;
+    status: "pending" | "uploading" | "done" | "error";
+    error?: string;
+  };
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [isMainDragging, setIsMainDragging] = useState(false);
+  const dragDepthRef = useRef(0);
+  const MAX_PARALLEL = 3;
+
+  // Worker: keeps up to MAX_PARALLEL uploads in flight
+  useEffect(() => {
+    const activeCount = queue.filter((q) => q.status === "uploading").length;
+    if (activeCount >= MAX_PARALLEL) return;
+    const next = queue.find((q) => q.status === "pending");
+    if (!next) return;
+    // Mark as uploading
+    setQueue((prev) => prev.map((q) => (q.id === next.id ? { ...q, status: "uploading" } : q)));
+    uploadOne(next.file)
+      .then(() => {
+        setQueue((prev) => prev.map((q) => (q.id === next.id ? { ...q, status: "done" } : q)));
+        invalidate();
+      })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[uploadMedia] failed:", err);
+        setQueue((prev) =>
+          prev.map((q) => (q.id === next.id ? { ...q, status: "error", error: msg } : q)),
+        );
+      });
+  }, [queue]);
+
+  const enqueueFiles = (files: File[] | FileList) => {
+    const arr = Array.from(files);
+    if (arr.length === 0) return;
+    setQueue((prev) => [
+      ...prev,
+      ...arr.map((file) => ({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${file.name}`,
+        file,
+        status: "pending" as const,
+      })),
+    ]);
+  };
+
+  const retryItem = (id: string) => {
+    setQueue((prev) =>
+      prev.map((q) => (q.id === id ? { ...q, status: "pending", error: undefined } : q)),
+    );
+  };
+
+  const removeItem = (id: string) => {
+    setQueue((prev) => prev.filter((q) => q.id !== id));
+  };
+
+  const clearCompleted = () => {
+    setQueue((prev) => prev.filter((q) => q.status !== "done"));
+  };
+
 
   const uploadIdleMut = useMutation({
     mutationFn: (file: File) => uploadOne(file),

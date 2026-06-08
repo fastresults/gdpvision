@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ExternalLink, RefreshCw } from "lucide-react";
-// @ts-expect-error - package ships types under a non-exported path
 import "pdfjs-viewer-element";
 
 type Props = {

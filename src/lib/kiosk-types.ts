@@ -18,6 +18,7 @@ export type Item = {
   thumbnail_error: string | null;
   thumbnail_updated_at: string | null;
   pdf_storage_path: string | null;
+  tooltip: string | null;
   sort_order: number;
   created_at: string;
 };

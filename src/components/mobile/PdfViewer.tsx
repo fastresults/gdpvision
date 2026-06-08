@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Download, ExternalLink, Printer, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Download, ExternalLink, Printer, RefreshCw } from "lucide-react";
 
 type Props = {
   url: string;
@@ -19,7 +19,11 @@ export default function PdfViewer({ url, label, storagePath }: Props) {
   const [reloadKey, setReloadKey] = useState(0);
   const [errored, setErrored] = useState(false);
   const [status, setStatus] = useState("Loading PDF…");
+  const [numPages, setNumPages] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const pagesRef = useRef<HTMLDivElement | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const pageEls = useRef<HTMLDivElement[]>([]);
 
   useEffect(() => {
     const host = pagesRef.current;
@@ -32,6 +36,9 @@ export default function PdfViewer({ url, label, storagePath }: Props) {
 
     setErrored(false);
     setStatus("Loading PDF…");
+    setNumPages(0);
+    setCurrentPage(1);
+    pageEls.current = [];
     host.replaceChildren();
 
     const renderPdf = async () => {
@@ -56,6 +63,7 @@ export default function PdfViewer({ url, label, storagePath }: Props) {
 
         const pdf = await loadingTask.promise;
         pdfDoc = pdf;
+        setNumPages(pdf.numPages);
         const width = Math.max(host.clientWidth - 24, 320);
 
         for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
@@ -69,12 +77,14 @@ export default function PdfViewer({ url, label, storagePath }: Props) {
           const viewport = page.getViewport({ scale: cssScale });
 
           const shell = document.createElement("div");
+          shell.dataset.page = String(pageNumber);
           shell.style.margin = "0 auto 16px";
           shell.style.width = `${viewport.width}px`;
           shell.style.maxWidth = "100%";
           shell.style.background = "var(--eyeframe-surface, #111827)";
           shell.style.border = "1px solid var(--eyeframe-border, rgba(255,255,255,0.12))";
           shell.style.boxShadow = "0 18px 40px rgba(0,0,0,0.28)";
+          shell.style.scrollMarginTop = "8px";
 
           const canvas = document.createElement("canvas");
           canvas.setAttribute("aria-label", `${label ?? "Presentation"} slide ${pageNumber}`);
@@ -86,6 +96,7 @@ export default function PdfViewer({ url, label, storagePath }: Props) {
           canvas.style.maxWidth = "100%";
           shell.append(canvas);
           host.append(shell);
+          pageEls.current[pageNumber - 1] = shell;
 
           const context = canvas.getContext("2d", { alpha: false });
           if (!context) throw new Error("Canvas is unavailable");
@@ -114,13 +125,72 @@ export default function PdfViewer({ url, label, storagePath }: Props) {
       void loadingTask?.destroy();
       void pdfDoc?.destroy();
       host.replaceChildren();
+      pageEls.current = [];
     };
-  }, [pdfUrl, reloadKey]);
+  }, [pdfUrl, reloadKey, label]);
+
+  // Track which page is most visible while scrolling
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root || numPages === 0) return;
+    const els = pageEls.current.filter(Boolean);
+    if (els.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let best: { page: number; ratio: number } | null = null;
+        for (const entry of entries) {
+          const page = Number((entry.target as HTMLElement).dataset.page);
+          if (!page) continue;
+          if (!best || entry.intersectionRatio > best.ratio) {
+            best = { page, ratio: entry.intersectionRatio };
+          }
+        }
+        if (best && best.ratio > 0) setCurrentPage(best.page);
+      },
+      { root, threshold: [0.25, 0.5, 0.75] },
+    );
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [numPages, reloadKey]);
+
+  const goToPage = useCallback((page: number) => {
+    const clamped = Math.max(1, Math.min(numPages || 1, page));
+    const el = pageEls.current[clamped - 1];
+    if (el) {
+      el.scrollIntoView({ block: "start", behavior: "smooth" });
+      setCurrentPage(clamped);
+    }
+  }, [numPages]);
+
+  const goPrev = useCallback(() => goToPage(currentPage - 1), [goToPage, currentPage]);
+  const goNext = useCallback(() => goToPage(currentPage + 1), [goToPage, currentPage]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+      if (e.key === "ArrowLeft" || e.key === "PageUp") {
+        e.preventDefault();
+        goPrev();
+      } else if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
+        e.preventDefault();
+        goNext();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [goPrev, goNext]);
 
   const fileName = useMemo(() => {
     const base = (label ?? "presentation").replace(/[^\w\-]+/g, "_").replace(/^_+|_+$/g, "");
     return `${base || "presentation"}.pdf`;
   }, [label]);
+
+  const atStart = currentPage <= 1;
+  const atEnd = numPages === 0 || currentPage >= numPages;
 
   return (
     <div
@@ -133,6 +203,34 @@ export default function PdfViewer({ url, label, storagePath }: Props) {
       >
         <div className="truncate text-sm font-medium opacity-90">{label ?? "Presentation"}</div>
         <div className="flex items-center gap-1">
+          <div
+            className="mr-1 flex items-center gap-1 rounded-md border px-1 py-0.5"
+            style={{ borderColor: "var(--eyeframe-border)" }}
+          >
+            <button
+              type="button"
+              onClick={goPrev}
+              disabled={atStart}
+              title="Previous page"
+              aria-label="Previous page"
+              className="inline-flex items-center rounded p-1 text-xs disabled:opacity-40"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="min-w-[3.5rem] text-center text-xs tabular-nums">
+              {numPages ? `${currentPage} / ${numPages}` : "–"}
+            </span>
+            <button
+              type="button"
+              onClick={goNext}
+              disabled={atEnd}
+              title="Next page"
+              aria-label="Next page"
+              className="inline-flex items-center rounded p-1 text-xs disabled:opacity-40"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
           <button
             type="button"
             onClick={() => setReloadKey((k) => k + 1)}
@@ -185,12 +283,41 @@ export default function PdfViewer({ url, label, storagePath }: Props) {
         </div>
       </div>
 
-      <div className="relative min-h-0 flex-1 overflow-auto">
+      <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-auto">
         <div ref={pagesRef} className="mx-auto min-h-full w-full px-3 py-4" />
 
         {status && !errored && (
           <div className="absolute inset-x-0 top-4 z-10 mx-auto w-fit rounded-md px-3 py-2 text-sm shadow-lg" style={{ backgroundColor: "var(--eyeframe-surface)", border: "1px solid var(--eyeframe-border)" }}>
             {status}
+          </div>
+        )}
+
+        {numPages > 1 && !errored && !status && (
+          <div
+            className="pointer-events-auto absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full border px-2 py-1 shadow-lg backdrop-blur"
+            style={{ backgroundColor: "var(--eyeframe-surface)", borderColor: "var(--eyeframe-border)" }}
+          >
+            <button
+              type="button"
+              onClick={goPrev}
+              disabled={atStart}
+              aria-label="Previous page"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full disabled:opacity-40"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="min-w-[3.5rem] text-center text-xs tabular-nums">
+              {currentPage} / {numPages}
+            </span>
+            <button
+              type="button"
+              onClick={goNext}
+              disabled={atEnd}
+              aria-label="Next page"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full disabled:opacity-40"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
         )}
 

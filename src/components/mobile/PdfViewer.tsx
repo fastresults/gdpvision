@@ -26,9 +26,9 @@ export default function PdfViewer({ url, label, storagePath }: Props) {
     if (!host) return;
 
     let cancelled = false;
-    let loadingTask: { destroy: () => Promise<void> } | null = null;
-    let pdfDoc: { destroy: () => Promise<void> } | null = null;
-    const renderTasks: Array<{ cancel: () => void }> = [];
+    let loadingTask: { promise: Promise<any>; destroy: () => Promise<void> } | null = null;
+    let pdfDoc: { numPages: number; getPage: (pageNumber: number) => Promise<any>; destroy: () => Promise<void> } | null = null;
+    const renderTasks: Array<{ promise: Promise<void>; cancel: () => void }> = [];
 
     setErrored(false);
     setStatus("Loading PDF…");
@@ -52,7 +52,7 @@ export default function PdfViewer({ url, label, storagePath }: Props) {
           disableAutoFetch: true,
           disableStream: true,
           useSystemFonts: true,
-        }) as typeof loadingTask & { promise: Promise<any> };
+        }) as { promise: Promise<any>; destroy: () => Promise<void> };
 
         const pdf = await loadingTask.promise;
         pdfDoc = pdf;

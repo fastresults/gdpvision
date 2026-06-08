@@ -5,9 +5,10 @@ type Props = {
   url: string;
   label?: string;
   storagePath?: string | null;
+  showToolbar?: boolean;
 };
 
-export default function PdfViewer({ url, label, storagePath }: Props) {
+export default function PdfViewer({ url, label, storagePath, showToolbar = false }: Props) {
   const pdfUrl = useMemo(
     () =>
       storagePath
@@ -197,6 +198,7 @@ export default function PdfViewer({ url, label, storagePath }: Props) {
       className="flex h-full w-full flex-col"
       style={{ backgroundColor: "var(--eyeframe-bg)", color: "var(--eyeframe-text)" }}
     >
+      {showToolbar && (
       <div
         className="flex items-center justify-between gap-2 border-b px-3 py-2"
         style={{ borderColor: "var(--eyeframe-border)", backgroundColor: "var(--eyeframe-surface)" }}
@@ -282,6 +284,9 @@ export default function PdfViewer({ url, label, storagePath }: Props) {
           </a>
         </div>
       </div>
+      )}
+
+
 
       <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-auto">
         <div ref={pagesRef} className="mx-auto min-h-full w-full px-3 py-4" />

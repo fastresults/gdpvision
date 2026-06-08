@@ -12,6 +12,8 @@ import {
   Film,
   Sparkles,
   Eye,
+  PanelTopOpen,
+  PanelTopClose,
 } from "lucide-react";
 import { VIDEO_CATEGORIES, type Item, type ItemCategory, type Settings } from "@/lib/kiosk-types";
 import { getItemThumbnail } from "@/lib/thumbnail";
@@ -169,6 +171,11 @@ export function MobileKiosk({ items, settings }: { items: Item[]; settings: Sett
   const [active, setActive] = useState<Item | null>(null);
   const [blocked, setBlocked] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pdfToolbarOpen, setPdfToolbarOpen] = useState(false);
+
+  useEffect(() => {
+    setPdfToolbarOpen(false);
+  }, [active?.id]);
 
   const visible = useMemo(
     () => items.filter((i) => i.category === category).sort((a, b) => a.sort_order - b.sort_order),
@@ -219,6 +226,16 @@ export function MobileKiosk({ items, settings }: { items: Item[]; settings: Sett
           <div className="min-w-0 flex-1 truncate text-center text-sm font-medium">
             {active.label}
           </div>
+          {isPdf && (
+            <button
+              type="button"
+              onClick={() => setPdfToolbarOpen((v) => !v)}
+              aria-label={pdfToolbarOpen ? "Hide PDF toolbar" : "Show PDF toolbar"}
+              className="flex h-11 w-11 items-center justify-center rounded-full transition-colors active:bg-white/10"
+            >
+              {pdfToolbarOpen ? <PanelTopClose className="h-5 w-5" /> : <PanelTopOpen className="h-5 w-5" />}
+            </button>
+          )}
           <a
             href={active.url}
             target="_blank"
@@ -246,7 +263,7 @@ export function MobileKiosk({ items, settings }: { items: Item[]; settings: Sett
                   </div>
                 }
               >
-                <PdfViewer url={active.url} label={active.label} storagePath={active.pdf_storage_path} />
+                <PdfViewer url={active.url} label={active.label} storagePath={active.pdf_storage_path} showToolbar={pdfToolbarOpen} />
               </Suspense>
             </ClientOnly>
           ) : isVideo ? (

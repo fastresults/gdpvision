@@ -12,6 +12,8 @@ import {
   Eye,
   Film,
   Sparkles,
+  PanelTopOpen,
+  PanelTopClose,
 } from "lucide-react";
 import { DEFAULT_SETTINGS, PDF_CATEGORIES, VIDEO_CATEGORIES, type Item, type ItemCategory, type Settings } from "@/lib/kiosk-types";
 import { MobileKiosk } from "@/components/mobile/MobileKiosk";
@@ -88,6 +90,7 @@ function KioskPage() {
   const [isMobile, setIsMobile] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pdfToolbarOpen, setPdfToolbarOpen] = useState(false);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -105,6 +108,10 @@ function KioskPage() {
     setActive(null);
     setBlocked(false);
   }, [category]);
+
+  useEffect(() => {
+    setPdfToolbarOpen(false);
+  }, [active?.id]);
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -227,6 +234,23 @@ function KioskPage() {
           })}
         </div>
 
+        {active && PDF_CATEGORIES.includes(active.category) && !!active.pdf_storage_path && (
+          <button
+            type="button"
+            onClick={() => setPdfToolbarOpen((v) => !v)}
+            aria-label={pdfToolbarOpen ? "Hide PDF toolbar" : "Show PDF toolbar"}
+            title={pdfToolbarOpen ? "Hide PDF toolbar" : "Show PDF toolbar"}
+            className="flex h-[23px] shrink-0 items-center gap-1 rounded-md border px-2 text-xs opacity-70 transition-colors hover:brightness-125"
+            style={{
+              backgroundColor: "var(--eyeframe-card)",
+              borderColor: pdfToolbarOpen ? "var(--eyeframe-accent)" : "var(--eyeframe-border)",
+              color: "var(--eyeframe-text)",
+            }}
+          >
+            {pdfToolbarOpen ? <PanelTopClose className="h-3 w-3" /> : <PanelTopOpen className="h-3 w-3" />}
+          </button>
+        )}
+
         <Link
           to="/admin"
           className="flex h-[23px] shrink-0 items-center gap-1 rounded-md border px-2 text-xs opacity-70 transition-colors hover:brightness-125"
@@ -240,6 +264,7 @@ function KioskPage() {
           Admin
         </Link>
       </div>
+
 
 
       {/* Preview area */}
@@ -284,7 +309,7 @@ function KioskPage() {
         {active && !VIDEO_CATEGORIES.includes(active.category) && PDF_CATEGORIES.includes(active.category) && active.pdf_storage_path && (
           <ClientOnly fallback={<div className="flex h-full w-full items-center justify-center text-sm opacity-70">Loading PDF viewer…</div>}>
             <Suspense fallback={<div className="flex h-full w-full items-center justify-center text-sm opacity-70">Loading PDF viewer…</div>}>
-              <PdfViewer url={active.url} label={active.label} storagePath={active.pdf_storage_path} />
+              <PdfViewer url={active.url} label={active.label} storagePath={active.pdf_storage_path} showToolbar={pdfToolbarOpen} />
             </Suspense>
           </ClientOnly>
         )}

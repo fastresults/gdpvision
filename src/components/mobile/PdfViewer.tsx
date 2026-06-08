@@ -5,9 +5,10 @@ type Props = {
   url: string;
   label?: string;
   storagePath?: string | null;
+  showToolbar?: boolean;
 };
 
-export default function PdfViewer({ url, label, storagePath }: Props) {
+export default function PdfViewer({ url, label, storagePath, showToolbar = false }: Props) {
   const pdfUrl = useMemo(
     () =>
       storagePath

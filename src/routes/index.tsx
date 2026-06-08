@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { DEFAULT_SETTINGS, PDF_CATEGORIES, VIDEO_CATEGORIES, type Item, type ItemCategory, type Settings } from "@/lib/kiosk-types";
 import { MobileKiosk } from "@/components/mobile/MobileKiosk";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const Route = createFileRoute("/")({
   head: () => ({

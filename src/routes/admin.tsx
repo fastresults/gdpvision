@@ -690,6 +690,7 @@ function AdminPage() {
                           setEditingId(item.id);
                           setEditLabel(item.label);
                           setEditUrl(item.url);
+                          setEditTooltip(item.tooltip ?? "");
                         }}
                         className="rounded-md p-2 transition-colors hover:brightness-125"
                         style={{ backgroundColor: "var(--eyeframe-card)" }}

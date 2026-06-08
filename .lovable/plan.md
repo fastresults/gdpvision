@@ -1,46 +1,64 @@
 ## Goal
-Make the Media Hub a proper batch-upload experience: a large, obvious drop zone that accepts many files at once via drag-and-drop or click, with per-file progress and per-file error handling so one bad file doesn't kill the batch.
+Replace the single idle image + "GDP Vision" text on the kiosk's default (no-item-selected) screen with an **admin-managed carousel of images** that auto-advances.
 
 ## Scope
-Frontend-only changes in `src/routes/admin.tsx` (the `MediaHub` component). No server / schema / storage changes — the existing `/api/upload-media` route already accepts one file per request and is fine.
 
-## Changes
+### Backend (new table)
+New table `public.idle_images`:
+- `id uuid pk`
+- `media_asset_id uuid` (nullable) — link to existing Media Hub asset
+- `image_url text not null` — resolved URL (denormalized for fast kiosk read)
+- `caption text` (nullable, optional overlay text)
+- `sort_order int not null default 0`
+- `created_at timestamptz`
 
-### 1. Replace the button-only upload bar with a real drop zone
-Lines ~896–930 of `src/routes/admin.tsx`. The new zone:
-- Full-width dashed border card, ~140px tall, with `Upload` icon + headline "Drag & drop files here" + sub-text listing accepted types + a secondary "or click to browse" affordance.
-- Handlers: `onDragEnter`, `onDragOver` (preventDefault), `onDragLeave`, `onDrop`. Track `isDragging` so the border/background highlight in the accent color while a drag is over it (same pattern already used in the idle-image dropzone).
-- Click anywhere in the zone opens the existing hidden `<input multiple>`.
-- Accepts the same MIME list already declared on the input.
-- Filters dropped items to `DataTransferItemList` files only (ignores folders/text drags) and shows a toast/inline message if a file was rejected because of unsupported type or size.
+RLS: public SELECT; writes via service role only (admin server fns), matching the pattern used by `items` and `app_settings`.
 
-### 2. Parallel uploads with per-file state
-Replace the current `uploadMut` (sequential `for await`) with a queue model:
-- Local state `queue: Array<{ id: string; file: File; status: 'pending'|'uploading'|'done'|'error'; error?: string }>`.
-- On drop / picker change, append all selected files to the queue.
-- A small worker effect uploads up to **3 files in parallel** (Promise pool) by calling the existing `uploadOne(file)` helper. On each completion, mark the item `done` (and `invalidate()` the `["media"]` query so the grid grows live) or `error` with the message.
-- Items remain visible in a compact list under the dropzone until the user clicks "Clear completed".
+The existing `idle_image_url` setting is kept as a **fallback** when the table is empty (no data migration needed; admin can move it into the new table manually if desired). The "GDP Vision" title text on the idle screen is removed per request.
 
-### 3. Per-file progress UI
-Under the dropzone, render a small list (only when `queue.length > 0`):
-- Each row: filename, size, status badge (`Pending`, `Uploading…`, `Done`, `Failed: <msg>`), and a tiny remove/retry button for failed rows (retry just re-enqueues that one file).
-- A header row with overall counts: `X uploaded · Y failed · Z remaining` and a "Clear completed" link.
-- No real byte-level progress bar (fetch upload progress is awkward without XHR); a spinning indicator per active row is enough and matches the rest of the admin UI.
+### Server functions (`src/lib/idle-images.functions.ts`)
+- `listIdleImages` (GET) — used by `/api/kiosk-data` and admin.
+- `addIdleImage({ media_asset_id?, image_url, caption? })`
+- `updateIdleImage({ id, caption?, sort_order? })`
+- `removeIdleImage({ id })`
+- `reorderIdleImages({ ids: string[] })`
 
-### 4. Remove the now-misleading single `alert()`
-Errors are already shown inline per row, so drop the global `alert("Upload failed: …")` from `uploadMut.onError`. Keep `console.error` for debugging.
+`/api/kiosk-data` returns `{ items, settings, idleImages }`.
 
-### 5. Keep the idle-screen dropzone unchanged
-The idle-image panel above is a separate, single-file zone with a different purpose (it sets the idle screen), so leave it as-is. Only the general media upload area changes.
+### Admin UI (`src/routes/admin.tsx`)
+New "Idle Carousel" section near the existing idle-image upload area:
+- Grid of current carousel images with thumbnail, caption input, up/down reorder buttons, and a delete button.
+- "Add image" picker that lets the admin either:
+  - Pick from existing Media Hub images (modal listing `media_assets` of `kind='image'`), or
+  - Upload a new one (reuses existing `/api/upload-media` then auto-adds to carousel).
+- Optional per-image caption text input (saved via `updateIdleImage`).
+
+The single legacy `idle_image_url` setting stays editable as a fallback for now (small note: "Used only when carousel is empty").
+
+### Kiosk idle screen (`src/routes/index.tsx`)
+When `!active`:
+- If `idleImages.length > 0` → render a full-bleed shadcn `Carousel` (already in `src/components/ui/carousel.tsx`) using `embla-carousel-autoplay`:
+  - Autoplay every ~6s, loop, no visible arrows, no dots.
+  - Each slide: image with `object-contain`, sized like current idle image (`max-h-[66%] max-w-[66%]`), centered.
+  - Optional caption rendered below the image if present.
+- Else if `idle_image_url` setting exists → current single-image fallback.
+- Else → existing eye-icon placeholder.
+
+The standalone "GDP Vision" title text below the image is removed (carousel is the focal point).
+
+### Dependencies
+- Add `embla-carousel-autoplay` (small plugin, ~2KB) — shadcn `Carousel` already wraps `embla-carousel-react`.
 
 ## Out of scope
-- No changes to `/api/upload-media`, `media.functions.ts`, the `media_assets` table, or storage buckets.
-- No chunked / resumable uploads. Existing 50MB image / 50MB doc / 500MB video limits remain.
-- No changes to the media grid, filters, rename, delete, or idle-image behavior.
+- No changes to Media Hub upload pipeline, video player, PDF viewer, top bar, mobile kiosk (current single idle behavior on mobile preserved unless you ask).
+- No transitions/effects beyond embla's default slide; no Ken Burns / fade.
+- No scheduling (time-of-day rotation), no per-image link targets.
 
 ## Verification
-- Drag 5+ mixed images onto the new zone → all enqueue, up to 3 upload in parallel, grid populates progressively, queue list shows each as `Done`.
-- Drag an unsupported file (e.g. `.zip`) → it shows as `Failed: Unsupported file type` and the rest still succeed.
-- Click the zone (not on a row) → OS picker opens with multi-select.
-- Drag a file over the zone → border + background turn accent color; leaving the zone reverts.
-- One failing file (e.g. oversized video) does not block the rest of the batch.
+1. Admin adds 3 images → kiosk idle screen cycles through them every 6s.
+2. Admin removes all → kiosk falls back to `idle_image_url` setting; if also empty, shows the icon placeholder.
+3. Reorder in admin reflects on kiosk after the kiosk-data refetch.
+4. Mobile view unchanged.
+
+## Open question
+Should the idle screen on **mobile** (`MobileKiosk`) also use the carousel, or keep its current behavior? Default in this plan: keep mobile unchanged.

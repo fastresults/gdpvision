@@ -110,6 +110,10 @@ function KioskPage() {
   }, [category]);
 
   useEffect(() => {
+    setPdfToolbarOpen(false);
+  }, [active?.id]);
+
+  useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     if (!active) {
       setBlocked(false);

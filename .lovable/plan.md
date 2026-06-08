@@ -1,28 +1,31 @@
-## Plan: Collapsible PDF toolbar
+## Goal
+Allow each item (especially Websites like "CIS-26") to have an optional long-form description that appears as a tooltip when hovering the button in the kiosk (e.g., "Caribbean Investment Summit").
 
-### Behavior
-- The PDF viewer's secondary toolbar (title + page nav + reload/open/print/download) is **hidden by default**.
-- A new icon button appears in the top navigation bar, immediately to the **left of the Admin button**, only when a PDF item is active.
-- Clicking it toggles the PDF toolbar's visibility. Icon reflects state (e.g. `PanelTopOpen` when hidden, `PanelTopClose` when shown).
-- Floating page-nav pill at the bottom of the PDF remains as-is, so basic navigation still works while the toolbar is collapsed.
+## Database
+New migration:
+- `ALTER TABLE public.items ADD COLUMN tooltip text;`
+- No new RLS/grants needed (column inherits table policies).
 
-### Changes
+## Types & server functions (`src/lib/kiosk-types.ts`, `src/lib/items.functions.ts`)
+- Add `tooltip: string | null` to the `Item` type.
+- Include `tooltip` in the `listItems` select/mapping.
+- Extend `createItem` and `updateItem` Zod schemas with `tooltip: z.string().max(300).optional().nullable()` and persist it.
 
-1. **`src/components/mobile/PdfViewer.tsx`**
-   - Accept a new prop `showToolbar?: boolean` (default `false`).
-   - Wrap the existing top toolbar `<div>` in `{showToolbar && (...)}`.
-   - Keep keyboard navigation, bottom floating pager, and error/status overlays unchanged.
+## Admin UI (`src/routes/admin.tsx`)
+- Add Tooltip state (`tooltip`, `setTooltip`) and an input field "Tooltip (optional)" in the Add form, available for all categories (most useful for Websites).
+- Pass `tooltip` to `create` mutation; reset on success.
+- In edit row, add `editTooltip` field and pass to `update`.
+- Show the tooltip text under the label in the list row as a muted hint.
 
-2. **`src/routes/index.tsx`** (desktop kiosk)
-   - Add local state `const [pdfToolbarOpen, setPdfToolbarOpen] = useState(false)`.
-   - Reset to `false` whenever the active item changes (so each new PDF starts collapsed).
-   - In the top nav bar, render a toggle button immediately before the Admin button. Only show it when the active item is a PDF (`PDF_CATEGORIES.includes(active.category) && active.pdf_storage_path`).
-   - Pass `showToolbar={pdfToolbarOpen}` into `<PdfViewer />`.
+## Kiosk rendering
+Wrap each item button with shadcn `Tooltip` (already available at `@/components/ui/tooltip`) when `item.tooltip` is non-empty.
 
-3. **`src/components/mobile/MobileKiosk.tsx`**
-   - Same pattern: add toggle button next to Admin (or the mobile equivalent), reset on item change, pass `showToolbar` through.
-   - If the mobile layout has no Admin button in view, place the toggle in the existing top control cluster.
+- `src/routes/index.tsx` — desktop nav buttons: wrap with `TooltipProvider`/`Tooltip`/`TooltipTrigger asChild`/`TooltipContent`. Show `item.tooltip`.
+- `src/components/mobile/MobileKiosk.tsx` — same wrap on the item tiles. On touch devices, the Radix tooltip opens on long-press; acceptable fallback (no extra UI clutter).
 
-### Out of scope
-- No changes to PDF rendering, signed URLs, database, or category logic.
-- Floating bottom pager stays visible (it's the lightweight default control).
+## Out of scope
+- No change to PDF viewer, thumbnails, or routing.
+- No required field; existing items remain unchanged with `tooltip = null`.
+
+## Verification
+- Add a Websites item "CIS-26" with tooltip "Caribbean Investment Summit"; hover in kiosk → tooltip appears. Items without tooltip behave exactly as today.

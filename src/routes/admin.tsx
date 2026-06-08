@@ -160,10 +160,12 @@ function AdminPage() {
   const categoryTab = (isMediaTab ? "websites" : tab) as ItemCategory;
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
+  const [tooltip, setTooltip] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState("");
   const [editUrl, setEditUrl] = useState("");
+  const [editTooltip, setEditTooltip] = useState("");
 
   const isVideoTab = !isMediaTab && VIDEO_CATEGORIES.includes(categoryTab);
   const uploadVideo = useServerFn(uploadEventVideo);
@@ -189,7 +191,7 @@ function AdminPage() {
         const { publicUrl } = await uploadVideo({ data: fd });
         finalUrl = publicUrl;
       }
-      const res = await create({ data: { category: categoryTab, label, url: finalUrl } });
+      const res = await create({ data: { category: categoryTab, label, url: finalUrl, tooltip: tooltip.trim() || null } });
       // Kick off thumbnail generation for non-video items (don't block UI)
       if (res?.id && !VIDEO_CATEGORIES.includes(categoryTab)) {
         genThumb({ data: { id: res.id } })
@@ -201,6 +203,7 @@ function AdminPage() {
     onSuccess: () => {
       setLabel("");
       setUrl("");
+      setTooltip("");
       setFile(null);
       invalidateItems();
     },
@@ -216,7 +219,7 @@ function AdminPage() {
   const updateMut = useMutation({
     mutationFn: (item: Item) =>
       update({
-        data: { id: item.id, label: editLabel, url: editUrl },
+        data: { id: item.id, label: editLabel, url: editUrl, tooltip: editTooltip.trim() || null },
       }),
     onSuccess: () => {
       setEditingId(null);
@@ -469,6 +472,22 @@ function AdminPage() {
               {isVideoTab ? (createMut.isPending ? "Uploading…" : "Upload") : "Add"}
             </button>
           </div>
+          {!isVideoTab && (
+            <div className="mt-3">
+              <input
+                value={tooltip}
+                onChange={(e) => setTooltip(e.target.value)}
+                placeholder="Tooltip (optional) — shown on hover, e.g. Caribbean Investment Summit"
+                maxLength={300}
+                className="w-full rounded-md border px-3 py-2 text-sm outline-none"
+                style={{
+                  backgroundColor: "var(--eyeframe-card)",
+                  borderColor: "var(--eyeframe-border)",
+                  color: "var(--eyeframe-text)",
+                }}
+              />
+            </div>
+          )}
           {createMut.isError && (
             <div className="mt-2 text-xs text-red-400">
               {(createMut.error as Error).message}
@@ -543,31 +562,50 @@ function AdminPage() {
                   </select>
                 )}
                 {isEditing ? (
-                  <>
+                  <div className="flex min-w-0 flex-1 flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={editLabel}
+                        onChange={(e) => setEditLabel(e.target.value)}
+                        className="w-48 rounded-md border px-2 py-1 text-sm outline-none"
+                        style={{
+                          backgroundColor: "var(--eyeframe-card)",
+                          borderColor: "var(--eyeframe-border)",
+                          color: "var(--eyeframe-text)",
+                        }}
+                      />
+                      <input
+                        value={editUrl}
+                        onChange={(e) => setEditUrl(e.target.value)}
+                        className="min-w-0 flex-1 rounded-md border px-2 py-1 text-sm outline-none"
+                        style={{
+                          backgroundColor: "var(--eyeframe-card)",
+                          borderColor: "var(--eyeframe-border)",
+                          color: "var(--eyeframe-text)",
+                        }}
+                      />
+                    </div>
                     <input
-                      value={editLabel}
-                      onChange={(e) => setEditLabel(e.target.value)}
-                      className="w-48 rounded-md border px-2 py-1 text-sm outline-none"
+                      value={editTooltip}
+                      onChange={(e) => setEditTooltip(e.target.value)}
+                      placeholder="Tooltip (optional)"
+                      maxLength={300}
+                      className="w-full rounded-md border px-2 py-1 text-xs outline-none"
                       style={{
                         backgroundColor: "var(--eyeframe-card)",
                         borderColor: "var(--eyeframe-border)",
                         color: "var(--eyeframe-text)",
                       }}
                     />
-                    <input
-                      value={editUrl}
-                      onChange={(e) => setEditUrl(e.target.value)}
-                      className="min-w-0 flex-1 rounded-md border px-2 py-1 text-sm outline-none"
-                      style={{
-                        backgroundColor: "var(--eyeframe-card)",
-                        borderColor: "var(--eyeframe-border)",
-                        color: "var(--eyeframe-text)",
-                      }}
-                    />
-                  </>
+                  </div>
                 ) : (
                   <>
-                    <div className="w-48 shrink-0 truncate text-sm font-medium">{item.label}</div>
+                    <div className="w-48 shrink-0 truncate text-sm font-medium">
+                      {item.label}
+                      {item.tooltip && (
+                        <div className="truncate text-[10px] font-normal opacity-60">{item.tooltip}</div>
+                      )}
+                    </div>
                     <div className="min-w-0 flex-1 truncate text-xs opacity-70">{item.url}</div>
                   </>
                 )}
@@ -652,6 +690,7 @@ function AdminPage() {
                           setEditingId(item.id);
                           setEditLabel(item.label);
                           setEditUrl(item.url);
+                          setEditTooltip(item.tooltip ?? "");
                         }}
                         className="rounded-md p-2 transition-colors hover:brightness-125"
                         style={{ backgroundColor: "var(--eyeframe-card)" }}

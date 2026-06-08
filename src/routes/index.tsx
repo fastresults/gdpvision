@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { DEFAULT_SETTINGS, PDF_CATEGORIES, VIDEO_CATEGORIES, type Item, type ItemCategory, type Settings } from "@/lib/kiosk-types";
 import { MobileKiosk } from "@/components/mobile/MobileKiosk";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -210,14 +211,15 @@ function KioskPage() {
               No items in this category. Add some in /admin.
             </span>
           )}
+          <TooltipProvider delayDuration={200}>
           {visible.map((item) => {
             const isActive = active?.id === item.id;
-            return (
+            const btn = (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => setActive(item)}
-                title={item.label}
+                title={item.tooltip ? undefined : item.label}
                 className="group flex h-[31px] shrink-0 items-center justify-center gap-2 rounded-md border px-2 transition-all hover:brightness-125"
                 style={{
                   width: 101,
@@ -231,7 +233,15 @@ function KioskPage() {
                 </span>
               </button>
             );
+            if (!item.tooltip) return btn;
+            return (
+              <Tooltip key={item.id}>
+                <TooltipTrigger asChild>{btn}</TooltipTrigger>
+                <TooltipContent side="bottom">{item.tooltip}</TooltipContent>
+              </Tooltip>
+            );
           })}
+          </TooltipProvider>
         </div>
 
         {active && PDF_CATEGORIES.includes(active.category) && !!active.pdf_storage_path && (

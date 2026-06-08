@@ -46,6 +46,7 @@ export type Database = {
           thumbnail_status: string
           thumbnail_updated_at: string | null
           thumbnail_url: string | null
+          tooltip: string | null
           url: string
         }
         Insert: {
@@ -61,6 +62,7 @@ export type Database = {
           thumbnail_status?: string
           thumbnail_updated_at?: string | null
           thumbnail_url?: string | null
+          tooltip?: string | null
           url: string
         }
         Update: {
@@ -76,6 +78,7 @@ export type Database = {
           thumbnail_status?: string
           thumbnail_updated_at?: string | null
           thumbnail_url?: string | null
+          tooltip?: string | null
           url?: string
         }
         Relationships: [

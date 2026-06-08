@@ -68,6 +68,7 @@ export const listItems = createServerFn({ method: "GET" }).handler(async () => {
     thumbnail_error: r.thumbnail_error ?? null,
     thumbnail_updated_at: r.thumbnail_updated_at ?? null,
     pdf_storage_path: r.pdf_storage_path ?? null,
+    tooltip: r.tooltip ?? null,
     sort_order: r.sort_order,
     created_at: r.created_at,
   })) as Item[];
@@ -81,6 +82,7 @@ export const createItem = createServerFn({ method: "POST" })
         label: z.string().min(1).max(200),
         url: z.string().url().max(2000),
         favicon_url: z.string().max(2000).optional().nullable(),
+        tooltip: z.string().max(300).optional().nullable(),
       })
       .parse(d),
   )
@@ -110,6 +112,7 @@ export const createItem = createServerFn({ method: "POST" })
         label: data.label,
         url: data.url,
         favicon_url: favicon,
+        tooltip: data.tooltip ?? null,
         sort_order: nextOrder,
       })
       .select("id")
@@ -126,6 +129,7 @@ export const updateItem = createServerFn({ method: "POST" })
         label: z.string().min(1).max(200),
         url: z.string().url().max(2000),
         favicon_url: z.string().max(2000).optional().nullable(),
+        tooltip: z.string().max(300).optional().nullable(),
       })
       .parse(d),
   )
@@ -146,6 +150,7 @@ export const updateItem = createServerFn({ method: "POST" })
         label: data.label,
         url: data.url,
         favicon_url: favicon,
+        tooltip: data.tooltip ?? null,
       })
       .eq("id", data.id);
     if (error) throw new Error(error.message);

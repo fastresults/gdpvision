@@ -147,6 +147,11 @@ function ThumbnailCard({
         >
           {item.label}
         </div>
+        {item.tooltip && (
+          <div className="line-clamp-2 text-[11px] leading-snug opacity-70" style={{ color: "var(--eyeframe-text)" }}>
+            {item.tooltip}
+          </div>
+        )}
         <div className="flex items-center gap-1 text-[11px] opacity-50">
           <CategoryIcon category={item.category} className="h-3 w-3" />
           {categoryLabel}

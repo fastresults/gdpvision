@@ -113,7 +113,11 @@ function KioskPage() {
       return;
     }
     setBlocked(false);
-    timerRef.current = setTimeout(() => setBlocked(true), 3500);
+    const isPdfActive = PDF_CATEGORIES.includes(active.category) && !!active.pdf_storage_path;
+    const isVideoActive = VIDEO_CATEGORIES.includes(active.category);
+    if (!isPdfActive && !isVideoActive) {
+      timerRef.current = setTimeout(() => setBlocked(true), 3500);
+    }
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };

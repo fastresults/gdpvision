@@ -18,8 +18,8 @@ import {
 import { DEFAULT_SETTINGS, PDF_CATEGORIES, VIDEO_CATEGORIES, type Item, type ItemCategory, type Settings } from "@/lib/kiosk-types";
 import { MobileKiosk } from "@/components/mobile/MobileKiosk";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
-import Autoplay from "embla-carousel-autoplay";
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
+
 
 type IdleImage = {
   id: string;
@@ -395,16 +395,10 @@ function KioskPage() {
 }
 
 function IdleCarousel({ images }: { images: IdleImage[] }) {
-  const autoplay = useRef(
-    Autoplay({ delay: 6000, stopOnInteraction: false, stopOnMouseEnter: false }),
-  );
+  const showControls = images.length > 1;
   return (
     <div className="absolute inset-0">
-      <Carousel
-        className="h-full w-full"
-        opts={{ loop: true }}
-        plugins={[autoplay.current]}
-      >
+      <Carousel className="h-full w-full" opts={{ loop: true }}>
         <CarouselContent className="-ml-0 h-full" style={{ height: "100%" }}>
           {images.map((img) => (
             <CarouselItem key={img.id} className="basis-full pl-0">
@@ -426,8 +420,27 @@ function IdleCarousel({ images }: { images: IdleImage[] }) {
             </CarouselItem>
           ))}
         </CarouselContent>
+        {showControls && (
+          <>
+            <CarouselPrevious
+              className="left-6 top-1/2 h-14 w-14 -translate-y-1/2 border-0"
+              style={{
+                backgroundColor: "color-mix(in oklab, var(--eyeframe-accent) 80%, transparent)",
+                color: "var(--eyeframe-bg)",
+              }}
+            />
+            <CarouselNext
+              className="right-6 top-1/2 h-14 w-14 -translate-y-1/2 border-0"
+              style={{
+                backgroundColor: "color-mix(in oklab, var(--eyeframe-accent) 80%, transparent)",
+                color: "var(--eyeframe-bg)",
+              }}
+            />
+          </>
+        )}
       </Carousel>
     </div>
   );
 }
+
 

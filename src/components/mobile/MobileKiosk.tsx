@@ -12,6 +12,8 @@ import {
   Film,
   Sparkles,
   Eye,
+  PanelTopOpen,
+  PanelTopClose,
 } from "lucide-react";
 import { VIDEO_CATEGORIES, type Item, type ItemCategory, type Settings } from "@/lib/kiosk-types";
 import { getItemThumbnail } from "@/lib/thumbnail";

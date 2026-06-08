@@ -226,6 +226,16 @@ export function MobileKiosk({ items, settings }: { items: Item[]; settings: Sett
           <div className="min-w-0 flex-1 truncate text-center text-sm font-medium">
             {active.label}
           </div>
+          {isPdf && (
+            <button
+              type="button"
+              onClick={() => setPdfToolbarOpen((v) => !v)}
+              aria-label={pdfToolbarOpen ? "Hide PDF toolbar" : "Show PDF toolbar"}
+              className="flex h-11 w-11 items-center justify-center rounded-full transition-colors active:bg-white/10"
+            >
+              {pdfToolbarOpen ? <PanelTopClose className="h-5 w-5" /> : <PanelTopOpen className="h-5 w-5" />}
+            </button>
+          )}
           <a
             href={active.url}
             target="_blank"

@@ -729,10 +729,15 @@ function AdminPage() {
   );
 }
 
-function MediaHub({ idleImageUrl, onSetIdle }: { idleImageUrl: string; onSetIdle: (v: string) => void }) {
+function MediaHub() {
   const qc = useQueryClient();
   const fetchMedia = useServerFn(listMedia);
-  
+  const fetchIdle = useServerFn(listIdleImages);
+  const addIdle = useServerFn(addIdleImage);
+  const updateIdle = useServerFn(updateIdleImage);
+  const removeIdle = useServerFn(removeIdleImage);
+  const moveIdle = useServerFn(moveIdleImage);
+
   const remove = useServerFn(deleteMedia);
   const rename = useServerFn(renameMedia);
 
@@ -745,8 +750,15 @@ function MediaHub({ idleImageUrl, onSetIdle }: { idleImageUrl: string; onSetIdle
     queryKey: ["media"],
     queryFn: () => fetchMedia({ data: {} }),
   });
+  const { data: idleImages = [] } = useQuery<IdleImage[]>({
+    queryKey: ["idle-images"],
+    queryFn: () => fetchIdle(),
+  });
+  const idleUrls = useMemo(() => new Set(idleImages.map((i) => i.image_url)), [idleImages]);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["media"] });
+  const invalidateIdle = () => qc.invalidateQueries({ queryKey: ["idle-images"] });
+
 
   const uploadOne = async (f: File) => {
     const fd = new FormData();

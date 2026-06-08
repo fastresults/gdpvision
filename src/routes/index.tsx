@@ -12,6 +12,8 @@ import {
   Eye,
   Film,
   Sparkles,
+  PanelTopOpen,
+  PanelTopClose,
 } from "lucide-react";
 import { DEFAULT_SETTINGS, PDF_CATEGORIES, VIDEO_CATEGORIES, type Item, type ItemCategory, type Settings } from "@/lib/kiosk-types";
 import { MobileKiosk } from "@/components/mobile/MobileKiosk";

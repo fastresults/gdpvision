@@ -11,6 +11,10 @@ export const Route = createFileRoute("/api/upload-presentation")({
           const file = form.get("file");
           const label = String(form.get("label") ?? "").trim();
           const thumbnail = form.get("thumbnail");
+          const categoryRaw = String(form.get("category") ?? "presentations");
+          const category = (categoryRaw === "brand" ? "brand" : "presentations") as
+            | "presentations"
+            | "brand";
 
           if (!(file instanceof File)) {
             return Response.json({ error: "Missing file" }, { status: 400 });
@@ -80,11 +84,11 @@ export const Route = createFileRoute("/api/upload-presentation")({
             }
           }
 
-          // Determine next sort_order for presentations
+          // Determine next sort_order for the chosen category
           const { data: maxRow } = await supabaseAdmin
             .from("items")
             .select("sort_order")
-            .eq("category", "presentations")
+            .eq("category", category)
             .order("sort_order", { ascending: false })
             .limit(1)
             .maybeSingle();
@@ -93,7 +97,7 @@ export const Route = createFileRoute("/api/upload-presentation")({
           const { data: row, error: insErr } = await supabaseAdmin
             .from("items")
             .insert({
-              category: "presentations",
+              category,
               label,
               url: signed.signedUrl,
               pdf_storage_path: pdfPath,

@@ -472,6 +472,22 @@ function AdminPage() {
               {isVideoTab ? (createMut.isPending ? "Uploading…" : "Upload") : "Add"}
             </button>
           </div>
+          {!isVideoTab && (
+            <div className="mt-3">
+              <input
+                value={tooltip}
+                onChange={(e) => setTooltip(e.target.value)}
+                placeholder="Tooltip (optional) — shown on hover, e.g. Caribbean Investment Summit"
+                maxLength={300}
+                className="w-full rounded-md border px-3 py-2 text-sm outline-none"
+                style={{
+                  backgroundColor: "var(--eyeframe-card)",
+                  borderColor: "var(--eyeframe-border)",
+                  color: "var(--eyeframe-text)",
+                }}
+              />
+            </div>
+          )}
           {createMut.isError && (
             <div className="mt-2 text-xs text-red-400">
               {(createMut.error as Error).message}

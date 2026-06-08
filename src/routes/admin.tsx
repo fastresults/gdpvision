@@ -191,7 +191,7 @@ function AdminPage() {
         const { publicUrl } = await uploadVideo({ data: fd });
         finalUrl = publicUrl;
       }
-      const res = await create({ data: { category: categoryTab, label, url: finalUrl } });
+      const res = await create({ data: { category: categoryTab, label, url: finalUrl, tooltip: tooltip.trim() || null } });
       // Kick off thumbnail generation for non-video items (don't block UI)
       if (res?.id && !VIDEO_CATEGORIES.includes(categoryTab)) {
         genThumb({ data: { id: res.id } })
@@ -203,6 +203,7 @@ function AdminPage() {
     onSuccess: () => {
       setLabel("");
       setUrl("");
+      setTooltip("");
       setFile(null);
       invalidateItems();
     },

@@ -82,6 +82,7 @@ export const createItem = createServerFn({ method: "POST" })
         label: z.string().min(1).max(200),
         url: z.string().url().max(2000),
         favicon_url: z.string().max(2000).optional().nullable(),
+        tooltip: z.string().max(300).optional().nullable(),
       })
       .parse(d),
   )

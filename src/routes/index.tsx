@@ -18,6 +18,16 @@ import {
 import { DEFAULT_SETTINGS, PDF_CATEGORIES, VIDEO_CATEGORIES, type Item, type ItemCategory, type Settings } from "@/lib/kiosk-types";
 import { MobileKiosk } from "@/components/mobile/MobileKiosk";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
+
+type IdleImage = {
+  id: string;
+  image_url: string;
+  caption: string | null;
+  sort_order: number;
+};
+
 
 export const Route = createFileRoute("/")({
   head: () => ({

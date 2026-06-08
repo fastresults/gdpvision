@@ -833,16 +833,52 @@ function MediaHub() {
 
 
   const uploadIdleMut = useMutation({
-    mutationFn: (file: File) => uploadOne(file),
-    onSuccess: (asset) => {
+    mutationFn: async (file: File) => {
+      const asset = await uploadOne(file);
+      if (asset?.public_url) {
+        await addIdle({
+          data: {
+            image_url: asset.public_url,
+            media_asset_id: asset.id,
+            caption: null,
+          },
+        });
+      }
+      return asset;
+    },
+    onSuccess: () => {
       invalidate();
-      if (asset?.public_url) onSetIdle(asset.public_url);
+      invalidateIdle();
     },
     onError: (err) => {
       console.error("[uploadMedia idle] failed:", err);
       alert(`Upload failed: ${err instanceof Error ? err.message : String(err)}`);
     },
   });
+
+  const addToCarouselMut = useMutation({
+    mutationFn: (asset: MediaAsset) =>
+      addIdle({ data: { image_url: asset.public_url, media_asset_id: asset.id, caption: null } }),
+    onSuccess: invalidateIdle,
+  });
+
+  const removeFromCarouselMut = useMutation({
+    mutationFn: (id: string) => removeIdle({ data: { id } }),
+    onSuccess: invalidateIdle,
+  });
+
+  const moveIdleMut = useMutation({
+    mutationFn: ({ id, direction }: { id: string; direction: "up" | "down" }) =>
+      moveIdle({ data: { id, direction } }),
+    onSuccess: invalidateIdle,
+  });
+
+  const updateIdleMut = useMutation({
+    mutationFn: ({ id, caption }: { id: string; caption: string | null }) =>
+      updateIdle({ data: { id, caption } }),
+    onSuccess: invalidateIdle,
+  });
+
 
   const renameMut = useMutation({
     mutationFn: ({ id, filename }: { id: string; filename: string }) =>

@@ -194,7 +194,8 @@ export default function PdfViewer({ url, label, storagePath, showToolbar = false
   const atEnd = numPages === 0 || currentPage >= numPages;
 
   return (
-    <div
+      {showToolbar && (
+      <div
       className="flex h-full w-full flex-col"
       style={{ backgroundColor: "var(--eyeframe-bg)", color: "var(--eyeframe-text)" }}
     >

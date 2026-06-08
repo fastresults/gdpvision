@@ -18,6 +18,16 @@ import {
 import { DEFAULT_SETTINGS, PDF_CATEGORIES, VIDEO_CATEGORIES, type Item, type ItemCategory, type Settings } from "@/lib/kiosk-types";
 import { MobileKiosk } from "@/components/mobile/MobileKiosk";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
+
+type IdleImage = {
+  id: string;
+  image_url: string;
+  caption: string | null;
+  sort_order: number;
+};
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -40,7 +50,7 @@ const CATEGORY_SETTING_KEY = {
   brand: "label_brand",
 } as const;
 
-type KioskData = { items: Item[]; settings: Settings };
+type KioskData = { items: Item[]; settings: Settings; idleImages?: IdleImage[] };
 
 async function fetchKioskData(): Promise<KioskData> {
   const response = await fetch("/api/kiosk-data");
@@ -281,16 +291,15 @@ function KioskPage() {
       {/* Preview area */}
       <div className="relative h-full w-full" style={{ backgroundColor: "var(--eyeframe-bg)" }}>
         {!active && (
-          labels.idle_image_url ? (
+          (data?.idleImages?.length ?? 0) > 0 ? (
+            <IdleCarousel images={data!.idleImages!} />
+          ) : labels.idle_image_url ? (
             <div className="relative flex h-full w-full flex-col items-center justify-center gap-4" style={{ backgroundColor: "var(--eyeframe-bg)" }}>
               <img
                 src={labels.idle_image_url}
                 alt={labels.kiosk_title}
                 className="max-h-[66%] max-w-[66%] object-contain"
               />
-              <div className="text-center text-[2.625rem] font-bold leading-tight opacity-90">
-                {labels.kiosk_title}
-              </div>
             </div>
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-4">
@@ -305,6 +314,7 @@ function KioskPage() {
             </div>
           )
         )}
+
 
         {active && VIDEO_CATEGORIES.includes(active.category) && (
           <video
@@ -383,3 +393,41 @@ function KioskPage() {
     </div>
   );
 }
+
+function IdleCarousel({ images }: { images: IdleImage[] }) {
+  const autoplay = useRef(
+    Autoplay({ delay: 6000, stopOnInteraction: false, stopOnMouseEnter: false }),
+  );
+  return (
+    <div className="absolute inset-0">
+      <Carousel
+        className="h-full w-full"
+        opts={{ loop: true }}
+        plugins={[autoplay.current]}
+      >
+        <CarouselContent className="-ml-0 h-full" style={{ height: "100%" }}>
+          {images.map((img) => (
+            <CarouselItem key={img.id} className="basis-full pl-0">
+              <div
+                className="flex h-full w-full flex-col items-center justify-center gap-4"
+                style={{ height: "95.4vh" }}
+              >
+                <img
+                  src={img.image_url}
+                  alt={img.caption ?? ""}
+                  className="max-h-[80%] max-w-[85%] object-contain"
+                />
+                {img.caption && (
+                  <div className="text-center text-3xl font-semibold leading-tight opacity-90">
+                    {img.caption}
+                  </div>
+                )}
+              </div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+      </Carousel>
+    </div>
+  );
+}
+

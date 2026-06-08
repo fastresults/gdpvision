@@ -19,13 +19,17 @@ export const Route = createFileRoute("/api/kiosk-data")({
       GET: async () => {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-        const [itemsResult, settingsResult] = await Promise.all([
+        const [itemsResult, settingsResult, idleResult] = await Promise.all([
           supabaseAdmin
             .from("items")
             .select("*, favicon_asset:media_assets!items_favicon_asset_id_fkey(public_url)")
             .order("category", { ascending: true })
             .order("sort_order", { ascending: true }),
           supabaseAdmin.from("app_settings").select("key,value"),
+          supabaseAdmin
+            .from("idle_images")
+            .select("*")
+            .order("sort_order", { ascending: true }),
         ]);
 
         if (itemsResult.error) {
@@ -33,6 +37,9 @@ export const Route = createFileRoute("/api/kiosk-data")({
         }
         if (settingsResult.error) {
           return Response.json({ error: settingsResult.error.message }, { status: 500 });
+        }
+        if (idleResult.error) {
+          return Response.json({ error: idleResult.error.message }, { status: 500 });
         }
 
         const settings = { ...DEFAULT_SETTINGS };
@@ -60,10 +67,20 @@ export const Route = createFileRoute("/api/kiosk-data")({
           created_at: row.created_at,
         }));
 
+        const idleImages = (idleResult.data ?? []).map((row: any) => ({
+          id: row.id,
+          media_asset_id: row.media_asset_id,
+          image_url: row.image_url,
+          caption: row.caption,
+          sort_order: row.sort_order,
+          created_at: row.created_at,
+        }));
+
         return Response.json(
-          { items, settings },
+          { items, settings, idleImages },
           { headers: { "Cache-Control": "private, max-age=5" } },
         );
+
       },
     },
   },

@@ -193,7 +193,7 @@ export function MobileKiosk({ items, settings }: { items: Item[]; settings: Sett
   // Resource viewer (full-screen)
   if (active) {
     const isVideo = VIDEO_CATEGORIES.includes(active.category);
-    const isPdf = active.category === "presentations" && !!active.pdf_storage_path;
+    const isPdf = (active.category === "presentations" || active.category === "brand") && !!active.pdf_storage_path;
     return (
       <div
         className="fixed inset-0 flex flex-col animate-in slide-in-from-bottom duration-300"

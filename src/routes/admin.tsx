@@ -387,7 +387,7 @@ function AdminPage() {
           Tip: click any title or category name to rename it. The kiosk updates automatically.
         </div>
 
-        {categoryTab === "presentations" ? (
+        {categoryTab === "presentations" || categoryTab === "brand" ? (
           <Suspense
             fallback={
               <div className="mb-8 rounded-lg border p-4 text-sm opacity-60"
@@ -399,7 +399,7 @@ function AdminPage() {
               </div>
             }
           >
-            <PresentationUpload onUploaded={invalidateItems} />
+            <PresentationUpload onUploaded={invalidateItems} category={categoryTab as "presentations" | "brand"} />
           </Suspense>
         ) : (
         <form

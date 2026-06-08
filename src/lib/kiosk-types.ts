@@ -1,6 +1,7 @@
 export type ItemCategory = "websites" | "presentations" | "docs" | "videos" | "brand";
 
-export const VIDEO_CATEGORIES: ItemCategory[] = ["videos", "brand"];
+export const VIDEO_CATEGORIES: ItemCategory[] = ["videos"];
+export const PDF_CATEGORIES: ItemCategory[] = ["presentations", "brand"];
 
 export type ThumbnailStatus = "pending" | "processing" | "ready" | "failed";
 

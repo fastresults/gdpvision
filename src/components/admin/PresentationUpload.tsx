@@ -28,7 +28,7 @@ async function renderFirstPagePng(file: File): Promise<Blob | null> {
   }
 }
 
-export default function PresentationUpload({ onUploaded }: { onUploaded: () => void }) {
+export default function PresentationUpload({ onUploaded, category = "presentations" }: { onUploaded: () => void; category?: "presentations" | "brand" }) {
   const [label, setLabel] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -71,6 +71,7 @@ export default function PresentationUpload({ onUploaded }: { onUploaded: () => v
       const fd = new FormData();
       fd.append("file", file);
       fd.append("label", label.trim());
+      fd.append("category", category);
       if (thumb) fd.append("thumbnail", thumb, "thumb.png");
       const res = await fetch("/api/upload-presentation", {
         method: "POST",
@@ -98,7 +99,7 @@ export default function PresentationUpload({ onUploaded }: { onUploaded: () => v
         borderColor: "var(--eyeframe-border)",
       }}
     >
-      <div className="mb-3 text-sm font-medium opacity-80">Add a PDF Presentation</div>
+      <div className="mb-3 text-sm font-medium opacity-80">Add a PDF</div>
 
       <input
         value={label}
@@ -175,7 +176,7 @@ export default function PresentationUpload({ onUploaded }: { onUploaded: () => v
         style={{ backgroundColor: "var(--eyeframe-accent)", color: "var(--eyeframe-bg)" }}
       >
         <Upload className="h-4 w-4" />
-        {uploading ? "Uploading…" : "Upload presentation"}
+        {uploading ? "Uploading…" : "Upload PDF"}
       </button>
     </div>
   );

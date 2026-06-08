@@ -291,16 +291,15 @@ function KioskPage() {
       {/* Preview area */}
       <div className="relative h-full w-full" style={{ backgroundColor: "var(--eyeframe-bg)" }}>
         {!active && (
-          labels.idle_image_url ? (
+          (data?.idleImages?.length ?? 0) > 0 ? (
+            <IdleCarousel images={data!.idleImages!} />
+          ) : labels.idle_image_url ? (
             <div className="relative flex h-full w-full flex-col items-center justify-center gap-4" style={{ backgroundColor: "var(--eyeframe-bg)" }}>
               <img
                 src={labels.idle_image_url}
                 alt={labels.kiosk_title}
                 className="max-h-[66%] max-w-[66%] object-contain"
               />
-              <div className="text-center text-[2.625rem] font-bold leading-tight opacity-90">
-                {labels.kiosk_title}
-              </div>
             </div>
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-4">
@@ -315,6 +314,7 @@ function KioskPage() {
             </div>
           )
         )}
+
 
         {active && VIDEO_CATEGORIES.includes(active.category) && (
           <video

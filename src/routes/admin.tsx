@@ -160,10 +160,12 @@ function AdminPage() {
   const categoryTab = (isMediaTab ? "websites" : tab) as ItemCategory;
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
+  const [tooltip, setTooltip] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState("");
   const [editUrl, setEditUrl] = useState("");
+  const [editTooltip, setEditTooltip] = useState("");
 
   const isVideoTab = !isMediaTab && VIDEO_CATEGORIES.includes(categoryTab);
   const uploadVideo = useServerFn(uploadEventVideo);

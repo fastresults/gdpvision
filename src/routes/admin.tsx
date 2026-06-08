@@ -936,6 +936,28 @@ function MediaHub() {
           onDrop={(e) => {
             e.preventDefault();
             setIsDragging(false);
+            // 1) dragged from media library
+            const assetPayload = e.dataTransfer.getData("application/x-media-asset");
+            if (assetPayload) {
+              try {
+                const { id, url } = JSON.parse(assetPayload) as { id: string; url: string };
+                if (idleUrls.has(url)) return; // already in carousel
+                addToCarouselMut.mutate({
+                  id,
+                  public_url: url,
+                  filename: "",
+                  mime_type: "",
+                  size_bytes: 0,
+                  storage_path: "",
+                  kind: "image",
+                  created_at: "",
+                });
+              } catch {
+                // ignore malformed payload
+              }
+              return;
+            }
+            // 2) file dropped from OS
             const f = e.dataTransfer.files?.[0];
             if (!f) return;
             if (!f.type.startsWith("image/")) {
@@ -951,6 +973,7 @@ function MediaHub() {
             backgroundColor: isDragging ? "color-mix(in oklab, var(--eyeframe-accent) 10%, transparent)" : "transparent",
           }}
         >
+
           <input
             ref={idleInputRef}
             type="file"
@@ -968,7 +991,7 @@ function MediaHub() {
               ? "Uploading…"
               : isDragging
                 ? <span style={{ color: "var(--eyeframe-accent)" }}>Drop image to add to carousel</span>
-                : "Drag & drop an image here or click to upload — it will be added to the carousel. You can also star existing images in the library below."}
+                : "Drag images here from the library below, drop a new image from your computer, or click to upload."}
             {uploadIdleMut.isError && (
               <div className="mt-1 text-red-400">{(uploadIdleMut.error as Error).message}</div>
             )}
@@ -1261,11 +1284,25 @@ function MediaCard({
     }
   };
 
+  const isImage = asset.kind === "image";
   return (
     <div
+      draggable={isImage}
+      onDragStart={(e) => {
+        if (!isImage) return;
+        const payload = JSON.stringify({ id: asset.id, url: asset.public_url });
+        e.dataTransfer.setData("application/x-media-asset", payload);
+        e.dataTransfer.setData("text/plain", asset.public_url);
+        e.dataTransfer.effectAllowed = "copy";
+      }}
       className="flex flex-col overflow-hidden rounded-lg border"
-      style={{ backgroundColor: "var(--eyeframe-topbar)", borderColor: isIdle ? "var(--eyeframe-accent)" : "var(--eyeframe-border)" }}
+      style={{
+        backgroundColor: "var(--eyeframe-topbar)",
+        borderColor: isIdle ? "var(--eyeframe-accent)" : "var(--eyeframe-border)",
+        cursor: isImage ? "grab" : undefined,
+      }}
     >
+
       <div
         className="flex aspect-video items-center justify-center overflow-hidden"
         style={{ backgroundColor: "var(--eyeframe-card)" }}

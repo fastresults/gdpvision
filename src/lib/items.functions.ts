@@ -112,6 +112,7 @@ export const createItem = createServerFn({ method: "POST" })
         label: data.label,
         url: data.url,
         favicon_url: favicon,
+        tooltip: data.tooltip ?? null,
         sort_order: nextOrder,
       })
       .select("id")

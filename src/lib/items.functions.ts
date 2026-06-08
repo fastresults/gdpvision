@@ -150,6 +150,7 @@ export const updateItem = createServerFn({ method: "POST" })
         label: data.label,
         url: data.url,
         favicon_url: favicon,
+        tooltip: data.tooltip ?? null,
       })
       .eq("id", data.id);
     if (error) throw new Error(error.message);

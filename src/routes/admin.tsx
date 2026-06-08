@@ -1329,7 +1329,7 @@ function MediaCard({
             <button
               type="button"
               onClick={onSetIdle}
-              title={isIdle ? "Current idle image" : "Set as idle image"}
+              title={isIdle ? "Remove from idle carousel" : "Add to idle carousel"}
               className="rounded-md border px-2 py-1.5 text-xs"
               style={{
                 backgroundColor: isIdle ? "var(--eyeframe-accent)" : "var(--eyeframe-card)",

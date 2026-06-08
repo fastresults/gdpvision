@@ -913,14 +913,20 @@ function MediaHub() {
 
   return (
     <div>
-      {/* Idle screen panel */}
+      {/* Idle carousel panel */}
       <div
         className="mb-6 rounded-lg border p-4"
         style={{ backgroundColor: "var(--eyeframe-topbar)", borderColor: "var(--eyeframe-border)" }}
       >
-        <div className="mb-3 flex items-center gap-2 text-sm font-medium opacity-80">
-          <Star className="h-4 w-4" /> Kiosk idle screen image
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-sm font-medium opacity-80">
+            <Star className="h-4 w-4" /> Kiosk idle carousel
+          </div>
+          <div className="text-xs opacity-60">
+            {idleImages.length} image{idleImages.length === 1 ? "" : "s"} — auto-rotates on kiosk
+          </div>
         </div>
+
         <div
           onDragOver={(e) => {
             e.preventDefault();
@@ -939,7 +945,7 @@ function MediaHub() {
             uploadIdleMut.mutate(f);
           }}
           onClick={() => idleInputRef.current?.click()}
-          className="flex cursor-pointer items-center gap-4 rounded-md border-2 border-dashed p-3 transition-colors"
+          className="mb-3 flex cursor-pointer items-center gap-3 rounded-md border-2 border-dashed p-3 text-xs transition-colors"
           style={{
             borderColor: isDragging ? "var(--eyeframe-accent)" : "var(--eyeframe-border)",
             backgroundColor: isDragging ? "color-mix(in oklab, var(--eyeframe-accent) 10%, transparent)" : "transparent",
@@ -956,45 +962,87 @@ function MediaHub() {
               if (idleInputRef.current) idleInputRef.current.value = "";
             }}
           />
-          <div
-            className="flex h-24 w-40 shrink-0 items-center justify-center overflow-hidden rounded border"
-            style={{ backgroundColor: "var(--eyeframe-card)", borderColor: "var(--eyeframe-border)" }}
-          >
-            {idleImageUrl ? (
-              <img src={idleImageUrl} alt="Idle" className="h-full w-full object-contain" />
-            ) : (
-              <Eye className="h-8 w-8 opacity-40" />
-            )}
-          </div>
-          <div className="flex-1 text-xs opacity-70">
-            {uploadIdleMut.isPending ? (
-              "Uploading…"
-            ) : isDragging ? (
-              <span style={{ color: "var(--eyeframe-accent)" }}>Drop image to set as idle screen</span>
-            ) : idleImageUrl ? (
-              "This image is shown full-screen on the kiosk before any resource is selected. Drag & drop or click to replace."
-            ) : (
-              "Drag & drop an image here (PNG, JPG, SVG, WebP, GIF) or click to upload. You can also pick from the library below."
-            )}
+          <Upload className="h-4 w-4 opacity-60" />
+          <div className="flex-1 opacity-70">
+            {uploadIdleMut.isPending
+              ? "Uploading…"
+              : isDragging
+                ? <span style={{ color: "var(--eyeframe-accent)" }}>Drop image to add to carousel</span>
+                : "Drag & drop an image here or click to upload — it will be added to the carousel. You can also star existing images in the library below."}
             {uploadIdleMut.isError && (
               <div className="mt-1 text-red-400">{(uploadIdleMut.error as Error).message}</div>
             )}
           </div>
-          {idleImageUrl && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSetIdle("");
-              }}
-              className="rounded-md border px-3 py-2 text-xs"
-              style={{ backgroundColor: "var(--eyeframe-card)", borderColor: "var(--eyeframe-border)" }}
-            >
-              Clear
-            </button>
-          )}
         </div>
+
+        {idleImages.length === 0 ? (
+          <div className="rounded-md border px-3 py-6 text-center text-xs opacity-60"
+            style={{ borderColor: "var(--eyeframe-border)" }}>
+            No carousel images yet. Upload above or star images in the library.
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            {idleImages.map((img, idx) => (
+              <div
+                key={img.id}
+                className="flex w-56 flex-col overflow-hidden rounded-md border"
+                style={{ backgroundColor: "var(--eyeframe-card)", borderColor: "var(--eyeframe-border)" }}
+              >
+                <div className="flex h-28 items-center justify-center overflow-hidden"
+                  style={{ backgroundColor: "var(--eyeframe-bg)" }}>
+                  <img src={img.image_url} alt={img.caption ?? ""} className="h-full w-full object-contain" />
+                </div>
+                <div className="flex flex-col gap-2 p-2">
+                  <input
+                    defaultValue={img.caption ?? ""}
+                    placeholder="Caption (optional)"
+                    onBlur={(e) => {
+                      const v = e.target.value.trim();
+                      if (v !== (img.caption ?? "")) {
+                        updateIdleMut.mutate({ id: img.id, caption: v || null });
+                      }
+                    }}
+                    className="rounded border px-2 py-1 text-xs outline-none"
+                    style={{ backgroundColor: "var(--eyeframe-topbar)", borderColor: "var(--eyeframe-border)", color: "var(--eyeframe-text)" }}
+                  />
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      title="Move up"
+                      disabled={idx === 0}
+                      onClick={() => moveIdleMut.mutate({ id: img.id, direction: "up" })}
+                      className="rounded border px-2 py-1 text-xs disabled:opacity-30"
+                      style={{ borderColor: "var(--eyeframe-border)" }}
+                    >
+                      <ArrowUp className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      title="Move down"
+                      disabled={idx === idleImages.length - 1}
+                      onClick={() => moveIdleMut.mutate({ id: img.id, direction: "down" })}
+                      className="rounded border px-2 py-1 text-xs disabled:opacity-30"
+                      style={{ borderColor: "var(--eyeframe-border)" }}
+                    >
+                      <ArrowDown className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      title="Remove from carousel"
+                      onClick={() => removeFromCarouselMut.mutate(img.id)}
+                      className="ml-auto rounded border px-2 py-1 text-xs"
+                      style={{ borderColor: "var(--eyeframe-border)", color: "#ff8a8a" }}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
 
       {/* Upload dropzone */}
       <div

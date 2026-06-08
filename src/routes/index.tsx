@@ -18,8 +18,8 @@ import {
 import { DEFAULT_SETTINGS, PDF_CATEGORIES, VIDEO_CATEGORIES, type Item, type ItemCategory, type Settings } from "@/lib/kiosk-types";
 import { MobileKiosk } from "@/components/mobile/MobileKiosk";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
-import Autoplay from "embla-carousel-autoplay";
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
+
 
 type IdleImage = {
   id: string;

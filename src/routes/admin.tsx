@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Eye, Pencil, Plus, RefreshCw, Trash2, X, Check, Film, FileText, Library, Upload, Copy, Star } from "lucide-react";
+import { ArrowDown, ArrowUp, Eye, Pencil, Plus, RefreshCw, Trash2, X, Check, Film, FileText, Library, Upload, Copy, Star, Loader2, AlertCircle, RotateCw } from "lucide-react";
 
 const PresentationUpload = lazy(() => import("@/components/admin/PresentationUpload"));
 import {
@@ -752,18 +752,66 @@ function MediaHub({ idleImageUrl, onSetIdle }: { idleImageUrl: string; onSetIdle
     return (await res.json()) as MediaAsset;
   };
 
-  const uploadMut = useMutation({
-    mutationFn: async (files: FileList | File[]) => {
-      for (const f of Array.from(files)) {
-        await uploadOne(f);
-      }
-    },
-    onSuccess: invalidate,
-    onError: (err) => {
-      console.error("[uploadMedia] failed:", err);
-      alert(`Upload failed: ${err instanceof Error ? err.message : String(err)}`);
-    },
-  });
+  type QueueItem = {
+    id: string;
+    file: File;
+    status: "pending" | "uploading" | "done" | "error";
+    error?: string;
+  };
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [isMainDragging, setIsMainDragging] = useState(false);
+  const dragDepthRef = useRef(0);
+  const MAX_PARALLEL = 3;
+
+  // Worker: keeps up to MAX_PARALLEL uploads in flight
+  useEffect(() => {
+    const activeCount = queue.filter((q) => q.status === "uploading").length;
+    if (activeCount >= MAX_PARALLEL) return;
+    const next = queue.find((q) => q.status === "pending");
+    if (!next) return;
+    // Mark as uploading
+    setQueue((prev) => prev.map((q) => (q.id === next.id ? { ...q, status: "uploading" } : q)));
+    uploadOne(next.file)
+      .then(() => {
+        setQueue((prev) => prev.map((q) => (q.id === next.id ? { ...q, status: "done" } : q)));
+        invalidate();
+      })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[uploadMedia] failed:", err);
+        setQueue((prev) =>
+          prev.map((q) => (q.id === next.id ? { ...q, status: "error", error: msg } : q)),
+        );
+      });
+  }, [queue]);
+
+  const enqueueFiles = (files: File[] | FileList) => {
+    const arr = Array.from(files);
+    if (arr.length === 0) return;
+    setQueue((prev) => [
+      ...prev,
+      ...arr.map((file) => ({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${file.name}`,
+        file,
+        status: "pending" as const,
+      })),
+    ]);
+  };
+
+  const retryItem = (id: string) => {
+    setQueue((prev) =>
+      prev.map((q) => (q.id === id ? { ...q, status: "pending", error: undefined } : q)),
+    );
+  };
+
+  const removeItem = (id: string) => {
+    setQueue((prev) => prev.filter((q) => q.id !== id));
+  };
+
+  const clearCompleted = () => {
+    setQueue((prev) => prev.filter((q) => q.status !== "done"));
+  };
+
 
   const uploadIdleMut = useMutation({
     mutationFn: (file: File) => uploadOne(file),
@@ -893,41 +941,139 @@ function MediaHub({ idleImageUrl, onSetIdle }: { idleImageUrl: string; onSetIdle
         </div>
       </div>
 
-      {/* Upload */}
+      {/* Upload dropzone */}
       <div
-        className="mb-6 rounded-lg border p-4"
-        style={{ backgroundColor: "var(--eyeframe-topbar)", borderColor: "var(--eyeframe-border)" }}
+        onDragEnter={(e) => {
+          e.preventDefault();
+          dragDepthRef.current += 1;
+          setIsMainDragging(true);
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+        }}
+        onDragLeave={() => {
+          dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+          if (dragDepthRef.current === 0) setIsMainDragging(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          dragDepthRef.current = 0;
+          setIsMainDragging(false);
+          const files = Array.from(e.dataTransfer.files ?? []).filter((f) => f.size > 0);
+          if (files.length) enqueueFiles(files);
+        }}
+        onClick={() => inputRef.current?.click()}
+        className="mb-4 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-10 text-center transition-colors"
+        style={{
+          borderColor: isMainDragging ? "var(--eyeframe-accent)" : "var(--eyeframe-border)",
+          backgroundColor: isMainDragging
+            ? "color-mix(in oklab, var(--eyeframe-accent) 12%, transparent)"
+            : "var(--eyeframe-topbar)",
+        }}
       >
-        <div className="flex items-center gap-3">
-          <input
-            ref={inputRef}
-            type="file"
-            multiple
-            accept="image/*,video/mp4,video/webm,video/quicktime,application/pdf,.doc,.docx,.ppt,.pptx"
-            onChange={(e) => {
-              if (e.target.files?.length) uploadMut.mutate(e.target.files);
-              if (inputRef.current) inputRef.current.value = "";
-            }}
-            className="hidden"
-          />
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={uploadMut.isPending}
-            className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium disabled:opacity-60"
-            style={{ backgroundColor: "var(--eyeframe-accent)", color: "var(--eyeframe-bg)" }}
-          >
-            <Upload className="h-4 w-4" />
-            {uploadMut.isPending ? "Uploading…" : "Upload files"}
-          </button>
-          <div className="text-xs opacity-60">
-            Images (PNG, JPG, WebP, SVG, GIF), Videos (MP4, WebM, MOV), PDFs, Word & PowerPoint.
-          </div>
+        <input
+          ref={inputRef}
+          type="file"
+          multiple
+          accept="image/*,video/mp4,video/webm,video/quicktime,application/pdf,.doc,.docx,.ppt,.pptx"
+          onChange={(e) => {
+            if (e.target.files?.length) enqueueFiles(e.target.files);
+            if (inputRef.current) inputRef.current.value = "";
+          }}
+          className="hidden"
+        />
+        <Upload className="h-7 w-7 opacity-70" />
+        <div className="text-sm font-medium">
+          {isMainDragging ? (
+            <span style={{ color: "var(--eyeframe-accent)" }}>Drop files to upload</span>
+          ) : (
+            "Drag & drop files here, or click to browse"
+          )}
         </div>
-        {uploadMut.isError && (
-          <div className="mt-2 text-xs text-red-400">{(uploadMut.error as Error).message}</div>
-        )}
+        <div className="text-xs opacity-60">
+          Images (PNG, JPG, WebP, SVG, GIF) · Videos (MP4, WebM, MOV) · PDFs · Word & PowerPoint. Up to 3 upload in parallel.
+        </div>
       </div>
+
+      {/* Upload queue */}
+      {queue.length > 0 && (
+        <div
+          className="mb-6 rounded-lg border"
+          style={{ backgroundColor: "var(--eyeframe-topbar)", borderColor: "var(--eyeframe-border)" }}
+        >
+          <div
+            className="flex items-center justify-between border-b px-4 py-2 text-xs"
+            style={{ borderColor: "var(--eyeframe-border)" }}
+          >
+            <div className="opacity-70">
+              {queue.filter((q) => q.status === "done").length} uploaded ·{" "}
+              {queue.filter((q) => q.status === "error").length} failed ·{" "}
+              {queue.filter((q) => q.status === "pending" || q.status === "uploading").length} remaining
+            </div>
+            {queue.some((q) => q.status === "done") && (
+              <button
+                type="button"
+                onClick={clearCompleted}
+                className="text-xs underline opacity-70 hover:opacity-100"
+              >
+                Clear completed
+              </button>
+            )}
+          </div>
+          <ul className="divide-y" style={{ borderColor: "var(--eyeframe-border)" }}>
+            {queue.map((q) => (
+              <li key={q.id} className="flex items-center gap-3 px-4 py-2 text-xs">
+                <div className="flex-1 min-w-0">
+                  <div className="truncate font-medium">{q.file.name}</div>
+                  <div className="opacity-60">{formatSize(q.file.size)}</div>
+                  {q.status === "error" && q.error && (
+                    <div className="mt-0.5 text-red-400">{q.error}</div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {q.status === "pending" && <span className="opacity-70">Pending</span>}
+                  {q.status === "uploading" && (
+                    <span className="inline-flex items-center gap-1" style={{ color: "var(--eyeframe-accent)" }}>
+                      <Loader2 className="h-3 w-3 animate-spin" /> Uploading…
+                    </span>
+                  )}
+                  {q.status === "done" && (
+                    <span className="inline-flex items-center gap-1 text-green-400">
+                      <Check className="h-3 w-3" /> Done
+                    </span>
+                  )}
+                  {q.status === "error" && (
+                    <span className="inline-flex items-center gap-1 text-red-400">
+                      <AlertCircle className="h-3 w-3" /> Failed
+                    </span>
+                  )}
+                  {q.status === "error" && (
+                    <button
+                      type="button"
+                      onClick={() => retryItem(q.id)}
+                      title="Retry"
+                      className="rounded p-1 opacity-70 hover:opacity-100"
+                    >
+                      <RotateCw className="h-3 w-3" />
+                    </button>
+                  )}
+                  {(q.status === "error" || q.status === "done" || q.status === "pending") && (
+                    <button
+                      type="button"
+                      onClick={() => removeItem(q.id)}
+                      title="Remove"
+                      className="rounded p-1 opacity-70 hover:opacity-100"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
 
       {/* Filters */}
       <div className="mb-4 flex flex-wrap gap-2">

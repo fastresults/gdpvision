@@ -991,7 +991,7 @@ function MediaHub() {
               ? "Uploading…"
               : isDragging
                 ? <span style={{ color: "var(--eyeframe-accent)" }}>Drop image to add to carousel</span>
-                : "Drag & drop an image here or click to upload — it will be added to the carousel. You can also star existing images in the library below."}
+                : "Drag images here from the library below, drop a new image from your computer, or click to upload."}
             {uploadIdleMut.isError && (
               <div className="mt-1 text-red-400">{(uploadIdleMut.error as Error).message}</div>
             )}

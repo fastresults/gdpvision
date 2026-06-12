@@ -13,10 +13,9 @@ import {
 import {
   DEFAULT_SETTINGS,
   getCategoryIcon,
-  isPdfItem,
-  isVideoItem,
   type Category,
   type Item,
+  type ItemCategory,
   type Settings,
 } from "@/lib/kiosk-types";
 import { MobileKiosk } from "@/components/mobile/MobileKiosk";

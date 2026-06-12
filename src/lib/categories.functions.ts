@@ -132,7 +132,7 @@ export const updateCategory = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const patch: Record<string, unknown> = {};
+    const patch: { label?: string; icon?: string } = {};
     if (data.label !== undefined) patch.label = data.label;
     if (data.icon !== undefined) patch.icon = data.icon;
     if (Object.keys(patch).length === 0) return { ok: true };

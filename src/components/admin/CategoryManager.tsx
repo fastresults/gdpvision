@@ -164,6 +164,34 @@ export default function CategoryManager() {
         </button>
       </div>
 
+      {behavior === "gallery" && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-md border px-3 py-2 text-xs"
+          style={{ borderColor: "var(--eyeframe-border)", backgroundColor: "var(--eyeframe-card)" }}>
+          <span className="opacity-70">Gallery contains:</span>
+          {(["video", "image"] as MediaMode[]).map((m) => {
+            const checked = mediaModes.includes(m);
+            return (
+              <label key={m} className="flex cursor-pointer items-center gap-1.5 capitalize">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(e) => {
+                    setMediaModes((prev) => {
+                      const next = new Set(prev);
+                      if (e.target.checked) next.add(m);
+                      else next.delete(m);
+                      if (next.size === 0) next.add(m);
+                      return Array.from(next);
+                    });
+                  }}
+                />
+                {m === "video" ? "Videos" : "Images"}
+              </label>
+            );
+          })}
+        </div>
+      )}
+
       {err && (
         <div className="mb-3 rounded-md border px-3 py-2 text-xs" style={{ borderColor: "var(--eyeframe-border)", color: "tomato" }}>
           {err}

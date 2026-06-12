@@ -3,11 +3,6 @@ import { createFileRoute } from "@tanstack/react-router";
 const DEFAULT_SETTINGS = {
   admin_title: "GDP Vision Admin",
   kiosk_title: "GDP Vision",
-  label_websites: "Websites",
-  label_presentations: "Presentations",
-  label_docs: "Google Docs",
-  label_videos: "Past Events",
-  label_brand: "Brand Building",
   idle_image_url: "",
 };
 
@@ -19,7 +14,7 @@ export const Route = createFileRoute("/api/kiosk-data")({
       GET: async () => {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-        const [itemsResult, settingsResult, idleResult] = await Promise.all([
+        const [itemsResult, settingsResult, idleResult, categoriesResult] = await Promise.all([
           supabaseAdmin
             .from("items")
             .select("*, favicon_asset:media_assets!items_favicon_asset_id_fkey(public_url)")
@@ -28,6 +23,10 @@ export const Route = createFileRoute("/api/kiosk-data")({
           supabaseAdmin.from("app_settings").select("key,value"),
           supabaseAdmin
             .from("idle_images")
+            .select("*")
+            .order("sort_order", { ascending: true }),
+          supabaseAdmin
+            .from("categories")
             .select("*")
             .order("sort_order", { ascending: true }),
         ]);
@@ -40,6 +39,9 @@ export const Route = createFileRoute("/api/kiosk-data")({
         }
         if (idleResult.error) {
           return Response.json({ error: idleResult.error.message }, { status: 500 });
+        }
+        if (categoriesResult.error) {
+          return Response.json({ error: categoriesResult.error.message }, { status: 500 });
         }
 
         const settings = { ...DEFAULT_SETTINGS };
@@ -76,8 +78,18 @@ export const Route = createFileRoute("/api/kiosk-data")({
           created_at: row.created_at,
         }));
 
+        const categories = (categoriesResult.data ?? []).map((row: any) => ({
+          id: row.id,
+          slug: row.slug,
+          label: row.label,
+          icon: row.icon,
+          behavior: row.behavior,
+          is_builtin: !!row.is_builtin,
+          sort_order: row.sort_order,
+        }));
+
         return Response.json(
-          { items, settings, idleImages },
+          { items, settings, idleImages, categories },
           { headers: { "Cache-Control": "private, max-age=5" } },
         );
 

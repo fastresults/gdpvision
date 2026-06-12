@@ -42,14 +42,24 @@ export default function CategoryManager() {
   const [label, setLabel] = useState("");
   const [icon, setIcon] = useState<string>("Globe");
   const [behavior, setBehavior] = useState<CategoryBehavior>("website");
+  const [mediaModes, setMediaModes] = useState<MediaMode[]>(["video", "image"]);
   const [err, setErr] = useState<string | null>(null);
 
   const createMut = useMutation({
-    mutationFn: () => createFn({ data: { label: label.trim(), icon, behavior } }),
+    mutationFn: () =>
+      createFn({
+        data: {
+          label: label.trim(),
+          icon,
+          behavior,
+          mediaModes: behavior === "gallery" ? mediaModes : undefined,
+        },
+      }),
     onSuccess: () => {
       setLabel("");
       setIcon("Globe");
       setBehavior("website");
+      setMediaModes(["video", "image"]);
       setErr(null);
       invalidate();
     },
@@ -57,7 +67,7 @@ export default function CategoryManager() {
   });
 
   const updateMut = useMutation({
-    mutationFn: (v: { id: string; label?: string; icon?: string }) =>
+    mutationFn: (v: { id: string; label?: string; icon?: string; mediaModes?: MediaMode[] }) =>
       updateFn({ data: v }),
     onSuccess: invalidate,
   });

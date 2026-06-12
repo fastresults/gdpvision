@@ -135,6 +135,9 @@ function KioskPage() {
   }
 
   const currentCat = findCat(category);
+  const activeBehavior = active ? findCat(active.category)?.behavior : undefined;
+  const isActivePdf = activeBehavior === "pdf" && !!active?.pdf_storage_path;
+  const isActiveVideo = activeBehavior === "video";
 
 
   return (

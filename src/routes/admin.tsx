@@ -524,6 +524,7 @@ function AdminPage() {
         )}
 
         {/* List */}
+        {!isGalleryTab && (
         <div
           className="overflow-hidden rounded-lg border"
           style={{ borderColor: "var(--eyeframe-border)" }}

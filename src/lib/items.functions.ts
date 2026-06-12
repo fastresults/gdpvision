@@ -97,8 +97,9 @@ export const createItem = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const behavior = await getBehaviorForSlug(supabaseAdmin, data.category);
     let favicon = data.favicon_url ?? null;
-    if (!favicon && !VIDEO_CATEGORIES.includes(data.category)) {
+    if (!favicon && behavior !== "video") {
       try {
         const host = new URL(data.url).hostname;
         favicon = `https://www.google.com/s2/favicons?domain=${host}&sz=64`;

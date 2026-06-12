@@ -76,13 +76,21 @@ function KioskPage() {
   const findCat = (slug: string) => categories.find((c) => c.slug === slug);
 
 
-  const [category, setCategory] = useState<ItemCategory>("websites");
+  const [category, setCategory] = useState<string>("");
   const [active, setActive] = useState<Item | null>(null);
   const [blocked, setBlocked] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [pdfToolbarOpen, setPdfToolbarOpen] = useState(false);
+
+  // When categories load, default to the first one if nothing selected (or current selection vanished).
+  useEffect(() => {
+    if (categories.length === 0) return;
+    if (!category || !categories.some((c) => c.slug === category)) {
+      setCategory(categories[0].slug);
+    }
+  }, [categories, category]);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -112,19 +120,22 @@ function KioskPage() {
       return;
     }
     setBlocked(false);
-    const isPdfActive = PDF_CATEGORIES.includes(active.category) && !!active.pdf_storage_path;
-    const isVideoActive = VIDEO_CATEGORIES.includes(active.category);
+    const isPdfActive = isPdfItem(categories, active.category) && !!active.pdf_storage_path;
+    const isVideoActive = isVideoItem(categories, active.category);
     if (!isPdfActive && !isVideoActive) {
       timerRef.current = setTimeout(() => setBlocked(true), 3500);
     }
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [active]);
+  }, [active, categories]);
 
   if (isMobile) {
-    return <MobileKiosk items={items} settings={labels} />;
+    return <MobileKiosk items={items} settings={labels} categories={categories} />;
   }
+
+  const currentCat = findCat(category);
+
 
   return (
     <div

@@ -6,6 +6,7 @@ import { ArrowDown, ArrowUp, Eye, Pencil, Plus, RefreshCw, Trash2, X, Check, Fil
 
 const PresentationUpload = lazy(() => import("@/components/admin/PresentationUpload"));
 const CategoryManager = lazy(() => import("@/components/admin/CategoryManager"));
+const GalleryManager = lazy(() => import("@/components/admin/GalleryManager"));
 import {
   createItem,
   deleteItem,
@@ -191,6 +192,7 @@ function AdminPage() {
 
   const isVideoTab = !isMediaTab && tabBehavior === "video";
   const isPdfTab = !isMediaTab && tabBehavior === "pdf";
+  const isGalleryTab = !isMediaTab && tabBehavior === "gallery";
   const uploadVideo = useServerFn(uploadEventVideo);
 
   const visible = useMemo(

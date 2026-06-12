@@ -42,6 +42,7 @@ import {
   moveIdleImage,
   type IdleImage,
 } from "@/lib/idle-images.functions";
+import { listCategories, type Category } from "@/lib/categories.functions";
 
 
 export const Route = createFileRoute("/admin")({

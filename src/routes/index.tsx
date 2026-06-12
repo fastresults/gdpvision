@@ -360,7 +360,7 @@ function KioskPage() {
                   {active.favicon_asset_url || active.favicon_url ? (
                     <img src={active.favicon_asset_url ?? active.favicon_url ?? ""} alt="" className="h-10 w-10 rounded" />
                   ) : (
-                    <CategoryIcon category={active.category} className="h-10 w-10" />
+                    <CategoryIcon iconName={findCat(active.category)?.icon} className="h-10 w-10" />
                   )}
                   <div className="text-lg font-semibold">{active.label}</div>
                   <div className="text-sm opacity-70">

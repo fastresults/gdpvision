@@ -42,6 +42,7 @@ import {
   moveIdleImage,
   type IdleImage,
 } from "@/lib/idle-images.functions";
+import { listCategories, type Category } from "@/lib/categories.functions";
 
 
 export const Route = createFileRoute("/admin")({
@@ -155,19 +156,30 @@ function AdminPage() {
     idle_image_url: "",
   };
 
+  const fetchCategories = useServerFn(listCategories);
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ["categories"],
+    queryFn: () => fetchCategories(),
+  });
+
   const categoryTabs = useMemo(
-    () =>
-      CATEGORY_KEYS.map((key) => ({
-        key,
-        label: labels[CATEGORY_TO_SETTING[key]],
-      })),
-    [labels],
+    () => categories.map((c) => ({ key: c.slug, label: c.label, behavior: c.behavior })),
+    [categories],
   );
 
-  type TabKey = ItemCategory | "media";
-  const [tab, setTab] = useState<TabKey>("websites");
+  type TabKey = string;
+  const [tab, setTab] = useState<TabKey>("");
   const isMediaTab = tab === "media";
-  const categoryTab = (isMediaTab ? "websites" : tab) as ItemCategory;
+  // Default to first category when categories load
+  useEffect(() => {
+    if (categories.length === 0) return;
+    if (!tab || (tab !== "media" && !categories.some((c) => c.slug === tab))) {
+      setTab(categories[0].slug);
+    }
+  }, [categories, tab]);
+  const categoryTab = (isMediaTab ? categories[0]?.slug ?? "" : tab);
+  const currentCategory = categories.find((c) => c.slug === categoryTab);
+  const tabBehavior = currentCategory?.behavior;
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
   const [tooltip, setTooltip] = useState("");
@@ -177,7 +189,8 @@ function AdminPage() {
   const [editUrl, setEditUrl] = useState("");
   const [editTooltip, setEditTooltip] = useState("");
 
-  const isVideoTab = !isMediaTab && VIDEO_CATEGORIES.includes(categoryTab);
+  const isVideoTab = !isMediaTab && tabBehavior === "video";
+  const isPdfTab = !isMediaTab && tabBehavior === "pdf";
   const uploadVideo = useServerFn(uploadEventVideo);
 
   const visible = useMemo(
@@ -203,7 +216,7 @@ function AdminPage() {
       }
       const res = await create({ data: { category: categoryTab, label, url: finalUrl, tooltip: tooltip.trim() || null } });
       // Kick off thumbnail generation for non-video items (don't block UI)
-      if (res?.id && !VIDEO_CATEGORIES.includes(categoryTab)) {
+      if (res?.id && !isVideoTab) {
         genThumb({ data: { id: res.id } })
           .then(() => qc.invalidateQueries({ queryKey: ["items"] }))
           .catch(() => {});
@@ -369,13 +382,7 @@ function AdminPage() {
                   borderColor: isActive ? "var(--eyeframe-accent)" : "var(--eyeframe-border)",
                 }}
               >
-                <InlineEditable
-                  value={t.label}
-                  onSave={(v) =>
-                    settingMut.mutate({ key: CATEGORY_TO_SETTING[t.key], value: v })
-                  }
-                  inputClassName="text-sm font-medium"
-                />
+                <span>{t.label}</span>
               </div>
             );
           })}
@@ -401,10 +408,10 @@ function AdminPage() {
 
 
         <div className="mb-4 text-xs opacity-60">
-          Tip: click any title or category name to rename it. The kiosk updates automatically.
+          Tip: rename or reorder categories in the panel above. New categories appear here as tabs.
         </div>
 
-        {categoryTab === "presentations" || categoryTab === "brand" ? (
+        {isPdfTab ? (
           <Suspense
             fallback={
               <div className="mb-8 rounded-lg border p-4 text-sm opacity-60"
@@ -416,7 +423,7 @@ function AdminPage() {
               </div>
             }
           >
-            <PresentationUpload onUploaded={invalidateItems} category={categoryTab as "presentations" | "brand"} />
+            <PresentationUpload onUploaded={invalidateItems} category={categoryTab} />
           </Suspense>
         ) : (
         <form

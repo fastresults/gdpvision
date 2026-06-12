@@ -28,7 +28,7 @@ async function renderFirstPagePng(file: File): Promise<Blob | null> {
   }
 }
 
-export default function PresentationUpload({ onUploaded, category = "presentations" }: { onUploaded: () => void; category?: "presentations" | "brand" }) {
+export default function PresentationUpload({ onUploaded, category = "presentations" }: { onUploaded: () => void; category?: string }) {
   const [label, setLabel] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);

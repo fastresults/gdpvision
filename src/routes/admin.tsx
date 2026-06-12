@@ -216,7 +216,7 @@ function AdminPage() {
       }
       const res = await create({ data: { category: categoryTab, label, url: finalUrl, tooltip: tooltip.trim() || null } });
       // Kick off thumbnail generation for non-video items (don't block UI)
-      if (res?.id && !VIDEO_CATEGORIES.includes(categoryTab)) {
+      if (res?.id && !isVideoTab) {
         genThumb({ data: { id: res.id } })
           .then(() => qc.invalidateQueries({ queryKey: ["items"] }))
           .catch(() => {});

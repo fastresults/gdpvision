@@ -5,6 +5,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Eye, Pencil, Plus, RefreshCw, Trash2, X, Check, Film, FileText, Library, Upload, Copy, Star, Loader2, AlertCircle, RotateCw } from "lucide-react";
 
 const PresentationUpload = lazy(() => import("@/components/admin/PresentationUpload"));
+const CategoryManager = lazy(() => import("@/components/admin/CategoryManager"));
 import {
   createItem,
   deleteItem,
@@ -346,6 +347,12 @@ function AdminPage() {
             </Link>
           </div>
         </header>
+
+
+        <Suspense fallback={null}>
+          <CategoryManager />
+        </Suspense>
+
 
 
         <div className="mb-6 flex flex-wrap gap-2">

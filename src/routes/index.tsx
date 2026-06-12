@@ -167,7 +167,7 @@ function KioskPage() {
           >
             <span className="flex items-center gap-1.5">
               <Eye className="h-3 w-3" style={{ color: "var(--eyeframe-accent)" }} />
-              <span className="opacity-70">{CATEGORY_LABELS[category]}</span>
+              <span className="opacity-70">{currentCat?.label ?? ""}</span>
             </span>
             <ChevronDown className="h-3 w-3 opacity-70" />
           </button>
@@ -183,20 +183,20 @@ function KioskPage() {
                 borderColor: "var(--eyeframe-border)",
               }}
             >
-              {(Object.keys(CATEGORY_LABELS) as ItemCategory[]).map((c) => (
+              {categories.map((c) => (
                 <button
-                  key={c}
+                  key={c.slug}
                   type="button"
                   onMouseDown={(e) => {
                     e.preventDefault();
-                    setCategory(c);
+                    setCategory(c.slug);
                     setMenuOpen(false);
                   }}
                   className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm opacity-70 transition-colors hover:brightness-125"
                   style={{ color: "var(--eyeframe-text)" }}
                 >
-                  <CategoryIcon category={c} className="h-3.5 w-3.5 opacity-80" />
-                  {CATEGORY_LABELS[c]}
+                  <CategoryIcon iconName={c.icon} className="h-3.5 w-3.5 opacity-80" />
+                  {c.label}
                 </button>
               ))}
             </div>

@@ -330,7 +330,7 @@ function KioskPage() {
           </ClientOnly>
         )}
 
-        {active && !VIDEO_CATEGORIES.includes(active.category) && !(PDF_CATEGORIES.includes(active.category) && active.pdf_storage_path) && (
+        {active && !isActiveVideo && !isActivePdf && (
           <>
             <iframe
               key={active.id}

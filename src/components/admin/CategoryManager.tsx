@@ -11,13 +11,14 @@ import {
   CATEGORY_ICON_NAMES,
   type CategoryBehavior,
 } from "@/lib/categories.functions";
-import { getCategoryIcon } from "@/lib/kiosk-types";
+import { getCategoryIcon, type MediaMode } from "@/lib/kiosk-types";
 
 const BEHAVIORS: { value: CategoryBehavior; label: string; hint: string }[] = [
   { value: "website", label: "Website", hint: "Loads URL in iframe" },
   { value: "pdf", label: "PDF", hint: "Uploaded PDF file" },
   { value: "docs", label: "Google Docs", hint: "Doc link in iframe" },
   { value: "video", label: "Video", hint: "Uploaded video file" },
+  { value: "gallery", label: "Gallery", hint: "Collections of videos and/or images" },
 ];
 
 export default function CategoryManager() {
@@ -41,14 +42,24 @@ export default function CategoryManager() {
   const [label, setLabel] = useState("");
   const [icon, setIcon] = useState<string>("Globe");
   const [behavior, setBehavior] = useState<CategoryBehavior>("website");
+  const [mediaModes, setMediaModes] = useState<MediaMode[]>(["video", "image"]);
   const [err, setErr] = useState<string | null>(null);
 
   const createMut = useMutation({
-    mutationFn: () => createFn({ data: { label: label.trim(), icon, behavior } }),
+    mutationFn: () =>
+      createFn({
+        data: {
+          label: label.trim(),
+          icon,
+          behavior,
+          mediaModes: behavior === "gallery" ? mediaModes : undefined,
+        },
+      }),
     onSuccess: () => {
       setLabel("");
       setIcon("Globe");
       setBehavior("website");
+      setMediaModes(["video", "image"]);
       setErr(null);
       invalidate();
     },
@@ -56,7 +67,7 @@ export default function CategoryManager() {
   });
 
   const updateMut = useMutation({
-    mutationFn: (v: { id: string; label?: string; icon?: string }) =>
+    mutationFn: (v: { id: string; label?: string; icon?: string; mediaModes?: MediaMode[] }) =>
       updateFn({ data: v }),
     onSuccess: invalidate,
   });
@@ -153,6 +164,34 @@ export default function CategoryManager() {
         </button>
       </div>
 
+      {behavior === "gallery" && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-md border px-3 py-2 text-xs"
+          style={{ borderColor: "var(--eyeframe-border)", backgroundColor: "var(--eyeframe-card)" }}>
+          <span className="opacity-70">Gallery contains:</span>
+          {(["video", "image"] as MediaMode[]).map((m) => {
+            const checked = mediaModes.includes(m);
+            return (
+              <label key={m} className="flex cursor-pointer items-center gap-1.5 capitalize">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(e) => {
+                    setMediaModes((prev) => {
+                      const next = new Set(prev);
+                      if (e.target.checked) next.add(m);
+                      else next.delete(m);
+                      if (next.size === 0) next.add(m);
+                      return Array.from(next);
+                    });
+                  }}
+                />
+                {m === "video" ? "Videos" : "Images"}
+              </label>
+            );
+          })}
+        </div>
+      )}
+
       {err && (
         <div className="mb-3 rounded-md border px-3 py-2 text-xs" style={{ borderColor: "var(--eyeframe-border)", color: "tomato" }}>
           {err}
@@ -210,6 +249,34 @@ export default function CategoryManager() {
               >
                 {c.behavior}
               </span>
+              {c.behavior === "gallery" && (
+                <div className="flex items-center gap-1">
+                  {(["video", "image"] as MediaMode[]).map((m) => {
+                    const checked = (c.media_modes ?? []).includes(m);
+                    return (
+                      <label
+                        key={m}
+                        className="flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] capitalize"
+                        style={{ borderColor: "var(--eyeframe-border)" }}
+                        title={`Allow ${m === "video" ? "videos" : "images"} in this gallery`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            const set = new Set<MediaMode>(c.media_modes ?? []);
+                            if (e.target.checked) set.add(m);
+                            else set.delete(m);
+                            if (set.size === 0) set.add(m);
+                            updateMut.mutate({ id: c.id, mediaModes: Array.from(set) });
+                          }}
+                        />
+                        {m === "video" ? "Vid" : "Img"}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
               <button
                 type="button"
                 onClick={() => moveMut.mutate({ id: c.id, direction: "up" })}

@@ -14,6 +14,8 @@ import {
   DEFAULT_SETTINGS,
   getCategoryIcon,
   type Category,
+  type Gallery,
+  type GalleryItem,
   type Item,
   type ItemCategory,
   type Settings,
@@ -21,6 +23,7 @@ import {
 import { MobileKiosk } from "@/components/mobile/MobileKiosk";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
+import { GalleryView } from "@/components/GalleryView";
 
 
 type IdleImage = {
@@ -44,7 +47,14 @@ export const Route = createFileRoute("/")({
   component: KioskPage,
 });
 
-type KioskData = { items: Item[]; settings: Settings; idleImages?: IdleImage[]; categories?: Category[] };
+type KioskData = {
+  items: Item[];
+  settings: Settings;
+  idleImages?: IdleImage[];
+  categories?: Category[];
+  galleries?: Gallery[];
+  galleryItems?: GalleryItem[];
+};
 
 async function fetchKioskData(): Promise<KioskData> {
   const response = await fetch("/api/kiosk-data");
@@ -72,6 +82,8 @@ function KioskPage() {
   const items = data?.items ?? [];
   const labels: Settings = data?.settings ?? DEFAULT_SETTINGS;
   const categories: Category[] = data?.categories ?? [];
+  const galleries: Gallery[] = data?.galleries ?? [];
+  const galleryItems: GalleryItem[] = data?.galleryItems ?? [];
   const findCat = (slug: string) => categories.find((c) => c.slug === slug);
 
 
@@ -135,6 +147,7 @@ function KioskPage() {
   }
 
   const currentCat = findCat(category);
+  const isGalleryCat = currentCat?.behavior === "gallery";
   const activeBehavior = active ? findCat(active.category)?.behavior : undefined;
   const isActivePdf = activeBehavior === "pdf" && !!active?.pdf_storage_path;
   const isActiveVideo = activeBehavior === "video";
@@ -211,42 +224,48 @@ function KioskPage() {
           className="flex h-full min-w-0 flex-1 items-center gap-2 overflow-x-auto overflow-y-hidden"
           style={{ scrollbarWidth: "thin" }}
         >
-          {visible.length === 0 && (
-            <span className="text-xs opacity-60">
-              No items in this category. Add some in /admin.
-            </span>
-          )}
-          <TooltipProvider delayDuration={200}>
-          {visible.map((item) => {
-            const isActive = active?.id === item.id;
-            const btn = (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setActive(item)}
-                title={item.tooltip ? undefined : item.label}
-                className="group flex h-[31px] shrink-0 items-center justify-center gap-2 rounded-md border px-2 transition-all hover:brightness-125"
-                style={{
-                  width: 101,
-                  backgroundColor: "var(--eyeframe-card)",
-                  borderColor: isActive ? "var(--eyeframe-accent)" : "var(--eyeframe-border)",
-                  borderBottomWidth: isActive ? 3 : 1,
-                }}
-              >
-                <span className="w-full truncate text-center text-xs opacity-70" style={{ color: "var(--eyeframe-text)" }}>
-                  {item.label}
+          {isGalleryCat ? (
+            <span className="text-xs opacity-60">Browse galleries below.</span>
+          ) : (
+            <>
+              {visible.length === 0 && (
+                <span className="text-xs opacity-60">
+                  No items in this category. Add some in /admin.
                 </span>
-              </button>
-            );
-            if (!item.tooltip) return btn;
-            return (
-              <Tooltip key={item.id}>
-                <TooltipTrigger asChild>{btn}</TooltipTrigger>
-                <TooltipContent side="bottom">{item.tooltip}</TooltipContent>
-              </Tooltip>
-            );
-          })}
-          </TooltipProvider>
+              )}
+              <TooltipProvider delayDuration={200}>
+              {visible.map((item) => {
+                const isActive = active?.id === item.id;
+                const btn = (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setActive(item)}
+                    title={item.tooltip ? undefined : item.label}
+                    className="group flex h-[31px] shrink-0 items-center justify-center gap-2 rounded-md border px-2 transition-all hover:brightness-125"
+                    style={{
+                      width: 101,
+                      backgroundColor: "var(--eyeframe-card)",
+                      borderColor: isActive ? "var(--eyeframe-accent)" : "var(--eyeframe-border)",
+                      borderBottomWidth: isActive ? 3 : 1,
+                    }}
+                  >
+                    <span className="w-full truncate text-center text-xs opacity-70" style={{ color: "var(--eyeframe-text)" }}>
+                      {item.label}
+                    </span>
+                  </button>
+                );
+                if (!item.tooltip) return btn;
+                return (
+                  <Tooltip key={item.id}>
+                    <TooltipTrigger asChild>{btn}</TooltipTrigger>
+                    <TooltipContent side="bottom">{item.tooltip}</TooltipContent>
+                  </Tooltip>
+                );
+              })}
+              </TooltipProvider>
+            </>
+          )}
         </div>
 
         {active && isActivePdf && (
@@ -285,7 +304,9 @@ function KioskPage() {
 
       {/* Preview area */}
       <div className="relative h-full w-full" style={{ backgroundColor: "var(--eyeframe-bg)" }}>
-        {!active && (
+        {isGalleryCat && currentCat ? (
+          <GalleryView category={currentCat} galleries={galleries} items={galleryItems} />
+        ) : !active && (
           (data?.idleImages?.length ?? 0) > 0 ? (
             <IdleCarousel images={data!.idleImages!} />
           ) : labels.idle_image_url ? (

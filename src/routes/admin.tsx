@@ -6,6 +6,7 @@ import { ArrowDown, ArrowUp, Eye, Pencil, Plus, RefreshCw, Trash2, X, Check, Fil
 
 const PresentationUpload = lazy(() => import("@/components/admin/PresentationUpload"));
 const CategoryManager = lazy(() => import("@/components/admin/CategoryManager"));
+const GalleryManager = lazy(() => import("@/components/admin/GalleryManager"));
 import {
   createItem,
   deleteItem,
@@ -191,6 +192,7 @@ function AdminPage() {
 
   const isVideoTab = !isMediaTab && tabBehavior === "video";
   const isPdfTab = !isMediaTab && tabBehavior === "pdf";
+  const isGalleryTab = !isMediaTab && tabBehavior === "gallery";
   const uploadVideo = useServerFn(uploadEventVideo);
 
   const visible = useMemo(
@@ -411,7 +413,11 @@ function AdminPage() {
           Tip: rename or reorder categories in the panel above. New categories appear here as tabs.
         </div>
 
-        {isPdfTab ? (
+        {isGalleryTab && currentCategory ? (
+          <Suspense fallback={<div className="mb-8 rounded-lg border p-4 text-sm opacity-60" style={{ backgroundColor: "var(--eyeframe-topbar)", borderColor: "var(--eyeframe-border)" }}>Loading gallery manager…</div>}>
+            <GalleryManager category={currentCategory} />
+          </Suspense>
+        ) : isPdfTab ? (
           <Suspense
             fallback={
               <div className="mb-8 rounded-lg border p-4 text-sm opacity-60"
@@ -518,6 +524,7 @@ function AdminPage() {
         )}
 
         {/* List */}
+        {!isGalleryTab && (
         <div
           className="overflow-hidden rounded-lg border"
           style={{ borderColor: "var(--eyeframe-border)" }}
@@ -736,6 +743,7 @@ function AdminPage() {
             );
           })}
         </div>
+        )}
         </div>
         )}
       </div>

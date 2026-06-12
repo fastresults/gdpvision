@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import type { CategoryBehavior, Item, ItemCategory, ThumbnailStatus } from "./kiosk-types";
+import { VIDEO_CATEGORIES, type CategoryBehavior, type Item, type ItemCategory, type ThumbnailStatus } from "./kiosk-types";
 
-export type { Item, ItemCategory, ThumbnailStatus };
+export { VIDEO_CATEGORIES, type Item, type ItemCategory, type ThumbnailStatus };
 
 // Behaviors that should not be auto-screenshotted by mShots.
 // Videos have no homepage; PDFs supply their own thumbnail at upload time.

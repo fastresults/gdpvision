@@ -14,34 +14,22 @@ export const Route = createFileRoute("/api/kiosk-data")({
       GET: async () => {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-        const [itemsResult, settingsResult, idleResult, categoriesResult] = await Promise.all([
-          supabaseAdmin
-            .from("items")
-            .select("*, favicon_asset:media_assets!items_favicon_asset_id_fkey(public_url)")
-            .order("category", { ascending: true })
-            .order("sort_order", { ascending: true }),
-          supabaseAdmin.from("app_settings").select("key,value"),
-          supabaseAdmin
-            .from("idle_images")
-            .select("*")
-            .order("sort_order", { ascending: true }),
-          supabaseAdmin
-            .from("categories")
-            .select("*")
-            .order("sort_order", { ascending: true }),
-        ]);
+        const [itemsResult, settingsResult, idleResult, categoriesResult, galleriesResult, galleryItemsResult] =
+          await Promise.all([
+            supabaseAdmin
+              .from("items")
+              .select("*, favicon_asset:media_assets!items_favicon_asset_id_fkey(public_url)")
+              .order("category", { ascending: true })
+              .order("sort_order", { ascending: true }),
+            supabaseAdmin.from("app_settings").select("key,value"),
+            supabaseAdmin.from("idle_images").select("*").order("sort_order", { ascending: true }),
+            supabaseAdmin.from("categories").select("*").order("sort_order", { ascending: true }),
+            supabaseAdmin.from("galleries").select("*").order("sort_order", { ascending: true }),
+            supabaseAdmin.from("gallery_items").select("*").order("sort_order", { ascending: true }),
+          ]);
 
-        if (itemsResult.error) {
-          return Response.json({ error: itemsResult.error.message }, { status: 500 });
-        }
-        if (settingsResult.error) {
-          return Response.json({ error: settingsResult.error.message }, { status: 500 });
-        }
-        if (idleResult.error) {
-          return Response.json({ error: idleResult.error.message }, { status: 500 });
-        }
-        if (categoriesResult.error) {
-          return Response.json({ error: categoriesResult.error.message }, { status: 500 });
+        for (const r of [itemsResult, settingsResult, idleResult, categoriesResult, galleriesResult, galleryItemsResult]) {
+          if (r.error) return Response.json({ error: r.error.message }, { status: 500 });
         }
 
         const settings = { ...DEFAULT_SETTINGS };
@@ -86,13 +74,32 @@ export const Route = createFileRoute("/api/kiosk-data")({
           behavior: row.behavior,
           is_builtin: !!row.is_builtin,
           sort_order: row.sort_order,
+          media_modes: row.media_modes ?? [],
+        }));
+
+        const galleries = (galleriesResult.data ?? []).map((row: any) => ({
+          id: row.id,
+          category_id: row.category_id,
+          label: row.label,
+          cover_url: row.cover_url,
+          sort_order: row.sort_order,
+        }));
+
+        const galleryItems = (galleryItemsResult.data ?? []).map((row: any) => ({
+          id: row.id,
+          gallery_id: row.gallery_id,
+          kind: row.kind,
+          media_asset_id: row.media_asset_id,
+          storage_path: row.storage_path,
+          thumbnail_url: row.thumbnail_url,
+          label: row.label,
+          sort_order: row.sort_order,
         }));
 
         return Response.json(
-          { items, settings, idleImages, categories },
+          { items, settings, idleImages, categories, galleries, galleryItems },
           { headers: { "Cache-Control": "private, max-age=5" } },
         );
-
       },
     },
   },

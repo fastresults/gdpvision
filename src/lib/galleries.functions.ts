@@ -75,7 +75,7 @@ export const updateGallery = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const patch: Record<string, unknown> = {};
+    const patch: { label?: string; cover_url?: string | null } = {};
     if (data.label !== undefined) patch.label = data.label;
     if (data.coverUrl !== undefined) patch.cover_url = data.coverUrl;
     if (Object.keys(patch).length === 0) return { ok: true };
@@ -184,7 +184,7 @@ export const updateGalleryItem = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const patch: Record<string, unknown> = {};
+    const patch: { label?: string | null } = {};
     if (data.label !== undefined) patch.label = data.label;
     if (Object.keys(patch).length === 0) return { ok: true };
     const { error } = await supabaseAdmin.from("gallery_items").update(patch).eq("id", data.id);

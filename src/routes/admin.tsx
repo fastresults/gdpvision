@@ -349,6 +349,12 @@ function AdminPage() {
         </header>
 
 
+        <Suspense fallback={null}>
+          <CategoryManager />
+        </Suspense>
+
+
+
         <div className="mb-6 flex flex-wrap gap-2">
           {categoryTabs.map((t) => {
             const isActive = tab === t.key;

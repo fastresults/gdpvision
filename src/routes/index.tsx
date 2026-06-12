@@ -304,7 +304,9 @@ function KioskPage() {
 
       {/* Preview area */}
       <div className="relative h-full w-full" style={{ backgroundColor: "var(--eyeframe-bg)" }}>
-        {!active && (
+        {isGalleryCat && currentCat ? (
+          <GalleryView category={currentCat} galleries={galleries} items={galleryItems} />
+        ) : !active && (
           (data?.idleImages?.length ?? 0) > 0 ? (
             <IdleCarousel images={data!.idleImages!} />
           ) : labels.idle_image_url ? (

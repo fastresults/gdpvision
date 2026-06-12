@@ -82,6 +82,8 @@ function KioskPage() {
   const items = data?.items ?? [];
   const labels: Settings = data?.settings ?? DEFAULT_SETTINGS;
   const categories: Category[] = data?.categories ?? [];
+  const galleries: Gallery[] = data?.galleries ?? [];
+  const galleryItems: GalleryItem[] = data?.galleryItems ?? [];
   const findCat = (slug: string) => categories.find((c) => c.slug === slug);
 
 

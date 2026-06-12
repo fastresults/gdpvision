@@ -311,7 +311,7 @@ function KioskPage() {
         )}
 
 
-        {active && VIDEO_CATEGORIES.includes(active.category) && (
+        {active && isActiveVideo && (
           <video
             key={active.id}
             src={active.url}

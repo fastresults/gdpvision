@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-export type CategoryBehavior = "website" | "pdf" | "docs" | "video";
+export type CategoryBehavior = "website" | "pdf" | "docs" | "video" | "gallery";
+
+export type MediaMode = "video" | "image";
 
 export type Category = {
   id: string;
@@ -11,10 +13,9 @@ export type Category = {
   behavior: CategoryBehavior;
   is_builtin: boolean;
   sort_order: number;
+  media_modes: MediaMode[];
 };
 
-// Curated lucide icon set the admin can pick from. Keep in sync with the
-// ICON_MAP in kiosk-types.ts (icon-name -> lucide component).
 export const CATEGORY_ICON_NAMES = [
   "Globe",
   "Presentation",
@@ -38,11 +39,13 @@ export const CATEGORY_ICON_NAMES = [
   "Hammer",
   "Lightbulb",
   "Network",
+  "Images",
 ] as const;
 
-const behaviorSchema = z.enum(["website", "pdf", "docs", "video"]);
+const behaviorSchema = z.enum(["website", "pdf", "docs", "video", "gallery"]);
 const iconSchema = z.string().min(1).max(40);
 const labelSchema = z.string().min(1).max(80);
+const mediaModesSchema = z.array(z.enum(["video", "image"])).max(2);
 
 function slugify(input: string): string {
   return (
@@ -53,6 +56,13 @@ function slugify(input: string): string {
       .replace(/^-+|-+$/g, "")
       .slice(0, 48) || `cat-${Date.now().toString(36)}`
   );
+}
+
+function normalizeMediaModes(behavior: CategoryBehavior, modes: MediaMode[] | undefined): MediaMode[] {
+  if (behavior !== "gallery") return [];
+  const set = new Set<MediaMode>((modes ?? []).filter((m): m is MediaMode => m === "video" || m === "image"));
+  if (set.size === 0) set.add("image");
+  return Array.from(set);
 }
 
 export const listCategories = createServerFn({ method: "GET" }).handler(async () => {
@@ -70,6 +80,7 @@ export const listCategories = createServerFn({ method: "GET" }).handler(async ()
     behavior: r.behavior as CategoryBehavior,
     is_builtin: !!r.is_builtin,
     sort_order: r.sort_order,
+    media_modes: (r.media_modes ?? []) as MediaMode[],
   })) as Category[];
 });
 
@@ -80,6 +91,7 @@ export const createCategory = createServerFn({ method: "POST" })
         label: labelSchema,
         icon: iconSchema,
         behavior: behaviorSchema,
+        mediaModes: mediaModesSchema.optional(),
       })
       .parse(d),
   )
@@ -87,7 +99,6 @@ export const createCategory = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     let baseSlug = slugify(data.label);
     let slug = baseSlug;
-    // Ensure unique slug
     for (let i = 2; i < 50; i++) {
       const { data: existing } = await supabaseAdmin
         .from("categories")
@@ -104,6 +115,7 @@ export const createCategory = createServerFn({ method: "POST" })
       .limit(1)
       .maybeSingle();
     const nextOrder = (maxRow?.sort_order ?? 0) + 10;
+    const media_modes = normalizeMediaModes(data.behavior, data.mediaModes);
     const { data: inserted, error } = await supabaseAdmin
       .from("categories")
       .insert({
@@ -113,7 +125,8 @@ export const createCategory = createServerFn({ method: "POST" })
         behavior: data.behavior,
         is_builtin: false,
         sort_order: nextOrder,
-      })
+        media_modes,
+      } as any)
       .select("id, slug")
       .single();
     if (error) throw new Error(error.message);
@@ -127,18 +140,30 @@ export const updateCategory = createServerFn({ method: "POST" })
         id: z.string().uuid(),
         label: labelSchema.optional(),
         icon: iconSchema.optional(),
+        mediaModes: mediaModesSchema.optional(),
       })
       .parse(d),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const patch: { label?: string; icon?: string } = {};
+    const patch: { label?: string; icon?: string; media_modes?: MediaMode[] } = {};
     if (data.label !== undefined) patch.label = data.label;
     if (data.icon !== undefined) patch.icon = data.icon;
+    if (data.mediaModes !== undefined) {
+      // Only apply to gallery categories
+      const { data: row } = await supabaseAdmin
+        .from("categories")
+        .select("behavior")
+        .eq("id", data.id)
+        .maybeSingle();
+      if (row?.behavior === "gallery") {
+        patch.media_modes = normalizeMediaModes("gallery", data.mediaModes);
+      }
+    }
     if (Object.keys(patch).length === 0) return { ok: true };
     const { error } = await supabaseAdmin
       .from("categories")
-      .update(patch)
+      .update(patch as any)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -150,21 +175,34 @@ export const deleteCategory = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row, error: e1 } = await supabaseAdmin
       .from("categories")
-      .select("id, slug, is_builtin")
+      .select("id, slug, is_builtin, behavior")
       .eq("id", data.id)
       .maybeSingle();
     if (e1) throw new Error(e1.message);
     if (!row) throw new Error("Category not found");
     if (row.is_builtin) throw new Error("Built-in categories cannot be deleted");
-    const { count, error: cErr } = await supabaseAdmin
-      .from("items")
-      .select("id", { count: "exact", head: true })
-      .eq("category", row.slug);
-    if (cErr) throw new Error(cErr.message);
-    if ((count ?? 0) > 0) {
-      throw new Error(
-        `This category still has ${count} item${count === 1 ? "" : "s"}. Remove them first.`,
-      );
+    if (row.behavior !== "gallery") {
+      const { count, error: cErr } = await supabaseAdmin
+        .from("items")
+        .select("id", { count: "exact", head: true })
+        .eq("category", row.slug);
+      if (cErr) throw new Error(cErr.message);
+      if ((count ?? 0) > 0) {
+        throw new Error(
+          `This category still has ${count} item${count === 1 ? "" : "s"}. Remove them first.`,
+        );
+      }
+    } else {
+      const { count, error: gErr } = await supabaseAdmin
+        .from("galleries")
+        .select("id", { count: "exact", head: true })
+        .eq("category_id", data.id);
+      if (gErr) throw new Error(gErr.message);
+      if ((count ?? 0) > 0) {
+        throw new Error(
+          `This category still has ${count} galler${count === 1 ? "y" : "ies"}. Remove them first.`,
+        );
+      }
     }
     const { error } = await supabaseAdmin.from("categories").delete().eq("id", data.id);
     if (error) throw new Error(error.message);

@@ -1,0 +1,1 @@
+ALTER TABLE public.items DROP CONSTRAINT IF EXISTS items_category_check;

@@ -4,18 +4,21 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 const PdfViewer = lazy(() => import("@/components/mobile/PdfViewer"));
 import {
   ChevronDown,
-  FileText,
-  Globe,
-  Presentation,
   ExternalLink,
   Settings as SettingsIcon,
   Eye,
-  Film,
-  Sparkles,
   PanelTopOpen,
   PanelTopClose,
 } from "lucide-react";
-import { DEFAULT_SETTINGS, PDF_CATEGORIES, VIDEO_CATEGORIES, type Item, type ItemCategory, type Settings } from "@/lib/kiosk-types";
+import {
+  DEFAULT_SETTINGS,
+  getCategoryIcon,
+  isPdfItem,
+  isVideoItem,
+  type Category,
+  type Item,
+  type Settings,
+} from "@/lib/kiosk-types";
 import { MobileKiosk } from "@/components/mobile/MobileKiosk";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
@@ -42,15 +45,7 @@ export const Route = createFileRoute("/")({
   component: KioskPage,
 });
 
-const CATEGORY_SETTING_KEY = {
-  websites: "label_websites",
-  presentations: "label_presentations",
-  docs: "label_docs",
-  videos: "label_videos",
-  brand: "label_brand",
-} as const;
-
-type KioskData = { items: Item[]; settings: Settings; idleImages?: IdleImage[] };
+type KioskData = { items: Item[]; settings: Settings; idleImages?: IdleImage[]; categories?: Category[] };
 
 async function fetchKioskData(): Promise<KioskData> {
   const response = await fetch("/api/kiosk-data");
@@ -58,17 +53,8 @@ async function fetchKioskData(): Promise<KioskData> {
   return response.json();
 }
 
-function CategoryIcon({ category, className }: { category: ItemCategory; className?: string }) {
-  const Icon =
-    category === "websites"
-      ? Globe
-      : category === "presentations"
-        ? Presentation
-        : category === "docs"
-          ? FileText
-          : category === "videos"
-            ? Film
-            : Sparkles;
+function CategoryIcon({ iconName, className }: { iconName: string | null | undefined; className?: string }) {
+  const Icon = getCategoryIcon(iconName);
   return <Icon className={className} />;
 }
 
@@ -86,14 +72,9 @@ function KioskPage() {
   });
   const items = data?.items ?? [];
   const labels: Settings = data?.settings ?? DEFAULT_SETTINGS;
-  const CATEGORY_LABELS: Record<ItemCategory, string> = {
-    websites: labels.label_websites,
-    presentations: labels.label_presentations,
-    docs: labels.label_docs,
-    videos: labels.label_videos,
-    brand: labels.label_brand,
-  };
-  void CATEGORY_SETTING_KEY;
+  const categories: Category[] = data?.categories ?? [];
+  const findCat = (slug: string) => categories.find((c) => c.slug === slug);
+
 
   const [category, setCategory] = useState<ItemCategory>("websites");
   const [active, setActive] = useState<Item | null>(null);

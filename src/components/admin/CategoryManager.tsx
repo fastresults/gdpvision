@@ -11,13 +11,14 @@ import {
   CATEGORY_ICON_NAMES,
   type CategoryBehavior,
 } from "@/lib/categories.functions";
-import { getCategoryIcon } from "@/lib/kiosk-types";
+import { getCategoryIcon, type MediaMode } from "@/lib/kiosk-types";
 
 const BEHAVIORS: { value: CategoryBehavior; label: string; hint: string }[] = [
   { value: "website", label: "Website", hint: "Loads URL in iframe" },
   { value: "pdf", label: "PDF", hint: "Uploaded PDF file" },
   { value: "docs", label: "Google Docs", hint: "Doc link in iframe" },
   { value: "video", label: "Video", hint: "Uploaded video file" },
+  { value: "gallery", label: "Gallery", hint: "Collections of videos and/or images" },
 ];
 
 export default function CategoryManager() {

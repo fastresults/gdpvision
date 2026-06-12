@@ -392,8 +392,16 @@ export const refreshAllThumbnails = createServerFn({ method: "POST" })
       .select("id, category, thumbnail_status");
     if (error) throw new Error(error.message);
 
+    const { data: catRows } = await supabaseAdmin
+      .from("categories")
+      .select("slug, behavior");
+    const behaviorBySlug = new Map<string, CategoryBehavior>(
+      (catRows ?? []).map((c: any) => [c.slug, c.behavior as CategoryBehavior]),
+    );
+
     const targets = (rows ?? []).filter((r) => {
-      if (NO_AUTO_THUMBNAIL_CATEGORIES.includes(r.category as ItemCategory)) return false;
+      const b = behaviorBySlug.get(r.category);
+      if (b && NO_AUTO_THUMBNAIL_BEHAVIORS.includes(b)) return false;
       if (force) return true;
       return r.thumbnail_status !== "ready";
     });

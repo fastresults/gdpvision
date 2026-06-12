@@ -1,18 +1,27 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { VIDEO_CATEGORIES, type Item, type ItemCategory, type ThumbnailStatus } from "./kiosk-types";
-
-// Categories that should not be auto-screenshotted by mShots.
-// Presentations are PDF uploads and generate their own thumbnail at upload time.
-export const NO_AUTO_THUMBNAIL_CATEGORIES: ItemCategory[] = [
-  "videos",
-  "brand",
-  "presentations",
-];
+import { VIDEO_CATEGORIES, type CategoryBehavior, type Item, type ItemCategory, type ThumbnailStatus } from "./kiosk-types";
 
 export { VIDEO_CATEGORIES, type Item, type ItemCategory, type ThumbnailStatus };
 
-const categorySchema = z.enum(["websites", "presentations", "docs", "videos", "brand"]);
+// Behaviors that should not be auto-screenshotted by mShots.
+// Videos have no homepage; PDFs supply their own thumbnail at upload time.
+const NO_AUTO_THUMBNAIL_BEHAVIORS: CategoryBehavior[] = ["video", "pdf"];
+
+async function getBehaviorForSlug(
+  supabaseAdmin: any,
+  slug: string,
+): Promise<CategoryBehavior | null> {
+  const { data } = await supabaseAdmin
+    .from("categories")
+    .select("behavior")
+    .eq("slug", slug)
+    .maybeSingle();
+  return (data?.behavior as CategoryBehavior | undefined) ?? null;
+}
+
+const categorySchema = z.string().min(1).max(64);
+
 
 const ALLOWED_VIDEO_MIME = ["video/mp4", "video/webm", "video/quicktime"];
 const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
@@ -88,8 +97,9 @@ export const createItem = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const behavior = await getBehaviorForSlug(supabaseAdmin, data.category);
     let favicon = data.favicon_url ?? null;
-    if (!favicon && !VIDEO_CATEGORIES.includes(data.category)) {
+    if (!favicon && behavior !== "video") {
       try {
         const host = new URL(data.url).hostname;
         favicon = `https://www.google.com/s2/favicons?domain=${host}&sz=64`;
@@ -304,7 +314,8 @@ export const generateItemThumbnail = createServerFn({ method: "POST" })
       .maybeSingle();
     if (fetchErr) throw new Error(fetchErr.message);
     if (!item) throw new Error("Item not found");
-    if (NO_AUTO_THUMBNAIL_CATEGORIES.includes(item.category as ItemCategory)) {
+    const behavior = await getBehaviorForSlug(supabaseAdmin, item.category);
+    if (behavior && NO_AUTO_THUMBNAIL_BEHAVIORS.includes(behavior)) {
       return { ok: true, status: "skipped" as const };
     }
 
@@ -381,8 +392,16 @@ export const refreshAllThumbnails = createServerFn({ method: "POST" })
       .select("id, category, thumbnail_status");
     if (error) throw new Error(error.message);
 
+    const { data: catRows } = await supabaseAdmin
+      .from("categories")
+      .select("slug, behavior");
+    const behaviorBySlug = new Map<string, CategoryBehavior>(
+      (catRows ?? []).map((c: any) => [c.slug, c.behavior as CategoryBehavior]),
+    );
+
     const targets = (rows ?? []).filter((r) => {
-      if (NO_AUTO_THUMBNAIL_CATEGORIES.includes(r.category as ItemCategory)) return false;
+      const b = behaviorBySlug.get(r.category);
+      if (b && NO_AUTO_THUMBNAIL_BEHAVIORS.includes(b)) return false;
       if (force) return true;
       return r.thumbnail_status !== "ready";
     });

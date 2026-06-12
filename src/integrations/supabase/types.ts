@@ -32,6 +32,42 @@ export type Database = {
         }
         Relationships: []
       }
+      categories: {
+        Row: {
+          behavior: string
+          created_at: string
+          icon: string
+          id: string
+          is_builtin: boolean
+          label: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          behavior: string
+          created_at?: string
+          icon?: string
+          id?: string
+          is_builtin?: boolean
+          label: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          behavior?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          is_builtin?: boolean
+          label?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       idle_images: {
         Row: {
           caption: string | null

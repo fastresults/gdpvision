@@ -1,3 +1,29 @@
+import {
+  Globe,
+  Presentation,
+  FileText,
+  Film,
+  Sparkles,
+  Building2,
+  Briefcase,
+  GraduationCap,
+  HeartPulse,
+  Leaf,
+  Anchor,
+  Zap,
+  Landmark,
+  Factory,
+  Ship,
+  Plane,
+  Cpu,
+  Wheat,
+  Banknote,
+  Hammer,
+  Lightbulb,
+  Network,
+  type LucideIcon,
+} from "lucide-react";
+
 export type ItemCategory = "websites" | "presentations" | "docs" | "videos" | "brand";
 
 export const VIDEO_CATEGORIES: ItemCategory[] = ["videos"];
@@ -45,3 +71,47 @@ export const DEFAULT_SETTINGS: Settings = {
   label_brand: "Brand Building",
   idle_image_url: "",
 };
+
+// ----- Admin-managed categories (new) -----
+
+export type CategoryBehavior = "website" | "pdf" | "docs" | "video";
+
+export type Category = {
+  id: string;
+  slug: string;
+  label: string;
+  icon: string;
+  behavior: CategoryBehavior;
+  is_builtin: boolean;
+  sort_order: number;
+};
+
+export const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  Globe,
+  Presentation,
+  FileText,
+  Film,
+  Sparkles,
+  Building2,
+  Briefcase,
+  GraduationCap,
+  HeartPulse,
+  Leaf,
+  Anchor,
+  Zap,
+  Landmark,
+  Factory,
+  Ship,
+  Plane,
+  Cpu,
+  Wheat,
+  Banknote,
+  Hammer,
+  Lightbulb,
+  Network,
+};
+
+export function getCategoryIcon(name: string | null | undefined): LucideIcon {
+  if (name && CATEGORY_ICONS[name]) return CATEGORY_ICONS[name];
+  return Globe;
+}

@@ -156,19 +156,30 @@ function AdminPage() {
     idle_image_url: "",
   };
 
+  const fetchCategories = useServerFn(listCategories);
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ["categories"],
+    queryFn: () => fetchCategories(),
+  });
+
   const categoryTabs = useMemo(
-    () =>
-      CATEGORY_KEYS.map((key) => ({
-        key,
-        label: labels[CATEGORY_TO_SETTING[key]],
-      })),
-    [labels],
+    () => categories.map((c) => ({ key: c.slug, label: c.label, behavior: c.behavior })),
+    [categories],
   );
 
-  type TabKey = ItemCategory | "media";
-  const [tab, setTab] = useState<TabKey>("websites");
+  type TabKey = string;
+  const [tab, setTab] = useState<TabKey>("");
   const isMediaTab = tab === "media";
-  const categoryTab = (isMediaTab ? "websites" : tab) as ItemCategory;
+  // Default to first category when categories load
+  useEffect(() => {
+    if (categories.length === 0) return;
+    if (!tab || (tab !== "media" && !categories.some((c) => c.slug === tab))) {
+      setTab(categories[0].slug);
+    }
+  }, [categories, tab]);
+  const categoryTab = (isMediaTab ? categories[0]?.slug ?? "" : tab);
+  const currentCategory = categories.find((c) => c.slug === categoryTab);
+  const tabBehavior = currentCategory?.behavior;
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
   const [tooltip, setTooltip] = useState("");
@@ -178,7 +189,8 @@ function AdminPage() {
   const [editUrl, setEditUrl] = useState("");
   const [editTooltip, setEditTooltip] = useState("");
 
-  const isVideoTab = !isMediaTab && VIDEO_CATEGORIES.includes(categoryTab);
+  const isVideoTab = !isMediaTab && tabBehavior === "video";
+  const isPdfTab = !isMediaTab && tabBehavior === "pdf";
   const uploadVideo = useServerFn(uploadEventVideo);
 
   const visible = useMemo(

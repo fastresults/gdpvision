@@ -314,7 +314,8 @@ export const generateItemThumbnail = createServerFn({ method: "POST" })
       .maybeSingle();
     if (fetchErr) throw new Error(fetchErr.message);
     if (!item) throw new Error("Item not found");
-    if (NO_AUTO_THUMBNAIL_CATEGORIES.includes(item.category as ItemCategory)) {
+    const behavior = await getBehaviorForSlug(supabaseAdmin, item.category);
+    if (behavior && NO_AUTO_THUMBNAIL_BEHAVIORS.includes(behavior)) {
       return { ok: true, status: "skipped" as const };
     }
 

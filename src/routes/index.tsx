@@ -119,8 +119,9 @@ function KioskPage() {
       return;
     }
     setBlocked(false);
-    const isPdfActive = isPdfItem(categories, active.category) && !!active.pdf_storage_path;
-    const isVideoActive = isVideoItem(categories, active.category);
+    const activeBehavior = findCat(active.category)?.behavior;
+    const isPdfActive = activeBehavior === "pdf" && !!active.pdf_storage_path;
+    const isVideoActive = activeBehavior === "video";
     if (!isPdfActive && !isVideoActive) {
       timerRef.current = setTimeout(() => setBlocked(true), 3500);
     }
@@ -130,10 +131,13 @@ function KioskPage() {
   }, [active, categories]);
 
   if (isMobile) {
-    return <MobileKiosk items={items} settings={labels} categories={categories} />;
+    return <MobileKiosk items={items} settings={labels} />;
   }
 
   const currentCat = findCat(category);
+  const activeBehavior = active ? findCat(active.category)?.behavior : undefined;
+  const isActivePdf = activeBehavior === "pdf" && !!active?.pdf_storage_path;
+  const isActiveVideo = activeBehavior === "video";
 
 
   return (
@@ -166,7 +170,7 @@ function KioskPage() {
           >
             <span className="flex items-center gap-1.5">
               <Eye className="h-3 w-3" style={{ color: "var(--eyeframe-accent)" }} />
-              <span className="opacity-70">{CATEGORY_LABELS[category]}</span>
+              <span className="opacity-70">{currentCat?.label ?? ""}</span>
             </span>
             <ChevronDown className="h-3 w-3 opacity-70" />
           </button>
@@ -182,20 +186,20 @@ function KioskPage() {
                 borderColor: "var(--eyeframe-border)",
               }}
             >
-              {(Object.keys(CATEGORY_LABELS) as ItemCategory[]).map((c) => (
+              {categories.map((c) => (
                 <button
-                  key={c}
+                  key={c.slug}
                   type="button"
                   onMouseDown={(e) => {
                     e.preventDefault();
-                    setCategory(c);
+                    setCategory(c.slug);
                     setMenuOpen(false);
                   }}
                   className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm opacity-70 transition-colors hover:brightness-125"
                   style={{ color: "var(--eyeframe-text)" }}
                 >
-                  <CategoryIcon category={c} className="h-3.5 w-3.5 opacity-80" />
-                  {CATEGORY_LABELS[c]}
+                  <CategoryIcon iconName={c.icon} className="h-3.5 w-3.5 opacity-80" />
+                  {c.label}
                 </button>
               ))}
             </div>
@@ -245,7 +249,7 @@ function KioskPage() {
           </TooltipProvider>
         </div>
 
-        {active && PDF_CATEGORIES.includes(active.category) && !!active.pdf_storage_path && (
+        {active && isActivePdf && (
           <button
             type="button"
             onClick={() => setPdfToolbarOpen((v) => !v)}
@@ -307,7 +311,7 @@ function KioskPage() {
         )}
 
 
-        {active && VIDEO_CATEGORIES.includes(active.category) && (
+        {active && isActiveVideo && (
           <video
             key={active.id}
             src={active.url}
@@ -318,7 +322,7 @@ function KioskPage() {
           />
         )}
 
-        {active && !VIDEO_CATEGORIES.includes(active.category) && PDF_CATEGORIES.includes(active.category) && active.pdf_storage_path && (
+        {active && !isActiveVideo && isActivePdf && (
           <ClientOnly fallback={<div className="flex h-full w-full items-center justify-center text-sm opacity-70">Loading PDF viewer…</div>}>
             <Suspense fallback={<div className="flex h-full w-full items-center justify-center text-sm opacity-70">Loading PDF viewer…</div>}>
               <PdfViewer url={active.url} label={active.label} storagePath={active.pdf_storage_path} showToolbar={pdfToolbarOpen} />
@@ -326,7 +330,7 @@ function KioskPage() {
           </ClientOnly>
         )}
 
-        {active && !VIDEO_CATEGORIES.includes(active.category) && !(PDF_CATEGORIES.includes(active.category) && active.pdf_storage_path) && (
+        {active && !isActiveVideo && !isActivePdf && (
           <>
             <iframe
               key={active.id}
@@ -356,7 +360,7 @@ function KioskPage() {
                   {active.favicon_asset_url || active.favicon_url ? (
                     <img src={active.favicon_asset_url ?? active.favicon_url ?? ""} alt="" className="h-10 w-10 rounded" />
                   ) : (
-                    <CategoryIcon category={active.category} className="h-10 w-10" />
+                    <CategoryIcon iconName={findCat(active.category)?.icon} className="h-10 w-10" />
                   )}
                   <div className="text-lg font-semibold">{active.label}</div>
                   <div className="text-sm opacity-70">

@@ -408,10 +408,10 @@ function AdminPage() {
 
 
         <div className="mb-4 text-xs opacity-60">
-          Tip: click any title or category name to rename it. The kiosk updates automatically.
+          Tip: rename or reorder categories in the panel above. New categories appear here as tabs.
         </div>
 
-        {categoryTab === "presentations" || categoryTab === "brand" ? (
+        {isPdfTab ? (
           <Suspense
             fallback={
               <div className="mb-8 rounded-lg border p-4 text-sm opacity-60"

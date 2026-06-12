@@ -249,6 +249,34 @@ export default function CategoryManager() {
               >
                 {c.behavior}
               </span>
+              {c.behavior === "gallery" && (
+                <div className="flex items-center gap-1">
+                  {(["video", "image"] as MediaMode[]).map((m) => {
+                    const checked = (c.media_modes ?? []).includes(m);
+                    return (
+                      <label
+                        key={m}
+                        className="flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] capitalize"
+                        style={{ borderColor: "var(--eyeframe-border)" }}
+                        title={`Allow ${m === "video" ? "videos" : "images"} in this gallery`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            const set = new Set<MediaMode>(c.media_modes ?? []);
+                            if (e.target.checked) set.add(m);
+                            else set.delete(m);
+                            if (set.size === 0) set.add(m);
+                            updateMut.mutate({ id: c.id, mediaModes: Array.from(set) });
+                          }}
+                        />
+                        {m === "video" ? "Vid" : "Img"}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
               <button
                 type="button"
                 onClick={() => moveMut.mutate({ id: c.id, direction: "up" })}

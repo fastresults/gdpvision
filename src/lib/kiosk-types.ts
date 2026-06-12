@@ -21,6 +21,7 @@ import {
   Hammer,
   Lightbulb,
   Network,
+  Images,
   type LucideIcon,
 } from "lucide-react";
 
@@ -72,9 +73,11 @@ export const DEFAULT_SETTINGS: Settings = {
   idle_image_url: "",
 };
 
-// ----- Admin-managed categories (new) -----
+// ----- Admin-managed categories -----
 
-export type CategoryBehavior = "website" | "pdf" | "docs" | "video";
+export type CategoryBehavior = "website" | "pdf" | "docs" | "video" | "gallery";
+
+export type MediaMode = "video" | "image";
 
 export type Category = {
   id: string;
@@ -83,6 +86,28 @@ export type Category = {
   icon: string;
   behavior: CategoryBehavior;
   is_builtin: boolean;
+  sort_order: number;
+  media_modes: MediaMode[];
+};
+
+// ----- Galleries -----
+
+export type Gallery = {
+  id: string;
+  category_id: string;
+  label: string;
+  cover_url: string | null;
+  sort_order: number;
+};
+
+export type GalleryItem = {
+  id: string;
+  gallery_id: string;
+  kind: MediaMode;
+  media_asset_id: string | null;
+  storage_path: string | null;
+  thumbnail_url: string | null;
+  label: string | null;
   sort_order: number;
 };
 
@@ -109,6 +134,7 @@ export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   Hammer,
   Lightbulb,
   Network,
+  Images,
 };
 
 export function getCategoryIcon(name: string | null | undefined): LucideIcon {

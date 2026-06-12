@@ -382,13 +382,7 @@ function AdminPage() {
                   borderColor: isActive ? "var(--eyeframe-accent)" : "var(--eyeframe-border)",
                 }}
               >
-                <InlineEditable
-                  value={t.label}
-                  onSave={(v) =>
-                    settingMut.mutate({ key: CATEGORY_TO_SETTING[t.key], value: v })
-                  }
-                  inputClassName="text-sm font-medium"
-                />
+                <span>{t.label}</span>
               </div>
             );
           })}

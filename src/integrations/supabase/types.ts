@@ -40,6 +40,7 @@ export type Database = {
           id: string
           is_builtin: boolean
           label: string
+          media_modes: string[]
           slug: string
           sort_order: number
           updated_at: string
@@ -51,6 +52,7 @@ export type Database = {
           id?: string
           is_builtin?: boolean
           label: string
+          media_modes?: string[]
           slug: string
           sort_order?: number
           updated_at?: string
@@ -62,11 +64,104 @@ export type Database = {
           id?: string
           is_builtin?: boolean
           label?: string
+          media_modes?: string[]
           slug?: string
           sort_order?: number
           updated_at?: string
         }
         Relationships: []
+      }
+      galleries: {
+        Row: {
+          category_id: string
+          cover_url: string | null
+          created_at: string
+          id: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "galleries_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gallery_items: {
+        Row: {
+          created_at: string
+          gallery_id: string
+          id: string
+          kind: string
+          label: string | null
+          media_asset_id: string | null
+          sort_order: number
+          storage_path: string | null
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          gallery_id: string
+          id?: string
+          kind: string
+          label?: string | null
+          media_asset_id?: string | null
+          sort_order?: number
+          storage_path?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          gallery_id?: string
+          id?: string
+          kind?: string
+          label?: string | null
+          media_asset_id?: string | null
+          sort_order?: number
+          storage_path?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_items_gallery_id_fkey"
+            columns: ["gallery_id"]
+            isOneToOne: false
+            referencedRelation: "galleries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gallery_items_media_asset_id_fkey"
+            columns: ["media_asset_id"]
+            isOneToOne: false
+            referencedRelation: "media_assets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       idle_images: {
         Row: {

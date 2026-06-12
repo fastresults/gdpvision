@@ -119,8 +119,9 @@ function KioskPage() {
       return;
     }
     setBlocked(false);
-    const isPdfActive = isPdfItem(categories, active.category) && !!active.pdf_storage_path;
-    const isVideoActive = isVideoItem(categories, active.category);
+    const activeBehavior = findCat(active.category)?.behavior;
+    const isPdfActive = activeBehavior === "pdf" && !!active.pdf_storage_path;
+    const isVideoActive = activeBehavior === "video";
     if (!isPdfActive && !isVideoActive) {
       timerRef.current = setTimeout(() => setBlocked(true), 3500);
     }
@@ -130,7 +131,7 @@ function KioskPage() {
   }, [active, categories]);
 
   if (isMobile) {
-    return <MobileKiosk items={items} settings={labels} categories={categories} />;
+    return <MobileKiosk items={items} settings={labels} />;
   }
 
   const currentCat = findCat(category);

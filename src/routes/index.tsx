@@ -249,7 +249,7 @@ function KioskPage() {
           </TooltipProvider>
         </div>
 
-        {active && PDF_CATEGORIES.includes(active.category) && !!active.pdf_storage_path && (
+        {active && isActivePdf && (
           <button
             type="button"
             onClick={() => setPdfToolbarOpen((v) => !v)}

@@ -1,18 +1,27 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { VIDEO_CATEGORIES, type Item, type ItemCategory, type ThumbnailStatus } from "./kiosk-types";
+import type { CategoryBehavior, Item, ItemCategory, ThumbnailStatus } from "./kiosk-types";
 
-// Categories that should not be auto-screenshotted by mShots.
-// Presentations are PDF uploads and generate their own thumbnail at upload time.
-export const NO_AUTO_THUMBNAIL_CATEGORIES: ItemCategory[] = [
-  "videos",
-  "brand",
-  "presentations",
-];
+export type { Item, ItemCategory, ThumbnailStatus };
 
-export { VIDEO_CATEGORIES, type Item, type ItemCategory, type ThumbnailStatus };
+// Behaviors that should not be auto-screenshotted by mShots.
+// Videos have no homepage; PDFs supply their own thumbnail at upload time.
+const NO_AUTO_THUMBNAIL_BEHAVIORS: CategoryBehavior[] = ["video", "pdf"];
 
-const categorySchema = z.enum(["websites", "presentations", "docs", "videos", "brand"]);
+async function getBehaviorForSlug(
+  supabaseAdmin: any,
+  slug: string,
+): Promise<CategoryBehavior | null> {
+  const { data } = await supabaseAdmin
+    .from("categories")
+    .select("behavior")
+    .eq("slug", slug)
+    .maybeSingle();
+  return (data?.behavior as CategoryBehavior | undefined) ?? null;
+}
+
+const categorySchema = z.string().min(1).max(64);
+
 
 const ALLOWED_VIDEO_MIME = ["video/mp4", "video/webm", "video/quicktime"];
 const MAX_VIDEO_BYTES = 500 * 1024 * 1024;

@@ -423,7 +423,7 @@ function AdminPage() {
               </div>
             }
           >
-            <PresentationUpload onUploaded={invalidateItems} category={categoryTab as "presentations" | "brand"} />
+            <PresentationUpload onUploaded={invalidateItems} category={categoryTab} />
           </Suspense>
         ) : (
         <form

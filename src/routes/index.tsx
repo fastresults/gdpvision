@@ -14,6 +14,8 @@ import {
   DEFAULT_SETTINGS,
   getCategoryIcon,
   type Category,
+  type Gallery,
+  type GalleryItem,
   type Item,
   type ItemCategory,
   type Settings,
@@ -21,6 +23,7 @@ import {
 import { MobileKiosk } from "@/components/mobile/MobileKiosk";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
+import { GalleryView } from "@/components/GalleryView";
 
 
 type IdleImage = {
@@ -44,7 +47,14 @@ export const Route = createFileRoute("/")({
   component: KioskPage,
 });
 
-type KioskData = { items: Item[]; settings: Settings; idleImages?: IdleImage[]; categories?: Category[] };
+type KioskData = {
+  items: Item[];
+  settings: Settings;
+  idleImages?: IdleImage[];
+  categories?: Category[];
+  galleries?: Gallery[];
+  galleryItems?: GalleryItem[];
+};
 
 async function fetchKioskData(): Promise<KioskData> {
   const response = await fetch("/api/kiosk-data");

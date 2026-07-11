@@ -33,6 +33,7 @@ import { Route as AuthenticatedNarrativeCommsRouteImport } from './routes/_authe
 import { Route as AuthenticatedNarrativeBrainRouteImport } from './routes/_authenticated/narrative/brain'
 import { Route as AuthenticatedInstrumentStewardshipRouteImport } from './routes/_authenticated/instrument/stewardship'
 import { Route as AuthenticatedInstrumentExposureRouteImport } from './routes/_authenticated/instrument/exposure'
+import { Route as AuthenticatedCounselMobileRouteImport } from './routes/_authenticated/counsel/mobile'
 import { Route as AuthenticatedCounselArchiveRouteImport } from './routes/_authenticated/counsel/archive'
 import { Route as AuthenticatedNarrativeStrategyIndexRouteImport } from './routes/_authenticated/narrative/strategy.index'
 import { Route as AuthenticatedInstrumentScenariosIndexRouteImport } from './routes/_authenticated/instrument/scenarios.index'
@@ -189,6 +190,12 @@ const AuthenticatedInstrumentExposureRoute =
     path: '/exposure',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
+const AuthenticatedCounselMobileRoute =
+  AuthenticatedCounselMobileRouteImport.update({
+    id: '/counsel/mobile',
+    path: '/counsel/mobile',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCounselArchiveRoute =
   AuthenticatedCounselArchiveRouteImport.update({
     id: '/counsel/archive',
@@ -331,6 +338,7 @@ export interface FileRoutesByFullPath {
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
   '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
+  '/counsel/mobile': typeof AuthenticatedCounselMobileRoute
   '/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
   '/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
   '/narrative/brain': typeof AuthenticatedNarrativeBrainRoute
@@ -375,6 +383,7 @@ export interface FileRoutesByTo {
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk': typeof KioskIndexRoute
   '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
+  '/counsel/mobile': typeof AuthenticatedCounselMobileRoute
   '/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
   '/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
   '/narrative/brain': typeof AuthenticatedNarrativeBrainRoute
@@ -424,6 +433,7 @@ export interface FileRoutesById {
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
   '/_authenticated/counsel/archive': typeof AuthenticatedCounselArchiveRoute
+  '/_authenticated/counsel/mobile': typeof AuthenticatedCounselMobileRoute
   '/_authenticated/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
   '/_authenticated/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
   '/_authenticated/narrative/brain': typeof AuthenticatedNarrativeBrainRoute
@@ -473,6 +483,7 @@ export interface FileRouteTypes {
     | '/kiosk/admin'
     | '/kiosk/'
     | '/counsel/archive'
+    | '/counsel/mobile'
     | '/instrument/exposure'
     | '/instrument/stewardship'
     | '/narrative/brain'
@@ -517,6 +528,7 @@ export interface FileRouteTypes {
     | '/kiosk/admin'
     | '/kiosk'
     | '/counsel/archive'
+    | '/counsel/mobile'
     | '/instrument/exposure'
     | '/instrument/stewardship'
     | '/narrative/brain'
@@ -565,6 +577,7 @@ export interface FileRouteTypes {
     | '/kiosk/admin'
     | '/kiosk/'
     | '/_authenticated/counsel/archive'
+    | '/_authenticated/counsel/mobile'
     | '/_authenticated/instrument/exposure'
     | '/_authenticated/instrument/stewardship'
     | '/_authenticated/narrative/brain'
@@ -781,6 +794,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/instrument/exposure'
       preLoaderRoute: typeof AuthenticatedInstrumentExposureRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
+    '/_authenticated/counsel/mobile': {
+      id: '/_authenticated/counsel/mobile'
+      path: '/counsel/mobile'
+      fullPath: '/counsel/mobile'
+      preLoaderRoute: typeof AuthenticatedCounselMobileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/counsel/archive': {
       id: '/_authenticated/counsel/archive'
@@ -1053,6 +1073,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedInstrumentRouteRoute: typeof AuthenticatedInstrumentRouteRouteWithChildren
   AuthenticatedNarrativeRouteRoute: typeof AuthenticatedNarrativeRouteRouteWithChildren
   AuthenticatedCounselArchiveRoute: typeof AuthenticatedCounselArchiveRoute
+  AuthenticatedCounselMobileRoute: typeof AuthenticatedCounselMobileRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedCodexIndexRoute: typeof AuthenticatedCodexIndexRoute
   AuthenticatedConfigIndexRoute: typeof AuthenticatedConfigIndexRoute
@@ -1065,6 +1086,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNarrativeRouteRoute:
     AuthenticatedNarrativeRouteRouteWithChildren,
   AuthenticatedCounselArchiveRoute: AuthenticatedCounselArchiveRoute,
+  AuthenticatedCounselMobileRoute: AuthenticatedCounselMobileRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedCodexIndexRoute: AuthenticatedCodexIndexRoute,
   AuthenticatedConfigIndexRoute: AuthenticatedConfigIndexRoute,

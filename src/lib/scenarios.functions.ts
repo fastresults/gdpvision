@@ -143,9 +143,9 @@ export const listScenarios = createServerFn({ method: "GET" })
 
 export interface ScenarioArtifact extends ScenarioSummary {
   lever_settings: Record<string, number>;
-  assumptions: Record<string, unknown>;
+  assumptions: JsonObject;
   results: EngineOutput | Record<string, never>;
-  attribution: Record<string, unknown>;
+  attribution: JsonObject;
   ministry: { slug: string; name: string } | null;
   promotions: Array<{ id: string; from_status: string; to_status: string; note: string | null; created_at: string }>;
 }
@@ -183,9 +183,9 @@ export const getScenario = createServerFn({ method: "GET" })
       ministry_id: s.ministry_id,
       sector_code: s.sector_code,
       lever_settings: (s.lever_settings ?? {}) as Record<string, number>,
-      assumptions: (s.assumptions ?? {}) as Record<string, unknown>,
+      assumptions: (s.assumptions ?? {}) as JsonObject,
       results: (s.results ?? {}) as ScenarioArtifact["results"],
-      attribution: (s.attribution ?? {}) as Record<string, unknown>,
+      attribution: (s.attribution ?? {}) as JsonObject,
       ministry:
         (s.ministries as unknown as { slug: string; name: string } | null) ?? null,
       promotions: (promos ?? []).map((p) => ({
@@ -266,7 +266,7 @@ const SaveInput = z.object({
   title: z.string().min(1).max(200),
   horizonYears: z.number().int().min(1).max(20),
   levers: z.record(z.string(), z.number()),
-  assumptions: z.record(z.string(), z.unknown()).default({}),
+  assumptions: z.record(z.string(), z.any()).default({}),
 });
 
 export const saveScenario = createServerFn({ method: "POST" })
@@ -308,7 +308,7 @@ export const saveScenario = createServerFn({ method: "POST" })
         status: "draft",
         lever_settings: data.levers,
         assumptions: data.assumptions,
-        results: run.output as unknown as Record<string, unknown>,
+        results: run.output as unknown as JsonObject,
         attribution: { attribution: run.output.attribution },
       })
       .select("id")

@@ -78,13 +78,8 @@ export const Route = createFileRoute("/")({
 
 function RootIndex() {
   const { mode: loaderMode } = Route.useLoaderData();
-  const [mode, setMode] = useState<SiteMode>(loaderMode);
-
-  useEffect(() => {
-    if (window.location.hostname.toLowerCase() === PRESENT_HOST) {
-      setMode("present");
-    }
-  }, []);
+  const browserHost = typeof window === "undefined" ? "" : window.location.hostname.toLowerCase();
+  const mode: SiteMode = browserHost === PRESENT_HOST ? "present" : loaderMode;
 
   if (mode === "marketing") return <MarketingHome />;
   return <KioskPage />;

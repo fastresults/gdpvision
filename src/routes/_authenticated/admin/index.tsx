@@ -68,6 +68,7 @@ function AdminPage() {
         </div>
         <div className="flex items-center gap-6 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
           <Link to="/config" className="hover:text-ink-950">Configuration</Link>
+          <Link to="/admin/audits/keying" className="hover:text-ink-950">Keying audit</Link>
           <Link to="/codex" className="hover:text-ink-950">Codex</Link>
           <button onClick={signOut} className="hover:text-ink-950">Sign out</button>
         </div>

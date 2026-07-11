@@ -37,7 +37,7 @@ type IdleImage = {
 };
 
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/kiosk")({
   loader: async (): Promise<{ mode: SiteMode }> => {
     try {
       const { mode } = await getRequestSiteMode();

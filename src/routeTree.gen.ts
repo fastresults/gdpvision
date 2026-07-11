@@ -9,21 +9,21 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as KioskRouteImport } from './routes/kiosk'
 import { Route as AdminRouteImport } from './routes/admin'
-import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiUploadPresentationRouteImport } from './routes/api/upload-presentation'
 import { Route as ApiUploadMediaRouteImport } from './routes/api/upload-media'
 import { Route as ApiKioskDataRouteImport } from './routes/api/kiosk-data'
 import { Route as ApiPublicPresentationPdfRouteImport } from './routes/api/public/presentation-pdf'
 
+const KioskRoute = KioskRouteImport.update({
+  id: '/kiosk',
+  path: '/kiosk',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiUploadPresentationRoute = ApiUploadPresentationRouteImport.update({
@@ -49,16 +49,16 @@ const ApiPublicPresentationPdfRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/kiosk': typeof KioskRoute
   '/api/kiosk-data': typeof ApiKioskDataRoute
   '/api/upload-media': typeof ApiUploadMediaRoute
   '/api/upload-presentation': typeof ApiUploadPresentationRoute
   '/api/public/presentation-pdf': typeof ApiPublicPresentationPdfRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/kiosk': typeof KioskRoute
   '/api/kiosk-data': typeof ApiKioskDataRoute
   '/api/upload-media': typeof ApiUploadMediaRoute
   '/api/upload-presentation': typeof ApiUploadPresentationRoute
@@ -66,8 +66,8 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/kiosk': typeof KioskRoute
   '/api/kiosk-data': typeof ApiKioskDataRoute
   '/api/upload-media': typeof ApiUploadMediaRoute
   '/api/upload-presentation': typeof ApiUploadPresentationRoute
@@ -76,24 +76,24 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/admin'
+    | '/kiosk'
     | '/api/kiosk-data'
     | '/api/upload-media'
     | '/api/upload-presentation'
     | '/api/public/presentation-pdf'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/admin'
+    | '/kiosk'
     | '/api/kiosk-data'
     | '/api/upload-media'
     | '/api/upload-presentation'
     | '/api/public/presentation-pdf'
   id:
     | '__root__'
-    | '/'
     | '/admin'
+    | '/kiosk'
     | '/api/kiosk-data'
     | '/api/upload-media'
     | '/api/upload-presentation'
@@ -101,8 +101,8 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  KioskRoute: typeof KioskRoute
   ApiKioskDataRoute: typeof ApiKioskDataRoute
   ApiUploadMediaRoute: typeof ApiUploadMediaRoute
   ApiUploadPresentationRoute: typeof ApiUploadPresentationRoute
@@ -111,18 +111,18 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/kiosk': {
+      id: '/kiosk'
+      path: '/kiosk'
+      fullPath: '/kiosk'
+      preLoaderRoute: typeof KioskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/upload-presentation': {
@@ -157,8 +157,8 @@ declare module '@tanstack/react-router' {
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  KioskRoute: KioskRoute,
   ApiKioskDataRoute: ApiKioskDataRoute,
   ApiUploadMediaRoute: ApiUploadMediaRoute,
   ApiUploadPresentationRoute: ApiUploadPresentationRoute,

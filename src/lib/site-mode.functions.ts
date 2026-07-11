@@ -7,8 +7,19 @@ export const getRequestSiteMode = createServerFn({ method: "GET" }).handler(
     const hosts: string[] = [];
     try {
       const request = getRequest();
+      const forwarded = getRequestHeader("forwarded") || "";
+      for (const part of forwarded.split(",")) {
+        const hostPair = part
+          .split(";")
+          .map((value) => value.trim())
+          .find((value) => value.toLowerCase().startsWith("host="));
+        if (hostPair) hosts.push(hostPair.slice(5).replace(/^"|"$/g, ""));
+      }
       hosts.push(
         getRequestHeader("x-forwarded-host") || "",
+        getRequestHeader("x-original-host") || "",
+        getRequestHeader("x-real-host") || "",
+        getRequestHeader("x-host") || "",
         getRequestHeader("host") || "",
         request ? new URL(request.url).host : "",
         getRequestHost({ xForwardedHost: true }) || "",

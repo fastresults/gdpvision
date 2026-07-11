@@ -1,7 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
 import { REGISTRY_CODES } from "@/lib/caricom-registry";
 
 const submitBriefingSchema = z.object({
@@ -26,21 +24,16 @@ export const submitBriefingRequest = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => submitBriefingSchema.parse(input))
   .handler(async ({ data }) => {
     if (data.website && data.website.length > 0) {
-      return { ok: true, id: null as string | null };
+      // Silently succeed on honeypot trip.
+      return { ok: true as const, id: null as string | null };
     }
 
-    const SUPABASE_URL = process.env.SUPABASE_URL;
-    const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
-    if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-      console.error("[briefing] missing supabase env");
-      return { ok: false as const, error: "Service unavailable" };
-    }
+    // Load admin client dynamically per Lovable rule: never at module scope
+    // of a *.functions.ts file. Validation already happened above; the admin
+    // client is only used to write a single briefing_requests row.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-
-    const { data: row, error } = await supabase
+    const { data: row, error } = await supabaseAdmin
       .from("briefing_requests")
       .insert({
         name: data.name,
@@ -61,3 +54,4 @@ export const submitBriefingRequest = createServerFn({ method: "POST" })
 
     return { ok: true as const, id: row.id };
   });
+

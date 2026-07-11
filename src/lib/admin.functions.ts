@@ -8,7 +8,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const ROLES = ["admin", "cabinet_secretary", "principal", "minister", "advisor", "comms_director", "operator", "data_steward"] as const;
+const ROLES = ["admin", "cabinet_secretary", "principal", "line_minister", "advisor", "comms_director", "steward", "data_steward"] as const;
 type Role = (typeof ROLES)[number];
 
 async function assertAdmin(ctx: { supabase: any; userId: string }) {

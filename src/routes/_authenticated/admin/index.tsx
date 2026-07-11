@@ -18,7 +18,7 @@ import { Wordmark } from "@/components/marketing/Wordmark";
 const usersQuery = queryOptions({ queryKey: ["admin-users"], queryFn: () => listAdminUsers() });
 const countriesQuery = queryOptions({ queryKey: ["admin-countries"], queryFn: () => listCountries() });
 
-const ROLES = ["admin", "cabinet_secretary", "principal", "minister", "advisor", "comms_director", "operator", "data_steward"] as const;
+const ROLES = ["admin", "cabinet_secretary", "principal", "line_minister", "advisor", "comms_director", "steward", "data_steward"] as const;
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({

@@ -49,15 +49,15 @@ export const getDossier = createServerFn({ method: "GET" })
         .limit(20),
       supabase
         .from("strategy_statements")
-        .select("id,title,status,created_at,sector_code,country_code")
-        .eq("country_code", signal.scope_key)
+        .select("id,title,status,created_at")
+        .eq("scope_key", signal.scope_key)
         .eq("sector_code", signal.sector_code)
         .order("created_at", { ascending: false })
         .limit(10),
       supabase
         .from("comms_artifacts")
-        .select("id,kind,audience,state,created_at,country_code")
-        .eq("country_code", signal.scope_key)
+        .select("id,kind,audience,draft_state,created_at")
+        .eq("scope_key", signal.scope_key)
         .order("created_at", { ascending: false })
         .limit(10),
     ]);
@@ -81,7 +81,7 @@ export const getDossier = createServerFn({ method: "GET" })
         id: c.id,
         kind: c.kind as string,
         audience: c.audience,
-        state: c.state as string,
+        state: c.draft_state as string,
         created_at: c.created_at,
       })),
     };

@@ -351,3 +351,103 @@ export const saveComms = createServerFn({ method: "POST" })
     return { id: row.id };
   });
 
+
+// ─── Comms approvals (tiered release doctrine) ──────────────────────────────
+
+const APPROVAL_TIERS: Record<string, ("advisor" | "comms_director" | "line_minister" | "cabinet_secretary" | "admin")[]> = {
+  draft: [],
+  review: ["advisor", "comms_director", "line_minister", "cabinet_secretary", "admin"],
+  approved: ["comms_director", "cabinet_secretary", "admin"],
+  released: ["cabinet_secretary", "admin"],
+};
+
+// Detect numeric claims in body. Approval doctrine (§Phase 4): any fiscal
+// figure must re-verify against the live Ledger at approval time. We surface
+// candidate figures so the caller (or a follow-up job) can cross-check them.
+function extractFigures(body: string): string[] {
+  const out = new Set<string>();
+  const re = /(?:USD?|EC\$|EUR|€|£|\$)\s?[\d,]+(?:\.\d+)?(?:\s?(?:million|billion|bn|m))?|\b\d+(?:\.\d+)?\s?%/gi;
+  for (const m of body.matchAll(re)) out.add(m[0].trim());
+  return [...out];
+}
+
+export const approveComms = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({
+      id: z.string().uuid(),
+      nextState: z.enum(["review", "approved", "released"]),
+      note: z.string().max(500).optional(),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row, error: fErr } = await context.supabase
+      .from("comms_artifacts")
+      .select("id,body,draft_state,approvals")
+      .eq("id", data.id).single();
+    if (fErr) throw new Error(fErr.message);
+
+    const allowed = APPROVAL_TIERS[data.nextState] ?? [];
+    let ok = false;
+    for (const r of allowed) {
+      const { data: has } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: r });
+      if (has === true) { ok = true; break; }
+    }
+    if (!ok) throw new Error(`Role required for ${data.nextState}: ${allowed.join(" / ")}`);
+
+    const figures = extractFigures(row.body ?? "");
+    if (data.nextState === "released" && figures.length > 0) {
+      if (!data.note || data.note.length < 4) {
+        throw new Error(`Release blocked: ${figures.length} figure(s) require a Ledger sign-off note.`);
+      }
+    }
+
+    const prevApprovals = Array.isArray(row.approvals) ? (row.approvals as unknown[]) : [];
+    const entry = {
+      at: new Date().toISOString(),
+      by: context.userId,
+      from: row.draft_state,
+      to: data.nextState,
+      note: data.note ?? null,
+      figures,
+    };
+
+    const patch = {
+      draft_state: data.nextState,
+      approvals: [...prevApprovals, entry] as unknown as Json,
+      updated_at: new Date().toISOString(),
+      ...(data.nextState === "released" ? { released_at: new Date().toISOString() } : {}),
+    };
+
+    const { error: uErr } = await context.supabase.from("comms_artifacts").update(patch).eq("id", data.id);
+    if (uErr) throw new Error(uErr.message);
+    return { ok: true, figures };
+  });
+
+// ─── Coverage & Gaps ────────────────────────────────────────────────────────
+
+export const getCoverage = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => ScopeInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const [mem, sectors] = await Promise.all([
+      context.supabase.from("memory_objects").select("sector_code,kind").eq("scope_key", data.scopeKey),
+      context.supabase.from("sectors").select("code,label,sort_order").order("sort_order"),
+    ]);
+    if (mem.error) throw new Error(mem.error.message);
+    if (sectors.error) throw new Error(sectors.error.message);
+
+    const kinds = ["audience", "position", "statement", "outlet", "precedent"] as const;
+    const buckets = new Map<string, Record<string, number>>();
+    for (const s of sectors.data ?? []) buckets.set(s.code, Object.fromEntries(kinds.map((k) => [k, 0])));
+    for (const m of mem.data ?? []) {
+      const b = buckets.get(m.sector_code);
+      if (b) b[m.kind] = (b[m.kind] ?? 0) + 1;
+    }
+    return (sectors.data ?? []).map((s) => ({
+      sectorCode: s.code,
+      sectorName: s.label,
+      counts: buckets.get(s.code) ?? {},
+    }));
+  });
+

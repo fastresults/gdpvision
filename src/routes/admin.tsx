@@ -140,6 +140,21 @@ function InlineEditable({
 }
 
 function AdminPage() {
+  const { mode } = Route.useLoaderData();
+
+  if (mode === "marketing") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
+        <a
+          href="https://present.gdpvision.com/admin"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+        >
+          Open GDP Vision Admin
+        </a>
+      </div>
+    );
+  }
+
   const qc = useQueryClient();
   const fetchItems = useServerFn(listItems);
   const fetchSettings = useServerFn(listSettings);

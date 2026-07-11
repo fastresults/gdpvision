@@ -1,0 +1,65 @@
+import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+
+import { listInstanceBindings } from "@/lib/ledger.functions";
+import { Wordmark } from "@/components/marketing/Wordmark";
+import { supabase } from "@/integrations/supabase/client";
+
+const bindingsQuery = queryOptions({
+  queryKey: ["instance-bindings"],
+  queryFn: () => listInstanceBindings(),
+});
+
+export const Route = createFileRoute("/_authenticated/narrative")({
+  loader: ({ context }) => context.queryClient.ensureQueryData(bindingsQuery),
+  component: NarrativeShell,
+});
+
+function NarrativeShell() {
+  const { data: bindings } = useSuspenseQuery(bindingsQuery);
+  const navigate = useNavigate();
+  const defaultCode = bindings.find((b) => b.is_default)?.country_code ?? bindings[0]?.country_code ?? "LCA";
+
+  const nav = [
+    { to: "/narrative", label: "Signal" },
+    { to: "/narrative/brain", label: "Second Brain" },
+    { to: "/narrative/queue", label: "Queue" },
+    { to: "/narrative/ingest", label: "Ingest" },
+    { to: "/narrative/strategy", label: "Strategy" },
+    { to: "/narrative/comms", label: "Comms" },
+  ] as const;
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  }
+
+  return (
+    <div className="min-h-screen bg-paper-0 text-ink-950">
+      <header className="flex items-center justify-between border-b border-line-200 px-8 py-5">
+        <div className="flex items-center gap-10">
+          <Link to="/narrative"><Wordmark /></Link>
+          <nav className="flex items-center gap-6 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500">
+            {nav.map((n) => (
+              <Link
+                key={n.to}
+                to={n.to}
+                activeOptions={{ exact: n.to === "/narrative" }}
+                activeProps={{ className: "text-ink-950" }}
+                className="hover:text-ink-950"
+              >
+                {n.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+        <div className="flex items-center gap-6 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500">
+          <Link to="/instrument" className="hover:text-ink-950">Instrument</Link>
+          <span data-numeric>{defaultCode}</span>
+          <button onClick={signOut} className="hover:text-ink-950">Sign out</button>
+        </div>
+      </header>
+      <Outlet />
+    </div>
+  );
+}

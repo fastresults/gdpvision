@@ -1,0 +1,170 @@
+// Counsel — text/voice-adjacent RAG assistant over the Second Brain + Ledger.
+// Retrieval is currently keyword/weight-ranked; embeddings backfill lands with the harvest pipeline.
+
+import { createServerFn } from "@tanstack/react-start";
+import { generateText } from "ai";
+import { createHash } from "crypto";
+import { z } from "zod";
+
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Json } from "@/integrations/supabase/types";
+import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
+
+const AskInput = z.object({
+  scopeKey: z.string().min(3).max(16),
+  question: z.string().min(1).max(2000),
+  sectorHint: z.string().optional(),
+});
+
+export interface CounselCitation {
+  id: string;
+  title: string;
+  kind: string;
+  sector_code: string;
+  weight: number;
+}
+
+export interface CounselAnswer {
+  id: string;
+  spoken_block: string;
+  written_block: string;
+  citations: CounselCitation[];
+  scenario_snapshot: { model_version: string; horizon_years: number; gdp_p50_year1?: number } | null;
+}
+
+function tokenize(s: string) {
+  return Array.from(new Set(s.toLowerCase().match(/[a-z0-9]{3,}/g) ?? []));
+}
+
+export const askCounsel = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => AskInput.parse(data))
+  .handler(async ({ data, context }): Promise<CounselAnswer> => {
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("Counsel unavailable — missing gateway credentials.");
+
+    // 1. Retrieval — pull weighted memory objects for the scope.
+    let q = context.supabase
+      .from("memory_objects")
+      .select("id,title,kind,sector_code,weight,payload")
+      .in("scope_key", [data.scopeKey, "REGIONAL"])
+      .order("weight", { ascending: false })
+      .limit(80);
+    if (data.sectorHint) q = q.eq("sector_code", data.sectorHint);
+    const { data: memory, error: memErr } = await q;
+    if (memErr) throw new Error(memErr.message);
+
+    const tokens = tokenize(data.question);
+    const scored = (memory ?? [])
+      .map((m) => {
+        const hay = `${m.title} ${JSON.stringify(m.payload ?? {})}`.toLowerCase();
+        const overlap = tokens.reduce((s, t) => s + (hay.includes(t) ? 1 : 0), 0);
+        return { m, score: overlap * 2 + m.weight };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8);
+
+    // 2. Pull a scenario snapshot (most recent adopted, then shared, then draft).
+    const { data: scenarios } = await context.supabase
+      .from("scenarios")
+      .select("id,title,status,model_version,horizon_years,results")
+      .eq("country_code", data.scopeKey)
+      .order("updated_at", { ascending: false })
+      .limit(1);
+    const scenarioSnap = scenarios?.[0]
+      ? {
+          model_version: scenarios[0].model_version,
+          horizon_years: scenarios[0].horizon_years,
+          gdp_p50_year1:
+            (scenarios[0].results as { gdp?: Array<{ p50?: number }> } | null)?.gdp?.[0]?.p50,
+        }
+      : null;
+
+    // 3. Compose grounded prompt.
+    const citationLines = scored.map(
+      (s, i) => `[${i + 1}] (${s.m.kind}·${s.m.sector_code}·w${s.m.weight}) ${s.m.title}`,
+    );
+    const system =
+      "You are Counsel, a sovereign policy advisor. Answer in two labeled blocks:\n" +
+      "SPOKEN: 2–3 sentences a Prime Minister could say aloud, no jargon, no hedging.\n" +
+      "WRITTEN: bullet list with numbered citations [n] pointing to the CONTEXT items provided.\n" +
+      "Rules: cite only items in CONTEXT; if evidence is missing, say so plainly and do not invent figures.";
+    const contextBlock = citationLines.length
+      ? `CONTEXT:\n${citationLines.join("\n")}`
+      : "CONTEXT: (empty — Second Brain has no matching items)";
+    const scenarioBlock = scenarioSnap
+      ? `LEDGER SNAPSHOT: model ${scenarioSnap.model_version}, horizon ${scenarioSnap.horizon_years}y, year-1 GDP P50 ${scenarioSnap.gdp_p50_year1 ?? "n/a"}%`
+      : "LEDGER SNAPSHOT: (no scenarios in ledger yet)";
+
+    const gateway = createLovableAiGatewayProvider(key);
+    let text: string;
+    try {
+      const result = await generateText({
+        model: gateway("openai/gpt-5.5"),
+        system,
+        prompt: `${contextBlock}\n\n${scenarioBlock}\n\nQUESTION (scope=${data.scopeKey}): ${data.question}`,
+      });
+      text = result.text;
+    } catch (err) {
+      const status = (err as { statusCode?: number }).statusCode;
+      if (status === 429) throw new Error("Counsel rate limit — try again in a moment.");
+      if (status === 402) throw new Error("Counsel credits exhausted — top up in workspace billing.");
+      throw err;
+    }
+
+    const spokenMatch = text.match(/SPOKEN:\s*([\s\S]*?)(?:\n\s*WRITTEN:|$)/i);
+    const writtenMatch = text.match(/WRITTEN:\s*([\s\S]*)$/i);
+    const spoken = (spokenMatch?.[1] ?? text).trim();
+    const written = (writtenMatch?.[1] ?? "").trim();
+
+    const citations: CounselCitation[] = scored.map((s) => ({
+      id: s.m.id,
+      title: s.m.title,
+      kind: s.m.kind,
+      sector_code: s.m.sector_code,
+      weight: s.m.weight,
+    }));
+
+    const hash = createHash("sha256")
+      .update(JSON.stringify({ q: data.question, spoken, written, citations, scenarioSnap }))
+      .digest("hex");
+
+    const { data: row, error: insErr } = await context.supabase
+      .from("counsel_answers")
+      .insert({
+        scope_key: data.scopeKey,
+        user_id: context.userId,
+        question: data.question,
+        spoken_block: spoken,
+        written_block: written,
+        citations: citations as unknown as Json,
+        tags: (data.sectorHint ? [data.sectorHint] : []) as unknown as Json,
+        scenario_snapshot: (scenarioSnap ?? null) as unknown as Json,
+        content_hash: hash,
+      })
+      .select("id")
+      .single();
+    if (insErr) throw new Error(insErr.message);
+
+    return {
+      id: row.id,
+      spoken_block: spoken,
+      written_block: written,
+      citations,
+      scenario_snapshot: scenarioSnap,
+    };
+  });
+
+export const listCounselArchive = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ scopeKey: z.string().min(3).max(16) }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("counsel_answers")
+      .select("id,question,spoken_block,created_at,tags")
+      .eq("scope_key", data.scopeKey)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });

@@ -19,6 +19,7 @@ import { Route as AuthenticatedNarrativeRouteRouteImport } from './routes/_authe
 import { Route as AuthenticatedInstrumentRouteRouteImport } from './routes/_authenticated/instrument/route'
 import { Route as AuthenticatedNarrativeIndexRouteImport } from './routes/_authenticated/narrative/index'
 import { Route as AuthenticatedInstrumentIndexRouteImport } from './routes/_authenticated/instrument/index'
+import { Route as AuthenticatedCounselIndexRouteImport } from './routes/_authenticated/counsel/index'
 import { Route as KioskApiUploadPresentationRouteImport } from './routes/kiosk.api.upload-presentation'
 import { Route as KioskApiUploadMediaRouteImport } from './routes/kiosk.api.upload-media'
 import { Route as KioskApiKioskDataRouteImport } from './routes/kiosk.api.kiosk-data'
@@ -33,6 +34,7 @@ import { Route as AuthenticatedInstrumentScenariosIndexRouteImport } from './rou
 import { Route as AuthenticatedInstrumentPortfolioIndexRouteImport } from './routes/_authenticated/instrument/portfolio.index'
 import { Route as AuthenticatedInstrumentCabinetIndexRouteImport } from './routes/_authenticated/instrument/cabinet.index'
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
+import { Route as ApiPublicHooksNarrativeHarvestRouteImport } from './routes/api/public/hooks/narrative-harvest'
 import { Route as AuthenticatedInstrumentStudioPackagesRouteImport } from './routes/_authenticated/instrument/studio.packages'
 import { Route as AuthenticatedInstrumentStudioGapRouteImport } from './routes/_authenticated/instrument/studio.gap'
 import { Route as AuthenticatedInstrumentSectorCodeRouteImport } from './routes/_authenticated/instrument/sector.$code'
@@ -96,6 +98,12 @@ const AuthenticatedInstrumentIndexRoute =
     id: '/',
     path: '/',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+  } as any)
+const AuthenticatedCounselIndexRoute =
+  AuthenticatedCounselIndexRouteImport.update({
+    id: '/counsel/',
+    path: '/counsel/',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const KioskApiUploadPresentationRoute =
   KioskApiUploadPresentationRouteImport.update({
@@ -179,6 +187,12 @@ const KioskApiPublicPresentationPdfRoute =
     path: '/api/public/presentation-pdf',
     getParentRoute: () => KioskRoute,
   } as any)
+const ApiPublicHooksNarrativeHarvestRoute =
+  ApiPublicHooksNarrativeHarvestRouteImport.update({
+    id: '/api/public/hooks/narrative-harvest',
+    path: '/api/public/hooks/narrative-harvest',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedInstrumentStudioPackagesRoute =
   AuthenticatedInstrumentStudioPackagesRouteImport.update({
     id: '/studio/packages',
@@ -257,6 +271,7 @@ export interface FileRoutesByFullPath {
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
+  '/counsel/': typeof AuthenticatedCounselIndexRoute
   '/instrument/': typeof AuthenticatedInstrumentIndexRoute
   '/narrative/': typeof AuthenticatedNarrativeIndexRoute
   '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
@@ -269,6 +284,7 @@ export interface FileRoutesByFullPath {
   '/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
   '/instrument/studio/gap': typeof AuthenticatedInstrumentStudioGapRoute
   '/instrument/studio/packages': typeof AuthenticatedInstrumentStudioPackagesRoute
+  '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/instrument/cabinet/': typeof AuthenticatedInstrumentCabinetIndexRoute
   '/instrument/portfolio/': typeof AuthenticatedInstrumentPortfolioIndexRoute
@@ -289,6 +305,7 @@ export interface FileRoutesByTo {
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
+  '/counsel': typeof AuthenticatedCounselIndexRoute
   '/instrument': typeof AuthenticatedInstrumentIndexRoute
   '/narrative': typeof AuthenticatedNarrativeIndexRoute
   '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
@@ -301,6 +318,7 @@ export interface FileRoutesByTo {
   '/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
   '/instrument/studio/gap': typeof AuthenticatedInstrumentStudioGapRoute
   '/instrument/studio/packages': typeof AuthenticatedInstrumentStudioPackagesRoute
+  '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/instrument/cabinet': typeof AuthenticatedInstrumentCabinetIndexRoute
   '/instrument/portfolio': typeof AuthenticatedInstrumentPortfolioIndexRoute
@@ -326,6 +344,7 @@ export interface FileRoutesById {
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
+  '/_authenticated/counsel/': typeof AuthenticatedCounselIndexRoute
   '/_authenticated/instrument/': typeof AuthenticatedInstrumentIndexRoute
   '/_authenticated/narrative/': typeof AuthenticatedNarrativeIndexRoute
   '/_authenticated/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
@@ -338,6 +357,7 @@ export interface FileRoutesById {
   '/_authenticated/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
   '/_authenticated/instrument/studio/gap': typeof AuthenticatedInstrumentStudioGapRoute
   '/_authenticated/instrument/studio/packages': typeof AuthenticatedInstrumentStudioPackagesRoute
+  '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/_authenticated/instrument/cabinet/': typeof AuthenticatedInstrumentCabinetIndexRoute
   '/_authenticated/instrument/portfolio/': typeof AuthenticatedInstrumentPortfolioIndexRoute
@@ -363,6 +383,7 @@ export interface FileRouteTypes {
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
+    | '/counsel/'
     | '/instrument/'
     | '/narrative/'
     | '/instrument/cabinet/session'
@@ -375,6 +396,7 @@ export interface FileRouteTypes {
     | '/instrument/sector/$code'
     | '/instrument/studio/gap'
     | '/instrument/studio/packages'
+    | '/api/public/hooks/narrative-harvest'
     | '/kiosk/api/public/presentation-pdf'
     | '/instrument/cabinet/'
     | '/instrument/portfolio/'
@@ -395,6 +417,7 @@ export interface FileRouteTypes {
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
+    | '/counsel'
     | '/instrument'
     | '/narrative'
     | '/instrument/cabinet/session'
@@ -407,6 +430,7 @@ export interface FileRouteTypes {
     | '/instrument/sector/$code'
     | '/instrument/studio/gap'
     | '/instrument/studio/packages'
+    | '/api/public/hooks/narrative-harvest'
     | '/kiosk/api/public/presentation-pdf'
     | '/instrument/cabinet'
     | '/instrument/portfolio'
@@ -431,6 +455,7 @@ export interface FileRouteTypes {
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
+    | '/_authenticated/counsel/'
     | '/_authenticated/instrument/'
     | '/_authenticated/narrative/'
     | '/_authenticated/instrument/cabinet/session'
@@ -443,6 +468,7 @@ export interface FileRouteTypes {
     | '/_authenticated/instrument/sector/$code'
     | '/_authenticated/instrument/studio/gap'
     | '/_authenticated/instrument/studio/packages'
+    | '/api/public/hooks/narrative-harvest'
     | '/kiosk/api/public/presentation-pdf'
     | '/_authenticated/instrument/cabinet/'
     | '/_authenticated/instrument/portfolio/'
@@ -455,6 +481,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   KioskRoute: typeof KioskRouteWithChildren
+  ApiPublicHooksNarrativeHarvestRoute: typeof ApiPublicHooksNarrativeHarvestRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -528,6 +555,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/instrument/'
       preLoaderRoute: typeof AuthenticatedInstrumentIndexRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
+    '/_authenticated/counsel/': {
+      id: '/_authenticated/counsel/'
+      path: '/counsel'
+      fullPath: '/counsel/'
+      preLoaderRoute: typeof AuthenticatedCounselIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/kiosk/api/upload-presentation': {
       id: '/kiosk/api/upload-presentation'
@@ -626,6 +660,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/kiosk/api/public/presentation-pdf'
       preLoaderRoute: typeof KioskApiPublicPresentationPdfRouteImport
       parentRoute: typeof KioskRoute
+    }
+    '/api/public/hooks/narrative-harvest': {
+      id: '/api/public/hooks/narrative-harvest'
+      path: '/api/public/hooks/narrative-harvest'
+      fullPath: '/api/public/hooks/narrative-harvest'
+      preLoaderRoute: typeof ApiPublicHooksNarrativeHarvestRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/instrument/studio/packages': {
       id: '/_authenticated/instrument/studio/packages'
@@ -786,6 +827,7 @@ const AuthenticatedNarrativeRouteRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedInstrumentRouteRoute: typeof AuthenticatedInstrumentRouteRouteWithChildren
   AuthenticatedNarrativeRouteRoute: typeof AuthenticatedNarrativeRouteRouteWithChildren
+  AuthenticatedCounselIndexRoute: typeof AuthenticatedCounselIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -793,6 +835,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedInstrumentRouteRouteWithChildren,
   AuthenticatedNarrativeRouteRoute:
     AuthenticatedNarrativeRouteRouteWithChildren,
+  AuthenticatedCounselIndexRoute: AuthenticatedCounselIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -823,6 +866,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   KioskRoute: KioskRouteWithChildren,
+  ApiPublicHooksNarrativeHarvestRoute: ApiPublicHooksNarrativeHarvestRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

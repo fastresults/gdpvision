@@ -133,21 +133,31 @@ export const listCitationCandidates = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => CitationsInput.parse(d))
   .handler(async ({ data, context }): Promise<CitationCandidate[]> => {
+    const { data: suppressions } = await context.supabase
+      .from("source_suppressions")
+      .select("source_id")
+      .eq("scope_key", data.scopeKey)
+      .eq("active", true);
+    const suppressedIds = new Set((suppressions ?? []).map((s) => s.source_id));
+
     let q = context.supabase
       .from("memory_objects")
-      .select("id,title,kind,sector_code,weight,verified")
+      .select("id,title,kind,sector_code,weight,verified,source_id")
       .eq("scope_key", data.scopeKey)
       .order("weight", { ascending: false, nullsFirst: false })
-      .limit(data.limit);
+      .limit(data.limit * 2);
     if (data.sectorCode) q = q.eq("sector_code", data.sectorCode);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return (rows ?? []).map((r) => ({
-      ref: `memory:${r.id}`,
-      label: r.title,
-      kind: r.kind as string,
-      sector_code: r.sector_code,
-      weight: r.weight ?? 3,
-      verified: !!r.verified,
-    }));
+    return (rows ?? [])
+      .filter((r) => !r.source_id || !suppressedIds.has(r.source_id))
+      .slice(0, data.limit)
+      .map((r) => ({
+        ref: `memory:${r.id}`,
+        label: r.title,
+        kind: r.kind as string,
+        sector_code: r.sector_code,
+        weight: r.weight ?? 3,
+        verified: !!r.verified,
+      }));
   });

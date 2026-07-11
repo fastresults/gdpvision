@@ -500,6 +500,63 @@ export type Database = {
           },
         ]
       }
+      levers: {
+        Row: {
+          bounds: Json
+          country_code: string
+          created_at: string
+          id: string
+          methodology_ref: string | null
+          name: string
+          response_fn_ref: string
+          sector_code: string
+          slug: string
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          bounds?: Json
+          country_code: string
+          created_at?: string
+          id?: string
+          methodology_ref?: string | null
+          name: string
+          response_fn_ref?: string
+          sector_code: string
+          slug: string
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          bounds?: Json
+          country_code?: string
+          created_at?: string
+          id?: string
+          methodology_ref?: string | null
+          name?: string
+          response_fn_ref?: string
+          sector_code?: string
+          slug?: string
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "levers_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "levers_sector_code_fkey"
+            columns: ["sector_code"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       media_assets: {
         Row: {
           created_at: string
@@ -533,6 +590,80 @@ export type Database = {
         }
         Relationships: []
       }
+      ministries: {
+        Row: {
+          country_code: string
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ministries_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      ministry_sectors: {
+        Row: {
+          created_at: string
+          ministry_id: string
+          sector_code: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          ministry_id: string
+          sector_code: string
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          ministry_id?: string
+          sector_code?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ministry_sectors_ministry_id_fkey"
+            columns: ["ministry_id"]
+            isOneToOne: false
+            referencedRelation: "ministries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ministry_sectors_sector_code_fkey"
+            columns: ["sector_code"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -564,6 +695,120 @@ export type Database = {
             columns: ["default_country_code"]
             isOneToOne: false
             referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      scenario_promotions: {
+        Row: {
+          actor_id: string
+          created_at: string
+          from_status: Database["public"]["Enums"]["scenario_status"]
+          id: string
+          note: string | null
+          scenario_id: string
+          to_status: Database["public"]["Enums"]["scenario_status"]
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          from_status: Database["public"]["Enums"]["scenario_status"]
+          id?: string
+          note?: string | null
+          scenario_id: string
+          to_status: Database["public"]["Enums"]["scenario_status"]
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["scenario_status"]
+          id?: string
+          note?: string | null
+          scenario_id?: string
+          to_status?: Database["public"]["Enums"]["scenario_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scenario_promotions_scenario_id_fkey"
+            columns: ["scenario_id"]
+            isOneToOne: false
+            referencedRelation: "scenarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scenarios: {
+        Row: {
+          assumptions: Json
+          attribution: Json
+          author_id: string
+          country_code: string
+          created_at: string
+          horizon_years: number
+          id: string
+          lever_settings: Json
+          ministry_id: string | null
+          model_version: string
+          results: Json
+          sector_code: string | null
+          status: Database["public"]["Enums"]["scenario_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assumptions?: Json
+          attribution?: Json
+          author_id: string
+          country_code: string
+          created_at?: string
+          horizon_years?: number
+          id?: string
+          lever_settings?: Json
+          ministry_id?: string | null
+          model_version?: string
+          results?: Json
+          sector_code?: string | null
+          status?: Database["public"]["Enums"]["scenario_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assumptions?: Json
+          attribution?: Json
+          author_id?: string
+          country_code?: string
+          created_at?: string
+          horizon_years?: number
+          id?: string
+          lever_settings?: Json
+          ministry_id?: string | null
+          model_version?: string
+          results?: Json
+          sector_code?: string | null
+          status?: Database["public"]["Enums"]["scenario_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scenarios_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "scenarios_ministry_id_fkey"
+            columns: ["ministry_id"]
+            isOneToOne: false
+            referencedRelation: "ministries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scenarios_sector_code_fkey"
+            columns: ["sector_code"]
+            isOneToOne: false
+            referencedRelation: "sectors"
             referencedColumns: ["code"]
           },
         ]
@@ -795,6 +1040,7 @@ export type Database = {
         | "comms_director"
         | "cabinet_secretary"
         | "data_steward"
+      scenario_status: "draft" | "shared" | "adopted" | "archived"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -932,6 +1178,7 @@ export const Constants = {
         "cabinet_secretary",
         "data_steward",
       ],
+      scenario_status: ["draft", "shared", "adopted", "archived"],
     },
   },
 } as const

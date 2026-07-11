@@ -28,9 +28,12 @@ function InstrumentShell() {
 
   const nav = [
     { to: "/instrument", label: "Overview" },
+    { to: "/instrument/portfolio", label: "Portfolios" },
+    { to: "/instrument/scenarios", label: "Scenarios" },
     { to: "/instrument/exposure", label: "Exposure" },
     { to: "/instrument/stewardship", label: "Stewardship" },
   ] as const;
+
 
   return (
     <div className="min-h-screen bg-paper-0 text-ink-950">

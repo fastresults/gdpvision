@@ -110,11 +110,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
-  const data = Route.useLoaderData();
-  const mode = data?.siteMode ?? "present";
-  const host = data?.siteHost ?? "";
   return (
-    <html lang="en" data-site-mode={mode} data-site-host={host}>
+    <html lang="en">
       <head>
         <HeadContent />
       </head>

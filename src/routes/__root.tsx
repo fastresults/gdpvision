@@ -75,14 +75,6 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  loader: async (): Promise<{ siteMode: SiteMode; siteHost: string }> => {
-    try {
-      const { mode, host } = await getRequestSiteMode();
-      return { siteMode: mode, siteHost: host };
-    } catch {
-      return { siteMode: "present", siteHost: "" };
-    }
-  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },

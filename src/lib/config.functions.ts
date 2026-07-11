@@ -134,7 +134,7 @@ export const previewCountryPack = createServerFn({ method: "POST" })
         confidence_grade: s.confidence_grade,
       })),
       ministries: ministries ?? [],
-      signature: country?.signature_json ?? null,
+      signature: (country?.signature_json as NationalSignature | null) ?? null,
       signatureGeneratedAt: country?.signature_generated_at ?? null,
     };
   });

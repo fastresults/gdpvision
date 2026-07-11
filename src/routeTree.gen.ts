@@ -56,6 +56,7 @@ import { Route as AuthenticatedInstrumentPortfolioMinistryRouteImport } from './
 import { Route as AuthenticatedInstrumentMandateStudioRouteImport } from './routes/_authenticated/instrument/mandate.studio'
 import { Route as AuthenticatedInstrumentMandateScorecardRouteImport } from './routes/_authenticated/instrument/mandate.scorecard'
 import { Route as AuthenticatedInstrumentCabinetSessionRouteImport } from './routes/_authenticated/instrument/cabinet.session'
+import { Route as AuthenticatedAdminAuditsKeyingRouteImport } from './routes/_authenticated/admin/audits.keying'
 
 const KioskRoute = KioskRouteImport.update({
   id: '/kiosk',
@@ -328,6 +329,12 @@ const AuthenticatedInstrumentCabinetSessionRoute =
     path: '/cabinet/session',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
+const AuthenticatedAdminAuditsKeyingRoute =
+  AuthenticatedAdminAuditsKeyingRouteImport.update({
+    id: '/admin/audits/keying',
+    path: '/admin/audits/keying',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -355,6 +362,7 @@ export interface FileRoutesByFullPath {
   '/counsel/': typeof AuthenticatedCounselIndexRoute
   '/instrument/': typeof AuthenticatedInstrumentIndexRoute
   '/narrative/': typeof AuthenticatedNarrativeIndexRoute
+  '/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
   '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
   '/instrument/mandate/studio': typeof AuthenticatedInstrumentMandateStudioRoute
@@ -400,6 +408,7 @@ export interface FileRoutesByTo {
   '/counsel': typeof AuthenticatedCounselIndexRoute
   '/instrument': typeof AuthenticatedInstrumentIndexRoute
   '/narrative': typeof AuthenticatedNarrativeIndexRoute
+  '/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
   '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
   '/instrument/mandate/studio': typeof AuthenticatedInstrumentMandateStudioRoute
@@ -450,6 +459,7 @@ export interface FileRoutesById {
   '/_authenticated/counsel/': typeof AuthenticatedCounselIndexRoute
   '/_authenticated/instrument/': typeof AuthenticatedInstrumentIndexRoute
   '/_authenticated/narrative/': typeof AuthenticatedNarrativeIndexRoute
+  '/_authenticated/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
   '/_authenticated/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/_authenticated/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
   '/_authenticated/instrument/mandate/studio': typeof AuthenticatedInstrumentMandateStudioRoute
@@ -500,6 +510,7 @@ export interface FileRouteTypes {
     | '/counsel/'
     | '/instrument/'
     | '/narrative/'
+    | '/admin/audits/keying'
     | '/instrument/cabinet/session'
     | '/instrument/mandate/scorecard'
     | '/instrument/mandate/studio'
@@ -545,6 +556,7 @@ export interface FileRouteTypes {
     | '/counsel'
     | '/instrument'
     | '/narrative'
+    | '/admin/audits/keying'
     | '/instrument/cabinet/session'
     | '/instrument/mandate/scorecard'
     | '/instrument/mandate/studio'
@@ -594,6 +606,7 @@ export interface FileRouteTypes {
     | '/_authenticated/counsel/'
     | '/_authenticated/instrument/'
     | '/_authenticated/narrative/'
+    | '/_authenticated/admin/audits/keying'
     | '/_authenticated/instrument/cabinet/session'
     | '/_authenticated/instrument/mandate/scorecard'
     | '/_authenticated/instrument/mandate/studio'
@@ -956,6 +969,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInstrumentCabinetSessionRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
+    '/_authenticated/admin/audits/keying': {
+      id: '/_authenticated/admin/audits/keying'
+      path: '/admin/audits/keying'
+      fullPath: '/admin/audits/keying'
+      preLoaderRoute: typeof AuthenticatedAdminAuditsKeyingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -1078,6 +1098,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCodexIndexRoute: typeof AuthenticatedCodexIndexRoute
   AuthenticatedConfigIndexRoute: typeof AuthenticatedConfigIndexRoute
   AuthenticatedCounselIndexRoute: typeof AuthenticatedCounselIndexRoute
+  AuthenticatedAdminAuditsKeyingRoute: typeof AuthenticatedAdminAuditsKeyingRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -1091,6 +1112,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCodexIndexRoute: AuthenticatedCodexIndexRoute,
   AuthenticatedConfigIndexRoute: AuthenticatedConfigIndexRoute,
   AuthenticatedCounselIndexRoute: AuthenticatedCounselIndexRoute,
+  AuthenticatedAdminAuditsKeyingRoute: AuthenticatedAdminAuditsKeyingRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

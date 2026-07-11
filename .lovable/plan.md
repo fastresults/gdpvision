@@ -1,56 +1,154 @@
-## What's built vs. PRD §12 Key Screens (v1.0)
+# GDPVision v1.0 — Gap Closure Plan
 
-Mapping the current route tree against the PRD's 24-screen v1.0 inventory and the Phase 0–5 roadmap.
+Sequenced to unblock dependencies first (provisioning → traceability → transparency → depth → hardening). Each wave is independently shippable and ends in a verifiable DoD check.
 
-### Built (present as routes / functions)
-- Ledger home, Sector Detail, CBI Exposure, Portfolio Workspace, Stewardship (Chamber 1)
-- Scenario Builder / Compare / Detail (Chamber 3)
-- FDI Studio: Gap + Package Builder (Chamber 4)
-- Cabinet Room + Session Mode (Chamber 6)
-- Mandate Studio + National Scorecard (Mandate)
-- Narrative: Second Brain, Signal/Queue, Ingest, Coverage, Strategy Composer, Comms Studio + approval, hourly Harvest cron
-- Counsel desktop + Archive
+## Wave A — Provisioning & Identity (Phase 0 finish)
 
-### Not yet built — screens
-1. **Screen 0 — Country Configuration / provisioning** (CARICOM/OECS registry, Country Pack review, portfolio→sector mapping confirmation).
-2. **Screen 10 — Context Dossier** (per-signal researched surround: facts, coverage map, precedent, prior statements, open questions). Signal cards exist; the dossier detail view does not.
-3. **Screen 12b — Counsel mobile shell** (full-screen hold-mic, slide-up answer sheet, drawer to instrument). Desktop counsel exists; the phone-first surface does not.
-4. **Screen 17 — The Codex** (methodology handbook browser).
-5. **Screen 18 — Admin** (users, delegation, portfolio mapping, instance configuration).
+**A1. Screen 0 — Country Configuration**
+- Route: `/config` (upgrade existing stub).
+- Sections: CARICOM/OECS registry browser, Country Pack review (macro seed, sectors, ministries), portfolio→sector mapping confirmation, activation toggle.
+- Server fns: `listCountryPacks`, `previewCountryPack(iso)`, `activateCountryPack`, `confirmPortfolioMapping`.
+- Admin-gated via `has_role('admin')`.
 
-### Not yet built — cross-cutting v1.0 requirements
-6. **State coverage per screen** — PRD §12 requires empty / loading / error / stale-data states designed to the same standard as happy path. Most current routes only implement the happy path.
-7. **National Signature generator** (Phase 0) — the generative identity artifact per country; not present.
-8. **Methodology transparency surfaces** (FR-SE-09) — "why this number" drill-downs from Ledger/Scenario outputs into the Codex.
-9. **Ledger fact-check at generation + approval** (FR-NC-11) — Comms artifacts detect fiscal figures and gate approval on a note, but do not yet run a live Ledger fact-check pass against numeric claims with citation binding.
-10. **Retrieval citation rail** on Strategy Composer and Comms Studio drafts (PRD §12 screens 12/13 + DoD gate). Approval log exists; per-claim source citations bound to Second Brain objects do not.
-11. **Signal → Dossier → Strategy → Release traceability** — the end-to-end link required by the Phase 4 milestone and DoD drill.
-12. **Source suppression enforcement** across retrieval + citation (DoD gate). Table exists; enforcement in Counsel/Composer retrieval paths not wired.
-13. **Counsel hardening for GA** — rate limits, per-instance provider budget caps, full audit trail with scenario snapshot binding on save (partial), auth on all voice endpoints verified.
-14. **Universal country+sector keying audit** — automated audit that every object carries valid keys (DoD gate).
-15. **Cadence engine** — monthly/quarterly/annual/term cadence closes with immutable KPI snapshots (Mandate Studio surfaces exist; the cadence-close job does not).
-16. **Goal-seek** — set the target, discover the levers (§1.5, FR-SE, Mandate linkage).
-17. **Ripple propagation** across sectors in the Scenario Engine (Phase 2 milestone). Scenario CRUD exists; cross-sector ripple math does not.
-18. **Document export system** (Phase 3) — Cabinet decisions, briefings, package documents, term/State-of-the-Mandate export honoring PRD document rules.
-19. **Decisions register** as a first-class surface (referenced by Cabinet Room but not its own workspace with export).
-20. **Onboarding seed flow** for Position Library / Statement Record / Audience Registry (Phase 4 — "Second Brain launches pre-loaded").
+**A2. National Signature generator**
+- Server fn `generateNationalSignature(country_id)` using Lovable AI (`openai/gpt-5.5`) with Ledger + sector seed as context, stored in `countries.signature_json`.
+- Migration: add `signature_json jsonb`, `signature_generated_at timestamptz` on `countries`.
+- Surfaced on Config screen + Ledger home header.
 
-### Phase 5 GA gates (not yet done)
-- Security audit + auth verification on every Counsel/admin endpoint
-- Accessibility audit (WCAG 2.2 AA; AAA for headline numbers + Session Mode)
-- Reduced-motion parity, motion-token conformance, performance budget
-- External economist methodology review and comms-doctrine review
-- Award-submission asset prep
+**A3. Universal country+sector keying audit**
+- Server fn `runKeyingAudit()` scanning every domain table for null/invalid `country_id`/`sector_id` and reporting violations.
+- Route: `/admin/audits/keying` with rerun + export.
 
-## Suggested next build order
-1. Screen 0 (Country Configuration) — blocks credible provisioning of new instances.
-2. Context Dossier (Screen 10) — closes the Signal→Strategy chain the Phase 4 milestone requires.
-3. Fact-check + citation rail on Strategy/Comms — DoD gate; small edits on top of existing screens.
-4. Admin (Screen 18) + Codex (Screen 17) — unblocks self-serve operation and methodology transparency.
-5. Counsel mobile shell — front-door surface on phones.
-6. Cadence engine + goal-seek + ripple — Mandate/Engine depth.
-7. Document export system + decisions register export.
-8. Empty/loading/error/stale states pass across all routes.
-9. Phase 5 GA hardening.
+## Wave B — Signal→Strategy Traceability (Phase 4 milestone)
 
-Want me to break any of these into a build-ready plan?
+**B1. Context Dossier (Screen 10) — deepen**
+- Extend `/narrative/signal/$id` with: Facts panel (Ledger series pulled by sector), Coverage map (recent `comms_artifacts` filtered by sector+topic), Precedent (prior `strategy_statements`), Open Questions (AI-generated w/ persist), Prior Statements timeline.
+- Migration: `dossier_questions` table (signal_id, question, status, answer_ref).
+- "Draft strategy from dossier" CTA prefilling Strategy Composer with citations.
+
+**B2. Retrieval citation rail — bind to Second Brain**
+- Extend existing `CitationsRail` to persist citation bindings per statement/artifact block.
+- Migration: `citations` table (owner_type, owner_id, memory_object_id, quote, offset).
+- Render inline citation markers in Strategy/Comms editors with hover source card.
+
+**B3. Ledger fact-check at generate + approve (FR-NC-11)**
+- Extend `factCheckBody` to run on generation (blocking warnings) AND on approval (hard gate unless override with reason).
+- UI: red/amber/green claim chips, override modal writes to `data_revisions`.
+
+**B4. Source suppression enforcement**
+- Wrap all retrieval paths (`listCitationCandidates`, Counsel retrieval, Composer retrieval) through `applySourceSuppressions(user_id, sector_id)`.
+- Add integration test asserting suppressed sources never appear.
+
+**B5. End-to-end traceability view**
+- Route: `/narrative/trace/$signal_id` showing Signal → Dossier → Strategy → Artifact → Approval chain.
+- Migration: `narrative_lineage` table linking artifacts back to source signal.
+
+## Wave C — Transparency & Self-Serve (Screens 17, 18)
+
+**C1. Admin (Screen 18) — complete**
+- Extend `/admin` with: user delegation, portfolio mapping editor, instance config (feature flags, provider caps), invite flow, audit log viewer.
+- Server fns: `delegateRole`, `updatePortfolioMapping`, `getInstanceConfig`, `updateInstanceConfig`.
+- Migration: `instance_config` (key, value_json, updated_by), `audit_log` if not present.
+
+**C2. Codex (Screen 17) — deepen**
+- Expand `/codex` from static handbook to browsable methodology store with anchor links.
+- Migration: `codex_entries` (slug, title, body_md, category, version).
+- Seed via migration with Confidence, CBI Index, Ripple, Cadence, Release Doctrine, Fact-check policy.
+
+**C3. Methodology transparency drill-downs (FR-SE-09)**
+- "Why this number?" popover on Ledger KPIs, CBI Exposure rows, Scenario outputs → deep-links to matching Codex entry + source series.
+- Reusable `<WhyThisNumber target="cbi.exposure">` component.
+
+## Wave D — Counsel GA & Mobile
+
+**D1. Counsel Mobile (Screen 12b) — harden**
+- Existing shell exists; add: hold-to-record with waveform, slide-up answer sheet with citation chips, drawer to open source instrument (Ledger/Scenario/Mandate).
+- Verify offline/reconnect states.
+
+**D2. Counsel hardening for GA**
+- Rate limit middleware (per user, per instance) on all Counsel server fns.
+- Instance provider budget caps read from `instance_config`; hard stop + surface message on exceed.
+- Full audit trail: every Counsel Q/A writes to `counsel_answers` with scenario snapshot ref.
+- Verify `requireSupabaseAuth` on every voice endpoint; add integration tests.
+
+## Wave E — Engine Depth (Cadence, Goal-Seek, Ripple)
+
+**E1. Cadence engine**
+- Cron `/api/public/hooks/cadence-close` (daily 00:15 UTC) closing monthly/quarterly/annual/term windows.
+- Migration: `kpi_snapshots` (immutable), `cadence_closes` (period, kind, closed_at).
+- Mandate Studio surfaces closed periods with diff vs prior.
+
+**E2. Goal-seek**
+- Server fn `solveForTarget(kpi_id, target_value, horizon)` running lever search using existing scenario simulator.
+- UI in Scenario Builder: "Set target → discover levers" mode returning ranked lever bundles.
+
+**E3. Ripple propagation across sectors**
+- Extend scenario simulator with sector adjacency matrix (`sector_edges` migration: from_sector, to_sector, elasticity).
+- Seed default matrix; expose in Codex + Admin.
+- Scenario Detail shows first/second-order ripple decomposition.
+
+## Wave F — Documents & Decisions
+
+**F1. Decisions register**
+- Route: `/cabinet/decisions` first-class list with filters, export.
+- Extend `decisions` table with export_status, exported_at.
+
+**F2. Document export system (Phase 3)**
+- Server fn `renderDocument(kind, id)` → PDF via headless (or HTML+print) honoring doctrine.
+- Kinds: Cabinet decision, Briefing pack, FDI package, Term report, State-of-the-Mandate.
+- `exports_log` already exists — wire it.
+
+**F3. Onboarding seed flow — Second Brain**
+- Migration seeding Position Library / Statement Record / Audience Registry templates per Country Pack activation.
+- Trigger from Wave A1 activation flow.
+
+## Wave G — State Coverage & GA Hardening (Phase 5)
+
+**G1. State coverage sweep**
+- Add empty / loading / error / stale states to every `_authenticated/*` route using shared `<RouteState>` primitives.
+- Loading uses skeletons; stale surfaces last-refresh + refresh CTA.
+
+**G2. Accessibility audit**
+- WCAG 2.2 AA project-wide; AAA for Session Mode + headline numbers.
+- Reduced-motion parity, motion-token conformance sweep.
+- axe CI check.
+
+**G3. Performance budget**
+- Route-level bundle audit; lazy-load Cabinet/Scenario/FDI heavy widgets.
+- Target LCP < 2.5s on preview URL.
+
+**G4. Security audit**
+- Verify `requireSupabaseAuth` + role check on every server fn touching admin/counsel/writes.
+- Run `supabase--linter`; resolve all warnings.
+- Confirm no `supabaseAdmin` at module scope in `.functions.ts`.
+
+**G5. External reviews & award prep**
+- Package methodology for external economist review (Codex export).
+- Comms doctrine review packet.
+- Award-submission asset prep (screenshots, narrative, metrics).
+
+---
+
+## Technical notes
+
+- **Migrations**: every new public table gets GRANT block + RLS + policies in the same migration.
+- **Server fns**: `.functions.ts` in `src/lib/`, protected via `requireSupabaseAuth` + `has_role` checks for privileged ops; `supabaseAdmin` only imported inside handler bodies.
+- **Cron**: `pg_cron` calling `/api/public/hooks/*` with `apikey` header (publishable key).
+- **AI**: Lovable AI Gateway via `createLovableAiGatewayProvider`, `openai/gpt-5.5` default.
+- **Citations**: shared `citations` table + `<CitationsRail>` reused across Strategy, Comms, Counsel.
+- **Suppression**: single `applySourceSuppressions` helper wraps every retrieval path.
+
+## Sequencing rationale
+
+```text
+A (provisioning) → B (traceability) → C (transparency)
+                                    ↘ D (counsel GA)
+                                    ↘ E (engine depth) → F (docs/decisions)
+                                                       → G (GA hardening)
+```
+
+A blocks credible new-instance provisioning. B closes the DoD chain called out in the PRD's Phase 4 milestone. C unblocks self-serve. D–F can proceed in parallel once B lands. G is the final GA gate.
+
+## Suggested first execution slice
+
+Wave A (A1 + A2 + A3) in one build turn — small, high-leverage, unblocks every downstream demo.

@@ -73,7 +73,7 @@ export default function PresentationUpload({ onUploaded, category = "presentatio
       fd.append("label", label.trim());
       fd.append("category", category);
       if (thumb) fd.append("thumbnail", thumb, "thumb.png");
-      const res = await fetch("/api/upload-presentation", {
+      const res = await fetch("/kiosk/api/upload-presentation", {
         method: "POST",
         body: fd,
       });

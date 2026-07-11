@@ -26,8 +26,6 @@ export const Route = createFileRoute("/kiosk/api/upload-media")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        if (blocked) return blocked;
-
         try {
           const form = await request.formData();
           const file = form.get("file");

@@ -97,7 +97,7 @@ export function MarketingHome() {
           <div>© {new Date().getFullYear()} GDP Vision</div>
           <div className="flex gap-6">
             <Link to="/kiosk" className="hover:opacity-100">Kiosk</Link>
-            <Link to="/admin" className="hover:opacity-100">Admin</Link>
+            <Link to="/kiosk/admin" className="hover:opacity-100">Admin</Link>
           </div>
         </div>
       </footer>

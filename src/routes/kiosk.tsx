@@ -54,7 +54,7 @@ type KioskData = {
 };
 
 async function fetchKioskData(): Promise<KioskData> {
-  const response = await fetch("/api/kiosk-data");
+  const response = await fetch("/kiosk/api/kiosk-data");
   if (!response.ok) throw new Error("Failed to load kiosk data");
   return response.json();
 }
@@ -227,7 +227,7 @@ function KioskPage() {
             <>
               {visible.length === 0 && (
                 <span className="text-xs opacity-60">
-                  No items in this category. Add some in /admin.
+                  No items in this category. Add some in /kiosk/admin.
                 </span>
               )}
               <TooltipProvider delayDuration={200}>
@@ -284,7 +284,7 @@ function KioskPage() {
         )}
 
         <Link
-          to="/admin"
+          to="/kiosk/admin"
           className="flex h-[23px] shrink-0 items-center gap-1 rounded-md border px-2 text-xs opacity-70 transition-colors hover:brightness-125"
           style={{
             backgroundColor: "var(--eyeframe-card)",

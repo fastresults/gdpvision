@@ -355,7 +355,7 @@ function AdminContent() {
               Refresh favicons
             </button>
             <Link
-              to="/"
+              to="/kiosk"
               className="rounded-md border px-3 py-2 text-sm transition-colors hover:brightness-125"
               style={{
                 backgroundColor: "var(--eyeframe-topbar)",
@@ -789,7 +789,7 @@ function MediaHub() {
   const uploadOne = async (f: File) => {
     const fd = new FormData();
     fd.append("file", f);
-    const res = await fetch("/api/upload-media", { method: "POST", body: fd });
+    const res = await fetch("/kiosk/api/upload-media", { method: "POST", body: fd });
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText }));
       throw new Error(body?.error || `Upload failed (${res.status})`);

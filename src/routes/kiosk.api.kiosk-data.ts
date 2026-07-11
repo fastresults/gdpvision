@@ -11,9 +11,7 @@ const SETTING_KEYS = new Set(Object.keys(DEFAULT_SETTINGS));
 export const Route = createFileRoute("/kiosk/api/kiosk-data")({
   server: {
     handlers: {
-      GET: async ({ request }) => {
-        if (blocked) return blocked;
-
+      GET: async () => {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         const [itemsResult, settingsResult, idleResult, categoriesResult, galleriesResult, galleryItemsResult] =

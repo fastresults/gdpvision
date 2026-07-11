@@ -6,8 +6,6 @@ export const Route = createFileRoute("/kiosk/api/public/presentation-pdf")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        if (blocked) return blocked;
-
         try {
           const url = new URL(request.url);
           const path = url.searchParams.get("path") ?? "";

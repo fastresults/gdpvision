@@ -50,10 +50,11 @@ function SignalDesk() {
       <h3 className="mt-16 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">Latest signals</h3>
       <ul className="mt-4 divide-y divide-line-200 border-y border-line-200">
         {intake.slice(0, 12).map((i) => (
-          <li key={i.id} className="grid grid-cols-[1fr_auto_auto] items-baseline gap-4 py-3 text-sm">
-            <span className="truncate">{i.topic}</span>
+          <li key={i.id} className="grid grid-cols-[1fr_auto_auto_auto] items-baseline gap-4 py-3 text-sm">
+            <Link to="/narrative/signal/$id" params={{ id: i.id }} className="truncate hover:text-ink-950">{i.topic}</Link>
             <span className="font-mono text-[11px] uppercase tracking-widest text-ink-500">{i.sector_code}</span>
             <span className="font-mono text-[11px] text-ink-500">w{i.proposed_weight}</span>
+            <Link to="/narrative/signal/$id" params={{ id: i.id }} className="font-mono text-[10px] uppercase tracking-widest text-ink-500 hover:text-ink-950">Dossier →</Link>
           </li>
         ))}
         {intake.length === 0 && (

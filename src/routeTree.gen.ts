@@ -20,6 +20,9 @@ import { Route as AuthenticatedInstrumentRouteRouteImport } from './routes/_auth
 import { Route as AuthenticatedNarrativeIndexRouteImport } from './routes/_authenticated/narrative/index'
 import { Route as AuthenticatedInstrumentIndexRouteImport } from './routes/_authenticated/instrument/index'
 import { Route as AuthenticatedCounselIndexRouteImport } from './routes/_authenticated/counsel/index'
+import { Route as AuthenticatedConfigIndexRouteImport } from './routes/_authenticated/config/index'
+import { Route as AuthenticatedCodexIndexRouteImport } from './routes/_authenticated/codex/index'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as KioskApiUploadPresentationRouteImport } from './routes/kiosk.api.upload-presentation'
 import { Route as KioskApiUploadMediaRouteImport } from './routes/kiosk.api.upload-media'
 import { Route as KioskApiKioskDataRouteImport } from './routes/kiosk.api.kiosk-data'
@@ -39,6 +42,7 @@ import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kios
 import { Route as ApiPublicHooksNarrativeHarvestRouteImport } from './routes/api/public/hooks/narrative-harvest'
 import { Route as AuthenticatedNarrativeStrategyNewRouteImport } from './routes/_authenticated/narrative/strategy.new'
 import { Route as AuthenticatedNarrativeStrategyIdRouteImport } from './routes/_authenticated/narrative/strategy.$id'
+import { Route as AuthenticatedNarrativeSignalIdRouteImport } from './routes/_authenticated/narrative/signal.$id'
 import { Route as AuthenticatedNarrativeCommsNewRouteImport } from './routes/_authenticated/narrative/comms.new'
 import { Route as AuthenticatedNarrativeCommsIdRouteImport } from './routes/_authenticated/narrative/comms.$id'
 import { Route as AuthenticatedInstrumentStudioPackagesRouteImport } from './routes/_authenticated/instrument/studio.packages'
@@ -111,6 +115,22 @@ const AuthenticatedCounselIndexRoute =
     path: '/counsel/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedConfigIndexRoute =
+  AuthenticatedConfigIndexRouteImport.update({
+    id: '/config/',
+    path: '/config/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCodexIndexRoute = AuthenticatedCodexIndexRouteImport.update({
+  id: '/codex/',
+  path: '/codex/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const KioskApiUploadPresentationRoute =
   KioskApiUploadPresentationRouteImport.update({
     id: '/api/upload-presentation',
@@ -223,6 +243,12 @@ const AuthenticatedNarrativeStrategyIdRoute =
     path: '/strategy/$id',
     getParentRoute: () => AuthenticatedNarrativeRouteRoute,
   } as any)
+const AuthenticatedNarrativeSignalIdRoute =
+  AuthenticatedNarrativeSignalIdRouteImport.update({
+    id: '/signal/$id',
+    path: '/signal/$id',
+    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
+  } as any)
 const AuthenticatedNarrativeCommsNewRoute =
   AuthenticatedNarrativeCommsNewRouteImport.update({
     id: '/new',
@@ -315,6 +341,9 @@ export interface FileRoutesByFullPath {
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/codex/': typeof AuthenticatedCodexIndexRoute
+  '/config/': typeof AuthenticatedConfigIndexRoute
   '/counsel/': typeof AuthenticatedCounselIndexRoute
   '/instrument/': typeof AuthenticatedInstrumentIndexRoute
   '/narrative/': typeof AuthenticatedNarrativeIndexRoute
@@ -330,6 +359,7 @@ export interface FileRoutesByFullPath {
   '/instrument/studio/packages': typeof AuthenticatedInstrumentStudioPackagesRoute
   '/narrative/comms/$id': typeof AuthenticatedNarrativeCommsIdRoute
   '/narrative/comms/new': typeof AuthenticatedNarrativeCommsNewRoute
+  '/narrative/signal/$id': typeof AuthenticatedNarrativeSignalIdRoute
   '/narrative/strategy/$id': typeof AuthenticatedNarrativeStrategyIdRoute
   '/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
@@ -355,6 +385,9 @@ export interface FileRoutesByTo {
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
+  '/codex': typeof AuthenticatedCodexIndexRoute
+  '/config': typeof AuthenticatedConfigIndexRoute
   '/counsel': typeof AuthenticatedCounselIndexRoute
   '/instrument': typeof AuthenticatedInstrumentIndexRoute
   '/narrative': typeof AuthenticatedNarrativeIndexRoute
@@ -370,6 +403,7 @@ export interface FileRoutesByTo {
   '/instrument/studio/packages': typeof AuthenticatedInstrumentStudioPackagesRoute
   '/narrative/comms/$id': typeof AuthenticatedNarrativeCommsIdRoute
   '/narrative/comms/new': typeof AuthenticatedNarrativeCommsNewRoute
+  '/narrative/signal/$id': typeof AuthenticatedNarrativeSignalIdRoute
   '/narrative/strategy/$id': typeof AuthenticatedNarrativeStrategyIdRoute
   '/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
@@ -400,6 +434,9 @@ export interface FileRoutesById {
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/codex/': typeof AuthenticatedCodexIndexRoute
+  '/_authenticated/config/': typeof AuthenticatedConfigIndexRoute
   '/_authenticated/counsel/': typeof AuthenticatedCounselIndexRoute
   '/_authenticated/instrument/': typeof AuthenticatedInstrumentIndexRoute
   '/_authenticated/narrative/': typeof AuthenticatedNarrativeIndexRoute
@@ -415,6 +452,7 @@ export interface FileRoutesById {
   '/_authenticated/instrument/studio/packages': typeof AuthenticatedInstrumentStudioPackagesRoute
   '/_authenticated/narrative/comms/$id': typeof AuthenticatedNarrativeCommsIdRoute
   '/_authenticated/narrative/comms/new': typeof AuthenticatedNarrativeCommsNewRoute
+  '/_authenticated/narrative/signal/$id': typeof AuthenticatedNarrativeSignalIdRoute
   '/_authenticated/narrative/strategy/$id': typeof AuthenticatedNarrativeStrategyIdRoute
   '/_authenticated/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
@@ -445,6 +483,9 @@ export interface FileRouteTypes {
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
+    | '/admin/'
+    | '/codex/'
+    | '/config/'
     | '/counsel/'
     | '/instrument/'
     | '/narrative/'
@@ -460,6 +501,7 @@ export interface FileRouteTypes {
     | '/instrument/studio/packages'
     | '/narrative/comms/$id'
     | '/narrative/comms/new'
+    | '/narrative/signal/$id'
     | '/narrative/strategy/$id'
     | '/narrative/strategy/new'
     | '/api/public/hooks/narrative-harvest'
@@ -485,6 +527,9 @@ export interface FileRouteTypes {
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
+    | '/admin'
+    | '/codex'
+    | '/config'
     | '/counsel'
     | '/instrument'
     | '/narrative'
@@ -500,6 +545,7 @@ export interface FileRouteTypes {
     | '/instrument/studio/packages'
     | '/narrative/comms/$id'
     | '/narrative/comms/new'
+    | '/narrative/signal/$id'
     | '/narrative/strategy/$id'
     | '/narrative/strategy/new'
     | '/api/public/hooks/narrative-harvest'
@@ -529,6 +575,9 @@ export interface FileRouteTypes {
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
+    | '/_authenticated/admin/'
+    | '/_authenticated/codex/'
+    | '/_authenticated/config/'
     | '/_authenticated/counsel/'
     | '/_authenticated/instrument/'
     | '/_authenticated/narrative/'
@@ -544,6 +593,7 @@ export interface FileRouteTypes {
     | '/_authenticated/instrument/studio/packages'
     | '/_authenticated/narrative/comms/$id'
     | '/_authenticated/narrative/comms/new'
+    | '/_authenticated/narrative/signal/$id'
     | '/_authenticated/narrative/strategy/$id'
     | '/_authenticated/narrative/strategy/new'
     | '/api/public/hooks/narrative-harvest'
@@ -639,6 +689,27 @@ declare module '@tanstack/react-router' {
       path: '/counsel'
       fullPath: '/counsel/'
       preLoaderRoute: typeof AuthenticatedCounselIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/config/': {
+      id: '/_authenticated/config/'
+      path: '/config'
+      fullPath: '/config/'
+      preLoaderRoute: typeof AuthenticatedConfigIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/codex/': {
+      id: '/_authenticated/codex/'
+      path: '/codex'
+      fullPath: '/codex/'
+      preLoaderRoute: typeof AuthenticatedCodexIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/kiosk/api/upload-presentation': {
@@ -772,6 +843,13 @@ declare module '@tanstack/react-router' {
       path: '/strategy/$id'
       fullPath: '/narrative/strategy/$id'
       preLoaderRoute: typeof AuthenticatedNarrativeStrategyIdRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
+    }
+    '/_authenticated/narrative/signal/$id': {
+      id: '/_authenticated/narrative/signal/$id'
+      path: '/signal/$id'
+      fullPath: '/narrative/signal/$id'
+      preLoaderRoute: typeof AuthenticatedNarrativeSignalIdRouteImport
       parentRoute: typeof AuthenticatedNarrativeRouteRoute
     }
     '/_authenticated/narrative/comms/new': {
@@ -942,6 +1020,7 @@ interface AuthenticatedNarrativeRouteRouteChildren {
   AuthenticatedNarrativeIngestRoute: typeof AuthenticatedNarrativeIngestRoute
   AuthenticatedNarrativeQueueRoute: typeof AuthenticatedNarrativeQueueRoute
   AuthenticatedNarrativeIndexRoute: typeof AuthenticatedNarrativeIndexRoute
+  AuthenticatedNarrativeSignalIdRoute: typeof AuthenticatedNarrativeSignalIdRoute
   AuthenticatedNarrativeStrategyIdRoute: typeof AuthenticatedNarrativeStrategyIdRoute
   AuthenticatedNarrativeStrategyNewRoute: typeof AuthenticatedNarrativeStrategyNewRoute
   AuthenticatedNarrativeStrategyIndexRoute: typeof AuthenticatedNarrativeStrategyIndexRoute
@@ -956,6 +1035,7 @@ const AuthenticatedNarrativeRouteRouteChildren: AuthenticatedNarrativeRouteRoute
     AuthenticatedNarrativeIngestRoute: AuthenticatedNarrativeIngestRoute,
     AuthenticatedNarrativeQueueRoute: AuthenticatedNarrativeQueueRoute,
     AuthenticatedNarrativeIndexRoute: AuthenticatedNarrativeIndexRoute,
+    AuthenticatedNarrativeSignalIdRoute: AuthenticatedNarrativeSignalIdRoute,
     AuthenticatedNarrativeStrategyIdRoute:
       AuthenticatedNarrativeStrategyIdRoute,
     AuthenticatedNarrativeStrategyNewRoute:
@@ -973,6 +1053,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedInstrumentRouteRoute: typeof AuthenticatedInstrumentRouteRouteWithChildren
   AuthenticatedNarrativeRouteRoute: typeof AuthenticatedNarrativeRouteRouteWithChildren
   AuthenticatedCounselArchiveRoute: typeof AuthenticatedCounselArchiveRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedCodexIndexRoute: typeof AuthenticatedCodexIndexRoute
+  AuthenticatedConfigIndexRoute: typeof AuthenticatedConfigIndexRoute
   AuthenticatedCounselIndexRoute: typeof AuthenticatedCounselIndexRoute
 }
 
@@ -982,6 +1065,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedNarrativeRouteRoute:
     AuthenticatedNarrativeRouteRouteWithChildren,
   AuthenticatedCounselArchiveRoute: AuthenticatedCounselArchiveRoute,
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedCodexIndexRoute: AuthenticatedCodexIndexRoute,
+  AuthenticatedConfigIndexRoute: AuthenticatedConfigIndexRoute,
   AuthenticatedCounselIndexRoute: AuthenticatedCounselIndexRoute,
 }
 

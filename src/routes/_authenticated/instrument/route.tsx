@@ -58,6 +58,9 @@ function InstrumentShell() {
           </nav>
         </div>
         <div className="flex items-center gap-6 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500">
+          <Link to="/codex" className="hover:text-ink-950">Codex</Link>
+          <Link to="/config" className="hover:text-ink-950">Config</Link>
+          <Link to="/admin" className="hover:text-ink-950">Admin</Link>
           <span data-numeric>{defaultCode}</span>
           <button onClick={signOut} className="hover:text-ink-950">Sign out</button>
         </div>

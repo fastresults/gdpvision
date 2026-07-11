@@ -24,12 +24,18 @@ import { Route as AuthenticatedInstrumentStewardshipRouteImport } from './routes
 import { Route as AuthenticatedInstrumentExposureRouteImport } from './routes/_authenticated/instrument/exposure'
 import { Route as AuthenticatedInstrumentScenariosIndexRouteImport } from './routes/_authenticated/instrument/scenarios.index'
 import { Route as AuthenticatedInstrumentPortfolioIndexRouteImport } from './routes/_authenticated/instrument/portfolio.index'
+import { Route as AuthenticatedInstrumentCabinetIndexRouteImport } from './routes/_authenticated/instrument/cabinet.index'
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
+import { Route as AuthenticatedInstrumentStudioPackagesRouteImport } from './routes/_authenticated/instrument/studio.packages'
+import { Route as AuthenticatedInstrumentStudioGapRouteImport } from './routes/_authenticated/instrument/studio.gap'
 import { Route as AuthenticatedInstrumentSectorCodeRouteImport } from './routes/_authenticated/instrument/sector.$code'
 import { Route as AuthenticatedInstrumentScenariosNewRouteImport } from './routes/_authenticated/instrument/scenarios.new'
 import { Route as AuthenticatedInstrumentScenariosCompareRouteImport } from './routes/_authenticated/instrument/scenarios.compare'
 import { Route as AuthenticatedInstrumentScenariosIdRouteImport } from './routes/_authenticated/instrument/scenarios.$id'
 import { Route as AuthenticatedInstrumentPortfolioMinistryRouteImport } from './routes/_authenticated/instrument/portfolio.$ministry'
+import { Route as AuthenticatedInstrumentMandateStudioRouteImport } from './routes/_authenticated/instrument/mandate.studio'
+import { Route as AuthenticatedInstrumentMandateScorecardRouteImport } from './routes/_authenticated/instrument/mandate.scorecard'
+import { Route as AuthenticatedInstrumentCabinetSessionRouteImport } from './routes/_authenticated/instrument/cabinet.session'
 
 const KioskRoute = KioskRouteImport.update({
   id: '/kiosk',
@@ -112,11 +118,29 @@ const AuthenticatedInstrumentPortfolioIndexRoute =
     path: '/portfolio/',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
+const AuthenticatedInstrumentCabinetIndexRoute =
+  AuthenticatedInstrumentCabinetIndexRouteImport.update({
+    id: '/cabinet/',
+    path: '/cabinet/',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+  } as any)
 const KioskApiPublicPresentationPdfRoute =
   KioskApiPublicPresentationPdfRouteImport.update({
     id: '/api/public/presentation-pdf',
     path: '/api/public/presentation-pdf',
     getParentRoute: () => KioskRoute,
+  } as any)
+const AuthenticatedInstrumentStudioPackagesRoute =
+  AuthenticatedInstrumentStudioPackagesRouteImport.update({
+    id: '/studio/packages',
+    path: '/studio/packages',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+  } as any)
+const AuthenticatedInstrumentStudioGapRoute =
+  AuthenticatedInstrumentStudioGapRouteImport.update({
+    id: '/studio/gap',
+    path: '/studio/gap',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
 const AuthenticatedInstrumentSectorCodeRoute =
   AuthenticatedInstrumentSectorCodeRouteImport.update({
@@ -148,6 +172,24 @@ const AuthenticatedInstrumentPortfolioMinistryRoute =
     path: '/portfolio/$ministry',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
+const AuthenticatedInstrumentMandateStudioRoute =
+  AuthenticatedInstrumentMandateStudioRouteImport.update({
+    id: '/mandate/studio',
+    path: '/mandate/studio',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+  } as any)
+const AuthenticatedInstrumentMandateScorecardRoute =
+  AuthenticatedInstrumentMandateScorecardRouteImport.update({
+    id: '/mandate/scorecard',
+    path: '/mandate/scorecard',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+  } as any)
+const AuthenticatedInstrumentCabinetSessionRoute =
+  AuthenticatedInstrumentCabinetSessionRouteImport.update({
+    id: '/cabinet/session',
+    path: '/cabinet/session',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -162,12 +204,18 @@ export interface FileRoutesByFullPath {
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
   '/instrument/': typeof AuthenticatedInstrumentIndexRoute
+  '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
+  '/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
+  '/instrument/mandate/studio': typeof AuthenticatedInstrumentMandateStudioRoute
   '/instrument/portfolio/$ministry': typeof AuthenticatedInstrumentPortfolioMinistryRoute
   '/instrument/scenarios/$id': typeof AuthenticatedInstrumentScenariosIdRoute
   '/instrument/scenarios/compare': typeof AuthenticatedInstrumentScenariosCompareRoute
   '/instrument/scenarios/new': typeof AuthenticatedInstrumentScenariosNewRoute
   '/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
+  '/instrument/studio/gap': typeof AuthenticatedInstrumentStudioGapRoute
+  '/instrument/studio/packages': typeof AuthenticatedInstrumentStudioPackagesRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
+  '/instrument/cabinet/': typeof AuthenticatedInstrumentCabinetIndexRoute
   '/instrument/portfolio/': typeof AuthenticatedInstrumentPortfolioIndexRoute
   '/instrument/scenarios/': typeof AuthenticatedInstrumentScenariosIndexRoute
 }
@@ -182,12 +230,18 @@ export interface FileRoutesByTo {
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
   '/instrument': typeof AuthenticatedInstrumentIndexRoute
+  '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
+  '/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
+  '/instrument/mandate/studio': typeof AuthenticatedInstrumentMandateStudioRoute
   '/instrument/portfolio/$ministry': typeof AuthenticatedInstrumentPortfolioMinistryRoute
   '/instrument/scenarios/$id': typeof AuthenticatedInstrumentScenariosIdRoute
   '/instrument/scenarios/compare': typeof AuthenticatedInstrumentScenariosCompareRoute
   '/instrument/scenarios/new': typeof AuthenticatedInstrumentScenariosNewRoute
   '/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
+  '/instrument/studio/gap': typeof AuthenticatedInstrumentStudioGapRoute
+  '/instrument/studio/packages': typeof AuthenticatedInstrumentStudioPackagesRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
+  '/instrument/cabinet': typeof AuthenticatedInstrumentCabinetIndexRoute
   '/instrument/portfolio': typeof AuthenticatedInstrumentPortfolioIndexRoute
   '/instrument/scenarios': typeof AuthenticatedInstrumentScenariosIndexRoute
 }
@@ -206,12 +260,18 @@ export interface FileRoutesById {
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
   '/_authenticated/instrument/': typeof AuthenticatedInstrumentIndexRoute
+  '/_authenticated/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
+  '/_authenticated/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
+  '/_authenticated/instrument/mandate/studio': typeof AuthenticatedInstrumentMandateStudioRoute
   '/_authenticated/instrument/portfolio/$ministry': typeof AuthenticatedInstrumentPortfolioMinistryRoute
   '/_authenticated/instrument/scenarios/$id': typeof AuthenticatedInstrumentScenariosIdRoute
   '/_authenticated/instrument/scenarios/compare': typeof AuthenticatedInstrumentScenariosCompareRoute
   '/_authenticated/instrument/scenarios/new': typeof AuthenticatedInstrumentScenariosNewRoute
   '/_authenticated/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
+  '/_authenticated/instrument/studio/gap': typeof AuthenticatedInstrumentStudioGapRoute
+  '/_authenticated/instrument/studio/packages': typeof AuthenticatedInstrumentStudioPackagesRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
+  '/_authenticated/instrument/cabinet/': typeof AuthenticatedInstrumentCabinetIndexRoute
   '/_authenticated/instrument/portfolio/': typeof AuthenticatedInstrumentPortfolioIndexRoute
   '/_authenticated/instrument/scenarios/': typeof AuthenticatedInstrumentScenariosIndexRoute
 }
@@ -230,12 +290,18 @@ export interface FileRouteTypes {
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
     | '/instrument/'
+    | '/instrument/cabinet/session'
+    | '/instrument/mandate/scorecard'
+    | '/instrument/mandate/studio'
     | '/instrument/portfolio/$ministry'
     | '/instrument/scenarios/$id'
     | '/instrument/scenarios/compare'
     | '/instrument/scenarios/new'
     | '/instrument/sector/$code'
+    | '/instrument/studio/gap'
+    | '/instrument/studio/packages'
     | '/kiosk/api/public/presentation-pdf'
+    | '/instrument/cabinet/'
     | '/instrument/portfolio/'
     | '/instrument/scenarios/'
   fileRoutesByTo: FileRoutesByTo
@@ -250,12 +316,18 @@ export interface FileRouteTypes {
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
     | '/instrument'
+    | '/instrument/cabinet/session'
+    | '/instrument/mandate/scorecard'
+    | '/instrument/mandate/studio'
     | '/instrument/portfolio/$ministry'
     | '/instrument/scenarios/$id'
     | '/instrument/scenarios/compare'
     | '/instrument/scenarios/new'
     | '/instrument/sector/$code'
+    | '/instrument/studio/gap'
+    | '/instrument/studio/packages'
     | '/kiosk/api/public/presentation-pdf'
+    | '/instrument/cabinet'
     | '/instrument/portfolio'
     | '/instrument/scenarios'
   id:
@@ -273,12 +345,18 @@ export interface FileRouteTypes {
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
     | '/_authenticated/instrument/'
+    | '/_authenticated/instrument/cabinet/session'
+    | '/_authenticated/instrument/mandate/scorecard'
+    | '/_authenticated/instrument/mandate/studio'
     | '/_authenticated/instrument/portfolio/$ministry'
     | '/_authenticated/instrument/scenarios/$id'
     | '/_authenticated/instrument/scenarios/compare'
     | '/_authenticated/instrument/scenarios/new'
     | '/_authenticated/instrument/sector/$code'
+    | '/_authenticated/instrument/studio/gap'
+    | '/_authenticated/instrument/studio/packages'
     | '/kiosk/api/public/presentation-pdf'
+    | '/_authenticated/instrument/cabinet/'
     | '/_authenticated/instrument/portfolio/'
     | '/_authenticated/instrument/scenarios/'
   fileRoutesById: FileRoutesById
@@ -397,12 +475,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInstrumentPortfolioIndexRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
+    '/_authenticated/instrument/cabinet/': {
+      id: '/_authenticated/instrument/cabinet/'
+      path: '/cabinet'
+      fullPath: '/instrument/cabinet/'
+      preLoaderRoute: typeof AuthenticatedInstrumentCabinetIndexRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
     '/kiosk/api/public/presentation-pdf': {
       id: '/kiosk/api/public/presentation-pdf'
       path: '/api/public/presentation-pdf'
       fullPath: '/kiosk/api/public/presentation-pdf'
       preLoaderRoute: typeof KioskApiPublicPresentationPdfRouteImport
       parentRoute: typeof KioskRoute
+    }
+    '/_authenticated/instrument/studio/packages': {
+      id: '/_authenticated/instrument/studio/packages'
+      path: '/studio/packages'
+      fullPath: '/instrument/studio/packages'
+      preLoaderRoute: typeof AuthenticatedInstrumentStudioPackagesRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
+    '/_authenticated/instrument/studio/gap': {
+      id: '/_authenticated/instrument/studio/gap'
+      path: '/studio/gap'
+      fullPath: '/instrument/studio/gap'
+      preLoaderRoute: typeof AuthenticatedInstrumentStudioGapRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
     '/_authenticated/instrument/sector/$code': {
       id: '/_authenticated/instrument/sector/$code'
@@ -439,6 +538,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInstrumentPortfolioMinistryRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
+    '/_authenticated/instrument/mandate/studio': {
+      id: '/_authenticated/instrument/mandate/studio'
+      path: '/mandate/studio'
+      fullPath: '/instrument/mandate/studio'
+      preLoaderRoute: typeof AuthenticatedInstrumentMandateStudioRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
+    '/_authenticated/instrument/mandate/scorecard': {
+      id: '/_authenticated/instrument/mandate/scorecard'
+      path: '/mandate/scorecard'
+      fullPath: '/instrument/mandate/scorecard'
+      preLoaderRoute: typeof AuthenticatedInstrumentMandateScorecardRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
+    '/_authenticated/instrument/cabinet/session': {
+      id: '/_authenticated/instrument/cabinet/session'
+      path: '/cabinet/session'
+      fullPath: '/instrument/cabinet/session'
+      preLoaderRoute: typeof AuthenticatedInstrumentCabinetSessionRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
   }
 }
 
@@ -446,11 +566,17 @@ interface AuthenticatedInstrumentRouteRouteChildren {
   AuthenticatedInstrumentExposureRoute: typeof AuthenticatedInstrumentExposureRoute
   AuthenticatedInstrumentStewardshipRoute: typeof AuthenticatedInstrumentStewardshipRoute
   AuthenticatedInstrumentIndexRoute: typeof AuthenticatedInstrumentIndexRoute
+  AuthenticatedInstrumentCabinetSessionRoute: typeof AuthenticatedInstrumentCabinetSessionRoute
+  AuthenticatedInstrumentMandateScorecardRoute: typeof AuthenticatedInstrumentMandateScorecardRoute
+  AuthenticatedInstrumentMandateStudioRoute: typeof AuthenticatedInstrumentMandateStudioRoute
   AuthenticatedInstrumentPortfolioMinistryRoute: typeof AuthenticatedInstrumentPortfolioMinistryRoute
   AuthenticatedInstrumentScenariosIdRoute: typeof AuthenticatedInstrumentScenariosIdRoute
   AuthenticatedInstrumentScenariosCompareRoute: typeof AuthenticatedInstrumentScenariosCompareRoute
   AuthenticatedInstrumentScenariosNewRoute: typeof AuthenticatedInstrumentScenariosNewRoute
   AuthenticatedInstrumentSectorCodeRoute: typeof AuthenticatedInstrumentSectorCodeRoute
+  AuthenticatedInstrumentStudioGapRoute: typeof AuthenticatedInstrumentStudioGapRoute
+  AuthenticatedInstrumentStudioPackagesRoute: typeof AuthenticatedInstrumentStudioPackagesRoute
+  AuthenticatedInstrumentCabinetIndexRoute: typeof AuthenticatedInstrumentCabinetIndexRoute
   AuthenticatedInstrumentPortfolioIndexRoute: typeof AuthenticatedInstrumentPortfolioIndexRoute
   AuthenticatedInstrumentScenariosIndexRoute: typeof AuthenticatedInstrumentScenariosIndexRoute
 }
@@ -461,6 +587,12 @@ const AuthenticatedInstrumentRouteRouteChildren: AuthenticatedInstrumentRouteRou
     AuthenticatedInstrumentStewardshipRoute:
       AuthenticatedInstrumentStewardshipRoute,
     AuthenticatedInstrumentIndexRoute: AuthenticatedInstrumentIndexRoute,
+    AuthenticatedInstrumentCabinetSessionRoute:
+      AuthenticatedInstrumentCabinetSessionRoute,
+    AuthenticatedInstrumentMandateScorecardRoute:
+      AuthenticatedInstrumentMandateScorecardRoute,
+    AuthenticatedInstrumentMandateStudioRoute:
+      AuthenticatedInstrumentMandateStudioRoute,
     AuthenticatedInstrumentPortfolioMinistryRoute:
       AuthenticatedInstrumentPortfolioMinistryRoute,
     AuthenticatedInstrumentScenariosIdRoute:
@@ -471,6 +603,12 @@ const AuthenticatedInstrumentRouteRouteChildren: AuthenticatedInstrumentRouteRou
       AuthenticatedInstrumentScenariosNewRoute,
     AuthenticatedInstrumentSectorCodeRoute:
       AuthenticatedInstrumentSectorCodeRoute,
+    AuthenticatedInstrumentStudioGapRoute:
+      AuthenticatedInstrumentStudioGapRoute,
+    AuthenticatedInstrumentStudioPackagesRoute:
+      AuthenticatedInstrumentStudioPackagesRoute,
+    AuthenticatedInstrumentCabinetIndexRoute:
+      AuthenticatedInstrumentCabinetIndexRoute,
     AuthenticatedInstrumentPortfolioIndexRoute:
       AuthenticatedInstrumentPortfolioIndexRoute,
     AuthenticatedInstrumentScenariosIndexRoute:

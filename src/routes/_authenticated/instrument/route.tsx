@@ -30,6 +30,9 @@ function InstrumentShell() {
     { to: "/instrument", label: "Overview" },
     { to: "/instrument/portfolio", label: "Portfolios" },
     { to: "/instrument/scenarios", label: "Scenarios" },
+    { to: "/instrument/studio/gap", label: "Studio" },
+    { to: "/instrument/mandate/scorecard", label: "Mandate" },
+    { to: "/instrument/cabinet", label: "Cabinet" },
     { to: "/instrument/exposure", label: "Exposure" },
     { to: "/instrument/stewardship", label: "Stewardship" },
   ] as const;

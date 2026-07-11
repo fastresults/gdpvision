@@ -1,5 +1,7 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 import { Wordmark } from "./Wordmark";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MarketingShellProps {
   children: ReactNode;

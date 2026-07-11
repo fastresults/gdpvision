@@ -1,64 +1,26 @@
-# Fix domain behavior
+## Problem
 
-## Desired result
+`/kiosk` renders empty ("No items in this category") because the API endpoints it depends on are still host-guarded. When the browser is on `gdpvision.com` (marketing host), every `/api/*` call returns 404 via `blockMarketingRequest`, so the kiosk gets no items, no categories, and no settings.
 
-```text
-https://present.gdpvision.com  → stays on present.gdpvision.com  → kiosk app
-https://gdpvision.com          → stays on gdpvision.com          → marketing app
-https://www.gdpvision.com      → usually redirects to gdpvision.com → marketing app
-```
+The same guard also breaks admin uploads (`/api/upload-media`, `/api/upload-presentation`) and the public PDF endpoint when accessed from `gdpvision.com`.
 
-## What is happening
+`__root.tsx` also still sets `data-site-mode`/`data-site-host` via `getRequestSiteMode`, which is now dead weight.
 
-If `present.gdpvision.com` redirects to `gdpvision.com` even in incognito, the app code is not getting a chance to choose kiosk vs marketing. That redirect is happening before the React app renders.
+## Fix
 
-The most likely cause is Lovable custom-domain canonicalization: one custom domain is marked **Primary**, and other connected domains redirect to it.
+Kiosk and marketing live on the same origin now, differentiated purely by path. Remove all host-based gating.
 
-## Fix in Lovable domain settings
+### Changes
 
-1. Open **Project Settings → Project → Domains**.
-2. Ensure all intended domains are connected and **Active**:
-   - `gdpvision.com`
-   - `www.gdpvision.com`
-   - `present.gdpvision.com`
-3. Check which one is marked **Primary**.
-4. If Lovable forces all non-primary domains to redirect to the primary domain, this single-project setup cannot keep both `gdpvision.com` and `present.gdpvision.com` as independent hostnames at the hosting layer.
+1. **`src/routes/api/kiosk-data.ts`** — remove `blockMarketingRequest` call and its import.
+2. **`src/routes/api/upload-media.ts`** — same.
+3. **`src/routes/api/upload-presentation.ts`** — same.
+4. **`src/routes/api/public/presentation-pdf.ts`** — same.
+5. **`src/routes/__root.tsx`** — drop the `getRequestSiteMode` loader and the `data-site-mode` / `data-site-host` attributes; keep the plain `<html lang="en">`.
+6. **Delete** `src/lib/host-guard.ts`, `src/lib/site-mode.ts`, `src/lib/site-mode.functions.ts` — no longer referenced after the above.
 
-## Robust architecture if Lovable enforces one primary redirect
+### Verification
 
-Use two Lovable projects:
-
-### Project A — Marketing
-- Connect `gdpvision.com`
-- Connect `www.gdpvision.com`
-- Set `gdpvision.com` as primary
-- Render only the marketing site
-
-### Project B — Kiosk
-- Connect `present.gdpvision.com`
-- Set `present.gdpvision.com` as primary
-- Render only the kiosk/admin app
-
-This avoids fighting the hosting redirect behavior and guarantees each typed hostname stays on its own domain.
-
-## Code cleanup after domain split
-
-Once domains are split:
-- In the kiosk project, remove the marketing host switch and always render kiosk.
-- In the marketing project, keep only marketing routes/components.
-- Keep shared content/assets only where needed.
-
-## Immediate verification
-
-After changing domain setup, test with:
-
-```text
-https://present.gdpvision.com
-https://gdpvision.com
-```
-
-Use incognito or a different browser because 301 redirects can be cached.
-
-## Recommendation
-
-Because you need both domains to remain separate, the correct fix is likely **two projects / two primary domains**, not more host-detection code in this app.
+- Reload `/kiosk` on `gdpvision.com` → categories dropdown populates and items render.
+- `/admin` still works (create/upload items).
+- `/` still shows marketing.

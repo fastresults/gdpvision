@@ -206,6 +206,104 @@ export type Database = {
           },
         ]
       }
+      comms_artifacts: {
+        Row: {
+          approvals: Json
+          audience: string
+          body: string
+          channel: string
+          created_at: string
+          created_by: string | null
+          draft_state: string
+          id: string
+          kind: string
+          released_at: string | null
+          scope_key: string
+          strategy_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          approvals?: Json
+          audience: string
+          body: string
+          channel: string
+          created_at?: string
+          created_by?: string | null
+          draft_state?: string
+          id?: string
+          kind: string
+          released_at?: string | null
+          scope_key: string
+          strategy_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approvals?: Json
+          audience?: string
+          body?: string
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          draft_state?: string
+          id?: string
+          kind?: string
+          released_at?: string | null
+          scope_key?: string
+          strategy_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comms_artifacts_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategy_statements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      counsel_answers: {
+        Row: {
+          citations: Json
+          content_hash: string
+          created_at: string
+          id: string
+          question: string
+          scenario_snapshot: Json | null
+          scope_key: string
+          spoken_block: string | null
+          tags: Json
+          user_id: string
+          written_block: string | null
+        }
+        Insert: {
+          citations?: Json
+          content_hash: string
+          created_at?: string
+          id?: string
+          question: string
+          scenario_snapshot?: Json | null
+          scope_key: string
+          spoken_block?: string | null
+          tags?: Json
+          user_id: string
+          written_block?: string | null
+        }
+        Update: {
+          citations?: Json
+          content_hash?: string
+          created_at?: string
+          id?: string
+          question?: string
+          scenario_snapshot?: Json | null
+          scope_key?: string
+          spoken_block?: string | null
+          tags?: Json
+          user_id?: string
+          written_block?: string | null
+        }
+        Relationships: []
+      }
       countries: {
         Row: {
           code: string
@@ -295,6 +393,33 @@ export type Database = {
             referencedColumns: ["code"]
           },
         ]
+      }
+      curation_batches: {
+        Row: {
+          committed_at: string
+          curator_id: string | null
+          id: string
+          item_count: number
+          scope_key: string
+          weight_distribution: Json
+        }
+        Insert: {
+          committed_at?: string
+          curator_id?: string | null
+          id?: string
+          item_count?: number
+          scope_key: string
+          weight_distribution?: Json
+        }
+        Update: {
+          committed_at?: string
+          curator_id?: string | null
+          id?: string
+          item_count?: number
+          scope_key?: string
+          weight_distribution?: Json
+        }
+        Relationships: []
       }
       data_revisions: {
         Row: {
@@ -598,6 +723,36 @@ export type Database = {
           },
         ]
       }
+      harvest_runs: {
+        Row: {
+          cadence_slot: string
+          counts: Json
+          failures: Json
+          finished_at: string | null
+          id: string
+          scope_key: string
+          started_at: string
+        }
+        Insert: {
+          cadence_slot: string
+          counts?: Json
+          failures?: Json
+          finished_at?: string | null
+          id?: string
+          scope_key: string
+          started_at?: string
+        }
+        Update: {
+          cadence_slot?: string
+          counts?: Json
+          failures?: Json
+          finished_at?: string | null
+          id?: string
+          scope_key?: string
+          started_at?: string
+        }
+        Relationships: []
+      }
       idle_images: {
         Row: {
           caption: string | null
@@ -662,6 +817,72 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "countries"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      intake_items: {
+        Row: {
+          created_at: string
+          final_weight: number | null
+          harvest_run_id: string | null
+          id: string
+          proposed_weight: number
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scope_key: string
+          sector_code: string
+          source_id: string | null
+          state: string
+          summary: string | null
+          topic: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          final_weight?: number | null
+          harvest_run_id?: string | null
+          id?: string
+          proposed_weight?: number
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scope_key: string
+          sector_code: string
+          source_id?: string | null
+          state?: string
+          summary?: string | null
+          topic: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          final_weight?: number | null
+          harvest_run_id?: string | null
+          id?: string
+          proposed_weight?: number
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scope_key?: string
+          sector_code?: string
+          source_id?: string | null
+          state?: string
+          summary?: string | null
+          topic?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_items_harvest_run_id_fkey"
+            columns: ["harvest_run_id"]
+            isOneToOne: false
+            referencedRelation: "harvest_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_items_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -944,6 +1165,62 @@ export type Database = {
         }
         Relationships: []
       }
+      memory_objects: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          embedding: string | null
+          id: string
+          kind: string
+          payload: Json
+          scope_key: string
+          sector_code: string
+          source_id: string | null
+          title: string
+          updated_at: string
+          verified: boolean
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          embedding?: string | null
+          id?: string
+          kind: string
+          payload?: Json
+          scope_key: string
+          sector_code: string
+          source_id?: string | null
+          title: string
+          updated_at?: string
+          verified?: boolean
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          embedding?: string | null
+          id?: string
+          kind?: string
+          payload?: Json
+          scope_key?: string
+          sector_code?: string
+          source_id?: string | null
+          title?: string
+          updated_at?: string
+          verified?: boolean
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memory_objects_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ministries: {
         Row: {
           country_code: string
@@ -1097,6 +1374,39 @@ export type Database = {
             referencedColumns: ["code"]
           },
         ]
+      }
+      research_briefs: {
+        Row: {
+          created_at: string
+          id: string
+          prompt: string
+          recency: string | null
+          requested_by: string | null
+          results: Json
+          scope_key: string
+          sector_hint: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          prompt: string
+          recency?: string | null
+          requested_by?: string | null
+          results?: Json
+          scope_key: string
+          sector_hint?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          prompt?: string
+          recency?: string | null
+          requested_by?: string | null
+          results?: Json
+          scope_key?: string
+          sector_hint?: string | null
+        }
+        Relationships: []
       }
       scenario_promotions: {
         Row: {
@@ -1341,6 +1651,44 @@ export type Database = {
           },
         ]
       }
+      source_suppressions: {
+        Row: {
+          active: boolean
+          actor_id: string | null
+          created_at: string
+          id: string
+          reason: string | null
+          scope_key: string
+          source_id: string
+        }
+        Insert: {
+          active?: boolean
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          scope_key: string
+          source_id: string
+        }
+        Update: {
+          active?: boolean
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          scope_key?: string
+          source_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_suppressions_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sources: {
         Row: {
           country_code: string | null
@@ -1391,6 +1739,51 @@ export type Database = {
             referencedColumns: ["code"]
           },
         ]
+      }
+      strategy_statements: {
+        Row: {
+          approvals: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          scope_key: string
+          sector_code: string
+          seven_part: Json
+          sources: Json
+          status: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approvals?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          scope_key: string
+          sector_code: string
+          seven_part?: Json
+          sources?: Json
+          status?: string
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          approvals?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          scope_key?: string
+          sector_code?: string
+          seven_part?: Json
+          sources?: Json
+          status?: string
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {

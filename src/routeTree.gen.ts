@@ -21,6 +21,7 @@ import { Route as KioskApiUploadPresentationRouteImport } from './routes/kiosk.a
 import { Route as KioskApiUploadMediaRouteImport } from './routes/kiosk.api.upload-media'
 import { Route as KioskApiKioskDataRouteImport } from './routes/kiosk.api.kiosk-data'
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
+import { Route as AuthenticatedInstrumentSectorCodeRouteImport } from './routes/_authenticated/instrument/sector.$code'
 
 const KioskRoute = KioskRouteImport.update({
   id: '/kiosk',
@@ -85,6 +86,12 @@ const KioskApiPublicPresentationPdfRoute =
     path: '/api/public/presentation-pdf',
     getParentRoute: () => KioskRoute,
   } as any)
+const AuthenticatedInstrumentSectorCodeRoute =
+  AuthenticatedInstrumentSectorCodeRouteImport.update({
+    id: '/sector/$code',
+    path: '/sector/$code',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -97,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
   '/instrument/': typeof AuthenticatedInstrumentIndexRoute
+  '/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
 }
 export interface FileRoutesByTo {
@@ -108,6 +116,7 @@ export interface FileRoutesByTo {
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
   '/instrument': typeof AuthenticatedInstrumentIndexRoute
+  '/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
 }
 export interface FileRoutesById {
@@ -123,6 +132,7 @@ export interface FileRoutesById {
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
   '/_authenticated/instrument/': typeof AuthenticatedInstrumentIndexRoute
+  '/_authenticated/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
 }
 export interface FileRouteTypes {
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
     | '/instrument/'
+    | '/instrument/sector/$code'
     | '/kiosk/api/public/presentation-pdf'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
     | '/instrument'
+    | '/instrument/sector/$code'
     | '/kiosk/api/public/presentation-pdf'
   id:
     | '__root__'
@@ -163,6 +175,7 @@ export interface FileRouteTypes {
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
     | '/_authenticated/instrument/'
+    | '/_authenticated/instrument/sector/$code'
     | '/kiosk/api/public/presentation-pdf'
   fileRoutesById: FileRoutesById
 }
@@ -259,16 +272,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KioskApiPublicPresentationPdfRouteImport
       parentRoute: typeof KioskRoute
     }
+    '/_authenticated/instrument/sector/$code': {
+      id: '/_authenticated/instrument/sector/$code'
+      path: '/sector/$code'
+      fullPath: '/instrument/sector/$code'
+      preLoaderRoute: typeof AuthenticatedInstrumentSectorCodeRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
   }
 }
 
 interface AuthenticatedInstrumentRouteRouteChildren {
   AuthenticatedInstrumentIndexRoute: typeof AuthenticatedInstrumentIndexRoute
+  AuthenticatedInstrumentSectorCodeRoute: typeof AuthenticatedInstrumentSectorCodeRoute
 }
 
 const AuthenticatedInstrumentRouteRouteChildren: AuthenticatedInstrumentRouteRouteChildren =
   {
     AuthenticatedInstrumentIndexRoute: AuthenticatedInstrumentIndexRoute,
+    AuthenticatedInstrumentSectorCodeRoute:
+      AuthenticatedInstrumentSectorCodeRoute,
   }
 
 const AuthenticatedInstrumentRouteRouteWithChildren =

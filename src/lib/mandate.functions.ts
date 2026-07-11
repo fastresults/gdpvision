@@ -5,8 +5,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
-type Json = unknown;
+import type { Json } from "@/integrations/supabase/types";
 
 const CountryInput = z.object({ countryCode: z.string().min(3).max(4) });
 

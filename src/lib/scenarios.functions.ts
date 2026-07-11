@@ -306,10 +306,11 @@ export const saveScenario = createServerFn({ method: "POST" })
         horizon_years: data.horizonYears,
         model_version: ENGINE_VERSION,
         status: "draft",
-        lever_settings: data.levers,
-        assumptions: data.assumptions,
+        lever_settings: data.levers as unknown as JsonObject,
+        assumptions: data.assumptions as unknown as JsonObject,
         results: run.output as unknown as JsonObject,
-        attribution: { attribution: run.output.attribution },
+        attribution: { attribution: run.output.attribution } as unknown as JsonObject,
+
       })
       .select("id")
       .single();

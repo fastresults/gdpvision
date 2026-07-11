@@ -344,6 +344,7 @@ const CommsSave = z.object({
   channel: z.string().min(1).max(60),
   body: z.string().min(1).max(20000),
   draftState: z.enum(["draft", "review", "approved", "released"]).default("draft"),
+  signalId: z.string().uuid().optional(),
 });
 
 export const saveComms = createServerFn({ method: "POST" })
@@ -371,6 +372,9 @@ export const saveComms = createServerFn({ method: "POST" })
       .insert({ ...patch, created_by: context.userId })
       .select("id").single();
     if (error) throw new Error(error.message);
+    if (data.signalId) {
+      await recordLineage(data.signalId, "comms", row.id, data.scopeKey, null, context.userId);
+    }
     return { id: row.id };
   });
 

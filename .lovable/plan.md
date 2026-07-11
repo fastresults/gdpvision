@@ -1,42 +1,100 @@
-## Why present.gdpvision.com shows 404
+## What went wrong
 
-The host-based routing code I added earlier is deployed, but the 404 you see is not a routing bug in the app. It's the hosting layer telling you it doesn't have this project mapped to that hostname yet. The app never runs.
+I failed because the earlier changes only made `/` choose between marketing vs kiosk inside the app. That does **not** actually move the whole kiosk website when:
 
-Two things have to be true for `present.gdpvision.com` to serve the kiosk:
+- the custom subdomain is not active at the hosting layer, or
+- non-root routes like `/admin` and `/api/*` are still reachable on the apex, or
+- the apex host still has code paths that can render or call kiosk/admin behavior.
 
-1. **The custom domain must be `Active` on this project.** All three domains (`gdpvision.com`, `www.gdpvision.com`, `present.gdpvision.com`) appear in the project's URL list, but "listed" is not the same as "Active". If the subdomain is in `Verifying`, `Setting up`, `Offline`, or `Action required`, the edge returns 404 for that host.
-2. **A published deployment must exist that contains the host-routing code.** The host-routing was added recently — if the last successful publish predates it, or the latest publish failed, the subdomain has nothing to serve.
+So the previous approach was too soft: it was host-aware rendering, not a full host-level separation.
 
-Marketing on the apex working (or not) is a separate question; today's symptom is only "subdomain 404".
+## Goal
 
-## Plan
+Make the existing kiosk shown in your screenshot the `present.gdpvision.com` experience, including:
 
-### 1. Verify domain + publish state (no code change)
-- Open **Project Settings → Project → Domains** and check the row for `present.gdpvision.com`. Expected: **Active**. If it shows anything else, follow the status hint (Complete Setup / Retry / fix DNS at registrar so the A record for `present` points to `185.158.133.1`).
-- Confirm the most recent publish succeeded. If not, re-publish so the current build (with `site-mode.ts` + `MarketingHome`) is live.
+- `/` kiosk presentation shell
+- `/admin` admin console
+- kiosk data APIs and upload APIs
+- all media/gallery/PDF behavior already in the app
 
-### 2. Harden the host detection so SSR doesn't silently pick the wrong mode
-Even once the domain is Active, there's a latent bug worth fixing in the same pass: `getRequestSiteMode()` uses `getRequestHost()`, which on Cloudflare can return the internal worker host instead of the user-facing `Host` header. If that ever returns an empty/unknown value, `getSiteMode()` falls back to `"present"` — which is fine for the subdomain but means the apex could momentarily render kiosk during SSR before the client reconciles.
+And keep `gdpvision.com` / `www.gdpvision.com` cleared for the new public website.
 
-Change `src/lib/site-mode.functions.ts` to prefer the request headers, in this order:
+## Brute-force implementation plan
+
+### 1. Define one canonical host rule
+
+Use this hard rule everywhere:
+
+```text
+present.gdpvision.com  -> kiosk/admin/app
+localhost + Lovable previews -> kiosk/admin/app
+
+gdpvision.com + www.gdpvision.com -> marketing/placeholder only
 ```
-x-forwarded-host  →  host header  →  getRequestHost()
+
+No guesswork, no soft fallback to marketing on the subdomain.
+
+### 2. Move the kiosk route behind host enforcement
+
+Update the root route so:
+
+- `present.gdpvision.com/` always renders the kiosk from the screenshot.
+- Lovable preview still renders the kiosk so we can work on it safely.
+- `gdpvision.com/` and `www.gdpvision.com/` never render the kiosk; they render only the temporary public website/marketing shell.
+
+### 3. Block admin from apex/www
+
+Update `/admin` so it is only usable on:
+
+- `present.gdpvision.com/admin`
+- Lovable preview/local development
+
+If someone opens `https://gdpvision.com/admin` or `https://www.gdpvision.com/admin`, redirect or show a host guard that points them to `https://present.gdpvision.com/admin`.
+
+### 4. Block kiosk APIs from apex/www
+
+Add host guards to the existing app endpoints:
+
+- `/api/kiosk-data`
+- `/api/upload-media`
+- `/api/upload-presentation`
+- `/api/public/presentation-pdf`
+
+On apex/www, these should not serve kiosk/admin data. On present/preview/local, they continue working normally.
+
+### 5. Remove the fragile client-side reconciliation as the source of truth
+
+The earlier implementation lets SSR pick one mode and the browser later correct it. For this split, the server host decision must be authoritative so published domains do not flash or hydrate into the wrong shell.
+
+Keep a visible debug marker like:
+
+```html
+<html data-site-mode="present" data-site-host="present.gdpvision.com">
 ```
-This is a 5-line edit; it makes the SSR mode match what the browser sees.
 
-### 3. Add a tiny visible signal for debugging
-Add a `data-site-mode={mode}` attribute on the `<html>` element in `__root.tsx` (driven by the same loader). This lets us confirm from DevTools which mode the server picked, without console noise. Removable later.
+so we can verify the live host quickly.
 
-### 4. Re-publish and verify
-- Publish.
-- Load `https://present.gdpvision.com/` → expect the kiosk shell.
-- Load `https://gdpvision.com/` → expect the marketing page.
-- Load `https://www.gdpvision.com/` → expect the marketing page.
-- Inspect `<html data-site-mode="…">` on each to confirm SSR mode.
+### 6. Fix the marketing links to point back to present
 
-## What I will NOT change
-- No changes to `MarketingHome`, admin routes, kiosk data APIs, DB, or migrations.
-- No new redirects yet (`www` → apex, cross-host path redirects). We can add those in a follow-up once the three hosts are confirmed serving the right shell.
+Where the apex marketing shell links to the kiosk/admin, ensure every app/admin CTA uses the full subdomain URL:
 
-## Most likely outcome
-Step 1 alone resolves the 404 — the subdomain just isn't `Active` on this project yet. Steps 2–4 make the setup robust so we don't chase a ghost next time.
+- `https://present.gdpvision.com/`
+- `https://present.gdpvision.com/admin`
+
+No relative `/admin` links from the apex.
+
+### 7. Verify after implementation
+
+Use the preview/local host behavior first, then after you publish and confirm the custom domain is Active:
+
+```text
+https://present.gdpvision.com/       -> screenshot kiosk
+https://present.gdpvision.com/admin  -> admin
+https://gdpvision.com/               -> marketing/new-site placeholder
+https://www.gdpvision.com/           -> marketing/new-site placeholder
+https://gdpvision.com/admin          -> blocked or redirected to present
+```
+
+## Important note
+
+If `present.gdpvision.com` itself still returns a hosting 404 before the app loads, no code can fix that by itself. The subdomain must be Active in the project domain settings. But this plan will make the app behave correctly the moment the host reaches this deployment, and it will prevent the apex from serving the kiosk by accident.

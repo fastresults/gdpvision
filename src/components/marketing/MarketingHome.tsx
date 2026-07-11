@@ -1,18 +1,7 @@
-import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import heroImage from "@/assets/marketing-hero.jpg";
-import { PRESENT_HOST } from "@/lib/site-mode";
 
 export function MarketingHome() {
-  const [blockedOnPresent, setBlockedOnPresent] = useState(false);
-
-  useEffect(() => {
-    if (window.location.hostname.toLowerCase() === PRESENT_HOST) {
-      setBlockedOnPresent(true);
-    }
-  }, []);
-
-  if (blockedOnPresent) return null;
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
@@ -20,12 +9,12 @@ export function MarketingHome() {
         <nav className="flex items-center gap-6 text-sm">
           <a href="#features" className="opacity-80 hover:opacity-100">Features</a>
           <a href="#contact" className="opacity-80 hover:opacity-100">Contact</a>
-          <a
-            href="https://present.gdpvision.com"
+          <Link
+            to="/kiosk"
             className="rounded-md border border-cyan-400/40 bg-cyan-400/10 px-3 py-1.5 text-cyan-200 hover:bg-cyan-400/20"
           >
             Launch Kiosk
-          </a>
+          </Link>
         </nav>
       </header>
 
@@ -46,12 +35,12 @@ export function MarketingHome() {
             summits, ministries, and enterprises into a single, curated view.
           </p>
           <div className="mt-10 flex flex-wrap gap-3">
-            <a
-              href="https://present.gdpvision.com"
+            <Link
+              to="/kiosk"
               className="rounded-md bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-cyan-300"
             >
               Open the Presentation Kiosk
-            </a>
+            </Link>
             <a
               href="#contact"
               className="rounded-md border border-white/20 px-5 py-3 text-sm font-semibold hover:bg-white/5"
@@ -107,8 +96,8 @@ export function MarketingHome() {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-sm opacity-70">
           <div>© {new Date().getFullYear()} GDP Vision</div>
           <div className="flex gap-6">
-            <a href="https://present.gdpvision.com" className="hover:opacity-100">Kiosk</a>
-            <a href="https://present.gdpvision.com/admin" className="hover:opacity-100">Admin</a>
+            <Link to="/kiosk" className="hover:opacity-100">Kiosk</Link>
+            <Link to="/admin" className="hover:opacity-100">Admin</Link>
           </div>
         </div>
       </footer>

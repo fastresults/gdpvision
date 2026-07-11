@@ -24,9 +24,6 @@ import { MobileKiosk } from "@/components/mobile/MobileKiosk";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import { GalleryView } from "@/components/GalleryView";
-import { MarketingHome } from "@/components/marketing/MarketingHome";
-import { getRequestSiteMode } from "@/lib/site-mode.functions";
-import { PRESENT_HOST, type SiteMode } from "@/lib/site-mode";
 
 
 type IdleImage = {

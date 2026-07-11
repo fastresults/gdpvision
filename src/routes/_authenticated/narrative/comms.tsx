@@ -53,8 +53,8 @@ function Comms() {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id} className="border-b border-line-200/60">
-                <td className="py-3 font-mono text-ink-500">{r.kind}</td>
+              <tr key={r.id} className="border-b border-line-200/60 hover:bg-line-200/30">
+                <td className="py-3 font-mono text-ink-500"><Link to="/narrative/comms/$id" params={{ id: r.id }}>{r.kind}</Link></td>
                 <td className="py-3">{r.audience}</td>
                 <td className="py-3 font-mono text-ink-500">{r.channel}</td>
                 <td className="py-3 font-mono text-ink-500">{r.draft_state}</td>

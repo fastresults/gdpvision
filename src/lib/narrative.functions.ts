@@ -242,7 +242,27 @@ const StrategySave = z.object({
   }),
   sources: z.array(z.object({ label: z.string(), ref: z.string() })).default([]),
   status: z.enum(["draft", "review", "adopted", "archived"]).default("draft"),
+  signalId: z.string().uuid().optional(),
 });
+
+async function recordLineage(
+  signalId: string,
+  artifactType: "strategy" | "comms",
+  artifactId: string,
+  scopeKey: string,
+  sectorCode: string | null,
+  userId: string,
+) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin.from("narrative_lineage").insert({
+    signal_id: signalId,
+    artifact_type: artifactType,
+    artifact_id: artifactId,
+    scope_key: scopeKey,
+    sector_code: sectorCode,
+    created_by: userId,
+  });
+}
 
 export const saveStrategy = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -281,6 +301,9 @@ export const saveStrategy = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
+    if (data.signalId) {
+      await recordLineage(data.signalId, "strategy", row.id, data.scopeKey, data.sectorCode, context.userId);
+    }
     return { id: row.id };
   });
 

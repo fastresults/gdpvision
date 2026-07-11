@@ -41,6 +41,7 @@ import { Route as AuthenticatedInstrumentPortfolioIndexRouteImport } from './rou
 import { Route as AuthenticatedInstrumentCabinetIndexRouteImport } from './routes/_authenticated/instrument/cabinet.index'
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
 import { Route as ApiPublicHooksNarrativeHarvestRouteImport } from './routes/api/public/hooks/narrative-harvest'
+import { Route as AuthenticatedNarrativeTraceIdRouteImport } from './routes/_authenticated/narrative/trace.$id'
 import { Route as AuthenticatedNarrativeStrategyNewRouteImport } from './routes/_authenticated/narrative/strategy.new'
 import { Route as AuthenticatedNarrativeStrategyIdRouteImport } from './routes/_authenticated/narrative/strategy.$id'
 import { Route as AuthenticatedNarrativeSignalIdRouteImport } from './routes/_authenticated/narrative/signal.$id'
@@ -239,6 +240,12 @@ const ApiPublicHooksNarrativeHarvestRoute =
     path: '/api/public/hooks/narrative-harvest',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedNarrativeTraceIdRoute =
+  AuthenticatedNarrativeTraceIdRouteImport.update({
+    id: '/trace/$id',
+    path: '/trace/$id',
+    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
+  } as any)
 const AuthenticatedNarrativeStrategyNewRoute =
   AuthenticatedNarrativeStrategyNewRouteImport.update({
     id: '/strategy/new',
@@ -378,6 +385,7 @@ export interface FileRoutesByFullPath {
   '/narrative/signal/$id': typeof AuthenticatedNarrativeSignalIdRoute
   '/narrative/strategy/$id': typeof AuthenticatedNarrativeStrategyIdRoute
   '/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
+  '/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/instrument/cabinet/': typeof AuthenticatedInstrumentCabinetIndexRoute
@@ -424,6 +432,7 @@ export interface FileRoutesByTo {
   '/narrative/signal/$id': typeof AuthenticatedNarrativeSignalIdRoute
   '/narrative/strategy/$id': typeof AuthenticatedNarrativeStrategyIdRoute
   '/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
+  '/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/instrument/cabinet': typeof AuthenticatedInstrumentCabinetIndexRoute
@@ -475,6 +484,7 @@ export interface FileRoutesById {
   '/_authenticated/narrative/signal/$id': typeof AuthenticatedNarrativeSignalIdRoute
   '/_authenticated/narrative/strategy/$id': typeof AuthenticatedNarrativeStrategyIdRoute
   '/_authenticated/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
+  '/_authenticated/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/_authenticated/instrument/cabinet/': typeof AuthenticatedInstrumentCabinetIndexRoute
@@ -526,6 +536,7 @@ export interface FileRouteTypes {
     | '/narrative/signal/$id'
     | '/narrative/strategy/$id'
     | '/narrative/strategy/new'
+    | '/narrative/trace/$id'
     | '/api/public/hooks/narrative-harvest'
     | '/kiosk/api/public/presentation-pdf'
     | '/instrument/cabinet/'
@@ -572,6 +583,7 @@ export interface FileRouteTypes {
     | '/narrative/signal/$id'
     | '/narrative/strategy/$id'
     | '/narrative/strategy/new'
+    | '/narrative/trace/$id'
     | '/api/public/hooks/narrative-harvest'
     | '/kiosk/api/public/presentation-pdf'
     | '/instrument/cabinet'
@@ -622,6 +634,7 @@ export interface FileRouteTypes {
     | '/_authenticated/narrative/signal/$id'
     | '/_authenticated/narrative/strategy/$id'
     | '/_authenticated/narrative/strategy/new'
+    | '/_authenticated/narrative/trace/$id'
     | '/api/public/hooks/narrative-harvest'
     | '/kiosk/api/public/presentation-pdf'
     | '/_authenticated/instrument/cabinet/'
@@ -864,6 +877,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksNarrativeHarvestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/narrative/trace/$id': {
+      id: '/_authenticated/narrative/trace/$id'
+      path: '/trace/$id'
+      fullPath: '/narrative/trace/$id'
+      preLoaderRoute: typeof AuthenticatedNarrativeTraceIdRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
+    }
     '/_authenticated/narrative/strategy/new': {
       id: '/_authenticated/narrative/strategy/new'
       path: '/strategy/new'
@@ -1063,6 +1083,7 @@ interface AuthenticatedNarrativeRouteRouteChildren {
   AuthenticatedNarrativeSignalIdRoute: typeof AuthenticatedNarrativeSignalIdRoute
   AuthenticatedNarrativeStrategyIdRoute: typeof AuthenticatedNarrativeStrategyIdRoute
   AuthenticatedNarrativeStrategyNewRoute: typeof AuthenticatedNarrativeStrategyNewRoute
+  AuthenticatedNarrativeTraceIdRoute: typeof AuthenticatedNarrativeTraceIdRoute
   AuthenticatedNarrativeStrategyIndexRoute: typeof AuthenticatedNarrativeStrategyIndexRoute
 }
 
@@ -1080,6 +1101,7 @@ const AuthenticatedNarrativeRouteRouteChildren: AuthenticatedNarrativeRouteRoute
       AuthenticatedNarrativeStrategyIdRoute,
     AuthenticatedNarrativeStrategyNewRoute:
       AuthenticatedNarrativeStrategyNewRoute,
+    AuthenticatedNarrativeTraceIdRoute: AuthenticatedNarrativeTraceIdRoute,
     AuthenticatedNarrativeStrategyIndexRoute:
       AuthenticatedNarrativeStrategyIndexRoute,
   }

@@ -1,132 +1,177 @@
 
-## Alignment note
+# GDPVision — Phased Build Plan
 
-The PRD (§16) is prescriptive about the marketing site: it is **deliberately lean** — six sections, one CTA (confidential Cabinet briefing), no pricing, no trial, no trackers, sub-1s LCP. My previous plan proposed 13 marketing routes; that overshoots §16. This revised plan matches §16 exactly and pushes optional depth pages to P1.
+Maps PRD §17 roadmap into concrete, buildable increments on this stack (TanStack Start, Lovable Cloud/Supabase, Tailwind v4). Each phase lists scope, schema, routes, components, exit criteria. Marketing site (`/`) is already shipped; `/kiosk` hosts the existing SEDE-style demo.
 
-One ambiguity: §16 says "the five chambers, each one panel," but §6 defines **six** chambers (Ledger, Portfolio Workspaces, Scenario Engine, FDI Studio, Narrative Chamber, Cabinet Room). Plan uses six panels and flags this for the user to confirm.
+## Guiding invariants (applied to every phase)
+- **Universal key on every table**: `country_code` + `sector_code` NOT NULL, indexed. Enforced at write time. `country_code = 'REGIONAL'` for Regional Commons.
+- **Design tokens as source of truth**: extend `src/styles.css` `@theme` with the full Sector Spectrum (12 hues), Paper + Chamber environments, motion tokens (§10, §11). No component may hardcode hex.
+- **Provenance is P0**: every numeric-bearing row carries `source_id`, `vintage`, `confidence_grade` (A–D). UI renders grade encoding universally (§10.6).
+- **Auth from Phase 1 onward**: Lovable Cloud auth + `user_roles` table + `has_role()` SECURITY DEFINER; RLS + GRANTs on every public table.
+- **No third-party trackers** anywhere in-instance (§14.6).
+- **Definition of Done gate** (§19) enforced at each phase exit.
 
-## Scope (P0, matches PRD §16)
+---
 
-Single scrolling route at `/` with six sections and a briefing form. Kiosk at `/kiosk` untouched.
+## Phase 0 — Instrument Definition (Weeks 1–4)
+Goal: token system, identity, registry, and SEDE re-skin usable in a Cabinet demo.
 
-1. **Hero** — the National Signature ring **assembles on load** (the one sanctioned page-load moment, §16.1, §11) over headline "Govern with the whole picture." Sub-line names the moment in one factual sentence about the EU CBI wind-down. Wordmark top-left, single primary CTA "Request a confidential Cabinet briefing" (anchors to §6 form).
-2. **The Problem** — the wind-down stakes as **sourced numbers** in the number-treatment (large Fraunces numeral + small Plex Mono unit + confidence grade badge). No adjectives. Citations render as small mono footnotes with source and vintage. (PRD §2.1, §10.4.)
-3. **The Instrument — the chambers** — six panels (Ledger, Portfolio Workspaces, Scenario Engine, FDI Studio, Narrative Chamber, Cabinet Room), each Paper aesthetic, hairline rules, 2px sector-hue leading accent bar, one-sentence purpose + 2–3 capability bullets. No screenshots in v1 (placeholders will read as SaaS). (§6, §10.5.)
-4. **Sovereignty** — sovereign-instance promise stated plainly: one isolated deployment per nation, government owns the data outright, regional/EU hosting options, MFA, no third-party trackers ever. (§14.)
-5. **Provenance** — OPEN Interactive's regional record: 2009–2026, Caribbean Investment Summit franchise, national digital infrastructure for the Government of St. Kitts & Nevis, sovereign relationships across the OECS, and **SEDE — the working Saint Lucia prototype** as proof of craft (§2.2, §17 Phase 0).
-6. **Single CTA — "Request a confidential Cabinet briefing"** — short, dignified form: name, role, government/nation (dropdown from CARICOM+OECS registry per §7.9 FR-PL-01a), work email, message. Success state: "Received. OPEN will respond within one working day." No pricing page, no trial, no chat widget (§16).
+**Deliverables**
+- **Design tokens**: extend `src/styles.css` with `--sector-01..12`, Paper/Chamber palettes, `ease-sovereign/exit/inertia`, `dur-*`, `stagger`, tabular-lining numeric utilities. Ship `Fraunces`, `IBM Plex Sans/Mono` via `<link>` in `__root.tsx`.
+- **Sector taxonomy**: `src/lib/sectors.ts` — 12 canonical sectors (Appendix A) with ISIC code, hue token, portfolio hint.
+- **Country registry & Country Packs**: extend `src/lib/caricom-registry.ts` with fiscal calendar, currency, NSO/ECCB source map, portfolio→sector default map for the 5 CBI states (SLU, KNA, DMA, ATG, GRD) first.
+- **National Signature ring generator**: promote current `SignatureRing` to a reusable primitive that takes a sector composition array; supports master (balanced) and instance (from Ledger) modes; SVG, 3 scales (favicon, wordmark, hero).
+- **SEDE re-skin under `/kiosk`**: apply new tokens to existing kiosk surfaces (already migrated). No behavior changes — pure re-skin pass.
+- **Methodology Codex v1**: `src/routes/codex.tsx` (marketing-adjacent, static MDX-style content) — versioned, plain HTML sections.
 
-Footer: OPEN Interactive credit, classification line ("Confidential — Government briefing use"), and small `#status` / `#methodology` / `#privacy` anchors (stub sections, one paragraph each).
+**Schema (migration bundle 0)**
+- `countries` (code PK, name, iso3, currency, fiscal_year_start, is_caricom, is_oecs, is_cbi_state)
+- `sectors` (code PK, name, isic, hue_token, sort_order)
+- `country_sectors` (country_code, sector_code, share_pct baseline) — seed idealized ring
+- `sources` (id, name, kind, grade, url, country_code, sector_code)
+- `user_roles` (+ `app_role` enum: `principal`, `steward`, `advisor`, `line_minister`, `comms_director`, `cabinet_secretary`, `data_steward`, `admin`) + `has_role()` fn
 
-## Design system (locked to PRD §10)
+**Exit**: token system published; Signature Ring renders per nation; roles + RLS scaffolding live; SEDE demo runs on new tokens.
 
-Implemented as CSS tokens in `src/styles.css` `@theme` so components carry no hex literals.
+---
 
-- **Palette:** `ink-950 #08111F`, `ink-900 #0D1B2E`, `ink-700 #1E3350`, `ink-500 #48607F`, `ink-300 #9DAEC2`, `paper-0 #FCFCFA`, `paper-100 #F4F4EF`, `line-200 #E3E4DD`, `gold-500 #B98A2F`, `gold-300 #D9B866`, `signal-positive #2E7D5B`, `signal-negative #B3402F`, `signal-caution #C07A1A`, `scenario-tint #5B4FA8`, `narrative-500 #8E2F3C`, `draft-state #7A6A8F`.
-- **Sector Spectrum (12 hues, Appendix A)** as `--sector-01 … --sector-12`, used by the Signature ring, chamber accent bars, and any future chart.
-- **Type:** Fraunces (display serif, opsz 72, SOFT 0, WONK 0), IBM Plex Sans (UI), IBM Plex Mono (all numerals — tabular lining figures mandatory). Loaded via `<link rel="preconnect">` + `<link rel="stylesheet">` in `__root.tsx` head (per Tailwind v4 rule: never `@import` remote URLs in styles.css).
-- **Scale:** 12 / 13.5 / 15 / 17 / 21 / 27 / 34 / 43 / 54 / 68 / 96. Line-heights per §10.4.
-- **Layout:** 12-col, 1280 canvas, fluid to 1920 and 1024 min; 8px base; section rhythm 64/96.
-- **Panels:** borderless white with `line-200` hairlines and 2px sector-hue leading accent bar. No filled header bars. No reverse-out white on dark. Paper mode only on marketing (Chamber dark mode is product-only, §10.1).
-- **Iconography:** custom 1.5px stroke line icons on a 24px grid; no filled icons except status dots. Where icons are needed, use `lucide-react` stroke-only with `stroke-width={1.5}`.
-- **Gold discipline:** used only on the CTA button and one Provenance mark. Never more than 3 gold moments on any viewport (§10.2).
-- **Banned:** tropical/beach clichés, startup gradients, glassmorphism, decorative 3D, neon, template SaaS hero (§10.1).
+## Phase 1 — The National Ledger (Weeks 5–12)
+Goal: a real Cabinet sees its own economy in the instrument.
 
-## Motion (PRD §11)
+**Routes** (`src/routes/_authenticated/instrument/*`)
+- `/instrument` — Instance Home (composition ring, headline indices, currency strip)
+- `/instrument/sector/$code` — Sector Detail (series, dependency web stub, related scenarios placeholder)
+- `/instrument/exposure` — CBI Exposure Index + decomposition + methodology drill-down
+- `/instrument/stewardship` — Data Stewardship (ingestion queue, validations, revisions)
 
-Motion tokens (durations/easings) added to `styles.css`. Two moments only on marketing:
+**Components**: `LedgerHeader`, `SectorRing` (interactive), `SeriesChart` (bespoke D3 layer wrapping `visx` or raw SVG — no default themes), `ConfidenceBadge`, `ProvenanceFooter`, `NumberTreatment` (serif hero + Plex Mono metadata), `DataCurrencyStrip`.
 
-- **Signature ring assembly** on hero load: 12 sector segments draw in in sector-order over ~1.2s with the wordmark fading in after (`dur-signature`). Single per-session play; skipped on repeat via `sessionStorage`.
-- **Count-up** on the Problem section's three headline numbers when they enter the viewport (`IntersectionObserver`), Fraunces numeral with tabular Plex Mono unit.
+**Schema (bundle 1)**
+- `series` (id, country_code, sector_code, metric, unit, frequency, source_id, confidence_grade)
+- `series_points` (series_id, period, value, revised_from, revised_at)
+- `exposure_index` (country_code, period, value, decomposition jsonb, methodology_ref)
+- `data_revisions` (audit table)
 
-`prefers-reduced-motion`: ring segments fade in simultaneously at 120ms; count-up replaced by instant values (§11.4). Every meaning has a static equivalent.
+**Server fns** (`src/lib/ledger.functions.ts`): `getInstanceOverview`, `getSectorDetail(code)`, `getExposureIndex`, `ingestSeriesCsv` (steward-only via `requireSupabaseAuth` + role check).
 
-Performance budget (§16, §11.5): transform/opacity only, no layout thrash; **sub-1s LCP** target — no web fonts blocking LCP (font-display: swap; hero headline uses `font-display: optional` on Fraunces or a system-serif fallback stack sized to prevent CLS).
+**Milestone**: Saint Lucia Ledger loaded; PM can absorb national position in <5 min.
 
-## Components (`src/components/marketing/`)
+---
 
-- `MarketingShell.tsx` — top wordmark rail (no nav menu — single-page site), footer.
-- `Wordmark.tsx` — GDPVISION in Fraunces, letterspaced, `ink-950`, never gold.
-- `SignatureRing.tsx` — SVG generator: takes an array of 12 `{ sector, share }` and renders a circular band; the marketing master mark uses the **idealized balanced ring** (§10.3). Assemble animation + reduced-motion path.
-- `NumberTile.tsx` — large Fraunces numeral, Plex Mono unit, confidence grade badge (A/B/C/D per §7.1 FR-NL-04), citation footnote slot.
-- `ChamberPanel.tsx` — hairline-bordered white panel, 2px leading sector-hue accent bar, title + one-line purpose + bullets.
-- `HairlineRule.tsx`, `SectionHeader.tsx`, `AccentBar.tsx`, `Citation.tsx`, `ClassificationStrip.tsx`.
-- `BriefingForm.tsx` — the CTA form; posts to `submitBriefingRequest` server fn; nation dropdown seeded from the CARICOM/OECS registry constant.
-- `CaricomRegistry.ts` — the 15 CARICOM full members + 5 associates + OECS list per FR-PL-01a, as a typed constant reused later by the product.
+## Phase 2 — Engine & Portfolio Workspaces (Weeks 13–22)
+Goal: ministerial scenario modeling with ripple effects.
 
-Delete `src/components/marketing/MarketingHome.tsx` after `/` is rebuilt.
+**Routes**
+- `/instrument/portfolio/$ministry` — per-ministry Workspace
+- `/instrument/scenarios` — scenario list
+- `/instrument/scenarios/new` — Scenario Builder (lever console + live projection canvas)
+- `/instrument/scenarios/$id` — artifact view
+- `/instrument/scenarios/compare` — 2–4 side-by-side
 
-## Route + SEO
+**Compute service**: `src/lib/engine/` — versioned model modules (`v1_macro.ts`), pinned per scenario artifact. Runs in a `createServerFn` with input Zod validation; returns deterministic outputs for identical inputs.
 
-Single route file `src/routes/index.tsx` with `head()`:
+**Components**: `LeverConsole` (keyboard-steppable, ARIA-announced), `ProjectionCanvas` (P10/P50/P90 bands, scenario violet tint on projected region), `DependencyWeb` (ripple pulse per §11.2.4), `ScenarioCompareGrid`, `AssumptionsDrawer`.
 
-- `<title>` "GDPVision — Govern with the whole picture" (<60)
-- meta description one factual sentence naming the CBI wind-down and the sovereign instrument (<160)
-- matching `og:title` / `og:description`, `og:type=website`, `twitter:card=summary_large_image`
-- `og:image`: a server-generated cover of the Signature ring on Paper (built as a static asset via `imagegen`, absolute https URL) — set on this leaf route, **not** on `__root`
-- canonical `https://gdpvision.com/`
-- JSON-LD `Organization` for OPEN Interactive with GDPVision as a `subOrganization` / product
+**Schema (bundle 2)**
+- `levers` (id, country_code, sector_code, name, bounds jsonb, response_fn_ref, methodology_ref)
+- `scenarios` (id, country_code, sector_code, author_id, horizon, model_version, status, lever_settings jsonb, assumptions jsonb, results jsonb, attribution jsonb, created_at)
+- `scenario_promotions` (audit)
+- Pre-built national scenarios seeded per Country Pack.
 
-Root `head()` in `__root.tsx`: generic app title only, no `og:image` (per Lovable rule — root concatenates into every match).
+**Exit**: 60% of a mock Cabinet has ≥1 saved scenario; ripple visualization passes design review.
 
-Robots + sitemap: `public/robots.txt` allowing all; `public/sitemap.xml` listing `/`. Section anchors (`#problem`, `#chambers`, `#sovereignty`, `#provenance`, `#briefing`) for internal deep-linking; hash anchors are acceptable here because everything genuinely belongs on this one page (§16).
+---
 
-## Backend (briefing form only)
+## Phase 3 — Studio, Room & Mandate (Weeks 23–32)
+Goal: FDI transition + governing rhythm + Session Mode.
 
-Migration creates `public.briefing_requests`:
+**Routes**
+- `/instrument/studio/gap` — The Gap (wind-down selector, anchor viz)
+- `/instrument/studio/packages` — Package Builder & Readiness Gates
+- `/instrument/mandate/studio` — KPI definition + goal-seek invocation
+- `/instrument/mandate/scorecard` — National Scorecard
+- `/instrument/cabinet` — Cabinet Room (ring, agenda, commitments)
+- `/instrument/cabinet/session` — Chamber (dark, full-bleed Session Mode)
 
-```
-id uuid pk default gen_random_uuid()
-created_at timestamptz not null default now()
-name text not null
-role text not null
-government text not null            -- ministry / office
-nation text not null                -- CARICOM/OECS registry code
-email text not null
-message text
-status text not null default 'new'  -- new | acknowledged | scheduled | closed
-user_agent text
-```
+**Components**: `GapChart`, `PackageBuilder`, `ReadinessGates`, `KPIRow` (§10.6 target/pace treatment), `ScorecardTable`, `SessionShell` (dark env, classification strip, keyboard/clicker nav), `DecisionSeal` motion, `CommitmentsRegister`.
 
-Grants + RLS in the same migration (per Lovable rule):
+**Schema (bundle 3)**
+- `packages` (id, country_code, sector_code, gates jsonb, enabling_actions jsonb, status)
+- `kpis` (id, country_code, sector_code, ministry, metric_ref, baseline, target, classification, cadence, owner_id, plan_scenario_id)
+- `goal_cycles` (kpi_id, period, status, figures jsonb, commentary, snapshot_at)
+- `mandates` (unified: kpi_id or scenario_id or package_action_id, status, cadence)
+- `sessions` (id, agenda jsonb, minutes, held_at)
+- `decisions` / `commitments` (audit-immutable)
+- `exports_log` (watermark, classification, user, timestamp)
 
-- `GRANT INSERT ON public.briefing_requests TO anon` (form is public)
-- `GRANT SELECT, UPDATE ON public.briefing_requests TO authenticated`
-- `GRANT ALL ON public.briefing_requests TO service_role`
-- Enable RLS; policies: anon `INSERT` allowed; authenticated `SELECT`/`UPDATE` only via `has_role(auth.uid(),'admin')` (uses the standard `app_role` enum + `user_roles` table + `has_role` security-definer function per the roles rule; create these if not present).
+**Document renderer**: server-side PDF endpoint under `/api/public/exports/*` (webhook-safe path; token-guarded) using tokenized styles — no Word templates.
 
-Server fn `submitBriefingRequest` in `src/lib/briefing.functions.ts`:
+**Milestone**: a Cabinet session opens with a Scorecard walk against ratified targets; adopted decisions post to Commitments Register.
 
-- `createServerFn({ method: "POST" })` with Zod validator (name/role/government/nation/email required; email format; nation ∈ registry; message ≤ 2000 chars; honeypot field rejected).
-- Simple rate limit: reject if the same email + nation submitted in the last 60 seconds (server-side check).
-- Inserts using the server publishable client (RLS-satisfied anon insert). Returns `{ ok: true, id }`.
-- No third-party analytics or trackers anywhere (§14.6). Errors log server-side only, not to the client.
+---
 
-## Accessibility (PRD §13)
+## Phase 4 — Narrative Chamber & Counsel (Weeks 33–42)
+Goal: signal → dossier → strategy → approved release in one working day; voice-first Counsel to GA.
 
-- WCAG 2.2 AA verified; all headline numbers meet AAA contrast.
-- Semantic sections, single `<h1>` (hero), landmarks (`<header>` / `<main>` / `<footer>`), skip link.
-- Signature ring: `role="img"` with an `<aria-label>` naming the sectors and shares; a hidden `<table>` equivalent for screen readers (§13.3 requirement extended to marketing).
-- Sector hue never carries meaning alone — every chamber panel is labeled and legend-ordered (§13.4).
-- Full keyboard operability on the form; visible focus rings in `gold-500` (§10.2 focus token).
+**Order (per PRD)**: Second Brain spine → Harvest pipeline → Signal Desk + Context Research → Counsel hardening → Strategy Composer → Comms Studio.
 
-## Verification
+**Routes**
+- `/narrative/signal` — Signal Desk (issue cards, risk radar)
+- `/narrative/dossier/$id` — Context Dossier
+- `/narrative/brain` — Second Brain browser (Country Silo / Regional Commons tabs)
+- `/narrative/queue` — Curation Queue (keyboard-first triage)
+- `/narrative/ingest` — URL/text ingest + research briefs
+- `/narrative/coverage` — Coverage & Gaps
+- `/narrative/strategy/$id` — Strategy Composer (7-part)
+- `/narrative/comms/$id` — Comms Studio (artifact suite + tiered approval)
+- `/counsel` (desktop console) and `/counsel/mobile` (hold-mic shell)
+- `/counsel/archive`
 
-1. `bun run build` clean; no unresolved imports.
-2. Playwright (headless, viewport 1280×1800): load `/`, screenshot hero (verify ring drew), scroll to Problem/Chambers/Sovereignty/Provenance/Briefing, screenshot each; submit the form with a valid payload; confirm row appears via `supabase read_query`.
-3. Playwright with `prefers-reduced-motion: reduce`: verify no assembly animation, ring visible statically.
-4. Lighthouse locally (or a manual LCP check via Playwright's `performance` API): confirm LCP < 1s on the hero.
-5. `/kiosk` and `/kiosk/admin` still load kiosk data (regression check).
+**Schema (bundle 4)**
+- `memory_objects` (id, scope_key [country_code or REGIONAL], sector_code, kind [audience/position/statement/outlet/precedent], payload jsonb, weight 1–5, verified bool, source_id, embedding vector(1536)) — pgvector + HNSW
+- `harvest_runs` (id, cadence_slot, started_at, counts jsonb, failures jsonb)
+- `intake_items` (id, harvest_run_id, source_id, scope_key, sector_code, topic, summary, proposed_weight, final_weight, state)
+- `curation_batches` (id, curator_id, committed_at, item_count, weight_distribution jsonb)
+- `research_briefs` (id, prompt, sector_hint, recency, results jsonb)
+- `source_suppressions` (source_id, country_code, reason, actor_id, active bool)
+- `strategy_statements` (id, seven_part jsonb, sources jsonb, approvals jsonb, version)
+- `comms_artifacts` (id, strategy_id, kind, audience, channel, body, draft_state, approvals jsonb, released_at)
+- `counsel_answers` (id, user_id, question, spoken_block, written_block, citations jsonb, tags, scenario_snapshot jsonb, content_hash)
 
-## Out of scope (P1 / later)
+**Server infrastructure**
+- **Harvest cron**: pg_cron → `/api/public/harvest/run` (HMAC-signed), executes collectors, runs Filter chain, writes `intake_items`. Default 06:00 + 16:00 instance-local.
+- **Embeddings**: `match_chunks(query_embedding, k)` RPC; chunker (~1000 chars, 120 overlap).
+- **AI Gateway** (Lovable AI): RAG generation with mandatory retrieval-citation contract; model version pinned per artifact.
+- **Voice loop** (port SEDE): streaming chat + tool calls; STT multipart; TTS streamed; iOS Safari unlock primed on gesture; bounded step cap; finalized-only research notices with promise-chained queueing.
+- **Rate limits + budget caps** per instance on all external research/scrape providers (Appendix B hardening).
+- **Auth on every voice/admin endpoint** via `requireSupabaseAuth` + role check — closes prototype's open endpoints.
 
-- Depth pages for each chamber (§16 explicitly says one panel each on the marketing site).
-- Live per-nation Signature rings (§10.3 says instance marks are generated per government; the marketing site uses the idealized master mark).
-- Chamber (dark) mode toggle — product only (§10.1).
-- Multilingual (English at GA per §13.5; string architecture ready is a product concern, not marketing v1).
-- Public methodology "Codex" (§7.9 FR-PL-05 is an in-product handbook, not marketing).
-- Pricing, trial, chat widget — explicitly forbidden by §16.
+**Approval doctrine**: Comms release gated by role tier + automatic Finance sign-off on fiscal figures; blocked release if any figure diverges from live Ledger at approval time.
 
-## Question flagged for you
+**Milestone**: simulated breaking-news drill completes end-to-end within one working day with zero unsourced factual claims.
 
-§16 says "the five chambers, each one panel," but §6 defines six chambers. Plan currently shows **six** panels to match the product architecture. Say the word if you want five (which set to drop) or want me to keep six.
+---
+
+## Phase 5 — GA Hardening (Weeks 43–48)
+- Security audit (RLS coverage, endpoint auth, secret handling, watermarking, audit-log immutability).
+- Accessibility audit (WCAG 2.2 AA everywhere; AAA on headline numbers + Session Mode, verified on physical projector).
+- Performance passes: LCP < 1.5s on Instance Home over 10 Mbps; Ledger interactive < 3s; exports < 8s.
+- External economist methodology review; comms-doctrine review with a former govt principal.
+- Award-submission asset preparation (Awwwards/FWA/Red Dot).
+- Fast-follow P1s queued: ministry feed API, benchmark overlays, briefing exports, trusted-source fast lane, Regional Commons reference feed, crisis mode, KPI-narrative linkage, State-of-the-Mandate export, CIS27 summit pipeline export.
+
+---
+
+## Cross-cutting workstreams (run parallel across phases)
+
+- **Provisioning / Country Config screen** — required before Phase 1 has real data; ships with Phase 0.
+- **Audit log** — immutable append-only table + trigger, established in Phase 0, extended each phase.
+- **Export/document system** — introduced in Phase 3, reused by Comms Studio (Phase 4) and State-of-the-Mandate (P1).
+- **Design review gate per phase** — six Experience Principles checked on every screen (§9, §19).
+- **Reduced-motion parity** — added alongside every signature moment.
+
+## Sequencing rationale
+Phases are strictly dependent: Ledger → Engine reads from it → Studio quantifies its Gap → Cabinet Room rolls up Mandate over both → Narrative Chamber reads all prior chambers + external signal. Building out-of-order forces mock data that violates the provenance principle (§8.3).
+
+## Immediate next step
+Kick off Phase 0 bundle: extend `src/styles.css` tokens, seed `countries`/`sectors`/`user_roles` migrations, generalize `SignatureRing` into a data-driven primitive, and re-skin `/kiosk` on the new tokens.

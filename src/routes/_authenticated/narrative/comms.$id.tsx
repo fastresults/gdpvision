@@ -130,6 +130,17 @@ function EditComms() {
           ))}
         </ol>
       </section>
+      </div>
+
+      <CitationsRail
+        scopeKey={data.scope_key}
+        sectorCode={undefined}
+        sources={[]}
+        onAttach={() => {}}
+        onRemove={() => {}}
+        body={body}
+        showFactCheck
+      />
     </main>
   );
 }

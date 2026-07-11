@@ -72,7 +72,7 @@ export interface CountryPackPreview {
   portfolioMap: Array<{ sectorSlug: string; sectorLabel: string; ministry: string | null }>;
   sectorShares: Array<{ sector_code: string; label: string; share_pct: number | null; confidence_grade: string | null }>;
   ministries: Array<{ id: string; name: string; slug: string }>;
-  signature: unknown | null;
+  signature: Record<string, unknown> | null;
   signatureGeneratedAt: string | null;
 }
 

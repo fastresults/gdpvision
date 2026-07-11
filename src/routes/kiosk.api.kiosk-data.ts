@@ -8,7 +8,7 @@ const DEFAULT_SETTINGS = {
 
 const SETTING_KEYS = new Set(Object.keys(DEFAULT_SETTINGS));
 
-export const Route = createFileRoute("/api/kiosk-data")({
+export const Route = createFileRoute("/kiosk/api/kiosk-data")({
   server: {
     handlers: {
       GET: async ({ request }) => {

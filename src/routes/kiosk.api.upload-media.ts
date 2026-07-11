@@ -22,7 +22,7 @@ function classify(mime: string): { kind: Kind; max: number } | null {
   return null;
 }
 
-export const Route = createFileRoute("/api/upload-media")({
+export const Route = createFileRoute("/kiosk/api/upload-media")({
   server: {
     handlers: {
       POST: async ({ request }) => {

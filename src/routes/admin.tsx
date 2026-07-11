@@ -49,19 +49,6 @@ import type { SiteMode } from "@/lib/site-mode";
 
 
 export const Route = createFileRoute("/admin")({
-  loader: async (): Promise<{ mode: SiteMode }> => {
-    let mode: SiteMode = "present";
-    try {
-      const result = await getRequestSiteMode();
-      mode = result.mode;
-    } catch {
-      return { mode };
-    }
-    if (mode === "marketing") {
-      throw redirect({ href: "https://present.gdpvision.com/admin" });
-    }
-    return { mode };
-  },
   head: () => ({
     meta: [
       { title: "GDP Vision — Admin" },

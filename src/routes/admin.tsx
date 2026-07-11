@@ -44,8 +44,6 @@ import {
   type IdleImage,
 } from "@/lib/idle-images.functions";
 import { listCategories, type Category } from "@/lib/categories.functions";
-import { getRequestSiteMode } from "@/lib/site-mode.functions";
-import type { SiteMode } from "@/lib/site-mode";
 
 
 export const Route = createFileRoute("/admin")({

@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { approveComms, getComms, saveComms } from "@/lib/narrative.functions";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
+import { CitationsRail } from "@/components/narrative/CitationsRail";
 
 const KINDS = ["press_release", "op_ed", "briefing", "speech", "social", "memo"] as const;
 const STATES = ["draft", "review", "approved", "released"] as const;

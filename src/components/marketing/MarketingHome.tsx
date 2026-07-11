@@ -1,106 +1,283 @@
-import { Link } from "@tanstack/react-router";
-import heroImage from "@/assets/marketing-hero.jpg";
+import { MarketingShell } from "./MarketingShell";
+import { SignatureRing } from "./SignatureRing";
+import { NumberTile } from "./NumberTile";
+import { ChamberPanel } from "./ChamberPanel";
+import { SectionHeader } from "./SectionHeader";
+import { BriefingForm } from "./BriefingForm";
+import { Wordmark } from "./Wordmark";
+
+const CHAMBERS = [
+  {
+    index: "01",
+    title: "The National Ledger",
+    accentVar: "--sector-01",
+    purpose:
+      "The authoritative decomposition of the national economy. Everything else in the instrument reads from it.",
+    bullets: [
+      "12-sector Caribbean ontology with a decade of history and a data-confidence grade on every series.",
+      "The CBI Exposure Index — a single, methodologically-documented number, drillable to source.",
+      "Four-layer sector dossiers: economic, policy, comms, and OECS/regional.",
+    ],
+  },
+  {
+    index: "02",
+    title: "Portfolio Workspaces",
+    accentVar: "--sector-03",
+    purpose:
+      "One workspace per ministerial portfolio. Every minister sees their contribution to the economy — and their levers on it.",
+    bullets: [
+      "Sector position, dependency web, and the portfolio's share of CBI exposure.",
+      "A shelf of the minister's scenarios, from draft through Cabinet-adopted.",
+      "Play-of-the-day cards derived from live lever values.",
+    ],
+  },
+  {
+    index: "03",
+    title: "The Scenario Engine",
+    accentVar: "--sector-09",
+    purpose:
+      "Consequence-free rehearsal. Move a lever; every downstream metric re-projects in the same animation frame.",
+    bullets: [
+      "Sovereign Vitals — real GDP, debt-to-GDP, FX retention, primary balance, public confidence — live.",
+      "Ripple propagation through the inter-sector dependency web.",
+      "Goal-seek: set the target, discover the levers that reach it.",
+    ],
+  },
+  {
+    index: "04",
+    title: "The FDI Transition Studio",
+    accentVar: "--sector-07",
+    purpose:
+      "A replacement plan for the CBI wind-down, sector by sector — not a slide deck but an assembled book of work.",
+    bullets: [
+      "The Gap: the revenue and GDP hole under the selected wind-down glide-path, year by year.",
+      "Investment package builder with capital-to-GDP conversion and time-to-impact lags.",
+      "Readiness scoring across legal, land, workforce, incentives, and institutional capacity.",
+    ],
+  },
+  {
+    index: "05",
+    title: "The Narrative Chamber",
+    accentVar: "--sector-04",
+    purpose:
+      "Signal to statement inside a working day. Every claim grounded in the same Ledger the Finance Ministry answers to.",
+    bullets: [
+      "Signal Desk, Context Dossiers, and a persistent Second Brain that never starts from a blank page.",
+      "Doctorate-grade strategy statements with a message architecture that carries across every channel.",
+      "Human-command doctrine: the chamber drafts, principals decide, nothing releases autonomously.",
+    ],
+  },
+  {
+    index: "06",
+    title: "The Cabinet Room",
+    accentVar: "--sector-10",
+    purpose:
+      "The consolidated national view, Cabinet Session Mode on the large display, and the commitments register.",
+    bullets: [
+      "Session Mode: agenda of promoted scenarios, full-bleed comparisons, decisions recorded live.",
+      "National Scorecard — every ratified KPI, current pace, movement since last session.",
+      "Commitments roll-up: what was adopted, who owns it, where it stands.",
+    ],
+  },
+];
 
 export function MarketingHome() {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <div className="text-xl font-semibold tracking-tight">GDP Vision</div>
-        <nav className="flex items-center gap-6 text-sm">
-          <a href="#features" className="opacity-80 hover:opacity-100">Features</a>
-          <a href="#contact" className="opacity-80 hover:opacity-100">Contact</a>
-          <Link
-            to="/kiosk"
-            className="rounded-md border border-cyan-400/40 bg-cyan-400/10 px-3 py-1.5 text-cyan-200 hover:bg-cyan-400/20"
-          >
-            Launch Kiosk
-          </Link>
-        </nav>
-      </header>
-
-      <section
-        className="relative isolate overflow-hidden border-b border-white/5"
-        style={{
-          backgroundImage: `linear-gradient(to bottom, rgba(2,6,23,0.55), rgba(2,6,23,0.9)), url(${heroImage})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        <div className="mx-auto max-w-6xl px-6 py-28 md:py-40">
-          <h1 className="max-w-3xl text-4xl font-semibold leading-tight tracking-tight md:text-6xl">
-            Immersive presentation systems for the Caribbean's next decade.
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg opacity-80 md:text-xl">
-            GDP Vision builds full-screen briefing environments that bring
-            summits, ministries, and enterprises into a single, curated view.
-          </p>
-          <div className="mt-10 flex flex-wrap gap-3">
-            <Link
-              to="/kiosk"
-              className="rounded-md bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-cyan-300"
-            >
-              Open the Presentation Kiosk
-            </Link>
-            <a
-              href="#contact"
-              className="rounded-md border border-white/20 px-5 py-3 text-sm font-semibold hover:bg-white/5"
-            >
-              Talk to us
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <section id="features" className="mx-auto max-w-6xl px-6 py-24">
-        <h2 className="text-3xl font-semibold tracking-tight">What we do</h2>
-        <div className="mt-10 grid gap-6 md:grid-cols-3">
-          {[
-            {
-              title: "Kiosk Presentation",
-              body: "One-touch access to websites, decks, PDFs, videos, and gallery collections in a single fullscreen shell.",
-            },
-            {
-              title: "Curated Galleries",
-              body: "Group videos and images into named galleries with drill-down navigation for on-stage or in-booth use.",
-            },
-            {
-              title: "Managed Content",
-              body: "Admin console for updating categories, media, and idle imagery without redeploying anything.",
-            },
-          ].map((f) => (
-            <div key={f.title} className="rounded-xl border border-white/10 bg-white/[0.02] p-6">
-              <h3 className="text-lg font-semibold">{f.title}</h3>
-              <p className="mt-2 text-sm opacity-75">{f.body}</p>
+    <MarketingShell>
+      {/* HERO ------------------------------------------------------------- */}
+      <section id="top" className="border-b border-line-200">
+        <div className="mx-auto grid max-w-[1280px] items-center gap-12 px-6 py-16 md:grid-cols-[1.15fr_1fr] md:gap-16 md:px-10 md:py-24">
+          <div>
+            <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">
+              GDPVision · v1.0
             </div>
-          ))}
-        </div>
-      </section>
-
-      <section id="contact" className="border-t border-white/5 bg-slate-950">
-        <div className="mx-auto max-w-6xl px-6 py-24">
-          <h2 className="text-3xl font-semibold tracking-tight">Get in touch</h2>
-          <p className="mt-3 max-w-xl opacity-80">
-            We're rebuilding this site. In the meantime, reach us directly to
-            preview the presentation system or discuss a deployment.
-          </p>
-          <a
-            href="mailto:hello@gdpvision.com"
-            className="mt-6 inline-flex rounded-md bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-cyan-300"
-          >
-            hello@gdpvision.com
-          </a>
-        </div>
-      </section>
-
-      <footer className="border-t border-white/5">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-sm opacity-70">
-          <div>© {new Date().getFullYear()} GDP Vision</div>
-          <div className="flex gap-6">
-            <Link to="/kiosk" className="hover:opacity-100">Kiosk</Link>
-            <Link to="/kiosk/admin" className="hover:opacity-100">Admin</Link>
+            <div className="mt-6 h-px w-16 bg-gold-500" aria-hidden />
+            <h1 className="mt-8 font-serif text-[43px] leading-[1.05] tracking-tight text-ink-950 md:text-[68px]">
+              Govern with the whole picture.
+            </h1>
+            <p className="mt-8 max-w-xl text-[17px] leading-relaxed text-ink-700 md:text-[21px]">
+              The European Union has issued a wind-down notice for Citizenship
+              by Investment programs. GDPVision is the sovereign decision
+              instrument built to see the economy, rehearse the choices, and
+              assemble the replacement — one isolated instance per nation,
+              owned by that government.
+            </p>
+            <div className="mt-10 flex flex-wrap items-center gap-6">
+              <a
+                href="#briefing"
+                className="inline-flex items-center justify-center bg-ink-950 px-6 py-3 font-mono text-[12px] uppercase tracking-[0.18em] text-paper-0 transition-colors duration-200 hover:bg-gold-500"
+              >
+                Request a Cabinet briefing
+              </a>
+              <a
+                href="#instrument"
+                className="font-mono text-[12px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950"
+              >
+                See the instrument ↓
+              </a>
+            </div>
+          </div>
+          <div className="relative flex items-center justify-center">
+            <SignatureRing size={480} />
           </div>
         </div>
-      </footer>
-    </div>
+      </section>
+
+      {/* PROBLEM ---------------------------------------------------------- */}
+      <section id="problem" className="border-b border-line-200">
+        <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
+          <SectionHeader
+            eyebrow="The moment"
+            title="A revenue cliff, without a decision-ready view of the ground it sits on."
+            lede="Five Caribbean states operate CBI as a primary GDP and government-revenue driver. National statistics arrive in annual digests, IMF assessments are twelve to eighteen months stale, and no Cabinet in the region has a single, current view of its own economy."
+          />
+          <div className="mt-16 grid gap-12 border-t border-line-200 pt-12 md:grid-cols-3">
+            <NumberTile
+              value={50}
+              unit="%"
+              label="CBI receipts as share of government revenue, upper band"
+              grade="B"
+              citation="IMF Article IV consultations, 2022–2024. Range across the five OECS CBI states."
+            />
+            <NumberTile
+              value={18}
+              unit="months"
+              label="Typical staleness of authoritative sector data"
+              grade="B"
+              citation="ECCB & NSO release cadence review, 2024."
+            />
+            <NumberTile
+              value={5}
+              unit="nations"
+              label="OECS states operating a CBI programme today"
+              grade="A"
+              citation="St. Kitts & Nevis, Dominica, Antigua & Barbuda, Grenada, Saint Lucia."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* INSTRUMENT — CHAMBERS ------------------------------------------- */}
+      <section id="instrument" className="border-b border-line-200 bg-paper-100/40">
+        <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
+          <SectionHeader
+            eyebrow="The instrument"
+            title="Six chambers that mirror the working structure of a government."
+            lede="Not a dashboard and not a consulting deliverable. GDPVision is organised as an instrument of state — a live Ledger under six chambers, with the Counsel above them as a voice-first advisor."
+          />
+          <div className="mt-16 grid gap-x-8 gap-y-6 md:grid-cols-2 lg:grid-cols-3">
+            {CHAMBERS.map((c) => (
+              <ChamberPanel key={c.index} {...c} />
+            ))}
+          </div>
+          <p className="mt-10 max-w-2xl font-mono text-[12px] uppercase tracking-[0.16em] text-ink-500">
+            Above the chambers · The Counsel — voice-first sovereign advisor,
+            2–4 sentences of cited counsel, on desk or in a moving car.
+          </p>
+        </div>
+      </section>
+
+      {/* SOVEREIGNTY ------------------------------------------------------ */}
+      <section id="sovereignty" className="border-b border-line-200">
+        <div className="mx-auto grid max-w-[1280px] items-start gap-16 px-6 py-24 md:grid-cols-[1fr_1.2fr] md:px-10 md:py-32">
+          <SectionHeader
+            eyebrow="Sovereignty"
+            title="One isolated deployment per nation. The government owns the data outright."
+          />
+          <div className="grid gap-8 border-t border-line-200 pt-10">
+            {[
+              {
+                head: "Sovereign instance",
+                body: "Separate database, storage, and encryption keys. No cross-instance queries exist in the architecture. Peer benchmarking uses public datasets only.",
+              },
+              {
+                head: "Data ownership",
+                body: "Contractually and technically, the government owns its instance data. Full export and verified deletion on termination. Hosting region selected with the government, including EU data-residency options.",
+              },
+              {
+                head: "Access & audit",
+                body: "MFA mandatory for all roles, hardware-key support for Principals and Stewards, immutable audit log for data changes, decisions, and exports.",
+              },
+              {
+                head: "No trackers, ever",
+                body: "No third-party analytics or trackers inside government instances. Error telemetry is first-party and instance-consented.",
+              },
+            ].map((p) => (
+              <div key={p.head} className="border-b border-line-200 pb-8 last:border-b-0">
+                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
+                  {p.head}
+                </div>
+                <p className="mt-3 text-[15px] leading-relaxed text-ink-700 max-w-2xl">{p.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PROVENANCE ------------------------------------------------------- */}
+      <section id="provenance" className="border-b border-line-200 bg-paper-100/40">
+        <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
+          <SectionHeader
+            eyebrow="Provenance"
+            title="Built by OPEN Interactive — seventeen years in the room, one working prototype already running."
+            lede="OPEN Interactive originated the Caribbean Investment Summit franchise, has delivered national digital infrastructure for the Government of St. Kitts & Nevis, and maintains head-of-government relationships across the OECS."
+          />
+          <div className="mt-16 grid gap-8 md:grid-cols-3">
+            {[
+              {
+                year: "2009 →",
+                head: "Caribbean Investment Summit",
+                body: "The region's premier FDI deal-flow franchise, now the summit channel for the investment packages GDPVision produces.",
+              },
+              {
+                year: "2018 →",
+                head: "National infrastructure, St. Kitts & Nevis",
+                body: "Delivered digital government infrastructure at national scale under confidential engagement with the Office of the Prime Minister.",
+              },
+              {
+                year: "2026",
+                head: "SEDE — the Saint Lucia prototype",
+                body: "A working sovereign decision engine: live macro model, voice console, dossier corpus, ingest pipeline. GDPVision v1 absorbs SEDE as its interaction-proven core.",
+              },
+            ].map((p) => (
+              <div key={p.head} className="border-t border-line-200 pt-6">
+                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold-500">
+                  {p.year}
+                </div>
+                <h3 className="mt-4 font-serif text-[21px] leading-tight text-ink-950">{p.head}</h3>
+                <p className="mt-3 text-[14px] leading-relaxed text-ink-700">{p.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* BRIEFING CTA ----------------------------------------------------- */}
+      <section id="briefing">
+        <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
+          <div className="grid gap-12 md:grid-cols-[1fr_1.4fr] md:gap-16 items-start">
+            <div>
+              <SectionHeader
+                eyebrow="Cabinet briefing"
+                title="Request a confidential briefing."
+                lede="A short, dignified enquiry from a member of a sitting government or their designated advisor. OPEN Interactive responds within one working day."
+              />
+              <div className="mt-10 space-y-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
+                <div>— Delivered in person or over secure video</div>
+                <div>— Sixty minutes, no slideware</div>
+                <div>— Under NDA on request</div>
+              </div>
+            </div>
+            <BriefingForm />
+          </div>
+        </div>
+      </section>
+
+      {/* Hidden — kiosk still lives under /kiosk for existing installations */}
+      <div className="sr-only">
+        <Wordmark />
+        <a href="/kiosk">Kiosk</a>
+      </div>
+    </MarketingShell>
   );
 }

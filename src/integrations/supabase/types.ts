@@ -32,6 +32,45 @@ export type Database = {
         }
         Relationships: []
       }
+      briefing_requests: {
+        Row: {
+          created_at: string
+          email: string
+          government: string
+          id: string
+          message: string | null
+          name: string
+          nation: string
+          role: string
+          status: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          government: string
+          id?: string
+          message?: string | null
+          name: string
+          nation: string
+          role: string
+          status?: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          government?: string
+          id?: string
+          message?: string | null
+          name?: string
+          nation?: string
+          role?: string
+          status?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           behavior: string

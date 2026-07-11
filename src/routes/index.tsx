@@ -24,6 +24,9 @@ import { MobileKiosk } from "@/components/mobile/MobileKiosk";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import { GalleryView } from "@/components/GalleryView";
+import { MarketingHome } from "@/components/marketing/MarketingHome";
+import { getRequestSiteMode } from "@/lib/site-mode.functions";
+import { getClientSiteMode, type SiteMode } from "@/lib/site-mode";
 
 
 type IdleImage = {
@@ -35,17 +38,57 @@ type IdleImage = {
 
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "GDP Vision — Kiosk" },
-      {
-        name: "description",
-        content: "Full-screen browser demonstration system.",
-      },
-    ],
-  }),
-  component: KioskPage,
+  loader: async (): Promise<{ mode: SiteMode }> => {
+    try {
+      const { mode } = await getRequestSiteMode();
+      return { mode };
+    } catch {
+      return { mode: "present" };
+    }
+  },
+  head: ({ loaderData }) => {
+    const isMarketing = loaderData?.mode === "marketing";
+    return {
+      meta: isMarketing
+        ? [
+            { title: "GDP Vision — Immersive presentation systems" },
+            {
+              name: "description",
+              content:
+                "GDP Vision builds full-screen briefing environments for Caribbean summits, ministries, and enterprises.",
+            },
+            { property: "og:title", content: "GDP Vision" },
+            {
+              property: "og:description",
+              content:
+                "Immersive presentation systems for the Caribbean's next decade.",
+            },
+          ]
+        : [
+            { title: "GDP Vision — Kiosk" },
+            {
+              name: "description",
+              content: "Full-screen browser demonstration system.",
+            },
+          ],
+    };
+  },
+  component: RootIndex,
 });
+
+function RootIndex() {
+  const { mode: initialMode } = Route.useLoaderData();
+  // Reconcile with client host once mounted so navigations across hosts
+  // during dev/preview still show the right shell.
+  const [mode, setMode] = useState<SiteMode>(initialMode);
+  useEffect(() => {
+    const clientMode = getClientSiteMode();
+    if (clientMode !== mode) setMode(clientMode);
+  }, [mode]);
+
+  if (mode === "marketing") return <MarketingHome />;
+  return <KioskPage />;
+}
 
 type KioskData = {
   items: Item[];

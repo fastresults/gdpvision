@@ -1,107 +1,85 @@
 
 ## Goal
 
-Introduce a new **Gallery** category behavior. When an admin adds a category, they pick a media mode (Videos only, Images only, or Videos + Images). Content inside the category is organized into **named galleries**, each containing media items. On the kiosk, the category opens a grid of gallery tiles; tapping one expands into a thumbnail grid of its media.
+Serve the existing kiosk/admin app only under `present.gdpvision.com`, and free the apex `gdpvision.com` (+ `www.gdpvision.com`) to host a brand-new marketing website — all inside this single Lovable project, no second project needed.
 
-## Data model (migration)
+## Approach
 
-Two new tables, plus extend `categories`:
+Both hostnames already resolve to this project (all three custom domains are connected). We branch behavior by hostname at the router layer so the same deployment serves two different sites.
 
-1. `categories.media_modes text[]` — allowed kinds in this category. One of:
-   `['video']`, `['image']`, `['video','image']`. Only meaningful when `behavior = 'gallery'`.
-   - Update `behavior` CHECK (or app-level enum) to include `'gallery'`.
+### 1. Host-based routing shell
 
-2. `galleries`
-   - `category_id uuid → categories.id (cascade)`
-   - `label text`, `cover_url text null`, `sort_order int`, timestamps.
+- In `src/routes/__root.tsx`, read the request host (SSR: `Request` headers; client: `window.location.hostname`) and expose it via router context or a small `useHost()` hook.
+- Define a helper `getSiteMode(host)` → `"present" | "marketing"`:
+  - `present.gdpvision.com` → `present`
+  - `gdpvision.com`, `www.gdpvision.com`, lovable preview/published URLs → `marketing` (except when path starts with `/admin` or `/kiosk`, which stay on the app for testing on preview domains)
+- Root layout picks which subtree to render based on mode.
 
-3. `gallery_items`
-   - `gallery_id uuid → galleries.id (cascade)`
-   - `kind text check in ('video','image')`
-   - `media_asset_id uuid → media_assets.id` (for library picks / uploads)
-   - `storage_path text null` (for direct uploads landing in storage)
-   - `thumbnail_url text`, `label text null`, `sort_order int`, timestamps.
+### 2. Move kiosk routes under `/` on `present.*`
 
-GRANTs to `authenticated` + `service_role`, RLS enabled, public SELECT policy
-(matches the pattern used by `items`, `categories`, `idle_images`).
+The existing routes stay where they are (`src/routes/index.tsx`, `src/routes/admin.tsx`, `src/routes/api/*`) — no file moves, no URL changes for the kiosk. On `present.gdpvision.com` they render exactly as today. API routes (`/api/kiosk-data`, uploads, `/api/public/*`) remain shared and work from either host.
 
-Storage: reuse the existing `event-videos` bucket for video uploads; add a new
-private `gallery-images` bucket for image uploads. Both served via signed/public
-URLs the same way current media flows do.
+### 3. New marketing site at apex
 
-## Server functions (`src/lib/galleries.functions.ts`)
-
-- `listGalleries({ categoryId })` — galleries + nested item counts/covers.
-- `getGallery({ id })` — gallery + ordered items.
-- `createGallery / updateGallery / moveGallery / deleteGallery`.
-- `addGalleryItem` — accepts either `{ mediaAssetId }` (library pick) or an
-  uploaded file reference (path returned from existing upload route).
-- `updateGalleryItem / moveGalleryItem / deleteGalleryItem`.
-
-Image upload reuses `/api/upload-media`; video upload reuses the existing
-video upload endpoint. A new `/api/upload-gallery-image` route is only added
-if the existing media route doesn't already cover the bucket needed.
-
-## Category creation UI (`CategoryManager.tsx`)
-
-When admin picks `behavior = "gallery"`, reveal a second control:
-
-- Radio: **Videos only / Images only / Videos + Images** → writes `media_modes`.
-
-In the existing categories list, gallery rows show the media-mode badge next
-to the behavior badge.
-
-## Admin panel (`src/routes/admin.tsx`)
-
-For a category whose `behavior = "gallery"`, the per-category tab swaps the
-existing items form for a **Gallery manager**:
+Create new route files that only render when `mode === "marketing"`:
 
 ```
-[ + New gallery ]                 (label, optional cover)
-─────────────────────────────────
-▸ Past Conferences (8 items)   ↑ ↓  ✎  🗑
-    └ on expand: thumbnail grid of items
-        each tile: thumb · label · kind badge · ↑ ↓ ✎ 🗑
-        [ + Add video ] [ + Add image ]   (buttons match media_modes)
-▸ Product Demos (3 items)      ↑ ↓  ✎  🗑
+src/routes/
+  index.tsx              → host-switch: marketing home OR kiosk home
+  marketing/             → new components (not routes)
+    Hero.tsx
+    Features.tsx
+    Contact.tsx
+    Footer.tsx
+    Header.tsx
 ```
 
-Add-item flow opens a small picker: tabs for **Upload** and **Library**
-(media_assets), filtered to the kinds allowed by `media_modes`.
+- `src/routes/index.tsx` becomes a thin switch: `mode === "present" ? <KioskHome /> : <MarketingHome />`.
+- Extract current kiosk home body into `src/components/kiosk/KioskHome.tsx` so `index.tsx` stays clean.
+- Add marketing-only routes as needed (e.g. `/about`, `/contact`) — these 404 on `present.*` via the mode guard.
 
-## Kiosk rendering (`src/routes/index.tsx` + components)
+### 4. Redirects and canonicals
 
-New branch alongside the existing video/PDF/website renderers:
+- On `present.*`, redirect any marketing-only path (`/about`, `/contact`, etc.) to the apex equivalent.
+- On apex/www, redirect `/admin` and `/kiosk`-specific paths to `https://present.gdpvision.com/...` so bookmarks keep working.
+- `www.gdpvision.com` → 301 to `https://gdpvision.com` (set primary in Lovable Domains UI).
+- Per-mode `<link rel="canonical">` + distinct `head()` metadata (title, description, og:*) so search engines index them as two sites.
 
-1. Selecting a gallery category shows a **grid of gallery tiles** (cover
-   image or auto-mosaic of first 4 items, label, item count).
-2. Tapping a tile expands into a **thumbnail grid** of its items (videos
-   show poster + play badge, images show thumbnail).
-3. Tapping an item opens fullscreen — video uses the existing video player,
-   image opens a lightweight image viewer with prev/next within the gallery.
-4. Back button returns: item → gallery grid → category grid.
+### 5. SEO hygiene
 
-Mobile (`MobileKiosk.tsx`) mirrors the same three-level navigation.
+- `robots.txt`: allow both hosts; disallow `/admin` everywhere.
+- `sitemap.xml`: emit two hostname-scoped sitemaps, or a single sitemap per host chosen by the request host. Kiosk routes only listed under `present.gdpvision.com`; marketing routes only under `gdpvision.com`.
+- Distinct `og:image` per site (kiosk keeps current; marketing gets a new hero image generated in build step).
 
-## Types
+### 6. Domain configuration (user-side, in Lovable UI)
 
-Extend `src/lib/kiosk-types.ts`:
-- `CategoryBehavior` adds `"gallery"`.
-- `MediaMode = "video" | "image"`; `Category.media_modes?: MediaMode[]`.
-- New `Gallery` and `GalleryItem` types.
-- `kiosk-data` API returns `galleries` and `galleryItems` alongside `items`.
+No DNS changes needed — all three domains already point here. User just confirms in **Project Settings → Domains**:
+- `gdpvision.com` — Primary
+- `www.gdpvision.com` — redirects to primary
+- `present.gdpvision.com` — active, serves the app subtree
 
-## Out of scope
+## Technical details
 
-- No reordering via drag-and-drop (keep ↑/↓ buttons, matching current UX).
-- No per-gallery access control beyond what categories already have.
-- No bulk import; items added one at a time (upload or library pick).
+- Host detection SSR: read `request.headers.get("host")` inside `__root.tsx` `beforeLoad` or a root loader, stash on router context.
+- Host detection client: `window.location.hostname` inside a `useSyncExternalStore`-safe hook to avoid hydration mismatch — SSR value seeds initial render.
+- Preview/dev hosts (`*.lovable.app`, `localhost`) default to `marketing` mode but honor a `?mode=present` query flag (and remember via `sessionStorage`) so we can preview the kiosk without the subdomain.
+- No changes to `src/lib/*.functions.ts`, migrations, or Supabase schema.
+
+## Out of scope (this plan)
+
+- Actual marketing-site content/design — this plan only scaffolds the shell + one placeholder home. A follow-up turn designs Hero/Features/Contact once you approve direction.
+- Splitting into two Lovable projects (not needed; single deployment handles both hosts).
 
 ## Rollout order
 
-1. Migration (categories.media_modes + behavior enum, galleries, gallery_items, grants, RLS, bucket).
-2. Types + server functions + kiosk-data API extension.
-3. CategoryManager: media-mode picker.
-4. Admin panel: Gallery manager component.
-5. Kiosk: gallery grid + thumbnail grid + image viewer.
-6. Mobile kiosk parity.
+1. Add `getSiteMode` + host context in `__root.tsx`.
+2. Extract current `index.tsx` body → `KioskHome`; make `index.tsx` a host switch with a placeholder `MarketingHome`.
+3. Add redirects for cross-host paths.
+4. Update `robots.txt` + `sitemap.xml` to be host-aware.
+5. Verify on preview with `?mode=present` and by visiting each of the three domains after publish.
+6. Follow-up turn: design and build real marketing pages.
+
+## Questions before I build
+
+1. Should `/admin` be reachable on `present.gdpvision.com` only, or also allowed on the apex as a hidden backdoor?
+2. For the new marketing site, do you already have copy/branding/screenshots you want used, or should I generate a placeholder landing page (hero + features + contact) for you to iterate on?

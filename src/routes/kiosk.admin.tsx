@@ -46,7 +46,7 @@ import {
 import { listCategories, type Category } from "@/lib/categories.functions";
 
 
-export const Route = createFileRoute("/admin")({
+export const Route = createFileRoute("/kiosk/admin")({
   head: () => ({
     meta: [
       { title: "GDP Vision — Admin" },

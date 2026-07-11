@@ -30,9 +30,12 @@ function StrategyIndex() {
 
   return (
     <main className="mx-auto max-w-7xl px-8 py-16">
-      <SectionHeader eyebrow={`${code} · Narrative`} title="Strategy Composer" />
+      <div className="flex items-start justify-between gap-6">
+        <SectionHeader eyebrow={`${code} · Narrative`} title="Strategy Composer" />
+        <Link to="/narrative/strategy/new" className="bg-ink-900 px-4 py-2 text-sm text-white">New statement</Link>
+      </div>
       <p className="mt-4 max-w-xl text-sm text-ink-500">
-        Seven-part strategy statements draw on Ledger figures + Second Brain positions. Composer authoring lands next; this list surfaces what exists.
+        Seven-part strategy statements draw on Ledger figures + Second Brain positions.
       </p>
 
       {rows.length === 0 ? (

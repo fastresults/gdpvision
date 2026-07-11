@@ -27,6 +27,7 @@ function NarrativeShell() {
     { to: "/narrative/ingest", label: "Ingest" },
     { to: "/narrative/strategy", label: "Strategy" },
     { to: "/narrative/comms", label: "Comms" },
+    { to: "/narrative/coverage", label: "Coverage" },
   ] as const;
 
   async function signOut() {

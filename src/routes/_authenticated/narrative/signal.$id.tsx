@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 
-import { getDossier } from "@/lib/dossier.functions";
+import { generateDossierQuestions, getDossier, updateDossierQuestion } from "@/lib/dossier.functions";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 
 function dossierQuery(id: string) {
@@ -25,6 +26,19 @@ export const Route = createFileRoute("/_authenticated/narrative/signal/$id")({
 function Dossier() {
   const { id } = Route.useParams();
   const { data: d } = useSuspenseQuery(dossierQuery(id));
+  const qc = useQueryClient();
+  const gen = useServerFn(generateDossierQuestions);
+  const upd = useServerFn(updateDossierQuestion);
+
+  const genMut = useMutation({
+    mutationFn: () => gen({ data: { intakeId: id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dossier", id] }),
+  });
+  const updMut = useMutation({
+    mutationFn: (v: { qid: string; status: "open" | "answered" | "dismissed" }) =>
+      upd({ data: { id: v.qid, status: v.status } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dossier", id] }),
+  });
 
   return (
     <main className="mx-auto max-w-7xl px-8 py-16">
@@ -44,6 +58,64 @@ function Dossier() {
           </a>
         )}
       </div>
+
+      <section className="mt-14">
+        <h3 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">Ledger facts · {d.signal.sector_code}</h3>
+        {d.facts.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-500">No Ledger series ingested for this sector yet.</p>
+        ) : (
+          <ul className="mt-4 grid gap-2 md:grid-cols-2">
+            {d.facts.map((f) => (
+              <li key={f.series_id} className="grid grid-cols-[1fr_auto] items-baseline gap-4 border-b border-line-200 py-2 text-sm">
+                <span>
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-ink-500">{f.period} · </span>
+                  {f.metric}
+                </span>
+                <span className="font-mono text-[12px]">{f.value.toLocaleString()} <span className="text-ink-500">{f.unit}</span></span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-14">
+        <div className="flex items-baseline justify-between">
+          <h3 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">Open questions</h3>
+          <button
+            onClick={() => genMut.mutate()}
+            disabled={genMut.isPending}
+            className="border border-ink-950 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950 hover:bg-ink-950 hover:text-paper-0 disabled:opacity-40"
+          >
+            {genMut.isPending ? "Generating…" : d.questions.length === 0 ? "Generate questions" : "Add more"}
+          </button>
+        </div>
+        {genMut.isError && <p className="mt-3 text-sm text-red-600">{(genMut.error as Error).message}</p>}
+        {d.questions.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-500">No open questions yet.</p>
+        ) : (
+          <ul className="mt-4 divide-y divide-line-200 border-y border-line-200">
+            {d.questions.map((q) => (
+              <li key={q.id} className="grid grid-cols-[1fr_auto] items-baseline gap-4 py-3 text-sm">
+                <span className={q.status === "dismissed" ? "text-ink-500 line-through" : q.status === "answered" ? "text-ink-500" : ""}>
+                  {q.question}
+                </span>
+                <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-ink-500">
+                  <span>{q.status}</span>
+                  {q.status !== "answered" && (
+                    <button className="hover:text-ink-950" onClick={() => updMut.mutate({ qid: q.id, status: "answered" })}>✓</button>
+                  )}
+                  {q.status !== "dismissed" && (
+                    <button className="hover:text-ink-950" onClick={() => updMut.mutate({ qid: q.id, status: "dismissed" })}>✕</button>
+                  )}
+                  {q.status !== "open" && (
+                    <button className="hover:text-ink-950" onClick={() => updMut.mutate({ qid: q.id, status: "open" })}>↺</button>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <div className="mt-16 grid gap-12 md:grid-cols-3">
         <Column title="Second Brain memory">

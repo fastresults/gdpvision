@@ -516,6 +516,53 @@ export type Database = {
           },
         ]
       }
+      dossier_questions: {
+        Row: {
+          answer_ref: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          question: string
+          scope_key: string
+          sector_code: string | null
+          signal_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          answer_ref?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          question: string
+          scope_key: string
+          sector_code?: string | null
+          signal_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          answer_ref?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          question?: string
+          scope_key?: string
+          sector_code?: string | null
+          signal_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dossier_questions_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "intake_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exports_log: {
         Row: {
           artifact_kind: string
@@ -1325,6 +1372,47 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sectors"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      narrative_lineage: {
+        Row: {
+          artifact_id: string
+          artifact_type: string
+          created_at: string
+          created_by: string | null
+          id: string
+          scope_key: string
+          sector_code: string | null
+          signal_id: string | null
+        }
+        Insert: {
+          artifact_id: string
+          artifact_type: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          scope_key: string
+          sector_code?: string | null
+          signal_id?: string | null
+        }
+        Update: {
+          artifact_id?: string
+          artifact_type?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          scope_key?: string
+          sector_code?: string | null
+          signal_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "narrative_lineage_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "intake_items"
+            referencedColumns: ["id"]
           },
         ]
       }

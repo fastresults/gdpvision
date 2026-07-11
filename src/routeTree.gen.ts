@@ -30,6 +30,7 @@ import { Route as AuthenticatedNarrativeCommsRouteImport } from './routes/_authe
 import { Route as AuthenticatedNarrativeBrainRouteImport } from './routes/_authenticated/narrative/brain'
 import { Route as AuthenticatedInstrumentStewardshipRouteImport } from './routes/_authenticated/instrument/stewardship'
 import { Route as AuthenticatedInstrumentExposureRouteImport } from './routes/_authenticated/instrument/exposure'
+import { Route as AuthenticatedCounselArchiveRouteImport } from './routes/_authenticated/counsel/archive'
 import { Route as AuthenticatedNarrativeStrategyIndexRouteImport } from './routes/_authenticated/narrative/strategy.index'
 import { Route as AuthenticatedInstrumentScenariosIndexRouteImport } from './routes/_authenticated/instrument/scenarios.index'
 import { Route as AuthenticatedInstrumentPortfolioIndexRouteImport } from './routes/_authenticated/instrument/portfolio.index'
@@ -168,6 +169,12 @@ const AuthenticatedInstrumentExposureRoute =
     path: '/exposure',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
+const AuthenticatedCounselArchiveRoute =
+  AuthenticatedCounselArchiveRouteImport.update({
+    id: '/counsel/archive',
+    path: '/counsel/archive',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedNarrativeStrategyIndexRoute =
   AuthenticatedNarrativeStrategyIndexRouteImport.update({
     id: '/strategy/',
@@ -297,6 +304,7 @@ export interface FileRoutesByFullPath {
   '/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
+  '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
   '/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
   '/narrative/brain': typeof AuthenticatedNarrativeBrainRoute
@@ -336,6 +344,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk': typeof KioskIndexRoute
+  '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
   '/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
   '/narrative/brain': typeof AuthenticatedNarrativeBrainRoute
@@ -380,6 +389,7 @@ export interface FileRoutesById {
   '/_authenticated/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
+  '/_authenticated/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/_authenticated/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
   '/_authenticated/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
   '/_authenticated/narrative/brain': typeof AuthenticatedNarrativeBrainRoute
@@ -424,6 +434,7 @@ export interface FileRouteTypes {
     | '/narrative'
     | '/kiosk/admin'
     | '/kiosk/'
+    | '/counsel/archive'
     | '/instrument/exposure'
     | '/instrument/stewardship'
     | '/narrative/brain'
@@ -463,6 +474,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/kiosk/admin'
     | '/kiosk'
+    | '/counsel/archive'
     | '/instrument/exposure'
     | '/instrument/stewardship'
     | '/narrative/brain'
@@ -506,6 +518,7 @@ export interface FileRouteTypes {
     | '/_authenticated/narrative'
     | '/kiosk/admin'
     | '/kiosk/'
+    | '/_authenticated/counsel/archive'
     | '/_authenticated/instrument/exposure'
     | '/_authenticated/instrument/stewardship'
     | '/_authenticated/narrative/brain'
@@ -697,6 +710,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/instrument/exposure'
       preLoaderRoute: typeof AuthenticatedInstrumentExposureRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
+    '/_authenticated/counsel/archive': {
+      id: '/_authenticated/counsel/archive'
+      path: '/counsel/archive'
+      fullPath: '/counsel/archive'
+      preLoaderRoute: typeof AuthenticatedCounselArchiveRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/narrative/strategy/': {
       id: '/_authenticated/narrative/strategy/'
@@ -952,6 +972,7 @@ const AuthenticatedNarrativeRouteRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedInstrumentRouteRoute: typeof AuthenticatedInstrumentRouteRouteWithChildren
   AuthenticatedNarrativeRouteRoute: typeof AuthenticatedNarrativeRouteRouteWithChildren
+  AuthenticatedCounselArchiveRoute: typeof AuthenticatedCounselArchiveRoute
   AuthenticatedCounselIndexRoute: typeof AuthenticatedCounselIndexRoute
 }
 
@@ -960,6 +981,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedInstrumentRouteRouteWithChildren,
   AuthenticatedNarrativeRouteRoute:
     AuthenticatedNarrativeRouteRouteWithChildren,
+  AuthenticatedCounselArchiveRoute: AuthenticatedCounselArchiveRoute,
   AuthenticatedCounselIndexRoute: AuthenticatedCounselIndexRoute,
 }
 

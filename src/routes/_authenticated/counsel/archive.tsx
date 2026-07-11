@@ -34,7 +34,6 @@ function ArchivePage() {
             <div className="font-mono text-xs text-ink-500">{new Date(r.created_at).toISOString().replace("T", " ").slice(0, 16)}</div>
             <div className="mt-1 font-medium">{r.question}</div>
             {r.spoken_block && <p className="mt-2 text-sm text-ink-500">{r.spoken_block}</p>}
-            {r.written_block && <details className="mt-2"><summary className="cursor-pointer text-xs font-mono uppercase tracking-widest text-ink-500">Written brief</summary><pre className="mt-2 whitespace-pre-wrap font-mono text-xs">{r.written_block}</pre></details>}
           </li>
         ))}
       </ol>

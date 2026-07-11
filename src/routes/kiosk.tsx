@@ -38,52 +38,14 @@ type IdleImage = {
 
 
 export const Route = createFileRoute("/kiosk")({
-  loader: async (): Promise<{ mode: SiteMode }> => {
-    try {
-      const { mode } = await getRequestSiteMode();
-      return { mode };
-    } catch {
-      return { mode: "present" };
-    }
-  },
-  head: ({ loaderData }) => {
-    const isMarketing = loaderData?.mode === "marketing";
-    return {
-      meta: isMarketing
-        ? [
-            { title: "GDP Vision — Immersive presentation systems" },
-            {
-              name: "description",
-              content:
-                "GDP Vision builds full-screen briefing environments for Caribbean summits, ministries, and enterprises.",
-            },
-            { property: "og:title", content: "GDP Vision" },
-            {
-              property: "og:description",
-              content:
-                "Immersive presentation systems for the Caribbean's next decade.",
-            },
-          ]
-        : [
-            { title: "GDP Vision — Kiosk" },
-            {
-              name: "description",
-              content: "Full-screen browser demonstration system.",
-            },
-          ],
-    };
-  },
-  component: RootIndex,
+  head: () => ({
+    meta: [
+      { title: "GDP Vision — Kiosk" },
+      { name: "description", content: "Full-screen browser demonstration system." },
+    ],
+  }),
+  component: KioskPage,
 });
-
-function RootIndex() {
-  const { mode: loaderMode } = Route.useLoaderData();
-  const browserHost = typeof window === "undefined" ? "" : window.location.hostname.toLowerCase();
-  const mode: SiteMode = browserHost === PRESENT_HOST ? "present" : loaderMode;
-
-  if (mode === "marketing") return <MarketingHome />;
-  return <KioskPage />;
-}
 
 type KioskData = {
   items: Item[];

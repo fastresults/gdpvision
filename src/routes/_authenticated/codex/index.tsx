@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { supabase } from "@/integrations/supabase/client";
+import { CODEX_ENTRIES } from "@/lib/codex-entries";
 
 export const Route = createFileRoute("/_authenticated/codex/")({
   head: () => ({
@@ -14,56 +15,7 @@ export const Route = createFileRoute("/_authenticated/codex/")({
   component: CodexPage,
 });
 
-const ENTRIES = [
-  {
-    id: "confidence",
-    title: "Confidence grading (A/B/C/D)",
-    body:
-      "Every stored figure carries a grade. A: government-published, current-fiscal. B: government-published, prior-fiscal or partial. C: multilateral (IMF/World Bank/ECCB) or reputable third-party. D: analyst reconstruction. Grades pair with pattern in the design system (§13.4) so hue is never load-bearing.",
-  },
-  {
-    id: "sector-composition",
-    title: "Sector composition (Ledger)",
-    body:
-      "Shares reconcile to 100% at the national level. Where a national account line spans two GDPVision sectors, the split is disclosed in the country_pack methodology block and is auditable in Stewardship.",
-  },
-  {
-    id: "cbi-index",
-    title: "CBI Exposure Index",
-    body:
-      "The index reads on a 0–100 scale, where 100 = full dependency of consolidated fiscal revenue on CBI receipts. Components: (a) CBI as share of recurrent revenue, (b) CBI as share of capital budget financing, (c) sensitivity to a 20% wind-down. Methodology drill-down is available on the Exposure screen.",
-  },
-  {
-    id: "ripple",
-    title: "Scenario ripple propagation",
-    body:
-      "First-order impact is direct-sector. Second-order impact runs through the dependency web (fixed-coefficient in v1.0, reviewed annually by the external economist). Third-order impact is fiscal (revenue elasticity table by sector). Ranges, never points.",
-  },
-  {
-    id: "target-anchoring",
-    title: "Evidence-anchored target setting (Mandate)",
-    body:
-      "Every KPI target must reference a baseline, a peer benchmark, or a scenario projection. Targets that exceed the best of the three by more than 30% are flagged as over-claim and require an override note. Classifications: Committed, Stretch, Aspirational (FR-KP-02).",
-  },
-  {
-    id: "second-brain",
-    title: "The Second Brain (Narrative Memory)",
-    body:
-      "Memory objects are typed: audience, position, statement, outlet, precedent. Every object is scoped (country silo vs. regional commons), sector-keyed, and weighted 1–5. Suppressed sources are removed from both retrieval and citation; suppression state is auditable.",
-  },
-  {
-    id: "release-doctrine",
-    title: "Comms release doctrine",
-    body:
-      "Drafts progress draft → advisor_review → comms_review → cabinet_review → released. Artifacts containing fiscal figures gate at comms_review pending a Ledger sign-off note. No autonomous release, ever (Principle 7).",
-  },
-  {
-    id: "counsel-doctrine",
-    title: "Counsel doctrine",
-    body:
-      "2–4 sentence answers, ranked alternatives named where relevant, every claim cited to a Ledger figure or Second-Brain object. Confidence grade is spoken when it is C or D. Save-to-archive captures the exact scenario snapshot the answer was given under.",
-  },
-] as const;
+const ENTRIES = CODEX_ENTRIES;
 
 function CodexPage() {
   const navigate = useNavigate();

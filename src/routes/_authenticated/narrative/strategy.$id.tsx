@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { getStrategy, saveStrategy, emptySevenPart } from "@/lib/narrative.functions";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
+import { CitationsRail } from "@/components/narrative/CitationsRail";
 
 const PARTS: { key: keyof ReturnType<typeof emptySevenPart>; label: string; hint: string }[] = [
   { key: "situation", label: "Situation", hint: "The undisputed context." },
@@ -35,13 +36,15 @@ function EditStrategy() {
   const { data } = useSuspenseQuery(strategyQuery(id));
 
   const initialParts = { ...emptySevenPart(), ...(data.seven_part as Record<string, string> | null ?? {}) };
+  const initialSources = Array.isArray(data.sources) ? (data.sources as Array<{ label: string; ref: string }>) : [];
   const [title, setTitle] = useState(data.title);
   const [sector, setSector] = useState(data.sector_code);
   const [parts, setParts] = useState(initialParts);
   const [status, setStatus] = useState<(typeof STATUSES)[number]>(data.status as (typeof STATUSES)[number]);
+  const [sources, setSources] = useState<Array<{ label: string; ref: string }>>(initialSources);
 
   const m = useMutation({
-    mutationFn: () => save({ data: { id, scopeKey: data.scope_key, sectorCode: sector, title, sevenPart: parts, sources: [], status } }),
+    mutationFn: () => save({ data: { id, scopeKey: data.scope_key, sectorCode: sector, title, sevenPart: parts, sources, status } }),
     onSuccess: () => navigate({ to: "/narrative/strategy" }),
   });
 

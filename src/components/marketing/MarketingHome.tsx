@@ -1,6 +1,18 @@
+import { useEffect, useState } from "react";
 import heroImage from "@/assets/marketing-hero.jpg";
+import { PRESENT_HOST } from "@/lib/site-mode";
 
 export function MarketingHome() {
+  const [blockedOnPresent, setBlockedOnPresent] = useState(false);
+
+  useEffect(() => {
+    if (window.location.hostname.toLowerCase() === PRESENT_HOST) {
+      setBlockedOnPresent(true);
+    }
+  }, []);
+
+  if (blockedOnPresent) return null;
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">

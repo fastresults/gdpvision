@@ -1,19 +1,26 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestHost, getRequestHeader } from "@tanstack/react-start/server";
-import { getSiteMode, type SiteMode } from "./site-mode";
+import { getRequest, getRequestHost, getRequestHeader } from "@tanstack/react-start/server";
+import { getSiteMode, normalizeHost, PRESENT_HOST, type SiteMode } from "./site-mode";
 
 export const getRequestSiteMode = createServerFn({ method: "GET" }).handler(
   async (): Promise<{ mode: SiteMode; host: string }> => {
-    let host = "";
+    const hosts: string[] = [];
     try {
-      host =
-        getRequestHeader("x-forwarded-host") ||
-        getRequestHeader("host") ||
-        getRequestHost({ xForwardedHost: true }) ||
-        "";
+      const request = getRequest();
+      hosts.push(
+        getRequestHeader("x-forwarded-host") || "",
+        getRequestHeader("host") || "",
+        request ? new URL(request.url).host : "",
+        getRequestHost({ xForwardedHost: true }) || "",
+      );
     } catch {
-      host = "";
+      // Keep default present behavior if request metadata is unavailable.
     }
+
+    const normalizedHosts = hosts.map(normalizeHost).filter(Boolean);
+    const host = normalizedHosts[0] ?? "";
+    if (normalizedHosts.includes(PRESENT_HOST)) return { mode: "present", host: PRESENT_HOST };
+
     return { mode: getSiteMode(host), host };
   },
 );

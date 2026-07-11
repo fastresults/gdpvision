@@ -26,7 +26,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext
 import { GalleryView } from "@/components/GalleryView";
 import { MarketingHome } from "@/components/marketing/MarketingHome";
 import { getRequestSiteMode } from "@/lib/site-mode.functions";
-import type { SiteMode } from "@/lib/site-mode";
+import { PRESENT_HOST, type SiteMode } from "@/lib/site-mode";
 
 
 type IdleImage = {
@@ -77,7 +77,14 @@ export const Route = createFileRoute("/")({
 });
 
 function RootIndex() {
-  const { mode } = Route.useLoaderData();
+  const { mode: loaderMode } = Route.useLoaderData();
+  const [mode, setMode] = useState<SiteMode>(loaderMode);
+
+  useEffect(() => {
+    if (window.location.hostname.toLowerCase() === PRESENT_HOST) {
+      setMode("present");
+    }
+  }, []);
 
   if (mode === "marketing") return <MarketingHome />;
   return <KioskPage />;

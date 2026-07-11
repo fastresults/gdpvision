@@ -155,8 +155,9 @@ function Dossier() {
         </Column>
       </div>
 
-      <div className="mt-16 border-t border-line-200 pt-8 text-sm text-ink-500">
-        Ready to shape the response? <Link to="/narrative/strategy/new" className="text-ink-950 underline">Draft a new strategy statement</Link>.
+      <div className="mt-16 flex items-center justify-between border-t border-line-200 pt-8 text-sm text-ink-500">
+        <span>Ready to shape the response? <Link to="/narrative/strategy/new" className="text-ink-950 underline">Draft a new strategy statement</Link>.</span>
+        <Link to="/narrative/trace/$id" params={{ id }} className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950">Trace →</Link>
       </div>
     </main>
   );

@@ -16,7 +16,7 @@ export interface InstanceOverview {
     currency: string;
     fiscalYearStartMonth: number;
     isCbiState: boolean;
-    countryPack: Record<string, unknown>;
+    countryPack: Record<string, string | number | boolean | null | Record<string, string>>;
   };
   composition: Array<{
     sector_code: string;
@@ -67,7 +67,7 @@ export const getInstanceOverview = createServerFn({ method: "GET" })
         currency: country.currency,
         fiscalYearStartMonth: country.fiscal_year_start_month,
         isCbiState: country.is_cbi_state,
-        countryPack: (country.country_pack ?? {}) as Record<string, unknown>,
+        countryPack: (country.country_pack ?? {}) as InstanceOverview["country"]["countryPack"],
       },
       composition: (comp ?? []).map((row) => ({
         sector_code: row.sector_code,

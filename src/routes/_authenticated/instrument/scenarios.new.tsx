@@ -54,14 +54,17 @@ function ScenarioBuilder() {
   });
   const { data: init } = useSuspenseQuery(initialRun);
 
-  // Seed lever defaults on first render.
-  useMemoOnce(() => {
-    const defaults: Record<string, number> = {};
-    for (const d of init.leverDefs) {
-      defaults[d.slug] = d.bounds.default ?? d.bounds.min;
-    }
-    setLevers(defaults);
-  }, [init.leverDefs.length]);
+  // Seed lever defaults once when engine defs arrive.
+  useEffect(() => {
+    if (init.leverDefs.length === 0) return;
+    setLevers((prev) => {
+      if (Object.keys(prev).length > 0) return prev;
+      const seeded: Record<string, number> = {};
+      for (const d of init.leverDefs) seeded[d.slug] = d.bounds.default ?? d.bounds.min;
+      return seeded;
+    });
+  }, [init.leverDefs]);
+
 
   const preview = useMutation({
     mutationFn: (payload: { levers: Record<string, number>; horizonYears: number }) =>

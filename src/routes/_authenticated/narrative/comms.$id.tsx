@@ -53,7 +53,8 @@ function EditComms() {
   const nexts = nextByCurrent[data.draft_state] ?? [];
 
   return (
-    <main className="mx-auto max-w-4xl px-8 py-16">
+    <main className="mx-auto grid max-w-7xl grid-cols-[1fr_320px] gap-12 px-8 py-16">
+      <div>
       <SectionHeader eyebrow={`${data.scope_key} · ${data.draft_state}`} title="Edit comms artifact" />
       <form onSubmit={(e) => { e.preventDefault(); m.mutate(); }} className="mt-12 space-y-6">
         <div className="grid grid-cols-4 gap-4 text-sm">

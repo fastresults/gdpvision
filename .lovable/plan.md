@@ -1,85 +1,42 @@
+## Why present.gdpvision.com shows 404
 
-## Goal
+The host-based routing code I added earlier is deployed, but the 404 you see is not a routing bug in the app. It's the hosting layer telling you it doesn't have this project mapped to that hostname yet. The app never runs.
 
-Serve the existing kiosk/admin app only under `present.gdpvision.com`, and free the apex `gdpvision.com` (+ `www.gdpvision.com`) to host a brand-new marketing website — all inside this single Lovable project, no second project needed.
+Two things have to be true for `present.gdpvision.com` to serve the kiosk:
 
-## Approach
+1. **The custom domain must be `Active` on this project.** All three domains (`gdpvision.com`, `www.gdpvision.com`, `present.gdpvision.com`) appear in the project's URL list, but "listed" is not the same as "Active". If the subdomain is in `Verifying`, `Setting up`, `Offline`, or `Action required`, the edge returns 404 for that host.
+2. **A published deployment must exist that contains the host-routing code.** The host-routing was added recently — if the last successful publish predates it, or the latest publish failed, the subdomain has nothing to serve.
 
-Both hostnames already resolve to this project (all three custom domains are connected). We branch behavior by hostname at the router layer so the same deployment serves two different sites.
+Marketing on the apex working (or not) is a separate question; today's symptom is only "subdomain 404".
 
-### 1. Host-based routing shell
+## Plan
 
-- In `src/routes/__root.tsx`, read the request host (SSR: `Request` headers; client: `window.location.hostname`) and expose it via router context or a small `useHost()` hook.
-- Define a helper `getSiteMode(host)` → `"present" | "marketing"`:
-  - `present.gdpvision.com` → `present`
-  - `gdpvision.com`, `www.gdpvision.com`, lovable preview/published URLs → `marketing` (except when path starts with `/admin` or `/kiosk`, which stay on the app for testing on preview domains)
-- Root layout picks which subtree to render based on mode.
+### 1. Verify domain + publish state (no code change)
+- Open **Project Settings → Project → Domains** and check the row for `present.gdpvision.com`. Expected: **Active**. If it shows anything else, follow the status hint (Complete Setup / Retry / fix DNS at registrar so the A record for `present` points to `185.158.133.1`).
+- Confirm the most recent publish succeeded. If not, re-publish so the current build (with `site-mode.ts` + `MarketingHome`) is live.
 
-### 2. Move kiosk routes under `/` on `present.*`
+### 2. Harden the host detection so SSR doesn't silently pick the wrong mode
+Even once the domain is Active, there's a latent bug worth fixing in the same pass: `getRequestSiteMode()` uses `getRequestHost()`, which on Cloudflare can return the internal worker host instead of the user-facing `Host` header. If that ever returns an empty/unknown value, `getSiteMode()` falls back to `"present"` — which is fine for the subdomain but means the apex could momentarily render kiosk during SSR before the client reconciles.
 
-The existing routes stay where they are (`src/routes/index.tsx`, `src/routes/admin.tsx`, `src/routes/api/*`) — no file moves, no URL changes for the kiosk. On `present.gdpvision.com` they render exactly as today. API routes (`/api/kiosk-data`, uploads, `/api/public/*`) remain shared and work from either host.
-
-### 3. New marketing site at apex
-
-Create new route files that only render when `mode === "marketing"`:
-
+Change `src/lib/site-mode.functions.ts` to prefer the request headers, in this order:
 ```
-src/routes/
-  index.tsx              → host-switch: marketing home OR kiosk home
-  marketing/             → new components (not routes)
-    Hero.tsx
-    Features.tsx
-    Contact.tsx
-    Footer.tsx
-    Header.tsx
+x-forwarded-host  →  host header  →  getRequestHost()
 ```
+This is a 5-line edit; it makes the SSR mode match what the browser sees.
 
-- `src/routes/index.tsx` becomes a thin switch: `mode === "present" ? <KioskHome /> : <MarketingHome />`.
-- Extract current kiosk home body into `src/components/kiosk/KioskHome.tsx` so `index.tsx` stays clean.
-- Add marketing-only routes as needed (e.g. `/about`, `/contact`) — these 404 on `present.*` via the mode guard.
+### 3. Add a tiny visible signal for debugging
+Add a `data-site-mode={mode}` attribute on the `<html>` element in `__root.tsx` (driven by the same loader). This lets us confirm from DevTools which mode the server picked, without console noise. Removable later.
 
-### 4. Redirects and canonicals
+### 4. Re-publish and verify
+- Publish.
+- Load `https://present.gdpvision.com/` → expect the kiosk shell.
+- Load `https://gdpvision.com/` → expect the marketing page.
+- Load `https://www.gdpvision.com/` → expect the marketing page.
+- Inspect `<html data-site-mode="…">` on each to confirm SSR mode.
 
-- On `present.*`, redirect any marketing-only path (`/about`, `/contact`, etc.) to the apex equivalent.
-- On apex/www, redirect `/admin` and `/kiosk`-specific paths to `https://present.gdpvision.com/...` so bookmarks keep working.
-- `www.gdpvision.com` → 301 to `https://gdpvision.com` (set primary in Lovable Domains UI).
-- Per-mode `<link rel="canonical">` + distinct `head()` metadata (title, description, og:*) so search engines index them as two sites.
+## What I will NOT change
+- No changes to `MarketingHome`, admin routes, kiosk data APIs, DB, or migrations.
+- No new redirects yet (`www` → apex, cross-host path redirects). We can add those in a follow-up once the three hosts are confirmed serving the right shell.
 
-### 5. SEO hygiene
-
-- `robots.txt`: allow both hosts; disallow `/admin` everywhere.
-- `sitemap.xml`: emit two hostname-scoped sitemaps, or a single sitemap per host chosen by the request host. Kiosk routes only listed under `present.gdpvision.com`; marketing routes only under `gdpvision.com`.
-- Distinct `og:image` per site (kiosk keeps current; marketing gets a new hero image generated in build step).
-
-### 6. Domain configuration (user-side, in Lovable UI)
-
-No DNS changes needed — all three domains already point here. User just confirms in **Project Settings → Domains**:
-- `gdpvision.com` — Primary
-- `www.gdpvision.com` — redirects to primary
-- `present.gdpvision.com` — active, serves the app subtree
-
-## Technical details
-
-- Host detection SSR: read `request.headers.get("host")` inside `__root.tsx` `beforeLoad` or a root loader, stash on router context.
-- Host detection client: `window.location.hostname` inside a `useSyncExternalStore`-safe hook to avoid hydration mismatch — SSR value seeds initial render.
-- Preview/dev hosts (`*.lovable.app`, `localhost`) default to `marketing` mode but honor a `?mode=present` query flag (and remember via `sessionStorage`) so we can preview the kiosk without the subdomain.
-- No changes to `src/lib/*.functions.ts`, migrations, or Supabase schema.
-
-## Out of scope (this plan)
-
-- Actual marketing-site content/design — this plan only scaffolds the shell + one placeholder home. A follow-up turn designs Hero/Features/Contact once you approve direction.
-- Splitting into two Lovable projects (not needed; single deployment handles both hosts).
-
-## Rollout order
-
-1. Add `getSiteMode` + host context in `__root.tsx`.
-2. Extract current `index.tsx` body → `KioskHome`; make `index.tsx` a host switch with a placeholder `MarketingHome`.
-3. Add redirects for cross-host paths.
-4. Update `robots.txt` + `sitemap.xml` to be host-aware.
-5. Verify on preview with `?mode=present` and by visiting each of the three domains after publish.
-6. Follow-up turn: design and build real marketing pages.
-
-## Questions before I build
-
-1. Should `/admin` be reachable on `present.gdpvision.com` only, or also allowed on the apex as a hidden backdoor?
-2. For the new marketing site, do you already have copy/branding/screenshots you want used, or should I generate a placeholder landing page (hero + features + contact) for you to iterate on?
+## Most likely outcome
+Step 1 alone resolves the 404 — the subdomain just isn't `Active` on this project yet. Steps 2–4 make the setup robust so we don't chase a ghost next time.

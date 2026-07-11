@@ -15,6 +15,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as KioskIndexRouteImport } from './routes/kiosk.index'
 import { Route as KioskAdminRouteImport } from './routes/kiosk.admin'
+import { Route as AuthenticatedInstrumentRouteRouteImport } from './routes/_authenticated/instrument/route'
 import { Route as AuthenticatedInstrumentIndexRouteImport } from './routes/_authenticated/instrument/index'
 import { Route as KioskApiUploadPresentationRouteImport } from './routes/kiosk.api.upload-presentation'
 import { Route as KioskApiUploadMediaRouteImport } from './routes/kiosk.api.upload-media'
@@ -50,11 +51,17 @@ const KioskAdminRoute = KioskAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => KioskRoute,
 } as any)
+const AuthenticatedInstrumentRouteRoute =
+  AuthenticatedInstrumentRouteRouteImport.update({
+    id: '/instrument',
+    path: '/instrument',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedInstrumentIndexRoute =
   AuthenticatedInstrumentIndexRouteImport.update({
-    id: '/instrument/',
-    path: '/instrument/',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
 const KioskApiUploadPresentationRoute =
   KioskApiUploadPresentationRouteImport.update({
@@ -83,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/kiosk': typeof KioskRouteWithChildren
+  '/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
@@ -108,6 +116,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/kiosk': typeof KioskRouteWithChildren
+  '/_authenticated/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
@@ -122,6 +131,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/kiosk'
+    | '/instrument'
     | '/kiosk/admin'
     | '/kiosk/'
     | '/kiosk/api/kiosk-data'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/kiosk'
+    | '/_authenticated/instrument'
     | '/kiosk/admin'
     | '/kiosk/'
     | '/kiosk/api/kiosk-data'
@@ -206,12 +217,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KioskAdminRouteImport
       parentRoute: typeof KioskRoute
     }
+    '/_authenticated/instrument': {
+      id: '/_authenticated/instrument'
+      path: '/instrument'
+      fullPath: '/instrument'
+      preLoaderRoute: typeof AuthenticatedInstrumentRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/instrument/': {
       id: '/_authenticated/instrument/'
-      path: '/instrument'
+      path: '/'
       fullPath: '/instrument/'
       preLoaderRoute: typeof AuthenticatedInstrumentIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
     '/kiosk/api/upload-presentation': {
       id: '/kiosk/api/upload-presentation'
@@ -244,12 +262,27 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AuthenticatedRouteRouteChildren {
+interface AuthenticatedInstrumentRouteRouteChildren {
   AuthenticatedInstrumentIndexRoute: typeof AuthenticatedInstrumentIndexRoute
 }
 
+const AuthenticatedInstrumentRouteRouteChildren: AuthenticatedInstrumentRouteRouteChildren =
+  {
+    AuthenticatedInstrumentIndexRoute: AuthenticatedInstrumentIndexRoute,
+  }
+
+const AuthenticatedInstrumentRouteRouteWithChildren =
+  AuthenticatedInstrumentRouteRoute._addFileChildren(
+    AuthenticatedInstrumentRouteRouteChildren,
+  )
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedInstrumentRouteRoute: typeof AuthenticatedInstrumentRouteRouteWithChildren
+}
+
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedInstrumentIndexRoute: AuthenticatedInstrumentIndexRoute,
+  AuthenticatedInstrumentRouteRoute:
+    AuthenticatedInstrumentRouteRouteWithChildren,
 }
 
 const AuthenticatedRouteRouteWithChildren =

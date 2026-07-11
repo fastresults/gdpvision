@@ -56,6 +56,7 @@ function ExposurePage() {
         title="Exposure Index"
         lede="Composite reading of the nation's structural reliance on Citizenship-by-Investment revenue, decomposed by contributing channel."
       />
+      <div className="mt-4"><WhyThisNumber slug="cbi-index" label="Why this index?" /></div>
 
       <div className="mt-16 grid grid-cols-1 gap-12 lg:grid-cols-[1fr_1fr]">
         <div>

@@ -78,8 +78,8 @@ function SectorDetailPage() {
       </div>
 
       <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-3">
-        <Stat label="Share of GDP" value={`${data.sector.share_pct.toFixed(1)}%`} />
-        <Stat label="Confidence" value={data.sector.confidence_grade} />
+        <Stat label="Share of GDP" value={`${data.sector.share_pct.toFixed(1)}%`} why="sector-composition" />
+        <Stat label="Confidence" value={data.sector.confidence_grade} why="confidence" />
         <Stat label="Currency" value={data.country.currency} />
       </div>
 

@@ -2,7 +2,7 @@ import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useQueries } from "@tanstack/react-query";
 import { z } from "zod";
 
-import { getScenario } from "@/lib/scenarios.functions";
+import { getScenario, type ScenarioArtifact } from "@/lib/scenarios.functions";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { CANONICAL_SECTORS } from "@/lib/caricom-registry";
 import type { EngineOutput } from "@/lib/engine/v1_macro";

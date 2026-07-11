@@ -27,6 +27,7 @@ import { Route as AuthenticatedInstrumentPortfolioIndexRouteImport } from './rou
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
 import { Route as AuthenticatedInstrumentSectorCodeRouteImport } from './routes/_authenticated/instrument/sector.$code'
 import { Route as AuthenticatedInstrumentScenariosNewRouteImport } from './routes/_authenticated/instrument/scenarios.new'
+import { Route as AuthenticatedInstrumentScenariosCompareRouteImport } from './routes/_authenticated/instrument/scenarios.compare'
 import { Route as AuthenticatedInstrumentScenariosIdRouteImport } from './routes/_authenticated/instrument/scenarios.$id'
 import { Route as AuthenticatedInstrumentPortfolioMinistryRouteImport } from './routes/_authenticated/instrument/portfolio.$ministry'
 
@@ -129,6 +130,12 @@ const AuthenticatedInstrumentScenariosNewRoute =
     path: '/scenarios/new',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
+const AuthenticatedInstrumentScenariosCompareRoute =
+  AuthenticatedInstrumentScenariosCompareRouteImport.update({
+    id: '/scenarios/compare',
+    path: '/scenarios/compare',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+  } as any)
 const AuthenticatedInstrumentScenariosIdRoute =
   AuthenticatedInstrumentScenariosIdRouteImport.update({
     id: '/scenarios/$id',
@@ -157,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/instrument/': typeof AuthenticatedInstrumentIndexRoute
   '/instrument/portfolio/$ministry': typeof AuthenticatedInstrumentPortfolioMinistryRoute
   '/instrument/scenarios/$id': typeof AuthenticatedInstrumentScenariosIdRoute
+  '/instrument/scenarios/compare': typeof AuthenticatedInstrumentScenariosCompareRoute
   '/instrument/scenarios/new': typeof AuthenticatedInstrumentScenariosNewRoute
   '/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
@@ -176,6 +184,7 @@ export interface FileRoutesByTo {
   '/instrument': typeof AuthenticatedInstrumentIndexRoute
   '/instrument/portfolio/$ministry': typeof AuthenticatedInstrumentPortfolioMinistryRoute
   '/instrument/scenarios/$id': typeof AuthenticatedInstrumentScenariosIdRoute
+  '/instrument/scenarios/compare': typeof AuthenticatedInstrumentScenariosCompareRoute
   '/instrument/scenarios/new': typeof AuthenticatedInstrumentScenariosNewRoute
   '/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
@@ -199,6 +208,7 @@ export interface FileRoutesById {
   '/_authenticated/instrument/': typeof AuthenticatedInstrumentIndexRoute
   '/_authenticated/instrument/portfolio/$ministry': typeof AuthenticatedInstrumentPortfolioMinistryRoute
   '/_authenticated/instrument/scenarios/$id': typeof AuthenticatedInstrumentScenariosIdRoute
+  '/_authenticated/instrument/scenarios/compare': typeof AuthenticatedInstrumentScenariosCompareRoute
   '/_authenticated/instrument/scenarios/new': typeof AuthenticatedInstrumentScenariosNewRoute
   '/_authenticated/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
@@ -222,6 +232,7 @@ export interface FileRouteTypes {
     | '/instrument/'
     | '/instrument/portfolio/$ministry'
     | '/instrument/scenarios/$id'
+    | '/instrument/scenarios/compare'
     | '/instrument/scenarios/new'
     | '/instrument/sector/$code'
     | '/kiosk/api/public/presentation-pdf'
@@ -241,6 +252,7 @@ export interface FileRouteTypes {
     | '/instrument'
     | '/instrument/portfolio/$ministry'
     | '/instrument/scenarios/$id'
+    | '/instrument/scenarios/compare'
     | '/instrument/scenarios/new'
     | '/instrument/sector/$code'
     | '/kiosk/api/public/presentation-pdf'
@@ -263,6 +275,7 @@ export interface FileRouteTypes {
     | '/_authenticated/instrument/'
     | '/_authenticated/instrument/portfolio/$ministry'
     | '/_authenticated/instrument/scenarios/$id'
+    | '/_authenticated/instrument/scenarios/compare'
     | '/_authenticated/instrument/scenarios/new'
     | '/_authenticated/instrument/sector/$code'
     | '/kiosk/api/public/presentation-pdf'
@@ -405,6 +418,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInstrumentScenariosNewRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
+    '/_authenticated/instrument/scenarios/compare': {
+      id: '/_authenticated/instrument/scenarios/compare'
+      path: '/scenarios/compare'
+      fullPath: '/instrument/scenarios/compare'
+      preLoaderRoute: typeof AuthenticatedInstrumentScenariosCompareRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
     '/_authenticated/instrument/scenarios/$id': {
       id: '/_authenticated/instrument/scenarios/$id'
       path: '/scenarios/$id'
@@ -428,6 +448,7 @@ interface AuthenticatedInstrumentRouteRouteChildren {
   AuthenticatedInstrumentIndexRoute: typeof AuthenticatedInstrumentIndexRoute
   AuthenticatedInstrumentPortfolioMinistryRoute: typeof AuthenticatedInstrumentPortfolioMinistryRoute
   AuthenticatedInstrumentScenariosIdRoute: typeof AuthenticatedInstrumentScenariosIdRoute
+  AuthenticatedInstrumentScenariosCompareRoute: typeof AuthenticatedInstrumentScenariosCompareRoute
   AuthenticatedInstrumentScenariosNewRoute: typeof AuthenticatedInstrumentScenariosNewRoute
   AuthenticatedInstrumentSectorCodeRoute: typeof AuthenticatedInstrumentSectorCodeRoute
   AuthenticatedInstrumentPortfolioIndexRoute: typeof AuthenticatedInstrumentPortfolioIndexRoute
@@ -444,6 +465,8 @@ const AuthenticatedInstrumentRouteRouteChildren: AuthenticatedInstrumentRouteRou
       AuthenticatedInstrumentPortfolioMinistryRoute,
     AuthenticatedInstrumentScenariosIdRoute:
       AuthenticatedInstrumentScenariosIdRoute,
+    AuthenticatedInstrumentScenariosCompareRoute:
+      AuthenticatedInstrumentScenariosCompareRoute,
     AuthenticatedInstrumentScenariosNewRoute:
       AuthenticatedInstrumentScenariosNewRoute,
     AuthenticatedInstrumentSectorCodeRoute:

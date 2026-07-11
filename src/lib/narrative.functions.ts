@@ -412,12 +412,12 @@ export const approveComms = createServerFn({ method: "POST" })
       figures,
     };
 
-    const patch: Record<string, unknown> = {
+    const patch = {
       draft_state: data.nextState,
       approvals: [...prevApprovals, entry] as unknown as Json,
       updated_at: new Date().toISOString(),
+      ...(data.nextState === "released" ? { released_at: new Date().toISOString() } : {}),
     };
-    if (data.nextState === "released") patch.released_at = new Date().toISOString();
 
     const { error: uErr } = await context.supabase.from("comms_artifacts").update(patch).eq("id", data.id);
     if (uErr) throw new Error(uErr.message);
@@ -432,7 +432,7 @@ export const getCoverage = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const [mem, sectors] = await Promise.all([
       context.supabase.from("memory_objects").select("sector_code,kind").eq("scope_key", data.scopeKey),
-      context.supabase.from("sectors").select("code,name,sort_order").order("sort_order"),
+      context.supabase.from("sectors").select("code,label,sort_order").order("sort_order"),
     ]);
     if (mem.error) throw new Error(mem.error.message);
     if (sectors.error) throw new Error(sectors.error.message);
@@ -446,7 +446,8 @@ export const getCoverage = createServerFn({ method: "GET" })
     }
     return (sectors.data ?? []).map((s) => ({
       sectorCode: s.code,
-      sectorName: s.name,
+      sectorName: s.label,
       counts: buckets.get(s.code) ?? {},
     }));
   });
+

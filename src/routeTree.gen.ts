@@ -25,6 +25,7 @@ import { Route as KioskApiUploadMediaRouteImport } from './routes/kiosk.api.uplo
 import { Route as KioskApiKioskDataRouteImport } from './routes/kiosk.api.kiosk-data'
 import { Route as AuthenticatedNarrativeQueueRouteImport } from './routes/_authenticated/narrative/queue'
 import { Route as AuthenticatedNarrativeIngestRouteImport } from './routes/_authenticated/narrative/ingest'
+import { Route as AuthenticatedNarrativeCoverageRouteImport } from './routes/_authenticated/narrative/coverage'
 import { Route as AuthenticatedNarrativeCommsRouteImport } from './routes/_authenticated/narrative/comms'
 import { Route as AuthenticatedNarrativeBrainRouteImport } from './routes/_authenticated/narrative/brain'
 import { Route as AuthenticatedInstrumentStewardshipRouteImport } from './routes/_authenticated/instrument/stewardship'
@@ -135,6 +136,12 @@ const AuthenticatedNarrativeIngestRoute =
   AuthenticatedNarrativeIngestRouteImport.update({
     id: '/ingest',
     path: '/ingest',
+    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
+  } as any)
+const AuthenticatedNarrativeCoverageRoute =
+  AuthenticatedNarrativeCoverageRouteImport.update({
+    id: '/coverage',
+    path: '/coverage',
     getParentRoute: () => AuthenticatedNarrativeRouteRoute,
   } as any)
 const AuthenticatedNarrativeCommsRoute =
@@ -294,6 +301,7 @@ export interface FileRoutesByFullPath {
   '/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
   '/narrative/brain': typeof AuthenticatedNarrativeBrainRoute
   '/narrative/comms': typeof AuthenticatedNarrativeCommsRouteWithChildren
+  '/narrative/coverage': typeof AuthenticatedNarrativeCoverageRoute
   '/narrative/ingest': typeof AuthenticatedNarrativeIngestRoute
   '/narrative/queue': typeof AuthenticatedNarrativeQueueRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
@@ -332,6 +340,7 @@ export interface FileRoutesByTo {
   '/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
   '/narrative/brain': typeof AuthenticatedNarrativeBrainRoute
   '/narrative/comms': typeof AuthenticatedNarrativeCommsRouteWithChildren
+  '/narrative/coverage': typeof AuthenticatedNarrativeCoverageRoute
   '/narrative/ingest': typeof AuthenticatedNarrativeIngestRoute
   '/narrative/queue': typeof AuthenticatedNarrativeQueueRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
@@ -375,6 +384,7 @@ export interface FileRoutesById {
   '/_authenticated/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
   '/_authenticated/narrative/brain': typeof AuthenticatedNarrativeBrainRoute
   '/_authenticated/narrative/comms': typeof AuthenticatedNarrativeCommsRouteWithChildren
+  '/_authenticated/narrative/coverage': typeof AuthenticatedNarrativeCoverageRoute
   '/_authenticated/narrative/ingest': typeof AuthenticatedNarrativeIngestRoute
   '/_authenticated/narrative/queue': typeof AuthenticatedNarrativeQueueRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
@@ -418,6 +428,7 @@ export interface FileRouteTypes {
     | '/instrument/stewardship'
     | '/narrative/brain'
     | '/narrative/comms'
+    | '/narrative/coverage'
     | '/narrative/ingest'
     | '/narrative/queue'
     | '/kiosk/api/kiosk-data'
@@ -456,6 +467,7 @@ export interface FileRouteTypes {
     | '/instrument/stewardship'
     | '/narrative/brain'
     | '/narrative/comms'
+    | '/narrative/coverage'
     | '/narrative/ingest'
     | '/narrative/queue'
     | '/kiosk/api/kiosk-data'
@@ -498,6 +510,7 @@ export interface FileRouteTypes {
     | '/_authenticated/instrument/stewardship'
     | '/_authenticated/narrative/brain'
     | '/_authenticated/narrative/comms'
+    | '/_authenticated/narrative/coverage'
     | '/_authenticated/narrative/ingest'
     | '/_authenticated/narrative/queue'
     | '/kiosk/api/kiosk-data'
@@ -648,6 +661,13 @@ declare module '@tanstack/react-router' {
       path: '/ingest'
       fullPath: '/narrative/ingest'
       preLoaderRoute: typeof AuthenticatedNarrativeIngestRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
+    }
+    '/_authenticated/narrative/coverage': {
+      id: '/_authenticated/narrative/coverage'
+      path: '/coverage'
+      fullPath: '/narrative/coverage'
+      preLoaderRoute: typeof AuthenticatedNarrativeCoverageRouteImport
       parentRoute: typeof AuthenticatedNarrativeRouteRoute
     }
     '/_authenticated/narrative/comms': {
@@ -898,6 +918,7 @@ const AuthenticatedNarrativeCommsRouteWithChildren =
 interface AuthenticatedNarrativeRouteRouteChildren {
   AuthenticatedNarrativeBrainRoute: typeof AuthenticatedNarrativeBrainRoute
   AuthenticatedNarrativeCommsRoute: typeof AuthenticatedNarrativeCommsRouteWithChildren
+  AuthenticatedNarrativeCoverageRoute: typeof AuthenticatedNarrativeCoverageRoute
   AuthenticatedNarrativeIngestRoute: typeof AuthenticatedNarrativeIngestRoute
   AuthenticatedNarrativeQueueRoute: typeof AuthenticatedNarrativeQueueRoute
   AuthenticatedNarrativeIndexRoute: typeof AuthenticatedNarrativeIndexRoute
@@ -911,6 +932,7 @@ const AuthenticatedNarrativeRouteRouteChildren: AuthenticatedNarrativeRouteRoute
     AuthenticatedNarrativeBrainRoute: AuthenticatedNarrativeBrainRoute,
     AuthenticatedNarrativeCommsRoute:
       AuthenticatedNarrativeCommsRouteWithChildren,
+    AuthenticatedNarrativeCoverageRoute: AuthenticatedNarrativeCoverageRoute,
     AuthenticatedNarrativeIngestRoute: AuthenticatedNarrativeIngestRoute,
     AuthenticatedNarrativeQueueRoute: AuthenticatedNarrativeQueueRoute,
     AuthenticatedNarrativeIndexRoute: AuthenticatedNarrativeIndexRoute,

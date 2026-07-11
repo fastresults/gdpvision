@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { blockMarketingRequest } from "@/lib/host-guard";
 
 const MAX_PDF_BYTES = 50 * 1024 * 1024;
 
@@ -7,7 +6,6 @@ export const Route = createFileRoute("/api/upload-presentation")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const blocked = blockMarketingRequest(request);
         if (blocked) return blocked;
 
         try {

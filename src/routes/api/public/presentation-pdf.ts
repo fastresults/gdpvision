@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { blockMarketingRequest } from "@/lib/host-guard";
 
 const PDF_PATH_PATTERN = /^[a-f0-9-]+\.pdf$/i;
 
@@ -7,7 +6,6 @@ export const Route = createFileRoute("/api/public/presentation-pdf")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const blocked = blockMarketingRequest(request);
         if (blocked) return blocked;
 
         try {

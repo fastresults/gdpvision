@@ -27,6 +27,7 @@ export function MarketingShell({ children }: MarketingShellProps) {
             <a href="#briefing" className="hover:text-ink-950 text-ink-950">
               Request briefing
             </a>
+            <InstrumentEntry />
           </nav>
         </div>
       </header>
@@ -50,5 +51,26 @@ export function MarketingShell({ children }: MarketingShellProps) {
         </div>
       </footer>
     </div>
+  );
+}
+
+function InstrumentEntry() {
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    supabase.auth.getUser().then(({ data }) => alive && setSignedIn(!!data.user));
+    const { data } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (alive) setSignedIn(!!session);
+    });
+    return () => {
+      alive = false;
+      data.subscription.unsubscribe();
+    };
+  }, []);
+  if (signedIn === null) return null;
+  return signedIn ? (
+    <Link to="/instrument" className="hover:text-ink-950">Open instrument</Link>
+  ) : (
+    <Link to="/auth" className="hover:text-ink-950">Sign in</Link>
   );
 }

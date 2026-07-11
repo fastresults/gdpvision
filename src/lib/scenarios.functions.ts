@@ -7,6 +7,10 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ENGINE_VERSION, runEngine, type EngineInput, type EngineOutput } from "@/lib/engine/v1_macro";
 
+type JsonValue = string | number | boolean | null | JsonValue[] | { [k: string]: JsonValue };
+type JsonObject = { [k: string]: JsonValue };
+
+
 // ─── Ministry portfolio ──────────────────────────────────────────────────────
 
 const CountryInput = z.object({ countryCode: z.string().min(3).max(4) });

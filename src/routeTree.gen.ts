@@ -20,6 +20,7 @@ import { Route as AuthenticatedInstrumentIndexRouteImport } from './routes/_auth
 import { Route as KioskApiUploadPresentationRouteImport } from './routes/kiosk.api.upload-presentation'
 import { Route as KioskApiUploadMediaRouteImport } from './routes/kiosk.api.upload-media'
 import { Route as KioskApiKioskDataRouteImport } from './routes/kiosk.api.kiosk-data'
+import { Route as AuthenticatedInstrumentStewardshipRouteImport } from './routes/_authenticated/instrument/stewardship'
 import { Route as AuthenticatedInstrumentExposureRouteImport } from './routes/_authenticated/instrument/exposure'
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
 import { Route as AuthenticatedInstrumentSectorCodeRouteImport } from './routes/_authenticated/instrument/sector.$code'
@@ -81,6 +82,12 @@ const KioskApiKioskDataRoute = KioskApiKioskDataRouteImport.update({
   path: '/api/kiosk-data',
   getParentRoute: () => KioskRoute,
 } as any)
+const AuthenticatedInstrumentStewardshipRoute =
+  AuthenticatedInstrumentStewardshipRouteImport.update({
+    id: '/stewardship',
+    path: '/stewardship',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+  } as any)
 const AuthenticatedInstrumentExposureRoute =
   AuthenticatedInstrumentExposureRouteImport.update({
     id: '/exposure',
@@ -108,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
   '/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
+  '/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
@@ -121,6 +129,7 @@ export interface FileRoutesByTo {
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk': typeof KioskIndexRoute
   '/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
+  '/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
@@ -138,6 +147,7 @@ export interface FileRoutesById {
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
   '/_authenticated/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
+  '/_authenticated/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
     | '/kiosk/admin'
     | '/kiosk/'
     | '/instrument/exposure'
+    | '/instrument/stewardship'
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | '/kiosk/admin'
     | '/kiosk'
     | '/instrument/exposure'
+    | '/instrument/stewardship'
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
@@ -184,6 +196,7 @@ export interface FileRouteTypes {
     | '/kiosk/admin'
     | '/kiosk/'
     | '/_authenticated/instrument/exposure'
+    | '/_authenticated/instrument/stewardship'
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
@@ -278,6 +291,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KioskApiKioskDataRouteImport
       parentRoute: typeof KioskRoute
     }
+    '/_authenticated/instrument/stewardship': {
+      id: '/_authenticated/instrument/stewardship'
+      path: '/stewardship'
+      fullPath: '/instrument/stewardship'
+      preLoaderRoute: typeof AuthenticatedInstrumentStewardshipRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
     '/_authenticated/instrument/exposure': {
       id: '/_authenticated/instrument/exposure'
       path: '/exposure'
@@ -304,6 +324,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedInstrumentRouteRouteChildren {
   AuthenticatedInstrumentExposureRoute: typeof AuthenticatedInstrumentExposureRoute
+  AuthenticatedInstrumentStewardshipRoute: typeof AuthenticatedInstrumentStewardshipRoute
   AuthenticatedInstrumentIndexRoute: typeof AuthenticatedInstrumentIndexRoute
   AuthenticatedInstrumentSectorCodeRoute: typeof AuthenticatedInstrumentSectorCodeRoute
 }
@@ -311,6 +332,8 @@ interface AuthenticatedInstrumentRouteRouteChildren {
 const AuthenticatedInstrumentRouteRouteChildren: AuthenticatedInstrumentRouteRouteChildren =
   {
     AuthenticatedInstrumentExposureRoute: AuthenticatedInstrumentExposureRoute,
+    AuthenticatedInstrumentStewardshipRoute:
+      AuthenticatedInstrumentStewardshipRoute,
     AuthenticatedInstrumentIndexRoute: AuthenticatedInstrumentIndexRoute,
     AuthenticatedInstrumentSectorCodeRoute:
       AuthenticatedInstrumentSectorCodeRoute,

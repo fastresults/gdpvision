@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import heroImage from "@/assets/marketing-hero.jpg";
 
 export function MarketingHome() {
@@ -97,7 +96,7 @@ export function MarketingHome() {
           <div>© {new Date().getFullYear()} GDP Vision</div>
           <div className="flex gap-6">
             <a href="https://present.gdpvision.com" className="hover:opacity-100">Kiosk</a>
-            <Link to="/admin" className="hover:opacity-100">Admin</Link>
+            <a href="https://present.gdpvision.com/admin" className="hover:opacity-100">Admin</a>
           </div>
         </div>
       </footer>

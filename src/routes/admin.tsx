@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -44,9 +44,24 @@ import {
   type IdleImage,
 } from "@/lib/idle-images.functions";
 import { listCategories, type Category } from "@/lib/categories.functions";
+import { getRequestSiteMode } from "@/lib/site-mode.functions";
+import type { SiteMode } from "@/lib/site-mode";
 
 
 export const Route = createFileRoute("/admin")({
+  loader: async (): Promise<{ mode: SiteMode }> => {
+    let mode: SiteMode = "present";
+    try {
+      const result = await getRequestSiteMode();
+      mode = result.mode;
+    } catch {
+      return { mode };
+    }
+    if (mode === "marketing") {
+      throw redirect({ href: "https://present.gdpvision.com/admin" });
+    }
+    return { mode };
+  },
   head: () => ({
     meta: [
       { title: "GDP Vision — Admin" },

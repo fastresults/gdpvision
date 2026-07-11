@@ -26,7 +26,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext
 import { GalleryView } from "@/components/GalleryView";
 import { MarketingHome } from "@/components/marketing/MarketingHome";
 import { getRequestSiteMode } from "@/lib/site-mode.functions";
-import { getClientSiteMode, type SiteMode } from "@/lib/site-mode";
+import type { SiteMode } from "@/lib/site-mode";
 
 
 type IdleImage = {
@@ -77,14 +77,7 @@ export const Route = createFileRoute("/")({
 });
 
 function RootIndex() {
-  const { mode: initialMode } = Route.useLoaderData();
-  // Reconcile with client host once mounted so navigations across hosts
-  // during dev/preview still show the right shell.
-  const [mode, setMode] = useState<SiteMode>(initialMode);
-  useEffect(() => {
-    const clientMode = getClientSiteMode();
-    if (clientMode !== mode) setMode(clientMode);
-  }, [mode]);
+  const { mode } = Route.useLoaderData();
 
   if (mode === "marketing") return <MarketingHome />;
   return <KioskPage />;

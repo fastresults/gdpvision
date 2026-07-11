@@ -105,10 +105,13 @@ function SectorDetailPage() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, why }: { label: string; value: string; why?: string }) {
   return (
     <div className="border-t border-line-200 pt-4">
-      <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">{label}</p>
+      <p className="flex items-baseline justify-between gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+        <span>{label}</span>
+        {why && <WhyThisNumber slug={why} label="Why?" />}
+      </p>
       <p className="mt-2 font-serif text-4xl text-ink-950" data-numeric>
         {value}
       </p>

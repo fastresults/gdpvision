@@ -22,6 +22,7 @@ import { Route as KioskApiUploadMediaRouteImport } from './routes/kiosk.api.uplo
 import { Route as KioskApiKioskDataRouteImport } from './routes/kiosk.api.kiosk-data'
 import { Route as AuthenticatedInstrumentStewardshipRouteImport } from './routes/_authenticated/instrument/stewardship'
 import { Route as AuthenticatedInstrumentExposureRouteImport } from './routes/_authenticated/instrument/exposure'
+import { Route as AuthenticatedInstrumentPortfolioIndexRouteImport } from './routes/_authenticated/instrument/portfolio.index'
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
 import { Route as AuthenticatedInstrumentSectorCodeRouteImport } from './routes/_authenticated/instrument/sector.$code'
 
@@ -94,6 +95,12 @@ const AuthenticatedInstrumentExposureRoute =
     path: '/exposure',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
+const AuthenticatedInstrumentPortfolioIndexRoute =
+  AuthenticatedInstrumentPortfolioIndexRouteImport.update({
+    id: '/portfolio/',
+    path: '/portfolio/',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+  } as any)
 const KioskApiPublicPresentationPdfRoute =
   KioskApiPublicPresentationPdfRouteImport.update({
     id: '/api/public/presentation-pdf',
@@ -122,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/instrument/': typeof AuthenticatedInstrumentIndexRoute
   '/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
+  '/instrument/portfolio/': typeof AuthenticatedInstrumentPortfolioIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -136,6 +144,7 @@ export interface FileRoutesByTo {
   '/instrument': typeof AuthenticatedInstrumentIndexRoute
   '/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
+  '/instrument/portfolio': typeof AuthenticatedInstrumentPortfolioIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -154,6 +163,7 @@ export interface FileRoutesById {
   '/_authenticated/instrument/': typeof AuthenticatedInstrumentIndexRoute
   '/_authenticated/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
+  '/_authenticated/instrument/portfolio/': typeof AuthenticatedInstrumentPortfolioIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/instrument/'
     | '/instrument/sector/$code'
     | '/kiosk/api/public/presentation-pdf'
+    | '/instrument/portfolio/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/instrument'
     | '/instrument/sector/$code'
     | '/kiosk/api/public/presentation-pdf'
+    | '/instrument/portfolio'
   id:
     | '__root__'
     | '/'
@@ -203,6 +215,7 @@ export interface FileRouteTypes {
     | '/_authenticated/instrument/'
     | '/_authenticated/instrument/sector/$code'
     | '/kiosk/api/public/presentation-pdf'
+    | '/_authenticated/instrument/portfolio/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -305,6 +318,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInstrumentExposureRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
+    '/_authenticated/instrument/portfolio/': {
+      id: '/_authenticated/instrument/portfolio/'
+      path: '/portfolio'
+      fullPath: '/instrument/portfolio/'
+      preLoaderRoute: typeof AuthenticatedInstrumentPortfolioIndexRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
     '/kiosk/api/public/presentation-pdf': {
       id: '/kiosk/api/public/presentation-pdf'
       path: '/api/public/presentation-pdf'
@@ -327,6 +347,7 @@ interface AuthenticatedInstrumentRouteRouteChildren {
   AuthenticatedInstrumentStewardshipRoute: typeof AuthenticatedInstrumentStewardshipRoute
   AuthenticatedInstrumentIndexRoute: typeof AuthenticatedInstrumentIndexRoute
   AuthenticatedInstrumentSectorCodeRoute: typeof AuthenticatedInstrumentSectorCodeRoute
+  AuthenticatedInstrumentPortfolioIndexRoute: typeof AuthenticatedInstrumentPortfolioIndexRoute
 }
 
 const AuthenticatedInstrumentRouteRouteChildren: AuthenticatedInstrumentRouteRouteChildren =
@@ -337,6 +358,8 @@ const AuthenticatedInstrumentRouteRouteChildren: AuthenticatedInstrumentRouteRou
     AuthenticatedInstrumentIndexRoute: AuthenticatedInstrumentIndexRoute,
     AuthenticatedInstrumentSectorCodeRoute:
       AuthenticatedInstrumentSectorCodeRoute,
+    AuthenticatedInstrumentPortfolioIndexRoute:
+      AuthenticatedInstrumentPortfolioIndexRoute,
   }
 
 const AuthenticatedInstrumentRouteRouteWithChildren =

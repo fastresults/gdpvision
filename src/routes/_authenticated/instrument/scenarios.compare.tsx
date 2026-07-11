@@ -42,13 +42,6 @@ function CompareScenarios() {
 
   const scenarios = queries.map((q) => q.data as ScenarioArtifact);
 
-  if (!loaded) {
-    return (
-      <main className="mx-auto max-w-7xl px-8 py-16 text-ink-500">Loading comparison…</main>
-    );
-  }
-
-  const scenarios = queries.map((q) => q.data!);
 
   // Union of all sectors touched by any scenario.
   const allSectors = Array.from(

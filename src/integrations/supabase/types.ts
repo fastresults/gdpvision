@@ -317,6 +317,8 @@ export type Database = {
           iso3: string | null
           membership_tier: string
           name: string
+          signature_generated_at: string | null
+          signature_json: Json | null
           updated_at: string
         }
         Insert: {
@@ -331,6 +333,8 @@ export type Database = {
           iso3?: string | null
           membership_tier: string
           name: string
+          signature_generated_at?: string | null
+          signature_json?: Json | null
           updated_at?: string
         }
         Update: {
@@ -345,6 +349,8 @@ export type Database = {
           iso3?: string | null
           membership_tier?: string
           name?: string
+          signature_generated_at?: string | null
+          signature_json?: Json | null
           updated_at?: string
         }
         Relationships: []
@@ -944,6 +950,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      keying_audits: {
+        Row: {
+          id: string
+          ran_at: string
+          ran_by: string | null
+          report: Json
+          total_checked: number
+          total_violations: number
+        }
+        Insert: {
+          id?: string
+          ran_at?: string
+          ran_by?: string | null
+          report?: Json
+          total_checked?: number
+          total_violations?: number
+        }
+        Update: {
+          id?: string
+          ran_at?: string
+          ran_by?: string | null
+          report?: Json
+          total_checked?: number
+          total_violations?: number
+        }
+        Relationships: []
       }
       kpis: {
         Row: {

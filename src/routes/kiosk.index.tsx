@@ -34,7 +34,7 @@ type IdleImage = {
 };
 
 
-export const Route = createFileRoute("/kiosk")({
+export const Route = createFileRoute("/kiosk/")({
   head: () => ({
     meta: [
       { title: "GDP Vision — Kiosk" },

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as KioskRouteImport } from './routes/kiosk'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as KioskIndexRouteImport } from './routes/kiosk.index'
 import { Route as KioskAdminRouteImport } from './routes/kiosk.admin'
 import { Route as KioskApiUploadPresentationRouteImport } from './routes/kiosk.api.upload-presentation'
 import { Route as KioskApiUploadMediaRouteImport } from './routes/kiosk.api.upload-media'
@@ -26,6 +27,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const KioskIndexRoute = KioskIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => KioskRoute,
 } as any)
 const KioskAdminRoute = KioskAdminRouteImport.update({
   id: '/admin',
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/kiosk': typeof KioskRouteWithChildren
   '/kiosk/admin': typeof KioskAdminRoute
+  '/kiosk/': typeof KioskIndexRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
@@ -66,8 +73,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/kiosk': typeof KioskRouteWithChildren
   '/kiosk/admin': typeof KioskAdminRoute
+  '/kiosk': typeof KioskIndexRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
@@ -78,6 +85,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/kiosk': typeof KioskRouteWithChildren
   '/kiosk/admin': typeof KioskAdminRoute
+  '/kiosk/': typeof KioskIndexRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
@@ -89,6 +97,7 @@ export interface FileRouteTypes {
     | '/'
     | '/kiosk'
     | '/kiosk/admin'
+    | '/kiosk/'
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
@@ -96,8 +105,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/kiosk'
     | '/kiosk/admin'
+    | '/kiosk'
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/kiosk'
     | '/kiosk/admin'
+    | '/kiosk/'
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
@@ -133,6 +143,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/kiosk/': {
+      id: '/kiosk/'
+      path: '/'
+      fullPath: '/kiosk/'
+      preLoaderRoute: typeof KioskIndexRouteImport
+      parentRoute: typeof KioskRoute
     }
     '/kiosk/admin': {
       id: '/kiosk/admin'
@@ -174,6 +191,7 @@ declare module '@tanstack/react-router' {
 
 interface KioskRouteChildren {
   KioskAdminRoute: typeof KioskAdminRoute
+  KioskIndexRoute: typeof KioskIndexRoute
   KioskApiKioskDataRoute: typeof KioskApiKioskDataRoute
   KioskApiUploadMediaRoute: typeof KioskApiUploadMediaRoute
   KioskApiUploadPresentationRoute: typeof KioskApiUploadPresentationRoute
@@ -182,6 +200,7 @@ interface KioskRouteChildren {
 
 const KioskRouteChildren: KioskRouteChildren = {
   KioskAdminRoute: KioskAdminRoute,
+  KioskIndexRoute: KioskIndexRoute,
   KioskApiKioskDataRoute: KioskApiKioskDataRoute,
   KioskApiUploadMediaRoute: KioskApiUploadMediaRoute,
   KioskApiUploadPresentationRoute: KioskApiUploadPresentationRoute,

@@ -200,6 +200,88 @@ export type Database = {
           },
         ]
       }
+      data_revisions: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          id: string
+          new_value: number | null
+          period: string | null
+          previous_value: number | null
+          reason: string | null
+          series_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          new_value?: number | null
+          period?: string | null
+          previous_value?: number | null
+          reason?: string | null
+          series_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          new_value?: number | null
+          period?: string | null
+          previous_value?: number | null
+          reason?: string | null
+          series_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_revisions_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "series"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exposure_index: {
+        Row: {
+          confidence_grade: string
+          country_code: string
+          created_at: string
+          decomposition: Json
+          id: string
+          methodology_ref: string | null
+          period: string
+          value: number
+        }
+        Insert: {
+          confidence_grade?: string
+          country_code: string
+          created_at?: string
+          decomposition?: Json
+          id?: string
+          methodology_ref?: string | null
+          period: string
+          value: number
+        }
+        Update: {
+          confidence_grade?: string
+          country_code?: string
+          created_at?: string
+          decomposition?: Json
+          id?: string
+          methodology_ref?: string | null
+          period?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exposure_index_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       galleries: {
         Row: {
           category_id: string
@@ -327,6 +409,38 @@ export type Database = {
           },
         ]
       }
+      instance_bindings: {
+        Row: {
+          country_code: string
+          created_at: string
+          id: string
+          is_default: boolean
+          user_id: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          user_id: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instance_bindings_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       items: {
         Row: {
           category: string
@@ -419,6 +533,41 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string
+          default_country_code: string | null
+          display_name: string | null
+          id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_country_code?: string | null
+          display_name?: string | null
+          id: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_country_code?: string | null
+          display_name?: string | null
+          id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_default_country_code_fkey"
+            columns: ["default_country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       sectors: {
         Row: {
           code: string
@@ -445,6 +594,108 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      series: {
+        Row: {
+          confidence_grade: string
+          country_code: string
+          created_at: string
+          frequency: string
+          id: string
+          methodology_ref: string | null
+          metric: string
+          sector_code: string
+          source_id: string | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          confidence_grade?: string
+          country_code: string
+          created_at?: string
+          frequency: string
+          id?: string
+          methodology_ref?: string | null
+          metric: string
+          sector_code: string
+          source_id?: string | null
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          confidence_grade?: string
+          country_code?: string
+          created_at?: string
+          frequency?: string
+          id?: string
+          methodology_ref?: string | null
+          metric?: string
+          sector_code?: string
+          source_id?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "series_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "series_sector_code_fkey"
+            columns: ["sector_code"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "series_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      series_points: {
+        Row: {
+          created_at: string
+          id: string
+          period: string
+          revised_at: string | null
+          revised_from: number | null
+          series_id: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          period: string
+          revised_at?: string | null
+          revised_from?: number | null
+          series_id: string
+          value: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          period?: string
+          revised_at?: string | null
+          revised_from?: number | null
+          series_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "series_points_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "series"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sources: {
         Row: {

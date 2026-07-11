@@ -43,12 +43,14 @@ function StrategyIndex() {
       ) : (
         <ul className="mt-12 divide-y divide-line-200 border-y border-line-200">
           {rows.map((s) => (
-            <li key={s.id} className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 py-4 text-sm">
-              <span>{s.title}</span>
-              <span className="font-mono text-ink-500">{s.sector_code}</span>
-              <span className="font-mono text-ink-500">v{s.version}</span>
-              <span className="font-mono text-ink-500">{s.status}</span>
-              <span className="font-mono text-ink-500">{new Date(s.updated_at).toISOString().slice(0, 10)}</span>
+            <li key={s.id}>
+              <Link to="/narrative/strategy/$id" params={{ id: s.id }} className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 py-4 text-sm hover:bg-line-200/30">
+                <span>{s.title}</span>
+                <span className="font-mono text-ink-500">{s.sector_code}</span>
+                <span className="font-mono text-ink-500">v{s.version}</span>
+                <span className="font-mono text-ink-500">{s.status}</span>
+                <span className="font-mono text-ink-500">{new Date(s.updated_at).toISOString().slice(0, 10)}</span>
+              </Link>
             </li>
           ))}
         </ul>

@@ -364,7 +364,7 @@ export function MobileKiosk({ items, settings }: { items: Item[]; settings: Sett
 
       {/* Admin gear */}
       <Link
-        to="/admin"
+        to="/kiosk/admin"
         aria-label="Admin"
         className="absolute right-3 z-20 flex h-11 w-11 items-center justify-center rounded-full backdrop-blur transition-colors active:bg-white/10"
         style={{

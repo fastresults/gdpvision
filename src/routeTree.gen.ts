@@ -10,21 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as KioskRouteImport } from './routes/kiosk'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiUploadPresentationRouteImport } from './routes/api/upload-presentation'
-import { Route as ApiUploadMediaRouteImport } from './routes/api/upload-media'
-import { Route as ApiKioskDataRouteImport } from './routes/api/kiosk-data'
-import { Route as ApiPublicPresentationPdfRouteImport } from './routes/api/public/presentation-pdf'
+import { Route as KioskIndexRouteImport } from './routes/kiosk.index'
+import { Route as KioskAdminRouteImport } from './routes/kiosk.admin'
+import { Route as KioskApiUploadPresentationRouteImport } from './routes/kiosk.api.upload-presentation'
+import { Route as KioskApiUploadMediaRouteImport } from './routes/kiosk.api.upload-media'
+import { Route as KioskApiKioskDataRouteImport } from './routes/kiosk.api.kiosk-data'
+import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
 
 const KioskRoute = KioskRouteImport.update({
   id: '/kiosk',
   path: '/kiosk',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -32,94 +28,104 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiUploadPresentationRoute = ApiUploadPresentationRouteImport.update({
-  id: '/api/upload-presentation',
-  path: '/api/upload-presentation',
-  getParentRoute: () => rootRouteImport,
+const KioskIndexRoute = KioskIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => KioskRoute,
 } as any)
-const ApiUploadMediaRoute = ApiUploadMediaRouteImport.update({
+const KioskAdminRoute = KioskAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => KioskRoute,
+} as any)
+const KioskApiUploadPresentationRoute =
+  KioskApiUploadPresentationRouteImport.update({
+    id: '/api/upload-presentation',
+    path: '/api/upload-presentation',
+    getParentRoute: () => KioskRoute,
+  } as any)
+const KioskApiUploadMediaRoute = KioskApiUploadMediaRouteImport.update({
   id: '/api/upload-media',
   path: '/api/upload-media',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => KioskRoute,
 } as any)
-const ApiKioskDataRoute = ApiKioskDataRouteImport.update({
+const KioskApiKioskDataRoute = KioskApiKioskDataRouteImport.update({
   id: '/api/kiosk-data',
   path: '/api/kiosk-data',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => KioskRoute,
 } as any)
-const ApiPublicPresentationPdfRoute =
-  ApiPublicPresentationPdfRouteImport.update({
+const KioskApiPublicPresentationPdfRoute =
+  KioskApiPublicPresentationPdfRouteImport.update({
     id: '/api/public/presentation-pdf',
     path: '/api/public/presentation-pdf',
-    getParentRoute: () => rootRouteImport,
+    getParentRoute: () => KioskRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
-  '/kiosk': typeof KioskRoute
-  '/api/kiosk-data': typeof ApiKioskDataRoute
-  '/api/upload-media': typeof ApiUploadMediaRoute
-  '/api/upload-presentation': typeof ApiUploadPresentationRoute
-  '/api/public/presentation-pdf': typeof ApiPublicPresentationPdfRoute
+  '/kiosk': typeof KioskRouteWithChildren
+  '/kiosk/admin': typeof KioskAdminRoute
+  '/kiosk/': typeof KioskIndexRoute
+  '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
+  '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
+  '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
+  '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
-  '/kiosk': typeof KioskRoute
-  '/api/kiosk-data': typeof ApiKioskDataRoute
-  '/api/upload-media': typeof ApiUploadMediaRoute
-  '/api/upload-presentation': typeof ApiUploadPresentationRoute
-  '/api/public/presentation-pdf': typeof ApiPublicPresentationPdfRoute
+  '/kiosk/admin': typeof KioskAdminRoute
+  '/kiosk': typeof KioskIndexRoute
+  '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
+  '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
+  '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
+  '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
-  '/kiosk': typeof KioskRoute
-  '/api/kiosk-data': typeof ApiKioskDataRoute
-  '/api/upload-media': typeof ApiUploadMediaRoute
-  '/api/upload-presentation': typeof ApiUploadPresentationRoute
-  '/api/public/presentation-pdf': typeof ApiPublicPresentationPdfRoute
+  '/kiosk': typeof KioskRouteWithChildren
+  '/kiosk/admin': typeof KioskAdminRoute
+  '/kiosk/': typeof KioskIndexRoute
+  '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
+  '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
+  '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
+  '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/admin'
     | '/kiosk'
-    | '/api/kiosk-data'
-    | '/api/upload-media'
-    | '/api/upload-presentation'
-    | '/api/public/presentation-pdf'
+    | '/kiosk/admin'
+    | '/kiosk/'
+    | '/kiosk/api/kiosk-data'
+    | '/kiosk/api/upload-media'
+    | '/kiosk/api/upload-presentation'
+    | '/kiosk/api/public/presentation-pdf'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
+    | '/kiosk/admin'
     | '/kiosk'
-    | '/api/kiosk-data'
-    | '/api/upload-media'
-    | '/api/upload-presentation'
-    | '/api/public/presentation-pdf'
+    | '/kiosk/api/kiosk-data'
+    | '/kiosk/api/upload-media'
+    | '/kiosk/api/upload-presentation'
+    | '/kiosk/api/public/presentation-pdf'
   id:
     | '__root__'
     | '/'
-    | '/admin'
     | '/kiosk'
-    | '/api/kiosk-data'
-    | '/api/upload-media'
-    | '/api/upload-presentation'
-    | '/api/public/presentation-pdf'
+    | '/kiosk/admin'
+    | '/kiosk/'
+    | '/kiosk/api/kiosk-data'
+    | '/kiosk/api/upload-media'
+    | '/kiosk/api/upload-presentation'
+    | '/kiosk/api/public/presentation-pdf'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
-  KioskRoute: typeof KioskRoute
-  ApiKioskDataRoute: typeof ApiKioskDataRoute
-  ApiUploadMediaRoute: typeof ApiUploadMediaRoute
-  ApiUploadPresentationRoute: typeof ApiUploadPresentationRoute
-  ApiPublicPresentationPdfRoute: typeof ApiPublicPresentationPdfRoute
+  KioskRoute: typeof KioskRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -131,13 +137,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KioskRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -145,46 +144,85 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/upload-presentation': {
-      id: '/api/upload-presentation'
+    '/kiosk/': {
+      id: '/kiosk/'
+      path: '/'
+      fullPath: '/kiosk/'
+      preLoaderRoute: typeof KioskIndexRouteImport
+      parentRoute: typeof KioskRoute
+    }
+    '/kiosk/admin': {
+      id: '/kiosk/admin'
+      path: '/admin'
+      fullPath: '/kiosk/admin'
+      preLoaderRoute: typeof KioskAdminRouteImport
+      parentRoute: typeof KioskRoute
+    }
+    '/kiosk/api/upload-presentation': {
+      id: '/kiosk/api/upload-presentation'
       path: '/api/upload-presentation'
-      fullPath: '/api/upload-presentation'
-      preLoaderRoute: typeof ApiUploadPresentationRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/kiosk/api/upload-presentation'
+      preLoaderRoute: typeof KioskApiUploadPresentationRouteImport
+      parentRoute: typeof KioskRoute
     }
-    '/api/upload-media': {
-      id: '/api/upload-media'
+    '/kiosk/api/upload-media': {
+      id: '/kiosk/api/upload-media'
       path: '/api/upload-media'
-      fullPath: '/api/upload-media'
-      preLoaderRoute: typeof ApiUploadMediaRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/kiosk/api/upload-media'
+      preLoaderRoute: typeof KioskApiUploadMediaRouteImport
+      parentRoute: typeof KioskRoute
     }
-    '/api/kiosk-data': {
-      id: '/api/kiosk-data'
+    '/kiosk/api/kiosk-data': {
+      id: '/kiosk/api/kiosk-data'
       path: '/api/kiosk-data'
-      fullPath: '/api/kiosk-data'
-      preLoaderRoute: typeof ApiKioskDataRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/kiosk/api/kiosk-data'
+      preLoaderRoute: typeof KioskApiKioskDataRouteImport
+      parentRoute: typeof KioskRoute
     }
-    '/api/public/presentation-pdf': {
-      id: '/api/public/presentation-pdf'
+    '/kiosk/api/public/presentation-pdf': {
+      id: '/kiosk/api/public/presentation-pdf'
       path: '/api/public/presentation-pdf'
-      fullPath: '/api/public/presentation-pdf'
-      preLoaderRoute: typeof ApiPublicPresentationPdfRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/kiosk/api/public/presentation-pdf'
+      preLoaderRoute: typeof KioskApiPublicPresentationPdfRouteImport
+      parentRoute: typeof KioskRoute
     }
   }
 }
 
+interface KioskRouteChildren {
+  KioskAdminRoute: typeof KioskAdminRoute
+  KioskIndexRoute: typeof KioskIndexRoute
+  KioskApiKioskDataRoute: typeof KioskApiKioskDataRoute
+  KioskApiUploadMediaRoute: typeof KioskApiUploadMediaRoute
+  KioskApiUploadPresentationRoute: typeof KioskApiUploadPresentationRoute
+  KioskApiPublicPresentationPdfRoute: typeof KioskApiPublicPresentationPdfRoute
+}
+
+const KioskRouteChildren: KioskRouteChildren = {
+  KioskAdminRoute: KioskAdminRoute,
+  KioskIndexRoute: KioskIndexRoute,
+  KioskApiKioskDataRoute: KioskApiKioskDataRoute,
+  KioskApiUploadMediaRoute: KioskApiUploadMediaRoute,
+  KioskApiUploadPresentationRoute: KioskApiUploadPresentationRoute,
+  KioskApiPublicPresentationPdfRoute: KioskApiPublicPresentationPdfRoute,
+}
+
+const KioskRouteWithChildren = KioskRoute._addFileChildren(KioskRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
-  KioskRoute: KioskRoute,
-  ApiKioskDataRoute: ApiKioskDataRoute,
-  ApiUploadMediaRoute: ApiUploadMediaRoute,
-  ApiUploadPresentationRoute: ApiUploadPresentationRoute,
-  ApiPublicPresentationPdfRoute: ApiPublicPresentationPdfRoute,
+  KioskRoute: KioskRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

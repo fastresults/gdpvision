@@ -174,7 +174,7 @@ export function GalleryView({
     <div className="absolute inset-0 overflow-auto p-6" style={{ backgroundColor: "var(--eyeframe-bg)" }}>
       {galleriesForCat.length === 0 ? (
         <div className="flex h-full items-center justify-center text-sm opacity-60">
-          No galleries yet in this category. Add some in /admin.
+          No galleries yet in this category. Add some in /kiosk/admin.
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4">

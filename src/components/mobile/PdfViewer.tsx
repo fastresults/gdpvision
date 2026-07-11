@@ -12,7 +12,7 @@ export default function PdfViewer({ url, label, storagePath, showToolbar = false
   const pdfUrl = useMemo(
     () =>
       storagePath
-        ? `/api/public/presentation-pdf?path=${encodeURIComponent(storagePath)}`
+        ? `/kiosk/api/public/presentation-pdf?path=${encodeURIComponent(storagePath)}`
         : url,
     [storagePath, url],
   );

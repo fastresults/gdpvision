@@ -2,12 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 
 const PDF_PATH_PATTERN = /^[a-f0-9-]+\.pdf$/i;
 
-export const Route = createFileRoute("/api/public/presentation-pdf")({
+export const Route = createFileRoute("/kiosk/api/public/presentation-pdf")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        if (blocked) return blocked;
-
         try {
           const url = new URL(request.url);
           const path = url.searchParams.get("path") ?? "";

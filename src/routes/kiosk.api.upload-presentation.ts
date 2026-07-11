@@ -2,12 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 
 const MAX_PDF_BYTES = 50 * 1024 * 1024;
 
-export const Route = createFileRoute("/api/upload-presentation")({
+export const Route = createFileRoute("/kiosk/api/upload-presentation")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        if (blocked) return blocked;
-
         try {
           const form = await request.formData();
           const file = form.get("file");

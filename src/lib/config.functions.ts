@@ -57,6 +57,15 @@ export const listCountryPacks = createServerFn({ method: "GET" })
 
 // ─── Preview a single Country Pack ───────────────────────────────────────────
 
+export interface NationalSignature {
+  headline: string;
+  tagline: string;
+  pillars: Array<{ name: string; thesis: string }>;
+  distinctives: string[];
+  risks: string[];
+  palette_hint: string;
+}
+
 const PreviewInput = z.object({ code: z.string().min(3).max(4) });
 
 export interface CountryPackPreview {

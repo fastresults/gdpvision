@@ -110,6 +110,96 @@ export type Database = {
         }
         Relationships: []
       }
+      countries: {
+        Row: {
+          code: string
+          country_pack: Json
+          created_at: string
+          currency: string
+          fiscal_year_start_month: number
+          is_caricom: boolean
+          is_cbi_state: boolean
+          is_oecs: boolean
+          iso3: string | null
+          membership_tier: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          country_pack?: Json
+          created_at?: string
+          currency?: string
+          fiscal_year_start_month?: number
+          is_caricom?: boolean
+          is_cbi_state?: boolean
+          is_oecs?: boolean
+          iso3?: string | null
+          membership_tier: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          country_pack?: Json
+          created_at?: string
+          currency?: string
+          fiscal_year_start_month?: number
+          is_caricom?: boolean
+          is_cbi_state?: boolean
+          is_oecs?: boolean
+          iso3?: string | null
+          membership_tier?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      country_sectors: {
+        Row: {
+          confidence_grade: string
+          country_code: string
+          created_at: string
+          sector_code: string
+          share_pct: number
+          source_ref: string | null
+          updated_at: string
+        }
+        Insert: {
+          confidence_grade?: string
+          country_code: string
+          created_at?: string
+          sector_code: string
+          share_pct: number
+          source_ref?: string | null
+          updated_at?: string
+        }
+        Update: {
+          confidence_grade?: string
+          country_code?: string
+          created_at?: string
+          sector_code?: string
+          share_pct?: number
+          source_ref?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "country_sectors_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "country_sectors_sector_code_fkey"
+            columns: ["sector_code"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       galleries: {
         Row: {
           category_id: string
@@ -329,15 +419,131 @@ export type Database = {
         }
         Relationships: []
       }
+      sectors: {
+        Row: {
+          code: string
+          hue_token: string
+          index: number
+          isic: string | null
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          hue_token: string
+          index: number
+          isic?: string | null
+          label: string
+          sort_order: number
+        }
+        Update: {
+          code?: string
+          hue_token?: string
+          index?: number
+          isic?: string | null
+          label?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      sources: {
+        Row: {
+          country_code: string | null
+          created_at: string
+          grade: string
+          id: string
+          kind: string
+          name: string
+          sector_code: string | null
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          country_code?: string | null
+          created_at?: string
+          grade?: string
+          id?: string
+          kind: string
+          name: string
+          sector_code?: string | null
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          country_code?: string | null
+          created_at?: string
+          grade?: string
+          id?: string
+          kind?: string
+          name?: string
+          sector_code?: string | null
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sources_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "sources_sector_code_fkey"
+            columns: ["sector_code"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          country_code: string | null
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role:
+        | "admin"
+        | "principal"
+        | "steward"
+        | "advisor"
+        | "line_minister"
+        | "comms_director"
+        | "cabinet_secretary"
+        | "data_steward"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -464,6 +670,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: [
+        "admin",
+        "principal",
+        "steward",
+        "advisor",
+        "line_minister",
+        "comms_director",
+        "cabinet_secretary",
+        "data_steward",
+      ],
+    },
   },
 } as const

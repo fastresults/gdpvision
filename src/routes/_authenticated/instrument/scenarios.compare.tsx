@@ -27,13 +27,21 @@ function CompareScenarios() {
   const idList = ids.split(",").filter(Boolean).slice(0, 4);
 
   const queries = useQueries({
-    queries: idList.map((id) => ({
+    queries: idList.map((id: string) => ({
       queryKey: ["scenario", id],
       queryFn: () => getScenario({ data: { id } }),
     })),
   });
 
   const loaded = queries.every((q) => q.data);
+  if (!loaded) {
+    return (
+      <main className="mx-auto max-w-7xl px-8 py-16 text-ink-500">Loading comparison…</main>
+    );
+  }
+
+  const scenarios = queries.map((q) => q.data as ScenarioArtifact);
+
   if (!loaded) {
     return (
       <main className="mx-auto max-w-7xl px-8 py-16 text-ink-500">Loading comparison…</main>

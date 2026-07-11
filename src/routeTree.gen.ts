@@ -35,6 +35,8 @@ import { Route as AuthenticatedInstrumentPortfolioIndexRouteImport } from './rou
 import { Route as AuthenticatedInstrumentCabinetIndexRouteImport } from './routes/_authenticated/instrument/cabinet.index'
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
 import { Route as ApiPublicHooksNarrativeHarvestRouteImport } from './routes/api/public/hooks/narrative-harvest'
+import { Route as AuthenticatedNarrativeStrategyNewRouteImport } from './routes/_authenticated/narrative/strategy.new'
+import { Route as AuthenticatedNarrativeCommsNewRouteImport } from './routes/_authenticated/narrative/comms.new'
 import { Route as AuthenticatedInstrumentStudioPackagesRouteImport } from './routes/_authenticated/instrument/studio.packages'
 import { Route as AuthenticatedInstrumentStudioGapRouteImport } from './routes/_authenticated/instrument/studio.gap'
 import { Route as AuthenticatedInstrumentSectorCodeRouteImport } from './routes/_authenticated/instrument/sector.$code'
@@ -193,6 +195,18 @@ const ApiPublicHooksNarrativeHarvestRoute =
     path: '/api/public/hooks/narrative-harvest',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedNarrativeStrategyNewRoute =
+  AuthenticatedNarrativeStrategyNewRouteImport.update({
+    id: '/strategy/new',
+    path: '/strategy/new',
+    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
+  } as any)
+const AuthenticatedNarrativeCommsNewRoute =
+  AuthenticatedNarrativeCommsNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => AuthenticatedNarrativeCommsRoute,
+  } as any)
 const AuthenticatedInstrumentStudioPackagesRoute =
   AuthenticatedInstrumentStudioPackagesRouteImport.update({
     id: '/studio/packages',
@@ -265,7 +279,7 @@ export interface FileRoutesByFullPath {
   '/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
   '/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
   '/narrative/brain': typeof AuthenticatedNarrativeBrainRoute
-  '/narrative/comms': typeof AuthenticatedNarrativeCommsRoute
+  '/narrative/comms': typeof AuthenticatedNarrativeCommsRouteWithChildren
   '/narrative/ingest': typeof AuthenticatedNarrativeIngestRoute
   '/narrative/queue': typeof AuthenticatedNarrativeQueueRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
@@ -284,6 +298,8 @@ export interface FileRoutesByFullPath {
   '/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
   '/instrument/studio/gap': typeof AuthenticatedInstrumentStudioGapRoute
   '/instrument/studio/packages': typeof AuthenticatedInstrumentStudioPackagesRoute
+  '/narrative/comms/new': typeof AuthenticatedNarrativeCommsNewRoute
+  '/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/instrument/cabinet/': typeof AuthenticatedInstrumentCabinetIndexRoute
@@ -299,7 +315,7 @@ export interface FileRoutesByTo {
   '/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
   '/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
   '/narrative/brain': typeof AuthenticatedNarrativeBrainRoute
-  '/narrative/comms': typeof AuthenticatedNarrativeCommsRoute
+  '/narrative/comms': typeof AuthenticatedNarrativeCommsRouteWithChildren
   '/narrative/ingest': typeof AuthenticatedNarrativeIngestRoute
   '/narrative/queue': typeof AuthenticatedNarrativeQueueRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
@@ -318,6 +334,8 @@ export interface FileRoutesByTo {
   '/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
   '/instrument/studio/gap': typeof AuthenticatedInstrumentStudioGapRoute
   '/instrument/studio/packages': typeof AuthenticatedInstrumentStudioPackagesRoute
+  '/narrative/comms/new': typeof AuthenticatedNarrativeCommsNewRoute
+  '/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/instrument/cabinet': typeof AuthenticatedInstrumentCabinetIndexRoute
@@ -338,7 +356,7 @@ export interface FileRoutesById {
   '/_authenticated/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
   '/_authenticated/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
   '/_authenticated/narrative/brain': typeof AuthenticatedNarrativeBrainRoute
-  '/_authenticated/narrative/comms': typeof AuthenticatedNarrativeCommsRoute
+  '/_authenticated/narrative/comms': typeof AuthenticatedNarrativeCommsRouteWithChildren
   '/_authenticated/narrative/ingest': typeof AuthenticatedNarrativeIngestRoute
   '/_authenticated/narrative/queue': typeof AuthenticatedNarrativeQueueRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
@@ -357,6 +375,8 @@ export interface FileRoutesById {
   '/_authenticated/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
   '/_authenticated/instrument/studio/gap': typeof AuthenticatedInstrumentStudioGapRoute
   '/_authenticated/instrument/studio/packages': typeof AuthenticatedInstrumentStudioPackagesRoute
+  '/_authenticated/narrative/comms/new': typeof AuthenticatedNarrativeCommsNewRoute
+  '/_authenticated/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/_authenticated/instrument/cabinet/': typeof AuthenticatedInstrumentCabinetIndexRoute
@@ -396,6 +416,8 @@ export interface FileRouteTypes {
     | '/instrument/sector/$code'
     | '/instrument/studio/gap'
     | '/instrument/studio/packages'
+    | '/narrative/comms/new'
+    | '/narrative/strategy/new'
     | '/api/public/hooks/narrative-harvest'
     | '/kiosk/api/public/presentation-pdf'
     | '/instrument/cabinet/'
@@ -430,6 +452,8 @@ export interface FileRouteTypes {
     | '/instrument/sector/$code'
     | '/instrument/studio/gap'
     | '/instrument/studio/packages'
+    | '/narrative/comms/new'
+    | '/narrative/strategy/new'
     | '/api/public/hooks/narrative-harvest'
     | '/kiosk/api/public/presentation-pdf'
     | '/instrument/cabinet'
@@ -468,6 +492,8 @@ export interface FileRouteTypes {
     | '/_authenticated/instrument/sector/$code'
     | '/_authenticated/instrument/studio/gap'
     | '/_authenticated/instrument/studio/packages'
+    | '/_authenticated/narrative/comms/new'
+    | '/_authenticated/narrative/strategy/new'
     | '/api/public/hooks/narrative-harvest'
     | '/kiosk/api/public/presentation-pdf'
     | '/_authenticated/instrument/cabinet/'
@@ -668,6 +694,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksNarrativeHarvestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/narrative/strategy/new': {
+      id: '/_authenticated/narrative/strategy/new'
+      path: '/strategy/new'
+      fullPath: '/narrative/strategy/new'
+      preLoaderRoute: typeof AuthenticatedNarrativeStrategyNewRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
+    }
+    '/_authenticated/narrative/comms/new': {
+      id: '/_authenticated/narrative/comms/new'
+      path: '/new'
+      fullPath: '/narrative/comms/new'
+      preLoaderRoute: typeof AuthenticatedNarrativeCommsNewRouteImport
+      parentRoute: typeof AuthenticatedNarrativeCommsRoute
+    }
     '/_authenticated/instrument/studio/packages': {
       id: '/_authenticated/instrument/studio/packages'
       path: '/studio/packages'
@@ -799,22 +839,40 @@ const AuthenticatedInstrumentRouteRouteWithChildren =
     AuthenticatedInstrumentRouteRouteChildren,
   )
 
+interface AuthenticatedNarrativeCommsRouteChildren {
+  AuthenticatedNarrativeCommsNewRoute: typeof AuthenticatedNarrativeCommsNewRoute
+}
+
+const AuthenticatedNarrativeCommsRouteChildren: AuthenticatedNarrativeCommsRouteChildren =
+  {
+    AuthenticatedNarrativeCommsNewRoute: AuthenticatedNarrativeCommsNewRoute,
+  }
+
+const AuthenticatedNarrativeCommsRouteWithChildren =
+  AuthenticatedNarrativeCommsRoute._addFileChildren(
+    AuthenticatedNarrativeCommsRouteChildren,
+  )
+
 interface AuthenticatedNarrativeRouteRouteChildren {
   AuthenticatedNarrativeBrainRoute: typeof AuthenticatedNarrativeBrainRoute
-  AuthenticatedNarrativeCommsRoute: typeof AuthenticatedNarrativeCommsRoute
+  AuthenticatedNarrativeCommsRoute: typeof AuthenticatedNarrativeCommsRouteWithChildren
   AuthenticatedNarrativeIngestRoute: typeof AuthenticatedNarrativeIngestRoute
   AuthenticatedNarrativeQueueRoute: typeof AuthenticatedNarrativeQueueRoute
   AuthenticatedNarrativeIndexRoute: typeof AuthenticatedNarrativeIndexRoute
+  AuthenticatedNarrativeStrategyNewRoute: typeof AuthenticatedNarrativeStrategyNewRoute
   AuthenticatedNarrativeStrategyIndexRoute: typeof AuthenticatedNarrativeStrategyIndexRoute
 }
 
 const AuthenticatedNarrativeRouteRouteChildren: AuthenticatedNarrativeRouteRouteChildren =
   {
     AuthenticatedNarrativeBrainRoute: AuthenticatedNarrativeBrainRoute,
-    AuthenticatedNarrativeCommsRoute: AuthenticatedNarrativeCommsRoute,
+    AuthenticatedNarrativeCommsRoute:
+      AuthenticatedNarrativeCommsRouteWithChildren,
     AuthenticatedNarrativeIngestRoute: AuthenticatedNarrativeIngestRoute,
     AuthenticatedNarrativeQueueRoute: AuthenticatedNarrativeQueueRoute,
     AuthenticatedNarrativeIndexRoute: AuthenticatedNarrativeIndexRoute,
+    AuthenticatedNarrativeStrategyNewRoute:
+      AuthenticatedNarrativeStrategyNewRoute,
     AuthenticatedNarrativeStrategyIndexRoute:
       AuthenticatedNarrativeStrategyIndexRoute,
   }

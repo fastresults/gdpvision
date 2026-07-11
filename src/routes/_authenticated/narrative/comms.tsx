@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 
 import { listComms } from "@/lib/narrative.functions";
@@ -30,9 +30,12 @@ function Comms() {
 
   return (
     <main className="mx-auto max-w-7xl px-8 py-16">
-      <SectionHeader eyebrow={`${code} · Narrative`} title="Comms Studio" />
+      <div className="flex items-start justify-between gap-6">
+        <SectionHeader eyebrow={`${code} · Narrative`} title="Comms Studio" />
+        <Link to="/narrative/comms/new" className="bg-ink-900 px-4 py-2 text-sm text-white">New artifact</Link>
+      </div>
       <p className="mt-4 max-w-xl text-sm text-ink-500">
-        Release-tier approvals gate publication; every figure re-verifies against the live Ledger at approval time. Authoring UI lands next.
+        Release-tier approvals gate publication; every figure re-verifies against the live Ledger at approval time.
       </p>
 
       {rows.length === 0 ? (

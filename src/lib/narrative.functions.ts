@@ -190,7 +190,15 @@ export const decideIntake = createServerFn({ method: "POST" })
     return { ok: true, promoted };
   });
 
-// ─── Strategy statements + comms artifacts (scaffold) ───────────────────────
+// ─── Strategy statements ────────────────────────────────────────────────────
+
+const SEVEN_PART_KEYS = [
+  "situation", "complication", "question", "answer", "grounds", "warrant", "call",
+] as const;
+type SevenPart = Record<(typeof SEVEN_PART_KEYS)[number], string>;
+export const emptySevenPart = (): SevenPart => ({
+  situation: "", complication: "", question: "", answer: "", grounds: "", warrant: "", call: "",
+});
 
 export const listStrategies = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -205,6 +213,79 @@ export const listStrategies = createServerFn({ method: "GET" })
     return rows ?? [];
   });
 
+export const getStrategy = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("strategy_statements")
+      .select("id,scope_key,sector_code,title,seven_part,sources,approvals,version,status,updated_at")
+      .eq("id", data.id)
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+const StrategySave = z.object({
+  id: z.string().uuid().optional(),
+  scopeKey: z.string().min(3).max(16),
+  sectorCode: z.string().min(2).max(32),
+  title: z.string().min(1).max(240),
+  sevenPart: z.object({
+    situation: z.string().default(""),
+    complication: z.string().default(""),
+    question: z.string().default(""),
+    answer: z.string().default(""),
+    grounds: z.string().default(""),
+    warrant: z.string().default(""),
+    call: z.string().default(""),
+  }),
+  sources: z.array(z.object({ label: z.string(), ref: z.string() })).default([]),
+  status: z.enum(["draft", "review", "adopted", "archived"]).default("draft"),
+});
+
+export const saveStrategy = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => StrategySave.parse(data))
+  .handler(async ({ data, context }) => {
+    if (data.id) {
+      const { data: prev } = await context.supabase
+        .from("strategy_statements").select("version").eq("id", data.id).single();
+      const { error } = await context.supabase
+        .from("strategy_statements")
+        .update({
+          title: data.title,
+          sector_code: data.sectorCode,
+          seven_part: data.sevenPart as unknown as Json,
+          sources: data.sources as unknown as Json,
+          status: data.status,
+          version: (prev?.version ?? 1) + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", data.id);
+      if (error) throw new Error(error.message);
+      return { id: data.id };
+    }
+    const { data: row, error } = await context.supabase
+      .from("strategy_statements")
+      .insert({
+        scope_key: data.scopeKey,
+        sector_code: data.sectorCode,
+        title: data.title,
+        seven_part: data.sevenPart as unknown as Json,
+        sources: data.sources as unknown as Json,
+        status: data.status,
+        version: 1,
+        created_by: context.userId,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    return { id: row.id };
+  });
+
+// ─── Comms artifacts ────────────────────────────────────────────────────────
+
 export const listComms = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => ScopeInput.parse(data))
@@ -217,3 +298,56 @@ export const listComms = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
+
+export const getComms = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("comms_artifacts")
+      .select("id,scope_key,strategy_id,kind,audience,channel,body,draft_state,approvals,released_at,updated_at")
+      .eq("id", data.id)
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+const CommsSave = z.object({
+  id: z.string().uuid().optional(),
+  scopeKey: z.string().min(3).max(16),
+  strategyId: z.string().uuid().optional(),
+  kind: z.enum(["press_release", "op_ed", "briefing", "speech", "social", "memo"]),
+  audience: z.string().min(1).max(120),
+  channel: z.string().min(1).max(60),
+  body: z.string().min(1).max(20000),
+  draftState: z.enum(["draft", "review", "approved", "released"]).default("draft"),
+});
+
+export const saveComms = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => CommsSave.parse(data))
+  .handler(async ({ data, context }) => {
+    const patch = {
+      scope_key: data.scopeKey,
+      strategy_id: data.strategyId ?? null,
+      kind: data.kind,
+      audience: data.audience,
+      channel: data.channel,
+      body: data.body,
+      draft_state: data.draftState,
+      released_at: data.draftState === "released" ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    };
+    if (data.id) {
+      const { error } = await context.supabase.from("comms_artifacts").update(patch).eq("id", data.id);
+      if (error) throw new Error(error.message);
+      return { id: data.id };
+    }
+    const { data: row, error } = await context.supabase
+      .from("comms_artifacts")
+      .insert({ ...patch, created_by: context.userId })
+      .select("id").single();
+    if (error) throw new Error(error.message);
+    return { id: row.id };
+  });
+

@@ -155,6 +155,10 @@ function AdminPage() {
     );
   }
 
+  return <AdminContent />;
+}
+
+function AdminContent() {
   const qc = useQueryClient();
   const fetchItems = useServerFn(listItems);
   const fetchSettings = useServerFn(listSettings);

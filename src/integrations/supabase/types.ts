@@ -71,6 +71,48 @@ export type Database = {
         }
         Relationships: []
       }
+      cabinet_sessions: {
+        Row: {
+          agenda: Json
+          classification: string
+          country_code: string
+          created_at: string
+          created_by: string | null
+          held_at: string | null
+          id: string
+          minutes: string | null
+          scheduled_for: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          agenda?: Json
+          classification?: string
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          held_at?: string | null
+          id?: string
+          minutes?: string | null
+          scheduled_for?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          agenda?: Json
+          classification?: string
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          held_at?: string | null
+          id?: string
+          minutes?: string | null
+          scheduled_for?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           behavior: string
@@ -109,6 +151,60 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      commitments: {
+        Row: {
+          country_code: string
+          created_at: string
+          created_by: string | null
+          decision_id: string | null
+          due_at: string | null
+          id: string
+          ministry_id: string | null
+          owner_id: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          decision_id?: string | null
+          due_at?: string | null
+          id?: string
+          ministry_id?: string | null
+          owner_id?: string | null
+          status?: string
+          title: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          decision_id?: string | null
+          due_at?: string | null
+          id?: string
+          ministry_id?: string | null
+          owner_id?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commitments_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commitments_ministry_id_fkey"
+            columns: ["ministry_id"]
+            isOneToOne: false
+            referencedRelation: "ministries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       countries: {
         Row: {
@@ -240,6 +336,87 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      decisions: {
+        Row: {
+          body: string | null
+          country_code: string
+          id: string
+          mandate_id: string | null
+          recorded_at: string
+          recorded_by: string | null
+          session_id: string
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          country_code: string
+          id?: string
+          mandate_id?: string | null
+          recorded_at?: string
+          recorded_by?: string | null
+          session_id: string
+          title: string
+        }
+        Update: {
+          body?: string | null
+          country_code?: string
+          id?: string
+          mandate_id?: string | null
+          recorded_at?: string
+          recorded_by?: string | null
+          session_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decisions_mandate_id_fkey"
+            columns: ["mandate_id"]
+            isOneToOne: false
+            referencedRelation: "mandates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decisions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "cabinet_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exports_log: {
+        Row: {
+          artifact_kind: string
+          artifact_ref: string | null
+          classification: string
+          country_code: string
+          exported_at: string
+          exported_by: string | null
+          id: string
+          watermark: string
+        }
+        Insert: {
+          artifact_kind: string
+          artifact_ref?: string | null
+          classification?: string
+          country_code: string
+          exported_at?: string
+          exported_by?: string | null
+          id?: string
+          watermark: string
+        }
+        Update: {
+          artifact_kind?: string
+          artifact_ref?: string | null
+          classification?: string
+          country_code?: string
+          exported_at?: string
+          exported_by?: string | null
+          id?: string
+          watermark?: string
+        }
+        Relationships: []
       }
       exposure_index: {
         Row: {
@@ -374,6 +551,53 @@ export type Database = {
           },
         ]
       }
+      goal_cycles: {
+        Row: {
+          commentary: string | null
+          created_at: string
+          created_by: string | null
+          figures: Json
+          id: string
+          kpi_id: string
+          period: string
+          snapshot_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          commentary?: string | null
+          created_at?: string
+          created_by?: string | null
+          figures?: Json
+          id?: string
+          kpi_id: string
+          period: string
+          snapshot_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          commentary?: string | null
+          created_at?: string
+          created_by?: string | null
+          figures?: Json
+          id?: string
+          kpi_id?: string
+          period?: string
+          snapshot_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_cycles_kpi_id_fkey"
+            columns: ["kpi_id"]
+            isOneToOne: false
+            referencedRelation: "kpis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       idle_images: {
         Row: {
           caption: string | null
@@ -500,6 +724,75 @@ export type Database = {
           },
         ]
       }
+      kpis: {
+        Row: {
+          baseline: number | null
+          cadence: string
+          classification: string
+          country_code: string
+          created_at: string
+          id: string
+          metric: string
+          ministry_id: string | null
+          owner_id: string | null
+          plan_scenario_id: string | null
+          sector_code: string
+          target: number
+          target_period: string | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          baseline?: number | null
+          cadence?: string
+          classification?: string
+          country_code: string
+          created_at?: string
+          id?: string
+          metric: string
+          ministry_id?: string | null
+          owner_id?: string | null
+          plan_scenario_id?: string | null
+          sector_code: string
+          target: number
+          target_period?: string | null
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          baseline?: number | null
+          cadence?: string
+          classification?: string
+          country_code?: string
+          created_at?: string
+          id?: string
+          metric?: string
+          ministry_id?: string | null
+          owner_id?: string | null
+          plan_scenario_id?: string | null
+          sector_code?: string
+          target?: number
+          target_period?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpis_ministry_id_fkey"
+            columns: ["ministry_id"]
+            isOneToOne: false
+            referencedRelation: "ministries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kpis_plan_scenario_id_fkey"
+            columns: ["plan_scenario_id"]
+            isOneToOne: false
+            referencedRelation: "scenarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       levers: {
         Row: {
           bounds: Json
@@ -554,6 +847,67 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sectors"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      mandates: {
+        Row: {
+          cadence: string
+          country_code: string
+          created_at: string
+          id: string
+          kpi_id: string | null
+          package_id: string | null
+          scenario_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cadence?: string
+          country_code: string
+          created_at?: string
+          id?: string
+          kpi_id?: string | null
+          package_id?: string | null
+          scenario_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cadence?: string
+          country_code?: string
+          created_at?: string
+          id?: string
+          kpi_id?: string | null
+          package_id?: string | null
+          scenario_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mandates_kpi_id_fkey"
+            columns: ["kpi_id"]
+            isOneToOne: false
+            referencedRelation: "kpis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mandates_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mandates_scenario_id_fkey"
+            columns: ["scenario_id"]
+            isOneToOne: false
+            referencedRelation: "scenarios"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -663,6 +1017,51 @@ export type Database = {
             referencedColumns: ["code"]
           },
         ]
+      }
+      packages: {
+        Row: {
+          country_code: string
+          created_at: string
+          created_by: string | null
+          enabling_actions: Json
+          gates: Json
+          id: string
+          name: string
+          sector_code: string
+          status: string
+          summary: string | null
+          target_gap_pct: number | null
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          enabling_actions?: Json
+          gates?: Json
+          id?: string
+          name: string
+          sector_code: string
+          status?: string
+          summary?: string | null
+          target_gap_pct?: number | null
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          enabling_actions?: Json
+          gates?: Json
+          id?: string
+          name?: string
+          sector_code?: string
+          status?: string
+          summary?: string | null
+          target_gap_pct?: number | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {

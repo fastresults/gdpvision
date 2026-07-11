@@ -43,16 +43,24 @@ export const askCounsel = createServerFn({ method: "POST" })
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("Counsel unavailable — missing gateway credentials.");
 
-    // 1. Retrieval — pull weighted memory objects for the scope.
+    // 1. Retrieval — pull weighted memory objects for the scope; drop suppressed sources.
+    const { data: suppressions } = await context.supabase
+      .from("source_suppressions")
+      .select("source_id")
+      .eq("scope_key", data.scopeKey)
+      .eq("active", true);
+    const suppressedIds = new Set((suppressions ?? []).map((s) => s.source_id));
+
     let q = context.supabase
       .from("memory_objects")
-      .select("id,title,kind,sector_code,weight,payload")
+      .select("id,title,kind,sector_code,weight,payload,source_id")
       .in("scope_key", [data.scopeKey, "REGIONAL"])
       .order("weight", { ascending: false })
-      .limit(80);
+      .limit(120);
     if (data.sectorHint) q = q.eq("sector_code", data.sectorHint);
-    const { data: memory, error: memErr } = await q;
+    const { data: memoryRaw, error: memErr } = await q;
     if (memErr) throw new Error(memErr.message);
+    const memory = (memoryRaw ?? []).filter((m) => !m.source_id || !suppressedIds.has(m.source_id)).slice(0, 80);
 
     const tokens = tokenize(data.question);
     const scored = (memory ?? [])

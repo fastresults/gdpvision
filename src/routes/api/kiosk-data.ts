@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { blockMarketingRequest } from "@/lib/host-guard";
 
 const DEFAULT_SETTINGS = {
   admin_title: "GDP Vision Admin",
@@ -13,7 +12,6 @@ export const Route = createFileRoute("/api/kiosk-data")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const blocked = blockMarketingRequest(request);
         if (blocked) return blocked;
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

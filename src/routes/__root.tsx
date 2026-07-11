@@ -12,8 +12,6 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import faviconAsset from "../assets/favicon.png.asset.json";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { getRequestSiteMode } from "../lib/site-mode.functions";
-import type { SiteMode } from "../lib/site-mode";
 
 
 function NotFoundComponent() {
@@ -77,14 +75,6 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  loader: async (): Promise<{ siteMode: SiteMode; siteHost: string }> => {
-    try {
-      const { mode, host } = await getRequestSiteMode();
-      return { siteMode: mode, siteHost: host };
-    } catch {
-      return { siteMode: "present", siteHost: "" };
-    }
-  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -120,11 +110,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
-  const data = Route.useLoaderData();
-  const mode = data?.siteMode ?? "present";
-  const host = data?.siteHost ?? "";
   return (
-    <html lang="en" data-site-mode={mode} data-site-host={host}>
+    <html lang="en">
       <head>
         <HeadContent />
       </head>

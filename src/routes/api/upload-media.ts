@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { blockMarketingRequest } from "@/lib/host-guard";
 
 const IMAGE_MIMES = ["image/png", "image/jpeg", "image/webp", "image/svg+xml", "image/gif"];
 const VIDEO_MIMES = ["video/mp4", "video/webm", "video/quicktime"];
@@ -27,7 +26,6 @@ export const Route = createFileRoute("/api/upload-media")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const blocked = blockMarketingRequest(request);
         if (blocked) return blocked;
 
         try {

@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { queryOptions, useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 
-import { getComms, saveComms } from "@/lib/narrative.functions";
+import { approveComms, getComms, saveComms } from "@/lib/narrative.functions";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 
 const KINDS = ["press_release", "op_ed", "briefing", "speech", "social", "memo"] as const;

@@ -34,7 +34,7 @@ function Queue() {
   const decide = useServerFn(decideIntake);
 
   const mut = useMutation({
-    mutationFn: (v: Parameters<typeof decide>[0]["data"]) => decide({ data: v }),
+    mutationFn: (v: { id: string; decision: "accepted" | "rejected" | "deferred"; promoteAsKind?: "audience" | "position" | "statement" | "outlet" | "precedent"; finalWeight?: number }) => decide({ data: v }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["intake", code, "pending"] });
       qc.invalidateQueries({ queryKey: ["memory", code] });

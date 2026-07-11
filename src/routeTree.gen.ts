@@ -15,13 +15,20 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as KioskIndexRouteImport } from './routes/kiosk.index'
 import { Route as KioskAdminRouteImport } from './routes/kiosk.admin'
+import { Route as AuthenticatedNarrativeRouteRouteImport } from './routes/_authenticated/narrative/route'
 import { Route as AuthenticatedInstrumentRouteRouteImport } from './routes/_authenticated/instrument/route'
+import { Route as AuthenticatedNarrativeIndexRouteImport } from './routes/_authenticated/narrative/index'
 import { Route as AuthenticatedInstrumentIndexRouteImport } from './routes/_authenticated/instrument/index'
 import { Route as KioskApiUploadPresentationRouteImport } from './routes/kiosk.api.upload-presentation'
 import { Route as KioskApiUploadMediaRouteImport } from './routes/kiosk.api.upload-media'
 import { Route as KioskApiKioskDataRouteImport } from './routes/kiosk.api.kiosk-data'
+import { Route as AuthenticatedNarrativeQueueRouteImport } from './routes/_authenticated/narrative/queue'
+import { Route as AuthenticatedNarrativeIngestRouteImport } from './routes/_authenticated/narrative/ingest'
+import { Route as AuthenticatedNarrativeCommsRouteImport } from './routes/_authenticated/narrative/comms'
+import { Route as AuthenticatedNarrativeBrainRouteImport } from './routes/_authenticated/narrative/brain'
 import { Route as AuthenticatedInstrumentStewardshipRouteImport } from './routes/_authenticated/instrument/stewardship'
 import { Route as AuthenticatedInstrumentExposureRouteImport } from './routes/_authenticated/instrument/exposure'
+import { Route as AuthenticatedNarrativeStrategyIndexRouteImport } from './routes/_authenticated/narrative/strategy.index'
 import { Route as AuthenticatedInstrumentScenariosIndexRouteImport } from './routes/_authenticated/instrument/scenarios.index'
 import { Route as AuthenticatedInstrumentPortfolioIndexRouteImport } from './routes/_authenticated/instrument/portfolio.index'
 import { Route as AuthenticatedInstrumentCabinetIndexRouteImport } from './routes/_authenticated/instrument/cabinet.index'
@@ -66,11 +73,23 @@ const KioskAdminRoute = KioskAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => KioskRoute,
 } as any)
+const AuthenticatedNarrativeRouteRoute =
+  AuthenticatedNarrativeRouteRouteImport.update({
+    id: '/narrative',
+    path: '/narrative',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedInstrumentRouteRoute =
   AuthenticatedInstrumentRouteRouteImport.update({
     id: '/instrument',
     path: '/instrument',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedNarrativeIndexRoute =
+  AuthenticatedNarrativeIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
   } as any)
 const AuthenticatedInstrumentIndexRoute =
   AuthenticatedInstrumentIndexRouteImport.update({
@@ -94,6 +113,30 @@ const KioskApiKioskDataRoute = KioskApiKioskDataRouteImport.update({
   path: '/api/kiosk-data',
   getParentRoute: () => KioskRoute,
 } as any)
+const AuthenticatedNarrativeQueueRoute =
+  AuthenticatedNarrativeQueueRouteImport.update({
+    id: '/queue',
+    path: '/queue',
+    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
+  } as any)
+const AuthenticatedNarrativeIngestRoute =
+  AuthenticatedNarrativeIngestRouteImport.update({
+    id: '/ingest',
+    path: '/ingest',
+    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
+  } as any)
+const AuthenticatedNarrativeCommsRoute =
+  AuthenticatedNarrativeCommsRouteImport.update({
+    id: '/comms',
+    path: '/comms',
+    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
+  } as any)
+const AuthenticatedNarrativeBrainRoute =
+  AuthenticatedNarrativeBrainRouteImport.update({
+    id: '/brain',
+    path: '/brain',
+    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
+  } as any)
 const AuthenticatedInstrumentStewardshipRoute =
   AuthenticatedInstrumentStewardshipRouteImport.update({
     id: '/stewardship',
@@ -105,6 +148,12 @@ const AuthenticatedInstrumentExposureRoute =
     id: '/exposure',
     path: '/exposure',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+  } as any)
+const AuthenticatedNarrativeStrategyIndexRoute =
+  AuthenticatedNarrativeStrategyIndexRouteImport.update({
+    id: '/strategy/',
+    path: '/strategy/',
+    getParentRoute: () => AuthenticatedNarrativeRouteRoute,
   } as any)
 const AuthenticatedInstrumentScenariosIndexRoute =
   AuthenticatedInstrumentScenariosIndexRouteImport.update({
@@ -196,14 +245,20 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/kiosk': typeof KioskRouteWithChildren
   '/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
+  '/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
   '/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
   '/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
+  '/narrative/brain': typeof AuthenticatedNarrativeBrainRoute
+  '/narrative/comms': typeof AuthenticatedNarrativeCommsRoute
+  '/narrative/ingest': typeof AuthenticatedNarrativeIngestRoute
+  '/narrative/queue': typeof AuthenticatedNarrativeQueueRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
   '/instrument/': typeof AuthenticatedInstrumentIndexRoute
+  '/narrative/': typeof AuthenticatedNarrativeIndexRoute
   '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
   '/instrument/mandate/studio': typeof AuthenticatedInstrumentMandateStudioRoute
@@ -218,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/instrument/cabinet/': typeof AuthenticatedInstrumentCabinetIndexRoute
   '/instrument/portfolio/': typeof AuthenticatedInstrumentPortfolioIndexRoute
   '/instrument/scenarios/': typeof AuthenticatedInstrumentScenariosIndexRoute
+  '/narrative/strategy/': typeof AuthenticatedNarrativeStrategyIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -226,10 +282,15 @@ export interface FileRoutesByTo {
   '/kiosk': typeof KioskIndexRoute
   '/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
   '/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
+  '/narrative/brain': typeof AuthenticatedNarrativeBrainRoute
+  '/narrative/comms': typeof AuthenticatedNarrativeCommsRoute
+  '/narrative/ingest': typeof AuthenticatedNarrativeIngestRoute
+  '/narrative/queue': typeof AuthenticatedNarrativeQueueRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
   '/instrument': typeof AuthenticatedInstrumentIndexRoute
+  '/narrative': typeof AuthenticatedNarrativeIndexRoute
   '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
   '/instrument/mandate/studio': typeof AuthenticatedInstrumentMandateStudioRoute
@@ -244,6 +305,7 @@ export interface FileRoutesByTo {
   '/instrument/cabinet': typeof AuthenticatedInstrumentCabinetIndexRoute
   '/instrument/portfolio': typeof AuthenticatedInstrumentPortfolioIndexRoute
   '/instrument/scenarios': typeof AuthenticatedInstrumentScenariosIndexRoute
+  '/narrative/strategy': typeof AuthenticatedNarrativeStrategyIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -252,14 +314,20 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/kiosk': typeof KioskRouteWithChildren
   '/_authenticated/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
+  '/_authenticated/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
   '/_authenticated/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
   '/_authenticated/instrument/stewardship': typeof AuthenticatedInstrumentStewardshipRoute
+  '/_authenticated/narrative/brain': typeof AuthenticatedNarrativeBrainRoute
+  '/_authenticated/narrative/comms': typeof AuthenticatedNarrativeCommsRoute
+  '/_authenticated/narrative/ingest': typeof AuthenticatedNarrativeIngestRoute
+  '/_authenticated/narrative/queue': typeof AuthenticatedNarrativeQueueRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
   '/_authenticated/instrument/': typeof AuthenticatedInstrumentIndexRoute
+  '/_authenticated/narrative/': typeof AuthenticatedNarrativeIndexRoute
   '/_authenticated/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/_authenticated/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
   '/_authenticated/instrument/mandate/studio': typeof AuthenticatedInstrumentMandateStudioRoute
@@ -274,6 +342,7 @@ export interface FileRoutesById {
   '/_authenticated/instrument/cabinet/': typeof AuthenticatedInstrumentCabinetIndexRoute
   '/_authenticated/instrument/portfolio/': typeof AuthenticatedInstrumentPortfolioIndexRoute
   '/_authenticated/instrument/scenarios/': typeof AuthenticatedInstrumentScenariosIndexRoute
+  '/_authenticated/narrative/strategy/': typeof AuthenticatedNarrativeStrategyIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -282,14 +351,20 @@ export interface FileRouteTypes {
     | '/auth'
     | '/kiosk'
     | '/instrument'
+    | '/narrative'
     | '/kiosk/admin'
     | '/kiosk/'
     | '/instrument/exposure'
     | '/instrument/stewardship'
+    | '/narrative/brain'
+    | '/narrative/comms'
+    | '/narrative/ingest'
+    | '/narrative/queue'
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
     | '/instrument/'
+    | '/narrative/'
     | '/instrument/cabinet/session'
     | '/instrument/mandate/scorecard'
     | '/instrument/mandate/studio'
@@ -304,6 +379,7 @@ export interface FileRouteTypes {
     | '/instrument/cabinet/'
     | '/instrument/portfolio/'
     | '/instrument/scenarios/'
+    | '/narrative/strategy/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -312,10 +388,15 @@ export interface FileRouteTypes {
     | '/kiosk'
     | '/instrument/exposure'
     | '/instrument/stewardship'
+    | '/narrative/brain'
+    | '/narrative/comms'
+    | '/narrative/ingest'
+    | '/narrative/queue'
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
     | '/instrument'
+    | '/narrative'
     | '/instrument/cabinet/session'
     | '/instrument/mandate/scorecard'
     | '/instrument/mandate/studio'
@@ -330,6 +411,7 @@ export interface FileRouteTypes {
     | '/instrument/cabinet'
     | '/instrument/portfolio'
     | '/instrument/scenarios'
+    | '/narrative/strategy'
   id:
     | '__root__'
     | '/'
@@ -337,14 +419,20 @@ export interface FileRouteTypes {
     | '/auth'
     | '/kiosk'
     | '/_authenticated/instrument'
+    | '/_authenticated/narrative'
     | '/kiosk/admin'
     | '/kiosk/'
     | '/_authenticated/instrument/exposure'
     | '/_authenticated/instrument/stewardship'
+    | '/_authenticated/narrative/brain'
+    | '/_authenticated/narrative/comms'
+    | '/_authenticated/narrative/ingest'
+    | '/_authenticated/narrative/queue'
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
     | '/_authenticated/instrument/'
+    | '/_authenticated/narrative/'
     | '/_authenticated/instrument/cabinet/session'
     | '/_authenticated/instrument/mandate/scorecard'
     | '/_authenticated/instrument/mandate/studio'
@@ -359,6 +447,7 @@ export interface FileRouteTypes {
     | '/_authenticated/instrument/cabinet/'
     | '/_authenticated/instrument/portfolio/'
     | '/_authenticated/instrument/scenarios/'
+    | '/_authenticated/narrative/strategy/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -412,12 +501,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KioskAdminRouteImport
       parentRoute: typeof KioskRoute
     }
+    '/_authenticated/narrative': {
+      id: '/_authenticated/narrative'
+      path: '/narrative'
+      fullPath: '/narrative'
+      preLoaderRoute: typeof AuthenticatedNarrativeRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/instrument': {
       id: '/_authenticated/instrument'
       path: '/instrument'
       fullPath: '/instrument'
       preLoaderRoute: typeof AuthenticatedInstrumentRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/narrative/': {
+      id: '/_authenticated/narrative/'
+      path: '/'
+      fullPath: '/narrative/'
+      preLoaderRoute: typeof AuthenticatedNarrativeIndexRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
     }
     '/_authenticated/instrument/': {
       id: '/_authenticated/instrument/'
@@ -447,6 +550,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KioskApiKioskDataRouteImport
       parentRoute: typeof KioskRoute
     }
+    '/_authenticated/narrative/queue': {
+      id: '/_authenticated/narrative/queue'
+      path: '/queue'
+      fullPath: '/narrative/queue'
+      preLoaderRoute: typeof AuthenticatedNarrativeQueueRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
+    }
+    '/_authenticated/narrative/ingest': {
+      id: '/_authenticated/narrative/ingest'
+      path: '/ingest'
+      fullPath: '/narrative/ingest'
+      preLoaderRoute: typeof AuthenticatedNarrativeIngestRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
+    }
+    '/_authenticated/narrative/comms': {
+      id: '/_authenticated/narrative/comms'
+      path: '/comms'
+      fullPath: '/narrative/comms'
+      preLoaderRoute: typeof AuthenticatedNarrativeCommsRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
+    }
+    '/_authenticated/narrative/brain': {
+      id: '/_authenticated/narrative/brain'
+      path: '/brain'
+      fullPath: '/narrative/brain'
+      preLoaderRoute: typeof AuthenticatedNarrativeBrainRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
+    }
     '/_authenticated/instrument/stewardship': {
       id: '/_authenticated/instrument/stewardship'
       path: '/stewardship'
@@ -460,6 +591,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/instrument/exposure'
       preLoaderRoute: typeof AuthenticatedInstrumentExposureRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
+    '/_authenticated/narrative/strategy/': {
+      id: '/_authenticated/narrative/strategy/'
+      path: '/strategy'
+      fullPath: '/narrative/strategy/'
+      preLoaderRoute: typeof AuthenticatedNarrativeStrategyIndexRouteImport
+      parentRoute: typeof AuthenticatedNarrativeRouteRoute
     }
     '/_authenticated/instrument/scenarios/': {
       id: '/_authenticated/instrument/scenarios/'
@@ -620,13 +758,41 @@ const AuthenticatedInstrumentRouteRouteWithChildren =
     AuthenticatedInstrumentRouteRouteChildren,
   )
 
+interface AuthenticatedNarrativeRouteRouteChildren {
+  AuthenticatedNarrativeBrainRoute: typeof AuthenticatedNarrativeBrainRoute
+  AuthenticatedNarrativeCommsRoute: typeof AuthenticatedNarrativeCommsRoute
+  AuthenticatedNarrativeIngestRoute: typeof AuthenticatedNarrativeIngestRoute
+  AuthenticatedNarrativeQueueRoute: typeof AuthenticatedNarrativeQueueRoute
+  AuthenticatedNarrativeIndexRoute: typeof AuthenticatedNarrativeIndexRoute
+  AuthenticatedNarrativeStrategyIndexRoute: typeof AuthenticatedNarrativeStrategyIndexRoute
+}
+
+const AuthenticatedNarrativeRouteRouteChildren: AuthenticatedNarrativeRouteRouteChildren =
+  {
+    AuthenticatedNarrativeBrainRoute: AuthenticatedNarrativeBrainRoute,
+    AuthenticatedNarrativeCommsRoute: AuthenticatedNarrativeCommsRoute,
+    AuthenticatedNarrativeIngestRoute: AuthenticatedNarrativeIngestRoute,
+    AuthenticatedNarrativeQueueRoute: AuthenticatedNarrativeQueueRoute,
+    AuthenticatedNarrativeIndexRoute: AuthenticatedNarrativeIndexRoute,
+    AuthenticatedNarrativeStrategyIndexRoute:
+      AuthenticatedNarrativeStrategyIndexRoute,
+  }
+
+const AuthenticatedNarrativeRouteRouteWithChildren =
+  AuthenticatedNarrativeRouteRoute._addFileChildren(
+    AuthenticatedNarrativeRouteRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedInstrumentRouteRoute: typeof AuthenticatedInstrumentRouteRouteWithChildren
+  AuthenticatedNarrativeRouteRoute: typeof AuthenticatedNarrativeRouteRouteWithChildren
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedInstrumentRouteRoute:
     AuthenticatedInstrumentRouteRouteWithChildren,
+  AuthenticatedNarrativeRouteRoute:
+    AuthenticatedNarrativeRouteRouteWithChildren,
 }
 
 const AuthenticatedRouteRouteWithChildren =

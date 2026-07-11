@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -44,9 +44,24 @@ import {
   type IdleImage,
 } from "@/lib/idle-images.functions";
 import { listCategories, type Category } from "@/lib/categories.functions";
+import { getRequestSiteMode } from "@/lib/site-mode.functions";
+import type { SiteMode } from "@/lib/site-mode";
 
 
 export const Route = createFileRoute("/admin")({
+  loader: async (): Promise<{ mode: SiteMode }> => {
+    let mode: SiteMode = "present";
+    try {
+      const result = await getRequestSiteMode();
+      mode = result.mode;
+    } catch {
+      return { mode };
+    }
+    if (mode === "marketing") {
+      throw redirect({ href: "https://present.gdpvision.com/admin" });
+    }
+    return { mode };
+  },
   head: () => ({
     meta: [
       { title: "GDP Vision — Admin" },
@@ -125,6 +140,25 @@ function InlineEditable({
 }
 
 function AdminPage() {
+  const { mode } = Route.useLoaderData();
+
+  if (mode === "marketing") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
+        <a
+          href="https://present.gdpvision.com/admin"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+        >
+          Open GDP Vision Admin
+        </a>
+      </div>
+    );
+  }
+
+  return <AdminContent />;
+}
+
+function AdminContent() {
   const qc = useQueryClient();
   const fetchItems = useServerFn(listItems);
   const fetchSettings = useServerFn(listSettings);

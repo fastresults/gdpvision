@@ -22,6 +22,7 @@ import { Route as KioskApiUploadMediaRouteImport } from './routes/kiosk.api.uplo
 import { Route as KioskApiKioskDataRouteImport } from './routes/kiosk.api.kiosk-data'
 import { Route as AuthenticatedInstrumentStewardshipRouteImport } from './routes/_authenticated/instrument/stewardship'
 import { Route as AuthenticatedInstrumentExposureRouteImport } from './routes/_authenticated/instrument/exposure'
+import { Route as AuthenticatedInstrumentScenariosIndexRouteImport } from './routes/_authenticated/instrument/scenarios.index'
 import { Route as AuthenticatedInstrumentPortfolioIndexRouteImport } from './routes/_authenticated/instrument/portfolio.index'
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
 import { Route as AuthenticatedInstrumentSectorCodeRouteImport } from './routes/_authenticated/instrument/sector.$code'
@@ -96,6 +97,12 @@ const AuthenticatedInstrumentExposureRoute =
     path: '/exposure',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
+const AuthenticatedInstrumentScenariosIndexRoute =
+  AuthenticatedInstrumentScenariosIndexRouteImport.update({
+    id: '/scenarios/',
+    path: '/scenarios/',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+  } as any)
 const AuthenticatedInstrumentPortfolioIndexRoute =
   AuthenticatedInstrumentPortfolioIndexRouteImport.update({
     id: '/portfolio/',
@@ -138,6 +145,7 @@ export interface FileRoutesByFullPath {
   '/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/instrument/portfolio/': typeof AuthenticatedInstrumentPortfolioIndexRoute
+  '/instrument/scenarios/': typeof AuthenticatedInstrumentScenariosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -154,6 +162,7 @@ export interface FileRoutesByTo {
   '/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/instrument/portfolio': typeof AuthenticatedInstrumentPortfolioIndexRoute
+  '/instrument/scenarios': typeof AuthenticatedInstrumentScenariosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -174,6 +183,7 @@ export interface FileRoutesById {
   '/_authenticated/instrument/sector/$code': typeof AuthenticatedInstrumentSectorCodeRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/_authenticated/instrument/portfolio/': typeof AuthenticatedInstrumentPortfolioIndexRoute
+  '/_authenticated/instrument/scenarios/': typeof AuthenticatedInstrumentScenariosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -194,6 +204,7 @@ export interface FileRouteTypes {
     | '/instrument/sector/$code'
     | '/kiosk/api/public/presentation-pdf'
     | '/instrument/portfolio/'
+    | '/instrument/scenarios/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -210,6 +221,7 @@ export interface FileRouteTypes {
     | '/instrument/sector/$code'
     | '/kiosk/api/public/presentation-pdf'
     | '/instrument/portfolio'
+    | '/instrument/scenarios'
   id:
     | '__root__'
     | '/'
@@ -229,6 +241,7 @@ export interface FileRouteTypes {
     | '/_authenticated/instrument/sector/$code'
     | '/kiosk/api/public/presentation-pdf'
     | '/_authenticated/instrument/portfolio/'
+    | '/_authenticated/instrument/scenarios/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -331,6 +344,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInstrumentExposureRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
+    '/_authenticated/instrument/scenarios/': {
+      id: '/_authenticated/instrument/scenarios/'
+      path: '/scenarios'
+      fullPath: '/instrument/scenarios/'
+      preLoaderRoute: typeof AuthenticatedInstrumentScenariosIndexRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
     '/_authenticated/instrument/portfolio/': {
       id: '/_authenticated/instrument/portfolio/'
       path: '/portfolio'
@@ -369,6 +389,7 @@ interface AuthenticatedInstrumentRouteRouteChildren {
   AuthenticatedInstrumentPortfolioMinistryRoute: typeof AuthenticatedInstrumentPortfolioMinistryRoute
   AuthenticatedInstrumentSectorCodeRoute: typeof AuthenticatedInstrumentSectorCodeRoute
   AuthenticatedInstrumentPortfolioIndexRoute: typeof AuthenticatedInstrumentPortfolioIndexRoute
+  AuthenticatedInstrumentScenariosIndexRoute: typeof AuthenticatedInstrumentScenariosIndexRoute
 }
 
 const AuthenticatedInstrumentRouteRouteChildren: AuthenticatedInstrumentRouteRouteChildren =
@@ -383,6 +404,8 @@ const AuthenticatedInstrumentRouteRouteChildren: AuthenticatedInstrumentRouteRou
       AuthenticatedInstrumentSectorCodeRoute,
     AuthenticatedInstrumentPortfolioIndexRoute:
       AuthenticatedInstrumentPortfolioIndexRoute,
+    AuthenticatedInstrumentScenariosIndexRoute:
+      AuthenticatedInstrumentScenariosIndexRoute,
   }
 
 const AuthenticatedInstrumentRouteRouteWithChildren =

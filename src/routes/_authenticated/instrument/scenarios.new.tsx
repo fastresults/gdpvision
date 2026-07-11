@@ -341,16 +341,3 @@ function bandPath(path: Array<{ p10: number; p50: number; p90: number }>) {
   return { band, median, zeroY: y(0) };
 }
 
-// Run a callback once when deps become non-empty; small helper to avoid
-// re-seeding levers on every render.
-function useMemoOnce(fn: () => void, deps: unknown[]) {
-  const [done, setDone] = useState(false);
-  useMemo(() => {
-    if (done) return;
-    if (deps.some((d) => Boolean(d))) {
-      fn();
-      setDone(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
-}

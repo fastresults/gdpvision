@@ -225,6 +225,19 @@ function OnboardWizard() {
           </div>
         )}
 
+        <div className="flex flex-wrap gap-2 font-mono text-[10px] uppercase tracking-[0.15em]">
+          <span className={`px-2 py-0.5 border ${ingestKeys.perplexity ? "border-emerald-500 text-emerald-700" : "border-red-500 text-red-700"}`}>
+            Perplexity {ingestKeys.perplexity ? "✓" : "✕"}
+          </span>
+          <span className={`px-2 py-0.5 border ${ingestKeys.firecrawl ? "border-emerald-500 text-emerald-700" : "border-red-500 text-red-700"}`}>
+            Firecrawl {ingestKeys.firecrawl ? "✓" : "✕"}
+          </span>
+          <span className={`px-2 py-0.5 border ${ingestKeys.lovable_ai ? "border-emerald-500 text-emerald-700" : "border-red-500 text-red-700"}`}>
+            Lovable AI {ingestKeys.lovable_ai ? "✓" : "✕"}
+          </span>
+        </div>
+
+
         {bulkErr && (
           <div className="rounded border border-red-500/50 bg-red-500/10 p-3 text-xs text-red-700">
             Run all pending stopped: {bulkErr}

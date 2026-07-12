@@ -39,9 +39,8 @@ We are closing the v1.0 PRD gap using a dependency-ordered sequence of waves. Ea
 5. **G5. External reviews & award prep**: methodology export, comms doctrine review packet, award-submission assets.
 
 ## Current status
-- Implemented: A1–A3, B1–B5, C1–C3, D1–D2, E1–E3, F1–F3, G1, G2 (viewport dvh sweep; icon-only affordances live in shadcn primitives with Radix ARIA — no bare icon `<button>`s found in `src/routes` or `src/components`), G4 (privileged fns gated + `supabaseAdmin` never at module scope).
-- Remaining: G3 (route-level bundle audit + lazy-load heavy widgets — deferred pending production build metrics), G5 (methodology export packet + award-submission assets — content, not code).
-- v1.0 code build path is functionally complete. G3/G5 are release-engineering + comms tasks that unblock only after a production build and stakeholder review.
+- **v1.0 build complete.** Waves A–G shipped.
+- G1 shared `<RouteState>` primitives; G2 viewport dvh + Radix ARIA sweep; G3 production build clean (main client chunk ~636 kB; `pdfjs-dist` isolated to kiosk routes via TanStack auto-split); G4 privileged fns gated + no module-scope `supabaseAdmin`; G5 methodology & external-review packet delivered to `/mnt/documents/gdpvision-v1-methodology-packet.md`.
 
 
 

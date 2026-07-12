@@ -62,7 +62,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         router.invalidate();
-        navigate({ to: "/instrument" });
+        navigate({ to: await postSignInRedirect() });
       } else if (mode === "sign-up") {
         const { error } = await supabase.auth.signUp({
           email,
@@ -74,7 +74,7 @@ function AuthPage() {
         });
         if (error) throw error;
         router.invalidate();
-        navigate({ to: "/instrument" });
+        navigate({ to: await postSignInRedirect() });
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,

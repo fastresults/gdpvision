@@ -62,12 +62,12 @@ export const runCadenceClose = createServerFn({ method: "POST" })
 
     const { data: kpis, error: kpiErr } = await supabaseAdmin
       .from("kpis")
-      .select("id,current_value,target_value");
+      .select("id,baseline,target");
     if (kpiErr) throw new Error(kpiErr.message);
 
     const snapshots = (kpis ?? []).map((k) => {
-      const value = k.current_value as number | null;
-      const target = k.target_value as number | null;
+      const value = k.baseline as number | null;
+      const target = k.target as number | null;
       const variance =
         value !== null && target !== null && target !== 0
           ? Number((((value - target) / target) * 100).toFixed(2))
@@ -82,6 +82,7 @@ export const runCadenceClose = createServerFn({ method: "POST" })
         created_by: context.userId,
       };
     });
+
 
     if (snapshots.length > 0) {
       const { error: snapErr } = await supabaseAdmin.from("kpi_snapshots").insert(snapshots);

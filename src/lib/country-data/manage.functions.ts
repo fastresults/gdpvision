@@ -668,6 +668,53 @@ export const listMinistryProfiles = createServerFn({ method: "POST" })
     return (rows ?? []).map((r) => ({ ...r, ministries: byslug.get(r.ministry_slug) ?? null }));
   });
 
+const MinisterProfileInput = z.object({
+  countryCode: z.string().min(2).max(4),
+  ministrySlug: z.string().min(1),
+  profile: z.object({
+    name: z.string().nullable().optional(),
+    title: z.string().nullable().optional(),
+    party: z.string().nullable().optional(),
+    appointed_at: z.string().nullable().optional(),
+    bio: z.string().nullable().optional(),
+    birth_date: z.string().nullable().optional(),
+    education: z.array(z.string()).optional(),
+    career: z.array(z.string()).optional(),
+    contact: z.object({
+      office_phone: z.string().nullable().optional(),
+      email: z.string().nullable().optional(),
+      office_address: z.string().nullable().optional(),
+      website: z.string().nullable().optional(),
+    }).optional(),
+    socials: z.object({
+      twitter: z.string().nullable().optional(),
+      facebook: z.string().nullable().optional(),
+      linkedin: z.string().nullable().optional(),
+      instagram: z.string().nullable().optional(),
+    }).optional(),
+    portrait_url: z.string().nullable().optional(),
+  }),
+});
+
+export const updateMinisterProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => MinisterProfileInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const name = data.profile.name ?? null;
+    const { error } = await supabaseAdmin
+      .from("ministry_profiles")
+      .update({
+        minister_profile: data.profile,
+        minister: name,
+      })
+      .eq("country_code", data.countryCode)
+      .eq("ministry_slug", data.ministrySlug);
+    if (error) throw error;
+    return { ok: true };
+  });
+
 // ============================================================
 // Corpus stats + semantic search
 // ============================================================

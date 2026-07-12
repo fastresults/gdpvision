@@ -112,6 +112,12 @@ function OnboardWizard() {
     sector_composition: useServerFn(runSectorCompositionAgent),
     ministries: useServerFn(runMinistriesAgent),
     ministry_sector_map: useServerFn(runMinistrySectorMapAgent),
+    source_registry: useServerFn(runSourceRegistryAgent),
+    kpi_seed: useServerFn(runKpiSeedAgent),
+    sector_dossier: useServerFn(runSectorDossierAgent),
+    ministry_deep_dive: useServerFn(runMinistryDeepDiveAgent),
+    corpus_ingest: useServerFn(runCorpusIngest),
+    second_brain_seed: useServerFn(runSecondBrainSeedAgent),
   };
   const committers: Record<Stage, any> = {
     profile: useServerFn(commitProfile),
@@ -119,6 +125,13 @@ function OnboardWizard() {
     sector_composition: useServerFn(commitSectorComposition),
     ministries: useServerFn(commitMinistries),
     ministry_sector_map: useServerFn(commitMinistrySectorMap),
+    source_registry: useServerFn(commitSourceRegistry),
+    kpi_seed: useServerFn(commitKpis),
+    sector_dossier: useServerFn(commitSectorDossiers),
+    ministry_deep_dive: useServerFn(commitMinistryDeepDive),
+    // corpus_ingest auto-commits (no user review needed) — provide a no-op
+    corpus_ingest: async () => ({ ok: true }),
+    second_brain_seed: useServerFn(commitSecondBrainSeed),
   };
 
   const refresh = () =>

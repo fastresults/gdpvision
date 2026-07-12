@@ -1,53 +1,35 @@
-We are closing the v1.0 PRD gap using a dependency-ordered sequence of waves. Each wave is independently shippable and must pass its stated definition-of-done before the next wave begins.
+## Goal
 
-## Wave A — Provisioning & Identity (Phase 0 finish)
-1. **A1. Country Configuration** (`/config`): CARICOM/OECS registry browser, country-pack review, portfolio→sector mapping, activation toggle. Admin-gated.
-2. **A2. National Signature generator**: AI-generated country signature stored in `countries.signature_json`, surfaced on Config and Ledger home.
-3. **A3. Universal keying audit**: `runKeyingAudit()` scanning all domain tables for null/invalid `country_id`/`sector_id`; route `/admin/audits/keying` with rerun + export.
+Replace the fixed hero paragraph in `src/components/marketing/MarketingHome.tsx` (line 98) with a rotating copy block drawn from the eight "Existential Threats to Caribbean GDP Inflows". On every page load, block #1 (The CBI Cliff) is shown first; blocks #2–#8 shuffle so each visitor sees a different threat highlighted next to the CBI framing.
 
-## Wave B — Signal→Strategy Traceability (Phase 4 milestone)
-1. **B1. Context Dossier (Screen 10)**: deepen `/narrative/signal/$id` with facts, coverage, precedents, open questions, and a "draft strategy" CTA.
-2. **B2. Retrieval citation rail**: persist citation bindings per statement/artifact; inline markers in Strategy/Comms/Counsel editors.
-3. **B3. Ledger fact-check at generate + approve**: red/amber/green claim chips with override modal writing to `data_revisions`.
-4. **B4. Source suppression enforcement**: wrap all retrieval paths through `applySourceSuppressions`.
-5. **B5. End-to-end traceability view**: route `/narrative/trace/$signal_id` and `narrative_lineage` table (already implemented).
+## Behavior
 
-## Wave C — Transparency & Self-Serve (Screens 17, 18)
-1. **C1. Admin (Screen 18)**: user delegation, portfolio mapping editor, instance config, invite flow, audit log viewer.
-2. **C2. Codex (Screen 17)**: browsable methodology store with anchored entries seeded via migration.
-3. **C3. Methodology transparency drill-downs**: `WhyThisNumber` component on Ledger KPIs, CBI Exposure, Scenario outputs (already implemented).
+- On mount, the hero shows two stacked copy blocks in the left column of the existing hero grid:
+  1. **The CBI Cliff** (always first, always in the same slot).
+  2. One randomly selected block from #2–#8 (Storm, Tourism, Correspondent banking, Debt, Energy, Regulation, Talent).
+- Randomization runs once per page load in a `useEffect` (client only) to avoid SSR/CSR hydration mismatch — the SSR pass renders the CBI block plus a stable fallback (block #2, "One Storm from Zero"); the client swaps in the random pick after hydration.
+- Each block renders with the same visual treatment already used on line 98 (`mt-8 max-w-xl text-[17px] leading-relaxed text-ink-700 md:text-[21px]`) and gets a small mono eyebrow above it with the threat's title, matching the existing `font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500` styling.
+- No other hero elements change: the `GDPVision · v1.0` eyebrow, `h1`, gold rule, and the two CTAs (`Request a Cabinet briefing`, `See the instrument ↓`) stay exactly where they are.
 
-## Wave D — Counsel GA & Mobile
-1. **D1. Counsel Mobile (Screen 12b)**: hold-to-record waveform, slide-up answer sheet, source drawer, offline/reconnect states.
-2. **D2. Counsel hardening for GA**: rate limits, budget caps, audit trail (already implemented); verify auth on every voice endpoint.
+## Implementation
 
-## Wave E — Engine Depth (Cadence, Goal-Seek, Ripple)
-1. **E1. Cadence engine**: daily cron closing monthly/quarterly/annual/term windows; `kpi_snapshots` + `cadence_closes` tables.
-2. **E2. Goal-seek**: `solveForTarget(kpi_id, target_value, horizon)` lever search in Scenario Builder.
-3. **E3. Ripple propagation**: `sector_edges` adjacency matrix; scenario simulator shows first/second-order decomposition.
+1. **New file** `src/lib/existential-threats.ts` — exports a typed array of the eight threats (`{ id, title, body }`), copy pulled verbatim from the brief. `id: "cbi-cliff"` is index 0; the other seven follow in the order given.
+2. **Edit** `src/components/marketing/MarketingHome.tsx`:
+   - Import the threats array and `useEffect`, `useState`.
+   - Add a `useThreatOfTheDay()` local hook (or inline state) that:
+     - Initializes to `THREATS[1]` (stable SSR value).
+     - On mount, sets state to `THREATS[1 + Math.floor(Math.random() * 7)]`.
+   - Replace the hard-coded `<p>` on line 98 with a fragment that renders the CBI block first, then the rotating block, each with an eyebrow (`<div>` mono label) + `<p>` body.
+3. No route, data, or backend changes. No new dependencies.
 
-## Wave F — Documents & Decisions
-1. **F1. Decisions register**: `/cabinet/decisions` first-class list with filters and export; extend `decisions` table with export status.
-2. **F2. Document export system**: `renderDocument(kind, id)` → PDF/HTML for Cabinet decision, Briefing pack, FDI package, Term report, State-of-the-Mandate.
-3. **F3. Onboarding seed flow**: Second Brain templates seeded per Country Pack activation.
+## Out of scope
 
-## Wave G — State Coverage & GA Hardening (Phase 5)
-1. **G1. State coverage sweep**: empty / loading / error / stale states on every `_authenticated/*` route using shared `<RouteState>` primitives.
-2. **G2. Accessibility audit**: WCAG 2.2 AA (AAA for Session Mode + headline numbers), reduced-motion parity, axe CI check.
-3. **G3. Performance budget**: route-level bundle audit; lazy-load heavy widgets; target LCP < 2.5s.
-4. **G4. Security audit**: `requireSupabaseAuth` + role checks on all privileged server functions; run `supabase--linter`; no `supabaseAdmin` at module scope in `.functions.ts`.
-5. **G5. External reviews & award prep**: methodology export, comms doctrine review packet, award-submission assets.
+- Persisting which block a returning user last saw (spec says randomize per load).
+- Weighting the rotation, A/B tracking, or analytics events.
+- Changing the `h1`, CTAs, right-column visual, or any downstream section.
+- Editing copy anywhere else on the page.
 
-## Current status
-- **v1.0 build complete.** Waves A–G shipped.
-- G1 shared `<RouteState>` primitives; G2 viewport dvh + Radix ARIA sweep; G3 production build clean (main client chunk ~636 kB; `pdfjs-dist` isolated to kiosk routes via TanStack auto-split); G4 privileged fns gated + no module-scope `supabaseAdmin`; G5 methodology & external-review packet delivered to `/mnt/documents/gdpvision-v1-methodology-packet.md`.
+## Files touched
 
-
-
-## Technical guardrails
-- Every new public table gets a GRANT block + RLS + policies in the same migration.
-- Server functions live in `src/lib/*.functions.ts`, protected via `requireSupabaseAuth` + `has_role` for privileged ops; `supabaseAdmin` only imported inside handler bodies.
-- AI calls use Lovable AI Gateway (`openai/gpt-5.5` default).
-- Citations use the shared `citations` table + `<CitationsRail>` across Strategy, Comms, and Counsel.
-- Source suppression uses a single `applySourceSuppressions` helper wrapping every retrieval path.
-
+- `src/components/marketing/MarketingHome.tsx` (edit hero block only).
+- `src/lib/existential-threats.ts` (new, data-only).

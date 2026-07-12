@@ -279,6 +279,7 @@ async function runAgenticKpiLoop(args: {
   runId: string | null;
   country: { code: string; name: string; iso3: string | null };
   countryTld?: string;
+  runInference?: boolean;
 }) {
   const { registryFor, findRegistryEntry } = await import("./kpi-registry");
   const research = await import("./kpi-research.server");

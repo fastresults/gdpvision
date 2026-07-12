@@ -2738,6 +2738,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      country_chunks_search: {
+        Args: {
+          _country_code: string
+          _limit?: number
+          _query_embedding: string
+        }
+        Returns: {
+          chunk_index: number
+          content: string
+          distance: number
+          id: string
+          source_org: string
+          source_title: string
+          source_url: string
+        }[]
+      }
       has_country_role: {
         Args: {
           _country_code: string

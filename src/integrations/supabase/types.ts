@@ -2209,6 +2209,7 @@ export type Database = {
         | "comms_director"
         | "cabinet_secretary"
         | "data_steward"
+        | "country_admin"
       scenario_status: "draft" | "shared" | "adopted" | "archived"
     }
     CompositeTypes: {
@@ -2346,6 +2347,7 @@ export const Constants = {
         "comms_director",
         "cabinet_secretary",
         "data_steward",
+        "country_admin",
       ],
       scenario_status: ["draft", "shared", "adopted", "archived"],
     },

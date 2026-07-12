@@ -23,6 +23,10 @@ export type ConsumerKpi = {
   latest_period: string | null;
   target: number | null;
   notes: string | null;
+  provenance: string | null;
+  confidence: string | null;
+  inference_rationale: string | null;
+  inference_model: string | null;
   source: { id: string; url: string; title: string; org: string; active: boolean } | null;
 };
 
@@ -34,7 +38,7 @@ export const listCountryKpis = createServerFn({ method: "POST" })
     const { data: rows, error } = await context.supabase
       .from("country_kpis")
       .select(
-        "id, country_code, kpi_code, label, unit, direction, category, source_id, latest_value, latest_period, target, notes, country_sources(id, url, title, org, active)",
+        "id, country_code, kpi_code, label, unit, direction, category, source_id, latest_value, latest_period, target, notes, provenance, confidence, inference_rationale, inference_model, country_sources(id, url, title, org, active)",
       )
       .eq("country_code", data.countryCode)
       .order("category", { ascending: true })
@@ -42,7 +46,7 @@ export const listCountryKpis = createServerFn({ method: "POST" })
     if (error) throw error;
 
     // Hide KPIs whose linked source is toggled off. KPIs without a source
-    // still surface (manually curated) so operators are not blocked.
+    // still surface (manually curated or inferred) so operators are not blocked.
     return ((rows ?? []) as any[])
       .filter((r) => !r.country_sources || r.country_sources.active !== false)
       .map((r) => ({
@@ -58,6 +62,10 @@ export const listCountryKpis = createServerFn({ method: "POST" })
         latest_period: r.latest_period,
         target: r.target,
         notes: r.notes,
+        provenance: r.provenance ?? null,
+        confidence: r.confidence ?? null,
+        inference_rationale: r.inference_rationale ?? null,
+        inference_model: r.inference_model ?? null,
         source: r.country_sources
           ? {
               id: r.country_sources.id,

@@ -258,6 +258,359 @@ export const updateKpi = createServerFn({ method: "POST" })
   });
 
 // ============================================================
+// KPI inference: accept / override / reject / re-infer
+// ============================================================
+
+export const acceptKpiInference = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), note: z.string().optional() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("country_kpis")
+      .update({
+        provenance: "admin_verified",
+        verified_by: context.userId,
+        verified_at: new Date().toISOString(),
+        admin_note: data.note ?? null,
+      })
+      .eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const overrideKpi = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      id: z.string().uuid(),
+      latest_value: z.number(),
+      latest_period: z.string().nullable().optional(),
+      note: z.string().optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Preserve prior inference in inference_history for audit.
+    const { data: prior } = await supabaseAdmin
+      .from("country_kpis")
+      .select("inference_history, provenance, latest_value, inference_rationale, inference_model, inferred_at")
+      .eq("id", data.id)
+      .maybeSingle();
+    const hist = Array.isArray(prior?.inference_history) ? (prior!.inference_history as unknown[]) : [];
+    if (prior?.provenance === "inferred" && prior.latest_value != null) {
+      hist.push({
+        value: prior.latest_value,
+        model: prior.inference_model,
+        rationale: prior.inference_rationale,
+        inferred_at: prior.inferred_at,
+        overridden_at: new Date().toISOString(),
+      });
+    }
+    const patch: Record<string, unknown> = {
+      latest_value: data.latest_value,
+      provenance: "admin_override",
+      verified_by: context.userId,
+      verified_at: new Date().toISOString(),
+      admin_note: data.note ?? null,
+      freshness_status: "fresh",
+      last_verified_at: new Date().toISOString(),
+      inference_history: hist.slice(-10),
+    };
+    if (data.latest_period !== undefined) patch.latest_period = data.latest_period;
+    const { error } = await supabaseAdmin.from("country_kpis").update(patch as any).eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const rejectKpiInference = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), note: z.string().optional() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("country_kpis")
+      .update({
+        latest_value: null,
+        latest_period: null,
+        freshness_status: "missing",
+        provenance: "verified",
+        confidence: null,
+        inference_rationale: null,
+        inference_evidence: null,
+        inference_model: null,
+        inferred_at: null,
+        admin_note: data.note ?? "rejected by admin",
+        verified_by: context.userId,
+        verified_at: new Date().toISOString(),
+      })
+      .eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const reinferKpi = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error: e0 } = await supabaseAdmin
+      .from("country_kpis")
+      .select("id, country_code, kpi_code")
+      .eq("id", data.id)
+      .single();
+    if (e0 || !row) throw new Error("KPI row not found");
+    const { data: country, error: e1 } = await supabaseAdmin
+      .from("countries")
+      .select("code, name, iso3")
+      .eq("code", row.country_code)
+      .single();
+    if (e1 || !country) throw new Error("Country not found");
+
+    const { findRegistryEntry } = await import("@/lib/country-onboarding/kpi-registry");
+    const kpi = findRegistryEntry(row.kpi_code);
+    if (!kpi) throw new Error(`KPI ${row.kpi_code} not in registry`);
+
+    const { inferOneKpi } = await import("@/lib/country-onboarding/kpi-inference.server");
+    const { result, attempt } = await inferOneKpi({
+      admin: supabaseAdmin,
+      country: { code: country.code, name: country.name, iso3: country.iso3 },
+      kpi,
+    });
+
+    // Log the attempt.
+    await supabaseAdmin.from("kpi_research_attempts").insert({
+      country_code: row.country_code,
+      kpi_code: row.kpi_code,
+      pass: "escalation",
+      provider: "lovable-ai",
+      model: attempt.model,
+      ok: attempt.ok,
+      value: attempt.value,
+      period: attempt.period,
+      source_url: attempt.source_url,
+      error: attempt.error ? `inference: ${attempt.error}` : null,
+    });
+
+    if (!result) return { ok: false, error: attempt.error };
+
+    // Preserve prior in history.
+    const { data: prior } = await supabaseAdmin
+      .from("country_kpis")
+      .select("inference_history, provenance, latest_value, inference_rationale, inference_model, inferred_at")
+      .eq("id", data.id)
+      .single();
+    const hist = Array.isArray(prior?.inference_history) ? (prior!.inference_history as unknown[]) : [];
+    if (prior?.provenance === "inferred" && prior.latest_value != null) {
+      hist.push({
+        value: prior.latest_value,
+        model: prior.inference_model,
+        rationale: prior.inference_rationale,
+        inferred_at: prior.inferred_at,
+      });
+    }
+
+    const { error: eUpd } = await supabaseAdmin
+      .from("country_kpis")
+      .update({
+        latest_value: result.value,
+        latest_period: result.period,
+        provenance: "inferred",
+        confidence: result.confidence,
+        inference_rationale: result.rationale,
+        inference_evidence: { assumptions: result.assumptions, evidence: result.evidence },
+        inference_model: result.model,
+        inferred_at: new Date().toISOString(),
+        freshness_status: "fresh",
+        last_verified_at: new Date().toISOString(),
+        inference_history: hist.slice(-10) as any,
+        verified_by: null,
+        verified_at: null,
+        admin_note: null,
+      })
+      .eq("id", data.id);
+    if (eUpd) throw eUpd;
+    return { ok: true };
+  });
+
+export const inferAllMissing = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => CodeInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: country, error: eC } = await supabaseAdmin
+      .from("countries")
+      .select("code, name, iso3")
+      .eq("code", data.countryCode)
+      .single();
+    if (eC || !country) throw new Error("Country not found");
+
+    const { registryFor } = await import("@/lib/country-onboarding/kpi-registry");
+    const { inferOneKpi } = await import("@/lib/country-onboarding/kpi-inference.server");
+    const registry = registryFor(["all"]);
+
+    const { data: existing } = await supabaseAdmin
+      .from("country_kpis")
+      .select("kpi_code, latest_value")
+      .eq("country_code", data.countryCode);
+    const filledSet = new Set(
+      (existing ?? []).filter((r: any) => r.latest_value != null).map((r: any) => r.kpi_code as string),
+    );
+
+    let inferred = 0;
+    let failed = 0;
+    for (const kpi of registry) {
+      if (filledSet.has(kpi.kpi_code)) continue;
+      const { result, attempt } = await inferOneKpi({
+        admin: supabaseAdmin,
+        country: { code: country.code, name: country.name, iso3: country.iso3 },
+        kpi,
+      });
+      await supabaseAdmin.from("kpi_research_attempts").insert({
+        country_code: data.countryCode,
+        kpi_code: kpi.kpi_code,
+        pass: "escalation",
+        provider: "lovable-ai",
+        model: attempt.model,
+        ok: attempt.ok,
+        value: attempt.value,
+        period: attempt.period,
+        source_url: attempt.source_url,
+        error: attempt.error ? `inference: ${attempt.error}` : null,
+      });
+      if (!result) {
+        failed++;
+        continue;
+      }
+      const { error: eUp } = await supabaseAdmin.from("country_kpis").upsert(
+        {
+          country_code: data.countryCode,
+          kpi_code: kpi.kpi_code,
+          label: kpi.label,
+          unit: kpi.unit,
+          direction: kpi.direction,
+          category: kpi.category,
+          latest_value: result.value,
+          latest_period: result.period,
+          provenance: "inferred",
+          confidence: result.confidence,
+          inference_rationale: result.rationale,
+          inference_evidence: { assumptions: result.assumptions, evidence: result.evidence },
+          inference_model: result.model,
+          inferred_at: new Date().toISOString(),
+          freshness_status: "fresh",
+          last_verified_at: new Date().toISOString(),
+        },
+        { onConflict: "country_code,kpi_code" },
+      );
+      if (!eUp) inferred++;
+      else failed++;
+    }
+    return { ok: true, inferred, failed };
+  });
+
+export const acceptAllHighConfidenceInferences = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => CodeInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("country_kpis")
+      .update({
+        provenance: "admin_verified",
+        verified_by: context.userId,
+        verified_at: new Date().toISOString(),
+      })
+      .eq("country_code", data.countryCode)
+      .eq("provenance", "inferred")
+      .eq("confidence", "high")
+      .select("id");
+    if (error) throw error;
+    return { ok: true, accepted: rows?.length ?? 0 };
+  });
+
+// ============================================================
+// Source candidates (URLs the inference model suggested)
+// ============================================================
+
+export const listSourceCandidates = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => CodeInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("source_candidates")
+      .select("*")
+      .eq("country_code", data.countryCode)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return rows ?? [];
+  });
+
+export const approveSourceCandidate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: cand, error: e0 } = await supabaseAdmin
+      .from("source_candidates")
+      .select("*")
+      .eq("id", data.id)
+      .single();
+    if (e0 || !cand) throw new Error("Candidate not found");
+
+    let tld: string | null = null;
+    try {
+      tld = new URL(cand.url).hostname.replace(/^www\./, "");
+    } catch {
+      throw new Error("Invalid URL on candidate");
+    }
+    const { error: eUp } = await supabaseAdmin.from("country_sources").upsert(
+      {
+        country_code: cand.country_code,
+        url: cand.url,
+        title: cand.title ?? `Suggested source (${tld})`,
+        org: tld,
+        kind: "kpi_source",
+        tld,
+        tags: ["auto", "kpi", "candidate-approved"],
+        quality_score: 3,
+        active: true,
+        created_by: context.userId,
+      },
+      { onConflict: "country_code,url", ignoreDuplicates: false },
+    );
+    if (eUp) throw eUp;
+    await supabaseAdmin
+      .from("source_candidates")
+      .update({ status: "approved", approved_by: context.userId, approved_at: new Date().toISOString() })
+      .eq("id", data.id);
+    return { ok: true };
+  });
+
+export const rejectSourceCandidate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("source_candidates")
+      .update({ status: "rejected", approved_by: context.userId, approved_at: new Date().toISOString() })
+      .eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+// ============================================================
 // Sector dossiers
 // ============================================================
 

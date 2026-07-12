@@ -279,6 +279,7 @@ async function runAgenticKpiLoop(args: {
   runId: string | null;
   country: { code: string; name: string; iso3: string | null };
   countryTld?: string;
+  runInference?: boolean;
 }) {
   const { registryFor, findRegistryEntry } = await import("./kpi-registry");
   const research = await import("./kpi-research.server");
@@ -343,6 +344,44 @@ async function runAgenticKpiLoop(args: {
     if (value) research.mergeInto(values, research.normalizeValue(value));
   }
 
+  // Pass F — AI inference for whatever is still null.
+  const inferred = new Map<string, import("./kpi-inference.server").InferenceResult>();
+  if (args.runInference !== false) {
+    const inferMod = await import("./kpi-inference.server");
+    const missingAfterE = registry.filter(
+      (k) => !values.get(k.kpi_code) || values.get(k.kpi_code)!.value == null,
+    );
+    for (const k of missingAfterE) {
+      const { result, attempt } = await inferMod.inferOneKpi({
+        admin: args.admin,
+        country: args.country,
+        kpi: k,
+      });
+      allAttempts.push({
+        kpi_code: attempt.kpi_code,
+        pass: "escalation", // reuse enum: dedicated 'inference' would need a migration
+        provider: "lovable-ai",
+        model: attempt.model,
+        ok: attempt.ok,
+        value: attempt.value,
+        period: attempt.period,
+        source_url: attempt.source_url,
+        error: attempt.error ? `inference: ${attempt.error}` : null,
+      });
+      if (result) {
+        inferred.set(k.kpi_code, result);
+        research.mergeInto(values, {
+          kpi_code: result.kpi_code,
+          value: result.value,
+          period: result.period,
+          source_url: result.source_url,
+          source_org: result.source_org,
+          notes: `Inferred (${result.confidence}) via ${result.model}`,
+        });
+      }
+    }
+  }
+
   // Ensure every registry entry is represented (even if still null).
   for (const k of registry) {
     if (!values.has(k.kpi_code)) {
@@ -352,7 +391,7 @@ async function runAgenticKpiLoop(args: {
         period: null,
         source_url: null,
         source_org: null,
-        notes: "not found after 5 passes",
+        notes: "not found after research + inference",
       });
     }
   }
@@ -364,6 +403,7 @@ async function runAgenticKpiLoop(args: {
   const coverage = research.coverageOf(registry, values);
   const enriched = registry.map((k) => {
     const v = values.get(k.kpi_code)!;
+    const inf = inferred.get(k.kpi_code);
     return {
       kpi_code: k.kpi_code,
       label: k.label,
@@ -377,12 +417,13 @@ async function runAgenticKpiLoop(args: {
       source_org: v.source_org,
       notes: v.notes,
       required: k.required,
+      inference: inf ?? null,
     };
   });
   // Silence unused import warning — findRegistryEntry kept for future use.
   void findRegistryEntry;
 
-  return { enriched, coverage, attempts: allAttempts };
+  return { enriched, coverage, attempts: allAttempts, inferredCount: inferred.size };
 }
 
 export const runKpiSeedAgent = createServerFn({ method: "POST" })
@@ -524,6 +565,7 @@ async function upsertResolvedKpi(
     source_url: string | null;
     source_org: string | null;
     notes?: string | null;
+    inference?: import("./kpi-inference.server").InferenceResult | null;
   },
 ) {
   const source_id = await attachOrCreateSource(
@@ -533,26 +575,72 @@ async function upsertResolvedKpi(
     k.source_org,
     userId,
   );
+  const isInferred = !!k.inference && k.latest_value != null;
   const freshness_status = k.latest_value == null ? "missing" : "fresh";
-  const { error } = await admin.from("country_kpis").upsert(
-    {
-      country_code: countryCode,
-      kpi_code: k.kpi_code,
-      label: k.label,
-      unit: k.unit,
-      direction: k.direction || "up",
-      category: k.category || "macro",
-      source_id,
-      latest_value: k.latest_value,
-      latest_period: k.latest_period,
-      target: k.target ?? null,
-      notes: k.notes ?? null,
-      freshness_status,
-      last_verified_at: new Date().toISOString(),
-      research_notes: k.notes ?? null,
-    },
-    { onConflict: "country_code,kpi_code" },
-  );
+  const provenance = isInferred ? "inferred" : "verified";
+
+  // Preserve inference_history: append prior inference when overwriting.
+  let inferenceHistory: unknown[] | undefined;
+  if (isInferred) {
+    const { data: prior } = await admin
+      .from("country_kpis")
+      .select("inference_history, provenance, inference_rationale, inference_model, latest_value, inferred_at")
+      .eq("country_code", countryCode)
+      .eq("kpi_code", k.kpi_code)
+      .maybeSingle();
+    const hist = Array.isArray(prior?.inference_history) ? (prior!.inference_history as unknown[]) : [];
+    if (prior?.provenance === "inferred" && prior.latest_value != null) {
+      hist.push({
+        value: prior.latest_value,
+        model: prior.inference_model,
+        rationale: prior.inference_rationale,
+        inferred_at: prior.inferred_at,
+      });
+    }
+    inferenceHistory = hist.slice(-10); // keep last 10
+  }
+
+  const row: Record<string, unknown> = {
+    country_code: countryCode,
+    kpi_code: k.kpi_code,
+    label: k.label,
+    unit: k.unit,
+    direction: k.direction || "up",
+    category: k.category || "macro",
+    source_id,
+    latest_value: k.latest_value,
+    latest_period: k.latest_period,
+    target: k.target ?? null,
+    notes: k.notes ?? null,
+    freshness_status,
+    last_verified_at: new Date().toISOString(),
+    research_notes: k.notes ?? null,
+    provenance,
+  };
+  if (isInferred && k.inference) {
+    row.confidence = k.inference.confidence;
+    row.inference_rationale = k.inference.rationale;
+    row.inference_evidence = {
+      assumptions: k.inference.assumptions,
+      evidence: k.inference.evidence,
+    };
+    row.inference_model = k.inference.model;
+    row.inferred_at = new Date().toISOString();
+    if (inferenceHistory) row.inference_history = inferenceHistory;
+    // Clear admin fields so a new inference is reviewable again.
+    row.verified_by = null;
+    row.verified_at = null;
+    row.admin_note = null;
+  } else {
+    // Clear inference-specific fields on a verified overwrite.
+    row.confidence = null;
+    row.inference_rationale = null;
+    row.inference_evidence = null;
+    row.inference_model = null;
+    row.inferred_at = null;
+  }
+
+  const { error } = await admin.from("country_kpis").upsert(row, { onConflict: "country_code,kpi_code" });
   return { ok: !error, error: error?.message ?? null, source_id };
 }
 
@@ -581,6 +669,7 @@ export const commitKpis = createServerFn({ method: "POST" })
         source_url: string | null;
         source_org: string | null;
         notes: string | null;
+        inference?: import("./kpi-inference.server").InferenceResult | null;
       }>;
     };
 
@@ -732,7 +821,7 @@ export const listKpiCoverage = createServerFn({ method: "POST" })
     const registry = registryFor(["all"]);
     const { data: rows } = await supabaseAdmin
       .from("country_kpis")
-      .select("kpi_code, latest_value, last_verified_at, freshness_status, research_notes")
+      .select("kpi_code, latest_value, last_verified_at, freshness_status, research_notes, provenance, confidence")
       .eq("country_code", data.countryCode);
     const byCode = new Map((rows ?? []).map((r: any) => [r.kpi_code as string, r]));
 
@@ -749,10 +838,21 @@ export const listKpiCoverage = createServerFn({ method: "POST" })
     }
 
     const required = registry.filter((k) => k.required);
+    const verifiedRequired = required.filter((k) => {
+      const r: any = byCode.get(k.kpi_code);
+      return r?.latest_value != null && r?.provenance !== "inferred";
+    });
+    const inferredRequired = required.filter((k) => {
+      const r: any = byCode.get(k.kpi_code);
+      return r?.latest_value != null && r?.provenance === "inferred";
+    });
     const filled = required.filter((k) => byCode.get(k.kpi_code)?.latest_value != null);
     const summary = {
       required_total: required.length,
       required_filled: filled.length,
+      required_verified: verifiedRequired.length,
+      required_inferred: inferredRequired.length,
+      required_missing: required.length - filled.length,
       registry_total: registry.length,
       last_verified_at: (rows ?? [])
         .map((r: any) => r.last_verified_at)
@@ -761,7 +861,7 @@ export const listKpiCoverage = createServerFn({ method: "POST" })
         .slice(-1)[0] ?? null,
     };
     const perKpi = registry.map((k) => {
-      const row = byCode.get(k.kpi_code);
+      const row: any = byCode.get(k.kpi_code);
       const att = latestAttempt.get(k.kpi_code);
       return {
         kpi_code: k.kpi_code,
@@ -770,6 +870,8 @@ export const listKpiCoverage = createServerFn({ method: "POST" })
         category: k.category,
         latest_value: row?.latest_value ?? null,
         freshness_status: row?.freshness_status ?? "missing",
+        provenance: row?.provenance ?? null,
+        confidence: row?.confidence ?? null,
         last_verified_at: row?.last_verified_at ?? null,
         last_attempt_pass: att?.pass ?? null,
         last_attempt_error: att?.error ?? null,

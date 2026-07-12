@@ -1,34 +1,61 @@
-## Change
+## Goal
 
-Only **one** copy block shows in the hero at a time. Start with The CBI Cliff, then auto-rotate through the other seven threats every 2.5 seconds, looping forever.
+The "The moment" section becomes 8 variants — one per Existential Threat. On every page load, the CBI variant renders first; on subsequent loads it's replaced by a randomly chosen other variant (from the remaining seven). Selection happens once on mount and stays static — the section does NOT rotate on a timer (unlike the hero).
 
-## Behavior
+Not in scope: syncing to the hero rotation, changing the hero, adding controls/pagination, animating the Moment section.
 
-- On mount: render The CBI Cliff (title eyebrow + body).
-- After 2.5s: swap to a randomly ordered sequence of the remaining seven threats (Storm, Tourism, Correspondent banking, Debt, Energy, Regulation, Talent). Each is shown for 2.5s.
-- After the seventh, restart from The CBI Cliff and reshuffle the tail — the CBI block always leads each loop; the order of the other seven is re-randomized each cycle so no visitor sees the same sequence twice.
-- SSR renders The CBI Cliff (stable, no hydration mismatch). The interval and shuffling run only in `useEffect` on the client.
-- Smooth cross-fade between blocks (~250ms opacity transition) so the swap doesn't jar. Respects `prefers-reduced-motion` by disabling the fade (instant swap, rotation still runs).
-- Container reserves min-height so shorter/longer blocks don't reflow the hero and shift the CTAs.
+## Data
 
-## Implementation
+New file: `src/lib/moment-variants.ts`
 
-Edit `src/components/marketing/MarketingHome.tsx`:
+```ts
+export interface MomentStat {
+  value: number;
+  unit: string;
+  label: string;
+  grade: "A" | "B" | "C";
+  citation: string;
+}
 
-1. Replace the two stacked blocks with a single `<div>` slot showing `current.title` + `current.body`.
-2. Local state:
-   - `index` starts at 0 (CBI).
-   - `tail` starts as `null`; on first `useEffect` run, build a shuffled copy of `EXISTENTIAL_THREATS.slice(1)` and store it.
-   - `setInterval(2500ms)` advances `index`; when `index` wraps back to 0, reshuffle `tail`.
-   - Clear interval on unmount.
-3. `current = index === 0 ? EXISTENTIAL_THREATS[0] : tail[index - 1]`.
-4. Wrap the block in a `key={current.id}` div with a `transition-opacity duration-250` fade-in class (mounted per key change). Wrap in a `motion-reduce:transition-none` variant.
-5. Set `min-h-[<computed>]` on the container so the tallest block fits without reflow — use a Tailwind `md:min-h-[280px] min-h-[240px]` pair calibrated to the longest body (Storm/Debt).
+export interface MomentVariant {
+  id: string;                  // matches ExistentialThreat.id
+  eyebrow: string;             // e.g. "The moment"
+  title: string;               // headline
+  lede: string;                // body copy
+  stats: [MomentStat, MomentStat, MomentStat];
+}
 
-No changes to `src/lib/existential-threats.ts`, no other files, no new deps.
+export const MOMENT_VARIANTS: MomentVariant[] = [ /* 8 entries, cbi-cliff first */ ];
+```
 
-## Out of scope
+Order matches `EXISTENTIAL_THREATS`: `cbi-cliff`, `one-storm`, `tourism-trap`, `cut-off`, `debt-ceiling`, `power-cost`, `regulated-out`, `talent-drain`.
 
-- Pause on hover, manual next/prev controls, dot indicators.
-- Persisting position across page loads.
-- Changing the `h1`, CTAs, right-column visual, or any other section.
+I will draft all 8 in the tone of the current Moment copy (single-sentence cliff headline, ~55-word lede, 3 stats with grade + citation). The current CBI-cliff Moment copy stays as variant #1 unchanged. Stats will use publicly-defensible ranges (IMF Article IV, ECCB, EM-DAT/CCRIF for hurricanes, CARICOM energy stats, World Bank remittances, FATF/EU listings, etc.), each with a B grade unless a hard primary source supports A.
+
+## Component change
+
+Edit `src/components/marketing/MarketingHome.tsx` only:
+
+1. Import `MOMENT_VARIANTS` from `@/lib/moment-variants`.
+2. Add a `pickMoment()` helper: returns `MOMENT_VARIANTS[0]` on first evaluation? No — requirement is CBI first each load, THEN random. Correction: every load shows CBI initially is the HERO behavior. For the Moment section the user said "randomize on load, 8 versions." Since the alignment answer maps to the 8 threats CBI-first, we mirror the hero rule: `useState` initializer returns `MOMENT_VARIANTS[0]`; a `useEffect` (client-only, avoids SSR/hydration mismatch) immediately replaces it with a random variant from `MOMENT_VARIANTS.slice(1)`. Result: CBI always paints first, then swaps to a random other variant on the client for the rest of the session. Static thereafter (no interval).
+3. Replace the hardcoded `SectionHeader` + 3 `NumberTile`s in the `#problem` section (lines 163–190) with:
+
+```tsx
+<SectionHeader eyebrow="The moment" title={moment.title} lede={moment.lede} />
+<div className="mt-16 grid gap-12 border-t border-line-200 pt-12 md:grid-cols-3">
+  {moment.stats.map((s, i) => (
+    <NumberTile key={i} {...s} />
+  ))}
+</div>
+```
+
+No changes to `NumberTile`, `SectionHeader`, existing hero rotation, or any other section.
+
+## Why useEffect (not useState random initializer)
+
+Reading `Math.random()` in the `useState` initializer runs during SSR and produces a hydration mismatch. Initial render = deterministic CBI; effect swaps to a random variant on the client. This also satisfies "CBI always renders first" for crawlers/SEO and briefly for users, matching the hero convention.
+
+## Files touched
+
+- New: `src/lib/moment-variants.ts`
+- Edit: `src/components/marketing/MarketingHome.tsx` (imports, small hook, replace the `#problem` section body)

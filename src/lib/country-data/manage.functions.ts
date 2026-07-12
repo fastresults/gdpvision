@@ -753,6 +753,82 @@ export const corpusStats = createServerFn({ method: "POST" })
     };
   });
 
+export const corpusDetail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => CodeInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: sources } = await supabaseAdmin
+      .from("country_sources")
+      .select("id, org, title, url, kind, active, quality_score")
+      .eq("country_code", data.countryCode)
+      .order("active", { ascending: false })
+      .order("quality_score", { ascending: false });
+
+    const srcIds = (sources ?? []).map((s) => s.id);
+    const docsBySrc = new Map<string, { doc_count: number; chunk_count: number; chars: number; last_fetched_at: string | null }>();
+    let documents: Array<{
+      id: string;
+      country_source_id: string;
+      source_title: string;
+      source_org: string;
+      fetched_at: string | null;
+      char_count: number;
+      chunk_count: number;
+    }> = [];
+
+    if (srcIds.length) {
+      const { data: docs } = await supabaseAdmin
+        .from("country_source_documents")
+        .select("id, country_source_id, char_count, chunk_count, fetched_at")
+        .in("country_source_id", srcIds)
+        .order("fetched_at", { ascending: false });
+      const srcMap = new Map((sources ?? []).map((s) => [s.id, s]));
+      for (const d of docs ?? []) {
+        const cur = docsBySrc.get(d.country_source_id) ?? { doc_count: 0, chunk_count: 0, chars: 0, last_fetched_at: null };
+        cur.doc_count += 1;
+        cur.chunk_count += d.chunk_count ?? 0;
+        cur.chars += d.char_count ?? 0;
+        if (!cur.last_fetched_at || (d.fetched_at && d.fetched_at > cur.last_fetched_at)) cur.last_fetched_at = d.fetched_at;
+        docsBySrc.set(d.country_source_id, cur);
+      }
+      documents = (docs ?? []).map((d) => {
+        const s = srcMap.get(d.country_source_id);
+        return {
+          id: d.id,
+          country_source_id: d.country_source_id,
+          source_title: s?.title ?? "(unknown)",
+          source_org: s?.org ?? "",
+          fetched_at: d.fetched_at,
+          char_count: d.char_count ?? 0,
+          chunk_count: d.chunk_count ?? 0,
+        };
+      });
+    }
+
+    const { data: runs } = await supabaseAdmin
+      .from("onboarding_runs")
+      .select("id, started_at, finished_at, status, model_stack, error")
+      .eq("country_code", data.countryCode)
+      .eq("stage", "corpus_ingest")
+      .order("started_at", { ascending: false })
+      .limit(10);
+
+    return {
+      sources: (sources ?? []).map((s) => ({
+        ...s,
+        doc_count: docsBySrc.get(s.id)?.doc_count ?? 0,
+        chunk_count: docsBySrc.get(s.id)?.chunk_count ?? 0,
+        chars: docsBySrc.get(s.id)?.chars ?? 0,
+        last_fetched_at: docsBySrc.get(s.id)?.last_fetched_at ?? null,
+      })),
+      documents,
+      runs: runs ?? [],
+    };
+  });
+
 export const semanticSearch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>

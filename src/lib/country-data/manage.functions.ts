@@ -1057,7 +1057,7 @@ export const ingestDocumentSource = createServerFn({ method: "POST" })
       if (data.mime_type === "text/plain" || data.mime_type === "text/markdown" || safeName.endsWith(".md") || safeName.endsWith(".txt")) {
         text = bytes.toString("utf8");
       } else if (data.mime_type === "application/pdf") {
-        const pdfParse: any = await import("pdf-parse").then((m: any) => m.default ?? m).catch(() => null);
+        const pdfParse: any = await import("pdf-parse" as any).then((m: any) => m.default ?? m).catch(() => null);
         if (pdfParse) {
           const out = await pdfParse(bytes);
           text = out?.text ?? "";

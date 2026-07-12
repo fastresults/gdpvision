@@ -12,6 +12,7 @@ type Props = {
 
 const NAV = [
   { to: "/admin/countries", label: "Countries" },
+  { to: "/admin/brain", label: "Second brain" },
   { to: "/admin", label: "Users" },
   { to: "/admin/activity", label: "Activity" },
   { to: "/config", label: "Configuration" },

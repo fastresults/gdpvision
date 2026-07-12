@@ -7,6 +7,7 @@ import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { MemoryVisual, type MemoryFilter } from "@/components/country-data/MemoryVisual";
 import { BrainConstellation, type BrainFilter } from "@/components/country-data/BrainConstellation";
 import { AddSourceDialog } from "@/components/country-data/AddSourceDialog";
+import { AddMemoryDialog } from "@/components/country-data/AddMemoryDialog";
 import { SourceDetailSheet } from "@/components/country-data/SourceDetailSheet";
 import { PrettyJson } from "@/components/data/PrettyJson";
 import { Button } from "@/components/ui/button";

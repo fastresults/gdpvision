@@ -27,6 +27,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as KioskApiUploadPresentationRouteImport } from './routes/kiosk.api.upload-presentation'
 import { Route as KioskApiUploadMediaRouteImport } from './routes/kiosk.api.upload-media'
 import { Route as KioskApiKioskDataRouteImport } from './routes/kiosk.api.kiosk-data'
+import { Route as AuthenticatedOnboardingCountryRouteImport } from './routes/_authenticated/onboarding/country'
 import { Route as AuthenticatedNarrativeQueueRouteImport } from './routes/_authenticated/narrative/queue'
 import { Route as AuthenticatedNarrativeIngestRouteImport } from './routes/_authenticated/narrative/ingest'
 import { Route as AuthenticatedNarrativeCoverageRouteImport } from './routes/_authenticated/narrative/coverage'
@@ -61,6 +62,7 @@ import { Route as AuthenticatedInstrumentMandateStudioRouteImport } from './rout
 import { Route as AuthenticatedInstrumentMandateScorecardRouteImport } from './routes/_authenticated/instrument/mandate.scorecard'
 import { Route as AuthenticatedInstrumentCabinetSessionRouteImport } from './routes/_authenticated/instrument/cabinet.session'
 import { Route as AuthenticatedInstrumentCabinetDecisionsRouteImport } from './routes/_authenticated/instrument/cabinet.decisions'
+import { Route as AuthenticatedAdminCountryCodeRouteImport } from './routes/_authenticated/admin/country.$code'
 import { Route as AuthenticatedAdminAuditsLogRouteImport } from './routes/_authenticated/admin/audits.log'
 import { Route as AuthenticatedAdminAuditsKeyingRouteImport } from './routes/_authenticated/admin/audits.keying'
 
@@ -160,6 +162,12 @@ const KioskApiKioskDataRoute = KioskApiKioskDataRouteImport.update({
   path: '/api/kiosk-data',
   getParentRoute: () => KioskRoute,
 } as any)
+const AuthenticatedOnboardingCountryRoute =
+  AuthenticatedOnboardingCountryRouteImport.update({
+    id: '/onboarding/country',
+    path: '/onboarding/country',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedNarrativeQueueRoute =
   AuthenticatedNarrativeQueueRouteImport.update({
     id: '/queue',
@@ -364,6 +372,12 @@ const AuthenticatedInstrumentCabinetDecisionsRoute =
     path: '/cabinet/decisions',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
+const AuthenticatedAdminCountryCodeRoute =
+  AuthenticatedAdminCountryCodeRouteImport.update({
+    id: '/admin/country/$code',
+    path: '/admin/country/$code',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminAuditsLogRoute =
   AuthenticatedAdminAuditsLogRouteImport.update({
     id: '/admin/audits/log',
@@ -396,6 +410,7 @@ export interface FileRoutesByFullPath {
   '/narrative/coverage': typeof AuthenticatedNarrativeCoverageRoute
   '/narrative/ingest': typeof AuthenticatedNarrativeIngestRoute
   '/narrative/queue': typeof AuthenticatedNarrativeQueueRoute
+  '/onboarding/country': typeof AuthenticatedOnboardingCountryRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
@@ -407,6 +422,7 @@ export interface FileRoutesByFullPath {
   '/narrative/': typeof AuthenticatedNarrativeIndexRoute
   '/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
   '/admin/audits/log': typeof AuthenticatedAdminAuditsLogRoute
+  '/admin/country/$code': typeof AuthenticatedAdminCountryCodeRoute
   '/instrument/cabinet/decisions': typeof AuthenticatedInstrumentCabinetDecisionsRoute
   '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
@@ -448,6 +464,7 @@ export interface FileRoutesByTo {
   '/narrative/coverage': typeof AuthenticatedNarrativeCoverageRoute
   '/narrative/ingest': typeof AuthenticatedNarrativeIngestRoute
   '/narrative/queue': typeof AuthenticatedNarrativeQueueRoute
+  '/onboarding/country': typeof AuthenticatedOnboardingCountryRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
@@ -459,6 +476,7 @@ export interface FileRoutesByTo {
   '/narrative': typeof AuthenticatedNarrativeIndexRoute
   '/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
   '/admin/audits/log': typeof AuthenticatedAdminAuditsLogRoute
+  '/admin/country/$code': typeof AuthenticatedAdminCountryCodeRoute
   '/instrument/cabinet/decisions': typeof AuthenticatedInstrumentCabinetDecisionsRoute
   '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
@@ -505,6 +523,7 @@ export interface FileRoutesById {
   '/_authenticated/narrative/coverage': typeof AuthenticatedNarrativeCoverageRoute
   '/_authenticated/narrative/ingest': typeof AuthenticatedNarrativeIngestRoute
   '/_authenticated/narrative/queue': typeof AuthenticatedNarrativeQueueRoute
+  '/_authenticated/onboarding/country': typeof AuthenticatedOnboardingCountryRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
@@ -516,6 +535,7 @@ export interface FileRoutesById {
   '/_authenticated/narrative/': typeof AuthenticatedNarrativeIndexRoute
   '/_authenticated/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
   '/_authenticated/admin/audits/log': typeof AuthenticatedAdminAuditsLogRoute
+  '/_authenticated/admin/country/$code': typeof AuthenticatedAdminCountryCodeRoute
   '/_authenticated/instrument/cabinet/decisions': typeof AuthenticatedInstrumentCabinetDecisionsRoute
   '/_authenticated/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/_authenticated/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
@@ -562,6 +582,7 @@ export interface FileRouteTypes {
     | '/narrative/coverage'
     | '/narrative/ingest'
     | '/narrative/queue'
+    | '/onboarding/country'
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
@@ -573,6 +594,7 @@ export interface FileRouteTypes {
     | '/narrative/'
     | '/admin/audits/keying'
     | '/admin/audits/log'
+    | '/admin/country/$code'
     | '/instrument/cabinet/decisions'
     | '/instrument/cabinet/session'
     | '/instrument/mandate/scorecard'
@@ -614,6 +636,7 @@ export interface FileRouteTypes {
     | '/narrative/coverage'
     | '/narrative/ingest'
     | '/narrative/queue'
+    | '/onboarding/country'
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
@@ -625,6 +648,7 @@ export interface FileRouteTypes {
     | '/narrative'
     | '/admin/audits/keying'
     | '/admin/audits/log'
+    | '/admin/country/$code'
     | '/instrument/cabinet/decisions'
     | '/instrument/cabinet/session'
     | '/instrument/mandate/scorecard'
@@ -670,6 +694,7 @@ export interface FileRouteTypes {
     | '/_authenticated/narrative/coverage'
     | '/_authenticated/narrative/ingest'
     | '/_authenticated/narrative/queue'
+    | '/_authenticated/onboarding/country'
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
@@ -681,6 +706,7 @@ export interface FileRouteTypes {
     | '/_authenticated/narrative/'
     | '/_authenticated/admin/audits/keying'
     | '/_authenticated/admin/audits/log'
+    | '/_authenticated/admin/country/$code'
     | '/_authenticated/instrument/cabinet/decisions'
     | '/_authenticated/instrument/cabinet/session'
     | '/_authenticated/instrument/mandate/scorecard'
@@ -844,6 +870,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/kiosk/api/kiosk-data'
       preLoaderRoute: typeof KioskApiKioskDataRouteImport
       parentRoute: typeof KioskRoute
+    }
+    '/_authenticated/onboarding/country': {
+      id: '/_authenticated/onboarding/country'
+      path: '/onboarding/country'
+      fullPath: '/onboarding/country'
+      preLoaderRoute: typeof AuthenticatedOnboardingCountryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/narrative/queue': {
       id: '/_authenticated/narrative/queue'
@@ -1083,6 +1116,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInstrumentCabinetDecisionsRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
+    '/_authenticated/admin/country/$code': {
+      id: '/_authenticated/admin/country/$code'
+      path: '/admin/country/$code'
+      fullPath: '/admin/country/$code'
+      preLoaderRoute: typeof AuthenticatedAdminCountryCodeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/audits/log': {
       id: '/_authenticated/admin/audits/log'
       path: '/admin/audits/log'
@@ -1221,12 +1261,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminDocumentsRoute: typeof AuthenticatedAdminDocumentsRoute
   AuthenticatedCounselArchiveRoute: typeof AuthenticatedCounselArchiveRoute
   AuthenticatedCounselMobileRoute: typeof AuthenticatedCounselMobileRoute
+  AuthenticatedOnboardingCountryRoute: typeof AuthenticatedOnboardingCountryRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedCodexIndexRoute: typeof AuthenticatedCodexIndexRoute
   AuthenticatedConfigIndexRoute: typeof AuthenticatedConfigIndexRoute
   AuthenticatedCounselIndexRoute: typeof AuthenticatedCounselIndexRoute
   AuthenticatedAdminAuditsKeyingRoute: typeof AuthenticatedAdminAuditsKeyingRoute
   AuthenticatedAdminAuditsLogRoute: typeof AuthenticatedAdminAuditsLogRoute
+  AuthenticatedAdminCountryCodeRoute: typeof AuthenticatedAdminCountryCodeRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -1237,12 +1279,14 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminDocumentsRoute: AuthenticatedAdminDocumentsRoute,
   AuthenticatedCounselArchiveRoute: AuthenticatedCounselArchiveRoute,
   AuthenticatedCounselMobileRoute: AuthenticatedCounselMobileRoute,
+  AuthenticatedOnboardingCountryRoute: AuthenticatedOnboardingCountryRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedCodexIndexRoute: AuthenticatedCodexIndexRoute,
   AuthenticatedConfigIndexRoute: AuthenticatedConfigIndexRoute,
   AuthenticatedCounselIndexRoute: AuthenticatedCounselIndexRoute,
   AuthenticatedAdminAuditsKeyingRoute: AuthenticatedAdminAuditsKeyingRoute,
   AuthenticatedAdminAuditsLogRoute: AuthenticatedAdminAuditsLogRoute,
+  AuthenticatedAdminCountryCodeRoute: AuthenticatedAdminCountryCodeRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

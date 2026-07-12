@@ -430,6 +430,8 @@ export type Database = {
           created_at: string
           currency: string
           fiscal_year_start_month: number
+          gdp_current_usd: number | null
+          gdp_year: number | null
           is_caricom: boolean
           is_cbi_state: boolean
           is_oecs: boolean
@@ -446,6 +448,8 @@ export type Database = {
           created_at?: string
           currency?: string
           fiscal_year_start_month?: number
+          gdp_current_usd?: number | null
+          gdp_year?: number | null
           is_caricom?: boolean
           is_cbi_state?: boolean
           is_oecs?: boolean
@@ -462,6 +466,8 @@ export type Database = {
           created_at?: string
           currency?: string
           fiscal_year_start_month?: number
+          gdp_current_usd?: number | null
+          gdp_year?: number | null
           is_caricom?: boolean
           is_cbi_state?: boolean
           is_oecs?: boolean
@@ -473,6 +479,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      country_access_requests: {
+        Row: {
+          country_code: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          note: string | null
+          requested_role: Database["public"]["Enums"]["app_role"]
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          note?: string | null
+          requested_role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          note?: string | null
+          requested_role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "country_access_requests_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       country_sectors: {
         Row: {
@@ -2191,6 +2244,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_country_role: {
+        Args: {
+          _country_code: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2209,6 +2270,7 @@ export type Database = {
         | "comms_director"
         | "cabinet_secretary"
         | "data_steward"
+        | "country_admin"
       scenario_status: "draft" | "shared" | "adopted" | "archived"
     }
     CompositeTypes: {
@@ -2346,6 +2408,7 @@ export const Constants = {
         "comms_director",
         "cabinet_secretary",
         "data_steward",
+        "country_admin",
       ],
       scenario_status: ["draft", "shared", "adopted", "archived"],
     },

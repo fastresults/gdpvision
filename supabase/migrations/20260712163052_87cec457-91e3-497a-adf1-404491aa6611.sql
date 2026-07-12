@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.has_country_role(uuid, public.app_role, text) FROM PUBLIC, anon;

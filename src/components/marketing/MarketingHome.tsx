@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { MarketingShell } from "./MarketingShell";
 import { EXISTENTIAL_THREATS } from "@/lib/existential-threats";
+import { MOMENT_VARIANTS } from "@/lib/moment-variants";
 import { SignatureRing } from "./SignatureRing";
 import { NumberTile } from "./NumberTile";
 import { ChamberPanel } from "./ChamberPanel";
@@ -95,8 +96,11 @@ function shuffleTail() {
 export function MarketingHome() {
   const [tail, setTail] = useState(() => EXISTENTIAL_THREATS.slice(1));
   const [index, setIndex] = useState(0);
+  const [moment, setMoment] = useState(() => MOMENT_VARIANTS[0]);
   useEffect(() => {
     setTail(shuffleTail());
+    const others = MOMENT_VARIANTS.slice(1);
+    setMoment(others[Math.floor(Math.random() * others.length)]);
     const id = setInterval(() => {
       setIndex((prev) => {
         const next = (prev + 1) % EXISTENTIAL_THREATS.length;
@@ -162,31 +166,20 @@ export function MarketingHome() {
         <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
           <SectionHeader
             eyebrow="The moment"
-            title="A revenue cliff, without a decision-ready view of the ground it sits on."
-            lede="Five Caribbean states operate CBI as a primary GDP and government-revenue driver. National statistics arrive in annual digests, IMF assessments are twelve to eighteen months stale, and no Cabinet in the region has a single, current view of its own economy."
+            title={moment.title}
+            lede={moment.lede}
           />
           <div className="mt-16 grid gap-12 border-t border-line-200 pt-12 md:grid-cols-3">
-            <NumberTile
-              value={50}
-              unit="%"
-              label="CBI receipts as share of government revenue, upper band"
-              grade="B"
-              citation="IMF Article IV consultations, 2022–2024. Range across the five OECS CBI states."
-            />
-            <NumberTile
-              value={18}
-              unit="months"
-              label="Typical staleness of authoritative sector data"
-              grade="B"
-              citation="ECCB & NSO release cadence review, 2024."
-            />
-            <NumberTile
-              value={5}
-              unit="nations"
-              label="OECS states operating a CBI programme today"
-              grade="A"
-              citation="St. Kitts & Nevis, Dominica, Antigua & Barbuda, Grenada, Saint Lucia."
-            />
+            {moment.stats.map((s, i) => (
+              <NumberTile
+                key={i}
+                value={s.value}
+                unit={s.unit}
+                label={s.label}
+                grade={s.grade}
+                citation={s.citation}
+              />
+            ))}
           </div>
         </div>
       </section>

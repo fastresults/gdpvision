@@ -49,6 +49,100 @@ export interface FactCheckReport {
   overridable: number; // amber claims (approval only, can be overridden)
 }
 
+interface SupabaseLike {
+  from: (t: string) => any;
+}
+
+export async function runFactCheck(
+  supabase: SupabaseLike,
+  scopeKey: string,
+  body: string,
+  tolerancePct: number,
+  mode: "generation" | "approval",
+): Promise<FactCheckReport> {
+  // Extract candidate claims (dedupe by raw string).
+  const seen = new Set<string>();
+  const claims: ClaimCheck[] = [];
+  for (const match of body.matchAll(CLAIM_RE)) {
+    const raw = match[0].trim();
+    if (!raw || seen.has(raw)) continue;
+    // Require at least one digit and length > 1 to skip lone dollar signs etc.
+    if (!/\d/.test(raw) || raw.length < 2) continue;
+    seen.add(raw);
+    const idx = match.index ?? 0;
+    const start = Math.max(0, idx - 40);
+    const end = Math.min(body.length, idx + raw.length + 40);
+    const { value, unit } = classify(match[1], match[2]);
+    claims.push({ raw, value, unit, context: body.slice(start, end), matches: [], severity: "red" });
+  }
+
+  if (claims.length === 0) return { mode, claims: [], grounded: 0, ungrounded: 0, blocking: 0, overridable: 0 };
+
+  // Pull recent Ledger values for the country. Join through series to filter.
+  const { data: series, error: sErr } = await supabase
+    .from("series")
+    .select("id,metric,unit")
+    .eq("country_code", scopeKey)
+    .limit(400);
+  if (sErr) throw new Error(sErr.message);
+  const seriesById = new Map((series ?? []).map((s: any) => [s.id, s]));
+  if (seriesById.size === 0) {
+    return { mode, claims, grounded: 0, ungrounded: claims.length, blocking: claims.length, overridable: 0 };
+  }
+
+  const { data: points } = await supabase
+    .from("series_points")
+    .select("series_id,period,value")
+    .in("series_id", Array.from(seriesById.keys()))
+    .order("period", { ascending: false })
+    .limit(2000);
+
+  const tol = tolerancePct / 100;
+  for (const c of claims) {
+    if (c.unit === "unknown" || c.value === 0) continue;
+    for (const p of points ?? []) {
+      const v = Number(p.value);
+      if (!Number.isFinite(v) || v === 0) continue;
+      const delta = Math.abs(v - c.value) / Math.abs(v);
+      if (delta <= tol) {
+        const s = seriesById.get(p.series_id);
+        if (!s) continue;
+        c.matches.push({
+          series_id: p.series_id,
+          metric: s.metric,
+          unit: s.unit,
+          period: p.period,
+          value: v,
+          delta_pct: Number((delta * 100).toFixed(2)),
+        });
+        if (c.matches.length >= 3) break;
+      }
+    }
+  }
+
+  for (const c of claims) {
+    if (c.matches.length > 0) {
+      // Green if within half tolerance, amber otherwise.
+      const bestDelta = Math.min(...c.matches.map((m) => m.delta_pct));
+      c.severity = bestDelta <= tolerancePct / 2 ? "green" : "amber";
+    } else {
+      c.severity = mode === "approval" ? "red" : "amber";
+    }
+  }
+
+  const grounded = claims.filter((c) => c.matches.length > 0).length;
+  const blocking = mode === "approval" ? claims.filter((c) => c.severity === "red").length : 0;
+  const overridable = mode === "approval" ? claims.filter((c) => c.severity === "amber").length : 0;
+  return {
+    mode,
+    claims,
+    grounded,
+    ungrounded: claims.length - grounded,
+    blocking,
+    overridable,
+  };
+}
+
 const FactCheckInput = z.object({
   scopeKey: z.string().min(3).max(16),
   body: z.string().max(50_000),
@@ -60,87 +154,7 @@ export const factCheckBody = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => FactCheckInput.parse(d))
   .handler(async ({ data, context }): Promise<FactCheckReport> => {
-    // Extract candidate claims (dedupe by raw string).
-    const seen = new Set<string>();
-    const claims: ClaimCheck[] = [];
-    for (const match of data.body.matchAll(CLAIM_RE)) {
-      const raw = match[0].trim();
-      if (!raw || seen.has(raw)) continue;
-      // Require at least one digit and length > 1 to skip lone dollar signs etc.
-      if (!/\d/.test(raw) || raw.length < 2) continue;
-      seen.add(raw);
-      const idx = match.index ?? 0;
-      const start = Math.max(0, idx - 40);
-      const end = Math.min(data.body.length, idx + raw.length + 40);
-      const { value, unit } = classify(match[1], match[2]);
-      claims.push({ raw, value, unit, context: data.body.slice(start, end), matches: [], severity: "red" });
-    }
-
-    if (claims.length === 0) return { mode: data.mode, claims: [], grounded: 0, ungrounded: 0, blocking: 0, overridable: 0 };
-
-    // Pull recent Ledger values for the country. Join through series to filter.
-    const { data: series, error: sErr } = await context.supabase
-      .from("series")
-      .select("id,metric,unit")
-      .eq("country_code", data.scopeKey)
-      .limit(400);
-    if (sErr) throw new Error(sErr.message);
-    const seriesById = new Map((series ?? []).map((s) => [s.id, s]));
-    if (seriesById.size === 0) {
-      return { mode: data.mode, claims, grounded: 0, ungrounded: claims.length, blocking: claims.length, overridable: 0 };
-    }
-
-    const { data: points } = await context.supabase
-      .from("series_points")
-      .select("series_id,period,value")
-      .in("series_id", Array.from(seriesById.keys()))
-      .order("period", { ascending: false })
-      .limit(2000);
-
-    const tol = data.tolerancePct / 100;
-    for (const c of claims) {
-      if (c.unit === "unknown" || c.value === 0) continue;
-      for (const p of points ?? []) {
-        const v = Number(p.value);
-        if (!Number.isFinite(v) || v === 0) continue;
-        const delta = Math.abs(v - c.value) / Math.abs(v);
-        if (delta <= tol) {
-          const s = seriesById.get(p.series_id);
-          if (!s) continue;
-          c.matches.push({
-            series_id: p.series_id,
-            metric: s.metric,
-            unit: s.unit,
-            period: p.period,
-            value: v,
-            delta_pct: Number((delta * 100).toFixed(2)),
-          });
-          if (c.matches.length >= 3) break;
-        }
-      }
-    }
-
-    for (const c of claims) {
-      if (c.matches.length > 0) {
-        // Green if within half tolerance, amber otherwise.
-        const bestDelta = Math.min(...c.matches.map((m) => m.delta_pct));
-        c.severity = bestDelta <= data.tolerancePct / 2 ? "green" : "amber";
-      } else {
-        c.severity = data.mode === "approval" ? "red" : "amber";
-      }
-    }
-
-    const grounded = claims.filter((c) => c.matches.length > 0).length;
-    const blocking = data.mode === "approval" ? claims.filter((c) => c.severity === "red").length : 0;
-    const overridable = data.mode === "approval" ? claims.filter((c) => c.severity === "amber").length : 0;
-    return {
-      mode: data.mode,
-      claims,
-      grounded,
-      ungrounded: claims.length - grounded,
-      blocking,
-      overridable,
-    };
+    return runFactCheck(context.supabase, data.scopeKey, data.body, data.tolerancePct, data.mode);
   });
 
 // Approval gate: throws if blocking claims exist and no override reason is supplied.

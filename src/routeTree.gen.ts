@@ -42,6 +42,7 @@ import { Route as AuthenticatedInstrumentPortfolioIndexRouteImport } from './rou
 import { Route as AuthenticatedInstrumentCabinetIndexRouteImport } from './routes/_authenticated/instrument/cabinet.index'
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
 import { Route as ApiPublicHooksNarrativeHarvestRouteImport } from './routes/api/public/hooks/narrative-harvest'
+import { Route as ApiPublicHooksCadenceDailyRouteImport } from './routes/api/public/hooks/cadence-daily'
 import { Route as AuthenticatedNarrativeTraceIdRouteImport } from './routes/_authenticated/narrative/trace.$id'
 import { Route as AuthenticatedNarrativeStrategyNewRouteImport } from './routes/_authenticated/narrative/strategy.new'
 import { Route as AuthenticatedNarrativeStrategyIdRouteImport } from './routes/_authenticated/narrative/strategy.$id'
@@ -249,6 +250,12 @@ const ApiPublicHooksNarrativeHarvestRoute =
     path: '/api/public/hooks/narrative-harvest',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksCadenceDailyRoute =
+  ApiPublicHooksCadenceDailyRouteImport.update({
+    id: '/api/public/hooks/cadence-daily',
+    path: '/api/public/hooks/cadence-daily',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedNarrativeTraceIdRoute =
   AuthenticatedNarrativeTraceIdRouteImport.update({
     id: '/trace/$id',
@@ -410,6 +417,7 @@ export interface FileRoutesByFullPath {
   '/narrative/strategy/$id': typeof AuthenticatedNarrativeStrategyIdRoute
   '/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
+  '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/instrument/cabinet/': typeof AuthenticatedInstrumentCabinetIndexRoute
@@ -460,6 +468,7 @@ export interface FileRoutesByTo {
   '/narrative/strategy/$id': typeof AuthenticatedNarrativeStrategyIdRoute
   '/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
+  '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/instrument/cabinet': typeof AuthenticatedInstrumentCabinetIndexRoute
@@ -515,6 +524,7 @@ export interface FileRoutesById {
   '/_authenticated/narrative/strategy/$id': typeof AuthenticatedNarrativeStrategyIdRoute
   '/_authenticated/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/_authenticated/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
+  '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/_authenticated/instrument/cabinet/': typeof AuthenticatedInstrumentCabinetIndexRoute
@@ -570,6 +580,7 @@ export interface FileRouteTypes {
     | '/narrative/strategy/$id'
     | '/narrative/strategy/new'
     | '/narrative/trace/$id'
+    | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/narrative-harvest'
     | '/kiosk/api/public/presentation-pdf'
     | '/instrument/cabinet/'
@@ -620,6 +631,7 @@ export interface FileRouteTypes {
     | '/narrative/strategy/$id'
     | '/narrative/strategy/new'
     | '/narrative/trace/$id'
+    | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/narrative-harvest'
     | '/kiosk/api/public/presentation-pdf'
     | '/instrument/cabinet'
@@ -674,6 +686,7 @@ export interface FileRouteTypes {
     | '/_authenticated/narrative/strategy/$id'
     | '/_authenticated/narrative/strategy/new'
     | '/_authenticated/narrative/trace/$id'
+    | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/narrative-harvest'
     | '/kiosk/api/public/presentation-pdf'
     | '/_authenticated/instrument/cabinet/'
@@ -687,6 +700,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   KioskRoute: typeof KioskRouteWithChildren
+  ApiPublicHooksCadenceDailyRoute: typeof ApiPublicHooksCadenceDailyRoute
   ApiPublicHooksNarrativeHarvestRoute: typeof ApiPublicHooksNarrativeHarvestRoute
 }
 
@@ -921,6 +935,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/narrative-harvest'
       fullPath: '/api/public/hooks/narrative-harvest'
       preLoaderRoute: typeof ApiPublicHooksNarrativeHarvestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/cadence-daily': {
+      id: '/api/public/hooks/cadence-daily'
+      path: '/api/public/hooks/cadence-daily'
+      fullPath: '/api/public/hooks/cadence-daily'
+      preLoaderRoute: typeof ApiPublicHooksCadenceDailyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/narrative/trace/$id': {
@@ -1232,6 +1253,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   KioskRoute: KioskRouteWithChildren,
+  ApiPublicHooksCadenceDailyRoute: ApiPublicHooksCadenceDailyRoute,
   ApiPublicHooksNarrativeHarvestRoute: ApiPublicHooksNarrativeHarvestRoute,
 }
 export const routeTree = rootRouteImport

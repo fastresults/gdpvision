@@ -108,6 +108,7 @@ function OnboardWizard() {
   const { code } = Route.useParams();
   const { data } = useSuspenseQuery(statusQuery(code));
   const { data: keyStatus } = useSuspenseQuery(keyStatusQuery);
+  const { data: ingestKeys } = useSuspenseQuery(ingestKeysQuery);
   const qc = useQueryClient();
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkErr, setBulkErr] = useState<string | null>(null);

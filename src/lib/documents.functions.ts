@@ -75,7 +75,7 @@ export const renderDocument = createServerFn({ method: "POST" })
     if (data.kind === "cabinet_decision" && data.sourceId) {
       const { data: dec } = await context.supabase
         .from("decisions")
-        .select("title,body,country_code,created_at,mandate_id")
+        .select("title,body,country_code,recorded_at,mandate_id")
         .eq("id", data.sourceId)
         .maybeSingle();
       if (dec) {
@@ -94,20 +94,21 @@ ${
         .map((c) => `<li><strong>${escapeHtml(c.title)}</strong> · <span class="meta">${escapeHtml(c.status ?? "open")}${c.due_at ? ` · due ${escapeHtml(new Date(c.due_at).toDateString())}` : ""}</span></li>`)
         .join("")}</ul>`
 }</section>
-<section class="meta">Country ${escapeHtml(dec.country_code)} · Recorded ${escapeHtml(new Date(dec.created_at).toDateString())}</section>`;
+<section class="meta">Country ${escapeHtml(dec.country_code)} · Recorded ${escapeHtml(new Date(dec.recorded_at).toDateString())}</section>`;
       }
     } else if (data.kind === "briefing_pack" && data.sourceId) {
       const { data: br } = await context.supabase
         .from("briefing_requests")
-        .select("topic,notes,country_code,horizon_days")
+        .select("name,role,government,nation,message,created_at")
         .eq("id", data.sourceId)
         .maybeSingle();
       if (br) {
-        title = br.topic;
-        bodyHtml = `<section><h2>Notes</h2><p>${escapeHtml(br.notes ?? "")}</p></section>
-<section class="meta">Horizon ${br.horizon_days} days · Country ${escapeHtml(br.country_code)}</section>`;
+        title = `Briefing for ${br.name} · ${br.government}`;
+        bodyHtml = `<section><h2>Notes</h2><p>${escapeHtml(br.message ?? "")}</p></section>
+<section class="meta">${escapeHtml(br.role)} · ${escapeHtml(br.nation)} · Received ${escapeHtml(new Date(br.created_at).toDateString())}</section>`;
       }
     }
+
 
     const html = frame(title, KIND_LABELS[data.kind], bodyHtml);
 

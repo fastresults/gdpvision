@@ -45,22 +45,18 @@ type Mode = "single" | "system";
 type Props = {
   rows: BrainRow[];
   mode: Mode;
-  centerLabel: string;         // country code or "SYSTEM"
+  centerLabel: string;
   filter: BrainFilter;
   onFilter: (f: BrainFilter) => void;
   onSelectCountry?: (code: string) => void;
 };
 
 /**
- * State-of-the-art visual second brain: a living constellation.
- *
- * Layers from center → out:
- *   • Core          — country (or system) with slow pulse
- *   • Country ring  — one orb per country (system mode only)
- *   • Sector ring   — one orb per sector; angle deterministic by code
- *   • Kind ring     — 7 diamonds per sector, one per memory kind
- *   • Memory dust   — one dot per memory object, drifting on a slow orbit
- *   • Threads       — thin line from core → sector → kind, brighter on activity
+ * Fluid, organic constellation of second-brain memory.
+ * - Curved bezier connections (no rigid spokes)
+ * - Weighted, jittered sector positions (no perfect star)
+ * - Soft gradient halos under each cluster
+ * - Memory dots cluster inside their sector's halo, not around fixed diamonds
  */
 export function BrainConstellation({
   rows,
@@ -70,13 +66,12 @@ export function BrainConstellation({
   onFilter,
   onSelectCountry,
 }: Props) {
-  const [hover, setHover] = useState<{ kind: "sector" | "kind" | "country" | "memory"; label: string; x: number; y: number } | null>(null);
+  const [hover, setHover] = useState<{ label: string; x: number; y: number } | null>(null);
 
-  const size = 820;
+  const size = 900;
   const cx = size / 2;
   const cy = size / 2;
 
-  // Group rows by country / sector / kind
   const grouped = useMemo(() => {
     const byCountry = new Map<string, BrainRow[]>();
     for (const r of rows) {
@@ -88,19 +83,16 @@ export function BrainConstellation({
   }, [rows]);
 
   const countries = useMemo(
-    () => Array.from(grouped.keys()).sort((a, b) => (grouped.get(b)!.length - grouped.get(a)!.length)),
+    () => Array.from(grouped.keys()).sort((a, b) => grouped.get(b)!.length - grouped.get(a)!.length),
     [grouped],
   );
 
-  // For single-country mode, we act on all rows; for system, use filtered subset if a country is selected
   const activeRows = useMemo(() => {
-    if (mode === "system" && filter.country) {
-      return grouped.get(filter.country) ?? [];
-    }
+    if (mode === "system" && filter.country) return grouped.get(filter.country) ?? [];
     return rows;
   }, [rows, mode, filter.country, grouped]);
 
-  const sectors = useMemo(() => {
+  const sectorsMap = useMemo(() => {
     const s = new Map<string, BrainRow[]>();
     for (const r of activeRows) {
       const key = r.sector_code || "—";
@@ -110,154 +102,185 @@ export function BrainConstellation({
     return s;
   }, [activeRows]);
 
+  // Sort by size so larger clusters get outer weight
   const sectorList = useMemo(
-    () => Array.from(sectors.keys()).sort((a, b) => sectors.get(b)!.length - sectors.get(a)!.length),
-    [sectors],
+    () => Array.from(sectorsMap.keys()).sort((a, b) => sectorsMap.get(b)!.length - sectorsMap.get(a)!.length),
+    [sectorsMap],
   );
 
-  // Recency: is a row updated in the last 24h?
   const now = Date.now();
   const isRecent = (r: BrainRow) => now - new Date(r.updated_at).getTime() < 24 * 60 * 60 * 1000;
   const recentCount = activeRows.filter(isRecent).length;
-  const pulseAmp = Math.min(1, recentCount / 20); // 0..1
+  const pulseAmp = Math.min(1, recentCount / 20);
 
-  const coreR = 46;
-
-  // System-mode country ring
-  const countryRingR = 340;
+  const coreR = 54;
   const showCountries = mode === "system" && !filter.country;
 
-  // Sector ring radius adapts to whether country ring is showing
-  const sectorRingR = showCountries ? 220 : 260;
-  const kindRingR = 60; // radius of kind diamonds around each sector
-
+  // ---------- Non-uniform sector layout (weighted angular slots + radial jitter) ----------
   const sectorPositions = useMemo(() => {
-    return sectorList.map((code, i) => {
-      // Even angular distribution + deterministic offset so identical brains render identically
-      const jitter = (hash01(code) - 0.5) * 0.1;
-      const angle = (i / Math.max(1, sectorList.length)) * Math.PI * 2 + jitter - Math.PI / 2;
+    const totalWeight = sectorList.reduce((a, code) => a + Math.sqrt(sectorsMap.get(code)!.length), 0);
+    let acc = 0;
+    return sectorList.map((code) => {
+      const w = Math.sqrt(sectorsMap.get(code)!.length);
+      const frac = w / (totalWeight || 1);
+      const angle = (acc + frac / 2) * Math.PI * 2 - Math.PI / 2 + (hash01(code + "a") - 0.5) * 0.35;
+      acc += frac;
+      // Radius varies per-sector (organic drift instead of a rigid ring)
+      const baseR = showCountries ? 210 : 250;
+      const r = baseR + (hash01(code + "r") - 0.5) * 90;
       return {
         code,
         angle,
-        x: cx + Math.cos(angle) * sectorRingR,
-        y: cy + Math.sin(angle) * sectorRingR,
+        r,
+        x: cx + Math.cos(angle) * r,
+        y: cy + Math.sin(angle) * r,
       };
     });
-  }, [sectorList, sectorRingR, cx, cy]);
+  }, [sectorList, sectorsMap, showCountries, cx, cy]);
 
   const countryPositions = useMemo(() => {
     if (!showCountries) return [];
+    const maxN = Math.max(1, ...countries.map((c) => grouped.get(c)!.length));
     return countries.map((code, i) => {
-      const angle = (i / Math.max(1, countries.length)) * Math.PI * 2 - Math.PI / 2;
+      const angle = (i / countries.length) * Math.PI * 2 - Math.PI / 2 + (hash01(code) - 0.5) * 0.2;
+      const r = 360 + (hash01(code + "R") - 0.5) * 40;
       return {
         code,
         angle,
-        x: cx + Math.cos(angle) * countryRingR,
-        y: cy + Math.sin(angle) * countryRingR,
+        x: cx + Math.cos(angle) * r,
+        y: cy + Math.sin(angle) * r,
         count: grouped.get(code)!.length,
+        maxN,
       };
     });
-  }, [showCountries, countries, countryRingR, cx, cy, grouped]);
+  }, [showCountries, countries, cx, cy, grouped]);
 
-  const maxCountryCount = Math.max(1, ...countryPositions.map((c) => c.count));
-
-  // ---- Passes filter?
   const passes = (r: BrainRow) => {
     if (filter.sector && (r.sector_code || "—") !== filter.sector) return false;
     if (filter.kind && r.kind !== filter.kind) return false;
     if (filter.verified !== undefined && Boolean(r.verified) !== filter.verified) return false;
     return true;
   };
-
   const dimmed = (r: BrainRow) => !passes(r);
+
+  // Curved path from core to a point (quadratic bezier with perpendicular offset)
+  function curvePath(x1: number, y1: number, x2: number, y2: number, curvature = 0.28, seed = "") {
+    const mx = (x1 + x2) / 2;
+    const my = (y1 + y2) / 2;
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len = Math.hypot(dx, dy) || 1;
+    // perpendicular
+    const nx = -dy / len;
+    const ny = dx / len;
+    const off = (hash01(seed) - 0.5) * 2 * curvature * len;
+    const px = mx + nx * off;
+    const py = my + ny * off;
+    return `M${x1},${y1} Q${px},${py} ${x2},${y2}`;
+  }
 
   return (
     <div className="relative w-full">
-      {/* Legend + controls chip strip */}
+      {/* Legend chip strip */}
       <div className="mb-3 flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-ink-500">
-        <span>Legend:</span>
-        <LegendDot label="core" render={<circle cx="7" cy="7" r="5" fill="#0a0a0a" />} />
-        <LegendDot label="sector" render={<circle cx="7" cy="7" r="4" fill="none" stroke="#0a0a0a" strokeWidth="1.5" />} />
-        <LegendDot label="kind" render={<rect x="3" y="3" width="8" height="8" transform="rotate(45 7 7)" fill="#0a0a0a" />} />
-        <LegendDot label="memory" render={<circle cx="7" cy="7" r="1.5" fill="#0a0a0a" />} />
-        <LegendDot label="verified" render={<circle cx="7" cy="7" r="3" fill="none" stroke="#10b981" strokeWidth="1.5" />} />
-        <LegendDot label="active 24h" render={<circle cx="7" cy="7" r="3" fill="#f59e0b" className="animate-pulse" />} />
-        <span className="ml-2">·</span>
         {KINDS.map((k) => (
           <button
             key={k}
             onClick={() => onFilter({ ...filter, kind: filter.kind === k ? undefined : k })}
-            className={`inline-flex items-center gap-1 px-1.5 py-0.5 border ${filter.kind === k ? "border-ink-950 text-ink-950" : "border-line-200 hover:text-ink-950"}`}
+            className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 border transition ${
+              filter.kind === k ? "border-ink-950 text-ink-950 bg-paper-100" : "border-line-200 hover:text-ink-950"
+            }`}
           >
-            <span className="h-2 w-2 rounded-sm" style={{ background: KIND_COLOR[k] }} />
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: KIND_COLOR[k] }} />
             {k}
           </button>
         ))}
+        <span className="mx-1 text-line-300">|</span>
         <button
           onClick={() => onFilter({ ...filter, verified: filter.verified === true ? undefined : true })}
-          className={`px-1.5 py-0.5 border ${filter.verified === true ? "border-emerald-600 text-emerald-700" : "border-line-200 hover:text-ink-950"}`}
+          className={`rounded-full px-2 py-0.5 border ${
+            filter.verified === true ? "border-emerald-600 text-emerald-700" : "border-line-200 hover:text-ink-950"
+          }`}
         >
-          verified only
+          verified
         </button>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-line-200 px-2 py-0.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" /> active 24h
+        </span>
         {(filter.country || filter.sector || filter.kind || filter.verified !== undefined) && (
           <button
             onClick={() => onFilter({})}
-            className="px-1.5 py-0.5 border border-ink-950 text-ink-950"
+            className="rounded-full border border-ink-950 px-2 py-0.5 text-ink-950"
           >
             clear ✕
           </button>
         )}
       </div>
 
-      <div className="relative border border-line-200 bg-[radial-gradient(circle_at_center,rgba(15,23,42,0.04),rgba(15,23,42,0))]">
-        <svg viewBox={`0 0 ${size} ${size}`} className="block w-full h-auto" style={{ maxHeight: "78vh" }}>
+      <div className="relative overflow-hidden rounded-2xl border border-line-200 bg-gradient-to-br from-slate-50 via-white to-slate-100">
+        {/* Ambient background blobs */}
+        <div className="pointer-events-none absolute -top-40 -left-40 h-[520px] w-[520px] rounded-full bg-sky-200/30 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-40 -right-40 h-[560px] w-[560px] rounded-full bg-fuchsia-200/25 blur-3xl" />
+        <div className="pointer-events-none absolute top-1/3 right-1/4 h-[380px] w-[380px] rounded-full bg-emerald-200/20 blur-3xl" />
+
+        <svg viewBox={`0 0 ${size} ${size}`} className="relative block w-full h-auto" style={{ maxHeight: "82vh" }}>
           <defs>
             <radialGradient id="coreGrad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#0a0a0a" stopOpacity="0.95" />
-              <stop offset="100%" stopColor="#0a0a0a" stopOpacity="0.6" />
+              <stop offset="0%" stopColor="#1e293b" stopOpacity="1" />
+              <stop offset="70%" stopColor="#0f172a" stopOpacity="0.95" />
+              <stop offset="100%" stopColor="#0f172a" stopOpacity="0.85" />
             </radialGradient>
-            <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="1.2" />
+            <radialGradient id="coreHalo" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#6366f1" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+            </radialGradient>
+            <linearGradient id="threadGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#0f172a" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#94a3b8" stopOpacity="0.15" />
+            </linearGradient>
+            <filter id="softBlur" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="18" />
             </filter>
+            {KINDS.map((k) => (
+              <radialGradient key={k} id={`halo-${k}`} cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor={KIND_COLOR[k]} stopOpacity="0.35" />
+                <stop offset="100%" stopColor={KIND_COLOR[k]} stopOpacity="0" />
+              </radialGradient>
+            ))}
           </defs>
 
-          {/* Concentric guide rings */}
-          <g opacity="0.35">
-            {[100, 160, 220, 280, 340].filter((r) => r <= (showCountries ? countryRingR : sectorRingR) + 20).map((r) => (
-              <circle key={r} cx={cx} cy={cy} r={r} fill="none" stroke="#94a3b8" strokeDasharray="2 6" strokeWidth="0.5" />
-            ))}
-          </g>
+          {/* Core halo glow */}
+          <circle cx={cx} cy={cy} r={coreR + 180} fill="url(#coreHalo)" />
 
-          {/* Country ring threads */}
+          {/* Country threads (curved) */}
           {countryPositions.map((c) => {
-            const w = 0.5 + (c.count / maxCountryCount) * 2.5;
+            const w = 0.6 + (c.count / c.maxN) * 2.5;
             return (
-              <line
+              <path
                 key={`ct-${c.code}`}
-                x1={cx}
-                y1={cy}
-                x2={c.x}
-                y2={c.y}
+                d={curvePath(cx, cy, c.x, c.y, 0.18, c.code + "co")}
+                fill="none"
                 stroke="#0f172a"
-                strokeOpacity="0.35"
+                strokeOpacity="0.28"
                 strokeWidth={w}
+                strokeLinecap="round"
               />
             );
           })}
 
           {/* Country orbs */}
           {countryPositions.map((c) => {
-            const r = 12 + (c.count / maxCountryCount) * 14;
+            const r = 14 + (c.count / c.maxN) * 14;
             return (
               <g
                 key={`cn-${c.code}`}
                 onClick={() => (onSelectCountry ? onSelectCountry(c.code) : onFilter({ ...filter, country: c.code }))}
-                onMouseEnter={() => setHover({ kind: "country", label: `${c.code} · ${c.count} memories`, x: c.x, y: c.y })}
+                onMouseEnter={() => setHover({ label: `${c.code} · ${c.count} memories`, x: c.x, y: c.y })}
                 onMouseLeave={() => setHover(null)}
                 className="cursor-pointer"
               >
-                <circle cx={c.x} cy={c.y} r={r + 6} fill="#0a0a0a" opacity="0.06" />
-                <circle cx={c.x} cy={c.y} r={r} fill="#0a0a0a" />
+                <circle cx={c.x} cy={c.y} r={r + 8} fill="#0f172a" opacity="0.08" />
+                <circle cx={c.x} cy={c.y} r={r} fill="#0f172a" />
                 <text x={c.x} y={c.y + 3} textAnchor="middle" fontSize="10" fill="#fafafa" fontFamily="ui-monospace, monospace">
                   {c.code}
                 </text>
@@ -265,9 +288,9 @@ export function BrainConstellation({
             );
           })}
 
-          {/* Sector arms */}
+          {/* Sector clusters */}
           {sectorPositions.map((s) => {
-            const sectorRows = sectors.get(s.code)!;
+            const sectorRows = sectorsMap.get(s.code)!;
             const kindCounts = new Map<string, number>();
             let verified = 0;
             let recent = 0;
@@ -276,153 +299,135 @@ export function BrainConstellation({
               if (r.verified) verified += 1;
               if (isRecent(r)) recent += 1;
             }
+            const dominantKind = [...kindCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "fact";
             const totalWeight = sectorRows.reduce((a, b) => a + (b.weight || 0), 0);
-            const orbR = 8 + Math.min(24, Math.sqrt(sectorRows.length) * 3);
+            const orbR = 10 + Math.min(28, Math.sqrt(sectorRows.length) * 3.5);
+            const haloR = orbR + 46 + Math.min(30, sectorRows.length * 1.2);
             const isFiltered = filter.sector && filter.sector !== s.code;
+            const seed = s.code;
 
             return (
-              <g key={s.code} opacity={isFiltered ? 0.2 : 1}>
-                {/* Thread from core to sector */}
-                <line
-                  x1={cx}
-                  y1={cy}
-                  x2={s.x}
-                  y2={s.y}
-                  stroke="#0f172a"
-                  strokeOpacity={0.15 + Math.min(0.4, totalWeight / 40)}
-                  strokeWidth={0.75 + Math.min(2, totalWeight / 30)}
+              <g key={s.code} opacity={isFiltered ? 0.18 : 1}>
+                {/* Soft halo behind the cluster, colored by dominant kind */}
+                <circle cx={s.x} cy={s.y} r={haloR} fill={`url(#halo-${dominantKind})`} />
+
+                {/* Curved thread from core to sector */}
+                <path
+                  d={curvePath(cx, cy, s.x, s.y, 0.22, seed)}
+                  fill="none"
+                  stroke="url(#threadGrad)"
+                  strokeWidth={0.9 + Math.min(2.6, totalWeight / 26)}
+                  strokeLinecap="round"
+                  strokeOpacity={0.55 + Math.min(0.35, totalWeight / 60)}
                 />
 
-                {/* Travelling dot on the thread if sector had recent activity */}
+                {/* Travelling dot on the curve when there was recent activity */}
                 {recent > 0 && (
-                  <circle r="2.5" fill="#f59e0b">
-                    <animateMotion
-                      dur={`${3 + hash01(s.code) * 2}s`}
-                      repeatCount="indefinite"
-                      path={`M${cx},${cy} L${s.x},${s.y}`}
-                    />
-                    <animate attributeName="opacity" values="0;1;1;0" dur={`${3 + hash01(s.code) * 2}s`} repeatCount="indefinite" />
-                  </circle>
+                  <>
+                    <circle r="3" fill="#f59e0b">
+                      <animateMotion dur={`${3.5 + hash01(seed) * 2}s`} repeatCount="indefinite" path={curvePath(cx, cy, s.x, s.y, 0.22, seed)} />
+                      <animate attributeName="opacity" values="0;1;1;0" dur={`${3.5 + hash01(seed) * 2}s`} repeatCount="indefinite" />
+                    </circle>
+                  </>
                 )}
+
+                {/* Memory dots — clustered organically inside the halo, not on rigid arms */}
+                {sectorRows.slice(0, 60).map((r, i) => {
+                  const h1 = hash01(r.id);
+                  const h2 = hash01(r.id + "b");
+                  // polar within halo, biased inward
+                  const angle = h1 * Math.PI * 2;
+                  const rad = 8 + Math.sqrt(h2) * (haloR - 12);
+                  const dx = s.x + Math.cos(angle) * rad;
+                  const dy = s.y + Math.sin(angle) * rad;
+                  const dur = 14 + h1 * 22;
+                  const dot = isRecent(r) ? 2.4 : 1.6;
+                  const op = dimmed(r) ? 0.08 : r.verified ? 0.95 : 0.55;
+                  const color = r.verified ? "#10b981" : KIND_COLOR[r.kind] ?? "#64748b";
+                  // subtle orbital drift
+                  const driftR = 4 + (i % 4);
+                  return (
+                    <g
+                      key={r.id}
+                      opacity={op}
+                      onMouseEnter={() => setHover({ label: r.title, x: dx, y: dy })}
+                      onMouseLeave={() => setHover(null)}
+                      onClick={() => onFilter({ ...filter, sector: s.code, kind: r.kind })}
+                      className="cursor-pointer"
+                    >
+                      <circle r={dot} fill={color}>
+                        <animateMotion
+                          dur={`${dur}s`}
+                          repeatCount="indefinite"
+                          path={`M ${dx - driftR} ${dy} A ${driftR} ${driftR} 0 1 1 ${dx - driftR - 0.01} ${dy} Z`}
+                        />
+                      </circle>
+                      {isRecent(r) && (
+                        <circle r={dot + 2} fill="none" stroke={color} strokeOpacity="0.5">
+                          <animate attributeName="r" values={`${dot + 1};${dot + 6};${dot + 1}`} dur="3s" repeatCount="indefinite" />
+                          <animate attributeName="stroke-opacity" values="0.5;0;0.5" dur="3s" repeatCount="indefinite" />
+                          <animateMotion
+                            dur={`${dur}s`}
+                            repeatCount="indefinite"
+                            path={`M ${dx - driftR} ${dy} A ${driftR} ${driftR} 0 1 1 ${dx - driftR - 0.01} ${dy} Z`}
+                          />
+                        </circle>
+                      )}
+                    </g>
+                  );
+                })}
 
                 {/* Sector orb */}
                 <g
                   onClick={() => onFilter({ ...filter, sector: filter.sector === s.code ? undefined : s.code })}
-                  onMouseEnter={() => setHover({ kind: "sector", label: `${s.code} · ${sectorRows.length} · ${verified} verified`, x: s.x, y: s.y })}
+                  onMouseEnter={() => setHover({ label: `${s.code} · ${sectorRows.length} memories · ${verified} verified`, x: s.x, y: s.y })}
                   onMouseLeave={() => setHover(null)}
                   className="cursor-pointer"
                 >
-                  <circle cx={s.x} cy={s.y} r={orbR + 4} fill="none" stroke="#10b981" strokeOpacity={verified > 0 ? Math.min(0.9, verified / sectorRows.length) : 0} strokeWidth="1" />
-                  <circle cx={s.x} cy={s.y} r={orbR} fill="#fafafa" stroke="#0a0a0a" strokeWidth={filter.sector === s.code ? 2.5 : 1.25} />
+                  {verified > 0 && (
+                    <circle
+                      cx={s.x}
+                      cy={s.y}
+                      r={orbR + 5}
+                      fill="none"
+                      stroke="#10b981"
+                      strokeOpacity={Math.min(0.85, verified / sectorRows.length)}
+                      strokeWidth="1.25"
+                    />
+                  )}
+                  <circle cx={s.x} cy={s.y} r={orbR + 2} fill="#ffffff" />
+                  <circle
+                    cx={s.x}
+                    cy={s.y}
+                    r={orbR}
+                    fill="#ffffff"
+                    stroke="#0f172a"
+                    strokeWidth={filter.sector === s.code ? 2.25 : 1}
+                  />
                   <text
                     x={s.x}
                     y={s.y + 3}
                     textAnchor="middle"
-                    fontSize={Math.min(10, orbR / 2 + 4)}
-                    fill="#0a0a0a"
+                    fontSize={Math.min(11, orbR / 2 + 4)}
+                    fill="#0f172a"
                     fontFamily="ui-monospace, monospace"
                   >
                     {s.code.slice(0, 4)}
                   </text>
                 </g>
-
-                {/* Kind ring around the sector */}
-                {KINDS.map((k, ki) => {
-                  const count = kindCounts.get(k) ?? 0;
-                  const angle = (ki / KINDS.length) * Math.PI * 2 + s.angle;
-                  const kx = s.x + Math.cos(angle) * kindRingR;
-                  const ky = s.y + Math.sin(angle) * kindRingR;
-                  const filled = count > 0;
-                  const dim = filter.kind && filter.kind !== k;
-                  return (
-                    <g
-                      key={`${s.code}-${k}`}
-                      opacity={dim ? 0.2 : 1}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onFilter({ ...filter, sector: s.code, kind: filter.kind === k && filter.sector === s.code ? undefined : k });
-                      }}
-                      onMouseEnter={() => setHover({ kind: "kind", label: `${s.code} · ${k} · ${count}`, x: kx, y: ky })}
-                      onMouseLeave={() => setHover(null)}
-                      className={filled ? "cursor-pointer" : ""}
-                    >
-                      {/* Line sector→kind */}
-                      <line x1={s.x} y1={s.y} x2={kx} y2={ky} stroke={KIND_COLOR[k]} strokeOpacity={filled ? 0.35 : 0.08} strokeWidth={filled ? 0.75 : 0.4} />
-                      {/* Diamond */}
-                      <rect
-                        x={kx - 4}
-                        y={ky - 4}
-                        width="8"
-                        height="8"
-                        transform={`rotate(45 ${kx} ${ky})`}
-                        fill={filled ? KIND_COLOR[k] : "transparent"}
-                        stroke={KIND_COLOR[k]}
-                        strokeWidth="1"
-                      />
-                      {filled && count > 1 && (
-                        <text x={kx} y={ky - 8} textAnchor="middle" fontSize="8" fill="#334155" fontFamily="ui-monospace, monospace">
-                          {count}
-                        </text>
-                      )}
-
-                      {/* Memory dust: dots on a tiny orbit around the kind diamond */}
-                      {filled && sectorRows
-                        .filter((r) => r.kind === k)
-                        .slice(0, 10)
-                        .map((r, i, arr) => {
-                          const dustAngle = (i / arr.length) * Math.PI * 2 + hash01(r.id) * Math.PI * 2;
-                          const dustR = 8 + (i % 3) * 2;
-                          const dx = kx + Math.cos(dustAngle) * dustR;
-                          const dy = ky + Math.sin(dustAngle) * dustR;
-                          const dur = 12 + hash01(r.id) * 20;
-                          const recent = isRecent(r);
-                          const opacity = dimmed(r) ? 0.1 : r.verified ? 0.95 : 0.55;
-                          return (
-                            <g key={r.id} opacity={opacity}>
-                              <circle
-                                r={recent ? 2 : 1.4}
-                                fill={r.verified ? "#10b981" : KIND_COLOR[k]}
-                              >
-                                <animateMotion
-                                  dur={`${dur}s`}
-                                  repeatCount="indefinite"
-                                  path={`M ${dx - kx} ${dy - ky} A ${dustR} ${dustR} 0 1 1 ${dx - kx - 0.01} ${dy - ky} Z`}
-                                />
-                                <animateTransform
-                                  attributeName="transform"
-                                  type="translate"
-                                  from={`${kx} ${ky}`}
-                                  to={`${kx} ${ky}`}
-                                  dur="1s"
-                                  repeatCount="1"
-                                />
-                              </circle>
-                            </g>
-                          );
-                        })}
-                    </g>
-                  );
-                })}
               </g>
             );
           })}
 
           {/* Core */}
           <g>
-            <circle
-              cx={cx}
-              cy={cy}
-              r={coreR + 20}
-              fill="none"
-              stroke="#0a0a0a"
-              strokeOpacity={0.15 + pulseAmp * 0.35}
-              strokeWidth="1"
-            >
-              <animate attributeName="r" values={`${coreR + 14};${coreR + 26};${coreR + 14}`} dur="4s" repeatCount="indefinite" />
-              <animate attributeName="stroke-opacity" values={`${0.05 + pulseAmp * 0.2};${0.25 + pulseAmp * 0.4};${0.05 + pulseAmp * 0.2}`} dur="4s" repeatCount="indefinite" />
+            <circle cx={cx} cy={cy} r={coreR + 22} fill="none" stroke="#6366f1" strokeOpacity={0.25 + pulseAmp * 0.35} strokeWidth="1">
+              <animate attributeName="r" values={`${coreR + 16};${coreR + 30};${coreR + 16}`} dur="4.5s" repeatCount="indefinite" />
+              <animate attributeName="stroke-opacity" values={`${0.1 + pulseAmp * 0.2};${0.3 + pulseAmp * 0.4};${0.1 + pulseAmp * 0.2}`} dur="4.5s" repeatCount="indefinite" />
             </circle>
+            <circle cx={cx} cy={cy} r={coreR + 8} fill="#0f172a" opacity="0.12" />
             <circle cx={cx} cy={cy} r={coreR} fill="url(#coreGrad)" />
-            <text x={cx} y={cy - 2} textAnchor="middle" fontSize="14" fill="#fafafa" fontFamily="ui-monospace, monospace" fontWeight="600">
+            <text x={cx} y={cy - 4} textAnchor="middle" fontSize="15" fill="#fafafa" fontFamily="ui-monospace, monospace" fontWeight="600">
               {centerLabel}
             </text>
             <text x={cx} y={cy + 14} textAnchor="middle" fontSize="9" fill="#94a3b8" fontFamily="ui-monospace, monospace">
@@ -434,40 +439,40 @@ export function BrainConstellation({
           {hover && (
             <g pointerEvents="none">
               <rect
-                x={Math.min(hover.x + 10, size - 180)}
-                y={Math.max(hover.y - 24, 4)}
-                width="170"
-                height="20"
-                fill="#0a0a0a"
-                opacity="0.9"
+                x={Math.min(hover.x + 10, size - 240)}
+                y={Math.max(hover.y - 26, 4)}
+                rx="6"
+                ry="6"
+                width={Math.min(230, Math.max(120, hover.label.length * 6.2))}
+                height="22"
+                fill="#0f172a"
+                opacity="0.92"
               />
               <text
-                x={Math.min(hover.x + 18, size - 172)}
-                y={Math.max(hover.y - 10, 18)}
-                fontSize="10"
+                x={Math.min(hover.x + 20, size - 230)}
+                y={Math.max(hover.y - 11, 19)}
+                fontSize="11"
                 fill="#fafafa"
-                fontFamily="ui-monospace, monospace"
+                fontFamily="ui-sans-serif, system-ui"
               >
-                {hover.label}
+                {hover.label.length > 34 ? hover.label.slice(0, 33) + "…" : hover.label}
               </text>
             </g>
           )}
         </svg>
 
-        {/* Corner stats */}
-        <div className="absolute bottom-3 left-3 flex gap-4 font-mono text-[10px] uppercase tracking-widest text-ink-500">
-          <span>rows <span className="text-ink-950">{activeRows.length}</span></span>
-          <span>sectors <span className="text-ink-950">{sectorList.length}</span></span>
-          <span>verified <span className="text-emerald-600">{activeRows.filter((r) => r.verified).length}</span></span>
-          <span>24h <span className="text-amber-600">{recentCount}</span></span>
-          {mode === "system" && !filter.country && (
-            <span>countries <span className="text-ink-950">{countries.length}</span></span>
-          )}
+        {/* Footer stat pills */}
+        <div className="pointer-events-none absolute bottom-3 left-3 flex flex-wrap gap-1.5">
+          <Pill label="rows" value={activeRows.length} />
+          <Pill label="sectors" value={sectorList.length} />
+          <Pill label="verified" value={activeRows.filter((r) => r.verified).length} tone="emerald" />
+          <Pill label="24h" value={recentCount} tone="amber" />
+          {mode === "system" && !filter.country && <Pill label="countries" value={countries.length} />}
         </div>
         {mode === "system" && filter.country && (
           <button
             onClick={() => onFilter({ ...filter, country: undefined, sector: undefined })}
-            className="absolute top-3 right-3 border border-ink-950 bg-paper-0 px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-ink-950"
+            className="absolute top-3 right-3 rounded-full border border-ink-950 bg-white/90 px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-ink-950 backdrop-blur"
           >
             ← All countries
           </button>
@@ -477,11 +482,11 @@ export function BrainConstellation({
   );
 }
 
-function LegendDot({ label, render }: { label: string; render: React.ReactNode }) {
+function Pill({ label, value, tone }: { label: string; value: number; tone?: "emerald" | "amber" }) {
+  const color = tone === "emerald" ? "text-emerald-700" : tone === "amber" ? "text-amber-600" : "text-ink-950";
   return (
-    <span className="inline-flex items-center gap-1">
-      <svg width="14" height="14">{render}</svg>
-      {label}
+    <span className="rounded-full border border-line-200 bg-white/80 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-widest text-ink-500 backdrop-blur">
+      {label} <span className={`ml-1 tabular-nums ${color}`}>{value}</span>
     </span>
   );
 }

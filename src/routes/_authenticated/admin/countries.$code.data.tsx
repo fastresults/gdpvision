@@ -1626,7 +1626,7 @@ function CorpusDrawer({ drill, detail, onClose }: { drill: Exclude<DrillKey, nul
 function MemoryTab({ code }: { code: string }) {
   const qc = useQueryClient();
   const { data: rows } = useSuspenseQuery(memoryQuery(code));
-  const upsert = useServerFn(upsertMemory);
+  void upsertMemory;
   const setV = useServerFn(setMemoryVerified);
   const del = useServerFn(deleteMemory);
   const [showAdd, setShowAdd] = useState(false);

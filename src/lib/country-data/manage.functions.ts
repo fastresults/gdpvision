@@ -36,17 +36,20 @@ export const listSources = createServerFn({ method: "POST" })
     if (error) throw error;
 
     // Attach chunk counts per source (via document→chunks)
-    const { data: docs } = await supabaseAdmin
-      .from("country_source_documents")
-      .select("source_id, chunk_count, char_count, fetched_at")
-      .eq("country_code", data.countryCode);
+    const srcIds = (sources ?? []).map((s) => s.id);
     const byId = new Map<string, { chunks: number; chars: number; fetched: string | null }>();
-    for (const d of docs ?? []) {
-      const cur = byId.get(d.source_id) ?? { chunks: 0, chars: 0, fetched: null };
-      cur.chunks += d.chunk_count ?? 0;
-      cur.chars += d.char_count ?? 0;
-      if (!cur.fetched || (d.fetched_at && d.fetched_at > cur.fetched)) cur.fetched = d.fetched_at;
-      byId.set(d.source_id, cur);
+    if (srcIds.length) {
+      const { data: docs } = await supabaseAdmin
+        .from("country_source_documents")
+        .select("country_source_id, chunk_count, char_count, fetched_at")
+        .in("country_source_id", srcIds);
+      for (const d of docs ?? []) {
+        const cur = byId.get(d.country_source_id) ?? { chunks: 0, chars: 0, fetched: null };
+        cur.chunks += d.chunk_count ?? 0;
+        cur.chars += d.char_count ?? 0;
+        if (!cur.fetched || (d.fetched_at && d.fetched_at > cur.fetched)) cur.fetched = d.fetched_at;
+        byId.set(d.country_source_id, cur);
+      }
     }
     return (sources ?? []).map((s) => ({
       ...s,

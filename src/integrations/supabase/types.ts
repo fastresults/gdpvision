@@ -534,6 +534,7 @@ export type Database = {
           id: string
           period: string
           source_id: string | null
+          source_url: string | null
           value: number
         }
         Insert: {
@@ -542,6 +543,7 @@ export type Database = {
           id?: string
           period: string
           source_id?: string | null
+          source_url?: string | null
           value: number
         }
         Update: {
@@ -550,6 +552,7 @@ export type Database = {
           id?: string
           period?: string
           source_id?: string | null
+          source_url?: string | null
           value?: number
         }
         Relationships: [
@@ -593,6 +596,7 @@ export type Database = {
           provenance: string
           research_notes: string | null
           source_id: string | null
+          source_url: string | null
           target: number | null
           unit: string
           updated_at: string
@@ -622,6 +626,7 @@ export type Database = {
           provenance?: string
           research_notes?: string | null
           source_id?: string | null
+          source_url?: string | null
           target?: number | null
           unit: string
           updated_at?: string
@@ -651,6 +656,7 @@ export type Database = {
           provenance?: string
           research_notes?: string | null
           source_id?: string | null
+          source_url?: string | null
           target?: number | null
           unit?: string
           updated_at?: string
@@ -757,6 +763,59 @@ export type Database = {
           },
         ]
       }
+      country_source_connections: {
+        Row: {
+          auth_header_name: string | null
+          config: Json
+          country_source_id: string
+          created_at: string
+          endpoint_url: string
+          id: string
+          kind: string
+          last_error: string | null
+          last_polled_at: string | null
+          last_status: string | null
+          secret_ref: string | null
+          updated_at: string
+        }
+        Insert: {
+          auth_header_name?: string | null
+          config?: Json
+          country_source_id: string
+          created_at?: string
+          endpoint_url: string
+          id?: string
+          kind: string
+          last_error?: string | null
+          last_polled_at?: string | null
+          last_status?: string | null
+          secret_ref?: string | null
+          updated_at?: string
+        }
+        Update: {
+          auth_header_name?: string | null
+          config?: Json
+          country_source_id?: string
+          created_at?: string
+          endpoint_url?: string
+          id?: string
+          kind?: string
+          last_error?: string | null
+          last_polled_at?: string | null
+          last_status?: string | null
+          secret_ref?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "country_source_connections_country_source_id_fkey"
+            columns: ["country_source_id"]
+            isOneToOne: true
+            referencedRelation: "country_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       country_source_documents: {
         Row: {
           char_count: number
@@ -798,6 +857,7 @@ export type Database = {
       country_sources: {
         Row: {
           active: boolean
+          connection_kind: string | null
           country_code: string
           created_at: string
           created_by: string | null
@@ -808,6 +868,9 @@ export type Database = {
           last_fetched_at: string | null
           org: string
           quality_score: number
+          storage_path: string | null
+          summary: string | null
+          summary_generated_at: string | null
           tags: string[]
           title: string
           tld: string | null
@@ -816,6 +879,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          connection_kind?: string | null
           country_code: string
           created_at?: string
           created_by?: string | null
@@ -826,6 +890,9 @@ export type Database = {
           last_fetched_at?: string | null
           org: string
           quality_score?: number
+          storage_path?: string | null
+          summary?: string | null
+          summary_generated_at?: string | null
           tags?: string[]
           title: string
           tld?: string | null
@@ -834,6 +901,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          connection_kind?: string | null
           country_code?: string
           created_at?: string
           created_by?: string | null
@@ -844,6 +912,9 @@ export type Database = {
           last_fetched_at?: string | null
           org?: string
           quality_score?: number
+          storage_path?: string | null
+          summary?: string | null
+          summary_generated_at?: string | null
           tags?: string[]
           title?: string
           tld?: string | null

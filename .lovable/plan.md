@@ -1,55 +1,57 @@
-## Goal
-Make the "Refresh from AI" review dialog readable and scannable. Right now the modal panel is transparent (the page bleeds through) and the diff is a dense two-column blur — an admin can't tell what will change per ministry.
+## Problem
 
-## Fix modal chrome
-- Replace the hand-rolled `fixed inset-0 … bg-cream-50` overlay in `MinistryReviewDialog` with the project's shadcn `Dialog` primitives (`Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogDescription`, `DialogFooter`) from `@/components/ui/dialog`. That gives an opaque theme surface, backdrop, focus trap, and Escape-to-close for free.
-- `DialogContent` sized `max-w-4xl` / `max-h-[85vh]` with a scrollable body between a sticky header (title + summary strip) and a sticky footer (Cancel / Commit buttons) — so the actions never scroll out of view.
-- Apply the same fix to `MinisterEditDialog` (same bug — transparent panel).
+The **Corpus** tab shows five bare tiles (`40 Sources · 40 Active · 0 Documents · 0 Chunks · — Last ingest`) with no way to see what's behind any number, no explanation of what the numbers mean, and no visible action to fix the fact that all 40 sources have been **registered but never fetched** (which is why Documents / Chunks / Last-ingest are all empty).
 
-## Redesign the diff
-Per ministry, one card. Header row: ministry name + right-aligned summary (e.g. "3 → 2 programmes · minister changed"). Body: one row per field.
+The Sources tab has the source rows, but from Corpus tab you can't get there, and Documents / Chunks / ingest-history have **no drill-down surface anywhere in the app**.
 
-```
-┌─ Ministry of Finance                              minister changed · 3 → 2 programmes ─┐
-│  Minister    —                                →   Philip J. Pierre                     │
-│  Title       —                                →   Prime Minister & Minister of Finance │
-│  Party       —                                →   Saint Lucia Labour Party             │
-│  Appointed   —                                →   2021-07-28                           │
-│  Portrait    —                                →   [thumb 32×40]                        │
-│  Email       —                                →   pm.office@govt.lc                    │
-│  Phone       —                                →   +1-758-468-2101                      │
-│  Website     —                                →   govt.lc/ministries/finance           │
-│  Bio         —                                →   Attorney and long-serving MP for…    │
-│  Mandate     Lead macroeconomic policy…       →   Lead macroeconomic policy…           │
-│  Programmes  3 items ▸                        →   2 items ▸                            │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
-```
+## Fix
 
-Field-row rules:
-- Grid: `label | current | arrow | new` with `label` and arrow columns narrow, current/new equal width.
-- Unchanged rows render in `text-ink-400` so the eye jumps to real changes.
-- Changed rows: new-value cell gets a subtle `bg-emerald-50/60` tint and darker text.
-- Empty values render as `—` in `text-ink-300`.
-- Portrait row: 32×40 thumb per side.
-- Bio: `line-clamp-2` with a per-row "Show more" toggle.
-- Mandate: same truncation.
-- Programmes: `<details>` showing name + status per programme.
+Turn the Corpus tab from a scoreboard into a working operations page.
 
-Ministries with no field-level changes collapse to a single grey line: "Ministry of X · no changes" — no card body rendered.
+### 1. Explainer strip (top of tab)
 
-## Summary strip (top of dialog body)
-One horizontal row of counts derived from the diff:
-- `X of Y ministries changed`
-- `N new minister names`
-- `M new contact records` (any contact field newly populated)
-- `K citations attached`
+One paragraph, plain English:
 
-## Files
-- Edit `src/routes/_authenticated/admin/countries.$code.data.tsx`:
-  - Rewrite `MinistryReviewDialog` using shadcn `Dialog`, add `diffMinistry(current, entry)` helper that returns `{ changed: boolean, rows: Array<{label, before, after, isChanged, kind}> }`, render summary + per-ministry cards.
-  - Wrap `MinisterEditDialog` in the same `Dialog` primitives (kill the hand-rolled overlay).
+> The corpus is what the AI reads when it answers questions about this country. It flows: **Sources** (URLs we've registered) → **Fetch** (Firecrawl pulls the page) → **Documents** (one per fetched URL) → **Chunk + embed** (split into passages with vector embeddings) → **Chunks** (searchable). Right now 40 sources are registered but 0 have been fetched, so the AI has nothing to retrieve.
+
+### 2. Prominent action bar
+
+- Primary button **Run corpus ingest** (calls existing `runCorpusIngest`) — visible whenever `documents === 0` OR `last_ingest_at` is older than 30 days. Shows spinner + last-run status inline.
+- Secondary link **Manage sources →** jumps to the Sources tab.
+
+### 3. Make every stat tile clickable → expands a detail drawer below
+
+| Tile | What the drawer shows |
+| --- | --- |
+| **Sources** | Full list: org · title · url · active · doc-count · chunk-count. Row click → Sources tab prefiltered. |
+| **Active** | Same list, filtered to `active = true`; inactive sources shown greyed with reason. |
+| **Documents** | Table of `country_source_documents`: source, fetched_at, HTTP status, char length, chunk count, error (if any). Empty state explains "no source has been fetched yet — click Run corpus ingest". |
+| **Chunks** | Per-source rollup: source · chunks · avg length · last embedded. Row expand shows first 3 chunk previews. |
+| **Last ingest** | Recent `onboarding_runs` where `stage = 'corpus_ingest'`: started_at, duration, status, sources processed, errors. Click row → full run detail (model_stack, log). |
+
+Only one drawer open at a time; the active tile gets a highlighted border.
+
+### 4. Keep the Retrieval sanity check where it is, but add a hint
+
+Under the search box, one line: "Searches the embedded chunks. Returns nothing until at least one source has been ingested."
+
+## Technical notes
+
+- **New server fn** `corpusDetail({ countryCode })` in `src/lib/country-data/manage.functions.ts`, admin-only, returns:
+  ```ts
+  {
+    sources: Array<{ id, org, title, url, active, doc_count, chunk_count, last_fetched_at, last_error }>,
+    documents: Array<{ id, source_id, source_title, fetched_at, http_status, char_len, chunk_count, error }>,
+    runs: Array<{ id, started_at, finished_at, status, model_stack, error, notes }>  // stage = 'corpus_ingest', last 10
+  }
+  ```
+  One query per section, joined in JS by `source_id`. Reuses tables already queried by `corpusStats`.
+- **UI** stays in `src/routes/_authenticated/admin/countries.$code.data.tsx` `CorpusTab`. New local component `StatTile` accepts `onClick`/`selected`; new `CorpusDetailDrawer` switches on the selected key.
+- **Run ingest wiring**: `useServerFn(runCorpusIngest)` + `useMutation`, invalidate `["data", code, "stats"]` and the new `["data", code, "corpus-detail"]` on success.
+- No schema changes. No changes to Sources/KPIs/Dossiers/Ministries/Memory tabs.
 
 ## Out of scope
-- No agent, commit, or data-model changes.
-- No per-ministry selective commit (still all-or-nothing).
-- No inline editing inside the review — admins keep using the per-card "Edit" after commit.
+
+- Redesigning the other tabs.
+- Editing ingest logic itself (Firecrawl, chunking, embeddings).
+- Per-document re-fetch buttons (can be a follow-up once the detail view exists).

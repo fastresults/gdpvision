@@ -1,12 +1,12 @@
 // Fact-check & citations (PRD §7.6 FR-NC-11, §12 screens 12/13).
 // Extracts numeric claims from a draft body and matches them against the
-// Ledger's series_points for the same country, and returns Second-Brain
-// memory objects available as citations.
+// Ledger's series_points for the same country.
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { applySourceSuppressions } from "@/lib/suppressions.server";
 
 // Numeric-claim extractor. Captures figures like:
 //   "12.4%", "EC$412M", "USD 1.2 billion", "4,200", "45 percent"

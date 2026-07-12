@@ -57,6 +57,7 @@ import { Route as AuthenticatedInstrumentPortfolioMinistryRouteImport } from './
 import { Route as AuthenticatedInstrumentMandateStudioRouteImport } from './routes/_authenticated/instrument/mandate.studio'
 import { Route as AuthenticatedInstrumentMandateScorecardRouteImport } from './routes/_authenticated/instrument/mandate.scorecard'
 import { Route as AuthenticatedInstrumentCabinetSessionRouteImport } from './routes/_authenticated/instrument/cabinet.session'
+import { Route as AuthenticatedInstrumentCabinetDecisionsRouteImport } from './routes/_authenticated/instrument/cabinet.decisions'
 import { Route as AuthenticatedAdminAuditsLogRouteImport } from './routes/_authenticated/admin/audits.log'
 import { Route as AuthenticatedAdminAuditsKeyingRouteImport } from './routes/_authenticated/admin/audits.keying'
 
@@ -337,6 +338,12 @@ const AuthenticatedInstrumentCabinetSessionRoute =
     path: '/cabinet/session',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
+const AuthenticatedInstrumentCabinetDecisionsRoute =
+  AuthenticatedInstrumentCabinetDecisionsRouteImport.update({
+    id: '/cabinet/decisions',
+    path: '/cabinet/decisions',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+  } as any)
 const AuthenticatedAdminAuditsLogRoute =
   AuthenticatedAdminAuditsLogRouteImport.update({
     id: '/admin/audits/log',
@@ -378,6 +385,7 @@ export interface FileRoutesByFullPath {
   '/narrative/': typeof AuthenticatedNarrativeIndexRoute
   '/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
   '/admin/audits/log': typeof AuthenticatedAdminAuditsLogRoute
+  '/instrument/cabinet/decisions': typeof AuthenticatedInstrumentCabinetDecisionsRoute
   '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
   '/instrument/mandate/studio': typeof AuthenticatedInstrumentMandateStudioRoute
@@ -426,6 +434,7 @@ export interface FileRoutesByTo {
   '/narrative': typeof AuthenticatedNarrativeIndexRoute
   '/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
   '/admin/audits/log': typeof AuthenticatedAdminAuditsLogRoute
+  '/instrument/cabinet/decisions': typeof AuthenticatedInstrumentCabinetDecisionsRoute
   '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
   '/instrument/mandate/studio': typeof AuthenticatedInstrumentMandateStudioRoute
@@ -479,6 +488,7 @@ export interface FileRoutesById {
   '/_authenticated/narrative/': typeof AuthenticatedNarrativeIndexRoute
   '/_authenticated/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
   '/_authenticated/admin/audits/log': typeof AuthenticatedAdminAuditsLogRoute
+  '/_authenticated/instrument/cabinet/decisions': typeof AuthenticatedInstrumentCabinetDecisionsRoute
   '/_authenticated/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/_authenticated/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
   '/_authenticated/instrument/mandate/studio': typeof AuthenticatedInstrumentMandateStudioRoute
@@ -532,6 +542,7 @@ export interface FileRouteTypes {
     | '/narrative/'
     | '/admin/audits/keying'
     | '/admin/audits/log'
+    | '/instrument/cabinet/decisions'
     | '/instrument/cabinet/session'
     | '/instrument/mandate/scorecard'
     | '/instrument/mandate/studio'
@@ -580,6 +591,7 @@ export interface FileRouteTypes {
     | '/narrative'
     | '/admin/audits/keying'
     | '/admin/audits/log'
+    | '/instrument/cabinet/decisions'
     | '/instrument/cabinet/session'
     | '/instrument/mandate/scorecard'
     | '/instrument/mandate/studio'
@@ -632,6 +644,7 @@ export interface FileRouteTypes {
     | '/_authenticated/narrative/'
     | '/_authenticated/admin/audits/keying'
     | '/_authenticated/admin/audits/log'
+    | '/_authenticated/instrument/cabinet/decisions'
     | '/_authenticated/instrument/cabinet/session'
     | '/_authenticated/instrument/mandate/scorecard'
     | '/_authenticated/instrument/mandate/studio'
@@ -1002,6 +1015,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInstrumentCabinetSessionRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
+    '/_authenticated/instrument/cabinet/decisions': {
+      id: '/_authenticated/instrument/cabinet/decisions'
+      path: '/cabinet/decisions'
+      fullPath: '/instrument/cabinet/decisions'
+      preLoaderRoute: typeof AuthenticatedInstrumentCabinetDecisionsRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
     '/_authenticated/admin/audits/log': {
       id: '/_authenticated/admin/audits/log'
       path: '/admin/audits/log'
@@ -1023,6 +1043,7 @@ interface AuthenticatedInstrumentRouteRouteChildren {
   AuthenticatedInstrumentExposureRoute: typeof AuthenticatedInstrumentExposureRoute
   AuthenticatedInstrumentStewardshipRoute: typeof AuthenticatedInstrumentStewardshipRoute
   AuthenticatedInstrumentIndexRoute: typeof AuthenticatedInstrumentIndexRoute
+  AuthenticatedInstrumentCabinetDecisionsRoute: typeof AuthenticatedInstrumentCabinetDecisionsRoute
   AuthenticatedInstrumentCabinetSessionRoute: typeof AuthenticatedInstrumentCabinetSessionRoute
   AuthenticatedInstrumentMandateScorecardRoute: typeof AuthenticatedInstrumentMandateScorecardRoute
   AuthenticatedInstrumentMandateStudioRoute: typeof AuthenticatedInstrumentMandateStudioRoute
@@ -1044,6 +1065,8 @@ const AuthenticatedInstrumentRouteRouteChildren: AuthenticatedInstrumentRouteRou
     AuthenticatedInstrumentStewardshipRoute:
       AuthenticatedInstrumentStewardshipRoute,
     AuthenticatedInstrumentIndexRoute: AuthenticatedInstrumentIndexRoute,
+    AuthenticatedInstrumentCabinetDecisionsRoute:
+      AuthenticatedInstrumentCabinetDecisionsRoute,
     AuthenticatedInstrumentCabinetSessionRoute:
       AuthenticatedInstrumentCabinetSessionRoute,
     AuthenticatedInstrumentMandateScorecardRoute:

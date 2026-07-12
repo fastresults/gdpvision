@@ -571,61 +571,91 @@ export type Database = {
       }
       country_kpis: {
         Row: {
+          admin_note: string | null
           category: string | null
+          confidence: string | null
           country_code: string
           created_at: string
           direction: string
           freshness_status: string
           id: string
+          inference_evidence: Json | null
+          inference_history: Json
+          inference_model: string | null
+          inference_rationale: string | null
+          inferred_at: string | null
           kpi_code: string
           label: string
           last_verified_at: string | null
           latest_period: string | null
           latest_value: number | null
           notes: string | null
+          provenance: string
           research_notes: string | null
           source_id: string | null
           target: number | null
           unit: string
           updated_at: string
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
+          admin_note?: string | null
           category?: string | null
+          confidence?: string | null
           country_code: string
           created_at?: string
           direction?: string
           freshness_status?: string
           id?: string
+          inference_evidence?: Json | null
+          inference_history?: Json
+          inference_model?: string | null
+          inference_rationale?: string | null
+          inferred_at?: string | null
           kpi_code: string
           label: string
           last_verified_at?: string | null
           latest_period?: string | null
           latest_value?: number | null
           notes?: string | null
+          provenance?: string
           research_notes?: string | null
           source_id?: string | null
           target?: number | null
           unit: string
           updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
+          admin_note?: string | null
           category?: string | null
+          confidence?: string | null
           country_code?: string
           created_at?: string
           direction?: string
           freshness_status?: string
           id?: string
+          inference_evidence?: Json | null
+          inference_history?: Json
+          inference_model?: string | null
+          inference_rationale?: string | null
+          inferred_at?: string | null
           kpi_code?: string
           label?: string
           last_verified_at?: string | null
           latest_period?: string | null
           latest_value?: number | null
           notes?: string | null
+          provenance?: string
           research_notes?: string | null
           source_id?: string | null
           target?: number | null
           unit?: string
           updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: [
           {
@@ -2637,6 +2667,59 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "series"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      source_candidates: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          country_code: string
+          created_at: string
+          id: string
+          rationale: string | null
+          status: string
+          suggested_by_model: string | null
+          suggested_for_kpi: string | null
+          title: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          country_code: string
+          created_at?: string
+          id?: string
+          rationale?: string | null
+          status?: string
+          suggested_by_model?: string | null
+          suggested_for_kpi?: string | null
+          title?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          country_code?: string
+          created_at?: string
+          id?: string
+          rationale?: string | null
+          status?: string
+          suggested_by_model?: string | null
+          suggested_for_kpi?: string | null
+          title?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_candidates_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
           },
         ]
       }

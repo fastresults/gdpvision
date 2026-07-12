@@ -2,6 +2,7 @@ import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 
 import { listInstanceBindings } from "@/lib/ledger.functions";
+import { getMyCountryStatus } from "@/lib/country-admin.functions";
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -14,6 +15,10 @@ export const Route = createFileRoute("/_authenticated/instrument")({
   loader: async ({ context }) => {
     const bindings = await context.queryClient.ensureQueryData(bindingsQuery);
     if (!bindings || bindings.length === 0) {
+      // Super admins land on the country onboarding dashboard, not the
+      // country-picker used by country admins.
+      const status = await getMyCountryStatus().catch(() => null);
+      if (status?.isGlobalAdmin) throw redirect({ to: "/admin/countries" });
       throw redirect({ to: "/onboarding/country" });
     }
   },

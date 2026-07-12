@@ -15,7 +15,7 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-type Mode = "sign-in" | "sign-up";
+type Mode = "sign-in" | "sign-up" | "forgot";
 
 function AuthPage() {
   const navigate = useNavigate();
@@ -25,6 +25,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   // If already signed in, get out of the way.
@@ -34,15 +35,24 @@ function AuthPage() {
     });
   }, [navigate]);
 
+  function switchMode(next: Mode) {
+    setMode(next);
+    setError(null);
+    setNotice(null);
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setNotice(null);
     setBusy(true);
     try {
       if (mode === "sign-in") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-      } else {
+        router.invalidate();
+        navigate({ to: "/instrument" });
+      } else if (mode === "sign-up") {
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -52,20 +62,35 @@ function AuthPage() {
           },
         });
         if (error) throw error;
+        router.invalidate();
+        navigate({ to: "/instrument" });
+      } else {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        setNotice("Check your email for a link to reset your password.");
       }
-      router.invalidate();
-      navigate({ to: "/instrument" });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Sign-in failed");
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setBusy(false);
     }
   }
 
+  const title = mode === "sign-in" ? "Sign in" : mode === "sign-up" ? "Create account" : "Reset password";
+  const cta = busy
+    ? "Working…"
+    : mode === "sign-in"
+    ? "Sign in"
+    : mode === "sign-up"
+    ? "Create instrument account"
+    : "Send reset link";
+
   return (
     <MarketingShell>
       <div className="mx-auto max-w-md px-6 py-24">
-        <SectionHeader eyebrow="Instrument access" title="Sign in" />
+        <SectionHeader eyebrow="Instrument access" title={title} />
         <form onSubmit={onSubmit} className="mt-10 space-y-6">
           {mode === "sign-up" && (
             <label className="block">
@@ -90,21 +115,39 @@ function AuthPage() {
               className="mt-2 w-full border-b border-line-200 bg-transparent py-2 text-lg focus:border-ink-950 focus:outline-none"
             />
           </label>
-          <label className="block">
-            <span className="text-xs uppercase tracking-wider text-ink-500">Password</span>
-            <input
-              type="password"
-              autoComplete={mode === "sign-in" ? "current-password" : "new-password"}
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-2 w-full border-b border-line-200 bg-transparent py-2 text-lg focus:border-ink-950 focus:outline-none"
-            />
-          </label>
+          {mode !== "forgot" && (
+            <label className="block">
+              <div className="flex items-baseline justify-between">
+                <span className="text-xs uppercase tracking-wider text-ink-500">Password</span>
+                {mode === "sign-in" && (
+                  <button
+                    type="button"
+                    onClick={() => switchMode("forgot")}
+                    className="text-xs text-ink-500 underline underline-offset-4 hover:text-ink-950"
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
+              <input
+                type="password"
+                autoComplete={mode === "sign-in" ? "current-password" : "new-password"}
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="mt-2 w-full border-b border-line-200 bg-transparent py-2 text-lg focus:border-ink-950 focus:outline-none"
+              />
+            </label>
+          )}
           {error && (
             <p className="text-sm text-signal-negative" role="alert">
               {error}
+            </p>
+          )}
+          {notice && (
+            <p className="text-sm text-ink-700" role="status">
+              {notice}
             </p>
           )}
           <button
@@ -112,17 +155,27 @@ function AuthPage() {
             disabled={busy}
             className="w-full border-l-2 border-gold-500 bg-ink-950 py-3 text-sm uppercase tracking-widest text-paper-0 transition-colors hover:bg-ink-700 disabled:opacity-50"
           >
-            {busy ? "Working…" : mode === "sign-in" ? "Sign in" : "Create instrument account"}
+            {cta}
           </button>
         </form>
-        <div className="mt-8 flex items-center justify-between text-sm text-ink-500">
-          <button
-            type="button"
-            onClick={() => setMode(mode === "sign-in" ? "sign-up" : "sign-in")}
-            className="underline underline-offset-4 hover:text-ink-950"
-          >
-            {mode === "sign-in" ? "Create an account" : "I already have an account"}
-          </button>
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 text-sm text-ink-500">
+          {mode === "forgot" ? (
+            <button
+              type="button"
+              onClick={() => switchMode("sign-in")}
+              className="underline underline-offset-4 hover:text-ink-950"
+            >
+              Back to sign in
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => switchMode(mode === "sign-in" ? "sign-up" : "sign-in")}
+              className="underline underline-offset-4 hover:text-ink-950"
+            >
+              {mode === "sign-in" ? "Create an account" : "I already have an account"}
+            </button>
+          )}
           <Link to="/" className="hover:text-ink-950">
             Back to gdpvision.com
           </Link>

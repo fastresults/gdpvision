@@ -93,11 +93,25 @@ function Scorecard() {
 function KpiTile({ kpi }: { kpi: ConsumerKpi }) {
   const val = kpi.latest_value;
   const status = deriveStatus(kpi);
+  const isInferred = kpi.provenance === "inferred";
   return (
     <div className="border border-line-200 p-6">
-      <p className="font-mono text-[10px] uppercase tracking-widest text-ink-500">
-        {kpi.kpi_code}
-      </p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-ink-500">
+          {kpi.kpi_code}
+        </p>
+        {isInferred && (
+          <span
+            className="inline-flex items-center gap-1 border border-amber-500 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-amber-700"
+            title={
+              (kpi.inference_rationale ? `${kpi.inference_rationale}\n\n` : "") +
+              `Inferred by ${kpi.inference_model ?? "AI"} (confidence: ${kpi.confidence ?? "unknown"})`
+            }
+          >
+            ⓘ inferred{kpi.confidence ? ` · ${kpi.confidence}` : ""}
+          </span>
+        )}
+      </div>
       <p className="mt-1 text-sm text-ink-950">{kpi.label}</p>
 
       <p className="mt-6 font-serif text-5xl text-ink-950" data-numeric>
@@ -122,7 +136,7 @@ function KpiTile({ kpi }: { kpi: ConsumerKpi }) {
           </a>
         ) : (
           <span className="font-mono text-[10px] uppercase tracking-widest text-ink-400">
-            no source
+            {isInferred ? "AI estimate" : "no source"}
           </span>
         )}
       </div>

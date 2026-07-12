@@ -505,13 +505,14 @@ function KpiRow({
   onSave: (patch: any) => Promise<void>;
   onOpenInference: () => void;
 }) {
-  const [latest, setLatest] = useState<string>(k.latest_value ?? "");
+  const fmt2 = (v: any) => (v === null || v === undefined || v === "" || isNaN(Number(v)) ? "" : Number(v).toFixed(2));
+  const [latest, setLatest] = useState<string>(fmt2(k.latest_value));
   const [period, setPeriod] = useState<string>(k.latest_period ?? "");
-  const [target, setTarget] = useState<string>(k.target ?? "");
+  const [target, setTarget] = useState<string>(fmt2(k.target));
   const dirty =
-    String(latest) !== String(k.latest_value ?? "") ||
+    latest !== fmt2(k.latest_value) ||
     period !== (k.latest_period ?? "") ||
-    String(target) !== String(k.target ?? "");
+    target !== fmt2(k.target);
   const prov = k.provenance ?? status?.provenance ?? "verified";
   const isInferred = prov === "inferred";
   const isAdminVerified = prov === "admin_verified" || prov === "admin_override";

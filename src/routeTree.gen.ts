@@ -39,6 +39,7 @@ import { Route as AuthenticatedInstrumentExposureRouteImport } from './routes/_a
 import { Route as AuthenticatedCounselMobileRouteImport } from './routes/_authenticated/counsel/mobile'
 import { Route as AuthenticatedCounselArchiveRouteImport } from './routes/_authenticated/counsel/archive'
 import { Route as AuthenticatedAdminDocumentsRouteImport } from './routes/_authenticated/admin/documents'
+import { Route as AuthenticatedAdminActivityRouteImport } from './routes/_authenticated/admin/activity'
 import { Route as AuthenticatedNarrativeStrategyIndexRouteImport } from './routes/_authenticated/narrative/strategy.index'
 import { Route as AuthenticatedInstrumentScenariosIndexRouteImport } from './routes/_authenticated/instrument/scenarios.index'
 import { Route as AuthenticatedInstrumentPortfolioIndexRouteImport } from './routes/_authenticated/instrument/portfolio.index'
@@ -236,6 +237,12 @@ const AuthenticatedAdminDocumentsRoute =
     path: '/documents',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminActivityRoute =
+  AuthenticatedAdminActivityRouteImport.update({
+    id: '/activity',
+    path: '/activity',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedNarrativeStrategyIndexRoute =
   AuthenticatedNarrativeStrategyIndexRouteImport.update({
     id: '/strategy/',
@@ -421,6 +428,7 @@ export interface FileRoutesByFullPath {
   '/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
+  '/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/counsel/mobile': typeof AuthenticatedCounselMobileRoute
@@ -477,6 +485,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk': typeof KioskIndexRoute
+  '/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/counsel/mobile': typeof AuthenticatedCounselMobileRoute
@@ -539,6 +548,7 @@ export interface FileRoutesById {
   '/_authenticated/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
+  '/_authenticated/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/_authenticated/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/_authenticated/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/_authenticated/counsel/mobile': typeof AuthenticatedCounselMobileRoute
@@ -601,6 +611,7 @@ export interface FileRouteTypes {
     | '/narrative'
     | '/kiosk/admin'
     | '/kiosk/'
+    | '/admin/activity'
     | '/admin/documents'
     | '/counsel/archive'
     | '/counsel/mobile'
@@ -657,6 +668,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/kiosk/admin'
     | '/kiosk'
+    | '/admin/activity'
     | '/admin/documents'
     | '/counsel/archive'
     | '/counsel/mobile'
@@ -718,6 +730,7 @@ export interface FileRouteTypes {
     | '/_authenticated/narrative'
     | '/kiosk/admin'
     | '/kiosk/'
+    | '/_authenticated/admin/activity'
     | '/_authenticated/admin/documents'
     | '/_authenticated/counsel/archive'
     | '/_authenticated/counsel/mobile'
@@ -991,6 +1004,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminDocumentsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/activity': {
+      id: '/_authenticated/admin/activity'
+      path: '/activity'
+      fullPath: '/admin/activity'
+      preLoaderRoute: typeof AuthenticatedAdminActivityRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/narrative/strategy/': {
       id: '/_authenticated/narrative/strategy/'
       path: '/strategy'
@@ -1198,6 +1218,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminRouteRouteChildren {
+  AuthenticatedAdminActivityRoute: typeof AuthenticatedAdminActivityRoute
   AuthenticatedAdminDocumentsRoute: typeof AuthenticatedAdminDocumentsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminAuditsKeyingRoute: typeof AuthenticatedAdminAuditsKeyingRoute
@@ -1209,6 +1230,7 @@ interface AuthenticatedAdminRouteRouteChildren {
 
 const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
   {
+    AuthenticatedAdminActivityRoute: AuthenticatedAdminActivityRoute,
     AuthenticatedAdminDocumentsRoute: AuthenticatedAdminDocumentsRoute,
     AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
     AuthenticatedAdminAuditsKeyingRoute: AuthenticatedAdminAuditsKeyingRoute,

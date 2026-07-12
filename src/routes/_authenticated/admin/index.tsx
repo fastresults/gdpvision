@@ -84,6 +84,7 @@ function AdminPage() {
           <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">Admin</span>
         </div>
         <div className="flex items-center gap-6 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+          <Link to="/admin/countries" className="hover:text-ink-950">Country onboarding</Link>
           <Link to="/config" className="hover:text-ink-950">Configuration</Link>
           <Link to="/admin/audits/keying" className="hover:text-ink-950">Keying audit</Link>
           <Link to="/admin/audits/log" className="hover:text-ink-950">Audit log</Link>

@@ -11,15 +11,24 @@ import {
   reverifyAllKpis,
 } from "@/lib/country-onboarding/corpus.functions";
 import {
+  acceptKpiInference,
+  acceptAllHighConfidenceInferences,
+  approveSourceCandidate,
   corpusStats,
   deleteMemory,
   deleteSource,
+  inferAllMissing,
   listDossiers,
   listKpis,
   listMemory,
   listMinistryProfiles,
+  listSourceCandidates,
   listSources,
+  overrideKpi,
   reingestSource,
+  reinferKpi,
+  rejectKpiInference,
+  rejectSourceCandidate,
   semanticSearch,
   setMemoryVerified,
   toggleSource,
@@ -58,6 +67,8 @@ const statsQuery = (code: string) =>
   queryOptions({ queryKey: ["data", code, "stats"], queryFn: () => corpusStats({ data: { countryCode: code } }) });
 const memoryQuery = (code: string) =>
   queryOptions({ queryKey: ["data", code, "memory"], queryFn: () => listMemory({ data: { countryCode: code } }) });
+const sourceCandidatesQuery = (code: string) =>
+  queryOptions({ queryKey: ["data", code, "source-candidates"], queryFn: () => listSourceCandidates({ data: { countryCode: code } }) });
 
 
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/data")({

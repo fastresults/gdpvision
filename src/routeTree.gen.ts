@@ -27,6 +27,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as KioskApiUploadPresentationRouteImport } from './routes/kiosk.api.upload-presentation'
 import { Route as KioskApiUploadMediaRouteImport } from './routes/kiosk.api.upload-media'
 import { Route as KioskApiKioskDataRouteImport } from './routes/kiosk.api.kiosk-data'
+import { Route as AuthenticatedOnboardingCountryRouteImport } from './routes/_authenticated/onboarding/country'
 import { Route as AuthenticatedNarrativeQueueRouteImport } from './routes/_authenticated/narrative/queue'
 import { Route as AuthenticatedNarrativeIngestRouteImport } from './routes/_authenticated/narrative/ingest'
 import { Route as AuthenticatedNarrativeCoverageRouteImport } from './routes/_authenticated/narrative/coverage'
@@ -160,6 +161,12 @@ const KioskApiKioskDataRoute = KioskApiKioskDataRouteImport.update({
   path: '/api/kiosk-data',
   getParentRoute: () => KioskRoute,
 } as any)
+const AuthenticatedOnboardingCountryRoute =
+  AuthenticatedOnboardingCountryRouteImport.update({
+    id: '/onboarding/country',
+    path: '/onboarding/country',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedNarrativeQueueRoute =
   AuthenticatedNarrativeQueueRouteImport.update({
     id: '/queue',
@@ -396,6 +403,7 @@ export interface FileRoutesByFullPath {
   '/narrative/coverage': typeof AuthenticatedNarrativeCoverageRoute
   '/narrative/ingest': typeof AuthenticatedNarrativeIngestRoute
   '/narrative/queue': typeof AuthenticatedNarrativeQueueRoute
+  '/onboarding/country': typeof AuthenticatedOnboardingCountryRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
@@ -448,6 +456,7 @@ export interface FileRoutesByTo {
   '/narrative/coverage': typeof AuthenticatedNarrativeCoverageRoute
   '/narrative/ingest': typeof AuthenticatedNarrativeIngestRoute
   '/narrative/queue': typeof AuthenticatedNarrativeQueueRoute
+  '/onboarding/country': typeof AuthenticatedOnboardingCountryRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
@@ -505,6 +514,7 @@ export interface FileRoutesById {
   '/_authenticated/narrative/coverage': typeof AuthenticatedNarrativeCoverageRoute
   '/_authenticated/narrative/ingest': typeof AuthenticatedNarrativeIngestRoute
   '/_authenticated/narrative/queue': typeof AuthenticatedNarrativeQueueRoute
+  '/_authenticated/onboarding/country': typeof AuthenticatedOnboardingCountryRoute
   '/kiosk/api/kiosk-data': typeof KioskApiKioskDataRoute
   '/kiosk/api/upload-media': typeof KioskApiUploadMediaRoute
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
@@ -562,6 +572,7 @@ export interface FileRouteTypes {
     | '/narrative/coverage'
     | '/narrative/ingest'
     | '/narrative/queue'
+    | '/onboarding/country'
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
@@ -614,6 +625,7 @@ export interface FileRouteTypes {
     | '/narrative/coverage'
     | '/narrative/ingest'
     | '/narrative/queue'
+    | '/onboarding/country'
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
@@ -670,6 +682,7 @@ export interface FileRouteTypes {
     | '/_authenticated/narrative/coverage'
     | '/_authenticated/narrative/ingest'
     | '/_authenticated/narrative/queue'
+    | '/_authenticated/onboarding/country'
     | '/kiosk/api/kiosk-data'
     | '/kiosk/api/upload-media'
     | '/kiosk/api/upload-presentation'
@@ -844,6 +857,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/kiosk/api/kiosk-data'
       preLoaderRoute: typeof KioskApiKioskDataRouteImport
       parentRoute: typeof KioskRoute
+    }
+    '/_authenticated/onboarding/country': {
+      id: '/_authenticated/onboarding/country'
+      path: '/onboarding/country'
+      fullPath: '/onboarding/country'
+      preLoaderRoute: typeof AuthenticatedOnboardingCountryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/narrative/queue': {
       id: '/_authenticated/narrative/queue'
@@ -1221,6 +1241,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminDocumentsRoute: typeof AuthenticatedAdminDocumentsRoute
   AuthenticatedCounselArchiveRoute: typeof AuthenticatedCounselArchiveRoute
   AuthenticatedCounselMobileRoute: typeof AuthenticatedCounselMobileRoute
+  AuthenticatedOnboardingCountryRoute: typeof AuthenticatedOnboardingCountryRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedCodexIndexRoute: typeof AuthenticatedCodexIndexRoute
   AuthenticatedConfigIndexRoute: typeof AuthenticatedConfigIndexRoute
@@ -1237,6 +1258,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminDocumentsRoute: AuthenticatedAdminDocumentsRoute,
   AuthenticatedCounselArchiveRoute: AuthenticatedCounselArchiveRoute,
   AuthenticatedCounselMobileRoute: AuthenticatedCounselMobileRoute,
+  AuthenticatedOnboardingCountryRoute: AuthenticatedOnboardingCountryRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedCodexIndexRoute: AuthenticatedCodexIndexRoute,
   AuthenticatedConfigIndexRoute: AuthenticatedConfigIndexRoute,

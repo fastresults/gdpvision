@@ -164,10 +164,10 @@ function SourcesTab({ code }: { code: string }) {
   const toggle = useServerFn(toggleSource);
   const del = useServerFn(deleteSource);
   const reingest = useServerFn(reingestSource);
-  const upsert = useServerFn(upsertSource);
   const [running, setRunning] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["data", code] });
 
@@ -184,30 +184,23 @@ function SourcesTab({ code }: { code: string }) {
     }
   }
 
+  const rows = sources as any[];
+  const summarized = rows.filter((s) => s.summary).length;
+
   return (
     <section className="space-y-4">
       {err && <div className="p-2 text-xs text-red-700 border border-red-500/50 bg-red-500/10">{err}</div>}
       <div className="flex justify-between items-center">
         <div className="text-xs text-ink-500">
-          {(sources as any[]).length} sources · {(sources as any[]).filter((s) => s.active).length} active
+          {rows.length} sources · {rows.filter((s) => s.active).length} active · {summarized} with AI summary · 0 duplicates
         </div>
         <button
-          onClick={() => setShowAdd((v) => !v)}
+          onClick={() => setShowAdd(true)}
           className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0"
         >
-          {showAdd ? "Cancel" : "Add source"}
+          Add source
         </button>
       </div>
-
-      {showAdd && (
-        <AddSourceForm
-          onSubmit={async (v) => {
-            await upsert({ data: { countryCode: code, ...v } });
-            setShowAdd(false);
-            await refresh();
-          }}
-        />
-      )}
 
       <div className="border border-line-200 overflow-x-auto">
         <table className="w-full text-sm">
@@ -222,13 +215,19 @@ function SourcesTab({ code }: { code: string }) {
             </tr>
           </thead>
           <tbody>
-            {(sources as any[]).map((s) => (
-              <tr key={s.id} className="border-t border-line-200">
+            {rows.map((s) => (
+              <tr key={s.id} className="border-t border-line-200 hover:bg-paper-100/40">
                 <td className="px-3 py-2">
-                  <a href={s.url} target="_blank" rel="noreferrer" className="font-medium hover:underline">
+                  <button
+                    onClick={() => setOpenId(s.id)}
+                    className="text-left font-medium hover:underline"
+                  >
                     {s.title}
-                  </a>
-                  <div className="text-xs text-ink-500">{s.org} · {(() => { try { return new URL(s.url).hostname; } catch { return ""; } })()}</div>
+                  </button>
+                  <div className="text-xs text-ink-500">
+                    {s.org} · {(() => { try { return new URL(s.url).hostname; } catch { return s.connection_kind ?? ""; } })()}
+                    {s.summary ? " · AI summary" : ""}
+                  </div>
                   {s.fetch_status === "error" && s.fetch_error && (
                     <div className="text-xs text-red-600 mt-1 truncate max-w-md" title={s.fetch_error}>⚠ {s.fetch_error}</div>
                   )}
@@ -268,58 +267,24 @@ function SourcesTab({ code }: { code: string }) {
                 </td>
               </tr>
             ))}
-            {(sources as any[]).length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-ink-500">No sources yet. Run the Source registry stage in onboarding, or add one.</td></tr>
+            {rows.length === 0 && (
+              <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-ink-500">No sources yet. Add one or run the Source registry stage in onboarding.</td></tr>
             )}
           </tbody>
         </table>
       </div>
+
+      <AddSourceDialog
+        countryCode={code}
+        open={showAdd}
+        onClose={() => setShowAdd(false)}
+        onDone={refresh}
+      />
+      <SourceDetailSheet sourceId={openId} onClose={() => setOpenId(null)} />
     </section>
   );
 }
 
-function AddSourceForm({ onSubmit }: { onSubmit: (v: { url: string; title: string; org: string; kind: string; quality_score: number; active: boolean; tags: string[] }) => Promise<void> }) {
-  const [url, setUrl] = useState("");
-  const [title, setTitle] = useState("");
-  const [org, setOrg] = useState("");
-  const [kind, setKind] = useState("gov");
-  const [q, setQ] = useState(3);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-
-  return (
-    <form
-      onSubmit={async (e) => {
-        e.preventDefault();
-        setErr(null);
-        setBusy(true);
-        try {
-          await onSubmit({ url, title, org, kind, quality_score: q, active: true, tags: [] });
-          setUrl(""); setTitle(""); setOrg("");
-        } catch (e: any) {
-          setErr(e?.message ?? String(e));
-        } finally {
-          setBusy(false);
-        }
-      }}
-      className="grid grid-cols-1 md:grid-cols-6 gap-2 border border-line-200 p-3 bg-paper-100/40"
-    >
-      <input required placeholder="https://…" value={url} onChange={(e) => setUrl(e.target.value)} className="md:col-span-2 border border-line-200 px-2 py-1.5 text-sm bg-paper-0" />
-      <input required placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} className="md:col-span-2 border border-line-200 px-2 py-1.5 text-sm bg-paper-0" />
-      <input required placeholder="Org" value={org} onChange={(e) => setOrg(e.target.value)} className="border border-line-200 px-2 py-1.5 text-sm bg-paper-0" />
-      <select value={kind} onChange={(e) => setKind(e.target.value)} className="border border-line-200 px-2 py-1.5 text-sm bg-paper-0">
-        {["gov", "regional", "multilateral", "advisory", "ngo", "media", "summit"].map((k) => <option key={k}>{k}</option>)}
-      </select>
-      <select value={q} onChange={(e) => setQ(Number(e.target.value))} className="border border-line-200 px-2 py-1.5 text-sm bg-paper-0">
-        {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{"★".repeat(n)}</option>)}
-      </select>
-      <button disabled={busy} className="md:col-span-5 px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0 disabled:opacity-50">
-        {busy ? "Adding…" : "Add source"}
-      </button>
-      {err && <div className="md:col-span-6 text-xs text-red-700">{err}</div>}
-    </form>
-  );
-}
 
 // ============================================================
 // KPIs

@@ -45,7 +45,7 @@ function ConfigPage() {
   }
 
   return (
-    <div className="min-h-screen bg-paper-0 text-ink-950">
+    <div className="min-h-dvh bg-paper-0 text-ink-950">
       <header className="flex items-center justify-between border-b border-line-200 px-8 py-5">
         <div className="flex items-center gap-10">
           <Link to="/instrument"><Wordmark /></Link>

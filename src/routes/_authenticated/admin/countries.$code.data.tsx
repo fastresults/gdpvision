@@ -533,13 +533,13 @@ function KpiRow({
         <div className="text-xs text-ink-500">{k.kpi_code}</div>
       </td>
       <td className="px-3 py-2">
-        <input value={latest} onChange={(e) => setLatest(e.target.value)} className="w-24 border border-line-200 px-2 py-1 text-sm bg-paper-0" />
+        <input inputMode="decimal" step="0.01" type="number" value={latest} onChange={(e) => setLatest(e.target.value)} onBlur={(e) => setLatest(fmt2(e.target.value))} className="w-24 border border-line-200 px-2 py-1 text-sm bg-paper-0 text-right tabular-nums" />
       </td>
       <td className="px-3 py-2">
         <input value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="2024" className="w-20 border border-line-200 px-2 py-1 text-sm bg-paper-0" />
       </td>
       <td className="px-3 py-2">
-        <input value={target} onChange={(e) => setTarget(e.target.value)} className="w-24 border border-line-200 px-2 py-1 text-sm bg-paper-0" />
+        <input inputMode="decimal" step="0.01" type="number" value={target} onChange={(e) => setTarget(e.target.value)} onBlur={(e) => setTarget(fmt2(e.target.value))} className="w-24 border border-line-200 px-2 py-1 text-sm bg-paper-0 text-right tabular-nums" />
       </td>
       <td className="px-3 py-2 text-xs">{k.unit}</td>
       <td className="px-3 py-2">

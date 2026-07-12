@@ -1265,12 +1265,11 @@ function MinisterEditDialog({ row, countryCode, onClose }: { row: any; countryCo
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="bg-cream-50 max-w-2xl w-full max-h-[90vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-serif text-lg">Edit Minister · {row.ministries?.name ?? row.ministry_slug}</h3>
-          <button onClick={onClose} className="text-ink-500 hover:text-ink-950">×</button>
-        </div>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-serif text-lg">Edit Minister · {row.ministries?.name ?? row.ministry_slug}</DialogTitle>
+        </DialogHeader>
         <div className="grid grid-cols-2 gap-3">
           {field("Name", "name")}
           {field("Title", "title")}
@@ -1299,14 +1298,14 @@ function MinisterEditDialog({ row, countryCode, onClose }: { row: any; countryCo
           <textarea value={form.career} onChange={(e) => setForm({ ...form, career: e.target.value })} rows={3} className="mt-1 w-full border border-line-200 px-2 py-1 text-sm" />
         </label>
         {err && <div className="mt-3 text-xs text-red-600">{err}</div>}
-        <div className="mt-4 flex justify-end gap-2">
+        <DialogFooter className="mt-4 gap-2 sm:justify-end">
           <button onClick={onClose} className="text-xs text-ink-500 hover:text-ink-950 px-3 py-1.5">Cancel</button>
           <button onClick={onSave} disabled={saving} className="text-xs bg-ink-950 text-cream-50 px-3 py-1.5 disabled:opacity-50">
             {saving ? "Saving…" : "Save"}
           </button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

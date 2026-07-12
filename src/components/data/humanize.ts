@@ -40,11 +40,15 @@ export function formatNumber(n: number): string {
   return n.toFixed(2);
 }
 
-// Splits trailing citation markers like "text[4][7]." into { text, refs }
+// Splits trailing citation markers like "text[4][7]" or "text[4,7,10]" into
+// { text, refs }. Handles single, consecutive, and comma-separated forms.
 export function splitCitations(s: string): { text: string; refs: number[] } {
   const refs: number[] = [];
-  const cleaned = s.replace(/\[(\d+)\]/g, (_, n) => {
-    refs.push(Number(n));
+  const cleaned = s.replace(/\[([\d,\s]+)\]/g, (_, inner: string) => {
+    for (const part of inner.split(",")) {
+      const n = Number(part.trim());
+      if (Number.isFinite(n) && n > 0) refs.push(n);
+    }
     return "";
   });
   return { text: cleaned.replace(/\s+([.,;:])/g, "$1").trim(), refs };

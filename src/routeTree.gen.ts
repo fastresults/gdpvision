@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as KioskRouteImport } from './routes/kiosk'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -63,6 +64,11 @@ import { Route as AuthenticatedInstrumentCabinetDecisionsRouteImport } from './r
 import { Route as AuthenticatedAdminAuditsLogRouteImport } from './routes/_authenticated/admin/audits.log'
 import { Route as AuthenticatedAdminAuditsKeyingRouteImport } from './routes/_authenticated/admin/audits.keying'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const KioskRoute = KioskRouteImport.update({
   id: '/kiosk',
   path: '/kiosk',
@@ -375,6 +381,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/kiosk': typeof KioskRouteWithChildren
+  '/reset-password': typeof ResetPasswordRoute
   '/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
   '/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
   '/kiosk/admin': typeof KioskAdminRoute
@@ -428,6 +435,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk': typeof KioskIndexRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
@@ -482,6 +490,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/kiosk': typeof KioskRouteWithChildren
+  '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
   '/_authenticated/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
   '/kiosk/admin': typeof KioskAdminRoute
@@ -538,6 +547,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/kiosk'
+    | '/reset-password'
     | '/instrument'
     | '/narrative'
     | '/kiosk/admin'
@@ -591,6 +601,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/reset-password'
     | '/kiosk/admin'
     | '/kiosk'
     | '/admin/documents'
@@ -644,6 +655,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/kiosk'
+    | '/reset-password'
     | '/_authenticated/instrument'
     | '/_authenticated/narrative'
     | '/kiosk/admin'
@@ -700,12 +712,20 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   KioskRoute: typeof KioskRouteWithChildren
+  ResetPasswordRoute: typeof ResetPasswordRoute
   ApiPublicHooksCadenceDailyRoute: typeof ApiPublicHooksCadenceDailyRoute
   ApiPublicHooksNarrativeHarvestRoute: typeof ApiPublicHooksNarrativeHarvestRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/kiosk': {
       id: '/kiosk'
       path: '/kiosk'
@@ -1253,6 +1273,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   KioskRoute: KioskRouteWithChildren,
+  ResetPasswordRoute: ResetPasswordRoute,
   ApiPublicHooksCadenceDailyRoute: ApiPublicHooksCadenceDailyRoute,
   ApiPublicHooksNarrativeHarvestRoute: ApiPublicHooksNarrativeHarvestRoute,
 }

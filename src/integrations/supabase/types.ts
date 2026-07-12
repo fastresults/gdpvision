@@ -1692,6 +1692,163 @@ export type Database = {
           },
         ]
       }
+      onboarding_citations: {
+        Row: {
+          created_at: string
+          domain: string | null
+          draft_id: string
+          id: string
+          published_at: string | null
+          quote: string | null
+          title: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          domain?: string | null
+          draft_id: string
+          id?: string
+          published_at?: string | null
+          quote?: string | null
+          title?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string | null
+          draft_id?: string
+          id?: string
+          published_at?: string | null
+          quote?: string | null
+          title?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_citations_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_drafts: {
+        Row: {
+          committed_at: string | null
+          confidence: string
+          country_code: string
+          created_at: string
+          edited_payload: Json | null
+          id: string
+          needs_review: boolean
+          payload: Json
+          run_id: string
+          stage: string
+          target_table: string
+          updated_at: string
+        }
+        Insert: {
+          committed_at?: string | null
+          confidence?: string
+          country_code: string
+          created_at?: string
+          edited_payload?: Json | null
+          id?: string
+          needs_review?: boolean
+          payload: Json
+          run_id: string
+          stage: string
+          target_table: string
+          updated_at?: string
+        }
+        Update: {
+          committed_at?: string | null
+          confidence?: string
+          country_code?: string
+          created_at?: string
+          edited_payload?: Json | null
+          id?: string
+          needs_review?: boolean
+          payload?: Json
+          run_id?: string
+          stage?: string
+          target_table?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_drafts_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "onboarding_drafts_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_runs: {
+        Row: {
+          cost_cents: number
+          country_code: string
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          id: string
+          model_stack: Json
+          plan: Json | null
+          stage: string
+          started_at: string
+          started_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          cost_cents?: number
+          country_code: string
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          model_stack?: Json
+          plan?: Json | null
+          stage: string
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          cost_cents?: number
+          country_code?: string
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          model_stack?: Json
+          plan?: Json | null
+          stage?: string
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_runs_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       packages: {
         Row: {
           country_code: string

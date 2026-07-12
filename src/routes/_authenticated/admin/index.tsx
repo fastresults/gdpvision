@@ -37,6 +37,7 @@ export const Route = createFileRoute("/_authenticated/admin/")({
     await Promise.all([
       context.queryClient.ensureQueryData(usersQuery),
       context.queryClient.ensureQueryData(countriesQuery),
+      context.queryClient.ensureQueryData(configQuery),
     ]);
   },
   component: AdminPage,
@@ -45,6 +46,7 @@ export const Route = createFileRoute("/_authenticated/admin/")({
 function AdminPage() {
   const { data: users } = useSuspenseQuery(usersQuery);
   const { data: countries } = useSuspenseQuery(countriesQuery);
+  const { data: config } = useSuspenseQuery(configQuery);
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -53,10 +55,20 @@ function AdminPage() {
   const bind = useServerFn(addBinding);
   const unbind = useServerFn(removeBinding);
   const setDefault = useServerFn(setDefaultBinding);
+  const invite = useServerFn(inviteUser);
+  const saveConfig = useServerFn(setInstanceConfig);
 
   const mut = useMutation({
     mutationFn: async (fn: () => Promise<unknown>) => fn(),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  });
+  const inviteMut = useMutation({
+    mutationFn: (v: { email: string; displayName?: string }) => invite({ data: v }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  });
+  const configMut = useMutation({
+    mutationFn: (v: { key: string; valueJson: unknown }) => saveConfig({ data: v }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-config"] }),
   });
 
   async function signOut() {
@@ -74,10 +86,12 @@ function AdminPage() {
         <div className="flex items-center gap-6 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
           <Link to="/config" className="hover:text-ink-950">Configuration</Link>
           <Link to="/admin/audits/keying" className="hover:text-ink-950">Keying audit</Link>
+          <Link to="/admin/audits/log" className="hover:text-ink-950">Audit log</Link>
           <Link to="/codex" className="hover:text-ink-950">Codex</Link>
           <button onClick={signOut} className="hover:text-ink-950">Sign out</button>
         </div>
       </header>
+
 
       <main className="mx-auto max-w-7xl px-8 py-16">
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">Instance administration</p>

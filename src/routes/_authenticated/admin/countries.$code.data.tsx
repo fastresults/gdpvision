@@ -1015,7 +1015,7 @@ function MinistryDiffCard({ entry, current, diff }: { entry: any; current: any; 
         <h4 className="font-medium text-sm">{title}</h4>
         <span className="text-[11px] text-ink-500">{changeSummary}</span>
       </div>
-      <div className="divide-y divide-line-100">
+      <div className="divide-y divide-line-200">
         {diff.rows.map((r) => (
           <div key={r.label} className={`grid grid-cols-[90px_1fr_16px_1fr] gap-2 items-start px-3 py-1.5 text-xs ${r.changed ? "" : "opacity-50"}`}>
             <div className="text-ink-500 uppercase text-[10px] tracking-wide pt-0.5">{r.label}</div>

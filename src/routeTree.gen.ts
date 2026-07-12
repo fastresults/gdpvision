@@ -42,6 +42,7 @@ import { Route as AuthenticatedNarrativeStrategyIndexRouteImport } from './route
 import { Route as AuthenticatedInstrumentScenariosIndexRouteImport } from './routes/_authenticated/instrument/scenarios.index'
 import { Route as AuthenticatedInstrumentPortfolioIndexRouteImport } from './routes/_authenticated/instrument/portfolio.index'
 import { Route as AuthenticatedInstrumentCabinetIndexRouteImport } from './routes/_authenticated/instrument/cabinet.index'
+import { Route as AuthenticatedAdminCountriesIndexRouteImport } from './routes/_authenticated/admin/countries.index'
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
 import { Route as ApiPublicHooksNarrativeHarvestRouteImport } from './routes/api/public/hooks/narrative-harvest'
 import { Route as ApiPublicHooksCadenceDailyRouteImport } from './routes/api/public/hooks/cadence-daily'
@@ -65,6 +66,7 @@ import { Route as AuthenticatedInstrumentCabinetDecisionsRouteImport } from './r
 import { Route as AuthenticatedAdminCountryCodeRouteImport } from './routes/_authenticated/admin/country.$code'
 import { Route as AuthenticatedAdminAuditsLogRouteImport } from './routes/_authenticated/admin/audits.log'
 import { Route as AuthenticatedAdminAuditsKeyingRouteImport } from './routes/_authenticated/admin/audits.keying'
+import { Route as AuthenticatedAdminCountriesCodeOnboardRouteImport } from './routes/_authenticated/admin/countries.$code.onboard'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -252,6 +254,12 @@ const AuthenticatedInstrumentCabinetIndexRoute =
     path: '/cabinet/',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
+const AuthenticatedAdminCountriesIndexRoute =
+  AuthenticatedAdminCountriesIndexRouteImport.update({
+    id: '/admin/countries/',
+    path: '/admin/countries/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const KioskApiPublicPresentationPdfRoute =
   KioskApiPublicPresentationPdfRouteImport.update({
     id: '/api/public/presentation-pdf',
@@ -390,6 +398,12 @@ const AuthenticatedAdminAuditsKeyingRoute =
     path: '/admin/audits/keying',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeOnboardRoute =
+  AuthenticatedAdminCountriesCodeOnboardRouteImport.update({
+    id: '/admin/countries/$code/onboard',
+    path: '/admin/countries/$code/onboard',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -443,10 +457,12 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
+  '/admin/countries/': typeof AuthenticatedAdminCountriesIndexRoute
   '/instrument/cabinet/': typeof AuthenticatedInstrumentCabinetIndexRoute
   '/instrument/portfolio/': typeof AuthenticatedInstrumentPortfolioIndexRoute
   '/instrument/scenarios/': typeof AuthenticatedInstrumentScenariosIndexRoute
   '/narrative/strategy/': typeof AuthenticatedNarrativeStrategyIndexRoute
+  '/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -497,10 +513,12 @@ export interface FileRoutesByTo {
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
+  '/admin/countries': typeof AuthenticatedAdminCountriesIndexRoute
   '/instrument/cabinet': typeof AuthenticatedInstrumentCabinetIndexRoute
   '/instrument/portfolio': typeof AuthenticatedInstrumentPortfolioIndexRoute
   '/instrument/scenarios': typeof AuthenticatedInstrumentScenariosIndexRoute
   '/narrative/strategy': typeof AuthenticatedNarrativeStrategyIndexRoute
+  '/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -556,10 +574,12 @@ export interface FileRoutesById {
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
+  '/_authenticated/admin/countries/': typeof AuthenticatedAdminCountriesIndexRoute
   '/_authenticated/instrument/cabinet/': typeof AuthenticatedInstrumentCabinetIndexRoute
   '/_authenticated/instrument/portfolio/': typeof AuthenticatedInstrumentPortfolioIndexRoute
   '/_authenticated/instrument/scenarios/': typeof AuthenticatedInstrumentScenariosIndexRoute
   '/_authenticated/narrative/strategy/': typeof AuthenticatedNarrativeStrategyIndexRoute
+  '/_authenticated/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -615,10 +635,12 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/narrative-harvest'
     | '/kiosk/api/public/presentation-pdf'
+    | '/admin/countries/'
     | '/instrument/cabinet/'
     | '/instrument/portfolio/'
     | '/instrument/scenarios/'
     | '/narrative/strategy/'
+    | '/admin/countries/$code/onboard'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -669,10 +691,12 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/narrative-harvest'
     | '/kiosk/api/public/presentation-pdf'
+    | '/admin/countries'
     | '/instrument/cabinet'
     | '/instrument/portfolio'
     | '/instrument/scenarios'
     | '/narrative/strategy'
+    | '/admin/countries/$code/onboard'
   id:
     | '__root__'
     | '/'
@@ -727,10 +751,12 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/narrative-harvest'
     | '/kiosk/api/public/presentation-pdf'
+    | '/_authenticated/admin/countries/'
     | '/_authenticated/instrument/cabinet/'
     | '/_authenticated/instrument/portfolio/'
     | '/_authenticated/instrument/scenarios/'
     | '/_authenticated/narrative/strategy/'
+    | '/_authenticated/admin/countries/$code/onboard'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -976,6 +1002,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInstrumentCabinetIndexRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
+    '/_authenticated/admin/countries/': {
+      id: '/_authenticated/admin/countries/'
+      path: '/admin/countries'
+      fullPath: '/admin/countries/'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/kiosk/api/public/presentation-pdf': {
       id: '/kiosk/api/public/presentation-pdf'
       path: '/api/public/presentation-pdf'
@@ -1137,6 +1170,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAuditsKeyingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/countries/$code/onboard': {
+      id: '/_authenticated/admin/countries/$code/onboard'
+      path: '/admin/countries/$code/onboard'
+      fullPath: '/admin/countries/$code/onboard'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeOnboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -1269,6 +1309,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminAuditsKeyingRoute: typeof AuthenticatedAdminAuditsKeyingRoute
   AuthenticatedAdminAuditsLogRoute: typeof AuthenticatedAdminAuditsLogRoute
   AuthenticatedAdminCountryCodeRoute: typeof AuthenticatedAdminCountryCodeRoute
+  AuthenticatedAdminCountriesIndexRoute: typeof AuthenticatedAdminCountriesIndexRoute
+  AuthenticatedAdminCountriesCodeOnboardRoute: typeof AuthenticatedAdminCountriesCodeOnboardRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -1287,6 +1329,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminAuditsKeyingRoute: AuthenticatedAdminAuditsKeyingRoute,
   AuthenticatedAdminAuditsLogRoute: AuthenticatedAdminAuditsLogRoute,
   AuthenticatedAdminCountryCodeRoute: AuthenticatedAdminCountryCodeRoute,
+  AuthenticatedAdminCountriesIndexRoute: AuthenticatedAdminCountriesIndexRoute,
+  AuthenticatedAdminCountriesCodeOnboardRoute:
+    AuthenticatedAdminCountriesCodeOnboardRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

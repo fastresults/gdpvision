@@ -1,123 +1,87 @@
-# Visual Second Brain — Constellation view
 
-A cinematic, animated visualization of the second brain that lives under the existing **Second brain** tab at `/admin/countries/$code/data`, with a super-admin **All countries** mode that aggregates every country's brain into one constellation.
+# Robust Add Memory — plan
+
+Bring the "Add memory" flow up to the same standard as **Add source** (tabs, drop zones, bulk paste, API/MCP ingestion), plus an AI extractor that turns raw text/docs/links into structured memory objects the admin reviews before commit.
 
 ## Where it lives
 
-- **Per-country**: new sub-view toggle inside `MemoryTab` → `List | Visual | Constellation`. The current `MemoryVisual` (matrix + bars) stays; **Constellation** is the new default for super-admins.
-- **Cross-country (super-admin only)**: new route `/admin/brain` (top-level, accessible from the countries index and the admin nav) that renders the same constellation with the country layer added — every bound country becomes a node in an outer ring around a central *System* core.
+Replace the inline `AddMemoryForm` in `MemoryTab` (countries.$code.data.tsx) with a `<AddMemoryDialog>` opened from the existing "Add memory" button. Same dialog is reused on the super-admin `/admin/brain` route (country selector on the first step).
 
-Gating: the cross-country view checks `has_role(auth.uid(), 'admin')` server-side; country-scoped admins only see their own country.
+## Dialog structure
 
-## The visual metaphor
+Modeled on `AddSourceDialog`:
 
-A living diagram, not a chart. Flat/mono aesthetic consistent with the site (paper + ink tokens, `font-mono` eyebrows, thin 1px lines), but with restrained motion.
-
-```text
-                     ┌──────────────────────────────┐
-                     │           LEGEND             │
-                     │  ● country   ○ sector        │
-                     │  ◆ kind      · memory        │
-                     │  → citation  ⟳ recent update │
-                     └──────────────────────────────┘
-
-                        outlet ◆         audience ◆
-                              ╲          ╱
-                    position ◆──○ Tourism ○──◆ statement
-                              ╱     │      ╲
-                             ·      │       ·
-                                    │
-                     ○ Health ─── ● LCA ─── ○ Finance ○
-                                    │
-                              ╱     │      ╲
-                    fact ◆──○ Climate ○──◆ risk
-                              ╲          ╱
-                              precedent ◆
+```
+Add memory to <COUNTRY>
+[ Manual | Bulk paste | Documents | Link / URL | API / MCP | From source ]
 ```
 
-**Layers, from center out:**
-1. **Core** — the country crest/code (or *System* in super-admin mode). Slowly pulsing ring whose radius encodes total memory volume.
-2. **Sector ring** — one orb per sector, angular position stable (hashed from `sector_code`), size = memory count, ink shade = summed weight. Verified-heavy sectors get a thin emerald halo.
-3. **Kind satellites** — around each sector orb, up to 7 small diamonds (one per kind: audience, position, statement, outlet, precedent, fact, risk). Filled = has data, hollow = gap.
-4. **Memory dust** — individual memory objects as 2px dots orbiting their (sector, kind) satellite. Density = count; opacity = verified.
-5. **Citation threads** — thin lines from a memory dot back to its source (when hovered), fading into the corpus panel edge.
+### 1. Manual  (current form, upgraded)
+- Sector (searchable combobox from `country_sectors` + "cross_cutting")
+- Kind (chips: audience, position, statement, outlet, precedent, fact, risk)
+- Scope (this country / national)
+- Title, Body (markdown textarea, char count)
+- Weight (1–5) · Verified toggle · Tags (freeform)
+- Optional citation URL → creates a `citations` row linked to the memory
 
-**Super-admin cross-country mode** adds one outer ring: each country is a core, and the *System* center connects to each with a thin thread whose thickness = total memory count. Zooming into a country expands its sector/kind rings; the others dim to 20% opacity.
+### 2. Bulk paste
+- Textarea. One memory per line OR `sector | kind | title :: body` mini-format.
+- Preview table before commit; per-row edit; duplicate detection on (scope, sector, kind, title).
+- Commits via a new `bulkUpsertMemory` server fn.
 
-## Motion (restrained, purposeful)
+### 3. Documents (drop zone, mirrors Sources)
+- Drag-and-drop / click-to-browse (PDF, DOCX, TXT, MD; up to 10 files, 20 MB).
+- File chips with remove.
+- On upload → new `ingestMemoryFromDocument` server fn:
+  1. Upload via existing `ingestDocumentSource` helper (creates a `country_source_document` + chunks so provenance is preserved).
+  2. Call Lovable AI Gateway (`google/gemini-2.5-flash`) with the chunk text and the memory schema; ask for an array of `{ sector_code, kind, title, body, weight, citations: [chunkIdx] }`.
+  3. Return draft rows to the client.
+- **Review step** (in-dialog): draft rows shown in an editable table with accept / skip / edit / merge; only accepted rows call `bulkUpsertMemory`, each with a citation back to the source document chunk.
 
-- **Pulse**: core rings pulse at 4s intervals. Amplitude tied to `activity in last 24h` — quiet brains barely breathe, active ones visibly throb.
-- **Travelling dots**: when a new memory was upserted in the last 5 minutes (from `updated_at`), a bright dot travels the citation thread from source → sector → core once. This is the "data moving" motion the user asked for.
-- **Verification sweep**: verifying a memory triggers a one-time emerald ripple from that dot outward.
-- **Hover**: sector orb → highlights its kind satellites and dims the rest; kind diamond → surfaces its memory dots as a small floating list; memory dot → shows title + citation thread.
-- **Idle**: after 10s with no interaction, dots drift 1–2px on a slow noise field so the diagram feels alive without being distracting.
+### 4. Link / URL
+- Single URL or list of URLs.
+- Server fn `ingestMemoryFromUrl`: fetches via existing source fetcher (`upsertSource` + doc pipeline reused, marked `hidden_source=false`), runs same AI extraction, returns drafts for review.
 
-All motion respects `prefers-reduced-motion` (falls back to static positions with a "Play" button).
+### 5. API / MCP
+- Pick from **already-registered** connections for this country (`country_source_connections`) via combobox, or "Register new…" which opens the same form as Sources' ApiMcpTab.
+- Optional query/prompt string (for MCP tools) or GET path suffix (for REST).
+- Server fn `ingestMemoryFromConnection`: invokes the connection, feeds the JSON/text response through the AI extractor, returns drafts for review.
 
-## Legend & controls
+### 6. From source (existing corpus)
+- Combobox of this country's existing `country_sources` (already ingested).
+- "Extract memories" → runs AI extractor over the stored chunks, drafts to review.
+- Lets admins mine memories from sources they already loaded, no re-upload.
 
-Fixed strip along the top of the canvas:
+## Shared "Review drafts" step
 
-- **Legend chips**: country ●, sector ○, kind ◆, memory ·, verified halo, recent-activity dot. Click a chip to toggle that layer.
-- **Scope switch**: `Country | Regional | All countries` (last option only for global admin).
-- **Kind filter**: 7 diamond chips, click to isolate one kind across all sectors.
-- **Verified toggle**: `All | Verified only | Unverified only`.
-- **Time window**: `All time | 30d | 7d | 24h` — filters motion + dust.
-- **Search**: fuzzy-matches memory titles; matched dots enlarge and pull toward the center briefly.
+All AI paths (Documents / Link / API / From source) funnel into one review pane:
 
-Right-hand **inspector panel** (slides in on click):
-- Header: `sector · kind · N objects`
-- Weight/verification stacked bar for the selection
-- List of memory rows (reuses `MemoryTab`'s row component with verify/delete)
-- Citations list with jumps to `SourceDetailSheet`
+- Editable rows: sector, kind, title, body, weight, verified, citation ref.
+- Toolbar: Accept all · Skip all · Filter (kind, sector) · Diff-check for near-duplicates of existing memory (server fn `findMemoryDuplicates` via embedding cosine on `memory_objects` if enabled, else title trigram).
+- Commit → `bulkUpsertMemory`; on success invalidate `memoryQuery(code)` and close.
 
-Bottom **activity ticker**: last 10 upserts with author + time, matching each travelling dot on the canvas. Clicking a ticker row flies the camera to that dot.
+## Server functions (new, in `manage.functions.ts`)
 
-## Layout across the screen
+- `bulkUpsertMemory({ countryCode, items[] })` — validates and upserts N rows; returns `{ inserted, updated, duplicates }`.
+- `ingestMemoryFromDocument({ countryCode, filename, mime, content_b64, sector_hint? })`
+- `ingestMemoryFromUrl({ countryCode, urls[], sector_hint? })`
+- `ingestMemoryFromConnection({ countryCode, connectionId, query?, sector_hint? })`
+- `extractMemoriesFromSource({ countryCode, sourceId, sector_hint? })`
+- `findMemoryDuplicates({ countryCode, titles[] })`
 
-```text
-┌─────────────────────────────────────────────────────────┐
-│ Legend chips · Scope · Kind filter · Verified · Time    │
-├───────────────────────────────────────────┬─────────────┤
-│                                           │             │
-│                                           │  Inspector  │
-│              Constellation canvas         │  (context)  │
-│                                           │             │
-│                                           │             │
-├───────────────────────────────────────────┴─────────────┤
-│  Activity ticker  ····································  │
-└─────────────────────────────────────────────────────────┘
-```
+All go through `requireSupabaseAuth` + `assertAdmin`; AI calls use the existing `ai-gateway.server.ts` helper with a strict JSON-schema prompt (return `{ items: MemoryDraft[] }`).
 
-Empty state: if the brain is empty for the current scope, the canvas shows only the pulsing core with a single sentence ("No memory objects yet — seed via /admin/countries/$code/onboard").
+## Files
 
-## Super-admin cross-country specifics
-
-- New file `src/routes/_authenticated/admin/brain.tsx` — global constellation.
-- Data: one aggregate server function `listAllMemory` returning `{ country_code, sector_code, kind, weight, verified, updated_at, title, id }[]` across all bound countries (respects `has_role('admin')`).
-- Countries laid out on an outer ring, sorted by total memory count. Clicking a country zooms into that country's sub-constellation (same component, filtered `country_code`), with a breadcrumb `System ▸ LCA` and an "Back to system" pill.
-- KPIs strip above the canvas: total countries, total sectors covered, total memory objects, verified %, upserts last 24h.
-
-## Technical approach
-
-- **Rendering**: SVG for structural elements (rings, threads, orbs, diamonds) — sharp at any zoom and matches the site's flat aesthetic. Canvas overlay only for the memory-dust particle field (thousands of dots) using `requestAnimationFrame`. No chart library, no D3 force layout (deterministic angular hash keeps positions stable across renders).
-- **Layout math**: pure functions in `src/components/country-data/brain-constellation/layout.ts` — `sectorAngle(sector_code)`, `kindOffset(kind)`, `orbitRadius(count)`. Deterministic → same brain always renders identically.
-- **Components**:
-  - `src/components/country-data/brain-constellation/BrainConstellation.tsx` — canvas + SVG root
-  - `.../Legend.tsx`, `.../Inspector.tsx`, `.../ActivityTicker.tsx`, `.../ControlsBar.tsx`
-  - `.../particles.ts` — memory-dust animation
-  - `.../motion.ts` — pulse / travelling-dot / ripple primitives, all `prefers-reduced-motion` aware
-- **Data**: reuses `listMemory({ scopeKey })` for per-country. Adds:
-  - `listAllMemory()` in `src/lib/country-data/manage.functions.ts` — aggregate, admin-only via `requireSupabaseAuth` + `has_role`
-  - `listRecentMemoryActivity({ scopeKey, sinceMinutes })` — powers ticker + travelling dots
-- **Wiring**:
-  - `MemoryTab` in `countries.$code.data.tsx` gains `view: "constellation" | "visual" | "list"`; constellation becomes default.
-  - New route `src/routes/_authenticated/admin/brain.tsx`; add link in `SuperAdminShell` and on `countries.index.tsx`.
-- **Perf**: memoize layout by `rows.length + max(updated_at)`; particle field caps at 2000 dots (sample beyond that, show "+N more" in inspector). Cross-country view uses per-country counts only for the overview and lazy-loads full memory rows when a country is zoomed.
+- **New**: `src/components/country-data/AddMemoryDialog.tsx` (tabs + review pane, mirrors `AddSourceDialog` structure).
+- **New**: `src/components/country-data/MemoryDraftReview.tsx` (shared review table).
+- **Edited**: `src/routes/_authenticated/admin/countries.$code.data.tsx` — swap inline form for dialog; remove `AddMemoryForm`.
+- **Edited**: `src/lib/country-data/manage.functions.ts` — add server fns above; reuse `ingestDocumentSource`, `upsertSource`, and `country_source_connections` helpers.
+- **Edited**: `src/routes/_authenticated/admin/brain.tsx` — add "Add memory" button that opens the same dialog with a required country picker.
 
 ## Out of scope
 
-- Editing memory schema, weights, or the seed agent.
-- 3D / WebGL rendering — flat SVG + canvas is enough and matches the site.
-- Changing `/narrative/brain` (operator view) or the existing `MemoryVisual` matrix (kept as the `Visual` sub-view).
-- Real-time streaming (Supabase subscriptions) — v1 refetches every 30s while the tab is focused; live subscriptions are a follow-up.
+- No schema changes to `memory_objects`.
+- No new connection kinds beyond what Sources already supports.
+- Real-time streaming of AI extraction (batch response only for v1).
+- Embedding-based dedupe only wired if the embeddings column already exists on `memory_objects`; otherwise title-trigram fallback.

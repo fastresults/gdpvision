@@ -7,6 +7,7 @@ import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { MemoryVisual, type MemoryFilter } from "@/components/country-data/MemoryVisual";
 import { BrainConstellation, type BrainFilter } from "@/components/country-data/BrainConstellation";
 import { AddSourceDialog } from "@/components/country-data/AddSourceDialog";
+import { AddMemoryDialog } from "@/components/country-data/AddMemoryDialog";
 import { SourceDetailSheet } from "@/components/country-data/SourceDetailSheet";
 import { PrettyJson } from "@/components/data/PrettyJson";
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,6 @@ import {
   toggleSource,
   updateKpi,
   updateMinisterProfile,
-  upsertMemory,
 } from "@/lib/country-data/manage.functions";
 
 type TabKey = "sources" | "kpis" | "dossiers" | "ministries" | "corpus" | "memory";
@@ -1625,7 +1625,7 @@ function CorpusDrawer({ drill, detail, onClose }: { drill: Exclude<DrillKey, nul
 function MemoryTab({ code }: { code: string }) {
   const qc = useQueryClient();
   const { data: rows } = useSuspenseQuery(memoryQuery(code));
-  const upsert = useServerFn(upsertMemory);
+  
   const setV = useServerFn(setMemoryVerified);
   const del = useServerFn(deleteMemory);
   const [showAdd, setShowAdd] = useState(false);
@@ -1662,17 +1662,21 @@ function MemoryTab({ code }: { code: string }) {
             ))}
           </div>
           <button
-            onClick={() => setShowAdd((v) => !v)}
+            onClick={() => setShowAdd(true)}
             className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0"
           >
-            {showAdd ? "Cancel" : "Add memory"}
+            Add memory
           </button>
         </div>
       </div>
 
-      {showAdd && (
-        <AddMemoryForm onSubmit={async (v) => { await upsert({ data: { countryCode: code, ...v } }); setShowAdd(false); await refresh(); }} />
-      )}
+      <AddMemoryDialog
+        countryCode={code}
+        open={showAdd}
+        onClose={() => setShowAdd(false)}
+        onDone={refresh}
+      />
+
 
       {all.length === 0 ? (
         <div className="border border-dashed border-line-200 p-8 text-center text-sm text-ink-500">
@@ -1759,32 +1763,5 @@ function MemoryList({ rows, onVerify, onDelete }: { rows: any[]; onVerify: (id: 
       ))}
       {rows.length === 0 && <p className="text-sm text-ink-500">No rows match this filter.</p>}
     </div>
-  );
-}
-
-
-function AddMemoryForm({ onSubmit }: { onSubmit: (v: { sector_code: string; kind: string; title: string; body: string; weight: number; verified: boolean }) => Promise<void> }) {
-  const [sector, setSector] = useState("cross_cutting");
-  const [kind, setKind] = useState("position");
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [weight, setWeight] = useState(3);
-  const [busy, setBusy] = useState(false);
-  return (
-    <form onSubmit={async (e) => { e.preventDefault(); setBusy(true); try { await onSubmit({ sector_code: sector, kind, title, body, weight, verified: false }); setTitle(""); setBody(""); } finally { setBusy(false); } }}
-      className="grid grid-cols-1 md:grid-cols-4 gap-2 border border-line-200 p-3 bg-paper-100/40">
-      <input required placeholder="Sector code" value={sector} onChange={(e) => setSector(e.target.value)} className="border border-line-200 px-2 py-1.5 text-sm bg-paper-0" />
-      <select value={kind} onChange={(e) => setKind(e.target.value)} className="border border-line-200 px-2 py-1.5 text-sm bg-paper-0">
-        {["position", "audience", "outlet", "fact", "risk"].map((k) => <option key={k}>{k}</option>)}
-      </select>
-      <input required placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} className="md:col-span-2 border border-line-200 px-2 py-1.5 text-sm bg-paper-0" />
-      <textarea required placeholder="Body" value={body} onChange={(e) => setBody(e.target.value)} className="md:col-span-3 border border-line-200 px-2 py-1.5 text-sm bg-paper-0 min-h-[80px]" />
-      <select value={weight} onChange={(e) => setWeight(Number(e.target.value))} className="border border-line-200 px-2 py-1.5 text-sm bg-paper-0">
-        {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>weight {n}</option>)}
-      </select>
-      <button disabled={busy} className="md:col-span-4 px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0 disabled:opacity-50">
-        {busy ? "Saving…" : "Add memory"}
-      </button>
-    </form>
   );
 }

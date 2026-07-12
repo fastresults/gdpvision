@@ -973,6 +973,22 @@ export const commitSectorDossiers = createServerFn({ method: "POST" })
     if (error || !draft) throw new Error("Draft not found");
     const payload = (data.editedPayload ?? draft.payload) as { dossiers: Array<any> };
 
+    // Snapshot ordered Perplexity citations for the draft. The [N] markers in
+    // dossier prose are 1-indexed into this array.
+    const { data: citeRows } = await supabaseAdmin
+      .from("onboarding_citations")
+      .select("url,title,domain,quote,published_at,created_at,id")
+      .eq("draft_id", draft.id)
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true });
+    const citations = (citeRows ?? []).map((c) => ({
+      url: c.url,
+      title: c.title,
+      domain: c.domain,
+      quote: c.quote,
+      published_at: c.published_at,
+    }));
+
     let upserted = 0;
     for (const d of payload.dossiers) {
       for (const kind of ["policy", "comms", "oecs"] as const) {
@@ -985,6 +1001,7 @@ export const commitSectorDossiers = createServerFn({ method: "POST" })
             kind,
             payload: kindPayload as any,
             source_ids: [],
+            citations: citations as any,
             confidence: "medium",
           },
           { onConflict: "country_code,sector_code,kind" },

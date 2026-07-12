@@ -762,26 +762,43 @@ function DossiersTab({ code }: { code: string }) {
     oecs: "OECS Peer Position",
     policy: "Policy Landscape",
   };
+  const [openSector, setOpenSector] = useState<string | null>(
+    () => [...bySector.keys()][0] ?? null,
+  );
   return (
     <section className="space-y-4">
-      {[...bySector.entries()].map(([sector, rows]) => (
-        <details key={sector} className="border border-line-200 p-3" open>
-          <summary className="cursor-pointer font-medium">{sector} <span className="text-xs text-ink-500">({rows.length})</span></summary>
-          <div className="mt-3 space-y-4">
-            {rows.map((r) => (
-              <article key={r.id} className="border border-line-200 p-4">
-                <header className="flex justify-between items-baseline mb-3 pb-2 border-b border-line-200">
-                  <h3 className="font-serif text-lg">{KIND_LABELS[r.kind] ?? r.kind}</h3>
-                  <div className="text-[10px] font-mono uppercase tracking-widest text-ink-500">
-                    confidence: {r.confidence} · {r.source_ids?.length ?? 0} sources
-                  </div>
-                </header>
-                <PrettyJson value={r.payload} />
-              </article>
-            ))}
+      {[...bySector.entries()].map(([sector, rows]) => {
+        const isOpen = openSector === sector;
+        return (
+          <div key={sector} className="border border-line-200 p-3">
+            <button
+              type="button"
+              onClick={() => setOpenSector(isOpen ? null : sector)}
+              className="w-full flex items-center gap-2 text-left cursor-pointer font-medium"
+              aria-expanded={isOpen}
+            >
+              <span className="text-ink-500 text-xs w-3">{isOpen ? "▼" : "▶"}</span>
+              <span>{sector}</span>
+              <span className="text-xs text-ink-500">({rows.length})</span>
+            </button>
+            {isOpen && (
+              <div className="mt-3 space-y-4">
+                {rows.map((r) => (
+                  <article key={r.id} className="border border-line-200 p-4">
+                    <header className="flex justify-between items-baseline mb-3 pb-2 border-b border-line-200">
+                      <h3 className="font-serif text-lg">{KIND_LABELS[r.kind] ?? r.kind}</h3>
+                      <div className="text-[10px] font-mono uppercase tracking-widest text-ink-500">
+                        confidence: {r.confidence} · {r.source_ids?.length ?? 0} sources
+                      </div>
+                    </header>
+                    <PrettyJson value={r.payload} />
+                  </article>
+                ))}
+              </div>
+            )}
           </div>
-        </details>
-      ))}
+        );
+      })}
     </section>
   );
 }

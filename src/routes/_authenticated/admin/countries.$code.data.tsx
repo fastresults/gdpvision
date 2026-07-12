@@ -1651,7 +1651,7 @@ function MemoryTab({ code }: { code: string }) {
         </div>
         <div className="flex items-center gap-2">
           <div className="flex gap-1 rounded-sm border border-line-200 p-0.5 font-mono text-[10px] uppercase tracking-widest">
-            {(["visual", "list"] as const).map((v) => (
+            {(["constellation", "visual", "list"] as const).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}

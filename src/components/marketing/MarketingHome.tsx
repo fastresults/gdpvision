@@ -96,8 +96,11 @@ function shuffleTail() {
 export function MarketingHome() {
   const [tail, setTail] = useState(() => EXISTENTIAL_THREATS.slice(1));
   const [index, setIndex] = useState(0);
+  const [moment, setMoment] = useState(() => MOMENT_VARIANTS[0]);
   useEffect(() => {
     setTail(shuffleTail());
+    const others = MOMENT_VARIANTS.slice(1);
+    setMoment(others[Math.floor(Math.random() * others.length)]);
     const id = setInterval(() => {
       setIndex((prev) => {
         const next = (prev + 1) % EXISTENTIAL_THREATS.length;

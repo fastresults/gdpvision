@@ -1017,6 +1017,42 @@ export const commitSectorDossiers = createServerFn({ method: "POST" })
 // Stage 9: Ministry deep-dive
 // ============================================================
 
+const MinisterProfileSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    name: { type: ["string", "null"] },
+    title: { type: ["string", "null"] },
+    party: { type: ["string", "null"] },
+    appointed_at: { type: ["string", "null"] },
+    bio: { type: ["string", "null"] },
+    birth_date: { type: ["string", "null"] },
+    education: { type: "array", items: { type: "string" } },
+    career: { type: "array", items: { type: "string" } },
+    contact: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        office_phone: { type: ["string", "null"] },
+        email: { type: ["string", "null"] },
+        office_address: { type: ["string", "null"] },
+        website: { type: ["string", "null"] },
+      },
+    },
+    socials: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        twitter: { type: ["string", "null"] },
+        facebook: { type: ["string", "null"] },
+        linkedin: { type: ["string", "null"] },
+        instagram: { type: ["string", "null"] },
+      },
+    },
+    portrait_url: { type: ["string", "null"] },
+  },
+} as const;
+
 const MinistryDeepDiveSchema = {
   type: "object",
   additionalProperties: false,
@@ -1029,6 +1065,7 @@ const MinistryDeepDiveSchema = {
         properties: {
           ministry_slug: { type: "string" },
           minister: { type: ["string", "null"] },
+          minister_profile: MinisterProfileSchema,
           mandate: { type: "string" },
           programmes: {
             type: "array",
@@ -1050,6 +1087,7 @@ const MinistryDeepDiveSchema = {
   },
   required: ["ministries"],
 } as const;
+
 
 export const runMinistryDeepDiveAgent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

@@ -1,8 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 
+import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import {
   commitGdp,
   commitMinistries,
@@ -10,6 +11,7 @@ import {
   commitProfile,
   commitSectorComposition,
   getOnboardingStatus,
+  getPerplexityKeyStatus,
   runGdpAgent,
   runMinistriesAgent,
   runMinistrySectorMapAgent,
@@ -19,12 +21,12 @@ import {
 
 type Stage = "profile" | "gdp" | "sector_composition" | "ministries" | "ministry_sector_map";
 
-const STAGES: Array<{ key: Stage; label: string; desc: string }> = [
-  { key: "profile", label: "1. Profile", desc: "Currency, fiscal year, population, head of government." },
-  { key: "gdp", label: "2. GDP", desc: "Nominal GDP USD (cross-checked between WB and IMF)." },
-  { key: "sector_composition", label: "3. Sectors", desc: "Share_pct per sector; sums ≈ 100%." },
-  { key: "ministries", label: "4. Ministries", desc: "Canonical cabinet ministries with mandate." },
-  { key: "ministry_sector_map", label: "5. Ministry×Sector", desc: "Weight matrix from portfolios to sectors." },
+const STAGES: Array<{ key: Stage; label: string; short: string; desc: string }> = [
+  { key: "profile", label: "1. Profile", short: "Profile", desc: "Currency, fiscal year, population, head of government." },
+  { key: "gdp", label: "2. GDP", short: "GDP", desc: "Nominal GDP USD (cross-checked between WB and IMF)." },
+  { key: "sector_composition", label: "3. Sectors", short: "Sectors", desc: "Share_pct per sector; sums ≈ 100%." },
+  { key: "ministries", label: "4. Ministries", short: "Ministries", desc: "Canonical cabinet ministries with mandate." },
+  { key: "ministry_sector_map", label: "5. Ministry×Sector", short: "M×S", desc: "Weight matrix from portfolios to sectors." },
 ];
 
 const statusQuery = (code: string) =>
@@ -33,6 +35,11 @@ const statusQuery = (code: string) =>
     queryFn: () => getOnboardingStatus({ data: { countryCode: code } }),
   });
 
+const keyStatusQuery = queryOptions({
+  queryKey: ["onboarding", "key-status"],
+  queryFn: () => getPerplexityKeyStatus(),
+});
+
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/onboard")({
   head: ({ params }) => ({
     meta: [
@@ -40,14 +47,33 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/onbo
       { name: "robots", content: "noindex" },
     ],
   }),
-  loader: ({ context, params }) => context.queryClient.ensureQueryData(statusQuery(params.code)),
+  loader: async ({ context, params }) => {
+    const [status] = await Promise.all([
+      context.queryClient.ensureQueryData(statusQuery(params.code)),
+      context.queryClient.ensureQueryData(keyStatusQuery),
+    ]);
+    if (!(status as any).country) throw notFound();
+  },
   component: OnboardWizard,
+  errorComponent: ({ error }) => (
+    <SuperAdminShell crumbs={[{ label: "Countries", to: "/admin/countries" }, { label: "Onboard" }]}>
+      <p className="text-sm text-red-600">{error.message}</p>
+    </SuperAdminShell>
+  ),
+  notFoundComponent: () => (
+    <SuperAdminShell crumbs={[{ label: "Countries", to: "/admin/countries" }, { label: "Not found" }]}>
+      <p className="text-sm">That country is not in the registry.</p>
+    </SuperAdminShell>
+  ),
 });
 
 function OnboardWizard() {
   const { code } = Route.useParams();
   const { data } = useSuspenseQuery(statusQuery(code));
+  const { data: keyStatus } = useSuspenseQuery(keyStatusQuery);
   const qc = useQueryClient();
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkErr, setBulkErr] = useState<string | null>(null);
 
   const runners: Record<Stage, any> = {
     profile: useServerFn(runProfileAgent),
@@ -64,59 +90,117 @@ function OnboardWizard() {
     ministry_sector_map: useServerFn(commitMinistrySectorMap),
   };
 
-  const refresh = () => qc.invalidateQueries({ queryKey: ["onboarding", "status", code] });
+  const refresh = () =>
+    Promise.all([
+      qc.invalidateQueries({ queryKey: ["onboarding", "status", code] }),
+      qc.invalidateQueries({ queryKey: ["onboarding", "countries"] }),
+      qc.invalidateQueries({ queryKey: ["onboarding", "runs"] }),
+    ]);
 
   const drafts: any[] = (data as any).drafts ?? [];
   const runs: any[] = (data as any).runs ?? [];
   const country: any = (data as any).country;
 
-  return (
-    <div className="mx-auto max-w-5xl px-6 py-10 space-y-6">
-      <header className="space-y-2">
-        <Link to="/_authenticated/admin/countries" className="text-xs text-muted-foreground hover:underline">
-          ← All countries
-        </Link>
-        <h1 className="text-2xl font-semibold">{country?.name}</h1>
-        <p className="text-sm text-muted-foreground">
-          {country?.iso3 ?? country?.code} · {country?.currency} · fiscal year starts month {country?.fiscal_year_start_month}
-          {country?.gdp_current_usd
-            ? ` · GDP $${(Number(country.gdp_current_usd) / 1e9).toFixed(2)}B (${country.gdp_year})`
-            : ""}
-        </p>
-      </header>
+  const committedStages = new Set<string>(
+    runs.filter((r) => r.status === "committed").map((r) => r.stage),
+  );
 
-      {STAGES.map((s) => {
-        const draft = drafts.find((d) => d.stage === s.key);
-        const lastRun = runs.find((r) => r.stage === s.key);
-        return (
-          <StageCard
-            key={s.key}
-            stage={s}
-            countryName={country?.name ?? code}
-            draft={draft}
-            lastRun={lastRun}
-            onRun={async () => {
-              try {
-                await runners[s.key]({ data: { countryCode: code } });
-              } catch (e: any) {
-                alert(`Agent failed: ${e?.message ?? e}`);
-              } finally {
-                refresh();
+  async function runAllPending() {
+    setBulkErr(null);
+    setBulkRunning(true);
+    try {
+      for (const s of STAGES) {
+        const hasDraft = drafts.some((d) => d.stage === s.key);
+        if (committedStages.has(s.key) || hasDraft) continue;
+        await runners[s.key]({ data: { countryCode: code } });
+        await refresh();
+      }
+    } catch (e: any) {
+      setBulkErr(e?.message ?? String(e));
+    } finally {
+      setBulkRunning(false);
+    }
+  }
+
+  return (
+    <SuperAdminShell
+      crumbs={[
+        { label: "Countries", to: "/admin/countries" },
+        { label: country?.name ?? code },
+      ]}
+    >
+      <div className="space-y-6">
+        <header className="flex items-start justify-between gap-6">
+          <div className="space-y-2">
+            <h1 className="font-serif text-3xl">{country?.name}</h1>
+            <p className="text-sm text-ink-500">
+              {country?.iso3 ?? country?.code} · {country?.currency} · fiscal year starts month{" "}
+              {country?.fiscal_year_start_month}
+              {country?.gdp_current_usd
+                ? ` · GDP $${(Number(country.gdp_current_usd) / 1e9).toFixed(2)}B (${country.gdp_year})`
+                : ""}
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {STAGES.map((s) => {
+                const done = committedStages.has(s.key);
+                return (
+                  <span
+                    key={s.key}
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-mono uppercase tracking-[0.15em] border ${
+                      done
+                        ? "border-emerald-500 text-emerald-700"
+                        : "border-line-200 text-ink-500"
+                    }`}
+                  >
+                    {done ? "✓" : "○"} {s.short}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={runAllPending}
+            disabled={bulkRunning || !keyStatus.configured}
+            className="px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0 hover:bg-ink-700 disabled:opacity-50"
+          >
+            {bulkRunning ? "Running…" : "Run all pending"}
+          </button>
+        </header>
+
+        {!keyStatus.configured && (
+          <div className="rounded border border-red-500/50 bg-red-500/10 p-3 text-xs text-red-700">
+            <b>Perplexity API key not configured.</b> Agents cannot run until <code>PERPLEXITY_API_KEY</code> is set.
+          </div>
+        )}
+
+        {bulkErr && (
+          <div className="rounded border border-red-500/50 bg-red-500/10 p-3 text-xs text-red-700">
+            Run all pending stopped: {bulkErr}
+          </div>
+        )}
+
+        {STAGES.map((s) => {
+          const draft = drafts.find((d) => d.stage === s.key);
+          const stageRuns = runs.filter((r) => r.stage === s.key);
+          const lastRun = stageRuns[0];
+          return (
+            <StageCard
+              key={s.key}
+              stage={s}
+              countryName={country?.name ?? code}
+              draft={draft}
+              lastRun={lastRun}
+              keyConfigured={keyStatus.configured}
+              onRun={() => runners[s.key]({ data: { countryCode: code } }).then(refresh)}
+              onCommit={(editedPayload) =>
+                committers[s.key]({ data: { draftId: draft.id, editedPayload } }).then(refresh)
               }
-            }}
-            onCommit={async (editedPayload) => {
-              try {
-                await committers[s.key]({ data: { draftId: draft.id, editedPayload } });
-              } catch (e: any) {
-                alert(`Commit failed: ${e?.message ?? e}`);
-              } finally {
-                refresh();
-              }
-            }}
-          />
-        );
-      })}
-    </div>
+            />
+          );
+        })}
+      </div>
+    </SuperAdminShell>
   );
 }
 
@@ -125,64 +209,114 @@ function StageCard({
   countryName,
   draft,
   lastRun,
+  keyConfigured,
   onRun,
   onCommit,
 }: {
-  stage: { key: Stage; label: string; desc: string };
+  stage: { key: Stage; label: string; short: string; desc: string };
   countryName: string;
   draft: any;
   lastRun: any;
-  onRun: () => Promise<void>;
-  onCommit: (editedPayload: unknown) => Promise<void>;
+  keyConfigured: boolean;
+  onRun: () => Promise<unknown>;
+  onCommit: (editedPayload: unknown) => Promise<unknown>;
 }) {
   const [running, setRunning] = useState(false);
   const [committing, setCommitting] = useState(false);
   const [edited, setEdited] = useState<string>("");
+  const [err, setErr] = useState<string | null>(null);
 
   const committed = lastRun?.status === "committed";
   const payload = draft?.payload;
   const citations: any[] = draft?.citations ?? [];
+  const model = (lastRun?.model_stack && (lastRun.model_stack.research || Object.values(lastRun.model_stack)[0])) as
+    | string
+    | undefined;
+
+  async function doRun() {
+    setRunning(true);
+    setErr(null);
+    try {
+      await onRun();
+    } catch (e: any) {
+      setErr(e?.message ?? String(e));
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  async function doCommit() {
+    setCommitting(true);
+    setErr(null);
+    let parsed: unknown = undefined;
+    if (edited) {
+      try {
+        parsed = JSON.parse(edited);
+      } catch {
+        setErr("Edited JSON is invalid — commit aborted.");
+        setCommitting(false);
+        return;
+      }
+    }
+    try {
+      await onCommit(parsed);
+    } catch (e: any) {
+      setErr(e?.message ?? String(e));
+    } finally {
+      setCommitting(false);
+    }
+  }
 
   return (
-    <section className="rounded-lg border border-border p-5 space-y-4">
+    <section className="border border-line-200 p-5 space-y-4 bg-paper-0">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold flex items-center gap-2">
             {stage.label}
-            {committed && <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600">committed</span>}
-            {draft && !committed && <span className="text-xs px-2 py-0.5 rounded bg-amber-500/15 text-amber-600">review</span>}
+            {committed && (
+              <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-700">committed</span>
+            )}
+            {draft && !committed && (
+              <span className="text-[11px] px-2 py-0.5 rounded bg-amber-500/15 text-amber-700">review</span>
+            )}
           </h2>
-          <p className="text-xs text-muted-foreground mt-1">{stage.desc}</p>
+          <p className="text-xs text-ink-500 mt-1">{stage.desc}</p>
         </div>
         <button
           type="button"
-          className="text-sm px-3 py-1.5 rounded bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
-          disabled={running}
-          onClick={async () => {
-            setRunning(true);
-            await onRun();
-            setRunning(false);
-          }}
+          className="text-sm px-3 py-1.5 border border-ink-950 bg-ink-950 text-paper-0 hover:bg-ink-700 disabled:opacity-50"
+          disabled={running || !keyConfigured}
+          onClick={doRun}
         >
           {running ? "Researching…" : draft ? "Re-run agent" : "Run AI research"}
         </button>
       </div>
 
       {lastRun && (
-        <div className="text-xs text-muted-foreground">
+        <div className="text-xs text-ink-500">
           Last run: {new Date(lastRun.started_at).toLocaleString()} · status {lastRun.status}
-          {lastRun.error && <span className="text-destructive"> — {lastRun.error}</span>}
+          {model && <> · model <code>{model}</code></>}
+          {typeof lastRun.cost_cents === "number" && lastRun.cost_cents > 0 && (
+            <> · cost ${(lastRun.cost_cents / 100).toFixed(3)}</>
+          )}
+          {lastRun.error && (
+            <div className="mt-1 text-red-600 whitespace-pre-wrap">{lastRun.error}</div>
+          )}
         </div>
+      )}
+
+      {err && (
+        <div className="rounded border border-red-500/50 bg-red-500/10 p-2 text-xs text-red-700">{err}</div>
       )}
 
       {draft && (
         <>
-          <div className="rounded border border-border bg-muted/20 p-3">
-            <div className="text-xs text-muted-foreground mb-2">
+          <div className="rounded border border-line-200 bg-paper-100/50 p-3">
+            <div className="text-xs text-ink-500 mb-2">
               Draft payload (edit JSON below to override before commit) · confidence {draft.confidence}
             </div>
             <textarea
-              className="w-full font-mono text-xs bg-background border border-border rounded p-2 min-h-[180px]"
+              className="w-full font-mono text-xs bg-paper-0 border border-line-200 p-2 min-h-[180px]"
               defaultValue={JSON.stringify(payload, null, 2)}
               onChange={(e) => setEdited(e.target.value)}
             />
@@ -191,15 +325,15 @@ function StageCard({
           <div>
             <div className="text-xs font-medium mb-1">Citations ({citations.length})</div>
             {citations.length === 0 ? (
-              <div className="text-xs text-destructive">⚠ No citations — cannot commit.</div>
+              <div className="text-xs text-red-600">⚠ No citations — cannot commit.</div>
             ) : (
               <ul className="text-xs space-y-1">
                 {citations.map((c) => (
                   <li key={c.id}>
-                    <a href={c.url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                    <a href={c.url} target="_blank" rel="noreferrer" className="text-ink-950 underline hover:text-ink-700">
                       {c.domain || c.url}
                     </a>
-                    {c.title && <span className="text-muted-foreground"> — {c.title}</span>}
+                    {c.title && <span className="text-ink-500"> — {c.title}</span>}
                   </li>
                 ))}
               </ul>
@@ -209,23 +343,9 @@ function StageCard({
           {!committed && (
             <button
               type="button"
-              className="text-sm px-3 py-1.5 rounded border border-emerald-500 text-emerald-600 hover:bg-emerald-500/10 disabled:opacity-50"
+              className="text-sm px-3 py-1.5 border border-emerald-500 text-emerald-700 hover:bg-emerald-500/10 disabled:opacity-50"
               disabled={committing || citations.length === 0}
-              onClick={async () => {
-                setCommitting(true);
-                let parsed: unknown = undefined;
-                if (edited) {
-                  try {
-                    parsed = JSON.parse(edited);
-                  } catch {
-                    alert("Edited JSON is invalid — commit aborted");
-                    setCommitting(false);
-                    return;
-                  }
-                }
-                await onCommit(parsed);
-                setCommitting(false);
-              }}
+              onClick={doCommit}
             >
               {committing ? "Committing…" : `Commit to ${draft.target_table}`}
             </button>
@@ -234,7 +354,7 @@ function StageCard({
       )}
 
       {!draft && !running && (
-        <div className="text-xs text-muted-foreground">
+        <div className="text-xs text-ink-500">
           No draft yet. Click "Run AI research" to have the agent research {countryName} and produce a cited draft.
         </div>
       )}

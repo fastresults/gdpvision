@@ -820,6 +820,7 @@ function DossiersTab({ code }: { code: string }) {
 function MinistriesTab({ code }: { code: string }) {
   const { data: rows } = useSuspenseQuery(ministriesQuery(code));
   const [editing, setEditing] = useState<any | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
   const [refresh, setRefresh] = useState<
     | { phase: "idle" }
     | { phase: "running" }

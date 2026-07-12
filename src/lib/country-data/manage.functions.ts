@@ -955,6 +955,209 @@ export const deleteMemory = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ---------- Bulk upsert + AI extraction of memory objects ----------
+
+const MemoryDraft = z.object({
+  sector_code: z.string().min(2),
+  kind: z.string().min(2),
+  title: z.string().min(1).max(240),
+  body: z.string().min(1),
+  weight: z.number().int().min(1).max(5).default(3),
+  verified: z.boolean().default(false),
+  scope: z.enum(["country", "national"]).default("country"),
+  citation_url: z.string().url().optional().nullable(),
+  source_id: z.string().uuid().optional().nullable(),
+});
+
+export const bulkUpsertMemory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      countryCode: z.string().min(2).max(4),
+      items: z.array(MemoryDraft).min(1).max(200),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const rows = data.items.map((it) => ({
+      scope_key: it.scope === "national" ? "national" : data.countryCode,
+      sector_code: it.sector_code,
+      kind: it.kind,
+      title: it.title,
+      payload: { body: it.body, citation_url: it.citation_url ?? null, source_id: it.source_id ?? null } as any,
+      weight: it.weight,
+      verified: it.verified,
+      created_by: context.userId,
+    }));
+    const { data: out, error } = await supabaseAdmin
+      .from("memory_objects")
+      .insert(rows)
+      .select("id");
+    if (error) throw error;
+    return { inserted: (out ?? []).length };
+  });
+
+const KIND_HINT = ["audience", "position", "statement", "outlet", "precedent", "fact", "risk"];
+
+async function callMemoryExtractor(opts: {
+  countryCode: string;
+  text: string;
+  sourceHint?: string;
+  sectorHint?: string;
+}) {
+  const key = process.env.LOVABLE_API_KEY;
+  if (!key) throw new Error("Missing LOVABLE_API_KEY");
+  const { generateText, Output } = await import("ai");
+  const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
+  const gateway = createLovableAiGatewayProvider(key);
+
+  const Schema = z.object({
+    items: z.array(z.object({
+      sector_code: z.string(),
+      kind: z.enum(["audience", "position", "statement", "outlet", "precedent", "fact", "risk"]),
+      title: z.string().max(160),
+      body: z.string().max(1200),
+      weight: z.number().int().min(1).max(5).default(3),
+    })).max(40),
+  });
+
+  const truncated = opts.text.slice(0, 40000);
+  const prompt = [
+    `Country code: ${opts.countryCode}.`,
+    opts.sectorHint ? `Sector hint: ${opts.sectorHint}.` : "",
+    opts.sourceHint ? `Source: ${opts.sourceHint}.` : "",
+    `Extract discrete, atomic Second-Brain memory objects for a sovereign policy analyst.`,
+    `Kinds: ${KIND_HINT.join(", ")}. Use "cross_cutting" as sector_code only when no specific sector applies.`,
+    `Each memory: one specific fact/position/audience/etc., sharp title (<=120 chars), body under 800 chars, weight 1 (trivia) to 5 (mandate-critical).`,
+    `Do NOT invent numbers. Prefer verifiable statements grounded in the input text.`,
+    `Return at most 25 items. If nothing extractable, return items: [].`,
+    ``,
+    `--- INPUT TEXT ---`,
+    truncated,
+  ].filter(Boolean).join("\n");
+
+  const result: any = await generateText({
+    model: gateway("google/gemini-2.5-flash"),
+    prompt,
+    experimental_output: Output.object({ schema: Schema }) as any,
+  } as any);
+
+  const out = result?.experimental_output ?? result?.output;
+  return (out?.items ?? []) as Array<z.infer<typeof Schema>["items"][number]>;
+}
+
+export const extractMemoriesFromText = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      countryCode: z.string().min(2).max(4),
+      text: z.string().min(20).max(200000),
+      sourceHint: z.string().max(500).optional(),
+      sectorHint: z.string().max(120).optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    return { drafts: await callMemoryExtractor(data) };
+  });
+
+export const extractMemoriesFromSourceId = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      countryCode: z.string().min(2).max(4),
+      sourceId: z.string().uuid(),
+      sectorHint: z.string().max(120).optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: src } = await supabaseAdmin
+      .from("country_sources")
+      .select("id,title,org,url")
+      .eq("id", data.sourceId)
+      .single();
+    const { data: docs } = await supabaseAdmin
+      .from("country_source_documents")
+      .select("id,raw_text")
+      .eq("country_source_id", data.sourceId)
+      .limit(3);
+    const combined = (docs ?? []).map((d) => d.raw_text ?? "").join("\n\n").trim();
+    if (!combined) {
+      // Fallback to chunks if raw_text is empty
+      const { data: chunks } = await supabaseAdmin
+        .from("country_source_chunks")
+        .select("content")
+        .eq("country_code", data.countryCode)
+        .in("document_id", (docs ?? []).map((d) => d.id))
+        .order("chunk_index", { ascending: true })
+        .limit(80);
+      const joined = (chunks ?? []).map((c) => c.content).join("\n\n");
+      if (!joined) throw new Error("This source has no extractable text yet. Re-ingest it first.");
+      return {
+        drafts: await callMemoryExtractor({
+          countryCode: data.countryCode,
+          text: joined,
+          sourceHint: src ? `${src.title} — ${src.org}` : undefined,
+          sectorHint: data.sectorHint,
+        }),
+        source: src,
+      };
+    }
+    return {
+      drafts: await callMemoryExtractor({
+        countryCode: data.countryCode,
+        text: combined,
+        sourceHint: src ? `${src.title} — ${src.org}` : undefined,
+        sectorHint: data.sectorHint,
+      }),
+      source: src,
+    };
+  });
+
+export const extractMemoriesFromUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      countryCode: z.string().min(2).max(4),
+      url: z.string().url(),
+      sectorHint: z.string().max(120).optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    let text = "";
+    try {
+      const res = await fetch(data.url, {
+        headers: { "User-Agent": "GDPVision/1.0 memory-extractor" },
+        redirect: "follow",
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const raw = await res.text();
+      // strip tags + scripts/styles
+      text = raw
+        .replace(/<script[\s\S]*?<\/script>/gi, " ")
+        .replace(/<style[\s\S]*?<\/style>/gi, " ")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    } catch (e: any) {
+      throw new Error(`Fetch failed: ${e?.message ?? e}`);
+    }
+    if (text.length < 40) throw new Error("Page returned too little text to extract memories from.");
+    return {
+      drafts: await callMemoryExtractor({
+        countryCode: data.countryCode,
+        text,
+        sourceHint: data.url,
+        sectorHint: data.sectorHint,
+      }),
+    };
+  });
+
+
 // ============================================================
 // Source detail + summary + connections + bulk add + documents
 // ============================================================

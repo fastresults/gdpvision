@@ -254,7 +254,7 @@ async function recordAttempts(
   admin: any,
   runId: string,
   countryCode: string,
-  attempts: Array<import("./kpi-research").AttemptRecord>,
+  attempts: Array<import("./kpi-research.server").AttemptRecord>,
 ) {
   if (!attempts.length) return;
   const rows = attempts.map((a) => ({
@@ -281,10 +281,10 @@ async function runAgenticKpiLoop(args: {
   countryTld?: string;
 }) {
   const { registryFor, findRegistryEntry } = await import("./kpi-registry");
-  const research = await import("./kpi-research");
+  const research = await import("./kpi-research.server");
   const registry = registryFor(["all"]);
-  const values = new Map<string, import("./kpi-research").ResearchedValue>();
-  const allAttempts: Array<import("./kpi-research").AttemptRecord> = [];
+  const values = new Map<string, import("./kpi-research.server").ResearchedValue>();
+  const allAttempts: Array<import("./kpi-research.server").AttemptRecord> = [];
 
   // Pass A — broad sweep
   const sweep = await research.sweepPerplexity({

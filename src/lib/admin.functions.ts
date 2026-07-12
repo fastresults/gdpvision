@@ -163,7 +163,7 @@ export const listCountries = createServerFn({ method: "GET" })
 
 export interface InstanceConfigRow {
   key: string;
-  value_json: unknown;
+  value_json: any;
   updated_at: string;
   updated_by: string | null;
 }
@@ -219,7 +219,7 @@ export interface AuditLogRow {
   target_type: string | null;
   target_id: string | null;
   scope_key: string | null;
-  metadata: Record<string, unknown>;
+  metadata: Record<string, any>;
   created_at: string;
 }
 

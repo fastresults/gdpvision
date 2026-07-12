@@ -684,7 +684,7 @@ function InferenceDrawer({
               <h3 className="font-mono text-[10px] uppercase tracking-widest text-ink-500 mb-2">Prior inferences ({history.length})</h3>
               <ul className="space-y-1 text-xs text-ink-500">
                 {history.slice(-5).reverse().map((h: any, i: number) => (
-                  <li key={i}>{h.value} · {h.model} · {h.inferred_at ? new Date(h.inferred_at).toLocaleDateString() : "?"}</li>
+                  <li key={i}>{fmt2(h.value) || h.value} · {h.model} · {h.inferred_at ? new Date(h.inferred_at).toLocaleDateString() : "?"}</li>
                 ))}
               </ul>
             </section>

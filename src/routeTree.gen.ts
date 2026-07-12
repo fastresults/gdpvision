@@ -18,6 +18,7 @@ import { Route as KioskIndexRouteImport } from './routes/kiosk.index'
 import { Route as KioskAdminRouteImport } from './routes/kiosk.admin'
 import { Route as AuthenticatedNarrativeRouteRouteImport } from './routes/_authenticated/narrative/route'
 import { Route as AuthenticatedInstrumentRouteRouteImport } from './routes/_authenticated/instrument/route'
+import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
 import { Route as AuthenticatedNarrativeIndexRouteImport } from './routes/_authenticated/narrative/index'
 import { Route as AuthenticatedInstrumentIndexRouteImport } from './routes/_authenticated/instrument/index'
 import { Route as AuthenticatedCounselIndexRouteImport } from './routes/_authenticated/counsel/index'
@@ -38,6 +39,7 @@ import { Route as AuthenticatedInstrumentExposureRouteImport } from './routes/_a
 import { Route as AuthenticatedCounselMobileRouteImport } from './routes/_authenticated/counsel/mobile'
 import { Route as AuthenticatedCounselArchiveRouteImport } from './routes/_authenticated/counsel/archive'
 import { Route as AuthenticatedAdminDocumentsRouteImport } from './routes/_authenticated/admin/documents'
+import { Route as AuthenticatedAdminActivityRouteImport } from './routes/_authenticated/admin/activity'
 import { Route as AuthenticatedNarrativeStrategyIndexRouteImport } from './routes/_authenticated/narrative/strategy.index'
 import { Route as AuthenticatedInstrumentScenariosIndexRouteImport } from './routes/_authenticated/instrument/scenarios.index'
 import { Route as AuthenticatedInstrumentPortfolioIndexRouteImport } from './routes/_authenticated/instrument/portfolio.index'
@@ -114,6 +116,11 @@ const AuthenticatedInstrumentRouteRoute =
     path: '/instrument',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedNarrativeIndexRoute =
   AuthenticatedNarrativeIndexRouteImport.update({
     id: '/',
@@ -144,9 +151,9 @@ const AuthenticatedCodexIndexRoute = AuthenticatedCodexIndexRouteImport.update({
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
-  id: '/admin/',
-  path: '/admin/',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
 } as any)
 const KioskApiUploadPresentationRoute =
   KioskApiUploadPresentationRouteImport.update({
@@ -226,9 +233,15 @@ const AuthenticatedCounselArchiveRoute =
   } as any)
 const AuthenticatedAdminDocumentsRoute =
   AuthenticatedAdminDocumentsRouteImport.update({
-    id: '/admin/documents',
-    path: '/admin/documents',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/documents',
+    path: '/documents',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminActivityRoute =
+  AuthenticatedAdminActivityRouteImport.update({
+    id: '/activity',
+    path: '/activity',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedNarrativeStrategyIndexRoute =
   AuthenticatedNarrativeStrategyIndexRouteImport.update({
@@ -256,9 +269,9 @@ const AuthenticatedInstrumentCabinetIndexRoute =
   } as any)
 const AuthenticatedAdminCountriesIndexRoute =
   AuthenticatedAdminCountriesIndexRouteImport.update({
-    id: '/admin/countries/',
-    path: '/admin/countries/',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/countries/',
+    path: '/countries/',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const KioskApiPublicPresentationPdfRoute =
   KioskApiPublicPresentationPdfRouteImport.update({
@@ -382,27 +395,27 @@ const AuthenticatedInstrumentCabinetDecisionsRoute =
   } as any)
 const AuthenticatedAdminCountryCodeRoute =
   AuthenticatedAdminCountryCodeRouteImport.update({
-    id: '/admin/country/$code',
-    path: '/admin/country/$code',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/country/$code',
+    path: '/country/$code',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminAuditsLogRoute =
   AuthenticatedAdminAuditsLogRouteImport.update({
-    id: '/admin/audits/log',
-    path: '/admin/audits/log',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/audits/log',
+    path: '/audits/log',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminAuditsKeyingRoute =
   AuthenticatedAdminAuditsKeyingRouteImport.update({
-    id: '/admin/audits/keying',
-    path: '/admin/audits/keying',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/audits/keying',
+    path: '/audits/keying',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminCountriesCodeOnboardRoute =
   AuthenticatedAdminCountriesCodeOnboardRouteImport.update({
-    id: '/admin/countries/$code/onboard',
-    path: '/admin/countries/$code/onboard',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/countries/$code/onboard',
+    path: '/countries/$code/onboard',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -410,10 +423,12 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/kiosk': typeof KioskRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
   '/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
+  '/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/counsel/mobile': typeof AuthenticatedCounselMobileRoute
@@ -470,6 +485,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk': typeof KioskIndexRoute
+  '/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/counsel/mobile': typeof AuthenticatedCounselMobileRoute
@@ -527,10 +543,12 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/kiosk': typeof KioskRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_authenticated/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
   '/_authenticated/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
+  '/_authenticated/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/_authenticated/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/_authenticated/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/_authenticated/counsel/mobile': typeof AuthenticatedCounselMobileRoute
@@ -588,10 +606,12 @@ export interface FileRouteTypes {
     | '/auth'
     | '/kiosk'
     | '/reset-password'
+    | '/admin'
     | '/instrument'
     | '/narrative'
     | '/kiosk/admin'
     | '/kiosk/'
+    | '/admin/activity'
     | '/admin/documents'
     | '/counsel/archive'
     | '/counsel/mobile'
@@ -648,6 +668,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/kiosk/admin'
     | '/kiosk'
+    | '/admin/activity'
     | '/admin/documents'
     | '/counsel/archive'
     | '/counsel/mobile'
@@ -704,10 +725,12 @@ export interface FileRouteTypes {
     | '/auth'
     | '/kiosk'
     | '/reset-password'
+    | '/_authenticated/admin'
     | '/_authenticated/instrument'
     | '/_authenticated/narrative'
     | '/kiosk/admin'
     | '/kiosk/'
+    | '/_authenticated/admin/activity'
     | '/_authenticated/admin/documents'
     | '/_authenticated/counsel/archive'
     | '/_authenticated/counsel/mobile'
@@ -834,6 +857,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInstrumentRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/narrative/': {
       id: '/_authenticated/narrative/'
       path: '/'
@@ -871,10 +901,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
-      path: '/admin'
+      path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/kiosk/api/upload-presentation': {
       id: '/kiosk/api/upload-presentation'
@@ -969,10 +999,17 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/admin/documents': {
       id: '/_authenticated/admin/documents'
-      path: '/admin/documents'
+      path: '/documents'
       fullPath: '/admin/documents'
       preLoaderRoute: typeof AuthenticatedAdminDocumentsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/activity': {
+      id: '/_authenticated/admin/activity'
+      path: '/activity'
+      fullPath: '/admin/activity'
+      preLoaderRoute: typeof AuthenticatedAdminActivityRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/narrative/strategy/': {
       id: '/_authenticated/narrative/strategy/'
@@ -1004,10 +1041,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/admin/countries/': {
       id: '/_authenticated/admin/countries/'
-      path: '/admin/countries'
+      path: '/countries'
       fullPath: '/admin/countries/'
       preLoaderRoute: typeof AuthenticatedAdminCountriesIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/kiosk/api/public/presentation-pdf': {
       id: '/kiosk/api/public/presentation-pdf'
@@ -1151,34 +1188,64 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/admin/country/$code': {
       id: '/_authenticated/admin/country/$code'
-      path: '/admin/country/$code'
+      path: '/country/$code'
       fullPath: '/admin/country/$code'
       preLoaderRoute: typeof AuthenticatedAdminCountryCodeRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/audits/log': {
       id: '/_authenticated/admin/audits/log'
-      path: '/admin/audits/log'
+      path: '/audits/log'
       fullPath: '/admin/audits/log'
       preLoaderRoute: typeof AuthenticatedAdminAuditsLogRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/audits/keying': {
       id: '/_authenticated/admin/audits/keying'
-      path: '/admin/audits/keying'
+      path: '/audits/keying'
       fullPath: '/admin/audits/keying'
       preLoaderRoute: typeof AuthenticatedAdminAuditsKeyingRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/countries/$code/onboard': {
       id: '/_authenticated/admin/countries/$code/onboard'
-      path: '/admin/countries/$code/onboard'
+      path: '/countries/$code/onboard'
       fullPath: '/admin/countries/$code/onboard'
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeOnboardRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
   }
 }
+
+interface AuthenticatedAdminRouteRouteChildren {
+  AuthenticatedAdminActivityRoute: typeof AuthenticatedAdminActivityRoute
+  AuthenticatedAdminDocumentsRoute: typeof AuthenticatedAdminDocumentsRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedAdminAuditsKeyingRoute: typeof AuthenticatedAdminAuditsKeyingRoute
+  AuthenticatedAdminAuditsLogRoute: typeof AuthenticatedAdminAuditsLogRoute
+  AuthenticatedAdminCountryCodeRoute: typeof AuthenticatedAdminCountryCodeRoute
+  AuthenticatedAdminCountriesIndexRoute: typeof AuthenticatedAdminCountriesIndexRoute
+  AuthenticatedAdminCountriesCodeOnboardRoute: typeof AuthenticatedAdminCountriesCodeOnboardRoute
+}
+
+const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
+  {
+    AuthenticatedAdminActivityRoute: AuthenticatedAdminActivityRoute,
+    AuthenticatedAdminDocumentsRoute: AuthenticatedAdminDocumentsRoute,
+    AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+    AuthenticatedAdminAuditsKeyingRoute: AuthenticatedAdminAuditsKeyingRoute,
+    AuthenticatedAdminAuditsLogRoute: AuthenticatedAdminAuditsLogRoute,
+    AuthenticatedAdminCountryCodeRoute: AuthenticatedAdminCountryCodeRoute,
+    AuthenticatedAdminCountriesIndexRoute:
+      AuthenticatedAdminCountriesIndexRoute,
+    AuthenticatedAdminCountriesCodeOnboardRoute:
+      AuthenticatedAdminCountriesCodeOnboardRoute,
+  }
+
+const AuthenticatedAdminRouteRouteWithChildren =
+  AuthenticatedAdminRouteRoute._addFileChildren(
+    AuthenticatedAdminRouteRouteChildren,
+  )
 
 interface AuthenticatedInstrumentRouteRouteChildren {
   AuthenticatedInstrumentExposureRoute: typeof AuthenticatedInstrumentExposureRoute
@@ -1296,42 +1363,29 @@ const AuthenticatedNarrativeRouteRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
   AuthenticatedInstrumentRouteRoute: typeof AuthenticatedInstrumentRouteRouteWithChildren
   AuthenticatedNarrativeRouteRoute: typeof AuthenticatedNarrativeRouteRouteWithChildren
-  AuthenticatedAdminDocumentsRoute: typeof AuthenticatedAdminDocumentsRoute
   AuthenticatedCounselArchiveRoute: typeof AuthenticatedCounselArchiveRoute
   AuthenticatedCounselMobileRoute: typeof AuthenticatedCounselMobileRoute
   AuthenticatedOnboardingCountryRoute: typeof AuthenticatedOnboardingCountryRoute
-  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedCodexIndexRoute: typeof AuthenticatedCodexIndexRoute
   AuthenticatedConfigIndexRoute: typeof AuthenticatedConfigIndexRoute
   AuthenticatedCounselIndexRoute: typeof AuthenticatedCounselIndexRoute
-  AuthenticatedAdminAuditsKeyingRoute: typeof AuthenticatedAdminAuditsKeyingRoute
-  AuthenticatedAdminAuditsLogRoute: typeof AuthenticatedAdminAuditsLogRoute
-  AuthenticatedAdminCountryCodeRoute: typeof AuthenticatedAdminCountryCodeRoute
-  AuthenticatedAdminCountriesIndexRoute: typeof AuthenticatedAdminCountriesIndexRoute
-  AuthenticatedAdminCountriesCodeOnboardRoute: typeof AuthenticatedAdminCountriesCodeOnboardRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRouteRoute: AuthenticatedAdminRouteRouteWithChildren,
   AuthenticatedInstrumentRouteRoute:
     AuthenticatedInstrumentRouteRouteWithChildren,
   AuthenticatedNarrativeRouteRoute:
     AuthenticatedNarrativeRouteRouteWithChildren,
-  AuthenticatedAdminDocumentsRoute: AuthenticatedAdminDocumentsRoute,
   AuthenticatedCounselArchiveRoute: AuthenticatedCounselArchiveRoute,
   AuthenticatedCounselMobileRoute: AuthenticatedCounselMobileRoute,
   AuthenticatedOnboardingCountryRoute: AuthenticatedOnboardingCountryRoute,
-  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedCodexIndexRoute: AuthenticatedCodexIndexRoute,
   AuthenticatedConfigIndexRoute: AuthenticatedConfigIndexRoute,
   AuthenticatedCounselIndexRoute: AuthenticatedCounselIndexRoute,
-  AuthenticatedAdminAuditsKeyingRoute: AuthenticatedAdminAuditsKeyingRoute,
-  AuthenticatedAdminAuditsLogRoute: AuthenticatedAdminAuditsLogRoute,
-  AuthenticatedAdminCountryCodeRoute: AuthenticatedAdminCountryCodeRoute,
-  AuthenticatedAdminCountriesIndexRoute: AuthenticatedAdminCountriesIndexRoute,
-  AuthenticatedAdminCountriesCodeOnboardRoute:
-    AuthenticatedAdminCountriesCodeOnboardRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -1369,3 +1423,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

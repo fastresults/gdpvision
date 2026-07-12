@@ -1157,16 +1157,21 @@ export const commitMinistryDeepDive = createServerFn({ method: "POST" })
     if (error || !draft) throw new Error("Draft not found");
     const payload = (data.editedPayload ?? draft.payload) as { ministries: Array<any> };
 
+    const citations = Array.isArray((draft as any).citations) ? (draft as any).citations : [];
     let upserted = 0;
     for (const m of payload.ministries) {
+      const profile = (m.minister_profile && typeof m.minister_profile === "object") ? m.minister_profile : {};
+      const resolvedName = profile.name ?? m.minister ?? null;
       const { error: upErr } = await supabaseAdmin.from("ministry_profiles").upsert(
         {
           country_code: draft.country_code,
           ministry_slug: m.ministry_slug,
-          minister: m.minister ?? null,
+          minister: resolvedName,
+          minister_profile: { ...profile, name: resolvedName },
           mandate: m.mandate,
           programmes: m.programmes ?? [],
           source_ids: [],
+          citations,
         },
         { onConflict: "country_code,ministry_slug" },
       );

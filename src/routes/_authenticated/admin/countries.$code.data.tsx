@@ -74,6 +74,8 @@ const ministriesQuery = (code: string) =>
   queryOptions({ queryKey: ["data", code, "ministries"], queryFn: () => listMinistryProfiles({ data: { countryCode: code } }) });
 const statsQuery = (code: string) =>
   queryOptions({ queryKey: ["data", code, "stats"], queryFn: () => corpusStats({ data: { countryCode: code } }) });
+const corpusDetailQuery = (code: string) =>
+  queryOptions({ queryKey: ["data", code, "corpus-detail"], queryFn: () => corpusDetail({ data: { countryCode: code } }) });
 const memoryQuery = (code: string) =>
   queryOptions({ queryKey: ["data", code, "memory"], queryFn: () => listMemory({ data: { countryCode: code } }) });
 const sourceCandidatesQuery = (code: string) =>

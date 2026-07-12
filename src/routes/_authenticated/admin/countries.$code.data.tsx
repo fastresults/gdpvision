@@ -1097,106 +1097,127 @@ function DiffCell({ value, kind, expanded, onToggle, tone }: { value: any; kind?
 
 
 
-function MinistryCard({ row, onEdit }: { row: any; onEdit: () => void }) {
+function MinistryCard({ row, open, onToggle, onEdit }: { row: any; open: boolean; onToggle: () => void; onEdit: () => void }) {
   const mp = (row.minister_profile ?? {}) as any;
   const hasProfile = Boolean(mp.name || row.minister);
   const initials = (mp.name ?? row.minister ?? "?")
     .split(/\s+/).filter(Boolean).slice(0, 2).map((s: string) => s[0]).join("").toUpperCase();
-  const [expanded, setExpanded] = useState(false);
+  const [bioExpanded, setBioExpanded] = useState(false);
   const contact = mp.contact ?? {};
   const socials = mp.socials ?? {};
+  const ministerName = mp.name ?? row.minister ?? "Minister not recorded";
   return (
-    <div className="border border-line-200 p-4">
-      <div className="flex justify-between gap-4">
-        <h3 className="font-serif text-lg">{row.ministries?.name ?? row.ministry_slug}</h3>
-        <div className="text-xs text-ink-500 shrink-0">
+    <div className="border border-line-200">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="w-full flex items-center justify-between gap-4 p-4 text-left hover:bg-paper-100/60 transition-colors"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <span
+            aria-hidden
+            className={`inline-block text-ink-500 transition-transform ${open ? "rotate-90" : ""}`}
+          >
+            ›
+          </span>
+          <div className="min-w-0">
+            <h3 className="font-serif text-lg truncate">{row.ministries?.name ?? row.ministry_slug}</h3>
+            <div className="text-xs text-ink-500 truncate">{ministerName}</div>
+          </div>
+        </div>
+        <div className="text-xs text-ink-500 shrink-0 tabular-nums">
           {(row.programmes as any[])?.length ?? 0} programmes · {row.source_ids?.length ?? 0} sources
         </div>
-      </div>
+      </button>
 
-      <div className="mt-3 border border-line-200 bg-paper-100/40 p-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex gap-3">
-            {mp.portrait_url ? (
-              <img src={mp.portrait_url} alt={mp.name ?? "Minister"} className="h-14 w-11 object-cover border border-line-200" />
-            ) : (
-              <div className="h-14 w-11 flex items-center justify-center border border-line-200 bg-paper-100 text-xs text-ink-500">
-                {hasProfile ? initials : "—"}
+      {open && (
+        <div className="border-t border-line-200 p-4 pt-3">
+          <div className="border border-line-200 bg-paper-100/40 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex gap-3">
+                {mp.portrait_url ? (
+                  <img src={mp.portrait_url} alt={mp.name ?? "Minister"} className="h-14 w-11 object-cover border border-line-200" />
+                ) : (
+                  <div className="h-14 w-11 flex items-center justify-center border border-line-200 bg-paper-100 text-xs text-ink-500">
+                    {hasProfile ? initials : "—"}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="font-medium text-ink-950">{ministerName}</div>
+                  {mp.title && <div className="text-xs text-ink-500">{mp.title}</div>}
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                    {mp.party && <span className="border border-line-200 px-1.5 py-0.5 text-ink-700">{mp.party}</span>}
+                    {mp.appointed_at && <span className="text-ink-500 tabular-nums">Appointed {mp.appointed_at}</span>}
+                  </div>
+                </div>
               </div>
-            )}
-            <div className="min-w-0">
-              <div className="font-medium text-ink-950">{mp.name ?? row.minister ?? "Minister not recorded"}</div>
-              {mp.title && <div className="text-xs text-ink-500">{mp.title}</div>}
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-                {mp.party && <span className="border border-line-200 px-1.5 py-0.5 text-ink-700">{mp.party}</span>}
-                {mp.appointed_at && <span className="text-ink-500 tabular-nums">Appointed {mp.appointed_at}</span>}
-              </div>
-            </div>
-          </div>
-          <button onClick={onEdit} className="text-xs text-ink-500 hover:text-ink-950 underline underline-offset-2 shrink-0">
-            Edit
-          </button>
-        </div>
-
-        {(contact.office_phone || contact.email || contact.website || contact.office_address) && (
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-700">
-            {contact.email && <a href={`mailto:${contact.email}`} className="underline underline-offset-2">{contact.email}</a>}
-            {contact.office_phone && <a href={`tel:${contact.office_phone}`} className="underline underline-offset-2 tabular-nums">{contact.office_phone}</a>}
-            {contact.website && <a href={contact.website} target="_blank" rel="noreferrer" className="underline underline-offset-2 truncate max-w-xs">{contact.website.replace(/^https?:\/\//, "")}</a>}
-            {contact.office_address && <span className="text-ink-500">{contact.office_address}</span>}
-          </div>
-        )}
-
-        {mp.bio && (
-          <div className="mt-3 text-sm text-ink-700">
-            <p className={expanded ? "" : "line-clamp-3"}>{mp.bio}</p>
-            {mp.bio.length > 220 && (
-              <button onClick={() => setExpanded((v) => !v)} className="mt-1 text-xs text-ink-500 hover:text-ink-950 underline underline-offset-2">
-                {expanded ? "Show less" : "Read more"}
+              <button onClick={onEdit} className="text-xs text-ink-500 hover:text-ink-950 underline underline-offset-2 shrink-0">
+                Edit
               </button>
-            )}
-          </div>
-        )}
+            </div>
 
-        {(Array.isArray(mp.education) && mp.education.length > 0) || (Array.isArray(mp.career) && mp.career.length > 0) ? (
-          <details className="mt-3 text-xs text-ink-700">
-            <summary className="cursor-pointer text-ink-500 hover:text-ink-950">Background</summary>
-            {Array.isArray(mp.education) && mp.education.length > 0 && (
-              <div className="mt-2">
-                <div className="text-ink-500 uppercase text-[10px] tracking-wide mb-1">Education</div>
-                <ul className="list-disc pl-5 space-y-0.5">{mp.education.map((e: string, i: number) => <li key={i}>{e}</li>)}</ul>
+            {(contact.office_phone || contact.email || contact.website || contact.office_address) && (
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-700">
+                {contact.email && <a href={`mailto:${contact.email}`} className="underline underline-offset-2">{contact.email}</a>}
+                {contact.office_phone && <a href={`tel:${contact.office_phone}`} className="underline underline-offset-2 tabular-nums">{contact.office_phone}</a>}
+                {contact.website && <a href={contact.website} target="_blank" rel="noreferrer" className="underline underline-offset-2 truncate max-w-xs">{contact.website.replace(/^https?:\/\//, "")}</a>}
+                {contact.office_address && <span className="text-ink-500">{contact.office_address}</span>}
               </div>
             )}
-            {Array.isArray(mp.career) && mp.career.length > 0 && (
-              <div className="mt-2">
-                <div className="text-ink-500 uppercase text-[10px] tracking-wide mb-1">Career</div>
-                <ul className="list-disc pl-5 space-y-0.5">{mp.career.map((e: string, i: number) => <li key={i}>{e}</li>)}</ul>
+
+            {mp.bio && (
+              <div className="mt-3 text-sm text-ink-700">
+                <p className={bioExpanded ? "" : "line-clamp-3"}>{mp.bio}</p>
+                {mp.bio.length > 220 && (
+                  <button onClick={() => setBioExpanded((v) => !v)} className="mt-1 text-xs text-ink-500 hover:text-ink-950 underline underline-offset-2">
+                    {bioExpanded ? "Show less" : "Read more"}
+                  </button>
+                )}
               </div>
             )}
-          </details>
-        ) : null}
 
-        {(socials.twitter || socials.facebook || socials.linkedin || socials.instagram) && (
-          <div className="mt-3 flex flex-wrap gap-3 text-xs">
-            {socials.twitter && <a href={socials.twitter} target="_blank" rel="noreferrer" className="underline underline-offset-2 text-ink-700">Twitter</a>}
-            {socials.facebook && <a href={socials.facebook} target="_blank" rel="noreferrer" className="underline underline-offset-2 text-ink-700">Facebook</a>}
-            {socials.linkedin && <a href={socials.linkedin} target="_blank" rel="noreferrer" className="underline underline-offset-2 text-ink-700">LinkedIn</a>}
-            {socials.instagram && <a href={socials.instagram} target="_blank" rel="noreferrer" className="underline underline-offset-2 text-ink-700">Instagram</a>}
+            {(Array.isArray(mp.education) && mp.education.length > 0) || (Array.isArray(mp.career) && mp.career.length > 0) ? (
+              <details className="mt-3 text-xs text-ink-700">
+                <summary className="cursor-pointer text-ink-500 hover:text-ink-950">Background</summary>
+                {Array.isArray(mp.education) && mp.education.length > 0 && (
+                  <div className="mt-2">
+                    <div className="text-ink-500 uppercase text-[10px] tracking-wide mb-1">Education</div>
+                    <ul className="list-disc pl-5 space-y-0.5">{mp.education.map((e: string, i: number) => <li key={i}>{e}</li>)}</ul>
+                  </div>
+                )}
+                {Array.isArray(mp.career) && mp.career.length > 0 && (
+                  <div className="mt-2">
+                    <div className="text-ink-500 uppercase text-[10px] tracking-wide mb-1">Career</div>
+                    <ul className="list-disc pl-5 space-y-0.5">{mp.career.map((e: string, i: number) => <li key={i}>{e}</li>)}</ul>
+                  </div>
+                )}
+              </details>
+            ) : null}
+
+            {(socials.twitter || socials.facebook || socials.linkedin || socials.instagram) && (
+              <div className="mt-3 flex flex-wrap gap-3 text-xs">
+                {socials.twitter && <a href={socials.twitter} target="_blank" rel="noreferrer" className="underline underline-offset-2 text-ink-700">Twitter</a>}
+                {socials.facebook && <a href={socials.facebook} target="_blank" rel="noreferrer" className="underline underline-offset-2 text-ink-700">Facebook</a>}
+                {socials.linkedin && <a href={socials.linkedin} target="_blank" rel="noreferrer" className="underline underline-offset-2 text-ink-700">LinkedIn</a>}
+                {socials.instagram && <a href={socials.instagram} target="_blank" rel="noreferrer" className="underline underline-offset-2 text-ink-700">Instagram</a>}
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {row.mandate && <p className="mt-3 text-sm">{row.mandate}</p>}
-      {Array.isArray(row.programmes) && row.programmes.length > 0 && (
-        <ul className="mt-2 text-xs list-disc pl-5 text-ink-500 space-y-1">
-          {(row.programmes as any[]).map((p, i) => (
-            <li key={i}>
-              <span className="text-ink-950">{p.name ?? p.title ?? "(untitled)"}</span>
-              {p.objective && <> — {p.objective}</>}
-              {p.status && <span className="ml-2 uppercase text-[10px] tracking-wide text-ink-400">{p.status}</span>}
-            </li>
-          ))}
-        </ul>
+          {row.mandate && <p className="mt-3 text-sm">{row.mandate}</p>}
+          {Array.isArray(row.programmes) && row.programmes.length > 0 && (
+            <ul className="mt-2 text-xs list-disc pl-5 text-ink-500 space-y-1">
+              {(row.programmes as any[]).map((p, i) => (
+                <li key={i}>
+                  <span className="text-ink-950">{p.name ?? p.title ?? "(untitled)"}</span>
+                  {p.objective && <> — {p.objective}</>}
+                  {p.status && <span className="ml-2 uppercase text-[10px] tracking-wide text-ink-400">{p.status}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   );

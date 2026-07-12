@@ -873,6 +873,27 @@ export type Database = {
           },
         ]
       }
+      instance_config: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value_json: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value_json: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value_json?: Json
+        }
+        Relationships: []
+      }
       intake_items: {
         Row: {
           created_at: string

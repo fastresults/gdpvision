@@ -1663,17 +1663,21 @@ function MemoryTab({ code }: { code: string }) {
             ))}
           </div>
           <button
-            onClick={() => setShowAdd((v) => !v)}
+            onClick={() => setShowAdd(true)}
             className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0"
           >
-            {showAdd ? "Cancel" : "Add memory"}
+            Add memory
           </button>
         </div>
       </div>
 
-      {showAdd && (
-        <AddMemoryForm onSubmit={async (v) => { await upsert({ data: { countryCode: code, ...v } }); setShowAdd(false); await refresh(); }} />
-      )}
+      <AddMemoryDialog
+        countryCode={code}
+        open={showAdd}
+        onClose={() => setShowAdd(false)}
+        onDone={refresh}
+      />
+
 
       {all.length === 0 ? (
         <div className="border border-dashed border-line-200 p-8 text-center text-sm text-ink-500">

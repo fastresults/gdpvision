@@ -1115,7 +1115,8 @@ export const runMinistryDeepDiveAgent = createServerFn({ method: "POST" })
       const result = await callSonar({
         model,
         system:
-          "You are a governance analyst. For each ministry, return the current minister (if known), a concrete mandate paragraph, and 2-5 flagship programmes with objective and status (active/planned/completed).",
+          "You are a governance analyst. For each ministry, return: (a) the CURRENT officeholder as `minister_profile` with name, formal title, party affiliation, appointment date (ISO date if known), a short bio (<=400 chars), education/career highlights, a contact block (official office_phone, email, office_address, ministry website), verified official socials (twitter/facebook/linkedin/instagram full URLs), and a portrait_url when publicly available; (b) a concrete mandate paragraph; (c) 2-5 flagship programmes with objective and status (active/planned/completed). Prefer official government / ministry websites. If a field is unknown, return null rather than guessing. Also mirror the officeholder name in the top-level `minister` field.",
+
         user: `Country: ${country.name}. Ministries:\n- ${list}\n\nReturn one entry per ministry_slug.`,
         responseSchema: MinistryDeepDiveSchema as unknown as Record<string, unknown>,
         recency: "year",

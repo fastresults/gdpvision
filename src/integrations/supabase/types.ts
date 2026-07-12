@@ -152,6 +152,59 @@ export type Database = {
         }
         Relationships: []
       }
+      citations: {
+        Row: {
+          bucket: string | null
+          created_at: string
+          created_by: string
+          id: string
+          memory_object_id: string | null
+          owner_id: string
+          owner_type: string
+          position_offset: number | null
+          quote: string | null
+          scope_key: string
+          sector_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          bucket?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          memory_object_id?: string | null
+          owner_id: string
+          owner_type: string
+          position_offset?: number | null
+          quote?: string | null
+          scope_key: string
+          sector_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bucket?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          memory_object_id?: string | null
+          owner_id?: string
+          owner_type?: string
+          position_offset?: number | null
+          quote?: string | null
+          scope_key?: string
+          sector_code?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "citations_memory_object_id_fkey"
+            columns: ["memory_object_id"]
+            isOneToOne: false
+            referencedRelation: "memory_objects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commitments: {
         Row: {
           country_code: string

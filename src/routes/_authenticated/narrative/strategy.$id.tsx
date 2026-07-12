@@ -95,6 +95,8 @@ function EditStrategy() {
       <CitationsRail
         scopeKey={data.scope_key}
         sectorCode={sector}
+        ownerType="strategy"
+        ownerId={id}
         sources={sources}
         onAttach={(s) => setSources((prev) => (prev.some((p) => p.ref === s.ref) ? prev : [...prev, s]))}
         onRemove={(ref) => setSources((prev) => prev.filter((p) => p.ref !== ref))}

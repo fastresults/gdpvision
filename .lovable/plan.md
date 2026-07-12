@@ -1,47 +1,65 @@
+## Problem
+
+Payload strings in Sector Dossiers contain Perplexity-style citation markers like `[48]`, `[52,53]`. `PrettyJson` already extracts them into subtle `<sup>` refs — but the numbers are **dead**: the committed dossier row has `source_ids: []`, and the ordered Perplexity `citations` array (url, title, domain, quote) is stored per-draft in `onboarding_citations` and never linked to the dossier. So the reader has no way to see what `[48]` actually points to.
+
 ## Goal
-Replace raw `JSON.stringify` blocks in Sector Dossiers with a beautifully formatted, human-readable presentation. Establish a global rule + reusable renderer so any JSON payload we surface in admin UIs renders as readable copy — never as raw JSON.
 
-## Global rule
-Add to `mem://index.md` Core:
-> JSON payloads shown to users must be rendered via `<PrettyJson>` (semantic, human-readable). Never render `JSON.stringify(...)` in UI. Raw JSON is only allowed inside a "View raw" toggle for debugging.
+Every citation ref shown in a `<PrettyJson>` payload becomes clickable and opens a modal listing the referenced sources (URL, title, domain, quote when available). Establish a global rule so any surface rendering payloads with citation markers wires up the resolver.
 
-## New component: `src/components/data/PrettyJson.tsx`
-Generic, schema-agnostic renderer that turns any JSON value into editorial copy:
-- **Object** → definition-style block: keys become small-caps labels (`humanizeKey("national_plans") → "National Plans"`), values render recursively; single-scalar objects render inline.
-- **Array of strings** → bulleted list.
-- **Array of objects** → stacked cards (one per item), each rendered as an object block; if items share a `title`/`name`/`label` key, that becomes the card heading.
-- **Array of primitives (mixed)** → comma-separated inline chips.
-- **String** → paragraph; auto-linkify URLs; strip trailing citation markers like `[4]`, `[7][10]` into subtle superscript refs.
-- **Number / boolean / null** → typography tuned (`—` for null, monospace tabular for numbers with 2-decimal rule for floats).
-- **Empty values** → hidden, not shown as `[]` or `{}`.
-- Depth-limited indentation using existing `border-line-200` rails; no code font except for URLs/IDs.
-- Optional `<details>` "View raw JSON" footer for admins.
+## Fix path
 
-Utility: `humanizeKey` (snake/camel → Title Case, with overrides map for domain terms: `oecs → OECS`, `kpi → KPI`, `gdp → GDP`).
+### 1. Persist the citation set with the dossier
+- At `commitSectorDossiers` time (`src/lib/country-onboarding/corpus.functions.ts`), read `onboarding_citations` for the draft **in insert order** and snapshot them onto the row.
+- Store the ordered snapshot as `sector_dossiers.citations` (new `jsonb` column, array of `{ url, title, domain, quote, published_at }`). Ordering matches the `[N]` numbering emitted by Perplexity (1-indexed).
+- Keep `source_ids` as-is for future linkage to `country_sources`; the snapshot is the source of truth for the marker resolver.
+- Backfill: for existing dossiers where `citations IS NULL`, one-shot migration copies from the latest `sector_dossier`-stage draft's citations for that country (best-effort; per-sector match not guaranteed for the current pre-fan-out draft).
 
-## Sector Dossiers rewrite (`countries.$code.data.tsx` `DossiersTab`)
-Replace the `<pre>{JSON.stringify(r.payload, null, 2)}</pre>` block with:
-- Card header: dossier `kind` as serif title (e.g. "Communications", "OECS Peer Position", "Policy Landscape") via a `DOSSIER_KIND_LABELS` map, plus confidence pill and source count.
-- Body: `<PrettyJson value={r.payload} />` — which for the known shapes produces:
-  - **comms**: sections "Channels", "Narratives", "Spokespeople", "Reputation risks" as bulleted lists.
-  - **oecs**: "Position" as a bold label ("Laggard / Leader / Middle"), "Peers" as chips, "Rationale" as prose.
-  - **policy**: "National plans", "Statutes", "Regulatory instruments", "Institutions" as lists/cards.
-- Sector heading uses country's sector display name (from `country_sectors` join) instead of raw code.
-- Keep a small "View raw" `<details>` for admin debugging.
+### 2. Server: expose citations on the read
+- `getSectorDossiers` (`src/lib/country-data/manage.functions.ts`) returns `citations` alongside `payload`, `source_ids`, `confidence`.
+- Types regen picks up the new column.
 
-## Audit & propagate the rule
-Sweep the four other files that render JSON as text and swap to `<PrettyJson>` where the payload is user-facing:
-- `src/routes/_authenticated/admin/countries.$code.onboard.tsx` — draft/citation payloads.
-- `src/routes/_authenticated/admin/audits.log.tsx` — diff payloads (keep raw toggle since it's audit).
-- `src/routes/_authenticated/admin/index.tsx` — any inline payload previews.
-- `src/routes/kiosk.admin.tsx` — same treatment.
+### 3. Component: interactive citation refs
 
-For each, if the JSON is genuinely a debugging artifact (audit diffs, error traces), wrap the existing `<pre>` inside `<details><summary>View raw</summary>…</details>` and show a `<PrettyJson>` summary above it.
+**`src/components/data/humanize.ts`**
+- `splitCitations` already returns `{ text, refs: number[] }`. Extend to also parse combined markers like `[48,52]` and consecutive `[48][52]` (already handled) into a flat `refs` list — no change to callers.
 
-## Files
-- **Create**: `src/components/data/PrettyJson.tsx`, `src/components/data/humanize.ts`
-- **Edit**: `src/routes/_authenticated/admin/countries.$code.data.tsx` (DossiersTab), plus the four files above for consistency
-- **Memory**: `mem://index.md` (add Core rule), `mem://design/pretty-json` (component contract)
+**`src/components/data/PrettyJson.tsx`**
+- Add optional prop `citations?: Array<{ url, title?, domain?, quote?, published_at? }>` (1-indexed).
+- Add optional prop `onCitationClick?: (refs: number[]) => void` for consumers wiring their own dialog. Default behaviour: if `citations` is provided, `PrettyJson` owns a `<Dialog>` and clicking a `<sup>` opens it with the resolved rows.
+- The `<sup>` becomes a `<button>` (unstyled, subtle hover: text-ink-700, underline dotted) that fires the resolver. Refs beyond the list render disabled/muted.
+- Dialog content: serif heading "Sources [48,52]", each ref as a card with domain badge, title (linked to URL, new tab), quote in blockquote, published date. Unknown refs show "Source unavailable".
+
+### 4. Wire consumers
+- **Sector Dossiers tab** (`countries.$code.data.tsx` `DossiersTab`): pass `citations={r.citations}` to `<PrettyJson>`.
+- **Onboarding drafts** (`countries.$code.onboard.tsx`): any preview of a draft payload with an accompanying `citations` array must pass it to `<PrettyJson>`.
+- Audit remaining `<PrettyJson>` call sites (currently only DossiersTab); document the rule.
+
+### 5. Global rule
+Update `mem://index.md` Core:
+> When rendering `<PrettyJson>` for a payload that carries citation markers (`[N]`), always pass the associated ordered `citations` array so refs become clickable and open the source modal. Never render citation markers without a resolver — dead numbers are not acceptable.
+> 
+> New citation column: `sector_dossiers.citations` (jsonb ordered array snapshotted at commit time). Preserve ordering — it is the `[N]` index.
+
+## Technical details
+
+**Migration**
+```sql
+ALTER TABLE public.sector_dossiers
+  ADD COLUMN IF NOT EXISTS citations jsonb NOT NULL DEFAULT '[]'::jsonb;
+```
+Backfill pass: for each dossier row missing citations, look up the most recent `onboarding_drafts` row with `stage='sector_dossier'`, `country_code` matches, and copy the ordered `onboarding_citations` for that draft.
+
+**Files**
+- Edit: `src/lib/country-onboarding/corpus.functions.ts` (snapshot citations on commit)
+- Edit: `src/lib/country-data/manage.functions.ts` (`getSectorDossiers` selects `citations`)
+- Edit: `src/components/data/PrettyJson.tsx` (new props, Dialog, clickable sup)
+- Edit: `src/components/data/humanize.ts` (parse `[48,52]` combined markers)
+- Edit: `src/routes/_authenticated/admin/countries.$code.data.tsx` (`DossiersTab` passes `citations`)
+- Edit: `src/routes/_authenticated/admin/countries.$code.onboard.tsx` (pass draft citations to PrettyJson previews)
+- Migration: `sector_dossiers.citations` column + backfill
+- Memory: `mem://index.md` Core rule
 
 ## Out of scope
-No schema changes, no dossier regeneration, no changes to how the AI produces payloads — presentation layer only.
+- No re-run of Perplexity or dossier regeneration.
+- No changes to `country_sources` linkage — separate concern.
+- No changes to the KPI or Corpus tabs' rendering.

@@ -565,6 +565,7 @@ async function upsertResolvedKpi(
     source_url: string | null;
     source_org: string | null;
     notes?: string | null;
+    inference?: import("./kpi-inference.server").InferenceResult | null;
   },
 ) {
   const source_id = await attachOrCreateSource(
@@ -574,26 +575,72 @@ async function upsertResolvedKpi(
     k.source_org,
     userId,
   );
+  const isInferred = !!k.inference && k.latest_value != null;
   const freshness_status = k.latest_value == null ? "missing" : "fresh";
-  const { error } = await admin.from("country_kpis").upsert(
-    {
-      country_code: countryCode,
-      kpi_code: k.kpi_code,
-      label: k.label,
-      unit: k.unit,
-      direction: k.direction || "up",
-      category: k.category || "macro",
-      source_id,
-      latest_value: k.latest_value,
-      latest_period: k.latest_period,
-      target: k.target ?? null,
-      notes: k.notes ?? null,
-      freshness_status,
-      last_verified_at: new Date().toISOString(),
-      research_notes: k.notes ?? null,
-    },
-    { onConflict: "country_code,kpi_code" },
-  );
+  const provenance = isInferred ? "inferred" : "verified";
+
+  // Preserve inference_history: append prior inference when overwriting.
+  let inferenceHistory: unknown[] | undefined;
+  if (isInferred) {
+    const { data: prior } = await admin
+      .from("country_kpis")
+      .select("inference_history, provenance, inference_rationale, inference_model, latest_value, inferred_at")
+      .eq("country_code", countryCode)
+      .eq("kpi_code", k.kpi_code)
+      .maybeSingle();
+    const hist = Array.isArray(prior?.inference_history) ? (prior!.inference_history as unknown[]) : [];
+    if (prior?.provenance === "inferred" && prior.latest_value != null) {
+      hist.push({
+        value: prior.latest_value,
+        model: prior.inference_model,
+        rationale: prior.inference_rationale,
+        inferred_at: prior.inferred_at,
+      });
+    }
+    inferenceHistory = hist.slice(-10); // keep last 10
+  }
+
+  const row: Record<string, unknown> = {
+    country_code: countryCode,
+    kpi_code: k.kpi_code,
+    label: k.label,
+    unit: k.unit,
+    direction: k.direction || "up",
+    category: k.category || "macro",
+    source_id,
+    latest_value: k.latest_value,
+    latest_period: k.latest_period,
+    target: k.target ?? null,
+    notes: k.notes ?? null,
+    freshness_status,
+    last_verified_at: new Date().toISOString(),
+    research_notes: k.notes ?? null,
+    provenance,
+  };
+  if (isInferred && k.inference) {
+    row.confidence = k.inference.confidence;
+    row.inference_rationale = k.inference.rationale;
+    row.inference_evidence = {
+      assumptions: k.inference.assumptions,
+      evidence: k.inference.evidence,
+    };
+    row.inference_model = k.inference.model;
+    row.inferred_at = new Date().toISOString();
+    if (inferenceHistory) row.inference_history = inferenceHistory;
+    // Clear admin fields so a new inference is reviewable again.
+    row.verified_by = null;
+    row.verified_at = null;
+    row.admin_note = null;
+  } else {
+    // Clear inference-specific fields on a verified overwrite.
+    row.confidence = null;
+    row.inference_rationale = null;
+    row.inference_evidence = null;
+    row.inference_model = null;
+    row.inferred_at = null;
+  }
+
+  const { error } = await admin.from("country_kpis").upsert(row, { onConflict: "country_code,kpi_code" });
   return { ok: !error, error: error?.message ?? null, source_id };
 }
 

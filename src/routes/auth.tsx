@@ -5,6 +5,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { lovable } from "@/integrations/lovable";
+import { getMyCountryStatus } from "@/lib/country-admin.functions";
+
+async function postSignInRedirect(): Promise<"/admin/countries" | "/instrument"> {
+  try {
+    const status = await getMyCountryStatus();
+    return status.isGlobalAdmin ? "/admin/countries" : "/instrument";
+  } catch {
+    return "/instrument";
+  }
+}
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -31,8 +41,8 @@ function AuthPage() {
 
   // If already signed in, get out of the way.
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/instrument" });
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (data.user) navigate({ to: await postSignInRedirect() });
     });
   }, [navigate]);
 
@@ -52,7 +62,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         router.invalidate();
-        navigate({ to: "/instrument" });
+        navigate({ to: await postSignInRedirect() });
       } else if (mode === "sign-up") {
         const { error } = await supabase.auth.signUp({
           email,
@@ -64,7 +74,7 @@ function AuthPage() {
         });
         if (error) throw error;
         router.invalidate();
-        navigate({ to: "/instrument" });
+        navigate({ to: await postSignInRedirect() });
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,
@@ -179,7 +189,7 @@ function AuthPage() {
                   if (result.error) throw result.error;
                   if (result.redirected) return;
                   router.invalidate();
-                  navigate({ to: "/instrument" });
+                  navigate({ to: await postSignInRedirect() });
                 } catch (err) {
                   setError(err instanceof Error ? err.message : "Google sign-in failed");
                 } finally {

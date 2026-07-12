@@ -6,7 +6,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { applySourceSuppressions } from "@/lib/suppressions.server";
+import type { Json } from "@/integrations/supabase/types";
 
 // Numeric-claim extractor. Captures figures like:
 //   "12.4%", "EC$412M", "USD 1.2 billion", "4,200", "45 percent"

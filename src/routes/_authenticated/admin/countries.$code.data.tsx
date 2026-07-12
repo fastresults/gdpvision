@@ -6,6 +6,11 @@ import { useState } from "react";
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { getOnboardingStatus } from "@/lib/country-onboarding/agents.functions";
 import {
+  backfillMissingKpis,
+  listKpiCoverage,
+  reverifyAllKpis,
+} from "@/lib/country-onboarding/corpus.functions";
+import {
   corpusStats,
   deleteMemory,
   deleteSource,
@@ -43,6 +48,8 @@ const sourcesQuery = (code: string) =>
   queryOptions({ queryKey: ["data", code, "sources"], queryFn: () => listSources({ data: { countryCode: code } }) });
 const kpisQuery = (code: string) =>
   queryOptions({ queryKey: ["data", code, "kpis"], queryFn: () => listKpis({ data: { countryCode: code } }) });
+const kpiCoverageQuery = (code: string) =>
+  queryOptions({ queryKey: ["data", code, "kpi-coverage"], queryFn: () => listKpiCoverage({ data: { countryCode: code } }) });
 const dossiersQuery = (code: string) =>
   queryOptions({ queryKey: ["data", code, "dossiers"], queryFn: () => listDossiers({ data: { countryCode: code } }) });
 const ministriesQuery = (code: string) =>
@@ -51,6 +58,7 @@ const statsQuery = (code: string) =>
   queryOptions({ queryKey: ["data", code, "stats"], queryFn: () => corpusStats({ data: { countryCode: code } }) });
 const memoryQuery = (code: string) =>
   queryOptions({ queryKey: ["data", code, "memory"], queryFn: () => listMemory({ data: { countryCode: code } }) });
+
 
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/data")({
   head: ({ params }) => ({

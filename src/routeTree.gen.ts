@@ -35,12 +35,14 @@ import { Route as AuthenticatedInstrumentStewardshipRouteImport } from './routes
 import { Route as AuthenticatedInstrumentExposureRouteImport } from './routes/_authenticated/instrument/exposure'
 import { Route as AuthenticatedCounselMobileRouteImport } from './routes/_authenticated/counsel/mobile'
 import { Route as AuthenticatedCounselArchiveRouteImport } from './routes/_authenticated/counsel/archive'
+import { Route as AuthenticatedAdminDocumentsRouteImport } from './routes/_authenticated/admin/documents'
 import { Route as AuthenticatedNarrativeStrategyIndexRouteImport } from './routes/_authenticated/narrative/strategy.index'
 import { Route as AuthenticatedInstrumentScenariosIndexRouteImport } from './routes/_authenticated/instrument/scenarios.index'
 import { Route as AuthenticatedInstrumentPortfolioIndexRouteImport } from './routes/_authenticated/instrument/portfolio.index'
 import { Route as AuthenticatedInstrumentCabinetIndexRouteImport } from './routes/_authenticated/instrument/cabinet.index'
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
 import { Route as ApiPublicHooksNarrativeHarvestRouteImport } from './routes/api/public/hooks/narrative-harvest'
+import { Route as ApiPublicHooksCadenceDailyRouteImport } from './routes/api/public/hooks/cadence-daily'
 import { Route as AuthenticatedNarrativeTraceIdRouteImport } from './routes/_authenticated/narrative/trace.$id'
 import { Route as AuthenticatedNarrativeStrategyNewRouteImport } from './routes/_authenticated/narrative/strategy.new'
 import { Route as AuthenticatedNarrativeStrategyIdRouteImport } from './routes/_authenticated/narrative/strategy.$id'
@@ -57,6 +59,7 @@ import { Route as AuthenticatedInstrumentPortfolioMinistryRouteImport } from './
 import { Route as AuthenticatedInstrumentMandateStudioRouteImport } from './routes/_authenticated/instrument/mandate.studio'
 import { Route as AuthenticatedInstrumentMandateScorecardRouteImport } from './routes/_authenticated/instrument/mandate.scorecard'
 import { Route as AuthenticatedInstrumentCabinetSessionRouteImport } from './routes/_authenticated/instrument/cabinet.session'
+import { Route as AuthenticatedInstrumentCabinetDecisionsRouteImport } from './routes/_authenticated/instrument/cabinet.decisions'
 import { Route as AuthenticatedAdminAuditsLogRouteImport } from './routes/_authenticated/admin/audits.log'
 import { Route as AuthenticatedAdminAuditsKeyingRouteImport } from './routes/_authenticated/admin/audits.keying'
 
@@ -205,6 +208,12 @@ const AuthenticatedCounselArchiveRoute =
     path: '/counsel/archive',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminDocumentsRoute =
+  AuthenticatedAdminDocumentsRouteImport.update({
+    id: '/admin/documents',
+    path: '/admin/documents',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedNarrativeStrategyIndexRoute =
   AuthenticatedNarrativeStrategyIndexRouteImport.update({
     id: '/strategy/',
@@ -239,6 +248,12 @@ const ApiPublicHooksNarrativeHarvestRoute =
   ApiPublicHooksNarrativeHarvestRouteImport.update({
     id: '/api/public/hooks/narrative-harvest',
     path: '/api/public/hooks/narrative-harvest',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksCadenceDailyRoute =
+  ApiPublicHooksCadenceDailyRouteImport.update({
+    id: '/api/public/hooks/cadence-daily',
+    path: '/api/public/hooks/cadence-daily',
     getParentRoute: () => rootRouteImport,
   } as any)
 const AuthenticatedNarrativeTraceIdRoute =
@@ -337,6 +352,12 @@ const AuthenticatedInstrumentCabinetSessionRoute =
     path: '/cabinet/session',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
+const AuthenticatedInstrumentCabinetDecisionsRoute =
+  AuthenticatedInstrumentCabinetDecisionsRouteImport.update({
+    id: '/cabinet/decisions',
+    path: '/cabinet/decisions',
+    getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+  } as any)
 const AuthenticatedAdminAuditsLogRoute =
   AuthenticatedAdminAuditsLogRouteImport.update({
     id: '/admin/audits/log',
@@ -358,6 +379,7 @@ export interface FileRoutesByFullPath {
   '/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
+  '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/counsel/mobile': typeof AuthenticatedCounselMobileRoute
   '/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
@@ -378,6 +400,7 @@ export interface FileRoutesByFullPath {
   '/narrative/': typeof AuthenticatedNarrativeIndexRoute
   '/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
   '/admin/audits/log': typeof AuthenticatedAdminAuditsLogRoute
+  '/instrument/cabinet/decisions': typeof AuthenticatedInstrumentCabinetDecisionsRoute
   '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
   '/instrument/mandate/studio': typeof AuthenticatedInstrumentMandateStudioRoute
@@ -394,6 +417,7 @@ export interface FileRoutesByFullPath {
   '/narrative/strategy/$id': typeof AuthenticatedNarrativeStrategyIdRoute
   '/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
+  '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/instrument/cabinet/': typeof AuthenticatedInstrumentCabinetIndexRoute
@@ -406,6 +430,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk': typeof KioskIndexRoute
+  '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/counsel/mobile': typeof AuthenticatedCounselMobileRoute
   '/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
@@ -426,6 +451,7 @@ export interface FileRoutesByTo {
   '/narrative': typeof AuthenticatedNarrativeIndexRoute
   '/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
   '/admin/audits/log': typeof AuthenticatedAdminAuditsLogRoute
+  '/instrument/cabinet/decisions': typeof AuthenticatedInstrumentCabinetDecisionsRoute
   '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
   '/instrument/mandate/studio': typeof AuthenticatedInstrumentMandateStudioRoute
@@ -442,6 +468,7 @@ export interface FileRoutesByTo {
   '/narrative/strategy/$id': typeof AuthenticatedNarrativeStrategyIdRoute
   '/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
+  '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/instrument/cabinet': typeof AuthenticatedInstrumentCabinetIndexRoute
@@ -459,6 +486,7 @@ export interface FileRoutesById {
   '/_authenticated/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
+  '/_authenticated/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/_authenticated/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/_authenticated/counsel/mobile': typeof AuthenticatedCounselMobileRoute
   '/_authenticated/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
@@ -479,6 +507,7 @@ export interface FileRoutesById {
   '/_authenticated/narrative/': typeof AuthenticatedNarrativeIndexRoute
   '/_authenticated/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
   '/_authenticated/admin/audits/log': typeof AuthenticatedAdminAuditsLogRoute
+  '/_authenticated/instrument/cabinet/decisions': typeof AuthenticatedInstrumentCabinetDecisionsRoute
   '/_authenticated/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/_authenticated/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
   '/_authenticated/instrument/mandate/studio': typeof AuthenticatedInstrumentMandateStudioRoute
@@ -495,6 +524,7 @@ export interface FileRoutesById {
   '/_authenticated/narrative/strategy/$id': typeof AuthenticatedNarrativeStrategyIdRoute
   '/_authenticated/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/_authenticated/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
+  '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/_authenticated/instrument/cabinet/': typeof AuthenticatedInstrumentCabinetIndexRoute
@@ -512,6 +542,7 @@ export interface FileRouteTypes {
     | '/narrative'
     | '/kiosk/admin'
     | '/kiosk/'
+    | '/admin/documents'
     | '/counsel/archive'
     | '/counsel/mobile'
     | '/instrument/exposure'
@@ -532,6 +563,7 @@ export interface FileRouteTypes {
     | '/narrative/'
     | '/admin/audits/keying'
     | '/admin/audits/log'
+    | '/instrument/cabinet/decisions'
     | '/instrument/cabinet/session'
     | '/instrument/mandate/scorecard'
     | '/instrument/mandate/studio'
@@ -548,6 +580,7 @@ export interface FileRouteTypes {
     | '/narrative/strategy/$id'
     | '/narrative/strategy/new'
     | '/narrative/trace/$id'
+    | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/narrative-harvest'
     | '/kiosk/api/public/presentation-pdf'
     | '/instrument/cabinet/'
@@ -560,6 +593,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/kiosk/admin'
     | '/kiosk'
+    | '/admin/documents'
     | '/counsel/archive'
     | '/counsel/mobile'
     | '/instrument/exposure'
@@ -580,6 +614,7 @@ export interface FileRouteTypes {
     | '/narrative'
     | '/admin/audits/keying'
     | '/admin/audits/log'
+    | '/instrument/cabinet/decisions'
     | '/instrument/cabinet/session'
     | '/instrument/mandate/scorecard'
     | '/instrument/mandate/studio'
@@ -596,6 +631,7 @@ export interface FileRouteTypes {
     | '/narrative/strategy/$id'
     | '/narrative/strategy/new'
     | '/narrative/trace/$id'
+    | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/narrative-harvest'
     | '/kiosk/api/public/presentation-pdf'
     | '/instrument/cabinet'
@@ -612,6 +648,7 @@ export interface FileRouteTypes {
     | '/_authenticated/narrative'
     | '/kiosk/admin'
     | '/kiosk/'
+    | '/_authenticated/admin/documents'
     | '/_authenticated/counsel/archive'
     | '/_authenticated/counsel/mobile'
     | '/_authenticated/instrument/exposure'
@@ -632,6 +669,7 @@ export interface FileRouteTypes {
     | '/_authenticated/narrative/'
     | '/_authenticated/admin/audits/keying'
     | '/_authenticated/admin/audits/log'
+    | '/_authenticated/instrument/cabinet/decisions'
     | '/_authenticated/instrument/cabinet/session'
     | '/_authenticated/instrument/mandate/scorecard'
     | '/_authenticated/instrument/mandate/studio'
@@ -648,6 +686,7 @@ export interface FileRouteTypes {
     | '/_authenticated/narrative/strategy/$id'
     | '/_authenticated/narrative/strategy/new'
     | '/_authenticated/narrative/trace/$id'
+    | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/narrative-harvest'
     | '/kiosk/api/public/presentation-pdf'
     | '/_authenticated/instrument/cabinet/'
@@ -661,6 +700,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   KioskRoute: typeof KioskRouteWithChildren
+  ApiPublicHooksCadenceDailyRoute: typeof ApiPublicHooksCadenceDailyRoute
   ApiPublicHooksNarrativeHarvestRoute: typeof ApiPublicHooksNarrativeHarvestRoute
 }
 
@@ -848,6 +888,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCounselArchiveRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/documents': {
+      id: '/_authenticated/admin/documents'
+      path: '/admin/documents'
+      fullPath: '/admin/documents'
+      preLoaderRoute: typeof AuthenticatedAdminDocumentsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/narrative/strategy/': {
       id: '/_authenticated/narrative/strategy/'
       path: '/strategy'
@@ -888,6 +935,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/narrative-harvest'
       fullPath: '/api/public/hooks/narrative-harvest'
       preLoaderRoute: typeof ApiPublicHooksNarrativeHarvestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/cadence-daily': {
+      id: '/api/public/hooks/cadence-daily'
+      path: '/api/public/hooks/cadence-daily'
+      fullPath: '/api/public/hooks/cadence-daily'
+      preLoaderRoute: typeof ApiPublicHooksCadenceDailyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/narrative/trace/$id': {
@@ -1002,6 +1056,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInstrumentCabinetSessionRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
+    '/_authenticated/instrument/cabinet/decisions': {
+      id: '/_authenticated/instrument/cabinet/decisions'
+      path: '/cabinet/decisions'
+      fullPath: '/instrument/cabinet/decisions'
+      preLoaderRoute: typeof AuthenticatedInstrumentCabinetDecisionsRouteImport
+      parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
     '/_authenticated/admin/audits/log': {
       id: '/_authenticated/admin/audits/log'
       path: '/admin/audits/log'
@@ -1023,6 +1084,7 @@ interface AuthenticatedInstrumentRouteRouteChildren {
   AuthenticatedInstrumentExposureRoute: typeof AuthenticatedInstrumentExposureRoute
   AuthenticatedInstrumentStewardshipRoute: typeof AuthenticatedInstrumentStewardshipRoute
   AuthenticatedInstrumentIndexRoute: typeof AuthenticatedInstrumentIndexRoute
+  AuthenticatedInstrumentCabinetDecisionsRoute: typeof AuthenticatedInstrumentCabinetDecisionsRoute
   AuthenticatedInstrumentCabinetSessionRoute: typeof AuthenticatedInstrumentCabinetSessionRoute
   AuthenticatedInstrumentMandateScorecardRoute: typeof AuthenticatedInstrumentMandateScorecardRoute
   AuthenticatedInstrumentMandateStudioRoute: typeof AuthenticatedInstrumentMandateStudioRoute
@@ -1044,6 +1106,8 @@ const AuthenticatedInstrumentRouteRouteChildren: AuthenticatedInstrumentRouteRou
     AuthenticatedInstrumentStewardshipRoute:
       AuthenticatedInstrumentStewardshipRoute,
     AuthenticatedInstrumentIndexRoute: AuthenticatedInstrumentIndexRoute,
+    AuthenticatedInstrumentCabinetDecisionsRoute:
+      AuthenticatedInstrumentCabinetDecisionsRoute,
     AuthenticatedInstrumentCabinetSessionRoute:
       AuthenticatedInstrumentCabinetSessionRoute,
     AuthenticatedInstrumentMandateScorecardRoute:
@@ -1134,6 +1198,7 @@ const AuthenticatedNarrativeRouteRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedInstrumentRouteRoute: typeof AuthenticatedInstrumentRouteRouteWithChildren
   AuthenticatedNarrativeRouteRoute: typeof AuthenticatedNarrativeRouteRouteWithChildren
+  AuthenticatedAdminDocumentsRoute: typeof AuthenticatedAdminDocumentsRoute
   AuthenticatedCounselArchiveRoute: typeof AuthenticatedCounselArchiveRoute
   AuthenticatedCounselMobileRoute: typeof AuthenticatedCounselMobileRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -1149,6 +1214,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedInstrumentRouteRouteWithChildren,
   AuthenticatedNarrativeRouteRoute:
     AuthenticatedNarrativeRouteRouteWithChildren,
+  AuthenticatedAdminDocumentsRoute: AuthenticatedAdminDocumentsRoute,
   AuthenticatedCounselArchiveRoute: AuthenticatedCounselArchiveRoute,
   AuthenticatedCounselMobileRoute: AuthenticatedCounselMobileRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
@@ -1187,6 +1253,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   KioskRoute: KioskRouteWithChildren,
+  ApiPublicHooksCadenceDailyRoute: ApiPublicHooksCadenceDailyRoute,
   ApiPublicHooksNarrativeHarvestRoute: ApiPublicHooksNarrativeHarvestRoute,
 }
 export const routeTree = rootRouteImport

@@ -505,13 +505,14 @@ function KpiRow({
   onSave: (patch: any) => Promise<void>;
   onOpenInference: () => void;
 }) {
-  const [latest, setLatest] = useState<string>(k.latest_value ?? "");
+  const fmt2 = (v: any) => (v === null || v === undefined || v === "" || isNaN(Number(v)) ? "" : Number(v).toFixed(2));
+  const [latest, setLatest] = useState<string>(fmt2(k.latest_value));
   const [period, setPeriod] = useState<string>(k.latest_period ?? "");
-  const [target, setTarget] = useState<string>(k.target ?? "");
+  const [target, setTarget] = useState<string>(fmt2(k.target));
   const dirty =
-    String(latest) !== String(k.latest_value ?? "") ||
+    latest !== fmt2(k.latest_value) ||
     period !== (k.latest_period ?? "") ||
-    String(target) !== String(k.target ?? "");
+    target !== fmt2(k.target);
   const prov = k.provenance ?? status?.provenance ?? "verified";
   const isInferred = prov === "inferred";
   const isAdminVerified = prov === "admin_verified" || prov === "admin_override";
@@ -532,13 +533,13 @@ function KpiRow({
         <div className="text-xs text-ink-500">{k.kpi_code}</div>
       </td>
       <td className="px-3 py-2">
-        <input value={latest} onChange={(e) => setLatest(e.target.value)} className="w-24 border border-line-200 px-2 py-1 text-sm bg-paper-0" />
+        <input inputMode="decimal" step="0.01" type="number" value={latest} onChange={(e) => setLatest(e.target.value)} onBlur={(e) => setLatest(fmt2(e.target.value))} className="w-24 border border-line-200 px-2 py-1 text-sm bg-paper-0 text-right tabular-nums" />
       </td>
       <td className="px-3 py-2">
         <input value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="2024" className="w-20 border border-line-200 px-2 py-1 text-sm bg-paper-0" />
       </td>
       <td className="px-3 py-2">
-        <input value={target} onChange={(e) => setTarget(e.target.value)} className="w-24 border border-line-200 px-2 py-1 text-sm bg-paper-0" />
+        <input inputMode="decimal" step="0.01" type="number" value={target} onChange={(e) => setTarget(e.target.value)} onBlur={(e) => setTarget(fmt2(e.target.value))} className="w-24 border border-line-200 px-2 py-1 text-sm bg-paper-0 text-right tabular-nums" />
       </td>
       <td className="px-3 py-2 text-xs">{k.unit}</td>
       <td className="px-3 py-2">
@@ -575,9 +576,9 @@ function KpiRow({
           <button
             onClick={() =>
               onSave({
-                latest_value: latest === "" ? null : Number(latest),
+                latest_value: latest === "" ? null : Number(Number(latest).toFixed(2)),
                 latest_period: period || null,
-                target: target === "" ? null : Number(target),
+                target: target === "" ? null : Number(Number(target).toFixed(2)),
               })
             }
             className="ml-2 text-[10px] px-2 py-0.5 border border-ink-950 bg-ink-950 text-paper-0"
@@ -605,8 +606,9 @@ function InferenceDrawer({
   onReject: (note?: string) => Promise<void>;
   onReinfer: () => Promise<void>;
 }) {
+  const fmt2 = (v: any) => (v === null || v === undefined || v === "" || isNaN(Number(v)) ? "" : Number(v).toFixed(2));
   const [note, setNote] = useState("");
-  const [overrideVal, setOverrideVal] = useState<string>(kpi.latest_value ?? "");
+  const [overrideVal, setOverrideVal] = useState<string>(fmt2(kpi.latest_value));
   const [overridePeriod, setOverridePeriod] = useState<string>(kpi.latest_period ?? "");
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -635,7 +637,7 @@ function InferenceDrawer({
           <div className="grid grid-cols-2 gap-3">
             <div className="border border-line-200 p-3">
               <div className="font-mono text-[10px] uppercase tracking-widest text-ink-500">Estimated value</div>
-              <div className="font-serif text-3xl mt-1">{kpi.latest_value ?? "—"}</div>
+              <div className="font-serif text-3xl mt-1 tabular-nums">{fmt2(kpi.latest_value) || "—"}</div>
               <div className="text-xs text-ink-500 mt-1">{kpi.latest_period ?? "no period"}</div>
             </div>
             <div className="border border-line-200 p-3">
@@ -682,7 +684,7 @@ function InferenceDrawer({
               <h3 className="font-mono text-[10px] uppercase tracking-widest text-ink-500 mb-2">Prior inferences ({history.length})</h3>
               <ul className="space-y-1 text-xs text-ink-500">
                 {history.slice(-5).reverse().map((h: any, i: number) => (
-                  <li key={i}>{h.value} · {h.model} · {h.inferred_at ? new Date(h.inferred_at).toLocaleDateString() : "?"}</li>
+                  <li key={i}>{fmt2(h.value) || h.value} · {h.model} · {h.inferred_at ? new Date(h.inferred_at).toLocaleDateString() : "?"}</li>
                 ))}
               </ul>
             </section>
@@ -724,11 +726,11 @@ function InferenceDrawer({
             <div className="border-t border-line-200 pt-3">
               <div className="font-mono text-[10px] uppercase tracking-widest text-ink-500 mb-2">Override value</div>
               <div className="flex gap-2">
-                <input value={overrideVal} onChange={(e) => setOverrideVal(e.target.value)} placeholder="value" className="w-32 border border-line-200 px-2 py-1 text-sm bg-paper-0" />
+                <input inputMode="decimal" step="0.01" type="number" value={overrideVal} onChange={(e) => setOverrideVal(e.target.value)} onBlur={(e) => setOverrideVal(fmt2(e.target.value))} placeholder="value" className="w-32 border border-line-200 px-2 py-1 text-sm bg-paper-0 text-right tabular-nums" />
                 <input value={overridePeriod} onChange={(e) => setOverridePeriod(e.target.value)} placeholder="period" className="w-24 border border-line-200 px-2 py-1 text-sm bg-paper-0" />
                 <button
                   disabled={busy !== null || overrideVal === "" || Number.isNaN(Number(overrideVal))}
-                  onClick={wrap("override", () => onOverride(Number(overrideVal), overridePeriod || null, note || undefined))}
+                  onClick={wrap("override", () => onOverride(Number(Number(overrideVal).toFixed(2)), overridePeriod || null, note || undefined))}
                   className="text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0 px-3 py-1.5 disabled:opacity-50"
                 >
                   {busy === "override" ? "…" : "Save override"}

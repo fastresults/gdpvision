@@ -159,6 +159,40 @@ function AuthPage() {
             {cta}
           </button>
         </form>
+        {mode !== "forgot" && (
+          <div className="mt-6 space-y-4">
+            <div className="flex items-center gap-3 text-[10px] font-mono uppercase tracking-[0.2em] text-ink-500">
+              <span className="h-px flex-1 bg-line-200" />
+              or
+              <span className="h-px flex-1 bg-line-200" />
+            </div>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={async () => {
+                setError(null);
+                setBusy(true);
+                try {
+                  const result = await lovable.auth.signInWithOAuth("google", {
+                    redirect_uri: window.location.origin,
+                  });
+                  if (result.error) throw result.error;
+                  if (result.redirected) return;
+                  router.invalidate();
+                  navigate({ to: "/instrument" });
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : "Google sign-in failed");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+              className="flex w-full items-center justify-center gap-3 border border-line-200 bg-paper-0 py-3 text-sm text-ink-950 transition-colors hover:bg-paper-100 disabled:opacity-50"
+            >
+              <GoogleGlyph />
+              Continue with Google
+            </button>
+          </div>
+        )}
         <div className="mt-8 flex flex-wrap items-center justify-between gap-3 text-sm text-ink-500">
           {mode === "forgot" ? (
             <button

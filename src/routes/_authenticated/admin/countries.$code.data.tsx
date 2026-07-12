@@ -1299,7 +1299,7 @@ function MinisterEditDialog({ row, countryCode, onClose }: { row: any; countryCo
           <span className="text-ink-500">Career (one per line)</span>
           <textarea value={form.career} onChange={(e) => setForm({ ...form, career: e.target.value })} rows={3} className="mt-1 w-full border border-line-200 px-2 py-1 text-sm" />
         </label>
-        {err && <div className="mt-3 text-xs text-red-600">{err}</div>}
+        {err && <div className="mt-3 text-xs text-signal-negative">{err}</div>}
         <DialogFooter className="mt-4 gap-2 sm:justify-end">
           <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
           <Button size="sm" onClick={onSave} disabled={saving}>

@@ -329,17 +329,30 @@ function KpisTab({ code }: { code: string }) {
   const qc = useQueryClient();
   const { data: kpis } = useSuspenseQuery(kpisQuery(code));
   const { data: coverage } = useSuspenseQuery(kpiCoverageQuery(code));
+  const { data: candidates } = useSuspenseQuery(sourceCandidatesQuery(code));
   const update = useServerFn(updateKpi);
   const backfill = useServerFn(backfillMissingKpis);
   const reverify = useServerFn(reverifyAllKpis);
+  const inferAll = useServerFn(inferAllMissing);
+  const acceptAllHigh = useServerFn(acceptAllHighConfidenceInferences);
+  const accept = useServerFn(acceptKpiInference);
+  const override = useServerFn(overrideKpi);
+  const reject = useServerFn(rejectKpiInference);
+  const reinfer = useServerFn(reinferKpi);
+  const approveCand = useServerFn(approveSourceCandidate);
+  const rejectCand = useServerFn(rejectSourceCandidate);
 
-  const [busy, setBusy] = useState<null | "backfill" | "reverify">(null);
+  const [busy, setBusy] = useState<null | "backfill" | "reverify" | "infer" | "acceptall">(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [drawer, setDrawer] = useState<any | null>(null);
 
   const summary = (coverage as any).summary as {
     required_total: number;
     required_filled: number;
+    required_verified: number;
+    required_inferred: number;
+    required_missing: number;
     registry_total: number;
     last_verified_at: string | null;
   };
@@ -347,35 +360,43 @@ function KpisTab({ code }: { code: string }) {
     kpi_code: string;
     required: boolean;
     freshness_status: string;
+    provenance: string | null;
+    confidence: string | null;
     last_attempt_pass: string | null;
     last_attempt_error: string | null;
   }>;
   const statusByCode = new Map(perKpi.map((r) => [r.kpi_code, r]));
 
+  const pendingCands = (candidates as any[]).filter((c) => c.status === "pending");
+
   const refresh = async () => {
     await qc.invalidateQueries({ queryKey: ["data", code, "kpis"] });
     await qc.invalidateQueries({ queryKey: ["data", code, "kpi-coverage"] });
+    await qc.invalidateQueries({ queryKey: ["data", code, "source-candidates"] });
   };
 
-  async function doBackfill() {
-    setErr(null); setMsg(null); setBusy("backfill");
+  async function run(name: "backfill" | "reverify" | "infer" | "acceptall") {
+    setErr(null); setMsg(null); setBusy(name);
     try {
-      const r = await backfill({ data: { countryCode: code, staleOlderThanDays: 90 } });
-      setMsg(`Backfill: ${(r as any).touched} rows updated · coverage ${(r as any).coverage.filled}/${(r as any).coverage.total}`);
+      if (name === "backfill") {
+        const r = await backfill({ data: { countryCode: code, staleOlderThanDays: 90 } });
+        setMsg(`Backfill: ${(r as any).touched} rows · coverage ${(r as any).coverage.filled}/${(r as any).coverage.total}`);
+      } else if (name === "reverify") {
+        const r = await reverify({ data: { countryCode: code } });
+        setMsg(`Re-verified · ${(r as any).touched} rows · coverage ${(r as any).coverage.filled}/${(r as any).coverage.total}`);
+      } else if (name === "infer") {
+        const r = await inferAll({ data: { countryCode: code } });
+        setMsg(`Inferred ${(r as any).inferred} missing KPIs (${(r as any).failed} failed)`);
+      } else {
+        const r = await acceptAllHigh({ data: { countryCode: code } });
+        setMsg(`Accepted ${(r as any).accepted} high-confidence inferences`);
+      }
       await refresh();
     } catch (e: any) {
       setErr(e?.message ?? String(e));
-    } finally { setBusy(null); }
-  }
-  async function doReverify() {
-    setErr(null); setMsg(null); setBusy("reverify");
-    try {
-      const r = await reverify({ data: { countryCode: code } });
-      setMsg(`Re-verified · ${(r as any).touched} rows · coverage ${(r as any).coverage.filled}/${(r as any).coverage.total}`);
-      await refresh();
-    } catch (e: any) {
-      setErr(e?.message ?? String(e));
-    } finally { setBusy(null); }
+    } finally {
+      setBusy(null);
+    }
   }
 
   const byCat = new Map<string, any[]>();
@@ -393,33 +414,68 @@ function KpisTab({ code }: { code: string }) {
   return (
     <section className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3 border border-line-200 p-3 bg-paper-100/40">
-        <div className="flex items-baseline gap-4">
+        <div className="flex flex-wrap items-baseline gap-3">
           <span className={`inline-block px-2 py-0.5 border text-[11px] font-mono uppercase tracking-[0.2em] ${coverageTone}`}>
             Coverage {summary.required_filled}/{summary.required_total} ({coveragePct}%)
           </span>
+          <span className="inline-block px-2 py-0.5 border border-emerald-500 text-emerald-700 text-[11px] font-mono uppercase tracking-[0.2em]">
+            Verified {summary.required_verified}
+          </span>
+          <span className="inline-block px-2 py-0.5 border border-amber-500 text-amber-700 text-[11px] font-mono uppercase tracking-[0.2em]">
+            Inferred {summary.required_inferred}
+          </span>
+          <span className="inline-block px-2 py-0.5 border border-red-500 text-red-700 text-[11px] font-mono uppercase tracking-[0.2em]">
+            Missing {summary.required_missing}
+          </span>
           <span className="text-xs text-ink-500">
-            Registry: {summary.registry_total} tracked · Last verified {summary.last_verified_at ? new Date(summary.last_verified_at).toLocaleString() : "never"}
+            Registry: {summary.registry_total} · Last verified {summary.last_verified_at ? new Date(summary.last_verified_at).toLocaleString() : "never"}
           </span>
         </div>
-        <div className="flex gap-2">
-          <button
-            disabled={busy !== null}
-            onClick={doBackfill}
-            className="text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 px-3 py-1.5 disabled:opacity-50"
-          >
+        <div className="flex flex-wrap gap-2">
+          <button disabled={busy !== null} onClick={() => run("backfill")}
+            className="text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 px-3 py-1.5 disabled:opacity-50">
             {busy === "backfill" ? "Backfilling…" : "Backfill missing"}
           </button>
-          <button
-            disabled={busy !== null}
-            onClick={doReverify}
-            className="text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0 px-3 py-1.5 disabled:opacity-50"
-          >
+          <button disabled={busy !== null} onClick={() => run("infer")}
+            className="text-[11px] font-mono uppercase tracking-[0.2em] border border-amber-600 text-amber-700 px-3 py-1.5 disabled:opacity-50">
+            {busy === "infer" ? "Inferring…" : "Infer all missing"}
+          </button>
+          <button disabled={busy !== null} onClick={() => run("acceptall")}
+            className="text-[11px] font-mono uppercase tracking-[0.2em] border border-emerald-600 text-emerald-700 px-3 py-1.5 disabled:opacity-50">
+            {busy === "acceptall" ? "Accepting…" : "Accept all high-confidence"}
+          </button>
+          <button disabled={busy !== null} onClick={() => run("reverify")}
+            className="text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0 px-3 py-1.5 disabled:opacity-50">
             {busy === "reverify" ? "Re-verifying…" : "Re-verify all"}
           </button>
         </div>
       </div>
       {msg && <div className="p-2 text-xs text-emerald-700 border border-emerald-500/50 bg-emerald-500/10">{msg}</div>}
       {err && <div className="p-2 text-xs text-red-700 border border-red-500/50 bg-red-500/10">{err}</div>}
+
+      {pendingCands.length > 0 && (
+        <div className="border border-amber-500/50 bg-amber-500/5 p-3">
+          <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-amber-700 mb-2">
+            {pendingCands.length} suggested source{pendingCands.length === 1 ? "" : "s"} awaiting approval
+          </div>
+          <ul className="space-y-1">
+            {pendingCands.map((c) => (
+              <li key={c.id} className="flex items-center justify-between gap-2 text-xs">
+                <div className="min-w-0 flex-1">
+                  <a href={c.url} target="_blank" rel="noreferrer" className="hover:underline truncate block">{c.url}</a>
+                  <div className="text-ink-500">suggested for {c.suggested_for_kpi} · {c.suggested_by_model}</div>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button onClick={async () => { await approveCand({ data: { id: c.id } }); await refresh(); }}
+                    className="text-[10px] px-2 py-1 border border-emerald-500 text-emerald-700">Approve</button>
+                  <button onClick={async () => { await rejectCand({ data: { id: c.id } }); await refresh(); }}
+                    className="text-[10px] px-2 py-1 border border-line-200 text-ink-500">Dismiss</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {[...byCat.entries()].map(([cat, rows]) => (
         <div key={cat}>
@@ -447,6 +503,7 @@ function KpisTab({ code }: { code: string }) {
                       await update({ data: { id: k.id, ...patch } });
                       await refresh();
                     }}
+                    onOpenInference={() => setDrawer(k)}
                   />
                 ))}
               </tbody>
@@ -454,7 +511,18 @@ function KpisTab({ code }: { code: string }) {
           </div>
         </div>
       ))}
-      {(kpis as any[]).length === 0 && <p className="text-sm text-ink-500">No KPIs yet — run the KPI seed stage in onboarding, or click Backfill missing.</p>}
+      {(kpis as any[]).length === 0 && <p className="text-sm text-ink-500">No KPIs yet — run the KPI seed stage in onboarding, or click Backfill missing / Infer all missing.</p>}
+
+      {drawer && (
+        <InferenceDrawer
+          kpi={drawer}
+          onClose={() => setDrawer(null)}
+          onAccept={async (note) => { await accept({ data: { id: drawer.id, note } }); setDrawer(null); await refresh(); }}
+          onOverride={async (value, period, note) => { await override({ data: { id: drawer.id, latest_value: value, latest_period: period, note } }); setDrawer(null); await refresh(); }}
+          onReject={async (note) => { await reject({ data: { id: drawer.id, note } }); setDrawer(null); await refresh(); }}
+          onReinfer={async () => { await reinfer({ data: { id: drawer.id } }); await refresh(); const fresh = (await qc.getQueryData<any[]>(["data", code, "kpis"])) ?? []; const upd = fresh.find((x) => x.id === drawer.id); if (upd) setDrawer(upd); }}
+        />
+      )}
     </section>
   );
 }
@@ -463,10 +531,12 @@ function KpiRow({
   k,
   status,
   onSave,
+  onOpenInference,
 }: {
   k: any;
-  status?: { freshness_status: string; last_attempt_pass: string | null; last_attempt_error: string | null };
+  status?: { freshness_status: string; provenance: string | null; confidence: string | null; last_attempt_pass: string | null; last_attempt_error: string | null };
   onSave: (patch: any) => Promise<void>;
+  onOpenInference: () => void;
 }) {
   const [latest, setLatest] = useState<string>(k.latest_value ?? "");
   const [period, setPeriod] = useState<string>(k.latest_period ?? "");
@@ -475,11 +545,19 @@ function KpiRow({
     String(latest) !== String(k.latest_value ?? "") ||
     period !== (k.latest_period ?? "") ||
     String(target) !== String(k.target ?? "");
+  const prov = k.provenance ?? status?.provenance ?? "verified";
+  const isInferred = prov === "inferred";
+  const isAdminVerified = prov === "admin_verified" || prov === "admin_override";
   const s = status?.freshness_status ?? (k.latest_value == null ? "missing" : "fresh");
+
+  const statusLabel = isInferred ? "inferred" : s;
   const tone =
+    isInferred ? "border-amber-500 text-amber-700" :
+    isAdminVerified ? "border-emerald-600 text-emerald-800" :
     s === "fresh" ? "border-emerald-500 text-emerald-700" :
     s === "stale" ? "border-amber-500 text-amber-700" :
     "border-red-500 text-red-700";
+
   return (
     <tr className="border-t border-line-200">
       <td className="px-3 py-2">
@@ -497,8 +575,24 @@ function KpiRow({
       </td>
       <td className="px-3 py-2 text-xs">{k.unit}</td>
       <td className="px-3 py-2">
-        <span className={`inline-block px-2 py-0.5 border text-[10px] font-mono uppercase tracking-widest ${tone}`}>{s}</span>
-        {s !== "fresh" && status?.last_attempt_error && (
+        <div className="flex items-center gap-1">
+          <span className={`inline-block px-2 py-0.5 border text-[10px] font-mono uppercase tracking-widest ${tone}`}>{statusLabel}</span>
+          {isInferred && (
+            <button
+              onClick={onOpenInference}
+              title="View rationale"
+              className="text-[10px] px-1.5 py-0.5 border border-amber-500 text-amber-700 hover:bg-amber-500/10"
+            >
+              ⓘ{k.confidence ? ` ${k.confidence}` : ""}
+            </button>
+          )}
+          {isAdminVerified && (
+            <span className="text-[10px] text-emerald-700" title={prov === "admin_override" ? "Admin overrode value" : "Admin accepted"}>
+              ✓ admin
+            </span>
+          )}
+        </div>
+        {s !== "fresh" && !isInferred && status?.last_attempt_error && (
           <div className="mt-1 text-[10px] text-ink-500 truncate max-w-[240px]" title={status.last_attempt_error}>
             last {status.last_attempt_pass ?? "attempt"}: {status.last_attempt_error}
           </div>
@@ -507,6 +601,8 @@ function KpiRow({
       <td className="px-3 py-2 text-xs">
         {k.country_sources?.url ? (
           <a href={k.country_sources.url} target="_blank" rel="noreferrer" className="hover:underline">{k.country_sources.org}</a>
+        ) : isInferred ? (
+          <span className="text-amber-700">AI estimate</span>
         ) : "—"}
         {dirty && (
           <button
@@ -524,6 +620,158 @@ function KpiRow({
         )}
       </td>
     </tr>
+  );
+}
+
+function InferenceDrawer({
+  kpi,
+  onClose,
+  onAccept,
+  onOverride,
+  onReject,
+  onReinfer,
+}: {
+  kpi: any;
+  onClose: () => void;
+  onAccept: (note?: string) => Promise<void>;
+  onOverride: (value: number, period: string | null, note?: string) => Promise<void>;
+  onReject: (note?: string) => Promise<void>;
+  onReinfer: () => Promise<void>;
+}) {
+  const [note, setNote] = useState("");
+  const [overrideVal, setOverrideVal] = useState<string>(kpi.latest_value ?? "");
+  const [overridePeriod, setOverridePeriod] = useState<string>(kpi.latest_period ?? "");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const ev = (kpi.inference_evidence ?? {}) as { assumptions?: string[]; evidence?: Array<{ kind: string; ref: string; note: string; url?: string }> };
+  const history = Array.isArray(kpi.inference_history) ? kpi.inference_history : [];
+
+  const wrap = (name: string, fn: () => Promise<void>) => async () => {
+    setErr(null); setBusy(name);
+    try { await fn(); } catch (e: any) { setErr(e?.message ?? String(e)); } finally { setBusy(null); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="absolute inset-0 bg-ink-950/40" onClick={onClose} />
+      <div className="relative w-full max-w-xl h-full bg-paper-0 border-l border-line-200 overflow-y-auto">
+        <div className="sticky top-0 flex justify-between items-center px-6 py-4 border-b border-line-200 bg-paper-0">
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-amber-700">Inferred KPI</div>
+            <h2 className="font-serif text-xl">{kpi.label}</h2>
+            <div className="text-xs text-ink-500">{kpi.kpi_code} · {kpi.unit}</div>
+          </div>
+          <button onClick={onClose} className="text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950">Close</button>
+        </div>
+
+        <div className="p-6 space-y-5">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="border border-line-200 p-3">
+              <div className="font-mono text-[10px] uppercase tracking-widest text-ink-500">Estimated value</div>
+              <div className="font-serif text-3xl mt-1">{kpi.latest_value ?? "—"}</div>
+              <div className="text-xs text-ink-500 mt-1">{kpi.latest_period ?? "no period"}</div>
+            </div>
+            <div className="border border-line-200 p-3">
+              <div className="font-mono text-[10px] uppercase tracking-widest text-ink-500">Confidence</div>
+              <div className="font-serif text-3xl mt-1 text-amber-700">{kpi.confidence ?? "?"}</div>
+              <div className="text-xs text-ink-500 mt-1 truncate" title={kpi.inference_model ?? ""}>{kpi.inference_model ?? "—"}</div>
+            </div>
+          </div>
+
+          <section>
+            <h3 className="font-mono text-[10px] uppercase tracking-widest text-ink-500 mb-2">Rationale</h3>
+            <p className="text-sm whitespace-pre-wrap">{kpi.inference_rationale ?? "(no rationale recorded)"}</p>
+          </section>
+
+          {ev.assumptions && ev.assumptions.length > 0 && (
+            <section>
+              <h3 className="font-mono text-[10px] uppercase tracking-widest text-ink-500 mb-2">Assumptions</h3>
+              <ul className="list-disc pl-5 text-sm space-y-1">
+                {ev.assumptions.map((a, i) => <li key={i}>{a}</li>)}
+              </ul>
+            </section>
+          )}
+
+          {ev.evidence && ev.evidence.length > 0 && (
+            <section>
+              <h3 className="font-mono text-[10px] uppercase tracking-widest text-ink-500 mb-2">Evidence used</h3>
+              <ul className="space-y-2">
+                {ev.evidence.map((e, i) => (
+                  <li key={i} className="border border-line-200 p-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="font-mono text-[10px] uppercase tracking-widest text-ink-500">{e.kind}</span>
+                      <span className="text-ink-500">{e.ref}</span>
+                    </div>
+                    <div className="mt-1">{e.note}</div>
+                    {e.url && <a href={e.url} target="_blank" rel="noreferrer" className="text-ink-500 hover:underline truncate block">{e.url}</a>}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {history.length > 0 && (
+            <section>
+              <h3 className="font-mono text-[10px] uppercase tracking-widest text-ink-500 mb-2">Prior inferences ({history.length})</h3>
+              <ul className="space-y-1 text-xs text-ink-500">
+                {history.slice(-5).reverse().map((h: any, i: number) => (
+                  <li key={i}>{h.value} · {h.model} · {h.inferred_at ? new Date(h.inferred_at).toLocaleDateString() : "?"}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {err && <div className="p-2 text-xs text-red-700 border border-red-500/50 bg-red-500/10">{err}</div>}
+
+          <section className="border-t border-line-200 pt-4 space-y-3">
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Admin note (optional)"
+              className="w-full border border-line-200 px-2 py-1.5 text-sm bg-paper-0 min-h-[60px]"
+            />
+            <div className="flex flex-wrap gap-2">
+              <button
+                disabled={busy !== null}
+                onClick={wrap("accept", () => onAccept(note || undefined))}
+                className="text-[11px] font-mono uppercase tracking-[0.2em] border border-emerald-600 text-emerald-700 px-3 py-1.5 disabled:opacity-50"
+              >
+                {busy === "accept" ? "…" : "Accept as verified"}
+              </button>
+              <button
+                disabled={busy !== null}
+                onClick={wrap("reinfer", onReinfer)}
+                className="text-[11px] font-mono uppercase tracking-[0.2em] border border-amber-600 text-amber-700 px-3 py-1.5 disabled:opacity-50"
+              >
+                {busy === "reinfer" ? "…" : "Re-infer"}
+              </button>
+              <button
+                disabled={busy !== null}
+                onClick={wrap("reject", () => onReject(note || undefined))}
+                className="text-[11px] font-mono uppercase tracking-[0.2em] border border-red-500 text-red-700 px-3 py-1.5 disabled:opacity-50"
+              >
+                {busy === "reject" ? "…" : "Reject (mark missing)"}
+              </button>
+            </div>
+
+            <div className="border-t border-line-200 pt-3">
+              <div className="font-mono text-[10px] uppercase tracking-widest text-ink-500 mb-2">Override value</div>
+              <div className="flex gap-2">
+                <input value={overrideVal} onChange={(e) => setOverrideVal(e.target.value)} placeholder="value" className="w-32 border border-line-200 px-2 py-1 text-sm bg-paper-0" />
+                <input value={overridePeriod} onChange={(e) => setOverridePeriod(e.target.value)} placeholder="period" className="w-24 border border-line-200 px-2 py-1 text-sm bg-paper-0" />
+                <button
+                  disabled={busy !== null || overrideVal === "" || Number.isNaN(Number(overrideVal))}
+                  onClick={wrap("override", () => onOverride(Number(overrideVal), overridePeriod || null, note || undefined))}
+                  className="text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0 px-3 py-1.5 disabled:opacity-50"
+                >
+                  {busy === "override" ? "…" : "Save override"}
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
   );
 }
 

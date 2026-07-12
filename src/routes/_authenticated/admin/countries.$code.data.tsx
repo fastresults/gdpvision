@@ -951,10 +951,10 @@ function MinistryReviewDialog({
         </div>
 
         <DialogFooter className="p-4 border-t border-line-200 gap-2 sm:justify-end">
-          <button onClick={onCancel} disabled={committing} className="text-xs text-ink-500 hover:text-ink-950 px-3 py-1.5">Cancel</button>
-          <button onClick={onCommit} disabled={committing} className="text-xs bg-ink-950 text-cream-50 px-3 py-1.5 disabled:opacity-50">
+          <Button variant="outline" size="sm" onClick={onCancel} disabled={committing}>Cancel</Button>
+          <Button size="sm" onClick={onCommit} disabled={committing}>
             {committing ? "Committing…" : `Commit refresh · ${changed.length} changed`}
-          </button>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

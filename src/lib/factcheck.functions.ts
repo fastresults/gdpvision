@@ -178,18 +178,19 @@ export const assertApprovalFactCheck = createServerFn({ method: "POST" })
       );
     }
 
-    // Paper trail: write the override to data_revisions.
+    // Paper trail: write the override to data_revisions using the existing numeric
+    // revision schema. For each red claim, record the claimed value vs the nearest
+    // Ledger match (or null if no match was found).
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     for (const c of report.claims.filter((c) => c.severity === "red")) {
+      const match = c.matches[0];
       const { error } = await supabaseAdmin.from("data_revisions").insert({
-        scope_key: data.scopeKey,
-        table_name: data.artifactType ? `${data.artifactType}_artifact` : "unknown",
-        record_id: data.artifactId ?? null,
-        field_name: "fact_check_override",
-        old_value: { raw: c.raw, matches: c.matches } as any,
-        new_value: { override_reason: data.overrideReason, severity: c.severity } as any,
-        reason: data.overrideReason,
-        reviewed_by: context.userId,
+        series_id: match?.series_id ?? null,
+        actor_id: context.userId,
+        period: match?.period ?? null,
+        previous_value: Number.isFinite(c.value) ? c.value : null,
+        new_value: match?.value ?? null,
+        reason: `[${data.artifactType ?? "unknown"}:${data.artifactId ?? "unknown"}] ${data.overrideReason}`,
       });
       if (error) throw new Error(error.message);
     }

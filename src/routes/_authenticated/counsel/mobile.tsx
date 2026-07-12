@@ -49,7 +49,7 @@ function CounselMobile() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-paper-0 text-ink-950">
+    <div className="flex min-h-dvh flex-col bg-paper-0 text-ink-950">
       <header className="flex items-center justify-between px-6 py-4 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500">
         <span>Counsel · {code}</span>
         <Link to="/instrument" className="hover:text-ink-950">Instrument →</Link>

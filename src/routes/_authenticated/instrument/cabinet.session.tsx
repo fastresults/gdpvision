@@ -48,7 +48,7 @@ function Chamber() {
   const slide = slides[i];
 
   return (
-    <div className="min-h-screen bg-[#0b0d10] text-[#f4f2ec]">
+    <div className="min-h-dvh bg-[#0b0d10] text-[#f4f2ec]">
       <div className="flex items-center justify-between border-b border-white/10 px-10 py-4 text-[10px] font-mono uppercase tracking-[0.25em] text-white/60">
         <span>RESTRICTED · Cabinet of {code}</span>
         <span>Session · {i + 1} / {slides.length}</span>

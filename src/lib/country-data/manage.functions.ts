@@ -427,7 +427,7 @@ export const reinferKpi = createServerFn({ method: "POST" })
         inferred_at: new Date().toISOString(),
         freshness_status: "fresh",
         last_verified_at: new Date().toISOString(),
-        inference_history: hist.slice(-10),
+        inference_history: hist.slice(-10) as any,
         verified_by: null,
         verified_at: null,
         admin_note: null,

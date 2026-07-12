@@ -1017,6 +1017,42 @@ export const commitSectorDossiers = createServerFn({ method: "POST" })
 // Stage 9: Ministry deep-dive
 // ============================================================
 
+const MinisterProfileSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    name: { type: ["string", "null"] },
+    title: { type: ["string", "null"] },
+    party: { type: ["string", "null"] },
+    appointed_at: { type: ["string", "null"] },
+    bio: { type: ["string", "null"] },
+    birth_date: { type: ["string", "null"] },
+    education: { type: "array", items: { type: "string" } },
+    career: { type: "array", items: { type: "string" } },
+    contact: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        office_phone: { type: ["string", "null"] },
+        email: { type: ["string", "null"] },
+        office_address: { type: ["string", "null"] },
+        website: { type: ["string", "null"] },
+      },
+    },
+    socials: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        twitter: { type: ["string", "null"] },
+        facebook: { type: ["string", "null"] },
+        linkedin: { type: ["string", "null"] },
+        instagram: { type: ["string", "null"] },
+      },
+    },
+    portrait_url: { type: ["string", "null"] },
+  },
+} as const;
+
 const MinistryDeepDiveSchema = {
   type: "object",
   additionalProperties: false,
@@ -1029,6 +1065,7 @@ const MinistryDeepDiveSchema = {
         properties: {
           ministry_slug: { type: "string" },
           minister: { type: ["string", "null"] },
+          minister_profile: MinisterProfileSchema,
           mandate: { type: "string" },
           programmes: {
             type: "array",
@@ -1050,6 +1087,7 @@ const MinistryDeepDiveSchema = {
   },
   required: ["ministries"],
 } as const;
+
 
 export const runMinistryDeepDiveAgent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -1077,7 +1115,8 @@ export const runMinistryDeepDiveAgent = createServerFn({ method: "POST" })
       const result = await callSonar({
         model,
         system:
-          "You are a governance analyst. For each ministry, return the current minister (if known), a concrete mandate paragraph, and 2-5 flagship programmes with objective and status (active/planned/completed).",
+          "You are a governance analyst. For each ministry, return: (a) the CURRENT officeholder as `minister_profile` with name, formal title, party affiliation, appointment date (ISO date if known), a short bio (<=400 chars), education/career highlights, a contact block (official office_phone, email, office_address, ministry website), verified official socials (twitter/facebook/linkedin/instagram full URLs), and a portrait_url when publicly available; (b) a concrete mandate paragraph; (c) 2-5 flagship programmes with objective and status (active/planned/completed). Prefer official government / ministry websites. If a field is unknown, return null rather than guessing. Also mirror the officeholder name in the top-level `minister` field.",
+
         user: `Country: ${country.name}. Ministries:\n- ${list}\n\nReturn one entry per ministry_slug.`,
         responseSchema: MinistryDeepDiveSchema as unknown as Record<string, unknown>,
         recency: "year",
@@ -1118,16 +1157,21 @@ export const commitMinistryDeepDive = createServerFn({ method: "POST" })
     if (error || !draft) throw new Error("Draft not found");
     const payload = (data.editedPayload ?? draft.payload) as { ministries: Array<any> };
 
+    const citations = Array.isArray((draft as any).citations) ? (draft as any).citations : [];
     let upserted = 0;
     for (const m of payload.ministries) {
+      const profile = (m.minister_profile && typeof m.minister_profile === "object") ? m.minister_profile : {};
+      const resolvedName = profile.name ?? m.minister ?? null;
       const { error: upErr } = await supabaseAdmin.from("ministry_profiles").upsert(
         {
           country_code: draft.country_code,
           ministry_slug: m.ministry_slug,
-          minister: m.minister ?? null,
+          minister: resolvedName,
+          minister_profile: { ...profile, name: resolvedName },
           mandate: m.mandate,
           programmes: m.programmes ?? [],
           source_ids: [],
+          citations,
         },
         { onConflict: "country_code,ministry_slug" },
       );

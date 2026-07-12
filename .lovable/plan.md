@@ -1,65 +1,95 @@
-## Problem
-
-Payload strings in Sector Dossiers contain Perplexity-style citation markers like `[48]`, `[52,53]`. `PrettyJson` already extracts them into subtle `<sup>` refs — but the numbers are **dead**: the committed dossier row has `source_ids: []`, and the ordered Perplexity `citations` array (url, title, domain, quote) is stored per-draft in `onboarding_citations` and never linked to the dossier. So the reader has no way to see what `[48]` actually points to.
-
 ## Goal
+Enrich the Ministries workflow so each ministry profile carries the current Minister's identity, party affiliation, contact information, and short bio — sourced by the AI research pass and editable by admins, with citations wired through the standard `PrettyJson` source modal.
 
-Every citation ref shown in a `<PrettyJson>` payload becomes clickable and opens a modal listing the referenced sources (URL, title, domain, quote when available). Establish a global rule so any surface rendering payloads with citation markers wires up the resolver.
+## Data model
 
-## Fix path
+Add a single structured `minister_profile` JSONB column to `ministry_profiles` instead of many scalar columns — the shape stays flexible (missing contact fields are fine) and matches how the AI returns it.
 
-### 1. Persist the citation set with the dossier
-- At `commitSectorDossiers` time (`src/lib/country-onboarding/corpus.functions.ts`), read `onboarding_citations` for the draft **in insert order** and snapshot them onto the row.
-- Store the ordered snapshot as `sector_dossiers.citations` (new `jsonb` column, array of `{ url, title, domain, quote, published_at }`). Ordering matches the `[N]` numbering emitted by Perplexity (1-indexed).
-- Keep `source_ids` as-is for future linkage to `country_sources`; the snapshot is the source of truth for the marker resolver.
-- Backfill: for existing dossiers where `citations IS NULL`, one-shot migration copies from the latest `sector_dossier`-stage draft's citations for that country (best-effort; per-sector match not guaranteed for the current pre-fan-out draft).
-
-### 2. Server: expose citations on the read
-- `getSectorDossiers` (`src/lib/country-data/manage.functions.ts`) returns `citations` alongside `payload`, `source_ids`, `confidence`.
-- Types regen picks up the new column.
-
-### 3. Component: interactive citation refs
-
-**`src/components/data/humanize.ts`**
-- `splitCitations` already returns `{ text, refs: number[] }`. Extend to also parse combined markers like `[48,52]` and consecutive `[48][52]` (already handled) into a flat `refs` list — no change to callers.
-
-**`src/components/data/PrettyJson.tsx`**
-- Add optional prop `citations?: Array<{ url, title?, domain?, quote?, published_at? }>` (1-indexed).
-- Add optional prop `onCitationClick?: (refs: number[]) => void` for consumers wiring their own dialog. Default behaviour: if `citations` is provided, `PrettyJson` owns a `<Dialog>` and clicking a `<sup>` opens it with the resolved rows.
-- The `<sup>` becomes a `<button>` (unstyled, subtle hover: text-ink-700, underline dotted) that fires the resolver. Refs beyond the list render disabled/muted.
-- Dialog content: serif heading "Sources [48,52]", each ref as a card with domain badge, title (linked to URL, new tab), quote in blockquote, published date. Unknown refs show "Source unavailable".
-
-### 4. Wire consumers
-- **Sector Dossiers tab** (`countries.$code.data.tsx` `DossiersTab`): pass `citations={r.citations}` to `<PrettyJson>`.
-- **Onboarding drafts** (`countries.$code.onboard.tsx`): any preview of a draft payload with an accompanying `citations` array must pass it to `<PrettyJson>`.
-- Audit remaining `<PrettyJson>` call sites (currently only DossiersTab); document the rule.
-
-### 5. Global rule
-Update `mem://index.md` Core:
-> When rendering `<PrettyJson>` for a payload that carries citation markers (`[N]`), always pass the associated ordered `citations` array so refs become clickable and open the source modal. Never render citation markers without a resolver — dead numbers are not acceptable.
-> 
-> New citation column: `sector_dossiers.citations` (jsonb ordered array snapshotted at commit time). Preserve ordering — it is the `[N]` index.
-
-## Technical details
-
-**Migration**
 ```sql
-ALTER TABLE public.sector_dossiers
+ALTER TABLE public.ministry_profiles
+  ADD COLUMN IF NOT EXISTS minister_profile jsonb NOT NULL DEFAULT '{}'::jsonb,
   ADD COLUMN IF NOT EXISTS citations jsonb NOT NULL DEFAULT '[]'::jsonb;
 ```
-Backfill pass: for each dossier row missing citations, look up the most recent `onboarding_drafts` row with `stage='sector_dossier'`, `country_code` matches, and copy the ordered `onboarding_citations` for that draft.
 
-**Files**
-- Edit: `src/lib/country-onboarding/corpus.functions.ts` (snapshot citations on commit)
-- Edit: `src/lib/country-data/manage.functions.ts` (`getSectorDossiers` selects `citations`)
-- Edit: `src/components/data/PrettyJson.tsx` (new props, Dialog, clickable sup)
-- Edit: `src/components/data/humanize.ts` (parse `[48,52]` combined markers)
-- Edit: `src/routes/_authenticated/admin/countries.$code.data.tsx` (`DossiersTab` passes `citations`)
-- Edit: `src/routes/_authenticated/admin/countries.$code.onboard.tsx` (pass draft citations to PrettyJson previews)
-- Migration: `sector_dossiers.citations` column + backfill
-- Memory: `mem://index.md` Core rule
+Shape (all fields optional except `name`):
+```json
+{
+  "name": "Hon. Philip J. Pierre",
+  "title": "Prime Minister & Minister of Finance",
+  "party": "Saint Lucia Labour Party (SLP)",
+  "appointed_at": "2021-07-28",
+  "bio": "Attorney and long-serving parliamentarian for Castries East …",
+  "birth_date": "1954-11-06",
+  "education": ["LLB, University of the West Indies"],
+  "career": ["MP Castries East since 1997", "Deputy PM 2011-2016"],
+  "contact": {
+    "office_phone": "+1-758-468-2101",
+    "email": "pm.office@govt.lc",
+    "office_address": "Sir Stanislaus James Building, Castries",
+    "website": "https://www.govt.lc/ministries/finance"
+  },
+  "socials": {
+    "twitter": "https://twitter.com/…",
+    "facebook": "…",
+    "linkedin": "…"
+  },
+  "portrait_url": "https://…"
+}
+```
+
+`minister` scalar column stays for now (already used by other queries); commit path mirrors `minister_profile.name` into it.
+
+Backfill: existing rows get `minister_profile = jsonb_build_object('name', minister)` where minister IS NOT NULL, `citations = '[]'`.
+
+## Research agent (`corpus.functions.ts` → `runMinistryDeepDiveAgent`)
+
+- Extend the `MinistryDeepDiveSchema` per-ministry item with `minister_profile` matching the shape above (name required inside the object; every other field nullable/optional).
+- Update the system prompt to demand: current officeholder name, formal title, party affiliation, appointment date, short bio (≤400 chars), contact block (office phone, official email, address, ministry website), verified official social handles, and portrait URL when publicly available. Instruct the model to leave a field null rather than guess, and to prefer official government/ministry pages.
+- Keep the existing `programmes`/`mandate` fields — no regression.
+- Model stays `sonar-pro`, `recency: "year"`. Citations already flow through.
+
+## Commit path (`commitMinistryDeepDive`)
+
+- Snapshot ordered draft citations onto `ministry_profiles.citations` (same pattern as `sector_dossiers`).
+- Persist `minister_profile` JSON as-is.
+- Mirror `minister_profile.name` into the legacy `minister` scalar for backward compatibility.
+
+## Admin UI
+
+**`MinistriesTab` in `countries.$code.data.tsx`** — restructure each card:
+- Header: ministry name (serif) + right-side meta (programmes / sources counts).
+- **New Minister block** (only when `minister_profile.name` present):
+  - Portrait thumb (32×40 rounded, fallback initials tile) beside a two-line stack of name (medium) and title.
+  - Small metadata row: party badge (subtle border), appointed date (`tabular-nums`).
+  - Contact row: phone / email / website as compact icon-less links; `mailto:` and `tel:`, external links open in new tab.
+  - Bio paragraph (`text-sm text-ink-700`), truncated with `line-clamp-3` and an inline "Read more" that expands in place.
+  - Career/education arrays render as small bulleted lists inside a collapsible "Background" `<details>`.
+  - Socials appear as small text links when present.
+- Mandate + programmes render as before, below the Minister block.
+- "Edit Minister" button (top-right of the block) opens a dialog with the same fields as text inputs / textareas — admin can correct or fill missing info manually. Save calls a new `updateMinisterProfile` server function.
+
+**New server function `updateMinisterProfile`** in `src/lib/country-data/manage.functions.ts`:
+- `requireSupabaseAuth` + `assertAdmin`
+- Zod validates the profile shape
+- Updates `ministry_profiles.minister_profile` + mirrors `.name` into `minister`
+- Writes a `data_revisions` entry (same pattern used elsewhere for auditability) if that table is available.
+
+**Citations**: pass `citations={r.citations}` into any `<PrettyJson>` used in the Ministries tab; contact URLs render with the existing citation superscript wiring in `RichText` when the AI returns them with `[N]` markers.
+
+## Auditing
+
+- No changes to `sector_dossiers`, KPIs, sources, corpus tabs.
+- No new tables — reuse `ministry_profiles` + audit table if present.
+- No re-run of Perplexity for existing rows required; admins can trigger the Ministry Deep-Dive stage from the onboarding page as they do today, and the enriched shape lands automatically.
+
+## Files
+- Migration: add `minister_profile`, `citations` columns; backfill.
+- Edit: `src/lib/country-onboarding/corpus.functions.ts` (schema, prompt, commit snapshot).
+- Edit: `src/lib/country-data/manage.functions.ts` (new `updateMinisterProfile` fn).
+- Edit: `src/routes/_authenticated/admin/countries.$code.data.tsx` (`MinistriesTab` redesign + edit dialog).
+- Memory: add rule to `mem://index.md` Core — `ministry_profiles.minister_profile` is the canonical shape for minister identity/contact/bio; UI must render it before mandate/programmes; `citations` snapshot follows the dossier pattern.
 
 ## Out of scope
-- No re-run of Perplexity or dossier regeneration.
-- No changes to `country_sources` linkage — separate concern.
-- No changes to the KPI or Corpus tabs' rendering.
+- No org-chart of deputy ministers or permanent secretaries — this is the political-leadership layer only. A follow-up can add a `leadership_team` array later.
+- No portrait upload/storage — we store the AI-supplied URL; a manual upload flow can come later.
+- No public-facing surface — admin-only until the shape stabilises.

@@ -36,6 +36,7 @@ import {
   setMemoryVerified,
   toggleSource,
   updateKpi,
+  updateMinisterProfile,
   upsertMemory,
   
 } from "@/lib/country-data/manage.functions";
@@ -809,34 +810,253 @@ function DossiersTab({ code }: { code: string }) {
 
 function MinistriesTab({ code }: { code: string }) {
   const { data: rows } = useSuspenseQuery(ministriesQuery(code));
+  const [editing, setEditing] = useState<any | null>(null);
   if ((rows as any[]).length === 0) return <p className="text-sm text-ink-500">No ministry profiles yet.</p>;
   return (
     <section className="space-y-3">
       {(rows as any[]).map((r) => (
-        <div key={r.id} className="border border-line-200 p-4">
-          <div className="flex justify-between">
-            <div>
-              <h3 className="font-medium">{r.ministries?.name ?? r.ministry_slug}</h3>
-              <div className="text-xs text-ink-500">{r.minister ?? "—"}</div>
-            </div>
-            <div className="text-xs text-ink-500">{(r.programmes as any[])?.length ?? 0} programmes · {r.source_ids?.length ?? 0} sources</div>
-          </div>
-          {r.mandate && <p className="mt-2 text-sm">{r.mandate}</p>}
-          {Array.isArray(r.programmes) && r.programmes.length > 0 && (
-            <ul className="mt-2 text-xs list-disc pl-5 text-ink-500 space-y-1">
-              {(r.programmes as any[]).map((p, i) => (
-                <li key={i}>
-                  <span className="text-ink-950">{p.name ?? p.title ?? "(untitled)"}</span>
-                  {p.description && <> — {p.description}</>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <MinistryCard key={r.id} row={r} onEdit={() => setEditing(r)} />
       ))}
+      {editing && (
+        <MinisterEditDialog
+          row={editing}
+          countryCode={code}
+          onClose={() => setEditing(null)}
+        />
+      )}
     </section>
   );
 }
+
+function MinistryCard({ row, onEdit }: { row: any; onEdit: () => void }) {
+  const mp = (row.minister_profile ?? {}) as any;
+  const hasProfile = Boolean(mp.name || row.minister);
+  const initials = (mp.name ?? row.minister ?? "?")
+    .split(/\s+/).filter(Boolean).slice(0, 2).map((s: string) => s[0]).join("").toUpperCase();
+  const [expanded, setExpanded] = useState(false);
+  const contact = mp.contact ?? {};
+  const socials = mp.socials ?? {};
+  return (
+    <div className="border border-line-200 p-4">
+      <div className="flex justify-between gap-4">
+        <h3 className="font-serif text-lg">{row.ministries?.name ?? row.ministry_slug}</h3>
+        <div className="text-xs text-ink-500 shrink-0">
+          {(row.programmes as any[])?.length ?? 0} programmes · {row.source_ids?.length ?? 0} sources
+        </div>
+      </div>
+
+      <div className="mt-3 border border-line-200 bg-cream-50/40 p-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex gap-3">
+            {mp.portrait_url ? (
+              <img src={mp.portrait_url} alt={mp.name ?? "Minister"} className="h-14 w-11 object-cover border border-line-200" />
+            ) : (
+              <div className="h-14 w-11 flex items-center justify-center border border-line-200 bg-cream-100 text-xs text-ink-500">
+                {hasProfile ? initials : "—"}
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="font-medium text-ink-950">{mp.name ?? row.minister ?? "Minister not recorded"}</div>
+              {mp.title && <div className="text-xs text-ink-500">{mp.title}</div>}
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                {mp.party && <span className="border border-line-200 px-1.5 py-0.5 text-ink-700">{mp.party}</span>}
+                {mp.appointed_at && <span className="text-ink-500 tabular-nums">Appointed {mp.appointed_at}</span>}
+              </div>
+            </div>
+          </div>
+          <button onClick={onEdit} className="text-xs text-ink-500 hover:text-ink-950 underline underline-offset-2 shrink-0">
+            Edit
+          </button>
+        </div>
+
+        {(contact.office_phone || contact.email || contact.website || contact.office_address) && (
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-700">
+            {contact.email && <a href={`mailto:${contact.email}`} className="underline underline-offset-2">{contact.email}</a>}
+            {contact.office_phone && <a href={`tel:${contact.office_phone}`} className="underline underline-offset-2 tabular-nums">{contact.office_phone}</a>}
+            {contact.website && <a href={contact.website} target="_blank" rel="noreferrer" className="underline underline-offset-2 truncate max-w-xs">{contact.website.replace(/^https?:\/\//, "")}</a>}
+            {contact.office_address && <span className="text-ink-500">{contact.office_address}</span>}
+          </div>
+        )}
+
+        {mp.bio && (
+          <div className="mt-3 text-sm text-ink-700">
+            <p className={expanded ? "" : "line-clamp-3"}>{mp.bio}</p>
+            {mp.bio.length > 220 && (
+              <button onClick={() => setExpanded((v) => !v)} className="mt-1 text-xs text-ink-500 hover:text-ink-950 underline underline-offset-2">
+                {expanded ? "Show less" : "Read more"}
+              </button>
+            )}
+          </div>
+        )}
+
+        {(Array.isArray(mp.education) && mp.education.length > 0) || (Array.isArray(mp.career) && mp.career.length > 0) ? (
+          <details className="mt-3 text-xs text-ink-700">
+            <summary className="cursor-pointer text-ink-500 hover:text-ink-950">Background</summary>
+            {Array.isArray(mp.education) && mp.education.length > 0 && (
+              <div className="mt-2">
+                <div className="text-ink-500 uppercase text-[10px] tracking-wide mb-1">Education</div>
+                <ul className="list-disc pl-5 space-y-0.5">{mp.education.map((e: string, i: number) => <li key={i}>{e}</li>)}</ul>
+              </div>
+            )}
+            {Array.isArray(mp.career) && mp.career.length > 0 && (
+              <div className="mt-2">
+                <div className="text-ink-500 uppercase text-[10px] tracking-wide mb-1">Career</div>
+                <ul className="list-disc pl-5 space-y-0.5">{mp.career.map((e: string, i: number) => <li key={i}>{e}</li>)}</ul>
+              </div>
+            )}
+          </details>
+        ) : null}
+
+        {(socials.twitter || socials.facebook || socials.linkedin || socials.instagram) && (
+          <div className="mt-3 flex flex-wrap gap-3 text-xs">
+            {socials.twitter && <a href={socials.twitter} target="_blank" rel="noreferrer" className="underline underline-offset-2 text-ink-700">Twitter</a>}
+            {socials.facebook && <a href={socials.facebook} target="_blank" rel="noreferrer" className="underline underline-offset-2 text-ink-700">Facebook</a>}
+            {socials.linkedin && <a href={socials.linkedin} target="_blank" rel="noreferrer" className="underline underline-offset-2 text-ink-700">LinkedIn</a>}
+            {socials.instagram && <a href={socials.instagram} target="_blank" rel="noreferrer" className="underline underline-offset-2 text-ink-700">Instagram</a>}
+          </div>
+        )}
+      </div>
+
+      {row.mandate && <p className="mt-3 text-sm">{row.mandate}</p>}
+      {Array.isArray(row.programmes) && row.programmes.length > 0 && (
+        <ul className="mt-2 text-xs list-disc pl-5 text-ink-500 space-y-1">
+          {(row.programmes as any[]).map((p, i) => (
+            <li key={i}>
+              <span className="text-ink-950">{p.name ?? p.title ?? "(untitled)"}</span>
+              {p.objective && <> — {p.objective}</>}
+              {p.status && <span className="ml-2 uppercase text-[10px] tracking-wide text-ink-400">{p.status}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function MinisterEditDialog({ row, countryCode, onClose }: { row: any; countryCode: string; onClose: () => void }) {
+  const qc = useQueryClient();
+  const save = useServerFn(updateMinisterProfile);
+  const initial = (row.minister_profile ?? {}) as any;
+  const [form, setForm] = useState<any>({
+    name: initial.name ?? row.minister ?? "",
+    title: initial.title ?? "",
+    party: initial.party ?? "",
+    appointed_at: initial.appointed_at ?? "",
+    bio: initial.bio ?? "",
+    portrait_url: initial.portrait_url ?? "",
+    contact: {
+      email: initial.contact?.email ?? "",
+      office_phone: initial.contact?.office_phone ?? "",
+      office_address: initial.contact?.office_address ?? "",
+      website: initial.contact?.website ?? "",
+    },
+    socials: {
+      twitter: initial.socials?.twitter ?? "",
+      facebook: initial.socials?.facebook ?? "",
+      linkedin: initial.socials?.linkedin ?? "",
+      instagram: initial.socials?.instagram ?? "",
+    },
+    education: (initial.education ?? []).join("\n"),
+    career: (initial.career ?? []).join("\n"),
+  });
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const onSave = async () => {
+    setSaving(true); setErr(null);
+    try {
+      const profile = {
+        name: form.name || null,
+        title: form.title || null,
+        party: form.party || null,
+        appointed_at: form.appointed_at || null,
+        bio: form.bio || null,
+        portrait_url: form.portrait_url || null,
+        contact: {
+          email: form.contact.email || null,
+          office_phone: form.contact.office_phone || null,
+          office_address: form.contact.office_address || null,
+          website: form.contact.website || null,
+        },
+        socials: {
+          twitter: form.socials.twitter || null,
+          facebook: form.socials.facebook || null,
+          linkedin: form.socials.linkedin || null,
+          instagram: form.socials.instagram || null,
+        },
+        education: form.education.split("\n").map((s: string) => s.trim()).filter(Boolean),
+        career: form.career.split("\n").map((s: string) => s.trim()).filter(Boolean),
+      };
+      await save({ data: { countryCode, ministrySlug: row.ministry_slug, profile } });
+      await qc.invalidateQueries({ queryKey: ["data", countryCode, "ministries"] });
+      onClose();
+    } catch (e: any) {
+      setErr(e?.message ?? "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const field = (label: string, key: string, path: string[] = []) => {
+    const value = path.length ? form[path[0]][key] : form[key];
+    const onChange = (v: string) => {
+      if (path.length) setForm({ ...form, [path[0]]: { ...form[path[0]], [key]: v } });
+      else setForm({ ...form, [key]: v });
+    };
+    return (
+      <label className="block text-xs">
+        <span className="text-ink-500">{label}</span>
+        <input value={value} onChange={(e) => onChange(e.target.value)} className="mt-1 w-full border border-line-200 px-2 py-1 text-sm" />
+      </label>
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-cream-50 max-w-2xl w-full max-h-[90vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-serif text-lg">Edit Minister · {row.ministries?.name ?? row.ministry_slug}</h3>
+          <button onClick={onClose} className="text-ink-500 hover:text-ink-950">×</button>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {field("Name", "name")}
+          {field("Title", "title")}
+          {field("Party", "party")}
+          {field("Appointed (YYYY-MM-DD)", "appointed_at")}
+          {field("Portrait URL", "portrait_url")}
+          {field("Ministry website", "website", ["contact"])}
+          {field("Email", "email", ["contact"])}
+          {field("Office phone", "office_phone", ["contact"])}
+          {field("Office address", "office_address", ["contact"])}
+          {field("Twitter", "twitter", ["socials"])}
+          {field("Facebook", "facebook", ["socials"])}
+          {field("LinkedIn", "linkedin", ["socials"])}
+          {field("Instagram", "instagram", ["socials"])}
+        </div>
+        <label className="mt-3 block text-xs">
+          <span className="text-ink-500">Bio</span>
+          <textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} rows={3} className="mt-1 w-full border border-line-200 px-2 py-1 text-sm" />
+        </label>
+        <label className="mt-3 block text-xs">
+          <span className="text-ink-500">Education (one per line)</span>
+          <textarea value={form.education} onChange={(e) => setForm({ ...form, education: e.target.value })} rows={3} className="mt-1 w-full border border-line-200 px-2 py-1 text-sm" />
+        </label>
+        <label className="mt-3 block text-xs">
+          <span className="text-ink-500">Career (one per line)</span>
+          <textarea value={form.career} onChange={(e) => setForm({ ...form, career: e.target.value })} rows={3} className="mt-1 w-full border border-line-200 px-2 py-1 text-sm" />
+        </label>
+        {err && <div className="mt-3 text-xs text-red-600">{err}</div>}
+        <div className="mt-4 flex justify-end gap-2">
+          <button onClick={onClose} className="text-xs text-ink-500 hover:text-ink-950 px-3 py-1.5">Cancel</button>
+          <button onClick={onSave} disabled={saving} className="text-xs bg-ink-950 text-cream-50 px-3 py-1.5 disabled:opacity-50">
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 // ============================================================
 // Corpus + semantic search

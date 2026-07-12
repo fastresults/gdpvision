@@ -576,9 +576,9 @@ function KpiRow({
           <button
             onClick={() =>
               onSave({
-                latest_value: latest === "" ? null : Number(latest),
+                latest_value: latest === "" ? null : Number(Number(latest).toFixed(2)),
                 latest_period: period || null,
-                target: target === "" ? null : Number(target),
+                target: target === "" ? null : Number(Number(target).toFixed(2)),
               })
             }
             className="ml-2 text-[10px] px-2 py-0.5 border border-ink-950 bg-ink-950 text-paper-0"

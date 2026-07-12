@@ -1629,8 +1629,9 @@ function MemoryTab({ code }: { code: string }) {
   const setV = useServerFn(setMemoryVerified);
   const del = useServerFn(deleteMemory);
   const [showAdd, setShowAdd] = useState(false);
-  const [view, setView] = useState<"list" | "visual">("visual");
+  const [view, setView] = useState<"constellation" | "visual" | "list">("constellation");
   const [filter, setFilter] = useState<MemoryFilter>({});
+  const [brainFilter, setBrainFilter] = useState<BrainFilter>({});
   const refresh = () => qc.invalidateQueries({ queryKey: ["data", code, "memory"] });
 
   const all = rows as any[];

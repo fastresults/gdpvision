@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
+import { lovable } from "@/integrations/lovable";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({

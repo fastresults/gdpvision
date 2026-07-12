@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { MarketingShell } from "./MarketingShell";
+import { EXISTENTIAL_THREATS } from "@/lib/existential-threats";
 import { SignatureRing } from "./SignatureRing";
 import { NumberTile } from "./NumberTile";
 import { ChamberPanel } from "./ChamberPanel";
@@ -82,6 +84,12 @@ const CHAMBERS = [
 ];
 
 export function MarketingHome() {
+  const cbi = EXISTENTIAL_THREATS[0];
+  const [rotating, setRotating] = useState(EXISTENTIAL_THREATS[1]);
+  useEffect(() => {
+    const pool = EXISTENTIAL_THREATS.slice(1);
+    setRotating(pool[Math.floor(Math.random() * pool.length)]);
+  }, []);
   return (
     <MarketingShell>
       {/* HERO ------------------------------------------------------------- */}
@@ -95,12 +103,17 @@ export function MarketingHome() {
             <h1 className="mt-8 font-serif text-[43px] leading-[1.05] tracking-tight text-ink-950 md:text-[68px]">
               Govern with the whole picture.
             </h1>
-            <p className="mt-8 max-w-xl text-[17px] leading-relaxed text-ink-700 md:text-[21px]">
-              The European Union has issued a wind-down notice for Citizenship
-              by Investment programs. GDPVision is the sovereign decision
-              instrument built to see the economy, rehearse the choices, and
-              assemble the replacement — one isolated instance per nation,
-              owned by that government.
+            <div className="mt-8 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">
+              {cbi.title}
+            </div>
+            <p className="mt-3 max-w-xl text-[17px] leading-relaxed text-ink-700 md:text-[21px]">
+              {cbi.body}
+            </p>
+            <div className="mt-8 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">
+              {rotating.title}
+            </div>
+            <p className="mt-3 max-w-xl text-[17px] leading-relaxed text-ink-700 md:text-[21px]">
+              {rotating.body}
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-6">
               <a

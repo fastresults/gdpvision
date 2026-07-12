@@ -215,33 +215,23 @@ export const commitSourceRegistry = createServerFn({ method: "POST" })
     if (error || !draft) throw new Error("Draft not found");
     const payload = (data.editedPayload ?? draft.payload) as { sources: Array<any> };
 
+    const { upsertCountrySource } = await import("@/lib/country-data/sources.server");
     let inserted = 0;
     for (const s of payload.sources) {
-      let tld: string | null = null;
-      try {
-        tld = new URL(s.url).hostname.replace(/^www\./, "");
-      } catch {
-        /* skip invalid */
-      }
-      const { error: upErr } = await supabaseAdmin
-        .from("country_sources")
-        .upsert(
-          {
-            country_code: draft.country_code,
-            kind: s.kind,
-            org: s.org,
-            title: s.title,
-            url: s.url,
-            tld,
-            tags: Array.isArray(s.tags) ? s.tags : [],
-            quality_score: Number(s.quality_score) || 3,
-            active: true,
-            created_by: context.userId,
-          },
-          { onConflict: "country_code,url", ignoreDuplicates: false },
-        );
-      if (!upErr) inserted++;
+      const res = await upsertCountrySource(supabaseAdmin, {
+        country_code: draft.country_code,
+        url: s.url,
+        title: s.title,
+        org: s.org,
+        kind: s.kind,
+        tags: Array.isArray(s.tags) ? s.tags : [],
+        quality_score: Number(s.quality_score) || 3,
+        active: true,
+        created_by: context.userId,
+      });
+      if (res) inserted++;
     }
+
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
     return { ok: true, inserted };
   });
@@ -510,44 +500,24 @@ async function attachOrCreateSource(
   userId: string,
 ): Promise<string | null> {
   if (!sourceUrl) return null;
-  const { data: existing } = await admin
-    .from("country_sources")
-    .select("id")
-    .eq("country_code", countryCode)
-    .eq("url", sourceUrl)
-    .maybeSingle();
-  if (existing?.id) return existing.id as string;
-
-  let tld: string | null = null;
-  try {
-    tld = new URL(sourceUrl).hostname.replace(/^www\./, "");
-  } catch {
-    return null;
-  }
-  const org = sourceOrg ?? tld ?? "Auto";
-  const quality = ORG_QUALITY[org] ?? 3;
-  const { data: created, error } = await admin
-    .from("country_sources")
-    .upsert(
-      {
-        country_code: countryCode,
-        url: sourceUrl,
-        title: `${org} — KPI source`,
-        org,
-        kind: "kpi_source",
-        tld,
-        tags: ["auto", "kpi"],
-        quality_score: quality,
-        active: true,
-        created_by: userId,
-      },
-      { onConflict: "country_code,url", ignoreDuplicates: false },
-    )
-    .select("id")
-    .single();
-  if (error || !created) return null;
-  return created.id as string;
+  const { upsertCountrySource, resolveKpiProvider, hostOf } = await import("@/lib/country-data/sources.server");
+  const canon = resolveKpiProvider(countryCode, sourceUrl);
+  const org = canon?.org ?? sourceOrg ?? hostOf(sourceUrl) ?? "Auto";
+  const quality = canon?.quality ?? ORG_QUALITY[org] ?? 3;
+  const res = await upsertCountrySource(admin, {
+    country_code: countryCode,
+    url: sourceUrl,
+    title: canon?.title ?? `${org} — KPI source`,
+    org,
+    kind: "kpi_source",
+    tags: ["auto", "kpi"],
+    quality_score: quality,
+    active: true,
+    created_by: userId,
+  });
+  return res?.id ?? null;
 }
+
 
 async function upsertResolvedKpi(
   admin: any,
@@ -608,6 +578,8 @@ async function upsertResolvedKpi(
     direction: k.direction || "up",
     category: k.category || "macro",
     source_id,
+    source_url: k.source_url ?? null,
+
     latest_value: k.latest_value,
     latest_period: k.latest_period,
     target: k.target ?? null,

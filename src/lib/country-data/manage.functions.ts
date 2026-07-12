@@ -77,10 +77,31 @@ export const upsertSource = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const domain = (() => {
-      try { return new URL(data.url).hostname; } catch { return null; }
-    })();
-    const row = {
+    const { upsertCountrySource } = await import("@/lib/country-data/sources.server");
+
+    if (data.id) {
+      // Explicit edit of an existing row — no dedupe rewrite
+      const domain = (() => { try { return new URL(data.url).hostname; } catch { return null; } })();
+      const { data: out, error } = await supabaseAdmin
+        .from("country_sources")
+        .update({
+          url: data.url,
+          title: data.title,
+          org: data.org,
+          kind: data.kind,
+          quality_score: data.quality_score,
+          active: data.active,
+          tags: data.tags,
+          tld: domain ? domain.split(".").slice(-1)[0] : null,
+        })
+        .eq("id", data.id)
+        .select("id")
+        .single();
+      if (error) throw error;
+      return out;
+    }
+
+    const result = await upsertCountrySource(supabaseAdmin, {
       country_code: data.countryCode,
       url: data.url,
       title: data.title,
@@ -89,16 +110,12 @@ export const upsertSource = createServerFn({ method: "POST" })
       quality_score: data.quality_score,
       active: data.active,
       tags: data.tags,
-      tld: domain ? domain.split(".").slice(-1)[0] : null,
       created_by: context.userId,
-    };
-    const q = data.id
-      ? supabaseAdmin.from("country_sources").update(row).eq("id", data.id).select("id").single()
-      : supabaseAdmin.from("country_sources").upsert(row, { onConflict: "country_code,url" }).select("id").single();
-    const { data: out, error } = await q;
-    if (error) throw error;
-    return out;
+    });
+    if (!result) throw new Error("Failed to upsert source");
+    return { id: result.id };
   });
+
 
 export const toggleSource = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -573,28 +590,26 @@ export const approveSourceCandidate = createServerFn({ method: "POST" })
     } catch {
       throw new Error("Invalid URL on candidate");
     }
-    const { error: eUp } = await supabaseAdmin.from("country_sources").upsert(
-      {
-        country_code: cand.country_code,
-        url: cand.url,
-        title: cand.title ?? `Suggested source (${tld})`,
-        org: tld,
-        kind: "kpi_source",
-        tld,
-        tags: ["auto", "kpi", "candidate-approved"],
-        quality_score: 3,
-        active: true,
-        created_by: context.userId,
-      },
-      { onConflict: "country_code,url", ignoreDuplicates: false },
-    );
-    if (eUp) throw eUp;
+    const { upsertCountrySource } = await import("@/lib/country-data/sources.server");
+    const res = await upsertCountrySource(supabaseAdmin, {
+      country_code: cand.country_code,
+      url: cand.url,
+      title: cand.title ?? `Suggested source (${tld})`,
+      org: tld,
+      kind: "kpi_source",
+      tags: ["auto", "kpi", "candidate-approved"],
+      quality_score: 3,
+      active: true,
+      created_by: context.userId,
+    });
+    if (!res) throw new Error("Failed to promote candidate");
     await supabaseAdmin
       .from("source_candidates")
       .update({ status: "approved", approved_by: context.userId, approved_at: new Date().toISOString() })
       .eq("id", data.id);
     return { ok: true };
   });
+
 
 export const rejectSourceCandidate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -796,3 +811,303 @@ export const deleteMemory = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
+// ============================================================
+// Source detail + summary + connections + bulk add + documents
+// ============================================================
+
+export const getSourceDetail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: src, error } = await supabaseAdmin
+      .from("country_sources")
+      .select("*")
+      .eq("id", data.id)
+      .single();
+    if (error || !src) throw new Error("Source not found");
+
+    const [{ data: docs }, { data: kpis }, { data: conn }] = await Promise.all([
+      supabaseAdmin
+        .from("country_source_documents")
+        .select("id, chunk_count, char_count, fetched_at, raw_text")
+        .eq("country_source_id", data.id)
+        .order("fetched_at", { ascending: false })
+        .limit(10),
+      supabaseAdmin
+        .from("country_kpis")
+        .select("id, kpi_code, label")
+        .eq("source_id", data.id)
+        .limit(50),
+      supabaseAdmin
+        .from("country_source_connections")
+        .select("*")
+        .eq("country_source_id", data.id)
+        .maybeSingle(),
+    ]);
+
+    return {
+      source: src,
+      documents: (docs ?? []).map((d) => ({
+        id: d.id,
+        chunk_count: d.chunk_count,
+        char_count: d.char_count,
+        fetched_at: d.fetched_at,
+      })),
+      kpis: kpis ?? [],
+      connection: conn ?? null,
+      sample_excerpts: (docs ?? [])
+        .slice(0, 3)
+        .map((d) => (d.raw_text ? String(d.raw_text).slice(0, 900) : ""))
+        .filter(Boolean),
+    };
+  });
+
+export const summarizeSource = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), force: z.boolean().default(false) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: src, error } = await supabaseAdmin
+      .from("country_sources")
+      .select("id, country_code, url, title, org, kind, summary, summary_generated_at, tags")
+      .eq("id", data.id)
+      .single();
+    if (error || !src) throw new Error("Source not found");
+    if (src.summary && !data.force) {
+      return { summary: src.summary, cached: true };
+    }
+    const { data: country } = await supabaseAdmin
+      .from("countries")
+      .select("name")
+      .eq("code", src.country_code)
+      .single();
+    const { data: docs } = await supabaseAdmin
+      .from("country_source_documents")
+      .select("raw_text")
+      .eq("country_source_id", src.id)
+      .limit(3);
+    const chunks: string[] = (docs ?? [])
+      .map((d) => (d.raw_text ? String(d.raw_text).slice(0, 900) : ""))
+      .filter(Boolean);
+
+    const { summarizeSourceWithAi } = await import("@/lib/country-data/sources.server");
+    const res = await summarizeSourceWithAi({
+      title: src.title,
+      org: src.org,
+      url: src.url,
+      kind: src.kind,
+      countryName: country?.name ?? src.country_code,
+      chunks,
+    });
+    if (!res) throw new Error("AI summary unavailable");
+
+    const nextTags = Array.from(new Set([...(src.tags ?? []), ...res.data_types])).slice(0, 20);
+    await supabaseAdmin
+      .from("country_sources")
+      .update({
+        summary: res.summary,
+        summary_generated_at: new Date().toISOString(),
+        tags: nextTags,
+      })
+      .eq("id", src.id);
+    return { summary: res.summary, cached: false, data_types: res.data_types };
+  });
+
+const BulkLinksInput = z.object({
+  countryCode: z.string().min(2).max(4),
+  urls: z.array(z.string().url()).min(1).max(50),
+  kind: z.string().default("gov"),
+  quality_score: z.number().int().min(1).max(5).default(3),
+});
+
+export const bulkAddLinks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => BulkLinksInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { upsertCountrySource } = await import("@/lib/country-data/sources.server");
+    let added = 0;
+    let duplicates = 0;
+    const errors: Array<{ url: string; error: string }> = [];
+    for (const url of data.urls) {
+      try {
+        const host = new URL(url).hostname.replace(/^www\./, "");
+        const org = host.split(".").slice(-2, -1)[0]?.replace(/^\w/, (c) => c.toUpperCase()) ?? host;
+        const res = await upsertCountrySource(supabaseAdmin, {
+          country_code: data.countryCode,
+          url,
+          title: host,
+          org,
+          kind: data.kind,
+          quality_score: data.quality_score,
+          active: true,
+          tags: ["bulk"],
+          created_by: context.userId,
+        });
+        if (!res) errors.push({ url, error: "insert failed" });
+        else if (res.existed) duplicates++;
+        else added++;
+      } catch (e: any) {
+        errors.push({ url, error: e?.message ?? String(e) });
+      }
+    }
+    return { added, duplicates, errors };
+  });
+
+const RegisterConnectionInput = z.object({
+  countryCode: z.string().min(2).max(4),
+  connection_kind: z.enum(["api", "mcp"]),
+  title: z.string().min(1),
+  org: z.string().min(1),
+  endpoint_url: z.string().url(),
+  auth_header_name: z.string().optional().nullable(),
+  secret_ref: z.string().optional().nullable(),
+  config: z.record(z.any()).optional(),
+});
+
+export const registerConnection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => RegisterConnectionInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { upsertCountrySource } = await import("@/lib/country-data/sources.server");
+    const res = await upsertCountrySource(supabaseAdmin, {
+      country_code: data.countryCode,
+      url: data.endpoint_url,
+      title: data.title,
+      org: data.org,
+      kind: data.connection_kind,
+      connection_kind: data.connection_kind,
+      quality_score: 4,
+      active: true,
+      tags: [data.connection_kind],
+      created_by: context.userId,
+    });
+    if (!res) throw new Error("Failed to create source");
+    await supabaseAdmin
+      .from("country_source_connections")
+      .upsert(
+        {
+          country_source_id: res.id,
+          kind: data.connection_kind,
+          endpoint_url: data.endpoint_url,
+          auth_header_name: data.auth_header_name ?? null,
+          secret_ref: data.secret_ref ?? null,
+          config: data.config ?? {},
+        },
+        { onConflict: "country_source_id" },
+      );
+    return { id: res.id, existed: res.existed };
+  });
+
+const UploadDocInput = z.object({
+  countryCode: z.string().min(2).max(4),
+  filename: z.string().min(1),
+  mime_type: z.string().min(1),
+  content_b64: z.string().min(1),
+  title: z.string().optional(),
+  org: z.string().optional(),
+});
+
+export const ingestDocumentSource = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => UploadDocInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { upsertCountrySource } = await import("@/lib/country-data/sources.server");
+
+    // Upload the raw file to the country-sources bucket.
+    const bytes = Buffer.from(data.content_b64, "base64");
+    const safeName = data.filename.replace(/[^a-z0-9._-]/gi, "_");
+    const storagePath = `${data.countryCode}/${Date.now()}_${safeName}`;
+    const { error: upErr } = await supabaseAdmin.storage
+      .from("country-sources")
+      .upload(storagePath, bytes, { contentType: data.mime_type, upsert: false });
+    if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
+
+    const title = data.title || data.filename;
+    const org = data.org || "Uploaded document";
+    const virtualUrl = `lovable-storage://country-sources/${storagePath}`;
+
+    const res = await upsertCountrySource(supabaseAdmin, {
+      country_code: data.countryCode,
+      url: virtualUrl,
+      title,
+      org,
+      kind: "document",
+      connection_kind: "document",
+      storage_path: storagePath,
+      quality_score: 4,
+      active: true,
+      tags: ["upload", data.mime_type.split("/")[1] ?? "doc"],
+      created_by: context.userId,
+    });
+    if (!res) throw new Error("Failed to register document source");
+
+    // Extract text from common types (best-effort) and chunk/embed.
+    let text = "";
+    try {
+      if (data.mime_type === "text/plain" || data.mime_type === "text/markdown" || safeName.endsWith(".md") || safeName.endsWith(".txt")) {
+        text = bytes.toString("utf8");
+      } else if (data.mime_type === "application/pdf") {
+        const pdfParse: any = await import("pdf-parse" as any).then((m: any) => m.default ?? m).catch(() => null);
+        if (pdfParse) {
+          const out = await pdfParse(bytes);
+          text = out?.text ?? "";
+        }
+      } else if (
+        data.mime_type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+        safeName.endsWith(".docx")
+      ) {
+        const mammoth: any = await import("mammoth" as any).catch(() => null);
+        if (mammoth?.extractRawText) {
+          const out = await mammoth.extractRawText({ buffer: bytes });
+          text = out?.value ?? "";
+        }
+      }
+    } catch {
+      // best-effort — leave text empty
+    }
+
+    if (text.trim().length > 0) {
+      const { chunkText, embedBatch } = await import("@/lib/country-onboarding/ingest.server");
+      const chunks = chunkText(text);
+      const { data: docRow, error: dErr } = await supabaseAdmin
+        .from("country_source_documents")
+        .insert({
+          country_source_id: res.id,
+          raw_text: text,
+          chunk_count: chunks.length,
+          char_count: text.length,
+        })
+        .select("id")
+        .single();
+      if (!dErr && docRow) {
+        for (let i = 0; i < chunks.length; i += 64) {
+          const batch = chunks.slice(i, i + 64);
+          const embs = await embedBatch(batch);
+          const rows = batch.map((content, idx) => ({
+            country_code: data.countryCode,
+            document_id: docRow.id,
+            chunk_index: i + idx,
+            content,
+            embedding: `[${embs[idx].join(",")}]` as unknown as string,
+          }));
+          await supabaseAdmin.from("country_source_chunks").insert(rows);
+        }
+        await supabaseAdmin
+          .from("country_sources")
+          .update({ last_fetched_at: new Date().toISOString(), fetch_status: "ok" })
+          .eq("id", res.id);
+      }
+    }
+    return { id: res.id, existed: res.existed, extracted_chars: text.length };
+  });
+

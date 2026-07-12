@@ -100,6 +100,26 @@ function AdminPage() {
           Grant portfolio roles, wire ministers to their country instance, and confirm each principal's default nation.
         </p>
 
+        <section className="mt-10 border border-line-200 p-6">
+          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">Country consoles</p>
+          <p className="mt-2 text-sm text-ink-500">
+            Open a country's console to review access requests, assign country-scoped roles, and seed GDP, sectors, and ministries.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {countries.map((c) => (
+              <Link
+                key={c.code}
+                to="/admin/country/$code"
+                params={{ code: c.code }}
+                className="border border-line-200 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest hover:bg-ink-950 hover:text-paper-0"
+              >
+                {c.code} — {c.name}
+              </Link>
+            ))}
+          </div>
+        </section>
+
+
         <div className="mt-12 space-y-8">
           {users.map((u) => (
             <UserCard

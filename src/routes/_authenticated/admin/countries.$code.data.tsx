@@ -7,6 +7,7 @@ import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { AddSourceDialog } from "@/components/country-data/AddSourceDialog";
 import { SourceDetailSheet } from "@/components/country-data/SourceDetailSheet";
 import { PrettyJson } from "@/components/data/PrettyJson";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { getOnboardingStatus } from "@/lib/country-onboarding/agents.functions";
 import {
@@ -92,7 +93,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/data
   component: DataDashboard,
   errorComponent: ({ error }) => (
     <SuperAdminShell crumbs={[{ label: "Countries", to: "/admin/countries" }, { label: "Data" }]}>
-      <p className="text-sm text-red-600">{error.message}</p>
+      <p className="text-sm text-signal-negative">{error.message}</p>
     </SuperAdminShell>
   ),
   notFoundComponent: () => (
@@ -236,7 +237,7 @@ function SourcesTab({ code }: { code: string }) {
                     {s.summary ? " · AI summary" : ""}
                   </div>
                   {s.fetch_status === "error" && s.fetch_error && (
-                    <div className="text-xs text-red-600 mt-1 truncate max-w-md" title={s.fetch_error}>⚠ {s.fetch_error}</div>
+                    <div className="text-xs text-signal-negative mt-1 truncate max-w-md" title={s.fetch_error}>⚠ {s.fetch_error}</div>
                   )}
                 </td>
                 <td className="px-3 py-2 text-xs">{s.kind}</td>
@@ -864,15 +865,16 @@ function MinistriesTab({ code }: { code: string }) {
         <div className="text-xs text-ink-500">
           {refresh.phase === "running" && "Researching ministries…"}
           {refresh.phase === "ready" && `Draft ready · ${refresh.count} ministries · ${refresh.citations.length} citations`}
-          {refresh.phase === "error" && <span className="text-red-600">{refresh.message}</span>}
+          {refresh.phase === "error" && <span className="text-signal-negative">{refresh.message}</span>}
         </div>
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={onRefresh}
           disabled={refresh.phase === "running"}
-          className="text-xs border border-line-200 px-3 py-1.5 hover:bg-cream-100 disabled:opacity-50"
         >
           {refresh.phase === "running" ? "Researching…" : "Refresh from AI"}
-        </button>
+        </Button>
       </div>
 
       {(rows as any[]).length === 0 ? (
@@ -950,10 +952,10 @@ function MinistryReviewDialog({
         </div>
 
         <DialogFooter className="p-4 border-t border-line-200 gap-2 sm:justify-end">
-          <button onClick={onCancel} disabled={committing} className="text-xs text-ink-500 hover:text-ink-950 px-3 py-1.5">Cancel</button>
-          <button onClick={onCommit} disabled={committing} className="text-xs bg-ink-950 text-cream-50 px-3 py-1.5 disabled:opacity-50">
+          <Button variant="outline" size="sm" onClick={onCancel} disabled={committing}>Cancel</Button>
+          <Button size="sm" onClick={onCommit} disabled={committing}>
             {committing ? "Committing…" : `Commit refresh · ${changed.length} changed`}
-          </button>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1009,11 +1011,11 @@ function MinistryDiffCard({ entry, current, diff }: { entry: any; current: any; 
 
   return (
     <div className="border border-line-200">
-      <div className="flex justify-between items-baseline px-3 py-2 border-b border-line-200 bg-cream-100/40">
+      <div className="flex justify-between items-baseline px-3 py-2 border-b border-line-200 bg-paper-100/40">
         <h4 className="font-medium text-sm">{title}</h4>
         <span className="text-[11px] text-ink-500">{changeSummary}</span>
       </div>
-      <div className="divide-y divide-line-100">
+      <div className="divide-y divide-line-200">
         {diff.rows.map((r) => (
           <div key={r.label} className={`grid grid-cols-[90px_1fr_16px_1fr] gap-2 items-start px-3 py-1.5 text-xs ${r.changed ? "" : "opacity-50"}`}>
             <div className="text-ink-500 uppercase text-[10px] tracking-wide pt-0.5">{r.label}</div>
@@ -1098,13 +1100,13 @@ function MinistryCard({ row, onEdit }: { row: any; onEdit: () => void }) {
         </div>
       </div>
 
-      <div className="mt-3 border border-line-200 bg-cream-50/40 p-3">
+      <div className="mt-3 border border-line-200 bg-paper-100/40 p-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex gap-3">
             {mp.portrait_url ? (
               <img src={mp.portrait_url} alt={mp.name ?? "Minister"} className="h-14 w-11 object-cover border border-line-200" />
             ) : (
-              <div className="h-14 w-11 flex items-center justify-center border border-line-200 bg-cream-100 text-xs text-ink-500">
+              <div className="h-14 w-11 flex items-center justify-center border border-line-200 bg-paper-100 text-xs text-ink-500">
                 {hasProfile ? initials : "—"}
               </div>
             )}
@@ -1297,12 +1299,12 @@ function MinisterEditDialog({ row, countryCode, onClose }: { row: any; countryCo
           <span className="text-ink-500">Career (one per line)</span>
           <textarea value={form.career} onChange={(e) => setForm({ ...form, career: e.target.value })} rows={3} className="mt-1 w-full border border-line-200 px-2 py-1 text-sm" />
         </label>
-        {err && <div className="mt-3 text-xs text-red-600">{err}</div>}
+        {err && <div className="mt-3 text-xs text-signal-negative">{err}</div>}
         <DialogFooter className="mt-4 gap-2 sm:justify-end">
-          <button onClick={onClose} className="text-xs text-ink-500 hover:text-ink-950 px-3 py-1.5">Cancel</button>
-          <button onClick={onSave} disabled={saving} className="text-xs bg-ink-950 text-cream-50 px-3 py-1.5 disabled:opacity-50">
+          <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+          <Button size="sm" onClick={onSave} disabled={saving}>
             {saving ? "Saving…" : "Save"}
-          </button>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

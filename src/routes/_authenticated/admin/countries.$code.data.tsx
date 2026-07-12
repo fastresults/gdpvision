@@ -1300,10 +1300,10 @@ function MinisterEditDialog({ row, countryCode, onClose }: { row: any; countryCo
         </label>
         {err && <div className="mt-3 text-xs text-red-600">{err}</div>}
         <DialogFooter className="mt-4 gap-2 sm:justify-end">
-          <button onClick={onClose} className="text-xs text-ink-500 hover:text-ink-950 px-3 py-1.5">Cancel</button>
-          <button onClick={onSave} disabled={saving} className="text-xs bg-ink-950 text-cream-50 px-3 py-1.5 disabled:opacity-50">
+          <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+          <Button size="sm" onClick={onSave} disabled={saving}>
             {saving ? "Saving…" : "Save"}
-          </button>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

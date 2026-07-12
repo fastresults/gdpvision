@@ -39,8 +39,8 @@ We are closing the v1.0 PRD gap using a dependency-ordered sequence of waves. Ea
 5. **G5. External reviews & award prep**: methodology export, comms doctrine review packet, award-submission assets.
 
 ## Current status
-- Implemented: A1–A3, B1–B5, C1–C3, D1–D2, E1–E3, F1–F3.
-- Remaining: G1–G5 (state coverage sweep, a11y audit, perf budget, security audit, external review packet). G4 partial: all new server fns use `requireSupabaseAuth` and check `has_role`; `supabaseAdmin` only imported inside handler bodies.
+- Implemented: A1–A3, B1–B5, C1–C3, D1–D2, E1–E3, F1–F3, G1 (shared `<RouteEmpty/Loading/Error/Stale>` primitives in `src/components/state/RouteState.tsx`), G4 (no `.functions.ts` module-scope `supabaseAdmin` imports; all privileged fns gated by `requireSupabaseAuth` + `has_role`).
+- Remaining: G2 (a11y audit sweep with axe), G3 (perf budget + lazy-load heavy widgets), G5 (external review packet + award assets).
 
 
 

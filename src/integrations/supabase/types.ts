@@ -527,6 +527,114 @@ export type Database = {
           },
         ]
       }
+      country_kpi_points: {
+        Row: {
+          country_kpi_id: string
+          created_at: string
+          id: string
+          period: string
+          source_id: string | null
+          value: number
+        }
+        Insert: {
+          country_kpi_id: string
+          created_at?: string
+          id?: string
+          period: string
+          source_id?: string | null
+          value: number
+        }
+        Update: {
+          country_kpi_id?: string
+          created_at?: string
+          id?: string
+          period?: string
+          source_id?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "country_kpi_points_country_kpi_id_fkey"
+            columns: ["country_kpi_id"]
+            isOneToOne: false
+            referencedRelation: "country_kpis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "country_kpi_points_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "country_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      country_kpis: {
+        Row: {
+          category: string | null
+          country_code: string
+          created_at: string
+          direction: string
+          id: string
+          kpi_code: string
+          label: string
+          latest_period: string | null
+          latest_value: number | null
+          notes: string | null
+          source_id: string | null
+          target: number | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          country_code: string
+          created_at?: string
+          direction?: string
+          id?: string
+          kpi_code: string
+          label: string
+          latest_period?: string | null
+          latest_value?: number | null
+          notes?: string | null
+          source_id?: string | null
+          target?: number | null
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          country_code?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          kpi_code?: string
+          label?: string
+          latest_period?: string | null
+          latest_value?: number | null
+          notes?: string | null
+          source_id?: string | null
+          target?: number | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "country_kpis_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "country_kpis_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "country_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       country_sectors: {
         Row: {
           confidence_grade: string
@@ -568,6 +676,147 @@ export type Database = {
             columns: ["sector_code"]
             isOneToOne: false
             referencedRelation: "sectors"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      country_source_chunks: {
+        Row: {
+          chunk_index: number
+          content: string
+          country_code: string
+          created_at: string
+          document_id: string
+          embedding: string | null
+          id: string
+        }
+        Insert: {
+          chunk_index: number
+          content: string
+          country_code: string
+          created_at?: string
+          document_id: string
+          embedding?: string | null
+          id?: string
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          country_code?: string
+          created_at?: string
+          document_id?: string
+          embedding?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "country_source_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "country_source_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      country_source_documents: {
+        Row: {
+          char_count: number
+          chunk_count: number
+          country_source_id: string
+          created_at: string
+          fetched_at: string
+          id: string
+          raw_text: string
+        }
+        Insert: {
+          char_count: number
+          chunk_count?: number
+          country_source_id: string
+          created_at?: string
+          fetched_at?: string
+          id?: string
+          raw_text: string
+        }
+        Update: {
+          char_count?: number
+          chunk_count?: number
+          country_source_id?: string
+          created_at?: string
+          fetched_at?: string
+          id?: string
+          raw_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "country_source_documents_country_source_id_fkey"
+            columns: ["country_source_id"]
+            isOneToOne: false
+            referencedRelation: "country_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      country_sources: {
+        Row: {
+          active: boolean
+          country_code: string
+          created_at: string
+          created_by: string | null
+          fetch_error: string | null
+          fetch_status: string | null
+          id: string
+          kind: string
+          last_fetched_at: string | null
+          org: string
+          quality_score: number
+          tags: string[]
+          title: string
+          tld: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          active?: boolean
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          fetch_error?: string | null
+          fetch_status?: string | null
+          id?: string
+          kind: string
+          last_fetched_at?: string | null
+          org: string
+          quality_score?: number
+          tags?: string[]
+          title: string
+          tld?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          active?: boolean
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          fetch_error?: string | null
+          fetch_status?: string | null
+          id?: string
+          kind?: string
+          last_fetched_at?: string | null
+          org?: string
+          quality_score?: number
+          tags?: string[]
+          title?: string
+          tld?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "country_sources_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
             referencedColumns: ["code"]
           },
         ]
@@ -1615,6 +1864,50 @@ export type Database = {
           },
         ]
       }
+      ministry_profiles: {
+        Row: {
+          country_code: string
+          created_at: string
+          id: string
+          mandate: string | null
+          minister: string | null
+          ministry_slug: string
+          programmes: Json
+          source_ids: string[]
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          id?: string
+          mandate?: string | null
+          minister?: string | null
+          ministry_slug: string
+          programmes?: Json
+          source_ids?: string[]
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          id?: string
+          mandate?: string | null
+          minister?: string | null
+          ministry_slug?: string
+          programmes?: Json
+          source_ids?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ministry_profiles_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       ministry_sectors: {
         Row: {
           created_at: string
@@ -2072,6 +2365,50 @@ export type Database = {
             columns: ["sector_code"]
             isOneToOne: false
             referencedRelation: "sectors"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      sector_dossiers: {
+        Row: {
+          confidence: string
+          country_code: string
+          created_at: string
+          id: string
+          kind: string
+          payload: Json
+          sector_code: string
+          source_ids: string[]
+          updated_at: string
+        }
+        Insert: {
+          confidence?: string
+          country_code: string
+          created_at?: string
+          id?: string
+          kind: string
+          payload: Json
+          sector_code: string
+          source_ids?: string[]
+          updated_at?: string
+        }
+        Update: {
+          confidence?: string
+          country_code?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          sector_code?: string
+          source_ids?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sector_dossiers_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
             referencedColumns: ["code"]
           },
         ]

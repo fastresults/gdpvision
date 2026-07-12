@@ -1766,30 +1766,3 @@ function MemoryList({ rows, onVerify, onDelete }: { rows: any[]; onVerify: (id: 
     </div>
   );
 }
-
-
-function AddMemoryForm({ onSubmit }: { onSubmit: (v: { sector_code: string; kind: string; title: string; body: string; weight: number; verified: boolean }) => Promise<void> }) {
-  const [sector, setSector] = useState("cross_cutting");
-  const [kind, setKind] = useState("position");
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [weight, setWeight] = useState(3);
-  const [busy, setBusy] = useState(false);
-  return (
-    <form onSubmit={async (e) => { e.preventDefault(); setBusy(true); try { await onSubmit({ sector_code: sector, kind, title, body, weight, verified: false }); setTitle(""); setBody(""); } finally { setBusy(false); } }}
-      className="grid grid-cols-1 md:grid-cols-4 gap-2 border border-line-200 p-3 bg-paper-100/40">
-      <input required placeholder="Sector code" value={sector} onChange={(e) => setSector(e.target.value)} className="border border-line-200 px-2 py-1.5 text-sm bg-paper-0" />
-      <select value={kind} onChange={(e) => setKind(e.target.value)} className="border border-line-200 px-2 py-1.5 text-sm bg-paper-0">
-        {["position", "audience", "outlet", "fact", "risk"].map((k) => <option key={k}>{k}</option>)}
-      </select>
-      <input required placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} className="md:col-span-2 border border-line-200 px-2 py-1.5 text-sm bg-paper-0" />
-      <textarea required placeholder="Body" value={body} onChange={(e) => setBody(e.target.value)} className="md:col-span-3 border border-line-200 px-2 py-1.5 text-sm bg-paper-0 min-h-[80px]" />
-      <select value={weight} onChange={(e) => setWeight(Number(e.target.value))} className="border border-line-200 px-2 py-1.5 text-sm bg-paper-0">
-        {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>weight {n}</option>)}
-      </select>
-      <button disabled={busy} className="md:col-span-4 px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0 disabled:opacity-50">
-        {busy ? "Saving…" : "Add memory"}
-      </button>
-    </form>
-  );
-}

@@ -156,7 +156,7 @@ function DataDashboard() {
         {tab === "kpis" && <KpisTab code={code} />}
         {tab === "dossiers" && <DossiersTab code={code} />}
         {tab === "ministries" && <MinistriesTab code={code} />}
-        {tab === "corpus" && <CorpusTab code={code} />}
+        {tab === "corpus" && <CorpusTab code={code} onGoToSources={() => setTab("sources")} />}
         {tab === "memory" && <MemoryTab code={code} />}
       </div>
     </SuperAdminShell>

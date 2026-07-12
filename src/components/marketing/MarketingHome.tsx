@@ -96,11 +96,10 @@ function shuffleTail() {
 export function MarketingHome() {
   const [tail, setTail] = useState(() => EXISTENTIAL_THREATS.slice(1));
   const [index, setIndex] = useState(0);
-  const [moment, setMoment] = useState(() => MOMENT_VARIANTS[0]);
+  const [momentIndex, setMomentIndex] = useState(0);
   useEffect(() => {
     setTail(shuffleTail());
-    const others = MOMENT_VARIANTS.slice(1);
-    setMoment(others[Math.floor(Math.random() * others.length)]);
+    setMomentIndex(1 + Math.floor(Math.random() * (MOMENT_VARIANTS.length - 1)));
     const id = setInterval(() => {
       setIndex((prev) => {
         const next = (prev + 1) % EXISTENTIAL_THREATS.length;
@@ -111,6 +110,11 @@ export function MarketingHome() {
     return () => clearInterval(id);
   }, []);
   const current = index === 0 ? EXISTENTIAL_THREATS[0] : tail[index - 1];
+  const moment = MOMENT_VARIANTS[momentIndex];
+  const total = MOMENT_VARIANTS.length;
+  const goPrev = () => setMomentIndex((i) => (i - 1 + total) % total);
+  const goNext = () => setMomentIndex((i) => (i + 1) % total);
+
   return (
     <MarketingShell>
       {/* HERO ------------------------------------------------------------- */}
@@ -164,25 +168,60 @@ export function MarketingHome() {
       {/* PROBLEM ---------------------------------------------------------- */}
       <section id="problem" className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
-          <SectionHeader
-            eyebrow="The moment"
-            title={moment.title}
-            lede={moment.lede}
-          />
-          <div className="mt-16 grid gap-12 border-t border-line-200 pt-12 md:grid-cols-3">
-            {moment.stats.map((s, i) => (
-              <NumberTile
-                key={i}
-                value={s.value}
-                unit={s.unit}
-                label={s.label}
-                grade={s.grade}
-                citation={s.citation}
-              />
-            ))}
+          <div key={moment.id} className="animate-in fade-in duration-500 motion-reduce:animate-none">
+            <SectionHeader
+              eyebrow="The moment"
+              title={moment.title}
+              lede={moment.lede}
+            />
+            <div className="mt-16 grid gap-12 border-t border-line-200 pt-12 md:grid-cols-3">
+              {moment.stats.map((s, i) => (
+                <NumberTile
+                  key={i}
+                  value={s.value}
+                  unit={s.unit}
+                  label={s.label}
+                  grade={s.grade}
+                  citation={s.citation}
+                />
+              ))}
+            </div>
           </div>
+          <nav
+            aria-label="Cycle through economic impact scenarios"
+            className="mt-16 flex items-center justify-end gap-6 border-t border-line-200 pt-6"
+          >
+            <button
+              type="button"
+              onClick={goPrev}
+              aria-label="Previous scenario"
+              className="group flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
+            >
+              <svg width="44" height="10" viewBox="0 0 44 10" fill="none" aria-hidden className="transition-transform duration-300 group-hover:-translate-x-1">
+                <path d="M43 5H1M1 5L5 1M1 5L5 9" stroke="currentColor" strokeWidth="1" strokeLinecap="square" />
+              </svg>
+              <span>Prev</span>
+            </button>
+            <span className="font-mono text-[11px] tabular-nums tracking-[0.22em] text-ink-950">
+              {String(momentIndex + 1).padStart(2, "0")}
+              <span className="mx-2 text-ink-300">/</span>
+              {String(total).padStart(2, "0")}
+            </span>
+            <button
+              type="button"
+              onClick={goNext}
+              aria-label="Next scenario"
+              className="group flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
+            >
+              <span>Next</span>
+              <svg width="44" height="10" viewBox="0 0 44 10" fill="none" aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">
+                <path d="M1 5H43M43 5L39 1M43 5L39 9" stroke="currentColor" strokeWidth="1" strokeLinecap="square" />
+              </svg>
+            </button>
+          </nav>
         </div>
       </section>
+
 
       {/* INSTRUMENT — CHAMBERS ------------------------------------------- */}
       <section id="instrument" className="border-b border-line-200 bg-paper-100/40">

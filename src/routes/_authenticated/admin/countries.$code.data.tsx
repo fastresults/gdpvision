@@ -1319,25 +1319,91 @@ function MinisterEditDialog({ row, countryCode, onClose }: { row: any; countryCo
 // Corpus + semantic search
 // ============================================================
 
-function CorpusTab({ code }: { code: string }) {
+type DrillKey = "sources" | "active" | "documents" | "chunks" | "runs" | null;
+
+function CorpusTab({ code, onGoToSources }: { code: string; onGoToSources: () => void }) {
+  const qc = useQueryClient();
   const { data: stats } = useSuspenseQuery(statsQuery(code));
+  const { data: detail } = useSuspenseQuery(corpusDetailQuery(code));
   const search = useServerFn(semanticSearch);
+  const ingest = useServerFn(runCorpusIngest);
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<any[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [drill, setDrill] = useState<DrillKey>(null);
 
   const s = stats as any;
+  const d = detail as any;
+  const needsIngest = (s.documents ?? 0) === 0;
+
+  const ingestMut = useMutation({
+    mutationFn: () => ingest({ data: { countryCode: code } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["data", code, "stats"] });
+      qc.invalidateQueries({ queryKey: ["data", code, "corpus-detail"] });
+      qc.invalidateQueries({ queryKey: ["data", code, "sources"] });
+    },
+  });
+
+  const toggleDrill = (k: Exclude<DrillKey, null>) => setDrill((cur) => (cur === k ? null : k));
+
   return (
     <section className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Stat label="Sources" value={s.sources_total} />
-        <Stat label="Active" value={s.sources_active} />
-        <Stat label="Documents" value={s.documents} />
-        <Stat label="Chunks" value={s.chunks} />
-        <Stat label="Last ingest" value={s.last_ingest_at ? new Date(s.last_ingest_at).toLocaleDateString() : "—"} />
+      {/* Explainer */}
+      <div className="border border-line-200 bg-paper-100 p-4 text-sm text-ink-700 leading-relaxed">
+        The corpus is what the AI reads when it answers questions about this country. Pipeline:{" "}
+        <span className="font-mono text-[11px] uppercase tracking-wider text-ink-950">Sources</span> (URLs registered) →{" "}
+        <span className="font-mono text-[11px] uppercase tracking-wider text-ink-950">Fetch</span> (Firecrawl pulls page) →{" "}
+        <span className="font-mono text-[11px] uppercase tracking-wider text-ink-950">Documents</span> (one per fetched URL) →{" "}
+        <span className="font-mono text-[11px] uppercase tracking-wider text-ink-950">Chunk + embed</span> →{" "}
+        <span className="font-mono text-[11px] uppercase tracking-wider text-ink-950">Chunks</span> (searchable).
+        {needsIngest && (
+          <span className="block mt-2 text-signal-negative">
+            {s.sources_active} sources are active but 0 have been fetched — the AI has nothing to retrieve yet. Run corpus ingest to fix.
+          </span>
+        )}
       </div>
 
+      {/* Action bar */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          onClick={() => ingestMut.mutate()}
+          disabled={ingestMut.isPending || s.sources_active === 0}
+        >
+          {ingestMut.isPending ? "Ingesting…" : "Run corpus ingest"}
+        </Button>
+        <Button variant="outline" onClick={onGoToSources}>Manage sources →</Button>
+        {ingestMut.error && (
+          <span className="text-xs text-signal-negative">{(ingestMut.error as Error).message}</span>
+        )}
+        {ingestMut.isSuccess && !ingestMut.isPending && (
+          <span className="text-xs text-ink-500">
+            Last run: {(ingestMut.data as any)?.processed ?? 0} sources processed, {(ingestMut.data as any)?.totalChunks ?? 0} chunks embedded
+          </span>
+        )}
+      </div>
+
+      {/* Stat tiles (clickable) */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <StatTile label="Sources" value={s.sources_total} selected={drill === "sources"} onClick={() => toggleDrill("sources")} />
+        <StatTile label="Active" value={s.sources_active} selected={drill === "active"} onClick={() => toggleDrill("active")} />
+        <StatTile label="Documents" value={s.documents} selected={drill === "documents"} onClick={() => toggleDrill("documents")} />
+        <StatTile label="Chunks" value={s.chunks} selected={drill === "chunks"} onClick={() => toggleDrill("chunks")} />
+        <StatTile
+          label="Last ingest"
+          value={s.last_ingest_at ? new Date(s.last_ingest_at).toLocaleDateString() : "—"}
+          selected={drill === "runs"}
+          onClick={() => toggleDrill("runs")}
+        />
+      </div>
+
+      {/* Drawer */}
+      {drill && (
+        <CorpusDrawer drill={drill} detail={d} onClose={() => setDrill(null)} />
+      )}
+
+      {/* Retrieval sanity check */}
       <div>
         <h3 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500 mb-2">Retrieval sanity check</h3>
         <form
@@ -1357,11 +1423,10 @@ function CorpusTab({ code }: { code: string }) {
           className="flex gap-2"
         >
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask a question the AI should be able to answer…" className="flex-1 border border-line-200 px-3 py-2 text-sm bg-paper-0" />
-          <button disabled={busy || !q} className="px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0 disabled:opacity-50">
-            {busy ? "Searching…" : "Search"}
-          </button>
+          <Button type="submit" disabled={busy || !q}>{busy ? "Searching…" : "Search"}</Button>
         </form>
-        {err && <div className="mt-2 p-2 text-xs text-red-700 border border-red-500/50 bg-red-500/10">{err}</div>}
+        <p className="mt-1 text-[11px] text-ink-500">Searches embedded chunks. Returns nothing until at least one source has been ingested.</p>
+        {err && <div className="mt-2 p-2 text-xs text-signal-negative border border-signal-negative/40 bg-signal-negative/5">{err}</div>}
         {hits && (
           <ul className="mt-3 space-y-2">
             {hits.length === 0 && <li className="text-xs text-ink-500">No matches. Ingest more sources.</li>}
@@ -1381,11 +1446,172 @@ function CorpusTab({ code }: { code: string }) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: any }) {
+function StatTile({ label, value, selected, onClick }: { label: string; value: any; selected?: boolean; onClick?: () => void }) {
   return (
-    <div className="border border-line-200 p-3">
+    <button
+      type="button"
+      onClick={onClick}
+      className={`text-left border p-3 transition-colors ${
+        selected ? "border-ink-950 bg-paper-100" : "border-line-200 hover:border-ink-500"
+      }`}
+    >
       <div className="font-serif text-2xl" data-numeric>{value}</div>
       <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 mt-1">{label}</div>
+    </button>
+  );
+}
+
+function fmtDate(v: string | null) {
+  if (!v) return "—";
+  return new Date(v).toLocaleString();
+}
+
+function CorpusDrawer({ drill, detail, onClose }: { drill: Exclude<DrillKey, null>; detail: any; onClose: () => void }) {
+  const sources: any[] = detail?.sources ?? [];
+  const documents: any[] = detail?.documents ?? [];
+  const runs: any[] = detail?.runs ?? [];
+
+  let title = "";
+  let body: React.ReactNode = null;
+
+  if (drill === "sources" || drill === "active") {
+    const rows = drill === "active" ? sources.filter((s) => s.active) : sources;
+    title = drill === "active" ? "Active sources" : "All registered sources";
+    body = rows.length === 0 ? (
+      <p className="text-sm text-ink-500">No sources.</p>
+    ) : (
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-left text-[10px] font-mono uppercase tracking-widest text-ink-500 border-b border-line-200">
+            <tr>
+              <th className="py-2 pr-3">Org · Title</th>
+              <th className="py-2 pr-3">Kind</th>
+              <th className="py-2 pr-3 text-center">Active</th>
+              <th className="py-2 pr-3 text-center">Docs</th>
+              <th className="py-2 pr-3 text-center">Chunks</th>
+              <th className="py-2 pr-3">Last fetched</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((s) => (
+              <tr key={s.id} className={`border-b border-line-200/60 ${!s.active ? "opacity-50" : ""}`}>
+                <td className="py-2 pr-3">
+                  <a href={s.url} target="_blank" rel="noreferrer" className="hover:underline">
+                    <span className="text-ink-500">{s.org}</span> · {s.title}
+                  </a>
+                </td>
+                <td className="py-2 pr-3 font-mono text-[11px] text-ink-500">{s.kind}</td>
+                <td className="py-2 pr-3 text-center">{s.active ? "on" : "off"}</td>
+                <td className="py-2 pr-3 text-center" data-numeric>{s.doc_count}</td>
+                <td className="py-2 pr-3 text-center" data-numeric>{s.chunk_count}</td>
+                <td className="py-2 pr-3 text-[11px] text-ink-500">{fmtDate(s.last_fetched_at)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  } else if (drill === "documents") {
+    title = "Fetched documents";
+    body = documents.length === 0 ? (
+      <p className="text-sm text-ink-500">
+        No source has been fetched yet. Click <span className="font-mono text-[11px] uppercase">Run corpus ingest</span> above.
+      </p>
+    ) : (
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-left text-[10px] font-mono uppercase tracking-widest text-ink-500 border-b border-line-200">
+            <tr>
+              <th className="py-2 pr-3">Source</th>
+              <th className="py-2 pr-3">Fetched</th>
+              <th className="py-2 pr-3 text-right">Chars</th>
+              <th className="py-2 pr-3 text-right">Chunks</th>
+            </tr>
+          </thead>
+          <tbody>
+            {documents.map((doc) => (
+              <tr key={doc.id} className="border-b border-line-200/60">
+                <td className="py-2 pr-3"><span className="text-ink-500">{doc.source_org}</span> · {doc.source_title}</td>
+                <td className="py-2 pr-3 text-[11px] text-ink-500">{fmtDate(doc.fetched_at)}</td>
+                <td className="py-2 pr-3 text-right" data-numeric>{doc.char_count.toLocaleString()}</td>
+                <td className="py-2 pr-3 text-right" data-numeric>{doc.chunk_count}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  } else if (drill === "chunks") {
+    title = "Chunks per source";
+    const rows = sources.filter((s) => s.chunk_count > 0);
+    body = rows.length === 0 ? (
+      <p className="text-sm text-ink-500">No embedded chunks yet — run corpus ingest first.</p>
+    ) : (
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-left text-[10px] font-mono uppercase tracking-widest text-ink-500 border-b border-line-200">
+            <tr>
+              <th className="py-2 pr-3">Source</th>
+              <th className="py-2 pr-3 text-right">Chunks</th>
+              <th className="py-2 pr-3 text-right">Avg chars</th>
+              <th className="py-2 pr-3">Last embedded</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((s) => (
+              <tr key={s.id} className="border-b border-line-200/60">
+                <td className="py-2 pr-3"><span className="text-ink-500">{s.org}</span> · {s.title}</td>
+                <td className="py-2 pr-3 text-right" data-numeric>{s.chunk_count}</td>
+                <td className="py-2 pr-3 text-right" data-numeric>{s.chunk_count ? Math.round(s.chars / s.chunk_count) : 0}</td>
+                <td className="py-2 pr-3 text-[11px] text-ink-500">{fmtDate(s.last_fetched_at)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  } else if (drill === "runs") {
+    title = "Recent ingest runs";
+    body = runs.length === 0 ? (
+      <p className="text-sm text-ink-500">No ingest runs recorded yet.</p>
+    ) : (
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-left text-[10px] font-mono uppercase tracking-widest text-ink-500 border-b border-line-200">
+            <tr>
+              <th className="py-2 pr-3">Started</th>
+              <th className="py-2 pr-3">Duration</th>
+              <th className="py-2 pr-3">Status</th>
+              <th className="py-2 pr-3">Error</th>
+            </tr>
+          </thead>
+          <tbody>
+            {runs.map((r) => {
+              const dur = r.finished_at && r.started_at
+                ? Math.round((new Date(r.finished_at).getTime() - new Date(r.started_at).getTime()) / 1000) + "s"
+                : "—";
+              return (
+                <tr key={r.id} className="border-b border-line-200/60">
+                  <td className="py-2 pr-3 text-[11px] text-ink-500">{fmtDate(r.started_at)}</td>
+                  <td className="py-2 pr-3 font-mono text-[11px]">{dur}</td>
+                  <td className="py-2 pr-3 font-mono text-[11px]">{r.status}</td>
+                  <td className="py-2 pr-3 text-[11px] text-signal-negative">{r.error ?? ""}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border border-ink-950 bg-paper-0">
+      <div className="flex items-center justify-between border-b border-line-200 px-4 py-2">
+        <h4 className="font-mono text-[11px] uppercase tracking-[0.2em]">{title}</h4>
+        <button onClick={onClose} className="font-mono text-[10px] uppercase tracking-widest text-ink-500 hover:text-ink-950">Close</button>
+      </div>
+      <div className="p-4">{body}</div>
     </div>
   );
 }

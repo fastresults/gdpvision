@@ -2032,33 +2032,39 @@ export type Database = {
       }
       ministry_profiles: {
         Row: {
+          citations: Json
           country_code: string
           created_at: string
           id: string
           mandate: string | null
           minister: string | null
+          minister_profile: Json
           ministry_slug: string
           programmes: Json
           source_ids: string[]
           updated_at: string
         }
         Insert: {
+          citations?: Json
           country_code: string
           created_at?: string
           id?: string
           mandate?: string | null
           minister?: string | null
+          minister_profile?: Json
           ministry_slug: string
           programmes?: Json
           source_ids?: string[]
           updated_at?: string
         }
         Update: {
+          citations?: Json
           country_code?: string
           created_at?: string
           id?: string
           mandate?: string | null
           minister?: string | null
+          minister_profile?: Json
           ministry_slug?: string
           programmes?: Json
           source_ids?: string[]

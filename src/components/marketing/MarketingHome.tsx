@@ -83,13 +83,30 @@ const CHAMBERS = [
   },
 ];
 
+function shuffleTail() {
+  const tail = EXISTENTIAL_THREATS.slice(1);
+  for (let i = tail.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [tail[i], tail[j]] = [tail[j], tail[i]];
+  }
+  return tail;
+}
+
 export function MarketingHome() {
-  const cbi = EXISTENTIAL_THREATS[0];
-  const [rotating, setRotating] = useState(EXISTENTIAL_THREATS[1]);
+  const [tail, setTail] = useState(() => EXISTENTIAL_THREATS.slice(1));
+  const [index, setIndex] = useState(0);
   useEffect(() => {
-    const pool = EXISTENTIAL_THREATS.slice(1);
-    setRotating(pool[Math.floor(Math.random() * pool.length)]);
+    setTail(shuffleTail());
+    const id = setInterval(() => {
+      setIndex((prev) => {
+        const next = (prev + 1) % EXISTENTIAL_THREATS.length;
+        if (next === 0) setTail(shuffleTail());
+        return next;
+      });
+    }, 2500);
+    return () => clearInterval(id);
   }, []);
+  const current = index === 0 ? EXISTENTIAL_THREATS[0] : tail[index - 1];
   return (
     <MarketingShell>
       {/* HERO ------------------------------------------------------------- */}
@@ -103,18 +120,22 @@ export function MarketingHome() {
             <h1 className="mt-8 font-serif text-[43px] leading-[1.05] tracking-tight text-ink-950 md:text-[68px]">
               Govern with the whole picture.
             </h1>
-            <div className="mt-8 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">
-              {cbi.title}
+            <div
+              aria-live="polite"
+              className="mt-8 min-h-[260px] md:min-h-[300px]"
+            >
+              <div
+                key={current.id}
+                className="animate-in fade-in duration-500 motion-reduce:animate-none"
+              >
+                <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">
+                  {current.title}
+                </div>
+                <p className="mt-3 max-w-xl text-[17px] leading-relaxed text-ink-700 md:text-[21px]">
+                  {current.body}
+                </p>
+              </div>
             </div>
-            <p className="mt-3 max-w-xl text-[17px] leading-relaxed text-ink-700 md:text-[21px]">
-              {cbi.body}
-            </p>
-            <div className="mt-8 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">
-              {rotating.title}
-            </div>
-            <p className="mt-3 max-w-xl text-[17px] leading-relaxed text-ink-700 md:text-[21px]">
-              {rotating.body}
-            </p>
             <div className="mt-10 flex flex-wrap items-center gap-6">
               <a
                 href="#briefing"

@@ -124,7 +124,7 @@ export const deleteSource = createServerFn({ method: "POST" })
     const { data: docs } = await supabaseAdmin
       .from("country_source_documents")
       .select("id")
-      .eq("source_id", data.id);
+      .eq("country_source_id", data.id);
     const docIds = (docs ?? []).map((d) => d.id);
     if (docIds.length) {
       await supabaseAdmin.from("country_source_chunks").delete().in("document_id", docIds);

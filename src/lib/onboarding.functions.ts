@@ -85,13 +85,14 @@ export const seedCountryPack = createServerFn({ method: "POST" })
         sector_code: sectorCode,
         kind: tpl.kind,
         title: tpl.title,
-        body: tpl.body,
+        payload: { body: tpl.body } as any,
         weight: tpl.weight,
         verified: true,
         created_by: context.userId,
       });
       if (!error) inserted += 1;
     }
+
 
     await supabaseAdmin.from("audit_log").insert({
       actor_id: context.userId,

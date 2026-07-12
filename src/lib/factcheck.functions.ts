@@ -21,12 +21,6 @@ export interface Claim {
   matches: Array<{ series_id: string; metric: string; unit: string; period: string; value: number; delta_pct: number }>;
 }
 
-export interface FactCheckReport {
-  claims: Claim[];
-  grounded: number;
-  ungrounded: number;
-}
-
 function classify(raw: string, suffix?: string): { value: number; unit: Claim["unit"] } {
   const cleaned = raw.replace(/[,$\sA-Za-z]/g, "");
   let n = Number(cleaned);

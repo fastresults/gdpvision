@@ -575,12 +575,15 @@ export type Database = {
           country_code: string
           created_at: string
           direction: string
+          freshness_status: string
           id: string
           kpi_code: string
           label: string
+          last_verified_at: string | null
           latest_period: string | null
           latest_value: number | null
           notes: string | null
+          research_notes: string | null
           source_id: string | null
           target: number | null
           unit: string
@@ -591,12 +594,15 @@ export type Database = {
           country_code: string
           created_at?: string
           direction?: string
+          freshness_status?: string
           id?: string
           kpi_code: string
           label: string
+          last_verified_at?: string | null
           latest_period?: string | null
           latest_value?: number | null
           notes?: string | null
+          research_notes?: string | null
           source_id?: string | null
           target?: number | null
           unit: string
@@ -607,12 +613,15 @@ export type Database = {
           country_code?: string
           created_at?: string
           direction?: string
+          freshness_status?: string
           id?: string
           kpi_code?: string
           label?: string
+          last_verified_at?: string | null
           latest_period?: string | null
           latest_value?: number | null
           notes?: string | null
+          research_notes?: string | null
           source_id?: string | null
           target?: number | null
           unit?: string
@@ -1502,6 +1511,62 @@ export type Database = {
           total_violations?: number
         }
         Relationships: []
+      }
+      kpi_research_attempts: {
+        Row: {
+          country_code: string
+          created_at: string
+          error: string | null
+          id: string
+          kpi_code: string
+          model: string | null
+          ok: boolean
+          pass: string
+          period: string | null
+          provider: string
+          run_id: string | null
+          source_url: string | null
+          value: number | null
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          kpi_code: string
+          model?: string | null
+          ok?: boolean
+          pass: string
+          period?: string | null
+          provider: string
+          run_id?: string | null
+          source_url?: string | null
+          value?: number | null
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          kpi_code?: string
+          model?: string | null
+          ok?: boolean
+          pass?: string
+          period?: string | null
+          provider?: string
+          run_id?: string | null
+          source_url?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpi_research_attempts_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_runs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       kpi_snapshots: {
         Row: {

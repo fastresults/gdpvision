@@ -149,6 +149,36 @@ export type Database = {
         }
         Relationships: []
       }
+      cadence_closes: {
+        Row: {
+          closed_at: string
+          closed_by: string | null
+          id: string
+          notes: string | null
+          period_label: string
+          snapshot_count: number
+          window_kind: string
+        }
+        Insert: {
+          closed_at?: string
+          closed_by?: string | null
+          id?: string
+          notes?: string | null
+          period_label: string
+          snapshot_count?: number
+          window_kind: string
+        }
+        Update: {
+          closed_at?: string
+          closed_by?: string | null
+          id?: string
+          notes?: string | null
+          period_label?: string
+          snapshot_count?: number
+          window_kind?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           behavior: string
@@ -652,6 +682,42 @@ export type Database = {
           },
         ]
       }
+      exports_documents: {
+        Row: {
+          html: string
+          id: string
+          kind: string
+          metadata: Json
+          rendered_at: string
+          rendered_by: string | null
+          scope_key: string | null
+          source_id: string | null
+          title: string
+        }
+        Insert: {
+          html: string
+          id?: string
+          kind: string
+          metadata?: Json
+          rendered_at?: string
+          rendered_by?: string | null
+          scope_key?: string | null
+          source_id?: string | null
+          title: string
+        }
+        Update: {
+          html?: string
+          id?: string
+          kind?: string
+          metadata?: Json
+          rendered_at?: string
+          rendered_by?: string | null
+          scope_key?: string | null
+          source_id?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       exports_log: {
         Row: {
           artifact_kind: string
@@ -1134,6 +1200,53 @@ export type Database = {
           total_violations?: number
         }
         Relationships: []
+      }
+      kpi_snapshots: {
+        Row: {
+          captured_at: string
+          created_by: string | null
+          id: string
+          kpi_id: string
+          metadata: Json
+          period_label: string
+          target: number | null
+          value: number | null
+          variance_pct: number | null
+          window_kind: string
+        }
+        Insert: {
+          captured_at?: string
+          created_by?: string | null
+          id?: string
+          kpi_id: string
+          metadata?: Json
+          period_label: string
+          target?: number | null
+          value?: number | null
+          variance_pct?: number | null
+          window_kind: string
+        }
+        Update: {
+          captured_at?: string
+          created_by?: string | null
+          id?: string
+          kpi_id?: string
+          metadata?: Json
+          period_label?: string
+          target?: number | null
+          value?: number | null
+          variance_pct?: number | null
+          window_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpi_snapshots_kpi_id_fkey"
+            columns: ["kpi_id"]
+            isOneToOne: false
+            referencedRelation: "kpis"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       kpis: {
         Row: {
@@ -1752,6 +1865,39 @@ export type Database = {
             referencedColumns: ["code"]
           },
         ]
+      }
+      sector_edges: {
+        Row: {
+          from_sector: string
+          id: string
+          notes: string | null
+          order_rank: number
+          to_sector: string
+          updated_at: string
+          updated_by: string | null
+          weight: number
+        }
+        Insert: {
+          from_sector: string
+          id?: string
+          notes?: string | null
+          order_rank?: number
+          to_sector: string
+          updated_at?: string
+          updated_by?: string | null
+          weight?: number
+        }
+        Update: {
+          from_sector?: string
+          id?: string
+          notes?: string | null
+          order_rank?: number
+          to_sector?: string
+          updated_at?: string
+          updated_by?: string | null
+          weight?: number
+        }
+        Relationships: []
       }
       sectors: {
         Row: {

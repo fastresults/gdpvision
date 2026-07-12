@@ -43,6 +43,40 @@ export const askCounsel = createServerFn({ method: "POST" })
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("Counsel unavailable — missing gateway credentials.");
 
+    // 0. Rate limits + provider budget cap (Wave D2). Read caps from
+    // instance_config; fall back to conservative defaults if absent.
+    const { data: cfgRow } = await context.supabase
+      .from("instance_config")
+      .select("value_json")
+      .eq("key", "counsel.limits")
+      .maybeSingle();
+    const limits = ((cfgRow?.value_json as { perUserPerHour?: number; perScopePerDay?: number } | null) ?? {});
+    const perUserPerHour = limits.perUserPerHour ?? 30;
+    const perScopePerDay = limits.perScopePerDay ?? 500;
+
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const [{ count: userCount }, { count: scopeCount }] = await Promise.all([
+      context.supabase
+        .from("counsel_answers")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", context.userId)
+        .gte("created_at", hourAgo),
+      context.supabase
+        .from("counsel_answers")
+        .select("id", { count: "exact", head: true })
+        .eq("scope_key", data.scopeKey)
+        .gte("created_at", dayAgo),
+    ]);
+    if ((userCount ?? 0) >= perUserPerHour) {
+      throw new Error(`Counsel rate limit — max ${perUserPerHour} questions per hour per user.`);
+    }
+    if ((scopeCount ?? 0) >= perScopePerDay) {
+      throw new Error(`Counsel budget cap — scope ${data.scopeKey} exceeded ${perScopePerDay} answers today.`);
+    }
+
+
+
     // 1. Retrieval — pull weighted memory objects for the scope; drop suppressed sources.
     const { data: suppressions } = await context.supabase
       .from("source_suppressions")

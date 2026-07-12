@@ -69,6 +69,7 @@ import { Route as AuthenticatedAdminCountryCodeRouteImport } from './routes/_aut
 import { Route as AuthenticatedAdminAuditsLogRouteImport } from './routes/_authenticated/admin/audits.log'
 import { Route as AuthenticatedAdminAuditsKeyingRouteImport } from './routes/_authenticated/admin/audits.keying'
 import { Route as AuthenticatedAdminCountriesCodeOnboardRouteImport } from './routes/_authenticated/admin/countries.$code.onboard'
+import { Route as AuthenticatedAdminCountriesCodeDataRouteImport } from './routes/_authenticated/admin/countries.$code.data'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -417,6 +418,12 @@ const AuthenticatedAdminCountriesCodeOnboardRoute =
     path: '/countries/$code/onboard',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeDataRoute =
+  AuthenticatedAdminCountriesCodeDataRouteImport.update({
+    id: '/countries/$code/data',
+    path: '/countries/$code/data',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -477,6 +484,7 @@ export interface FileRoutesByFullPath {
   '/instrument/portfolio/': typeof AuthenticatedInstrumentPortfolioIndexRoute
   '/instrument/scenarios/': typeof AuthenticatedInstrumentScenariosIndexRoute
   '/narrative/strategy/': typeof AuthenticatedNarrativeStrategyIndexRoute
+  '/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
   '/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
 }
 export interface FileRoutesByTo {
@@ -534,6 +542,7 @@ export interface FileRoutesByTo {
   '/instrument/portfolio': typeof AuthenticatedInstrumentPortfolioIndexRoute
   '/instrument/scenarios': typeof AuthenticatedInstrumentScenariosIndexRoute
   '/narrative/strategy': typeof AuthenticatedNarrativeStrategyIndexRoute
+  '/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
   '/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
 }
 export interface FileRoutesById {
@@ -597,6 +606,7 @@ export interface FileRoutesById {
   '/_authenticated/instrument/portfolio/': typeof AuthenticatedInstrumentPortfolioIndexRoute
   '/_authenticated/instrument/scenarios/': typeof AuthenticatedInstrumentScenariosIndexRoute
   '/_authenticated/narrative/strategy/': typeof AuthenticatedNarrativeStrategyIndexRoute
+  '/_authenticated/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
   '/_authenticated/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
 }
 export interface FileRouteTypes {
@@ -660,6 +670,7 @@ export interface FileRouteTypes {
     | '/instrument/portfolio/'
     | '/instrument/scenarios/'
     | '/narrative/strategy/'
+    | '/admin/countries/$code/data'
     | '/admin/countries/$code/onboard'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -717,6 +728,7 @@ export interface FileRouteTypes {
     | '/instrument/portfolio'
     | '/instrument/scenarios'
     | '/narrative/strategy'
+    | '/admin/countries/$code/data'
     | '/admin/countries/$code/onboard'
   id:
     | '__root__'
@@ -779,6 +791,7 @@ export interface FileRouteTypes {
     | '/_authenticated/instrument/portfolio/'
     | '/_authenticated/instrument/scenarios/'
     | '/_authenticated/narrative/strategy/'
+    | '/_authenticated/admin/countries/$code/data'
     | '/_authenticated/admin/countries/$code/onboard'
   fileRoutesById: FileRoutesById
 }
@@ -1214,6 +1227,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeOnboardRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/countries/$code/data': {
+      id: '/_authenticated/admin/countries/$code/data'
+      path: '/countries/$code/data'
+      fullPath: '/admin/countries/$code/data'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeDataRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
   }
 }
 
@@ -1225,6 +1245,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminAuditsLogRoute: typeof AuthenticatedAdminAuditsLogRoute
   AuthenticatedAdminCountryCodeRoute: typeof AuthenticatedAdminCountryCodeRoute
   AuthenticatedAdminCountriesIndexRoute: typeof AuthenticatedAdminCountriesIndexRoute
+  AuthenticatedAdminCountriesCodeDataRoute: typeof AuthenticatedAdminCountriesCodeDataRoute
   AuthenticatedAdminCountriesCodeOnboardRoute: typeof AuthenticatedAdminCountriesCodeOnboardRoute
 }
 
@@ -1238,6 +1259,8 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminCountryCodeRoute: AuthenticatedAdminCountryCodeRoute,
     AuthenticatedAdminCountriesIndexRoute:
       AuthenticatedAdminCountriesIndexRoute,
+    AuthenticatedAdminCountriesCodeDataRoute:
+      AuthenticatedAdminCountriesCodeDataRoute,
     AuthenticatedAdminCountriesCodeOnboardRoute:
       AuthenticatedAdminCountriesCodeOnboardRoute,
   }

@@ -189,6 +189,8 @@ function CountriesQueue() {
                     </td>
                     <td className="px-4 py-3 text-right text-xs text-ink-500 whitespace-nowrap">
                       {lastAt ? new Date(lastAt).toLocaleDateString() : "—"}
+                      {" · "}
+                      <Link to="/admin/countries/$code/data" params={{ code: c.code }} className="underline hover:text-ink-950">Data</Link>
                     </td>
                   </tr>
                 );

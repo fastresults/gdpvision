@@ -729,3 +729,38 @@ export const commitMinistrySectorMap = createServerFn({ method: "POST" })
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
     return { ok: true, inserted: rows.length };
   });
+
+// ============================================================
+// SUPER ADMIN UTILITIES
+// ============================================================
+
+export const assertSuperAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    return { ok: true };
+  });
+
+export const getPerplexityKeyStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    return { configured: Boolean(process.env.PERPLEXITY_API_KEY) };
+  });
+
+export const listOnboardingRuns = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("onboarding_runs")
+      .select("id, country_code, stage, status, started_at, finished_at, model_stack, tokens_in, tokens_out, cost_usd, error, countries(name)")
+      .order("started_at", { ascending: false })
+      .limit(200);
+    if (error) throw error;
+    return (data ?? []).map((r: any) => ({
+      ...r,
+      country_name: r.countries?.name ?? null,
+    }));
+  });

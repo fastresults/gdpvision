@@ -158,7 +158,7 @@ export const reingestSource = createServerFn({ method: "POST" })
       const { data: existing } = await supabaseAdmin
         .from("country_source_documents")
         .select("id")
-        .eq("source_id", src.id);
+        .eq("country_source_id", src.id);
       const eIds = (existing ?? []).map((d) => d.id);
       if (eIds.length) {
         await supabaseAdmin.from("country_source_chunks").delete().in("document_id", eIds);
@@ -169,9 +169,7 @@ export const reingestSource = createServerFn({ method: "POST" })
       const { data: docRow, error: dErr } = await supabaseAdmin
         .from("country_source_documents")
         .insert({
-          country_code: src.country_code,
-          source_id: src.id,
-          title: doc.title,
+          country_source_id: src.id,
           raw_text: doc.markdown,
           chunk_count: chunks.length,
           char_count: doc.markdown.length,

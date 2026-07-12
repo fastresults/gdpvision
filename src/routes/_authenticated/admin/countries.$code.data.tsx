@@ -46,7 +46,6 @@ import {
   toggleSource,
   updateKpi,
   updateMinisterProfile,
-  upsertMemory,
 } from "@/lib/country-data/manage.functions";
 
 type TabKey = "sources" | "kpis" | "dossiers" | "ministries" | "corpus" | "memory";
@@ -1626,7 +1625,7 @@ function CorpusDrawer({ drill, detail, onClose }: { drill: Exclude<DrillKey, nul
 function MemoryTab({ code }: { code: string }) {
   const qc = useQueryClient();
   const { data: rows } = useSuspenseQuery(memoryQuery(code));
-  void upsertMemory;
+  
   const setV = useServerFn(setMemoryVerified);
   const del = useServerFn(deleteMemory);
   const [showAdd, setShowAdd] = useState(false);

@@ -1,36 +1,55 @@
 ## Goal
-Let admins refresh Ministry deep-dive data (minister identity, party, contact, bio, portrait, mandate, programmes) for the current country from the Ministries tab in one click — without leaving the page or going back to the onboarding wizard.
+Make the "Refresh from AI" review dialog readable and scannable. Right now the modal panel is transparent (the page bleeds through) and the diff is a dense two-column blur — an admin can't tell what will change per ministry.
 
-## UX
+## Fix modal chrome
+- Replace the hand-rolled `fixed inset-0 … bg-cream-50` overlay in `MinistryReviewDialog` with the project's shadcn `Dialog` primitives (`Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogDescription`, `DialogFooter`) from `@/components/ui/dialog`. That gives an opaque theme surface, backdrop, focus trap, and Escape-to-close for free.
+- `DialogContent` sized `max-w-4xl` / `max-h-[85vh]` with a scrollable body between a sticky header (title + summary strip) and a sticky footer (Cancel / Commit buttons) — so the actions never scroll out of view.
+- Apply the same fix to `MinisterEditDialog` (same bug — transparent panel).
 
-Add a **"Refresh from AI"** button in the Ministries tab header (top-right, next to the tab). Clicking it:
+## Redesign the diff
+Per ministry, one card. Header row: ministry name + right-aligned summary (e.g. "3 → 2 programmes · minister changed"). Body: one row per field.
 
-1. Calls the existing `runMinistryDeepDiveAgent` server function for this country.
-2. Shows a small inline status: "Researching ministries…" → "Ready to review · N ministries · M citations".
-3. Opens a **Review dialog** listing every returned ministry entry side-by-side with the current stored value (name, title, party, appointed, programmes count) so the admin sees exactly what will change.
-4. Admin clicks **Commit** → calls existing `commitMinistryDeepDive` with the returned `draftId`, which upserts `minister_profile`, `citations`, `mandate`, `programmes` for every ministry in one shot. Cancel discards the draft (leaves it uncommitted; no destructive change).
-5. On commit, invalidate the ministries query so the cards re-render with the new data.
+```
+┌─ Ministry of Finance                              minister changed · 3 → 2 programmes ─┐
+│  Minister    —                                →   Philip J. Pierre                     │
+│  Title       —                                →   Prime Minister & Minister of Finance │
+│  Party       —                                →   Saint Lucia Labour Party             │
+│  Appointed   —                                →   2021-07-28                           │
+│  Portrait    —                                →   [thumb 32×40]                        │
+│  Email       —                                →   pm.office@govt.lc                    │
+│  Phone       —                                →   +1-758-468-2101                      │
+│  Website     —                                →   govt.lc/ministries/finance           │
+│  Bio         —                                →   Attorney and long-serving MP for…    │
+│  Mandate     Lead macroeconomic policy…       →   Lead macroeconomic policy…           │
+│  Programmes  3 items ▸                        →   2 items ▸                            │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
 
-Errors from either call surface in the dialog with the raw message (Perplexity failures, quota, etc.).
+Field-row rules:
+- Grid: `label | current | arrow | new` with `label` and arrow columns narrow, current/new equal width.
+- Unchanged rows render in `text-ink-400` so the eye jumps to real changes.
+- Changed rows: new-value cell gets a subtle `bg-emerald-50/60` tint and darker text.
+- Empty values render as `—` in `text-ink-300`.
+- Portrait row: 32×40 thumb per side.
+- Bio: `line-clamp-2` with a per-row "Show more" toggle.
+- Mandate: same truncation.
+- Programmes: `<details>` showing name + status per programme.
 
-## No backend changes required
+Ministries with no field-level changes collapse to a single grey line: "Ministry of X · no changes" — no card body rendered.
 
-Both server functions already exist and do the right thing:
-- `runMinistryDeepDiveAgent` (in `corpus.functions.ts`) — already returns `{ runId, draftId, count, citations }` and uses the enriched schema/prompt shipped in the previous change.
-- `commitMinistryDeepDive` (same file) — already snapshots `citations` and writes `minister_profile` per the updated commit path.
-
-I'll re-export both from the manage barrel so the Ministries tab can import them cleanly (or import from `country-onboarding/corpus.functions` directly — same pattern the KPI tab already uses).
+## Summary strip (top of dialog body)
+One horizontal row of counts derived from the diff:
+- `X of Y ministries changed`
+- `N new minister names`
+- `M new contact records` (any contact field newly populated)
+- `K citations attached`
 
 ## Files
-
 - Edit `src/routes/_authenticated/admin/countries.$code.data.tsx`:
-  - Add imports for `runMinistryDeepDiveAgent`, `commitMinistryDeepDive`.
-  - Add a `RefreshMinistriesButton` + `MinistryReviewDialog` at the top of `MinistriesTab`.
-  - Loading, error, and success states inline; dialog uses the same lightweight overlay pattern as `MinisterEditDialog` to stay consistent.
+  - Rewrite `MinistryReviewDialog` using shadcn `Dialog`, add `diffMinistry(current, entry)` helper that returns `{ changed: boolean, rows: Array<{label, before, after, isChanged, kind}> }`, render summary + per-ministry cards.
+  - Wrap `MinisterEditDialog` in the same `Dialog` primitives (kill the hand-rolled overlay).
 
 ## Out of scope
-
-- No per-ministry refresh (the Perplexity call is already batched across all ministries in one request; per-ministry would be more expensive and less accurate).
-- No auto-commit — admins always review the draft before writes land.
-- No changes to the onboarding wizard flow.
-- No new tables, no new server functions.
+- No agent, commit, or data-model changes.
+- No per-ministry selective commit (still all-or-nothing).
+- No inline editing inside the review — admins keep using the per-card "Edit" after commit.

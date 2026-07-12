@@ -7,6 +7,7 @@ import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { AddSourceDialog } from "@/components/country-data/AddSourceDialog";
 import { SourceDetailSheet } from "@/components/country-data/SourceDetailSheet";
 import { PrettyJson } from "@/components/data/PrettyJson";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { getOnboardingStatus } from "@/lib/country-onboarding/agents.functions";
 import {
   backfillMissingKpis,
@@ -910,49 +911,174 @@ function MinistryReviewDialog({
 }) {
   const bySlug = new Map(rows.map((r) => [r.ministry_slug, r]));
   const entries: any[] = draft.payload?.ministries ?? [];
+  const diffs = entries.map((entry) => {
+    const current = bySlug.get(entry.ministry_slug) as any;
+    return { entry, current, diff: diffMinistry(current, entry) };
+  });
+  const changed = diffs.filter((d) => d.diff.changed);
+  const newMinisters = diffs.filter((d) => {
+    const before = d.current?.minister_profile?.name ?? d.current?.minister ?? null;
+    const after = d.entry?.minister_profile?.name ?? d.entry?.minister ?? null;
+    return !before && !!after;
+  }).length;
+  const newContacts = diffs.filter((d) => {
+    const b = d.current?.minister_profile?.contact ?? {};
+    const a = d.entry?.minister_profile?.contact ?? {};
+    return ["email", "office_phone", "office_address", "website"].some((k) => !b?.[k] && !!a?.[k]);
+  }).length;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onCancel}>
-      <div className="bg-cream-50 max-w-4xl w-full max-h-[90vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-serif text-lg">Review ministry refresh · {draft.count} entries · {draft.citations.length} citations</h3>
-          <button onClick={onCancel} className="text-ink-500 hover:text-ink-950">×</button>
+    <Dialog open onOpenChange={(o) => { if (!o) onCancel(); }}>
+      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="p-5 border-b border-line-200">
+          <DialogTitle className="font-serif text-lg">Review ministry refresh</DialogTitle>
+          <DialogDescription className="text-xs text-ink-500">
+            Committing overwrites minister profile, mandate, programmes, and citations for each ministry below. Existing rows not in the draft are untouched.
+          </DialogDescription>
+          <div className="mt-3 flex flex-wrap gap-4 text-xs">
+            <span><b className="text-ink-950 tabular-nums">{changed.length}</b> <span className="text-ink-500">of {diffs.length} ministries changed</span></span>
+            <span><b className="text-ink-950 tabular-nums">{newMinisters}</b> <span className="text-ink-500">new minister names</span></span>
+            <span><b className="text-ink-950 tabular-nums">{newContacts}</b> <span className="text-ink-500">new contact records</span></span>
+            <span><b className="text-ink-950 tabular-nums">{draft.citations.length}</b> <span className="text-ink-500">citations attached</span></span>
+          </div>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-3">
+          {diffs.map(({ entry, current, diff }, i) => (
+            <MinistryDiffCard key={i} entry={entry} current={current} diff={diff} />
+          ))}
         </div>
-        <p className="text-xs text-ink-500 mb-3">Committing overwrites minister profile, mandate, programmes, and citations for each ministry below. Existing rows not in the draft are untouched.</p>
-        <div className="space-y-3">
-          {entries.map((entry, i) => {
-            const current = bySlug.get(entry.ministry_slug) as any;
-            const newProfile = entry.minister_profile ?? {};
-            const oldProfile = current?.minister_profile ?? {};
-            return (
-              <div key={i} className="border border-line-200 p-3 grid grid-cols-2 gap-4 text-xs">
-                <div>
-                  <div className="text-ink-500 uppercase text-[10px] tracking-wide mb-1">Current · {current?.ministries?.name ?? entry.ministry_slug}</div>
-                  <div>{oldProfile.name ?? current?.minister ?? "—"}</div>
-                  <div className="text-ink-500">{oldProfile.title ?? "—"}</div>
-                  <div className="text-ink-500">{oldProfile.party ?? "—"}</div>
-                  <div className="text-ink-500">{(current?.programmes as any[])?.length ?? 0} programmes</div>
-                </div>
-                <div>
-                  <div className="text-ink-500 uppercase text-[10px] tracking-wide mb-1">New</div>
-                  <div className="font-medium">{newProfile.name ?? entry.minister ?? "—"}</div>
-                  <div className="text-ink-500">{newProfile.title ?? "—"}</div>
-                  <div className="text-ink-500">{newProfile.party ?? "—"}</div>
-                  <div className="text-ink-500">{(entry.programmes as any[])?.length ?? 0} programmes</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div className="mt-4 flex justify-end gap-2">
+
+        <DialogFooter className="p-4 border-t border-line-200 gap-2 sm:justify-end">
           <button onClick={onCancel} disabled={committing} className="text-xs text-ink-500 hover:text-ink-950 px-3 py-1.5">Cancel</button>
           <button onClick={onCommit} disabled={committing} className="text-xs bg-ink-950 text-cream-50 px-3 py-1.5 disabled:opacity-50">
-            {committing ? "Committing…" : "Commit refresh"}
+            {committing ? "Committing…" : `Commit refresh · ${changed.length} changed`}
           </button>
-        </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type DiffRow = { label: string; before: any; after: any; changed: boolean; kind?: "text" | "image" | "long" | "programmes" };
+
+function diffMinistry(current: any, entry: any): { changed: boolean; rows: DiffRow[]; progChanged: boolean } {
+  const cp = current?.minister_profile ?? {};
+  const np = entry?.minister_profile ?? {};
+  const cc = cp?.contact ?? {};
+  const nc = np?.contact ?? {};
+  const rows: DiffRow[] = [
+    { label: "Minister",  before: cp.name ?? current?.minister ?? "", after: np.name ?? entry?.minister ?? "", changed: false, kind: "text" },
+    { label: "Title",     before: cp.title ?? "",        after: np.title ?? "",        changed: false, kind: "text" },
+    { label: "Party",     before: cp.party ?? "",        after: np.party ?? "",        changed: false, kind: "text" },
+    { label: "Appointed", before: cp.appointed_at ?? "", after: np.appointed_at ?? "", changed: false, kind: "text" },
+    { label: "Portrait",  before: cp.portrait_url ?? "", after: np.portrait_url ?? "", changed: false, kind: "image" },
+    { label: "Email",     before: cc.email ?? "",        after: nc.email ?? "",        changed: false, kind: "text" },
+    { label: "Phone",     before: cc.office_phone ?? "", after: nc.office_phone ?? "", changed: false, kind: "text" },
+    { label: "Website",   before: cc.website ?? "",      after: nc.website ?? "",      changed: false, kind: "text" },
+    { label: "Bio",       before: cp.bio ?? "",          after: np.bio ?? "",          changed: false, kind: "long" },
+    { label: "Mandate",   before: current?.mandate ?? "", after: entry?.mandate ?? "", changed: false, kind: "long" },
+  ];
+  for (const r of rows) r.changed = String(r.before ?? "") !== String(r.after ?? "");
+  const beforeProgs = Array.isArray(current?.programmes) ? current.programmes : [];
+  const afterProgs = Array.isArray(entry?.programmes) ? entry.programmes : [];
+  const progChanged = JSON.stringify(beforeProgs) !== JSON.stringify(afterProgs);
+  rows.push({ label: "Programmes", before: beforeProgs, after: afterProgs, changed: progChanged, kind: "programmes" });
+  return { changed: rows.some((r) => r.changed), rows, progChanged };
+}
+
+function MinistryDiffCard({ entry, current, diff }: { entry: any; current: any; diff: ReturnType<typeof diffMinistry> }) {
+  const title = current?.ministries?.name ?? entry.ministry_slug;
+  const [showAllBio, setShowAllBio] = useState(false);
+  const [showAllMandate, setShowAllMandate] = useState(false);
+  const [showProgs, setShowProgs] = useState(false);
+
+  if (!diff.changed) {
+    return (
+      <div className="border border-line-200 px-3 py-2 text-xs text-ink-400 flex justify-between">
+        <span>{title}</span>
+        <span>no changes</span>
+      </div>
+    );
+  }
+
+  const changeSummary = [
+    diff.rows.find((r) => r.label === "Minister")?.changed && "minister changed",
+    diff.progChanged && `${(diff.rows.find((r) => r.label === "Programmes")?.before as any[]).length} → ${(diff.rows.find((r) => r.label === "Programmes")?.after as any[]).length} programmes`,
+  ].filter(Boolean).join(" · ");
+
+  return (
+    <div className="border border-line-200">
+      <div className="flex justify-between items-baseline px-3 py-2 border-b border-line-200 bg-cream-100/40">
+        <h4 className="font-medium text-sm">{title}</h4>
+        <span className="text-[11px] text-ink-500">{changeSummary}</span>
+      </div>
+      <div className="divide-y divide-line-100">
+        {diff.rows.map((r) => (
+          <div key={r.label} className={`grid grid-cols-[90px_1fr_16px_1fr] gap-2 items-start px-3 py-1.5 text-xs ${r.changed ? "" : "opacity-50"}`}>
+            <div className="text-ink-500 uppercase text-[10px] tracking-wide pt-0.5">{r.label}</div>
+            <DiffCell value={r.before} kind={r.kind} expanded={r.label === "Bio" ? showAllBio : r.label === "Mandate" ? showAllMandate : r.label === "Programmes" ? showProgs : false} onToggle={() => {
+              if (r.label === "Bio") setShowAllBio((v) => !v);
+              else if (r.label === "Mandate") setShowAllMandate((v) => !v);
+              else if (r.label === "Programmes") setShowProgs((v) => !v);
+            }} tone="before" />
+            <div className="text-ink-400 pt-0.5">→</div>
+            <DiffCell value={r.after} kind={r.kind} expanded={r.label === "Bio" ? showAllBio : r.label === "Mandate" ? showAllMandate : r.label === "Programmes" ? showProgs : false} onToggle={() => {
+              if (r.label === "Bio") setShowAllBio((v) => !v);
+              else if (r.label === "Mandate") setShowAllMandate((v) => !v);
+              else if (r.label === "Programmes") setShowProgs((v) => !v);
+            }} tone={r.changed ? "after-changed" : "after"} />
+          </div>
+        ))}
       </div>
     </div>
   );
 }
+
+function DiffCell({ value, kind, expanded, onToggle, tone }: { value: any; kind?: string; expanded: boolean; onToggle: () => void; tone: "before" | "after" | "after-changed" }) {
+  const empty = value == null || value === "" || (Array.isArray(value) && value.length === 0);
+  const bg = tone === "after-changed" ? "bg-emerald-50/60 text-ink-950" : "";
+  const text = empty ? "text-ink-300" : "text-ink-700";
+  if (empty) return <div className={`px-1 py-0.5 ${bg} ${text}`}>—</div>;
+
+  if (kind === "image") {
+    return <img src={String(value)} alt="" className={`h-10 w-8 object-cover border border-line-200 ${bg}`} />;
+  }
+  if (kind === "long") {
+    const str = String(value);
+    const truncated = !expanded && str.length > 140;
+    return (
+      <div className={`px-1 py-0.5 ${bg} ${text}`}>
+        <div>{truncated ? str.slice(0, 140) + "…" : str}</div>
+        {str.length > 140 && (
+          <button onClick={onToggle} className="text-[10px] text-ink-500 underline underline-offset-2 mt-0.5">
+            {expanded ? "Show less" : "Show more"}
+          </button>
+        )}
+      </div>
+    );
+  }
+  if (kind === "programmes") {
+    const list = value as any[];
+    return (
+      <div className={`px-1 py-0.5 ${bg} ${text}`}>
+        <button onClick={onToggle} className="underline underline-offset-2">
+          {list.length} item{list.length === 1 ? "" : "s"} {expanded ? "▾" : "▸"}
+        </button>
+        {expanded && (
+          <ul className="mt-1 list-disc pl-4 space-y-0.5">
+            {list.map((p, i) => (
+              <li key={i}><span className="text-ink-950">{p.name ?? p.title ?? "(untitled)"}</span>{p.status && <span className="ml-1 text-[10px] uppercase text-ink-400">{p.status}</span>}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  }
+  return <div className={`px-1 py-0.5 ${bg} ${text} break-words`}>{String(value)}</div>;
+}
+
+
 
 
 function MinistryCard({ row, onEdit }: { row: any; onEdit: () => void }) {
@@ -1139,12 +1265,11 @@ function MinisterEditDialog({ row, countryCode, onClose }: { row: any; countryCo
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="bg-cream-50 max-w-2xl w-full max-h-[90vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-serif text-lg">Edit Minister · {row.ministries?.name ?? row.ministry_slug}</h3>
-          <button onClick={onClose} className="text-ink-500 hover:text-ink-950">×</button>
-        </div>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-serif text-lg">Edit Minister · {row.ministries?.name ?? row.ministry_slug}</DialogTitle>
+        </DialogHeader>
         <div className="grid grid-cols-2 gap-3">
           {field("Name", "name")}
           {field("Title", "title")}
@@ -1173,14 +1298,14 @@ function MinisterEditDialog({ row, countryCode, onClose }: { row: any; countryCo
           <textarea value={form.career} onChange={(e) => setForm({ ...form, career: e.target.value })} rows={3} className="mt-1 w-full border border-line-200 px-2 py-1 text-sm" />
         </label>
         {err && <div className="mt-3 text-xs text-red-600">{err}</div>}
-        <div className="mt-4 flex justify-end gap-2">
+        <DialogFooter className="mt-4 gap-2 sm:justify-end">
           <button onClick={onClose} className="text-xs text-ink-500 hover:text-ink-950 px-3 py-1.5">Cancel</button>
           <button onClick={onSave} disabled={saving} className="text-xs bg-ink-950 text-cream-50 px-3 py-1.5 disabled:opacity-50">
             {saving ? "Saving…" : "Save"}
           </button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

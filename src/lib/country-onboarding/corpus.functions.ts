@@ -343,6 +343,44 @@ async function runAgenticKpiLoop(args: {
     if (value) research.mergeInto(values, research.normalizeValue(value));
   }
 
+  // Pass F — AI inference for whatever is still null.
+  const inferred = new Map<string, import("./kpi-inference.server").InferenceResult>();
+  if (args.runInference !== false) {
+    const inferMod = await import("./kpi-inference.server");
+    const missingAfterE = registry.filter(
+      (k) => !values.get(k.kpi_code) || values.get(k.kpi_code)!.value == null,
+    );
+    for (const k of missingAfterE) {
+      const { result, attempt } = await inferMod.inferOneKpi({
+        admin: args.admin,
+        country: args.country,
+        kpi: k,
+      });
+      allAttempts.push({
+        kpi_code: attempt.kpi_code,
+        pass: "escalation", // reuse enum: dedicated 'inference' would need a migration
+        provider: "lovable-ai",
+        model: attempt.model,
+        ok: attempt.ok,
+        value: attempt.value,
+        period: attempt.period,
+        source_url: attempt.source_url,
+        error: attempt.error ? `inference: ${attempt.error}` : null,
+      });
+      if (result) {
+        inferred.set(k.kpi_code, result);
+        research.mergeInto(values, {
+          kpi_code: result.kpi_code,
+          value: result.value,
+          period: result.period,
+          source_url: result.source_url,
+          source_org: result.source_org,
+          notes: `Inferred (${result.confidence}) via ${result.model}`,
+        });
+      }
+    }
+  }
+
   // Ensure every registry entry is represented (even if still null).
   for (const k of registry) {
     if (!values.has(k.kpi_code)) {
@@ -352,7 +390,7 @@ async function runAgenticKpiLoop(args: {
         period: null,
         source_url: null,
         source_org: null,
-        notes: "not found after 5 passes",
+        notes: "not found after research + inference",
       });
     }
   }
@@ -364,6 +402,7 @@ async function runAgenticKpiLoop(args: {
   const coverage = research.coverageOf(registry, values);
   const enriched = registry.map((k) => {
     const v = values.get(k.kpi_code)!;
+    const inf = inferred.get(k.kpi_code);
     return {
       kpi_code: k.kpi_code,
       label: k.label,
@@ -377,12 +416,13 @@ async function runAgenticKpiLoop(args: {
       source_org: v.source_org,
       notes: v.notes,
       required: k.required,
+      inference: inf ?? null,
     };
   });
   // Silence unused import warning — findRegistryEntry kept for future use.
   void findRegistryEntry;
 
-  return { enriched, coverage, attempts: allAttempts };
+  return { enriched, coverage, attempts: allAttempts, inferredCount: inferred.size };
 }
 
 export const runKpiSeedAgent = createServerFn({ method: "POST" })

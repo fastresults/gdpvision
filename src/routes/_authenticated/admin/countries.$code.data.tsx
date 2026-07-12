@@ -756,20 +756,27 @@ function DossiersTab({ code }: { code: string }) {
     (bySector.get(d.sector_code) ?? bySector.set(d.sector_code, []).get(d.sector_code)!).push(d);
   }
   if ((dossiers as any[]).length === 0) return <p className="text-sm text-ink-500">No dossiers yet.</p>;
+  const KIND_LABELS: Record<string, string> = {
+    comms: "Communications",
+    oecs: "OECS Peer Position",
+    policy: "Policy Landscape",
+  };
   return (
     <section className="space-y-4">
       {[...bySector.entries()].map(([sector, rows]) => (
-        <details key={sector} className="border border-line-200 p-3">
+        <details key={sector} className="border border-line-200 p-3" open>
           <summary className="cursor-pointer font-medium">{sector} <span className="text-xs text-ink-500">({rows.length})</span></summary>
-          <div className="mt-3 space-y-3">
+          <div className="mt-3 space-y-4">
             {rows.map((r) => (
-              <div key={r.id} className="border border-line-200 p-3">
-                <div className="flex justify-between text-xs text-ink-500 mb-2">
-                  <span>{r.kind}</span>
-                  <span>confidence: {r.confidence} · {r.source_ids?.length ?? 0} sources</span>
-                </div>
-                <pre className="text-xs whitespace-pre-wrap max-h-64 overflow-y-auto">{JSON.stringify(r.payload, null, 2)}</pre>
-              </div>
+              <article key={r.id} className="border border-line-200 p-4">
+                <header className="flex justify-between items-baseline mb-3 pb-2 border-b border-line-200">
+                  <h3 className="font-serif text-lg">{KIND_LABELS[r.kind] ?? r.kind}</h3>
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-ink-500">
+                    confidence: {r.confidence} · {r.source_ids?.length ?? 0} sources
+                  </div>
+                </header>
+                <PrettyJson value={r.payload} />
+              </article>
             ))}
           </div>
         </details>

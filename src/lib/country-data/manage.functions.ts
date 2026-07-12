@@ -1066,7 +1066,7 @@ export const ingestDocumentSource = createServerFn({ method: "POST" })
         data.mime_type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
         safeName.endsWith(".docx")
       ) {
-        const mammoth: any = await import("mammoth").catch(() => null);
+        const mammoth: any = await import("mammoth" as any).catch(() => null);
         if (mammoth?.extractRawText) {
           const out = await mammoth.extractRawText({ buffer: bytes });
           text = out?.value ?? "";

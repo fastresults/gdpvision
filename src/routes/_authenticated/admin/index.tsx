@@ -115,14 +115,127 @@ function AdminPage() {
           ))}
           {users.length === 0 && (
             <p className="border border-line-200 p-12 text-center text-sm text-ink-500">
-              No users yet. Invite principals from the auth console to populate this list.
+              No users yet. Use the invite form below to bring your first principal onto the instance.
             </p>
           )}
         </div>
+
+        <InviteSection
+          pending={inviteMut.isPending}
+          error={inviteMut.error as Error | null}
+          onInvite={(email, displayName) => inviteMut.mutate({ email, displayName })}
+        />
+
+        <ConfigSection
+          rows={config}
+          pending={configMut.isPending}
+          error={configMut.error as Error | null}
+          onSave={(key, valueJson) => configMut.mutate({ key, valueJson })}
+        />
       </main>
     </div>
   );
 }
+
+function InviteSection({ onInvite, pending, error }: { onInvite: (email: string, displayName?: string) => void; pending: boolean; error: Error | null }) {
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  return (
+    <section className="mt-20 border-t border-line-200 pt-10">
+      <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">Invitations</p>
+      <h2 className="mt-2 font-serif text-2xl">Invite a new principal</h2>
+      <p className="mt-2 max-w-2xl text-sm text-ink-500">Sends a Lovable Cloud email invitation. Assign roles and country bindings after they accept.</p>
+      <div className="mt-6 flex flex-wrap items-end gap-3 text-sm">
+        <label className="flex flex-col gap-1">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-ink-500">Email</span>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-72 border border-line-200 px-2 py-1" />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-ink-500">Display name (opt)</span>
+          <input value={name} onChange={(e) => setName(e.target.value)} className="w-56 border border-line-200 px-2 py-1" />
+        </label>
+        <button
+          type="button"
+          disabled={pending || !email}
+          onClick={() => onInvite(email, name || undefined)}
+          className="border border-ink-950 px-4 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] hover:bg-ink-950 hover:text-paper-0 disabled:opacity-40"
+        >
+          {pending ? "Sending…" : "Send invite"}
+        </button>
+      </div>
+      {error && <p className="mt-3 text-sm text-red-600">{error.message}</p>}
+    </section>
+  );
+}
+
+function ConfigSection({
+  rows,
+  onSave,
+  pending,
+  error,
+}: {
+  rows: Array<{ key: string; value_json: any; updated_at: string; updated_by: string | null }>;
+  onSave: (key: string, valueJson: unknown) => void;
+  pending: boolean;
+  error: Error | null;
+}) {
+  return (
+    <section className="mt-20 border-t border-line-200 pt-10">
+      <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">Instance configuration</p>
+      <h2 className="mt-2 font-serif text-2xl">Runtime settings</h2>
+      <p className="mt-2 max-w-2xl text-sm text-ink-500">Edit JSON values directly. Changes are audited.</p>
+      {error && <p className="mt-3 text-sm text-red-600">{error.message}</p>}
+      <ul className="mt-8 space-y-6">
+        {rows.length === 0 && <li className="text-sm text-ink-500">No configuration keys defined yet.</li>}
+        {rows.map((r) => (
+          <ConfigRow key={r.key} row={r} pending={pending} onSave={(v) => onSave(r.key, v)} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function ConfigRow({ row, onSave, pending }: { row: { key: string; value_json: any; updated_at: string }; onSave: (v: unknown) => void; pending: boolean }) {
+  const [text, setText] = useState(() => JSON.stringify(row.value_json, null, 2));
+  const [parseErr, setParseErr] = useState<string | null>(null);
+
+  function commit() {
+    try {
+      const parsed = JSON.parse(text);
+      setParseErr(null);
+      onSave(parsed);
+    } catch (e) {
+      setParseErr((e as Error).message);
+    }
+  }
+
+  return (
+    <li className="border border-line-200 p-4">
+      <div className="flex items-baseline justify-between">
+        <span className="font-mono text-[11px] uppercase tracking-[0.2em]">{row.key}</span>
+        <span className="font-mono text-[10px] text-ink-500">updated {new Date(row.updated_at).toLocaleString()}</span>
+      </div>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={Math.min(12, Math.max(3, text.split("\n").length))}
+        className="mt-3 w-full border border-line-200 p-2 font-mono text-xs"
+      />
+      {parseErr && <p className="mt-2 text-xs text-red-600">Invalid JSON: {parseErr}</p>}
+      <div className="mt-2 flex justify-end">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={commit}
+          className="border border-ink-950 px-3 py-1 font-mono text-[10px] uppercase tracking-widest hover:bg-ink-950 hover:text-paper-0 disabled:opacity-40"
+        >
+          {pending ? "Saving…" : "Save"}
+        </button>
+      </div>
+    </li>
+  );
+}
+
 
 function UserCard({
   user,

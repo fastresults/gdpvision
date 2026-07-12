@@ -1686,6 +1686,38 @@ function MemoryTab({ code }: { code: string }) {
           </Link>
           .
         </div>
+      ) : view === "constellation" ? (
+        <>
+          <BrainConstellation
+            rows={all as any}
+            mode="single"
+            centerLabel={code}
+            filter={brainFilter}
+            onFilter={setBrainFilter}
+          />
+          <div className="border-t border-line-200 pt-4">
+            <h4 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500 mb-3">
+              {brainFilter.sector || brainFilter.kind || brainFilter.verified !== undefined ? "Filtered rows" : "All rows"} (
+              {all.filter((r: any) => {
+                if (brainFilter.sector && (r.sector_code || "—") !== brainFilter.sector) return false;
+                if (brainFilter.kind && r.kind !== brainFilter.kind) return false;
+                if (brainFilter.verified !== undefined && Boolean(r.verified) !== brainFilter.verified) return false;
+                return true;
+              }).length}
+              )
+            </h4>
+            <MemoryList
+              rows={all.filter((r: any) => {
+                if (brainFilter.sector && (r.sector_code || "—") !== brainFilter.sector) return false;
+                if (brainFilter.kind && r.kind !== brainFilter.kind) return false;
+                if (brainFilter.verified !== undefined && Boolean(r.verified) !== brainFilter.verified) return false;
+                return true;
+              })}
+              onVerify={async (id, v) => { await setV({ data: { id, verified: v } }); await refresh(); }}
+              onDelete={async (id) => { await del({ data: { id } }); await refresh(); }}
+            />
+          </div>
+        </>
       ) : view === "visual" ? (
         <>
           <MemoryVisual rows={all} filter={filter} onSelect={setFilter} />

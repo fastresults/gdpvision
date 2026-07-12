@@ -669,6 +669,7 @@ export const commitKpis = createServerFn({ method: "POST" })
         source_url: string | null;
         source_org: string | null;
         notes: string | null;
+        inference?: import("./kpi-inference.server").InferenceResult | null;
       }>;
     };
 

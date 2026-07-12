@@ -189,7 +189,7 @@ function AuthPage() {
                   if (result.error) throw result.error;
                   if (result.redirected) return;
                   router.invalidate();
-                  navigate({ to: "/instrument" });
+                  navigate({ to: await postSignInRedirect() });
                 } catch (err) {
                   setError(err instanceof Error ? err.message : "Google sign-in failed");
                 } finally {

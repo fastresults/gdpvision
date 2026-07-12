@@ -865,7 +865,7 @@ function MinistriesTab({ code }: { code: string }) {
         <div className="text-xs text-ink-500">
           {refresh.phase === "running" && "Researching ministries…"}
           {refresh.phase === "ready" && `Draft ready · ${refresh.count} ministries · ${refresh.citations.length} citations`}
-          {refresh.phase === "error" && <span className="text-red-600">{refresh.message}</span>}
+          {refresh.phase === "error" && <span className="text-signal-negative">{refresh.message}</span>}
         </div>
         <Button
           variant="outline"

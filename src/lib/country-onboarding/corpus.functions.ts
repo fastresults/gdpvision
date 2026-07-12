@@ -1111,19 +1111,73 @@ export const runMinistryDeepDiveAgent = createServerFn({ method: "POST" })
     });
 
     try {
-      const list = ministries.map((m: any) => `${m.slug} (${m.name})`).join("\n- ");
-      const result = await callSonar({
-        model,
-        system:
-          "You are a governance analyst. For each ministry, return: (a) the CURRENT officeholder as `minister_profile` with name, formal title, party affiliation, appointment date (ISO date if known), a short bio (<=400 chars), education/career highlights, a contact block (official office_phone, email, office_address, ministry website), verified official socials (twitter/facebook/linkedin/instagram full URLs), and a portrait_url when publicly available; (b) a concrete mandate paragraph; (c) 2-5 flagship programmes with objective and status (active/planned/completed). Prefer official government / ministry websites. If a field is unknown, return null rather than guessing. Also mirror the officeholder name in the top-level `minister` field.",
+      // Research each ministry independently so a single officeholder can't
+      // dominate the result set. Domain filter is disabled so Perplexity can
+      // reach the actual ministry / gov websites, press releases, and
+      // Wikipedia infoboxes that name the current minister.
+      const perMinistrySchema = {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          ministry_slug: { type: "string" },
+          minister: { type: ["string", "null"] },
+          minister_profile: MinisterProfileSchema,
+          mandate: { type: "string" },
+          programmes: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                name: { type: "string" },
+                objective: { type: "string" },
+                status: { type: "string" },
+              },
+              required: ["name", "objective", "status"],
+            },
+          },
+        },
+        required: ["ministry_slug", "mandate", "programmes"],
+      } as const;
 
-        user: `Country: ${country.name}. Ministries:\n- ${list}\n\nReturn one entry per ministry_slug.`,
-        responseSchema: MinistryDeepDiveSchema as unknown as Record<string, unknown>,
-        recency: "year",
-      });
+      const allCitations: SonarCitation[] = [];
+      const seenCiteUrls = new Set<string>();
+      const ministryEntries: any[] = [];
+      const errors: string[] = [];
 
-      const parsed = parseSonarJson<{ ministries: any[] }>(result.content);
-      if (!parsed?.ministries?.length) throw new Error("Perplexity returned no ministry entries");
+      for (const m of ministries as Array<{ slug: string; name: string }>) {
+        try {
+          const perRes = await callSonar({
+            model,
+            system:
+              "You are a governance analyst. Research the SPECIFIC ministry named by the user and return ONE JSON object matching the schema. `minister_profile.name` must be the CURRENT officeholder of THIS ministry — do NOT default to the head of government unless they personally hold this portfolio. If you cannot verify the current minister from an official ministry website, government gazette, parliamentary record, or a current Wikipedia infobox, set minister and minister_profile.name to null. Include title, party, appointment date (ISO), a <=400 char bio, education, career highlights, contact block (office_phone, email, office_address, website), verified official socials, and portrait_url when publicly available. Provide a concrete mandate paragraph and 2-5 flagship programmes (name/objective/status). Return null for any field you cannot verify — never guess.",
+            user: `Country: ${country.name}.\nMinistry slug: ${m.slug}\nMinistry name: ${m.name}\n\nReturn a single object with ministry_slug="${m.slug}".`,
+            responseSchema: perMinistrySchema as unknown as Record<string, unknown>,
+            noDomainFilter: true,
+          });
+          const parsedOne = parseSonarJson<any>(perRes.content);
+          if (parsedOne && typeof parsedOne === "object") {
+            parsedOne.ministry_slug = m.slug; // enforce
+            ministryEntries.push(parsedOne);
+          } else {
+            errors.push(`${m.slug}: empty response`);
+          }
+          for (const c of perRes.citations) {
+            if (!seenCiteUrls.has(c.url)) {
+              seenCiteUrls.add(c.url);
+              allCitations.push(c);
+            }
+          }
+        } catch (e) {
+          errors.push(`${m.slug}: ${(e as Error).message}`);
+        }
+      }
+
+      if (!ministryEntries.length) {
+        throw new Error(`Perplexity returned no ministry entries. ${errors.slice(0, 3).join("; ")}`);
+      }
+
+      const parsed = { ministries: ministryEntries };
 
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
@@ -1131,17 +1185,24 @@ export const runMinistryDeepDiveAgent = createServerFn({ method: "POST" })
         stage: "ministry_deep_dive",
         target_table: "ministry_profiles",
         payload: parsed,
-        confidence: result.citations.length >= 1 ? "medium" : "low",
-        citations: result.citations,
+        confidence: allCitations.length >= ministries.length ? "medium" : "low",
+        citations: allCitations,
       });
 
       await finishRun(supabaseAdmin, runId, { status: "ready" });
-      return { runId, draftId, count: parsed.ministries.length, citations: result.citations };
+      return {
+        runId,
+        draftId,
+        count: parsed.ministries.length,
+        citations: allCitations,
+        errors: errors.length ? errors : undefined,
+      };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;
     }
   });
+
 
 export const commitMinistryDeepDive = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

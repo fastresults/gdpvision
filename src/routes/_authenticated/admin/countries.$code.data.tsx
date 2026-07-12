@@ -10,8 +10,10 @@ import { PrettyJson } from "@/components/data/PrettyJson";
 import { getOnboardingStatus } from "@/lib/country-onboarding/agents.functions";
 import {
   backfillMissingKpis,
+  commitMinistryDeepDive,
   listKpiCoverage,
   reverifyAllKpis,
+  runMinistryDeepDiveAgent,
 } from "@/lib/country-onboarding/corpus.functions";
 import {
   acceptKpiInference,

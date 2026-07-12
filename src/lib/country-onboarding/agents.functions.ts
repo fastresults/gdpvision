@@ -234,7 +234,7 @@ export const runProfileAgent = createServerFn({ method: "POST" })
         recency: "year",
       });
 
-      const parsed = parseSonarJson<Record<string, unknown>>(result.content);
+      const parsed = parseSonarJson<any>(result.content);
       if (!parsed) throw new Error("Perplexity returned no parseable JSON");
 
       const draftId = await saveDraft(supabaseAdmin, {
@@ -296,7 +296,7 @@ export const runGdpAgent = createServerFn({ method: "POST" })
         recency: "year",
       });
 
-      const parsed = parseSonarJson<Record<string, unknown>>(result.content);
+      const parsed = parseSonarJson<any>(result.content);
       if (!parsed) throw new Error("Perplexity returned no parseable JSON");
 
       const draftId = await saveDraft(supabaseAdmin, {
@@ -370,7 +370,7 @@ export const runSectorCompositionAgent = createServerFn({ method: "POST" })
         recency: "year",
       });
 
-      const parsed = parseSonarJson<{ rows: Array<Record<string, unknown>>; method_note: string }>(result.content);
+      const parsed = parseSonarJson<{ rows: any[]; method_note: string }>(result.content);
       if (!parsed?.rows?.length) throw new Error("Perplexity returned no rows");
 
       // Ensure every sector has a row (fill missing with 0)
@@ -454,7 +454,7 @@ export const runMinistriesAgent = createServerFn({ method: "POST" })
         recency: "year",
       });
 
-      const parsed = parseSonarJson<{ ministries: Array<Record<string, unknown>> }>(result.content);
+      const parsed = parseSonarJson<{ ministries: any[] }>(result.content);
       if (!parsed?.ministries?.length) throw new Error("Perplexity returned no ministries");
 
       const draftId = await saveDraft(supabaseAdmin, {
@@ -533,7 +533,7 @@ export const runMinistrySectorMapAgent = createServerFn({ method: "POST" })
         responseSchema: schema as unknown as Record<string, unknown>,
       });
 
-      const parsed = parseSonarJson<{ mappings: Array<Record<string, unknown>> }>(result.content);
+      const parsed = parseSonarJson<{ mappings: any[] }>(result.content);
       if (!parsed?.mappings?.length) throw new Error("Perplexity returned no mappings");
 
       const draftId = await saveDraft(supabaseAdmin, {
@@ -594,7 +594,7 @@ export const commitProfile = createServerFn({ method: "POST" })
     if (Number.isInteger(payload.fiscal_year_start_month))
       patch.fiscal_year_start_month = payload.fiscal_year_start_month;
 
-    const { error: upErr } = await supabaseAdmin.from("countries").update(patch).eq("code", draft.country_code);
+    const { error: upErr } = await supabaseAdmin.from("countries").update(patch as any).eq("code", draft.country_code);
     if (upErr) throw upErr;
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
     return { ok: true };

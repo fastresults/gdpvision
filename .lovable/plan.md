@@ -1,110 +1,71 @@
-## Problem (audit)
+# AI Inference Engine for Missing KPIs
 
-Saint Lucia KPI tab shows the failure clearly: **13 KPIs seeded, only 3 have `latest_value`, 0 have a linked source**. Root causes in the current pipeline (`src/lib/country-onboarding/corpus.functions.ts` — Stage 7 `runKpiSeedAgent` + `commitKpis`):
+After the 5-pass research loop (Perplexity sweep → WB → IMF → targeted Perplexity → Gemini web search) any KPI still `NULL` is treated as **unresolvable from primary sources**. We add a final **Pass F: Inference** that uses a reasoning model to *estimate* the value from adjacent evidence, clearly flags it as inferred, records rationale, and lets Super Admin review / override.
 
-1. **One-shot Perplexity call** with `latest_value` marked nullable in the JSON schema. The model is allowed to return `null` and does so for most rows — no retry, no per-KPI targeted follow-up.
-2. **No coverage gate.** Commit happens even when only 23% of KPIs have values. There is no "quality score" preventing publication.
-3. **KPI set is model-decided**, not authoritative. Nothing enforces a canonical registry, so we cannot even measure "what's missing".
-4. **`source_url` never resolves** — the Perplexity draft rarely emits an exact URL that matches a row already in `country_sources`, and there is no auto-insert path, so every KPI ends up with `source_id = NULL`.
-5. **Single provider.** No deterministic fallback (World Bank / IMF SDMX APIs) for the numbers those datasets already publish.
-6. **No visible quality signal** in `/admin/countries/$code/data` — Super Admin cannot see which KPIs are stale/missing or trigger targeted backfill.
+## What Super Admin sees
 
-## Goal
+On `/admin/countries/$code/data` → **KPIs** tab:
 
-Make the KPI research loop **AI-agentic and self-healing**: it keeps working until every KPI in a canonical registry has a value, a period, and a citation — or it flags what it cannot find with the reason, so Super Admin knows exactly what to fix.
+- New status pill **`Inferred`** (amber) alongside existing `Fresh` / `Stale` / `Missing`.
+- Coverage banner splits into: `Verified 8 · Inferred 3 · Missing 2 · 13 total`.
+- Every inferred row shows an **ⓘ Inferred** chip. Clicking opens a side drawer with:
+  - Estimated value + confidence (`low` / `medium` / `high`)
+  - Model + timestamp
+  - **Rationale** (2–5 sentence explanation the model produced)
+  - **Evidence used** (list of chunks / KPIs / peer-country values it leaned on, each with source URL where available)
+  - **Assumptions & caveats**
+  - Actions: **Accept as verified**, **Override value**, **Reject (mark missing)**, **Re-infer**
+- Bulk header actions: **Infer all missing**, **Re-infer all inferred**, **Accept all high-confidence**.
+- Instrument scorecard tiles render inferred KPIs with the same amber `Inferred` chip so downstream users know it's an estimate, not a measurement.
 
-## Plan
+## Pipeline changes
 
-### 1. Canonical KPI Registry (`src/lib/country-onboarding/kpi-registry.ts`)
+1. `runKpiSeedAgent` (existing) runs Passes A–E as today.
+2. New **Pass F — `inferMissingKpis`** runs only for KPIs still `latest_value IS NULL` after E:
+   - Gathers context per KPI: registry entry (bounds, unit, direction), any partial hits from earlier passes, related KPIs already resolved for this country, top RAG chunks from `country_source_chunks` (semantic search on `kpi_code + label`), and — when useful — peer-country values from `country_kpis` for structurally similar countries (same region / income tier from `countries`).
+   - Calls `google/gemini-2.5-pro` (fallback `openai/gpt-5.5`) via Lovable AI Gateway with structured `Output.object` schema: `{ estimated_value, unit, period, confidence, rationale, assumptions, evidence: [{kind, ref, note}] }`.
+   - Applies registry sanity bounds; out-of-bounds → rejected, logged, KPI stays missing.
+   - Writes result with `provenance='inferred'`, `confidence`, `inference_rationale`, `inference_evidence`, `inference_model`, `inferred_at`.
+3. Every attempt appends to `kpi_research_attempts` with `pass='F_infer'`.
 
-A typed, code-owned list — the source of truth for "what must be filled" per country tier (SIDS / CBI-state / general). Each entry:
+## Admin override semantics
 
-```text
-kpi_code, label, unit, direction, category,
-expected_period_shape ("2024" | "2024/25" | "Q2 2025"),
-authoritative_orgs (["IMF WEO","World Bank WDI","ECCB","Govt CSO"]),
-wb_indicator?  (e.g. "NY.GDP.MKTP.KD.ZG"),
-imf_indicator?,
-value_bounds  (min/max sanity, e.g. debt_gdp 0–300),
-required (true/false)
-```
+- **Accept as verified** → `provenance='admin_verified'`, keeps value, clears inferred badge, records `verified_by` / `verified_at`.
+- **Override value** → `provenance='admin_override'`, stores admin value + optional note; original inference kept in `inference_history` JSONB.
+- **Reject** → clears `latest_value`, sets `freshness_status='missing'`, prevents re-inference for N days unless "Re-infer" is clicked.
+- **Re-infer** → re-runs Pass F for that single KPI.
 
-This gives the loop a target list to score against — coverage is now a computed number, not a guess.
+## Data sources audit (parallel workstream)
 
-### 2. Multi-pass agentic KPI research (rewrite `runKpiSeedAgent`)
+Before Pass F fires, we tighten what earlier passes have to work with:
 
-Replace the one-shot with a loop that runs up to N passes (default 4) until `coverage == 100%` or budget hit.
+- Add `source_health` view: for each `country_sources` row, count chunks, last successful fetch, last KPI resolved from it. Surface in Sources tab so admin sees dead / low-yield sources.
+- Registry gains `additional_sources[]` (per-KPI hint URLs, e.g. central bank stats page, national statistics office) that Pass C targeted Perplexity is instructed to consult first.
+- Auto-suggest new sources: when Pass F cites an evidence URL not in `country_sources`, queue it in a new `source_candidates` table for admin one-click approval → becomes an active source and is re-ingested.
 
-Pass sequence, per country:
+## Out of scope
 
-```text
-Pass A — Broad Perplexity sweep (sonar-pro, JSON schema)
-   -> parse -> compute coverage vs registry.
+- Auto-accepting inferences without admin review.
+- Time-series inference (only `latest_value`).
+- Cross-country automatic imputation models beyond LLM reasoning with peer context.
 
-Pass B — Deterministic API backfill (no LLM)
-   For every registry KPI still missing a value that has a wb_indicator:
-     hit https://api.worldbank.org/v2/country/{iso3}/indicator/{ind}?format=json
-     take latest non-null observation; attach source_url =
-     "https://data.worldbank.org/indicator/{ind}?locations={iso3}"
-   Same pattern for IMF WEO where an imf_indicator exists.
+---
 
-Pass C — Per-KPI targeted Perplexity (sonar-pro)
-   For each STILL-missing KPI, run one focused call:
-     system: "Return ONLY the latest value + period + source URL for
-             {kpi.label} in {country}. Prefer {kpi.authoritative_orgs}.
-             If unknown, return {value:null, reason:'...'}."
-     schema locked to a single object; recency=year.
+## Technical details
 
-Pass D — Escalation (gemini-2.5-pro via Lovable AI with web search)
-   For anything still null, one deep pass with a different provider so we
-   are not stuck in one model's blind spot. Same single-object schema.
+**Migration**
+- `country_kpis`: add `provenance TEXT` (`verified` | `inferred` | `admin_verified` | `admin_override`), `confidence TEXT`, `inference_rationale TEXT`, `inference_evidence JSONB`, `inference_model TEXT`, `inferred_at TIMESTAMPTZ`, `verified_by UUID`, `verified_at TIMESTAMPTZ`, `admin_note TEXT`, `inference_history JSONB DEFAULT '[]'`.
+- New table `source_candidates` (country_code, url, suggested_by_model, first_seen_at, status, approved_by) with GRANTs + RLS (admin-only).
+- View `source_health` (read-only, admin-only).
 
-Sanity gate: reject values outside value_bounds; treat as missing.
-```
+**Code**
+- `src/lib/country-onboarding/kpi-inference.server.ts` — `inferMissingKpis(countryCode)`; peer-country + RAG context builder; `Output.object` schema (no bounds — enforced in code post-parse per ai-sdk-agent-patterns).
+- `src/lib/country-onboarding/kpi-research.server.ts` — add Pass F hook after Pass E.
+- `src/lib/country-data/manage.functions.ts` — new server fns: `acceptKpiInference`, `overrideKpi`, `rejectKpi`, `reinferKpi`, `inferAllMissing`, `acceptAllHighConfidence`, `listSourceCandidates`, `approveSourceCandidate`.
+- `src/lib/country-data/consume.functions.ts` — extend `ConsumerKpi` with provenance/confidence so scorecard tiles can render the `Inferred` chip.
+- `src/routes/_authenticated/admin/countries.$code.data.tsx` — split coverage banner, add `Inferred` pill, inference drawer, bulk actions, Sources tab addition for `source_candidates` + `source_health`.
+- `src/routes/_authenticated/instrument/mandate.scorecard.tsx` — render `Inferred` chip on tiles.
 
-Every pass writes a `kpi_research_attempts` row (kpi_code, pass, provider, model, ok, value, source_url, error) so we can see exactly why a KPI is empty.
+**Model choice** — `google/gemini-2.5-pro` primary (strong reasoning + big context for RAG chunks), `openai/gpt-5.5` fallback on error. No user API key required (Lovable AI Gateway).
 
-### 3. Source auto-attach + auto-create
-
-In `commitKpis`:
-
-- For each KPI's `source_url`, first look up `country_sources` by URL.
-- If none: **auto-insert** a `country_sources` row (`kind='kpi_source'`, `active=true`, quality derived from org tier) and use its id. This is what wires the "Source" column on the Data tab and lets the toggle actually govern the KPI.
-- Also record `citations` from the pass into `onboarding_citations` linked to the draft, so the Studio review UI can show provenance per row.
-
-### 4. Coverage gate + freshness
-
-- `commitKpis` refuses to publish rows where `latest_value IS NULL` unless the operator explicitly forces it; missing KPIs stay in the draft as `needs_backfill=true`.
-- Add `country_kpis.freshness_status` (`fresh` / `stale` / `missing`) and `last_verified_at`. A nightly (or on-demand) job re-runs Passes B–D for anything `stale` (>90 days) or `missing`.
-
-### 5. Super Admin surface (`/admin/countries/$code/data` → KPIs tab)
-
-- Header shows `Coverage: 10/13 (77%)` + `Last verified: …` for the country.
-- Each row shows a status pill (`fresh` / `stale` / `missing`) and, for missing rows, the last attempt's reason ("WB indicator returned no data 2020-2025", "Perplexity: unknown", etc.).
-- **"Backfill missing"** button runs Passes B → C → D just for the missing subset and refreshes the tab.
-- **"Re-verify all"** re-runs the full loop.
-
-### 6. Consumer wiring already in place
-
-Instrument scorecard already reads `country_kpis` via `listCountryKpis` and hides KPIs whose source is toggled off. Once #3–#5 land, the scorecard populates automatically for St. Lucia and shows real citations.
-
-### Technical notes
-
-- New file `src/lib/country-onboarding/kpi-registry.ts` (data only).
-- New file `src/lib/country-onboarding/kpi-research.server.ts` — pure server helpers: `sweepPerplexity`, `backfillWorldBank`, `backfillImf`, `targetedPerplexity`, `escalateGemini`, `scoreCoverage`, `applySanity`.
-- Rewrite `runKpiSeedAgent` in `corpus.functions.ts` to orchestrate the four passes; keep the draft/commit flow but persist attempts + coverage.
-- New migration:
-  - `country_kpis` add `freshness_status text default 'missing'`, `last_verified_at timestamptz`, `research_notes text`.
-  - New `kpi_research_attempts` table (run_id, country_code, kpi_code, pass, provider, model, ok, value, period, source_url, error, created_at) with admin-only RLS + GRANT.
-- Add `backfillMissingKpis` + `reverifyAllKpis` server fns (admin) called from the Data tab.
-- Uses only providers already configured (Perplexity + Lovable AI). No new secrets. World Bank / IMF APIs are open, no key.
-
-### Out of scope (for this plan)
-
-- Time-series ingestion into `country_kpi_points` (separate follow-up: once single-point coverage is 100%, walk the same WB/IMF indicators for historical points).
-- Cross-country comparison view.
-- Auto-derived targets (would need a separate policy-anchoring pass).
-
-### Recommended next step after this ships
-
-Wire the same pattern into **Sector Dossiers** and **Ministry Deep-Dive** stages (they have the same "single Perplexity call, no coverage gate" weakness).
+**Coverage gate** — `commitKpis` still refuses to publish rows with NULL value; inferred rows have a non-null value and pass the gate but are flagged. Missing rows remain missing and eligible for later inference.

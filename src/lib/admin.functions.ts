@@ -158,3 +158,119 @@ export const listCountries = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return data ?? [];
   });
+
+// -- Instance configuration ---------------------------------------------------
+
+export interface InstanceConfigRow {
+  key: string;
+  value_json: any;
+  updated_at: string;
+  updated_by: string | null;
+}
+
+export const listInstanceConfig = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<InstanceConfigRow[]> => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("instance_config")
+      .select("key,value_json,updated_at,updated_by")
+      .order("key");
+    if (error) throw new Error(error.message);
+    return (data ?? []) as InstanceConfigRow[];
+  });
+
+const SetConfigInput = z.object({
+  key: z.string().min(1).max(120),
+  valueJson: z.unknown(),
+});
+
+export const setInstanceConfig = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => SetConfigInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("instance_config")
+      .upsert(
+        { key: data.key, value_json: data.valueJson as any, updated_by: context.userId, updated_at: new Date().toISOString() },
+        { onConflict: "key" },
+      );
+    if (error) throw new Error(error.message);
+    await supabaseAdmin.from("audit_log").insert({
+      actor_id: context.userId,
+      action: "instance_config.set",
+      target_type: "instance_config",
+      target_id: data.key,
+      metadata: { valueJson: data.valueJson } as any,
+    });
+    return { ok: true };
+  });
+
+// -- Audit log ----------------------------------------------------------------
+
+export interface AuditLogRow {
+  id: string;
+  actor_id: string | null;
+  actor_label: string | null;
+  action: string;
+  target_type: string | null;
+  target_id: string | null;
+  scope_key: string | null;
+  metadata: Record<string, any>;
+  created_at: string;
+}
+
+export const listAuditLog = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        limit: z.number().int().min(1).max(500).default(100),
+        action: z.string().optional(),
+      })
+      .parse(d ?? {}),
+  )
+  .handler(async ({ data, context }): Promise<AuditLogRow[]> => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let q = supabaseAdmin
+      .from("audit_log")
+      .select("id,actor_id,actor_label,action,target_type,target_id,scope_key,metadata,created_at")
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (data.action) q = q.eq("action", data.action);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as AuditLogRow[];
+  });
+
+// -- User invitation ----------------------------------------------------------
+
+const InviteInput = z.object({
+  email: z.string().email(),
+  displayName: z.string().max(120).optional(),
+});
+
+export const inviteUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => InviteInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: res, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(data.email, {
+      data: data.displayName ? { display_name: data.displayName } : undefined,
+    });
+    if (error) throw new Error(error.message);
+    await supabaseAdmin.from("audit_log").insert({
+      actor_id: context.userId,
+      action: "user.invited",
+      target_type: "user",
+      target_id: res.user?.id ?? null,
+      metadata: { email: data.email } as any,
+    });
+    return { ok: true, userId: res.user?.id ?? null };
+  });
+

@@ -57,6 +57,7 @@ import { Route as AuthenticatedInstrumentPortfolioMinistryRouteImport } from './
 import { Route as AuthenticatedInstrumentMandateStudioRouteImport } from './routes/_authenticated/instrument/mandate.studio'
 import { Route as AuthenticatedInstrumentMandateScorecardRouteImport } from './routes/_authenticated/instrument/mandate.scorecard'
 import { Route as AuthenticatedInstrumentCabinetSessionRouteImport } from './routes/_authenticated/instrument/cabinet.session'
+import { Route as AuthenticatedAdminAuditsLogRouteImport } from './routes/_authenticated/admin/audits.log'
 import { Route as AuthenticatedAdminAuditsKeyingRouteImport } from './routes/_authenticated/admin/audits.keying'
 
 const KioskRoute = KioskRouteImport.update({
@@ -336,6 +337,12 @@ const AuthenticatedInstrumentCabinetSessionRoute =
     path: '/cabinet/session',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
+const AuthenticatedAdminAuditsLogRoute =
+  AuthenticatedAdminAuditsLogRouteImport.update({
+    id: '/admin/audits/log',
+    path: '/admin/audits/log',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminAuditsKeyingRoute =
   AuthenticatedAdminAuditsKeyingRouteImport.update({
     id: '/admin/audits/keying',
@@ -370,6 +377,7 @@ export interface FileRoutesByFullPath {
   '/instrument/': typeof AuthenticatedInstrumentIndexRoute
   '/narrative/': typeof AuthenticatedNarrativeIndexRoute
   '/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
+  '/admin/audits/log': typeof AuthenticatedAdminAuditsLogRoute
   '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
   '/instrument/mandate/studio': typeof AuthenticatedInstrumentMandateStudioRoute
@@ -417,6 +425,7 @@ export interface FileRoutesByTo {
   '/instrument': typeof AuthenticatedInstrumentIndexRoute
   '/narrative': typeof AuthenticatedNarrativeIndexRoute
   '/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
+  '/admin/audits/log': typeof AuthenticatedAdminAuditsLogRoute
   '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
   '/instrument/mandate/studio': typeof AuthenticatedInstrumentMandateStudioRoute
@@ -469,6 +478,7 @@ export interface FileRoutesById {
   '/_authenticated/instrument/': typeof AuthenticatedInstrumentIndexRoute
   '/_authenticated/narrative/': typeof AuthenticatedNarrativeIndexRoute
   '/_authenticated/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
+  '/_authenticated/admin/audits/log': typeof AuthenticatedAdminAuditsLogRoute
   '/_authenticated/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/_authenticated/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
   '/_authenticated/instrument/mandate/studio': typeof AuthenticatedInstrumentMandateStudioRoute
@@ -521,6 +531,7 @@ export interface FileRouteTypes {
     | '/instrument/'
     | '/narrative/'
     | '/admin/audits/keying'
+    | '/admin/audits/log'
     | '/instrument/cabinet/session'
     | '/instrument/mandate/scorecard'
     | '/instrument/mandate/studio'
@@ -568,6 +579,7 @@ export interface FileRouteTypes {
     | '/instrument'
     | '/narrative'
     | '/admin/audits/keying'
+    | '/admin/audits/log'
     | '/instrument/cabinet/session'
     | '/instrument/mandate/scorecard'
     | '/instrument/mandate/studio'
@@ -619,6 +631,7 @@ export interface FileRouteTypes {
     | '/_authenticated/instrument/'
     | '/_authenticated/narrative/'
     | '/_authenticated/admin/audits/keying'
+    | '/_authenticated/admin/audits/log'
     | '/_authenticated/instrument/cabinet/session'
     | '/_authenticated/instrument/mandate/scorecard'
     | '/_authenticated/instrument/mandate/studio'
@@ -989,6 +1002,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInstrumentCabinetSessionRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
+    '/_authenticated/admin/audits/log': {
+      id: '/_authenticated/admin/audits/log'
+      path: '/admin/audits/log'
+      fullPath: '/admin/audits/log'
+      preLoaderRoute: typeof AuthenticatedAdminAuditsLogRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/audits/keying': {
       id: '/_authenticated/admin/audits/keying'
       path: '/admin/audits/keying'
@@ -1121,6 +1141,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConfigIndexRoute: typeof AuthenticatedConfigIndexRoute
   AuthenticatedCounselIndexRoute: typeof AuthenticatedCounselIndexRoute
   AuthenticatedAdminAuditsKeyingRoute: typeof AuthenticatedAdminAuditsKeyingRoute
+  AuthenticatedAdminAuditsLogRoute: typeof AuthenticatedAdminAuditsLogRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -1135,6 +1156,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConfigIndexRoute: AuthenticatedConfigIndexRoute,
   AuthenticatedCounselIndexRoute: AuthenticatedCounselIndexRoute,
   AuthenticatedAdminAuditsKeyingRoute: AuthenticatedAdminAuditsKeyingRoute,
+  AuthenticatedAdminAuditsLogRoute: AuthenticatedAdminAuditsLogRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

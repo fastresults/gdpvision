@@ -1100,13 +1100,13 @@ function MinistryCard({ row, onEdit }: { row: any; onEdit: () => void }) {
         </div>
       </div>
 
-      <div className="mt-3 border border-line-200 bg-cream-50/40 p-3">
+      <div className="mt-3 border border-line-200 bg-paper-100/40 p-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex gap-3">
             {mp.portrait_url ? (
               <img src={mp.portrait_url} alt={mp.name ?? "Minister"} className="h-14 w-11 object-cover border border-line-200" />
             ) : (
-              <div className="h-14 w-11 flex items-center justify-center border border-line-200 bg-cream-100 text-xs text-ink-500">
+              <div className="h-14 w-11 flex items-center justify-center border border-line-200 bg-paper-100 text-xs text-ink-500">
                 {hasProfile ? initials : "—"}
               </div>
             )}

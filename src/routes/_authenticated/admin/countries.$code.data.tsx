@@ -10,8 +10,10 @@ import { PrettyJson } from "@/components/data/PrettyJson";
 import { getOnboardingStatus } from "@/lib/country-onboarding/agents.functions";
 import {
   backfillMissingKpis,
+  commitMinistryDeepDive,
   listKpiCoverage,
   reverifyAllKpis,
+  runMinistryDeepDiveAgent,
 } from "@/lib/country-onboarding/corpus.functions";
 import {
   acceptKpiInference,
@@ -811,22 +813,147 @@ function DossiersTab({ code }: { code: string }) {
 function MinistriesTab({ code }: { code: string }) {
   const { data: rows } = useSuspenseQuery(ministriesQuery(code));
   const [editing, setEditing] = useState<any | null>(null);
-  if ((rows as any[]).length === 0) return <p className="text-sm text-ink-500">No ministry profiles yet.</p>;
+  const [refresh, setRefresh] = useState<
+    | { phase: "idle" }
+    | { phase: "running" }
+    | { phase: "ready"; draftId: string; count: number; citations: any[]; payload: any }
+    | { phase: "error"; message: string }
+  >({ phase: "idle" });
+  const runAgent = useServerFn(runMinistryDeepDiveAgent);
+  const commitAgent = useServerFn(commitMinistryDeepDive);
+  const qc = useQueryClient();
+  const [committing, setCommitting] = useState(false);
+
+  const onRefresh = async () => {
+    setRefresh({ phase: "running" });
+    try {
+      const res: any = await runAgent({ data: { countryCode: code } });
+      // Fetch the draft payload so we can preview it
+      const { data: draft, error } = await (await import("@/integrations/supabase/client")).supabase
+        .from("onboarding_drafts").select("payload").eq("id", res.draftId).single();
+      if (error) throw error;
+      setRefresh({
+        phase: "ready",
+        draftId: res.draftId,
+        count: res.count,
+        citations: res.citations ?? [],
+        payload: draft?.payload ?? { ministries: [] },
+      });
+    } catch (e: any) {
+      setRefresh({ phase: "error", message: e?.message ?? "Failed" });
+    }
+  };
+
+  const onCommit = async (draftId: string) => {
+    setCommitting(true);
+    try {
+      await commitAgent({ data: { draftId } });
+      await qc.invalidateQueries({ queryKey: ["data", code, "ministries"] });
+      setRefresh({ phase: "idle" });
+    } catch (e: any) {
+      setRefresh({ phase: "error", message: e?.message ?? "Commit failed" });
+    } finally {
+      setCommitting(false);
+    }
+  };
+
   return (
     <section className="space-y-3">
-      {(rows as any[]).map((r) => (
-        <MinistryCard key={r.id} row={r} onEdit={() => setEditing(r)} />
-      ))}
+      <div className="flex items-center justify-between">
+        <div className="text-xs text-ink-500">
+          {refresh.phase === "running" && "Researching ministries…"}
+          {refresh.phase === "ready" && `Draft ready · ${refresh.count} ministries · ${refresh.citations.length} citations`}
+          {refresh.phase === "error" && <span className="text-red-600">{refresh.message}</span>}
+        </div>
+        <button
+          onClick={onRefresh}
+          disabled={refresh.phase === "running"}
+          className="text-xs border border-line-200 px-3 py-1.5 hover:bg-cream-100 disabled:opacity-50"
+        >
+          {refresh.phase === "running" ? "Researching…" : "Refresh from AI"}
+        </button>
+      </div>
+
+      {(rows as any[]).length === 0 ? (
+        <p className="text-sm text-ink-500">No ministry profiles yet.</p>
+      ) : (
+        (rows as any[]).map((r) => (
+          <MinistryCard key={r.id} row={r} onEdit={() => setEditing(r)} />
+        ))
+      )}
+
       {editing && (
-        <MinisterEditDialog
-          row={editing}
-          countryCode={code}
-          onClose={() => setEditing(null)}
+        <MinisterEditDialog row={editing} countryCode={code} onClose={() => setEditing(null)} />
+      )}
+
+      {refresh.phase === "ready" && (
+        <MinistryReviewDialog
+          rows={rows as any[]}
+          draft={refresh}
+          committing={committing}
+          onCommit={() => onCommit(refresh.draftId)}
+          onCancel={() => setRefresh({ phase: "idle" })}
         />
       )}
     </section>
   );
 }
+
+function MinistryReviewDialog({
+  rows, draft, committing, onCommit, onCancel,
+}: {
+  rows: any[];
+  draft: { draftId: string; count: number; citations: any[]; payload: any };
+  committing: boolean;
+  onCommit: () => void;
+  onCancel: () => void;
+}) {
+  const bySlug = new Map(rows.map((r) => [r.ministry_slug, r]));
+  const entries: any[] = draft.payload?.ministries ?? [];
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onCancel}>
+      <div className="bg-cream-50 max-w-4xl w-full max-h-[90vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-serif text-lg">Review ministry refresh · {draft.count} entries · {draft.citations.length} citations</h3>
+          <button onClick={onCancel} className="text-ink-500 hover:text-ink-950">×</button>
+        </div>
+        <p className="text-xs text-ink-500 mb-3">Committing overwrites minister profile, mandate, programmes, and citations for each ministry below. Existing rows not in the draft are untouched.</p>
+        <div className="space-y-3">
+          {entries.map((entry, i) => {
+            const current = bySlug.get(entry.ministry_slug) as any;
+            const newProfile = entry.minister_profile ?? {};
+            const oldProfile = current?.minister_profile ?? {};
+            return (
+              <div key={i} className="border border-line-200 p-3 grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <div className="text-ink-500 uppercase text-[10px] tracking-wide mb-1">Current · {current?.ministries?.name ?? entry.ministry_slug}</div>
+                  <div>{oldProfile.name ?? current?.minister ?? "—"}</div>
+                  <div className="text-ink-500">{oldProfile.title ?? "—"}</div>
+                  <div className="text-ink-500">{oldProfile.party ?? "—"}</div>
+                  <div className="text-ink-500">{(current?.programmes as any[])?.length ?? 0} programmes</div>
+                </div>
+                <div>
+                  <div className="text-ink-500 uppercase text-[10px] tracking-wide mb-1">New</div>
+                  <div className="font-medium">{newProfile.name ?? entry.minister ?? "—"}</div>
+                  <div className="text-ink-500">{newProfile.title ?? "—"}</div>
+                  <div className="text-ink-500">{newProfile.party ?? "—"}</div>
+                  <div className="text-ink-500">{(entry.programmes as any[])?.length ?? 0} programmes</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <button onClick={onCancel} disabled={committing} className="text-xs text-ink-500 hover:text-ink-950 px-3 py-1.5">Cancel</button>
+          <button onClick={onCommit} disabled={committing} className="text-xs bg-ink-950 text-cream-50 px-3 py-1.5 disabled:opacity-50">
+            {committing ? "Committing…" : "Commit refresh"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 function MinistryCard({ row, onEdit }: { row: any; onEdit: () => void }) {
   const mp = (row.minister_profile ?? {}) as any;

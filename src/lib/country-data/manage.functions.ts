@@ -657,10 +657,15 @@ export const listMinistryProfiles = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
       .from("ministry_profiles")
-      .select("*, ministries!inner(name, slug)")
+      .select("*")
       .eq("country_code", data.countryCode);
     if (error) throw error;
-    return rows ?? [];
+    const slugs = Array.from(new Set((rows ?? []).map((r) => r.ministry_slug).filter(Boolean)));
+    const { data: mins } = slugs.length
+      ? await supabaseAdmin.from("ministries").select("slug,name").in("slug", slugs)
+      : { data: [] as Array<{ slug: string; name: string }> };
+    const byslug = new Map((mins ?? []).map((m) => [m.slug, m]));
+    return (rows ?? []).map((r) => ({ ...r, ministries: byslug.get(r.ministry_slug) ?? null }));
   });
 
 // ============================================================

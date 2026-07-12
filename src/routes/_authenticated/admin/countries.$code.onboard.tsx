@@ -71,6 +71,11 @@ const keyStatusQuery = queryOptions({
   queryFn: () => getPerplexityKeyStatus(),
 });
 
+const ingestKeysQuery = queryOptions({
+  queryKey: ["onboarding", "ingest-keys"],
+  queryFn: () => getIngestKeysStatus(),
+});
+
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/onboard")({
   head: ({ params }) => ({
     meta: [
@@ -82,6 +87,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/onbo
     const [status] = await Promise.all([
       context.queryClient.ensureQueryData(statusQuery(params.code)),
       context.queryClient.ensureQueryData(keyStatusQuery),
+      context.queryClient.ensureQueryData(ingestKeysQuery),
     ]);
     if (!(status as any).country) throw notFound();
   },

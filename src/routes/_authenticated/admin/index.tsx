@@ -23,7 +23,7 @@ const countriesQuery = queryOptions({ queryKey: ["admin-countries"], queryFn: ()
 const configQuery = queryOptions({ queryKey: ["admin-config"], queryFn: () => listInstanceConfig() });
 
 
-const ROLES = ["admin", "cabinet_secretary", "principal", "line_minister", "advisor", "comms_director", "steward", "data_steward"] as const;
+const ROLES = ["admin", "country_admin", "cabinet_secretary", "principal", "line_minister", "advisor", "comms_director", "steward", "data_steward"] as const;
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({

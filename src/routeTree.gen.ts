@@ -62,6 +62,7 @@ import { Route as AuthenticatedInstrumentMandateStudioRouteImport } from './rout
 import { Route as AuthenticatedInstrumentMandateScorecardRouteImport } from './routes/_authenticated/instrument/mandate.scorecard'
 import { Route as AuthenticatedInstrumentCabinetSessionRouteImport } from './routes/_authenticated/instrument/cabinet.session'
 import { Route as AuthenticatedInstrumentCabinetDecisionsRouteImport } from './routes/_authenticated/instrument/cabinet.decisions'
+import { Route as AuthenticatedAdminCountryCodeRouteImport } from './routes/_authenticated/admin/country.$code'
 import { Route as AuthenticatedAdminAuditsLogRouteImport } from './routes/_authenticated/admin/audits.log'
 import { Route as AuthenticatedAdminAuditsKeyingRouteImport } from './routes/_authenticated/admin/audits.keying'
 
@@ -371,6 +372,12 @@ const AuthenticatedInstrumentCabinetDecisionsRoute =
     path: '/cabinet/decisions',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
+const AuthenticatedAdminCountryCodeRoute =
+  AuthenticatedAdminCountryCodeRouteImport.update({
+    id: '/admin/country/$code',
+    path: '/admin/country/$code',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminAuditsLogRoute =
   AuthenticatedAdminAuditsLogRouteImport.update({
     id: '/admin/audits/log',
@@ -415,6 +422,7 @@ export interface FileRoutesByFullPath {
   '/narrative/': typeof AuthenticatedNarrativeIndexRoute
   '/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
   '/admin/audits/log': typeof AuthenticatedAdminAuditsLogRoute
+  '/admin/country/$code': typeof AuthenticatedAdminCountryCodeRoute
   '/instrument/cabinet/decisions': typeof AuthenticatedInstrumentCabinetDecisionsRoute
   '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
@@ -468,6 +476,7 @@ export interface FileRoutesByTo {
   '/narrative': typeof AuthenticatedNarrativeIndexRoute
   '/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
   '/admin/audits/log': typeof AuthenticatedAdminAuditsLogRoute
+  '/admin/country/$code': typeof AuthenticatedAdminCountryCodeRoute
   '/instrument/cabinet/decisions': typeof AuthenticatedInstrumentCabinetDecisionsRoute
   '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
@@ -526,6 +535,7 @@ export interface FileRoutesById {
   '/_authenticated/narrative/': typeof AuthenticatedNarrativeIndexRoute
   '/_authenticated/admin/audits/keying': typeof AuthenticatedAdminAuditsKeyingRoute
   '/_authenticated/admin/audits/log': typeof AuthenticatedAdminAuditsLogRoute
+  '/_authenticated/admin/country/$code': typeof AuthenticatedAdminCountryCodeRoute
   '/_authenticated/instrument/cabinet/decisions': typeof AuthenticatedInstrumentCabinetDecisionsRoute
   '/_authenticated/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/_authenticated/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
@@ -584,6 +594,7 @@ export interface FileRouteTypes {
     | '/narrative/'
     | '/admin/audits/keying'
     | '/admin/audits/log'
+    | '/admin/country/$code'
     | '/instrument/cabinet/decisions'
     | '/instrument/cabinet/session'
     | '/instrument/mandate/scorecard'
@@ -637,6 +648,7 @@ export interface FileRouteTypes {
     | '/narrative'
     | '/admin/audits/keying'
     | '/admin/audits/log'
+    | '/admin/country/$code'
     | '/instrument/cabinet/decisions'
     | '/instrument/cabinet/session'
     | '/instrument/mandate/scorecard'
@@ -694,6 +706,7 @@ export interface FileRouteTypes {
     | '/_authenticated/narrative/'
     | '/_authenticated/admin/audits/keying'
     | '/_authenticated/admin/audits/log'
+    | '/_authenticated/admin/country/$code'
     | '/_authenticated/instrument/cabinet/decisions'
     | '/_authenticated/instrument/cabinet/session'
     | '/_authenticated/instrument/mandate/scorecard'
@@ -1103,6 +1116,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInstrumentCabinetDecisionsRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
     }
+    '/_authenticated/admin/country/$code': {
+      id: '/_authenticated/admin/country/$code'
+      path: '/admin/country/$code'
+      fullPath: '/admin/country/$code'
+      preLoaderRoute: typeof AuthenticatedAdminCountryCodeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/audits/log': {
       id: '/_authenticated/admin/audits/log'
       path: '/admin/audits/log'
@@ -1248,6 +1268,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCounselIndexRoute: typeof AuthenticatedCounselIndexRoute
   AuthenticatedAdminAuditsKeyingRoute: typeof AuthenticatedAdminAuditsKeyingRoute
   AuthenticatedAdminAuditsLogRoute: typeof AuthenticatedAdminAuditsLogRoute
+  AuthenticatedAdminCountryCodeRoute: typeof AuthenticatedAdminCountryCodeRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -1265,6 +1286,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCounselIndexRoute: AuthenticatedCounselIndexRoute,
   AuthenticatedAdminAuditsKeyingRoute: AuthenticatedAdminAuditsKeyingRoute,
   AuthenticatedAdminAuditsLogRoute: AuthenticatedAdminAuditsLogRoute,
+  AuthenticatedAdminCountryCodeRoute: AuthenticatedAdminCountryCodeRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

@@ -2537,6 +2537,7 @@ export type Database = {
       }
       sector_dossiers: {
         Row: {
+          citations: Json
           confidence: string
           country_code: string
           created_at: string
@@ -2548,6 +2549,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          citations?: Json
           confidence?: string
           country_code: string
           created_at?: string
@@ -2559,6 +2561,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          citations?: Json
           confidence?: string
           country_code?: string
           created_at?: string

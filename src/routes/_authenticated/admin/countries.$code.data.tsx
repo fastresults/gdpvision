@@ -791,7 +791,7 @@ function DossiersTab({ code }: { code: string }) {
                         confidence: {r.confidence} · {r.source_ids?.length ?? 0} sources
                       </div>
                     </header>
-                    <PrettyJson value={r.payload} />
+                    <PrettyJson value={r.payload} citations={(r.citations ?? []) as any} />
                   </article>
                 ))}
               </div>

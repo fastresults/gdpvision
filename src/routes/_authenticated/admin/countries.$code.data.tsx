@@ -6,6 +6,11 @@ import { useState } from "react";
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { getOnboardingStatus } from "@/lib/country-onboarding/agents.functions";
 import {
+  backfillMissingKpis,
+  listKpiCoverage,
+  reverifyAllKpis,
+} from "@/lib/country-onboarding/corpus.functions";
+import {
   corpusStats,
   deleteMemory,
   deleteSource,
@@ -43,6 +48,8 @@ const sourcesQuery = (code: string) =>
   queryOptions({ queryKey: ["data", code, "sources"], queryFn: () => listSources({ data: { countryCode: code } }) });
 const kpisQuery = (code: string) =>
   queryOptions({ queryKey: ["data", code, "kpis"], queryFn: () => listKpis({ data: { countryCode: code } }) });
+const kpiCoverageQuery = (code: string) =>
+  queryOptions({ queryKey: ["data", code, "kpi-coverage"], queryFn: () => listKpiCoverage({ data: { countryCode: code } }) });
 const dossiersQuery = (code: string) =>
   queryOptions({ queryKey: ["data", code, "dossiers"], queryFn: () => listDossiers({ data: { countryCode: code } }) });
 const ministriesQuery = (code: string) =>
@@ -51,6 +58,7 @@ const statsQuery = (code: string) =>
   queryOptions({ queryKey: ["data", code, "stats"], queryFn: () => corpusStats({ data: { countryCode: code } }) });
 const memoryQuery = (code: string) =>
   queryOptions({ queryKey: ["data", code, "memory"], queryFn: () => listMemory({ data: { countryCode: code } }) });
+
 
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/data")({
   head: ({ params }) => ({
@@ -309,7 +317,55 @@ function AddSourceForm({ onSubmit }: { onSubmit: (v: { url: string; title: strin
 function KpisTab({ code }: { code: string }) {
   const qc = useQueryClient();
   const { data: kpis } = useSuspenseQuery(kpisQuery(code));
+  const { data: coverage } = useSuspenseQuery(kpiCoverageQuery(code));
   const update = useServerFn(updateKpi);
+  const backfill = useServerFn(backfillMissingKpis);
+  const reverify = useServerFn(reverifyAllKpis);
+
+  const [busy, setBusy] = useState<null | "backfill" | "reverify">(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const summary = (coverage as any).summary as {
+    required_total: number;
+    required_filled: number;
+    registry_total: number;
+    last_verified_at: string | null;
+  };
+  const perKpi = (coverage as any).perKpi as Array<{
+    kpi_code: string;
+    required: boolean;
+    freshness_status: string;
+    last_attempt_pass: string | null;
+    last_attempt_error: string | null;
+  }>;
+  const statusByCode = new Map(perKpi.map((r) => [r.kpi_code, r]));
+
+  const refresh = async () => {
+    await qc.invalidateQueries({ queryKey: ["data", code, "kpis"] });
+    await qc.invalidateQueries({ queryKey: ["data", code, "kpi-coverage"] });
+  };
+
+  async function doBackfill() {
+    setErr(null); setMsg(null); setBusy("backfill");
+    try {
+      const r = await backfill({ data: { countryCode: code, staleOlderThanDays: 90 } });
+      setMsg(`Backfill: ${(r as any).touched} rows updated · coverage ${(r as any).coverage.filled}/${(r as any).coverage.total}`);
+      await refresh();
+    } catch (e: any) {
+      setErr(e?.message ?? String(e));
+    } finally { setBusy(null); }
+  }
+  async function doReverify() {
+    setErr(null); setMsg(null); setBusy("reverify");
+    try {
+      const r = await reverify({ data: { countryCode: code } });
+      setMsg(`Re-verified · ${(r as any).touched} rows · coverage ${(r as any).coverage.filled}/${(r as any).coverage.total}`);
+      await refresh();
+    } catch (e: any) {
+      setErr(e?.message ?? String(e));
+    } finally { setBusy(null); }
+  }
 
   const byCat = new Map<string, any[]>();
   for (const k of kpis as any[]) {
@@ -317,8 +373,43 @@ function KpisTab({ code }: { code: string }) {
     (byCat.get(c) ?? byCat.set(c, []).get(c)!).push(k);
   }
 
+  const coveragePct = summary.required_total === 0 ? 0 : Math.round((summary.required_filled / summary.required_total) * 100);
+  const coverageTone =
+    coveragePct >= 100 ? "border-emerald-500 text-emerald-700" :
+    coveragePct >= 75 ? "border-amber-500 text-amber-700" :
+    "border-red-500 text-red-700";
+
   return (
     <section className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 border border-line-200 p-3 bg-paper-100/40">
+        <div className="flex items-baseline gap-4">
+          <span className={`inline-block px-2 py-0.5 border text-[11px] font-mono uppercase tracking-[0.2em] ${coverageTone}`}>
+            Coverage {summary.required_filled}/{summary.required_total} ({coveragePct}%)
+          </span>
+          <span className="text-xs text-ink-500">
+            Registry: {summary.registry_total} tracked · Last verified {summary.last_verified_at ? new Date(summary.last_verified_at).toLocaleString() : "never"}
+          </span>
+        </div>
+        <div className="flex gap-2">
+          <button
+            disabled={busy !== null}
+            onClick={doBackfill}
+            className="text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 px-3 py-1.5 disabled:opacity-50"
+          >
+            {busy === "backfill" ? "Backfilling…" : "Backfill missing"}
+          </button>
+          <button
+            disabled={busy !== null}
+            onClick={doReverify}
+            className="text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0 px-3 py-1.5 disabled:opacity-50"
+          >
+            {busy === "reverify" ? "Re-verifying…" : "Re-verify all"}
+          </button>
+        </div>
+      </div>
+      {msg && <div className="p-2 text-xs text-emerald-700 border border-emerald-500/50 bg-emerald-500/10">{msg}</div>}
+      {err && <div className="p-2 text-xs text-red-700 border border-red-500/50 bg-red-500/10">{err}</div>}
+
       {[...byCat.entries()].map(([cat, rows]) => (
         <div key={cat}>
           <h3 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500 mb-2">{cat}</h3>
@@ -331,31 +422,53 @@ function KpisTab({ code }: { code: string }) {
                   <th className="px-3 py-2">Period</th>
                   <th className="px-3 py-2">Target</th>
                   <th className="px-3 py-2">Unit</th>
+                  <th className="px-3 py-2">Status</th>
                   <th className="px-3 py-2">Source</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((k) => (
-                  <KpiRow key={k.id} k={k} onSave={async (patch) => {
-                    await update({ data: { id: k.id, ...patch } });
-                    await qc.invalidateQueries({ queryKey: ["data", code, "kpis"] });
-                  }} />
+                  <KpiRow
+                    key={k.id}
+                    k={k}
+                    status={statusByCode.get(k.kpi_code)}
+                    onSave={async (patch) => {
+                      await update({ data: { id: k.id, ...patch } });
+                      await refresh();
+                    }}
+                  />
                 ))}
               </tbody>
             </table>
           </div>
         </div>
       ))}
-      {(kpis as any[]).length === 0 && <p className="text-sm text-ink-500">No KPIs yet.</p>}
+      {(kpis as any[]).length === 0 && <p className="text-sm text-ink-500">No KPIs yet — run the KPI seed stage in onboarding, or click Backfill missing.</p>}
     </section>
   );
 }
 
-function KpiRow({ k, onSave }: { k: any; onSave: (patch: any) => Promise<void> }) {
+function KpiRow({
+  k,
+  status,
+  onSave,
+}: {
+  k: any;
+  status?: { freshness_status: string; last_attempt_pass: string | null; last_attempt_error: string | null };
+  onSave: (patch: any) => Promise<void>;
+}) {
   const [latest, setLatest] = useState<string>(k.latest_value ?? "");
   const [period, setPeriod] = useState<string>(k.latest_period ?? "");
   const [target, setTarget] = useState<string>(k.target ?? "");
-  const dirty = String(latest) !== String(k.latest_value ?? "") || period !== (k.latest_period ?? "") || String(target) !== String(k.target ?? "");
+  const dirty =
+    String(latest) !== String(k.latest_value ?? "") ||
+    period !== (k.latest_period ?? "") ||
+    String(target) !== String(k.target ?? "");
+  const s = status?.freshness_status ?? (k.latest_value == null ? "missing" : "fresh");
+  const tone =
+    s === "fresh" ? "border-emerald-500 text-emerald-700" :
+    s === "stale" ? "border-amber-500 text-amber-700" :
+    "border-red-500 text-red-700";
   return (
     <tr className="border-t border-line-200">
       <td className="px-3 py-2">
@@ -372,24 +485,37 @@ function KpiRow({ k, onSave }: { k: any; onSave: (patch: any) => Promise<void> }
         <input value={target} onChange={(e) => setTarget(e.target.value)} className="w-24 border border-line-200 px-2 py-1 text-sm bg-paper-0" />
       </td>
       <td className="px-3 py-2 text-xs">{k.unit}</td>
+      <td className="px-3 py-2">
+        <span className={`inline-block px-2 py-0.5 border text-[10px] font-mono uppercase tracking-widest ${tone}`}>{s}</span>
+        {s !== "fresh" && status?.last_attempt_error && (
+          <div className="mt-1 text-[10px] text-ink-500 truncate max-w-[240px]" title={status.last_attempt_error}>
+            last {status.last_attempt_pass ?? "attempt"}: {status.last_attempt_error}
+          </div>
+        )}
+      </td>
       <td className="px-3 py-2 text-xs">
         {k.country_sources?.url ? (
           <a href={k.country_sources.url} target="_blank" rel="noreferrer" className="hover:underline">{k.country_sources.org}</a>
         ) : "—"}
         {dirty && (
           <button
-            onClick={() => onSave({
-              latest_value: latest === "" ? null : Number(latest),
-              latest_period: period || null,
-              target: target === "" ? null : Number(target),
-            })}
+            onClick={() =>
+              onSave({
+                latest_value: latest === "" ? null : Number(latest),
+                latest_period: period || null,
+                target: target === "" ? null : Number(target),
+              })
+            }
             className="ml-2 text-[10px] px-2 py-0.5 border border-ink-950 bg-ink-950 text-paper-0"
-          >save</button>
+          >
+            save
+          </button>
         )}
       </td>
     </tr>
   );
 }
+
 
 // ============================================================
 // Dossiers

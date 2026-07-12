@@ -247,36 +247,143 @@ export const commitSourceRegistry = createServerFn({ method: "POST" })
   });
 
 // ============================================================
-// Stage 7: KPI seed
+// Stage 7: KPI seed — agentic multi-pass loop
 // ============================================================
 
-const KpiSchema = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    kpis: {
-      type: "array",
-      items: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          kpi_code: { type: "string", description: "snake_case, e.g. gdp_growth, cpi_yoy, debt_gdp" },
-          label: { type: "string" },
-          unit: { type: "string" },
-          direction: { type: "string", enum: ["up", "down", "flat"] },
-          category: { type: "string", enum: ["macro", "fiscal", "social", "external", "climate"] },
-          latest_value: { type: ["number", "null"] },
-          latest_period: { type: ["string", "null"] },
-          target: { type: ["number", "null"] },
-          source_url: { type: ["string", "null"] },
-          notes: { type: "string" },
-        },
-        required: ["kpi_code", "label", "unit", "direction", "category", "latest_value", "latest_period", "notes"],
-      },
-    },
-  },
-  required: ["kpis"],
-} as const;
+async function recordAttempts(
+  admin: any,
+  runId: string,
+  countryCode: string,
+  attempts: Array<import("./kpi-research.server").AttemptRecord>,
+) {
+  if (!attempts.length) return;
+  const rows = attempts.map((a) => ({
+    run_id: runId,
+    country_code: countryCode,
+    kpi_code: a.kpi_code,
+    pass: a.pass,
+    provider: a.provider,
+    model: a.model ?? null,
+    ok: a.ok,
+    value: a.value,
+    period: a.period,
+    source_url: a.source_url,
+    error: a.error,
+  }));
+  // Best-effort — never fail the loop because logging failed.
+  await admin.from("kpi_research_attempts").insert(rows);
+}
+
+async function runAgenticKpiLoop(args: {
+  admin: any;
+  runId: string | null;
+  country: { code: string; name: string; iso3: string | null };
+  countryTld?: string;
+}) {
+  const { registryFor, findRegistryEntry } = await import("./kpi-registry");
+  const research = await import("./kpi-research.server");
+  const registry = registryFor(["all"]);
+  const values = new Map<string, import("./kpi-research.server").ResearchedValue>();
+  const allAttempts: Array<import("./kpi-research.server").AttemptRecord> = [];
+
+  // Pass A — broad sweep
+  const sweep = await research.sweepPerplexity({
+    country: args.country,
+    registry,
+    countryTld: args.countryTld,
+  });
+  for (const v of sweep.values) research.mergeInto(values, research.normalizeValue(v));
+  allAttempts.push(...sweep.attempts);
+
+  // Pass B — World Bank backfill
+  const missingAfterA = registry.filter(
+    (k) => !values.get(k.kpi_code) || values.get(k.kpi_code)!.value == null,
+  );
+  const iso3 = args.country.iso3 ?? args.country.code;
+  for (const k of missingAfterA) {
+    const { value, attempt } = await research.backfillWorldBank(iso3, k);
+    allAttempts.push(attempt);
+    if (value) research.mergeInto(values, research.normalizeValue(value));
+  }
+
+  // Pass C — IMF backfill
+  const missingAfterB = registry.filter(
+    (k) => !values.get(k.kpi_code) || values.get(k.kpi_code)!.value == null,
+  );
+  for (const k of missingAfterB) {
+    const { value, attempt } = await research.backfillImf(iso3, k);
+    allAttempts.push(attempt);
+    if (value) research.mergeInto(values, research.normalizeValue(value));
+  }
+
+  // Pass D — targeted Perplexity
+  const missingAfterC = registry.filter(
+    (k) => !values.get(k.kpi_code) || values.get(k.kpi_code)!.value == null,
+  );
+  for (const k of missingAfterC) {
+    const { value, attempt } = await research.targetedPerplexity({
+      country: args.country,
+      kpi: k,
+      countryTld: args.countryTld,
+    });
+    allAttempts.push(attempt);
+    if (value) research.mergeInto(values, research.normalizeValue(value));
+  }
+
+  // Pass E — Gemini escalation
+  const missingAfterD = registry.filter(
+    (k) => !values.get(k.kpi_code) || values.get(k.kpi_code)!.value == null,
+  );
+  for (const k of missingAfterD) {
+    const { value, attempt } = await research.escalateGemini({
+      country: args.country,
+      kpi: k,
+    });
+    allAttempts.push(attempt);
+    if (value) research.mergeInto(values, research.normalizeValue(value));
+  }
+
+  // Ensure every registry entry is represented (even if still null).
+  for (const k of registry) {
+    if (!values.has(k.kpi_code)) {
+      values.set(k.kpi_code, {
+        kpi_code: k.kpi_code,
+        value: null,
+        period: null,
+        source_url: null,
+        source_org: null,
+        notes: "not found after 5 passes",
+      });
+    }
+  }
+
+  if (args.runId) {
+    await recordAttempts(args.admin, args.runId, args.country.code, allAttempts);
+  }
+
+  const coverage = research.coverageOf(registry, values);
+  const enriched = registry.map((k) => {
+    const v = values.get(k.kpi_code)!;
+    return {
+      kpi_code: k.kpi_code,
+      label: k.label,
+      unit: k.unit,
+      direction: k.direction,
+      category: k.category,
+      latest_value: v.value,
+      latest_period: v.period,
+      target: null,
+      source_url: v.source_url,
+      source_org: v.source_org,
+      notes: v.notes,
+      required: k.required,
+    };
+  });
+  // Silence unused import warning — findRegistryEntry kept for future use.
+  void findRegistryEntry;
+
+  return { enriched, coverage, attempts: allAttempts };
+}
 
 export const runKpiSeedAgent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -286,44 +393,168 @@ export const runKpiSeedAgent = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const country = await loadCountry(supabaseAdmin, data.countryCode);
 
-    const model: SonarModel = "sonar-pro";
     const runId = await openRun(supabaseAdmin, {
       country_code: data.countryCode,
       stage: "kpi_seed",
       userId: context.userId,
-      model_stack: { perplexity: model },
+      model_stack: {
+        perplexity: "sonar-pro",
+        lovable_ai: "google/gemini-2.5-pro",
+        worldbank: "wdi-api",
+        imf: "datamapper-api",
+      },
     });
 
     try {
-      const result = await callSonar({
-        model,
-        system:
-          "You are a national KPI analyst. Return the canonical macro/fiscal/social/external/climate KPIs for a country with the most recent value from an authoritative source (WB, IMF, national CSO, central bank). Include at minimum: real GDP growth, CPI YoY, unemployment, debt/GDP, primary balance/GDP, current account/GDP, tourism arrivals, HDI. Use snake_case kpi_code. Set direction to up (higher is better), down (lower is better), or flat.",
-        user: `Country: ${country.name} (${country.iso3 ?? country.code}). Return 10-15 canonical KPIs with the latest value and period.`,
-        responseSchema: KpiSchema as unknown as Record<string, unknown>,
-        recency: "year",
+      const { enriched, coverage, attempts } = await runAgenticKpiLoop({
+        admin: supabaseAdmin,
+        runId,
+        country: { code: country.code, name: country.name, iso3: country.iso3 },
       });
-
-      const parsed = parseSonarJson<{ kpis: any[] }>(result.content);
-      if (!parsed?.kpis?.length) throw new Error("Perplexity returned no KPIs");
 
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
         country_code: data.countryCode,
         stage: "kpi_seed",
         target_table: "country_kpis",
-        payload: parsed,
-        confidence: result.citations.length >= 2 ? "high" : "medium",
-        citations: result.citations,
+        payload: { kpis: enriched, coverage },
+        confidence:
+          coverage.filled === coverage.total ? "high" : coverage.filled >= coverage.total * 0.75 ? "medium" : "low",
+        citations: [],
       });
 
-      await finishRun(supabaseAdmin, runId, { status: "ready" });
-      return { runId, draftId, count: parsed.kpis.length, citations: result.citations };
+      await finishRun(supabaseAdmin, runId, {
+        status: "ready",
+        error:
+          coverage.filled < coverage.total
+            ? `partial: ${coverage.filled}/${coverage.total} required (missing: ${coverage.missing.join(", ")})`
+            : null,
+      });
+      return {
+        runId,
+        draftId,
+        count: enriched.length,
+        coverage,
+        attempts: attempts.length,
+      };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;
     }
   });
+
+// ============================================================
+// Source auto-attach + upsert (used by commit, backfill, re-verify)
+// ============================================================
+
+const ORG_QUALITY: Record<string, number> = {
+  "World Bank": 5,
+  "IMF WEO": 5,
+  "IMF": 5,
+  "UN": 5,
+  "UNDP": 5,
+  "WHO": 5,
+  "ILO": 5,
+  "OECS": 4,
+  "CDB": 4,
+  "ECCB": 4,
+  "CARICOM": 4,
+};
+
+async function attachOrCreateSource(
+  admin: any,
+  countryCode: string,
+  sourceUrl: string | null,
+  sourceOrg: string | null,
+  userId: string,
+): Promise<string | null> {
+  if (!sourceUrl) return null;
+  const { data: existing } = await admin
+    .from("country_sources")
+    .select("id")
+    .eq("country_code", countryCode)
+    .eq("url", sourceUrl)
+    .maybeSingle();
+  if (existing?.id) return existing.id as string;
+
+  let tld: string | null = null;
+  try {
+    tld = new URL(sourceUrl).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+  const org = sourceOrg ?? tld ?? "Auto";
+  const quality = ORG_QUALITY[org] ?? 3;
+  const { data: created, error } = await admin
+    .from("country_sources")
+    .upsert(
+      {
+        country_code: countryCode,
+        url: sourceUrl,
+        title: `${org} — KPI source`,
+        org,
+        kind: "kpi_source",
+        tld,
+        tags: ["auto", "kpi"],
+        quality_score: quality,
+        active: true,
+        created_by: userId,
+      },
+      { onConflict: "country_code,url", ignoreDuplicates: false },
+    )
+    .select("id")
+    .single();
+  if (error || !created) return null;
+  return created.id as string;
+}
+
+async function upsertResolvedKpi(
+  admin: any,
+  countryCode: string,
+  userId: string,
+  k: {
+    kpi_code: string;
+    label: string;
+    unit: string;
+    direction: string;
+    category: string;
+    latest_value: number | null;
+    latest_period: string | null;
+    target?: number | null;
+    source_url: string | null;
+    source_org: string | null;
+    notes?: string | null;
+  },
+) {
+  const source_id = await attachOrCreateSource(
+    admin,
+    countryCode,
+    k.source_url,
+    k.source_org,
+    userId,
+  );
+  const freshness_status = k.latest_value == null ? "missing" : "fresh";
+  const { error } = await admin.from("country_kpis").upsert(
+    {
+      country_code: countryCode,
+      kpi_code: k.kpi_code,
+      label: k.label,
+      unit: k.unit,
+      direction: k.direction || "up",
+      category: k.category || "macro",
+      source_id,
+      latest_value: k.latest_value,
+      latest_period: k.latest_period,
+      target: k.target ?? null,
+      notes: k.notes ?? null,
+      freshness_status,
+      last_verified_at: new Date().toISOString(),
+      research_notes: k.notes ?? null,
+    },
+    { onConflict: "country_code,kpi_code" },
+  );
+  return { ok: !error, error: error?.message ?? null, source_id };
+}
 
 export const commitKpis = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -337,38 +568,214 @@ export const commitKpis = createServerFn({ method: "POST" })
       .eq("id", data.draftId)
       .single();
     if (error || !draft) throw new Error("Draft not found");
-    const payload = (data.editedPayload ?? draft.payload) as { kpis: Array<any> };
-
-    // Try to link each KPI's source_url to an existing country_source
-    const { data: sources } = await supabaseAdmin
-      .from("country_sources")
-      .select("id, url")
-      .eq("country_code", draft.country_code);
-    const byUrl = new Map((sources ?? []).map((s: any) => [s.url as string, s.id as string]));
+    const payload = (data.editedPayload ?? draft.payload) as {
+      kpis: Array<{
+        kpi_code: string;
+        label: string;
+        unit: string;
+        direction: string;
+        category: string;
+        latest_value: number | null;
+        latest_period: string | null;
+        target: number | null;
+        source_url: string | null;
+        source_org: string | null;
+        notes: string | null;
+      }>;
+    };
 
     let upserted = 0;
     for (const k of payload.kpis) {
-      const source_id = k.source_url ? byUrl.get(k.source_url) ?? null : null;
-      const { error: upErr } = await supabaseAdmin.from("country_kpis").upsert(
-        {
-          country_code: draft.country_code,
-          kpi_code: k.kpi_code,
-          label: k.label,
-          unit: k.unit,
-          direction: k.direction || "up",
-          category: k.category || "macro",
-          source_id,
-          latest_value: k.latest_value,
-          latest_period: k.latest_period,
-          target: k.target ?? null,
-          notes: k.notes ?? null,
-        },
-        { onConflict: "country_code,kpi_code" },
+      const { ok } = await upsertResolvedKpi(
+        supabaseAdmin,
+        draft.country_code,
+        context.userId,
+        k,
       );
-      if (!upErr) upserted++;
+      if (ok) upserted++;
     }
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
     return { ok: true, upserted };
+  });
+
+// ============================================================
+// On-demand: backfill only KPIs that are still missing / stale
+// ============================================================
+
+export const backfillMissingKpis = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      countryCode: z.string(),
+      staleOlderThanDays: z.number().int().min(1).max(365).default(90),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const country = await loadCountry(supabaseAdmin, data.countryCode);
+
+    const runId = await openRun(supabaseAdmin, {
+      country_code: data.countryCode,
+      stage: "kpi_seed",
+      userId: context.userId,
+      model_stack: { mode: "backfill" },
+    });
+
+    try {
+      const { enriched, coverage } = await runAgenticKpiLoop({
+        admin: supabaseAdmin,
+        runId,
+        country: { code: country.code, name: country.name, iso3: country.iso3 },
+      });
+
+      // Load current rows to decide what to touch.
+      const { data: currentRows } = await supabaseAdmin
+        .from("country_kpis")
+        .select("kpi_code, latest_value, last_verified_at")
+        .eq("country_code", data.countryCode);
+      const staleThreshold = Date.now() - data.staleOlderThanDays * 24 * 3600 * 1000;
+      const byCode = new Map(
+        (currentRows ?? []).map((r: any) => [r.kpi_code as string, r]),
+      );
+
+      let touched = 0;
+      for (const k of enriched) {
+        const cur = byCode.get(k.kpi_code);
+        const isMissing = !cur || cur.latest_value == null;
+        const isStale =
+          cur?.last_verified_at &&
+          new Date(cur.last_verified_at).getTime() < staleThreshold;
+        if (!isMissing && !isStale) continue;
+        if (k.latest_value == null && !isMissing) continue; // don't overwrite good value with null
+
+        const { ok } = await upsertResolvedKpi(
+          supabaseAdmin,
+          data.countryCode,
+          context.userId,
+          k,
+        );
+        if (ok) touched++;
+      }
+
+      // Mark unresolved as still-missing for the UI.
+      await supabaseAdmin
+        .from("country_kpis")
+        .update({ freshness_status: "missing" })
+        .eq("country_code", data.countryCode)
+        .is("latest_value", null);
+
+      await finishRun(supabaseAdmin, runId, {
+        status: "committed",
+        error:
+          coverage.filled < coverage.total
+            ? `partial: ${coverage.filled}/${coverage.total} required (missing: ${coverage.missing.join(", ")})`
+            : null,
+      });
+      return { ok: true, touched, coverage };
+    } catch (err) {
+      await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
+      throw err;
+    }
+  });
+
+export const reverifyAllKpis = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const country = await loadCountry(supabaseAdmin, data.countryCode);
+    const runId = await openRun(supabaseAdmin, {
+      country_code: data.countryCode,
+      stage: "kpi_seed",
+      userId: context.userId,
+      model_stack: { mode: "reverify" },
+    });
+    try {
+      const { enriched, coverage } = await runAgenticKpiLoop({
+        admin: supabaseAdmin,
+        runId,
+        country: { code: country.code, name: country.name, iso3: country.iso3 },
+      });
+      let touched = 0;
+      for (const k of enriched) {
+        const { ok } = await upsertResolvedKpi(
+          supabaseAdmin,
+          data.countryCode,
+          context.userId,
+          k,
+        );
+        if (ok) touched++;
+      }
+      await finishRun(supabaseAdmin, runId, {
+        status: "committed",
+        error:
+          coverage.filled < coverage.total
+            ? `partial: ${coverage.filled}/${coverage.total} required (missing: ${coverage.missing.join(", ")})`
+            : null,
+      });
+      return { ok: true, touched, coverage };
+    } catch (err) {
+      await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
+      throw err;
+    }
+  });
+
+export const listKpiCoverage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { registryFor } = await import("./kpi-registry");
+    const registry = registryFor(["all"]);
+    const { data: rows } = await supabaseAdmin
+      .from("country_kpis")
+      .select("kpi_code, latest_value, last_verified_at, freshness_status, research_notes")
+      .eq("country_code", data.countryCode);
+    const byCode = new Map((rows ?? []).map((r: any) => [r.kpi_code as string, r]));
+
+    // Latest attempt error per KPI for the UI.
+    const { data: attempts } = await supabaseAdmin
+      .from("kpi_research_attempts")
+      .select("kpi_code, pass, provider, ok, error, created_at")
+      .eq("country_code", data.countryCode)
+      .order("created_at", { ascending: false })
+      .limit(500);
+    const latestAttempt = new Map<string, any>();
+    for (const a of attempts ?? []) {
+      if (!latestAttempt.has(a.kpi_code)) latestAttempt.set(a.kpi_code, a);
+    }
+
+    const required = registry.filter((k) => k.required);
+    const filled = required.filter((k) => byCode.get(k.kpi_code)?.latest_value != null);
+    const summary = {
+      required_total: required.length,
+      required_filled: filled.length,
+      registry_total: registry.length,
+      last_verified_at: (rows ?? [])
+        .map((r: any) => r.last_verified_at)
+        .filter(Boolean)
+        .sort()
+        .slice(-1)[0] ?? null,
+    };
+    const perKpi = registry.map((k) => {
+      const row = byCode.get(k.kpi_code);
+      const att = latestAttempt.get(k.kpi_code);
+      return {
+        kpi_code: k.kpi_code,
+        label: k.label,
+        required: k.required,
+        category: k.category,
+        latest_value: row?.latest_value ?? null,
+        freshness_status: row?.freshness_status ?? "missing",
+        last_verified_at: row?.last_verified_at ?? null,
+        last_attempt_pass: att?.pass ?? null,
+        last_attempt_error: att?.error ?? null,
+      };
+    });
+    return { summary, perKpi };
   });
 
 // ============================================================

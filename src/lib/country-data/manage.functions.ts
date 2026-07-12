@@ -320,7 +320,7 @@ export const overrideKpi = createServerFn({ method: "POST" })
       inference_history: hist.slice(-10),
     };
     if (data.latest_period !== undefined) patch.latest_period = data.latest_period;
-    const { error } = await supabaseAdmin.from("country_kpis").update(patch).eq("id", data.id);
+    const { error } = await supabaseAdmin.from("country_kpis").update(patch as any).eq("id", data.id);
     if (error) throw error;
     return { ok: true };
   });

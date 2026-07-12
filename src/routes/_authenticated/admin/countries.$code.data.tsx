@@ -867,13 +867,14 @@ function MinistriesTab({ code }: { code: string }) {
           {refresh.phase === "ready" && `Draft ready · ${refresh.count} ministries · ${refresh.citations.length} citations`}
           {refresh.phase === "error" && <span className="text-red-600">{refresh.message}</span>}
         </div>
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={onRefresh}
           disabled={refresh.phase === "running"}
-          className="text-xs border border-line-200 px-3 py-1.5 hover:bg-cream-100 disabled:opacity-50"
         >
           {refresh.phase === "running" ? "Researching…" : "Refresh from AI"}
-        </button>
+        </Button>
       </div>
 
       {(rows as any[]).length === 0 ? (

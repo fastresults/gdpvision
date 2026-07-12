@@ -305,20 +305,31 @@ export const corpusStats = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const [{ count: sourcesTotal }, { count: sourcesActive }, { count: docs }, { count: chunks }, { data: last }] =
+
+    const [{ count: sourcesTotal }, { count: sourcesActive }, { data: srcRows }, { count: chunks }] =
       await Promise.all([
         supabaseAdmin.from("country_sources").select("id", { count: "exact", head: true }).eq("country_code", data.countryCode),
         supabaseAdmin.from("country_sources").select("id", { count: "exact", head: true }).eq("country_code", data.countryCode).eq("active", true),
-        supabaseAdmin.from("country_source_documents").select("id", { count: "exact", head: true }).eq("country_code", data.countryCode),
+        supabaseAdmin.from("country_sources").select("id").eq("country_code", data.countryCode),
         supabaseAdmin.from("country_source_chunks").select("id", { count: "exact", head: true }).eq("country_code", data.countryCode),
-        supabaseAdmin.from("country_source_documents").select("fetched_at").eq("country_code", data.countryCode).order("fetched_at", { ascending: false }).limit(1),
       ]);
+    const srcIds = (srcRows ?? []).map((s) => s.id);
+    let documents = 0;
+    let last_ingest_at: string | null = null;
+    if (srcIds.length) {
+      const [{ count: d }, { data: latest }] = await Promise.all([
+        supabaseAdmin.from("country_source_documents").select("id", { count: "exact", head: true }).in("country_source_id", srcIds),
+        supabaseAdmin.from("country_source_documents").select("fetched_at").in("country_source_id", srcIds).order("fetched_at", { ascending: false }).limit(1),
+      ]);
+      documents = d ?? 0;
+      last_ingest_at = latest?.[0]?.fetched_at ?? null;
+    }
     return {
       sources_total: sourcesTotal ?? 0,
       sources_active: sourcesActive ?? 0,
-      documents: docs ?? 0,
+      documents,
       chunks: chunks ?? 0,
-      last_ingest_at: last?.[0]?.fetched_at ?? null,
+      last_ingest_at,
     };
   });
 
@@ -337,23 +348,14 @@ export const semanticSearch = createServerFn({ method: "POST" })
     const [emb] = await embedBatch([data.query]);
     const vec = `[${emb.join(",")}]`;
 
-    const SUPABASE_URL = process.env.SUPABASE_URL!;
-    const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    // Use PostgREST directly with the RPC-free approach: order by embedding <=> vec
-    const url = `${SUPABASE_URL}/rest/v1/country_source_chunks?country_code=eq.${data.countryCode}&select=id,chunk_index,content,document_id,country_source_documents!inner(title,source_id,country_sources!inner(url,org,title))&order=embedding.cosine.${encodeURIComponent(vec)}&limit=${data.k}`;
-    // The PostgREST `order=embedding.cosine.<vec>` syntax may not be supported; fall back to a raw SQL RPC.
-    // Use edge-safe: call a Postgres function via rpc.
-    // We create the RPC in migration; for now, do a two-step: fetch chunks with distance via rpc.
-    void url;
-
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rows, error } = await supabaseAdmin.rpc("country_chunks_search", {
+    const { data: rows, error } = await (supabaseAdmin.rpc as any)("country_chunks_search", {
       _country_code: data.countryCode,
       _query_embedding: vec,
       _limit: data.k,
     });
     if (error) throw error;
-    return (rows ?? []) as Array<{
+    return ((rows ?? []) as unknown) as Array<{
       id: string;
       chunk_index: number;
       content: string;

@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 
 import { listInstanceBindings } from "@/lib/ledger.functions";
@@ -11,7 +11,12 @@ const bindingsQuery = queryOptions({
 });
 
 export const Route = createFileRoute("/_authenticated/instrument")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(bindingsQuery),
+  loader: async ({ context }) => {
+    const bindings = await context.queryClient.ensureQueryData(bindingsQuery);
+    if (!bindings || bindings.length === 0) {
+      throw redirect({ to: "/onboarding/country" });
+    }
+  },
   component: InstrumentShell,
 });
 

@@ -821,7 +821,7 @@ export const listKpiCoverage = createServerFn({ method: "POST" })
     const registry = registryFor(["all"]);
     const { data: rows } = await supabaseAdmin
       .from("country_kpis")
-      .select("kpi_code, latest_value, last_verified_at, freshness_status, research_notes")
+      .select("kpi_code, latest_value, last_verified_at, freshness_status, research_notes, provenance, confidence")
       .eq("country_code", data.countryCode);
     const byCode = new Map((rows ?? []).map((r: any) => [r.kpi_code as string, r]));
 
@@ -838,10 +838,21 @@ export const listKpiCoverage = createServerFn({ method: "POST" })
     }
 
     const required = registry.filter((k) => k.required);
+    const verifiedRequired = required.filter((k) => {
+      const r: any = byCode.get(k.kpi_code);
+      return r?.latest_value != null && r?.provenance !== "inferred";
+    });
+    const inferredRequired = required.filter((k) => {
+      const r: any = byCode.get(k.kpi_code);
+      return r?.latest_value != null && r?.provenance === "inferred";
+    });
     const filled = required.filter((k) => byCode.get(k.kpi_code)?.latest_value != null);
     const summary = {
       required_total: required.length,
       required_filled: filled.length,
+      required_verified: verifiedRequired.length,
+      required_inferred: inferredRequired.length,
+      required_missing: required.length - filled.length,
       registry_total: registry.length,
       last_verified_at: (rows ?? [])
         .map((r: any) => r.last_verified_at)
@@ -850,7 +861,7 @@ export const listKpiCoverage = createServerFn({ method: "POST" })
         .slice(-1)[0] ?? null,
     };
     const perKpi = registry.map((k) => {
-      const row = byCode.get(k.kpi_code);
+      const row: any = byCode.get(k.kpi_code);
       const att = latestAttempt.get(k.kpi_code);
       return {
         kpi_code: k.kpi_code,
@@ -859,6 +870,8 @@ export const listKpiCoverage = createServerFn({ method: "POST" })
         category: k.category,
         latest_value: row?.latest_value ?? null,
         freshness_status: row?.freshness_status ?? "missing",
+        provenance: row?.provenance ?? null,
+        confidence: row?.confidence ?? null,
         last_verified_at: row?.last_verified_at ?? null,
         last_attempt_pass: att?.pass ?? null,
         last_attempt_error: att?.error ?? null,

@@ -885,9 +885,17 @@ function MinistriesTab({ code }: { code: string }) {
       {(rows as any[]).length === 0 ? (
         <p className="text-sm text-ink-500">No ministry profiles yet.</p>
       ) : (
-        (rows as any[]).map((r) => (
-          <MinistryCard key={r.id} row={r} onEdit={() => setEditing(r)} />
-        ))
+        <div className="space-y-2">
+          {(rows as any[]).map((r) => (
+            <MinistryCard
+              key={r.id}
+              row={r}
+              open={openId === r.id}
+              onToggle={() => setOpenId((cur) => (cur === r.id ? null : r.id))}
+              onEdit={() => setEditing(r)}
+            />
+          ))}
+        </div>
       )}
 
       {editing && (

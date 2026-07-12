@@ -637,7 +637,7 @@ function InferenceDrawer({
           <div className="grid grid-cols-2 gap-3">
             <div className="border border-line-200 p-3">
               <div className="font-mono text-[10px] uppercase tracking-widest text-ink-500">Estimated value</div>
-              <div className="font-serif text-3xl mt-1">{kpi.latest_value ?? "—"}</div>
+              <div className="font-serif text-3xl mt-1 tabular-nums">{fmt2(kpi.latest_value) || "—"}</div>
               <div className="text-xs text-ink-500 mt-1">{kpi.latest_period ?? "no period"}</div>
             </div>
             <div className="border border-line-200 p-3">

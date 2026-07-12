@@ -1011,7 +1011,7 @@ function MinistryDiffCard({ entry, current, diff }: { entry: any; current: any; 
 
   return (
     <div className="border border-line-200">
-      <div className="flex justify-between items-baseline px-3 py-2 border-b border-line-200 bg-cream-100/40">
+      <div className="flex justify-between items-baseline px-3 py-2 border-b border-line-200 bg-paper-100/40">
         <h4 className="font-medium text-sm">{title}</h4>
         <span className="text-[11px] text-ink-500">{changeSummary}</span>
       </div>

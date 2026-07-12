@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { MemoryVisual, type MemoryFilter } from "@/components/country-data/MemoryVisual";
+import { BrainConstellation, type BrainFilter } from "@/components/country-data/BrainConstellation";
 import { AddSourceDialog } from "@/components/country-data/AddSourceDialog";
 import { SourceDetailSheet } from "@/components/country-data/SourceDetailSheet";
 import { PrettyJson } from "@/components/data/PrettyJson";
@@ -1628,8 +1629,9 @@ function MemoryTab({ code }: { code: string }) {
   const setV = useServerFn(setMemoryVerified);
   const del = useServerFn(deleteMemory);
   const [showAdd, setShowAdd] = useState(false);
-  const [view, setView] = useState<"list" | "visual">("visual");
+  const [view, setView] = useState<"constellation" | "visual" | "list">("constellation");
   const [filter, setFilter] = useState<MemoryFilter>({});
+  const [brainFilter, setBrainFilter] = useState<BrainFilter>({});
   const refresh = () => qc.invalidateQueries({ queryKey: ["data", code, "memory"] });
 
   const all = rows as any[];
@@ -1649,7 +1651,7 @@ function MemoryTab({ code }: { code: string }) {
         </div>
         <div className="flex items-center gap-2">
           <div className="flex gap-1 rounded-sm border border-line-200 p-0.5 font-mono text-[10px] uppercase tracking-widest">
-            {(["visual", "list"] as const).map((v) => (
+            {(["constellation", "visual", "list"] as const).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
@@ -1684,6 +1686,38 @@ function MemoryTab({ code }: { code: string }) {
           </Link>
           .
         </div>
+      ) : view === "constellation" ? (
+        <>
+          <BrainConstellation
+            rows={all as any}
+            mode="single"
+            centerLabel={code}
+            filter={brainFilter}
+            onFilter={setBrainFilter}
+          />
+          <div className="border-t border-line-200 pt-4">
+            <h4 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500 mb-3">
+              {brainFilter.sector || brainFilter.kind || brainFilter.verified !== undefined ? "Filtered rows" : "All rows"} (
+              {all.filter((r: any) => {
+                if (brainFilter.sector && (r.sector_code || "—") !== brainFilter.sector) return false;
+                if (brainFilter.kind && r.kind !== brainFilter.kind) return false;
+                if (brainFilter.verified !== undefined && Boolean(r.verified) !== brainFilter.verified) return false;
+                return true;
+              }).length}
+              )
+            </h4>
+            <MemoryList
+              rows={all.filter((r: any) => {
+                if (brainFilter.sector && (r.sector_code || "—") !== brainFilter.sector) return false;
+                if (brainFilter.kind && r.kind !== brainFilter.kind) return false;
+                if (brainFilter.verified !== undefined && Boolean(r.verified) !== brainFilter.verified) return false;
+                return true;
+              })}
+              onVerify={async (id, v) => { await setV({ data: { id, verified: v } }); await refresh(); }}
+              onDelete={async (id) => { await del({ data: { id } }); await refresh(); }}
+            />
+          </div>
+        </>
       ) : view === "visual" ? (
         <>
           <MemoryVisual rows={all} filter={filter} onSelect={setFilter} />

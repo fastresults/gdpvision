@@ -883,6 +883,21 @@ export const listMemory = createServerFn({ method: "POST" })
     return rows ?? [];
   });
 
+// Cross-country aggregate for the super-admin brain constellation.
+export const listAllMemory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("memory_objects")
+      .select("id,title,kind,sector_code,scope_key,weight,verified,updated_at")
+      .order("updated_at", { ascending: false })
+      .limit(5000);
+    if (error) throw error;
+    return rows ?? [];
+  });
+
 export const upsertMemory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>

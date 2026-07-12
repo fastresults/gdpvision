@@ -39,6 +39,7 @@ import { Route as AuthenticatedInstrumentExposureRouteImport } from './routes/_a
 import { Route as AuthenticatedCounselMobileRouteImport } from './routes/_authenticated/counsel/mobile'
 import { Route as AuthenticatedCounselArchiveRouteImport } from './routes/_authenticated/counsel/archive'
 import { Route as AuthenticatedAdminDocumentsRouteImport } from './routes/_authenticated/admin/documents'
+import { Route as AuthenticatedAdminBrainRouteImport } from './routes/_authenticated/admin/brain'
 import { Route as AuthenticatedAdminActivityRouteImport } from './routes/_authenticated/admin/activity'
 import { Route as AuthenticatedNarrativeStrategyIndexRouteImport } from './routes/_authenticated/narrative/strategy.index'
 import { Route as AuthenticatedInstrumentScenariosIndexRouteImport } from './routes/_authenticated/instrument/scenarios.index'
@@ -238,6 +239,11 @@ const AuthenticatedAdminDocumentsRoute =
     path: '/documents',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminBrainRoute = AuthenticatedAdminBrainRouteImport.update({
+  id: '/brain',
+  path: '/brain',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
+} as any)
 const AuthenticatedAdminActivityRoute =
   AuthenticatedAdminActivityRouteImport.update({
     id: '/activity',
@@ -436,6 +442,7 @@ export interface FileRoutesByFullPath {
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
+  '/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/counsel/mobile': typeof AuthenticatedCounselMobileRoute
@@ -494,6 +501,7 @@ export interface FileRoutesByTo {
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk': typeof KioskIndexRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
+  '/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/counsel/mobile': typeof AuthenticatedCounselMobileRoute
@@ -558,6 +566,7 @@ export interface FileRoutesById {
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
   '/_authenticated/admin/activity': typeof AuthenticatedAdminActivityRoute
+  '/_authenticated/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/_authenticated/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/_authenticated/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/_authenticated/counsel/mobile': typeof AuthenticatedCounselMobileRoute
@@ -622,6 +631,7 @@ export interface FileRouteTypes {
     | '/kiosk/admin'
     | '/kiosk/'
     | '/admin/activity'
+    | '/admin/brain'
     | '/admin/documents'
     | '/counsel/archive'
     | '/counsel/mobile'
@@ -680,6 +690,7 @@ export interface FileRouteTypes {
     | '/kiosk/admin'
     | '/kiosk'
     | '/admin/activity'
+    | '/admin/brain'
     | '/admin/documents'
     | '/counsel/archive'
     | '/counsel/mobile'
@@ -743,6 +754,7 @@ export interface FileRouteTypes {
     | '/kiosk/admin'
     | '/kiosk/'
     | '/_authenticated/admin/activity'
+    | '/_authenticated/admin/brain'
     | '/_authenticated/admin/documents'
     | '/_authenticated/counsel/archive'
     | '/_authenticated/counsel/mobile'
@@ -1017,6 +1029,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminDocumentsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/brain': {
+      id: '/_authenticated/admin/brain'
+      path: '/brain'
+      fullPath: '/admin/brain'
+      preLoaderRoute: typeof AuthenticatedAdminBrainRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/activity': {
       id: '/_authenticated/admin/activity'
       path: '/activity'
@@ -1239,6 +1258,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminActivityRoute: typeof AuthenticatedAdminActivityRoute
+  AuthenticatedAdminBrainRoute: typeof AuthenticatedAdminBrainRoute
   AuthenticatedAdminDocumentsRoute: typeof AuthenticatedAdminDocumentsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminAuditsKeyingRoute: typeof AuthenticatedAdminAuditsKeyingRoute
@@ -1252,6 +1272,7 @@ interface AuthenticatedAdminRouteRouteChildren {
 const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
   {
     AuthenticatedAdminActivityRoute: AuthenticatedAdminActivityRoute,
+    AuthenticatedAdminBrainRoute: AuthenticatedAdminBrainRoute,
     AuthenticatedAdminDocumentsRoute: AuthenticatedAdminDocumentsRoute,
     AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
     AuthenticatedAdminAuditsKeyingRoute: AuthenticatedAdminAuditsKeyingRoute,

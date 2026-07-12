@@ -726,11 +726,11 @@ function InferenceDrawer({
             <div className="border-t border-line-200 pt-3">
               <div className="font-mono text-[10px] uppercase tracking-widest text-ink-500 mb-2">Override value</div>
               <div className="flex gap-2">
-                <input value={overrideVal} onChange={(e) => setOverrideVal(e.target.value)} placeholder="value" className="w-32 border border-line-200 px-2 py-1 text-sm bg-paper-0" />
+                <input inputMode="decimal" step="0.01" type="number" value={overrideVal} onChange={(e) => setOverrideVal(e.target.value)} onBlur={(e) => setOverrideVal(fmt2(e.target.value))} placeholder="value" className="w-32 border border-line-200 px-2 py-1 text-sm bg-paper-0 text-right tabular-nums" />
                 <input value={overridePeriod} onChange={(e) => setOverridePeriod(e.target.value)} placeholder="period" className="w-24 border border-line-200 px-2 py-1 text-sm bg-paper-0" />
                 <button
                   disabled={busy !== null || overrideVal === "" || Number.isNaN(Number(overrideVal))}
-                  onClick={wrap("override", () => onOverride(Number(overrideVal), overridePeriod || null, note || undefined))}
+                  onClick={wrap("override", () => onOverride(Number(Number(overrideVal).toFixed(2)), overridePeriod || null, note || undefined))}
                   className="text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0 px-3 py-1.5 disabled:opacity-50"
                 >
                   {busy === "override" ? "…" : "Save override"}

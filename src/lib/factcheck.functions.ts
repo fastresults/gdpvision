@@ -85,7 +85,9 @@ export async function runFactCheck(
     .eq("country_code", scopeKey)
     .limit(400);
   if (sErr) throw new Error(sErr.message);
-  const seriesById = new Map((series ?? []).map((s: any) => [s.id, s]));
+  const seriesById = new Map<string, { id: string; metric: string; unit: string }>(
+    (series ?? []).map((s: any) => [s.id, s]),
+  );
   if (seriesById.size === 0) {
     return { mode, claims, grounded: 0, ungrounded: claims.length, blocking: claims.length, overridable: 0 };
   }

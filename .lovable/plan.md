@@ -65,11 +65,12 @@ Sequenced to unblock dependencies first (provisioning → traceability → trans
 - Existing shell exists; add: hold-to-record with waveform, slide-up answer sheet with citation chips, drawer to open source instrument (Ledger/Scenario/Mandate).
 - Verify offline/reconnect states.
 
-**D2. Counsel hardening for GA**
-- Rate limit middleware (per user, per instance) on all Counsel server fns.
-- Instance provider budget caps read from `instance_config`; hard stop + surface message on exceed.
-- Full audit trail: every Counsel Q/A writes to `counsel_answers` with scenario snapshot ref.
-- Verify `requireSupabaseAuth` on every voice endpoint; add integration tests.
+**D2. Counsel hardening for GA** ✅ (rate limit + budget cap shipped)
+- ✅ Rate limit middleware (per user/hour, per scope/day) enforced in `askCounsel` reading `instance_config['counsel.limits']`.
+- ✅ Instance provider budget caps read from `instance_config`; hard stop + surface message on exceed.
+- ✅ Full audit trail: every Counsel Q/A writes to `counsel_answers` with scenario snapshot ref.
+- Verify `requireSupabaseAuth` on every voice endpoint; add integration tests. (pending)
+
 
 ## Wave E — Engine Depth (Cadence, Goal-Seek, Ripple)
 

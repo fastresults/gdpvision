@@ -606,8 +606,9 @@ function InferenceDrawer({
   onReject: (note?: string) => Promise<void>;
   onReinfer: () => Promise<void>;
 }) {
+  const fmt2 = (v: any) => (v === null || v === undefined || v === "" || isNaN(Number(v)) ? "" : Number(v).toFixed(2));
   const [note, setNote] = useState("");
-  const [overrideVal, setOverrideVal] = useState<string>(kpi.latest_value ?? "");
+  const [overrideVal, setOverrideVal] = useState<string>(fmt2(kpi.latest_value));
   const [overridePeriod, setOverridePeriod] = useState<string>(kpi.latest_period ?? "");
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);

@@ -36,6 +36,7 @@ import {
   setMemoryVerified,
   toggleSource,
   updateKpi,
+  updateMinisterProfile,
   upsertMemory,
   
 } from "@/lib/country-data/manage.functions";

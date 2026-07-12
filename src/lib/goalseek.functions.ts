@@ -49,24 +49,25 @@ export const solveForTarget = createServerFn({ method: "POST" })
 
     const { data: levers } = await context.supabase
       .from("levers")
-      .select("id,name,expected_impact,cost_estimate,sector_code")
+      .select("id,name,bounds,unit")
       .eq("country_code", kpi.country_code)
       .eq("sector_code", kpi.sector_code);
 
-    // Sort by cost-efficiency (impact per unit cost), descending.
+    // Extract an "expected impact" proxy from the lever's stored bounds.max
+    // (matching the engine's fixed-coefficient response in v1_macro).
     const ranked = (levers ?? [])
-      .map((l) => ({
-        id: l.id,
-        name: l.name,
-        expected_impact: Number(l.expected_impact ?? 0),
-        cost_estimate: l.cost_estimate === null ? null : Number(l.cost_estimate),
-      }))
-      .filter((l) => (gap >= 0 ? l.expected_impact > 0 : l.expected_impact < 0))
-      .sort((a, b) => {
-        const ea = a.cost_estimate && a.cost_estimate > 0 ? Math.abs(a.expected_impact) / a.cost_estimate : Math.abs(a.expected_impact);
-        const eb = b.cost_estimate && b.cost_estimate > 0 ? Math.abs(b.expected_impact) / b.cost_estimate : Math.abs(b.expected_impact);
-        return eb - ea;
-      });
+      .map((l) => {
+        const bounds = (l.bounds ?? {}) as Record<string, number>;
+        const impact = Number(bounds.max ?? bounds.upper ?? 1);
+        return {
+          id: l.id,
+          name: l.name,
+          expected_impact: gap >= 0 ? impact : -impact,
+          cost_estimate: null as number | null,
+        };
+      })
+      .sort((a, b) => Math.abs(b.expected_impact) - Math.abs(a.expected_impact));
+
 
     const chosen: GoalSeekLever[] = [];
     let projected = 0;

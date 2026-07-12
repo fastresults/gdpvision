@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
+import { MemoryVisual, type MemoryFilter } from "@/components/country-data/MemoryVisual";
 import { AddSourceDialog } from "@/components/country-data/AddSourceDialog";
 import { SourceDetailSheet } from "@/components/country-data/SourceDetailSheet";
 import { PrettyJson } from "@/components/data/PrettyJson";
@@ -1627,46 +1628,106 @@ function MemoryTab({ code }: { code: string }) {
   const setV = useServerFn(setMemoryVerified);
   const del = useServerFn(deleteMemory);
   const [showAdd, setShowAdd] = useState(false);
+  const [view, setView] = useState<"list" | "visual">("visual");
+  const [filter, setFilter] = useState<MemoryFilter>({});
   const refresh = () => qc.invalidateQueries({ queryKey: ["data", code, "memory"] });
+
+  const all = rows as any[];
+  const filtered = all.filter((r) => {
+    if (filter.sector && (r.sector_code || "—") !== filter.sector) return false;
+    if (filter.kind && r.kind !== filter.kind) return false;
+    if (filter.verified !== undefined && Boolean(r.verified) !== filter.verified) return false;
+    return true;
+  });
 
   return (
     <section className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-xs text-ink-500">
-          {(rows as any[]).length} memory objects · {(rows as any[]).filter((r) => r.verified).length} verified
+          {all.length} memory objects · {all.filter((r) => r.verified).length} verified
+          {filtered.length !== all.length && <span> · showing {filtered.length}</span>}
         </div>
-        <button onClick={() => setShowAdd((v) => !v)} className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0">
-          {showAdd ? "Cancel" : "Add memory"}
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1 rounded-sm border border-line-200 p-0.5 font-mono text-[10px] uppercase tracking-widest">
+            {(["visual", "list"] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={`px-3 py-1 ${view === v ? "bg-ink-950 text-paper-0" : "text-ink-500 hover:text-ink-950"}`}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setShowAdd((v) => !v)}
+            className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0"
+          >
+            {showAdd ? "Cancel" : "Add memory"}
+          </button>
+        </div>
       </div>
+
       {showAdd && (
         <AddMemoryForm onSubmit={async (v) => { await upsert({ data: { countryCode: code, ...v } }); setShowAdd(false); await refresh(); }} />
       )}
-      <div className="space-y-2">
-        {(rows as any[]).map((r) => (
-          <div key={r.id} className={`border p-3 ${r.verified ? "border-emerald-500/50" : "border-line-200"}`}>
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="font-medium">{r.title}</div>
-                <div className="text-xs text-ink-500">{r.kind} · sector {r.sector_code} · scope {r.scope_key} · weight {r.weight}</div>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={async () => { await setV({ data: { id: r.id, verified: !r.verified } }); await refresh(); }}
-                  className={`text-[11px] px-2 py-1 border ${r.verified ? "border-emerald-500 text-emerald-700" : "border-line-200 text-ink-500"}`}>
-                  {r.verified ? "verified" : "unverified"}
-                </button>
-                <button onClick={async () => { if (confirm("Delete memory?")) { await del({ data: { id: r.id } }); await refresh(); } }}
-                  className="text-[11px] px-2 py-1 border border-red-500 text-red-700">Delete</button>
-              </div>
-            </div>
-            {r.payload?.body && <p className="mt-2 text-sm whitespace-pre-wrap">{r.payload.body}</p>}
+
+      {all.length === 0 ? (
+        <div className="border border-dashed border-line-200 p-8 text-center text-sm text-ink-500">
+          Second brain seed hasn't been committed for this country yet.{" "}
+          <Link
+            to="/admin/countries/$code/onboard"
+            params={{ code }}
+            className="text-ink-950 underline"
+          >
+            Run the seed agent
+          </Link>
+          .
+        </div>
+      ) : view === "visual" ? (
+        <>
+          <MemoryVisual rows={all} filter={filter} onSelect={setFilter} />
+          <div className="border-t border-line-200 pt-4">
+            <h4 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500 mb-3">
+              {filter.sector || filter.kind || filter.verified !== undefined ? "Filtered rows" : "All rows"} ({filtered.length})
+            </h4>
+            <MemoryList rows={filtered} onVerify={async (id, v) => { await setV({ data: { id, verified: v } }); await refresh(); }} onDelete={async (id) => { await del({ data: { id } }); await refresh(); }} />
           </div>
-        ))}
-        {(rows as any[]).length === 0 && <p className="text-sm text-ink-500">No memory objects yet.</p>}
-      </div>
+        </>
+      ) : (
+        <MemoryList rows={filtered} onVerify={async (id, v) => { await setV({ data: { id, verified: v } }); await refresh(); }} onDelete={async (id) => { await del({ data: { id } }); await refresh(); }} />
+      )}
     </section>
   );
 }
+
+function MemoryList({ rows, onVerify, onDelete }: { rows: any[]; onVerify: (id: string, v: boolean) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
+  return (
+    <div className="space-y-2">
+      {rows.map((r) => (
+        <div key={r.id} className={`border p-3 ${r.verified ? "border-emerald-500/50" : "border-line-200"}`}>
+          <div className="flex justify-between items-start">
+            <div>
+              <div className="font-medium">{r.title}</div>
+              <div className="text-xs text-ink-500">{r.kind} · sector {r.sector_code} · scope {r.scope_key} · weight {r.weight}</div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => onVerify(r.id, !r.verified)}
+                className={`text-[11px] px-2 py-1 border ${r.verified ? "border-emerald-500 text-emerald-700" : "border-line-200 text-ink-500"}`}>
+                {r.verified ? "verified" : "unverified"}
+              </button>
+              <button onClick={() => { if (confirm("Delete memory?")) onDelete(r.id); }}
+                className="text-[11px] px-2 py-1 border border-red-500 text-red-700">Delete</button>
+            </div>
+          </div>
+          {r.payload?.body && <p className="mt-2 text-sm whitespace-pre-wrap">{r.payload.body}</p>}
+        </div>
+      ))}
+      {rows.length === 0 && <p className="text-sm text-ink-500">No rows match this filter.</p>}
+    </div>
+  );
+}
+
 
 function AddMemoryForm({ onSubmit }: { onSubmit: (v: { sector_code: string; kind: string; title: string; body: string; weight: number; verified: boolean }) => Promise<void> }) {
   const [sector, setSector] = useState("cross_cutting");

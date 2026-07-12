@@ -1,57 +1,48 @@
-## Problem
+# Second Brain in the super-admin UI
 
-The **Corpus** tab shows five bare tiles (`40 Sources · 40 Active · 0 Documents · 0 Chunks · — Last ingest`) with no way to see what's behind any number, no explanation of what the numbers mean, and no visible action to fix the fact that all 40 sources have been **registered but never fetched** (which is why Documents / Chunks / Last-ingest are all empty).
+## Where it currently lives
 
-The Sources tab has the source rows, but from Corpus tab you can't get there, and Documents / Chunks / ingest-history have **no drill-down surface anywhere in the app**.
+There is **one** super-admin surface for the second brain today:
 
-## Fix
+- Route: `/admin/countries/$code/data`
+- File: `src/routes/_authenticated/admin/countries.$code.data.tsx`
+- Tab: **"Second brain"** (the `MemoryTab` component, lines ~1620–1695)
+- Shape: a flat list of memory objects with title, kind, sector, scope, weight, verify/delete buttons, and an "Add memory" form.
 
-Turn the Corpus tab from a scoreboard into a working operations page.
+The client/operator-facing version at `/narrative/brain` (`src/routes/_authenticated/narrative/brain.tsx`) is also just a table with filter chips.
 
-### 1. Explainer strip (top of tab)
+So today there is **no visual view of the second brain** — only two text tables. That is what needs fixing.
 
-One paragraph, plain English:
+## What "visual" should mean here
 
-> The corpus is what the AI reads when it answers questions about this country. It flows: **Sources** (URLs we've registered) → **Fetch** (Firecrawl pulls the page) → **Documents** (one per fetched URL) → **Chunk + embed** (split into passages with vector embeddings) → **Chunks** (searchable). Right now 40 sources are registered but 0 have been fetched, so the AI has nothing to retrieve.
+The second brain is a graph-like store: sectors × kinds (audience, position, statement, outlet, precedent, fact, risk) × weight × verified × scope (country vs regional), with links back to source citations. The admin needs to see coverage and gaps at a glance, not scroll a list.
 
-### 2. Prominent action bar
+## Plan
 
-- Primary button **Run corpus ingest** (calls existing `runCorpusIngest`) — visible whenever `documents === 0` OR `last_ingest_at` is older than 30 days. Shows spinner + last-run status inline.
-- Secondary link **Manage sources →** jumps to the Sources tab.
+Add a **"Visual"** sub-view inside the existing Second brain tab (toggle: `List | Visual`) so the current list stays available and no route changes are needed.
 
-### 3. Make every stat tile clickable → expands a detail drawer below
+The Visual view has four stacked panels:
 
-| Tile | What the drawer shows |
-| --- | --- |
-| **Sources** | Full list: org · title · url · active · doc-count · chunk-count. Row click → Sources tab prefiltered. |
-| **Active** | Same list, filtered to `active = true`; inactive sources shown greyed with reason. |
-| **Documents** | Table of `country_source_documents`: source, fetched_at, HTTP status, char length, chunk count, error (if any). Empty state explains "no source has been fetched yet — click Run corpus ingest". |
-| **Chunks** | Per-source rollup: source · chunks · avg length · last embedded. Row expand shows first 3 chunk previews. |
-| **Last ingest** | Recent `onboarding_runs` where `stage = 'corpus_ingest'`: started_at, duration, status, sources processed, errors. Click row → full run detail (model_stack, log). |
+1. **Coverage matrix** — sectors (rows) × kinds (columns) heatmap. Each cell shows the count of memory objects; cell shade = sum of weights; a small dot marks verified coverage. Click a cell to filter the list below to that (sector, kind).
+2. **Weight & verification bar** — per-kind stacked bar: verified vs unverified, split by weight 1–5. Makes "we have lots of unverified positions" obvious.
+3. **Sector coverage rail** — one row per sector: dot per kind sized by count, greyed if 0. Reveals sectors with holes (e.g. sector has audiences but no outlets).
+4. **Recent activity** — last 10 upserts / verifications with author + timestamp (from `updated_at`), each linking into the row in the list.
 
-Only one drawer open at a time; the active tile gets a highlighted border.
+Selecting a cell/segment scrolls to and filters the existing list rendering (reuse `MemoryTab`'s current row component), so drilling from visual → detail is one click.
 
-### 4. Keep the Retrieval sanity check where it is, but add a hint
+Scope toggle (`Country | Regional`) sits above the panels and rewrites the query key, mirroring `/narrative/brain`.
 
-Under the search box, one line: "Searches the embedded chunks. Returns nothing until at least one source has been ingested."
+Empty-state: if the brain has zero rows, render a single explainer card ("Second brain seed hasn't been committed for this country yet") with a link to `/admin/countries/$code/onboard#second_brain_seed`.
 
 ## Technical notes
 
-- **New server fn** `corpusDetail({ countryCode })` in `src/lib/country-data/manage.functions.ts`, admin-only, returns:
-  ```ts
-  {
-    sources: Array<{ id, org, title, url, active, doc_count, chunk_count, last_fetched_at, last_error }>,
-    documents: Array<{ id, source_id, source_title, fetched_at, http_status, char_len, chunk_count, error }>,
-    runs: Array<{ id, started_at, finished_at, status, model_stack, error, notes }>  // stage = 'corpus_ingest', last 10
-  }
-  ```
-  One query per section, joined in JS by `source_id`. Reuses tables already queried by `corpusStats`.
-- **UI** stays in `src/routes/_authenticated/admin/countries.$code.data.tsx` `CorpusTab`. New local component `StatTile` accepts `onClick`/`selected`; new `CorpusDetailDrawer` switches on the selected key.
-- **Run ingest wiring**: `useServerFn(runCorpusIngest)` + `useMutation`, invalidate `["data", code, "stats"]` and the new `["data", code, "corpus-detail"]` on success.
-- No schema changes. No changes to Sources/KPIs/Dossiers/Ministries/Memory tabs.
+- New file: `src/components/country-data/MemoryVisual.tsx` — pure presentation, receives the `rows` already fetched by `memoryQuery(code)`. No new server functions; all aggregation is client-side over the existing list.
+- Edit: `src/routes/_authenticated/admin/countries.$code.data.tsx` — add `view: "list" | "visual"` state inside `MemoryTab`, render the toggle, mount `<MemoryVisual rows={rows} onSelect={setFilter} />` above the list, pass a `filter` down to the existing list rows.
+- Styling: reuse existing tokens (`border-line-200`, `bg-ink-950`, mono eyebrow type). No new deps, no chart library — the matrix and bars are CSS grids + `div` fills to stay consistent with the site's flat/mono aesthetic.
+- Data already fetched by `listMemory` (`src/lib/country-data/manage.functions.ts`) is sufficient — no schema or server changes.
 
 ## Out of scope
 
-- Redesigning the other tabs.
-- Editing ingest logic itself (Firecrawl, chunking, embeddings).
-- Per-document re-fetch buttons (can be a follow-up once the detail view exists).
+- Changing `/narrative/brain` (operator view).
+- Editing memory schema, weights logic, or the seed agent.
+- Graph/force-layout visualisations — deferred until the matrix proves insufficient.

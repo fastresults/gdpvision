@@ -18,8 +18,33 @@ import {
   runProfileAgent,
   runSectorCompositionAgent,
 } from "@/lib/country-onboarding/agents.functions";
+import {
+  commitKpis,
+  commitMinistryDeepDive,
+  commitSecondBrainSeed,
+  commitSectorDossiers,
+  commitSourceRegistry,
+  getIngestKeysStatus,
+  runCorpusIngest,
+  runKpiSeedAgent,
+  runMinistryDeepDiveAgent,
+  runSecondBrainSeedAgent,
+  runSectorDossierAgent,
+  runSourceRegistryAgent,
+} from "@/lib/country-onboarding/corpus.functions";
 
-type Stage = "profile" | "gdp" | "sector_composition" | "ministries" | "ministry_sector_map";
+type Stage =
+  | "profile"
+  | "gdp"
+  | "sector_composition"
+  | "ministries"
+  | "ministry_sector_map"
+  | "source_registry"
+  | "kpi_seed"
+  | "sector_dossier"
+  | "ministry_deep_dive"
+  | "corpus_ingest"
+  | "second_brain_seed";
 
 const STAGES: Array<{ key: Stage; label: string; short: string; desc: string }> = [
   { key: "profile", label: "1. Profile", short: "Profile", desc: "Currency, fiscal year, population, head of government." },
@@ -27,6 +52,12 @@ const STAGES: Array<{ key: Stage; label: string; short: string; desc: string }> 
   { key: "sector_composition", label: "3. Sectors", short: "Sectors", desc: "Share_pct per sector; sums ≈ 100%." },
   { key: "ministries", label: "4. Ministries", short: "Ministries", desc: "Canonical cabinet ministries with mandate." },
   { key: "ministry_sector_map", label: "5. Ministry×Sector", short: "M×S", desc: "Weight matrix from portfolios to sectors." },
+  { key: "source_registry", label: "6. Source registry", short: "Sources", desc: "Canonical URLs (gov, regional, multilateral, media) with toggle." },
+  { key: "kpi_seed", label: "7. KPI seed", short: "KPIs", desc: "Canonical macro/fiscal/social KPIs with latest values." },
+  { key: "sector_dossier", label: "8. Sector dossiers", short: "Dossiers", desc: "Policy + comms + regional benchmark per sector." },
+  { key: "ministry_deep_dive", label: "9. Ministry deep-dive", short: "M-Deep", desc: "Minister, mandate, flagship programmes per ministry." },
+  { key: "corpus_ingest", label: "10. Corpus ingest", short: "Corpus", desc: "Firecrawl scrape + embed every active source." },
+  { key: "second_brain_seed", label: "11. Second-brain seed", short: "Brain", desc: "Cabinet positions, audiences, outlets, facts, risks." },
 ];
 
 const statusQuery = (code: string) =>
@@ -40,6 +71,11 @@ const keyStatusQuery = queryOptions({
   queryFn: () => getPerplexityKeyStatus(),
 });
 
+const ingestKeysQuery = queryOptions({
+  queryKey: ["onboarding", "ingest-keys"],
+  queryFn: () => getIngestKeysStatus(),
+});
+
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/onboard")({
   head: ({ params }) => ({
     meta: [
@@ -51,6 +87,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/onbo
     const [status] = await Promise.all([
       context.queryClient.ensureQueryData(statusQuery(params.code)),
       context.queryClient.ensureQueryData(keyStatusQuery),
+      context.queryClient.ensureQueryData(ingestKeysQuery),
     ]);
     if (!(status as any).country) throw notFound();
   },
@@ -71,6 +108,7 @@ function OnboardWizard() {
   const { code } = Route.useParams();
   const { data } = useSuspenseQuery(statusQuery(code));
   const { data: keyStatus } = useSuspenseQuery(keyStatusQuery);
+  const { data: ingestKeys } = useSuspenseQuery(ingestKeysQuery);
   const qc = useQueryClient();
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkErr, setBulkErr] = useState<string | null>(null);
@@ -81,6 +119,12 @@ function OnboardWizard() {
     sector_composition: useServerFn(runSectorCompositionAgent),
     ministries: useServerFn(runMinistriesAgent),
     ministry_sector_map: useServerFn(runMinistrySectorMapAgent),
+    source_registry: useServerFn(runSourceRegistryAgent),
+    kpi_seed: useServerFn(runKpiSeedAgent),
+    sector_dossier: useServerFn(runSectorDossierAgent),
+    ministry_deep_dive: useServerFn(runMinistryDeepDiveAgent),
+    corpus_ingest: useServerFn(runCorpusIngest),
+    second_brain_seed: useServerFn(runSecondBrainSeedAgent),
   };
   const committers: Record<Stage, any> = {
     profile: useServerFn(commitProfile),
@@ -88,6 +132,13 @@ function OnboardWizard() {
     sector_composition: useServerFn(commitSectorComposition),
     ministries: useServerFn(commitMinistries),
     ministry_sector_map: useServerFn(commitMinistrySectorMap),
+    source_registry: useServerFn(commitSourceRegistry),
+    kpi_seed: useServerFn(commitKpis),
+    sector_dossier: useServerFn(commitSectorDossiers),
+    ministry_deep_dive: useServerFn(commitMinistryDeepDive),
+    // corpus_ingest auto-commits (no user review needed) — provide a no-op
+    corpus_ingest: async () => ({ ok: true }),
+    second_brain_seed: useServerFn(commitSecondBrainSeed),
   };
 
   const refresh = () =>
@@ -173,6 +224,19 @@ function OnboardWizard() {
             <b>Perplexity API key not configured.</b> Agents cannot run until <code>PERPLEXITY_API_KEY</code> is set.
           </div>
         )}
+
+        <div className="flex flex-wrap gap-2 font-mono text-[10px] uppercase tracking-[0.15em]">
+          <span className={`px-2 py-0.5 border ${ingestKeys.perplexity ? "border-emerald-500 text-emerald-700" : "border-red-500 text-red-700"}`}>
+            Perplexity {ingestKeys.perplexity ? "✓" : "✕"}
+          </span>
+          <span className={`px-2 py-0.5 border ${ingestKeys.firecrawl ? "border-emerald-500 text-emerald-700" : "border-red-500 text-red-700"}`}>
+            Firecrawl {ingestKeys.firecrawl ? "✓" : "✕"}
+          </span>
+          <span className={`px-2 py-0.5 border ${ingestKeys.lovable_ai ? "border-emerald-500 text-emerald-700" : "border-red-500 text-red-700"}`}>
+            Lovable AI {ingestKeys.lovable_ai ? "✓" : "✕"}
+          </span>
+        </div>
+
 
         {bulkErr && (
           <div className="rounded border border-red-500/50 bg-red-500/10 p-3 text-xs text-red-700">

@@ -30,6 +30,7 @@ const OFFICIAL_DOMAINS = [
   "oecs.org",
   "caricom.org",
   "statisticsdata.com",
+  "wikipedia.org",
 ];
 
 function domainOf(u: string): string {
@@ -48,6 +49,7 @@ export async function callSonar(opts: {
   recency?: "day" | "week" | "month" | "year";
   responseSchema?: Record<string, unknown>; // JSON schema for structured output
   maxTokens?: number;
+  noDomainFilter?: boolean; // when true, do not restrict to the official allowlist
 }): Promise<SonarResult> {
   const key = process.env.PERPLEXITY_API_KEY;
   if (!key) throw new Error("PERPLEXITY_API_KEY not configured");
@@ -61,8 +63,8 @@ export async function callSonar(opts: {
       { role: "system", content: opts.system },
       { role: "user", content: opts.user },
     ],
-    search_domain_filter: domainAllow,
   };
+  if (!opts.noDomainFilter) body.search_domain_filter = domainAllow;
   if (opts.recency) body.search_recency_filter = opts.recency;
   if (opts.maxTokens) body.max_tokens = opts.maxTokens;
   if (opts.responseSchema) {
@@ -71,6 +73,7 @@ export async function callSonar(opts: {
       json_schema: { name: "structured", schema: opts.responseSchema },
     };
   }
+
 
   const res = await fetch("https://api.perplexity.ai/chat/completions", {
     method: "POST",

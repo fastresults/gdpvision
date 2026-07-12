@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tanstack/react-router";
 import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
@@ -25,10 +25,10 @@ export const Route = createFileRoute("/_authenticated/onboarding/country")({
     ],
   }),
   loader: async ({ context }) => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(statusQuery),
-      context.queryClient.ensureQueryData(countriesQuery),
-    ]);
+    const status = await context.queryClient.ensureQueryData(statusQuery);
+    // Super admins get the country onboarding dashboard, not the picker.
+    if (status.isGlobalAdmin) throw redirect({ to: "/admin/countries" });
+    await context.queryClient.ensureQueryData(countriesQuery);
   },
   component: OnboardingCountryPage,
   errorComponent: ({ error }) => (

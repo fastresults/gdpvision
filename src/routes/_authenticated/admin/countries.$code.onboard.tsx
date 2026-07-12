@@ -209,14 +209,23 @@ function OnboardWizard() {
               })}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={runAllPending}
-            disabled={bulkRunning || !keyStatus.configured}
-            className="px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0 hover:bg-ink-700 disabled:opacity-50"
-          >
-            {bulkRunning ? "Running…" : "Run all pending"}
-          </button>
+          <div className="flex flex-col gap-2 items-end">
+            <button
+              type="button"
+              onClick={runAllPending}
+              disabled={bulkRunning || !keyStatus.configured}
+              className="px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0 hover:bg-ink-700 disabled:opacity-50"
+            >
+              {bulkRunning ? "Running…" : "Run all pending"}
+            </button>
+            <Link
+              to="/admin/countries/$code/data"
+              params={{ code }}
+              className="px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-line-200 text-ink-500 hover:text-ink-950"
+            >
+              Manage data stores →
+            </Link>
+          </div>
         </header>
 
         {!keyStatus.configured && (

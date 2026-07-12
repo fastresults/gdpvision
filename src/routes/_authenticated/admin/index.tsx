@@ -6,17 +6,22 @@ import { useState } from "react";
 import {
   addBinding,
   grantRole,
+  inviteUser,
   listAdminUsers,
   listCountries,
+  listInstanceConfig,
   removeBinding,
   revokeRole,
   setDefaultBinding,
+  setInstanceConfig,
 } from "@/lib/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Wordmark } from "@/components/marketing/Wordmark";
 
 const usersQuery = queryOptions({ queryKey: ["admin-users"], queryFn: () => listAdminUsers() });
 const countriesQuery = queryOptions({ queryKey: ["admin-countries"], queryFn: () => listCountries() });
+const configQuery = queryOptions({ queryKey: ["admin-config"], queryFn: () => listInstanceConfig() });
+
 
 const ROLES = ["admin", "cabinet_secretary", "principal", "line_minister", "advisor", "comms_director", "steward", "data_steward"] as const;
 

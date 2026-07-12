@@ -237,7 +237,7 @@ function SourcesTab({ code }: { code: string }) {
                     {s.summary ? " · AI summary" : ""}
                   </div>
                   {s.fetch_status === "error" && s.fetch_error && (
-                    <div className="text-xs text-red-600 mt-1 truncate max-w-md" title={s.fetch_error}>⚠ {s.fetch_error}</div>
+                    <div className="text-xs text-signal-negative mt-1 truncate max-w-md" title={s.fetch_error}>⚠ {s.fetch_error}</div>
                   )}
                 </td>
                 <td className="px-3 py-2 text-xs">{s.kind}</td>

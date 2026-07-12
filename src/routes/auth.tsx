@@ -41,8 +41,8 @@ function AuthPage() {
 
   // If already signed in, get out of the way.
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/instrument" });
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (data.user) navigate({ to: await postSignInRedirect() });
     });
   }, [navigate]);
 

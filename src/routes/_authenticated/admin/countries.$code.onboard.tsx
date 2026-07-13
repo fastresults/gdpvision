@@ -495,6 +495,9 @@ function AccordionStages({
   committers,
   code,
   refresh,
+  openStage,
+  setOpenStage,
+  onCleanInvalidSources,
   onGenerateSummary,
 }: {
   stages: { key: Stage; label: string; short: string; desc: string }[];
@@ -507,9 +510,11 @@ function AccordionStages({
   committers: Record<string, any>;
   code: string;
   refresh: () => void;
+  openStage: string | null;
+  setOpenStage: (s: string | null) => void;
+  onCleanInvalidSources: () => Promise<void>;
   onGenerateSummary: (stage: Stage) => Promise<unknown>;
 }) {
-  const [openStage, setOpenStage] = useState<string | null>(null);
   return (
     <>
       {stages.map((s) => {
@@ -533,12 +538,14 @@ function AccordionStages({
               committers[s.key]({ data: { draftId: draft.id, editedPayload } }).then(refresh)
             }
             onGenerateSummary={() => onGenerateSummary(s.key)}
+            onCleanInvalidSources={s.key === "corpus_ingest" ? onCleanInvalidSources : undefined}
           />
         );
       })}
     </>
   );
 }
+
 
 
 function StageCard({

@@ -418,7 +418,7 @@ function OnboardWizard() {
               title="Re-run every stage, including those already committed. Existing drafts will be overwritten; committed data stays until you re-commit."
               className="px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 text-ink-950 hover:bg-ink-950 hover:text-paper-0 disabled:opacity-50"
             >
-              {bulkRunning === "all" ? "Re-running…" : "Rerun all"}
+              {bulkRunning === "rerun" ? "Re-running…" : "Rerun all"}
             </button>
 
             <Link

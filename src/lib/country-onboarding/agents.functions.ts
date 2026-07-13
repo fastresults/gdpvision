@@ -111,6 +111,33 @@ async function saveDraft(admin: any, args: {
   return draft.id as string;
 }
 
+/** Promote citing domains after a draft is saved. Best-effort; never throws. */
+async function promoteAfterDraft(
+  admin: any,
+  countryCode: string,
+  stage: string,
+  draftId: string,
+  fb: FallbackResult<any>,
+): Promise<string[]> {
+  try {
+    const res = await promoteFromCitations(admin, {
+      countryCode,
+      stage,
+      draftId,
+      citations: fb.citations,
+      openWeb: fb.openWebWin,
+    });
+    if (res.promoted.length) fb.notes.push(`Promoted domains: ${res.promoted.join(", ")}`);
+    if (res.reference.length) fb.notes.push(`Reference-tier citations: ${res.reference.join(", ")}`);
+    if (res.blocked.length) fb.notes.push(`Blocked citations (not promoted): ${res.blocked.join(", ")}`);
+    return res.promoted;
+  } catch (err) {
+    fb.notes.push(`Domain promotion failed: ${(err as Error).message.slice(0, 160)}`);
+    return [];
+  }
+}
+
+
 // ============================================================
 // LIST / READ
 // ============================================================

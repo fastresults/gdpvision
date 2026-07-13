@@ -188,6 +188,18 @@ export function SovereignSankey({ countryCode }: { countryCode: string }) {
               {overview.diagnostics.missingNodes.length > 3 ? "…" : ""}
             </span>
           )}
+          <button
+            type="button"
+            onClick={() => setFarmToHotel((v) => !v)}
+            className={`rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.18em] transition-colors ${
+              farmToHotel
+                ? "border-emerald-500 bg-emerald-500/10 text-emerald-700"
+                : "border-line-200 text-ink-500 hover:text-ink-950"
+            }`}
+            title={`Reallocate ${Math.round(FARM_TO_HOTEL_SHARE * 100)}% of tourism spend from imports to local wages / agriculture`}
+          >
+            Farm-to-Hotel: {farmToHotel ? "ACTIVE" : "INACTIVE"}
+          </button>
         </div>
       </div>
 

@@ -57,11 +57,11 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
 async function loadCountry(admin: any, code: string) {
   const { data, error } = await admin
     .from("countries")
-    .select("code, name, iso3, currency")
+    .select("code, name, iso3, currency, gdp_current_usd")
     .eq("code", code)
     .maybeSingle();
   if (error || !data) throw new Error(`Country ${code} not found`);
-  return data as { code: string; name: string; iso3: string | null; currency: string };
+  return data as { code: string; name: string; iso3: string | null; currency: string; gdp_current_usd: number | null };
 }
 
 async function openRun(admin: any, params: {

@@ -284,8 +284,9 @@ const GdpSchema = {
     source_primary: { type: "string", description: "Primary source name (e.g. World Bank WDI, IMF WEO)" },
     source_secondary: { type: ["string", "null"] },
     notes: { type: "string" },
+    ...SUMMARY_SCHEMA_FRAGMENT,
   },
-  required: ["gdp_current_usd", "gdp_year", "source_primary", "notes"],
+  required: ["gdp_current_usd", "gdp_year", "source_primary", "notes", "summary_md", "summary_highlights"],
 } as const;
 
 export const runGdpAgent = createServerFn({ method: "POST" })
@@ -308,7 +309,8 @@ export const runGdpAgent = createServerFn({ method: "POST" })
       const result = await callSonar({
         model,
         system:
-          "You are a macro-economics researcher. Return a single JSON object. Cross-check GDP between World Bank WDI and IMF WEO — pick the most recent year where BOTH publish a figure. Cite both sources.",
+          "You are a macro-economics researcher. Return a single JSON object. Cross-check GDP between World Bank WDI and IMF WEO — pick the most recent year where BOTH publish a figure. Cite both sources." +
+          SUMMARY_SYSTEM_SUFFIX,
         user: `What is the nominal GDP of ${country.name} in current US dollars, most recent year with an official figure? Prefer World Bank WDI and IMF WEO. Return the value in USD (not billions).`,
         responseSchema: GdpSchema as unknown as Record<string, unknown>,
         recency: "year",
@@ -316,6 +318,7 @@ export const runGdpAgent = createServerFn({ method: "POST" })
 
       const parsed = parseSonarJson<any>(result.content);
       if (!parsed) throw new Error("Perplexity returned no parseable JSON");
+      const inline = extractInlineSummary(parsed);
 
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
@@ -325,6 +328,8 @@ export const runGdpAgent = createServerFn({ method: "POST" })
         payload: parsed,
         confidence: result.citations.length >= 2 ? "high" : "medium",
         citations: result.citations,
+        summary_md: inline.summary_md,
+        summary_highlights: inline.summary_highlights,
       });
 
       await finishRun(supabaseAdmin, runId, { status: "ready" });

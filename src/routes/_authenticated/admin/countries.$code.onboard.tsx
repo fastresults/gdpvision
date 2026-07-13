@@ -112,8 +112,9 @@ function OnboardWizard() {
   const { data: keyStatus } = useSuspenseQuery(keyStatusQuery);
   const { data: ingestKeys } = useSuspenseQuery(ingestKeysQuery);
   const qc = useQueryClient();
-  const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkRunning, setBulkRunning] = useState<false | "pending" | "all">(false);
   const [bulkErr, setBulkErr] = useState<string | null>(null);
+
 
   const runners: Record<Stage, any> = {
     profile: useServerFn(runProfileAgent),
@@ -163,11 +164,26 @@ function OnboardWizard() {
 
   async function runAllPending() {
     setBulkErr(null);
-    setBulkRunning(true);
+    setBulkRunning("pending");
     try {
       for (const s of STAGES) {
         const hasDraft = drafts.some((d) => d.stage === s.key);
         if (committedStages.has(s.key) || hasDraft) continue;
+        await runners[s.key]({ data: { countryCode: code } });
+        await refresh();
+      }
+    } catch (e: any) {
+      setBulkErr(e?.message ?? String(e));
+    } finally {
+      setBulkRunning(false);
+    }
+  }
+
+  async function rerunAll() {
+    setBulkErr(null);
+    setBulkRunning("all");
+    try {
+      for (const s of STAGES) {
         await runners[s.key]({ data: { countryCode: code } });
         await refresh();
       }
@@ -218,11 +234,21 @@ function OnboardWizard() {
             <button
               type="button"
               onClick={runAllPending}
-              disabled={bulkRunning || !keyStatus.configured}
+              disabled={bulkRunning !== false || !keyStatus.configured}
               className="px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0 hover:bg-ink-700 disabled:opacity-50"
             >
-              {bulkRunning ? "Running…" : "Run all pending"}
+              {bulkRunning === "pending" ? "Running…" : "Run all pending"}
             </button>
+            <button
+              type="button"
+              onClick={rerunAll}
+              disabled={bulkRunning !== false || !keyStatus.configured}
+              title="Re-run every stage, including those already committed. Existing drafts will be overwritten; committed data stays until you re-commit."
+              className="px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 text-ink-950 hover:bg-ink-950 hover:text-paper-0 disabled:opacity-50"
+            >
+              {bulkRunning === "all" ? "Re-running…" : "Rerun all"}
+            </button>
+
             <Link
               to="/admin/countries/$code/data"
               params={{ code }}

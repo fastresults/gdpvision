@@ -560,6 +560,7 @@ function StageCard({
   onRun,
   onCommit,
   onGenerateSummary,
+  onCleanInvalidSources,
 }: {
   stage: { key: Stage; label: string; short: string; desc: string };
   countryName: string;
@@ -572,6 +573,7 @@ function StageCard({
   onRun: () => Promise<unknown>;
   onCommit: (editedPayload: unknown) => Promise<unknown>;
   onGenerateSummary: () => Promise<unknown>;
+  onCleanInvalidSources?: () => Promise<void>;
 }) {
 
   const [running, setRunning] = useState(false);

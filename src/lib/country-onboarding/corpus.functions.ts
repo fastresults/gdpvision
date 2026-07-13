@@ -14,7 +14,6 @@ import { generateText } from "ai";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 import { callSonar, parseSonarJson, type SonarCitation, type SonarModel } from "./perplexity.server";
 import { SUMMARY_SCHEMA_FRAGMENT, SUMMARY_SYSTEM_SUFFIX, extractInlineSummary } from "./summary-inline";
 import { normalizeMemoryTitle, isUniqueViolation } from "./memory-dedup";
@@ -1722,6 +1721,7 @@ export const runSecondBrainSeedAgent = createServerFn({ method: "POST" })
       try {
         const key = process.env.LOVABLE_API_KEY;
         if (!key) throw new Error("Missing LOVABLE_API_KEY");
+        const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
         const gateway = createLovableAiGatewayProvider(key);
         const ai = await generateText({
           model: gateway("openai/gpt-5.5"),
@@ -1793,17 +1793,11 @@ export const commitSecondBrainSeed = createServerFn({ method: "POST" })
       .from("memory_objects")
       .select("id, sector_code, kind, title")
       .eq("scope_key", draft.country_code);
-    const existingKeys = new Set(
-      (existingRows ?? []).map(
-        (r: any) => `${r.sector_code}|${r.kind}|${normalizeMemoryTitle(r.title ?? "")}`,
-      ),
-    );
-
     let inserted = 0;
+    let updated = 0;
     let skipped = 0;
     for (const m of payload.memories) {
       const key = `${m.sector_code}|${m.kind}|${normalizeMemoryTitle(m.title)}`;
-      if (existingKeys.has(key)) { skipped++; continue; }
       const existing = (existingRows ?? []).find(
         (r: any) => `${r.sector_code}|${r.kind}|${normalizeMemoryTitle(r.title ?? "")}` === key,
       );
@@ -1822,7 +1816,7 @@ export const commitSecondBrainSeed = createServerFn({ method: "POST" })
           })
           .eq("id", existing.id);
         if (upErr) throw upErr;
-        skipped++;
+        updated++;
         continue;
       }
       const { error: insErr } = await supabaseAdmin.from("memory_objects").insert({
@@ -1837,7 +1831,6 @@ export const commitSecondBrainSeed = createServerFn({ method: "POST" })
       });
       if (!insErr) {
         inserted++;
-        existingKeys.add(key);
       } else if (isUniqueViolation(insErr)) {
         skipped++;
       } else {
@@ -1845,7 +1838,7 @@ export const commitSecondBrainSeed = createServerFn({ method: "POST" })
       }
     }
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
-    return { ok: true, inserted, skipped };
+    return { ok: true, inserted, updated, skipped };
   });
 
 

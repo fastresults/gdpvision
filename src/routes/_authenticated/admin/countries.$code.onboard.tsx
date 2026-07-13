@@ -245,10 +245,8 @@ function OnboardWizard() {
   const pipelineRuns: any[] = (data as any).pipelineRuns ?? [];
   const latestPipeline = pipelineRuns[0] ?? null;
   const genSummary = useServerFn(generateStageSummary);
-  const runPipeline = useServerFn(runCountryOnboardingPipeline);
-  const resumeJob = useServerFn(resumeOnboardingJob);
-  const cancelJob = useServerFn(cancelOnboardingJob);
-  const recoverStale = useServerFn(recoverStaleOnboarding);
+  const getNextStage = useServerFn(getNextOnboardingStage);
+  const clearLocks = useServerFn(clearOnboardingLocks);
 
   // Wrap each runner: open the accordion for that stage, show the sticky
   // banner, poll progress, and emit a result banner on resolve/reject.

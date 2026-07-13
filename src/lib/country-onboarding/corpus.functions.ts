@@ -2040,7 +2040,11 @@ export const commitCapitalFlows = createServerFn({ method: "POST" })
         confidence_grade: string;
         source_url: string;
         source_org: string;
+        source_kind?: string;
+        formula?: string;
         notes?: string;
+        evidence?: unknown;
+        validation?: unknown;
       }>;
     };
     if (!payload?.period || !Array.isArray(payload.flows) || payload.flows.length === 0) {
@@ -2095,6 +2099,9 @@ export const commitCapitalFlows = createServerFn({ method: "POST" })
     let upserted = 0;
     for (const f of payload.flows) {
       const period = f.period || payload.period;
+      const noteParts = [f.notes ?? null];
+      if (f.formula) noteParts.push(`Formula: ${f.formula}`);
+      if (f.source_kind) noteParts.push(`Source basis: ${f.source_kind}`);
       const { error: upErr } = await supabaseAdmin
         .from("country_capital_flows")
         .upsert(
@@ -2105,7 +2112,7 @@ export const commitCapitalFlows = createServerFn({ method: "POST" })
             value_usd_m: Number(f.value_usd_m),
             method: f.method || "reported",
             confidence_grade: f.confidence_grade || "C",
-            notes: f.notes ?? null,
+            notes: noteParts.filter(Boolean).join("\n") || null,
             citations: orderedCitations as any,
           },
           { onConflict: "country_code,node_key,period" },

@@ -223,6 +223,7 @@ function OnboardWizard() {
   const runs: any[] = (data as any).runs ?? [];
   const country: any = (data as any).country;
   const summaries: any[] = (data as any).summaries ?? [];
+  const committedTargets: Record<string, { rows: number }> = (data as any).committedTargets ?? {};
   const genSummary = useServerFn(generateStageSummary);
 
   // Wrap each runner: open the accordion for that stage, show the sticky
@@ -257,9 +258,13 @@ function OnboardWizard() {
 
 
 
+  // SOURCE OF TRUTH: a stage is committed iff its target table has rows for
+  // this country. `lastRun.status` is only for the activity line, never for
+  // the commit badge.
   const committedStages = new Set<string>(
-    runs.filter((r) => r.status === "committed").map((r) => r.stage),
+    STAGES.filter((s) => (committedTargets[s.key]?.rows ?? 0) > 0).map((s) => s.key),
   );
+
 
   async function runAllPending() {
     setBulkErr(null);

@@ -1559,10 +1559,20 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
           .update({ plan: { processed: total, total, okCount, failCount, totalChunks, results } })
           .eq("id", runId);
       } catch { /* best effort */ }
-      // Auto-commit corpus ingest — nothing further for the user to edit
-      await markDraftCommitted(supabaseAdmin, draftId, runId);
+      // Auto-commit only when we actually landed useful data. Otherwise leave the
+      // draft in `ready` state with a clear error so the admin can retry.
+      if (okCount >= 1 && totalChunks > 0) {
+        await markDraftCommitted(supabaseAdmin, draftId, runId);
+        await finishRun(supabaseAdmin, runId, { status: "committed" });
+      } else {
+        await finishRun(supabaseAdmin, runId, {
+          status: "ready",
+          error: `ingest produced no usable chunks (ok=${okCount}, chunks=${totalChunks}). Review the per-source errors.`,
+        });
+      }
 
       return { ok: true, runId, totalChunks, okCount, failCount, results };
+
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;

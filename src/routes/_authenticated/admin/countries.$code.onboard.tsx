@@ -172,18 +172,25 @@ function OnboardWizard() {
   // Poll the run's plan every 3s so admin sees processed/total ticking.
   const pollProgress = useServerFn(getRunProgress);
   useEffect(() => {
-    if (!activeRun?.runId) return;
+    if (!activeRun) return;
     let cancelled = false;
     const tick = async () => {
       try {
-        const row = await pollProgress({ data: { runId: activeRun.runId! } });
+        const row = await pollProgress({
+          data: activeRun.runId
+            ? { runId: activeRun.runId }
+            : { countryCode: code, stage: activeRun.stage },
+        });
+        if (!cancelled && row && (row as any).id && !activeRun.runId) {
+          setActiveRun((prev) => (prev ? { ...prev, runId: (row as any).id } : prev));
+        }
         if (!cancelled && row && (row as any).plan) setRunProgress((row as any).plan);
       } catch { /* best effort */ }
     };
     tick();
     const id = window.setInterval(tick, 3000);
     return () => { cancelled = true; window.clearInterval(id); };
-  }, [activeRun?.runId, pollProgress]);
+  }, [activeRun?.runId, activeRun?.stage, code, pollProgress]);
 
 
   const runnersRaw: Record<Stage, any> = {

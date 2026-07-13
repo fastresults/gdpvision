@@ -16,6 +16,8 @@ async function postSignInRedirect(): Promise<"/admin/countries" | "/instrument">
   }
 }
 
+type Mode = "sign-in" | "sign-up" | "forgot";
+
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
@@ -23,15 +25,18 @@ export const Route = createFileRoute("/auth")({
       { name: "robots", content: "noindex" },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>): { mode?: Mode } => {
+    const m = search.mode;
+    return m === "sign-up" || m === "forgot" || m === "sign-in" ? { mode: m } : {};
+  },
   component: AuthPage,
 });
-
-type Mode = "sign-in" | "sign-up" | "forgot";
 
 function AuthPage() {
   const navigate = useNavigate();
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>("sign-in");
+  const search = Route.useSearch();
+  const [mode, setMode] = useState<Mode>(search.mode ?? "sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");

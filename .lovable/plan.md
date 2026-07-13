@@ -1,60 +1,78 @@
-# Why the treemap and heatmap look grey
+# Audit — Stage 12 "Capital flows" (Run AI research)
 
-## The data is already correct
+## What actually happened
 
-For Antigua & Barbuda (ATG) the visualizations are backed by real, committed data — nothing is missing:
+Admin clicked **Run AI research** on stage 12. The server function `runCapitalFlowsAgent` threw immediately at its very first DB write and returned an error to the UI — no draft was ever created, so there was nothing to commit.
 
-- `country_sectors` — **11 rows, sum = 100.0%** (Tourism 30%, Other services 14%, Real estate 11%, Financial 10%, Construction 9%, Public admin 8%, Transport 7%, Digital 4%, Manufacturing 3%, Agriculture 2%, plus one more). This is exactly what the treemap already shows in your screenshot.
-- `ministry_sectors` — **40 ministry↔sector weight rows** across the 10 cabinet ministries. This is what feeds the heatmap.
-- `sectors` — 12-row canonical registry with `hue_token` values `--sector-01` … `--sector-12`.
-
-The server function `getCountryVizOverview` in `src/lib/country-viz/viz.functions.ts` reads all three tables and returns them to `GdpVizStudio`. The tiles, rows, and hover tooltip in your screenshots prove the numbers arrive on the client.
-
-## The actual bug: color tokens are double-prefixed
-
-`public.sectors.hue_token` stores values **with** the CSS custom-property prefix:
+Trace of the failing call:
 
 ```
---sector-01, --sector-02, … --sector-12
+countries.$code.onboard.tsx → runCapitalFlowsAgent (corpus.functions.ts:1885)
+  → assertAdmin ✓
+  → loadCountry ✓
+  → openRun({ stage: "capital_flows", ... })         ← THREW HERE
+      → INSERT INTO onboarding_runs (stage='capital_flows')
+      → ERROR: new row for relation "onboarding_runs" violates
+               check constraint "onboarding_runs_stage_check"
 ```
 
-But `src/components/viz/sector-color.ts` assumes the token is bare and wraps it again:
+Confirmation from the DB — every earlier stage has rows for ATG, but `capital_flows` has none because every attempt was rejected by the check:
 
-```ts
-if (t) return `var(--${t})`;   // becomes var(----sector-01) — invalid
+```
+stage                | count
+---------------------+------
+profile              | 1
+gdp                  | 1
+sector_composition   | 1
+ministries           | 3
+ministry_sector_map  | 1
+source_registry      | 1
+kpi_seed             | 4
+sector_dossier       | 2
+ministry_deep_dive   | 2
+corpus_ingest        | 1
+second_brain_seed    | 2
+capital_flows        | 0        ← never accepted by the constraint
 ```
 
-Result: every `fill`/`background` resolves to an invalid CSS value, the browser falls back to the default paint (grey), and both the treemap tiles and the heatmap dots render as grey. The data path is fine; only the color mapping is broken.
+## Root cause
 
-## Fix
+`public.onboarding_runs.onboarding_runs_stage_check` was an explicit whitelist of the original 11 stages. Stage 12 was added to the app code (registry, orchestrator, UI card, runner/committer maps, Sonar agent, `country_capital_flows` table, FK to `capital_flow_nodes`) but the whitelist in the CHECK constraint was never widened, so `openRun()` failed for every capital-flows attempt.
 
-Normalize the token in `sectorColor()` so it works whether the DB stores `--sector-01` or `sector-01`:
+## Status of the fix
 
-```ts
-export function sectorColor(hueToken: string | null | undefined, fallbackIndex = 0): string {
-  const raw = (hueToken ?? "").trim().replace(/^--/, "");
-  if (raw) return `var(--${raw})`;
-  const n = ((fallbackIndex % 12) + 1).toString().padStart(2, "0");
-  return `var(--sector-${n})`;
-}
+**Already applied** in the previous turn: the constraint now allows `'capital_flows'`. Verified live:
+
+```
+CHECK ((stage = ANY (ARRAY[..., 'second_brain_seed', 'capital_flows'])))
 ```
 
-That single change re-colors:
-- `GdpTreemap` tiles (fill + stroke)
-- `MinistrySectorHeatmap` column dots and cell fills
-- Any other consumer of `sectorColor` (e.g. `SovereignSankey`, `KpiSmallMultiples`) that reads `hue_token`
+Everything downstream of `openRun` is stage-agnostic and does not need code changes:
 
-No schema change, no re-ingest, no new server function needed.
+- `saveDraft`, `finishRun`, `markDraftCommitted` — generic; write to `onboarding_drafts` / `onboarding_runs` by primary key
+- `country_capital_flows` has the correct unique index `(country_code, node_key, period)` for the commit's `onConflict`
+- `capital_flow_nodes` registry seeded with all 12 input/output nodes plus `RECONCILIATION_RESIDUAL`
+- `country_capital_flows_method_check` accepts `'reported' | 'derived' | 'modelled' | 'residual'` (matches both agent output and the auto-balancer)
+- `commitCapitalFlows` correctly snapshots citations, upserts flows, auto-attaches sources via `upsertCountrySource`, and inserts/clears the residual bucket
 
-## Verification
+## Small remaining polish (recommended, not blocking)
 
-1. Reload `/admin/countries/ATG/viz`.
-2. Treemap: each sector tile paints in its brand hue (Tourism deep teal, Agriculture green, Financial navy, etc.) per the palette already defined in `src/styles.css` (`--sector-01`…`--sector-12`).
-3. Heatmap: column headers show colored dots; occupied cells shade from light to saturated by ministry weight; empty cells stay blank.
-4. Spot-check LCA (also has data) to confirm the fix isn't ATG-specific.
+In `CapitalFlowsSchema` (corpus.functions.ts:~1849), `notes` is listed in `required`. Sonar must therefore emit a `notes` string for every flow, even when there is nothing to say — encouraging filler text and occasionally causing `AI_NoObjectGeneratedError` on strict-schema providers. Move `notes` out of `required` (keep it in `properties`) so it is optional. This is the only schema-shape issue; enums are fine and the summary fragment is standard.
+
+No other code, RLS, trigger, or grant changes are needed for stage 12.
+
+## Verification steps (run in order)
+
+1. Reload `/admin/countries/ATG/onboard`.
+2. Open **12. Capital flows** → click **Run AI research**.
+3. Expect: sticky progress banner → new row appears in `onboarding_runs` with `stage='capital_flows'`, `status='ready'`; a draft appears with `target_table='country_capital_flows'`; the card flips to **review** with a `flows[]` payload preview and citations.
+4. Click **Commit**. Expect: rows inserted into `country_capital_flows` for ATG, `country_sources` gains flow-source entries, draft flips to committed, run status → `committed`.
+5. Navigate to `/admin/countries/ATG/viz` → the **Sovereign Capital Flow (Sankey)** panel now renders with the freshly committed ledger; the empty-state message disappears.
+
+If step 3 still fails, the error banner text will name the exact failure (Perplexity API, reconciliation, schema parse) — none of those are latent problems in the current pipeline, so a retry is the correct response.
 
 ## Out of scope
 
-- Re-running any onboarding stage
-- Editing the `sectors` registry or migrating `hue_token` values
-- Any change to `GdpVizStudio` layout, the Sankey, or KPI panels
+- No changes to the Sankey component, viz layout, or KPI panels
+- No re-run of earlier stages
+- No changes to `capital_flow_nodes` seed or `country_capital_flows` schema

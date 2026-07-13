@@ -879,7 +879,7 @@ async function executeStep(admin: any, job: any, step: any) {
 
   try {
     const committed = await countCommitted(admin, job.country_code, step.stage as Stage);
-    if (job.mode === "pending" && committed > 0) {
+    if (job.mode === "pending" && committed > 0 && step.step_type === "stage" && step.status === "queued" && !CHILD_STEP_TYPES[step.stage as Stage]) {
       await admin.from("onboarding_job_steps").update({ status: "skipped", output: { committedRows: committed }, finished_at: new Date().toISOString(), heartbeat_at: new Date().toISOString() }).eq("id", step.id);
       return { status: "skipped", stage: step.stage };
     }

@@ -134,7 +134,7 @@ export const runCountryOnboardingPipeline = createServerFn({ method: "POST" })
     const updatePipeline = async (patch: Record<string, unknown>) => {
       await supabaseAdmin
         .from("onboarding_pipeline_runs")
-        .update({ ...patch, results: results as any })
+        .update({ ...patch, results: results as any, updated_at: new Date().toISOString() })
         .eq("id", pipelineId);
     };
 
@@ -193,7 +193,7 @@ export const runCountryOnboardingPipeline = createServerFn({ method: "POST" })
         results.push({ stage, status: "failed", message });
       } finally {
         await updatePipeline({
-          plan: { levels, totalStages: levels.flat().length, completed: results.length, currentStage: stage },
+          plan: { levels, totalStages: levels.flat().length, completed: results.length, currentStage: stage, updatedAt: new Date().toISOString() },
         });
       }
     };
@@ -210,7 +210,7 @@ export const runCountryOnboardingPipeline = createServerFn({ method: "POST" })
         current_stage: null,
         finished_at: new Date().toISOString(),
         error: failures.length ? `${failures.length} stage(s) failed` : null,
-        plan: { levels, totalStages: levels.flat().length, completed: results.length },
+        plan: { levels, totalStages: levels.flat().length, completed: results.length, updatedAt: new Date().toISOString() },
       });
       return { pipelineId, status: failures.length ? "failed" : "completed", results };
     } catch (err) {

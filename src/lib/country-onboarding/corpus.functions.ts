@@ -1477,13 +1477,15 @@ export const runSecondBrainSeedAgent = createServerFn({ method: "POST" })
       const result = await callSonar({
         model,
         system:
-          "You are seeding an executive second-brain memory. Return 12-25 memory objects that anchor how the cabinet talks, decides, and defends its record. Kinds: position (settled policy stance), audience (internal or external audience with register), outlet (primary distribution channel), fact (durable statistic), risk (persistent reputational or fiscal risk). Weight 1-5 with 5 = load-bearing.",
+          "You are seeding an executive second-brain memory. Return 12-25 memory objects that anchor how the cabinet talks, decides, and defends its record. Kinds: position (settled policy stance), audience (internal or external audience with register), outlet (primary distribution channel), fact (durable statistic), risk (persistent reputational or fiscal risk). Weight 1-5 with 5 = load-bearing." +
+          SUMMARY_SYSTEM_SUFFIX,
         user: `Country: ${country.name}. Sectors: ${sectorCodes.join(", ") || "cross_cutting"}. Seed the second brain with cabinet positions, key audiences, communication outlets, durable facts, and standing risks.`,
         responseSchema: SecondBrainSchema as unknown as Record<string, unknown>,
       });
 
       const parsed = parseSonarJson<{ memories: any[] }>(result.content);
       if (!parsed?.memories?.length) throw new Error("Perplexity returned no memories");
+      const inline = extractInlineSummary(parsed);
 
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
@@ -1493,6 +1495,8 @@ export const runSecondBrainSeedAgent = createServerFn({ method: "POST" })
         payload: parsed,
         confidence: result.citations.length >= 2 ? "high" : "medium",
         citations: result.citations,
+        summary_md: inline.summary_md,
+        summary_highlights: inline.summary_highlights,
       });
 
       await finishRun(supabaseAdmin, runId, { status: "ready" });

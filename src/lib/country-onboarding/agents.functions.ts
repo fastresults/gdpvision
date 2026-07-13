@@ -596,6 +596,7 @@ export const runMinistrySectorMapAgent = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const country = await loadCountry(supabaseAdmin, data.countryCode);
     const sectors = await loadSectors(supabaseAdmin);
+    const ctx = await buildCountryContext(supabaseAdmin, data.countryCode);
     const { data: ministries, error: mErr } = await supabaseAdmin
       .from("ministries")
       .select("id, slug, name")
@@ -614,45 +615,54 @@ export const runMinistrySectorMapAgent = createServerFn({ method: "POST" })
     try {
       const schema = {
         type: "object",
-        additionalProperties: false,
         properties: {
           mappings: {
             type: "array",
             items: {
               type: "object",
-              additionalProperties: false,
               properties: {
                 ministry_slug: { type: "string" },
                 sector_code: { type: "string" },
-                weight: { type: "number", minimum: 0, maximum: 100, description: "Percentage responsibility 0-100" },
+                weight: { type: "number", minimum: 0, maximum: 100 },
                 rationale: { type: "string" },
               },
-              required: ["ministry_slug", "sector_code", "weight", "rationale"],
+              required: ["ministry_slug", "sector_code", "weight"],
             },
           },
           ...SUMMARY_SCHEMA_FRAGMENT,
         },
-        required: ["mappings", "summary_md", "summary_highlights"],
+        required: ["mappings"],
       } as const;
 
       const sectorList = sectors.map((s) => `${s.code} (${s.label})`).join(", ");
       const ministryList = ministries.map((m) => `${m.slug} (${m.name})`).join("\n- ");
+      const sectorWeights = ctx.committed.sectors.length
+        ? `\n\nCOMMITTED SECTOR WEIGHTS (distribute ministerial ownership consistently with these shares):\n${ctx.committed.sectors.map((s) => `- ${s.sector_code}: ${Number(s.share_pct).toFixed(1)}%`).join("\n")}`
+        : "";
       const fb = await runWithFallbacks<{ mappings: any[]; summary_md?: string; summary_highlights?: any[] }>({
+        context: ctx,
+        topic: `${country.name} ministerial portfolios and sector ownership`,
         perplexity: {
           model,
           system:
-            "You map ministerial portfolios to economic sectors. For each ministry, output the sectors it primarily oversees with a weight 0-100 representing its share of responsibility for that sector. Per-ministry weights across all its sectors should roughly sum to 100. Omit sectors a ministry has no role in." +
+            "You map ministerial portfolios to economic sectors. For each ministry, output the sectors it primarily oversees with a weight 0-100 representing its share of responsibility for that sector. Per-ministry weights across all its sectors should roughly sum to 100. Omit sectors a ministry has no role in. Use the official ministerial mandates on the government portal." +
             SUMMARY_SYSTEM_SUFFIX,
-          user: `Country: ${country.name}. Sectors: ${sectorList}. Ministries:\n- ${ministryList}\n\nProvide the ministry→sector mapping using the country's official ministerial mandates.`,
+          user: `Country: ${country.name}.\n\nSectors: ${sectorList}.\n\nMinistries:\n- ${ministryList}${sectorWeights}\n\nProvide the ministry→sector mapping. Every ministry MUST appear at least once. Ground the rationale in the actual mandate text where possible.`,
           responseSchema: schema as unknown as Record<string, unknown>,
         },
         gemini: {
           system: "You map ministerial portfolios to economic sectors.",
-          user: `Country: ${country.name}. Sectors: ${sectorList}. Ministries: ${ministryList}. Return mappings with weight 0-100.`,
+          user: `Country: ${country.name}. Sectors: ${sectorList}. Ministries: ${ministryList}. Extract mappings from source material; weight 0-100 per (ministry, sector); each ministry appears at least once.`,
           schemaHint: `{ "mappings": [{"ministry_slug": string, "sector_code": string, "weight": number, "rationale": string}], "summary_md": string, "summary_highlights": [{"label": string, "value": string}] }`,
         },
         parse: jsonParser<{ mappings: any[] }>(),
-        validate: (v) => !!v?.mappings?.length,
+        validate: (v) => {
+          if (!v?.mappings?.length) return false;
+          const ministrySet = new Set(ministries.map((m) => m.slug));
+          const covered = new Set(v.mappings.map((m: any) => m.ministry_slug));
+          // At least 60% of ministries should be represented; otherwise cascade.
+          return covered.size >= Math.ceil(ministrySet.size * 0.6);
+        },
         infer: () => ({
           mappings: seedMinistrySectorMap(ministries.map((m) => m.slug), sectors.map((s) => s.code)),
           summary_md: `Provisional canonical portfolio→sector mapping for ${country.name} — please review.`,

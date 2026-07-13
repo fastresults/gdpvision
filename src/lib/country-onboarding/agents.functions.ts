@@ -610,6 +610,7 @@ export const runMinistriesAgent = createServerFn({ method: "POST" })
         summary_highlights: inline.summary_highlights,
       });
 
+      await promoteAfterDraft(supabaseAdmin, data.countryCode, "ministries", draftId, fb);
       await finishRun(supabaseAdmin, runId, { status: "ready", model_stack: { ...fb.modelStack, notes: fb.notes } });
       return { runId, draftId, ministries: fb.data.ministries, citations: fb.citations, tier: fb.tier, notes: fb.notes };
     } catch (err) {

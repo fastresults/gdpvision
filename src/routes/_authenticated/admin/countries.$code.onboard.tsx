@@ -462,7 +462,7 @@ function StageCard({
 
 
   return (
-    <section className="border border-line-200 bg-paper-0">
+    <section ref={sectionRef} className="border border-line-200 bg-paper-0 scroll-mt-2">
       <div className="flex items-stretch justify-between gap-4">
         <button
           type="button"

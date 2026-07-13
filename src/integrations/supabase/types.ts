@@ -179,6 +179,45 @@ export type Database = {
         }
         Relationships: []
       }
+      capital_flow_nodes: {
+        Row: {
+          created_at: string
+          description: string | null
+          hue_token: string | null
+          label: string
+          node_key: string
+          preferred_sources: string[]
+          sector_code: string | null
+          side: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          hue_token?: string | null
+          label: string
+          node_key: string
+          preferred_sources?: string[]
+          sector_code?: string | null
+          side: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          hue_token?: string | null
+          label?: string
+          node_key?: string
+          preferred_sources?: string[]
+          sector_code?: string | null
+          side?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           behavior: string
@@ -568,6 +607,59 @@ export type Database = {
           tier?: string
         }
         Relationships: []
+      }
+      country_capital_flows: {
+        Row: {
+          citations: Json
+          confidence_grade: string
+          country_code: string
+          created_at: string
+          id: string
+          method: string
+          node_key: string
+          notes: string | null
+          period: string
+          provenance: string
+          updated_at: string
+          value_usd_m: number
+        }
+        Insert: {
+          citations?: Json
+          confidence_grade?: string
+          country_code: string
+          created_at?: string
+          id?: string
+          method?: string
+          node_key: string
+          notes?: string | null
+          period: string
+          provenance?: string
+          updated_at?: string
+          value_usd_m: number
+        }
+        Update: {
+          citations?: Json
+          confidence_grade?: string
+          country_code?: string
+          created_at?: string
+          id?: string
+          method?: string
+          node_key?: string
+          notes?: string | null
+          period?: string
+          provenance?: string
+          updated_at?: string
+          value_usd_m?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "country_capital_flows_node_key_fkey"
+            columns: ["node_key"]
+            isOneToOne: false
+            referencedRelation: "capital_flow_nodes"
+            referencedColumns: ["node_key"]
+          },
+        ]
       }
       country_kpi_points: {
         Row: {

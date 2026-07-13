@@ -298,6 +298,7 @@ async function countCommittedTargets(admin: any, cc: string) {
     ministerProfilesC,
     chunksC,
     memoryC,
+    flowsC,
   ] = await Promise.all([
     admin.from("countries").select("profile_committed_at, gdp_committed_at").eq("code", cc).maybeSingle(),
     count("sector_composition", admin.from("country_sectors").select("*", { count: "exact", head: true }).eq("country_code", cc)),
@@ -316,6 +317,7 @@ async function countCommittedTargets(admin: any, cc: string) {
     count("corpus_ingest", admin.from("country_source_chunks").select("*", { count: "exact", head: true }).eq("country_code", cc)),
     // memory_objects are country-scoped by scope_key, not country_code.
     count("second_brain_seed", admin.from("memory_objects").select("*", { count: "exact", head: true }).eq("scope_key", cc)),
+    count("capital_flows", admin.from("country_capital_flows").select("*", { count: "exact", head: true }).eq("country_code", cc)),
   ]);
   if (countryRow.error) {
     diagnostics.push({ stage: "profile", message: countryRow.error.message ?? String(countryRow.error) });
@@ -335,6 +337,7 @@ async function countCommittedTargets(admin: any, cc: string) {
     ministry_deep_dive: ministerProfilesC,
     corpus_ingest: chunksC,
     second_brain_seed: memoryC,
+    capital_flows: flowsC,
   } as Record<string, { rows: number }>;
   return { targets, diagnostics };
 }

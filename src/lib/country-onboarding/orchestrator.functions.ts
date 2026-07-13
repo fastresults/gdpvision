@@ -21,12 +21,14 @@ import {
   commitSecondBrainSeed,
   commitSectorDossiers,
   commitSourceRegistry,
+  commitCapitalFlows,
   runCorpusIngest,
   runKpiSeedAgent,
   runMinistryDeepDiveAgent,
   runSecondBrainSeedAgent,
   runSectorDossierAgent,
   runSourceRegistryAgent,
+  runCapitalFlowsAgent,
 } from "./corpus.functions";
 
 type Stage =
@@ -40,7 +42,8 @@ type Stage =
   | "sector_dossier"
   | "ministry_deep_dive"
   | "corpus_ingest"
-  | "second_brain_seed";
+  | "second_brain_seed"
+  | "capital_flows";
 
 const Input = z.object({
   countryCode: z.string().min(2).max(4),
@@ -63,7 +66,7 @@ export const runCountryOnboardingPipeline = createServerFn({ method: "POST" })
     const mode = data.mode;
     const levels: Stage[][] = [
       ["profile", "gdp", "sector_composition", "ministries", "source_registry", "kpi_seed"],
-      ["ministry_sector_map", "sector_dossier", "ministry_deep_dive", "corpus_ingest"],
+      ["ministry_sector_map", "sector_dossier", "ministry_deep_dive", "corpus_ingest", "capital_flows"],
       ["second_brain_seed"],
     ];
 
@@ -79,6 +82,7 @@ export const runCountryOnboardingPipeline = createServerFn({ method: "POST" })
       ministry_deep_dive: runMinistryDeepDiveAgent,
       corpus_ingest: runCorpusIngest,
       second_brain_seed: runSecondBrainSeedAgent,
+      capital_flows: runCapitalFlowsAgent,
     };
     const committers: Record<Stage, any> = {
       profile: commitProfile,
@@ -92,6 +96,7 @@ export const runCountryOnboardingPipeline = createServerFn({ method: "POST" })
       ministry_deep_dive: commitMinistryDeepDive,
       corpus_ingest: null,
       second_brain_seed: commitSecondBrainSeed,
+      capital_flows: commitCapitalFlows,
     };
 
     const staleCutoff = new Date(Date.now() - 20 * 60 * 1000).toISOString();

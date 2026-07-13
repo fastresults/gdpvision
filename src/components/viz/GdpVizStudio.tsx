@@ -58,7 +58,7 @@ export function GdpVizStudio({ code }: { code: string }) {
         <KpiSmallMultiples sectors={overview.sectors} series={overview.sectorKpiSeries} selected={sector} onSelect={setSector} />
       </div>
 
-      <SovereignSankey overview={overview} />
+      <SovereignSankey countryCode={code} />
 
       <DebtHorizon series={overview.fiscalSeries} />
 

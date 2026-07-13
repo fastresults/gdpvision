@@ -931,6 +931,7 @@ export const commitProfile = createServerFn({ method: "POST" })
 
     const patch: Record<string, unknown> = {
       country_pack: { ...(payload.notes ? { profile_notes: payload.notes } : {}), profile: payload },
+      profile_committed_at: new Date().toISOString(),
     };
     if (typeof payload.currency === "string") patch.currency = payload.currency;
     if (Number.isInteger(payload.fiscal_year_start_month))
@@ -941,6 +942,7 @@ export const commitProfile = createServerFn({ method: "POST" })
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
     return { ok: true };
   });
+
 
 export const commitGdp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

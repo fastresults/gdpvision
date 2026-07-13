@@ -963,9 +963,11 @@ export const commitGdp = createServerFn({ method: "POST" })
       .update({
         gdp_current_usd: payload.gdp_current_usd,
         gdp_year: payload.gdp_year,
+        gdp_committed_at: new Date().toISOString(),
       })
       .eq("code", draft.country_code);
     if (upErr) throw upErr;
+
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
     return { ok: true };
   });

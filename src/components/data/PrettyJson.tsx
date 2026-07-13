@@ -1,5 +1,6 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { humanizeKey, formatNumber, splitCitations, linkifyParts } from "./humanize";
 
 type Json = null | string | number | boolean | Json[] | { [k: string]: Json };

@@ -188,9 +188,9 @@ export const resumeOnboardingJob = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin
       .from("onboarding_job_steps")
-      .update({ status: "queued", error: null, lease_owner: null, lease_expires_at: null })
+      .update({ status: "queued", error: null, lease_owner: null, lease_expires_at: null, finished_at: null })
       .eq("job_id", data.jobId)
-      .in("status", ["failed", "stale", "running"]);
+      .in("status", ["failed", "stale", "running", "blocked"]);
     const { error } = await supabaseAdmin
       .from("onboarding_jobs")
       .update({ status: "queued", error: null, lease_owner: null, lease_expires_at: null })

@@ -9,6 +9,7 @@ import { MinistrySectorHeatmap } from "./MinistrySectorHeatmap";
 import { KpiSmallMultiples } from "./KpiSmallMultiples";
 import { DebtHorizon } from "./DebtHorizon";
 import { EvidenceRail } from "./EvidenceRail";
+import { SovereignSankey } from "./SovereignSankey";
 
 const overviewQuery = (code: string, fetchFn: (input: { data: { countryCode: string } }) => Promise<VizOverview>) =>
   queryOptions({
@@ -56,6 +57,8 @@ export function GdpVizStudio({ code }: { code: string }) {
         </div>
         <KpiSmallMultiples sectors={overview.sectors} series={overview.sectorKpiSeries} selected={sector} onSelect={setSector} />
       </div>
+
+      <SovereignSankey overview={overview} />
 
       <DebtHorizon series={overview.fiscalSeries} />
 

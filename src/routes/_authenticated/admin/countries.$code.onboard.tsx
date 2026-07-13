@@ -626,6 +626,8 @@ function StageCard({
   countryName,
   draft,
   lastRun,
+  lastCommitRun,
+  targetRows,
   summary,
   keyConfigured,
   isOpen,
@@ -639,6 +641,8 @@ function StageCard({
   countryName: string;
   draft: any;
   lastRun: any;
+  lastCommitRun: any;
+  targetRows: number;
   summary: any;
   keyConfigured: boolean;
   isOpen: boolean;
@@ -668,12 +672,17 @@ function StageCard({
   }, [isOpen]);
 
 
-  const committed = lastRun?.status === "committed";
+  // Ground truth: target table has rows for this country.
+  const committed = targetRows > 0;
+  const commitAt = lastCommitRun?.finished_at ?? lastCommitRun?.started_at ?? null;
+  // A draft that arrived AFTER the last commit — user re-ran and can re-commit.
+  const hasNewerDraft = !!draft && (!commitAt || new Date(draft.created_at) > new Date(commitAt));
   const payload = draft?.payload;
   const citations: any[] = draft?.citations ?? [];
   const model = (lastRun?.model_stack && (lastRun.model_stack.research || Object.values(lastRun.model_stack)[0])) as
     | string
     | undefined;
+
 
   async function doRun() {
     setRunning(true);

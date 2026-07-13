@@ -17,6 +17,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { callSonar, parseSonarJson, type SonarCitation, type SonarModel } from "./perplexity.server";
 import { SUMMARY_SCHEMA_FRAGMENT, SUMMARY_SYSTEM_SUFFIX, extractInlineSummary } from "./summary-inline";
 import { normalizeMemoryTitle, isUniqueViolation } from "./memory-dedup";
+import { buildCapitalFlowsDraft } from "./capital-flows.server";
 
 type Stage =
   | "source_registry"
@@ -1979,163 +1980,37 @@ export const runCapitalFlowsAgent = createServerFn({ method: "POST" })
     });
 
     try {
-      const currency = country.currency ?? "USD";
-      const gdpUsdM = country.gdp_current_usd ? Number(country.gdp_current_usd) / 1_000_000 : null;
-
-      // Load node registry with plausibility caps.
-      const { data: registry } = await supabaseAdmin
-        .from("capital_flow_nodes")
-        .select("node_key, side, gdp_cap_multiplier");
-      const sideByKey = new Map<string, "input" | "output">();
-      const capByKey = new Map<string, number>();
-      for (const r of registry ?? []) {
-        sideByKey.set(r.node_key, r.side as any);
-        capByKey.set(r.node_key, Number(r.gdp_cap_multiplier ?? 1.5));
-      }
-
-      // Fan out passes in parallel.
-      const passResults = await Promise.all(
-        PASSES.map((p) =>
-          runCapitalFlowPass({
-            model,
-            countryName: country.name,
-            countryISO: country.iso3 ?? country.code,
-            currency,
-            passName: p.name,
-            nodes: p.nodes,
-            gdpUsdM,
-          }),
-        ),
-      );
-
-      // Merge, dedupe (last wins per node_key), and apply GDP plausibility clamp.
-      const merged = new Map<string, CapitalFlow>();
-      const droppedAll: Array<CapitalFlow & { reason: string }> = [];
-      const citationsAll: SonarCitation[] = [];
-      for (const r of passResults) {
-        for (const f of r.flows) merged.set(f.node_key, f);
-        droppedAll.push(...r.dropped);
-        citationsAll.push(...r.citations);
-      }
-
-      // GDP sanity clamp: drop any single node whose value exceeds gdp_cap * GDP.
-      if (gdpUsdM && gdpUsdM > 0) {
-        for (const [k, f] of Array.from(merged.entries())) {
-          const cap = capByKey.get(k) ?? 1.5;
-          if (f.value_usd_m > cap * gdpUsdM) {
-            droppedAll.push({ ...f, reason: `value ${f.value_usd_m.toFixed(0)}m exceeds ${cap}x GDP (${gdpUsdM.toFixed(0)}m) — likely unit or FX error` });
-            merged.delete(k);
-          }
-        }
-      }
-
-      // Coverage retry: for each pass that produced 0 valid flows, retry once with a coaching nudge.
-      for (let i = 0; i < PASSES.length; i++) {
-        const pass = PASSES[i];
-        const gotAnyValid = pass.nodes.some((k) => merged.has(k));
-        if (gotAnyValid) continue;
-        const droppedNotes = droppedAll
-          .filter((d) => pass.nodes.includes(d.node_key))
-          .map((d) => `${d.node_key}: ${d.reason}`)
-          .join("; ") || "no rows produced";
-        const retry = await runCapitalFlowPass({
-          model,
-          countryName: country.name,
-          countryISO: country.iso3 ?? country.code,
-          currency,
-          passName: pass.name,
-          nodes: pass.nodes,
-          gdpUsdM,
-          previousDroppedNote: droppedNotes,
-        });
-        for (const f of retry.flows) {
-          const cap = capByKey.get(f.node_key) ?? 1.5;
-          if (gdpUsdM && f.value_usd_m > cap * gdpUsdM) {
-            droppedAll.push({ ...f, reason: `retry: value ${f.value_usd_m.toFixed(0)}m still exceeds ${cap}x GDP` });
-            continue;
-          }
-          merged.set(f.node_key, f);
-        }
-        droppedAll.push(...retry.dropped);
-        citationsAll.push(...retry.citations);
-      }
-
-      const flows = Array.from(merged.values());
-      // Pick period as most common across flows.
-      const periodCounts = new Map<string, number>();
-      for (const f of flows) {
-        const p = f.period || "";
-        if (p) periodCounts.set(p, (periodCounts.get(p) ?? 0) + 1);
-      }
-      let period = "";
-      let best = 0;
-      for (const [p, c] of periodCounts) if (c > best) { period = p; best = c; }
-
-      // Reconciliation + coverage stats.
-      let sumIn = 0, sumOut = 0;
-      const inputs: string[] = [], outputs: string[] = [];
-      for (const f of flows) {
-        const side = sideByKey.get(f.node_key);
-        if (side === "input") { sumIn += f.value_usd_m; inputs.push(f.node_key); }
-        else if (side === "output") { sumOut += f.value_usd_m; outputs.push(f.node_key); }
-      }
-      const residual = sumIn - sumOut;
-      const denom = Math.max(sumIn, sumOut);
-      const reconciliationPct = denom > 0 ? Math.abs(residual) / denom : 1;
-
-      const missingInputs = ["TOURISM_SPEND","CBI_INFLOWS","FDI_NET","REMITTANCES","ODA_GRANTS","TAX_REVENUE"].filter((k) => !inputs.includes(k));
-      const missingOutputs = ["WAGES_AGRI","INFRA_CAPEX","DEBT_SERVICE","DIGITAL_HEALTH_CAPEX","ENERGY_IMPORT","IMPORT_LEAKAGE"].filter((k) => !outputs.includes(k));
-
-      const coverageOk = inputs.length >= 3 && outputs.length >= 4 && reconciliationPct <= 0.10;
-
-      // Deduplicate citations by URL.
-      const citeMap = new Map<string, SonarCitation>();
-      for (const c of citationsAll) if (c?.url && !citeMap.has(c.url)) citeMap.set(c.url, c);
-      // Also add citations from flow source_urls (they may not be in the API-returned citations).
-      for (const f of flows) if (isValidHttpUrl(f.source_url) && !citeMap.has(f.source_url)) {
-        let domain: string | undefined;
-        try { domain = new URL(f.source_url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
-        citeMap.set(f.source_url, { url: f.source_url, title: f.source_org, domain });
-      }
-      const citations = Array.from(citeMap.values());
-
-      const summary_md = coverageOk
-        ? `Balanced ledger for ${period}: ${inputs.length} inputs (US$${sumIn.toFixed(0)}m) → treasury → ${outputs.length} outputs (US$${sumOut.toFixed(0)}m), residual ${(reconciliationPct * 100).toFixed(1)}%.`
-        : `Incomplete ledger for ${period || "unknown period"}: ${inputs.length}/6 inputs, ${outputs.length}/6 outputs, residual ${(reconciliationPct * 100).toFixed(0)}%. Missing: ${[...missingInputs, ...missingOutputs].join(", ") || "—"}.`;
-      const summary_highlights = [
-        { label: "Period", value: period || "—" },
-        { label: "Inputs populated", value: `${inputs.length}/6` },
-        { label: "Outputs populated", value: `${outputs.length}/6` },
-        { label: "Reconciliation", value: `${(reconciliationPct * 100).toFixed(1)}% off` },
-      ];
-
-      const payload = {
-        period,
-        flows,
-        dropped_flows: droppedAll,
-        coverage: { inputs, outputs, missingInputs, missingOutputs, coverageOk },
-        reconciliation: { sumIn, sumOut, residual, residual_pct: reconciliationPct },
-        summary_md,
-        summary_highlights,
-      };
+      const workbook = await buildCapitalFlowsDraft({
+        admin: supabaseAdmin,
+        country,
+        runId,
+      });
 
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
         country_code: data.countryCode,
         stage: "capital_flows",
         target_table: "country_capital_flows",
-        payload,
-        confidence: coverageOk ? "high" : reconciliationPct < 0.25 ? "medium" : "low",
-        citations,
-        summary_md,
-        summary_highlights,
+        payload: workbook.payload,
+        confidence: workbook.confidence,
+        citations: workbook.citations,
+        summary_md: workbook.summary_md,
+        summary_highlights: workbook.summary_highlights,
       });
 
       await finishRun(supabaseAdmin, runId, {
-        status: coverageOk ? "ready" : "needs_review",
-        error: coverageOk ? null : `Coverage insufficient: ${inputs.length}/6 inputs, ${outputs.length}/6 outputs, ${(reconciliationPct * 100).toFixed(0)}% residual`,
+        status: workbook.coverageOk ? "ready" : "needs_review",
+        error: workbook.coverageOk
+          ? null
+          : `Coverage insufficient: ${workbook.payload.coverage.inputs.length}/6 inputs, ${workbook.payload.coverage.outputs.length}/6 outputs, ${(workbook.reconciliationPct * 100).toFixed(0)}% residual`,
+        plan: {
+          strategy: "evidence-workbook-per-node",
+          attempts: workbook.attempts,
+          coverage: workbook.payload.coverage,
+          reconciliation: workbook.payload.reconciliation,
+        },
       });
-      return { runId, draftId, count: flows.length, reconciliationPct, coverageOk };
+      return { runId, draftId, count: workbook.count, reconciliationPct: workbook.reconciliationPct, coverageOk: workbook.coverageOk, attempts: workbook.attempts };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;

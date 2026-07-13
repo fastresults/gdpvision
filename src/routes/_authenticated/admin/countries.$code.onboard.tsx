@@ -139,12 +139,18 @@ function OnboardWizard() {
     | null
   >(null);
   const [runProgress, setRunProgress] = useState<{
+    phase?: string;
     processed?: number;
     total?: number;
+    currentKpi?: string | null;
     lastUrl?: string | null;
     okCount?: number;
     failCount?: number;
     totalChunks?: number;
+    filled?: number;
+    missing?: number;
+    updatedAt?: string;
+    missingKpis?: string[];
   } | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [runResult, setRunResult] = useState<
@@ -447,10 +453,15 @@ function OnboardWizard() {
               </div>
               {runProgress && typeof runProgress.processed === "number" && (
                 <div className="text-[11px] text-paper-0/70 font-mono mt-0.5">
+                  {runProgress.phase && <>phase {runProgress.phase} · </>}
                   Processed {runProgress.processed}/{runProgress.total ?? "?"}
                   {typeof runProgress.okCount === "number" && (
                     <> · ok {runProgress.okCount} · fail {runProgress.failCount ?? 0}</>
                   )}
+                  {typeof runProgress.filled === "number" && (
+                    <> · filled {runProgress.filled} · missing {runProgress.missing ?? 0}</>
+                  )}
+                  {runProgress.currentKpi && <> · now {runProgress.currentKpi}</>}
                   {runProgress.lastUrl && <> · last: {truncateMiddle(runProgress.lastUrl, 60)}</>}
                 </div>
               )}
@@ -584,6 +595,7 @@ function PipelineHealthPanel({
           const run = runs.find((r) => r.stage === s.key);
           const diag = diagnostics.find((d) => d.stage === s.key);
           const result = latestResults.find((r) => r.stage === s.key);
+          const plan = run?.plan && typeof run.plan === "object" ? run.plan : null;
           return (
             <div key={s.key} className="border border-line-200 p-2 text-xs">
               <div className="flex items-center justify-between gap-2">
@@ -594,6 +606,14 @@ function PipelineHealthPanel({
               </div>
               <div className="mt-1 text-[11px] text-ink-500 space-y-0.5">
                 {run && <div>last run {run.status}</div>}
+                {plan?.phase && (
+                  <div className="font-mono text-[10px] text-ink-600">
+                    {String(plan.phase)}
+                    {typeof plan.processed === "number" && <> · {plan.processed}/{plan.total ?? "?"}</>}
+                    {typeof plan.filled === "number" && <> · filled {plan.filled}</>}
+                    {plan.currentKpi && <> · {String(plan.currentKpi)}</>}
+                  </div>
+                )}
                 {result && <div>pipeline {result.status}{result.message ? ` — ${result.message}` : ""}</div>}
                 {diag && <div className="text-red-700 break-words">{diag.message}</div>}
               </div>
@@ -609,6 +629,9 @@ function summarizeRunResult(stage: Stage, res: any): string {
   if (!res) return "Completed.";
   if (stage === "corpus_ingest" && typeof res.okCount === "number") {
     return `Ingested ${res.totalChunks ?? 0} chunks across ${res.okCount} source(s) (${res.failCount ?? 0} failed).`;
+  }
+  if (stage === "kpi_seed" && res.coverage) {
+    return `KPI draft ready: ${res.coverage.filled}/${res.coverage.total} required filled across ${res.attempts ?? 0} attempts${res.coverage.missing?.length ? `; missing ${res.coverage.missing.join(", ")}` : ""}.`;
   }
   if (typeof res.count === "number") return `Draft ready with ${res.count} item(s). Review below.`;
   if (typeof res.inserted === "number") return `Inserted ${res.inserted} row(s).`;
@@ -995,6 +1018,7 @@ function StageCard({
               {lastRun.error && (
                 <div className="mt-1 text-red-600 whitespace-pre-wrap">{lastRun.error}</div>
               )}
+              <RunPlanSummary plan={lastRun.plan} />
             </div>
           )}
 

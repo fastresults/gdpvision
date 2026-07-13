@@ -122,7 +122,7 @@ export const runCountryOnboardingPipeline = createServerFn({ method: "POST" })
     }
 
     const pipelineId = pipeline.id as string;
-    const results: Array<{ stage: Stage; status: string; message?: string; meta?: Record<string, unknown> | null }> = [];
+    const results: Array<{ stage: Stage; status: string; message?: string }> = [];
 
     const updatePipeline = async (patch: Record<string, unknown>) => {
       await supabaseAdmin
@@ -170,16 +170,12 @@ export const runCountryOnboardingPipeline = createServerFn({ method: "POST" })
           return;
         }
 
-        const runResult = await runners[stage]({ data: { countryCode } });
+        await runners[stage]({ data: { countryCode } });
         const committed = await tryCommitLiveDraft(stage);
-        const meta = runResult && typeof runResult === "object"
-          ? JSON.parse(JSON.stringify(runResult)) as Record<string, unknown>
-          : null;
         results.push({
           stage,
           status: committed || stage === "corpus_ingest" ? "committed" : "ready",
           message: committed ? "draft generated and committed" : "draft generated for review",
-          meta,
         });
       } catch (err) {
         const message = (err as Error).message ?? String(err);

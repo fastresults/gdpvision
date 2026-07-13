@@ -160,5 +160,8 @@ export function contextDomains(ctx: CountryContext): string[] {
   if (ctx.centralBank) {
     try { out.push(new URL(ctx.centralBank).hostname.replace(/^www\./, "")); } catch { /* noop */ }
   }
+  for (const l of ctx.learnedDomains ?? []) {
+    if (l.domain && !out.includes(l.domain)) out.push(l.domain);
+  }
   return out;
 }

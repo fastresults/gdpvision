@@ -138,7 +138,7 @@ export function MarketingHome() {
             </h1>
             <div
               aria-live="polite"
-              className="mt-8 min-h-[260px] md:min-h-[300px]"
+              className="mt-8 min-h-[160px] md:min-h-[180px]"
             >
               <div
                 key={current.id}
@@ -154,7 +154,7 @@ export function MarketingHome() {
             </div>
             <nav
               aria-label="Cycle through threats"
-              className="mt-8 flex items-center gap-6 border-t border-line-200 pt-6"
+              className="mt-4 flex items-center gap-6 border-t border-line-200 pt-3"
             >
               <button
                 type="button"
@@ -184,7 +184,7 @@ export function MarketingHome() {
                 </svg>
               </button>
             </nav>
-            <div className="mt-10 flex flex-wrap items-center gap-6">
+            <div className="mt-5 flex flex-wrap items-center gap-6">
               <a
                 href="#briefing"
                 className="inline-flex items-center justify-center bg-ink-950 px-6 py-3 font-mono text-[12px] uppercase tracking-[0.18em] text-paper-0 transition-colors duration-200 hover:bg-gold-500"

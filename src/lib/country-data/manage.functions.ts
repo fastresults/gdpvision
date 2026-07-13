@@ -1451,6 +1451,7 @@ export const ingestDocumentSource = createServerFn({ method: "POST" })
     }
 
     if (text.trim().length > 0) {
+      const { contentHash } = await import("@/lib/country-onboarding/memory-dedup.server");
       const hash = contentHash(text);
       // Skip re-embed if we already have a document for this source with the
       // same content hash (matches country_source_documents_content_dedup_idx).

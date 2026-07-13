@@ -1333,6 +1333,7 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
           if (!doc.markdown || doc.markdown.length < 200) {
             throw new Error(`too short: ${doc.markdown.length} chars`);
           }
+          const { contentHash } = await import("./memory-dedup.server");
           const hash = contentHash(doc.markdown);
 
           // Dedup: if we already have a document for this source with the

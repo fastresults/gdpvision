@@ -1169,4 +1169,90 @@ function CorpusIngestExtras({
   );
 }
 
+const CAPITAL_FLOW_NODE_LABELS: Record<string, string> = {
+  TOURISM_SPEND: "Gross Tourism Spend",
+  CBI_INFLOWS: "CBI Inflows",
+  FDI_NET: "Foreign Direct Investment",
+  REMITTANCES: "Remittances",
+  ODA_GRANTS: "ODA & Grants",
+  TAX_REVENUE: "Tax Revenue",
+  WAGES_AGRI: "Local Wages / Agriculture",
+  INFRA_CAPEX: "Public Works & Infrastructure",
+  DEBT_SERVICE: "External Debt Service",
+  DIGITAL_HEALTH_CAPEX: "Digital & Health CapEx",
+  ENERGY_IMPORT: "Energy & Utilities Import",
+  IMPORT_LEAKAGE: "Import Leakages",
+};
+
+function CapitalFlowsCoverage({
+  coverage,
+  reconciliation,
+  droppedFlows,
+}: {
+  coverage: { inputs?: string[]; outputs?: string[]; missingInputs?: string[]; missingOutputs?: string[]; coverageOk?: boolean };
+  reconciliation?: { sumIn?: number; sumOut?: number; residual_pct?: number };
+  droppedFlows?: Array<{ node_key?: string; reason?: string; value_usd_m?: number }>;
+}) {
+  const inputs = coverage.inputs ?? [];
+  const outputs = coverage.outputs ?? [];
+  const missingInputs = coverage.missingInputs ?? [];
+  const missingOutputs = coverage.missingOutputs ?? [];
+  const ok = coverage.coverageOk === true;
+  const resPct = reconciliation?.residual_pct != null ? Math.round(reconciliation.residual_pct * 100) : null;
+  const chip = (key: string, populated: boolean) => (
+    <span
+      key={key}
+      className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] ${
+        populated ? "bg-emerald-500/15 text-emerald-700" : "bg-red-500/15 text-red-700"
+      }`}
+    >
+      <span aria-hidden>{populated ? "✓" : "✗"}</span>
+      {CAPITAL_FLOW_NODE_LABELS[key] ?? key}
+    </span>
+  );
+  return (
+    <div className={`rounded border p-3 space-y-2 ${ok ? "border-emerald-500/40 bg-emerald-500/5" : "border-amber-500/50 bg-amber-500/5"}`}>
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="text-xs font-medium">
+          {ok ? "✓ Coverage complete" : "⚠ Coverage incomplete — needs ≥3 inputs, ≥4 outputs, ≤10% residual"}
+        </div>
+        <div className="text-[11px] text-ink-500 tabular-nums">
+          {inputs.length}/6 inputs · {outputs.length}/6 outputs
+          {resPct != null && <span> · residual {resPct}%</span>}
+        </div>
+      </div>
+      <div>
+        <div className="text-[10px] font-mono uppercase tracking-widest text-ink-500 mb-1">Inputs</div>
+        <div className="flex flex-wrap gap-1">
+          {inputs.map((k) => chip(k, true))}
+          {missingInputs.map((k) => chip(k, false))}
+        </div>
+      </div>
+      <div>
+        <div className="text-[10px] font-mono uppercase tracking-widest text-ink-500 mb-1">Outputs</div>
+        <div className="flex flex-wrap gap-1">
+          {outputs.map((k) => chip(k, true))}
+          {missingOutputs.map((k) => chip(k, false))}
+        </div>
+      </div>
+      {Array.isArray(droppedFlows) && droppedFlows.length > 0 && (
+        <details className="text-xs">
+          <summary className="cursor-pointer text-ink-500 hover:text-ink-950">
+            {droppedFlows.length} flow{droppedFlows.length === 1 ? "" : "s"} dropped during validation
+          </summary>
+          <ul className="mt-1 space-y-0.5 text-[11px] text-ink-500">
+            {droppedFlows.map((d, i) => (
+              <li key={i}>
+                <span className="font-mono">{d.node_key ?? "?"}</span>
+                {d.value_usd_m != null && <span className="tabular-nums"> · ${Math.round(Number(d.value_usd_m))}m</span>}
+                {d.reason && <span> — {d.reason}</span>}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
+  );
+}
+
 

@@ -14,6 +14,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { callSonar, parseSonarJson, type SonarCitation, type SonarModel } from "./perplexity.server";
+import { SUMMARY_SCHEMA_FRAGMENT, SUMMARY_SYSTEM_SUFFIX, extractInlineSummary } from "./summary-inline";
 
 type Stage =
   | "source_registry"
@@ -81,6 +82,8 @@ async function saveDraft(admin: any, args: {
   payload: unknown;
   confidence: "high" | "medium" | "low";
   citations: SonarCitation[];
+  summary_md?: string | null;
+  summary_highlights?: Array<{ label: string; value: string }> | null;
 }) {
   const { data: draft, error } = await admin
     .from("onboarding_drafts")
@@ -92,6 +95,8 @@ async function saveDraft(admin: any, args: {
       payload: args.payload as any,
       confidence: args.confidence,
       needs_review: true,
+      summary_md: args.summary_md ?? null,
+      summary_highlights: (args.summary_highlights ?? []) as any,
     })
     .select("id")
     .single();
@@ -119,18 +124,38 @@ async function markDraftCommitted(admin: any, draftId: string, runId: string) {
     target_type: "draft",
     target_id: draftId,
   });
+  // Prefer the inline summary the agent already produced. Only fall back to a
+  // second AI call if this draft never carried one (legacy or multi-call stages).
   try {
     const { data: d } = await admin
       .from("onboarding_drafts")
-      .select("country_code, stage")
+      .select("country_code, stage, summary_md, summary_highlights")
       .eq("id", draftId)
       .maybeSingle();
-    if (d?.country_code && d?.stage) {
-      const { generateSummaryForStage } = await import("./summaries.functions");
-      generateSummaryForStage(admin, d.country_code, d.stage as any, runId).catch((e) => {
-        console.error("[onboarding] summary generation failed", d.stage, e);
-      });
+    if (!d?.country_code || !d?.stage) return;
+
+    if (d.summary_md && String(d.summary_md).trim().length > 0) {
+      await admin
+        .from("onboarding_summaries")
+        .upsert(
+          {
+            country_code: d.country_code,
+            stage: d.stage,
+            summary_md: d.summary_md,
+            highlights: Array.isArray(d.summary_highlights) ? d.summary_highlights : [],
+            model: "inline-agent",
+            source_run_id: runId,
+            generated_at: new Date().toISOString(),
+          },
+          { onConflict: "country_code,stage" },
+        );
+      return;
     }
+
+    const { generateSummaryForStage } = await import("./summaries.functions");
+    generateSummaryForStage(admin, d.country_code, d.stage as any, runId).catch((e) => {
+      console.error("[onboarding] summary generation failed", d.stage, e);
+    });
   } catch (e) {
     console.error("[onboarding] summary hook lookup failed", e);
   }
@@ -167,8 +192,9 @@ const SourceRegistrySchema = {
         required: ["kind", "org", "title", "url", "quality_score", "tags", "rationale"],
       },
     },
+    ...SUMMARY_SCHEMA_FRAGMENT,
   },
-  required: ["sources"],
+  required: ["sources", "summary_md", "summary_highlights"],
 } as const;
 
 export const runSourceRegistryAgent = createServerFn({ method: "POST" })
@@ -191,13 +217,15 @@ export const runSourceRegistryAgent = createServerFn({ method: "POST" })
       const result = await callSonar({
         model,
         system:
-          "You are a sovereign-intelligence librarian. Assemble a canonical, non-duplicative registry of the most authoritative URLs to monitor a country. Group by kind: gov (national ministries, statistics office, central bank, invest agencies, CBI/citizenship units), regional (ECCB, CDB, OECS, CARICOM), multilateral (IMF, World Bank, UN, PAHO, ECLAC, EU), advisory (industry advisory firms), ngo (research NGOs, foundations), media (recognised outlets covering the country), summit (relevant sector summits). Prefer official/institutional URLs over blog posts. quality_score: 5=official primary, 4=multilateral secondary, 3=recognised NGO/media, 2=advisory, 1=general. Return 20-40 sources.",
+          "You are a sovereign-intelligence librarian. Assemble a canonical, non-duplicative registry of the most authoritative URLs to monitor a country. Group by kind: gov (national ministries, statistics office, central bank, invest agencies, CBI/citizenship units), regional (ECCB, CDB, OECS, CARICOM), multilateral (IMF, World Bank, UN, PAHO, ECLAC, EU), advisory (industry advisory firms), ngo (research NGOs, foundations), media (recognised outlets covering the country), summit (relevant sector summits). Prefer official/institutional URLs over blog posts. quality_score: 5=official primary, 4=multilateral secondary, 3=recognised NGO/media, 2=advisory, 1=general. Return 20-40 sources." +
+          SUMMARY_SYSTEM_SUFFIX,
         user: `Country: ${country.name} (${country.iso3 ?? country.code}). Return a canonical source registry for monitoring this country's economy, governance, and communications environment. Include the country's own ministries, statistics office, central bank, invest agency, CBI unit if any, plus regional (ECCB/CDB/CARICOM/OECS if applicable), multilateral (IMF, WB, UN, PAHO), and recognised media/NGOs.`,
         responseSchema: SourceRegistrySchema as unknown as Record<string, unknown>,
       });
 
       const parsed = parseSonarJson<{ sources: any[] }>(result.content);
       if (!parsed?.sources?.length) throw new Error("Perplexity returned no sources");
+      const inline = extractInlineSummary(parsed);
 
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
@@ -207,6 +235,8 @@ export const runSourceRegistryAgent = createServerFn({ method: "POST" })
         payload: parsed,
         confidence: parsed.sources.length >= 15 && result.citations.length >= 2 ? "high" : "medium",
         citations: result.citations,
+        summary_md: inline.summary_md,
+        summary_highlights: inline.summary_highlights,
       });
 
       await finishRun(supabaseAdmin, runId, { status: "ready" });
@@ -919,8 +949,9 @@ const SectorDossierSchema = {
         required: ["sector_code", "policy", "comms", "regional_benchmark"],
       },
     },
+    ...SUMMARY_SCHEMA_FRAGMENT,
   },
-  required: ["dossiers"],
+  required: ["dossiers", "summary_md", "summary_highlights"],
 } as const;
 
 export const runSectorDossierAgent = createServerFn({ method: "POST" })
@@ -949,13 +980,15 @@ export const runSectorDossierAgent = createServerFn({ method: "POST" })
       const result = await callSonar({
         model,
         system:
-          "You are a sovereign sector analyst. For each sector code, return a policy stack (statutes, institutions, national plans, regulatory instruments), a comms stack (channels, spokespeople, dominant narratives, reputation risks), and a regional benchmark (peer countries, leader/average/laggard, rationale). Be concrete — use real institution and statute names.",
+          "You are a sovereign sector analyst. For each sector code, return a policy stack (statutes, institutions, national plans, regulatory instruments), a comms stack (channels, spokespeople, dominant narratives, reputation risks), and a regional benchmark (peer countries, leader/average/laggard, rationale). Be concrete — use real institution and statute names." +
+          SUMMARY_SYSTEM_SUFFIX,
         user: `Country: ${country.name} (${country.iso3 ?? country.code}). Sector codes to profile: ${sectorCodes.join(", ")}. Return one dossier per sector code.`,
         responseSchema: SectorDossierSchema as unknown as Record<string, unknown>,
       });
 
       const parsed = parseSonarJson<{ dossiers: any[] }>(result.content);
       if (!parsed?.dossiers?.length) throw new Error("Perplexity returned no dossiers");
+      const inline = extractInlineSummary(parsed);
 
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
@@ -965,6 +998,8 @@ export const runSectorDossierAgent = createServerFn({ method: "POST" })
         payload: parsed,
         confidence: result.citations.length >= 2 ? "high" : "medium",
         citations: result.citations,
+        summary_md: inline.summary_md,
+        summary_highlights: inline.summary_highlights,
       });
 
       await finishRun(supabaseAdmin, runId, { status: "ready" });
@@ -1412,8 +1447,9 @@ const SecondBrainSchema = {
         required: ["kind", "title", "body", "sector_code", "weight"],
       },
     },
+    ...SUMMARY_SCHEMA_FRAGMENT,
   },
-  required: ["memories"],
+  required: ["memories", "summary_md", "summary_highlights"],
 } as const;
 
 export const runSecondBrainSeedAgent = createServerFn({ method: "POST" })
@@ -1441,13 +1477,15 @@ export const runSecondBrainSeedAgent = createServerFn({ method: "POST" })
       const result = await callSonar({
         model,
         system:
-          "You are seeding an executive second-brain memory. Return 12-25 memory objects that anchor how the cabinet talks, decides, and defends its record. Kinds: position (settled policy stance), audience (internal or external audience with register), outlet (primary distribution channel), fact (durable statistic), risk (persistent reputational or fiscal risk). Weight 1-5 with 5 = load-bearing.",
+          "You are seeding an executive second-brain memory. Return 12-25 memory objects that anchor how the cabinet talks, decides, and defends its record. Kinds: position (settled policy stance), audience (internal or external audience with register), outlet (primary distribution channel), fact (durable statistic), risk (persistent reputational or fiscal risk). Weight 1-5 with 5 = load-bearing." +
+          SUMMARY_SYSTEM_SUFFIX,
         user: `Country: ${country.name}. Sectors: ${sectorCodes.join(", ") || "cross_cutting"}. Seed the second brain with cabinet positions, key audiences, communication outlets, durable facts, and standing risks.`,
         responseSchema: SecondBrainSchema as unknown as Record<string, unknown>,
       });
 
       const parsed = parseSonarJson<{ memories: any[] }>(result.content);
       if (!parsed?.memories?.length) throw new Error("Perplexity returned no memories");
+      const inline = extractInlineSummary(parsed);
 
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
@@ -1457,6 +1495,8 @@ export const runSecondBrainSeedAgent = createServerFn({ method: "POST" })
         payload: parsed,
         confidence: result.citations.length >= 2 ? "high" : "medium",
         citations: result.citations,
+        summary_md: inline.summary_md,
+        summary_highlights: inline.summary_highlights,
       });
 
       await finishRun(supabaseAdmin, runId, { status: "ready" });

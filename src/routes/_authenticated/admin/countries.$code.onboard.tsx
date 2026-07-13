@@ -129,6 +129,8 @@ function OnboardWizard() {
   const qc = useQueryClient();
   const [bulkRunning, setBulkRunning] = useState<false | "pending" | "all">(false);
   const [bulkErr, setBulkErr] = useState<string | null>(null);
+  const [runErrors, setRunErrors] = useState<Array<{ stage: Stage; message: string }>>([]);
+  const [skippedStages, setSkippedStages] = useState<Array<{ stage: Stage; waitingOn: Stage[] }>>([]);
 
   // Lifted so we can auto-open the accordion for the stage currently running.
   const [openStage, setOpenStage] = useState<string | null>(null);

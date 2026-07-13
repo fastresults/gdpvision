@@ -90,6 +90,14 @@ async function saveDraft(admin: any, args: {
   summary_md?: string | null;
   summary_highlights?: Array<{ label: string; value: string }> | null;
 }) {
+  // Enforce one live (uncommitted) draft per (country, stage): clear prior live drafts first.
+  await admin
+    .from("onboarding_drafts")
+    .delete()
+    .eq("country_code", args.country_code)
+    .eq("stage", args.stage)
+    .is("committed_at", null);
+
   const { data: draft, error } = await admin
     .from("onboarding_drafts")
     .insert({
@@ -119,6 +127,7 @@ async function saveDraft(admin: any, args: {
   }
   return draft.id as string;
 }
+
 
 /** Promote citing domains after a draft is saved. Best-effort; never throws. */
 async function promoteAfterDraft(

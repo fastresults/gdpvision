@@ -144,7 +144,7 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const [country, runs, drafts, cites] = await Promise.all([
+    const [country, runs, drafts, cites, summaries] = await Promise.all([
       supabaseAdmin.from("countries").select("*").eq("code", data.countryCode).maybeSingle(),
       supabaseAdmin
         .from("onboarding_runs")
@@ -161,6 +161,10 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
       supabaseAdmin
         .from("onboarding_citations")
         .select("*"),
+      supabaseAdmin
+        .from("onboarding_summaries")
+        .select("*")
+        .eq("country_code", data.countryCode),
     ]);
 
     const draftIds = new Set((drafts.data ?? []).map((d) => d.id));
@@ -175,8 +179,10 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
       country: country.data,
       runs: runs.data ?? [],
       drafts: (drafts.data ?? []).map((d) => ({ ...d, citations: cByDraft.get(d.id) ?? [] })),
+      summaries: summaries.data ?? [],
     };
   });
+
 
 // ============================================================
 // AGENTS

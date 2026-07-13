@@ -20,12 +20,14 @@ import {
   runSectorCompositionAgent,
 } from "@/lib/country-onboarding/agents.functions";
 import {
+  cleanInvalidCountrySources,
   commitKpis,
   commitMinistryDeepDive,
   commitSecondBrainSeed,
   commitSectorDossiers,
   commitSourceRegistry,
   getIngestKeysStatus,
+  getRunProgress,
   runCorpusIngest,
   runKpiSeedAgent,
   runMinistryDeepDiveAgent,
@@ -116,8 +118,58 @@ function OnboardWizard() {
   const [bulkRunning, setBulkRunning] = useState<false | "pending" | "all">(false);
   const [bulkErr, setBulkErr] = useState<string | null>(null);
 
+  // Lifted so we can auto-open the accordion for the stage currently running.
+  const [openStage, setOpenStage] = useState<string | null>(null);
 
-  const runners: Record<Stage, any> = {
+  // One run banner state — visible while any stage's Run is in flight, then a
+  // result banner is shown until the admin dismisses it.
+  const [activeRun, setActiveRun] = useState<
+    | { stage: Stage; label: string; startedAt: number; runId?: string }
+    | null
+  >(null);
+  const [runProgress, setRunProgress] = useState<{
+    processed?: number;
+    total?: number;
+    lastUrl?: string | null;
+    okCount?: number;
+    failCount?: number;
+    totalChunks?: number;
+  } | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [runResult, setRunResult] = useState<
+    | { stage: Stage; label: string; ok: true; text: string; meta?: any }
+    | { stage: Stage; label: string; ok: false; text: string }
+    | null
+  >(null);
+
+  // Elapsed-seconds ticker.
+  useEffect(() => {
+    if (!activeRun) return;
+    setElapsed(0);
+    const id = window.setInterval(() => {
+      setElapsed(Math.floor((Date.now() - activeRun.startedAt) / 1000));
+    }, 500);
+    return () => window.clearInterval(id);
+  }, [activeRun]);
+
+  // Poll the run's plan every 3s so admin sees processed/total ticking.
+  const pollProgress = useServerFn(getRunProgress);
+  useEffect(() => {
+    if (!activeRun?.runId) return;
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const row = await pollProgress({ data: { runId: activeRun.runId! } });
+        if (!cancelled && row && (row as any).plan) setRunProgress((row as any).plan);
+      } catch { /* best effort */ }
+    };
+    tick();
+    const id = window.setInterval(tick, 3000);
+    return () => { cancelled = true; window.clearInterval(id); };
+  }, [activeRun?.runId, pollProgress]);
+
+
+  const runnersRaw: Record<Stage, any> = {
     profile: useServerFn(runProfileAgent),
     gdp: useServerFn(runGdpAgent),
     sector_composition: useServerFn(runSectorCompositionAgent),
@@ -144,6 +196,7 @@ function OnboardWizard() {
     corpus_ingest: async () => ({ ok: true }),
     second_brain_seed: useServerFn(commitSecondBrainSeed),
   };
+  const cleanInvalid = useServerFn(cleanInvalidCountrySources);
 
   const refresh = () =>
     Promise.all([
@@ -157,6 +210,37 @@ function OnboardWizard() {
   const country: any = (data as any).country;
   const summaries: any[] = (data as any).summaries ?? [];
   const genSummary = useServerFn(generateStageSummary);
+
+  // Wrap each runner: open the accordion for that stage, show the sticky
+  // banner, poll progress, and emit a result banner on resolve/reject.
+  const runners = Object.fromEntries(
+    STAGES.map((s) => {
+      const raw = runnersRaw[s.key];
+      const wrapped = async (arg: { data: { countryCode: string } }) => {
+        setRunResult(null);
+        setRunProgress(null);
+        setOpenStage(s.key);
+        setActiveRun({ stage: s.key, label: s.label, startedAt: Date.now() });
+        try {
+          const res: any = await raw(arg);
+          // Adopt the returned runId so we can poll progress rows.
+          if (res && typeof res === "object" && typeof res.runId === "string") {
+            setActiveRun((prev) => (prev ? { ...prev, runId: res.runId } : prev));
+          }
+          const text = summarizeRunResult(s.key, res);
+          setRunResult({ stage: s.key, label: s.label, ok: true, text, meta: res });
+          return res;
+        } catch (e: any) {
+          setRunResult({ stage: s.key, label: s.label, ok: false, text: e?.message ?? String(e) });
+          throw e;
+        } finally {
+          setActiveRun(null);
+        }
+      };
+      return [s.key, wrapped];
+    }),
+  ) as Record<string, any>;
+
 
 
   const committedStages = new Set<string>(
@@ -285,6 +369,62 @@ function OnboardWizard() {
           </div>
         )}
 
+        {/* Sticky Run banner — visible while a stage is running. */}
+        {activeRun && (
+          <div className="sticky top-2 z-30 rounded border border-ink-950 bg-ink-950 text-paper-0 p-3 shadow-lg flex items-center gap-4">
+            <div className="h-3 w-3 rounded-full bg-gold-500 animate-pulse" />
+            <div className="flex-1 text-sm">
+              <div className="font-medium">
+                Running: {activeRun.label} · {elapsed}s elapsed
+              </div>
+              {runProgress && typeof runProgress.processed === "number" && (
+                <div className="text-[11px] text-paper-0/70 font-mono mt-0.5">
+                  Processed {runProgress.processed}/{runProgress.total ?? "?"}
+                  {typeof runProgress.okCount === "number" && (
+                    <> · ok {runProgress.okCount} · fail {runProgress.failCount ?? 0}</>
+                  )}
+                  {runProgress.lastUrl && <> · last: {truncateMiddle(runProgress.lastUrl, 60)}</>}
+                </div>
+              )}
+            </div>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-paper-0/60">
+              Do not close this tab
+            </span>
+          </div>
+        )}
+
+        {/* Result banner — shown after a run resolves, until dismissed. */}
+        {runResult && !activeRun && (
+          <div
+            className={`rounded border p-3 text-sm flex items-start gap-3 ${
+              runResult.ok
+                ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-800"
+                : "border-red-500/50 bg-red-500/10 text-red-700"
+            }`}
+          >
+            <div className="flex-1">
+              <div className="font-medium">
+                {runResult.ok ? "✓" : "✕"} {runResult.label}
+              </div>
+              <div className="text-xs mt-1 whitespace-pre-wrap">{runResult.text}</div>
+            </div>
+            <button
+              type="button"
+              className="text-[10px] font-mono uppercase tracking-widest opacity-70 hover:opacity-100"
+              onClick={() => setRunResult(null)}
+            >
+              Dismiss
+            </button>
+            <button
+              type="button"
+              className="text-[10px] font-mono uppercase tracking-widest underline"
+              onClick={() => setOpenStage(runResult.stage)}
+            >
+              Open stage
+            </button>
+          </div>
+        )}
+
         <AccordionStages
           stages={STAGES}
           drafts={drafts}
@@ -296,6 +436,28 @@ function OnboardWizard() {
           committers={committers}
           code={code}
           refresh={refresh}
+          openStage={openStage}
+          setOpenStage={setOpenStage}
+          onCleanInvalidSources={async () => {
+            try {
+              const res: any = await cleanInvalid({ data: { countryCode: code } });
+              setRunResult({
+                stage: "corpus_ingest",
+                label: "Clean invalid source URLs",
+                ok: true,
+                text: `Deactivated ${res.deactivated} source(s) with invalid URLs.`,
+                meta: res,
+              });
+              await refresh();
+            } catch (e: any) {
+              setRunResult({
+                stage: "corpus_ingest",
+                label: "Clean invalid source URLs",
+                ok: false,
+                text: e?.message ?? String(e),
+              });
+            }
+          }}
           onGenerateSummary={(stage) => genSummary({ data: { countryCode: code, stage } }).then(refresh)}
         />
 
@@ -304,6 +466,23 @@ function OnboardWizard() {
     </SuperAdminShell>
   );
 }
+
+function truncateMiddle(s: string, max: number): string {
+  if (s.length <= max) return s;
+  const half = Math.floor((max - 1) / 2);
+  return `${s.slice(0, half)}…${s.slice(-half)}`;
+}
+
+function summarizeRunResult(stage: Stage, res: any): string {
+  if (!res) return "Completed.";
+  if (stage === "corpus_ingest" && typeof res.okCount === "number") {
+    return `Ingested ${res.totalChunks ?? 0} chunks across ${res.okCount} source(s) (${res.failCount ?? 0} failed).`;
+  }
+  if (typeof res.count === "number") return `Draft ready with ${res.count} item(s). Review below.`;
+  if (typeof res.inserted === "number") return `Inserted ${res.inserted} row(s).`;
+  return "Completed.";
+}
+
 
 function AccordionStages({
   stages,
@@ -316,6 +495,9 @@ function AccordionStages({
   committers,
   code,
   refresh,
+  openStage,
+  setOpenStage,
+  onCleanInvalidSources,
   onGenerateSummary,
 }: {
   stages: { key: Stage; label: string; short: string; desc: string }[];
@@ -328,9 +510,11 @@ function AccordionStages({
   committers: Record<string, any>;
   code: string;
   refresh: () => void;
+  openStage: string | null;
+  setOpenStage: (s: string | null) => void;
+  onCleanInvalidSources: () => Promise<void>;
   onGenerateSummary: (stage: Stage) => Promise<unknown>;
 }) {
-  const [openStage, setOpenStage] = useState<string | null>(null);
   return (
     <>
       {stages.map((s) => {
@@ -354,12 +538,14 @@ function AccordionStages({
               committers[s.key]({ data: { draftId: draft.id, editedPayload } }).then(refresh)
             }
             onGenerateSummary={() => onGenerateSummary(s.key)}
+            onCleanInvalidSources={s.key === "corpus_ingest" ? onCleanInvalidSources : undefined}
           />
         );
       })}
     </>
   );
 }
+
 
 
 function StageCard({
@@ -374,6 +560,7 @@ function StageCard({
   onRun,
   onCommit,
   onGenerateSummary,
+  onCleanInvalidSources,
 }: {
   stage: { key: Stage; label: string; short: string; desc: string };
   countryName: string;
@@ -386,6 +573,7 @@ function StageCard({
   onRun: () => Promise<unknown>;
   onCommit: (editedPayload: unknown) => Promise<unknown>;
   onGenerateSummary: () => Promise<unknown>;
+  onCleanInvalidSources?: () => Promise<void>;
 }) {
 
   const [running, setRunning] = useState(false);
@@ -506,6 +694,13 @@ function StageCard({
 
       {isOpen && (
         <div className="px-5 pb-5 space-y-4 border-t border-line-200 pt-4">
+          {onCleanInvalidSources && (
+            <CorpusIngestExtras
+              lastRun={lastRun}
+              onCleanInvalidSources={onCleanInvalidSources}
+            />
+          )}
+
           {/* Executive summary — the beautifully written natural result of this stage */}
           {committed && summary && (
             <div className="space-y-3">
@@ -646,4 +841,87 @@ function StageCard({
     </section>
   );
 }
+
+function CorpusIngestExtras({
+  lastRun,
+  onCleanInvalidSources,
+}: {
+  lastRun: any;
+  onCleanInvalidSources: () => Promise<void>;
+}) {
+  const [cleaning, setCleaning] = useState(false);
+  // The ingest run stores its final { results, okCount, failCount, totalChunks }
+  // in `plan` for finished runs (via the heartbeat writes) and in the committed
+  // draft payload. Prefer plan; fall back to nothing if not present.
+  const report: any = lastRun?.plan && typeof lastRun.plan === "object" ? lastRun.plan : null;
+  const results: any[] = Array.isArray(report?.results) ? report.results : [];
+
+  return (
+    <div className="rounded border border-line-200 bg-paper-100/50 p-3 space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-ink-500">
+          Corpus ingest health
+        </div>
+        <button
+          type="button"
+          disabled={cleaning}
+          onClick={async () => {
+            setCleaning(true);
+            try {
+              await onCleanInvalidSources();
+            } finally {
+              setCleaning(false);
+            }
+          }}
+          className="text-[11px] font-mono uppercase tracking-widest px-3 py-1 border border-ink-950 text-ink-950 hover:bg-ink-950 hover:text-paper-0 disabled:opacity-50"
+        >
+          {cleaning ? "Cleaning…" : "Clean invalid URLs"}
+        </button>
+      </div>
+      {report && (
+        <div className="text-[11px] font-mono text-ink-700">
+          {typeof report.okCount === "number" && (
+            <>
+              ok {report.okCount} · fail {report.failCount ?? 0}
+              {typeof report.totalChunks === "number" && <> · chunks {report.totalChunks}</>}
+              {typeof report.processed === "number" && typeof report.total === "number" && (
+                <> · processed {report.processed}/{report.total}</>
+              )}
+            </>
+          )}
+        </div>
+      )}
+      {results.length > 0 && (
+        <div className="max-h-64 overflow-y-auto border border-line-200 divide-y divide-line-200">
+          {results.map((r, i) => (
+            <div key={i} className="p-2 flex items-start gap-3 text-xs">
+              <span
+                className={`mt-0.5 inline-block h-2 w-2 rounded-full flex-shrink-0 ${
+                  r.ok ? "bg-emerald-500" : "bg-red-500"
+                }`}
+                aria-hidden
+              />
+              <div className="flex-1 min-w-0">
+                <div className="truncate font-mono text-[11px] text-ink-700">{r.url}</div>
+                {r.ok ? (
+                  <div className="text-[10px] text-ink-500 mt-0.5">
+                    {typeof r.chunks === "number" ? `${r.chunks} chunks` : "ok"}
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-red-600 mt-0.5 line-clamp-2">{r.error}</div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {!report && (
+        <p className="text-xs text-ink-500">
+          No ingest run yet — click <b>Run AI research</b> to scrape and embed active sources.
+        </p>
+      )}
+    </div>
+  );
+}
+
 

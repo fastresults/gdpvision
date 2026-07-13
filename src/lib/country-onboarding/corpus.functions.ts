@@ -29,6 +29,21 @@ type Stage =
 // Small helpers (duplicated from agents.functions.ts to keep this file standalone)
 // ============================================================
 
+export function isValidHttpUrl(raw: unknown): raw is string {
+  if (typeof raw !== "string") return false;
+  const s = raw.trim();
+  if (!s || s.includes("(search:") || s.includes(" ")) return false;
+  try {
+    const u = new URL(s);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+    if (!u.hostname.includes(".")) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+
 async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data: isAdmin } = await context.supabase.rpc("has_role", {
     _user_id: context.userId,
@@ -264,7 +279,12 @@ export const commitSourceRegistry = createServerFn({ method: "POST" })
 
     const { upsertCountrySource } = await import("@/lib/country-data/sources.server");
     let inserted = 0;
+    const rejected: Array<{ url: string; title: string; reason: string }> = [];
     for (const s of payload.sources) {
+      if (!isValidHttpUrl(s?.url)) {
+        rejected.push({ url: String(s?.url ?? ""), title: String(s?.title ?? ""), reason: "not a valid http(s) URL" });
+        continue;
+      }
       const res = await upsertCountrySource(supabaseAdmin, {
         country_code: draft.country_code,
         url: s.url,
@@ -280,8 +300,54 @@ export const commitSourceRegistry = createServerFn({ method: "POST" })
     }
 
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
-    return { ok: true, inserted };
+    return { ok: true, inserted, rejected };
   });
+
+// Admin-only cleanup: deactivate country_sources rows whose url isn't a valid http(s) URL.
+export const cleanInvalidCountrySources = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("country_sources")
+      .select("id, url, title")
+      .eq("country_code", data.countryCode)
+      .eq("active", true);
+    if (error) throw error;
+    const bad = (rows ?? []).filter((r: any) => !isValidHttpUrl(r.url));
+    if (!bad.length) return { deactivated: 0, examples: [] as Array<{ id: string; url: string; title: string }> };
+    const ids = bad.map((r: any) => r.id as string);
+    const { error: uErr } = await supabaseAdmin
+      .from("country_sources")
+      .update({ active: false, fetch_status: "invalid_url", fetch_error: "URL not http(s) parseable" })
+      .in("id", ids);
+    if (uErr) throw uErr;
+    const examples = bad.slice(0, 5).map((r: any) => ({
+      id: String(r.id),
+      url: String(r.url ?? ""),
+      title: String(r.title ?? ""),
+    }));
+    return { deactivated: bad.length, examples };
+  });
+
+// Lightweight poll target for the wizard's run banner.
+export const getRunProgress = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ runId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin
+      .from("onboarding_runs")
+      .select("id, stage, status, plan, started_at, finished_at, error")
+      .eq("id", data.runId)
+      .maybeSingle();
+    if (error) throw error;
+    return row ?? null;
+  });
+
 
 // ============================================================
 // Stage 7: KPI seed — agentic multi-pass loop
@@ -1325,9 +1391,24 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
 
     const results: Array<{ source_id: string; url: string; ok: boolean; chunks?: number; error?: string }> = [];
     let totalChunks = 0;
+    const total = sources.length;
+
+    const writeProgress = async (processed: number, lastUrl: string | null) => {
+      const okC = results.filter((r) => r.ok).length;
+      const failC = results.length - okC;
+      // Best-effort heartbeat — never fail the ingest if this write fails.
+      try {
+        await supabaseAdmin
+          .from("onboarding_runs")
+          .update({ plan: { processed, total, lastUrl, okCount: okC, failCount: failC, totalChunks } })
+          .eq("id", runId);
+      } catch { /* ignore */ }
+    };
 
     try {
-      for (const src of sources) {
+      await writeProgress(0, null);
+      for (let idx = 0; idx < sources.length; idx++) {
+        const src = sources[idx];
         try {
           const doc = await fetchFirecrawl(src.url);
           if (!doc.markdown || doc.markdown.length < 200) {
@@ -1351,6 +1432,7 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
               .update({ last_fetched_at: new Date().toISOString(), fetch_status: "ok", fetch_error: null })
               .eq("id", src.id);
             results.push({ source_id: src.id, url: src.url, ok: true, chunks: 0 });
+            await writeProgress(idx + 1, src.url);
             continue;
           }
 
@@ -1408,7 +1490,9 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
             .eq("id", src.id);
           results.push({ source_id: src.id, url: src.url, ok: false, error: msg });
         }
+        await writeProgress(idx + 1, src.url);
       }
+
 
       const okCount = results.filter((r) => r.ok).length;
       const failCount = results.length - okCount;
@@ -1423,10 +1507,18 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
         confidence: failCount === 0 ? "high" : okCount > failCount ? "medium" : "low",
         citations: [],
       });
+      // Write the final report into the run's plan too, so the wizard can
+      // render a "last ingest report" even after auto-commit clears the draft.
+      try {
+        await supabaseAdmin
+          .from("onboarding_runs")
+          .update({ plan: { processed: total, total, okCount, failCount, totalChunks, results } })
+          .eq("id", runId);
+      } catch { /* best effort */ }
       // Auto-commit corpus ingest — nothing further for the user to edit
       await markDraftCommitted(supabaseAdmin, draftId, runId);
 
-      return { ok: true, totalChunks, okCount, failCount, results };
+      return { ok: true, runId, totalChunks, okCount, failCount, results };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;

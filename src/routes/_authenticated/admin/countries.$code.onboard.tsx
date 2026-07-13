@@ -676,7 +676,20 @@ function StageCard({
   const committed = targetRows > 0;
   const commitAt = lastCommitRun?.finished_at ?? lastCommitRun?.started_at ?? null;
   // A draft that arrived AFTER the last commit — user re-ran and can re-commit.
-  const hasNewerDraft = !!draft && (!commitAt || new Date(draft.created_at) > new Date(commitAt));
+  // Requires an actual prior commit; otherwise it's a first-time commit, not a re-commit.
+  const hasNewerDraft =
+    committed && !!draft && !!commitAt && new Date(draft.created_at) > new Date(commitAt);
+  // Draft exists but stage has never been committed → surface a hint under the description.
+  const draftItemCount: number | null = (() => {
+    const p: any = draft?.payload;
+    if (!p || typeof p !== "object") return null;
+    if (Array.isArray(p)) return p.length;
+    for (const k of ["kpis", "ministries", "sectors", "sources", "items", "mappings", "dossiers"]) {
+      if (Array.isArray(p[k])) return p[k].length;
+    }
+    return null;
+  })();
+  const showDraftReadyHint = !committed && !!draft;
   const payload = draft?.payload;
   const citations: any[] = draft?.citations ?? [];
   const model = (lastRun?.model_stack && (lastRun.model_stack.research || Object.values(lastRun.model_stack)[0])) as

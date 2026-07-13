@@ -26,6 +26,7 @@ import {
   commitSecondBrainSeed,
   commitSectorDossiers,
   commitSourceRegistry,
+  commitCapitalFlows,
   getIngestKeysStatus,
   getRunProgress,
   runCorpusIngest,
@@ -34,6 +35,7 @@ import {
   runSecondBrainSeedAgent,
   runSectorDossierAgent,
   runSourceRegistryAgent,
+  runCapitalFlowsAgent,
 } from "@/lib/country-onboarding/corpus.functions";
 import { runCountryOnboardingPipeline } from "@/lib/country-onboarding/orchestrator.functions";
 import { generateStageSummary } from "@/lib/country-onboarding/summaries.functions";
@@ -50,7 +52,8 @@ type Stage =
   | "sector_dossier"
   | "ministry_deep_dive"
   | "corpus_ingest"
-  | "second_brain_seed";
+  | "second_brain_seed"
+  | "capital_flows";
 
 const STAGES: Array<{ key: Stage; label: string; short: string; desc: string }> = [
   { key: "profile", label: "1. Profile", short: "Profile", desc: "Currency, fiscal year, population, head of government." },
@@ -64,6 +67,7 @@ const STAGES: Array<{ key: Stage; label: string; short: string; desc: string }> 
   { key: "ministry_deep_dive", label: "9. Ministry deep-dive", short: "M-Deep", desc: "Minister, mandate, flagship programmes per ministry." },
   { key: "corpus_ingest", label: "10. Corpus ingest", short: "Corpus", desc: "Firecrawl scrape + embed every active source." },
   { key: "second_brain_seed", label: "11. Second-brain seed", short: "Brain", desc: "Cabinet positions, audiences, outlets, facts, risks." },
+  { key: "capital_flows", label: "12. Capital flows", short: "Flows", desc: "Sovereign Sankey ledger (BOP + fiscal, USD $M) with citations." },
 ];
 
 // (Dependency map removed — the orchestrator loop below derives real deps
@@ -188,6 +192,7 @@ function OnboardWizard() {
     ministry_deep_dive: useServerFn(runMinistryDeepDiveAgent),
     corpus_ingest: useServerFn(runCorpusIngest),
     second_brain_seed: useServerFn(runSecondBrainSeedAgent),
+    capital_flows: useServerFn(runCapitalFlowsAgent),
   };
   const committers: Record<Stage, any> = {
     profile: useServerFn(commitProfile),
@@ -202,6 +207,7 @@ function OnboardWizard() {
     // corpus_ingest auto-commits (no user review needed) — provide a no-op
     corpus_ingest: async () => ({ ok: true }),
     second_brain_seed: useServerFn(commitSecondBrainSeed),
+    capital_flows: useServerFn(commitCapitalFlows),
   };
   const cleanInvalid = useServerFn(cleanInvalidCountrySources);
 

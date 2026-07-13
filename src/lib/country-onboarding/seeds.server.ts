@@ -130,7 +130,7 @@ export function seedMinistrySectorMap(
   return rows;
 }
 
-export function seedProfile(countryName: string): {
+export function seedProfile(countryName: string, ctx?: CountryContext): {
   currency: string;
   fiscal_year_start_month: number;
   population: number;
@@ -141,12 +141,13 @@ export function seedProfile(countryName: string): {
   notes: string;
   provisional: true;
 } {
+  // Prefer the country's actual currency from ctx if we have it.
   return {
-    currency: "USD",
-    fiscal_year_start_month: 1,
+    currency: ctx?.currency ?? "USD",
+    fiscal_year_start_month: ctx?.fiscal_year_start_month ?? 1,
     population: 0,
     hdi: null,
-    main_exports: [],
+    main_exports: ctx?.subRegion === "OECS" || ctx?.isCbiState ? ["Tourism services", "Financial services", "Agricultural products"] : [],
     government_type: "Parliamentary democracy",
     head_of_government: "Unknown — please verify",
     notes: `Provisional profile for ${countryName} — no primary source reached. Please review every field.`,

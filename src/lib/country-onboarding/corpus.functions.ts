@@ -79,7 +79,14 @@ async function openRun(admin: any, params: {
     })
     .select("id")
     .single();
-  if (error) throw error;
+  if (error) {
+    if ((error as any).code === "23505") {
+      throw new Error(
+        `A ${params.stage} run is already in progress for ${params.country_code}. Wait for it to finish, or refresh the page — stale runs auto-clear after 15 minutes.`,
+      );
+    }
+    throw error;
+  }
   return data.id as string;
 }
 
@@ -101,6 +108,14 @@ async function saveDraft(admin: any, args: {
   summary_md?: string | null;
   summary_highlights?: Array<{ label: string; value: string }> | null;
 }) {
+  // Enforce one live (uncommitted) draft per (country, stage).
+  await admin
+    .from("onboarding_drafts")
+    .delete()
+    .eq("country_code", args.country_code)
+    .eq("stage", args.stage)
+    .is("committed_at", null);
+
   const { data: draft, error } = await admin
     .from("onboarding_drafts")
     .insert({
@@ -129,6 +144,7 @@ async function saveDraft(admin: any, args: {
   }
   return draft.id as string;
 }
+
 
 async function markDraftCommitted(admin: any, draftId: string, runId: string) {
   await admin.from("onboarding_drafts")

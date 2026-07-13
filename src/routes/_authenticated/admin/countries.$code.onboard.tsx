@@ -93,12 +93,6 @@ const ingestKeysQuery = queryOptions({
   queryFn: () => getIngestKeysStatus(),
 });
 
-const durableJobQuery = (code: string) =>
-  queryOptions({
-    queryKey: ["onboarding", "durable-job", code],
-    queryFn: () => getOnboardingJob({ data: { countryCode: code } }),
-    refetchInterval: 5000,
-  });
 
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/onboard")({
   head: ({ params }) => ({

@@ -2484,6 +2484,207 @@ export type Database = {
           },
         ]
       }
+      onboarding_job_events: {
+        Row: {
+          country_code: string
+          created_at: string
+          event_type: string
+          id: string
+          job_id: string
+          message: string | null
+          payload: Json
+          step_id: string | null
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          event_type: string
+          id?: string
+          job_id: string
+          message?: string | null
+          payload?: Json
+          step_id?: string | null
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          job_id?: string
+          message?: string | null
+          payload?: Json
+          step_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_job_events_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "onboarding_job_events_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_job_events_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_job_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_job_steps: {
+        Row: {
+          attempt_count: number
+          checkpoint: Json
+          country_code: string
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          heartbeat_at: string | null
+          id: string
+          job_id: string
+          lease_expires_at: string | null
+          lease_owner: string | null
+          max_attempts: number
+          not_before: string | null
+          output: Json
+          stage: string
+          started_at: string | null
+          status: string
+          step_key: string
+          step_type: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          checkpoint?: Json
+          country_code: string
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          heartbeat_at?: string | null
+          id?: string
+          job_id: string
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          max_attempts?: number
+          not_before?: string | null
+          output?: Json
+          stage: string
+          started_at?: string | null
+          status?: string
+          step_key: string
+          step_type?: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          checkpoint?: Json
+          country_code?: string
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          heartbeat_at?: string | null
+          id?: string
+          job_id?: string
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          max_attempts?: number
+          not_before?: string | null
+          output?: Json
+          stage?: string
+          started_at?: string | null
+          status?: string
+          step_key?: string
+          step_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_job_steps_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "onboarding_job_steps_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_jobs: {
+        Row: {
+          country_code: string
+          created_at: string
+          current_stage: string | null
+          error: string | null
+          finished_at: string | null
+          heartbeat_at: string | null
+          id: string
+          lease_expires_at: string | null
+          lease_owner: string | null
+          mode: string
+          progress: Json
+          results: Json
+          started_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          current_stage?: string | null
+          error?: string | null
+          finished_at?: string | null
+          heartbeat_at?: string | null
+          id?: string
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          mode?: string
+          progress?: Json
+          results?: Json
+          started_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          current_stage?: string | null
+          error?: string | null
+          finished_at?: string | null
+          heartbeat_at?: string | null
+          id?: string
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          mode?: string
+          progress?: Json
+          results?: Json
+          started_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_jobs_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       onboarding_pipeline_runs: {
         Row: {
           country_code: string

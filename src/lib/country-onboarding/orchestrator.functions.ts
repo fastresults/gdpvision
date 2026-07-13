@@ -2,224 +2,235 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import {
-  commitGdp,
-  commitMinistries,
-  commitMinistrySectorMap,
-  commitProfile,
-  commitSectorComposition,
-  getOnboardingStatus,
-  runGdpAgent,
-  runMinistriesAgent,
-  runMinistrySectorMapAgent,
-  runProfileAgent,
-  runSectorCompositionAgent,
-} from "./agents.functions";
-import {
-  commitKpis,
-  commitMinistryDeepDive,
-  commitSecondBrainSeed,
-  commitSectorDossiers,
-  commitSourceRegistry,
-  commitCapitalFlows,
-  runCorpusIngest,
-  runKpiSeedAgent,
-  runMinistryDeepDiveAgent,
-  runSecondBrainSeedAgent,
-  runSectorDossierAgent,
-  runSourceRegistryAgent,
-  runCapitalFlowsAgent,
-} from "./corpus.functions";
 
-type Stage =
+export type Stage =
   | "profile"
   | "gdp"
   | "sector_composition"
   | "ministries"
-  | "ministry_sector_map"
   | "source_registry"
   | "kpi_seed"
+  | "ministry_sector_map"
   | "sector_dossier"
   | "ministry_deep_dive"
   | "corpus_ingest"
   | "second_brain_seed"
   | "capital_flows";
 
+const STAGE_ORDER: Stage[] = [
+  "profile",
+  "gdp",
+  "sector_composition",
+  "ministries",
+  "source_registry",
+  "kpi_seed",
+  "ministry_sector_map",
+  "sector_dossier",
+  "ministry_deep_dive",
+  "corpus_ingest",
+  "second_brain_seed",
+  "capital_flows",
+];
+
 const Input = z.object({
   countryCode: z.string().min(2).max(4),
   mode: z.enum(["pending", "rerun"]).default("pending"),
 });
 
+const JobInput = z.object({ jobId: z.string().uuid() });
+const RecoverInput = z.object({ countryCode: z.string().min(2).max(4), staleMinutes: z.number().int().min(5).max(240).default(15) });
+
+async function assertAdmin(context: { supabase: any; userId: string }) {
+  const { data: isAdmin } = await context.supabase.rpc("has_role", {
+    _user_id: context.userId,
+    _role: "admin",
+  });
+  if (!isAdmin) throw new Error("Forbidden: super admin only");
+}
+
+async function getCommittedTargets(admin: any, countryCode: string): Promise<Record<Stage, number>> {
+  const count = async (q: any) => {
+    const { count, error } = await q;
+    if (error) return 0;
+    return count ?? 0;
+  };
+  const [countryRow, sectors, ministries, ministrySectors, sources, kpis, dossiers, ministryProfiles, chunks, memories, flows] = await Promise.all([
+    admin.from("countries").select("profile_committed_at, gdp_committed_at").eq("code", countryCode).maybeSingle(),
+    count(admin.from("country_sectors").select("*", { count: "exact", head: true }).eq("country_code", countryCode)),
+    count(admin.from("ministries").select("*", { count: "exact", head: true }).eq("country_code", countryCode)),
+    count(admin.from("ministry_sectors").select("ministry_id, ministries!inner(country_code)", { count: "exact", head: true }).eq("ministries.country_code", countryCode)),
+    count(admin.from("country_sources").select("*", { count: "exact", head: true }).eq("country_code", countryCode)),
+    count(admin.from("country_kpis").select("*", { count: "exact", head: true }).eq("country_code", countryCode)),
+    count(admin.from("sector_dossiers").select("*", { count: "exact", head: true }).eq("country_code", countryCode)),
+    count(admin.from("ministry_profiles").select("*", { count: "exact", head: true }).eq("country_code", countryCode)),
+    count(admin.from("country_source_chunks").select("*", { count: "exact", head: true }).eq("country_code", countryCode)),
+    count(admin.from("memory_objects").select("*", { count: "exact", head: true }).eq("scope_key", countryCode)),
+    count(admin.from("country_capital_flows").select("*", { count: "exact", head: true }).eq("country_code", countryCode)),
+  ]);
+  const c = countryRow.data;
+  return {
+    profile: c?.profile_committed_at ? 1 : 0,
+    gdp: c?.gdp_committed_at ? 1 : 0,
+    sector_composition: sectors,
+    ministries,
+    source_registry: sources,
+    kpi_seed: kpis,
+    ministry_sector_map: ministrySectors,
+    sector_dossier: dossiers,
+    ministry_deep_dive: ministryProfiles,
+    corpus_ingest: chunks,
+    second_brain_seed: memories,
+    capital_flows: flows,
+  };
+}
+
+async function enqueueSteps(admin: any, jobId: string, countryCode: string, mode: "pending" | "rerun") {
+  const committed = mode === "pending" ? await getCommittedTargets(admin, countryCode) : ({} as Record<Stage, number>);
+  const rows = STAGE_ORDER.map((stage, i) => ({
+    job_id: jobId,
+    country_code: countryCode,
+    stage,
+    step_key: stage,
+    step_type: "stage",
+    status: mode === "pending" && (committed[stage] ?? 0) > 0 ? "skipped" : "queued",
+    checkpoint: { order: i, committedRows: committed[stage] ?? 0 },
+    output: {},
+  }));
+  const { error } = await admin.from("onboarding_job_steps").upsert(rows, { onConflict: "job_id,stage,step_key" });
+  if (error) throw error;
+}
+
 export const runCountryOnboardingPipeline = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => Input.parse(d))
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
-    if (!isAdmin) throw new Error("Forbidden: super admin only");
-
+    await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
     const countryCode = data.countryCode;
-    const mode = data.mode;
-    const levels: Stage[][] = [
-      ["profile", "gdp", "sector_composition", "ministries", "source_registry"],
-      ["kpi_seed", "ministry_sector_map"],
-      ["sector_dossier", "ministry_deep_dive", "corpus_ingest"],
-      ["second_brain_seed"],
-      ["capital_flows"],
-    ];
+    const staleCutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
 
-    const runners: Record<Stage, any> = {
-      profile: runProfileAgent,
-      gdp: runGdpAgent,
-      sector_composition: runSectorCompositionAgent,
-      ministries: runMinistriesAgent,
-      ministry_sector_map: runMinistrySectorMapAgent,
-      source_registry: runSourceRegistryAgent,
-      kpi_seed: runKpiSeedAgent,
-      sector_dossier: runSectorDossierAgent,
-      ministry_deep_dive: runMinistryDeepDiveAgent,
-      corpus_ingest: runCorpusIngest,
-      second_brain_seed: runSecondBrainSeedAgent,
-      capital_flows: runCapitalFlowsAgent,
-    };
-    const committers: Record<Stage, any> = {
-      profile: commitProfile,
-      gdp: commitGdp,
-      sector_composition: commitSectorComposition,
-      ministries: commitMinistries,
-      ministry_sector_map: commitMinistrySectorMap,
-      source_registry: commitSourceRegistry,
-      kpi_seed: commitKpis,
-      sector_dossier: commitSectorDossiers,
-      ministry_deep_dive: commitMinistryDeepDive,
-      corpus_ingest: null,
-      second_brain_seed: commitSecondBrainSeed,
-      capital_flows: commitCapitalFlows,
-    };
-
-    const staleCutoff = new Date(Date.now() - 45 * 60 * 1000).toISOString();
     await supabaseAdmin
-      .from("onboarding_pipeline_runs")
-      .update({ status: "failed", finished_at: new Date().toISOString(), error: "auto-reconciled: no workflow heartbeat >45min" })
+      .from("onboarding_jobs")
+      .update({ status: "stale", error: "auto-reconciled: no heartbeat >15min", finished_at: new Date().toISOString() })
       .eq("country_code", countryCode)
-      .eq("status", "running")
+      .in("status", ["queued", "running"])
       .lt("updated_at", staleCutoff);
 
-    const { data: pipeline, error: pErr } = await supabaseAdmin
-      .from("onboarding_pipeline_runs")
+    const { data: existing } = await supabaseAdmin
+      .from("onboarding_jobs")
+      .select("id, status, progress, created_at")
+      .eq("country_code", countryCode)
+      .in("status", ["queued", "running"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existing?.id) return { jobId: existing.id, status: existing.status, queued: false };
+
+    const { data: job, error } = await supabaseAdmin
+      .from("onboarding_jobs")
       .insert({
         country_code: countryCode,
-        mode,
-        status: "running",
+        mode: data.mode,
+        status: "queued",
         started_by: context.userId,
-        plan: { levels, totalStages: levels.flat().length, completed: 0 },
-        results: [],
+        progress: { totalStages: STAGE_ORDER.length, completed: 0, stages: STAGE_ORDER },
       })
       .select("id")
       .single();
-    if (pErr) {
-      if ((pErr as any).code === "23505") {
-        throw new Error(`A country onboarding workflow is already running for ${countryCode}. Refresh to see progress.`);
-      }
-      throw pErr;
-    }
+    if (error) throw error;
 
-    const pipelineId = pipeline.id as string;
-    const results: Array<{ stage: Stage; status: string; message?: string }> = [];
+    await enqueueSteps(supabaseAdmin, job.id, countryCode, data.mode);
+    await supabaseAdmin.from("onboarding_job_events").insert({
+      job_id: job.id,
+      country_code: countryCode,
+      event_type: "job.created",
+      message: `Queued ${data.mode} onboarding workflow`,
+      payload: { stages: STAGE_ORDER },
+    });
 
-    const updatePipeline = async (patch: Record<string, unknown>) => {
-      await supabaseAdmin
-        .from("onboarding_pipeline_runs")
-        .update({ ...patch, results: results as any, updated_at: new Date().toISOString() })
-        .eq("id", pipelineId);
+    return { jobId: job.id as string, status: "queued", queued: true };
+  });
+
+export const getOnboardingJob = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string().optional(), jobId: z.string().uuid().optional() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let jobQuery = supabaseAdmin.from("onboarding_jobs").select("*");
+    if (data.jobId) jobQuery = jobQuery.eq("id", data.jobId).limit(1);
+    else if (data.countryCode) jobQuery = jobQuery.eq("country_code", data.countryCode).order("created_at", { ascending: false }).limit(1);
+    else throw new Error("countryCode or jobId required");
+    const { data: jobs, error } = await jobQuery;
+    if (error) throw error;
+    const job = Array.isArray(jobs) ? jobs[0] ?? null : jobs;
+    if (!job) return null;
+    const { data: steps } = await supabaseAdmin
+      .from("onboarding_job_steps")
+      .select("*")
+      .eq("job_id", job.id)
+      .order("created_at", { ascending: true });
+    const { data: events } = await supabaseAdmin
+      .from("onboarding_job_events")
+      .select("*")
+      .eq("job_id", job.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    return { job, steps: steps ?? [], events: events ?? [] };
+  });
+
+export const resumeOnboardingJob = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => JobInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin
+      .from("onboarding_job_steps")
+      .update({ status: "queued", error: null, lease_owner: null, lease_expires_at: null })
+      .eq("job_id", data.jobId)
+      .in("status", ["failed", "stale", "running"]);
+    const { error } = await supabaseAdmin
+      .from("onboarding_jobs")
+      .update({ status: "queued", error: null, lease_owner: null, lease_expires_at: null })
+      .eq("id", data.jobId);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const cancelOnboardingJob = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => JobInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const now = new Date().toISOString();
+    await supabaseAdmin.from("onboarding_job_steps").update({ status: "cancelled", finished_at: now }).eq("job_id", data.jobId).in("status", ["queued", "running", "blocked"]);
+    const { error } = await supabaseAdmin.from("onboarding_jobs").update({ status: "cancelled", finished_at: now }).eq("id", data.jobId);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const recoverStaleOnboarding = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => RecoverInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const cutoff = new Date(Date.now() - data.staleMinutes * 60 * 1000).toISOString();
+    const now = new Date().toISOString();
+    const [runs, pipelines, jobs, steps] = await Promise.all([
+      supabaseAdmin.from("onboarding_runs").update({ status: "stale", finished_at: now, error: `manual recovery: no heartbeat >${data.staleMinutes}min` }).eq("country_code", data.countryCode).in("status", ["queued", "planning", "searching", "extracting", "validating"]).lt("updated_at", cutoff).select("id"),
+      supabaseAdmin.from("onboarding_pipeline_runs").update({ status: "failed", finished_at: now, error: `manual recovery: no heartbeat >${data.staleMinutes}min` }).eq("country_code", data.countryCode).eq("status", "running").lt("updated_at", cutoff).select("id"),
+      supabaseAdmin.from("onboarding_jobs").update({ status: "stale", finished_at: now, error: `manual recovery: no heartbeat >${data.staleMinutes}min` }).eq("country_code", data.countryCode).in("status", ["queued", "running"]).lt("updated_at", cutoff).select("id"),
+      supabaseAdmin.from("onboarding_job_steps").update({ status: "stale", finished_at: now, error: `manual recovery: no heartbeat >${data.staleMinutes}min` }).eq("country_code", data.countryCode).eq("status", "running").lt("updated_at", cutoff).select("id"),
+    ]);
+    return {
+      ok: true,
+      staleRuns: runs.data?.length ?? 0,
+      stalePipelines: pipelines.data?.length ?? 0,
+      staleJobs: jobs.data?.length ?? 0,
+      staleSteps: steps.data?.length ?? 0,
     };
-
-    const hasPayloadItems = (payload: any) => {
-      if (Array.isArray(payload)) return payload.length > 0;
-      if (!payload || typeof payload !== "object") return false;
-      for (const key of ["kpis", "ministries", "rows", "sources", "items", "mappings", "dossiers", "memories"]) {
-        if (Array.isArray(payload[key]) && payload[key].length > 0) return true;
-      }
-      return Object.keys(payload).length > 0;
-    };
-
-    const tryCommitLiveDraft = async (stage: Stage): Promise<boolean> => {
-      if (stage === "corpus_ingest") return false;
-      const status = await getOnboardingStatus({ data: { countryCode } });
-      const draft = (status as any).drafts?.find((d: any) => d.stage === stage && !d.superseded);
-      if (!draft) return false;
-      if (((draft as any).citations?.length ?? 0) === 0) return false;
-      if (!hasPayloadItems(draft.payload)) return false;
-      await committers[stage]({ data: { draftId: draft.id } });
-      return true;
-    };
-
-    const runOne = async (stage: Stage) => {
-      await updatePipeline({
-        current_stage: stage,
-        plan: { levels, totalStages: levels.flat().length, completed: results.length, currentStage: stage, updatedAt: new Date().toISOString() },
-      });
-
-      try {
-        const before = await getOnboardingStatus({ data: { countryCode } });
-        const committedBefore = ((before as any).committedTargets?.[stage]?.rows ?? 0) > 0;
-        if (mode === "pending" && committedBefore) {
-          results.push({ stage, status: "skipped", message: "already committed" });
-          return;
-        }
-
-        if (mode === "pending" && (await tryCommitLiveDraft(stage))) {
-          results.push({ stage, status: "committed", message: "committed existing eligible draft" });
-          return;
-        }
-
-        await runners[stage]({ data: { countryCode } });
-        const committed = await tryCommitLiveDraft(stage);
-        results.push({
-          stage,
-          status: committed || stage === "corpus_ingest" ? "committed" : "ready",
-          message: committed ? "draft generated and committed" : "draft generated for review",
-        });
-      } catch (err) {
-        const message = (err as Error).message ?? String(err);
-        if (/already in progress/i.test(message)) {
-          results.push({ stage, status: "skipped", message });
-          return;
-        }
-        results.push({ stage, status: "failed", message });
-      } finally {
-        await updatePipeline({
-          plan: { levels, totalStages: levels.flat().length, completed: results.length, currentStage: stage, updatedAt: new Date().toISOString() },
-        });
-      }
-    };
-
-    try {
-      for (const level of levels) {
-        for (const stage of level) {
-          await runOne(stage);
-        }
-      }
-      const failures = results.filter((r) => r.status === "failed");
-      await updatePipeline({
-        status: failures.length ? "failed" : "completed",
-        current_stage: null,
-        finished_at: new Date().toISOString(),
-        error: failures.length ? `${failures.length} stage(s) failed` : null,
-        plan: { levels, totalStages: levels.flat().length, completed: results.length, updatedAt: new Date().toISOString() },
-      });
-      return { pipelineId, status: failures.length ? "failed" : "completed", results };
-    } catch (err) {
-      await updatePipeline({
-        status: "failed",
-        current_stage: null,
-        finished_at: new Date().toISOString(),
-        error: (err as Error).message ?? String(err),
-      });
-      throw err;
-    }
   });

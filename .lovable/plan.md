@@ -1,220 +1,86 @@
-## Audit finding
+## Forensic finding
 
-The backend is healthy, but the workflow is brittle because long research stages run as one opaque request with weak progress tracking and stale-lock recovery. The current AIA workflow is sitting at **Stage 7: KPI seed** with:
+The current workflow is not reliably durable yet. The live AIA run is stuck because the parent pipeline is waiting on `kpi_seed`, while the child `onboarding_runs` row is still `planning` with `plan = null` and no heartbeat since it opened. No `kpi_research_attempts` were written, so the process died before incremental progress became visible. Recent AI gateway logs show Gemini calls around the same time, including one cancelled request, but the database run was never advanced past `planning`.
 
-- a parent workflow marked `running` at `kpi_seed`
-- a child KPI run still `planning`
-- no KPI draft yet
-- no KPI attempt rows yet
-- a prior KPI run already auto-marked stale after 15 minutes
+The root problem is architectural: a long, multi-stage research workflow is still running inside a single request chain. If the request, preview, browser, model call, or runtime is interrupted, the database is left with an open run lock and no safe resume point.
 
-So the process feels broken because the system cannot clearly distinguish **working**, **slow**, **stalled**, **partially completed**, and **recoverable**.
+## Plan
 
-## Recommendations
+### 1. Stop the immediate stuck-state safely
+- Add a server-side recovery action that marks only stale open AIA workflow rows as `stale`/`failed` based on heartbeat age.
+- Preserve all committed data and drafts.
+- Make the admin UI show a clear “Recover stale run” action instead of forcing repeated “Run all pending” clicks into a lock.
 
-### 1. Make the workflow resumable, not one long fragile chain
+### 2. Replace request-bound orchestration with durable jobs
+- Add a durable job/step table for onboarding work:
+  - one row per pipeline job
+  - one row per stage/substep/KPI/source fetch
+  - status, attempt count, heartbeat, lease expiry, checkpoint payload, output, and error
+- Enforce idempotency with unique keys such as `country + stage + step_key`, so reruns resume or replace safely instead of duplicating work.
+- Keep existing committed target tables as the source of truth for completion.
 
-Replace the current “run all pending in one long server call” pattern with a resumable job model:
+### 3. Split long stages into resumable substeps
+- Refactor `kpi_seed` into small independent units:
+  - deterministic World Bank/IMF pass
+  - source-registry-backed fetch pass
+  - targeted AI pass per missing KPI
+  - inference pass only for remaining gaps
+  - draft assembly/commit eligibility
+- Persist every KPI attempt immediately after each provider call.
+- Never wait until the full KPI loop finishes to write progress.
 
-- each stage writes a durable checkpoint before and after every substep
-- the workflow can resume from the last completed checkpoint
-- a failed stage does not poison the entire country onboarding run
-- retry only the failed unit, not the whole country
-- the UI reads progress from the database instead of waiting on one long request
+### 4. Add timeouts, retries, and leases per provider call
+- Wrap Perplexity, Gemini, Firecrawl, embeddings, and raw fetch calls in explicit timeout helpers.
+- Store provider failure reasons per step.
+- Retry transient failures with capped attempts.
+- Mark non-transient failures as `needs_review` instead of poisoning the whole pipeline.
 
-For example:
+### 5. Make the parent workflow a coordinator, not the worker
+- Change `runCountryOnboardingPipeline` so it creates/resumes a durable job and returns immediately with a job id.
+- Process stages from server-side worker functions that can be re-entered safely.
+- Parent status is derived from child steps, not from a single in-memory `results` array.
 
-```text
-workflow_run
-  stage: kpi_seed
-  step: worldbank_backfill
-  processed: 9 / 24
-  status: running
-  last_heartbeat_at: 21:12:04
-  retry_count: 1
-```
+### 6. Add a real operator command center
+- Show live step counts: queued, running, complete, failed, needs review.
+- Show current KPI/source being processed, last heartbeat, attempt count, and latest error.
+- Add controls:
+  - Resume job
+  - Retry failed steps
+  - Cancel job
+  - Recover stale locks
+  - Continue from checkpoint
 
-### 2. Add real heartbeats to every long stage
+### 7. Harden stage gates and data quality
+- Before each stage, run deterministic preflight checks against committed tables.
+- For capital flows, require committed GDP, sectors, KPIs, source registry, and corpus coverage before starting.
+- If prerequisites are missing, the stage becomes `blocked` with an explicit reason, not `stuck`.
 
-Right now corpus ingest has some progress updates, but KPI seed and several AI research stages do not. Add heartbeat/progress updates to:
+### 8. Make ingestion and research idempotent
+- Ensure source ingest uses normalized URLs/document hashes/chunk hashes.
+- Ensure KPI and capital-flow outputs upsert by country + semantic key.
+- Ensure retries do not duplicate sources, chunks, attempts, memories, or flow rows.
 
-- KPI seed: pass name, KPI code, processed/total, success/fail counts
-- ministry deep dive: current ministry, processed/total
-- sector dossiers: current sector, processed/total
-- second-brain seed: grounding loaded, model call running, commit pending
-- capital flows: deterministic seed count, node currently researched, validation result
+### 9. Validation before declaring done
+- Reproduce the current stuck state locally/live.
+- Apply migration and code changes.
+- Run AIA from a recovered state.
+- Verify:
+  - job returns immediately
+  - progress rows update during execution
+  - partial attempts are visible after every KPI/provider call
+  - interrupted jobs can resume
+  - stale locks no longer block the workflow
+  - capital flows only starts after prerequisites are satisfied
 
-A run should be considered stale based on `last_heartbeat_at`, not `started_at` alone.
+## Technical implementation notes
 
-### 3. Split KPI seed into observable subjobs
-
-KPI seed is the immediate pain point. It currently runs multiple passes internally, then records attempts only at the end. That means if it stalls or times out, the UI shows no useful evidence.
-
-Change it so each KPI/pass writes an attempt immediately:
-
-- broad Perplexity sweep attempt
-- World Bank backfill per KPI
-- IMF backfill per KPI
-- targeted Perplexity per KPI
-- Lovable AI inference/escalation per KPI
-
-This gives operators a live trail and allows retries for only missing KPIs.
-
-### 4. Stop relying on AI as the first source for canonical macro data
-
-For reliable GDP/Sankey readiness, canonical numeric data should come from deterministic sources first:
-
-- World Bank indicators
-- IMF DataMapper/WEO where available
-- committed country profile/GDP rows
-- committed sector composition
-- committed source registry
-- already-ingested corpus chunks
-
-AI should then be used for:
-
-- filling gaps
-- resolving source URLs
-- summarizing rationale
-- checking plausibility
-- explaining missing values
-
-This makes the process AI-first in judgment and synthesis, but data-first in execution.
-
-### 5. Add stage-level quality gates with explicit outcomes
-
-Every stage should finish with one of these statuses:
-
-```text
-committed        usable and written to target tables
-ready           draft ready for review
-needs_review    partial but explainable; blocked from auto-commit
-failed          unrecoverable implementation/provider error
-stale           heartbeat expired
-skipped         upstream data already committed or dependency not ready
-```
-
-For each status, store a compact reason and next action. Example:
-
-```text
-KPI seed: needs_review
-Filled 18/24 required KPIs.
-Missing: unemployment_rate, fiscal_balance_gdp.
-Next action: retry missing KPIs using targeted source search.
-```
-
-### 6. Fix workflow ordering for final Sankey reliability
-
-Capital flows should run after the corpus and second-brain memory are available. Current ordering still places capital flows before second-brain seed in the parent workflow.
-
-Recommended order:
-
-```text
-Level 1: profile, GDP, sectors, ministries, source registry
-Level 2: KPI seed, ministry-sector map
-Level 3: sector dossiers, ministry deep dive, corpus ingest
-Level 4: second-brain seed
-Level 5: capital flows / Sankey workbook
-```
-
-Stage 12 should not run until:
-
-- GDP exists
-- sector rows exist
-- KPI seed has committed at least the required macro/fiscal KPIs
-- source registry has active sources
-- corpus ingest has at least one successful fetched document or a deterministic fallback is available
-
-### 7. Add provider guardrails and bounded retries
-
-Recent runs show provider/search-domain failures such as domain filter limits and empty payloads. Add a shared provider wrapper that enforces:
-
-- max 20 search domains before calling Perplexity
-- timeout per provider call
-- retry with relaxed domain filters
-- retry with deterministic public APIs before another AI call
-- normalized error categories: `provider_400`, `timeout`, `empty_payload`, `validation_failed`, `no_source_url`
-
-### 8. Make corpus ingest self-healing
-
-Current AIA has active sources but no fetched corpus yet. The workflow needs source-level repair:
-
-- show active / fetched / failed / unknown source counts before Stage 10
-- retry only failed or unknown sources
-- mark duplicate content as `deduped`, not silently “ok with 0 chunks”
-- require at least one useful corpus document before dependent RAG stages treat the corpus as available
-- keep per-source failure messages visible in the UI
-
-### 9. Improve the operator UI from “spinner” to command center
-
-Add a reliable workflow panel that shows:
-
-- active stage and active substep
-- elapsed time since last heartbeat
-- progress counts
-- latest error/blocked reason
-- retry buttons for stale/failed/needs-review stages
-- “resume workflow” instead of only “run all pending”
-- evidence preview for KPI and capital-flow attempts
-
-This directly addresses the user experience problem: no more guessing whether the process is actually working.
-
-## Implementation plan
-
-### Phase 1 — Stabilize the current stuck point
-
-- Add heartbeat/progress writes to KPI seed.
-- Record KPI attempts incrementally instead of only at the end.
-- Add a `resume/retry missing KPIs` path.
-- Update stale detection to use heartbeat age.
-- Surface live KPI progress in the onboarding UI.
-
-### Phase 2 — Make orchestration resumable
-
-- Introduce a durable checkpoint model in existing workflow/run tables or a small new workflow-step table.
-- Convert `run all pending` into a stage-by-stage resumable loop.
-- Add per-stage retry counts and final status reasons.
-- Make the parent workflow continue cleanly after recoverable `needs_review` stages.
-
-### Phase 3 — Harden data acquisition
-
-- Centralize provider calls behind a reliability wrapper.
-- Enforce domain-filter limits and timeout handling.
-- Prefer deterministic World Bank/IMF/committed-data sources before model calls.
-- Add source/corpus repair actions for failed or unknown fetches.
-
-### Phase 4 — Reorder and gate Sankey generation
-
-- Move capital flows after second-brain seed.
-- Add explicit preflight checks before Stage 12.
-- Keep deterministic capital-flow seeding from committed KPIs/sectors.
-- Run AI only for missing flow nodes and validation explanations.
-- Commit Stage 12 only when coverage and reconciliation gates pass; otherwise produce a clear review packet.
-
-### Phase 5 — Observability and operator trust
-
-- Add a workflow health dashboard with live heartbeat, current substep, run age, source/corpus coverage, KPI coverage, and Sankey readiness.
-- Add one-click retry/resume actions.
-- Add compact audit logs per stage so every committed number has a traceable source and every missing number has a reason.
-
-## Technical touchpoints
-
-- `src/lib/country-onboarding/orchestrator.functions.ts`
-- `src/lib/country-onboarding/corpus.functions.ts`
-- `src/lib/country-onboarding/kpi-research.server.ts`
-- `src/lib/country-onboarding/capital-flows.server.ts`
-- `src/lib/country-onboarding/ingest.server.ts`
-- `src/lib/country-onboarding/fallback.server.ts`
-- `src/routes/_authenticated/admin/countries.$code.onboard.tsx`
-- backend tables for onboarding runs, drafts, KPI attempts, capital-flow attempts, source documents, and workflow progress
-
-## Expected result
-
-After this hardening, country onboarding should behave like a reliable data pipeline:
-
-- it runs independently
-- it shows exactly what it is doing
-- it can recover from slow/failing providers
-- it does not lose partial work
-- it does not require rerunning everything after one bad stage
-- Stage 12 receives enough validated upstream data to produce a credible GDP Sankey workbook instead of guessing
+- Add schema for durable pipeline jobs/steps/events with admin-only access policies and service-role grants.
+- Introduce shared helpers for:
+  - heartbeat updates
+  - step lease acquisition
+  - timeout-wrapped provider calls
+  - retry classification
+  - idempotent step completion
+- Move long KPI logic out of one monolithic `runAgenticKpiLoop` and into checkpointable step executors.
+- Keep the UI calling server functions through TanStack Start; do not use browser polling as the worker.
+- If a durable workflow connector is available in this workspace, wire the job runner through it; otherwise implement a database-backed worker endpoint with signed internal dispatch and resumable leases.

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { PrettyJson } from "@/components/data/PrettyJson";
@@ -394,6 +394,17 @@ function StageCard({
   const [showRaw, setShowRaw] = useState(false);
   const [edited, setEdited] = useState<string>("");
   const [err, setErr] = useState<string | null>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    requestAnimationFrame(() => {
+      const el = sectionRef.current;
+      if (!el) return;
+      const y = el.getBoundingClientRect().top + window.scrollY - 8;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    });
+  }, [isOpen]);
 
 
   const committed = lastRun?.status === "committed";
@@ -451,7 +462,7 @@ function StageCard({
 
 
   return (
-    <section className="border border-line-200 bg-paper-0">
+    <section ref={sectionRef} className="border border-line-200 bg-paper-0 scroll-mt-2">
       <div className="flex items-stretch justify-between gap-4">
         <button
           type="button"

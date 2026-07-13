@@ -28,6 +28,10 @@ export type FallbackResult<T> = {
   notes: string[];
   modelStack: Record<string, string>;
   attempts: number;
+  /** True when Tier 1 succeeded on an attempt that had no domain filter. */
+  openWebWin: boolean;
+  /** Label of the attempt that won (or last tried). */
+  winningAttempt: string | null;
 };
 
 export type FallbackOptions<T> = {

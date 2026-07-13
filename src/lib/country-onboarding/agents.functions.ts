@@ -232,6 +232,7 @@ export const runProfileAgent = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const country = await loadCountry(supabaseAdmin, data.countryCode);
+    const ctx = await buildCountryContext(supabaseAdmin, data.countryCode);
 
     const model: SonarModel = "sonar-pro";
     const runId = await openRun(supabaseAdmin, {
@@ -243,24 +244,31 @@ export const runProfileAgent = createServerFn({ method: "POST" })
 
     try {
       const fb = await runWithFallbacks<any>({
+        context: ctx,
+        topic: `${country.name} — country profile, head of government, population, HDI, main exports`,
         perplexity: {
           model,
           system:
-            "You are a country-profile researcher. Answer with a single JSON object matching the schema. Use only authoritative sources (national statistics offices, IMF, World Bank, UN). Cite every fact." +
+            "You are a country-profile researcher. Answer with a single JSON object matching the schema. Prefer the country's official government portal and national statistics office; secondary sources are IMF, World Bank, UN. Cite every fact. If a field is unknown from primary sources, return the most recent multilateral estimate and note it." +
             SUMMARY_SYSTEM_SUFFIX,
-          user: `Research the country of ${country.name} (${country.iso3 ?? country.code}). Return: currency code (ISO 4217), fiscal year start month (1-12), most recent population, HDI (or null), top 3-5 export categories, government type, and current head of government (as of 2026). Use only official/multilateral sources.`,
+          user: `Research ${country.name} (${country.iso3 ?? country.code}). Return:\n- currency (ISO 4217)\n- fiscal_year_start_month (1-12)\n- population (most recent official)\n- HDI (or null)\n- main_exports: top 3-5 export categories\n- government_type\n- head_of_government (verify the current holder as of ${new Date().getFullYear()} — cross-check the official portal AND a recent news source; do not rely solely on Wikipedia).`,
           responseSchema: ProfileSchema as unknown as Record<string, unknown>,
-          recency: "year",
+          recency: "month",
         },
         gemini: {
           system: "You are a country-profile researcher for " + country.name + ".",
-          user: `Country: ${country.name} (${country.iso3 ?? country.code}). Return most-recent population, HDI, top exports, government type, and head of government.`,
+          user: `Extract the profile fields for ${country.name} (${country.iso3 ?? country.code}) from the source material and partial output.`,
           schemaHint:
             `{ "currency": "ISO 4217", "fiscal_year_start_month": 1-12, "population": number, "hdi": number|null, "main_exports": string[], "government_type": string, "head_of_government": string, "notes": string, "summary_md": string, "summary_highlights": [{"label": string, "value": string}] }`,
         },
         parse: jsonParser<any>(),
-        validate: (v) => !!v && typeof v.currency === "string" && typeof v.head_of_government === "string",
-        infer: () => ({ ...seedProfile(country.name), summary_md: `Provisional profile for ${country.name} — please review.`, summary_highlights: [] }),
+        validate: (v) =>
+          !!v &&
+          typeof v.currency === "string" && /^[A-Z]{3}$/.test(v.currency) &&
+          typeof v.head_of_government === "string" && v.head_of_government.trim().length > 3 &&
+          !/unknown/i.test(v.head_of_government) &&
+          Number(v.population) > 0,
+        infer: () => ({ ...seedProfile(country.name, ctx), summary_md: `Provisional profile for ${country.name} — please review.`, summary_highlights: [] }),
       });
 
       const inline = extractInlineSummary(fb.data);

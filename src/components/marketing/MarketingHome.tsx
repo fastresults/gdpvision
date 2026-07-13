@@ -184,7 +184,7 @@ export function MarketingHome() {
                 </svg>
               </button>
             </nav>
-            <div className="mt-10 flex flex-wrap items-center gap-6">
+            <div className="mt-5 flex flex-wrap items-center gap-6">
               <a
                 href="#briefing"
                 className="inline-flex items-center justify-center bg-ink-950 px-6 py-3 font-mono text-[12px] uppercase tracking-[0.18em] text-paper-0 transition-colors duration-200 hover:bg-gold-500"

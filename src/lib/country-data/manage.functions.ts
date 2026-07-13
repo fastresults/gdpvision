@@ -926,13 +926,40 @@ export const upsertMemory = createServerFn({ method: "POST" })
       verified: data.verified,
       created_by: context.userId,
     };
+
+    // Normalized-title dedup guard (matches memory_objects_dedup_idx).
+    // On create, reject if a memory with the same normalized title already exists.
+    if (!data.id) {
+      const norm = normalizeMemoryTitle(data.title);
+      const { data: siblings } = await supabaseAdmin
+        .from("memory_objects")
+        .select("id, title")
+        .eq("scope_key", data.countryCode)
+        .eq("sector_code", data.sector_code)
+        .eq("kind", data.kind);
+      const dupe = (siblings ?? []).find(
+        (r: any) => normalizeMemoryTitle(r.title ?? "") === norm,
+      );
+      if (dupe) {
+        throw new Error(
+          `A memory with this title already exists for ${data.sector_code} / ${data.kind}. Edit the existing one instead of creating a duplicate.`,
+        );
+      }
+    }
+
     const q = data.id
       ? supabaseAdmin.from("memory_objects").update(row).eq("id", data.id).select("id").single()
       : supabaseAdmin.from("memory_objects").insert(row).select("id").single();
     const { data: out, error } = await q;
-    if (error) throw error;
+    if (error) {
+      if (isUniqueViolation(error)) {
+        throw new Error("A memory with this title already exists (case- and whitespace-insensitive).");
+      }
+      throw error;
+    }
     return out;
   });
+
 
 export const setMemoryVerified = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

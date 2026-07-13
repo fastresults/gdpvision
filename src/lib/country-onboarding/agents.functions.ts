@@ -8,7 +8,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { callSonar, parseSonarJson, type SonarCitation, type SonarModel } from "./perplexity.server";
+import { type SonarCitation, type SonarModel } from "./perplexity.server";
+import { runWithFallbacks, jsonParser } from "./fallback.server";
+import { seedProfile, seedGdp, seedSectorComposition, seedMinistries, seedMinistrySectorMap } from "./seeds.server";
 import { SUMMARY_SCHEMA_FRAGMENT, SUMMARY_SYSTEM_SUFFIX, extractInlineSummary } from "./summary-inline";
 
 type Stage = "profile" | "gdp" | "sector_composition" | "ministries" | "ministry_sector_map";
@@ -239,34 +241,42 @@ export const runProfileAgent = createServerFn({ method: "POST" })
     });
 
     try {
-      const result = await callSonar({
-        model,
-        system:
-          "You are a country-profile researcher. Answer with a single JSON object matching the schema. Use only authoritative sources (national statistics offices, IMF, World Bank, UN). Cite every fact." +
-          SUMMARY_SYSTEM_SUFFIX,
-        user: `Research the country of ${country.name} (${country.iso3 ?? country.code}). Return: currency code (ISO 4217), fiscal year start month (1-12), most recent population, HDI (or null), top 3-5 export categories, government type, and current head of government (as of 2026). Use only official/multilateral sources.`,
-        responseSchema: ProfileSchema as unknown as Record<string, unknown>,
-        recency: "year",
+      const fb = await runWithFallbacks<any>({
+        perplexity: {
+          model,
+          system:
+            "You are a country-profile researcher. Answer with a single JSON object matching the schema. Use only authoritative sources (national statistics offices, IMF, World Bank, UN). Cite every fact." +
+            SUMMARY_SYSTEM_SUFFIX,
+          user: `Research the country of ${country.name} (${country.iso3 ?? country.code}). Return: currency code (ISO 4217), fiscal year start month (1-12), most recent population, HDI (or null), top 3-5 export categories, government type, and current head of government (as of 2026). Use only official/multilateral sources.`,
+          responseSchema: ProfileSchema as unknown as Record<string, unknown>,
+          recency: "year",
+        },
+        gemini: {
+          system: "You are a country-profile researcher for " + country.name + ".",
+          user: `Country: ${country.name} (${country.iso3 ?? country.code}). Return most-recent population, HDI, top exports, government type, and head of government.`,
+          schemaHint:
+            `{ "currency": "ISO 4217", "fiscal_year_start_month": 1-12, "population": number, "hdi": number|null, "main_exports": string[], "government_type": string, "head_of_government": string, "notes": string, "summary_md": string, "summary_highlights": [{"label": string, "value": string}] }`,
+        },
+        parse: jsonParser<any>(),
+        validate: (v) => !!v && typeof v.currency === "string" && typeof v.head_of_government === "string",
+        infer: () => ({ ...seedProfile(country.name), summary_md: `Provisional profile for ${country.name} — please review.`, summary_highlights: [] }),
       });
 
-      const parsed = parseSonarJson<any>(result.content);
-      if (!parsed) throw new Error("Perplexity returned no parseable JSON");
-      const inline = extractInlineSummary(parsed);
-
+      const inline = extractInlineSummary(fb.data);
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
         country_code: data.countryCode,
         stage: "profile",
         target_table: "countries",
-        payload: parsed,
-        confidence: result.citations.length >= 2 ? "high" : "medium",
-        citations: result.citations,
+        payload: fb.data,
+        confidence: fb.tier === "perplexity" && fb.citations.length >= 2 ? "high" : fb.tier === "inferred" ? "low" : "medium",
+        citations: fb.citations,
         summary_md: inline.summary_md,
         summary_highlights: inline.summary_highlights,
       });
 
-      await finishRun(supabaseAdmin, runId, { status: "ready" });
-      return { runId, draftId, payload: parsed, citations: result.citations };
+      await finishRun(supabaseAdmin, runId, { status: "ready", model_stack: { ...fb.modelStack, notes: fb.notes } });
+      return { runId, draftId, payload: fb.data, citations: fb.citations, tier: fb.tier, notes: fb.notes };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;
@@ -306,34 +316,41 @@ export const runGdpAgent = createServerFn({ method: "POST" })
     });
 
     try {
-      const result = await callSonar({
-        model,
-        system:
-          "You are a macro-economics researcher. Return a single JSON object. Cross-check GDP between World Bank WDI and IMF WEO — pick the most recent year where BOTH publish a figure. Cite both sources." +
-          SUMMARY_SYSTEM_SUFFIX,
-        user: `What is the nominal GDP of ${country.name} in current US dollars, most recent year with an official figure? Prefer World Bank WDI and IMF WEO. Return the value in USD (not billions).`,
-        responseSchema: GdpSchema as unknown as Record<string, unknown>,
-        recency: "year",
+      const fb = await runWithFallbacks<any>({
+        perplexity: {
+          model,
+          system:
+            "You are a macro-economics researcher. Return a single JSON object. Cross-check GDP between World Bank WDI and IMF WEO — pick the most recent year where BOTH publish a figure. Cite both sources." +
+            SUMMARY_SYSTEM_SUFFIX,
+          user: `What is the nominal GDP of ${country.name} in current US dollars, most recent year with an official figure? Prefer World Bank WDI and IMF WEO. Return the value in USD (not billions).`,
+          responseSchema: GdpSchema as unknown as Record<string, unknown>,
+          recency: "year",
+        },
+        gemini: {
+          system: "You are a macro-economics researcher.",
+          user: `Return most-recent nominal GDP of ${country.name} in current USD. Prefer World Bank WDI / IMF WEO.`,
+          schemaHint: `{ "gdp_current_usd": number, "gdp_year": integer, "source_primary": string, "source_secondary": string|null, "notes": string, "summary_md": string, "summary_highlights": [{"label": string, "value": string}] }`,
+        },
+        parse: jsonParser<any>(),
+        validate: (v) => !!v && typeof v.gdp_current_usd === "number" && typeof v.gdp_year === "number",
+        infer: () => ({ ...seedGdp(), summary_md: `Provisional GDP for ${country.name} — please review.`, summary_highlights: [] }),
       });
 
-      const parsed = parseSonarJson<any>(result.content);
-      if (!parsed) throw new Error("Perplexity returned no parseable JSON");
-      const inline = extractInlineSummary(parsed);
-
+      const inline = extractInlineSummary(fb.data);
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
         country_code: data.countryCode,
         stage: "gdp",
         target_table: "countries",
-        payload: parsed,
-        confidence: result.citations.length >= 2 ? "high" : "medium",
-        citations: result.citations,
+        payload: fb.data,
+        confidence: fb.tier === "perplexity" && fb.citations.length >= 2 ? "high" : fb.tier === "inferred" ? "low" : "medium",
+        citations: fb.citations,
         summary_md: inline.summary_md,
         summary_highlights: inline.summary_highlights,
       });
 
-      await finishRun(supabaseAdmin, runId, { status: "ready" });
-      return { runId, draftId, payload: parsed, citations: result.citations };
+      await finishRun(supabaseAdmin, runId, { status: "ready", model_stack: { ...fb.modelStack, notes: fb.notes } });
+      return { runId, draftId, payload: fb.data, citations: fb.citations, tier: fb.tier, notes: fb.notes };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;
@@ -385,22 +402,34 @@ export const runSectorCompositionAgent = createServerFn({ method: "POST" })
         required: ["rows", "method_note", "summary_md", "summary_highlights"],
       } as const;
 
-      const result = await callSonar({
-        model,
-        system:
-          "You are a national-accounts analyst. Map the country's GDP by industry (ISIC A-U) into the given sector taxonomy. Return one row per sector code (use 0 if the sector is negligible). Shares must sum to ~100%. Use A/B for values from official national accounts, C for multilateral estimates, D/F for inference. Cite each source." +
-          SUMMARY_SYSTEM_SUFFIX,
-        user: `Country: ${country.name} (${country.iso3 ?? country.code}).\n\nSector taxonomy (return one row per code):\n${sectorList}\n\nUse the most recent full-year national accounts. Prefer the country's Central Statistical Office, then ECCB / CDB / IMF / World Bank.`,
-        responseSchema: rowsSchema as unknown as Record<string, unknown>,
-        recency: "year",
+      const fb = await runWithFallbacks<{ rows: any[]; method_note: string; summary_md?: string; summary_highlights?: any[] }>({
+        perplexity: {
+          model,
+          system:
+            "You are a national-accounts analyst. Map the country's GDP by industry (ISIC A-U) into the given sector taxonomy. Return one row per sector code (use 0 if the sector is negligible). Shares must sum to ~100%. Use A/B for values from official national accounts, C for multilateral estimates, D/F for inference. Cite each source." +
+            SUMMARY_SYSTEM_SUFFIX,
+          user: `Country: ${country.name} (${country.iso3 ?? country.code}).\n\nSector taxonomy (return one row per code):\n${sectorList}\n\nUse the most recent full-year national accounts. Prefer the country's Central Statistical Office, then ECCB / CDB / IMF / World Bank.`,
+          responseSchema: rowsSchema as unknown as Record<string, unknown>,
+          recency: "year",
+        },
+        gemini: {
+          system: "You are a national-accounts analyst.",
+          user: `Country: ${country.name}. Sector taxonomy: ${sectorList}. Return share_pct per sector code, summing to ~100.`,
+          schemaHint: `{ "rows": [{"sector_code": string, "share_pct": number, "confidence_grade": "A"|"B"|"C"|"D"|"F", "rationale": string}], "method_note": string, "summary_md": string, "summary_highlights": [{"label": string, "value": string}] }`,
+        },
+        parse: jsonParser<{ rows: any[]; method_note: string }>(),
+        validate: (v) => !!v?.rows?.length,
+        infer: () => ({
+          rows: seedSectorComposition(sectors.map((s) => s.code)),
+          method_note: "Provisional small-state defaults — no primary source reached.",
+          summary_md: `Provisional sector composition for ${country.name} — please review.`,
+          summary_highlights: [],
+        }),
       });
 
-      const parsed = parseSonarJson<{ rows: any[]; method_note: string }>(result.content);
-      if (!parsed?.rows?.length) throw new Error("Perplexity returned no rows");
-      const inline = extractInlineSummary(parsed);
-
-      // Ensure every sector has a row (fill missing with 0)
-      const bySector = new Map(parsed.rows.map((r) => [String(r.sector_code), r]));
+      const inline = extractInlineSummary(fb.data);
+      const parsedRows: any[] = fb.data.rows ?? [];
+      const bySector = new Map(parsedRows.map((r: any) => [String(r.sector_code), r]));
       const complete = sectors.map(
         (s) =>
           bySector.get(s.code) ?? {
@@ -410,22 +439,27 @@ export const runSectorCompositionAgent = createServerFn({ method: "POST" })
             rationale: "Not returned by agent — defaulted to 0",
           },
       );
-      const total = complete.reduce((sum, r) => sum + Number(r.share_pct ?? 0), 0);
+      const total = complete.reduce((sum: number, r: any) => sum + Number(r.share_pct ?? 0), 0);
 
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
         country_code: data.countryCode,
         stage: "sector_composition",
         target_table: "country_sectors",
-        payload: { rows: complete, method_note: parsed.method_note, total_pct: total },
-        confidence: total >= 95 && total <= 105 && result.citations.length >= 2 ? "high" : "medium",
-        citations: result.citations,
+        payload: { rows: complete, method_note: fb.data.method_note, total_pct: total },
+        confidence:
+          fb.tier === "inferred"
+            ? "low"
+            : total >= 95 && total <= 105 && fb.citations.length >= 2
+            ? "high"
+            : "medium",
+        citations: fb.citations,
         summary_md: inline.summary_md,
         summary_highlights: inline.summary_highlights,
       });
 
-      await finishRun(supabaseAdmin, runId, { status: "ready" });
-      return { runId, draftId, rows: complete, total_pct: total, citations: result.citations };
+      await finishRun(supabaseAdmin, runId, { status: "ready", model_stack: { ...fb.modelStack, notes: fb.notes } });
+      return { runId, draftId, rows: complete, total_pct: total, citations: fb.citations, tier: fb.tier, notes: fb.notes };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;
@@ -474,54 +508,45 @@ export const runMinistriesAgent = createServerFn({ method: "POST" })
         required: ["ministries", "summary_md", "summary_highlights"],
       } as const;
 
-      let result = await callSonar({
-        model,
-        system:
-          "You are a governance researcher. Return the current canonical ministries of the country. Prefer the official government portal." +
-          SUMMARY_SYSTEM_SUFFIX,
-        user: `List the current cabinet ministries of ${country.name} as of 2026, with the full official name, current minister (if known), and a one-line mandate. Use the government's official website.`,
-        responseSchema: schema as unknown as Record<string, unknown>,
-        recency: "year",
-      });
-
-      let parsed = parseSonarJson<{ ministries: any[] }>(result.content);
-      // Retry once without the domain allowlist — small nations often sit on
-      // TLDs not in OFFICIAL_DOMAINS (e.g. .gov.ag), which starves the search.
-      if (!parsed?.ministries?.length) {
-        result = await callSonar({
+      const fb = await runWithFallbacks<{ ministries: any[]; summary_md?: string; summary_highlights?: any[] }>({
+        perplexity: {
           model,
           system:
-            "You are a governance researcher. Return the current canonical ministries of the country. Prefer official government sources but do not restrict to a fixed domain list." +
+            "You are a governance researcher. Return the current canonical ministries of the country. Prefer the official government portal." +
             SUMMARY_SYSTEM_SUFFIX,
-          user: `List the current cabinet ministries of ${country.name} as of 2026, with the full official name, current minister (if known), and a one-line mandate.`,
+          user: `List the current cabinet ministries of ${country.name} as of 2026, with the full official name, current minister (if known), and a one-line mandate. Use the government's official website.`,
           responseSchema: schema as unknown as Record<string, unknown>,
           recency: "year",
-          noDomainFilter: true,
-        });
-        parsed = parseSonarJson<{ ministries: any[] }>(result.content);
-      }
-      if (!parsed?.ministries?.length) {
-        throw new Error(
-          `Perplexity returned no ministries for ${country.name}. Raw content: ${(result.content ?? "").slice(0, 200)}`
-        );
-      }
+        },
+        gemini: {
+          system: "You are a governance researcher.",
+          user: `List the current cabinet ministries of ${country.name} with slug (kebab-case), full official name, current minister (or null), and one-line mandate.`,
+          schemaHint: `{ "ministries": [{"slug": string, "name": string, "minister": string|null, "mandate": string}], "summary_md": string, "summary_highlights": [{"label": string, "value": string}] }`,
+        },
+        parse: jsonParser<{ ministries: any[] }>(),
+        validate: (v) => !!v?.ministries?.length,
+        infer: () => ({
+          ministries: seedMinistries(country.name),
+          summary_md: `Provisional canonical ministries for ${country.name} — please verify against the government portal.`,
+          summary_highlights: [],
+        }),
+      });
 
-      const inline = extractInlineSummary(parsed);
-
+      const inline = extractInlineSummary(fb.data);
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
         country_code: data.countryCode,
         stage: "ministries",
         target_table: "ministries",
-        payload: parsed,
-        confidence: result.citations.length >= 1 ? "high" : "low",
-        citations: result.citations,
+        payload: fb.data,
+        confidence: fb.tier === "perplexity" && fb.citations.length >= 1 ? "high" : fb.tier === "inferred" ? "low" : "medium",
+        citations: fb.citations,
         summary_md: inline.summary_md,
         summary_highlights: inline.summary_highlights,
       });
 
-      await finishRun(supabaseAdmin, runId, { status: "ready" });
-      return { runId, draftId, ministries: parsed.ministries, citations: result.citations };
+      await finishRun(supabaseAdmin, runId, { status: "ready", model_stack: { ...fb.modelStack, notes: fb.notes } });
+      return { runId, draftId, ministries: fb.data.ministries, citations: fb.citations, tier: fb.tier, notes: fb.notes };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;
@@ -579,33 +604,44 @@ export const runMinistrySectorMapAgent = createServerFn({ method: "POST" })
 
       const sectorList = sectors.map((s) => `${s.code} (${s.label})`).join(", ");
       const ministryList = ministries.map((m) => `${m.slug} (${m.name})`).join("\n- ");
-      const result = await callSonar({
-        model,
-        system:
-          "You map ministerial portfolios to economic sectors. For each ministry, output the sectors it primarily oversees with a weight 0-100 representing its share of responsibility for that sector. Per-ministry weights across all its sectors should roughly sum to 100. Omit sectors a ministry has no role in." +
-          SUMMARY_SYSTEM_SUFFIX,
-        user: `Country: ${country.name}. Sectors: ${sectorList}. Ministries:\n- ${ministryList}\n\nProvide the ministry→sector mapping using the country's official ministerial mandates.`,
-        responseSchema: schema as unknown as Record<string, unknown>,
+      const fb = await runWithFallbacks<{ mappings: any[]; summary_md?: string; summary_highlights?: any[] }>({
+        perplexity: {
+          model,
+          system:
+            "You map ministerial portfolios to economic sectors. For each ministry, output the sectors it primarily oversees with a weight 0-100 representing its share of responsibility for that sector. Per-ministry weights across all its sectors should roughly sum to 100. Omit sectors a ministry has no role in." +
+            SUMMARY_SYSTEM_SUFFIX,
+          user: `Country: ${country.name}. Sectors: ${sectorList}. Ministries:\n- ${ministryList}\n\nProvide the ministry→sector mapping using the country's official ministerial mandates.`,
+          responseSchema: schema as unknown as Record<string, unknown>,
+        },
+        gemini: {
+          system: "You map ministerial portfolios to economic sectors.",
+          user: `Country: ${country.name}. Sectors: ${sectorList}. Ministries: ${ministryList}. Return mappings with weight 0-100.`,
+          schemaHint: `{ "mappings": [{"ministry_slug": string, "sector_code": string, "weight": number, "rationale": string}], "summary_md": string, "summary_highlights": [{"label": string, "value": string}] }`,
+        },
+        parse: jsonParser<{ mappings: any[] }>(),
+        validate: (v) => !!v?.mappings?.length,
+        infer: () => ({
+          mappings: seedMinistrySectorMap(ministries.map((m) => m.slug), sectors.map((s) => s.code)),
+          summary_md: `Provisional canonical portfolio→sector mapping for ${country.name} — please review.`,
+          summary_highlights: [],
+        }),
       });
 
-      const parsed = parseSonarJson<{ mappings: any[] }>(result.content);
-      if (!parsed?.mappings?.length) throw new Error("Perplexity returned no mappings");
-      const inline = extractInlineSummary(parsed);
-
+      const inline = extractInlineSummary(fb.data);
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
         country_code: data.countryCode,
         stage: "ministry_sector_map",
         target_table: "ministry_sectors",
-        payload: parsed,
-        confidence: result.citations.length >= 1 ? "medium" : "low",
-        citations: result.citations,
+        payload: fb.data,
+        confidence: fb.tier === "perplexity" && fb.citations.length >= 1 ? "medium" : "low",
+        citations: fb.citations,
         summary_md: inline.summary_md,
         summary_highlights: inline.summary_highlights,
       });
 
-      await finishRun(supabaseAdmin, runId, { status: "ready" });
-      return { runId, draftId, mappings: parsed.mappings, citations: result.citations };
+      await finishRun(supabaseAdmin, runId, { status: "ready", model_stack: { ...fb.modelStack, notes: fb.notes } });
+      return { runId, draftId, mappings: fb.data.mappings, citations: fb.citations, tier: fb.tier, notes: fb.notes };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;

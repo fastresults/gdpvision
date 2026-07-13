@@ -1008,6 +1008,11 @@ function StageCard({
             <div className="rounded border border-red-500/50 bg-red-500/10 p-2 text-xs text-red-700">{err}</div>
           )}
 
+          {/* Capital-flows coverage checklist */}
+          {stage.key === "capital_flows" && capitalFlowsCoverage && (
+            <CapitalFlowsCoverage coverage={capitalFlowsCoverage} reconciliation={payload?.reconciliation} droppedFlows={payload?.dropped_flows} />
+          )}
+
           {/* Draft (review) UI — shown when a draft is awaiting commit */}
           {draft && (
             <>

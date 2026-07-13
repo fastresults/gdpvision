@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getVizOverview } from "@/lib/country-viz/viz.functions";
+import { getVizOverview, type VizOverview } from "@/lib/country-viz/viz.functions";
 
 import { MacroStrip } from "./MacroStrip";
 import { GdpTreemap } from "./GdpTreemap";
@@ -10,7 +10,7 @@ import { KpiSmallMultiples } from "./KpiSmallMultiples";
 import { DebtHorizon } from "./DebtHorizon";
 import { EvidenceRail } from "./EvidenceRail";
 
-const overviewQuery = (code: string, fetchFn: any) =>
+const overviewQuery = (code: string, fetchFn: (input: { data: { countryCode: string } }) => Promise<VizOverview>) =>
   queryOptions({
     queryKey: ["viz", "overview", code],
     queryFn: () => fetchFn({ data: { countryCode: code } }),
@@ -19,10 +19,10 @@ const overviewQuery = (code: string, fetchFn: any) =>
 
 export function GdpVizStudio({ code }: { code: string }) {
   const fetchOverview = useServerFn(getVizOverview);
-  const { data: overview } = useSuspenseQuery(overviewQuery(code, fetchOverview));
+  const { data: overview } = useSuspenseQuery(overviewQuery(code, fetchOverview as any));
   const [sector, setSector] = useState<string | null>(null);
 
-  const selectedSector = overview.sectors.find((s: any) => s.code === sector) ?? null;
+  const selectedSector = overview.sectors.find((s) => s.code === sector) ?? null;
 
   return (
     <div className="space-y-6">

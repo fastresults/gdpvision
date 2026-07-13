@@ -105,6 +105,7 @@ export async function buildCountryContext(admin: any, code: string): Promise<Cou
     portal: meta?.portal ?? null,
     statsOffice: meta?.statsOffice ?? null,
     centralBank: meta?.centralBank ?? null,
+    learnedDomains: (learnedRes.data ?? []) as any[],
     committed: {
       profile: (c.country_pack as any)?.profile ?? null,
       gdp: { gdp_current_usd: c.gdp_current_usd ?? null, gdp_year: c.gdp_year ?? null },

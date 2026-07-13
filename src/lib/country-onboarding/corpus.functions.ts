@@ -1507,6 +1507,14 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
         confidence: failCount === 0 ? "high" : okCount > failCount ? "medium" : "low",
         citations: [],
       });
+      // Write the final report into the run's plan too, so the wizard can
+      // render a "last ingest report" even after auto-commit clears the draft.
+      try {
+        await supabaseAdmin
+          .from("onboarding_runs")
+          .update({ plan: { processed: total, total, okCount, failCount, totalChunks, results } })
+          .eq("id", runId);
+      } catch { /* best effort */ }
       // Auto-commit corpus ingest — nothing further for the user to edit
       await markDraftCommitted(supabaseAdmin, draftId, runId);
 

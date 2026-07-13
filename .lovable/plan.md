@@ -1,63 +1,65 @@
-## Why the "app encountered an error" dialog keeps showing
+# 3-Level Fallback Chain for Onboarding Agents
 
-Every failing path today throws a raw `Error` from a `createServerFn` handler. TanStack turns those into a 500 that bubbles to the route boundary → global "app encountered an error" modal. Two dialog triggers are firing on this project:
+Goal: no agent stage ever throws "no data" to the UI. Every model call cascades through three tiers, retries within each tier, and finally synthesizes a best-effort answer from context already in the DB.
 
-1. **Stage-dependency violation during "Run all pending"** (today's error).
-   - `runAllPending` iterates STAGES in order, awaits each `runners[s.key]`, and moves on. It only skips a stage that's already committed or has an existing draft.
-   - Stage 4 `runMinistriesAgent` writes a **draft** (`saveDraft` → status `ready`, needs admin commit). It does **not** insert into the `ministries` table.
-   - Stage 5 `runMinistrySectorMapAgent` **reads** `ministries` (row 546 `if (!ministries?.length) throw`). Because Stage 4's draft is still pending commit, Stage 5 explodes → dialog.
-   - Same shape applies to every other downstream stage that reads a committed table (sectors, KPIs, source registry, dossiers, ministry profiles, corpus_ingest which reads `country_sources`).
+## The chain (applied to every `callSonar` + `parseSonarJson` site)
 
-2. **Perplexity empty response** (previous error, patched with a retry on Ministries only). The same "throw on empty" pattern exists in 6+ other agents.
+**Tier 1 — Perplexity (grounded search)**
+1. `callSonar` with domain allowlist + country TLD.
+2. On empty/unparseable → retry once with `noDomainFilter: true` (already partly in place).
+3. On empty again → retry once with a broader model (`sonar` → `sonar-pro`) and `recency` widened.
 
-Result: whenever any single agent in the chain fails or an upstream stage isn't committed yet, the bulk run stops with a full-screen crash instead of surfacing an inline warning and skipping.
+**Tier 2 — Gemini via Lovable AI Gateway (`google/gemini-2.5-pro`)**
+- New helper `callGeminiJson({ system, user, schema, context })` in `src/lib/country-onboarding/gemini.server.ts`.
+- Uses `LOVABLE_API_KEY` + AI SDK `generateText` with `Output.object` (schema-free prompt fallback if schema validation fails — per `ai-sdk-agent-patterns` guard).
+- Fed the Perplexity partial content (if any) + country context so it can complete/repair rather than start blind.
+- Retries: 1 primary + 1 with `google/gemini-2.5-flash` on failure.
 
-## Fix plan (efficiency + durability, no behavioral change to committed data)
+**Tier 3 — Contextual inference (never throws)**
+- New helper `inferFromContext(stage, country, committedData)` in `src/lib/country-onboarding/inference.server.ts`.
+- Reads what's already committed for the country (region, income group, prior stages: ministries, sectors, sources) plus a small per-stage seed dataset (e.g. standard OECS ministry list, standard SNA sectors, standard SDG KPIs).
+- Returns a valid but marked-provisional payload: every row gets `{ provisional: true, inference_source: "context|seed", confidence: "low" }`.
+- Citations set to `[]`; the commit path already tolerates empty citations.
 
-### A. Stop treating dependency gaps as crashes
+## Wrapper: `runWithFallbacks`
 
-- Add a small `stageDependencies` map in `src/routes/_authenticated/admin/countries.$code.onboard.tsx` describing which committed-stage keys each downstream stage requires (e.g. `ministry_sector_map: ["ministries"]`, `ministry_profiles: ["ministries"]`, `dossiers: ["sectors"]`, `corpus_ingest: ["source_registry"]`, …).
-- In `runAllPending`, before invoking a stage, check the dependency set against `committedStages`. If missing, **skip and record a "waiting on X" note** in a new `skippedStages` state; do not throw. Continue the loop.
-- Show a single inline `Skipped: ministry_sector_map (waiting on ministries commit) · ...` banner alongside `bulkErr`, replacing the crash path.
+New `src/lib/country-onboarding/fallback.server.ts` exports:
 
-### B. Make bulk run resilient to individual failures
+```ts
+runWithFallbacks<T>({
+  stage, country, committed,
+  perplexity: () => Promise<T | null>,   // returns null on empty
+  gemini:     (partial) => Promise<T | null>,
+  infer:      () => T,                    // never throws
+  validate:   (v: T) => boolean,          // e.g. rows.length > 0
+}): Promise<{ data: T; tier: "perplexity" | "gemini" | "inference"; notes: string[] }>
+```
 
-- Wrap each `runners[s.key](...)` call in `runAllPending` (and `rerunAll`) in a `try/catch`. On failure, push `{ stage, message }` into a `runErrors` state and continue instead of aborting the loop.
-- Render `bulkErr` as a collapsible list of per-stage errors, not one giant modal-triggering string.
-- Keeps the queue moving so a single Perplexity hiccup doesn't burn the whole onboarding pass.
+Every agent handler in `agents.functions.ts` is refactored to build the three callbacks and delegate. The `throw new Error("Perplexity returned no ...")` lines are removed — the wrapper always returns data plus a `tier` label.
 
-### C. Convert server-fn crashes into typed results
+## UI surfacing
 
-- Introduce a small helper `okResult<T>(...)` / `errResult(stage, reason, hint?)` return shape used by the top-level of every agent's `.handler`. The handler catches its own throw, calls `finishRun(..., "failed")`, and **returns** `{ ok: false, stage, reason, hint }` instead of rethrowing.
-- Client-side, the bulk runner and `StageCard.doRun` treat `ok:false` as inline red text in the result banner (which already exists at line 397) — no route boundary trip, no full-screen dialog.
-- This changes the class of "expected upstream failures" (empty Perplexity, dependency gap, invalid Firecrawl URL count, 429) from crashes to inline banners. Genuine unexpected exceptions (DB down, missing env var) still throw and still surface the modal — as they should.
+- `agent_runs` gets two new columns: `result_tier` (`perplexity|gemini|inference`) and `fallback_notes` (jsonb array). Migration + GRANTs.
+- Onboarding page shows a small badge next to each committed stage:
+  - green "Perplexity" (default),
+  - amber "Gemini fallback",
+  - grey "Inferred — review".
+- Inferred rows render with an amber left border in `<PrettyJson>` when `provisional: true`.
 
-### D. Reduce request volume in bulk runs
+## Reliability additions
 
-- `runAllPending` currently `await refresh()`s after every stage — 11 stages × full re-fetch of runs/drafts/citations/summaries. Change to a single `refresh()` after the loop plus an optimistic local `committedStages` update between stages (needed only to compute the next iteration's dependency check).
-- Cuts network round-trips by ~10× per bulk run.
+- `callSonar` and `callGeminiJson` wrapped with `pRetry`-style: 2 attempts each, exponential backoff (500ms, 1500ms), only on 429/5xx/network.
+- Bulk `runAllPending` loop already catches per-stage errors (previous fix). With this change, the catch path should be virtually unreachable — errors now only surface for true framework/DB failures.
 
-### E. Harden Perplexity call sites (extend the fix already shipped for Ministries)
+## Technical notes
 
-Apply the same "retry once with `noDomainFilter: true` then include raw content in error" pattern to the six other `parseSonarJson` guards that currently throw on empty:
-`sectors` agent, `kpis` agent, `source_registry`, `sector_dossiers`, `ministry_profiles`, and the `memory_objects` seed. Every one of these can starve on small-nation TLDs and produce the same dialog.
-
-### F. Keep the modal for what it's actually for
-
-- The global error boundary should only be reached by true framework / bundle / auth / DB-outage failures. All of the above changes route "expected agent failures" to inline UI. That is the durability goal.
-
-## Verification
-
-1. Fresh country with no committed stages → click **Run all pending**. Result:
-   - No dialog fires.
-   - Sticky banner ticks through 1→N stages.
-   - Any stage that returns `ok:false` shows an inline red line (`Sectors: Perplexity returned no results, retry queued`).
-   - Downstream stages needing an uncommitted table show `Skipped: ministry_sector_map · waiting on ministries commit`.
-2. Commit ministries manually → click **Run all pending** again → skipped list is now empty, stage 5 runs, still no dialog.
-3. Simulate a Perplexity 500 by temporarily unsetting the API key for one stage → inline red line, other stages proceed, no dialog.
-4. Network tab: bulk run of 10 stages issues 1 `getOnboardingState` refresh (was ~10).
+- Gemini schema calls MUST omit `.min/.max/length` per `ai-sdk-agent-patterns`; constraints go in the prompt, validated in code.
+- `google/gemini-2.5-pro` handles the multimodal/long-context prompts; `flash` is the cheap retry.
+- Inference seeds live in `src/lib/country-onboarding/seeds/` (one file per stage: `ministries.seed.ts`, `sectors.seed.ts`, `kpis.seed.ts`, …) — keeps prompts and default lists reviewable.
+- No changes to Supabase RLS/policies; new columns are admin-only via existing `agent_runs` policies.
 
 ## Out of scope
 
-- Any change to committed data schema, RLS, agent prompts beyond adding the domain-filter retry, or the corpus_ingest auto-commit behavior.
-- Auto-committing ministries/sectors/etc. — those still require admin review; the plan only stops the crash when a downstream stage runs early.
+- Changing existing agent prompts beyond adding the "you may complete a partial answer" instruction to the Gemini tier.
+- Auto-recommitting inferred data — admin still clicks "Commit" to promote drafts.
+- Rewriting the corpus_ingest pipeline (its Perplexity calls stay as-is; only the six structured-JSON agents get the three-tier chain).

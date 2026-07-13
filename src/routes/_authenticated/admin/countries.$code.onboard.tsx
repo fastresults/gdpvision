@@ -262,15 +262,18 @@ function OnboardWizard() {
           stages={STAGES}
           drafts={drafts}
           runs={runs}
+          summaries={summaries}
           countryName={country?.name ?? code}
           keyConfigured={keyStatus.configured}
           runners={runners}
           committers={committers}
           code={code}
           refresh={refresh}
+          onGenerateSummary={(stage) => genSummary({ data: { countryCode: code, stage } }).then(refresh)}
         />
 
       </div>
+
     </SuperAdminShell>
   );
 }

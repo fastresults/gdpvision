@@ -508,54 +508,45 @@ export const runMinistriesAgent = createServerFn({ method: "POST" })
         required: ["ministries", "summary_md", "summary_highlights"],
       } as const;
 
-      let result = await callSonar({
-        model,
-        system:
-          "You are a governance researcher. Return the current canonical ministries of the country. Prefer the official government portal." +
-          SUMMARY_SYSTEM_SUFFIX,
-        user: `List the current cabinet ministries of ${country.name} as of 2026, with the full official name, current minister (if known), and a one-line mandate. Use the government's official website.`,
-        responseSchema: schema as unknown as Record<string, unknown>,
-        recency: "year",
-      });
-
-      let parsed = parseSonarJson<{ ministries: any[] }>(result.content);
-      // Retry once without the domain allowlist — small nations often sit on
-      // TLDs not in OFFICIAL_DOMAINS (e.g. .gov.ag), which starves the search.
-      if (!parsed?.ministries?.length) {
-        result = await callSonar({
+      const fb = await runWithFallbacks<{ ministries: any[]; summary_md?: string; summary_highlights?: any[] }>({
+        perplexity: {
           model,
           system:
-            "You are a governance researcher. Return the current canonical ministries of the country. Prefer official government sources but do not restrict to a fixed domain list." +
+            "You are a governance researcher. Return the current canonical ministries of the country. Prefer the official government portal." +
             SUMMARY_SYSTEM_SUFFIX,
-          user: `List the current cabinet ministries of ${country.name} as of 2026, with the full official name, current minister (if known), and a one-line mandate.`,
+          user: `List the current cabinet ministries of ${country.name} as of 2026, with the full official name, current minister (if known), and a one-line mandate. Use the government's official website.`,
           responseSchema: schema as unknown as Record<string, unknown>,
           recency: "year",
-          noDomainFilter: true,
-        });
-        parsed = parseSonarJson<{ ministries: any[] }>(result.content);
-      }
-      if (!parsed?.ministries?.length) {
-        throw new Error(
-          `Perplexity returned no ministries for ${country.name}. Raw content: ${(result.content ?? "").slice(0, 200)}`
-        );
-      }
+        },
+        gemini: {
+          system: "You are a governance researcher.",
+          user: `List the current cabinet ministries of ${country.name} with slug (kebab-case), full official name, current minister (or null), and one-line mandate.`,
+          schemaHint: `{ "ministries": [{"slug": string, "name": string, "minister": string|null, "mandate": string}], "summary_md": string, "summary_highlights": [{"label": string, "value": string}] }`,
+        },
+        parse: jsonParser<{ ministries: any[] }>(),
+        validate: (v) => !!v?.ministries?.length,
+        infer: () => ({
+          ministries: seedMinistries(country.name),
+          summary_md: `Provisional canonical ministries for ${country.name} — please verify against the government portal.`,
+          summary_highlights: [],
+        }),
+      });
 
-      const inline = extractInlineSummary(parsed);
-
+      const inline = extractInlineSummary(fb.data);
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
         country_code: data.countryCode,
         stage: "ministries",
         target_table: "ministries",
-        payload: parsed,
-        confidence: result.citations.length >= 1 ? "high" : "low",
-        citations: result.citations,
+        payload: fb.data,
+        confidence: fb.tier === "perplexity" && fb.citations.length >= 1 ? "high" : fb.tier === "inferred" ? "low" : "medium",
+        citations: fb.citations,
         summary_md: inline.summary_md,
         summary_highlights: inline.summary_highlights,
       });
 
-      await finishRun(supabaseAdmin, runId, { status: "ready" });
-      return { runId, draftId, ministries: parsed.ministries, citations: result.citations };
+      await finishRun(supabaseAdmin, runId, { status: "ready", model_stack: { ...fb.modelStack, notes: fb.notes } });
+      return { runId, draftId, ministries: fb.data.ministries, citations: fb.citations, tier: fb.tier, notes: fb.notes };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;

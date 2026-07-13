@@ -8,7 +8,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { callSonar, parseSonarJson, type SonarCitation, type SonarModel } from "./perplexity.server";
+import { type SonarCitation, type SonarModel } from "./perplexity.server";
+import { runWithFallbacks, jsonParser } from "./fallback.server";
+import { seedProfile, seedGdp, seedSectorComposition, seedMinistries, seedMinistrySectorMap } from "./seeds.server";
 import { SUMMARY_SCHEMA_FRAGMENT, SUMMARY_SYSTEM_SUFFIX, extractInlineSummary } from "./summary-inline";
 
 type Stage = "profile" | "gdp" | "sector_composition" | "ministries" | "ministry_sector_map";

@@ -1,53 +1,53 @@
-## Fix: make "committed" reflect reality, not just the latest run's status
+## Fix: "Re-commit" showing on stages that were never committed
 
-### Root cause
-`committed` is derived from `lastRun.status === "committed"`. Re-running a stage creates a fresh run in `planning`/`ready`, which flips `committed` to false even though the target table still holds the previously-committed rows. And nothing garbage-collects stuck `planning` runs or superseded drafts.
+### What actually happened on ATG › KPI seed
 
-### Changes
+- `country_kpis` for ATG = **0 rows** → the stage was never committed.
+- Three `kpi_seed` runs all finished in `ready` state (not `committed`) — the agent produced 3 drafts, each holding **18 KPIs** (13/13 required filled). Great drafts, but the admin never pressed Commit.
+- The UI still showed **"Re-commit to country_kpis"** in amber — misleading the admin into thinking data was already committed and this was a re-commit action. In reality it should have said the plain green **"Commit to country_kpis"** because nothing was ever committed.
 
-**1. Server: `listOnboarding` returns a new `committedTargets` map**
-Add per-stage target-row counts to the payload:
+### Root cause in the new code
+
+`hasNewerDraft` in `StageCard` is:
+
+```ts
+const hasNewerDraft = !!draft && (!commitAt || new Date(draft.created_at) > new Date(commitAt));
 ```
-committedTargets: {
-  profile: { rows: 1, lastCommitAt: '2026-07-13T15:13:11Z' },
-  gdp: { rows: 1, ... },
-  sector_composition: { rows: N, ... },
-  source_registry: { rows: 15, ... },
-  ministries: { rows: N, ... },
-  ministry_sector_map: { rows: N, ... },
-  kpi_seed: { rows: 0, ... },
-  sector_dossier: { rows: 0, ... },
-}
+
+When a stage was never committed, `commitAt` is `null`, so `!commitAt` short-circuits to `true` → `hasNewerDraft = true` for every draft — even when the target table has zero rows and the "committed" pill isn't shown. Combined with the branch:
+
+```ts
+{(!committed || hasNewerDraft) && (<button className={hasNewerDraft ? amber : emerald}>{hasNewerDraft ? "Re-commit" : ...}</button>)}
 ```
-`rows` comes from a targeted count query per stage (`countries` for profile/gdp, `country_sectors`, `country_sources`, `ministries`, `ministry_sectors`, `country_kpis`, `sector_dossiers`). `lastCommitAt` = max `finished_at` of committed runs for that stage.
 
-**2. Client: single source of truth for `committed`**
-Replace the two mismatched derivations:
-- Parent progress counter and each stage card BOTH use `committedTargets[stage].rows > 0`.
-- `lastRun.status` is only used for the *activity* line ("Last run: … status planning"), never for the commit badge.
+the button paints amber and labels itself "Re-commit" for uncommitted stages that happen to have a draft.
 
-**3. Four explicit stage states, each with a distinct header UI**
+### Fix
 
-| State | Header shows |
-|---|---|
-| **Committed, no newer draft** | Green `✓ Committed (N rows) · MM/DD HH:mm` pill only |
-| **Committed + newer draft awaiting** | Amber `Re-commit draft to X` button + `✓ Committed (N rows)` pill next to it |
-| **Uncommitted, has draft** | Green `Commit to X` button (current behavior) |
-| **Uncommitted, no draft** | Disabled `Commit (no draft)` with tooltip |
+`hasNewerDraft` must additionally require `committed`:
 
-The Re-run confirmation for a committed stage adds: *"Existing committed rows stay until you commit the new draft."*
+```ts
+const hasNewerDraft = committed && !!draft && !!commitAt && new Date(draft.created_at) > new Date(commitAt);
+```
 
-**4. Draft hygiene**
-- `listOnboarding` returns only the newest draft per stage; older drafts are labeled `superseded: true` and hidden from the header (available in "View raw" for debug).
-- Add a server-fn `reconcileStuckRuns(countryCode)` that marks `onboarding_runs` older than 15 min in `planning`/`ready` with no `finished_at` as `stale`. Called automatically on page load. Never touches `committed` runs or the target tables.
+Result matrix (unchanged plan, now correct):
 
-**5. One-time cleanup for ATG**
-The two stuck `planning` runs (`kpi_seed` 16:41, `sector_dossier` 16:41) will be reconciled to `stale` so their earlier `ready` drafts become the surfaced draft again — the commit button will actually work.
+| Target rows | Draft? | Draft > lastCommit? | Header |
+|---|---|---|---|
+| 0 | no | — | disabled "Commit (no draft)" |
+| 0 | yes | — | green **"Commit to X"** ← was broken (said "Re-commit") |
+| >0 | no | — | green `✓ Committed (N)` pill only |
+| >0 | yes | no | green `✓ Committed (N)` pill only (draft is stale/same generation) |
+| >0 | yes | yes | green `✓ Committed (N)` pill + amber **"Re-commit to X"** |
+
+### Also: surface why nothing was committed
+
+To prevent the same confusion on other countries, when a draft exists but the stage has never been committed, show a subtle hint under the stage description: *"Draft ready with N item(s) — press Commit to write to `<table>`."* Reuses `draft.payload` size where trivially available (KPI seed: `payload.kpis.length`; ministries: `payload.ministries.length`; etc.), falls back to just "Draft ready" when shape is unknown.
 
 ### Files touched
-- `src/lib/country-onboarding/list.functions.ts` (or wherever `listOnboarding` lives) — add `committedTargets`, dedupe drafts, expose `reconcileStuckRuns`.
-- `src/routes/_authenticated/admin/countries.$code.onboard.tsx` — swap `committed` derivation, add the four-state header, call `reconcileStuckRuns` on mount.
-- No schema migration. No changes to committed data. No changes to the research pipeline.
 
-### Out of scope
-Changing what happens *during* commit, the research pipeline, or the domain-promotion logic. Purely a display-truth + draft-hygiene fix.
+- `src/routes/_authenticated/admin/countries.$code.onboard.tsx` — one-line fix to `hasNewerDraft`, plus the small "Draft ready with N item(s)" hint. No server, no schema, no data migration.
+
+### Not in scope
+
+The KPI agent itself is working correctly (13/13 required filled). The 3 uncommitted drafts on ATG will resolve the moment the admin presses the newly-correct green "Commit to country_kpis" button.

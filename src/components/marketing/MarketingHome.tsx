@@ -138,7 +138,7 @@ export function MarketingHome() {
             </h1>
             <div
               aria-live="polite"
-              className="mt-8 min-h-[260px] md:min-h-[300px]"
+              className="mt-8 min-h-[160px] md:min-h-[180px]"
             >
               <div
                 key={current.id}

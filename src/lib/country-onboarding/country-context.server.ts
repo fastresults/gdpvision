@@ -48,6 +48,8 @@ export type CountryContext = {
   portal: string | null;
   statsOffice: string | null;
   centralBank: string | null;
+  /** Learned domains promoted from prior open-web passes. */
+  learnedDomains: Array<{ domain: string; tier: string }>;
   // Prior committed data (empty when stage not yet committed)
   committed: {
     profile: any | null;

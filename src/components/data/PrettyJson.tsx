@@ -302,54 +302,9 @@ function CitationDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 mt-2">
-          {refs.map((n) => {
-            const c = citations[n - 1];
-            if (!c) {
-              return (
-                <div key={n} className="border border-line-200 p-3">
-                  <div className="font-mono text-[10px] uppercase tracking-widest text-ink-500 mb-1">[{n}]</div>
-                  <p className="text-sm text-ink-400">Source unavailable</p>
-                </div>
-              );
-            }
-            return (
-              <article key={n} className="border border-line-200 p-4 space-y-2">
-                <header className="flex items-baseline justify-between gap-3">
-                  <div className="font-mono text-[10px] uppercase tracking-widest text-ink-500">
-                    [{n}] · {domainOf(c)}
-                  </div>
-                  {c.published_at && (
-                    <div className="font-mono text-[10px] text-ink-400 tabular-nums">
-                      {new Date(c.published_at).toISOString().slice(0, 10)}
-                    </div>
-                  )}
-                </header>
-                {c.title && (
-                  <a
-                    href={c.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block font-serif text-base text-ink-950 hover:underline"
-                  >
-                    {c.title}
-                  </a>
-                )}
-                {c.quote && (
-                  <blockquote className="border-l-2 border-line-200 pl-3 text-sm text-ink-700 italic leading-relaxed">
-                    {c.quote}
-                  </blockquote>
-                )}
-                <a
-                  href={c.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block font-mono text-[11px] text-ink-500 hover:text-ink-950 underline break-all"
-                >
-                  {c.url}
-                </a>
-              </article>
-            );
-          })}
+          {refs.map((n) => (
+            <CitationCard key={n} n={n} citation={citations[n - 1]} />
+          ))}
         </div>
       </DialogContent>
     </Dialog>

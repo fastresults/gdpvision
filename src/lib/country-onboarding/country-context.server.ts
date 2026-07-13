@@ -71,9 +71,14 @@ export async function buildCountryContext(admin: any, code: string): Promise<Cou
   const meta = COUNTRY_META[iso3] ?? null;
   const regEntry = CARICOM_OECS_REGISTRY.find((r) => r.code === iso3);
 
-  const [sectorsRes, ministriesRes] = await Promise.all([
+  const [sectorsRes, ministriesRes, learnedRes] = await Promise.all([
     admin.from("country_sectors").select("sector_code, share_pct").eq("country_code", code),
     admin.from("ministries").select("slug, name").eq("country_code", code),
+    admin
+      .from("country_authorized_domains")
+      .select("domain, tier")
+      .eq("country_code", code)
+      .is("demoted_at", null),
   ]);
 
   const ministrySlugs = (ministriesRes.data ?? []).map((m: any) => m.slug);

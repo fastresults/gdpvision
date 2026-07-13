@@ -266,35 +266,76 @@ function OnboardWizard() {
   );
 
 
+  // Auto-commit a stage's draft after a successful run when it's eligible:
+  // - draft exists, non-empty payload, has citations (mirrors the Commit button gate).
+  // Silent no-op if the stage doesn't meet the bar; the user can still commit manually.
+  async function tryAutoCommit(stage: Stage): Promise<boolean> {
+    // Corpus ingest auto-commits inside the agent; skip here.
+    if (stage === "corpus_ingest") return false;
+    const st = await getOnboardingStatus({ data: { countryCode: code } });
+    const d = st.drafts.find((x: any) => x.stage === stage && !x.superseded);
+    if (!d) return false;
+    const cites = (d as any).citations?.length ?? 0;
+    if (cites === 0) return false;
+    // Non-empty payload check (mirrors StageCard.draftItemCount)
+    const p: any = d.payload;
+    let hasItems = false;
+    if (Array.isArray(p)) hasItems = p.length > 0;
+    else if (p && typeof p === "object") {
+      for (const k of ["kpis", "ministries", "rows", "sources", "items", "mappings", "dossiers", "memories"]) {
+        if (Array.isArray(p[k]) && p[k].length > 0) { hasItems = true; break; }
+      }
+      if (!hasItems && Object.keys(p).length > 0) hasItems = true; // scalar-payload stages (profile/gdp)
+    }
+    if (!hasItems) return false;
+    try {
+      await committers[stage]({ data: { draftId: d.id } });
+      return true;
+    } catch (e) {
+      console.error("[onboarding] auto-commit failed", stage, e);
+      return false;
+    }
+  }
+
+  // Real DAG (derived from server-side hard-throw checks). Level = parallel batch.
+  const PIPELINE_LEVELS: Stage[][] = [
+    ["profile", "gdp", "sector_composition", "ministries", "source_registry", "kpi_seed"],
+    ["ministry_sector_map", "sector_dossier", "ministry_deep_dive", "corpus_ingest"],
+    ["second_brain_seed"],
+  ];
+
+  async function runStage(stage: Stage, errors: Array<{ stage: Stage; message: string }>) {
+    try {
+      await runners[stage]({ data: { countryCode: code } });
+      await tryAutoCommit(stage);
+    } catch (e: any) {
+      const msg = e?.message ?? String(e);
+      // Swallow "already in progress" as a soft skip (another tab is running it).
+      if (/already in progress/i.test(msg)) return;
+      errors.push({ stage, message: msg });
+    }
+  }
+
   async function runAllPending() {
     setBulkErr(null);
     setRunErrors([]);
     setSkippedStages([]);
     setBulkRunning("pending");
     const errors: Array<{ stage: Stage; message: string }> = [];
-    const skipped: Array<{ stage: Stage; waitingOn: Stage[] }> = [];
-    // Optimistic local view so we don't need to refetch between stages just to
-    // update the dependency check.
-    const localCommitted = new Set<string>(committedStages);
     try {
-      for (const s of STAGES) {
-        const hasDraft = drafts.some((d) => d.stage === s.key);
-        if (localCommitted.has(s.key) || hasDraft) continue;
-        const deps = STAGE_DEPENDENCIES[s.key] ?? [];
-        const missing = deps.filter((d) => !localCommitted.has(d));
-        if (missing.length) {
-          skipped.push({ stage: s.key, waitingOn: missing });
-          continue;
-        }
-        try {
-          await runners[s.key]({ data: { countryCode: code } });
-        } catch (e: any) {
-          errors.push({ stage: s.key, message: e?.message ?? String(e) });
-        }
+      for (const level of PIPELINE_LEVELS) {
+        // Snapshot ground truth per level so downstream stages see committed upstream.
+        const st = await getOnboardingStatus({ data: { countryCode: code } });
+        const committed = new Set<string>(
+          STAGES.filter((s) => (st.committedTargets as any)?.[s.key]?.rows > 0).map((s) => s.key),
+        );
+        const draftedStages = new Set<string>(st.drafts.filter((d: any) => !d.superseded).map((d: any) => d.stage));
+        const pending = level.filter((s) => !committed.has(s) && !draftedStages.has(s));
+        if (pending.length === 0) continue;
+        await Promise.all(pending.map((s) => runStage(s, errors)));
       }
     } finally {
       setRunErrors(errors);
-      setSkippedStages(skipped);
       await refresh();
       setBulkRunning(false);
     }
@@ -307,12 +348,8 @@ function OnboardWizard() {
     setBulkRunning("all");
     const errors: Array<{ stage: Stage; message: string }> = [];
     try {
-      for (const s of STAGES) {
-        try {
-          await runners[s.key]({ data: { countryCode: code } });
-        } catch (e: any) {
-          errors.push({ stage: s.key, message: e?.message ?? String(e) });
-        }
+      for (const level of PIPELINE_LEVELS) {
+        await Promise.all(level.map((s) => runStage(s, errors)));
       }
     } finally {
       setRunErrors(errors);
@@ -320,6 +357,7 @@ function OnboardWizard() {
       setBulkRunning(false);
     }
   }
+
 
   return (
     <SuperAdminShell

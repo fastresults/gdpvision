@@ -9,6 +9,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { callSonar, parseSonarJson, type SonarCitation, type SonarModel } from "./perplexity.server";
+import { SUMMARY_SCHEMA_FRAGMENT, SUMMARY_SYSTEM_SUFFIX, extractInlineSummary } from "./summary-inline";
 
 type Stage = "profile" | "gdp" | "sector_composition" | "ministries" | "ministry_sector_map";
 

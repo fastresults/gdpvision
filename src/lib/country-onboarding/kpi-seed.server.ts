@@ -208,6 +208,7 @@ export async function runKpiSeedResearch(args: {
   userId?: string | null;
   runInference?: boolean;
   autoCommit?: boolean;
+  onProgress?: (plan: Record<string, unknown>) => Promise<void>;
 }) {
   const { registryFor, findRegistryEntry } = await import("./kpi-registry");
   const research = await import("./kpi-research.server");
@@ -226,14 +227,16 @@ export async function runKpiSeedResearch(args: {
   const writeProgress = async (patch: Partial<KpiProgressState> = {}) => {
     Object.assign(progress, patch);
     const coverageNow = research.coverageOf(registry, values);
-    await updateRunPlan(args.admin, args.runId, {
+    const plan = {
       kind: "kpi_seed_progress",
       ...progress,
       filled: coverageNow.filled,
       missing: coverageNow.missing.length,
       missingKpis: coverageNow.missing,
       updatedAt: new Date().toISOString(),
-    });
+    };
+    await updateRunPlan(args.admin, args.runId, plan);
+    await args.onProgress?.(plan);
   };
 
   const persistAttempts = async (attempts: Array<import("./kpi-research.server").AttemptRecord>) => {

@@ -2095,10 +2095,21 @@ export const commitCapitalFlows = createServerFn({ method: "POST" })
       });
     }
 
-    // Upsert one row per node_key + period. Idempotent rerun.
+    // Replace this country's prior flow ledger before writing the reviewed
+    // workbook. Stage 12 is a coherent Sankey snapshot, so stale node rows from
+    // earlier runs or mixed source periods must not remain visible.
+    const { error: clearErr } = await supabaseAdmin
+      .from("country_capital_flows")
+      .delete()
+      .eq("country_code", draft.country_code);
+    if (clearErr) throw clearErr;
+
+    // Upsert one row per node_key under the draft's ledger period. Individual
+    // source periods remain in notes/evidence; the Sankey itself uses one
+    // period so the chart can render the complete ledger together.
     let upserted = 0;
     for (const f of payload.flows) {
-      const period = f.period || payload.period;
+      const period = payload.period || f.period;
       const noteParts = [f.notes ?? null];
       if (f.formula) noteParts.push(`Formula: ${f.formula}`);
       if (f.source_kind) noteParts.push(`Source basis: ${f.source_kind}`);

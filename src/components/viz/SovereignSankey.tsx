@@ -213,7 +213,21 @@ export function SovereignSankey({ countryCode }: { countryCode: string }) {
         </div>
       </div>
 
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" onMouseLeave={() => setHover(null)}>
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full h-auto"
+        onMouseLeave={() => setHover(null)}
+        onKeyDown={(e) => { if (e.key === "Escape") setHover(null); }}
+      >
+        <defs>
+          <filter id="sankey-callout-shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+            <feOffset dx="0" dy="2" result="off" />
+            <feComponentTransfer><feFuncA type="linear" slope="0.18" /></feComponentTransfer>
+            <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+        </defs>
+
         <g>
           {flows.map((f, i) => {
             const on = activeSet ? activeSet.has(f.from) && activeSet.has(f.to) : true;
@@ -222,38 +236,93 @@ export function SovereignSankey({ countryCode }: { countryCode: string }) {
                 key={i}
                 d={ribbon(f.x0, f.y0, f.h0, f.x1, f.y1, f.h1)}
                 fill={f.color}
-                opacity={activeSet ? (on ? 0.75 : 0.06) : 0.42}
-                style={{ transition: "opacity 120ms" }}
+                opacity={activeSet ? (on ? 0.88 : 0.05) : 0.42}
+                style={{ transition: "opacity 140ms" }}
+                onMouseEnter={() => setHover(f.from === "TREASURY" ? f.to : f.from)}
               />
             );
           })}
         </g>
 
-        {/* Left labels */}
+        {/* Left nodes */}
         {inputs.map((n) => {
           const active = !activeSet || activeSet.has(n.key);
+          const focused = hover === n.key;
+          const showInline = n.h > 12 && !hover;
+          const showLeader = n.h < 14 && !hover;
           return (
-            <g key={n.key} onMouseEnter={() => setHover(n.key)} style={{ cursor: "pointer" }}>
-              <rect x={COL_L} y={n.y} width={NODE_W} height={n.h} fill={n.color} opacity={active ? 1 : 0.25} />
-              {n.h > 12 && (
+            <g
+              key={n.key}
+              onMouseEnter={() => setHover(n.key)}
+              onFocus={() => setHover(n.key)}
+              onTouchStart={() => setHover(n.key)}
+              tabIndex={0}
+              style={{ cursor: "pointer", outline: "none" }}
+            >
+              <title>{`${n.label} — ${fmtUsdM(n.amount)} — ${fmtPct(n.amount, overview.totals.inputs)} of inputs`}</title>
+              <rect
+                x={COL_L}
+                y={n.y}
+                width={NODE_W}
+                height={n.h}
+                fill={n.color}
+                opacity={active ? 1 : 0.22}
+                stroke={focused ? "var(--ink-950, #0a0a0a)" : "none"}
+                strokeWidth={focused ? 2 : 0}
+                style={{ transition: "opacity 140ms" }}
+              />
+              {showInline && (
                 <text
                   x={COL_L + NODE_W + 8}
                   y={n.y + n.h / 2}
                   dominantBaseline="middle"
                   className="fill-ink-900 text-[12px]"
-                  opacity={active ? 1 : 0.35}
                 >
                   <tspan fontWeight={600}>{n.label}</tspan>
                   <tspan className="fill-ink-500 tabular-nums" dx={6}>· {fmtUsdM(n.amount)}</tspan>
                 </text>
+              )}
+              {showLeader && (
+                <g opacity={0.7}>
+                  <line
+                    x1={COL_L + NODE_W}
+                    y1={n.y + n.h / 2}
+                    x2={COL_L + NODE_W + 12}
+                    y2={n.y + n.h / 2}
+                    stroke="var(--ink-500, #6b7280)"
+                    strokeDasharray="2 2"
+                    strokeWidth={1}
+                  />
+                  <text
+                    x={COL_L + NODE_W + 16}
+                    y={n.y + n.h / 2}
+                    dominantBaseline="middle"
+                    className="fill-ink-500 text-[10px]"
+                  >
+                    {n.label}
+                  </text>
+                </g>
               )}
             </g>
           );
         })}
 
         {/* Treasury center */}
-        <g onMouseEnter={() => setHover(center.key)} style={{ cursor: "pointer" }}>
-          <rect x={COL_M} y={center.y} width={NODE_W} height={center.h} fill={center.color} />
+        <g
+          onMouseEnter={() => setHover(center.key)}
+          onFocus={() => setHover(center.key)}
+          tabIndex={0}
+          style={{ cursor: "pointer", outline: "none" }}
+        >
+          <rect
+            x={COL_M}
+            y={center.y}
+            width={NODE_W}
+            height={center.h}
+            fill={center.color}
+            stroke={hover === "TREASURY" ? "var(--ink-950, #0a0a0a)" : "none"}
+            strokeWidth={hover === "TREASURY" ? 2 : 0}
+          />
           <text x={COL_M + NODE_W / 2} y={center.y + center.h / 2 - 10} textAnchor="middle" className="fill-ink-950 font-mono text-[12px] uppercase tracking-[0.16em]" fontWeight={700}>
             Consolidated
           </text>
@@ -265,28 +334,172 @@ export function SovereignSankey({ countryCode }: { countryCode: string }) {
           </text>
         </g>
 
-        {/* Right labels */}
+        {/* Right nodes */}
         {outputs.map((n) => {
           const active = !activeSet || activeSet.has(n.key);
+          const focused = hover === n.key;
+          const showInline = n.h > 12 && !hover;
+          const showLeader = n.h < 14 && !hover;
           return (
-            <g key={n.key} onMouseEnter={() => setHover(n.key)} style={{ cursor: "pointer" }}>
-              <rect x={COL_R} y={n.y} width={NODE_W} height={n.h} fill={n.color} opacity={active ? 1 : 0.25} />
-              {n.h > 12 && (
+            <g
+              key={n.key}
+              onMouseEnter={() => setHover(n.key)}
+              onFocus={() => setHover(n.key)}
+              onTouchStart={() => setHover(n.key)}
+              tabIndex={0}
+              style={{ cursor: "pointer", outline: "none" }}
+            >
+              <title>{`${n.label} — ${fmtUsdM(n.amount)} — ${fmtPct(n.amount, overview.totals.outputs)} of outputs`}</title>
+              <rect
+                x={COL_R}
+                y={n.y}
+                width={NODE_W}
+                height={n.h}
+                fill={n.color}
+                opacity={active ? 1 : 0.22}
+                stroke={focused ? "var(--ink-950, #0a0a0a)" : "none"}
+                strokeWidth={focused ? 2 : 0}
+                style={{ transition: "opacity 140ms" }}
+              />
+              {showInline && (
                 <text
                   x={COL_R - 8}
                   y={n.y + n.h / 2}
                   dominantBaseline="middle"
                   textAnchor="end"
                   className="fill-ink-900 text-[12px]"
-                  opacity={active ? 1 : 0.35}
                 >
                   <tspan fontWeight={600}>{n.label}</tspan>
                   <tspan className="fill-ink-500 tabular-nums" dx={6}>· {fmtUsdM(n.amount)}</tspan>
                 </text>
               )}
+              {showLeader && (
+                <g opacity={0.7}>
+                  <line
+                    x1={COL_R}
+                    y1={n.y + n.h / 2}
+                    x2={COL_R - 12}
+                    y2={n.y + n.h / 2}
+                    stroke="var(--ink-500, #6b7280)"
+                    strokeDasharray="2 2"
+                    strokeWidth={1}
+                  />
+                  <text
+                    x={COL_R - 16}
+                    y={n.y + n.h / 2}
+                    dominantBaseline="middle"
+                    textAnchor="end"
+                    className="fill-ink-500 text-[10px]"
+                  >
+                    {n.label}
+                  </text>
+                </g>
+              )}
             </g>
           );
         })}
+
+        {/* Hover callout */}
+        {hover && (() => {
+          const isTreasury = hover === "TREASURY";
+          const node = isTreasury
+            ? center
+            : inputs.find((n) => n.key === hover) ?? outputs.find((n) => n.key === hover);
+          if (!node) return null;
+          const isLeft = node.side === "L";
+          const isRight = node.side === "R";
+          const total = isLeft ? overview.totals.inputs : isRight ? overview.totals.outputs : grand;
+          const shareLabel = isTreasury
+            ? "consolidated total"
+            : isLeft ? "of inputs" : "of outputs";
+          const v = isTreasury ? null : overview.values.find((x) => x.node_key === node.key);
+          const cite = v?.citations?.[0];
+
+          const CW = 300;
+          const labelLen = node.label.length;
+          const dynW = Math.max(CW, labelLen * 10 + 40);
+          const CH = v?.notes ? 132 : 108;
+
+          let cx: number;
+          let anchor: "start" | "end" | "middle" = "start";
+          if (isLeft) {
+            cx = COL_L + NODE_W + 14;
+            anchor = "start";
+          } else if (isRight) {
+            cx = COL_R - 14;
+            anchor = "end";
+          } else {
+            cx = COL_M + NODE_W / 2;
+            anchor = "middle";
+          }
+          const rectX = anchor === "start" ? cx - 12 : anchor === "end" ? cx - dynW + 12 : cx - dynW / 2;
+          const centerY = node.y + node.h / 2;
+          const rectY = Math.max(8, Math.min(H - CH - 8, centerY - CH / 2));
+          const textX = anchor === "start" ? cx : anchor === "end" ? cx : cx;
+
+          return (
+            <g style={{ pointerEvents: "none", transition: "opacity 140ms", opacity: 1 }}>
+              <rect
+                x={rectX}
+                y={rectY}
+                width={dynW}
+                height={CH}
+                rx={8}
+                fill="var(--paper-0, #ffffff)"
+                stroke="var(--line-200, #e5e7eb)"
+                strokeWidth={1}
+                filter="url(#sankey-callout-shadow)"
+              />
+              <text
+                x={textX}
+                y={rectY + 26}
+                textAnchor={anchor}
+                className="fill-ink-950 text-[18px]"
+                style={{ fontFamily: "var(--font-serif, Georgia, serif)", fontWeight: 600 }}
+              >
+                {node.label}
+              </text>
+              <text
+                x={textX}
+                y={rectY + 58}
+                textAnchor={anchor}
+                className="fill-ink-950 font-mono text-[24px] tabular-nums"
+                fontWeight={700}
+              >
+                {fmtUsdM(node.amount)}
+              </text>
+              <text
+                x={textX}
+                y={rectY + 80}
+                textAnchor={anchor}
+                className="fill-ink-500 font-mono text-[11px] uppercase tracking-[0.16em] tabular-nums"
+              >
+                {isTreasury ? fmtUsdM(grand) : `${fmtPct(node.amount, total)} ${shareLabel}`}
+              </text>
+              {v && (
+                <text
+                  x={textX}
+                  y={rectY + 100}
+                  textAnchor={anchor}
+                  className="fill-ink-500 font-mono text-[10px] uppercase tracking-[0.14em]"
+                >
+                  {v.method} · {v.confidence_grade}
+                  {cite?.domain ? ` · ${cite.domain}` : ""}
+                </text>
+              )}
+              {v?.notes && (
+                <text
+                  x={textX}
+                  y={rectY + 120}
+                  textAnchor={anchor}
+                  className="fill-ink-600 text-[11px]"
+                >
+                  {v.notes.length > 60 ? v.notes.slice(0, 58) + "…" : v.notes}
+                </text>
+              )}
+            </g>
+          );
+        })()}
       </svg>
 
       <div className="mt-3 flex items-center justify-between gap-4 text-[11px] text-ink-500">
@@ -314,6 +527,7 @@ export function SovereignSankey({ countryCode }: { countryCode: string }) {
           );
         })()}
       </div>
+
 
       {overview.values.some((v) => v.method === "modelled" || /Formula:|Source basis:/i.test(v.notes ?? "")) && (
         <div className="mt-3 border-t border-line-200 pt-3">

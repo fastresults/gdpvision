@@ -1843,9 +1843,251 @@ export const commitSecondBrainSeed = createServerFn({ method: "POST" })
   });
 
 
+
 // ============================================================
-// Utility: connector / key status
+// Stage 12: Capital Flows — Sovereign Sankey ledger (USD $M)
 // ============================================================
+
+const CapitalFlowsSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    period: { type: "string", description: "Fiscal year the values refer to, e.g. '2023'." },
+    flows: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          node_key: {
+            type: "string",
+            enum: [
+              "TOURISM_SPEND","CBI_INFLOWS","FDI_NET","REMITTANCES","ODA_GRANTS","TAX_REVENUE",
+              "WAGES_AGRI","INFRA_CAPEX","DEBT_SERVICE","DIGITAL_HEALTH_CAPEX","ENERGY_IMPORT","IMPORT_LEAKAGE",
+            ],
+          },
+          value_usd_m: { type: "number", description: "Value in USD millions." },
+          period: { type: "string" },
+          method: { type: "string", enum: ["reported","derived","modelled"] },
+          confidence_grade: { type: "string", enum: ["A","B","C"] },
+          source_url: { type: "string" },
+          source_org: { type: "string" },
+          notes: { type: "string" },
+        },
+        required: ["node_key","value_usd_m","period","method","confidence_grade","source_url","source_org","notes"],
+      },
+    },
+    ...SUMMARY_SCHEMA_FRAGMENT,
+  },
+  required: ["period","flows","summary_md","summary_highlights"],
+} as const;
+
+export const runCapitalFlowsAgent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const country = await loadCountry(supabaseAdmin, data.countryCode);
+
+    const model: SonarModel = "sonar-reasoning-pro";
+    const runId = await openRun(supabaseAdmin, {
+      country_code: data.countryCode,
+      stage: "capital_flows",
+      userId: context.userId,
+      model_stack: { perplexity: model },
+    });
+
+    try {
+      const currency = country.currency ?? "USD";
+      const result = await callSonar({
+        model,
+        system:
+          "You are a sovereign-macro analyst building a Balance-of-Payments + Fiscal capital-flow ledger. " +
+          "Return one JSON object with a `flows` array. Include EVERY node_key that applies for this country from the enumerated list. " +
+          "value_usd_m is USD millions (convert from local currency if needed and note the FX rate). " +
+          "Prefer authoritative primary sources: IMF Article IV, World Bank IDS/WDI, ECCB/central bank BOP tables, UNWTO/CTO (tourism), UNCTAD FDI/STAT, OECD DAC (ODA), the country's own Ministry of Finance Budget / Estimates of Revenue & Expenditure, and CIU annual reports (for CBI countries). " +
+          "confidence_grade: A = official primary; B = multilateral secondary or recent budget; C = modelled/estimated. " +
+          "method: 'reported' if directly from a table, 'derived' if computed from disclosed components, 'modelled' if reasoned. " +
+          "For any node that does not apply (e.g. CBI where there is no programme), OMIT the row — do not zero it out. " +
+          "Every flow needs a source_url. Use the same period across the ledger; use the most recent complete fiscal year available." +
+          SUMMARY_SYSTEM_SUFFIX,
+        user: `Country: ${country.name} (${country.iso3 ?? country.code}). Local currency: ${currency}. Assemble the capital-flow ledger in USD millions for the most recent complete fiscal year. Node definitions:
+- TOURISM_SPEND: Gross tourism receipts (BOP travel credits).
+- CBI_INFLOWS: Citizenship-by-Investment fiscal receipts (0 or omit if no programme).
+- FDI_NET: Foreign Direct Investment, net inflows.
+- REMITTANCES: Personal remittances received.
+- ODA_GRANTS: Official development assistance, grant component.
+- TAX_REVENUE: Domestic tax revenue collected by central government.
+- WAGES_AGRI: Central-government wage bill plus agricultural value-add.
+- INFRA_CAPEX: Public works & infrastructure capital expenditure.
+- DEBT_SERVICE: External public debt service (P+I).
+- DIGITAL_HEALTH_CAPEX: Digital & health capital expenditure.
+- ENERGY_IMPORT: Fuel and utility imports.
+- IMPORT_LEAKAGE: Other merchandise imports not captured above.
+Return summary_md as a 2-3 sentence executive read of what dominates the ledger. summary_highlights: 3-5 label/value chips.`,
+        responseSchema: CapitalFlowsSchema as unknown as Record<string, unknown>,
+        recency: "year",
+      });
+
+      const parsed = parseSonarJson<{ period: string; flows: any[] }>(result.content);
+      if (!parsed?.flows?.length) throw new Error("Perplexity returned no capital flows");
+      const inline = extractInlineSummary(parsed);
+
+      // Reconciliation preview
+      const { data: registry } = await supabaseAdmin.from("capital_flow_nodes").select("node_key, side");
+      const sideByKey = new Map<string, "input" | "output">();
+      for (const r of registry ?? []) sideByKey.set(r.node_key, r.side as any);
+      let sumIn = 0, sumOut = 0;
+      for (const f of parsed.flows) {
+        const side = sideByKey.get(f.node_key);
+        if (side === "input") sumIn += Number(f.value_usd_m ?? 0);
+        else if (side === "output") sumOut += Number(f.value_usd_m ?? 0);
+      }
+      const residual = sumIn - sumOut;
+      const reconciliationPct = sumIn > 0 ? Math.abs(residual) / sumIn : 0;
+
+      const draftId = await saveDraft(supabaseAdmin, {
+        run_id: runId,
+        country_code: data.countryCode,
+        stage: "capital_flows",
+        target_table: "country_capital_flows",
+        payload: { ...parsed, reconciliation: { sumIn, sumOut, residual, residual_pct: reconciliationPct } },
+        confidence: reconciliationPct < 0.1 && result.citations.length >= 3 ? "high" : reconciliationPct < 0.25 ? "medium" : "low",
+        citations: result.citations,
+        summary_md: inline.summary_md,
+        summary_highlights: inline.summary_highlights,
+      });
+
+      await finishRun(supabaseAdmin, runId, {
+        status: "ready",
+        error: reconciliationPct > 0.25 ? `reconciliation off by ${(reconciliationPct * 100).toFixed(0)}%` : null,
+      });
+      return { runId, draftId, count: parsed.flows.length, reconciliationPct };
+    } catch (err) {
+      await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
+      throw err;
+    }
+  });
+
+export const commitCapitalFlows = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => CommitInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: draft, error } = await supabaseAdmin
+      .from("onboarding_drafts")
+      .select("*")
+      .eq("id", data.draftId)
+      .single();
+    if (error || !draft) throw new Error("Draft not found");
+    const payload = (data.editedPayload ?? draft.payload) as {
+      period: string;
+      flows: Array<{
+        node_key: string;
+        value_usd_m: number;
+        period?: string;
+        method: string;
+        confidence_grade: string;
+        source_url: string;
+        source_org: string;
+        notes?: string;
+      }>;
+    };
+
+    // Snapshot ordered citations from onboarding_citations (1-indexed).
+    const { data: cites } = await supabaseAdmin
+      .from("onboarding_citations")
+      .select("url, domain, title")
+      .eq("draft_id", draft.id)
+      .order("created_at", { ascending: true });
+    const orderedCitations = (cites ?? []).map((c: any) => ({ url: c.url, domain: c.domain, title: c.title }));
+
+    // Auto-attach source per unique source_url so ribbons open the source modal.
+    const { upsertCountrySource } = await import("@/lib/country-data/sources.server");
+    const seenSources = new Set<string>();
+    for (const f of payload.flows) {
+      if (!f.source_url || seenSources.has(f.source_url)) continue;
+      if (!isValidHttpUrl(f.source_url)) continue;
+      seenSources.add(f.source_url);
+      await upsertCountrySource(supabaseAdmin, {
+        country_code: draft.country_code,
+        url: f.source_url,
+        title: `${f.source_org} — capital-flow source`,
+        org: f.source_org || "Auto",
+        kind: "flow_source",
+        tags: ["auto", "capital_flow"],
+        quality_score: f.confidence_grade === "A" ? 5 : f.confidence_grade === "B" ? 4 : 3,
+        active: true,
+        created_by: context.userId,
+      });
+    }
+
+    // Upsert one row per node_key + period. Idempotent rerun.
+    let upserted = 0;
+    for (const f of payload.flows) {
+      const period = f.period || payload.period;
+      const { error: upErr } = await supabaseAdmin
+        .from("country_capital_flows")
+        .upsert(
+          {
+            country_code: draft.country_code,
+            node_key: f.node_key,
+            period,
+            value_usd_m: Number(f.value_usd_m),
+            method: f.method || "reported",
+            confidence_grade: f.confidence_grade || "C",
+            notes: f.notes ?? null,
+            citations: orderedCitations as any,
+          },
+          { onConflict: "country_code,node_key,period" },
+        );
+      if (!upErr) upserted++;
+    }
+
+    // Reconciliation residual — insert if inputs and outputs disagree > 10%.
+    const { data: registry } = await supabaseAdmin.from("capital_flow_nodes").select("node_key, side");
+    const sideByKey = new Map<string, string>();
+    for (const r of registry ?? []) sideByKey.set(r.node_key, r.side);
+    let sumIn = 0, sumOut = 0;
+    for (const f of payload.flows) {
+      const s = sideByKey.get(f.node_key);
+      if (s === "input") sumIn += Number(f.value_usd_m ?? 0);
+      else if (s === "output") sumOut += Number(f.value_usd_m ?? 0);
+    }
+    const residual = sumIn - sumOut;
+    if (Math.abs(residual) > 0.01 && sumIn > 0 && Math.abs(residual) / sumIn > 0.1) {
+      // The residual goes on the side with the smaller total, to balance the diagram.
+      const nodeKey = "RECONCILIATION_RESIDUAL";
+      await supabaseAdmin.from("country_capital_flows").upsert(
+        {
+          country_code: draft.country_code,
+          node_key: nodeKey,
+          period: payload.period,
+          value_usd_m: Math.abs(residual),
+          method: "residual",
+          confidence_grade: "C",
+          notes: residual > 0 ? "Auto-balancer: inputs exceed disclosed outputs" : "Auto-balancer: outputs exceed disclosed inputs",
+          citations: orderedCitations as any,
+        },
+        { onConflict: "country_code,node_key,period" },
+      );
+    } else {
+      // Clean up any stale residual for this period.
+      await supabaseAdmin
+        .from("country_capital_flows")
+        .delete()
+        .eq("country_code", draft.country_code)
+        .eq("node_key", "RECONCILIATION_RESIDUAL")
+        .eq("period", payload.period);
+    }
+
+    await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
+    return { ok: true, upserted, reconciliation: { sumIn, sumOut, residual } };
+  });
+
+
 
 export const getIngestKeysStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

@@ -10,9 +10,11 @@
 // Counsel/dossiers can retrieve with vector similarity.
 
 import { createServerFn } from "@tanstack/react-start";
+import { generateText } from "ai";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 import { callSonar, parseSonarJson, type SonarCitation, type SonarModel } from "./perplexity.server";
 import { SUMMARY_SCHEMA_FRAGMENT, SUMMARY_SYSTEM_SUFFIX, extractInlineSummary } from "./summary-inline";
 import { normalizeMemoryTitle, isUniqueViolation } from "./memory-dedup";
@@ -1607,6 +1609,88 @@ const SecondBrainSchema = {
   required: ["memories", "summary_md", "summary_highlights"],
 } as const;
 
+function compactJson(value: unknown, maxChars = 14_000): string {
+  const text = JSON.stringify(value ?? {}, null, 2);
+  return text.length <= maxChars ? text : `${text.slice(0, maxChars)}\n… truncated ${text.length - maxChars} chars`;
+}
+
+async function loadSecondBrainGrounding(admin: any, countryCode: string) {
+  const [country, sectors, kpis, sources, dossiers, ministries, chunks] = await Promise.all([
+    admin
+      .from("countries")
+      .select("code,name,iso3,currency,fiscal_year_start_month,gdp_current_usd,gdp_year,country_pack")
+      .eq("code", countryCode)
+      .maybeSingle(),
+    admin
+      .from("country_sectors")
+      .select("sector_code,share_pct,confidence_grade,source_ref")
+      .eq("country_code", countryCode)
+      .order("share_pct", { ascending: false }),
+    admin
+      .from("country_kpis")
+      .select("kpi_code,label,unit,category,latest_value,latest_period,source_url,source_org,provenance,confidence")
+      .eq("country_code", countryCode)
+      .order("category"),
+    admin
+      .from("country_sources")
+      .select("id,url,title,org,kind,quality_score,tags")
+      .eq("country_code", countryCode)
+      .eq("active", true)
+      .order("quality_score", { ascending: false })
+      .limit(30),
+    admin
+      .from("sector_dossiers")
+      .select("sector_code,kind,payload,citations,confidence")
+      .eq("country_code", countryCode)
+      .limit(60),
+    admin
+      .from("ministry_profiles")
+      .select("ministry_slug,minister,minister_profile,mandate,programmes,citations")
+      .eq("country_code", countryCode)
+      .limit(40),
+    admin
+      .from("country_source_chunks")
+      .select("content, source:country_source_documents(country_source_id, country_sources(url,title,org))")
+      .eq("country_code", countryCode)
+      .limit(18),
+  ]);
+  if (country.error || !country.data) throw new Error(`Country ${countryCode} not found`);
+  return {
+    country: country.data,
+    sectors: sectors.data ?? [],
+    kpis: kpis.data ?? [],
+    sources: sources.data ?? [],
+    dossiers: dossiers.data ?? [],
+    ministries: ministries.data ?? [],
+    corpusExcerpts: (chunks.data ?? []).map((c: any) => ({
+      text: String(c.content ?? "").slice(0, 900),
+      url: c.source?.country_sources?.url ?? null,
+      title: c.source?.country_sources?.title ?? null,
+      org: c.source?.country_sources?.org ?? null,
+    })),
+  };
+}
+
+function citationsFromGrounding(grounding: Awaited<ReturnType<typeof loadSecondBrainGrounding>>): SonarCitation[] {
+  const seen = new Set<string>();
+  const out: SonarCitation[] = [];
+  const push = (url: unknown, title?: unknown) => {
+    if (typeof url !== "string" || !isValidHttpUrl(url) || seen.has(url)) return;
+    seen.add(url);
+    let domain: string | undefined;
+    try { domain = new URL(url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
+    out.push({ url, title: typeof title === "string" ? title : undefined, domain });
+  };
+  for (const s of grounding.sources) push((s as any).url, (s as any).title ?? (s as any).org);
+  for (const k of grounding.kpis) push((k as any).source_url, (k as any).source_org ?? (k as any).label);
+  for (const c of grounding.corpusExcerpts) push((c as any).url, (c as any).title ?? (c as any).org);
+  for (const row of [...grounding.dossiers, ...grounding.ministries]) {
+    const cites = Array.isArray((row as any).citations) ? (row as any).citations : [];
+    for (const c of cites) push(c?.url, c?.title ?? c?.domain);
+  }
+  return out.slice(0, 40);
+}
+
 export const runSecondBrainSeedAgent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
@@ -1614,11 +1698,10 @@ export const runSecondBrainSeedAgent = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const country = await loadCountry(supabaseAdmin, data.countryCode);
-    const { data: sectors } = await supabaseAdmin
-      .from("country_sectors")
-      .select("sector_code")
-      .eq("country_code", data.countryCode);
-    const sectorCodes = (sectors ?? []).map((s: any) => s.sector_code);
+    const grounding = await loadSecondBrainGrounding(supabaseAdmin, data.countryCode);
+    const sectorCodes = grounding.sectors.map((s: any) => s.sector_code);
+    if (!grounding.sources.length) throw new Error("Commit source registry first — no active sources for second-brain grounding");
+    if (!grounding.kpis.length) throw new Error("Commit KPI seed first — no country KPI rows for second-brain grounding");
 
     const model: SonarModel = "sonar-reasoning-pro";
     const runId = await openRun(supabaseAdmin, {
@@ -1629,17 +1712,45 @@ export const runSecondBrainSeedAgent = createServerFn({ method: "POST" })
     });
 
     try {
-      const result = await callSonar({
-        model,
-        system:
-          "You are seeding an executive second-brain memory. Return 12-25 memory objects that anchor how the cabinet talks, decides, and defends its record. Kinds: position (settled policy stance), audience (internal or external audience with register), outlet (primary distribution channel), fact (durable statistic), risk (persistent reputational or fiscal risk). Weight 1-5 with 5 = load-bearing." +
-          SUMMARY_SYSTEM_SUFFIX,
-        user: `Country: ${country.name}. Sectors: ${sectorCodes.join(", ") || "cross_cutting"}. Seed the second brain with cabinet positions, key audiences, communication outlets, durable facts, and standing risks.`,
-        responseSchema: SecondBrainSchema as unknown as Record<string, unknown>,
-      });
+      const citations = citationsFromGrounding(grounding);
+      const system =
+        "You are seeding an executive second-brain memory from already-committed country onboarding data. Return ONLY a JSON object matching the schema. Create concrete, durable, cabinet-grade memory objects grounded in the supplied KPIs, sources, dossiers, ministry profiles, and corpus excerpts. Kinds: position, audience, outlet, fact, risk. Use sector_code values from the committed sectors. Do not invent facts not supported by the grounding." +
+        SUMMARY_SYSTEM_SUFFIX;
+      const user = `Country: ${country.name} (${country.iso3 ?? country.code}).\nSectors: ${sectorCodes.join(", ") || "cross_cutting"}.\n\nCOMMITTED GROUNDING:\n${compactJson(grounding)}\n\nReturn 12-25 balanced memories with at least one position, audience, outlet, fact, and risk when supported.`;
 
-      const parsed = parseSonarJson<{ memories: any[] }>(result.content);
-      if (!parsed?.memories?.length) throw new Error("Perplexity returned no memories");
+      let parsed: { memories: any[]; summary_md?: string; summary_highlights?: any[] } | null = null;
+      try {
+        const key = process.env.LOVABLE_API_KEY;
+        if (!key) throw new Error("Missing LOVABLE_API_KEY");
+        const gateway = createLovableAiGatewayProvider(key);
+        const ai = await generateText({
+          model: gateway("openai/gpt-5.5"),
+          system,
+          prompt: `${user}\n\nSCHEMA:\n${compactJson(SecondBrainSchema)}\n\nReturn json only.`,
+        });
+        parsed = parseSonarJson<{ memories: any[]; summary_md?: string; summary_highlights?: any[] }>(ai.text ?? "");
+      } catch (e) {
+        console.error("[second_brain_seed] Lovable AI synthesis failed; falling back to grounded search", e);
+      }
+
+      if (!parsed?.memories?.length) {
+        const result = await callSonar({
+          model,
+          system,
+          user,
+          responseSchema: SecondBrainSchema as unknown as Record<string, unknown>,
+        });
+        parsed = parseSonarJson<{ memories: any[]; summary_md?: string; summary_highlights?: any[] }>(result.content);
+        for (const c of result.citations) if (!citations.some((x) => x.url === c.url)) citations.push(c);
+      }
+
+      if (!parsed?.memories?.length) throw new Error("Second-brain synthesis returned no memories");
+      const requiredKinds = new Set(["position", "audience", "outlet", "fact", "risk"]);
+      const returnedKinds = new Set(parsed.memories.map((m: any) => m.kind));
+      const missingKinds = [...requiredKinds].filter((k) => !returnedKinds.has(k));
+      if (parsed.memories.length < 8 || missingKinds.length > 2) {
+        throw new Error(`Second-brain draft failed quality gate: ${parsed.memories.length} memories, missing ${missingKinds.join(", ") || "none"}`);
+      }
       const inline = extractInlineSummary(parsed);
 
       const draftId = await saveDraft(supabaseAdmin, {
@@ -1648,14 +1759,14 @@ export const runSecondBrainSeedAgent = createServerFn({ method: "POST" })
         stage: "second_brain_seed",
         target_table: "memory_objects",
         payload: parsed,
-        confidence: result.citations.length >= 2 ? "high" : "medium",
-        citations: result.citations,
+        confidence: citations.length >= 5 ? "high" : "medium",
+        citations,
         summary_md: inline.summary_md,
         summary_highlights: inline.summary_highlights,
       });
 
       await finishRun(supabaseAdmin, runId, { status: "ready" });
-      return { runId, draftId, count: parsed.memories.length, citations: result.citations };
+      return { runId, draftId, count: parsed.memories.length, citations };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;
@@ -1693,6 +1804,27 @@ export const commitSecondBrainSeed = createServerFn({ method: "POST" })
     for (const m of payload.memories) {
       const key = `${m.sector_code}|${m.kind}|${normalizeMemoryTitle(m.title)}`;
       if (existingKeys.has(key)) { skipped++; continue; }
+      const existing = (existingRows ?? []).find(
+        (r: any) => `${r.sector_code}|${r.kind}|${normalizeMemoryTitle(r.title ?? "")}` === key,
+      );
+      if (existing) {
+        const { data: current } = await supabaseAdmin
+          .from("memory_objects")
+          .select("verified")
+          .eq("id", existing.id)
+          .maybeSingle();
+        if (current?.verified) { skipped++; continue; }
+        const { error: upErr } = await supabaseAdmin
+          .from("memory_objects")
+          .update({
+            payload: { body: m.body } as any,
+            weight: m.weight,
+          })
+          .eq("id", existing.id);
+        if (upErr) throw upErr;
+        skipped++;
+        continue;
+      }
       const { error: insErr } = await supabaseAdmin.from("memory_objects").insert({
         scope_key: draft.country_code,
         sector_code: m.sector_code,

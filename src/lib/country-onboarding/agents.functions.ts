@@ -576,19 +576,39 @@ async function markDraftCommitted(admin: any, draftId: string, runId: string) {
     target_type: "draft",
     target_id: draftId,
   });
-  // Fire-and-forget: generate a fresh executive summary for this stage.
+  // Prefer the inline summary the agent already produced. Only fall back to a
+  // second AI call if this draft never carried one (legacy or multi-call stages).
   try {
     const { data: d } = await admin
       .from("onboarding_drafts")
-      .select("country_code, stage")
+      .select("country_code, stage, summary_md, summary_highlights")
       .eq("id", draftId)
       .maybeSingle();
-    if (d?.country_code && d?.stage) {
-      const { generateSummaryForStage } = await import("./summaries.functions");
-      generateSummaryForStage(admin, d.country_code, d.stage as any, runId).catch((e) => {
-        console.error("[onboarding] summary generation failed", d.stage, e);
-      });
+    if (!d?.country_code || !d?.stage) return;
+
+    if (d.summary_md && String(d.summary_md).trim().length > 0) {
+      await admin
+        .from("onboarding_summaries")
+        .upsert(
+          {
+            country_code: d.country_code,
+            stage: d.stage,
+            summary_md: d.summary_md,
+            highlights: Array.isArray(d.summary_highlights) ? d.summary_highlights : [],
+            model: "inline-agent",
+            source_run_id: runId,
+            generated_at: new Date().toISOString(),
+          },
+          { onConflict: "country_code,stage" },
+        );
+      return;
     }
+
+    // Fallback: no inline summary on this draft → generate one (fire-and-forget).
+    const { generateSummaryForStage } = await import("./summaries.functions");
+    generateSummaryForStage(admin, d.country_code, d.stage as any, runId).catch((e) => {
+      console.error("[onboarding] summary generation failed", d.stage, e);
+    });
   } catch (e) {
     console.error("[onboarding] summary hook lookup failed", e);
   }

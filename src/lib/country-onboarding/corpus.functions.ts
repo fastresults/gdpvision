@@ -649,63 +649,13 @@ export const runKpiSeedAgent = createServerFn({ method: "POST" })
     });
 
     try {
-      const { enriched, coverage, attempts } = await runAgenticKpiLoop({
+      const { runKpiSeedResearch } = await import("./kpi-seed.server");
+      return await runKpiSeedResearch({
         admin: supabaseAdmin,
         runId,
         country: { code: country.code, name: country.name, iso3: country.iso3 },
+        userId: context.userId,
       });
-
-      // Build citations from enriched KPIs' source URLs (deduped, 1-indexed to match [N] markers).
-      const seenCite = new Set<string>();
-      const citations: SonarCitation[] = [];
-      for (const k of enriched) {
-        const url = (k as any).source_url;
-        if (!url || seenCite.has(url)) continue;
-        seenCite.add(url);
-        let domain: string | undefined;
-        try { domain = new URL(url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
-        citations.push({ url, domain, title: (k as any).source_org ?? undefined });
-
-      }
-
-      const draftId = await saveDraft(supabaseAdmin, {
-        run_id: runId,
-        country_code: data.countryCode,
-        stage: "kpi_seed",
-        target_table: "country_kpis",
-        payload: { kpis: enriched, coverage },
-        confidence:
-          coverage.filled === coverage.total ? "high" : coverage.filled >= coverage.total * 0.75 ? "medium" : "low",
-        citations,
-      });
-
-
-      await finishRun(supabaseAdmin, runId, {
-        status: "ready",
-        plan: {
-          kind: "kpi_seed_progress",
-          phase: "ready",
-          processed: enriched.length,
-          total: enriched.length,
-          okCount: attempts.filter((a) => a.ok).length,
-          failCount: attempts.filter((a) => !a.ok).length,
-          filled: coverage.filled,
-          missing: coverage.missing.length,
-          missingKpis: coverage.missing,
-          updatedAt: new Date().toISOString(),
-        },
-        error:
-          coverage.filled < coverage.total
-            ? `partial: ${coverage.filled}/${coverage.total} required (missing: ${coverage.missing.join(", ")})`
-            : null,
-      });
-      return {
-        runId,
-        draftId,
-        count: enriched.length,
-        coverage,
-        attempts: attempts.length,
-      };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;
@@ -922,56 +872,15 @@ export const backfillMissingKpis = createServerFn({ method: "POST" })
     });
 
     try {
-      const { enriched, coverage } = await runAgenticKpiLoop({
+      const { runKpiSeedResearch } = await import("./kpi-seed.server");
+      const res = await runKpiSeedResearch({
         admin: supabaseAdmin,
         runId,
         country: { code: country.code, name: country.name, iso3: country.iso3 },
+        userId: context.userId,
+        autoCommit: true,
       });
-
-      // Load current rows to decide what to touch.
-      const { data: currentRows } = await supabaseAdmin
-        .from("country_kpis")
-        .select("kpi_code, latest_value, last_verified_at")
-        .eq("country_code", data.countryCode);
-      const staleThreshold = Date.now() - data.staleOlderThanDays * 24 * 3600 * 1000;
-      const byCode = new Map(
-        (currentRows ?? []).map((r: any) => [r.kpi_code as string, r]),
-      );
-
-      let touched = 0;
-      for (const k of enriched) {
-        const cur = byCode.get(k.kpi_code);
-        const isMissing = !cur || cur.latest_value == null;
-        const isStale =
-          cur?.last_verified_at &&
-          new Date(cur.last_verified_at).getTime() < staleThreshold;
-        if (!isMissing && !isStale) continue;
-        if (k.latest_value == null && !isMissing) continue; // don't overwrite good value with null
-
-        const { ok } = await upsertResolvedKpi(
-          supabaseAdmin,
-          data.countryCode,
-          context.userId,
-          k,
-        );
-        if (ok) touched++;
-      }
-
-      // Mark unresolved as still-missing for the UI.
-      await supabaseAdmin
-        .from("country_kpis")
-        .update({ freshness_status: "missing" })
-        .eq("country_code", data.countryCode)
-        .is("latest_value", null);
-
-      await finishRun(supabaseAdmin, runId, {
-        status: "committed",
-        error:
-          coverage.filled < coverage.total
-            ? `partial: ${coverage.filled}/${coverage.total} required (missing: ${coverage.missing.join(", ")})`
-            : null,
-      });
-      return { ok: true, touched, coverage };
+      return { ok: true, touched: res.upserted, coverage: res.coverage };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;
@@ -992,29 +901,15 @@ export const reverifyAllKpis = createServerFn({ method: "POST" })
       model_stack: { mode: "reverify" },
     });
     try {
-      const { enriched, coverage } = await runAgenticKpiLoop({
+      const { runKpiSeedResearch } = await import("./kpi-seed.server");
+      const res = await runKpiSeedResearch({
         admin: supabaseAdmin,
         runId,
         country: { code: country.code, name: country.name, iso3: country.iso3 },
+        userId: context.userId,
+        autoCommit: true,
       });
-      let touched = 0;
-      for (const k of enriched) {
-        const { ok } = await upsertResolvedKpi(
-          supabaseAdmin,
-          data.countryCode,
-          context.userId,
-          k,
-        );
-        if (ok) touched++;
-      }
-      await finishRun(supabaseAdmin, runId, {
-        status: "committed",
-        error:
-          coverage.filled < coverage.total
-            ? `partial: ${coverage.filled}/${coverage.total} required (missing: ${coverage.missing.join(", ")})`
-            : null,
-      });
-      return { ok: true, touched, coverage };
+      return { ok: true, touched: res.upserted, coverage: res.coverage };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;

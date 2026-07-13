@@ -1055,7 +1055,8 @@ export const commitMinistrySectorMap = createServerFn({ method: "POST" })
     if (rpcErr) throw rpcErr;
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
 
-    return { ok: true, inserted: rows.length };
+    return { ok: true, inserted: payload.mappings.length };
+
   });
 
 // ============================================================

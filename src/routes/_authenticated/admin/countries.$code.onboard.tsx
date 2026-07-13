@@ -484,29 +484,35 @@ function OnboardWizard() {
           latestPipeline={latestPipeline}
         />
 
-        <DurableJobPanel
-          durableJob={durableJob as any}
-          onResume={async (jobId) => {
-            await resumeJob({ data: { jobId } });
-            await qc.invalidateQueries({ queryKey: ["onboarding", "durable-job", code] });
-          }}
-          onCancel={async (jobId) => {
-            await cancelJob({ data: { jobId } });
-            await qc.invalidateQueries({ queryKey: ["onboarding", "durable-job", code] });
-          }}
-          onRecover={async () => {
-            const res: any = await recoverStale({ data: { countryCode: code, staleMinutes: 15 } });
-            setRunResult({
-              stage: "kpi_seed",
-              label: "Recover stale workflow locks",
-              ok: true,
-              text: `Recovered ${res.staleRuns + res.stalePipelines + res.staleJobs + res.staleSteps} stale lock(s).`,
-              meta: res,
-            });
-            await refresh();
-            await qc.invalidateQueries({ queryKey: ["onboarding", "durable-job", code] });
-          }}
-        />
+        <section className="border border-line-200 bg-paper-0 p-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-ink-500">Sequential runner</div>
+            <p className="mt-1 text-xs text-ink-500">
+              {bulkRunning
+                ? "Running one stage at a time. Keep this tab open; click Stop to pause after the current stage."
+                : "Runs stages one by one, auto-committing each draft. Failures halt the loop — fix and re-run."}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {bulkRunning && (
+              <button
+                type="button"
+                onClick={stopSequential}
+                className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-widest border border-red-500 text-red-700"
+              >
+                Stop after current stage
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClearLocks}
+              disabled={bulkRunning !== false}
+              className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-widest border border-line-200 text-ink-700 disabled:opacity-50"
+            >
+              Clear locks
+            </button>
+          </div>
+        </section>
 
         {runErrors.length > 0 && (
           <div className="rounded border border-red-500/50 bg-red-500/10 p-3 text-xs text-red-700 space-y-1">

@@ -17,6 +17,7 @@ import {
 } from "@/lib/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Wordmark } from "@/components/marketing/Wordmark";
+import { PrettyJson } from "@/components/data/PrettyJson";
 
 const usersQuery = queryOptions({ queryKey: ["admin-users"], queryFn: () => listAdminUsers() });
 const countriesQuery = queryOptions({ queryKey: ["admin-countries"], queryFn: () => listCountries() });
@@ -220,6 +221,9 @@ function ConfigRow({ row, onSave, pending }: { row: { key: string; value_json: a
   const [text, setText] = useState(() => JSON.stringify(row.value_json, null, 2));
   const [parseErr, setParseErr] = useState<string | null>(null);
 
+  let parsedPreview: unknown = row.value_json;
+  try { parsedPreview = JSON.parse(text); } catch { /* keep last-good preview */ }
+
   function commit() {
     try {
       const parsed = JSON.parse(text);
@@ -236,12 +240,18 @@ function ConfigRow({ row, onSave, pending }: { row: { key: string; value_json: a
         <span className="font-mono text-[11px] uppercase tracking-[0.2em]">{row.key}</span>
         <span className="font-mono text-[10px] text-ink-500">updated {new Date(row.updated_at).toLocaleString()}</span>
       </div>
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        rows={Math.min(12, Math.max(3, text.split("\n").length))}
-        className="mt-3 w-full border border-line-200 p-2 font-mono text-xs"
-      />
+      <div className="mt-3 rounded border border-line-200 bg-paper-100/50 p-3">
+        <PrettyJson value={parsedPreview as any} />
+      </div>
+      <details className="mt-2 text-xs">
+        <summary className="cursor-pointer text-ink-500 hover:text-ink-950">Edit raw JSON</summary>
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          rows={Math.min(12, Math.max(3, text.split("\n").length))}
+          className="mt-2 w-full border border-line-200 p-2 font-mono text-xs"
+        />
+      </details>
       {parseErr && <p className="mt-2 text-xs text-red-600">Invalid JSON: {parseErr}</p>}
       <div className="mt-2 flex justify-end">
         <button

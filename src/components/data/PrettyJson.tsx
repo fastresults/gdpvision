@@ -1,3 +1,11 @@
+/**
+ * PrettyJson — GLOBAL RULE:
+ * Every JSON-shaped value shown to a user MUST render via <PrettyJson>.
+ * Raw JSON.stringify(...) in UI is permitted ONLY:
+ *   (a) as the value/defaultValue of a <textarea> used for editing, or
+ *   (b) inside a collapsed <details> "debug" block whose sibling is <PrettyJson>.
+ * No other exceptions. Enforced by eslint (no-restricted-syntax).
+ */
 import { createContext, useContext, useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";

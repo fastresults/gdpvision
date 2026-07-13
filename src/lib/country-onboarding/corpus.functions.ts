@@ -1995,6 +1995,9 @@ export const commitCapitalFlows = createServerFn({ method: "POST" })
         notes?: string;
       }>;
     };
+    if (!payload?.period || !Array.isArray(payload.flows) || payload.flows.length === 0) {
+      throw new Error("Capital-flow draft has no flows to commit");
+    }
 
     // Snapshot ordered citations from onboarding_citations (1-indexed).
     const { data: cites } = await supabaseAdmin
@@ -2003,6 +2006,22 @@ export const commitCapitalFlows = createServerFn({ method: "POST" })
       .eq("draft_id", draft.id)
       .order("created_at", { ascending: true });
     const orderedCitations = (cites ?? []).map((c: any) => ({ url: c.url, domain: c.domain, title: c.title }));
+    if (orderedCitations.length === 0) {
+      const seenCitationUrls = new Set<string>();
+      for (const f of payload.flows) {
+        if (!isValidHttpUrl(f.source_url) || seenCitationUrls.has(f.source_url)) continue;
+        seenCitationUrls.add(f.source_url);
+        let domain: string | null = null;
+        try {
+          domain = new URL(f.source_url).hostname.replace(/^www\./, "");
+        } catch { /* already validated */ }
+        orderedCitations.push({
+          url: f.source_url,
+          domain,
+          title: f.source_org || "Capital-flow source",
+        });
+      }
+    }
 
     // Auto-attach source per unique source_url so ribbons open the source modal.
     const { upsertCountrySource } = await import("@/lib/country-data/sources.server");
@@ -2043,7 +2062,8 @@ export const commitCapitalFlows = createServerFn({ method: "POST" })
           },
           { onConflict: "country_code,node_key,period" },
         );
-      if (!upErr) upserted++;
+      if (upErr) throw upErr;
+      upserted++;
     }
 
     // Reconciliation residual — insert if inputs and outputs disagree > 10%.
@@ -2060,7 +2080,7 @@ export const commitCapitalFlows = createServerFn({ method: "POST" })
     if (Math.abs(residual) > 0.01 && sumIn > 0 && Math.abs(residual) / sumIn > 0.1) {
       // The residual goes on the side with the smaller total, to balance the diagram.
       const nodeKey = "RECONCILIATION_RESIDUAL";
-      await supabaseAdmin.from("country_capital_flows").upsert(
+      const { error: residualErr } = await supabaseAdmin.from("country_capital_flows").upsert(
         {
           country_code: draft.country_code,
           node_key: nodeKey,
@@ -2073,14 +2093,16 @@ export const commitCapitalFlows = createServerFn({ method: "POST" })
         },
         { onConflict: "country_code,node_key,period" },
       );
+      if (residualErr) throw residualErr;
     } else {
       // Clean up any stale residual for this period.
-      await supabaseAdmin
+      const { error: deleteResidualErr } = await supabaseAdmin
         .from("country_capital_flows")
         .delete()
         .eq("country_code", draft.country_code)
         .eq("node_key", "RECONCILIATION_RESIDUAL")
         .eq("period", payload.period);
+      if (deleteResidualErr) throw deleteResidualErr;
     }
 
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);

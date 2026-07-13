@@ -766,6 +766,12 @@ function StageCard({
   const showDraftReadyHint = !committed && !!draft;
   const payload = draft?.payload;
   const citations: any[] = draft?.citations ?? [];
+  const hasFlowSourceUrls =
+    stage.key === "capital_flows" &&
+    Array.isArray(payload?.flows) &&
+    payload.flows.some((flow: any) => typeof flow?.source_url === "string" && /^https?:\/\//.test(flow.source_url));
+  const canCommitDraft = !!draft && (citations.length > 0 || hasFlowSourceUrls);
+  const runActionLabel = running ? "Researching…" : draft || lastRun ? "Run again" : "Run AI research";
   const model = (lastRun?.model_stack && (lastRun.model_stack.research || Object.values(lastRun.model_stack)[0])) as
     | string
     | undefined;
@@ -871,11 +877,11 @@ function StageCard({
                   ? "border-amber-500 text-amber-700 hover:bg-amber-500/10"
                   : "border-emerald-500 text-emerald-700 hover:bg-emerald-500/10"
               }`}
-              disabled={committing || !draft || citations.length === 0}
+              disabled={committing || !canCommitDraft}
               title={
                 !draft
                   ? "Run AI research first to produce a draft"
-                  : citations.length === 0
+                  : !canCommitDraft
                     ? "Draft has no citations — cannot commit"
                     : hasNewerDraft
                       ? "A newer draft is waiting — commit it to replace the currently-committed data"
@@ -905,7 +911,7 @@ function StageCard({
               doRun();
             }}
           >
-            {running ? "Researching…" : (draft || lastRun) ? "Re-run agent" : "Run AI research"}
+            {runActionLabel}
           </button>
         </div>
       </div>

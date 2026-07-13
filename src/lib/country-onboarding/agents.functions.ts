@@ -315,6 +315,7 @@ export const runGdpAgent = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const country = await loadCountry(supabaseAdmin, data.countryCode);
+    const ctx = await buildCountryContext(supabaseAdmin, data.countryCode);
 
     const model: SonarModel = "sonar-pro";
     const runId = await openRun(supabaseAdmin, {
@@ -325,23 +326,31 @@ export const runGdpAgent = createServerFn({ method: "POST" })
     });
 
     try {
+      const currentYear = new Date().getFullYear();
       const fb = await runWithFallbacks<any>({
+        context: ctx,
+        topic: `${country.name} nominal GDP most recent year (World Bank WDI, IMF WEO, national accounts)`,
         perplexity: {
           model,
           system:
-            "You are a macro-economics researcher. Return a single JSON object. Cross-check GDP between World Bank WDI and IMF WEO — pick the most recent year where BOTH publish a figure. Cite both sources." +
+            "You are a macro-economics researcher. Return a single JSON object. Cross-check GDP between World Bank WDI and IMF WEO — pick the most recent year where BOTH publish a figure. Cite both sources. Value MUST be in whole US dollars (not billions or millions)." +
             SUMMARY_SYSTEM_SUFFIX,
-          user: `What is the nominal GDP of ${country.name} in current US dollars, most recent year with an official figure? Prefer World Bank WDI and IMF WEO. Return the value in USD (not billions).`,
+          user: `What is the nominal GDP of ${country.name} in current US dollars, most recent year (${currentYear - 3}-${currentYear})? Prefer World Bank WDI and IMF WEO, cross-checked. Return the value in whole USD (e.g. 1750000000, not 1.75). Include both sources.`,
           responseSchema: GdpSchema as unknown as Record<string, unknown>,
           recency: "year",
         },
         gemini: {
           system: "You are a macro-economics researcher.",
-          user: `Return most-recent nominal GDP of ${country.name} in current USD. Prefer World Bank WDI / IMF WEO.`,
+          user: `Extract nominal GDP of ${country.name} in current USD from the source material. Value must be whole USD.`,
           schemaHint: `{ "gdp_current_usd": number, "gdp_year": integer, "source_primary": string, "source_secondary": string|null, "notes": string, "summary_md": string, "summary_highlights": [{"label": string, "value": string}] }`,
         },
         parse: jsonParser<any>(),
-        validate: (v) => !!v && typeof v.gdp_current_usd === "number" && typeof v.gdp_year === "number",
+        validate: (v) =>
+          !!v &&
+          typeof v.gdp_current_usd === "number" &&
+          v.gdp_current_usd > 1_000_000 && // sanity: at least 1M USD (rejects unit errors)
+          Number.isInteger(v.gdp_year) &&
+          v.gdp_year >= currentYear - 6 && v.gdp_year <= currentYear,
         infer: () => ({ ...seedGdp(), summary_md: `Provisional GDP for ${country.name} — please review.`, summary_highlights: [] }),
       });
 

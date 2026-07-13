@@ -1105,6 +1105,31 @@ function StageCard({
   );
 }
 
+function RunPlanSummary({ plan }: { plan: any }) {
+  if (!plan || typeof plan !== "object") return null;
+  const missingKpis = Array.isArray(plan.missingKpis) ? plan.missingKpis : [];
+  const updatedAt = typeof plan.updatedAt === "string" ? plan.updatedAt : null;
+  const updatedText = updatedAt ? new Date(updatedAt).toLocaleTimeString() : null;
+  if (!plan.phase && typeof plan.processed !== "number" && missingKpis.length === 0) return null;
+  return (
+    <div className="mt-2 rounded border border-line-200 bg-paper-100/50 p-2 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-600">
+      {plan.phase && <span>phase {String(plan.phase)}</span>}
+      {typeof plan.processed === "number" && (
+        <span>{plan.phase ? " · " : ""}{plan.processed}/{plan.total ?? "?"} processed</span>
+      )}
+      {typeof plan.okCount === "number" && <span> · ok {plan.okCount} · fail {plan.failCount ?? 0}</span>}
+      {typeof plan.filled === "number" && <span> · filled {plan.filled} · missing {plan.missing ?? 0}</span>}
+      {plan.currentKpi && <span> · current {String(plan.currentKpi)}</span>}
+      {updatedText && <span> · heartbeat {updatedText}</span>}
+      {missingKpis.length > 0 && (
+        <div className="mt-1 normal-case tracking-normal text-ink-500">
+          Missing: {missingKpis.slice(0, 8).join(", ")}{missingKpis.length > 8 ? ` +${missingKpis.length - 8} more` : ""}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CorpusIngestExtras({
   lastRun,
   onCleanInvalidSources,

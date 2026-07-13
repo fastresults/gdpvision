@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Wordmark } from "./Wordmark";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -21,13 +21,13 @@ export function MarketingShell({ children }: MarketingShellProps) {
           <a href="#top" className="focus-visible:outline-none">
             <Wordmark className="text-[15px] md:text-[17px]" />
           </a>
-          <nav className="flex items-center gap-8 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
-            <a href="#instrument" className="hover:text-ink-950">The Instrument</a>
-            <a href="#sovereignty" className="hover:text-ink-950">Sovereignty</a>
-            <a href="#briefing" className="hover:text-ink-950 text-ink-950">
+          <nav className="flex items-center gap-6 md:gap-8 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
+            <a href="#instrument" className="hover:text-ink-950 hidden md:inline">The Instrument</a>
+            <a href="#sovereignty" className="hover:text-ink-950 hidden md:inline">Sovereignty</a>
+            <a href="#briefing" className="hover:text-ink-950 text-ink-950 hidden md:inline">
               Request briefing
             </a>
-            <InstrumentEntry />
+            <AuthEntry />
           </nav>
         </div>
       </header>
@@ -54,8 +54,12 @@ export function MarketingShell({ children }: MarketingShellProps) {
   );
 }
 
-function InstrumentEntry() {
-  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+function AuthEntry() {
+  // Optimistic default: show logged-out affordances until we know otherwise,
+  // so the header never renders empty on first paint.
+  const [signedIn, setSignedIn] = useState<boolean>(false);
+  const navigate = useNavigate();
+
   useEffect(() => {
     let alive = true;
     supabase.auth.getUser().then(({ data }) => alive && setSignedIn(!!data.user));
@@ -67,10 +71,44 @@ function InstrumentEntry() {
       data.subscription.unsubscribe();
     };
   }, []);
-  if (signedIn === null) return null;
-  return signedIn ? (
-    <Link to="/instrument" className="hover:text-ink-950">Open instrument</Link>
-  ) : (
-    <Link to="/auth" className="hover:text-ink-950">Sign in</Link>
+
+  if (signedIn) {
+    return (
+      <div className="flex items-center gap-5">
+        <Link to="/instrument" className="hover:text-ink-950">Open instrument</Link>
+        <button
+          type="button"
+          onClick={async () => {
+            await supabase.auth.signOut();
+            navigate({ to: "/", replace: true });
+          }}
+          className="hover:text-ink-950"
+        >
+          Sign out
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-4 md:gap-5">
+      <Link to="/auth" search={{ mode: "sign-in" }} className="hover:text-ink-950">
+        Sign in
+      </Link>
+      <Link
+        to="/auth"
+        search={{ mode: "sign-up" }}
+        className="border-l-2 border-gold-500 bg-ink-950 px-3 py-2 text-paper-0 hover:bg-ink-700"
+      >
+        Create account
+      </Link>
+      <Link
+        to="/auth"
+        search={{ mode: "forgot" }}
+        className="hover:text-ink-950 hidden md:inline"
+      >
+        Forgot?
+      </Link>
+    </div>
   );
 }

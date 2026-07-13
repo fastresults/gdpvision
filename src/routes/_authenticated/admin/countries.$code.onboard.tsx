@@ -773,6 +773,11 @@ function StageCard({
               )}
             </h2>
             <p className="text-xs text-ink-500 mt-1">{stage.desc}</p>
+            {showDraftReadyHint && (
+              <p className="text-xs text-emerald-700 mt-1">
+                Draft ready{draftItemCount != null ? ` with ${draftItemCount} item${draftItemCount === 1 ? "" : "s"}` : ""} — press Commit to write to <code>{draft?.target_table ?? "target table"}</code>.
+              </p>
+            )}
           </span>
         </button>
         <div className="flex items-center gap-2 pr-5">

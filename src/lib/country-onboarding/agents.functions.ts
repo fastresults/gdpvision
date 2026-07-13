@@ -11,6 +11,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { type SonarCitation, type SonarModel } from "./perplexity.server";
 import { runWithFallbacks, jsonParser } from "./fallback.server";
 import { buildCountryContext } from "./country-context.server";
+import { promoteFromCitations } from "./domain-promotion.server";
+import type { FallbackResult } from "./fallback.server";
 import { seedProfile, seedGdp, seedSectorComposition, seedMinistries, seedMinistrySectorMap } from "./seeds.server";
 import { SUMMARY_SCHEMA_FRAGMENT, SUMMARY_SYSTEM_SUFFIX, extractInlineSummary } from "./summary-inline";
 

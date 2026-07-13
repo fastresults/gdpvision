@@ -241,34 +241,42 @@ export const runProfileAgent = createServerFn({ method: "POST" })
     });
 
     try {
-      const result = await callSonar({
-        model,
-        system:
-          "You are a country-profile researcher. Answer with a single JSON object matching the schema. Use only authoritative sources (national statistics offices, IMF, World Bank, UN). Cite every fact." +
-          SUMMARY_SYSTEM_SUFFIX,
-        user: `Research the country of ${country.name} (${country.iso3 ?? country.code}). Return: currency code (ISO 4217), fiscal year start month (1-12), most recent population, HDI (or null), top 3-5 export categories, government type, and current head of government (as of 2026). Use only official/multilateral sources.`,
-        responseSchema: ProfileSchema as unknown as Record<string, unknown>,
-        recency: "year",
+      const fb = await runWithFallbacks<any>({
+        perplexity: {
+          model,
+          system:
+            "You are a country-profile researcher. Answer with a single JSON object matching the schema. Use only authoritative sources (national statistics offices, IMF, World Bank, UN). Cite every fact." +
+            SUMMARY_SYSTEM_SUFFIX,
+          user: `Research the country of ${country.name} (${country.iso3 ?? country.code}). Return: currency code (ISO 4217), fiscal year start month (1-12), most recent population, HDI (or null), top 3-5 export categories, government type, and current head of government (as of 2026). Use only official/multilateral sources.`,
+          responseSchema: ProfileSchema as unknown as Record<string, unknown>,
+          recency: "year",
+        },
+        gemini: {
+          system: "You are a country-profile researcher for " + country.name + ".",
+          user: `Country: ${country.name} (${country.iso3 ?? country.code}). Return most-recent population, HDI, top exports, government type, and head of government.`,
+          schemaHint:
+            `{ "currency": "ISO 4217", "fiscal_year_start_month": 1-12, "population": number, "hdi": number|null, "main_exports": string[], "government_type": string, "head_of_government": string, "notes": string, "summary_md": string, "summary_highlights": [{"label": string, "value": string}] }`,
+        },
+        parse: jsonParser<any>(),
+        validate: (v) => !!v && typeof v.currency === "string" && typeof v.head_of_government === "string",
+        infer: () => ({ ...seedProfile(country.name), summary_md: `Provisional profile for ${country.name} — please review.`, summary_highlights: [] }),
       });
 
-      const parsed = parseSonarJson<any>(result.content);
-      if (!parsed) throw new Error("Perplexity returned no parseable JSON");
-      const inline = extractInlineSummary(parsed);
-
+      const inline = extractInlineSummary(fb.data);
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
         country_code: data.countryCode,
         stage: "profile",
         target_table: "countries",
-        payload: parsed,
-        confidence: result.citations.length >= 2 ? "high" : "medium",
-        citations: result.citations,
+        payload: fb.data,
+        confidence: fb.tier === "perplexity" && fb.citations.length >= 2 ? "high" : fb.tier === "inferred" ? "low" : "medium",
+        citations: fb.citations,
         summary_md: inline.summary_md,
         summary_highlights: inline.summary_highlights,
       });
 
-      await finishRun(supabaseAdmin, runId, { status: "ready" });
-      return { runId, draftId, payload: parsed, citations: result.citations };
+      await finishRun(supabaseAdmin, runId, { status: "ready", model_stack: { ...fb.modelStack, notes: fb.notes } });
+      return { runId, draftId, payload: fb.data, citations: fb.citations, tier: fb.tier, notes: fb.notes };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;

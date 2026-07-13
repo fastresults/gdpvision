@@ -212,6 +212,8 @@ export async function runWithFallbacks<T>(opts: FallbackOptions<T>): Promise<Fal
     notes,
     modelStack,
     attempts,
+    openWebWin: false,
+    winningAttempt: lastAttemptLabel,
   };
 }
 

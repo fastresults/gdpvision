@@ -1391,9 +1391,24 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
 
     const results: Array<{ source_id: string; url: string; ok: boolean; chunks?: number; error?: string }> = [];
     let totalChunks = 0;
+    const total = sources.length;
+
+    const writeProgress = async (processed: number, lastUrl: string | null) => {
+      const okC = results.filter((r) => r.ok).length;
+      const failC = results.length - okC;
+      // Best-effort heartbeat — never fail the ingest if this write fails.
+      try {
+        await supabaseAdmin
+          .from("onboarding_runs")
+          .update({ plan: { processed, total, lastUrl, okCount: okC, failCount: failC, totalChunks } })
+          .eq("id", runId);
+      } catch { /* ignore */ }
+    };
 
     try {
-      for (const src of sources) {
+      await writeProgress(0, null);
+      for (let idx = 0; idx < sources.length; idx++) {
+        const src = sources[idx];
         try {
           const doc = await fetchFirecrawl(src.url);
           if (!doc.markdown || doc.markdown.length < 200) {
@@ -1417,6 +1432,7 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
               .update({ last_fetched_at: new Date().toISOString(), fetch_status: "ok", fetch_error: null })
               .eq("id", src.id);
             results.push({ source_id: src.id, url: src.url, ok: true, chunks: 0 });
+            await writeProgress(idx + 1, src.url);
             continue;
           }
 
@@ -1474,7 +1490,9 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
             .eq("id", src.id);
           results.push({ source_id: src.id, url: src.url, ok: false, error: msg });
         }
+        await writeProgress(idx + 1, src.url);
       }
+
 
       const okCount = results.filter((r) => r.ok).length;
       const failCount = results.length - okCount;

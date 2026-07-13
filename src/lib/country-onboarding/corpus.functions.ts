@@ -279,7 +279,12 @@ export const commitSourceRegistry = createServerFn({ method: "POST" })
 
     const { upsertCountrySource } = await import("@/lib/country-data/sources.server");
     let inserted = 0;
+    const rejected: Array<{ url: unknown; title?: string; reason: string }> = [];
     for (const s of payload.sources) {
+      if (!isValidHttpUrl(s?.url)) {
+        rejected.push({ url: s?.url, title: s?.title, reason: "not a valid http(s) URL" });
+        continue;
+      }
       const res = await upsertCountrySource(supabaseAdmin, {
         country_code: draft.country_code,
         url: s.url,
@@ -295,8 +300,49 @@ export const commitSourceRegistry = createServerFn({ method: "POST" })
     }
 
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
-    return { ok: true, inserted };
+    return { ok: true, inserted, rejected };
   });
+
+// Admin-only cleanup: deactivate country_sources rows whose url isn't a valid http(s) URL.
+export const cleanInvalidCountrySources = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("country_sources")
+      .select("id, url, title")
+      .eq("country_code", data.countryCode)
+      .eq("active", true);
+    if (error) throw error;
+    const bad = (rows ?? []).filter((r: any) => !isValidHttpUrl(r.url));
+    if (!bad.length) return { deactivated: 0, examples: [] as any[] };
+    const ids = bad.map((r: any) => r.id);
+    const { error: uErr } = await supabaseAdmin
+      .from("country_sources")
+      .update({ active: false, fetch_status: "invalid_url", fetch_error: "URL not http(s) parseable" })
+      .in("id", ids);
+    if (uErr) throw uErr;
+    return { deactivated: bad.length, examples: bad.slice(0, 5) };
+  });
+
+// Lightweight poll target for the wizard's run banner.
+export const getRunProgress = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ runId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin
+      .from("onboarding_runs")
+      .select("id, stage, status, plan, started_at, finished_at, error")
+      .eq("id", data.runId)
+      .maybeSingle();
+    if (error) throw error;
+    return row ?? null;
+  });
+
 
 // ============================================================
 // Stage 7: KPI seed — agentic multi-pass loop

@@ -694,6 +694,13 @@ function StageCard({
 
       {isOpen && (
         <div className="px-5 pb-5 space-y-4 border-t border-line-200 pt-4">
+          {onCleanInvalidSources && (
+            <CorpusIngestExtras
+              lastRun={lastRun}
+              onCleanInvalidSources={onCleanInvalidSources}
+            />
+          )}
+
           {/* Executive summary — the beautifully written natural result of this stage */}
           {committed && summary && (
             <div className="space-y-3">

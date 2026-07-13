@@ -552,8 +552,9 @@ export const runMinistrySectorMapAgent = createServerFn({ method: "POST" })
               required: ["ministry_slug", "sector_code", "weight", "rationale"],
             },
           },
+          ...SUMMARY_SCHEMA_FRAGMENT,
         },
-        required: ["mappings"],
+        required: ["mappings", "summary_md", "summary_highlights"],
       } as const;
 
       const sectorList = sectors.map((s) => `${s.code} (${s.label})`).join(", ");
@@ -561,13 +562,15 @@ export const runMinistrySectorMapAgent = createServerFn({ method: "POST" })
       const result = await callSonar({
         model,
         system:
-          "You map ministerial portfolios to economic sectors. For each ministry, output the sectors it primarily oversees with a weight 0-100 representing its share of responsibility for that sector. Per-ministry weights across all its sectors should roughly sum to 100. Omit sectors a ministry has no role in.",
+          "You map ministerial portfolios to economic sectors. For each ministry, output the sectors it primarily oversees with a weight 0-100 representing its share of responsibility for that sector. Per-ministry weights across all its sectors should roughly sum to 100. Omit sectors a ministry has no role in." +
+          SUMMARY_SYSTEM_SUFFIX,
         user: `Country: ${country.name}. Sectors: ${sectorList}. Ministries:\n- ${ministryList}\n\nProvide the ministry→sector mapping using the country's official ministerial mandates.`,
         responseSchema: schema as unknown as Record<string, unknown>,
       });
 
       const parsed = parseSonarJson<{ mappings: any[] }>(result.content);
       if (!parsed?.mappings?.length) throw new Error("Perplexity returned no mappings");
+      const inline = extractInlineSummary(parsed);
 
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
@@ -577,6 +580,8 @@ export const runMinistrySectorMapAgent = createServerFn({ method: "POST" })
         payload: parsed,
         confidence: result.citations.length >= 1 ? "medium" : "low",
         citations: result.citations,
+        summary_md: inline.summary_md,
+        summary_highlights: inline.summary_highlights,
       });
 
       await finishRun(supabaseAdmin, runId, { status: "ready" });

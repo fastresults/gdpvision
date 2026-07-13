@@ -770,7 +770,13 @@ function StageCard({
     stage.key === "capital_flows" &&
     Array.isArray(payload?.flows) &&
     payload.flows.some((flow: any) => typeof flow?.source_url === "string" && /^https?:\/\//.test(flow.source_url));
-  const canCommitDraft = !!draft && (citations.length > 0 || hasFlowSourceUrls);
+  const capitalFlowsCoverage = stage.key === "capital_flows" ? payload?.coverage : null;
+  const capitalFlowsNeedsReview =
+    stage.key === "capital_flows" && !!capitalFlowsCoverage && capitalFlowsCoverage.coverageOk === false;
+  const canCommitDraft =
+    !!draft &&
+    (citations.length > 0 || hasFlowSourceUrls) &&
+    !capitalFlowsNeedsReview;
   const runActionLabel = running ? "Researching…" : draft || lastRun ? "Run again" : "Run AI research";
   const model = (lastRun?.model_stack && (lastRun.model_stack.research || Object.values(lastRun.model_stack)[0])) as
     | string
@@ -881,11 +887,13 @@ function StageCard({
               title={
                 !draft
                   ? "Run AI research first to produce a draft"
-                  : !canCommitDraft
-                    ? "Draft has no citations — cannot commit"
-                    : hasNewerDraft
-                      ? "A newer draft is waiting — commit it to replace the currently-committed data"
-                      : "Commit draft to database"
+                  : capitalFlowsNeedsReview
+                    ? "Coverage incomplete — needs ≥3 inputs, ≥4 outputs, ≤10% residual"
+                    : !canCommitDraft
+                      ? "Draft has no citations — cannot commit"
+                      : hasNewerDraft
+                        ? "A newer draft is waiting — commit it to replace the currently-committed data"
+                        : "Commit draft to database"
               }
               onClick={(e) => {
                 e.stopPropagation();

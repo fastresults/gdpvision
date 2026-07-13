@@ -406,6 +406,28 @@ function OnboardWizard() {
           </div>
         )}
 
+        {skippedStages.length > 0 && (
+          <div className="rounded border border-amber-500/50 bg-amber-500/10 p-3 text-xs text-amber-800 space-y-1">
+            <div className="font-medium">Skipped (waiting on upstream commit):</div>
+            {skippedStages.map((s) => (
+              <div key={s.stage} className="font-mono">
+                • {s.stage} — needs {s.waitingOn.join(", ")} committed
+              </div>
+            ))}
+          </div>
+        )}
+
+        {runErrors.length > 0 && (
+          <div className="rounded border border-red-500/50 bg-red-500/10 p-3 text-xs text-red-700 space-y-1">
+            <div className="font-medium">Stage failures (bulk run continued past these):</div>
+            {runErrors.map((e) => (
+              <div key={e.stage} className="font-mono break-words">
+                • {e.stage}: {e.message}
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Sticky Run banner — visible while a stage is running. */}
         {activeRun && (
           <div className="sticky top-2 z-30 rounded border border-ink-950 bg-ink-950 text-paper-0 p-3 shadow-lg flex items-center gap-4">

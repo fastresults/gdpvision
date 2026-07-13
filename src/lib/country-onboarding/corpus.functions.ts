@@ -15,7 +15,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { callSonar, parseSonarJson, type SonarCitation, type SonarModel } from "./perplexity.server";
 import { SUMMARY_SCHEMA_FRAGMENT, SUMMARY_SYSTEM_SUFFIX, extractInlineSummary } from "./summary-inline";
-import { normalizeMemoryTitle, isUniqueViolation, contentHash } from "./memory-dedup";
+import { normalizeMemoryTitle, isUniqueViolation } from "./memory-dedup";
 
 type Stage =
   | "source_registry"

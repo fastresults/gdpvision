@@ -6,7 +6,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { normalizeMemoryTitle, isUniqueViolation, contentHash } from "@/lib/country-onboarding/memory-dedup";
+import { normalizeMemoryTitle, isUniqueViolation } from "@/lib/country-onboarding/memory-dedup";
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data: isAdmin } = await context.supabase.rpc("has_role", {

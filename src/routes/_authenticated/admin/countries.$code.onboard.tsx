@@ -129,7 +129,7 @@ function OnboardWizard() {
   const { data: ingestKeys } = useSuspenseQuery(ingestKeysQuery);
   // (durable-job UI removed — onboarding now runs one stage at a time from this page)
   const qc = useQueryClient();
-  const [bulkRunning, setBulkRunning] = useState<false | "pending" | "all">(false);
+  const [bulkRunning, setBulkRunning] = useState<false | "pending" | "rerun">(false);
   const [bulkErr, setBulkErr] = useState<string | null>(null);
   const [runErrors, setRunErrors] = useState<Array<{ stage: Stage; message: string }>>([]);
   const [skippedStages, setSkippedStages] = useState<Array<{ stage: Stage; waitingOn: Stage[] }>>([]);

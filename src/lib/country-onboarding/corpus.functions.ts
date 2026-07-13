@@ -24,7 +24,8 @@ type Stage =
   | "sector_dossier"
   | "ministry_deep_dive"
   | "corpus_ingest"
-  | "second_brain_seed";
+  | "second_brain_seed"
+  | "capital_flows";
 
 // ============================================================
 // Small helpers (duplicated from agents.functions.ts to keep this file standalone)

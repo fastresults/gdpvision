@@ -1329,25 +1329,30 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
     try {
       for (const src of sources) {
         try {
-          // Skip if already have a document for this source in the last 24h
-          const { data: existing } = await supabaseAdmin
-            .from("country_source_documents")
-            .select("id, fetched_at")
-            .eq("country_source_id", src.id)
-            .order("fetched_at", { ascending: false })
-            .limit(1);
-          if (existing?.[0]) {
-            const ageMs = Date.now() - new Date(existing[0].fetched_at).getTime();
-            if (ageMs < 24 * 60 * 60 * 1000) {
-              results.push({ source_id: src.id, url: src.url, ok: true, chunks: 0 });
-              continue;
-            }
-          }
-
           const doc = await fetchFirecrawl(src.url);
           if (!doc.markdown || doc.markdown.length < 200) {
             throw new Error(`too short: ${doc.markdown.length} chars`);
           }
+          const hash = contentHash(doc.markdown);
+
+          // Dedup: if we already have a document for this source with the
+          // same content_hash, skip re-embedding entirely — no new document,
+          // no new chunks. This is the corpus's "no duplicates" guard.
+          const { data: existing } = await supabaseAdmin
+            .from("country_source_documents")
+            .select("id")
+            .eq("country_source_id", src.id)
+            .eq("content_hash", hash)
+            .maybeSingle();
+          if (existing) {
+            await supabaseAdmin
+              .from("country_sources")
+              .update({ last_fetched_at: new Date().toISOString(), fetch_status: "ok", fetch_error: null })
+              .eq("id", src.id);
+            results.push({ source_id: src.id, url: src.url, ok: true, chunks: 0 });
+            continue;
+          }
+
           const chunks = chunkText(doc.markdown);
           if (!chunks.length) throw new Error("no chunks after split");
 
@@ -1359,10 +1364,12 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
               raw_text: doc.markdown,
               char_count: doc.markdown.length,
               chunk_count: chunks.length,
+              content_hash: hash,
             })
             .select("id")
             .single();
           if (dErr || !docRow) throw new Error(dErr?.message ?? "doc insert failed");
+
 
           // Embed in batches of 64
           const vectors: number[][] = [];

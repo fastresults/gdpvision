@@ -313,6 +313,7 @@ export const runProfileAgent = createServerFn({ method: "POST" })
         summary_highlights: inline.summary_highlights,
       });
 
+      await promoteAfterDraft(supabaseAdmin, data.countryCode, "profile", draftId, fb);
       await finishRun(supabaseAdmin, runId, { status: "ready", model_stack: { ...fb.modelStack, notes: fb.notes } });
       return { runId, draftId, payload: fb.data, citations: fb.citations, tier: fb.tier, notes: fb.notes };
     } catch (err) {

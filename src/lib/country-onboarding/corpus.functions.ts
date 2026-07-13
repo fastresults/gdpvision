@@ -1447,8 +1447,9 @@ const SecondBrainSchema = {
         required: ["kind", "title", "body", "sector_code", "weight"],
       },
     },
+    ...SUMMARY_SCHEMA_FRAGMENT,
   },
-  required: ["memories"],
+  required: ["memories", "summary_md", "summary_highlights"],
 } as const;
 
 export const runSecondBrainSeedAgent = createServerFn({ method: "POST" })

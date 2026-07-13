@@ -217,7 +217,7 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
     }
 
 
-    const [country, runs, drafts, cites, summaries, tgt] = await Promise.all([
+    const [country, runs, drafts, cites, summaries, pipelineRuns, tgt] = await Promise.all([
       supabaseAdmin.from("countries").select("*").eq("code", cc).maybeSingle(),
       supabaseAdmin
         .from("onboarding_runs")
@@ -238,6 +238,12 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
         .from("onboarding_summaries")
         .select("*")
         .eq("country_code", cc),
+      supabaseAdmin
+        .from("onboarding_pipeline_runs")
+        .select("*")
+        .eq("country_code", cc)
+        .order("started_at", { ascending: false })
+        .limit(5),
       countCommittedTargets(supabaseAdmin, cc),
     ]);
 
@@ -261,17 +267,24 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
       runs: runs.data ?? [],
       drafts: dedupedDrafts,
       summaries: summaries.data ?? [],
-      committedTargets: tgt,
+      pipelineRuns: pipelineRuns.data ?? [],
+      committedTargets: tgt.targets,
+      statusDiagnostics: tgt.diagnostics,
     };
   });
 
 // Row counts per stage in the actual target tables — the ground truth for
 // whether a stage is "committed" (vs the ephemeral run status).
 async function countCommittedTargets(admin: any, cc: string) {
+  const diagnostics: Array<{ stage: string; message: string }> = [];
   const zero = { rows: 0 as number };
-  const count = async (q: any) => {
+  const count = async (stage: string, q: any) => {
     const { count, error } = await q;
-    if (error) return zero;
+    if (error) {
+      diagnostics.push({ stage, message: error.message ?? String(error) });
+      console.error(`[onboarding] committed-target count failed for ${stage}:`, error);
+      return { ...zero, error: error.message ?? String(error) };
+    }
     return { rows: count ?? 0 };
   };
   const [
@@ -287,23 +300,29 @@ async function countCommittedTargets(admin: any, cc: string) {
     memoryC,
   ] = await Promise.all([
     admin.from("countries").select("profile_committed_at, gdp_committed_at").eq("code", cc).maybeSingle(),
-    count(admin.from("country_sectors").select("*", { count: "exact", head: true }).eq("country_code", cc)),
-    count(admin.from("ministries").select("*", { count: "exact", head: true }).eq("country_code", cc)),
+    count("sector_composition", admin.from("country_sectors").select("*", { count: "exact", head: true }).eq("country_code", cc)),
+    count("ministries", admin.from("ministries").select("*", { count: "exact", head: true }).eq("country_code", cc)),
     count(
+      "ministry_sector_map",
       admin
         .from("ministry_sectors")
         .select("ministry_id, ministries!inner(country_code)", { count: "exact", head: true })
         .eq("ministries.country_code", cc),
     ),
-    count(admin.from("country_sources").select("*", { count: "exact", head: true }).eq("country_code", cc)),
-    count(admin.from("country_kpis").select("*", { count: "exact", head: true }).eq("country_code", cc)),
-    count(admin.from("sector_dossiers").select("*", { count: "exact", head: true }).eq("country_code", cc)),
-    count(admin.from("ministry_profiles").select("*", { count: "exact", head: true }).eq("country_code", cc)),
-    count(admin.from("country_source_chunks").select("*", { count: "exact", head: true }).eq("country_code", cc)),
-    count(admin.from("memory_objects").select("*", { count: "exact", head: true }).eq("country_code", cc)),
+    count("source_registry", admin.from("country_sources").select("*", { count: "exact", head: true }).eq("country_code", cc)),
+    count("kpi_seed", admin.from("country_kpis").select("*", { count: "exact", head: true }).eq("country_code", cc)),
+    count("sector_dossier", admin.from("sector_dossiers").select("*", { count: "exact", head: true }).eq("country_code", cc)),
+    count("ministry_deep_dive", admin.from("ministry_profiles").select("*", { count: "exact", head: true }).eq("country_code", cc)),
+    count("corpus_ingest", admin.from("country_source_chunks").select("*", { count: "exact", head: true }).eq("country_code", cc)),
+    // memory_objects are country-scoped by scope_key, not country_code.
+    count("second_brain_seed", admin.from("memory_objects").select("*", { count: "exact", head: true }).eq("scope_key", cc)),
   ]);
+  if (countryRow.error) {
+    diagnostics.push({ stage: "profile", message: countryRow.error.message ?? String(countryRow.error) });
+    diagnostics.push({ stage: "gdp", message: countryRow.error.message ?? String(countryRow.error) });
+  }
   const c = countryRow.data;
-  return {
+  const targets = {
     profile: { rows: c?.profile_committed_at ? 1 : 0 },
     gdp: { rows: c?.gdp_committed_at ? 1 : 0 },
 
@@ -317,6 +336,7 @@ async function countCommittedTargets(admin: any, cc: string) {
     corpus_ingest: chunksC,
     second_brain_seed: memoryC,
   } as Record<string, { rows: number }>;
+  return { targets, diagnostics };
 }
 
 

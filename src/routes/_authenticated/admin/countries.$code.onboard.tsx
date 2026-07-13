@@ -223,6 +223,7 @@ function OnboardWizard() {
   const runs: any[] = (data as any).runs ?? [];
   const country: any = (data as any).country;
   const summaries: any[] = (data as any).summaries ?? [];
+  const committedTargets: Record<string, { rows: number }> = (data as any).committedTargets ?? {};
   const genSummary = useServerFn(generateStageSummary);
 
   // Wrap each runner: open the accordion for that stage, show the sticky
@@ -257,9 +258,13 @@ function OnboardWizard() {
 
 
 
+  // SOURCE OF TRUTH: a stage is committed iff its target table has rows for
+  // this country. `lastRun.status` is only for the activity line, never for
+  // the commit badge.
   const committedStages = new Set<string>(
-    runs.filter((r) => r.status === "committed").map((r) => r.stage),
+    STAGES.filter((s) => (committedTargets[s.key]?.rows ?? 0) > 0).map((s) => s.key),
   );
+
 
   async function runAllPending() {
     setBulkErr(null);
@@ -489,6 +494,7 @@ function OnboardWizard() {
           drafts={drafts}
           runs={runs}
           summaries={summaries}
+          committedTargets={committedTargets}
           countryName={country?.name ?? code}
           keyConfigured={keyStatus.configured}
           runners={runners}
@@ -548,6 +554,7 @@ function AccordionStages({
   drafts,
   runs,
   summaries,
+  committedTargets,
   countryName,
   keyConfigured,
   runners,
@@ -563,6 +570,7 @@ function AccordionStages({
   drafts: any[];
   runs: any[];
   summaries: any[];
+  committedTargets: Record<string, { rows: number }>;
   countryName: string;
   keyConfigured: boolean;
   runners: Record<string, any>;
@@ -577,10 +585,13 @@ function AccordionStages({
   return (
     <>
       {stages.map((s) => {
-        const draft = drafts.find((d) => d.stage === s.key);
+        const stageDrafts = drafts.filter((d) => d.stage === s.key);
+        const draft = stageDrafts.find((d) => !d.superseded) ?? stageDrafts[0];
         const stageRuns = runs.filter((r) => r.stage === s.key);
         const lastRun = stageRuns[0];
+        const lastCommitRun = stageRuns.find((r) => r.status === "committed");
         const summary = summaries.find((x) => x.stage === s.key);
+        const target = committedTargets[s.key] ?? { rows: 0 };
         return (
           <StageCard
             key={s.key}
@@ -588,6 +599,8 @@ function AccordionStages({
             countryName={countryName}
             draft={draft}
             lastRun={lastRun}
+            lastCommitRun={lastCommitRun}
+            targetRows={target.rows}
             summary={summary}
             keyConfigured={keyConfigured}
             isOpen={openStage === s.key}
@@ -607,11 +620,14 @@ function AccordionStages({
 
 
 
+
 function StageCard({
   stage,
   countryName,
   draft,
   lastRun,
+  lastCommitRun,
+  targetRows,
   summary,
   keyConfigured,
   isOpen,
@@ -625,6 +641,8 @@ function StageCard({
   countryName: string;
   draft: any;
   lastRun: any;
+  lastCommitRun: any;
+  targetRows: number;
   summary: any;
   keyConfigured: boolean;
   isOpen: boolean;
@@ -654,12 +672,17 @@ function StageCard({
   }, [isOpen]);
 
 
-  const committed = lastRun?.status === "committed";
+  // Ground truth: target table has rows for this country.
+  const committed = targetRows > 0;
+  const commitAt = lastCommitRun?.finished_at ?? lastCommitRun?.started_at ?? null;
+  // A draft that arrived AFTER the last commit — user re-ran and can re-commit.
+  const hasNewerDraft = !!draft && (!commitAt || new Date(draft.created_at) > new Date(commitAt));
   const payload = draft?.payload;
   const citations: any[] = draft?.citations ?? [];
   const model = (lastRun?.model_stack && (lastRun.model_stack.research || Object.values(lastRun.model_stack)[0])) as
     | string
     | undefined;
+
 
   async function doRun() {
     setRunning(true);
@@ -726,10 +749,13 @@ function StageCard({
           <span className="flex-1">
             <h2 className="text-base font-semibold flex items-center gap-2">
               {stage.label}
-              {committed && (
+              {committed && !hasNewerDraft && (
                 <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-700">committed</span>
               )}
-              {draft && !committed && (
+              {committed && hasNewerDraft && (
+                <span className="text-[11px] px-2 py-0.5 rounded bg-amber-500/15 text-amber-700">new draft</span>
+              )}
+              {!committed && draft && (
                 <span className="text-[11px] px-2 py-0.5 rounded bg-amber-500/15 text-amber-700">review</span>
               )}
             </h2>
@@ -737,27 +763,47 @@ function StageCard({
           </span>
         </button>
         <div className="flex items-center gap-2 pr-5">
-          {committed ? (
+          {committed && (
             <span
               className="text-sm px-3 py-1.5 border border-emerald-500 bg-emerald-500/10 text-emerald-700 inline-flex items-center gap-1"
-              title="This stage is already committed"
+              title={`Target table has ${targetRows} row(s) for this country${commitAt ? ` · committed ${new Date(commitAt).toLocaleString()}` : ""}`}
             >
-              ✓ Committed
+              ✓ Committed{targetRows > 1 ? ` (${targetRows})` : ""}
             </span>
-          ) : (
+          )}
+          {(!committed || hasNewerDraft) && (
             <button
               type="button"
-              className="text-sm px-3 py-1.5 border border-emerald-500 text-emerald-700 hover:bg-emerald-500/10 disabled:opacity-50"
+              className={`text-sm px-3 py-1.5 border disabled:opacity-50 ${
+                hasNewerDraft
+                  ? "border-amber-500 text-amber-700 hover:bg-amber-500/10"
+                  : "border-emerald-500 text-emerald-700 hover:bg-emerald-500/10"
+              }`}
               disabled={committing || !draft || citations.length === 0}
-              title={!draft ? "Run AI research first to produce a draft" : citations.length === 0 ? "Draft has no citations — cannot commit" : "Commit draft to database"}
+              title={
+                !draft
+                  ? "Run AI research first to produce a draft"
+                  : citations.length === 0
+                    ? "Draft has no citations — cannot commit"
+                    : hasNewerDraft
+                      ? "A newer draft is waiting — commit it to replace the currently-committed data"
+                      : "Commit draft to database"
+              }
               onClick={(e) => {
                 e.stopPropagation();
                 doCommit();
               }}
             >
-              {committing ? "Committing…" : draft ? `Commit to ${draft.target_table}` : "Commit (no draft)"}
+              {committing
+                ? "Committing…"
+                : hasNewerDraft
+                  ? `Re-commit to ${draft?.target_table ?? "target"}`
+                  : draft
+                    ? `Commit to ${draft.target_table}`
+                    : "Commit (no draft)"}
             </button>
           )}
+
           <button
             type="button"
             className="text-sm px-3 py-1.5 border border-ink-950 bg-ink-950 text-paper-0 hover:bg-ink-700 disabled:opacity-50"

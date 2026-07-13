@@ -207,6 +207,7 @@ const ProfileSchema = {
     government_type: { type: "string" },
     head_of_government: { type: "string" },
     notes: { type: "string" },
+    ...SUMMARY_SCHEMA_FRAGMENT,
   },
   required: [
     "currency",
@@ -216,6 +217,8 @@ const ProfileSchema = {
     "government_type",
     "head_of_government",
     "notes",
+    "summary_md",
+    "summary_highlights",
   ],
 } as const;
 

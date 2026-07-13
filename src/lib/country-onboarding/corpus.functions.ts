@@ -1643,6 +1643,9 @@ async function loadSecondBrainGrounding(admin: any, countryCode: string) {
       .limit(18),
   ]);
   if (country.error || !country.data) throw new Error(`Country ${countryCode} not found`);
+  for (const [name, r] of [["sectors", sectors], ["kpis", kpis], ["sources", sources], ["dossiers", dossiers], ["ministries", ministries], ["chunks", chunks]] as const) {
+    if ((r as any).error) throw new Error(`grounding.${name} query failed: ${(r as any).error.message}`);
+  }
   return {
     country: country.data,
     sectors: sectors.data ?? [],

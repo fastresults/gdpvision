@@ -879,16 +879,6 @@ function StageCard({
                 )}
               </div>
 
-              {!committed && (
-                <button
-                  type="button"
-                  className="text-sm px-3 py-1.5 border border-emerald-500 text-emerald-700 hover:bg-emerald-500/10 disabled:opacity-50"
-                  disabled={committing || citations.length === 0}
-                  onClick={doCommit}
-                >
-                  {committing ? "Committing…" : `Commit to ${draft.target_table}`}
-                </button>
-              )}
             </>
           )}
 

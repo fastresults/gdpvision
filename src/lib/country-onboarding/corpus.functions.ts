@@ -2109,7 +2109,7 @@ export const commitCapitalFlows = createServerFn({ method: "POST" })
     // period so the chart can render the complete ledger together.
     let upserted = 0;
     for (const f of payload.flows) {
-      const period = payload.period || f.period;
+      const period = payload.period || f.period || "unknown";
       const noteParts = [f.notes ?? null];
       if (f.formula) noteParts.push(`Formula: ${f.formula}`);
       if (f.source_kind) noteParts.push(`Source basis: ${f.source_kind}`);

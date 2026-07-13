@@ -1010,7 +1010,10 @@ function StageCard({
 
           {/* Capital-flows coverage checklist */}
           {stage.key === "capital_flows" && capitalFlowsCoverage && (
-            <CapitalFlowsCoverage coverage={capitalFlowsCoverage} reconciliation={payload?.reconciliation} droppedFlows={payload?.dropped_flows} />
+            <>
+              <CapitalFlowsCoverage coverage={capitalFlowsCoverage} reconciliation={payload?.reconciliation} droppedFlows={payload?.dropped_flows} />
+              <CapitalFlowsWorkbench payload={payload} citations={citations} />
+            </>
           )}
 
           {/* Draft (review) UI — shown when a draft is awaiting commit */}
@@ -1250,6 +1253,104 @@ function CapitalFlowsCoverage({
             ))}
           </ul>
         </details>
+      )}
+    </div>
+  );
+}
+
+function formatUsdM(value: unknown) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "—";
+  if (Math.abs(n) >= 1000) return `$${(n / 1000).toFixed(1)}B`;
+  return `$${Math.round(n)}M`;
+}
+
+function CapitalFlowsWorkbench({ payload, citations }: { payload: any; citations: any[] }) {
+  const flows: any[] = Array.isArray(payload?.flows) ? payload.flows : [];
+  const workbook = payload?.workbook;
+  if (!flows.length && !workbook) return null;
+  const sourceHref = (flow: any) =>
+    typeof flow?.source_url === "string" && /^https?:\/\//.test(flow.source_url) ? flow.source_url : null;
+  return (
+    <div className="rounded border border-line-200 bg-paper-100/50 p-3 space-y-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <div>
+          <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-ink-500">Capital-flow research workbook</div>
+          <p className="mt-1 text-xs text-ink-500">
+            Node-level values, formulas, assumptions, and source trail for the Sankey ledger.
+          </p>
+        </div>
+        {workbook?.country_context && (
+          <div className="text-[11px] font-mono text-ink-500 tabular-nums text-right">
+            GDP {formatUsdM(workbook.country_context.gdp_usd_m)} · {workbook.country_context.kpi_count ?? 0} KPIs · {workbook.country_context.corpus_chunks_sampled ?? 0} chunks
+          </div>
+        )}
+      </div>
+
+      {flows.length > 0 && (
+        <div className="overflow-x-auto border border-line-200 bg-paper-0">
+          <table className="min-w-full text-xs">
+            <thead className="bg-paper-100 text-[10px] font-mono uppercase tracking-[0.16em] text-ink-500">
+              <tr>
+                <th className="px-2 py-2 text-left font-medium">Node</th>
+                <th className="px-2 py-2 text-right font-medium">Value</th>
+                <th className="px-2 py-2 text-left font-medium">Method</th>
+                <th className="px-2 py-2 text-left font-medium">Formula / assumption</th>
+                <th className="px-2 py-2 text-left font-medium">Source</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line-200">
+              {flows.map((flow) => {
+                const href = sourceHref(flow);
+                return (
+                  <tr key={flow.node_key}>
+                    <td className="px-2 py-2 align-top">
+                      <div className="font-medium text-ink-950">{CAPITAL_FLOW_NODE_LABELS[flow.node_key] ?? flow.node_key}</div>
+                      <div className="font-mono text-[10px] text-ink-500">{flow.node_key} · {flow.period ?? payload?.period ?? "—"}</div>
+                    </td>
+                    <td className="px-2 py-2 align-top text-right font-mono tabular-nums text-ink-950">{formatUsdM(flow.value_usd_m)}</td>
+                    <td className="px-2 py-2 align-top">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-700">{flow.method ?? "—"}</span>
+                      <div className="mt-1 text-[10px] text-ink-500">Confidence {flow.confidence_grade ?? "—"}</div>
+                      {flow.source_kind && <div className="mt-1 text-[10px] text-ink-500">{flow.source_kind}</div>}
+                    </td>
+                    <td className="px-2 py-2 align-top max-w-md">
+                      {flow.formula && <div className="font-mono text-[11px] text-ink-700 leading-relaxed">{flow.formula}</div>}
+                      {flow.notes && <div className="mt-1 text-[11px] text-ink-500 leading-relaxed">{flow.notes}</div>}
+                      {flow.validation?.above_gdp_cap && (
+                        <div className="mt-1 text-[10px] text-signal-caution">Above GDP plausibility cap — evidence retained for review.</div>
+                      )}
+                    </td>
+                    <td className="px-2 py-2 align-top max-w-xs">
+                      {href ? (
+                        <a href={href} target="_blank" rel="noreferrer" className="underline decoration-dotted hover:text-ink-950 break-all">
+                          {flow.source_org || href}
+                        </a>
+                      ) : (
+                        <span className="text-red-600">No source URL</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {workbook?.attempts_summary && (
+        <div className="flex flex-wrap gap-2 text-[11px] text-ink-500">
+          {Object.entries(workbook.attempts_summary).map(([k, v]) => (
+            <span key={k} className="rounded border border-line-200 bg-paper-0 px-2 py-1 font-mono uppercase tracking-[0.14em]">
+              {k}: {String(v)}
+            </span>
+          ))}
+          {citations.length > 0 && (
+            <span className="rounded border border-line-200 bg-paper-0 px-2 py-1 font-mono uppercase tracking-[0.14em]">
+              citations: {citations.length}
+            </span>
+          )}
+        </div>
       )}
     </div>
   );

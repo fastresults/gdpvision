@@ -554,6 +554,7 @@ function AccordionStages({
   drafts,
   runs,
   summaries,
+  committedTargets,
   countryName,
   keyConfigured,
   runners,
@@ -569,6 +570,7 @@ function AccordionStages({
   drafts: any[];
   runs: any[];
   summaries: any[];
+  committedTargets: Record<string, { rows: number }>;
   countryName: string;
   keyConfigured: boolean;
   runners: Record<string, any>;
@@ -583,10 +585,13 @@ function AccordionStages({
   return (
     <>
       {stages.map((s) => {
-        const draft = drafts.find((d) => d.stage === s.key);
+        const stageDrafts = drafts.filter((d) => d.stage === s.key);
+        const draft = stageDrafts.find((d) => !d.superseded) ?? stageDrafts[0];
         const stageRuns = runs.filter((r) => r.stage === s.key);
         const lastRun = stageRuns[0];
+        const lastCommitRun = stageRuns.find((r) => r.status === "committed");
         const summary = summaries.find((x) => x.stage === s.key);
+        const target = committedTargets[s.key] ?? { rows: 0 };
         return (
           <StageCard
             key={s.key}
@@ -594,6 +599,8 @@ function AccordionStages({
             countryName={countryName}
             draft={draft}
             lastRun={lastRun}
+            lastCommitRun={lastCommitRun}
+            targetRows={target.rows}
             summary={summary}
             keyConfigured={keyConfigured}
             isOpen={openStage === s.key}
@@ -610,6 +617,7 @@ function AccordionStages({
     </>
   );
 }
+
 
 
 

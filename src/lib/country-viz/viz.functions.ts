@@ -257,7 +257,7 @@ export const getVizOverview = createServerFn({ method: "POST" })
 
 const SectorEvidenceInput = z.object({
   countryCode: z.string().min(2).max(4),
-  sectorCode: z.string().min(2).max(8),
+  sectorCode: z.string().min(2).max(32),
 });
 
 export const getSectorEvidence = createServerFn({ method: "POST" })

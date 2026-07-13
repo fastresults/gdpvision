@@ -153,6 +153,9 @@ function OnboardWizard() {
   const drafts: any[] = (data as any).drafts ?? [];
   const runs: any[] = (data as any).runs ?? [];
   const country: any = (data as any).country;
+  const summaries: any[] = (data as any).summaries ?? [];
+  const genSummary = useServerFn(generateStageSummary);
+
 
   const committedStages = new Set<string>(
     runs.filter((r) => r.status === "committed").map((r) => r.stage),

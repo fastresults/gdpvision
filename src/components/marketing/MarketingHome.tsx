@@ -154,7 +154,7 @@ export function MarketingHome() {
             </div>
             <nav
               aria-label="Cycle through threats"
-              className="mt-8 flex items-center gap-6 border-t border-line-200 pt-6"
+              className="mt-4 flex items-center gap-6 border-t border-line-200 pt-3"
             >
               <button
                 type="button"

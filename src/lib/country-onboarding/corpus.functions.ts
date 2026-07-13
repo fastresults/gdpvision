@@ -579,9 +579,10 @@ export const runKpiSeedAgent = createServerFn({ method: "POST" })
         const url = (k as any).source_url;
         if (!url || seenCite.has(url)) continue;
         seenCite.add(url);
-        let domain: string | null = null;
+        let domain: string | undefined;
         try { domain = new URL(url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
-        citations.push({ url, domain, title: (k as any).source_org ?? null });
+        citations.push({ url, domain, title: (k as any).source_org ?? undefined });
+
       }
 
       const draftId = await saveDraft(supabaseAdmin, {

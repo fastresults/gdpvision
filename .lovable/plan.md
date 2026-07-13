@@ -1,42 +1,63 @@
-## Why the button doesn't flip
+## Why the "app encountered an error" dialog keeps showing
 
-`StageCard`'s Run button label is:
+Every failing path today throws a raw `Error` from a `createServerFn` handler. TanStack turns those into a 500 that bubbles to the route boundary → global "app encountered an error" modal. Two dialog triggers are firing on this project:
 
-```
-{running ? "Researching…" : draft ? "Re-run agent" : "Run AI research"}
-```
+1. **Stage-dependency violation during "Run all pending"** (today's error).
+   - `runAllPending` iterates STAGES in order, awaits each `runners[s.key]`, and moves on. It only skips a stage that's already committed or has an existing draft.
+   - Stage 4 `runMinistriesAgent` writes a **draft** (`saveDraft` → status `ready`, needs admin commit). It does **not** insert into the `ministries` table.
+   - Stage 5 `runMinistrySectorMapAgent` **reads** `ministries` (row 546 `if (!ministries?.length) throw`). Because Stage 4's draft is still pending commit, Stage 5 explodes → dialog.
+   - Same shape applies to every other downstream stage that reads a committed table (sectors, KPIs, source registry, dossiers, ministry profiles, corpus_ingest which reads `country_sources`).
 
-`draft` is the row from `onboarding_drafts` for this stage. The drafts query in `getOnboardingState` (`agents.functions.ts` L160-165) filters `.is("committed_at", null)` — only **uncommitted** drafts.
+2. **Perplexity empty response** (previous error, patched with a retry on Ministries only). The same "throw on empty" pattern exists in 6+ other agents.
 
-Stage 10 `runCorpusIngest` **auto-commits** its draft at the end (`corpus.functions.ts` L1532-1533 → `markDraftCommitted`). So the moment the run finishes, `committed_at` is stamped and the draft drops out of the list. The parent re-fetches (`refresh()`), `draft` becomes `undefined`, and the label snaps back to `Run AI research`.
+Result: whenever any single agent in the chain fails or an upstream stage isn't committed yet, the bulk run stops with a full-screen crash instead of surfacing an inline warning and skipping.
 
-The "committed" pill next to the header still shows because it reads `lastRun.status === "committed"` from the runs list (unaffected by the draft filter). So the state IS post-run — the label just doesn't reflect it.
+## Fix plan (efficiency + durability, no behavioral change to committed data)
 
-Stages 1–9 don't auto-commit, so their draft sticks around and the label correctly flips to `Re-run agent`. Stage 10 (and any other auto-commit stage) is the only one affected.
+### A. Stop treating dependency gaps as crashes
 
-## Fix
+- Add a small `stageDependencies` map in `src/routes/_authenticated/admin/countries.$code.onboard.tsx` describing which committed-stage keys each downstream stage requires (e.g. `ministry_sector_map: ["ministries"]`, `ministry_profiles: ["ministries"]`, `dossiers: ["sectors"]`, `corpus_ingest: ["source_registry"]`, …).
+- In `runAllPending`, before invoking a stage, check the dependency set against `committedStages`. If missing, **skip and record a "waiting on X" note** in a new `skippedStages` state; do not throw. Continue the loop.
+- Show a single inline `Skipped: ministry_sector_map (waiting on ministries commit) · ...` banner alongside `bulkErr`, replacing the crash path.
 
-In `src/routes/_authenticated/admin/countries.$code.onboard.tsx`, change the label condition in `StageCard`'s Run button (currently around line 690) so it treats "already ran, no matter whether the draft is still open" as `Re-run agent`:
+### B. Make bulk run resilient to individual failures
 
-```
-const hasRun = Boolean(draft) || Boolean(lastRun);
-// …
-{running ? "Researching…" : hasRun ? "Re-run agent" : "Run AI research"}
-```
+- Wrap each `runners[s.key](...)` call in `runAllPending` (and `rerunAll`) in a `try/catch`. On failure, push `{ stage, message }` into a `runErrors` state and continue instead of aborting the loop.
+- Render `bulkErr` as a collapsible list of per-stage errors, not one giant modal-triggering string.
+- Keeps the queue moving so a single Perplexity hiccup doesn't burn the whole onboarding pass.
 
-`lastRun` is already passed into `StageCard` and already reflects both open and committed runs for the stage, so no data-layer change is needed.
+### C. Convert server-fn crashes into typed results
 
-Also update the two "Run AI research" copy references that show inside stage 10's body when `!report` (line ~929 "No ingest run yet — click **Run AI research**…") — leave those alone; they're only shown when there's no run yet, which is the correct empty state.
+- Introduce a small helper `okResult<T>(...)` / `errResult(stage, reason, hint?)` return shape used by the top-level of every agent's `.handler`. The handler catches its own throw, calls `finishRun(..., "failed")`, and **returns** `{ ok: false, stage, reason, hint }` instead of rethrowing.
+- Client-side, the bulk runner and `StageCard.doRun` treat `ok:false` as inline red text in the result banner (which already exists at line 397) — no route boundary trip, no full-screen dialog.
+- This changes the class of "expected upstream failures" (empty Perplexity, dependency gap, invalid Firecrawl URL count, 429) from crashes to inline banners. Genuine unexpected exceptions (DB down, missing env var) still throw and still surface the modal — as they should.
+
+### D. Reduce request volume in bulk runs
+
+- `runAllPending` currently `await refresh()`s after every stage — 11 stages × full re-fetch of runs/drafts/citations/summaries. Change to a single `refresh()` after the loop plus an optimistic local `committedStages` update between stages (needed only to compute the next iteration's dependency check).
+- Cuts network round-trips by ~10× per bulk run.
+
+### E. Harden Perplexity call sites (extend the fix already shipped for Ministries)
+
+Apply the same "retry once with `noDomainFilter: true` then include raw content in error" pattern to the six other `parseSonarJson` guards that currently throw on empty:
+`sectors` agent, `kpis` agent, `source_registry`, `sector_dossiers`, `ministry_profiles`, and the `memory_objects` seed. Every one of these can starve on small-nation TLDs and produce the same dialog.
+
+### F. Keep the modal for what it's actually for
+
+- The global error boundary should only be reached by true framework / bundle / auth / DB-outage failures. All of the above changes route "expected agent failures" to inline UI. That is the durability goal.
 
 ## Verification
 
-1. Reload `/admin/countries/LCA/onboard`, open stage 10 which already has a committed run.
-2. Button reads **Re-run agent** immediately (previously read "Run AI research").
-3. Open stage 1 with an open draft — still reads **Re-run agent**.
-4. Open a stage with no runs at all — reads **Run AI research**.
-5. Click **Re-run agent** on stage 10 → label goes `Researching…` → back to `Re-run agent` after completion (no longer flips to `Run AI research`).
+1. Fresh country with no committed stages → click **Run all pending**. Result:
+   - No dialog fires.
+   - Sticky banner ticks through 1→N stages.
+   - Any stage that returns `ok:false` shows an inline red line (`Sectors: Perplexity returned no results, retry queued`).
+   - Downstream stages needing an uncommitted table show `Skipped: ministry_sector_map · waiting on ministries commit`.
+2. Commit ministries manually → click **Run all pending** again → skipped list is now empty, stage 5 runs, still no dialog.
+3. Simulate a Perplexity 500 by temporarily unsetting the API key for one stage → inline red line, other stages proceed, no dialog.
+4. Network tab: bulk run of 10 stages issues 1 `getOnboardingState` refresh (was ~10).
 
 ## Out of scope
 
-- Changing auto-commit behavior for corpus_ingest.
-- Any change to `drafts` query, `onboarding_runs`, or other stage cards' logic.
+- Any change to committed data schema, RLS, agent prompts beyond adding the domain-filter retry, or the corpus_ingest auto-commit behavior.
+- Auto-committing ministries/sectors/etc. — those still require admin review; the plan only stops the crash when a downstream stage runs early.

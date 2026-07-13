@@ -75,27 +75,39 @@ export async function callSonar(opts: {
   }
 
 
-  const res = await fetch("https://api.perplexity.ai/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`Perplexity ${res.status}: ${errText.slice(0, 500)}`);
-  }
-
-  const json = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-    citations?: string[];
-    search_results?: Array<{ url: string; title?: string }>;
+  const doFetch = async (payload: Record<string, unknown>) => {
+    const r = await fetch("https://api.perplexity.ai/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) {
+      const errText = await r.text();
+      throw new Error(`Perplexity ${r.status}: ${errText.slice(0, 500)}`);
+    }
+    return (await r.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+      citations?: string[];
+      search_results?: Array<{ url: string; title?: string }>;
+    };
   };
 
-  const content = json.choices?.[0]?.message?.content ?? "";
+  let json = await doFetch(body);
+  let content = json.choices?.[0]?.message?.content ?? "";
+
+  // Durability: small-nation TLDs (e.g. .gov.ag) are not in OFFICIAL_DOMAINS,
+  // so a strict allowlist search can return empty content. If that happens,
+  // retry once without the filter before the caller's empty-guard throws.
+  if (!content.trim() && !opts.noDomainFilter && body.search_domain_filter) {
+    const retryBody = { ...body };
+    delete retryBody.search_domain_filter;
+    json = await doFetch(retryBody);
+    content = json.choices?.[0]?.message?.content ?? "";
+  }
+
   const rawCites: Array<{ url: string; title?: string }> = json.search_results
     ? json.search_results.map((r) => ({ url: r.url, title: r.title }))
     : (json.citations ?? []).map((u) => ({ url: u }));

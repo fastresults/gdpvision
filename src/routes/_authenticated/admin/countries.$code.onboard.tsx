@@ -65,6 +65,18 @@ const STAGES: Array<{ key: Stage; label: string; short: string; desc: string }> 
   { key: "second_brain_seed", label: "11. Second-brain seed", short: "Brain", desc: "Cabinet positions, audiences, outlets, facts, risks." },
 ];
 
+// Stages that read committed rows from a prior stage's target table. If the
+// upstream stage isn't committed yet, running the downstream agent will throw
+// (e.g. `runMinistrySectorMapAgent` reads `ministries`). `runAllPending` uses
+// this to skip-with-warning instead of exploding into the global error modal.
+const STAGE_DEPENDENCIES: Partial<Record<Stage, Stage[]>> = {
+  ministry_sector_map: ["ministries", "sector_composition"],
+  sector_dossier: ["sector_composition"],
+  ministry_deep_dive: ["ministries"],
+  corpus_ingest: ["source_registry"],
+  second_brain_seed: ["source_registry"],
+};
+
 const statusQuery = (code: string) =>
   queryOptions({
     queryKey: ["onboarding", "status", code],
@@ -117,6 +129,8 @@ function OnboardWizard() {
   const qc = useQueryClient();
   const [bulkRunning, setBulkRunning] = useState<false | "pending" | "all">(false);
   const [bulkErr, setBulkErr] = useState<string | null>(null);
+  const [runErrors, setRunErrors] = useState<Array<{ stage: Stage; message: string }>>([]);
+  const [skippedStages, setSkippedStages] = useState<Array<{ stage: Stage; waitingOn: Stage[] }>>([]);
 
   // Lifted so we can auto-open the accordion for the stage currently running.
   const [openStage, setOpenStage] = useState<string | null>(null);
@@ -249,32 +263,55 @@ function OnboardWizard() {
 
   async function runAllPending() {
     setBulkErr(null);
+    setRunErrors([]);
+    setSkippedStages([]);
     setBulkRunning("pending");
+    const errors: Array<{ stage: Stage; message: string }> = [];
+    const skipped: Array<{ stage: Stage; waitingOn: Stage[] }> = [];
+    // Optimistic local view so we don't need to refetch between stages just to
+    // update the dependency check.
+    const localCommitted = new Set<string>(committedStages);
     try {
       for (const s of STAGES) {
         const hasDraft = drafts.some((d) => d.stage === s.key);
-        if (committedStages.has(s.key) || hasDraft) continue;
-        await runners[s.key]({ data: { countryCode: code } });
-        await refresh();
+        if (localCommitted.has(s.key) || hasDraft) continue;
+        const deps = STAGE_DEPENDENCIES[s.key] ?? [];
+        const missing = deps.filter((d) => !localCommitted.has(d));
+        if (missing.length) {
+          skipped.push({ stage: s.key, waitingOn: missing });
+          continue;
+        }
+        try {
+          await runners[s.key]({ data: { countryCode: code } });
+        } catch (e: any) {
+          errors.push({ stage: s.key, message: e?.message ?? String(e) });
+        }
       }
-    } catch (e: any) {
-      setBulkErr(e?.message ?? String(e));
     } finally {
+      setRunErrors(errors);
+      setSkippedStages(skipped);
+      await refresh();
       setBulkRunning(false);
     }
   }
 
   async function rerunAll() {
     setBulkErr(null);
+    setRunErrors([]);
+    setSkippedStages([]);
     setBulkRunning("all");
+    const errors: Array<{ stage: Stage; message: string }> = [];
     try {
       for (const s of STAGES) {
-        await runners[s.key]({ data: { countryCode: code } });
-        await refresh();
+        try {
+          await runners[s.key]({ data: { countryCode: code } });
+        } catch (e: any) {
+          errors.push({ stage: s.key, message: e?.message ?? String(e) });
+        }
       }
-    } catch (e: any) {
-      setBulkErr(e?.message ?? String(e));
     } finally {
+      setRunErrors(errors);
+      await refresh();
       setBulkRunning(false);
     }
   }
@@ -366,6 +403,28 @@ function OnboardWizard() {
         {bulkErr && (
           <div className="rounded border border-red-500/50 bg-red-500/10 p-3 text-xs text-red-700">
             Run all pending stopped: {bulkErr}
+          </div>
+        )}
+
+        {skippedStages.length > 0 && (
+          <div className="rounded border border-amber-500/50 bg-amber-500/10 p-3 text-xs text-amber-800 space-y-1">
+            <div className="font-medium">Skipped (waiting on upstream commit):</div>
+            {skippedStages.map((s) => (
+              <div key={s.stage} className="font-mono">
+                • {s.stage} — needs {s.waitingOn.join(", ")} committed
+              </div>
+            ))}
+          </div>
+        )}
+
+        {runErrors.length > 0 && (
+          <div className="rounded border border-red-500/50 bg-red-500/10 p-3 text-xs text-red-700 space-y-1">
+            <div className="font-medium">Stage failures (bulk run continued past these):</div>
+            {runErrors.map((e) => (
+              <div key={e.stage} className="font-mono break-words">
+                • {e.stage}: {e.message}
+              </div>
+            ))}
           </div>
         )}
 

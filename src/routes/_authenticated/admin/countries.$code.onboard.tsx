@@ -364,6 +364,14 @@ function OnboardWizard() {
             >
               Manage data stores →
             </Link>
+
+            <Link
+              to="/admin/countries/$code/viz"
+              params={{ code }}
+              className="px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0 hover:opacity-90"
+            >
+              GDP Visualizations →
+            </Link>
           </div>
         </header>
 

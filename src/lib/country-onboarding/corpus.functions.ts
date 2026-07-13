@@ -1510,7 +1510,7 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
       // Auto-commit corpus ingest — nothing further for the user to edit
       await markDraftCommitted(supabaseAdmin, draftId, runId);
 
-      return { ok: true, totalChunks, okCount, failCount, results };
+      return { ok: true, runId, totalChunks, okCount, failCount, results };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;

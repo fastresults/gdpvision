@@ -106,14 +106,22 @@ export function MarketingHome() {
         if (next === 0) setTail(shuffleTail());
         return next;
       });
-    }, 5500);
+    }, 10000);
     return () => clearInterval(id);
   }, []);
   const current = index === 0 ? EXISTENTIAL_THREATS[0] : tail[index - 1];
   const moment = MOMENT_VARIANTS[momentIndex];
   const total = MOMENT_VARIANTS.length;
+  const threatTotal = EXISTENTIAL_THREATS.length;
   const goPrev = () => setMomentIndex((i) => (i - 1 + total) % total);
   const goNext = () => setMomentIndex((i) => (i + 1) % total);
+  const goPrevThreat = () => setIndex((i) => (i - 1 + threatTotal) % threatTotal);
+  const goNextThreat = () =>
+    setIndex((i) => {
+      const next = (i + 1) % threatTotal;
+      if (next === 0) setTail(shuffleTail());
+      return next;
+    });
 
   return (
     <MarketingShell>
@@ -144,6 +152,38 @@ export function MarketingHome() {
                 </p>
               </div>
             </div>
+            <nav
+              aria-label="Cycle through threats"
+              className="mt-8 flex items-center gap-6 border-t border-line-200 pt-6"
+            >
+              <button
+                type="button"
+                onClick={goPrevThreat}
+                aria-label="Previous threat"
+                className="group flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
+              >
+                <svg width="44" height="10" viewBox="0 0 44 10" fill="none" aria-hidden className="transition-transform duration-300 group-hover:-translate-x-1">
+                  <path d="M43 5H1M1 5L5 1M1 5L5 9" stroke="currentColor" strokeWidth="1" strokeLinecap="square" />
+                </svg>
+                <span>Prev</span>
+              </button>
+              <span className="font-mono text-[11px] tabular-nums tracking-[0.22em] text-ink-950">
+                {String(index + 1).padStart(2, "0")}
+                <span className="mx-2 text-ink-300">/</span>
+                {String(threatTotal).padStart(2, "0")}
+              </span>
+              <button
+                type="button"
+                onClick={goNextThreat}
+                aria-label="Next threat"
+                className="group flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
+              >
+                <span>Next</span>
+                <svg width="44" height="10" viewBox="0 0 44 10" fill="none" aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">
+                  <path d="M1 5H43M43 5L39 1M43 5L39 9" stroke="currentColor" strokeWidth="1" strokeLinecap="square" />
+                </svg>
+              </button>
+            </nav>
             <div className="mt-10 flex flex-wrap items-center gap-6">
               <a
                 href="#briefing"

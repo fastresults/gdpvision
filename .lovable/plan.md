@@ -1,86 +1,68 @@
-## Forensic finding
 
-The current workflow is not reliably durable yet. The live AIA run is stuck because the parent pipeline is waiting on `kpi_seed`, while the child `onboarding_runs` row is still `planning` with `plan = null` and no heartbeat since it opened. No `kpi_research_attempts` were written, so the process died before incremental progress became visible. Recent AI gateway logs show Gemini calls around the same time, including one cancelled request, but the database run was never advanced past `planning`.
+You're right. I over-engineered this. 8,400 lines across 20 files, a durable-job worker table, cron pings, fan-out substeps, timeouts, resume logic — for a workflow that fundamentally just needs to run **one stage at a time, well**, for one country at a time.
 
-The root problem is architectural: a long, multi-stage research workflow is still running inside a single request chain. If the request, preview, browser, model call, or runtime is interrupted, the database is left with an open run lock and no safe resume point.
+Here's the simpler plan.
 
-## Plan
+## Principle
 
-### 1. Stop the immediate stuck-state safely
-- Add a server-side recovery action that marks only stale open AIA workflow rows as `stale`/`failed` based on heartbeat age.
-- Preserve all committed data and drafts.
-- Make the admin UI show a clear “Recover stale run” action instead of forcing repeated “Run all pending” clicks into a lock.
+One country onboarding = one sequential run. Each stage finishes (or fails clearly) before the next starts. No fan-out, no worker pool, no cron, no "resume from step 47 of 122". Quality over throughput.
 
-### 2. Replace request-bound orchestration with durable jobs
-- Add a durable job/step table for onboarding work:
-  - one row per pipeline job
-  - one row per stage/substep/KPI/source fetch
-  - status, attempt count, heartbeat, lease expiry, checkpoint payload, output, and error
-- Enforce idempotency with unique keys such as `country + stage + step_key`, so reruns resume or replace safely instead of duplicating work.
-- Keep existing committed target tables as the source of truth for completion.
+## What gets deleted
 
-### 3. Split long stages into resumable substeps
-- Refactor `kpi_seed` into small independent units:
-  - deterministic World Bank/IMF pass
-  - source-registry-backed fetch pass
-  - targeted AI pass per missing KPI
-  - inference pass only for remaining gaps
-  - draft assembly/commit eligibility
-- Persist every KPI attempt immediately after each provider call.
-- Never wait until the full KPI loop finishes to write progress.
+- `durable-worker.server.ts` (971 lines)
+- `kpi-seed.server.ts` per-KPI fan-out substep expansion (522 lines → collapse into a single sequential pass)
+- `onboarding_jobs`, `onboarding_job_steps`, `onboarding_job_events` tables
+- `/api/public/hooks/onboarding-worker` route
+- The pg_cron trigger
+- The `DurableJobPanel` UI and its Resume/Recover controls
+- All "child step" / "lease" / "heartbeat every N seconds" bookkeeping
 
-### 4. Add timeouts, retries, and leases per provider call
-- Wrap Perplexity, Gemini, Firecrawl, embeddings, and raw fetch calls in explicit timeout helpers.
-- Store provider failure reasons per step.
-- Retry transient failures with capped attempts.
-- Mark non-transient failures as `needs_review` instead of poisoning the whole pipeline.
+## What replaces it
 
-### 5. Make the parent workflow a coordinator, not the worker
-- Change `runCountryOnboardingPipeline` so it creates/resumes a durable job and returns immediately with a job id.
-- Process stages from server-side worker functions that can be re-entered safely.
-- Parent status is derived from child steps, not from a single in-memory `results` array.
+**One table: `onboarding_runs`** (already exists) with fields we already have:
+`status`, `current_stage`, `stage_started_at`, `last_error`, `plan`.
 
-### 6. Add a real operator command center
-- Show live step counts: queued, running, complete, failed, needs review.
-- Show current KPI/source being processed, last heartbeat, attempt count, and latest error.
-- Add controls:
-  - Resume job
-  - Retry failed steps
-  - Cancel job
-  - Recover stale locks
-  - Continue from checkpoint
+**One server function: `runNextStage(runId)`**. It:
+1. Reads the run, picks the next stage in the fixed order.
+2. Sets `current_stage`, `stage_started_at`.
+3. Executes that stage inline, sequentially, to completion.
+4. Writes results to the real domain tables (kpis, ministries, sources, etc.) as it goes — each provider call commits immediately, same as today.
+5. On success → advances `current_stage`. On error → sets `status='failed'`, `last_error=<message>`, stops.
 
-### 7. Harden stage gates and data quality
-- Before each stage, run deterministic preflight checks against committed tables.
-- For capital flows, require committed GDP, sectors, KPIs, source registry, and corpus coverage before starting.
-- If prerequisites are missing, the stage becomes `blocked` with an explicit reason, not `stuck`.
+**Fixed stage order** (sequential, no parallelism):
+```text
+plan → kpi_seed → source_registry → ministry_deep_dive
+  → sector_dossiers → corpus_ingest → capital_flows → summarize → done
+```
 
-### 8. Make ingestion and research idempotent
-- Ensure source ingest uses normalized URLs/document hashes/chunk hashes.
-- Ensure KPI and capital-flow outputs upsert by country + semantic key.
-- Ensure retries do not duplicate sources, chunks, attempts, memories, or flow rows.
+**Inside each stage** we also go sequential:
+- `kpi_seed`: iterate the KPI registry one KPI at a time. World Bank → IMF → AI fallback. Commit each KPI row before moving to the next. If one KPI fails, log it on the row and continue — never abort the stage.
+- `ministry_deep_dive`: one ministry at a time.
+- `corpus_ingest`: one source at a time.
+- Same pattern for the rest.
 
-### 9. Validation before declaring done
-- Reproduce the current stuck state locally/live.
-- Apply migration and code changes.
-- Run AIA from a recovered state.
-- Verify:
-  - job returns immediately
-  - progress rows update during execution
-  - partial attempts are visible after every KPI/provider call
-  - interrupted jobs can resume
-  - stale locks no longer block the workflow
-  - capital flows only starts after prerequisites are satisfied
+**Triggering:** the admin page has a single "Run next stage" button and an "Auto-advance" toggle that just polls `runNextStage` from the browser every few seconds while the tab is open. No background worker. If you close the tab, it pauses. Reopen, click Run, it continues from `current_stage`. That's the whole recovery story.
 
-## Technical implementation notes
+**Timeouts:** each provider call gets a hard 60s timeout. If it trips, that item is marked failed on its own row and the stage moves on. No stage-wide hang possible.
 
-- Add schema for durable pipeline jobs/steps/events with admin-only access policies and service-role grants.
-- Introduce shared helpers for:
-  - heartbeat updates
-  - step lease acquisition
-  - timeout-wrapped provider calls
-  - retry classification
-  - idempotent step completion
-- Move long KPI logic out of one monolithic `runAgenticKpiLoop` and into checkpointable step executors.
-- Keep the UI calling server functions through TanStack Start; do not use browser polling as the worker.
-- If a durable workflow connector is available in this workspace, wire the job runner through it; otherwise implement a database-backed worker endpoint with signed internal dispatch and resumable leases.
+## Admin UI
+
+Replace the current job panel with:
+- Current stage + spinner
+- Per-stage checklist with counts (e.g. "KPIs: 14/18 committed, 2 failed, 2 pending")
+- Last error (if any) with a Retry-stage button
+- Run-next-stage / Auto-advance toggle / Stop buttons
+
+No "steps", no "leases", no "heartbeat 1:40:30 AM" — just the stages and what's inside them.
+
+## Migration path
+
+1. New migration: drop `onboarding_jobs`, `onboarding_job_steps`, `onboarding_job_events`, drop the cron job, drop the worker route.
+2. Rewrite `orchestrator.functions.ts` around `runNextStage` (~200 lines).
+3. Rewrite each stage's server function to be a plain sequential loop that commits per item (KPI seed, ministries, sources, capital flows already mostly work this way — just remove the substep wrapping).
+4. Rewrite the admin panel around the new shape.
+5. Reset AIA's `onboarding_runs` row to `current_stage='kpi_seed'` and run it through end-to-end as the acceptance test.
+
+## Result
+
+~1,500 lines instead of 8,400. One button. One stage at a time. Failures are visible and per-item, not "the whole job is blocked". Quality checks (GDP clamp, ≥3 inputs, citations, etc.) stay exactly as they are — those are the point.

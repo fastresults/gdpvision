@@ -38,11 +38,8 @@ import {
   runCapitalFlowsAgent,
 } from "@/lib/country-onboarding/corpus.functions";
 import {
-  cancelOnboardingJob,
-  getOnboardingJob,
-  recoverStaleOnboarding,
-  resumeOnboardingJob,
-  runCountryOnboardingPipeline,
+  clearOnboardingLocks,
+  getNextOnboardingStage,
 } from "@/lib/country-onboarding/orchestrator.functions";
 import { generateStageSummary } from "@/lib/country-onboarding/summaries.functions";
 
@@ -96,12 +93,6 @@ const ingestKeysQuery = queryOptions({
   queryFn: () => getIngestKeysStatus(),
 });
 
-const durableJobQuery = (code: string) =>
-  queryOptions({
-    queryKey: ["onboarding", "durable-job", code],
-    queryFn: () => getOnboardingJob({ data: { countryCode: code } }),
-    refetchInterval: 5000,
-  });
 
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/onboard")({
   head: ({ params }) => ({
@@ -136,9 +127,9 @@ function OnboardWizard() {
   const { data } = useSuspenseQuery(statusQuery(code));
   const { data: keyStatus } = useSuspenseQuery(keyStatusQuery);
   const { data: ingestKeys } = useSuspenseQuery(ingestKeysQuery);
-  const { data: durableJob } = useQuery(durableJobQuery(code));
+  // (durable-job UI removed — onboarding now runs one stage at a time from this page)
   const qc = useQueryClient();
-  const [bulkRunning, setBulkRunning] = useState<false | "pending" | "all">(false);
+  const [bulkRunning, setBulkRunning] = useState<false | "pending" | "rerun">(false);
   const [bulkErr, setBulkErr] = useState<string | null>(null);
   const [runErrors, setRunErrors] = useState<Array<{ stage: Stage; message: string }>>([]);
   const [skippedStages, setSkippedStages] = useState<Array<{ stage: Stage; waitingOn: Stage[] }>>([]);
@@ -254,10 +245,8 @@ function OnboardWizard() {
   const pipelineRuns: any[] = (data as any).pipelineRuns ?? [];
   const latestPipeline = pipelineRuns[0] ?? null;
   const genSummary = useServerFn(generateStageSummary);
-  const runPipeline = useServerFn(runCountryOnboardingPipeline);
-  const resumeJob = useServerFn(resumeOnboardingJob);
-  const cancelJob = useServerFn(cancelOnboardingJob);
-  const recoverStale = useServerFn(recoverStaleOnboarding);
+  const getNextStage = useServerFn(getNextOnboardingStage);
+  const clearLocks = useServerFn(clearOnboardingLocks);
 
   // Wrap each runner: open the accordion for that stage, show the sticky
   // banner, poll progress, and emit a result banner on resolve/reject.
@@ -299,47 +288,80 @@ function OnboardWizard() {
   );
 
 
-  async function runAllPending() {
+  // Cancel-flag for the sequential loop — click "Stop" to break after the
+  // current stage finishes.
+  const stopRef = useRef(false);
+
+  async function findLatestDraftId(stage: Stage): Promise<string | null> {
+    // Re-read status so we pick up the draft the runner just wrote.
+    await qc.invalidateQueries({ queryKey: ["onboarding", "status", code] });
+    const latest: any = await qc.fetchQuery(statusQuery(code));
+    const stageDrafts: any[] = (latest?.drafts ?? []).filter((d: any) => d.stage === stage);
+    const active = stageDrafts.find((d) => !d.superseded) ?? stageDrafts[0];
+    return active?.id ?? null;
+  }
+
+  async function runSequential(mode: "pending" | "rerun") {
     setBulkErr(null);
     setRunErrors([]);
     setSkippedStages([]);
-    setBulkRunning("pending");
+    setBulkRunning(mode);
+    stopRef.current = false;
+    const errors: Array<{ stage: Stage; message: string }> = [];
     try {
-      const res: any = await runPipeline({ data: { countryCode: code, mode: "pending" } });
-      setRunResult({
-        stage: "kpi_seed",
-        label: "Durable onboarding workflow",
-        ok: true,
-        text: `${res.queued ? "Queued" : "Resumed"} durable job ${res.jobId}. The worker will continue independently.`,
-        meta: res,
-      });
-    } catch (e: any) {
-      setBulkErr(e?.message ?? String(e));
+      // Loop: ask the server for the next stage, run it, auto-commit its draft
+      // (when one exists), refresh, repeat — until done, stopped, or errored.
+      // Each iteration is a short server request, so a tab close only pauses.
+      for (let safety = 0; safety < STAGES.length + 2; safety++) {
+        if (stopRef.current) break;
+        const next: any = await getNextStage({ data: { countryCode: code, rerun: mode === "rerun" && safety === 0 } });
+        if (next.done || !next.nextStage) break;
+        const stage = next.nextStage as Stage;
+        try {
+          await runners[stage]({ data: { countryCode: code } });
+          const draftId = await findLatestDraftId(stage);
+          if (draftId) {
+            // Auto-commit the draft (some stages have a no-op committer).
+            await committers[stage]({ data: { draftId } });
+          }
+        } catch (e: any) {
+          errors.push({ stage, message: e?.message ?? String(e) });
+          setRunErrors([...errors]);
+          setBulkErr(`Stopped at ${stage}: ${e?.message ?? String(e)}`);
+          break;
+        }
+        await refresh();
+      }
     } finally {
       await refresh();
       setBulkRunning(false);
     }
   }
 
-  async function rerunAll() {
-    setBulkErr(null);
-    setRunErrors([]);
-    setSkippedStages([]);
-    setBulkRunning("all");
+  const runAllPending = () => runSequential("pending");
+  const rerunAll = () => runSequential("rerun");
+  const stopSequential = () => { stopRef.current = true; };
+
+  async function onClearLocks() {
     try {
-      const res: any = await runPipeline({ data: { countryCode: code, mode: "rerun" } });
+      const res: any = await clearLocks({ data: { countryCode: code } });
       setRunResult({
         stage: "kpi_seed",
-        label: "Durable onboarding workflow",
+        label: "Clear onboarding locks",
         ok: true,
-        text: `${res.queued ? "Queued" : "Resumed"} durable rerun job ${res.jobId}. The worker will continue independently.`,
+        text: res.cleared > 0
+          ? `Cleared ${res.cleared} stale lock(s): ${res.stages.join(", ")}`
+          : "No stale locks to clear.",
         meta: res,
       });
-    } catch (e: any) {
-      setBulkErr(e?.message ?? String(e));
-    } finally {
       await refresh();
-      setBulkRunning(false);
+    } catch (e: any) {
+      setRunResult({
+        stage: "kpi_seed",
+        label: "Clear onboarding locks",
+        ok: false,
+        text: e?.message ?? String(e),
+      });
     }
   }
 
@@ -396,7 +418,7 @@ function OnboardWizard() {
               title="Re-run every stage, including those already committed. Existing drafts will be overwritten; committed data stays until you re-commit."
               className="px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 text-ink-950 hover:bg-ink-950 hover:text-paper-0 disabled:opacity-50"
             >
-              {bulkRunning === "all" ? "Re-running…" : "Rerun all"}
+              {bulkRunning === "rerun" ? "Re-running…" : "Rerun all"}
             </button>
 
             <Link
@@ -462,29 +484,35 @@ function OnboardWizard() {
           latestPipeline={latestPipeline}
         />
 
-        <DurableJobPanel
-          durableJob={durableJob as any}
-          onResume={async (jobId) => {
-            await resumeJob({ data: { jobId } });
-            await qc.invalidateQueries({ queryKey: ["onboarding", "durable-job", code] });
-          }}
-          onCancel={async (jobId) => {
-            await cancelJob({ data: { jobId } });
-            await qc.invalidateQueries({ queryKey: ["onboarding", "durable-job", code] });
-          }}
-          onRecover={async () => {
-            const res: any = await recoverStale({ data: { countryCode: code, staleMinutes: 15 } });
-            setRunResult({
-              stage: "kpi_seed",
-              label: "Recover stale workflow locks",
-              ok: true,
-              text: `Recovered ${res.staleRuns + res.stalePipelines + res.staleJobs + res.staleSteps} stale lock(s).`,
-              meta: res,
-            });
-            await refresh();
-            await qc.invalidateQueries({ queryKey: ["onboarding", "durable-job", code] });
-          }}
-        />
+        <section className="border border-line-200 bg-paper-0 p-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-ink-500">Sequential runner</div>
+            <p className="mt-1 text-xs text-ink-500">
+              {bulkRunning
+                ? "Running one stage at a time. Keep this tab open; click Stop to pause after the current stage."
+                : "Runs stages one by one, auto-committing each draft. Failures halt the loop — fix and re-run."}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {bulkRunning && (
+              <button
+                type="button"
+                onClick={stopSequential}
+                className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-widest border border-red-500 text-red-700"
+              >
+                Stop after current stage
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClearLocks}
+              disabled={bulkRunning !== false}
+              className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-widest border border-line-200 text-ink-700 disabled:opacity-50"
+            >
+              Clear locks
+            </button>
+          </div>
+        </section>
 
         {runErrors.length > 0 && (
           <div className="rounded border border-red-500/50 bg-red-500/10 p-3 text-xs text-red-700 space-y-1">
@@ -679,107 +707,6 @@ function PipelineHealthPanel({
   );
 }
 
-function DurableJobPanel({
-  durableJob,
-  onResume,
-  onCancel,
-  onRecover,
-}: {
-  durableJob: any;
-  onResume: (jobId: string) => Promise<void>;
-  onCancel: (jobId: string) => Promise<void>;
-  onRecover: () => Promise<void>;
-}) {
-  const [busy, setBusy] = useState<string | null>(null);
-  const job = durableJob?.job;
-  const steps: any[] = durableJob?.steps ?? [];
-  const counts = steps.reduce((acc: Record<string, number>, s) => {
-    acc[s.status] = (acc[s.status] ?? 0) + 1;
-    return acc;
-  }, {});
-  const current = steps.find((s) => s.status === "running") ?? steps.find((s) => s.status === "queued") ?? null;
-  return (
-    <section className="border border-ink-950 bg-paper-0 p-4 space-y-3">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-ink-500">Durable workflow command center</div>
-          <p className="mt-1 text-xs text-ink-500">
-            {job
-              ? `Job ${job.status} · ${job.mode} · ${new Date(job.created_at).toLocaleString()}${current ? ` · current ${current.stage}` : ""}`
-              : "No durable job queued yet."}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {job && ["queued", "running", "failed", "blocked", "stale"].includes(job.status) && (
-            <button
-              type="button"
-              disabled={busy !== null}
-              onClick={async () => {
-                setBusy("resume");
-                try { await onResume(job.id); } finally { setBusy(null); }
-              }}
-              className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-widest border border-ink-950 bg-ink-950 text-paper-0 disabled:opacity-50"
-            >
-              {busy === "resume" ? "Resuming…" : "Resume job"}
-            </button>
-          )}
-          {job && ["queued", "running"].includes(job.status) && (
-            <button
-              type="button"
-              disabled={busy !== null}
-              onClick={async () => {
-                setBusy("cancel");
-                try { await onCancel(job.id); } finally { setBusy(null); }
-              }}
-              className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-widest border border-red-500 text-red-700 disabled:opacity-50"
-            >
-              {busy === "cancel" ? "Cancelling…" : "Cancel"}
-            </button>
-          )}
-          <button
-            type="button"
-            disabled={busy !== null}
-            onClick={async () => {
-              setBusy("recover");
-              try { await onRecover(); } finally { setBusy(null); }
-            }}
-            className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-widest border border-line-200 text-ink-700 disabled:opacity-50"
-          >
-            {busy === "recover" ? "Recovering…" : "Recover stale locks"}
-          </button>
-        </div>
-      </div>
-      {job && (
-        <>
-          <div className="flex flex-wrap gap-2 text-[10px] font-mono uppercase tracking-[0.15em]">
-            {Object.entries(counts).map(([status, count]) => (
-              <span key={status} className="border border-line-200 px-2 py-0.5 text-ink-600">
-                {status} {String(count)}
-              </span>
-            ))}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
-            {steps.map((s) => (
-              <div key={s.id} className="border border-line-200 p-2 text-xs">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium text-ink-950">{s.stage}</span>
-                  <span className={`font-mono text-[10px] ${s.status === "completed" || s.status === "skipped" ? "text-emerald-700" : s.status === "failed" || s.status === "blocked" || s.status === "stale" ? "text-red-700" : "text-amber-700"}`}>
-                    {s.status}
-                  </span>
-                </div>
-                <div className="mt-1 text-[11px] text-ink-500">
-                  attempts {s.attempt_count ?? 0}/{s.max_attempts ?? 3}
-                  {s.heartbeat_at ? ` · heartbeat ${new Date(s.heartbeat_at).toLocaleTimeString()}` : ""}
-                </div>
-                {s.error && <div className="mt-1 text-[11px] text-red-700 break-words">{s.error}</div>}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-    </section>
-  );
-}
 
 function summarizeRunResult(stage: Stage, res: any): string {
   if (!res) return "Completed.";

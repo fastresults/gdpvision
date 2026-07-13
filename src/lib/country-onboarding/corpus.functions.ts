@@ -1522,16 +1522,23 @@ export const commitSecondBrainSeed = createServerFn({ method: "POST" })
     if (error || !draft) throw new Error("Draft not found");
     const payload = (data.editedPayload ?? draft.payload) as { memories: Array<any> };
 
+    // Pull existing memories once and dedupe by normalized title in JS
+    // (matches the DB unique index memory_objects_dedup_idx).
+    const { data: existingRows } = await supabaseAdmin
+      .from("memory_objects")
+      .select("id, sector_code, kind, title")
+      .eq("scope_key", draft.country_code);
+    const existingKeys = new Set(
+      (existingRows ?? []).map(
+        (r: any) => `${r.sector_code}|${r.kind}|${normalizeMemoryTitle(r.title ?? "")}`,
+      ),
+    );
+
     let inserted = 0;
+    let skipped = 0;
     for (const m of payload.memories) {
-      const { data: existing } = await supabaseAdmin
-        .from("memory_objects")
-        .select("id")
-        .eq("scope_key", draft.country_code)
-        .eq("sector_code", m.sector_code)
-        .eq("title", m.title)
-        .maybeSingle();
-      if (existing) continue;
+      const key = `${m.sector_code}|${m.kind}|${normalizeMemoryTitle(m.title)}`;
+      if (existingKeys.has(key)) { skipped++; continue; }
       const { error: insErr } = await supabaseAdmin.from("memory_objects").insert({
         scope_key: draft.country_code,
         sector_code: m.sector_code,
@@ -1542,11 +1549,19 @@ export const commitSecondBrainSeed = createServerFn({ method: "POST" })
         verified: false,
         created_by: context.userId,
       });
-      if (!insErr) inserted++;
+      if (!insErr) {
+        inserted++;
+        existingKeys.add(key);
+      } else if (isUniqueViolation(insErr)) {
+        skipped++;
+      } else {
+        throw insErr;
+      }
     }
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
-    return { ok: true, inserted };
+    return { ok: true, inserted, skipped };
   });
+
 
 // ============================================================
 // Utility: connector / key status

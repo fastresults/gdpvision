@@ -986,23 +986,23 @@ export const commitSectorComposition = createServerFn({ method: "POST" })
     if (error || !draft) throw new Error("Draft not found");
     const payload = (data.editedPayload ?? draft.payload) as { rows: Array<{ sector_code: string; share_pct: number; confidence_grade: string }> };
 
-    // Replace all rows for this country in one shot
-    await supabaseAdmin.from("country_sectors").delete().eq("country_code", draft.country_code);
     const rows = payload.rows
       .filter((r) => Number(r.share_pct) > 0)
       .map((r) => ({
-        country_code: draft.country_code,
         sector_code: r.sector_code,
         share_pct: r.share_pct,
         confidence_grade: r.confidence_grade || "C",
       }));
-    if (rows.length) {
-      const { error: insErr } = await supabaseAdmin.from("country_sectors").insert(rows);
-      if (insErr) throw insErr;
-    }
+    // Atomic replace via RPC — delete+insert in a single transaction.
+    const { error: rpcErr } = await supabaseAdmin.rpc("replace_country_sectors", {
+      _country_code: draft.country_code,
+      _rows: rows as any,
+    });
+    if (rpcErr) throw rpcErr;
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
     return { ok: true, inserted: rows.length };
   });
+
 
 export const commitMinistries = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

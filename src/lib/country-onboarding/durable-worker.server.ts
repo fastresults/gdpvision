@@ -123,6 +123,20 @@ async function nextRunnableStep(admin: any, job: any) {
     .order("created_at", { ascending: true });
   const rows = steps ?? [];
   for (const stage of STAGE_ORDER) {
+    if (stage === "kpi_seed") {
+      const parent = rows.find((s: any) => s.stage === "kpi_seed" && s.step_key === "kpi_seed");
+      if (!parent || TERMINAL.includes(parent.status)) continue;
+      const children = rows.filter((s: any) => s.stage === "kpi_seed" && s.step_type === "kpi");
+      const child = children.find((s: any) => {
+        if (TERMINAL.includes(s.status)) return false;
+        if (s.status === "running" && s.heartbeat_at && Date.now() - new Date(s.heartbeat_at).getTime() < 15 * 60 * 1000) return false;
+        return true;
+      });
+      if (child) return child;
+      if (children.length > 0 && children.every((s: any) => TERMINAL.includes(s.status))) return parent;
+      if (parent.status === "running" && parent.heartbeat_at && Date.now() - new Date(parent.heartbeat_at).getTime() < 15 * 60 * 1000) return null;
+      return parent;
+    }
     const step = rows.find((s: any) => s.stage === stage && s.step_key === stage);
     if (!step) continue;
     if (TERMINAL.includes(step.status)) continue;
@@ -130,6 +144,171 @@ async function nextRunnableStep(admin: any, job: any) {
     return step;
   }
   return null;
+}
+
+async function recordKpiAttempt(admin: any, runId: string, countryCode: string, attempt: import("./kpi-research.server").AttemptRecord) {
+  await admin.from("kpi_research_attempts").insert({
+    run_id: runId,
+    country_code: countryCode,
+    kpi_code: attempt.kpi_code,
+    pass: attempt.pass,
+    provider: attempt.provider,
+    model: attempt.model ?? null,
+    ok: attempt.ok,
+    value: attempt.value,
+    period: attempt.period,
+    source_url: attempt.source_url,
+    error: attempt.error,
+  });
+}
+
+async function expandKpiSeed(admin: any, job: any, parent: any) {
+  const { registryFor } = await import("./kpi-registry");
+  const registry = registryFor(["all"]);
+  const country = await loadCountry(admin, job.country_code);
+  const runId = await openLegacyRun(admin, {
+    countryCode: job.country_code,
+    stage: "kpi_seed",
+    userId: job.started_by ?? null,
+    modelStack: { durable: "per-kpi", perplexity: "sonar-pro", lovable_ai: "google/gemini-2.5-pro" },
+  });
+  const children = registry.map((k, order) => ({
+    job_id: job.id,
+    country_code: job.country_code,
+    stage: "kpi_seed",
+    step_key: `kpi:${k.kpi_code}`,
+    step_type: "kpi",
+    status: "queued",
+    checkpoint: { order, runId, kpi_code: k.kpi_code, country },
+    output: {},
+  }));
+  const { error } = await admin.from("onboarding_job_steps").upsert(children, { onConflict: "job_id,stage,step_key" });
+  if (error) throw error;
+  await admin.from("onboarding_job_steps").update({
+    status: "running",
+    checkpoint: { ...(parent.checkpoint ?? {}), expanded: true, runId, totalKpis: registry.length },
+    heartbeat_at: new Date().toISOString(),
+  }).eq("id", parent.id);
+  return { status: "expanded", stage: "kpi_seed", runId, totalKpis: registry.length };
+}
+
+async function executeKpiChild(admin: any, job: any, step: any) {
+  const { findRegistryEntry } = await import("./kpi-registry");
+  const research = await import("./kpi-research.server");
+  const inferMod = await import("./kpi-inference.server");
+  const checkpoint = step.checkpoint ?? {};
+  const kpiCode = String(checkpoint.kpi_code ?? step.step_key.replace(/^kpi:/, ""));
+  const kpi = findRegistryEntry(kpiCode);
+  if (!kpi) throw new Error(`Unknown KPI ${kpiCode}`);
+  const country = checkpoint.country ?? await loadCountry(admin, job.country_code);
+  const runId = String(checkpoint.runId ?? "");
+  if (!runId) throw new Error("KPI child missing parent onboarding run id");
+  const iso3 = country.iso3 ?? country.code;
+  const attempts: import("./kpi-research.server").AttemptRecord[] = [];
+  let value: import("./kpi-research.server").ResearchedValue | null = null;
+  let inference: import("./kpi-inference.server").InferenceResult | null = null;
+
+  const wb = await research.backfillWorldBank(iso3, kpi);
+  attempts.push(wb.attempt);
+  await recordKpiAttempt(admin, runId, job.country_code, wb.attempt);
+  if (wb.value) value = research.normalizeValue(wb.value);
+
+  if (!value || value.value == null) {
+    const imf = await research.backfillImf(iso3, kpi);
+    attempts.push(imf.attempt);
+    await recordKpiAttempt(admin, runId, job.country_code, imf.attempt);
+    if (imf.value) value = research.normalizeValue(imf.value);
+  }
+
+  if (!value || value.value == null) {
+    const targeted = await research.targetedPerplexity({ country, kpi });
+    attempts.push(targeted.attempt);
+    await recordKpiAttempt(admin, runId, job.country_code, targeted.attempt);
+    if (targeted.value) value = research.normalizeValue(targeted.value);
+  }
+
+  if (!value || value.value == null) {
+    const gemini = await research.escalateGemini({ country, kpi });
+    attempts.push(gemini.attempt);
+    await recordKpiAttempt(admin, runId, job.country_code, gemini.attempt);
+    if (gemini.value) value = research.normalizeValue(gemini.value);
+  }
+
+  if (!value || value.value == null) {
+    const inferred = await inferMod.inferOneKpi({ admin, country, kpi });
+    inference = inferred.result;
+    const attempt = {
+      kpi_code: inferred.attempt.kpi_code,
+      pass: "escalation" as const,
+      provider: "lovable-ai" as const,
+      model: inferred.attempt.model,
+      ok: inferred.attempt.ok,
+      value: inferred.attempt.value,
+      period: inferred.attempt.period,
+      source_url: inferred.attempt.source_url,
+      error: inferred.attempt.error ? `inference: ${inferred.attempt.error}` : null,
+    };
+    attempts.push(attempt);
+    await recordKpiAttempt(admin, runId, job.country_code, attempt);
+    if (inferred.result) {
+      value = {
+        kpi_code: inferred.result.kpi_code,
+        value: inferred.result.value,
+        period: inferred.result.period,
+        source_url: inferred.result.source_url,
+        source_org: inferred.result.source_org,
+        notes: `Inferred (${inferred.result.confidence}) via ${inferred.result.model}`,
+      };
+    }
+  }
+
+  const output = {
+    kpi_code: kpi.kpi_code,
+    value: value?.value ?? null,
+    period: value?.period ?? null,
+    source_url: value?.source_url ?? null,
+    source_org: value?.source_org ?? null,
+    notes: value?.notes ?? "not found after durable per-KPI research",
+    inference,
+    attempts: attempts.length,
+    ok: value?.value != null,
+  };
+  await admin.from("onboarding_job_steps").update({
+    status: "completed",
+    output: output as any,
+    finished_at: new Date().toISOString(),
+    heartbeat_at: new Date().toISOString(),
+  }).eq("id", step.id);
+  return { status: "completed", stage: "kpi_seed", kpi: kpi.kpi_code, ok: output.ok };
+}
+
+async function finalizeKpiSeed(admin: any, job: any, parent: any) {
+  const { data: children } = await admin
+    .from("onboarding_job_steps")
+    .select("output, status")
+    .eq("job_id", job.id)
+    .eq("stage", "kpi_seed")
+    .eq("step_type", "kpi");
+  const rows = children ?? [];
+  if (!rows.length || !rows.every((s: any) => TERMINAL.includes(s.status))) return expandKpiSeed(admin, job, parent);
+  const runId = String(parent.checkpoint?.runId ?? rows[0]?.output?.runId ?? "");
+  if (!runId) throw new Error("KPI parent missing run id for finalization");
+  const { finalizeKpiSeedOutputs } = await import("./kpi-seed.server");
+  const res = await finalizeKpiSeedOutputs({
+    admin,
+    runId,
+    countryCode: job.country_code,
+    userId: job.started_by ?? null,
+    outputs: rows.map((r: any) => r.output).filter(Boolean),
+    autoCommit: true,
+  });
+  await admin.from("onboarding_job_steps").update({
+    status: "completed",
+    output: res as any,
+    finished_at: new Date().toISOString(),
+    heartbeat_at: new Date().toISOString(),
+  }).eq("id", parent.id);
+  return { status: "completed", stage: "kpi_seed", res };
 }
 
 async function executeStep(admin: any, job: any, step: any) {
@@ -148,37 +327,19 @@ async function executeStep(admin: any, job: any, step: any) {
       return { status: "skipped", stage: step.stage };
     }
 
+    if (step.stage === "kpi_seed" && step.step_type === "kpi") {
+      return await executeKpiChild(admin, job, step);
+    }
+
     if (step.stage === "kpi_seed") {
-      const country = await loadCountry(admin, job.country_code);
-      const runId = await openLegacyRun(admin, {
-        countryCode: job.country_code,
-        stage: "kpi_seed",
-        userId: job.started_by ?? null,
-        modelStack: { durable: "true", perplexity: "sonar-pro", lovable_ai: "google/gemini-2.5-pro" },
-      });
-      const { runKpiSeedResearch } = await import("./kpi-seed.server");
-      const res = await runKpiSeedResearch({
-        admin,
-        runId,
-        country: { code: country.code, name: country.name, iso3: country.iso3 },
-        userId: job.started_by ?? null,
-        autoCommit: true,
-        onProgress: async (plan) => {
-          const heartbeat = new Date().toISOString();
-          await Promise.all([
-            admin
-              .from("onboarding_job_steps")
-              .update({ heartbeat_at: heartbeat, checkpoint: plan as any, lease_expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString() })
-              .eq("id", step.id),
-            admin
-              .from("onboarding_jobs")
-              .update({ heartbeat_at: heartbeat, current_stage: "kpi_seed", progress: { currentStage: "kpi_seed", step: plan, updatedAt: heartbeat } as any })
-              .eq("id", job.id),
-          ]);
-        },
-      });
-      await admin.from("onboarding_job_steps").update({ status: "completed", output: res as any, finished_at: new Date().toISOString(), heartbeat_at: new Date().toISOString() }).eq("id", step.id);
-      return { status: "completed", stage: step.stage, res };
+      const { count } = await admin
+        .from("onboarding_job_steps")
+        .select("id", { count: "exact", head: true })
+        .eq("job_id", job.id)
+        .eq("stage", "kpi_seed")
+        .eq("step_type", "kpi");
+      if (!count) return await expandKpiSeed(admin, job, step);
+      return await finalizeKpiSeed(admin, job, step);
     }
 
     // Durable migration is intentionally conservative: non-KPI stages already

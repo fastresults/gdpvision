@@ -157,7 +157,26 @@ async function executeStep(admin: any, job: any, step: any) {
         modelStack: { durable: "true", perplexity: "sonar-pro", lovable_ai: "google/gemini-2.5-pro" },
       });
       const { runKpiSeedResearch } = await import("./kpi-seed.server");
-      const res = await runKpiSeedResearch({ admin, runId, country: { code: country.code, name: country.name, iso3: country.iso3 }, userId: job.started_by ?? null, autoCommit: true });
+      const res = await runKpiSeedResearch({
+        admin,
+        runId,
+        country: { code: country.code, name: country.name, iso3: country.iso3 },
+        userId: job.started_by ?? null,
+        autoCommit: true,
+        onProgress: async (plan) => {
+          const heartbeat = new Date().toISOString();
+          await Promise.all([
+            admin
+              .from("onboarding_job_steps")
+              .update({ heartbeat_at: heartbeat, checkpoint: plan as any, lease_expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString() })
+              .eq("id", step.id),
+            admin
+              .from("onboarding_jobs")
+              .update({ heartbeat_at: heartbeat, current_stage: "kpi_seed", progress: { currentStage: "kpi_seed", step: plan, updatedAt: heartbeat } as any })
+              .eq("id", job.id),
+          ]);
+        },
+      });
       await admin.from("onboarding_job_steps").update({ status: "completed", output: res as any, finished_at: new Date().toISOString(), heartbeat_at: new Date().toISOString() }).eq("id", step.id);
       return { status: "completed", stage: step.stage, res };
     }

@@ -52,30 +52,19 @@ export function seedMinistries(countryName: string, ctx?: CountryContext): Provi
 
 // Standard SNA/ISIC composition — used only when there is truly no data.
 // Weights are rough small-island averages; admin should always review.
-export function seedSectorComposition(sectorCodes: string[]): Array<{
+export function seedSectorComposition(sectorCodes: string[], ctx?: CountryContext): Array<{
   sector_code: string;
   share_pct: number;
   confidence_grade: "F";
   rationale: string;
   provisional: true;
 }> {
-  // Very rough small-state defaults; unknown codes go to 0.
-  const defaults: Record<string, number> = {
-    agriculture: 3,
-    mining: 1,
-    manufacturing: 6,
-    utilities: 3,
-    construction: 8,
-    trade: 12,
-    transport: 6,
-    tourism: 18,
-    finance: 10,
-    real_estate: 8,
-    ict: 4,
-    public_admin: 12,
-    education: 5,
-    health: 5,
-  };
+  // Choose a template based on the country's economic archetype.
+  // OECS/CBI islands lean tourism+finance; larger CARICOM leans services+public admin.
+  const tourismHeavy = ctx?.subRegion === "OECS" || ctx?.isCbiState;
+  const defaults: Record<string, number> = tourismHeavy
+    ? { agriculture: 2, manufacturing: 3, utilities: 3, construction: 10, trade: 10, transport: 6, tourism: 28, finance: 12, real_estate: 8, ict: 3, public_admin: 10, education: 3, health: 2 }
+    : { agriculture: 4, mining: 3, manufacturing: 8, utilities: 3, construction: 8, trade: 14, transport: 6, tourism: 10, finance: 12, real_estate: 8, ict: 4, public_admin: 12, education: 4, health: 4 };
   const rows = sectorCodes.map((code) => ({
     sector_code: code,
     share_pct: defaults[code] ?? 0,

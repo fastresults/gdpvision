@@ -385,6 +385,7 @@ export const runSectorCompositionAgent = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const country = await loadCountry(supabaseAdmin, data.countryCode);
     const sectors = await loadSectors(supabaseAdmin);
+    const ctx = await buildCountryContext(supabaseAdmin, data.countryCode);
 
     const model: SonarModel = "sonar-reasoning-pro";
     const runId = await openRun(supabaseAdmin, {
@@ -398,47 +399,53 @@ export const runSectorCompositionAgent = createServerFn({ method: "POST" })
       const sectorList = sectors.map((s) => `- ${s.code} (${s.label}${s.isic ? `, ISIC ${s.isic}` : ""})`).join("\n");
       const rowsSchema = {
         type: "object",
-        additionalProperties: false,
         properties: {
           rows: {
             type: "array",
             items: {
               type: "object",
-              additionalProperties: false,
               properties: {
                 sector_code: { type: "string" },
                 share_pct: { type: "number", minimum: 0, maximum: 100 },
                 confidence_grade: { type: "string", enum: ["A", "B", "C", "D", "F"] },
                 rationale: { type: "string" },
               },
-              required: ["sector_code", "share_pct", "confidence_grade", "rationale"],
+              required: ["sector_code", "share_pct"],
             },
           },
           method_note: { type: "string" },
           ...SUMMARY_SCHEMA_FRAGMENT,
         },
-        required: ["rows", "method_note", "summary_md", "summary_highlights"],
+        required: ["rows"],
       } as const;
 
       const fb = await runWithFallbacks<{ rows: any[]; method_note: string; summary_md?: string; summary_highlights?: any[] }>({
+        context: ctx,
+        topic: `${country.name} GDP by industry / sector composition (national accounts, ISIC breakdown)`,
         perplexity: {
           model,
           system:
-            "You are a national-accounts analyst. Map the country's GDP by industry (ISIC A-U) into the given sector taxonomy. Return one row per sector code (use 0 if the sector is negligible). Shares must sum to ~100%. Use A/B for values from official national accounts, C for multilateral estimates, D/F for inference. Cite each source." +
+            "You are a national-accounts analyst. Map the country's GDP by industry (ISIC A-U) into the given sector taxonomy. Return one row per sector code (use 0 if the sector is negligible). Shares must sum to ~100%. Use A/B for values from official national accounts, C for multilateral estimates, D/F for inference. Cite each source. Think step-by-step: identify the most recent national accounts publication, extract each ISIC branch, then map to the taxonomy." +
             SUMMARY_SYSTEM_SUFFIX,
-          user: `Country: ${country.name} (${country.iso3 ?? country.code}).\n\nSector taxonomy (return one row per code):\n${sectorList}\n\nUse the most recent full-year national accounts. Prefer the country's Central Statistical Office, then ECCB / CDB / IMF / World Bank.`,
+          user: `Country: ${country.name} (${country.iso3 ?? country.code}).\n\nSector taxonomy (return one row per code):\n${sectorList}\n\nUse the most recent full-year national accounts. Prefer the country's Central Statistical Office, then ECCB / CDB / IMF / World Bank. Show which ISIC branches map to which taxonomy sector in the rationale.`,
           responseSchema: rowsSchema as unknown as Record<string, unknown>,
           recency: "year",
         },
         gemini: {
           system: "You are a national-accounts analyst.",
-          user: `Country: ${country.name}. Sector taxonomy: ${sectorList}. Return share_pct per sector code, summing to ~100.`,
+          user: `Country: ${country.name}. Extract sector shares from the source material and map to this taxonomy: ${sectorList}. Return share_pct per sector code, summing to ~100.`,
           schemaHint: `{ "rows": [{"sector_code": string, "share_pct": number, "confidence_grade": "A"|"B"|"C"|"D"|"F", "rationale": string}], "method_note": string, "summary_md": string, "summary_highlights": [{"label": string, "value": string}] }`,
         },
         parse: jsonParser<{ rows: any[]; method_note: string }>(),
-        validate: (v) => !!v?.rows?.length,
+        validate: (v) => {
+          if (!v?.rows?.length) return false;
+          const nonZero = v.rows.filter((r: any) => Number(r.share_pct) > 0);
+          if (nonZero.length < 4) return false;
+          const total = v.rows.reduce((s: number, r: any) => s + Number(r.share_pct ?? 0), 0);
+          return total >= 85 && total <= 115;
+        },
         infer: () => ({
-          rows: seedSectorComposition(sectors.map((s) => s.code)),
+          rows: seedSectorComposition(sectors.map((s) => s.code), ctx),
           method_note: "Provisional small-state defaults — no primary source reached.",
           summary_md: `Provisional sector composition for ${country.name} — please review.`,
           summary_highlights: [],

@@ -284,7 +284,7 @@ function SourcesTab({ code }: { code: string }) {
               </tr>
             ))}
             {rows.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-ink-500">No sources yet. Add one or run the Source registry stage in onboarding.</td></tr>
+              <tr><td colSpan={7} className="px-3 py-6 text-center text-sm text-ink-500">No sources yet. Add one or run the Source registry stage in onboarding.</td></tr>
             )}
           </tbody>
         </table>

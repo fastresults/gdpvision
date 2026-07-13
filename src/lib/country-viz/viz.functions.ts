@@ -105,7 +105,6 @@ export const getVizOverview = createServerFn({ method: "POST" })
       { data: kpis },
       { data: ministries },
       { data: ministryProfiles },
-      { data: ministrySectors },
     ] = await Promise.all([
       supabaseAdmin.from("countries").select("code, name").eq("code", cc).maybeSingle(),
       supabaseAdmin.from("sectors").select("code, label, hue_token, sort_order").order("sort_order"),
@@ -113,14 +112,12 @@ export const getVizOverview = createServerFn({ method: "POST" })
       supabaseAdmin.from("country_kpis").select("id, kpi_code, label, unit, latest_value, latest_period, target, direction, category, freshness_status, provenance, updated_at").eq("country_code", cc),
       supabaseAdmin.from("ministries").select("id, slug, name, sort_order").eq("country_code", cc).order("sort_order"),
       supabaseAdmin.from("ministry_profiles").select("ministry_slug, minister").eq("country_code", cc),
-      supabaseAdmin.from("ministry_sectors").select("ministry_id, sector_code, weight").in("ministry_id", []).then(async () => {
-        // We need ministry_ids for this country. Re-issue with the right filter.
-        const { data: mm } = await supabaseAdmin.from("ministries").select("id").eq("country_code", cc);
-        const ids = (mm ?? []).map((m: any) => m.id);
-        if (!ids.length) return { data: [] as any[] };
-        return supabaseAdmin.from("ministry_sectors").select("ministry_id, sector_code, weight").in("ministry_id", ids);
-      }),
     ]);
+
+    const ministryIds = (ministries ?? []).map((m: any) => m.id);
+    const ministrySectors = ministryIds.length
+      ? (await supabaseAdmin.from("ministry_sectors").select("ministry_id, sector_code, weight").in("ministry_id", ministryIds)).data ?? []
+      : [];
 
     const regByCode = new Map<string, { label: string; hue_token: string }>();
     for (const s of sectorsReg ?? []) regByCode.set(s.code, { label: s.label, hue_token: s.hue_token });

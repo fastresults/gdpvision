@@ -403,16 +403,14 @@ function OnboardWizard() {
           </div>
         )}
 
-        {(statusDiagnostics.length > 0 || latestPipeline) && (
-          <PipelineHealthPanel
-            stages={STAGES}
-            committedTargets={committedTargets}
-            drafts={drafts}
-            runs={runs}
-            diagnostics={statusDiagnostics}
-            latestPipeline={latestPipeline}
-          />
-        )}
+        <PipelineHealthPanel
+          stages={STAGES}
+          committedTargets={committedTargets}
+          drafts={drafts}
+          runs={runs}
+          diagnostics={statusDiagnostics}
+          latestPipeline={latestPipeline}
+        />
 
         {runErrors.length > 0 && (
           <div className="rounded border border-red-500/50 bg-red-500/10 p-3 text-xs text-red-700 space-y-1">

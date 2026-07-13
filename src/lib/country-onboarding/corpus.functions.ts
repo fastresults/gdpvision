@@ -1616,7 +1616,7 @@ async function loadSecondBrainGrounding(admin: any, countryCode: string) {
       .order("share_pct", { ascending: false }),
     admin
       .from("country_kpis")
-      .select("kpi_code,label,unit,category,latest_value,latest_period,source_url,source_org,provenance,confidence")
+      .select("kpi_code,label,unit,category,latest_value,latest_period,source_url,provenance,confidence")
       .eq("country_code", countryCode)
       .order("category"),
     admin
@@ -1643,6 +1643,9 @@ async function loadSecondBrainGrounding(admin: any, countryCode: string) {
       .limit(18),
   ]);
   if (country.error || !country.data) throw new Error(`Country ${countryCode} not found`);
+  for (const [name, r] of [["sectors", sectors], ["kpis", kpis], ["sources", sources], ["dossiers", dossiers], ["ministries", ministries], ["chunks", chunks]] as const) {
+    if ((r as any).error) throw new Error(`grounding.${name} query failed: ${(r as any).error.message}`);
+  }
   return {
     country: country.data,
     sectors: sectors.data ?? [],

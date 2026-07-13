@@ -28,6 +28,10 @@ export type FallbackResult<T> = {
   notes: string[];
   modelStack: Record<string, string>;
   attempts: number;
+  /** True when Tier 1 succeeded on an attempt that had no domain filter. */
+  openWebWin: boolean;
+  /** Label of the attempt that won (or last tried). */
+  winningAttempt: string | null;
 };
 
 export type FallbackOptions<T> = {
@@ -115,8 +119,10 @@ export async function runWithFallbacks<T>(opts: FallbackOptions<T>): Promise<Fal
     },
   ];
 
+  let lastAttemptLabel: string | null = null;
   for (const attempt of attemptsSpec) {
     attempts += 1;
+    lastAttemptLabel = attempt.label;
     try {
       const res = await callSonar(attempt.args);
       if (res.content) partials.push(res.content);
@@ -125,6 +131,7 @@ export async function runWithFallbacks<T>(opts: FallbackOptions<T>): Promise<Fal
       if (parsed && opts.validate(parsed)) {
         modelStack.perplexity = attempt.args.model;
         modelStack.tier = "perplexity";
+        modelStack.winning_attempt = attempt.label;
         notes.push(`Perplexity ${attempt.label} succeeded (${res.citations.length} citations).`);
         return {
           data: parsed,
@@ -134,6 +141,8 @@ export async function runWithFallbacks<T>(opts: FallbackOptions<T>): Promise<Fal
           notes,
           modelStack,
           attempts,
+          openWebWin: !!attempt.args.noDomainFilter,
+          winningAttempt: attempt.label,
         };
       }
       notes.push(`Perplexity ${attempt.label} returned no usable payload.`);
@@ -179,6 +188,8 @@ export async function runWithFallbacks<T>(opts: FallbackOptions<T>): Promise<Fal
           notes,
           modelStack,
           attempts,
+          openWebWin: false,
+          winningAttempt: lastAttemptLabel,
         };
       }
       notes.push(`Gemini repair tier returned unusable payload (failed validator).`);
@@ -201,6 +212,8 @@ export async function runWithFallbacks<T>(opts: FallbackOptions<T>): Promise<Fal
     notes,
     modelStack,
     attempts,
+    openWebWin: false,
+    winningAttempt: lastAttemptLabel,
   };
 }
 

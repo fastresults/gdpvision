@@ -48,6 +48,8 @@ export type CountryContext = {
   portal: string | null;
   statsOffice: string | null;
   centralBank: string | null;
+  /** Learned domains promoted from prior open-web passes. */
+  learnedDomains: Array<{ domain: string; tier: string }>;
   // Prior committed data (empty when stage not yet committed)
   committed: {
     profile: any | null;
@@ -69,9 +71,14 @@ export async function buildCountryContext(admin: any, code: string): Promise<Cou
   const meta = COUNTRY_META[iso3] ?? null;
   const regEntry = CARICOM_OECS_REGISTRY.find((r) => r.code === iso3);
 
-  const [sectorsRes, ministriesRes] = await Promise.all([
+  const [sectorsRes, ministriesRes, learnedRes] = await Promise.all([
     admin.from("country_sectors").select("sector_code, share_pct").eq("country_code", code),
     admin.from("ministries").select("slug, name").eq("country_code", code),
+    admin
+      .from("country_authorized_domains")
+      .select("domain, tier")
+      .eq("country_code", code)
+      .is("demoted_at", null),
   ]);
 
   const ministrySlugs = (ministriesRes.data ?? []).map((m: any) => m.slug);
@@ -98,6 +105,7 @@ export async function buildCountryContext(admin: any, code: string): Promise<Cou
     portal: meta?.portal ?? null,
     statsOffice: meta?.statsOffice ?? null,
     centralBank: meta?.centralBank ?? null,
+    learnedDomains: (learnedRes.data ?? []) as any[],
     committed: {
       profile: (c.country_pack as any)?.profile ?? null,
       gdp: { gdp_current_usd: c.gdp_current_usd ?? null, gdp_year: c.gdp_year ?? null },
@@ -151,6 +159,9 @@ export function contextDomains(ctx: CountryContext): string[] {
   }
   if (ctx.centralBank) {
     try { out.push(new URL(ctx.centralBank).hostname.replace(/^www\./, "")); } catch { /* noop */ }
+  }
+  for (const l of ctx.learnedDomains ?? []) {
+    if (l.domain && !out.includes(l.domain)) out.push(l.domain);
   }
   return out;
 }

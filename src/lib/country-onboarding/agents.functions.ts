@@ -11,6 +11,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { type SonarCitation, type SonarModel } from "./perplexity.server";
 import { runWithFallbacks, jsonParser } from "./fallback.server";
 import { buildCountryContext } from "./country-context.server";
+import { promoteFromCitations } from "./domain-promotion.server";
+import type { FallbackResult } from "./fallback.server";
 import { seedProfile, seedGdp, seedSectorComposition, seedMinistries, seedMinistrySectorMap } from "./seeds.server";
 import { SUMMARY_SCHEMA_FRAGMENT, SUMMARY_SYSTEM_SUFFIX, extractInlineSummary } from "./summary-inline";
 
@@ -108,6 +110,33 @@ async function saveDraft(admin: any, args: {
   }
   return draft.id as string;
 }
+
+/** Promote citing domains after a draft is saved. Best-effort; never throws. */
+async function promoteAfterDraft(
+  admin: any,
+  countryCode: string,
+  stage: string,
+  draftId: string,
+  fb: FallbackResult<any>,
+): Promise<string[]> {
+  try {
+    const res = await promoteFromCitations(admin, {
+      countryCode,
+      stage,
+      draftId,
+      citations: fb.citations,
+      openWeb: fb.openWebWin,
+    });
+    if (res.promoted.length) fb.notes.push(`Promoted domains: ${res.promoted.join(", ")}`);
+    if (res.reference.length) fb.notes.push(`Reference-tier citations: ${res.reference.join(", ")}`);
+    if (res.blocked.length) fb.notes.push(`Blocked citations (not promoted): ${res.blocked.join(", ")}`);
+    return res.promoted;
+  } catch (err) {
+    fb.notes.push(`Domain promotion failed: ${(err as Error).message.slice(0, 160)}`);
+    return [];
+  }
+}
+
 
 // ============================================================
 // LIST / READ
@@ -284,6 +313,7 @@ export const runProfileAgent = createServerFn({ method: "POST" })
         summary_highlights: inline.summary_highlights,
       });
 
+      await promoteAfterDraft(supabaseAdmin, data.countryCode, "profile", draftId, fb);
       await finishRun(supabaseAdmin, runId, { status: "ready", model_stack: { ...fb.modelStack, notes: fb.notes } });
       return { runId, draftId, payload: fb.data, citations: fb.citations, tier: fb.tier, notes: fb.notes };
     } catch (err) {
@@ -367,6 +397,7 @@ export const runGdpAgent = createServerFn({ method: "POST" })
         summary_highlights: inline.summary_highlights,
       });
 
+      await promoteAfterDraft(supabaseAdmin, data.countryCode, "gdp", draftId, fb);
       await finishRun(supabaseAdmin, runId, { status: "ready", model_stack: { ...fb.modelStack, notes: fb.notes } });
       return { runId, draftId, payload: fb.data, citations: fb.citations, tier: fb.tier, notes: fb.notes };
     } catch (err) {
@@ -483,6 +514,7 @@ export const runSectorCompositionAgent = createServerFn({ method: "POST" })
         summary_highlights: inline.summary_highlights,
       });
 
+      await promoteAfterDraft(supabaseAdmin, data.countryCode, "sector_composition", draftId, fb);
       await finishRun(supabaseAdmin, runId, { status: "ready", model_stack: { ...fb.modelStack, notes: fb.notes } });
       return { runId, draftId, rows: complete, total_pct: total, citations: fb.citations, tier: fb.tier, notes: fb.notes };
     } catch (err) {
@@ -578,6 +610,7 @@ export const runMinistriesAgent = createServerFn({ method: "POST" })
         summary_highlights: inline.summary_highlights,
       });
 
+      await promoteAfterDraft(supabaseAdmin, data.countryCode, "ministries", draftId, fb);
       await finishRun(supabaseAdmin, runId, { status: "ready", model_stack: { ...fb.modelStack, notes: fb.notes } });
       return { runId, draftId, ministries: fb.data.ministries, citations: fb.citations, tier: fb.tier, notes: fb.notes };
     } catch (err) {
@@ -683,6 +716,7 @@ export const runMinistrySectorMapAgent = createServerFn({ method: "POST" })
         summary_highlights: inline.summary_highlights,
       });
 
+      await promoteAfterDraft(supabaseAdmin, data.countryCode, "ministry_sector_map", draftId, fb);
       await finishRun(supabaseAdmin, runId, { status: "ready", model_stack: { ...fb.modelStack, notes: fb.notes } });
       return { runId, draftId, mappings: fb.data.mappings, citations: fb.citations, tier: fb.tier, notes: fb.notes };
     } catch (err) {
@@ -690,6 +724,40 @@ export const runMinistrySectorMapAgent = createServerFn({ method: "POST" })
       throw err;
     }
   });
+
+// ============================================================
+// LEARNED DOMAINS (read + demote)
+// ============================================================
+
+export const listCountryAuthorizedDomains = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("country_authorized_domains")
+      .select("id, domain, tier, first_seen_stage, citation_count, last_used_at, demoted_at, created_at")
+      .eq("country_code", data.countryCode)
+      .order("last_used_at", { ascending: false });
+    if (error) throw error;
+    return rows ?? [];
+  });
+
+export const demoteCountryAuthorizedDomain = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), demote: z.boolean().default(true) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("country_authorized_domains")
+      .update({ demoted_at: data.demote ? new Date().toISOString() : null })
+      .eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
 
 // ============================================================
 // COMMITS

@@ -527,6 +527,42 @@ export type Database = {
           },
         ]
       }
+      country_authorized_domains: {
+        Row: {
+          citation_count: number
+          country_code: string
+          created_at: string
+          demoted_at: string | null
+          domain: string
+          first_seen_stage: string | null
+          id: string
+          last_used_at: string
+          tier: string
+        }
+        Insert: {
+          citation_count?: number
+          country_code: string
+          created_at?: string
+          demoted_at?: string | null
+          domain: string
+          first_seen_stage?: string | null
+          id?: string
+          last_used_at?: string
+          tier: string
+        }
+        Update: {
+          citation_count?: number
+          country_code?: string
+          created_at?: string
+          demoted_at?: string | null
+          domain?: string
+          first_seen_stage?: string | null
+          id?: string
+          last_used_at?: string
+          tier?: string
+        }
+        Relationships: []
+      }
       country_kpi_points: {
         Row: {
           country_kpi_id: string
@@ -2164,8 +2200,10 @@ export type Database = {
         Row: {
           created_at: string
           domain: string | null
+          domain_tier: string | null
           draft_id: string
           id: string
+          promoted_domain: boolean
           published_at: string | null
           quote: string | null
           title: string | null
@@ -2174,8 +2212,10 @@ export type Database = {
         Insert: {
           created_at?: string
           domain?: string | null
+          domain_tier?: string | null
           draft_id: string
           id?: string
+          promoted_domain?: boolean
           published_at?: string | null
           quote?: string | null
           title?: string | null
@@ -2184,8 +2224,10 @@ export type Database = {
         Update: {
           created_at?: string
           domain?: string | null
+          domain_tier?: string | null
           draft_id?: string
           id?: string
+          promoted_domain?: boolean
           published_at?: string | null
           quote?: string | null
           title?: string | null

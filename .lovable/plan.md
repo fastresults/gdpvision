@@ -1,102 +1,134 @@
-## What I found — audit report
+## What I found
 
-The pipeline is 11 stages, each a pair of `runXAgent` + `commitX` server functions. There is **no server-side orchestrator** — "Run all" is a browser loop in `onboard.tsx` that dies with the tab. Below are the concrete breaks that explain the reliability issues you're seeing. Ranked by real-world impact.
+### Immediate second-brain bug
+- The second-brain data exists and has been committed, but the onboarding status check is counting it incorrectly.
+- `memory_objects` does not have a `country_code` column; it stores country scope in `scope_key`.
+- The status query currently counts second-brain rows with `.eq("country_code", cc)` in `countCommittedTargets` (`src/lib/country-onboarding/agents.functions.ts:303`). That query errors, the helper swallows the error and returns `{ rows: 0 }` (`lines 272-275`), so the UI thinks second brain is not committed.
+- Because committed drafts are filtered out of the live draft list (`lines 228-233`), the UI then has neither a “committed” status nor a live draft, which produces the exact symptom in the screenshot: **“Commit (no draft)”**.
 
-### Critical (breaks the user right now)
+### The workflow is not fully server-side yet
+- The “Run all” orchestration still lives in the browser component (`src/routes/_authenticated/admin/countries.$code.onboard.tsx:292-350`).
+- Individual stages run on the server, but the pipeline controller is still a client loop. If the tab closes, refreshes, times out, or two admins run it, the stage state can drift.
+- The UI itself says “Do not close this tab” (`lines 466-486`), which confirms this is not yet a durable server-owned workflow.
 
-1. **`kpi_seed` can never be committed via the UI.** `saveDraft` is called with `citations: []` (`corpus.functions.ts:567`) and the Commit button is gated by `citations.length === 0`. Every KPI run produces a permanently un-commitable draft — this is why ATG shows "review" + a green Commit button but nothing writes to `country_kpis`.
-2. **The stuck-run auto-reconcile is a silent no-op.** `getOnboardingStatus` writes `status: 'stale'`, but `'stale'` is not in the `onboarding_runs.status` CHECK constraint. The update fails, the error is unchecked, and stuck `planning`/`ready` runs stay stuck forever. This is why the previous "auto-reconcile" fix didn't actually clear anything.
-3. **`profile`/`gdp` "committed" ground truth is a false positive.** `committedTargets` treats `profile` as committed when `countries.currency` is non-null and `gdp` when `gdp_current_usd` is non-null — both can be pre-seeded before the pipeline ever runs, so those stages show ✓ Committed against nothing.
+### Second-brain seed is too shallow for stage 11
+- `runSecondBrainSeedAgent` calls Perplexity directly from a prompt with only country name + sector codes (`src/lib/country-onboarding/corpus.functions.ts:1610-1659`).
+- It does not yet consume the already-built second brain inputs: committed KPIs, source registry, ingested corpus chunks, sector dossiers, ministry profiles, and citations.
+- That means stage 11 is not really synthesizing the 10 prior stages; it is another standalone web-search pass.
 
-### High (why stages fail unpredictably)
+### Commit semantics are inconsistent
+- `commitSecondBrainSeed` insert-skips duplicates by normalized title (`corpus.functions.ts:1679-1716`). This preserves no-duplicate rules, but re-runs cannot reliably improve existing generated memories because matching rows are skipped instead of updated.
+- The commit gate is citation-based in the UI (`countries.$code.onboard.tsx:830-836`). That is good for research quality, but the stage card payload counter does not include `memories` (`lines 713-720`), so second-brain draft readiness can be under-described.
 
-4. **Four stages have no fallback tier.** `source_registry`, `sector_dossier`, `ministry_deep_dive`, `second_brain_seed` call `callSonar` once, no Gemini repair, no inferred pass. One 429 or one malformed JSON = the whole run goes `failed` with no draft to review.
-5. **`corpus_ingest` auto-commits empty results.** `markDraftCommitted` runs unconditionally, even when 0/25 fetches succeeded and 0 chunks landed. The stage looks "committed" but the second brain is empty.
-6. **Delete-then-insert commits.** `commitSectorComposition` and `commitMinistrySectorMap` do `delete()` then `insert()` outside a transaction. Any crash between them wipes the country's rows and the stage silently flips back to uncommitted.
-7. **No concurrency guard.** Two tabs, or "Run all" + a manual "Re-run", can open two `planning` runs on the same `(country, stage)` and race the delete+insert commits above.
+### Silent failure pattern exists elsewhere
+- The committed-target helper currently converts target-count errors into zero rows. That hid the `memory_objects.country_code` mistake. This same pattern can make future countries look uncommitted even when data exists.
+- Several corpus stages still use direct Perplexity calls rather than the stronger fallback framework used by profile/GDP/sectors/ministries/ministry-sector map.
 
-### Medium (dependency and quality drift)
+## Recommended dependable solution
 
-8. **Dependencies are enforced inconsistently.** Hard-throws exist for `ministries`→`ministry_sector_map`/`ministry_deep_dive` and `country_sectors`→`sector_dossier`, but `ministry_sector_map` only *soft*-uses `sector_composition` (prompt hint, not a gate); `second_brain_seed` doesn't check `source_registry` at all. The client's `STAGE_DEPENDENCIES` map is a hand-maintained duplicate that isn't derived from server truth.
-9. **Rate-limit vs "no data" is not classified.** All provider exceptions are string-appended to `notes` and immediately downgrade the tier, so a transient Perplexity 429 makes an entire profile "inferred low confidence" instead of retrying.
-10. **`onboarding_drafts` has no unique `(country, stage)` live-draft constraint.** Superseded drafts pile up forever; JS-side `superseded: true` flagging is the only cleanup.
-11. **Partial-failure diagnostics are dropped.** `ministry_deep_dive` throws when 0/N ministries return usable JSON — losing the per-ministry error array that would have told you which minister page 404'd.
+### Phase 1 — Immediate correctness fix
+1. Fix second-brain committed detection:
+   - Count `memory_objects` with `.eq("scope_key", cc)` instead of `.eq("country_code", cc)`.
+2. Stop hiding target-count errors:
+   - Replace the current “error means zero rows” behavior with explicit status diagnostics.
+   - If a target-count query fails, surface it in the admin UI as a pipeline health warning instead of silently showing “not committed.”
+3. Fix second-brain draft display details:
+   - Include `memories` in draft item counting.
+   - Change the button state copy so “Commit (no draft)” is never shown for a stage that has committed target rows or a status-count failure.
 
-## How I'll fix it — phased plan
+### Phase 2 — Make orchestration server-owned and resumable
+1. Add a durable pipeline-run record, e.g. `onboarding_pipeline_runs`, to track:
+   - country
+   - mode: pending / rerun / single-stage
+   - current stage
+   - checkpoint
+   - status
+   - per-stage result/error summary
+2. Add a server function such as `runCountryOnboardingPipeline` that owns the DAG:
 
-### Phase 1 — Unblock the pipeline (ship first, single migration + focused edits)
+```text
+Level 1: profile, gdp, sector_composition, ministries, source_registry, kpi_seed
+Level 2: ministry_sector_map, sector_dossier, ministry_deep_dive, corpus_ingest
+Level 3: second_brain_seed
+```
 
-Goal: every stage that has produced a draft can actually be committed, and stuck runs actually clear.
+3. Make the browser only start/resume/poll the pipeline. The browser should not decide which stages run or commit.
+4. Make the pipeline idempotent:
+   - If a stage is already committed and no rerun is requested, skip.
+   - If a draft exists and is eligible, commit it.
+   - If a run failed, preserve the error and continue only when downstream dependencies are still satisfied.
 
-- **Migration `20260713_onboarding_reliability.sql`**:
-  - Add `'stale'` to `onboarding_runs.status` CHECK.
-  - Add unique partial index `onboarding_runs_one_open_per_stage` on `(country_code, stage) WHERE status IN ('queued','planning','searching','extracting','validating')` — prevents concurrent runs of the same stage.
-  - Add unique partial index `onboarding_drafts_one_live_per_stage` on `(country_code, stage) WHERE committed_at IS NULL` — one live draft per stage.
-  - Add columns `countries.profile_committed_at timestamptz`, `countries.gdp_committed_at timestamptz` and backfill from `onboarding_runs` where a `committed` run for those stages exists (else NULL). These become the new ground truth for stages 1 and 2.
-- **`kpi_seed` citations**: rebuild `citations` from `enriched[].source_url`/`source_org` (dedup, 1-indexed) before `saveDraft` at `corpus.functions.ts:567`; commit gate then works unchanged.
-- **`getOnboardingStatus`** (`agents.functions.ts:190,285-286`):
-  - Use `profile_committed_at`/`gdp_committed_at` for those stages' `committed` truth.
-  - Check the reconcile-update's error and log it.
-- **`commitSectorComposition` / `commitMinistrySectorMap`**: replace the delete+insert with a single Postgres RPC (`replace_country_sectors`, `replace_ministry_sectors`) that does both inside a `BEGIN`/`COMMIT`. Migration adds the two functions with `SECURITY DEFINER` + `SET search_path=public` and grants EXECUTE to `authenticated` / `service_role`.
-- **`saveDraft`**: change to upsert on the new unique index so re-runs update the live draft in place instead of accumulating rows; superseded drafts are auto-collapsed.
+### Phase 3 — Strengthen stage contracts
+For every stage, define one shared server-side stage registry:
+- dependencies
+- target table/count method
+- draft payload shape
+- commit eligibility rule
+- minimum coverage rule
+- citation/evidence requirement
+- fallback strategy
 
-### Phase 2 — Server-side orchestrator with correct DAG
+Examples:
+- `second_brain_seed`: requires committed source registry, corpus chunks, KPIs, ministries, sector dossiers or ministry deep dives where available.
+- `kpi_seed`: requires minimum required-KPI coverage, not just any payload.
+- `corpus_ingest`: committed only when useful chunks or known deduped existing chunks are present.
 
-Goal: one "Run onboarding" button that runs the whole country reliably, resumable, and respects real dependencies.
+### Phase 4 — Rebuild second-brain seed as true synthesis
+1. Change stage 11 to read from committed project data first:
+   - country profile and GDP
+   - KPI rows and provenance
+   - sector dossiers
+   - ministry profiles
+   - source registry
+   - corpus chunks/documents
+2. Generate memory objects from those inputs, not from generic search alone.
+3. Attach evidence to each memory:
+   - `source_id` when tied to a country source
+   - `citation_url` where available
+   - citation rows in `onboarding_citations`
+4. Commit with update-or-insert behavior:
+   - No duplicates.
+   - Existing generated memory rows can be improved on rerun.
+   - Verified/manual rows are protected unless explicitly overwritten.
 
-- New `runOnboardingPipeline` server fn in `src/lib/country-onboarding/orchestrator.functions.ts`:
-  - Input `{ countryCode, mode: 'missing' | 'all', stages? }`.
-  - Reads `getOnboardingStatus` to decide what's pending.
-  - Executes in topological order of the real DAG (below), with `Promise.all` for independent branches:
-    ```
-    [profile, gdp, sector_composition, ministries, source_registry, kpi_seed]  (parallel, no deps)
-        │              │                   │                │
-        │              │                   ├── ministry_sector_map (needs ministries + sector_composition)
-        │              │                   ├── sector_dossier      (needs sector_composition)
-        │              │                   └── ministry_deep_dive  (needs ministries)
-        │                                                       source_registry
-        │                                                              │
-        │                                                       corpus_ingest (needs source_registry rows)
-        │                                                              │
-        │                                                       second_brain_seed (needs corpus_ingest + sector_composition)
-    ```
-  - Per-stage: run agent → if draft is non-empty and either auto-committable or above a confidence/coverage threshold, call the committer; otherwise leave the draft for human review and continue.
-  - Per-stage retry: on 429/5xx classify as *retryable* and back off (1s, 4s, 15s) before falling to the next tier; on genuine "no data" fall through immediately.
-  - Records `plan` JSON on the run with `{tier_used, attempts, retryable_errors, duration_ms, coverage, citation_count}` so a future dashboard can surface where things break.
-- Client-side "Run all" in `onboard.tsx:269-322` is replaced by a single call to this server fn plus polling via existing `getOnboardingStatus` invalidation.
-- `STAGE_DEPENDENCIES` in the UI is deleted; the server owns the DAG.
+### Phase 5 — Fallback parity and quality gates
+1. Route `source_registry`, `sector_dossier`, `ministry_deep_dive`, and `second_brain_seed` through the same tiered strategy used in stronger stages:
+   - grounded search
+   - AI repair from source material
+   - low-confidence inferred/stub fallback only when safe
+2. Add hard non-empty checks before saving drafts:
+   - sources ≥ useful threshold
+   - KPIs ≥ required coverage threshold
+   - dossiers cover committed sectors
+   - ministry deep dive covers committed ministries
+   - second brain contains a balanced set of positions/audiences/outlets/facts/risks
+3. Classify transient failures separately from “no data”:
+   - rate limit / timeout / provider outage should be retryable
+   - invalid payload should be reviewable
+   - missing upstream dependency should block clearly
 
-### Phase 3 — Fallback parity + empty-payload guards
+### Phase 6 — Admin observability
+Add a compact pipeline health panel at the top of the country onboarding page:
+- committed target row counts
+- latest draft status
+- latest run status
+- citation count
+- eligibility reason
+- dependency blockers
+- retryable errors
 
-Goal: no stage can silently produce nothing.
+This makes the system explain itself instead of requiring database inspection.
 
-- Route `source_registry`, `sector_dossier`, `ministry_deep_dive`, `second_brain_seed` through the same tiered pattern used by `fallback.server.ts` (Perplexity → Gemini repair → inferred stub with `confidence:'low'`). Where a stage is per-item (per ministry, per sector), keep per-item try/catch so partial success is preserved, and always `saveDraft` with whatever succeeded + an `errors[]` array in the payload.
-- Add `assertNonEmptyDraft(payload, stage)` before every `saveDraft` — profile has a name, sectors has ≥3 rows, ministries has ≥1, kpi_seed has coverage≥50%, etc. Failing this marks the run `ready` with `error: 'empty payload'` instead of writing a useless "committed" draft.
-- `corpus_ingest`: only auto-commit when `okCount >= 1` AND `totalChunks > 0`; otherwise leave in `ready` with the fetch errors surfaced.
+## Implementation order
+1. Fix the `memory_objects.scope_key` status bug and UI wording first.
+2. Add status diagnostics so hidden query failures cannot masquerade as uncommitted stages.
+3. Move orchestration decisions into a server-owned resumable pipeline function.
+4. Rework second-brain seed to synthesize from committed corpus/data rather than standalone search.
+5. Add fallback parity and quality gates across all 11 stages.
+6. Add the pipeline health panel.
 
-### Phase 4 — Observability (small but pays off)
-
-- Extend `onboarding_runs.plan` with the structured fields above (already partially used by `corpus_ingest`).
-- Add a compact "Pipeline health" panel at the top of `onboard.tsx` showing per-stage: last tier used, coverage/citation count, retryable-error count, last stuck-run reconciliation. No new tables — pure read view over `onboarding_runs` + `committedTargets`.
-
-## Not in scope for this plan
-
-- Migrating providers (still Perplexity + Lovable AI Gateway).
-- Any changes to the KPI research passes themselves (World Bank/IMF/Perplexity/Gemini/inference) — they already work, we're only fixing what's downstream of the drafts they produce.
-- Cross-country batch (this plan is per-country; a future "onboard N countries overnight" job can reuse `runOnboardingPipeline` unchanged).
-
-## Files that will change
-
-- `supabase/migrations/20260713_onboarding_reliability.sql` (new)
-- `src/lib/country-onboarding/agents.functions.ts` (getOnboardingStatus, commitSectorComposition, commitMinistrySectorMap)
-- `src/lib/country-onboarding/corpus.functions.ts` (kpi_seed citations, empty-payload guards, fallback wiring for 4 stages, corpus_ingest auto-commit guard, saveDraft upsert)
-- `src/lib/country-onboarding/fallback.server.ts` (429/5xx classification + backoff, exportable single-item variant)
-- `src/lib/country-onboarding/orchestrator.functions.ts` (new)
-- `src/routes/_authenticated/admin/countries.$code.onboard.tsx` (replace client loop with server orchestrator call; drop STAGE_DEPENDENCIES; add health panel)
-
-## Success criteria
-
-- Re-running the whole pipeline on ATG (currently the sick country) leaves every one of the 11 stages either ✓ Committed with real rows, or ⚠ needs-review with a specific, actionable error message. No stage is "stuck" without an explanation.
-- Two admin tabs racing the same stage produce one open run + one clear "already running" toast — never two concurrent commits.
-- `kpi_seed` commits on the first press.
-- The `stale` reconciliation actually flips stuck runs to `stale` (verifiable via a `SELECT status FROM onboarding_runs WHERE status='stale'` returning rows).
+## Expected result
+- Second brain will correctly show as committed when memory rows exist.
+- Rerunning stage 11 will produce a reviewable draft or a clear failure reason, not “Commit (no draft).”
+- “Run all” will become resumable and dependable across countries.
+- Each country’s 11-stage onboarding will have consistent dependencies, evidence, draft rules, commit rules, and health reporting.

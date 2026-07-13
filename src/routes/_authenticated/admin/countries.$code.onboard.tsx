@@ -35,6 +35,7 @@ import {
   runSectorDossierAgent,
   runSourceRegistryAgent,
 } from "@/lib/country-onboarding/corpus.functions";
+import { runCountryOnboardingPipeline } from "@/lib/country-onboarding/orchestrator.functions";
 import { generateStageSummary } from "@/lib/country-onboarding/summaries.functions";
 
 
@@ -216,7 +217,11 @@ function OnboardWizard() {
   const country: any = (data as any).country;
   const summaries: any[] = (data as any).summaries ?? [];
   const committedTargets: Record<string, { rows: number }> = (data as any).committedTargets ?? {};
+  const statusDiagnostics: Array<{ stage: Stage | string; message: string }> = (data as any).statusDiagnostics ?? [];
+  const pipelineRuns: any[] = (data as any).pipelineRuns ?? [];
+  const latestPipeline = pipelineRuns[0] ?? null;
   const genSummary = useServerFn(generateStageSummary);
+  const runPipeline = useServerFn(runCountryOnboardingPipeline);
 
   // Wrap each runner: open the accordion for that stage, show the sticky
   // banner, poll progress, and emit a result banner on resolve/reject.
@@ -258,76 +263,20 @@ function OnboardWizard() {
   );
 
 
-  // Auto-commit a stage's draft after a successful run when it's eligible:
-  // - draft exists, non-empty payload, has citations (mirrors the Commit button gate).
-  // Silent no-op if the stage doesn't meet the bar; the user can still commit manually.
-  async function tryAutoCommit(stage: Stage): Promise<boolean> {
-    // Corpus ingest auto-commits inside the agent; skip here.
-    if (stage === "corpus_ingest") return false;
-    const st = await getOnboardingStatus({ data: { countryCode: code } });
-    const d = st.drafts.find((x: any) => x.stage === stage && !x.superseded);
-    if (!d) return false;
-    const cites = (d as any).citations?.length ?? 0;
-    if (cites === 0) return false;
-    // Non-empty payload check (mirrors StageCard.draftItemCount)
-    const p: any = d.payload;
-    let hasItems = false;
-    if (Array.isArray(p)) hasItems = p.length > 0;
-    else if (p && typeof p === "object") {
-      for (const k of ["kpis", "ministries", "rows", "sources", "items", "mappings", "dossiers", "memories"]) {
-        if (Array.isArray(p[k]) && p[k].length > 0) { hasItems = true; break; }
-      }
-      if (!hasItems && Object.keys(p).length > 0) hasItems = true; // scalar-payload stages (profile/gdp)
-    }
-    if (!hasItems) return false;
-    try {
-      await committers[stage]({ data: { draftId: d.id } });
-      return true;
-    } catch (e) {
-      console.error("[onboarding] auto-commit failed", stage, e);
-      return false;
-    }
-  }
-
-  // Real DAG (derived from server-side hard-throw checks). Level = parallel batch.
-  const PIPELINE_LEVELS: Stage[][] = [
-    ["profile", "gdp", "sector_composition", "ministries", "source_registry", "kpi_seed"],
-    ["ministry_sector_map", "sector_dossier", "ministry_deep_dive", "corpus_ingest"],
-    ["second_brain_seed"],
-  ];
-
-  async function runStage(stage: Stage, errors: Array<{ stage: Stage; message: string }>) {
-    try {
-      await runners[stage]({ data: { countryCode: code } });
-      await tryAutoCommit(stage);
-    } catch (e: any) {
-      const msg = e?.message ?? String(e);
-      // Swallow "already in progress" as a soft skip (another tab is running it).
-      if (/already in progress/i.test(msg)) return;
-      errors.push({ stage, message: msg });
-    }
-  }
-
   async function runAllPending() {
     setBulkErr(null);
     setRunErrors([]);
     setSkippedStages([]);
     setBulkRunning("pending");
-    const errors: Array<{ stage: Stage; message: string }> = [];
     try {
-      for (const level of PIPELINE_LEVELS) {
-        // Snapshot ground truth per level so downstream stages see committed upstream.
-        const st = await getOnboardingStatus({ data: { countryCode: code } });
-        const committed = new Set<string>(
-          STAGES.filter((s) => (st.committedTargets as any)?.[s.key]?.rows > 0).map((s) => s.key),
-        );
-        const draftedStages = new Set<string>(st.drafts.filter((d: any) => !d.superseded).map((d: any) => d.stage));
-        const pending = level.filter((s) => !committed.has(s) && !draftedStages.has(s));
-        if (pending.length === 0) continue;
-        await Promise.all(pending.map((s) => runStage(s, errors)));
-      }
-    } finally {
+      const res: any = await runPipeline({ data: { countryCode: code, mode: "pending" } });
+      const errors = (res.results ?? [])
+        .filter((r: any) => r.status === "failed")
+        .map((r: any) => ({ stage: r.stage as Stage, message: r.message ?? "Stage failed" }));
       setRunErrors(errors);
+    } catch (e: any) {
+      setBulkErr(e?.message ?? String(e));
+    } finally {
       await refresh();
       setBulkRunning(false);
     }
@@ -338,13 +287,15 @@ function OnboardWizard() {
     setRunErrors([]);
     setSkippedStages([]);
     setBulkRunning("all");
-    const errors: Array<{ stage: Stage; message: string }> = [];
     try {
-      for (const level of PIPELINE_LEVELS) {
-        await Promise.all(level.map((s) => runStage(s, errors)));
-      }
-    } finally {
+      const res: any = await runPipeline({ data: { countryCode: code, mode: "rerun" } });
+      const errors = (res.results ?? [])
+        .filter((r: any) => r.status === "failed")
+        .map((r: any) => ({ stage: r.stage as Stage, message: r.message ?? "Stage failed" }));
       setRunErrors(errors);
+    } catch (e: any) {
+      setBulkErr(e?.message ?? String(e));
+    } finally {
       await refresh();
       setBulkRunning(false);
     }
@@ -452,6 +403,15 @@ function OnboardWizard() {
           </div>
         )}
 
+        <PipelineHealthPanel
+          stages={STAGES}
+          committedTargets={committedTargets}
+          drafts={drafts}
+          runs={runs}
+          diagnostics={statusDiagnostics}
+          latestPipeline={latestPipeline}
+        />
+
         {runErrors.length > 0 && (
           <div className="rounded border border-red-500/50 bg-red-500/10 p-3 text-xs text-red-700 space-y-1">
             <div className="font-medium">Stage failures (bulk run continued past these):</div>
@@ -524,6 +484,7 @@ function OnboardWizard() {
           drafts={drafts}
           runs={runs}
           summaries={summaries}
+          diagnostics={statusDiagnostics}
           committedTargets={committedTargets}
           countryName={country?.name ?? code}
           keyConfigured={keyStatus.configured}
@@ -568,6 +529,68 @@ function truncateMiddle(s: string, max: number): string {
   return `${s.slice(0, half)}…${s.slice(-half)}`;
 }
 
+function PipelineHealthPanel({
+  stages,
+  committedTargets,
+  drafts,
+  runs,
+  diagnostics,
+  latestPipeline,
+}: {
+  stages: { key: Stage; label: string; short: string; desc: string }[];
+  committedTargets: Record<string, { rows: number }>;
+  drafts: any[];
+  runs: any[];
+  diagnostics: Array<{ stage: Stage | string; message: string }>;
+  latestPipeline: any;
+}) {
+  const latestResults: any[] = Array.isArray(latestPipeline?.results) ? latestPipeline.results : [];
+  return (
+    <section className="border border-line-200 bg-paper-0 p-4 space-y-3">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-ink-500">Pipeline health</div>
+          {latestPipeline && (
+            <p className="mt-1 text-xs text-ink-500">
+              Latest workflow {latestPipeline.status} · {latestPipeline.mode} · {new Date(latestPipeline.started_at).toLocaleString()}
+              {latestPipeline.error ? ` · ${latestPipeline.error}` : ""}
+            </p>
+          )}
+        </div>
+        {diagnostics.length > 0 && (
+          <span className="border border-red-500 text-red-700 px-2 py-1 text-[10px] font-mono uppercase tracking-widest">
+            {diagnostics.length} status issue{diagnostics.length === 1 ? "" : "s"}
+          </span>
+        )}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+        {stages.map((s) => {
+          const targetRows = committedTargets[s.key]?.rows ?? 0;
+          const draft = drafts.find((d) => d.stage === s.key && !d.superseded);
+          const run = runs.find((r) => r.stage === s.key);
+          const diag = diagnostics.find((d) => d.stage === s.key);
+          const result = latestResults.find((r) => r.stage === s.key);
+          return (
+            <div key={s.key} className="border border-line-200 p-2 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium text-ink-950">{s.short}</span>
+                <span className={`font-mono text-[10px] ${diag ? "text-red-700" : targetRows > 0 ? "text-emerald-700" : draft ? "text-amber-700" : "text-ink-500"}`}>
+                  {diag ? "check failed" : targetRows > 0 ? `${targetRows} committed` : draft ? "draft ready" : "pending"}
+                </span>
+              </div>
+              <div className="mt-1 text-[11px] text-ink-500 space-y-0.5">
+                {run && <div>last run {run.status}</div>}
+                {result && <div>pipeline {result.status}{result.message ? ` — ${result.message}` : ""}</div>}
+                {diag && <div className="text-red-700 break-words">{diag.message}</div>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function summarizeRunResult(stage: Stage, res: any): string {
   if (!res) return "Completed.";
   if (stage === "corpus_ingest" && typeof res.okCount === "number") {
@@ -584,6 +607,7 @@ function AccordionStages({
   drafts,
   runs,
   summaries,
+  diagnostics,
   committedTargets,
   countryName,
   keyConfigured,
@@ -600,6 +624,7 @@ function AccordionStages({
   drafts: any[];
   runs: any[];
   summaries: any[];
+  diagnostics: Array<{ stage: Stage | string; message: string }>;
   committedTargets: Record<string, { rows: number }>;
   countryName: string;
   keyConfigured: boolean;
@@ -621,6 +646,7 @@ function AccordionStages({
         const lastRun = stageRuns[0];
         const lastCommitRun = stageRuns.find((r) => r.status === "committed");
         const summary = summaries.find((x) => x.stage === s.key);
+        const diagnostic = diagnostics.find((x) => x.stage === s.key);
         const target = committedTargets[s.key] ?? { rows: 0 };
         return (
           <StageCard
@@ -632,6 +658,7 @@ function AccordionStages({
             lastCommitRun={lastCommitRun}
             targetRows={target.rows}
             summary={summary}
+            diagnostic={diagnostic}
             keyConfigured={keyConfigured}
             isOpen={openStage === s.key}
             onToggle={() => setOpenStage(openStage === s.key ? null : s.key)}
@@ -659,6 +686,7 @@ function StageCard({
   lastCommitRun,
   targetRows,
   summary,
+  diagnostic,
   keyConfigured,
   isOpen,
   onToggle,
@@ -674,6 +702,7 @@ function StageCard({
   lastCommitRun: any;
   targetRows: number;
   summary: any;
+  diagnostic?: { stage: Stage | string; message: string };
   keyConfigured: boolean;
   isOpen: boolean;
   onToggle: () => void;
@@ -704,6 +733,7 @@ function StageCard({
 
   // Ground truth: target table has rows for this country.
   const committed = targetRows > 0;
+  const statusUnreliable = !!diagnostic;
   const commitAt = lastCommitRun?.finished_at ?? lastCommitRun?.started_at ?? null;
   // A draft that arrived AFTER the last commit — user re-ran and can re-commit.
   // Requires an actual prior commit; otherwise it's a first-time commit, not a re-commit.
@@ -714,7 +744,7 @@ function StageCard({
     const p: any = draft?.payload;
     if (!p || typeof p !== "object") return null;
     if (Array.isArray(p)) return p.length;
-    for (const k of ["kpis", "ministries", "sectors", "sources", "items", "mappings", "dossiers"]) {
+    for (const k of ["kpis", "ministries", "sectors", "sources", "items", "mappings", "dossiers", "memories"]) {
       if (Array.isArray(p[k])) return p[k].length;
     }
     return null;
@@ -819,7 +849,7 @@ function StageCard({
               ✓ Committed{targetRows > 1 ? ` (${targetRows})` : ""}
             </span>
           )}
-          {(!committed || hasNewerDraft) && (
+          {(!committed || hasNewerDraft) && !statusUnreliable && (
             <button
               type="button"
               className={`text-sm px-3 py-1.5 border disabled:opacity-50 ${
@@ -848,7 +878,7 @@ function StageCard({
                   ? `Re-commit to ${draft?.target_table ?? "target"}`
                   : draft
                     ? `Commit to ${draft.target_table}`
-                    : "Commit (no draft)"}
+                    : "Run agent to create draft"}
             </button>
           )}
 
@@ -937,6 +967,12 @@ function StageCard({
               {lastRun.error && (
                 <div className="mt-1 text-red-600 whitespace-pre-wrap">{lastRun.error}</div>
               )}
+            </div>
+          )}
+
+          {diagnostic && (
+            <div className="rounded border border-red-500/50 bg-red-500/10 p-2 text-xs text-red-700">
+              Status check failed for this stage: {diagnostic.message}
             </div>
           )}
 

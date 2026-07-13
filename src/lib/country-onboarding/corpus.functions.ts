@@ -572,6 +572,18 @@ export const runKpiSeedAgent = createServerFn({ method: "POST" })
         country: { code: country.code, name: country.name, iso3: country.iso3 },
       });
 
+      // Build citations from enriched KPIs' source URLs (deduped, 1-indexed to match [N] markers).
+      const seenCite = new Set<string>();
+      const citations: SonarCitation[] = [];
+      for (const k of enriched) {
+        const url = (k as any).source_url;
+        if (!url || seenCite.has(url)) continue;
+        seenCite.add(url);
+        let domain: string | null = null;
+        try { domain = new URL(url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
+        citations.push({ url, domain, title: (k as any).source_org ?? null });
+      }
+
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
         country_code: data.countryCode,
@@ -580,8 +592,9 @@ export const runKpiSeedAgent = createServerFn({ method: "POST" })
         payload: { kpis: enriched, coverage },
         confidence:
           coverage.filled === coverage.total ? "high" : coverage.filled >= coverage.total * 0.75 ? "medium" : "low",
-        citations: [],
+        citations,
       });
+
 
       await finishRun(supabaseAdmin, runId, {
         status: "ready",

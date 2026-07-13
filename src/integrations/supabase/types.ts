@@ -2315,6 +2315,59 @@ export type Database = {
           },
         ]
       }
+      onboarding_pipeline_runs: {
+        Row: {
+          country_code: string
+          current_stage: string | null
+          error: string | null
+          finished_at: string | null
+          id: string
+          mode: string
+          plan: Json
+          results: Json
+          started_at: string
+          started_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          current_stage?: string | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          mode: string
+          plan?: Json
+          results?: Json
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          current_stage?: string | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          mode?: string
+          plan?: Json
+          results?: Json
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_pipeline_runs_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       onboarding_runs: {
         Row: {
           cost_cents: number

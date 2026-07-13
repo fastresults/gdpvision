@@ -394,6 +394,17 @@ function StageCard({
   const [showRaw, setShowRaw] = useState(false);
   const [edited, setEdited] = useState<string>("");
   const [err, setErr] = useState<string | null>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    requestAnimationFrame(() => {
+      const el = sectionRef.current;
+      if (!el) return;
+      const y = el.getBoundingClientRect().top + window.scrollY - 8;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    });
+  }, [isOpen]);
 
 
   const committed = lastRun?.status === "committed";

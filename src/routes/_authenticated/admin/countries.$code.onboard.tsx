@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
+import { PrettyJson } from "@/components/data/PrettyJson";
 import {
   commitGdp,
   commitMinistries,

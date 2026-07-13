@@ -500,6 +500,7 @@ export const runMinistriesAgent = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const country = await loadCountry(supabaseAdmin, data.countryCode);
+    const ctx = await buildCountryContext(supabaseAdmin, data.countryCode);
 
     const model: SonarModel = "sonar-pro";
     const runId = await openRun(supabaseAdmin, {
@@ -512,46 +513,53 @@ export const runMinistriesAgent = createServerFn({ method: "POST" })
     try {
       const schema = {
         type: "object",
-        additionalProperties: false,
         properties: {
           ministries: {
             type: "array",
             items: {
               type: "object",
-              additionalProperties: false,
               properties: {
                 slug: { type: "string", description: "kebab-case identifier" },
                 name: { type: "string", description: "Full official ministry name" },
                 minister: { type: ["string", "null"] },
                 mandate: { type: "string" },
               },
-              required: ["slug", "name", "mandate"],
+              required: ["slug", "name"],
             },
           },
           ...SUMMARY_SCHEMA_FRAGMENT,
         },
-        required: ["ministries", "summary_md", "summary_highlights"],
+        required: ["ministries"],
       } as const;
 
       const fb = await runWithFallbacks<{ ministries: any[]; summary_md?: string; summary_highlights?: any[] }>({
+        context: ctx,
+        topic: `${country.name} cabinet ministries and ministers (current)`,
         perplexity: {
           model,
           system:
-            "You are a governance researcher. Return the current canonical ministries of the country. Prefer the official government portal." +
+            `You are a governance researcher. Return the current canonical cabinet ministries of ${country.name}. Prefer the official government portal (${ctx.portal ?? "the country's .gov site"}) — its "Cabinet" or "Government" or "Ministries" page. Cross-check against a recent news article (past 12 months) confirming the current minister names. A small state typically has 8-18 ministries; do not return fewer than 6 unless you have explicit evidence of a smaller cabinet.` +
             SUMMARY_SYSTEM_SUFFIX,
-          user: `List the current cabinet ministries of ${country.name} as of 2026, with the full official name, current minister (if known), and a one-line mandate. Use the government's official website.`,
+          user: `List the current cabinet ministries of ${country.name} as of ${new Date().getFullYear()}.\n\nFor each ministry:\n- slug (kebab-case, e.g. "finance", "foreign-affairs")\n- name (full official ministry name)\n- minister (current holder's full name — verify from official portal AND recent news; null only if truly unknown)\n- mandate (one-line description of the portfolio's scope)\n\nStart from ${ctx.portal ?? "the official government portal"}. If a cabinet reshuffle happened recently, use the latest.`,
           responseSchema: schema as unknown as Record<string, unknown>,
-          recency: "year",
+          recency: "month",
         },
         gemini: {
           system: "You are a governance researcher.",
-          user: `List the current cabinet ministries of ${country.name} with slug (kebab-case), full official name, current minister (or null), and one-line mandate.`,
+          user: `Extract the current cabinet ministries of ${country.name} from the source material. Each item needs slug (kebab-case), full official name, current minister name (or null), and one-line mandate.`,
           schemaHint: `{ "ministries": [{"slug": string, "name": string, "minister": string|null, "mandate": string}], "summary_md": string, "summary_highlights": [{"label": string, "value": string}] }`,
         },
         parse: jsonParser<{ ministries: any[] }>(),
-        validate: (v) => !!v?.ministries?.length,
+        validate: (v) => {
+          if (!v?.ministries?.length || v.ministries.length < 6) return false;
+          return v.ministries.every(
+            (m: any) =>
+              typeof m?.slug === "string" && /^[a-z0-9-]+$/.test(m.slug) &&
+              typeof m?.name === "string" && m.name.trim().length > 3,
+          );
+        },
         infer: () => ({
-          ministries: seedMinistries(country.name),
+          ministries: seedMinistries(country.name, ctx),
           summary_md: `Provisional canonical ministries for ${country.name} — please verify against the government portal.`,
           summary_highlights: [],
         }),

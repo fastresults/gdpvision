@@ -263,56 +263,6 @@ function OnboardWizard() {
   );
 
 
-  // Auto-commit a stage's draft after a successful run when it's eligible:
-  // - draft exists, non-empty payload, has citations (mirrors the Commit button gate).
-  // Silent no-op if the stage doesn't meet the bar; the user can still commit manually.
-  async function tryAutoCommit(stage: Stage): Promise<boolean> {
-    // Corpus ingest auto-commits inside the agent; skip here.
-    if (stage === "corpus_ingest") return false;
-    const st = await getOnboardingStatus({ data: { countryCode: code } });
-    const d = st.drafts.find((x: any) => x.stage === stage && !x.superseded);
-    if (!d) return false;
-    const cites = (d as any).citations?.length ?? 0;
-    if (cites === 0) return false;
-    // Non-empty payload check (mirrors StageCard.draftItemCount)
-    const p: any = d.payload;
-    let hasItems = false;
-    if (Array.isArray(p)) hasItems = p.length > 0;
-    else if (p && typeof p === "object") {
-      for (const k of ["kpis", "ministries", "rows", "sources", "items", "mappings", "dossiers", "memories"]) {
-        if (Array.isArray(p[k]) && p[k].length > 0) { hasItems = true; break; }
-      }
-      if (!hasItems && Object.keys(p).length > 0) hasItems = true; // scalar-payload stages (profile/gdp)
-    }
-    if (!hasItems) return false;
-    try {
-      await committers[stage]({ data: { draftId: d.id } });
-      return true;
-    } catch (e) {
-      console.error("[onboarding] auto-commit failed", stage, e);
-      return false;
-    }
-  }
-
-  // Real DAG (derived from server-side hard-throw checks). Level = parallel batch.
-  const PIPELINE_LEVELS: Stage[][] = [
-    ["profile", "gdp", "sector_composition", "ministries", "source_registry", "kpi_seed"],
-    ["ministry_sector_map", "sector_dossier", "ministry_deep_dive", "corpus_ingest"],
-    ["second_brain_seed"],
-  ];
-
-  async function runStage(stage: Stage, errors: Array<{ stage: Stage; message: string }>) {
-    try {
-      await runners[stage]({ data: { countryCode: code } });
-      await tryAutoCommit(stage);
-    } catch (e: any) {
-      const msg = e?.message ?? String(e);
-      // Swallow "already in progress" as a soft skip (another tab is running it).
-      if (/already in progress/i.test(msg)) return;
-      errors.push({ stage, message: msg });
-    }
-  }
-
   async function runAllPending() {
     setBulkErr(null);
     setRunErrors([]);
@@ -324,6 +274,8 @@ function OnboardWizard() {
         .filter((r: any) => r.status === "failed")
         .map((r: any) => ({ stage: r.stage as Stage, message: r.message ?? "Stage failed" }));
       setRunErrors(errors);
+    } catch (e: any) {
+      setBulkErr(e?.message ?? String(e));
     } finally {
       await refresh();
       setBulkRunning(false);
@@ -341,6 +293,8 @@ function OnboardWizard() {
         .filter((r: any) => r.status === "failed")
         .map((r: any) => ({ stage: r.stage as Stage, message: r.message ?? "Stage failed" }));
       setRunErrors(errors);
+    } catch (e: any) {
+      setBulkErr(e?.message ?? String(e));
     } finally {
       await refresh();
       setBulkRunning(false);
@@ -792,7 +746,7 @@ function StageCard({
     const p: any = draft?.payload;
     if (!p || typeof p !== "object") return null;
     if (Array.isArray(p)) return p.length;
-    for (const k of ["kpis", "ministries", "sectors", "sources", "items", "mappings", "dossiers"]) {
+    for (const k of ["kpis", "ministries", "sectors", "sources", "items", "mappings", "dossiers", "memories"]) {
       if (Array.isArray(p[k])) return p[k].length;
     }
     return null;

@@ -32,9 +32,25 @@ export default tseslint.config(
           ],
         },
       ],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "JSXElement > JSXExpressionContainer > CallExpression[callee.object.name='JSON'][callee.property.name='stringify']",
+          message:
+            "Render JSON via <PrettyJson> from @/components/data/PrettyJson. Raw JSON.stringify is only allowed as a <textarea> value or inside a collapsed <details> debug toggle.",
+        },
+      ],
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
     },
+  },
+  {
+    files: [
+      "src/components/data/PrettyJson.tsx",
+      "src/routes/_authenticated/admin/countries.$code.onboard.tsx",
+    ],
+    rules: { "no-restricted-syntax": "off" },
   },
   eslintPluginPrettier,
 );

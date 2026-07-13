@@ -317,8 +317,8 @@ export const cleanInvalidCountrySources = createServerFn({ method: "POST" })
       .eq("active", true);
     if (error) throw error;
     const bad = (rows ?? []).filter((r: any) => !isValidHttpUrl(r.url));
-    if (!bad.length) return { deactivated: 0, examples: [] as any[] };
-    const ids = bad.map((r: any) => r.id);
+    if (!bad.length) return { deactivated: 0, examples: [] as Array<{ id: string; url: string; title: string }> };
+    const ids = bad.map((r: any) => r.id as string);
     const { error: uErr } = await supabaseAdmin
       .from("country_sources")
       .update({ active: false, fetch_status: "invalid_url", fetch_error: "URL not http(s) parseable" })

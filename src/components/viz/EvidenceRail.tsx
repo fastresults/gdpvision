@@ -81,5 +81,7 @@ function extractSummary(payload: any): string {
   if (Array.isArray(payload.programmes) && payload.programmes.length) {
     return payload.programmes.slice(0, 2).map((p: any) => p.name ?? p.title ?? "").filter(Boolean).join(" · ");
   }
-  return JSON.stringify(payload).slice(0, 200);
+  // Human-readable fallback — never expose raw JSON in the UI.
+  const firstStr = Object.values(payload).find((v) => typeof v === "string" && (v as string).trim().length > 0);
+  return typeof firstStr === "string" ? (firstStr as string).slice(0, 200) : "(structured payload)";
 }

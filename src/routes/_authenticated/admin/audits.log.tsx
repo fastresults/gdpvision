@@ -3,6 +3,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 
 import { listAuditLog } from "@/lib/admin.functions";
 import { Wordmark } from "@/components/marketing/Wordmark";
+import { PrettyJson } from "@/components/data/PrettyJson";
 
 const auditQuery = queryOptions({
   queryKey: ["audit-log"],
@@ -57,7 +58,7 @@ function AuditLogPage() {
                 <td className="py-2 pr-4 font-mono text-[11px] text-ink-500">{r.actor_label ?? r.actor_id?.slice(0, 8) ?? "system"}</td>
                 <td className="py-2 pr-4">{r.action}</td>
                 <td className="py-2 pr-4 font-mono text-[11px] text-ink-500">{r.target_type ?? "—"}{r.target_id ? ` · ${r.target_id.slice(0, 12)}` : ""}</td>
-                <td className="py-2 font-mono text-[10px] text-ink-500">{Object.keys(r.metadata ?? {}).length > 0 ? JSON.stringify(r.metadata) : "—"}</td>
+                <td className="py-2 text-[11px] text-ink-500 max-w-md">{Object.keys(r.metadata ?? {}).length > 0 ? <PrettyJson value={r.metadata} /> : "—"}</td>
               </tr>
             ))}
           </tbody>

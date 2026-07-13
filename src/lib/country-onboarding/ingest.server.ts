@@ -3,10 +3,23 @@
 
 export type ScrapedDoc = { title: string; markdown: string; url: string };
 
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number) {
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal });
+  } catch (err) {
+    if ((err as Error).name === "AbortError") throw new Error(`Request timed out after ${Math.round(timeoutMs / 1000)}s`);
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function fetchFirecrawl(url: string): Promise<ScrapedDoc> {
   const key = process.env.FIRECRAWL_API_KEY;
   if (!key) throw new Error("FIRECRAWL_API_KEY not configured");
-  const res = await fetch("https://api.firecrawl.dev/v2/scrape", {
+  const res = await fetchWithTimeout("https://api.firecrawl.dev/v2/scrape", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${key}`,
@@ -17,7 +30,7 @@ export async function fetchFirecrawl(url: string): Promise<ScrapedDoc> {
       formats: ["markdown"],
       onlyMainContent: true,
     }),
-  });
+  }, 45_000);
   if (!res.ok) {
     const t = await res.text();
     throw new Error(`Firecrawl ${res.status}: ${t.slice(0, 300)}`);
@@ -63,7 +76,7 @@ export function chunkText(text: string, size = 1000, overlap = 100): string[] {
 export async function embedBatch(chunks: string[]): Promise<number[][]> {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("LOVABLE_API_KEY not configured");
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
+  const res = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/embeddings", {
     method: "POST",
     headers: {
       "Lovable-API-Key": key,
@@ -73,7 +86,7 @@ export async function embedBatch(chunks: string[]): Promise<number[][]> {
       model: "openai/text-embedding-3-small",
       input: chunks,
     }),
-  });
+  }, 30_000);
   if (!res.ok) {
     const t = await res.text();
     throw new Error(`Embeddings ${res.status}: ${t.slice(0, 300)}`);

@@ -16,6 +16,50 @@ const STAGE_ORDER: Stage[] = [
 ];
 
 const TERMINAL = ["completed", "failed", "cancelled", "skipped", "needs_review", "blocked", "stale"];
+const CHILD_STEP_TYPES: Partial<Record<Stage, string>> = {
+  ministry_deep_dive: "ministry",
+  corpus_ingest: "source",
+};
+
+function isFreshRunning(row: any) {
+  return row.status === "running" && row.heartbeat_at && Date.now() - new Date(row.heartbeat_at).getTime() < 15 * 60 * 1000;
+}
+
+function simpleSlug(input: string) {
+  return String(input ?? "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "item";
+}
+
+function normalizeMemoryTitle(title: string) {
+  return String(title ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isValidHttpUrl(raw: unknown): raw is string {
+  if (typeof raw !== "string") return false;
+  try {
+    const u = new URL(raw.trim());
+    return (u.protocol === "https:" || u.protocol === "http:") && u.hostname.includes(".");
+  } catch {
+    return false;
+  }
+}
+
+function citationFromUrl(url: string, title?: string | null) {
+  let domain: string | null = null;
+  try { domain = new URL(url).hostname.replace(/^www\./, ""); } catch { /* validated earlier */ }
+  return { url, domain, title: title ?? domain ?? "Source" };
+}
 
 async function loadCountry(admin: any, code: string) {
   const { data, error } = await admin
@@ -53,14 +97,15 @@ async function countCommitted(admin: any, countryCode: string, stage: Stage): Pr
 }
 
 async function openLegacyRun(admin: any, params: { countryCode: string; stage: Stage; userId: string | null; modelStack: Record<string, string> }) {
-  const staleCutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+  // Durable steps are the owner for their stage. If a prior attempt died after
+  // opening the legacy progress row but before finishing it, clear that lock
+  // immediately so resume/retry is real instead of waiting 15+ minutes.
   await admin
     .from("onboarding_runs")
-    .update({ status: "stale", finished_at: new Date().toISOString(), error: "durable worker recovery: stale open run" })
+    .update({ status: "stale", finished_at: new Date().toISOString(), error: "durable worker recovery: superseded open run" })
     .eq("country_code", params.countryCode)
     .eq("stage", params.stage)
-    .in("status", ["queued", "planning", "searching", "extracting", "validating"])
-    .lt("updated_at", staleCutoff);
+    .in("status", ["queued", "planning", "searching", "extracting", "validating"]);
 
   const { data, error } = await admin
     .from("onboarding_runs")
@@ -90,7 +135,7 @@ async function writeEvent(admin: any, args: { jobId: string; stepId?: string; co
 
 async function refreshJobStatus(admin: any, jobId: string) {
   const { data: steps } = await admin.from("onboarding_job_steps").select("stage, status, error, output").eq("job_id", jobId);
-  const rows = steps ?? [];
+  const rows = [...(steps ?? [])].sort((a: any, b: any) => STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage));
   const counts = rows.reduce((acc: Record<string, number>, s: any) => {
     acc[s.status] = (acc[s.status] ?? 0) + 1;
     return acc;
@@ -104,7 +149,7 @@ async function refreshJobStatus(admin: any, jobId: string) {
   if (failed) status = "failed";
   else if (blocked && !queued && !running) status = "blocked";
   else if (done === rows.length) status = "completed";
-  const current = running?.stage ?? queued?.stage ?? null;
+  const current = running?.stage ?? queued?.stage ?? blocked?.stage ?? null;
   await admin.from("onboarding_jobs").update({
     status,
     current_stage: current,
@@ -141,6 +186,20 @@ async function nextRunnableStep(admin: any, job: any) {
       if (parent.status === "running" && parent.heartbeat_at && Date.now() - new Date(parent.heartbeat_at).getTime() < 15 * 60 * 1000) return null;
       return parent;
     }
+
+    const childType = CHILD_STEP_TYPES[stage];
+    if (childType) {
+      const parent = rows.find((s: any) => s.stage === stage && s.step_key === stage);
+      if (!parent || TERMINAL.includes(parent.status)) continue;
+      const children = rows.filter((s: any) => s.stage === stage && s.step_type === childType);
+      if (children.some(isFreshRunning)) return null;
+      const child = children.find((s: any) => !TERMINAL.includes(s.status) && !isFreshRunning(s));
+      if (child) return child;
+      if (children.length > 0 && children.every((s: any) => TERMINAL.includes(s.status))) return parent;
+      if (isFreshRunning(parent)) return null;
+      return parent;
+    }
+
     const step = rows.find((s: any) => s.stage === stage && s.step_key === stage);
     if (!step) continue;
     if (TERMINAL.includes(step.status)) continue;
@@ -148,6 +207,500 @@ async function nextRunnableStep(admin: any, job: any) {
     return step;
   }
   return null;
+}
+
+async function executeMinistrySectorMap(admin: any, job: any, step: any) {
+  const { data: ministries, error: mErr } = await admin.from("ministries").select("slug").eq("country_code", job.country_code);
+  if (mErr) throw mErr;
+  const { data: sectors, error: sErr } = await admin.from("country_sectors").select("sector_code").eq("country_code", job.country_code);
+  if (sErr) throw sErr;
+  if (!ministries?.length) throw new Error("Ministry-sector map requires committed ministries");
+  if (!sectors?.length) throw new Error("Ministry-sector map requires committed sector composition");
+  const { seedMinistrySectorMap } = await import("./seeds.server");
+  const rows = seedMinistrySectorMap(
+    ministries.map((m: any) => String(m.slug)),
+    sectors.map((s: any) => String(s.sector_code)),
+  );
+  if (!rows.length) throw new Error("No ministry-sector mappings could be generated from committed ministries/sectors");
+  const { error } = await admin.rpc("replace_ministry_sectors", { _country_code: job.country_code, _rows: rows as any });
+  if (error) throw error;
+  await admin.from("onboarding_job_steps").update({
+    status: "completed",
+    output: { inserted: rows.length, method: "deterministic-portfolio-map" },
+    finished_at: new Date().toISOString(),
+    heartbeat_at: new Date().toISOString(),
+  }).eq("id", step.id);
+  return { status: "completed", stage: "ministry_sector_map", inserted: rows.length };
+}
+
+async function executeSectorDossier(admin: any, job: any, step: any) {
+  const { callSonar, parseSonarJson } = await import("./perplexity.server");
+  const country = await loadCountry(admin, job.country_code);
+  const { data: sectors, error: sErr } = await admin.from("country_sectors").select("sector_code").eq("country_code", job.country_code);
+  if (sErr) throw sErr;
+  const sectorCodes = (sectors ?? []).map((s: any) => String(s.sector_code));
+  if (!sectorCodes.length) throw new Error("Sector dossier requires committed sector composition");
+  const schema = {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      dossiers: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            sector_code: { type: "string" },
+            policy: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                statutes: { type: "array", items: { type: "string" } },
+                institutions: { type: "array", items: { type: "string" } },
+                national_plans: { type: "array", items: { type: "string" } },
+                regulatory_instruments: { type: "array", items: { type: "string" } },
+              },
+              required: ["statutes", "institutions", "national_plans", "regulatory_instruments"],
+            },
+            comms: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                channels: { type: "array", items: { type: "string" } },
+                spokespeople: { type: "array", items: { type: "string" } },
+                narratives: { type: "array", items: { type: "string" } },
+                reputation_risks: { type: "array", items: { type: "string" } },
+              },
+              required: ["channels", "spokespeople", "narratives", "reputation_risks"],
+            },
+            regional_benchmark: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                peers: { type: "array", items: { type: "string" } },
+                position: { type: "string", enum: ["leader", "average", "laggard"] },
+                rationale: { type: "string" },
+              },
+              required: ["peers", "position", "rationale"],
+            },
+          },
+          required: ["sector_code", "policy", "comms", "regional_benchmark"],
+        },
+      },
+    },
+    required: ["dossiers"],
+  } as const;
+  const runId = await openLegacyRun(admin, {
+    countryCode: job.country_code,
+    stage: "sector_dossier",
+    userId: job.started_by ?? null,
+    modelStack: { durable: "stage", perplexity: "sonar-reasoning-pro" },
+  });
+  let parsed: { dossiers?: any[] } | null = null;
+  let citations: Array<{ url: string; title: string | null; domain: string | null }> = [];
+  let fallbackReason: string | null = null;
+  try {
+    const result = await callSonar({
+      model: "sonar-reasoning-pro",
+      system: "You are a sovereign sector analyst. Return concrete policy, communications, and regional benchmark dossiers for the requested sectors. Use real institutions, plans, statutory instruments, channels, spokespeople, and peer references when available. Return JSON only.",
+      user: `Country: ${country.name} (${country.iso3 ?? country.code}). Sector codes: ${sectorCodes.join(", ")}. Return one dossier per sector_code.`,
+      responseSchema: schema as unknown as Record<string, unknown>,
+      maxTokens: 6000,
+    });
+    parsed = parseSonarJson<{ dossiers?: any[] }>(result.content);
+    citations = result.citations.map((c) => ({ url: c.url, title: c.title ?? null, domain: c.domain ?? null }));
+  } catch (err) {
+    fallbackReason = (err as Error).message ?? String(err);
+  }
+  if (!parsed?.dossiers?.length) {
+    fallbackReason ??= "Sector dossier research returned no dossiers";
+    const reason = fallbackReason;
+    parsed = {
+      dossiers: sectorCodes.map((sectorCode: string) => ({
+        sector_code: sectorCode,
+        policy: {
+          statutes: [],
+          institutions: [`${country.name} line ministries and statutory bodies`],
+          national_plans: [`${country.name} national development and budget planning instruments`],
+          regulatory_instruments: [],
+        },
+        comms: {
+          channels: ["Cabinet briefings", "Government information service", "Ministry notices"],
+          spokespeople: ["Responsible minister", "Permanent secretary"],
+          narratives: [`${sectorCode} delivery and resilience`],
+          reputation_risks: ["Evidence gaps require manual review before public use"],
+        },
+        regional_benchmark: {
+          peers: ["OECS", "CARICOM small states"],
+          position: "average",
+          rationale: `Provisional benchmark generated because live research failed: ${reason.slice(0, 180)}`,
+        },
+      })),
+    };
+  }
+  const dossiers = parsed.dossiers ?? [];
+  let upserted = 0;
+  for (const d of dossiers) {
+    if (!sectorCodes.includes(String(d.sector_code))) continue;
+    for (const kind of ["policy", "comms", "oecs"] as const) {
+      const payload = kind === "oecs" ? d.regional_benchmark : d[kind];
+      if (!payload) continue;
+      const { error } = await admin.from("sector_dossiers").upsert({
+        country_code: job.country_code,
+        sector_code: d.sector_code,
+        kind,
+        payload,
+        source_ids: [],
+        citations,
+        confidence: citations.length >= 2 ? "medium" : "low",
+      }, { onConflict: "country_code,sector_code,kind" });
+      if (error) throw error;
+      upserted++;
+    }
+  }
+  await admin.from("onboarding_runs").update({ status: "committed", finished_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", runId);
+  await admin.from("onboarding_job_steps").update({
+    status: "completed",
+    output: { upserted, dossiers: dossiers.length, citations: citations.length, runId, fallbackReason },
+    finished_at: new Date().toISOString(),
+    heartbeat_at: new Date().toISOString(),
+  }).eq("id", step.id);
+  return { status: "completed", stage: "sector_dossier", upserted };
+}
+
+async function expandMinistryDeepDive(admin: any, job: any, parent: any) {
+  const { data: ministries, error } = await admin.from("ministries").select("slug, name").eq("country_code", job.country_code).order("sort_order");
+  if (error) throw error;
+  if (!ministries?.length) throw new Error("Ministry deep-dive requires committed ministries");
+  const children = ministries.map((m: any, order: number) => ({
+    job_id: job.id,
+    country_code: job.country_code,
+    stage: "ministry_deep_dive",
+    step_key: `ministry:${m.slug}`,
+    step_type: "ministry",
+    status: "queued",
+    checkpoint: { order, ministry_slug: m.slug, ministry_name: m.name },
+    output: {},
+  }));
+  const { error: upErr } = await admin.from("onboarding_job_steps").upsert(children, { onConflict: "job_id,stage,step_key" });
+  if (upErr) throw upErr;
+  await admin.from("onboarding_job_steps").update({
+    status: "running",
+    checkpoint: { ...(parent.checkpoint ?? {}), expanded: true, totalMinistries: ministries.length },
+    heartbeat_at: new Date().toISOString(),
+  }).eq("id", parent.id);
+  return { status: "expanded", stage: "ministry_deep_dive", totalMinistries: ministries.length };
+}
+
+async function executeMinistryChild(admin: any, job: any, step: any) {
+  const { callSonar, parseSonarJson } = await import("./perplexity.server");
+  const country = await loadCountry(admin, job.country_code);
+  const ministrySlug = String(step.checkpoint?.ministry_slug ?? step.step_key.replace(/^ministry:/, ""));
+  const ministryName = String(step.checkpoint?.ministry_name ?? ministrySlug);
+  const schema = {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      ministry_slug: { type: "string" },
+      minister: { type: ["string", "null"] },
+      minister_profile: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          name: { type: ["string", "null"] },
+          title: { type: ["string", "null"] },
+          party: { type: ["string", "null"] },
+          appointed_at: { type: ["string", "null"] },
+          bio: { type: ["string", "null"] },
+          birth_date: { type: ["string", "null"] },
+          education: { type: "array", items: { type: "string" } },
+          career: { type: "array", items: { type: "string" } },
+          contact: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              office_phone: { type: ["string", "null"] },
+              email: { type: ["string", "null"] },
+              office_address: { type: ["string", "null"] },
+              website: { type: ["string", "null"] },
+            },
+          },
+          socials: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              twitter: { type: ["string", "null"] },
+              facebook: { type: ["string", "null"] },
+              linkedin: { type: ["string", "null"] },
+              instagram: { type: ["string", "null"] },
+            },
+          },
+          portrait_url: { type: ["string", "null"] },
+        },
+      },
+      mandate: { type: "string" },
+      programmes: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            name: { type: "string" },
+            objective: { type: "string" },
+            status: { type: "string" },
+          },
+          required: ["name", "objective", "status"],
+        },
+      },
+    },
+    required: ["ministry_slug", "mandate", "programmes"],
+  } as const;
+  let parsed: any = null;
+  let citations: Array<{ url: string; title: string | null; domain: string | null }> = [];
+  let fallbackReason: string | null = null;
+  try {
+    const result = await callSonar({
+      model: "sonar-pro",
+      noDomainFilter: true,
+      system: "You are a governance analyst. Research exactly one ministry and return JSON. Verify the current officeholder where possible from official, parliamentary, gazette, or current public records; set unknown identity fields to null rather than guessing. Include mandate and 2-5 flagship programmes.",
+      user: `Country: ${country.name}. Ministry slug: ${ministrySlug}. Ministry name: ${ministryName}. Return ministry_slug exactly as '${ministrySlug}'.`,
+      responseSchema: schema as unknown as Record<string, unknown>,
+      maxTokens: 2500,
+    });
+    parsed = parseSonarJson<any>(result.content);
+    citations = result.citations.map((c) => ({ url: c.url, title: c.title ?? null, domain: c.domain ?? null }));
+  } catch (err) {
+    fallbackReason = (err as Error).message ?? String(err);
+  }
+  if (!parsed || typeof parsed !== "object") {
+    parsed = {
+      ministry_slug: ministrySlug,
+      minister: null,
+      minister_profile: { name: null, title: null, party: null, appointed_at: null, bio: null, birth_date: null, education: [], career: [], contact: {}, socials: {}, portrait_url: null },
+      mandate: `${ministryName} mandate pending source verification. Durable fallback used because live research failed: ${(fallbackReason ?? "no result").slice(0, 180)}`,
+      programmes: [],
+    };
+  }
+  const profile = parsed.minister_profile && typeof parsed.minister_profile === "object" ? parsed.minister_profile : {};
+  const resolvedName = profile.name ?? parsed.minister ?? null;
+  const { error } = await admin.from("ministry_profiles").upsert({
+    country_code: job.country_code,
+    ministry_slug: ministrySlug,
+    minister: resolvedName,
+    minister_profile: { ...profile, name: resolvedName },
+    mandate: parsed.mandate ?? `${ministryName} mandate pending verification.`,
+    programmes: Array.isArray(parsed.programmes) ? parsed.programmes : [],
+    source_ids: [],
+    citations,
+  }, { onConflict: "country_code,ministry_slug" });
+  if (error) throw error;
+  const output = { ministry_slug: ministrySlug, minister: resolvedName, citations: citations.length, programmes: Array.isArray(parsed.programmes) ? parsed.programmes.length : 0, fallbackReason };
+  await admin.from("onboarding_job_steps").update({
+    status: "completed",
+    output,
+    finished_at: new Date().toISOString(),
+    heartbeat_at: new Date().toISOString(),
+  }).eq("id", step.id);
+  return { status: "completed", stage: "ministry_deep_dive", ministry: ministrySlug };
+}
+
+async function finalizeChildStage(admin: any, job: any, parent: any, childType: string, outputKey: string) {
+  const { data: children } = await admin
+    .from("onboarding_job_steps")
+    .select("status, output, error")
+    .eq("job_id", job.id)
+    .eq("stage", parent.stage)
+    .eq("step_type", childType);
+  const rows = children ?? [];
+  if (!rows.length) {
+    if (parent.stage === "ministry_deep_dive") return expandMinistryDeepDive(admin, job, parent);
+    return expandCorpusIngest(admin, job, parent);
+  }
+  if (!rows.every((s: any) => TERMINAL.includes(s.status))) return { status: "running", stage: parent.stage };
+  const completed = rows.filter((s: any) => s.status === "completed").length;
+  await admin.from("onboarding_job_steps").update({
+    status: completed > 0 ? "completed" : "failed",
+    output: { total: rows.length, completed, [outputKey]: rows.map((r: any) => r.output).filter(Boolean) },
+    error: completed > 0 ? null : `No ${childType} child steps completed`,
+    finished_at: new Date().toISOString(),
+    heartbeat_at: new Date().toISOString(),
+  }).eq("id", parent.id);
+  return { status: completed > 0 ? "completed" : "failed", stage: parent.stage, completed, total: rows.length };
+}
+
+async function expandCorpusIngest(admin: any, job: any, parent: any) {
+  const { data: sources, error } = await admin
+    .from("country_sources")
+    .select("id, url, title")
+    .eq("country_code", job.country_code)
+    .eq("active", true)
+    .order("quality_score", { ascending: false })
+    .limit(25);
+  if (error) throw error;
+  if (!sources?.length) throw new Error("Corpus ingest requires active country sources");
+  const invalid = sources.filter((s: any) => !isValidHttpUrl(s.url));
+  if (invalid.length) {
+    await admin.from("country_sources").update({ active: false, fetch_status: "invalid_url", fetch_error: "not a valid http(s) URL" }).in("id", invalid.map((s: any) => s.id));
+  }
+  const valid = sources.filter((s: any) => isValidHttpUrl(s.url));
+  if (!valid.length) throw new Error("Corpus ingest found no valid active source URLs");
+  const children = valid.map((s: any, order: number) => ({
+    job_id: job.id,
+    country_code: job.country_code,
+    stage: "corpus_ingest",
+    step_key: `source:${s.id}`,
+    step_type: "source",
+    status: "queued",
+    checkpoint: { order, source_id: s.id, url: s.url, title: s.title },
+    output: {},
+  }));
+  const { error: upErr } = await admin.from("onboarding_job_steps").upsert(children, { onConflict: "job_id,stage,step_key" });
+  if (upErr) throw upErr;
+  await admin.from("onboarding_job_steps").update({
+    status: "running",
+    checkpoint: { ...(parent.checkpoint ?? {}), expanded: true, totalSources: valid.length, invalidSources: invalid.length },
+    heartbeat_at: new Date().toISOString(),
+  }).eq("id", parent.id);
+  return { status: "expanded", stage: "corpus_ingest", totalSources: valid.length, invalidSources: invalid.length };
+}
+
+async function executeCorpusSourceChild(admin: any, job: any, step: any) {
+  const { fetchFirecrawl, chunkText, embedBatch } = await import("./ingest.server");
+  const sourceId = String(step.checkpoint?.source_id ?? step.step_key.replace(/^source:/, ""));
+  const url = String(step.checkpoint?.url ?? "");
+  if (!isValidHttpUrl(url)) throw new Error("Source URL is not a valid http(s) URL");
+  try {
+    const doc = await fetchFirecrawl(url);
+    if (!doc.markdown || doc.markdown.length < 200) throw new Error(`too short: ${doc.markdown.length} chars`);
+    const { contentHash } = await import("./memory-dedup.server");
+    const hash = contentHash(doc.markdown);
+    const { data: existing } = await admin.from("country_source_documents").select("id").eq("country_source_id", sourceId).eq("content_hash", hash).maybeSingle();
+    if (existing) {
+      await admin.from("country_sources").update({ last_fetched_at: new Date().toISOString(), fetch_status: "ok", fetch_error: null }).eq("id", sourceId);
+      await admin.from("onboarding_job_steps").update({ status: "completed", output: { source_id: sourceId, url, chunks: 0, reused: true }, finished_at: new Date().toISOString(), heartbeat_at: new Date().toISOString() }).eq("id", step.id);
+      return { status: "completed", stage: "corpus_ingest", source: sourceId, reused: true };
+    }
+    const chunks = chunkText(doc.markdown);
+    if (!chunks.length) throw new Error("no chunks after split");
+    const { data: docRow, error: dErr } = await admin.from("country_source_documents").insert({
+      country_source_id: sourceId,
+      raw_text: doc.markdown,
+      char_count: doc.markdown.length,
+      chunk_count: chunks.length,
+      content_hash: hash,
+    }).select("id").single();
+    if (dErr || !docRow) throw new Error(dErr?.message ?? "document insert failed");
+    const vectors: number[][] = [];
+    for (let i = 0; i < chunks.length; i += 64) vectors.push(...await embedBatch(chunks.slice(i, i + 64)));
+    const rows = chunks.map((content, idx) => ({ document_id: docRow.id, country_code: job.country_code, chunk_index: idx, content, embedding: `[${vectors[idx].join(",")}]` }));
+    for (let i = 0; i < rows.length; i += 100) {
+      const { error } = await admin.from("country_source_chunks").insert(rows.slice(i, i + 100));
+      if (error) throw error;
+    }
+    await admin.from("country_sources").update({ last_fetched_at: new Date().toISOString(), fetch_status: "ok", fetch_error: null }).eq("id", sourceId);
+    await admin.from("onboarding_job_steps").update({ status: "completed", output: { source_id: sourceId, url, chunks: chunks.length, reused: false }, finished_at: new Date().toISOString(), heartbeat_at: new Date().toISOString() }).eq("id", step.id);
+    return { status: "completed", stage: "corpus_ingest", source: sourceId, chunks: chunks.length };
+  } catch (err) {
+    await admin.from("country_sources").update({ last_fetched_at: new Date().toISOString(), fetch_status: "failed", fetch_error: ((err as Error).message ?? String(err)).slice(0, 500) }).eq("id", sourceId);
+    throw err;
+  }
+}
+
+async function executeSecondBrainSeed(admin: any, job: any, step: any) {
+  const country = await loadCountry(admin, job.country_code);
+  const [sectorsRes, kpisRes, sourcesRes, dossiersRes, ministriesRes] = await Promise.all([
+    admin.from("country_sectors").select("sector_code, share_pct").eq("country_code", job.country_code).order("share_pct", { ascending: false }),
+    admin.from("country_kpis").select("kpi_code,label,latest_value,latest_period,unit,source_url,source_org").eq("country_code", job.country_code).limit(40),
+    admin.from("country_sources").select("url,title,org,kind,quality_score").eq("country_code", job.country_code).eq("active", true).order("quality_score", { ascending: false }).limit(25),
+    admin.from("sector_dossiers").select("sector_code,kind,payload,citations").eq("country_code", job.country_code).limit(50),
+    admin.from("ministry_profiles").select("ministry_slug,minister,mandate,programmes,citations").eq("country_code", job.country_code).limit(40),
+  ]);
+  const sectors = sectorsRes.data ?? [];
+  const kpis = kpisRes.data ?? [];
+  const sources = sourcesRes.data ?? [];
+  if (!sectors.length || !kpis.length || !sources.length) throw new Error("Second-brain seed requires sectors, KPIs, and sources");
+  const memories: Array<{ sector_code: string; kind: string; title: string; body: string; weight: number }> = [];
+  const topSectors = sectors.slice(0, 5);
+  memories.push({ sector_code: topSectors[0]?.sector_code ?? "cross_cutting", kind: "position", title: `${country.name} evidence-first fiscal posture`, body: `${country.name} should anchor cabinet decisions in committed macro KPIs, sector composition, and primary-source citations before public release.`, weight: 5 });
+  memories.push({ sector_code: topSectors[0]?.sector_code ?? "cross_cutting", kind: "audience", title: `${country.name} cabinet audience`, body: "Primary audience: Prime Minister, Cabinet, Cabinet Secretary, permanent secretaries, line ministers, and technical advisors. Register: concise, measured, evidence-led.", weight: 5 });
+  for (const s of sources.slice(0, 6)) memories.push({ sector_code: topSectors[0]?.sector_code ?? "cross_cutting", kind: "outlet", title: `${s.org ?? s.title} source channel`, body: `${s.org ?? s.title} is a monitored source for ${country.name}: ${s.url}`, weight: Math.min(5, Math.max(2, Number(s.quality_score ?? 3))) });
+  for (const k of kpis.filter((r: any) => r.latest_value != null).slice(0, 8)) memories.push({ sector_code: topSectors[0]?.sector_code ?? "cross_cutting", kind: "fact", title: `${k.label ?? k.kpi_code} (${k.latest_period ?? "latest"})`, body: `${k.label ?? k.kpi_code}: ${k.latest_value} ${k.unit ?? ""} for ${k.latest_period ?? "latest available period"}. Source: ${k.source_org ?? k.source_url ?? "committed KPI table"}.`, weight: 4 });
+  for (const d of [...(dossiersRes.data ?? []), ...(ministriesRes.data ?? [])].slice(0, 6)) memories.push({ sector_code: (d as any).sector_code ?? topSectors[0]?.sector_code ?? "cross_cutting", kind: "risk", title: `${(d as any).sector_code ?? (d as any).ministry_slug ?? "portfolio"} evidence gap`, body: `Review source coverage and policy assumptions before high-stakes decisions involving ${(d as any).sector_code ?? (d as any).ministry_slug ?? "this portfolio"}.`, weight: 3 });
+  const existingRes = await admin.from("memory_objects").select("id, sector_code, kind, title, verified").eq("scope_key", job.country_code);
+  const existing = existingRes.data ?? [];
+  let inserted = 0, updated = 0, skipped = 0;
+  for (const m of memories) {
+    const key = `${m.sector_code}|${m.kind}|${normalizeMemoryTitle(m.title)}`;
+    const found = existing.find((r: any) => `${r.sector_code}|${r.kind}|${normalizeMemoryTitle(r.title ?? "")}` === key);
+    if (found?.verified) { skipped++; continue; }
+    if (found) {
+      const { error } = await admin.from("memory_objects").update({ payload: { body: m.body }, weight: m.weight }).eq("id", found.id);
+      if (error) throw error;
+      updated++;
+    } else {
+      const { error } = await admin.from("memory_objects").insert({ scope_key: job.country_code, sector_code: m.sector_code, kind: m.kind, title: m.title, payload: { body: m.body }, weight: m.weight, verified: false, created_by: job.started_by ?? null });
+      if (error) throw error;
+      inserted++;
+    }
+  }
+  await admin.from("onboarding_job_steps").update({ status: "completed", output: { inserted, updated, skipped, generated: memories.length, method: "deterministic-grounded-memory" }, finished_at: new Date().toISOString(), heartbeat_at: new Date().toISOString() }).eq("id", step.id);
+  return { status: "completed", stage: "second_brain_seed", inserted, updated, skipped };
+}
+
+async function executeCapitalFlows(admin: any, job: any, step: any) {
+  const country = await loadCountry(admin, job.country_code);
+  const [sectorsC, kpisC, sourcesC, chunksC, memoryC] = await Promise.all([
+    admin.from("country_sectors").select("*", { count: "exact", head: true }).eq("country_code", job.country_code),
+    admin.from("country_kpis").select("*", { count: "exact", head: true }).eq("country_code", job.country_code),
+    admin.from("country_sources").select("*", { count: "exact", head: true }).eq("country_code", job.country_code).eq("active", true),
+    admin.from("country_source_chunks").select("*", { count: "exact", head: true }).eq("country_code", job.country_code),
+    admin.from("memory_objects").select("*", { count: "exact", head: true }).eq("scope_key", job.country_code),
+  ]);
+  const missing: string[] = [];
+  if (!country.gdp_current_usd || Number(country.gdp_current_usd) <= 0) missing.push("GDP");
+  if ((sectorsC.count ?? 0) <= 0) missing.push("sector composition");
+  if ((kpisC.count ?? 0) <= 0) missing.push("KPI seed");
+  if ((sourcesC.count ?? 0) <= 0) missing.push("source registry");
+  if ((chunksC.count ?? 0) <= 0) missing.push("corpus chunks");
+  if ((memoryC.count ?? 0) <= 0) missing.push("second-brain memory");
+  if (missing.length) {
+    await admin.from("onboarding_job_steps").update({ status: "blocked", error: `Capital flows preflight blocked — commit first: ${missing.join(", ")}`, finished_at: new Date().toISOString(), heartbeat_at: new Date().toISOString() }).eq("id", step.id);
+    return { status: "blocked", stage: "capital_flows", error: `missing ${missing.join(", ")}` };
+  }
+  const runId = await openLegacyRun(admin, { countryCode: job.country_code, stage: "capital_flows", userId: job.started_by ?? null, modelStack: { durable: "stage", strategy: "evidence-workbook" } });
+  const { buildCapitalFlowsDraft } = await import("./capital-flows.server");
+  const workbook = await buildCapitalFlowsDraft({ admin, country, runId });
+  const payload = workbook.payload as any;
+  const orderedCitations = workbook.citations.length
+    ? workbook.citations.map((c: any) => ({ url: c.url, domain: c.domain ?? null, title: c.title ?? null }))
+    : (payload.flows ?? []).filter((f: any) => isValidHttpUrl(f.source_url)).map((f: any) => citationFromUrl(f.source_url, `${f.source_org ?? "Capital-flow"} source`));
+  const { upsertCountrySource } = await import("@/lib/country-data/sources.server");
+  const seenSources = new Set<string>();
+  for (const f of payload.flows ?? []) {
+    if (!isValidHttpUrl(f.source_url) || seenSources.has(f.source_url)) continue;
+    seenSources.add(f.source_url);
+    await upsertCountrySource(admin, { country_code: job.country_code, url: f.source_url, title: `${f.source_org || "Source"} — capital-flow source`, org: f.source_org || "Auto", kind: "flow_source", tags: ["auto", "capital_flow"], quality_score: f.confidence_grade === "A" ? 5 : f.confidence_grade === "B" ? 4 : 3, active: true, created_by: job.started_by ?? null });
+  }
+  const { error: clearErr } = await admin.from("country_capital_flows").delete().eq("country_code", job.country_code);
+  if (clearErr) throw clearErr;
+  let upserted = 0;
+  for (const f of payload.flows ?? []) {
+    const { error } = await admin.from("country_capital_flows").upsert({
+      country_code: job.country_code,
+      node_key: f.node_key,
+      period: payload.period || f.period || "unknown",
+      value_usd_m: Number(f.value_usd_m),
+      method: f.method || "reported",
+      confidence_grade: f.confidence_grade || "C",
+      notes: [f.notes, f.formula ? `Formula: ${f.formula}` : null, f.source_kind ? `Source basis: ${f.source_kind}` : null].filter(Boolean).join("\n") || null,
+      citations: orderedCitations,
+    }, { onConflict: "country_code,node_key,period" });
+    if (error) throw error;
+    upserted++;
+  }
+  await admin.from("onboarding_runs").update({ status: workbook.coverageOk ? "committed" : "needs_review", finished_at: new Date().toISOString(), updated_at: new Date().toISOString(), error: workbook.coverageOk ? null : `Coverage insufficient: ${payload.coverage.inputs.length}/6 inputs, ${payload.coverage.outputs.length}/6 outputs, ${(workbook.reconciliationPct * 100).toFixed(0)}% residual`, plan: { strategy: "durable-evidence-workbook", attempts: workbook.attempts, coverage: payload.coverage, reconciliation: payload.reconciliation } }).eq("id", runId);
+  await admin.from("onboarding_job_steps").update({ status: workbook.coverageOk ? "completed" : "needs_review", output: { upserted, runId, coverageOk: workbook.coverageOk, reconciliationPct: workbook.reconciliationPct, count: workbook.count }, error: workbook.coverageOk ? null : "Capital-flow workbook needs review before it is considered complete", finished_at: new Date().toISOString(), heartbeat_at: new Date().toISOString() }).eq("id", step.id);
+  return { status: workbook.coverageOk ? "completed" : "needs_review", stage: "capital_flows", upserted, coverageOk: workbook.coverageOk };
 }
 
 async function recordKpiAttempt(admin: any, runId: string, countryCode: string, attempt: import("./kpi-research.server").AttemptRecord) {
@@ -335,6 +888,14 @@ async function executeStep(admin: any, job: any, step: any) {
       return await executeKpiChild(admin, job, step);
     }
 
+    if (step.stage === "ministry_deep_dive" && step.step_type === "ministry") {
+      return await executeMinistryChild(admin, job, step);
+    }
+
+    if (step.stage === "corpus_ingest" && step.step_type === "source") {
+      return await executeCorpusSourceChild(admin, job, step);
+    }
+
     if (step.stage === "kpi_seed") {
       const { count } = await admin
         .from("onboarding_job_steps")
@@ -346,12 +907,27 @@ async function executeStep(admin: any, job: any, step: any) {
       return await finalizeKpiSeed(admin, job, step);
     }
 
-    // Durable migration is intentionally conservative: non-KPI stages already
-    // committed are skipped; uncommitted long AI stages are blocked with an
-    // explicit reason instead of silently hanging inside one request.
+    if (step.stage === "ministry_sector_map") return await executeMinistrySectorMap(admin, job, step);
+    if (step.stage === "sector_dossier") return await executeSectorDossier(admin, job, step);
+    if (step.stage === "ministry_deep_dive") {
+      const { count } = await admin.from("onboarding_job_steps").select("id", { count: "exact", head: true }).eq("job_id", job.id).eq("stage", "ministry_deep_dive").eq("step_type", "ministry");
+      if (!count) return await expandMinistryDeepDive(admin, job, step);
+      return await finalizeChildStage(admin, job, step, "ministry", "ministries");
+    }
+    if (step.stage === "corpus_ingest") {
+      const { count } = await admin.from("onboarding_job_steps").select("id", { count: "exact", head: true }).eq("job_id", job.id).eq("stage", "corpus_ingest").eq("step_type", "source");
+      if (!count) return await expandCorpusIngest(admin, job, step);
+      return await finalizeChildStage(admin, job, step, "source", "sources");
+    }
+    if (step.stage === "second_brain_seed") return await executeSecondBrainSeed(admin, job, step);
+    if (step.stage === "capital_flows") return await executeCapitalFlows(admin, job, step);
+
+    // Early bootstrap stages are still expected to be committed before a
+    // pending durable resume reaches this point. If a brand-new country reaches
+    // one of them uncommitted, block explicitly instead of doing silent fake data.
     await admin.from("onboarding_job_steps").update({
       status: "blocked",
-      error: `${step.stage} has not been migrated to durable worker execution yet; run/commit this stage individually, then resume the durable job.`,
+      error: `${step.stage} is a bootstrap stage and is not yet committed; run this stage individually, then resume the durable job.`,
       finished_at: new Date().toISOString(),
       heartbeat_at: new Date().toISOString(),
     }).eq("id", step.id);

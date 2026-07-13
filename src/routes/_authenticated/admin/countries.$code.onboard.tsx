@@ -282,22 +282,26 @@ function AccordionStages({
   stages,
   drafts,
   runs,
+  summaries,
   countryName,
   keyConfigured,
   runners,
   committers,
   code,
   refresh,
+  onGenerateSummary,
 }: {
   stages: { key: Stage; label: string; short: string; desc: string }[];
   drafts: any[];
   runs: any[];
+  summaries: any[];
   countryName: string;
   keyConfigured: boolean;
   runners: Record<string, any>;
   committers: Record<string, any>;
   code: string;
   refresh: () => void;
+  onGenerateSummary: (stage: Stage) => Promise<unknown>;
 }) {
   const [openStage, setOpenStage] = useState<string | null>(null);
   return (
@@ -306,6 +310,7 @@ function AccordionStages({
         const draft = drafts.find((d) => d.stage === s.key);
         const stageRuns = runs.filter((r) => r.stage === s.key);
         const lastRun = stageRuns[0];
+        const summary = summaries.find((x) => x.stage === s.key);
         return (
           <StageCard
             key={s.key}
@@ -313,6 +318,7 @@ function AccordionStages({
             countryName={countryName}
             draft={draft}
             lastRun={lastRun}
+            summary={summary}
             keyConfigured={keyConfigured}
             isOpen={openStage === s.key}
             onToggle={() => setOpenStage(openStage === s.key ? null : s.key)}
@@ -320,12 +326,14 @@ function AccordionStages({
             onCommit={(editedPayload) =>
               committers[s.key]({ data: { draftId: draft.id, editedPayload } }).then(refresh)
             }
+            onGenerateSummary={() => onGenerateSummary(s.key)}
           />
         );
       })}
     </>
   );
 }
+
 
 function StageCard({
   stage,

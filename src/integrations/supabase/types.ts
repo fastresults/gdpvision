@@ -2314,6 +2314,39 @@ export type Database = {
           },
         ]
       }
+      onboarding_summaries: {
+        Row: {
+          country_code: string
+          generated_at: string
+          highlights: Json
+          model: string | null
+          source_run_id: string | null
+          stage: string
+          summary_md: string
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          generated_at?: string
+          highlights?: Json
+          model?: string | null
+          source_run_id?: string | null
+          stage: string
+          summary_md?: string
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          generated_at?: string
+          highlights?: Json
+          model?: string | null
+          source_run_id?: string | null
+          stage?: string
+          summary_md?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       packages: {
         Row: {
           country_code: string

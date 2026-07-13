@@ -144,7 +144,7 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const [country, runs, drafts, cites] = await Promise.all([
+    const [country, runs, drafts, cites, summaries] = await Promise.all([
       supabaseAdmin.from("countries").select("*").eq("code", data.countryCode).maybeSingle(),
       supabaseAdmin
         .from("onboarding_runs")
@@ -161,6 +161,10 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
       supabaseAdmin
         .from("onboarding_citations")
         .select("*"),
+      supabaseAdmin
+        .from("onboarding_summaries")
+        .select("*")
+        .eq("country_code", data.countryCode),
     ]);
 
     const draftIds = new Set((drafts.data ?? []).map((d) => d.id));
@@ -175,8 +179,10 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
       country: country.data,
       runs: runs.data ?? [],
       drafts: (drafts.data ?? []).map((d) => ({ ...d, citations: cByDraft.get(d.id) ?? [] })),
+      summaries: summaries.data ?? [],
     };
   });
+
 
 // ============================================================
 // AGENTS
@@ -566,7 +572,24 @@ async function markDraftCommitted(admin: any, draftId: string, runId: string) {
     target_type: "draft",
     target_id: draftId,
   });
+  // Fire-and-forget: generate a fresh executive summary for this stage.
+  try {
+    const { data: d } = await admin
+      .from("onboarding_drafts")
+      .select("country_code, stage")
+      .eq("id", draftId)
+      .maybeSingle();
+    if (d?.country_code && d?.stage) {
+      const { generateSummaryForStage } = await import("./summaries.functions");
+      generateSummaryForStage(admin, d.country_code, d.stage as any, runId).catch((e) => {
+        console.error("[onboarding] summary generation failed", d.stage, e);
+      });
+    }
+  } catch (e) {
+    console.error("[onboarding] summary hook lookup failed", e);
+  }
 }
+
 
 const CommitInput = z.object({
   draftId: z.string().uuid(),

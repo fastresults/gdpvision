@@ -231,6 +231,14 @@ function SourcesTab({ code }: { code: string }) {
           <tbody>
             {rows.map((s) => (
               <tr key={s.id} className="border-t border-line-200 hover:bg-paper-100/40">
+                <td className="px-3 py-2 text-center">
+                  <button
+                    onClick={async () => { await toggle({ data: { id: s.id, active: !s.active } }); await refresh(); }}
+                    className={`text-[11px] px-2 py-1 border ${s.active ? "border-emerald-500 text-emerald-700" : "border-line-200 text-ink-500"}`}
+                  >
+                    {s.active ? "on" : "off"}
+                  </button>
+                </td>
                 <td className="px-3 py-2">
                   <button
                     onClick={() => setOpenId(s.id)}
@@ -254,12 +262,6 @@ function SourcesTab({ code }: { code: string }) {
                 </td>
                 <td className="px-3 py-2 text-right">
                   <div className="inline-flex gap-2">
-                    <button
-                      onClick={async () => { await toggle({ data: { id: s.id, active: !s.active } }); await refresh(); }}
-                      className={`text-[11px] px-2 py-1 border ${s.active ? "border-emerald-500 text-emerald-700" : "border-line-200 text-ink-500"}`}
-                    >
-                      {s.active ? "on" : "off"}
-                    </button>
                     <button
                       disabled={running === s.id || !s.active}
                       onClick={() => doReingest(s.id)}

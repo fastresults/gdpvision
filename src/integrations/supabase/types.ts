@@ -2210,6 +2210,8 @@ export type Database = {
           payload: Json
           run_id: string
           stage: string
+          summary_highlights: Json
+          summary_md: string | null
           target_table: string
           updated_at: string
         }
@@ -2224,6 +2226,8 @@ export type Database = {
           payload: Json
           run_id: string
           stage: string
+          summary_highlights?: Json
+          summary_md?: string | null
           target_table: string
           updated_at?: string
         }
@@ -2238,6 +2242,8 @@ export type Database = {
           payload?: Json
           run_id?: string
           stage?: string
+          summary_highlights?: Json
+          summary_md?: string | null
           target_table?: string
           updated_at?: string
         }

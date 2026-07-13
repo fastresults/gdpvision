@@ -2063,6 +2063,24 @@ export const runCapitalFlowsAgent = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const country = await loadCountry(supabaseAdmin, data.countryCode);
 
+    const [sectorsC, kpisC, sourcesC, chunksC, memoryC] = await Promise.all([
+      supabaseAdmin.from("country_sectors").select("*", { count: "exact", head: true }).eq("country_code", data.countryCode),
+      supabaseAdmin.from("country_kpis").select("*", { count: "exact", head: true }).eq("country_code", data.countryCode),
+      supabaseAdmin.from("country_sources").select("*", { count: "exact", head: true }).eq("country_code", data.countryCode).eq("active", true),
+      supabaseAdmin.from("country_source_chunks").select("*", { count: "exact", head: true }).eq("country_code", data.countryCode),
+      supabaseAdmin.from("memory_objects").select("*", { count: "exact", head: true }).eq("scope_key", data.countryCode),
+    ]);
+    const missingPreflight: string[] = [];
+    if (!country.gdp_current_usd || Number(country.gdp_current_usd) <= 0) missingPreflight.push("GDP");
+    if ((sectorsC.count ?? 0) <= 0) missingPreflight.push("sector composition");
+    if ((kpisC.count ?? 0) <= 0) missingPreflight.push("KPI seed");
+    if ((sourcesC.count ?? 0) <= 0) missingPreflight.push("source registry");
+    if ((memoryC.count ?? 0) <= 0) missingPreflight.push("second-brain memory");
+    if ((chunksC.count ?? 0) <= 0) missingPreflight.push("corpus chunks");
+    if (missingPreflight.length) {
+      throw new Error(`Capital flows preflight blocked — commit first: ${missingPreflight.join(", ")}.`);
+    }
+
     const model: SonarModel = "sonar-reasoning-pro";
     const runId = await openRun(supabaseAdmin, {
       country_code: data.countryCode,

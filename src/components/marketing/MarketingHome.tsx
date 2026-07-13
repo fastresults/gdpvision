@@ -106,7 +106,7 @@ export function MarketingHome() {
         if (next === 0) setTail(shuffleTail());
         return next;
       });
-    }, 2500);
+    }, 5500);
     return () => clearInterval(id);
   }, []);
   const current = index === 0 ? EXISTENTIAL_THREATS[0] : tail[index - 1];

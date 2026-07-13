@@ -1874,7 +1874,7 @@ const CapitalFlowsSchema = {
           source_org: { type: "string" },
           notes: { type: "string" },
         },
-        required: ["node_key","value_usd_m","period","method","confidence_grade","source_url","source_org","notes"],
+        required: ["node_key","value_usd_m","period","method","confidence_grade","source_url","source_org"],
       },
     },
     ...SUMMARY_SCHEMA_FRAGMENT,

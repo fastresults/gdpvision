@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
+import { GdpVizStudio } from "@/components/viz/GdpVizStudio";
 import { MemoryVisual, type MemoryFilter } from "@/components/country-data/MemoryVisual";
 import { BrainConstellation, type BrainFilter } from "@/components/country-data/BrainConstellation";
 import { AddSourceDialog } from "@/components/country-data/AddSourceDialog";
@@ -48,7 +49,7 @@ import {
   updateMinisterProfile,
 } from "@/lib/country-data/manage.functions";
 
-type TabKey = "sources" | "kpis" | "dossiers" | "ministries" | "corpus" | "memory";
+type TabKey = "sources" | "kpis" | "dossiers" | "ministries" | "corpus" | "memory" | "viz";
 
 const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "sources", label: "Sources" },
@@ -57,6 +58,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "ministries", label: "Ministries" },
   { key: "corpus", label: "Corpus" },
   { key: "memory", label: "Second brain" },
+  { key: "viz", label: "GDP Visualizations" },
 ];
 
 const statusQuery = (code: string) =>
@@ -162,6 +164,7 @@ function DataDashboard() {
         {tab === "ministries" && <MinistriesTab code={code} />}
         {tab === "corpus" && <CorpusTab code={code} onGoToSources={() => setTab("sources")} />}
         {tab === "memory" && <MemoryTab code={code} />}
+        {tab === "viz" && <GdpVizStudio code={code} />}
       </div>
     </SuperAdminShell>
   );

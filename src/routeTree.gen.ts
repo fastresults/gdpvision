@@ -69,6 +69,7 @@ import { Route as AuthenticatedInstrumentCabinetDecisionsRouteImport } from './r
 import { Route as AuthenticatedAdminCountryCodeRouteImport } from './routes/_authenticated/admin/country.$code'
 import { Route as AuthenticatedAdminAuditsLogRouteImport } from './routes/_authenticated/admin/audits.log'
 import { Route as AuthenticatedAdminAuditsKeyingRouteImport } from './routes/_authenticated/admin/audits.keying'
+import { Route as AuthenticatedAdminCountriesCodeVizRouteImport } from './routes/_authenticated/admin/countries.$code.viz'
 import { Route as AuthenticatedAdminCountriesCodeOnboardRouteImport } from './routes/_authenticated/admin/countries.$code.onboard'
 import { Route as AuthenticatedAdminCountriesCodeDataRouteImport } from './routes/_authenticated/admin/countries.$code.data'
 
@@ -418,6 +419,12 @@ const AuthenticatedAdminAuditsKeyingRoute =
     path: '/audits/keying',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeVizRoute =
+  AuthenticatedAdminCountriesCodeVizRouteImport.update({
+    id: '/countries/$code/viz',
+    path: '/countries/$code/viz',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminCountriesCodeOnboardRoute =
   AuthenticatedAdminCountriesCodeOnboardRouteImport.update({
     id: '/countries/$code/onboard',
@@ -493,6 +500,7 @@ export interface FileRoutesByFullPath {
   '/narrative/strategy/': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
   '/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
+  '/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -552,6 +560,7 @@ export interface FileRoutesByTo {
   '/narrative/strategy': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
   '/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
+  '/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -617,6 +626,7 @@ export interface FileRoutesById {
   '/_authenticated/narrative/strategy/': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/_authenticated/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
   '/_authenticated/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
+  '/_authenticated/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -682,6 +692,7 @@ export interface FileRouteTypes {
     | '/narrative/strategy/'
     | '/admin/countries/$code/data'
     | '/admin/countries/$code/onboard'
+    | '/admin/countries/$code/viz'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -741,6 +752,7 @@ export interface FileRouteTypes {
     | '/narrative/strategy'
     | '/admin/countries/$code/data'
     | '/admin/countries/$code/onboard'
+    | '/admin/countries/$code/viz'
   id:
     | '__root__'
     | '/'
@@ -805,6 +817,7 @@ export interface FileRouteTypes {
     | '/_authenticated/narrative/strategy/'
     | '/_authenticated/admin/countries/$code/data'
     | '/_authenticated/admin/countries/$code/onboard'
+    | '/_authenticated/admin/countries/$code/viz'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1239,6 +1252,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAuditsKeyingRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/countries/$code/viz': {
+      id: '/_authenticated/admin/countries/$code/viz'
+      path: '/countries/$code/viz'
+      fullPath: '/admin/countries/$code/viz'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeVizRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/countries/$code/onboard': {
       id: '/_authenticated/admin/countries/$code/onboard'
       path: '/countries/$code/onboard'
@@ -1267,6 +1287,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminCountriesIndexRoute: typeof AuthenticatedAdminCountriesIndexRoute
   AuthenticatedAdminCountriesCodeDataRoute: typeof AuthenticatedAdminCountriesCodeDataRoute
   AuthenticatedAdminCountriesCodeOnboardRoute: typeof AuthenticatedAdminCountriesCodeOnboardRoute
+  AuthenticatedAdminCountriesCodeVizRoute: typeof AuthenticatedAdminCountriesCodeVizRoute
 }
 
 const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
@@ -1284,6 +1305,8 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
       AuthenticatedAdminCountriesCodeDataRoute,
     AuthenticatedAdminCountriesCodeOnboardRoute:
       AuthenticatedAdminCountriesCodeOnboardRoute,
+    AuthenticatedAdminCountriesCodeVizRoute:
+      AuthenticatedAdminCountriesCodeVizRoute,
   }
 
 const AuthenticatedAdminRouteRouteWithChildren =

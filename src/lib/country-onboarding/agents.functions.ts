@@ -1047,32 +1047,14 @@ export const commitMinistrySectorMap = createServerFn({ method: "POST" })
     if (error || !draft) throw new Error("Draft not found");
     const payload = (data.editedPayload ?? draft.payload) as { mappings: Array<{ ministry_slug: string; sector_code: string; weight: number }> };
 
-    const { data: ministries } = await supabaseAdmin
-      .from("ministries")
-      .select("id, slug")
-      .eq("country_code", draft.country_code);
-    const bySlug = new Map((ministries ?? []).map((m) => [m.slug, m.id as string]));
-
-    const rows = payload.mappings
-      .map((m) => {
-        const ministry_id = bySlug.get(m.ministry_slug);
-        if (!ministry_id) return null;
-        return { ministry_id, sector_code: m.sector_code, weight: m.weight };
-      })
-      .filter((r): r is { ministry_id: string; sector_code: string; weight: number } => r !== null);
-
-    // Wipe and reinsert for the country's ministries
-    if (ministries?.length) {
-      await supabaseAdmin
-        .from("ministry_sectors")
-        .delete()
-        .in("ministry_id", ministries.map((m) => m.id));
-    }
-    if (rows.length) {
-      const { error: insErr } = await supabaseAdmin.from("ministry_sectors").insert(rows);
-      if (insErr) throw insErr;
-    }
+    // Atomic replace via RPC. The RPC resolves ministry_slug → ministry_id server-side.
+    const { error: rpcErr } = await supabaseAdmin.rpc("replace_ministry_sectors", {
+      _country_code: draft.country_code,
+      _rows: payload.mappings as any,
+    });
+    if (rpcErr) throw rpcErr;
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
+
     return { ok: true, inserted: rows.length };
   });
 

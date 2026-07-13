@@ -316,34 +316,41 @@ export const runGdpAgent = createServerFn({ method: "POST" })
     });
 
     try {
-      const result = await callSonar({
-        model,
-        system:
-          "You are a macro-economics researcher. Return a single JSON object. Cross-check GDP between World Bank WDI and IMF WEO — pick the most recent year where BOTH publish a figure. Cite both sources." +
-          SUMMARY_SYSTEM_SUFFIX,
-        user: `What is the nominal GDP of ${country.name} in current US dollars, most recent year with an official figure? Prefer World Bank WDI and IMF WEO. Return the value in USD (not billions).`,
-        responseSchema: GdpSchema as unknown as Record<string, unknown>,
-        recency: "year",
+      const fb = await runWithFallbacks<any>({
+        perplexity: {
+          model,
+          system:
+            "You are a macro-economics researcher. Return a single JSON object. Cross-check GDP between World Bank WDI and IMF WEO — pick the most recent year where BOTH publish a figure. Cite both sources." +
+            SUMMARY_SYSTEM_SUFFIX,
+          user: `What is the nominal GDP of ${country.name} in current US dollars, most recent year with an official figure? Prefer World Bank WDI and IMF WEO. Return the value in USD (not billions).`,
+          responseSchema: GdpSchema as unknown as Record<string, unknown>,
+          recency: "year",
+        },
+        gemini: {
+          system: "You are a macro-economics researcher.",
+          user: `Return most-recent nominal GDP of ${country.name} in current USD. Prefer World Bank WDI / IMF WEO.`,
+          schemaHint: `{ "gdp_current_usd": number, "gdp_year": integer, "source_primary": string, "source_secondary": string|null, "notes": string, "summary_md": string, "summary_highlights": [{"label": string, "value": string}] }`,
+        },
+        parse: jsonParser<any>(),
+        validate: (v) => !!v && typeof v.gdp_current_usd === "number" && typeof v.gdp_year === "number",
+        infer: () => ({ ...seedGdp(), summary_md: `Provisional GDP for ${country.name} — please review.`, summary_highlights: [] }),
       });
 
-      const parsed = parseSonarJson<any>(result.content);
-      if (!parsed) throw new Error("Perplexity returned no parseable JSON");
-      const inline = extractInlineSummary(parsed);
-
+      const inline = extractInlineSummary(fb.data);
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
         country_code: data.countryCode,
         stage: "gdp",
         target_table: "countries",
-        payload: parsed,
-        confidence: result.citations.length >= 2 ? "high" : "medium",
-        citations: result.citations,
+        payload: fb.data,
+        confidence: fb.tier === "perplexity" && fb.citations.length >= 2 ? "high" : fb.tier === "inferred" ? "low" : "medium",
+        citations: fb.citations,
         summary_md: inline.summary_md,
         summary_highlights: inline.summary_highlights,
       });
 
-      await finishRun(supabaseAdmin, runId, { status: "ready" });
-      return { runId, draftId, payload: parsed, citations: result.citations };
+      await finishRun(supabaseAdmin, runId, { status: "ready", model_stack: { ...fb.modelStack, notes: fb.notes } });
+      return { runId, draftId, payload: fb.data, citations: fb.citations, tier: fb.tier, notes: fb.notes };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;

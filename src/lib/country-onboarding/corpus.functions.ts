@@ -192,8 +192,9 @@ const SourceRegistrySchema = {
         required: ["kind", "org", "title", "url", "quality_score", "tags", "rationale"],
       },
     },
+    ...SUMMARY_SCHEMA_FRAGMENT,
   },
-  required: ["sources"],
+  required: ["sources", "summary_md", "summary_highlights"],
 } as const;
 
 export const runSourceRegistryAgent = createServerFn({ method: "POST" })

@@ -736,7 +736,20 @@ function StageCard({
             <p className="text-xs text-ink-500 mt-1">{stage.desc}</p>
           </span>
         </button>
-        <div className="flex items-center pr-5">
+        <div className="flex items-center gap-2 pr-5">
+          {!committed && (
+            <button
+              type="button"
+              className="text-sm px-3 py-1.5 border border-emerald-500 text-emerald-700 hover:bg-emerald-500/10 disabled:opacity-50"
+              disabled={committing || !draft || citations.length === 0}
+              onClick={(e) => {
+                e.stopPropagation();
+                doCommit();
+              }}
+            >
+              {committing ? "Committing…" : draft ? `Commit to ${draft.target_table}` : "Commit"}
+            </button>
+          )}
           <button
             type="button"
             className="text-sm px-3 py-1.5 border border-ink-950 bg-ink-950 text-paper-0 hover:bg-ink-700 disabled:opacity-50"
@@ -866,16 +879,6 @@ function StageCard({
                 )}
               </div>
 
-              {!committed && (
-                <button
-                  type="button"
-                  className="text-sm px-3 py-1.5 border border-emerald-500 text-emerald-700 hover:bg-emerald-500/10 disabled:opacity-50"
-                  disabled={committing || citations.length === 0}
-                  onClick={doCommit}
-                >
-                  {committing ? "Committing…" : `Commit to ${draft.target_table}`}
-                </button>
-              )}
             </>
           )}
 

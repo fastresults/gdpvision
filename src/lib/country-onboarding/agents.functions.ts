@@ -59,9 +59,18 @@ async function openRun(admin: any, params: {
     })
     .select("id")
     .single();
-  if (error) throw error;
+  if (error) {
+    // 23505 = unique_violation from onboarding_runs_one_open_per_stage
+    if ((error as any).code === "23505") {
+      throw new Error(
+        `A ${params.stage} run is already in progress for ${params.country_code}. Wait for it to finish, or refresh the page — stale runs auto-clear after 15 minutes.`,
+      );
+    }
+    throw error;
+  }
   return data.id as string;
 }
+
 
 async function finishRun(admin: any, runId: string, patch: Record<string, unknown>) {
   await admin
@@ -81,6 +90,14 @@ async function saveDraft(admin: any, args: {
   summary_md?: string | null;
   summary_highlights?: Array<{ label: string; value: string }> | null;
 }) {
+  // Enforce one live (uncommitted) draft per (country, stage): clear prior live drafts first.
+  await admin
+    .from("onboarding_drafts")
+    .delete()
+    .eq("country_code", args.country_code)
+    .eq("stage", args.stage)
+    .is("committed_at", null);
+
   const { data: draft, error } = await admin
     .from("onboarding_drafts")
     .insert({
@@ -110,6 +127,7 @@ async function saveDraft(admin: any, args: {
   }
   return draft.id as string;
 }
+
 
 /** Promote citing domains after a draft is saved. Best-effort; never throws. */
 async function promoteAfterDraft(
@@ -187,13 +205,17 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
     // BEFORE we snapshot state, so the UI sees a clean picture. Never touches
     // `committed` runs or any target-table rows.
     const staleCutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-    await supabaseAdmin
+    const reconcile = await supabaseAdmin
       .from("onboarding_runs")
       .update({ status: "stale", finished_at: new Date().toISOString(), error: "auto-reconciled: stuck >15min" })
       .eq("country_code", cc)
       .in("status", ["planning", "ready"])
       .lt("started_at", staleCutoff)
       .is("finished_at", null);
+    if (reconcile.error) {
+      console.error("[getOnboardingStatus] stale reconcile failed:", reconcile.error);
+    }
+
 
     const [country, runs, drafts, cites, summaries, tgt] = await Promise.all([
       supabaseAdmin.from("countries").select("*").eq("code", cc).maybeSingle(),
@@ -264,7 +286,7 @@ async function countCommittedTargets(admin: any, cc: string) {
     chunksC,
     memoryC,
   ] = await Promise.all([
-    admin.from("countries").select("currency, gdp_current_usd").eq("code", cc).maybeSingle(),
+    admin.from("countries").select("profile_committed_at, gdp_committed_at").eq("code", cc).maybeSingle(),
     count(admin.from("country_sectors").select("*", { count: "exact", head: true }).eq("country_code", cc)),
     count(admin.from("ministries").select("*", { count: "exact", head: true }).eq("country_code", cc)),
     count(
@@ -282,8 +304,9 @@ async function countCommittedTargets(admin: any, cc: string) {
   ]);
   const c = countryRow.data;
   return {
-    profile: { rows: c?.currency ? 1 : 0 },
-    gdp: { rows: c?.gdp_current_usd != null ? 1 : 0 },
+    profile: { rows: c?.profile_committed_at ? 1 : 0 },
+    gdp: { rows: c?.gdp_committed_at ? 1 : 0 },
+
     sector_composition: sectorsC,
     ministries: ministriesC,
     ministry_sector_map: ministrySectorsC,
@@ -908,6 +931,7 @@ export const commitProfile = createServerFn({ method: "POST" })
 
     const patch: Record<string, unknown> = {
       country_pack: { ...(payload.notes ? { profile_notes: payload.notes } : {}), profile: payload },
+      profile_committed_at: new Date().toISOString(),
     };
     if (typeof payload.currency === "string") patch.currency = payload.currency;
     if (Number.isInteger(payload.fiscal_year_start_month))
@@ -918,6 +942,7 @@ export const commitProfile = createServerFn({ method: "POST" })
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
     return { ok: true };
   });
+
 
 export const commitGdp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -938,9 +963,11 @@ export const commitGdp = createServerFn({ method: "POST" })
       .update({
         gdp_current_usd: payload.gdp_current_usd,
         gdp_year: payload.gdp_year,
+        gdp_committed_at: new Date().toISOString(),
       })
       .eq("code", draft.country_code);
     if (upErr) throw upErr;
+
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
     return { ok: true };
   });
@@ -959,23 +986,23 @@ export const commitSectorComposition = createServerFn({ method: "POST" })
     if (error || !draft) throw new Error("Draft not found");
     const payload = (data.editedPayload ?? draft.payload) as { rows: Array<{ sector_code: string; share_pct: number; confidence_grade: string }> };
 
-    // Replace all rows for this country in one shot
-    await supabaseAdmin.from("country_sectors").delete().eq("country_code", draft.country_code);
     const rows = payload.rows
       .filter((r) => Number(r.share_pct) > 0)
       .map((r) => ({
-        country_code: draft.country_code,
         sector_code: r.sector_code,
         share_pct: r.share_pct,
         confidence_grade: r.confidence_grade || "C",
       }));
-    if (rows.length) {
-      const { error: insErr } = await supabaseAdmin.from("country_sectors").insert(rows);
-      if (insErr) throw insErr;
-    }
+    // Atomic replace via RPC — delete+insert in a single transaction.
+    const { error: rpcErr } = await supabaseAdmin.rpc("replace_country_sectors", {
+      _country_code: draft.country_code,
+      _rows: rows as any,
+    });
+    if (rpcErr) throw rpcErr;
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
     return { ok: true, inserted: rows.length };
   });
+
 
 export const commitMinistries = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -1020,33 +1047,16 @@ export const commitMinistrySectorMap = createServerFn({ method: "POST" })
     if (error || !draft) throw new Error("Draft not found");
     const payload = (data.editedPayload ?? draft.payload) as { mappings: Array<{ ministry_slug: string; sector_code: string; weight: number }> };
 
-    const { data: ministries } = await supabaseAdmin
-      .from("ministries")
-      .select("id, slug")
-      .eq("country_code", draft.country_code);
-    const bySlug = new Map((ministries ?? []).map((m) => [m.slug, m.id as string]));
-
-    const rows = payload.mappings
-      .map((m) => {
-        const ministry_id = bySlug.get(m.ministry_slug);
-        if (!ministry_id) return null;
-        return { ministry_id, sector_code: m.sector_code, weight: m.weight };
-      })
-      .filter((r): r is { ministry_id: string; sector_code: string; weight: number } => r !== null);
-
-    // Wipe and reinsert for the country's ministries
-    if (ministries?.length) {
-      await supabaseAdmin
-        .from("ministry_sectors")
-        .delete()
-        .in("ministry_id", ministries.map((m) => m.id));
-    }
-    if (rows.length) {
-      const { error: insErr } = await supabaseAdmin.from("ministry_sectors").insert(rows);
-      if (insErr) throw insErr;
-    }
+    // Atomic replace via RPC. The RPC resolves ministry_slug → ministry_id server-side.
+    const { error: rpcErr } = await supabaseAdmin.rpc("replace_ministry_sectors", {
+      _country_code: draft.country_code,
+      _rows: payload.mappings as any,
+    });
+    if (rpcErr) throw rpcErr;
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
-    return { ok: true, inserted: rows.length };
+
+    return { ok: true, inserted: payload.mappings.length };
+
   });
 
 // ============================================================

@@ -79,7 +79,14 @@ async function openRun(admin: any, params: {
     })
     .select("id")
     .single();
-  if (error) throw error;
+  if (error) {
+    if ((error as any).code === "23505") {
+      throw new Error(
+        `A ${params.stage} run is already in progress for ${params.country_code}. Wait for it to finish, or refresh the page — stale runs auto-clear after 15 minutes.`,
+      );
+    }
+    throw error;
+  }
   return data.id as string;
 }
 
@@ -101,6 +108,14 @@ async function saveDraft(admin: any, args: {
   summary_md?: string | null;
   summary_highlights?: Array<{ label: string; value: string }> | null;
 }) {
+  // Enforce one live (uncommitted) draft per (country, stage).
+  await admin
+    .from("onboarding_drafts")
+    .delete()
+    .eq("country_code", args.country_code)
+    .eq("stage", args.stage)
+    .is("committed_at", null);
+
   const { data: draft, error } = await admin
     .from("onboarding_drafts")
     .insert({
@@ -129,6 +144,7 @@ async function saveDraft(admin: any, args: {
   }
   return draft.id as string;
 }
+
 
 async function markDraftCommitted(admin: any, draftId: string, runId: string) {
   await admin.from("onboarding_drafts")
@@ -556,6 +572,19 @@ export const runKpiSeedAgent = createServerFn({ method: "POST" })
         country: { code: country.code, name: country.name, iso3: country.iso3 },
       });
 
+      // Build citations from enriched KPIs' source URLs (deduped, 1-indexed to match [N] markers).
+      const seenCite = new Set<string>();
+      const citations: SonarCitation[] = [];
+      for (const k of enriched) {
+        const url = (k as any).source_url;
+        if (!url || seenCite.has(url)) continue;
+        seenCite.add(url);
+        let domain: string | undefined;
+        try { domain = new URL(url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
+        citations.push({ url, domain, title: (k as any).source_org ?? undefined });
+
+      }
+
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
         country_code: data.countryCode,
@@ -564,8 +593,9 @@ export const runKpiSeedAgent = createServerFn({ method: "POST" })
         payload: { kpis: enriched, coverage },
         confidence:
           coverage.filled === coverage.total ? "high" : coverage.filled >= coverage.total * 0.75 ? "medium" : "low",
-        citations: [],
+        citations,
       });
+
 
       await finishRun(supabaseAdmin, runId, {
         status: "ready",
@@ -1529,10 +1559,20 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
           .update({ plan: { processed: total, total, okCount, failCount, totalChunks, results } })
           .eq("id", runId);
       } catch { /* best effort */ }
-      // Auto-commit corpus ingest — nothing further for the user to edit
-      await markDraftCommitted(supabaseAdmin, draftId, runId);
+      // Auto-commit only when we actually landed useful data. Otherwise leave the
+      // draft in `ready` state with a clear error so the admin can retry.
+      if (okCount >= 1 && totalChunks > 0) {
+        await markDraftCommitted(supabaseAdmin, draftId, runId);
+        await finishRun(supabaseAdmin, runId, { status: "committed" });
+      } else {
+        await finishRun(supabaseAdmin, runId, {
+          status: "ready",
+          error: `ingest produced no usable chunks (ok=${okCount}, chunks=${totalChunks}). Review the per-source errors.`,
+        });
+      }
 
       return { ok: true, runId, totalChunks, okCount, failCount, results };
+
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;

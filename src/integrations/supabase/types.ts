@@ -430,6 +430,7 @@ export type Database = {
           created_at: string
           currency: string
           fiscal_year_start_month: number
+          gdp_committed_at: string | null
           gdp_current_usd: number | null
           gdp_year: number | null
           is_caricom: boolean
@@ -438,6 +439,7 @@ export type Database = {
           iso3: string | null
           membership_tier: string
           name: string
+          profile_committed_at: string | null
           signature_generated_at: string | null
           signature_json: Json | null
           updated_at: string
@@ -448,6 +450,7 @@ export type Database = {
           created_at?: string
           currency?: string
           fiscal_year_start_month?: number
+          gdp_committed_at?: string | null
           gdp_current_usd?: number | null
           gdp_year?: number | null
           is_caricom?: boolean
@@ -456,6 +459,7 @@ export type Database = {
           iso3?: string | null
           membership_tier: string
           name: string
+          profile_committed_at?: string | null
           signature_generated_at?: string | null
           signature_json?: Json | null
           updated_at?: string
@@ -466,6 +470,7 @@ export type Database = {
           created_at?: string
           currency?: string
           fiscal_year_start_month?: number
+          gdp_committed_at?: string | null
           gdp_current_usd?: number | null
           gdp_year?: number | null
           is_caricom?: boolean
@@ -474,6 +479,7 @@ export type Database = {
           iso3?: string | null
           membership_tier?: string
           name?: string
+          profile_committed_at?: string | null
           signature_generated_at?: string | null
           signature_json?: Json | null
           updated_at?: string
@@ -3080,6 +3086,14 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      replace_country_sectors: {
+        Args: { _country_code: string; _rows: Json }
+        Returns: number
+      }
+      replace_ministry_sectors: {
+        Args: { _country_code: string; _rows: Json }
+        Returns: number
       }
     }
     Enums: {

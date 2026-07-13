@@ -253,27 +253,69 @@ function OnboardWizard() {
           </div>
         )}
 
-        {STAGES.map((s) => {
-          const draft = drafts.find((d) => d.stage === s.key);
-          const stageRuns = runs.filter((r) => r.stage === s.key);
-          const lastRun = stageRuns[0];
-          return (
-            <StageCard
-              key={s.key}
-              stage={s}
-              countryName={country?.name ?? code}
-              draft={draft}
-              lastRun={lastRun}
-              keyConfigured={keyStatus.configured}
-              onRun={() => runners[s.key]({ data: { countryCode: code } }).then(refresh)}
-              onCommit={(editedPayload) =>
-                committers[s.key]({ data: { draftId: draft.id, editedPayload } }).then(refresh)
-              }
-            />
-          );
-        })}
+        <AccordionStages
+          stages={STAGES}
+          drafts={drafts}
+          runs={runs}
+          countryName={country?.name ?? code}
+          keyConfigured={keyStatus.configured}
+          runners={runners}
+          committers={committers}
+          code={code}
+          refresh={refresh}
+        />
+
       </div>
     </SuperAdminShell>
+  );
+}
+
+function AccordionStages({
+  stages,
+  drafts,
+  runs,
+  countryName,
+  keyConfigured,
+  runners,
+  committers,
+  code,
+  refresh,
+}: {
+  stages: { key: Stage; label: string; short: string; desc: string }[];
+  drafts: any[];
+  runs: any[];
+  countryName: string;
+  keyConfigured: boolean;
+  runners: Record<string, any>;
+  committers: Record<string, any>;
+  code: string;
+  refresh: () => void;
+}) {
+  const [openStage, setOpenStage] = useState<string | null>(null);
+  return (
+    <>
+      {stages.map((s) => {
+        const draft = drafts.find((d) => d.stage === s.key);
+        const stageRuns = runs.filter((r) => r.stage === s.key);
+        const lastRun = stageRuns[0];
+        return (
+          <StageCard
+            key={s.key}
+            stage={s}
+            countryName={countryName}
+            draft={draft}
+            lastRun={lastRun}
+            keyConfigured={keyConfigured}
+            isOpen={openStage === s.key}
+            onToggle={() => setOpenStage(openStage === s.key ? null : s.key)}
+            onRun={() => runners[s.key]({ data: { countryCode: code } }).then(refresh)}
+            onCommit={(editedPayload) =>
+              committers[s.key]({ data: { draftId: draft.id, editedPayload } }).then(refresh)
+            }
+          />
+        );
+      })}
+    </>
   );
 }
 
@@ -283,6 +325,8 @@ function StageCard({
   draft,
   lastRun,
   keyConfigured,
+  isOpen,
+  onToggle,
   onRun,
   onCommit,
 }: {
@@ -291,9 +335,12 @@ function StageCard({
   draft: any;
   lastRun: any;
   keyConfigured: boolean;
+  isOpen: boolean;
+  onToggle: () => void;
   onRun: () => Promise<unknown>;
   onCommit: (editedPayload: unknown) => Promise<unknown>;
 }) {
+
   const [running, setRunning] = useState(false);
   const [committing, setCommitting] = useState(false);
   const [edited, setEdited] = useState<string>("");
@@ -341,96 +388,119 @@ function StageCard({
   }
 
   return (
-    <section className="border border-line-200 p-5 space-y-4 bg-paper-0">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-base font-semibold flex items-center gap-2">
-            {stage.label}
-            {committed && (
-              <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-700">committed</span>
-            )}
-            {draft && !committed && (
-              <span className="text-[11px] px-2 py-0.5 rounded bg-amber-500/15 text-amber-700">review</span>
-            )}
-          </h2>
-          <p className="text-xs text-ink-500 mt-1">{stage.desc}</p>
-        </div>
+    <section className="border border-line-200 bg-paper-0">
+      <div className="flex items-stretch justify-between gap-4">
         <button
           type="button"
-          className="text-sm px-3 py-1.5 border border-ink-950 bg-ink-950 text-paper-0 hover:bg-ink-700 disabled:opacity-50"
-          disabled={running || !keyConfigured}
-          onClick={doRun}
+          onClick={onToggle}
+          aria-expanded={isOpen}
+          className="flex-1 flex items-center gap-3 p-5 text-left hover:bg-paper-100/50"
         >
-          {running ? "Researching…" : draft ? "Re-run agent" : "Run AI research"}
+          <span
+            aria-hidden
+            className={`inline-block text-ink-500 transition-transform ${isOpen ? "rotate-90" : ""}`}
+          >
+            ›
+          </span>
+          <span className="flex-1">
+            <h2 className="text-base font-semibold flex items-center gap-2">
+              {stage.label}
+              {committed && (
+                <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-700">committed</span>
+              )}
+              {draft && !committed && (
+                <span className="text-[11px] px-2 py-0.5 rounded bg-amber-500/15 text-amber-700">review</span>
+              )}
+            </h2>
+            <p className="text-xs text-ink-500 mt-1">{stage.desc}</p>
+          </span>
         </button>
+        <div className="flex items-center pr-5">
+          <button
+            type="button"
+            className="text-sm px-3 py-1.5 border border-ink-950 bg-ink-950 text-paper-0 hover:bg-ink-700 disabled:opacity-50"
+            disabled={running || !keyConfigured}
+            onClick={(e) => {
+              e.stopPropagation();
+              doRun();
+            }}
+          >
+            {running ? "Researching…" : draft ? "Re-run agent" : "Run AI research"}
+          </button>
+        </div>
       </div>
 
-      {lastRun && (
-        <div className="text-xs text-ink-500">
-          Last run: {new Date(lastRun.started_at).toLocaleString()} · status {lastRun.status}
-          {model && <> · model <code>{model}</code></>}
-          {typeof lastRun.cost_cents === "number" && lastRun.cost_cents > 0 && (
-            <> · cost ${(lastRun.cost_cents / 100).toFixed(3)}</>
-          )}
-          {lastRun.error && (
-            <div className="mt-1 text-red-600 whitespace-pre-wrap">{lastRun.error}</div>
-          )}
-        </div>
-      )}
-
-      {err && (
-        <div className="rounded border border-red-500/50 bg-red-500/10 p-2 text-xs text-red-700">{err}</div>
-      )}
-
-      {draft && (
-        <>
-          <div className="rounded border border-line-200 bg-paper-100/50 p-3">
-            <div className="text-xs text-ink-500 mb-2">
-              Draft payload (edit JSON below to override before commit) · confidence {draft.confidence}
+      {isOpen && (
+        <div className="px-5 pb-5 space-y-4 border-t border-line-200 pt-4">
+          {lastRun && (
+            <div className="text-xs text-ink-500">
+              Last run: {new Date(lastRun.started_at).toLocaleString()} · status {lastRun.status}
+              {model && <> · model <code>{model}</code></>}
+              {typeof lastRun.cost_cents === "number" && lastRun.cost_cents > 0 && (
+                <> · cost ${(lastRun.cost_cents / 100).toFixed(3)}</>
+              )}
+              {lastRun.error && (
+                <div className="mt-1 text-red-600 whitespace-pre-wrap">{lastRun.error}</div>
+              )}
             </div>
-            <textarea
-              className="w-full font-mono text-xs bg-paper-0 border border-line-200 p-2 min-h-[180px]"
-              defaultValue={JSON.stringify(payload, null, 2)}
-              onChange={(e) => setEdited(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <div className="text-xs font-medium mb-1">Citations ({citations.length})</div>
-            {citations.length === 0 ? (
-              <div className="text-xs text-red-600">⚠ No citations — cannot commit.</div>
-            ) : (
-              <ul className="text-xs space-y-1">
-                {citations.map((c) => (
-                  <li key={c.id}>
-                    <a href={c.url} target="_blank" rel="noreferrer" className="text-ink-950 underline hover:text-ink-700">
-                      {c.domain || c.url}
-                    </a>
-                    {c.title && <span className="text-ink-500"> — {c.title}</span>}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {!committed && (
-            <button
-              type="button"
-              className="text-sm px-3 py-1.5 border border-emerald-500 text-emerald-700 hover:bg-emerald-500/10 disabled:opacity-50"
-              disabled={committing || citations.length === 0}
-              onClick={doCommit}
-            >
-              {committing ? "Committing…" : `Commit to ${draft.target_table}`}
-            </button>
           )}
-        </>
-      )}
 
-      {!draft && !running && (
-        <div className="text-xs text-ink-500">
-          No draft yet. Click "Run AI research" to have the agent research {countryName} and produce a cited draft.
+          {err && (
+            <div className="rounded border border-red-500/50 bg-red-500/10 p-2 text-xs text-red-700">{err}</div>
+          )}
+
+          {draft && (
+            <>
+              <div className="rounded border border-line-200 bg-paper-100/50 p-3">
+                <div className="text-xs text-ink-500 mb-2">
+                  Draft payload (edit JSON below to override before commit) · confidence {draft.confidence}
+                </div>
+                <textarea
+                  className="w-full font-mono text-xs bg-paper-0 border border-line-200 p-2 min-h-[180px]"
+                  defaultValue={JSON.stringify(payload, null, 2)}
+                  onChange={(e) => setEdited(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <div className="text-xs font-medium mb-1">Citations ({citations.length})</div>
+                {citations.length === 0 ? (
+                  <div className="text-xs text-red-600">⚠ No citations — cannot commit.</div>
+                ) : (
+                  <ul className="text-xs space-y-1">
+                    {citations.map((c) => (
+                      <li key={c.id}>
+                        <a href={c.url} target="_blank" rel="noreferrer" className="text-ink-950 underline hover:text-ink-700">
+                          {c.domain || c.url}
+                        </a>
+                        {c.title && <span className="text-ink-500"> — {c.title}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {!committed && (
+                <button
+                  type="button"
+                  className="text-sm px-3 py-1.5 border border-emerald-500 text-emerald-700 hover:bg-emerald-500/10 disabled:opacity-50"
+                  disabled={committing || citations.length === 0}
+                  onClick={doCommit}
+                >
+                  {committing ? "Committing…" : `Commit to ${draft.target_table}`}
+                </button>
+              )}
+            </>
+          )}
+
+          {!draft && !running && (
+            <div className="text-xs text-ink-500">
+              No draft yet. Click "Run AI research" to have the agent research {countryName} and produce a cited draft.
+            </div>
+          )}
         </div>
       )}
     </section>
   );
 }
+

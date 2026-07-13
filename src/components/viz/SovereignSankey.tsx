@@ -49,6 +49,11 @@ function fmtUsdM(n: number): string {
   return `$${Math.round(n)}M`;
 }
 
+function fmtPct(part: number, total: number): string {
+  if (!total) return "—";
+  return `${((part / total) * 100).toFixed(1)}%`;
+}
+
 const flowsQuery = (code: string, fetchFn: (input: { data: { countryCode: string } }) => Promise<CapitalFlowsOverview>) =>
   queryOptions({
     queryKey: ["viz", "capital-flows", code],

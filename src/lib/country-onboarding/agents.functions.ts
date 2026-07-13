@@ -72,6 +72,8 @@ async function saveDraft(admin: any, args: {
   payload: unknown;
   confidence: "high" | "medium" | "low";
   citations: SonarCitation[];
+  summary_md?: string | null;
+  summary_highlights?: Array<{ label: string; value: string }> | null;
 }) {
   const { data: draft, error } = await admin
     .from("onboarding_drafts")
@@ -83,6 +85,8 @@ async function saveDraft(admin: any, args: {
       payload: args.payload as any,
       confidence: args.confidence,
       needs_review: true,
+      summary_md: args.summary_md ?? null,
+      summary_highlights: (args.summary_highlights ?? []) as any,
     })
     .select("id")
     .single();

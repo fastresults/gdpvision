@@ -65,17 +65,9 @@ const STAGES: Array<{ key: Stage; label: string; short: string; desc: string }> 
   { key: "second_brain_seed", label: "11. Second-brain seed", short: "Brain", desc: "Cabinet positions, audiences, outlets, facts, risks." },
 ];
 
-// Stages that read committed rows from a prior stage's target table. If the
-// upstream stage isn't committed yet, running the downstream agent will throw
-// (e.g. `runMinistrySectorMapAgent` reads `ministries`). `runAllPending` uses
-// this to skip-with-warning instead of exploding into the global error modal.
-const STAGE_DEPENDENCIES: Partial<Record<Stage, Stage[]>> = {
-  ministry_sector_map: ["ministries", "sector_composition"],
-  sector_dossier: ["sector_composition"],
-  ministry_deep_dive: ["ministries"],
-  corpus_ingest: ["source_registry"],
-  second_brain_seed: ["source_registry"],
-};
+// (Dependency map removed — the orchestrator loop below derives real deps
+// from server-side committedTargets ground truth per pipeline level.)
+
 
 const statusQuery = (code: string) =>
   queryOptions({

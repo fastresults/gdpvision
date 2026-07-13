@@ -286,7 +286,7 @@ async function countCommittedTargets(admin: any, cc: string) {
     chunksC,
     memoryC,
   ] = await Promise.all([
-    admin.from("countries").select("currency, gdp_current_usd").eq("code", cc).maybeSingle(),
+    admin.from("countries").select("profile_committed_at, gdp_committed_at").eq("code", cc).maybeSingle(),
     count(admin.from("country_sectors").select("*", { count: "exact", head: true }).eq("country_code", cc)),
     count(admin.from("ministries").select("*", { count: "exact", head: true }).eq("country_code", cc)),
     count(

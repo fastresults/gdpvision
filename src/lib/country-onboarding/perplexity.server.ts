@@ -90,14 +90,18 @@ export async function callSonar(opts: {
   }
 
   const doFetch = async (payload: Record<string, unknown>) => {
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 75_000);
     const r = await fetch("https://api.perplexity.ai/chat/completions", {
       method: "POST",
+      signal: ctrl.signal,
       headers: {
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
     });
+    clearTimeout(timeout);
     if (!r.ok) {
       const errText = await r.text();
       throw new Error(`Perplexity ${r.status}: ${errText.slice(0, 500)}`);

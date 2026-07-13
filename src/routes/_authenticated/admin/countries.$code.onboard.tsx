@@ -572,11 +572,7 @@ function StageCard({
                   Draft payload · confidence {draft.confidence}
                 </div>
                 <PrettyJson value={payload} citations={citations as any} />
-                <details className="text-xs" onToggle={(e) => {
-                  if ((e.target as HTMLDetailsElement).open && edited === null) {
-                    setEdited(JSON.stringify(payload, null, 2));
-                  }
-                }}>
+                <details className="text-xs">
                   <summary className="cursor-pointer text-ink-500 hover:text-ink-950">Edit raw JSON to override before commit</summary>
                   <textarea
                     className="mt-2 w-full font-mono text-xs bg-paper-0 border border-line-200 p-2 min-h-[180px]"

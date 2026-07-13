@@ -21,12 +21,14 @@ import {
   commitSecondBrainSeed,
   commitSectorDossiers,
   commitSourceRegistry,
+  commitCapitalFlows,
   runCorpusIngest,
   runKpiSeedAgent,
   runMinistryDeepDiveAgent,
   runSecondBrainSeedAgent,
   runSectorDossierAgent,
   runSourceRegistryAgent,
+  runCapitalFlowsAgent,
 } from "./corpus.functions";
 
 type Stage =
@@ -40,7 +42,8 @@ type Stage =
   | "sector_dossier"
   | "ministry_deep_dive"
   | "corpus_ingest"
-  | "second_brain_seed";
+  | "second_brain_seed"
+  | "capital_flows";
 
 const Input = z.object({
   countryCode: z.string().min(2).max(4),

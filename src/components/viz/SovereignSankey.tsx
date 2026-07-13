@@ -55,10 +55,13 @@ const flowsQuery = (code: string, fetchFn: (input: { data: { countryCode: string
     staleTime: 60_000,
   });
 
+const FARM_TO_HOTEL_SHARE = 0.15; // default share of tourism spend reallocated from imports to local wages/agri
+
 export function SovereignSankey({ countryCode }: { countryCode: string }) {
   const fetchFn = useServerFn(getCapitalFlows);
   const { data: overview } = useSuspenseQuery(flowsQuery(countryCode, fetchFn as any));
   const [hover, setHover] = useState<string | null>(null);
+  const [farmToHotel, setFarmToHotel] = useState(false);
 
   const built = useMemo(() => {
     if (!overview.values.length) return null;
@@ -80,6 +83,18 @@ export function SovereignSankey({ countryCode }: { countryCode: string }) {
       };
       if (reg.side === "input") inputs.push(node);
       else outputs.push(node);
+    }
+
+    // Farm-to-Hotel: reshape flows by moving `shift` USD from IMPORT_LEAKAGE to WAGES_AGRI.
+    if (farmToHotel) {
+      const tourism = inputs.find((n) => n.key === "TOURISM_SPEND");
+      const leak = outputs.find((n) => n.key === "IMPORT_LEAKAGE");
+      const wages = outputs.find((n) => n.key === "WAGES_AGRI");
+      if (tourism && leak && wages) {
+        const shift = Math.min(leak.value, tourism.value * FARM_TO_HOTEL_SHARE);
+        leak.value = Math.max(0, leak.value - shift);
+        wages.value = wages.value + shift;
+      }
     }
     inputs.sort((a, b) => b.value - a.value);
     outputs.sort((a, b) => b.value - a.value);
@@ -124,7 +139,7 @@ export function SovereignSankey({ countryCode }: { countryCode: string }) {
     }
 
     return { inputs, outputs, center, flows, grand };
-  }, [overview]);
+  }, [overview, farmToHotel]);
 
   if (!overview.diagnostics.hasData) {
     return (
@@ -173,6 +188,18 @@ export function SovereignSankey({ countryCode }: { countryCode: string }) {
               {overview.diagnostics.missingNodes.length > 3 ? "…" : ""}
             </span>
           )}
+          <button
+            type="button"
+            onClick={() => setFarmToHotel((v) => !v)}
+            className={`rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.18em] transition-colors ${
+              farmToHotel
+                ? "border-emerald-500 bg-emerald-500/10 text-emerald-700"
+                : "border-line-200 text-ink-500 hover:text-ink-950"
+            }`}
+            title={`Reallocate ${Math.round(FARM_TO_HOTEL_SHARE * 100)}% of tourism spend from imports to local wages / agriculture`}
+          >
+            Farm-to-Hotel: {farmToHotel ? "ACTIVE" : "INACTIVE"}
+          </button>
         </div>
       </div>
 

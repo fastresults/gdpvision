@@ -57,11 +57,11 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
 async function loadCountry(admin: any, code: string) {
   const { data, error } = await admin
     .from("countries")
-    .select("code, name, iso3, currency")
+    .select("code, name, iso3, currency, gdp_current_usd")
     .eq("code", code)
     .maybeSingle();
   if (error || !data) throw new Error(`Country ${code} not found`);
-  return data as { code: string; name: string; iso3: string | null; currency: string };
+  return data as { code: string; name: string; iso3: string | null; currency: string; gdp_current_usd: number | null };
 }
 
 async function openRun(admin: any, params: {
@@ -1848,39 +1848,119 @@ export const commitSecondBrainSeed = createServerFn({ method: "POST" })
 // Stage 12: Capital Flows — Sovereign Sankey ledger (USD $M)
 // ============================================================
 
-const CapitalFlowsSchema = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    period: { type: "string", description: "Fiscal year the values refer to, e.g. '2023'." },
-    flows: {
-      type: "array",
-      items: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          node_key: {
-            type: "string",
-            enum: [
-              "TOURISM_SPEND","CBI_INFLOWS","FDI_NET","REMITTANCES","ODA_GRANTS","TAX_REVENUE",
-              "WAGES_AGRI","INFRA_CAPEX","DEBT_SERVICE","DIGITAL_HEALTH_CAPEX","ENERGY_IMPORT","IMPORT_LEAKAGE",
-            ],
+// Per-node definitions used to build focused, per-pass prompts.
+const NODE_DEFS: Record<string, { label: string; def: string; sources: string }> = {
+  TOURISM_SPEND:        { label: "Gross Tourism Spend",           def: "BOP travel credits / gross visitor expenditure (all inbound tourism).", sources: "ECCB Selected Tourism Statistics, UNWTO, WTTC, country tourism authority annual report, IMF Article IV BOP tables." },
+  CBI_INFLOWS:          { label: "CBI Inflows",                    def: "Citizenship-by-Investment fiscal receipts. OMIT the row entirely if the country has no CBI programme.", sources: "CIU annual report, IMF Article IV, MoF budget statement." },
+  FDI_NET:              { label: "Foreign Direct Investment",      def: "Net FDI inflows (equity + reinvested earnings + intercompany loans).", sources: "UNCTAD FDI/STAT, WB WDI (BX.KLT.DINV.CD.WD), ECCB BOP, IMF BPM6 tables." },
+  REMITTANCES:          { label: "Remittances",                    def: "Personal remittances received (BOP secondary income, workers' remittances).", sources: "WB Migration & Remittances, IMF BPM6 secondary-income table, ECCB." },
+  ODA_GRANTS:           { label: "ODA & Grants",                   def: "Official development assistance grant component (net disbursements).", sources: "OECD DAC CRS, WB IDS, EU/CDB/IADB grant registers." },
+  TAX_REVENUE:          { label: "Tax Revenue",                    def: "Central-government tax revenue collected (excludes grants, non-tax fees).", sources: "MoF Estimates of Revenue & Expenditure, IMF Article IV fiscal tables, Inland Revenue annual report." },
+  WAGES_AGRI:           { label: "Local Wages / Agriculture",      def: "Central-government wage bill PLUS agricultural gross value-add (proxy for local-economy real-side spending).", sources: "MoF Estimates of R&E (personal emoluments), national accounts / FAO / statistics office agricultural GVA." },
+  INFRA_CAPEX:          { label: "Public Works & Infrastructure",  def: "Public capital expenditure on works & infrastructure (excludes health & digital).", sources: "MoF Public Sector Investment Programme, budget capital estimates, CDB/IADB project registers." },
+  DEBT_SERVICE:         { label: "External Debt Service",          def: "External public debt service (principal + interest paid to non-resident creditors).", sources: "WB IDS (DT.TDS.DECT.CD), IMF Article IV DSA, MoF debt bulletin." },
+  DIGITAL_HEALTH_CAPEX: { label: "Digital & Health CapEx",         def: "Public capital expenditure on digital government + health infrastructure & equipment.", sources: "MoF PSIP, Ministry of Health capital estimates, ITU / WB Digital Development." },
+  ENERGY_IMPORT:        { label: "Energy & Utilities Import",      def: "Fuel + utility imports (mineral fuels HS27, electricity where imported).", sources: "UN Comtrade HS27, national customs/statistics office trade tables." },
+  IMPORT_LEAKAGE:       { label: "Import Leakages",                def: "All other merchandise imports NOT captured under ENERGY_IMPORT (residual of goods imports).", sources: "UN Comtrade, WITS, national statistics office trade table." },
+};
+
+const PASSES: Array<{ name: string; nodes: string[] }> = [
+  { name: "inputs",     nodes: ["TOURISM_SPEND","CBI_INFLOWS","FDI_NET","REMITTANCES","ODA_GRANTS","TAX_REVENUE"] },
+  { name: "fiscal_out", nodes: ["WAGES_AGRI","INFRA_CAPEX","DEBT_SERVICE","DIGITAL_HEALTH_CAPEX"] },
+  { name: "imports",    nodes: ["ENERGY_IMPORT","IMPORT_LEAKAGE"] },
+];
+
+type CapitalFlow = {
+  node_key: string;
+  value_usd_m: number;
+  period?: string;
+  method: string;
+  confidence_grade: string;
+  source_url: string;
+  source_org: string;
+  notes?: string;
+};
+
+function buildPassSchema(nodeKeys: string[]) {
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      period: { type: "string", description: "Fiscal year, e.g. '2023'." },
+      flows: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            node_key: { type: "string", enum: nodeKeys },
+            value_usd_m: { type: "number" },
+            period: { type: "string" },
+            method: { type: "string", enum: ["reported","derived","modelled"] },
+            confidence_grade: { type: "string", enum: ["A","B","C"] },
+            source_url: { type: "string", description: "Absolute https URL of the primary source, not a citation label." },
+            source_org: { type: "string" },
+            notes: { type: "string" },
           },
-          value_usd_m: { type: "number", description: "Value in USD millions." },
-          period: { type: "string" },
-          method: { type: "string", enum: ["reported","derived","modelled"] },
-          confidence_grade: { type: "string", enum: ["A","B","C"] },
-          source_url: { type: "string" },
-          source_org: { type: "string" },
-          notes: { type: "string" },
+          required: ["node_key","value_usd_m","period","method","confidence_grade","source_url","source_org"],
         },
-        required: ["node_key","value_usd_m","period","method","confidence_grade","source_url","source_org"],
       },
     },
-    ...SUMMARY_SCHEMA_FRAGMENT,
-  },
-  required: ["period","flows","summary_md","summary_highlights"],
-} as const;
+    required: ["period","flows"],
+  } as const;
+}
+
+async function runCapitalFlowPass(opts: {
+  model: SonarModel;
+  countryName: string;
+  countryISO: string;
+  currency: string;
+  passName: string;
+  nodes: string[];
+  gdpUsdM: number | null;
+  previousDroppedNote?: string;
+}): Promise<{ flows: CapitalFlow[]; dropped: Array<CapitalFlow & { reason: string }>; citations: SonarCitation[] }> {
+  const nodeMenu = opts.nodes.map((k) => `- ${k} (${NODE_DEFS[k]?.label ?? k}): ${NODE_DEFS[k]?.def ?? ""} Preferred sources: ${NODE_DEFS[k]?.sources ?? ""}`).join("\n");
+  const gdpHint = opts.gdpUsdM ? `Country GDP is approximately US$${opts.gdpUsdM.toFixed(0)}m — every single node value must be plausible relative to this.` : "";
+  const priorNote = opts.previousDroppedNote ? `\nPrevious attempt had issues: ${opts.previousDroppedNote}\nCorrect those errors this time.` : "";
+
+  const result = await callSonar({
+    model: opts.model,
+    system:
+      "You are a sovereign-macro analyst assembling a Balance-of-Payments + Fiscal capital-flow ledger. " +
+      "Return one JSON object with a `flows` array containing ONE row per applicable node_key from the menu below. " +
+      "value_usd_m is USD millions — convert from local currency if needed and note the FX rate in `notes`. " +
+      "source_url MUST be an absolute https:// URL that returns the actual figure (not a search page, not the citation title). " +
+      "If you cannot find a real primary-source URL for a node, OMIT that node — do not fabricate a URL. " +
+      "confidence_grade: A = official primary; B = multilateral secondary or recent budget; C = modelled/estimated. " +
+      "method: 'reported' if directly from a table, 'derived' if computed from disclosed components, 'modelled' if reasoned. " +
+      "Use the same fiscal year across all rows (most recent complete year with data). " +
+      "For any node that does not apply to this country (e.g. CBI where there is no programme), OMIT the row entirely.",
+    user:
+`Country: ${opts.countryName} (${opts.countryISO}). Local currency: ${opts.currency}.
+Assemble the "${opts.passName}" slice of the capital-flow ledger in USD millions for the most recent complete fiscal year.
+${gdpHint}
+Nodes for THIS pass (return only these):
+${nodeMenu}
+${priorNote}`,
+    responseSchema: buildPassSchema(opts.nodes) as unknown as Record<string, unknown>,
+    recency: "year",
+  });
+
+  const parsed = parseSonarJson<{ period?: string; flows?: CapitalFlow[] }>(result.content);
+  const raw = Array.isArray(parsed?.flows) ? parsed!.flows : [];
+  const flows: CapitalFlow[] = [];
+  const dropped: Array<CapitalFlow & { reason: string }> = [];
+  for (const f of raw) {
+    if (!f || typeof f !== "object") continue;
+    if (!opts.nodes.includes(f.node_key)) { dropped.push({ ...f, reason: `node_key '${f.node_key}' not in pass '${opts.passName}'` }); continue; }
+    if (!isValidHttpUrl(f.source_url)) { dropped.push({ ...f, reason: `source_url is not a valid https URL: ${String(f.source_url).slice(0, 80)}` }); continue; }
+    const v = Number(f.value_usd_m);
+    if (!Number.isFinite(v) || v <= 0) { dropped.push({ ...f, reason: "value_usd_m missing or non-positive" }); continue; }
+    flows.push({ ...f, value_usd_m: v });
+  }
+  return { flows, dropped, citations: result.citations };
+}
 
 export const runCapitalFlowsAgent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -1895,80 +1975,173 @@ export const runCapitalFlowsAgent = createServerFn({ method: "POST" })
       country_code: data.countryCode,
       stage: "capital_flows",
       userId: context.userId,
-      model_stack: { perplexity: model },
+      model_stack: { perplexity: model, strategy: "fan-out-3-pass" },
     });
 
     try {
       const currency = country.currency ?? "USD";
-      const result = await callSonar({
-        model,
-        system:
-          "You are a sovereign-macro analyst building a Balance-of-Payments + Fiscal capital-flow ledger. " +
-          "Return one JSON object with a `flows` array. Include EVERY node_key that applies for this country from the enumerated list. " +
-          "value_usd_m is USD millions (convert from local currency if needed and note the FX rate). " +
-          "Prefer authoritative primary sources: IMF Article IV, World Bank IDS/WDI, ECCB/central bank BOP tables, UNWTO/CTO (tourism), UNCTAD FDI/STAT, OECD DAC (ODA), the country's own Ministry of Finance Budget / Estimates of Revenue & Expenditure, and CIU annual reports (for CBI countries). " +
-          "confidence_grade: A = official primary; B = multilateral secondary or recent budget; C = modelled/estimated. " +
-          "method: 'reported' if directly from a table, 'derived' if computed from disclosed components, 'modelled' if reasoned. " +
-          "For any node that does not apply (e.g. CBI where there is no programme), OMIT the row — do not zero it out. " +
-          "Every flow needs a source_url. Use the same period across the ledger; use the most recent complete fiscal year available." +
-          SUMMARY_SYSTEM_SUFFIX,
-        user: `Country: ${country.name} (${country.iso3 ?? country.code}). Local currency: ${currency}. Assemble the capital-flow ledger in USD millions for the most recent complete fiscal year. Node definitions:
-- TOURISM_SPEND: Gross tourism receipts (BOP travel credits).
-- CBI_INFLOWS: Citizenship-by-Investment fiscal receipts (0 or omit if no programme).
-- FDI_NET: Foreign Direct Investment, net inflows.
-- REMITTANCES: Personal remittances received.
-- ODA_GRANTS: Official development assistance, grant component.
-- TAX_REVENUE: Domestic tax revenue collected by central government.
-- WAGES_AGRI: Central-government wage bill plus agricultural value-add.
-- INFRA_CAPEX: Public works & infrastructure capital expenditure.
-- DEBT_SERVICE: External public debt service (P+I).
-- DIGITAL_HEALTH_CAPEX: Digital & health capital expenditure.
-- ENERGY_IMPORT: Fuel and utility imports.
-- IMPORT_LEAKAGE: Other merchandise imports not captured above.
-Return summary_md as a 2-3 sentence executive read of what dominates the ledger. summary_highlights: 3-5 label/value chips.`,
-        responseSchema: CapitalFlowsSchema as unknown as Record<string, unknown>,
-        recency: "year",
-      });
+      const gdpUsdM = country.gdp_current_usd ? Number(country.gdp_current_usd) / 1_000_000 : null;
 
-      const parsed = parseSonarJson<{ period: string; flows: any[] }>(result.content);
-      if (!parsed?.flows?.length) throw new Error("Perplexity returned no capital flows");
-      const inline = extractInlineSummary(parsed);
-
-      // Reconciliation preview
-      const { data: registry } = await supabaseAdmin.from("capital_flow_nodes").select("node_key, side");
+      // Load node registry with plausibility caps.
+      const { data: registry } = await supabaseAdmin
+        .from("capital_flow_nodes")
+        .select("node_key, side, gdp_cap_multiplier");
       const sideByKey = new Map<string, "input" | "output">();
-      for (const r of registry ?? []) sideByKey.set(r.node_key, r.side as any);
+      const capByKey = new Map<string, number>();
+      for (const r of registry ?? []) {
+        sideByKey.set(r.node_key, r.side as any);
+        capByKey.set(r.node_key, Number(r.gdp_cap_multiplier ?? 1.5));
+      }
+
+      // Fan out passes in parallel.
+      const passResults = await Promise.all(
+        PASSES.map((p) =>
+          runCapitalFlowPass({
+            model,
+            countryName: country.name,
+            countryISO: country.iso3 ?? country.code,
+            currency,
+            passName: p.name,
+            nodes: p.nodes,
+            gdpUsdM,
+          }),
+        ),
+      );
+
+      // Merge, dedupe (last wins per node_key), and apply GDP plausibility clamp.
+      const merged = new Map<string, CapitalFlow>();
+      const droppedAll: Array<CapitalFlow & { reason: string }> = [];
+      const citationsAll: SonarCitation[] = [];
+      for (const r of passResults) {
+        for (const f of r.flows) merged.set(f.node_key, f);
+        droppedAll.push(...r.dropped);
+        citationsAll.push(...r.citations);
+      }
+
+      // GDP sanity clamp: drop any single node whose value exceeds gdp_cap * GDP.
+      if (gdpUsdM && gdpUsdM > 0) {
+        for (const [k, f] of Array.from(merged.entries())) {
+          const cap = capByKey.get(k) ?? 1.5;
+          if (f.value_usd_m > cap * gdpUsdM) {
+            droppedAll.push({ ...f, reason: `value ${f.value_usd_m.toFixed(0)}m exceeds ${cap}x GDP (${gdpUsdM.toFixed(0)}m) — likely unit or FX error` });
+            merged.delete(k);
+          }
+        }
+      }
+
+      // Coverage retry: for each pass that produced 0 valid flows, retry once with a coaching nudge.
+      for (let i = 0; i < PASSES.length; i++) {
+        const pass = PASSES[i];
+        const gotAnyValid = pass.nodes.some((k) => merged.has(k));
+        if (gotAnyValid) continue;
+        const droppedNotes = droppedAll
+          .filter((d) => pass.nodes.includes(d.node_key))
+          .map((d) => `${d.node_key}: ${d.reason}`)
+          .join("; ") || "no rows produced";
+        const retry = await runCapitalFlowPass({
+          model,
+          countryName: country.name,
+          countryISO: country.iso3 ?? country.code,
+          currency,
+          passName: pass.name,
+          nodes: pass.nodes,
+          gdpUsdM,
+          previousDroppedNote: droppedNotes,
+        });
+        for (const f of retry.flows) {
+          const cap = capByKey.get(f.node_key) ?? 1.5;
+          if (gdpUsdM && f.value_usd_m > cap * gdpUsdM) {
+            droppedAll.push({ ...f, reason: `retry: value ${f.value_usd_m.toFixed(0)}m still exceeds ${cap}x GDP` });
+            continue;
+          }
+          merged.set(f.node_key, f);
+        }
+        droppedAll.push(...retry.dropped);
+        citationsAll.push(...retry.citations);
+      }
+
+      const flows = Array.from(merged.values());
+      // Pick period as most common across flows.
+      const periodCounts = new Map<string, number>();
+      for (const f of flows) {
+        const p = f.period || "";
+        if (p) periodCounts.set(p, (periodCounts.get(p) ?? 0) + 1);
+      }
+      let period = "";
+      let best = 0;
+      for (const [p, c] of periodCounts) if (c > best) { period = p; best = c; }
+
+      // Reconciliation + coverage stats.
       let sumIn = 0, sumOut = 0;
-      for (const f of parsed.flows) {
+      const inputs: string[] = [], outputs: string[] = [];
+      for (const f of flows) {
         const side = sideByKey.get(f.node_key);
-        if (side === "input") sumIn += Number(f.value_usd_m ?? 0);
-        else if (side === "output") sumOut += Number(f.value_usd_m ?? 0);
+        if (side === "input") { sumIn += f.value_usd_m; inputs.push(f.node_key); }
+        else if (side === "output") { sumOut += f.value_usd_m; outputs.push(f.node_key); }
       }
       const residual = sumIn - sumOut;
-      const reconciliationPct = sumIn > 0 ? Math.abs(residual) / sumIn : 0;
+      const denom = Math.max(sumIn, sumOut);
+      const reconciliationPct = denom > 0 ? Math.abs(residual) / denom : 1;
+
+      const missingInputs = ["TOURISM_SPEND","CBI_INFLOWS","FDI_NET","REMITTANCES","ODA_GRANTS","TAX_REVENUE"].filter((k) => !inputs.includes(k));
+      const missingOutputs = ["WAGES_AGRI","INFRA_CAPEX","DEBT_SERVICE","DIGITAL_HEALTH_CAPEX","ENERGY_IMPORT","IMPORT_LEAKAGE"].filter((k) => !outputs.includes(k));
+
+      const coverageOk = inputs.length >= 3 && outputs.length >= 4 && reconciliationPct <= 0.10;
+
+      // Deduplicate citations by URL.
+      const citeMap = new Map<string, SonarCitation>();
+      for (const c of citationsAll) if (c?.url && !citeMap.has(c.url)) citeMap.set(c.url, c);
+      // Also add citations from flow source_urls (they may not be in the API-returned citations).
+      for (const f of flows) if (isValidHttpUrl(f.source_url) && !citeMap.has(f.source_url)) {
+        let domain: string | undefined;
+        try { domain = new URL(f.source_url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
+        citeMap.set(f.source_url, { url: f.source_url, title: f.source_org, domain });
+      }
+      const citations = Array.from(citeMap.values());
+
+      const summary_md = coverageOk
+        ? `Balanced ledger for ${period}: ${inputs.length} inputs (US$${sumIn.toFixed(0)}m) → treasury → ${outputs.length} outputs (US$${sumOut.toFixed(0)}m), residual ${(reconciliationPct * 100).toFixed(1)}%.`
+        : `Incomplete ledger for ${period || "unknown period"}: ${inputs.length}/6 inputs, ${outputs.length}/6 outputs, residual ${(reconciliationPct * 100).toFixed(0)}%. Missing: ${[...missingInputs, ...missingOutputs].join(", ") || "—"}.`;
+      const summary_highlights = [
+        { label: "Period", value: period || "—" },
+        { label: "Inputs populated", value: `${inputs.length}/6` },
+        { label: "Outputs populated", value: `${outputs.length}/6` },
+        { label: "Reconciliation", value: `${(reconciliationPct * 100).toFixed(1)}% off` },
+      ];
+
+      const payload = {
+        period,
+        flows,
+        dropped_flows: droppedAll,
+        coverage: { inputs, outputs, missingInputs, missingOutputs, coverageOk },
+        reconciliation: { sumIn, sumOut, residual, residual_pct: reconciliationPct },
+        summary_md,
+        summary_highlights,
+      };
 
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
         country_code: data.countryCode,
         stage: "capital_flows",
         target_table: "country_capital_flows",
-        payload: { ...parsed, reconciliation: { sumIn, sumOut, residual, residual_pct: reconciliationPct } },
-        confidence: reconciliationPct < 0.1 && result.citations.length >= 3 ? "high" : reconciliationPct < 0.25 ? "medium" : "low",
-        citations: result.citations,
-        summary_md: inline.summary_md,
-        summary_highlights: inline.summary_highlights,
+        payload,
+        confidence: coverageOk ? "high" : reconciliationPct < 0.25 ? "medium" : "low",
+        citations,
+        summary_md,
+        summary_highlights,
       });
 
       await finishRun(supabaseAdmin, runId, {
-        status: "ready",
-        error: reconciliationPct > 0.25 ? `reconciliation off by ${(reconciliationPct * 100).toFixed(0)}%` : null,
+        status: coverageOk ? "ready" : "needs_review",
+        error: coverageOk ? null : `Coverage insufficient: ${inputs.length}/6 inputs, ${outputs.length}/6 outputs, ${(reconciliationPct * 100).toFixed(0)}% residual`,
       });
-      return { runId, draftId, count: parsed.flows.length, reconciliationPct };
+      return { runId, draftId, count: flows.length, reconciliationPct, coverageOk };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;
     }
   });
+
 
 export const commitCapitalFlows = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

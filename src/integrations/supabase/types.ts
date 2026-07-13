@@ -183,6 +183,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          gdp_cap_multiplier: number
           hue_token: string | null
           label: string
           node_key: string
@@ -195,6 +196,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          gdp_cap_multiplier?: number
           hue_token?: string | null
           label: string
           node_key: string
@@ -207,6 +209,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          gdp_cap_multiplier?: number
           hue_token?: string | null
           label?: string
           node_key?: string

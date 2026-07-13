@@ -10,6 +10,7 @@ type LaidNode = {
   key: string;
   label: string;
   side: "L" | "M" | "R";
+  amount: number;
   value: number;
   color: string;
   y: number;
@@ -76,6 +77,7 @@ export function SovereignSankey({ countryCode }: { countryCode: string }) {
         key: v.node_key,
         label: reg.label,
         side: reg.side === "input" ? "L" : "R",
+        amount: v.value_usd_m,
         value: v.value_usd_m,
         color: sectorColor(reg.hue_token, reg.sort_order),
         y: 0, h: 0,
@@ -91,16 +93,18 @@ export function SovereignSankey({ countryCode }: { countryCode: string }) {
       const leak = outputs.find((n) => n.key === "IMPORT_LEAKAGE");
       const wages = outputs.find((n) => n.key === "WAGES_AGRI");
       if (tourism && leak && wages) {
-        const shift = Math.min(leak.value, tourism.value * FARM_TO_HOTEL_SHARE);
-        leak.value = Math.max(0, leak.value - shift);
-        wages.value = wages.value + shift;
+        const shift = Math.min(leak.amount, tourism.amount * FARM_TO_HOTEL_SHARE);
+        leak.amount = Math.max(0, leak.amount - shift);
+        wages.amount = wages.amount + shift;
+        leak.value = leak.amount;
+        wages.value = wages.amount;
       }
     }
     inputs.sort((a, b) => b.value - a.value);
     outputs.sort((a, b) => b.value - a.value);
 
-    const totalIn = inputs.reduce((a, n) => a + n.value, 0);
-    const totalOut = outputs.reduce((a, n) => a + n.value, 0);
+    const totalIn = inputs.reduce((a, n) => a + n.amount, 0);
+    const totalOut = outputs.reduce((a, n) => a + n.amount, 0);
     const grand = Math.max(totalIn, totalOut);
     if (grand <= 0) return null;
 
@@ -108,6 +112,7 @@ export function SovereignSankey({ countryCode }: { countryCode: string }) {
       key: "TREASURY",
       label: "Consolidated Treasury",
       side: "M",
+      amount: grand,
       value: grand,
       color: "var(--sector-02)",
       y: 24, h: H - 48,
@@ -117,8 +122,8 @@ export function SovereignSankey({ countryCode }: { countryCode: string }) {
     // Scale each side to the grand total so the treasury reads as a balanced pipe.
     const scaleIn = totalIn > 0 ? grand / totalIn : 1;
     const scaleOut = totalOut > 0 ? grand / totalOut : 1;
-    inputs.forEach((n) => (n.value = n.value * scaleIn));
-    outputs.forEach((n) => (n.value = n.value * scaleOut));
+    inputs.forEach((n) => (n.value = n.amount * scaleIn));
+    outputs.forEach((n) => (n.value = n.amount * scaleOut));
 
     layoutColumn(inputs, grand);
     layoutColumn(outputs, grand);
@@ -234,7 +239,7 @@ export function SovereignSankey({ countryCode }: { countryCode: string }) {
                   opacity={active ? 1 : 0.35}
                 >
                   <tspan fontWeight={600}>{n.label}</tspan>
-                  <tspan className="fill-ink-500 tabular-nums" dx={6}>· {fmtUsdM(n.value)}</tspan>
+                  <tspan className="fill-ink-500 tabular-nums" dx={6}>· {fmtUsdM(n.amount)}</tspan>
                 </text>
               )}
             </g>
@@ -271,7 +276,7 @@ export function SovereignSankey({ countryCode }: { countryCode: string }) {
                   opacity={active ? 1 : 0.35}
                 >
                   <tspan fontWeight={600}>{n.label}</tspan>
-                  <tspan className="fill-ink-500 tabular-nums" dx={6}>· {fmtUsdM(n.value)}</tspan>
+                  <tspan className="fill-ink-500 tabular-nums" dx={6}>· {fmtUsdM(n.amount)}</tspan>
                 </text>
               )}
             </g>
@@ -304,6 +309,28 @@ export function SovereignSankey({ countryCode }: { countryCode: string }) {
           );
         })()}
       </div>
+
+      {overview.values.some((v) => v.method === "modelled" || /Formula:|Source basis:/i.test(v.notes ?? "")) && (
+        <div className="mt-3 border-t border-line-200 pt-3">
+          <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">Assumptions</div>
+          <div className="grid gap-2 md:grid-cols-2">
+            {overview.values
+              .filter((v) => v.method === "modelled" || /Formula:|Source basis:/i.test(v.notes ?? ""))
+              .map((v) => {
+                const label = overview.nodes.find((n) => n.node_key === v.node_key)?.label ?? v.node_key;
+                return (
+                  <div key={`${v.node_key}-${v.period}`} className="border border-line-200 bg-paper-100/50 p-2 text-[11px] leading-relaxed text-ink-600">
+                    <div className="mb-1 flex items-baseline justify-between gap-2">
+                      <span className="font-medium text-ink-950">{label}</span>
+                      <span className="font-mono uppercase tracking-[0.14em] text-ink-500">{v.method} · {v.confidence_grade}</span>
+                    </div>
+                    {v.notes && <p className="line-clamp-4">{v.notes}</p>}
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

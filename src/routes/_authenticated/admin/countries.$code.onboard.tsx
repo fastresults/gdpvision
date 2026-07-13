@@ -737,17 +737,25 @@ function StageCard({
           </span>
         </button>
         <div className="flex items-center gap-2 pr-5">
-          {!committed && (
+          {committed ? (
+            <span
+              className="text-sm px-3 py-1.5 border border-emerald-500 bg-emerald-500/10 text-emerald-700 inline-flex items-center gap-1"
+              title="This stage is already committed"
+            >
+              ✓ Committed
+            </span>
+          ) : (
             <button
               type="button"
               className="text-sm px-3 py-1.5 border border-emerald-500 text-emerald-700 hover:bg-emerald-500/10 disabled:opacity-50"
               disabled={committing || !draft || citations.length === 0}
+              title={!draft ? "Run AI research first to produce a draft" : citations.length === 0 ? "Draft has no citations — cannot commit" : "Commit draft to database"}
               onClick={(e) => {
                 e.stopPropagation();
                 doCommit();
               }}
             >
-              {committing ? "Committing…" : draft ? `Commit to ${draft.target_table}` : "Commit"}
+              {committing ? "Committing…" : draft ? `Commit to ${draft.target_table}` : "Commit (no draft)"}
             </button>
           )}
           <button

@@ -1,30 +1,34 @@
 ## Goal
-Every `[N]` citation marker anywhere in the app opens the full source card in a **popup on hover** (not click), with a click fallback for touch devices.
+When any accordion stage on `/admin/countries/:code/onboard` opens, the page scrolls so the very top of that stage's content (the header row + expanded body) is at the top of the viewport.
 
-## Where citations render today
-- Central component: `src/components/data/PrettyJson.tsx` — `CitationRef` renders `[N]` as a button that opens a shadcn `Dialog` on click.
-- All admin/onboarding/data surfaces already route through `PrettyJson` (onboard draft review, `countries.$code.data.tsx`, memory drafts, sector dossiers, ministry profiles).
-- Counsel answer pages (`counsel/index.tsx`, `counsel/mobile.tsx`) render their own citation list — not inline `[N]` markers — out of scope for hover behavior, but same visual card component will be reused so styling stays consistent.
+## Change (single file)
+`src/routes/_authenticated/admin/countries.$code.onboard.tsx` — `StageCard`:
 
-## Change
-Refactor citation display in `PrettyJson.tsx` only. No API, no data model, no ingest change.
+1. Add `const sectionRef = useRef<HTMLElement>(null)` and attach it to the outer `<section>`.
+2. Add an effect:
+   ```ts
+   useEffect(() => {
+     if (!isOpen) return;
+     // Wait a frame so the expanded content has laid out, then scroll to the section top.
+     requestAnimationFrame(() => {
+       const el = sectionRef.current;
+       if (!el) return;
+       const y = el.getBoundingClientRect().top + window.scrollY - 8;
+       window.scrollTo({ top: y, behavior: "smooth" });
+     });
+   }, [isOpen]);
+   ```
+3. Add `useRef`, `useEffect` to the existing `react` import.
 
-1. Replace the `Dialog`-on-click flow with `HoverCard` (shadcn `hover-card.tsx`, already in project).
-2. `CitationRef` becomes a `<HoverCardTrigger>` wrapping the existing `[N]` sup button.
-3. `<HoverCardContent>` renders the same source card content that today lives inside `CitationDialog` (domain, published date, title link, quote, full URL) — extracted into a reusable `<CitationCard citation={c} n={n} />` sub-component so Dialog and HoverCard both use it.
-4. Hover behavior: 150 ms open delay, 100 ms close delay, `align="start"`, `side="top"` with collision-aware flip, max width ~420 px, scroll if multi-ref content overflows ~60 vh.
-5. Click fallback: clicking the marker still opens the current `Dialog` (needed on touch/no-hover devices and for keyboard users who want a persistent view). Detected via `matchMedia('(hover: none)')` — on hover-less devices the trigger opens the modal directly on tap instead of the hovercard.
-6. Keyboard: `HoverCardTrigger` is focusable; focus opens the card, Escape closes.
-7. Multi-ref markers (`[9,1,9,1]`): dedupe refs in `CitationRef` before render so the popup lists each source once, in the order they first appear.
-8. Missing-source guard: if `citations[n-1]` is undefined, show "Source unavailable [N]" inside the popup (matches current Dialog behavior).
+## Why this shape
+- Runs on every open transition (accordion is single-select, so switching stages also fires this).
+- `getBoundingClientRect + scrollY` scrolls the window (the page's scroll container), not the section's own overflow, guaranteeing the stage header lands at the top.
+- `requestAnimationFrame` ensures the newly rendered `{isOpen && ...}` body is in the layout before we measure, so no under-shoot.
+- Small 8px offset keeps the top border visible.
 
-## Files touched
-- `src/components/data/PrettyJson.tsx` — refactor `CitationRef`, extract `CitationCard`, swap `Dialog` trigger for `HoverCard`, keep `Dialog` as click/tap fallback.
-
-No other files change. No migrations. No new packages.
+## Out of scope
+- The `<details>` toggles inside a stage (raw JSON, log) are not "accordions" per the user's wording — no change.
+- No design/token changes; only behavior.
 
 ## Verification
-- On `/admin/countries/LCA/onboard`, hover any `[N]` inline marker → popup shows the source card; move away → closes.
-- Click the marker on desktop → modal still opens for a persistent view.
-- Repeated refs like `[9,1,9,1]` show sources 9 and 1 once each in the popup.
-- Preview at `1386x853` viewport confirms popup does not clip at the right edge (collision flip).
+Open the LCA onboard page, click each collapsed stage header — the stage's title row must snap to the top of the viewport every time, including when switching from one open stage to another.

@@ -253,25 +253,18 @@ function OnboardWizard() {
           </div>
         )}
 
-        {STAGES.map((s) => {
-          const draft = drafts.find((d) => d.stage === s.key);
-          const stageRuns = runs.filter((r) => r.stage === s.key);
-          const lastRun = stageRuns[0];
-          return (
-            <StageCard
-              key={s.key}
-              stage={s}
-              countryName={country?.name ?? code}
-              draft={draft}
-              lastRun={lastRun}
-              keyConfigured={keyStatus.configured}
-              onRun={() => runners[s.key]({ data: { countryCode: code } }).then(refresh)}
-              onCommit={(editedPayload) =>
-                committers[s.key]({ data: { draftId: draft.id, editedPayload } }).then(refresh)
-              }
-            />
-          );
-        })}
+        <AccordionStages
+          stages={STAGES}
+          drafts={drafts}
+          runs={runs}
+          countryName={country?.name ?? code}
+          keyConfigured={keyStatus.configured}
+          runners={runners}
+          committers={committers}
+          code={code}
+          refresh={refresh}
+        />
+
       </div>
     </SuperAdminShell>
   );

@@ -1,102 +1,60 @@
-## Audit findings
+# Why the treemap and heatmap look grey
 
-**Sovereign Pulse reference (source of the target chart):** `src/components/sede/sankey.tsx` is a *hand-rolled, hard-coded* Sankey. All numbers (Gross Tourism Spend $460M, CBI $160M, FDI $120M, Import Leakages, Debt Service, etc.) are literals inside the component and reshape only through UI sliders (`levers`, `farmToHotel`, `cbiSplit`). There is **no ingestion pipeline behind it**, no source citations, no time series — it is a scenario mockup.
+## The data is already correct
 
-**GDP Vision today:** Our new `SovereignSankey.tsx` is fed by live data but from the *wrong shape* — sectors → ministries proxied by `share_pct × weight`. That is not what an executive expects to see. The reference chart is a **balance-of-payments + fiscal capital flow diagram in absolute USD**, not a sector→ministry stewardship map.
+For Antigua & Barbuda (ATG) the visualizations are backed by real, committed data — nothing is missing:
 
-**Gap:** Our corpus (`country_kpis`, `country_sectors`, `country_source_chunks`, `sector_dossiers`) has ratios and dossier text but **no explicit "capital-flow ledger" of USD flows into and out of the Consolidated Treasury**. That is what makes the reference visualization compelling — and what we need to research, ingest, store, and wire.
+- `country_sectors` — **11 rows, sum = 100.0%** (Tourism 30%, Other services 14%, Real estate 11%, Financial 10%, Construction 9%, Public admin 8%, Transport 7%, Digital 4%, Manufacturing 3%, Agriculture 2%, plus one more). This is exactly what the treemap already shows in your screenshot.
+- `ministry_sectors` — **40 ministry↔sector weight rows** across the 10 cabinet ministries. This is what feeds the heatmap.
+- `sectors` — 12-row canonical registry with `hue_token` values `--sector-01` … `--sector-12`.
 
----
+The server function `getCountryVizOverview` in `src/lib/country-viz/viz.functions.ts` reads all three tables and returns them to `GdpVizStudio`. The tiles, rows, and hover tooltip in your screenshots prove the numbers arrive on the client.
 
-## Plan: end-to-end so GDP Vision's Sankey is fed by real, cited data
+## The actual bug: color tokens are double-prefixed
 
-### 1. Define the canonical Capital-Flow taxonomy (~10 nodes)
+`public.sectors.hue_token` stores values **with** the CSS custom-property prefix:
 
-One curated registry, used by ingest, viz, and dossiers so nothing drifts.
+```
+--sector-01, --sector-02, … --sector-12
+```
 
-**Inputs → Treasury** (Balance of Payments / Fiscal receipts)
-- `TOURISM_SPEND` — Gross tourism receipts (BOP travel credits)
-- `CBI_INFLOWS` — Citizenship-by-Investment revenue (fiscal)
-- `FDI_NET` — Foreign Direct Investment, net inflows
-- `REMITTANCES` — Personal remittances received (BOP)
-- `ODA_GRANTS` — Official development assistance, grants
-- `TAX_REVENUE` — Domestic tax revenue (fiscal)
+But `src/components/viz/sector-color.ts` assumes the token is bare and wraps it again:
 
-**Treasury → Outputs** (Fiscal expenditure + BOP debits)
-- `WAGES_AGRI` — Public wage bill + agricultural value-add
-- `INFRA_CAPEX` — Public works & infrastructure CapEx
-- `DEBT_SERVICE` — External debt service (P+I)
-- `DIGITAL_HEALTH_CAPEX` — Digital + health CapEx
-- `ENERGY_IMPORT` — Fuel & utility imports
-- `IMPORT_LEAKAGE` — Other imports (residual leakage)
+```ts
+if (t) return `var(--${t})`;   // becomes var(----sector-01) — invalid
+```
 
-Each node carries: canonical `label`, `side` (input/output), optional `sector_code` link, unit (`USD_M`), preferred sources.
+Result: every `fill`/`background` resolves to an invalid CSS value, the browser falls back to the default paint (grey), and both the treemap tiles and the heatmap dots render as grey. The data path is fine; only the color mapping is broken.
 
-### 2. Schema (single new migration)
+## Fix
 
-- `capital_flow_nodes` — the registry above (seeded once, global).
-- `country_capital_flows` — one row per `(country_code, node_key, period)` with `value_usd_m numeric`, `method` (reported / derived / modelled), `confidence_grade`, `provenance`, `updated_at`, `citations jsonb` (ordered `[N]` refs into `onboarding_citations`).
-- Unique key `(country_code, node_key, period)` — dedup contract per second-brain rule.
-- GRANTs + RLS following the standard pattern; admin write, authenticated read.
-- Migration also adds a `sector_code` nullable FK on nodes for sector drill-downs later.
+Normalize the token in `sectorColor()` so it works whether the DB stores `--sector-01` or `sector-01`:
 
-### 3. Research + ingest (new onboarding stage: "Capital Flows")
+```ts
+export function sectorColor(hueToken: string | null | undefined, fallbackIndex = 0): string {
+  const raw = (hueToken ?? "").trim().replace(/^--/, "");
+  if (raw) return `var(--${raw})`;
+  const n = ((fallbackIndex % 12) + 1).toString().padStart(2, "0");
+  return `var(--sector-${n})`;
+}
+```
 
-Fits between stage 7 (KPI seed) and viz. Uses the **existing** agents/corpus pipeline — no new architecture.
+That single change re-colors:
+- `GdpTreemap` tiles (fill + stroke)
+- `MinistrySectorHeatmap` column dots and cell fills
+- Any other consumer of `sectorColor` (e.g. `SovereignSankey`, `KpiSmallMultiples`) that reads `hue_token`
 
-Per node, a Perplexity `sonar-reasoning` research call with a **source allow-list** tuned to authoritative BOP/fiscal publishers:
-- IMF Article IV Staff Reports & WEO database
-- World Bank International Debt Statistics + WDI
-- ECCB (Eastern Caribbean Central Bank) BOP tables
-- UNWTO / Caribbean Tourism Organization
-- UNCTAD FDI/STAT
-- Country's Ministry of Finance budget statements + Estimates of Revenue & Expenditure
-- CIU annual reports (for CBI countries)
+No schema change, no re-ingest, no new server function needed.
 
-The agent must return: `value_usd_m`, `period` (latest fiscal year), `method`, `confidence_grade (A/B/C)`, `notes`, and at least one citation URL per value. All source docs go through `upsertCountrySource` + chunked into `country_source_chunks` (existing dedup). Citations land in `onboarding_citations` and are snapshotted into `country_capital_flows.citations`.
+## Verification
 
-Idempotent re-run: upsert on `(country_code, node_key, period)`.
+1. Reload `/admin/countries/ATG/viz`.
+2. Treemap: each sector tile paints in its brand hue (Tourism deep teal, Agriculture green, Financial navy, etc.) per the palette already defined in `src/styles.css` (`--sector-01`…`--sector-12`).
+3. Heatmap: column headers show colored dots; occupied cells shade from light to saturated by ministry weight; empty cells stay blank.
+4. Spot-check LCA (also has data) to confirm the fix isn't ATG-specific.
 
-### 4. Reconciliation validator (McKinsey-grade rigor)
+## Out of scope
 
-Before commit, a server-side validator:
-- Σ inputs ≈ Σ outputs within ±10% tolerance.
-- If not, insert a `RECONCILIATION_RESIDUAL` synthetic node on the smaller side so the Sankey balances visibly, and flag `diagnostics.reconciliation_residual_pct` for the UI.
-- Emit a red diagnostic banner when any node is missing, C-grade, or older than 3 years.
-
-### 5. Viz wiring (rewrite `SovereignSankey.tsx`)
-
-- Replace the sector→ministry proxy with a direct read of `country_capital_flows` for the latest period.
-- Labels: `"{node.label} · ${value}M"` — matches the reference exactly.
-- Treasury center node = Σ inputs, labeled `CONSOLIDATED TREASURY · $XXXM`.
-- Colors from existing `--sector-*` tokens; keep hover isolation.
-- Period selector (top-right chip) driven by distinct `period` values in the table.
-- Empty/degraded state names the specific missing node and links to the onboarding stage.
-
-### 6. Server function
-
-`getCapitalFlows({ countryCode, period? })` under `src/lib/country-viz/flows.functions.ts` — `requireSupabaseAuth`, admin-scoped read, returns `{ nodes, flows, totals, reconciliation, diagnostics, citations }`. GdpVizStudio prefetches via `ensureQueryData`.
-
-### 7. Sector consistency (bonus, cheap once #1–#3 exist)
-
-Each capital-flow node with a `sector_code` becomes a filter target. Selecting a sector tile in the treemap dims all Sankey ribbons that do not belong to that sector — same interaction model already in the studio.
-
-### 8. Delivery order
-
-1. Migration: `capital_flow_nodes` + `country_capital_flows` + seed registry.
-2. Ingest stage "Capital Flows" in `agents.functions.ts` + commit path in `corpus.functions.ts` (reuse citation snapshotting).
-3. Add stage card + "Rerun" button to `countries.$code.onboard.tsx`.
-4. Reconciliation validator.
-5. `getCapitalFlows` server fn.
-6. Rewrite `SovereignSankey.tsx` against the new data.
-7. Run for ATG end-to-end; verify $-values render, citations open the source modal, reconciliation banner behaves.
-
-### Out of scope for this plan
-
-- What-if sliders on the Sankey (the reference's `levers` — v2 once real baselines are trusted).
-- Cross-country comparative Sankeys.
-- Auto-generated cabinet narrative around the flows (v2, LLM-written from the same nodes).
-
-### Deliverable at end
-
-A Sankey where **every ribbon width, dollar figure, and label traces back to a cited source in the second brain**, refreshes idempotently on rerun, and fails loudly (not silently) when a node is missing.
+- Re-running any onboarding stage
+- Editing the `sectors` registry or migrating `hue_token` values
+- Any change to `GdpVizStudio` layout, the Sankey, or KPI panels

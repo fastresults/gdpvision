@@ -1,6 +1,9 @@
 // Per-stage inference seeds. Tier-3 fallback used when both Perplexity and
-// Gemini return nothing usable. These return conservative, provisional data
-// that the admin can review and edit. Never imported from the client.
+// Gemini return nothing usable. Context-aware where possible: seeds read
+// the CountryContext (region, TLD, prior committed data) to pick a template
+// that fits the country instead of one-size-fits-all defaults.
+
+import type { CountryContext } from "./country-context.server";
 
 export type ProvisionalMinistry = {
   slug: string;
@@ -10,8 +13,11 @@ export type ProvisionalMinistry = {
   provisional: true;
 };
 
-// Canonical small-state cabinet (covers most Caribbean / OECS structures).
-export function seedMinistries(countryName: string): ProvisionalMinistry[] {
+// Canonical small-state cabinet. When ctx marks the country as OECS,
+// we use the OECS-standard cabinet template; otherwise we default to a
+// generic CARICOM small-state list. Larger states still get a reasonable
+// baseline but with a stronger "please review" nudge.
+export function seedMinistries(countryName: string, ctx?: CountryContext): ProvisionalMinistry[] {
   const P = (slug: string, name: string, mandate: string): ProvisionalMinistry => ({
     slug,
     name: `Ministry of ${name}`,
@@ -19,7 +25,8 @@ export function seedMinistries(countryName: string): ProvisionalMinistry[] {
     mandate,
     provisional: true,
   });
-  return [
+  const oecs = ctx?.subRegion === "OECS" || ctx?.isCbiState;
+  const base: ProvisionalMinistry[] = [
     P("prime-minister", "the Prime Minister", `Executive leadership and coordination of the Government of ${countryName}.`),
     P("finance", "Finance", "Fiscal policy, budget, taxation, and public debt."),
     P("foreign-affairs", "Foreign Affairs", "Diplomatic relations, treaties, and international cooperation."),
@@ -36,6 +43,11 @@ export function seedMinistries(countryName: string): ProvisionalMinistry[] {
     P("labour", "Labour and Employment", "Labour standards, employment services."),
     P("housing", "Housing and Urban Renewal", "Housing policy and urban development."),
   ];
+  // OECS states typically add a dedicated Citizenship by Investment portfolio.
+  if (oecs && ctx?.isCbiState) {
+    base.push(P("cbi", "Citizenship by Investment", "Administration of the Citizenship by Investment programme."));
+  }
+  return base;
 }
 
 // Standard SNA/ISIC composition — used only when there is truly no data.

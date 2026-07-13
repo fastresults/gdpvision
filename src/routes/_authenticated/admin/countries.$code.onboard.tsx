@@ -494,6 +494,7 @@ function OnboardWizard() {
           drafts={drafts}
           runs={runs}
           summaries={summaries}
+          committedTargets={committedTargets}
           countryName={country?.name ?? code}
           keyConfigured={keyStatus.configured}
           runners={runners}

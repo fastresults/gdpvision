@@ -749,10 +749,13 @@ function StageCard({
           <span className="flex-1">
             <h2 className="text-base font-semibold flex items-center gap-2">
               {stage.label}
-              {committed && (
+              {committed && !hasNewerDraft && (
                 <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-700">committed</span>
               )}
-              {draft && !committed && (
+              {committed && hasNewerDraft && (
+                <span className="text-[11px] px-2 py-0.5 rounded bg-amber-500/15 text-amber-700">new draft</span>
+              )}
+              {!committed && draft && (
                 <span className="text-[11px] px-2 py-0.5 rounded bg-amber-500/15 text-amber-700">review</span>
               )}
             </h2>
@@ -760,27 +763,47 @@ function StageCard({
           </span>
         </button>
         <div className="flex items-center gap-2 pr-5">
-          {committed ? (
+          {committed && (
             <span
               className="text-sm px-3 py-1.5 border border-emerald-500 bg-emerald-500/10 text-emerald-700 inline-flex items-center gap-1"
-              title="This stage is already committed"
+              title={`Target table has ${targetRows} row(s) for this country${commitAt ? ` · committed ${new Date(commitAt).toLocaleString()}` : ""}`}
             >
-              ✓ Committed
+              ✓ Committed{targetRows > 1 ? ` (${targetRows})` : ""}
             </span>
-          ) : (
+          )}
+          {(!committed || hasNewerDraft) && (
             <button
               type="button"
-              className="text-sm px-3 py-1.5 border border-emerald-500 text-emerald-700 hover:bg-emerald-500/10 disabled:opacity-50"
+              className={`text-sm px-3 py-1.5 border disabled:opacity-50 ${
+                hasNewerDraft
+                  ? "border-amber-500 text-amber-700 hover:bg-amber-500/10"
+                  : "border-emerald-500 text-emerald-700 hover:bg-emerald-500/10"
+              }`}
               disabled={committing || !draft || citations.length === 0}
-              title={!draft ? "Run AI research first to produce a draft" : citations.length === 0 ? "Draft has no citations — cannot commit" : "Commit draft to database"}
+              title={
+                !draft
+                  ? "Run AI research first to produce a draft"
+                  : citations.length === 0
+                    ? "Draft has no citations — cannot commit"
+                    : hasNewerDraft
+                      ? "A newer draft is waiting — commit it to replace the currently-committed data"
+                      : "Commit draft to database"
+              }
               onClick={(e) => {
                 e.stopPropagation();
                 doCommit();
               }}
             >
-              {committing ? "Committing…" : draft ? `Commit to ${draft.target_table}` : "Commit (no draft)"}
+              {committing
+                ? "Committing…"
+                : hasNewerDraft
+                  ? `Re-commit to ${draft?.target_table ?? "target"}`
+                  : draft
+                    ? `Commit to ${draft.target_table}`
+                    : "Commit (no draft)"}
             </button>
           )}
+
           <button
             type="button"
             className="text-sm px-3 py-1.5 border border-ink-950 bg-ink-950 text-paper-0 hover:bg-ink-700 disabled:opacity-50"

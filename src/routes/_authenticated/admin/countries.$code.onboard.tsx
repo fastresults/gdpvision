@@ -687,7 +687,7 @@ function StageCard({
               doRun();
             }}
           >
-            {running ? "Researching…" : draft ? "Re-run agent" : "Run AI research"}
+            {running ? "Researching…" : (draft || lastRun) ? "Re-run agent" : "Run AI research"}
           </button>
         </div>
       </div>

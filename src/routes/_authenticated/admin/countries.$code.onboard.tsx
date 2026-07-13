@@ -263,32 +263,55 @@ function OnboardWizard() {
 
   async function runAllPending() {
     setBulkErr(null);
+    setRunErrors([]);
+    setSkippedStages([]);
     setBulkRunning("pending");
+    const errors: Array<{ stage: Stage; message: string }> = [];
+    const skipped: Array<{ stage: Stage; waitingOn: Stage[] }> = [];
+    // Optimistic local view so we don't need to refetch between stages just to
+    // update the dependency check.
+    const localCommitted = new Set<string>(committedStages);
     try {
       for (const s of STAGES) {
         const hasDraft = drafts.some((d) => d.stage === s.key);
-        if (committedStages.has(s.key) || hasDraft) continue;
-        await runners[s.key]({ data: { countryCode: code } });
-        await refresh();
+        if (localCommitted.has(s.key) || hasDraft) continue;
+        const deps = STAGE_DEPENDENCIES[s.key] ?? [];
+        const missing = deps.filter((d) => !localCommitted.has(d));
+        if (missing.length) {
+          skipped.push({ stage: s.key, waitingOn: missing });
+          continue;
+        }
+        try {
+          await runners[s.key]({ data: { countryCode: code } });
+        } catch (e: any) {
+          errors.push({ stage: s.key, message: e?.message ?? String(e) });
+        }
       }
-    } catch (e: any) {
-      setBulkErr(e?.message ?? String(e));
     } finally {
+      setRunErrors(errors);
+      setSkippedStages(skipped);
+      await refresh();
       setBulkRunning(false);
     }
   }
 
   async function rerunAll() {
     setBulkErr(null);
+    setRunErrors([]);
+    setSkippedStages([]);
     setBulkRunning("all");
+    const errors: Array<{ stage: Stage; message: string }> = [];
     try {
       for (const s of STAGES) {
-        await runners[s.key]({ data: { countryCode: code } });
-        await refresh();
+        try {
+          await runners[s.key]({ data: { countryCode: code } });
+        } catch (e: any) {
+          errors.push({ stage: s.key, message: e?.message ?? String(e) });
+        }
       }
-    } catch (e: any) {
-      setBulkErr(e?.message ?? String(e));
     } finally {
+      setRunErrors(errors);
+      await refresh();
       setBulkRunning(false);
     }
   }

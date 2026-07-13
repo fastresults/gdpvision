@@ -118,8 +118,58 @@ function OnboardWizard() {
   const [bulkRunning, setBulkRunning] = useState<false | "pending" | "all">(false);
   const [bulkErr, setBulkErr] = useState<string | null>(null);
 
+  // Lifted so we can auto-open the accordion for the stage currently running.
+  const [openStage, setOpenStage] = useState<string | null>(null);
 
-  const runners: Record<Stage, any> = {
+  // One run banner state — visible while any stage's Run is in flight, then a
+  // result banner is shown until the admin dismisses it.
+  const [activeRun, setActiveRun] = useState<
+    | { stage: Stage; label: string; startedAt: number; runId?: string }
+    | null
+  >(null);
+  const [runProgress, setRunProgress] = useState<{
+    processed?: number;
+    total?: number;
+    lastUrl?: string | null;
+    okCount?: number;
+    failCount?: number;
+    totalChunks?: number;
+  } | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [runResult, setRunResult] = useState<
+    | { stage: Stage; label: string; ok: true; text: string; meta?: any }
+    | { stage: Stage; label: string; ok: false; text: string }
+    | null
+  >(null);
+
+  // Elapsed-seconds ticker.
+  useEffect(() => {
+    if (!activeRun) return;
+    setElapsed(0);
+    const id = window.setInterval(() => {
+      setElapsed(Math.floor((Date.now() - activeRun.startedAt) / 1000));
+    }, 500);
+    return () => window.clearInterval(id);
+  }, [activeRun]);
+
+  // Poll the run's plan every 3s so admin sees processed/total ticking.
+  const pollProgress = useServerFn(getRunProgress);
+  useEffect(() => {
+    if (!activeRun?.runId) return;
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const row = await pollProgress({ data: { runId: activeRun.runId! } });
+        if (!cancelled && row && (row as any).plan) setRunProgress((row as any).plan);
+      } catch { /* best effort */ }
+    };
+    tick();
+    const id = window.setInterval(tick, 3000);
+    return () => { cancelled = true; window.clearInterval(id); };
+  }, [activeRun?.runId, pollProgress]);
+
+
+  const runnersRaw: Record<Stage, any> = {
     profile: useServerFn(runProfileAgent),
     gdp: useServerFn(runGdpAgent),
     sector_composition: useServerFn(runSectorCompositionAgent),
@@ -146,6 +196,7 @@ function OnboardWizard() {
     corpus_ingest: async () => ({ ok: true }),
     second_brain_seed: useServerFn(commitSecondBrainSeed),
   };
+  const cleanInvalid = useServerFn(cleanInvalidCountrySources);
 
   const refresh = () =>
     Promise.all([
@@ -159,6 +210,37 @@ function OnboardWizard() {
   const country: any = (data as any).country;
   const summaries: any[] = (data as any).summaries ?? [];
   const genSummary = useServerFn(generateStageSummary);
+
+  // Wrap each runner: open the accordion for that stage, show the sticky
+  // banner, poll progress, and emit a result banner on resolve/reject.
+  const runners = Object.fromEntries(
+    STAGES.map((s) => {
+      const raw = runnersRaw[s.key];
+      const wrapped = async (arg: { data: { countryCode: string } }) => {
+        setRunResult(null);
+        setRunProgress(null);
+        setOpenStage(s.key);
+        setActiveRun({ stage: s.key, label: s.label, startedAt: Date.now() });
+        try {
+          const res: any = await raw(arg);
+          // Adopt the returned runId so we can poll progress rows.
+          if (res && typeof res === "object" && typeof res.runId === "string") {
+            setActiveRun((prev) => (prev ? { ...prev, runId: res.runId } : prev));
+          }
+          const text = summarizeRunResult(s.key, res);
+          setRunResult({ stage: s.key, label: s.label, ok: true, text, meta: res });
+          return res;
+        } catch (e: any) {
+          setRunResult({ stage: s.key, label: s.label, ok: false, text: e?.message ?? String(e) });
+          throw e;
+        } finally {
+          setActiveRun(null);
+        }
+      };
+      return [s.key, wrapped];
+    }),
+  ) as Record<string, any>;
+
 
 
   const committedStages = new Set<string>(

@@ -980,13 +980,15 @@ export const runSectorDossierAgent = createServerFn({ method: "POST" })
       const result = await callSonar({
         model,
         system:
-          "You are a sovereign sector analyst. For each sector code, return a policy stack (statutes, institutions, national plans, regulatory instruments), a comms stack (channels, spokespeople, dominant narratives, reputation risks), and a regional benchmark (peer countries, leader/average/laggard, rationale). Be concrete — use real institution and statute names.",
+          "You are a sovereign sector analyst. For each sector code, return a policy stack (statutes, institutions, national plans, regulatory instruments), a comms stack (channels, spokespeople, dominant narratives, reputation risks), and a regional benchmark (peer countries, leader/average/laggard, rationale). Be concrete — use real institution and statute names." +
+          SUMMARY_SYSTEM_SUFFIX,
         user: `Country: ${country.name} (${country.iso3 ?? country.code}). Sector codes to profile: ${sectorCodes.join(", ")}. Return one dossier per sector code.`,
         responseSchema: SectorDossierSchema as unknown as Record<string, unknown>,
       });
 
       const parsed = parseSonarJson<{ dossiers: any[] }>(result.content);
       if (!parsed?.dossiers?.length) throw new Error("Perplexity returned no dossiers");
+      const inline = extractInlineSummary(parsed);
 
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
@@ -996,6 +998,8 @@ export const runSectorDossierAgent = createServerFn({ method: "POST" })
         payload: parsed,
         confidence: result.citations.length >= 2 ? "high" : "medium",
         citations: result.citations,
+        summary_md: inline.summary_md,
+        summary_highlights: inline.summary_highlights,
       });
 
       await finishRun(supabaseAdmin, runId, { status: "ready" });

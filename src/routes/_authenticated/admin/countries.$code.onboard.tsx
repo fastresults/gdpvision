@@ -288,47 +288,80 @@ function OnboardWizard() {
   );
 
 
-  async function runAllPending() {
+  // Cancel-flag for the sequential loop — click "Stop" to break after the
+  // current stage finishes.
+  const stopRef = useRef(false);
+
+  async function findLatestDraftId(stage: Stage): Promise<string | null> {
+    // Re-read status so we pick up the draft the runner just wrote.
+    await qc.invalidateQueries({ queryKey: ["onboarding", "status", code] });
+    const latest: any = await qc.fetchQuery(statusQuery(code));
+    const stageDrafts: any[] = (latest?.drafts ?? []).filter((d: any) => d.stage === stage);
+    const active = stageDrafts.find((d) => !d.superseded) ?? stageDrafts[0];
+    return active?.id ?? null;
+  }
+
+  async function runSequential(mode: "pending" | "rerun") {
     setBulkErr(null);
     setRunErrors([]);
     setSkippedStages([]);
-    setBulkRunning("pending");
+    setBulkRunning(mode);
+    stopRef.current = false;
+    const errors: Array<{ stage: Stage; message: string }> = [];
     try {
-      const res: any = await runPipeline({ data: { countryCode: code, mode: "pending" } });
-      setRunResult({
-        stage: "kpi_seed",
-        label: "Durable onboarding workflow",
-        ok: true,
-        text: `${res.queued ? "Queued" : "Resumed"} durable job ${res.jobId}. The worker will continue independently.`,
-        meta: res,
-      });
-    } catch (e: any) {
-      setBulkErr(e?.message ?? String(e));
+      // Loop: ask the server for the next stage, run it, auto-commit its draft
+      // (when one exists), refresh, repeat — until done, stopped, or errored.
+      // Each iteration is a short server request, so a tab close only pauses.
+      for (let safety = 0; safety < STAGES.length + 2; safety++) {
+        if (stopRef.current) break;
+        const next: any = await getNextStage({ data: { countryCode: code, rerun: mode === "rerun" && safety === 0 } });
+        if (next.done || !next.nextStage) break;
+        const stage = next.nextStage as Stage;
+        try {
+          await runners[stage]({ data: { countryCode: code } });
+          const draftId = await findLatestDraftId(stage);
+          if (draftId) {
+            // Auto-commit the draft (some stages have a no-op committer).
+            await committers[stage]({ data: { draftId } });
+          }
+        } catch (e: any) {
+          errors.push({ stage, message: e?.message ?? String(e) });
+          setRunErrors([...errors]);
+          setBulkErr(`Stopped at ${stage}: ${e?.message ?? String(e)}`);
+          break;
+        }
+        await refresh();
+      }
     } finally {
       await refresh();
       setBulkRunning(false);
     }
   }
 
-  async function rerunAll() {
-    setBulkErr(null);
-    setRunErrors([]);
-    setSkippedStages([]);
-    setBulkRunning("all");
+  const runAllPending = () => runSequential("pending");
+  const rerunAll = () => runSequential("rerun");
+  const stopSequential = () => { stopRef.current = true; };
+
+  async function onClearLocks() {
     try {
-      const res: any = await runPipeline({ data: { countryCode: code, mode: "rerun" } });
+      const res: any = await clearLocks({ data: { countryCode: code } });
       setRunResult({
         stage: "kpi_seed",
-        label: "Durable onboarding workflow",
+        label: "Clear onboarding locks",
         ok: true,
-        text: `${res.queued ? "Queued" : "Resumed"} durable rerun job ${res.jobId}. The worker will continue independently.`,
+        text: res.cleared > 0
+          ? `Cleared ${res.cleared} stale lock(s): ${res.stages.join(", ")}`
+          : "No stale locks to clear.",
         meta: res,
       });
-    } catch (e: any) {
-      setBulkErr(e?.message ?? String(e));
-    } finally {
       await refresh();
-      setBulkRunning(false);
+    } catch (e: any) {
+      setRunResult({
+        stage: "kpi_seed",
+        label: "Clear onboarding locks",
+        ok: false,
+        text: e?.message ?? String(e),
+      });
     }
   }
 

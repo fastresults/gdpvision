@@ -219,6 +219,7 @@ function SourcesTab({ code }: { code: string }) {
         <table className="w-full text-sm">
           <thead className="bg-paper-100 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
             <tr className="text-left">
+              <th className="px-3 py-2 text-center">On</th>
               <th className="px-3 py-2">Source</th>
               <th className="px-3 py-2">Kind</th>
               <th className="px-3 py-2 text-center">Quality</th>

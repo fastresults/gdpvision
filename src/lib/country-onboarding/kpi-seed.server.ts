@@ -412,3 +412,112 @@ export async function runKpiSeedResearch(args: {
 
   return { runId: args.runId, draftId, count: enriched.length, coverage, attempts: allAttempts.length, committed: !!args.autoCommit, upserted };
 }
+
+export async function finalizeKpiSeedOutputs(args: {
+  admin: any;
+  runId: string;
+  countryCode: string;
+  userId?: string | null;
+  outputs: Array<{
+    kpi_code: string;
+    value: number | null;
+    period: string | null;
+    source_url: string | null;
+    source_org: string | null;
+    notes: string;
+    inference?: import("./kpi-inference.server").InferenceResult | null;
+  }>;
+  autoCommit?: boolean;
+}) {
+  const { registryFor } = await import("./kpi-registry");
+  const research = await import("./kpi-research.server");
+  const registry = registryFor(["all"]);
+  const values = new Map<string, import("./kpi-research.server").ResearchedValue>();
+  const inferred = new Map<string, import("./kpi-inference.server").InferenceResult>();
+  for (const output of args.outputs) {
+    values.set(output.kpi_code, {
+      kpi_code: output.kpi_code,
+      value: output.value,
+      period: output.period,
+      source_url: output.source_url,
+      source_org: output.source_org,
+      notes: output.notes,
+    });
+    if (output.inference) inferred.set(output.kpi_code, output.inference);
+  }
+  for (const k of registry) {
+    if (!values.has(k.kpi_code)) {
+      values.set(k.kpi_code, {
+        kpi_code: k.kpi_code,
+        value: null,
+        period: null,
+        source_url: null,
+        source_org: null,
+        notes: "not found after durable per-KPI research",
+      });
+    }
+  }
+  const coverage = research.coverageOf(registry, values);
+  const enriched = registry.map((k) => {
+    const v = values.get(k.kpi_code)!;
+    const inf = inferred.get(k.kpi_code);
+    return {
+      kpi_code: k.kpi_code,
+      label: k.label,
+      unit: k.unit,
+      direction: k.direction,
+      category: k.category,
+      latest_value: v.value,
+      latest_period: v.period,
+      target: null,
+      source_url: v.source_url,
+      source_org: v.source_org,
+      notes: v.notes,
+      required: k.required,
+      inference: inf ?? null,
+    };
+  });
+  const seenCite = new Set<string>();
+  const citations: SonarCitation[] = [];
+  for (const k of enriched) {
+    const url = k.source_url;
+    if (!url || seenCite.has(url)) continue;
+    seenCite.add(url);
+    let domain: string | undefined;
+    try { domain = new URL(url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
+    citations.push({ url, domain, title: k.source_org ?? undefined });
+  }
+  const draftId = await saveDraft(args.admin, {
+    run_id: args.runId,
+    country_code: args.countryCode,
+    payload: { kpis: enriched, coverage },
+    confidence: coverage.filled === coverage.total ? "high" : coverage.filled >= coverage.total * 0.75 ? "medium" : "low",
+    citations,
+  });
+  let upserted = 0;
+  if (args.autoCommit) {
+    for (const k of enriched) {
+      const { ok } = await upsertResolvedKpi(args.admin, args.countryCode, args.userId ?? null, k);
+      if (ok) upserted++;
+    }
+    await markDraftCommitted(args.admin, draftId, args.runId);
+  }
+  await finishRun(args.admin, args.runId, {
+    status: args.autoCommit ? "committed" : "ready",
+    plan: {
+      kind: "kpi_seed_progress",
+      phase: args.autoCommit ? "committed" : "ready",
+      processed: enriched.length,
+      total: enriched.length,
+      filled: coverage.filled,
+      missing: coverage.missing.length,
+      missingKpis: coverage.missing,
+      updatedAt: new Date().toISOString(),
+    },
+    error:
+      coverage.filled < coverage.total
+        ? `partial: ${coverage.filled}/${coverage.total} required (missing: ${coverage.missing.join(", ")})`
+        : null,
+  });
+  return { draftId, count: enriched.length, coverage, committed: !!args.autoCommit, upserted };
+}

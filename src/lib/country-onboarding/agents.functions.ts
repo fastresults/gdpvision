@@ -604,33 +604,44 @@ export const runMinistrySectorMapAgent = createServerFn({ method: "POST" })
 
       const sectorList = sectors.map((s) => `${s.code} (${s.label})`).join(", ");
       const ministryList = ministries.map((m) => `${m.slug} (${m.name})`).join("\n- ");
-      const result = await callSonar({
-        model,
-        system:
-          "You map ministerial portfolios to economic sectors. For each ministry, output the sectors it primarily oversees with a weight 0-100 representing its share of responsibility for that sector. Per-ministry weights across all its sectors should roughly sum to 100. Omit sectors a ministry has no role in." +
-          SUMMARY_SYSTEM_SUFFIX,
-        user: `Country: ${country.name}. Sectors: ${sectorList}. Ministries:\n- ${ministryList}\n\nProvide the ministry→sector mapping using the country's official ministerial mandates.`,
-        responseSchema: schema as unknown as Record<string, unknown>,
+      const fb = await runWithFallbacks<{ mappings: any[]; summary_md?: string; summary_highlights?: any[] }>({
+        perplexity: {
+          model,
+          system:
+            "You map ministerial portfolios to economic sectors. For each ministry, output the sectors it primarily oversees with a weight 0-100 representing its share of responsibility for that sector. Per-ministry weights across all its sectors should roughly sum to 100. Omit sectors a ministry has no role in." +
+            SUMMARY_SYSTEM_SUFFIX,
+          user: `Country: ${country.name}. Sectors: ${sectorList}. Ministries:\n- ${ministryList}\n\nProvide the ministry→sector mapping using the country's official ministerial mandates.`,
+          responseSchema: schema as unknown as Record<string, unknown>,
+        },
+        gemini: {
+          system: "You map ministerial portfolios to economic sectors.",
+          user: `Country: ${country.name}. Sectors: ${sectorList}. Ministries: ${ministryList}. Return mappings with weight 0-100.`,
+          schemaHint: `{ "mappings": [{"ministry_slug": string, "sector_code": string, "weight": number, "rationale": string}], "summary_md": string, "summary_highlights": [{"label": string, "value": string}] }`,
+        },
+        parse: jsonParser<{ mappings: any[] }>(),
+        validate: (v) => !!v?.mappings?.length,
+        infer: () => ({
+          mappings: seedMinistrySectorMap(ministries.map((m) => m.slug), sectors.map((s) => s.code)),
+          summary_md: `Provisional canonical portfolio→sector mapping for ${country.name} — please review.`,
+          summary_highlights: [],
+        }),
       });
 
-      const parsed = parseSonarJson<{ mappings: any[] }>(result.content);
-      if (!parsed?.mappings?.length) throw new Error("Perplexity returned no mappings");
-      const inline = extractInlineSummary(parsed);
-
+      const inline = extractInlineSummary(fb.data);
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
         country_code: data.countryCode,
         stage: "ministry_sector_map",
         target_table: "ministry_sectors",
-        payload: parsed,
-        confidence: result.citations.length >= 1 ? "medium" : "low",
-        citations: result.citations,
+        payload: fb.data,
+        confidence: fb.tier === "perplexity" && fb.citations.length >= 1 ? "medium" : "low",
+        citations: fb.citations,
         summary_md: inline.summary_md,
         summary_highlights: inline.summary_highlights,
       });
 
-      await finishRun(supabaseAdmin, runId, { status: "ready" });
-      return { runId, draftId, mappings: parsed.mappings, citations: result.citations };
+      await finishRun(supabaseAdmin, runId, { status: "ready", model_stack: { ...fb.modelStack, notes: fb.notes } });
+      return { runId, draftId, mappings: fb.data.mappings, citations: fb.citations, tier: fb.tier, notes: fb.notes };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;

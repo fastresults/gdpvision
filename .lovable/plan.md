@@ -1,134 +1,95 @@
-## What I found
+# GDP Vision — Visualization Studio Plan
 
-### Immediate second-brain bug
-- The second-brain data exists and has been committed, but the onboarding status check is counting it incorrectly.
-- `memory_objects` does not have a `country_code` column; it stores country scope in `scope_key`.
-- The status query currently counts second-brain rows with `.eq("country_code", cc)` in `countCommittedTargets` (`src/lib/country-onboarding/agents.functions.ts:303`). That query errors, the helper swallows the error and returns `{ rows: 0 }` (`lines 272-275`), so the UI thinks second brain is not committed.
-- Because committed drafts are filtered out of the live draft list (`lines 228-233`), the UI then has neither a “committed” status nor a live draft, which produces the exact symptom in the screenshot: **“Commit (no draft)”**.
+Add a **GDP Visualizations** tab to the country admin — a McKinsey-style, executive-grade "situation room" that renders the entire economy at a glance and drills into every sector. It is **read-only over live data**: sectors, KPIs, ministries, dossiers, corpus chunks and second-brain memories all flow in and update the visuals automatically.
 
-### The workflow is not fully server-side yet
-- The “Run all” orchestration still lives in the browser component (`src/routes/_authenticated/admin/countries.$code.onboard.tsx:292-350`).
-- Individual stages run on the server, but the pipeline controller is still a client loop. If the tab closes, refreshes, times out, or two admins run it, the stage state can drift.
-- The UI itself says “Do not close this tab” (`lines 466-486`), which confirms this is not yet a durable server-owned workflow.
+## 1. Where it lives
 
-### Second-brain seed is too shallow for stage 11
-- `runSecondBrainSeedAgent` calls Perplexity directly from a prompt with only country name + sector codes (`src/lib/country-onboarding/corpus.functions.ts:1610-1659`).
-- It does not yet consume the already-built second brain inputs: committed KPIs, source registry, ingested corpus chunks, sector dossiers, ministry profiles, and citations.
-- That means stage 11 is not really synthesizing the 10 prior stages; it is another standalone web-search pass.
+- New tab **"GDP Visualizations"** appended to the country data nav (`countries.$code.data.tsx`) after *Second brain*.
+- Also surfaced as a top-level card on `countries.$code.onboard.tsx` (once stage 3 Sectors + stage 7 KPIs are committed) so the PM/cabinet view is one click away.
+- A single new route file `countries.$code.viz.tsx` for a full-screen "Studio" mode (dark, presentation-grade) linked from the tab header — same charts, bigger canvas.
 
-### Commit semantics are inconsistent
-- `commitSecondBrainSeed` insert-skips duplicates by normalized title (`corpus.functions.ts:1679-1716`). This preserves no-duplicate rules, but re-runs cannot reliably improve existing generated memories because matching rows are skipped instead of updated.
-- The commit gate is citation-based in the UI (`countries.$code.onboard.tsx:830-836`). That is good for research quality, but the stage card payload counter does not include `memories` (`lines 713-720`), so second-brain draft readiness can be under-described.
+## 2. Data spine (all live)
 
-### Silent failure pattern exists elsewhere
-- The committed-target helper currently converts target-count errors into zero rows. That hid the `memory_objects.country_code` mistake. This same pattern can make future countries look uncommitted even when data exists.
-- Several corpus stages still use direct Perplexity calls rather than the stronger fallback framework used by profile/GDP/sectors/ministries/ministry-sector map.
+Every chart is a `useSuspenseQuery` against **existing** committed tables — no new schema, no new agent runs required:
 
-## Recommended dependable solution
+| Signal | Source |
+|---|---|
+| Sector shares, sub-verticals | `country_sectors` + optional `sectors.children` metadata |
+| KPI latest / target / trend | `country_kpis` + `country_kpi_points` |
+| Ministry portfolios & weights | `ministry_profiles`, `ministry_sectors` |
+| Dossier narrative snippets, benchmarks | `sector_dossiers` |
+| Evidence / citations for tooltips | `onboarding_citations`, `country_source_chunks` |
+| Risks, audiences, positions | `memory_objects` (second brain) |
 
-### Phase 1 — Immediate correctness fix
-1. Fix second-brain committed detection:
-   - Count `memory_objects` with `.eq("scope_key", cc)` instead of `.eq("country_code", cc)`.
-2. Stop hiding target-count errors:
-   - Replace the current “error means zero rows” behavior with explicit status diagnostics.
-   - If a target-count query fails, surface it in the admin UI as a pipeline health warning instead of silently showing “not committed.”
-3. Fix second-brain draft display details:
-   - Include `memories` in draft item counting.
-   - Change the button state copy so “Commit (no draft)” is never shown for a stage that has committed target rows or a status-count failure.
+New server functions (all `.functions.ts`, RLS as user):
 
-### Phase 2 — Make orchestration server-owned and resumable
-1. Add a durable pipeline-run record, e.g. `onboarding_pipeline_runs`, to track:
-   - country
-   - mode: pending / rerun / single-stage
-   - current stage
-   - checkpoint
-   - status
-   - per-stage result/error summary
-2. Add a server function such as `runCountryOnboardingPipeline` that owns the DAG:
+- `getVizOverview({ countryCode })` — macro card (GDP, growth, debt/GDP, inflation, unemployment, poverty from KPI seed) + sector array + minister-per-sector join.
+- `getSectorDetail({ countryCode, sectorCode })` — KPIs scoped to sector, dossier, top 5 corpus chunks, top 5 memory items, ministers.
+- `getFlowsGraph({ countryCode })` — nodes/edges for Sankey (ministries → sectors weighted by `ministry_sectors.weight × sector.share_pct`).
+
+Cache with a 60s `staleTime`; invalidate on any commit action from the onboarding page (`router.invalidate()` already fires there).
+
+## 3. Visualization set (borrowed & re-skinned from Sovereign Pulse)
+
+Grid layout — one screen, McKinsey information density, semantic tokens only (no hard-coded colors), tabular-nums for every number.
 
 ```text
-Level 1: profile, gdp, sector_composition, ministries, source_registry, kpi_seed
-Level 2: ministry_sector_map, sector_dossier, ministry_deep_dive, corpus_ingest
-Level 3: second_brain_seed
+┌─────────────────────────────────────────────────────────────┐
+│  A. Macro headline strip (6 KPI gauges)                     │
+├───────────────────────────┬─────────────────────────────────┤
+│  B. GDP Complexity        │  C. Sector Radar                │
+│     Treemap (sectors +    │     (5 axes: growth, jobs,      │
+│     sub-verticals)        │      fiscal, exposure, ESG)     │
+├───────────────────────────┼─────────────────────────────────┤
+│  D. Sovereign Capital     │  E. Ministry × Sector           │
+│     Sankey (Revenue →     │     Heatmap (weights matrix)    │
+│     Treasury → Sectors)   │                                 │
+├───────────────────────────┴─────────────────────────────────┤
+│  F. Sector KPI Small-Multiples (sparkline per sector)       │
+├─────────────────────────────────────────────────────────────┤
+│  G. Debt / GDP Horizon + Fiscal Balance dual-axis           │
+├─────────────────────────────────────────────────────────────┤
+│  H. Evidence Rail — citations + memory chips for selected   │
+│     sector (click-through to source modal)                  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-3. Make the browser only start/resume/poll the pipeline. The browser should not decide which stages run or commit.
-4. Make the pipeline idempotent:
-   - If a stage is already committed and no rerun is requested, skip.
-   - If a draft exists and is eligible, commit it.
-   - If a run failed, preserve the error and continue only when downstream dependencies are still satisfied.
+Clicking any tile filters the whole page to that sector (URL search param `?sector=CODE` via `validateSearch`).
 
-### Phase 3 — Strengthen stage contracts
-For every stage, define one shared server-side stage registry:
-- dependencies
-- target table/count method
-- draft payload shape
-- commit eligibility rule
-- minimum coverage rule
-- citation/evidence requirement
-- fallback strategy
+### Components (new, under `src/components/viz/`)
+- `MacroStrip.tsx` — 6 metric gauges (reuse Sovereign Pulse `metric-gauge` pattern, tokens-only).
+- `GdpTreemap.tsx` — squarified layout ported from Sovereign Pulse `treemap.tsx`, driven by `country_sectors`.
+- `SectorRadar.tsx` — recharts `RadarChart` per sector; axes computed from KPI subset.
+- `SankeyFlows.tsx` — hand-rolled SVG Sankey (port from Sovereign Pulse `sankey.tsx`), nodes from ministries + sectors.
+- `MinistrySectorHeatmap.tsx` — CSS-grid heatmap of `ministry_sectors.weight`.
+- `KpiSmallMultiples.tsx` — one sparkline per sector using `country_kpi_points`.
+- `DebtHorizon.tsx` — dual-axis area/line from `country_kpi_points` for debt/GDP + fiscal balance, with ECCB-style ceiling line if applicable.
+- `EvidenceRail.tsx` — chips linking to `country_sources` / memory items, opens existing source modal.
+- `VizStudioShell.tsx` — shared dark presentation shell for the `/viz` full-screen mode.
 
-Examples:
-- `second_brain_seed`: requires committed source registry, corpus chunks, KPIs, ministries, sector dossiers or ministry deep dives where available.
-- `kpi_seed`: requires minimum required-KPI coverage, not just any payload.
-- `corpus_ingest`: committed only when useful chunks or known deduped existing chunks are present.
+Reused: recharts is already a dep; Sankey and Treemap stay dependency-free SVG. No new npm packages required.
 
-### Phase 4 — Rebuild second-brain seed as true synthesis
-1. Change stage 11 to read from committed project data first:
-   - country profile and GDP
-   - KPI rows and provenance
-   - sector dossiers
-   - ministry profiles
-   - source registry
-   - corpus chunks/documents
-2. Generate memory objects from those inputs, not from generic search alone.
-3. Attach evidence to each memory:
-   - `source_id` when tied to a country source
-   - `citation_url` where available
-   - citation rows in `onboarding_citations`
-4. Commit with update-or-insert behavior:
-   - No duplicates.
-   - Existing generated memory rows can be improved on rerun.
-   - Verified/manual rows are protected unless explicitly overwritten.
+## 4. Interaction & UX
+- **Filter by sector**: click a treemap tile or radar → URL `?sector=TOU` scopes radar, sparklines, evidence rail, ministers list.
+- **Time range**: `?range=1y|5y|10y` search param feeds sparklines and horizon.
+- **Empty states**: each chart renders a skeleton + a "Missing: KPI seed / Sector composition — go to onboarding →" link when a dependency isn't committed. No silent zeros (consistent with existing pipeline-health pattern).
+- **Presentation mode** button opens `/admin/countries/$code/viz` full-screen dark shell for cabinet meetings.
+- **Export** button: PNG via `html-to-image` (small dep, already Worker-safe) for a one-click briefing snapshot.
 
-### Phase 5 — Fallback parity and quality gates
-1. Route `source_registry`, `sector_dossier`, `ministry_deep_dive`, and `second_brain_seed` through the same tiered strategy used in stronger stages:
-   - grounded search
-   - AI repair from source material
-   - low-confidence inferred/stub fallback only when safe
-2. Add hard non-empty checks before saving drafts:
-   - sources ≥ useful threshold
-   - KPIs ≥ required coverage threshold
-   - dossiers cover committed sectors
-   - ministry deep dive covers committed ministries
-   - second brain contains a balanced set of positions/audiences/outlets/facts/risks
-3. Classify transient failures separately from “no data”:
-   - rate limit / timeout / provider outage should be retryable
-   - invalid payload should be reviewable
-   - missing upstream dependency should block clearly
+## 5. Reliability & correctness
+- Server functions authorized via `requireSupabaseAuth` + `has_country_role` (admin or country editor).
+- Zero writes — pure read layer.
+- Handles missing sectors, missing KPI points, missing ministry weights with explicit diagnostic tiles instead of blank charts.
+- Freshness badge per chart: "Updated Xh ago" from underlying table's `updated_at`.
 
-### Phase 6 — Admin observability
-Add a compact pipeline health panel at the top of the country onboarding page:
-- committed target row counts
-- latest draft status
-- latest run status
-- citation count
-- eligibility reason
-- dependency blockers
-- retryable errors
+## 6. Delivery order
+1. Server fns: `getVizOverview`, `getSectorDetail`, `getFlowsGraph`.
+2. Route + tab wiring (`countries.$code.data.tsx`, new `viz.tsx`).
+3. Ship charts in this order (each independently useful):  MacroStrip → GdpTreemap → SectorRadar → KpiSmallMultiples → SankeyFlows → MinistrySectorHeatmap → DebtHorizon → EvidenceRail.
+4. Presentation mode + PNG export.
+5. Onboarding page: add "Open GDP Visualizations" CTA once stages 3+7 are green.
 
-This makes the system explain itself instead of requiring database inspection.
-
-## Implementation order
-1. Fix the `memory_objects.scope_key` status bug and UI wording first.
-2. Add status diagnostics so hidden query failures cannot masquerade as uncommitted stages.
-3. Move orchestration decisions into a server-owned resumable pipeline function.
-4. Rework second-brain seed to synthesize from committed corpus/data rather than standalone search.
-5. Add fallback parity and quality gates across all 11 stages.
-6. Add the pipeline health panel.
-
-## Expected result
-- Second brain will correctly show as committed when memory rows exist.
-- Rerunning stage 11 will produce a reviewable draft or a clear failure reason, not “Commit (no draft).”
-- “Run all” will become resumable and dependable across countries.
-- Each country’s 11-stage onboarding will have consistent dependencies, evidence, draft rules, commit rules, and health reporting.
+## 7. Out of scope (call out for a follow-up)
+- Scenario levers (what-if sliders) — Sovereign Pulse has these; here they'd need a scenarios table. Not built in this pass.
+- Cross-country comparison view — separate route later.
+- Auto-generated cabinet narrative — reuse existing dossier text for now; AI-written executive summary is a v2 add-on.

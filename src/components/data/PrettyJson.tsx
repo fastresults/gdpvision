@@ -1,5 +1,6 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { humanizeKey, formatNumber, splitCitations, linkifyParts } from "./humanize";
 
 type Json = null | string | number | boolean | Json[] | { [k: string]: Json };
@@ -42,26 +43,127 @@ function pickTitle(obj: Record<string, Json>): { title?: string; rest: Record<st
   return { rest: obj };
 }
 
-function CitationRef({ refs }: { refs: number[] }) {
-  const ctx = useContext(CitationContext);
-  const label = `[${refs.join(",")}]`;
-  if (!ctx || ctx.citations.length === 0) {
+function useHasHover() {
+  const [hasHover, setHasHover] = useState(true);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(hover: hover)");
+    const update = () => setHasHover(mq.matches);
+    update();
+    mq.addEventListener?.("change", update);
+    return () => mq.removeEventListener?.("change", update);
+  }, []);
+  return hasHover;
+}
+
+function dedupeRefs(refs: number[]): number[] {
+  const seen = new Set<number>();
+  const out: number[] = [];
+  for (const r of refs) {
+    if (!seen.has(r)) {
+      seen.add(r);
+      out.push(r);
+    }
+  }
+  return out;
+}
+
+function CitationCard({ n, citation }: { n: number; citation?: Citation }) {
+  if (!citation) {
     return (
-      <sup className="ml-1 text-[9px] font-mono text-ink-400 tracking-wider">{label}</sup>
+      <div className="border border-line-200 p-3">
+        <div className="font-mono text-[10px] uppercase tracking-widest text-ink-500 mb-1">[{n}]</div>
+        <p className="text-sm text-ink-400">Source unavailable</p>
+      </div>
     );
   }
   return (
-    <button
-      type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        ctx.open(refs);
-      }}
-      className="ml-0.5 text-[9px] font-mono text-ink-500 tracking-wider align-super hover:text-ink-950 underline decoration-dotted underline-offset-2 cursor-pointer"
-      title={`View source${refs.length > 1 ? "s" : ""} ${label}`}
-    >
-      {label}
-    </button>
+    <article className="border border-line-200 p-4 space-y-2">
+      <header className="flex items-baseline justify-between gap-3">
+        <div className="font-mono text-[10px] uppercase tracking-widest text-ink-500">
+          [{n}] · {domainOf(citation)}
+        </div>
+        {citation.published_at && (
+          <div className="font-mono text-[10px] text-ink-400 tabular-nums">
+            {new Date(citation.published_at).toISOString().slice(0, 10)}
+          </div>
+        )}
+      </header>
+      {citation.title && (
+        <a href={citation.url} target="_blank" rel="noreferrer" className="block font-serif text-base text-ink-950 hover:underline">
+          {citation.title}
+        </a>
+      )}
+      {citation.quote && (
+        <blockquote className="border-l-2 border-line-200 pl-3 text-sm text-ink-700 italic leading-relaxed">
+          {citation.quote}
+        </blockquote>
+      )}
+      <a href={citation.url} target="_blank" rel="noreferrer" className="block font-mono text-[11px] text-ink-500 hover:text-ink-950 underline break-all">
+        {citation.url}
+      </a>
+    </article>
+  );
+}
+
+function CitationRef({ refs: rawRefs }: { refs: number[] }) {
+  const ctx = useContext(CitationContext);
+  const refs = dedupeRefs(rawRefs);
+  const label = `[${rawRefs.join(",")}]`;
+  const hasHover = useHasHover();
+
+  if (!ctx || ctx.citations.length === 0) {
+    return <sup className="ml-1 text-[9px] font-mono text-ink-400 tracking-wider">{label}</sup>;
+  }
+
+  const triggerClasses =
+    "ml-0.5 text-[9px] font-mono text-ink-500 tracking-wider align-super hover:text-ink-950 underline decoration-dotted underline-offset-2 cursor-pointer";
+
+  const openModal = () => ctx.open(refs);
+
+  if (!hasHover) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          openModal();
+        }}
+        className={triggerClasses}
+        title={`View source${refs.length > 1 ? "s" : ""} ${label}`}
+      >
+        {label}
+      </button>
+    );
+  }
+
+  return (
+    <HoverCard openDelay={150} closeDelay={100}>
+      <HoverCardTrigger asChild>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            openModal();
+          }}
+          className={triggerClasses}
+          title={`View source${refs.length > 1 ? "s" : ""} ${label}`}
+        >
+          {label}
+        </button>
+      </HoverCardTrigger>
+      <HoverCardContent
+        align="start"
+        side="top"
+        sideOffset={6}
+        collisionPadding={12}
+        className="w-[420px] max-w-[calc(100vw-24px)] max-h-[60vh] overflow-y-auto p-3 space-y-3"
+      >
+        {refs.map((n) => (
+          <CitationCard key={n} n={n} citation={ctx.citations[n - 1]} />
+        ))}
+      </HoverCardContent>
+    </HoverCard>
   );
 }
 
@@ -200,54 +302,9 @@ function CitationDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 mt-2">
-          {refs.map((n) => {
-            const c = citations[n - 1];
-            if (!c) {
-              return (
-                <div key={n} className="border border-line-200 p-3">
-                  <div className="font-mono text-[10px] uppercase tracking-widest text-ink-500 mb-1">[{n}]</div>
-                  <p className="text-sm text-ink-400">Source unavailable</p>
-                </div>
-              );
-            }
-            return (
-              <article key={n} className="border border-line-200 p-4 space-y-2">
-                <header className="flex items-baseline justify-between gap-3">
-                  <div className="font-mono text-[10px] uppercase tracking-widest text-ink-500">
-                    [{n}] · {domainOf(c)}
-                  </div>
-                  {c.published_at && (
-                    <div className="font-mono text-[10px] text-ink-400 tabular-nums">
-                      {new Date(c.published_at).toISOString().slice(0, 10)}
-                    </div>
-                  )}
-                </header>
-                {c.title && (
-                  <a
-                    href={c.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block font-serif text-base text-ink-950 hover:underline"
-                  >
-                    {c.title}
-                  </a>
-                )}
-                {c.quote && (
-                  <blockquote className="border-l-2 border-line-200 pl-3 text-sm text-ink-700 italic leading-relaxed">
-                    {c.quote}
-                  </blockquote>
-                )}
-                <a
-                  href={c.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block font-mono text-[11px] text-ink-500 hover:text-ink-950 underline break-all"
-                >
-                  {c.url}
-                </a>
-              </article>
-            );
-          })}
+          {refs.map((n) => (
+            <CitationCard key={n} n={n} citation={citations[n - 1]} />
+          ))}
         </div>
       </DialogContent>
     </Dialog>

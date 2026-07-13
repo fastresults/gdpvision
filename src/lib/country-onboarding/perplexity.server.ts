@@ -29,7 +29,6 @@ const OFFICIAL_DOMAINS = [
   "oecs.int",
   "oecs.org",
   "caricom.org",
-  "statisticsdata.com",
   "wikipedia.org",
 ];
 
@@ -45,17 +44,21 @@ export async function callSonar(opts: {
   model: SonarModel;
   system: string;
   user: string;
-  countryTld?: string; // e.g. "gov.lc" — added to the official domain allowlist
+  countryTld?: string;                 // e.g. "gov.lc" — added to the allowlist
+  extraDomains?: string[];             // context-derived domains (national stats office, portal, central bank)
   recency?: "day" | "week" | "month" | "year";
-  responseSchema?: Record<string, unknown>; // JSON schema for structured output
+  responseSchema?: Record<string, unknown>;
   maxTokens?: number;
-  noDomainFilter?: boolean; // when true, do not restrict to the official allowlist
+  noDomainFilter?: boolean;
 }): Promise<SonarResult> {
   const key = process.env.PERPLEXITY_API_KEY;
   if (!key) throw new Error("PERPLEXITY_API_KEY not configured");
 
   const domainAllow = [...OFFICIAL_DOMAINS];
   if (opts.countryTld) domainAllow.push(opts.countryTld);
+  if (opts.extraDomains?.length) {
+    for (const d of opts.extraDomains) if (d && !domainAllow.includes(d)) domainAllow.push(d);
+  }
 
   const body: Record<string, unknown> = {
     model: opts.model,
@@ -73,7 +76,6 @@ export async function callSonar(opts: {
       json_schema: { name: "structured", schema: opts.responseSchema },
     };
   }
-
 
   const doFetch = async (payload: Record<string, unknown>) => {
     const r = await fetch("https://api.perplexity.ai/chat/completions", {
@@ -98,9 +100,7 @@ export async function callSonar(opts: {
   let json = await doFetch(body);
   let content = json.choices?.[0]?.message?.content ?? "";
 
-  // Durability: small-nation TLDs (e.g. .gov.ag) are not in OFFICIAL_DOMAINS,
-  // so a strict allowlist search can return empty content. If that happens,
-  // retry once without the filter before the caller's empty-guard throws.
+  // Small-nation TLDs sometimes miss; retry without filter if content is empty.
   if (!content.trim() && !opts.noDomainFilter && body.search_domain_filter) {
     const retryBody = { ...body };
     delete retryBody.search_domain_filter;
@@ -135,7 +135,6 @@ export function parseSonarJson<T = unknown>(content: string): T | null {
   try {
     return JSON.parse(candidate) as T;
   } catch {
-    // Try trimming trailing junk
     for (let i = candidate.length; i > 0; i--) {
       try {
         return JSON.parse(candidate.slice(0, i)) as T;
@@ -144,5 +143,60 @@ export function parseSonarJson<T = unknown>(content: string): T | null {
       }
     }
     return null;
+  }
+}
+
+/**
+ * Cheap "discovery" pass — no schema, plain text. Returns candidate URLs the
+ * extraction pass can use to widen the domain allowlist. Never throws; returns
+ * empty on failure.
+ */
+export async function discoverOfficialUrls(opts: {
+  countryName: string;
+  countryTld?: string;
+  topic: string; // "cabinet ministries", "national accounts by sector", "GDP", etc.
+}): Promise<string[]> {
+  try {
+    const res = await callSonar({
+      model: "sonar",
+      system:
+        "You find official primary-source URLs. Return ONLY a JSON array of up to 5 URL strings, no prose, no code fences. Prefer government (.gov.xx), national statistics offices, central banks, and multilateral portals (World Bank, IMF, UN).",
+      user: `Find the best primary-source URLs for: ${opts.topic} — ${opts.countryName}${opts.countryTld ? ` (national TLD .${opts.countryTld})` : ""}. Return a JSON array of URLs.`,
+      countryTld: opts.countryTld,
+      noDomainFilter: true, // discovery must be wide-open
+      recency: "year",
+    });
+    const arr = parseSonarJson<string[]>(res.content);
+    if (Array.isArray(arr)) return arr.filter((u) => typeof u === "string" && u.startsWith("http")).slice(0, 5);
+  } catch {
+    /* discovery is best-effort */
+  }
+  return [];
+}
+
+/**
+ * Fetch the raw text of a citation URL. Uses a plain fetch with a short
+ * timeout and strips HTML to feed Gemini as grounding. Best-effort — returns
+ * empty on any failure. Capped at ~8kb per URL to keep prompts small.
+ */
+export async function fetchCitationText(url: string, maxChars = 8000): Promise<string> {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 6000);
+    const r = await fetch(url, { signal: ctrl.signal, headers: { "user-agent": "Mozilla/5.0 GDPVisionBot" } });
+    clearTimeout(t);
+    if (!r.ok) return "";
+    const html = await r.text();
+    // Very rough HTML strip — enough for LLM grounding.
+    const text = html
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    return text.slice(0, maxChars);
+  } catch {
+    return "";
   }
 }

@@ -1421,8 +1421,8 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
 
     try {
       await writeProgress(0, null);
-      for (let idx = 0; idx < sources.length; idx++) {
-        const src = sources[idx];
+      for (let idx = 0; idx < valid.length; idx++) {
+        const src = valid[idx];
         try {
           const doc = await fetchFirecrawl(src.url);
           if (!doc.markdown || doc.markdown.length < 200) {

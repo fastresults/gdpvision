@@ -340,27 +340,34 @@ function StageCard({
   countryName,
   draft,
   lastRun,
+  summary,
   keyConfigured,
   isOpen,
   onToggle,
   onRun,
   onCommit,
+  onGenerateSummary,
 }: {
   stage: { key: Stage; label: string; short: string; desc: string };
   countryName: string;
   draft: any;
   lastRun: any;
+  summary: any;
   keyConfigured: boolean;
   isOpen: boolean;
   onToggle: () => void;
   onRun: () => Promise<unknown>;
   onCommit: (editedPayload: unknown) => Promise<unknown>;
+  onGenerateSummary: () => Promise<unknown>;
 }) {
 
   const [running, setRunning] = useState(false);
   const [committing, setCommitting] = useState(false);
+  const [generatingSummary, setGeneratingSummary] = useState(false);
+  const [showRaw, setShowRaw] = useState(false);
   const [edited, setEdited] = useState<string>("");
   const [err, setErr] = useState<string | null>(null);
+
 
   const committed = lastRun?.status === "committed";
   const payload = draft?.payload;

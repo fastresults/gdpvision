@@ -1616,7 +1616,7 @@ async function loadSecondBrainGrounding(admin: any, countryCode: string) {
       .order("share_pct", { ascending: false }),
     admin
       .from("country_kpis")
-      .select("kpi_code,label,unit,category,latest_value,latest_period,source_url,source_org,provenance,confidence")
+      .select("kpi_code,label,unit,category,latest_value,latest_period,source_url,provenance,confidence")
       .eq("country_code", countryCode)
       .order("category"),
     admin

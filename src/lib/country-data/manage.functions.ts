@@ -6,6 +6,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { normalizeMemoryTitle, isUniqueViolation, contentHash } from "@/lib/country-onboarding/memory-dedup";
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data: isAdmin } = await context.supabase.rpc("has_role", {
@@ -925,13 +926,40 @@ export const upsertMemory = createServerFn({ method: "POST" })
       verified: data.verified,
       created_by: context.userId,
     };
+
+    // Normalized-title dedup guard (matches memory_objects_dedup_idx).
+    // On create, reject if a memory with the same normalized title already exists.
+    if (!data.id) {
+      const norm = normalizeMemoryTitle(data.title);
+      const { data: siblings } = await supabaseAdmin
+        .from("memory_objects")
+        .select("id, title")
+        .eq("scope_key", data.countryCode)
+        .eq("sector_code", data.sector_code)
+        .eq("kind", data.kind);
+      const dupe = (siblings ?? []).find(
+        (r: any) => normalizeMemoryTitle(r.title ?? "") === norm,
+      );
+      if (dupe) {
+        throw new Error(
+          `A memory with this title already exists for ${data.sector_code} / ${data.kind}. Edit the existing one instead of creating a duplicate.`,
+        );
+      }
+    }
+
     const q = data.id
       ? supabaseAdmin.from("memory_objects").update(row).eq("id", data.id).select("id").single()
       : supabaseAdmin.from("memory_objects").insert(row).select("id").single();
     const { data: out, error } = await q;
-    if (error) throw error;
+    if (error) {
+      if (isUniqueViolation(error)) {
+        throw new Error("A memory with this title already exists (case- and whitespace-insensitive).");
+      }
+      throw error;
+    }
     return out;
   });
+
 
 export const setMemoryVerified = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -1423,37 +1451,50 @@ export const ingestDocumentSource = createServerFn({ method: "POST" })
     }
 
     if (text.trim().length > 0) {
-      const { chunkText, embedBatch } = await import("@/lib/country-onboarding/ingest.server");
-      const chunks = chunkText(text);
-      const { data: docRow, error: dErr } = await supabaseAdmin
+      const hash = contentHash(text);
+      // Skip re-embed if we already have a document for this source with the
+      // same content hash (matches country_source_documents_content_dedup_idx).
+      const { data: existingDoc } = await supabaseAdmin
         .from("country_source_documents")
-        .insert({
-          country_source_id: res.id,
-          raw_text: text,
-          chunk_count: chunks.length,
-          char_count: text.length,
-        })
         .select("id")
-        .single();
-      if (!dErr && docRow) {
-        for (let i = 0; i < chunks.length; i += 64) {
-          const batch = chunks.slice(i, i + 64);
-          const embs = await embedBatch(batch);
-          const rows = batch.map((content, idx) => ({
-            country_code: data.countryCode,
-            document_id: docRow.id,
-            chunk_index: i + idx,
-            content,
-            embedding: `[${embs[idx].join(",")}]` as unknown as string,
-          }));
-          await supabaseAdmin.from("country_source_chunks").insert(rows);
+        .eq("country_source_id", res.id)
+        .eq("content_hash", hash)
+        .maybeSingle();
+      if (!existingDoc) {
+        const { chunkText, embedBatch } = await import("@/lib/country-onboarding/ingest.server");
+        const chunks = chunkText(text);
+        const { data: docRow, error: dErr } = await supabaseAdmin
+          .from("country_source_documents")
+          .insert({
+            country_source_id: res.id,
+            raw_text: text,
+            chunk_count: chunks.length,
+            char_count: text.length,
+            content_hash: hash,
+          })
+          .select("id")
+          .single();
+        if (!dErr && docRow) {
+          for (let i = 0; i < chunks.length; i += 64) {
+            const batch = chunks.slice(i, i + 64);
+            const embs = await embedBatch(batch);
+            const rows = batch.map((content, idx) => ({
+              country_code: data.countryCode,
+              document_id: docRow.id,
+              chunk_index: i + idx,
+              content,
+              embedding: `[${embs[idx].join(",")}]` as unknown as string,
+            }));
+            await supabaseAdmin.from("country_source_chunks").insert(rows);
+          }
         }
-        await supabaseAdmin
-          .from("country_sources")
-          .update({ last_fetched_at: new Date().toISOString(), fetch_status: "ok" })
-          .eq("id", res.id);
       }
+      await supabaseAdmin
+        .from("country_sources")
+        .update({ last_fetched_at: new Date().toISOString(), fetch_status: "ok" })
+        .eq("id", res.id);
     }
+
     return { id: res.id, existed: res.existed, extracted_chars: text.length };
   });
 

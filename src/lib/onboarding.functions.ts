@@ -7,6 +7,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { normalizeMemoryTitle, isUniqueViolation } from "@/lib/country-onboarding/memory-dedup";
 
 const SEED_TEMPLATES: Array<{ scope_key: string; kind: string; title: string; body: string; weight: number }> = [
   {
@@ -70,16 +71,23 @@ export const seedCountryPack = createServerFn({ method: "POST" })
       .eq("country_code", data.countryCode);
     const sectorCode = sectors?.[0]?.sector_code ?? "cross_cutting";
 
+    // Fetch existing seeded memories once and dedupe by normalized title
+    // (matches memory_objects_dedup_idx).
+    const { data: existingRows } = await supabaseAdmin
+      .from("memory_objects")
+      .select("kind, title")
+      .eq("scope_key", "national")
+      .eq("sector_code", sectorCode);
+    const existingKeys = new Set(
+      (existingRows ?? []).map(
+        (r: any) => `${r.kind}|${normalizeMemoryTitle(r.title ?? "")}`,
+      ),
+    );
+
     let inserted = 0;
     for (const tpl of SEED_TEMPLATES) {
-      const { data: existing } = await supabaseAdmin
-        .from("memory_objects")
-        .select("id")
-        .eq("scope_key", tpl.scope_key)
-        .eq("sector_code", sectorCode)
-        .eq("title", tpl.title)
-        .maybeSingle();
-      if (existing) continue;
+      const key = `${tpl.kind}|${normalizeMemoryTitle(tpl.title)}`;
+      if (existingKeys.has(key)) continue;
       const { error } = await supabaseAdmin.from("memory_objects").insert({
         scope_key: tpl.scope_key,
         sector_code: sectorCode,
@@ -90,8 +98,14 @@ export const seedCountryPack = createServerFn({ method: "POST" })
         verified: true,
         created_by: context.userId,
       });
-      if (!error) inserted += 1;
+      if (!error) {
+        inserted += 1;
+        existingKeys.add(key);
+      } else if (!isUniqueViolation(error)) {
+        throw error;
+      }
     }
+
 
 
     await supabaseAdmin.from("audit_log").insert({

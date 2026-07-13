@@ -820,6 +820,7 @@ export type Database = {
         Row: {
           char_count: number
           chunk_count: number
+          content_hash: string | null
           country_source_id: string
           created_at: string
           fetched_at: string
@@ -829,6 +830,7 @@ export type Database = {
         Insert: {
           char_count: number
           chunk_count?: number
+          content_hash?: string | null
           country_source_id: string
           created_at?: string
           fetched_at?: string
@@ -838,6 +840,7 @@ export type Database = {
         Update: {
           char_count?: number
           chunk_count?: number
+          content_hash?: string | null
           country_source_id?: string
           created_at?: string
           fetched_at?: string

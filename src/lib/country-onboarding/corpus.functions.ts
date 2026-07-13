@@ -15,6 +15,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { callSonar, parseSonarJson, type SonarCitation, type SonarModel } from "./perplexity.server";
 import { SUMMARY_SCHEMA_FRAGMENT, SUMMARY_SYSTEM_SUFFIX, extractInlineSummary } from "./summary-inline";
+import { normalizeMemoryTitle, isUniqueViolation, contentHash } from "./memory-dedup";
 
 type Stage =
   | "source_registry"
@@ -1328,25 +1329,30 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
     try {
       for (const src of sources) {
         try {
-          // Skip if already have a document for this source in the last 24h
-          const { data: existing } = await supabaseAdmin
-            .from("country_source_documents")
-            .select("id, fetched_at")
-            .eq("country_source_id", src.id)
-            .order("fetched_at", { ascending: false })
-            .limit(1);
-          if (existing?.[0]) {
-            const ageMs = Date.now() - new Date(existing[0].fetched_at).getTime();
-            if (ageMs < 24 * 60 * 60 * 1000) {
-              results.push({ source_id: src.id, url: src.url, ok: true, chunks: 0 });
-              continue;
-            }
-          }
-
           const doc = await fetchFirecrawl(src.url);
           if (!doc.markdown || doc.markdown.length < 200) {
             throw new Error(`too short: ${doc.markdown.length} chars`);
           }
+          const hash = contentHash(doc.markdown);
+
+          // Dedup: if we already have a document for this source with the
+          // same content_hash, skip re-embedding entirely — no new document,
+          // no new chunks. This is the corpus's "no duplicates" guard.
+          const { data: existing } = await supabaseAdmin
+            .from("country_source_documents")
+            .select("id")
+            .eq("country_source_id", src.id)
+            .eq("content_hash", hash)
+            .maybeSingle();
+          if (existing) {
+            await supabaseAdmin
+              .from("country_sources")
+              .update({ last_fetched_at: new Date().toISOString(), fetch_status: "ok", fetch_error: null })
+              .eq("id", src.id);
+            results.push({ source_id: src.id, url: src.url, ok: true, chunks: 0 });
+            continue;
+          }
+
           const chunks = chunkText(doc.markdown);
           if (!chunks.length) throw new Error("no chunks after split");
 
@@ -1358,10 +1364,12 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
               raw_text: doc.markdown,
               char_count: doc.markdown.length,
               chunk_count: chunks.length,
+              content_hash: hash,
             })
             .select("id")
             .single();
           if (dErr || !docRow) throw new Error(dErr?.message ?? "doc insert failed");
+
 
           // Embed in batches of 64
           const vectors: number[][] = [];
@@ -1521,16 +1529,23 @@ export const commitSecondBrainSeed = createServerFn({ method: "POST" })
     if (error || !draft) throw new Error("Draft not found");
     const payload = (data.editedPayload ?? draft.payload) as { memories: Array<any> };
 
+    // Pull existing memories once and dedupe by normalized title in JS
+    // (matches the DB unique index memory_objects_dedup_idx).
+    const { data: existingRows } = await supabaseAdmin
+      .from("memory_objects")
+      .select("id, sector_code, kind, title")
+      .eq("scope_key", draft.country_code);
+    const existingKeys = new Set(
+      (existingRows ?? []).map(
+        (r: any) => `${r.sector_code}|${r.kind}|${normalizeMemoryTitle(r.title ?? "")}`,
+      ),
+    );
+
     let inserted = 0;
+    let skipped = 0;
     for (const m of payload.memories) {
-      const { data: existing } = await supabaseAdmin
-        .from("memory_objects")
-        .select("id")
-        .eq("scope_key", draft.country_code)
-        .eq("sector_code", m.sector_code)
-        .eq("title", m.title)
-        .maybeSingle();
-      if (existing) continue;
+      const key = `${m.sector_code}|${m.kind}|${normalizeMemoryTitle(m.title)}`;
+      if (existingKeys.has(key)) { skipped++; continue; }
       const { error: insErr } = await supabaseAdmin.from("memory_objects").insert({
         scope_key: draft.country_code,
         sector_code: m.sector_code,
@@ -1541,11 +1556,19 @@ export const commitSecondBrainSeed = createServerFn({ method: "POST" })
         verified: false,
         created_by: context.userId,
       });
-      if (!insErr) inserted++;
+      if (!insErr) {
+        inserted++;
+        existingKeys.add(key);
+      } else if (isUniqueViolation(insErr)) {
+        skipped++;
+      } else {
+        throw insErr;
+      }
     }
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
-    return { ok: true, inserted };
+    return { ok: true, inserted, skipped };
   });
+
 
 // ============================================================
 // Utility: connector / key status

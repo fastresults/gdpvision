@@ -106,14 +106,22 @@ export function MarketingHome() {
         if (next === 0) setTail(shuffleTail());
         return next;
       });
-    }, 5500);
+    }, 10000);
     return () => clearInterval(id);
   }, []);
   const current = index === 0 ? EXISTENTIAL_THREATS[0] : tail[index - 1];
   const moment = MOMENT_VARIANTS[momentIndex];
   const total = MOMENT_VARIANTS.length;
+  const threatTotal = EXISTENTIAL_THREATS.length;
   const goPrev = () => setMomentIndex((i) => (i - 1 + total) % total);
   const goNext = () => setMomentIndex((i) => (i + 1) % total);
+  const goPrevThreat = () => setIndex((i) => (i - 1 + threatTotal) % threatTotal);
+  const goNextThreat = () =>
+    setIndex((i) => {
+      const next = (i + 1) % threatTotal;
+      if (next === 0) setTail(shuffleTail());
+      return next;
+    });
 
   return (
     <MarketingShell>

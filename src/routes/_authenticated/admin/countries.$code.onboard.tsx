@@ -112,8 +112,9 @@ function OnboardWizard() {
   const { data: keyStatus } = useSuspenseQuery(keyStatusQuery);
   const { data: ingestKeys } = useSuspenseQuery(ingestKeysQuery);
   const qc = useQueryClient();
-  const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkRunning, setBulkRunning] = useState<false | "pending" | "all">(false);
   const [bulkErr, setBulkErr] = useState<string | null>(null);
+
 
   const runners: Record<Stage, any> = {
     profile: useServerFn(runProfileAgent),

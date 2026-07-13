@@ -949,8 +949,9 @@ const SectorDossierSchema = {
         required: ["sector_code", "policy", "comms", "regional_benchmark"],
       },
     },
+    ...SUMMARY_SCHEMA_FRAGMENT,
   },
-  required: ["dossiers"],
+  required: ["dossiers", "summary_md", "summary_highlights"],
 } as const;
 
 export const runSectorDossierAgent = createServerFn({ method: "POST" })

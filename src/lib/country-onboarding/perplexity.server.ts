@@ -40,6 +40,12 @@ function domainOf(u: string): string {
   }
 }
 
+function normalizeDomain(raw: string): string | null {
+  const s = String(raw ?? "").trim().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
+  if (!s || !s.includes(".")) return null;
+  return s.toLowerCase();
+}
+
 export async function callSonar(opts: {
   model: SonarModel;
   system: string;
@@ -54,11 +60,17 @@ export async function callSonar(opts: {
   const key = process.env.PERPLEXITY_API_KEY;
   if (!key) throw new Error("PERPLEXITY_API_KEY not configured");
 
-  const domainAllow = [...OFFICIAL_DOMAINS];
-  if (opts.countryTld) domainAllow.push(opts.countryTld);
+  const domainAllow: string[] = [];
+  const pushDomain = (d: string | null | undefined) => {
+    const normalized = d ? normalizeDomain(d) : null;
+    if (normalized && !domainAllow.includes(normalized)) domainAllow.push(normalized);
+  };
+  for (const d of OFFICIAL_DOMAINS) pushDomain(d);
+  if (opts.countryTld) pushDomain(opts.countryTld);
   if (opts.extraDomains?.length) {
-    for (const d of opts.extraDomains) if (d && !domainAllow.includes(d)) domainAllow.push(d);
+    for (const d of opts.extraDomains) pushDomain(d);
   }
+  const boundedDomainAllow = domainAllow.slice(0, 20);
 
   const body: Record<string, unknown> = {
     model: opts.model,
@@ -67,7 +79,7 @@ export async function callSonar(opts: {
       { role: "user", content: opts.user },
     ],
   };
-  if (!opts.noDomainFilter) body.search_domain_filter = domainAllow;
+  if (!opts.noDomainFilter) body.search_domain_filter = boundedDomainAllow;
   if (opts.recency) body.search_recency_filter = opts.recency;
   if (opts.maxTokens) body.max_tokens = opts.maxTokens;
   if (opts.responseSchema) {
@@ -97,7 +109,21 @@ export async function callSonar(opts: {
     };
   };
 
-  let json = await doFetch(body);
+  let json;
+  try {
+    json = await doFetch(body);
+  } catch (err) {
+    // Perplexity enforces a hard max on domain filters. If a learned-domain
+    // allowlist still trips provider validation, retry once open-web instead
+    // of failing the whole onboarding stage.
+    if (!opts.noDomainFilter && /search domain filter|domain_filter|max length/i.test((err as Error).message)) {
+      const retryBody = { ...body };
+      delete retryBody.search_domain_filter;
+      json = await doFetch(retryBody);
+    } else {
+      throw err;
+    }
+  }
   let content = json.choices?.[0]?.message?.content ?? "";
 
   // Small-nation TLDs sometimes miss; retry without filter if content is empty.

@@ -139,12 +139,18 @@ function OnboardWizard() {
     | null
   >(null);
   const [runProgress, setRunProgress] = useState<{
+    phase?: string;
     processed?: number;
     total?: number;
+    currentKpi?: string | null;
     lastUrl?: string | null;
     okCount?: number;
     failCount?: number;
     totalChunks?: number;
+    filled?: number;
+    missing?: number;
+    updatedAt?: string;
+    missingKpis?: string[];
   } | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [runResult, setRunResult] = useState<
@@ -166,18 +172,25 @@ function OnboardWizard() {
   // Poll the run's plan every 3s so admin sees processed/total ticking.
   const pollProgress = useServerFn(getRunProgress);
   useEffect(() => {
-    if (!activeRun?.runId) return;
+    if (!activeRun) return;
     let cancelled = false;
     const tick = async () => {
       try {
-        const row = await pollProgress({ data: { runId: activeRun.runId! } });
+        const row = await pollProgress({
+          data: activeRun.runId
+            ? { runId: activeRun.runId }
+            : { countryCode: code, stage: activeRun.stage },
+        });
+        if (!cancelled && row && (row as any).id && !activeRun.runId) {
+          setActiveRun((prev) => (prev ? { ...prev, runId: (row as any).id } : prev));
+        }
         if (!cancelled && row && (row as any).plan) setRunProgress((row as any).plan);
       } catch { /* best effort */ }
     };
     tick();
     const id = window.setInterval(tick, 3000);
     return () => { cancelled = true; window.clearInterval(id); };
-  }, [activeRun?.runId, pollProgress]);
+  }, [activeRun?.runId, activeRun?.stage, code, pollProgress]);
 
 
   const runnersRaw: Record<Stage, any> = {
@@ -447,10 +460,15 @@ function OnboardWizard() {
               </div>
               {runProgress && typeof runProgress.processed === "number" && (
                 <div className="text-[11px] text-paper-0/70 font-mono mt-0.5">
+                  {runProgress.phase && <>phase {runProgress.phase} · </>}
                   Processed {runProgress.processed}/{runProgress.total ?? "?"}
                   {typeof runProgress.okCount === "number" && (
                     <> · ok {runProgress.okCount} · fail {runProgress.failCount ?? 0}</>
                   )}
+                  {typeof runProgress.filled === "number" && (
+                    <> · filled {runProgress.filled} · missing {runProgress.missing ?? 0}</>
+                  )}
+                  {runProgress.currentKpi && <> · now {runProgress.currentKpi}</>}
                   {runProgress.lastUrl && <> · last: {truncateMiddle(runProgress.lastUrl, 60)}</>}
                 </div>
               )}
@@ -584,6 +602,7 @@ function PipelineHealthPanel({
           const run = runs.find((r) => r.stage === s.key);
           const diag = diagnostics.find((d) => d.stage === s.key);
           const result = latestResults.find((r) => r.stage === s.key);
+          const plan = run?.plan && typeof run.plan === "object" ? run.plan : null;
           return (
             <div key={s.key} className="border border-line-200 p-2 text-xs">
               <div className="flex items-center justify-between gap-2">
@@ -594,6 +613,14 @@ function PipelineHealthPanel({
               </div>
               <div className="mt-1 text-[11px] text-ink-500 space-y-0.5">
                 {run && <div>last run {run.status}</div>}
+                {plan?.phase && (
+                  <div className="font-mono text-[10px] text-ink-600">
+                    {String(plan.phase)}
+                    {typeof plan.processed === "number" && <> · {plan.processed}/{plan.total ?? "?"}</>}
+                    {typeof plan.filled === "number" && <> · filled {plan.filled}</>}
+                    {plan.currentKpi && <> · {String(plan.currentKpi)}</>}
+                  </div>
+                )}
                 {result && <div>pipeline {result.status}{result.message ? ` — ${result.message}` : ""}</div>}
                 {diag && <div className="text-red-700 break-words">{diag.message}</div>}
               </div>
@@ -609,6 +636,9 @@ function summarizeRunResult(stage: Stage, res: any): string {
   if (!res) return "Completed.";
   if (stage === "corpus_ingest" && typeof res.okCount === "number") {
     return `Ingested ${res.totalChunks ?? 0} chunks across ${res.okCount} source(s) (${res.failCount ?? 0} failed).`;
+  }
+  if (stage === "kpi_seed" && res.coverage) {
+    return `KPI draft ready: ${res.coverage.filled}/${res.coverage.total} required filled across ${res.attempts ?? 0} attempts${res.coverage.missing?.length ? `; missing ${res.coverage.missing.join(", ")}` : ""}.`;
   }
   if (typeof res.count === "number") return `Draft ready with ${res.count} item(s). Review below.`;
   if (typeof res.inserted === "number") return `Inserted ${res.inserted} row(s).`;
@@ -995,6 +1025,7 @@ function StageCard({
               {lastRun.error && (
                 <div className="mt-1 text-red-600 whitespace-pre-wrap">{lastRun.error}</div>
               )}
+              <RunPlanSummary plan={lastRun.plan} />
             </div>
           )}
 
@@ -1078,6 +1109,31 @@ function StageCard({
       )}
 
     </section>
+  );
+}
+
+function RunPlanSummary({ plan }: { plan: any }) {
+  if (!plan || typeof plan !== "object") return null;
+  const missingKpis = Array.isArray(plan.missingKpis) ? plan.missingKpis : [];
+  const updatedAt = typeof plan.updatedAt === "string" ? plan.updatedAt : null;
+  const updatedText = updatedAt ? new Date(updatedAt).toLocaleTimeString() : null;
+  if (!plan.phase && typeof plan.processed !== "number" && missingKpis.length === 0) return null;
+  return (
+    <div className="mt-2 rounded border border-line-200 bg-paper-100/50 p-2 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-600">
+      {plan.phase && <span>phase {String(plan.phase)}</span>}
+      {typeof plan.processed === "number" && (
+        <span>{plan.phase ? " · " : ""}{plan.processed}/{plan.total ?? "?"} processed</span>
+      )}
+      {typeof plan.okCount === "number" && <span> · ok {plan.okCount} · fail {plan.failCount ?? 0}</span>}
+      {typeof plan.filled === "number" && <span> · filled {plan.filled} · missing {plan.missing ?? 0}</span>}
+      {plan.currentKpi && <span> · current {String(plan.currentKpi)}</span>}
+      {updatedText && <span> · heartbeat {updatedText}</span>}
+      {missingKpis.length > 0 && (
+        <div className="mt-1 normal-case tracking-normal text-ink-500">
+          Missing: {missingKpis.slice(0, 8).join(", ")}{missingKpis.length > 8 ? ` +${missingKpis.length - 8} more` : ""}
+        </div>
+      )}
+    </div>
   );
 }
 

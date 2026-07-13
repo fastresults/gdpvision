@@ -85,7 +85,7 @@ async function openRun(admin: any, params: {
   if (error) {
     if ((error as any).code === "23505") {
       throw new Error(
-        `A ${params.stage} run is already in progress for ${params.country_code}. Wait for it to finish, or refresh the page — stale runs auto-clear after 15 minutes.`,
+        `A ${params.stage} run is already in progress for ${params.country_code}. Refresh to see live progress; stale runs auto-clear when their heartbeat is quiet for 45 minutes.`,
       );
     }
     throw error;
@@ -96,8 +96,17 @@ async function openRun(admin: any, params: {
 async function finishRun(admin: any, runId: string, patch: Record<string, unknown>) {
   await admin
     .from("onboarding_runs")
-    .update({ ...patch, finished_at: new Date().toISOString() })
+    .update({ ...patch, finished_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq("id", runId);
+}
+
+async function updateRunPlan(admin: any, runId: string | null, plan: Record<string, unknown>) {
+  if (!runId) return;
+  try {
+    await admin.from("onboarding_runs").update({ plan, updated_at: new Date().toISOString() }).eq("id", runId);
+  } catch {
+    /* heartbeat/progress is best-effort */
+  }
 }
 
 async function saveDraft(admin: any, args: {
@@ -354,17 +363,32 @@ export const cleanInvalidCountrySources = createServerFn({ method: "POST" })
 // Lightweight poll target for the wizard's run banner.
 export const getRunProgress = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ runId: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) => z.object({
+    runId: z.string().uuid().optional(),
+    countryCode: z.string().optional(),
+    stage: z.string().optional(),
+  }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from("onboarding_runs")
-      .select("id, stage, status, plan, started_at, finished_at, error")
-      .eq("id", data.runId)
-      .maybeSingle();
+      .select("id, country_code, stage, status, plan, started_at, updated_at, finished_at, error");
+    if (data.runId) {
+      query = query.eq("id", data.runId).limit(1);
+    } else if (data.countryCode && data.stage) {
+      query = query
+        .eq("country_code", data.countryCode)
+        .eq("stage", data.stage)
+        .in("status", ["planning", "ready", "needs_review", "failed"])
+        .order("started_at", { ascending: false })
+        .limit(1);
+    } else {
+      throw new Error("runId or countryCode+stage is required");
+    }
+    const { data: rows, error } = await query;
     if (error) throw error;
-    return row ?? null;
+    return Array.isArray(rows) ? rows[0] ?? null : rows ?? null;
   });
 
 
@@ -393,8 +417,23 @@ async function recordAttempts(
     error: a.error,
   }));
   // Best-effort — never fail the loop because logging failed.
-  await admin.from("kpi_research_attempts").insert(rows);
+  try {
+    await admin.from("kpi_research_attempts").insert(rows);
+  } catch (err) {
+    console.error("[kpi_seed] attempt logging failed", err);
+  }
 }
+
+type KpiProgressState = {
+  phase: string;
+  processed: number;
+  total: number;
+  okCount: number;
+  failCount: number;
+  currentKpi?: string | null;
+  filled?: number;
+  missing?: number;
+};
 
 async function runAgenticKpiLoop(args: {
   admin: any;
@@ -408,6 +447,35 @@ async function runAgenticKpiLoop(args: {
   const registry = registryFor(["all"]);
   const values = new Map<string, import("./kpi-research.server").ResearchedValue>();
   const allAttempts: Array<import("./kpi-research.server").AttemptRecord> = [];
+  const progress: KpiProgressState = {
+    phase: "initializing",
+    processed: 0,
+    total: registry.length,
+    okCount: 0,
+    failCount: 0,
+    currentKpi: null,
+  };
+  const writeProgress = async (patch: Partial<KpiProgressState> = {}) => {
+    Object.assign(progress, patch);
+    const coverageNow = research.coverageOf(registry, values);
+    await updateRunPlan(args.admin, args.runId, {
+      kind: "kpi_seed_progress",
+      ...progress,
+      filled: coverageNow.filled,
+      missing: coverageNow.missing.length,
+      missingKpis: coverageNow.missing,
+      updatedAt: new Date().toISOString(),
+    });
+  };
+  const persistAttempts = async (attempts: Array<import("./kpi-research.server").AttemptRecord>) => {
+    if (!attempts.length) return;
+    allAttempts.push(...attempts);
+    progress.okCount += attempts.filter((a) => a.ok).length;
+    progress.failCount += attempts.filter((a) => !a.ok).length;
+    if (args.runId) await recordAttempts(args.admin, args.runId, args.country.code, attempts);
+  };
+
+  await writeProgress({ phase: "sweep", processed: 0, total: registry.length });
 
   // Pass A — broad sweep
   const sweep = await research.sweepPerplexity({
@@ -416,55 +484,68 @@ async function runAgenticKpiLoop(args: {
     countryTld: args.countryTld,
   });
   for (const v of sweep.values) research.mergeInto(values, research.normalizeValue(v));
-  allAttempts.push(...sweep.attempts);
+  await persistAttempts(sweep.attempts);
+  await writeProgress({ phase: "worldbank", processed: 0, total: registry.length, currentKpi: null });
 
   // Pass B — World Bank backfill
   const missingAfterA = registry.filter(
     (k) => !values.get(k.kpi_code) || values.get(k.kpi_code)!.value == null,
   );
   const iso3 = args.country.iso3 ?? args.country.code;
-  for (const k of missingAfterA) {
+  for (let i = 0; i < missingAfterA.length; i++) {
+    const k = missingAfterA[i];
+    await writeProgress({ phase: "worldbank", processed: i, total: missingAfterA.length, currentKpi: k.kpi_code });
     const { value, attempt } = await research.backfillWorldBank(iso3, k);
-    allAttempts.push(attempt);
+    await persistAttempts([attempt]);
     if (value) research.mergeInto(values, research.normalizeValue(value));
   }
+  await writeProgress({ phase: "imf", processed: 0, currentKpi: null });
 
   // Pass C — IMF backfill
   const missingAfterB = registry.filter(
     (k) => !values.get(k.kpi_code) || values.get(k.kpi_code)!.value == null,
   );
-  for (const k of missingAfterB) {
+  for (let i = 0; i < missingAfterB.length; i++) {
+    const k = missingAfterB[i];
+    await writeProgress({ phase: "imf", processed: i, total: missingAfterB.length, currentKpi: k.kpi_code });
     const { value, attempt } = await research.backfillImf(iso3, k);
-    allAttempts.push(attempt);
+    await persistAttempts([attempt]);
     if (value) research.mergeInto(values, research.normalizeValue(value));
   }
+  await writeProgress({ phase: "targeted", processed: 0, currentKpi: null });
 
   // Pass D — targeted Perplexity
   const missingAfterC = registry.filter(
     (k) => !values.get(k.kpi_code) || values.get(k.kpi_code)!.value == null,
   );
-  for (const k of missingAfterC) {
+  for (let i = 0; i < missingAfterC.length; i++) {
+    const k = missingAfterC[i];
+    await writeProgress({ phase: "targeted", processed: i, total: missingAfterC.length, currentKpi: k.kpi_code });
     const { value, attempt } = await research.targetedPerplexity({
       country: args.country,
       kpi: k,
       countryTld: args.countryTld,
     });
-    allAttempts.push(attempt);
+    await persistAttempts([attempt]);
     if (value) research.mergeInto(values, research.normalizeValue(value));
   }
+  await writeProgress({ phase: "escalation", processed: 0, currentKpi: null });
 
   // Pass E — Gemini escalation
   const missingAfterD = registry.filter(
     (k) => !values.get(k.kpi_code) || values.get(k.kpi_code)!.value == null,
   );
-  for (const k of missingAfterD) {
+  for (let i = 0; i < missingAfterD.length; i++) {
+    const k = missingAfterD[i];
+    await writeProgress({ phase: "escalation", processed: i, total: missingAfterD.length, currentKpi: k.kpi_code });
     const { value, attempt } = await research.escalateGemini({
       country: args.country,
       kpi: k,
     });
-    allAttempts.push(attempt);
+    await persistAttempts([attempt]);
     if (value) research.mergeInto(values, research.normalizeValue(value));
   }
+  await writeProgress({ phase: "inference", processed: 0, currentKpi: null });
 
   // Pass F — AI inference for whatever is still null.
   const inferred = new Map<string, import("./kpi-inference.server").InferenceResult>();
@@ -473,13 +554,15 @@ async function runAgenticKpiLoop(args: {
     const missingAfterE = registry.filter(
       (k) => !values.get(k.kpi_code) || values.get(k.kpi_code)!.value == null,
     );
-    for (const k of missingAfterE) {
+    for (let i = 0; i < missingAfterE.length; i++) {
+      const k = missingAfterE[i];
+      await writeProgress({ phase: "inference", processed: i, total: missingAfterE.length, currentKpi: k.kpi_code });
       const { result, attempt } = await inferMod.inferOneKpi({
         admin: args.admin,
         country: args.country,
         kpi: k,
       });
-      allAttempts.push({
+      await persistAttempts([{
         kpi_code: attempt.kpi_code,
         pass: "escalation", // reuse enum: dedicated 'inference' would need a migration
         provider: "lovable-ai",
@@ -489,7 +572,7 @@ async function runAgenticKpiLoop(args: {
         period: attempt.period,
         source_url: attempt.source_url,
         error: attempt.error ? `inference: ${attempt.error}` : null,
-      });
+      }]);
       if (result) {
         inferred.set(k.kpi_code, result);
         research.mergeInto(values, {
@@ -518,11 +601,8 @@ async function runAgenticKpiLoop(args: {
     }
   }
 
-  if (args.runId) {
-    await recordAttempts(args.admin, args.runId, args.country.code, allAttempts);
-  }
-
   const coverage = research.coverageOf(registry, values);
+  await writeProgress({ phase: "drafting", processed: registry.length, total: registry.length, currentKpi: null });
   const enriched = registry.map((k) => {
     const v = values.get(k.kpi_code)!;
     const inf = inferred.get(k.kpi_code);
@@ -602,6 +682,18 @@ export const runKpiSeedAgent = createServerFn({ method: "POST" })
 
       await finishRun(supabaseAdmin, runId, {
         status: "ready",
+        plan: {
+          kind: "kpi_seed_progress",
+          phase: "ready",
+          processed: enriched.length,
+          total: enriched.length,
+          okCount: attempts.filter((a) => a.ok).length,
+          failCount: attempts.filter((a) => !a.ok).length,
+          filled: coverage.filled,
+          missing: coverage.missing.length,
+          missingKpis: coverage.missing,
+          updatedAt: new Date().toISOString(),
+        },
         error:
           coverage.filled < coverage.total
             ? `partial: ${coverage.filled}/${coverage.total} required (missing: ${coverage.missing.join(", ")})`
@@ -1970,6 +2062,24 @@ export const runCapitalFlowsAgent = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const country = await loadCountry(supabaseAdmin, data.countryCode);
+
+    const [sectorsC, kpisC, sourcesC, chunksC, memoryC] = await Promise.all([
+      supabaseAdmin.from("country_sectors").select("*", { count: "exact", head: true }).eq("country_code", data.countryCode),
+      supabaseAdmin.from("country_kpis").select("*", { count: "exact", head: true }).eq("country_code", data.countryCode),
+      supabaseAdmin.from("country_sources").select("*", { count: "exact", head: true }).eq("country_code", data.countryCode).eq("active", true),
+      supabaseAdmin.from("country_source_chunks").select("*", { count: "exact", head: true }).eq("country_code", data.countryCode),
+      supabaseAdmin.from("memory_objects").select("*", { count: "exact", head: true }).eq("scope_key", data.countryCode),
+    ]);
+    const missingPreflight: string[] = [];
+    if (!country.gdp_current_usd || Number(country.gdp_current_usd) <= 0) missingPreflight.push("GDP");
+    if ((sectorsC.count ?? 0) <= 0) missingPreflight.push("sector composition");
+    if ((kpisC.count ?? 0) <= 0) missingPreflight.push("KPI seed");
+    if ((sourcesC.count ?? 0) <= 0) missingPreflight.push("source registry");
+    if ((memoryC.count ?? 0) <= 0) missingPreflight.push("second-brain memory");
+    if ((chunksC.count ?? 0) <= 0) missingPreflight.push("corpus chunks");
+    if (missingPreflight.length) {
+      throw new Error(`Capital flows preflight blocked — commit first: ${missingPreflight.join(", ")}.`);
+    }
 
     const model: SonarModel = "sonar-reasoning-pro";
     const runId = await openRun(supabaseAdmin, {

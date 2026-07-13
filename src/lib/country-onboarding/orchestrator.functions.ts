@@ -65,9 +65,11 @@ export const runCountryOnboardingPipeline = createServerFn({ method: "POST" })
     const countryCode = data.countryCode;
     const mode = data.mode;
     const levels: Stage[][] = [
-      ["profile", "gdp", "sector_composition", "ministries", "source_registry", "kpi_seed"],
-      ["ministry_sector_map", "sector_dossier", "ministry_deep_dive", "corpus_ingest", "capital_flows"],
+      ["profile", "gdp", "sector_composition", "ministries", "source_registry"],
+      ["kpi_seed", "ministry_sector_map"],
+      ["sector_dossier", "ministry_deep_dive", "corpus_ingest"],
       ["second_brain_seed"],
+      ["capital_flows"],
     ];
 
     const runners: Record<Stage, any> = {
@@ -99,13 +101,13 @@ export const runCountryOnboardingPipeline = createServerFn({ method: "POST" })
       capital_flows: commitCapitalFlows,
     };
 
-    const staleCutoff = new Date(Date.now() - 20 * 60 * 1000).toISOString();
+    const staleCutoff = new Date(Date.now() - 45 * 60 * 1000).toISOString();
     await supabaseAdmin
       .from("onboarding_pipeline_runs")
-      .update({ status: "failed", finished_at: new Date().toISOString(), error: "auto-reconciled: stuck >20min" })
+      .update({ status: "failed", finished_at: new Date().toISOString(), error: "auto-reconciled: no workflow heartbeat >45min" })
       .eq("country_code", countryCode)
       .eq("status", "running")
-      .lt("started_at", staleCutoff);
+      .lt("updated_at", staleCutoff);
 
     const { data: pipeline, error: pErr } = await supabaseAdmin
       .from("onboarding_pipeline_runs")
@@ -132,7 +134,7 @@ export const runCountryOnboardingPipeline = createServerFn({ method: "POST" })
     const updatePipeline = async (patch: Record<string, unknown>) => {
       await supabaseAdmin
         .from("onboarding_pipeline_runs")
-        .update({ ...patch, results: results as any })
+        .update({ ...patch, results: results as any, updated_at: new Date().toISOString() })
         .eq("id", pipelineId);
     };
 
@@ -159,7 +161,7 @@ export const runCountryOnboardingPipeline = createServerFn({ method: "POST" })
     const runOne = async (stage: Stage) => {
       await updatePipeline({
         current_stage: stage,
-        plan: { levels, totalStages: levels.flat().length, completed: results.length, currentStage: stage },
+        plan: { levels, totalStages: levels.flat().length, completed: results.length, currentStage: stage, updatedAt: new Date().toISOString() },
       });
 
       try {
@@ -191,7 +193,7 @@ export const runCountryOnboardingPipeline = createServerFn({ method: "POST" })
         results.push({ stage, status: "failed", message });
       } finally {
         await updatePipeline({
-          plan: { levels, totalStages: levels.flat().length, completed: results.length, currentStage: stage },
+          plan: { levels, totalStages: levels.flat().length, completed: results.length, currentStage: stage, updatedAt: new Date().toISOString() },
         });
       }
     };
@@ -208,7 +210,7 @@ export const runCountryOnboardingPipeline = createServerFn({ method: "POST" })
         current_stage: null,
         finished_at: new Date().toISOString(),
         error: failures.length ? `${failures.length} stage(s) failed` : null,
-        plan: { levels, totalStages: levels.flat().length, completed: results.length },
+        plan: { levels, totalStages: levels.flat().length, completed: results.length, updatedAt: new Date().toISOString() },
       });
       return { pipelineId, status: failures.length ? "failed" : "completed", results };
     } catch (err) {

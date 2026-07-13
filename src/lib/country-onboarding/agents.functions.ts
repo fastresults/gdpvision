@@ -242,7 +242,8 @@ export const runProfileAgent = createServerFn({ method: "POST" })
       const result = await callSonar({
         model,
         system:
-          "You are a country-profile researcher. Answer with a single JSON object matching the schema. Use only authoritative sources (national statistics offices, IMF, World Bank, UN). Cite every fact.",
+          "You are a country-profile researcher. Answer with a single JSON object matching the schema. Use only authoritative sources (national statistics offices, IMF, World Bank, UN). Cite every fact." +
+          SUMMARY_SYSTEM_SUFFIX,
         user: `Research the country of ${country.name} (${country.iso3 ?? country.code}). Return: currency code (ISO 4217), fiscal year start month (1-12), most recent population, HDI (or null), top 3-5 export categories, government type, and current head of government (as of 2026). Use only official/multilateral sources.`,
         responseSchema: ProfileSchema as unknown as Record<string, unknown>,
         recency: "year",
@@ -250,6 +251,7 @@ export const runProfileAgent = createServerFn({ method: "POST" })
 
       const parsed = parseSonarJson<any>(result.content);
       if (!parsed) throw new Error("Perplexity returned no parseable JSON");
+      const inline = extractInlineSummary(parsed);
 
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
@@ -259,6 +261,8 @@ export const runProfileAgent = createServerFn({ method: "POST" })
         payload: parsed,
         confidence: result.citations.length >= 2 ? "high" : "medium",
         citations: result.citations,
+        summary_md: inline.summary_md,
+        summary_highlights: inline.summary_highlights,
       });
 
       await finishRun(supabaseAdmin, runId, { status: "ready" });

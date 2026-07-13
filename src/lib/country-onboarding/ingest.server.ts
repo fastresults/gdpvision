@@ -22,12 +22,16 @@ export async function fetchFirecrawl(url: string): Promise<ScrapedDoc> {
     const t = await res.text();
     throw new Error(`Firecrawl ${res.status}: ${t.slice(0, 300)}`);
   }
-  const json = (await res.json()) as {
-    data?: { markdown?: string; metadata?: { title?: string; sourceURL?: string } };
-  };
-  const markdown = json.data?.markdown ?? "";
-  const title = json.data?.metadata?.title ?? url;
-  const src = json.data?.metadata?.sourceURL ?? url;
+  const body = (await res.json()) as any;
+  if (body && body.success === false) {
+    throw new Error(`Firecrawl error: ${String(body.error ?? "unknown").slice(0, 300)}`);
+  }
+  // v2 returns fields at top level; v1 nested them under `data`.
+  const root = body?.data ?? body ?? {};
+  const markdown: string = root.markdown ?? "";
+  const meta = root.metadata ?? {};
+  const title: string = meta.title ?? url;
+  const src: string = meta.sourceURL ?? meta.url ?? url;
   return { title, markdown, url: src };
 }
 

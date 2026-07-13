@@ -880,39 +880,48 @@ function CorpusIngestExtras({
       </div>
       {report && (
         <div className="text-[11px] font-mono text-ink-700">
-          {typeof report.okCount === "number" && (
-            <>
-              ok {report.okCount} · fail {report.failCount ?? 0}
-              {typeof report.totalChunks === "number" && <> · chunks {report.totalChunks}</>}
-              {typeof report.processed === "number" && typeof report.total === "number" && (
-                <> · processed {report.processed}/{report.total}</>
-              )}
-            </>
-          )}
+          {typeof report.okCount === "number" && (() => {
+            const dedup = results.filter((r) => r.ok && (r.chunks ?? 0) === 0).length;
+            const skipped = results.filter((r) => !r.ok && typeof r.error === "string" && r.error.startsWith("invalid url")).length;
+            const failReal = (report.failCount ?? 0) - skipped;
+            return (
+              <>
+                ok {report.okCount} · dedup {dedup} · fail {Math.max(failReal, 0)} · skipped {skipped}
+                {typeof report.totalChunks === "number" && <> · chunks {report.totalChunks}</>}
+                {typeof report.processed === "number" && typeof report.total === "number" && (
+                  <> · processed {report.processed}/{report.total}</>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
       {results.length > 0 && (
         <div className="max-h-64 overflow-y-auto border border-line-200 divide-y divide-line-200">
-          {results.map((r, i) => (
-            <div key={i} className="p-2 flex items-start gap-3 text-xs">
-              <span
-                className={`mt-0.5 inline-block h-2 w-2 rounded-full flex-shrink-0 ${
-                  r.ok ? "bg-emerald-500" : "bg-red-500"
-                }`}
-                aria-hidden
-              />
-              <div className="flex-1 min-w-0">
-                <div className="truncate font-mono text-[11px] text-ink-700">{r.url}</div>
-                {r.ok ? (
-                  <div className="text-[10px] text-ink-500 mt-0.5">
-                    {typeof r.chunks === "number" ? `${r.chunks} chunks` : "ok"}
-                  </div>
-                ) : (
-                  <div className="text-[10px] text-red-600 mt-0.5 line-clamp-2">{r.error}</div>
-                )}
+          {results.map((r, i) => {
+            const isInvalid = !r.ok && typeof r.error === "string" && r.error.startsWith("invalid url");
+            const dot = r.ok ? "bg-emerald-500" : isInvalid ? "bg-ink-400" : "bg-red-500";
+            return (
+              <div key={i} className="p-2 flex items-start gap-3 text-xs">
+                <span
+                  className={`mt-0.5 inline-block h-2 w-2 rounded-full flex-shrink-0 ${dot}`}
+                  aria-hidden
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="truncate font-mono text-[11px] text-ink-700">{r.url}</div>
+                  {r.ok ? (
+                    <div className="text-[10px] text-ink-500 mt-0.5">
+                      {typeof r.chunks === "number" ? `${r.chunks} chunks` : "ok"}
+                    </div>
+                  ) : isInvalid ? (
+                    <div className="text-[10px] text-ink-500 mt-0.5">deactivated: invalid URL</div>
+                  ) : (
+                    <div className="text-[10px] text-red-600 mt-0.5 line-clamp-2">{r.error}</div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
       {!report && (

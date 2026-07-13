@@ -1382,6 +1382,17 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
     if (sErr) throw sErr;
     if (!sources?.length) throw new Error("Commit source registry first — no active sources");
 
+    // Pre-flight: auto-deactivate rows whose url isn't a valid http(s) URL,
+    // so Firecrawl doesn't 400 on agent-written search hints every run.
+    const invalid = sources.filter((s) => !isValidHttpUrl(s.url));
+    const valid = sources.filter((s) => isValidHttpUrl(s.url));
+    if (invalid.length) {
+      await supabaseAdmin
+        .from("country_sources")
+        .update({ active: false, fetch_status: "invalid_url", fetch_error: "not a valid http(s) URL" })
+        .in("id", invalid.map((s) => s.id));
+    }
+
     const runId = await openRun(supabaseAdmin, {
       country_code: data.countryCode,
       stage: "corpus_ingest",
@@ -1390,8 +1401,11 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
     });
 
     const results: Array<{ source_id: string; url: string; ok: boolean; chunks?: number; error?: string }> = [];
+    for (const s of invalid) {
+      results.push({ source_id: s.id, url: s.url, ok: false, error: "invalid url (auto-deactivated)" });
+    }
     let totalChunks = 0;
-    const total = sources.length;
+    const total = valid.length;
 
     const writeProgress = async (processed: number, lastUrl: string | null) => {
       const okC = results.filter((r) => r.ok).length;
@@ -1407,8 +1421,8 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
 
     try {
       await writeProgress(0, null);
-      for (let idx = 0; idx < sources.length; idx++) {
-        const src = sources[idx];
+      for (let idx = 0; idx < valid.length; idx++) {
+        const src = valid[idx];
         try {
           const doc = await fetchFirecrawl(src.url);
           if (!doc.markdown || doc.markdown.length < 200) {

@@ -1,57 +1,62 @@
-## Forensic finding — "nothing happens" is misleading
+## What's happening
 
-Reading the network log for the LCA onboard page proves the click does fire. Timeline for the last press on stage 10 (Corpus ingest):
+The `Corpus ingest health` panel shows two distinct problems from the last `Run AI research`:
 
-- `14:51:34` — `POST /_serverFn/…runCorpusIngest…` sent with `{countryCode:"LCA"}`.
-- `14:52:47` — response `{ok:true, totalChunks:0, okCount:3, failCount:22, results:[…]}` (73 seconds later).
-- `14:52:48` — auto-refresh POSTs `getOnboardingStatus`.
+**1. 22 × `Firecrawl 400: Invalid URL` (red rows).**
+These `country_sources` rows still contain **search-hint sentences** in their `url` column (e.g. `"Saint Lucia Ministry of Equity official page (via Government of Saint Lucia portal)"` and `"…(search: \"Saint Lucia CIP government\")"`). They were written by the research agent before URL validation was added to `commitSourceRegistry`, and they are still `active=true`, so every re-run of `runCorpusIngest` re-sends them to Firecrawl and Firecrawl rejects each one with a 400.
 
-So the button worked, the run executed, the DB was updated. What broke is the **feedback loop and the underlying data quality** — not the click.
+The `Clean invalid URLs` button already exists to deactivate them, but:
+- the admin has to remember to click it, and
+- the ingest itself does not pre-filter, so one bad batch keeps producing 22 red failures per run.
 
-### Why admin perceives "nothing"
+**2. `imf.org/countries/LCA` and `data.worldbank.org/country/LCA` returned `ok · 0 chunks` (green but empty).**
+`fetchFirecrawl` reads the Firecrawl **v1** response shape (`json.data.markdown` + `json.data.metadata`). The endpoint we call is **v2** (`/v2/scrape`), whose successful body puts `markdown`, `html`, `metadata`, etc. at the **top level** (`{ success, markdown, metadata, ... }`), with no `data` wrapper. So `doc.markdown` comes back as `""`, hits the `< 200 chars` guard, is caught and marked as `too short` — or, if a prior document with the empty hash exists, the dedup branch fires and records `ok, chunks: 0`. Either way, no real content is ingested from otherwise-valid sources.
 
-1. **No visible progress.** During those 73 s only the small dark button on the far right of a *collapsed* accordion row changes to "Researching…". No page-level banner, no toast, no elapsed timer, no per-source ticker. On a long stage this looks frozen.
-2. **Auto-commit hides the result.** `runCorpusIngest` writes a summary draft and immediately `markDraftCommitted`s it. The accordion header only shows the "committed" pill — which was already there from the previous run — so nothing visibly changes. The detailed `results[]` (`okCount`, `failCount`, per-URL errors) live inside the collapsed body.
-3. **The "success" is a lie.** Of 25 active `country_sources`, the response shows:
-   - 22 × `Firecrawl 400: Invalid URL` — because the source_registry agent (stage 6) stored *search-hint strings* like `"Invest Saint Lucia official website (search: \"Invest Saint Lucia\")"` in the `url` column.
-   - 3 × `ok:true, chunks:0` — WB / IMF country pages returned <200 chars of markdown on the first run, so the "too short" guard fired earlier; on this rerun the dedup path (same `content_hash`) short-circuits and reports `ok:true, chunks:0`. Zero new embeddings, zero new brain content.
-4. **`refresh()` invalidates queries but nothing surfaces at the top of the page.** The bulk-runner has an error banner (`bulkErr`); a single-stage run has none.
+## Fix plan
 
-Combined effect: admin waits 60–90 s, sees the small button return to "Re-run agent", scrolls the page, sees no change → concludes "nothing happens".
+### A. `src/lib/country-onboarding/ingest.server.ts` — read Firecrawl v2 shape
 
-## Plan — three concurrent fixes
+In `fetchFirecrawl`, replace the v1-only extraction with a v2-first read that also tolerates the legacy `data.*` wrapper:
 
-### 1. Frontend: make the run visible end-to-end (`src/routes/_authenticated/admin/countries.$code.onboard.tsx`)
+```
+const body = await res.json();
+const root = body?.data ?? body;                  // v2 top-level, v1 nested
+const markdown = root?.markdown ?? "";
+const meta = root?.metadata ?? {};
+const title = meta.title ?? url;
+const src   = meta.sourceURL ?? meta.url ?? url;
+```
 
-- Lift a `activeRun: { stage, startedAt } | null` state up to `OnboardWizard`. Pass a `onRunStart(stage)` / `onRunFinish(stage, result)` pair to each `StageCard` so per-stage clicks report up.
-- Render a **sticky run banner** below the header while `activeRun` is set: stage label, elapsed seconds (updates via `setInterval`), and a Cancel-disabled note. Non-dismissable until the promise resolves.
-- On resolve, replace the banner with a **result banner** for ~15 s (or until dismissed): `okCount`/`failCount`/`totalChunks` for corpus_ingest, plus `View details` that opens that stage's accordion and scrolls to it (reuse the `scroll-mt-2` behavior already added).
-- On reject, keep the banner red with the error message and a `Retry` action.
-- Inside `StageCard`, when the current stage matches `activeRun.stage`, auto-open the accordion so the results panel is visible when the run finishes.
-- In stage 10's expanded body, always render a **Last ingest report** panel (from `lastRun.plan` / the committed draft payload): grid of source rows with `ok` / `error` / `chunks`. Currently this data is fetched but never rendered outside `<PrettyJson>` inside a draft block — for auto-committed stages there is no draft after commit.
+Also treat `body.success === false` as an error (Firecrawl sometimes returns 200 + `success:false` with an `error` string) and include the message in the thrown error so the health panel is actionable.
 
-### 2. Server: expose live progress for long stages (`src/lib/country-onboarding/corpus.functions.ts`)
+### B. `src/lib/country-onboarding/corpus.functions.ts` — pre-flight URL filter in `runCorpusIngest`
 
-- Keep `runCorpusIngest` returning the same shape (so the UI change works immediately), and **update the run's `plan` column after each source** with `{ processed, total, lastUrl, okCount, failCount }`. The wizard already invalidates `onboarding` status on refresh, so a short poll (every 3 s) from the frontend while `activeRun` is set surfaces heartbeat progress. No new endpoint, no streaming complexity.
-- Add a small `getRunProgress({ runId })` server function that returns just `{ status, plan, finished_at }` for that runId, used only by the banner poll to avoid re-fetching the whole onboarding status.
+Right after loading `sources` and before the scrape loop:
 
-### 3. Data quality: stop garbage URLs entering `country_sources` (`corpus.functions.ts` → `commitSourceRegistry`, plus stage 6 UI)
+1. Partition `sources` into `valid` and `invalid` using the existing `isValidHttpUrl(src.url)`.
+2. For every `invalid` row: `update({ active: false, fetch_status: 'invalid_url', fetch_error: 'not a valid http(s) URL' })` in one batch, and push a `results` entry `{ ok: false, error: 'invalid url (auto-deactivated)' }` so the health panel shows what happened.
+3. Iterate only over `valid` for the Firecrawl loop; update `total` and the heartbeat `plan` counters accordingly (so `processed n/m` reflects the real work).
 
-- In `commitSourceRegistry`, validate each row's `url` with a strict check: `new URL(u)` must succeed **and** the hostname must contain a `.`. Reject strings that contain `(search:` or don't parse. Return a `rejected[]` array in the response so the reviewer sees them.
-- Extend the draft-review UI for stage 6 to show a "⚠ not a URL — will be dropped" chip per row and let the admin either edit the URL inline or delete the row before committing. This is the root cause of the 22 Firecrawl 400s.
-- One-shot backfill for existing rows: add `cleanInvalidCountrySources({ countryCode })` (admin-only) that deactivates any `country_sources` row whose `url` fails the same validator, and expose it as a "Clean invalid URLs" button on stage 10 above the run button. Run it once on LCA and the next `Run AI research` will actually scrape.
+This makes every subsequent run self-healing — the admin never has to click `Clean invalid URLs` again for agent-written garbage, and the 22 rows on LCA get flipped inactive on the next run.
+
+### C. Health panel copy tweak (same file, stage 10 render)
+
+- Split the summary line into `ok N · dedup D · fail F · skipped S · chunks C · processed n/m`, where `dedup` counts rows with `ok:true && chunks===0` and `skipped` counts the auto-deactivated invalid URLs. Today those two both show up as ambiguous green / red rows.
+- For rows where `error` starts with `invalid url`, render a neutral gray dot (not red) and the label `deactivated: invalid URL` so the panel distinguishes "bad data we cleaned up" from "Firecrawl actually failed".
+
+### D. No schema, no new tables
+
+All changes are in the two files above. `country_sources.fetch_status` already accepts free-form strings, so `'invalid_url'` needs no migration. The existing `cleanInvalidCountrySources` server fn and `Clean invalid URLs` button stay as a manual escape hatch but should rarely be needed after B.
 
 ## Verification
 
-1. Click **Clean invalid URLs** on LCA → expect ~22 rows flipped to `active=false`, banner reports the count.
-2. Click **Run AI research** on stage 10:
-   - Sticky banner appears immediately with `Corpus ingest · 0s elapsed`.
-   - Elapsed counter ticks each second; every ~3 s "Processed n / m" updates from the `getRunProgress` poll.
-   - On completion, green banner: `Ingested X chunks across Y sources (Z failed)`; accordion auto-opens; "Last ingest report" panel lists every URL with ok/error and chunk count.
-3. Re-run without any URL changes → banner shows same result within seconds (dedup path); admin now sees the summary and understands why chunks:0.
+1. Reload `/admin/countries/LCA/onboard`, expand stage 10, click **Run AI research**.
+2. Sticky banner ticks; on completion the health panel shows something like `ok 2 · dedup 0 · fail 0 · skipped 22 · chunks >0 · processed 3/3` (the 22 hint-string rows are now deactivated and excluded from `total`).
+3. The `imf.org` and `worldbank.org` rows show `ok` with a **non-zero** `chunks` count — proving the v2 body parse works.
+4. Re-run immediately: same 3 valid sources, `dedup 2/3` (content_hash match), still zero red rows.
+5. Query `select count(*) from country_sources where country_code='LCA' and active=false and fetch_status='invalid_url'` → 22.
 
 ## Out of scope
 
-- Streaming SSE from the server function — poll on the run row is enough and stays inside the existing `createServerFn` contract.
-- Migrating source_registry to a stricter Zod URL at the agent-output layer — belongs in a follow-up; for now we sanitize at commit and offer a cleanup pass.
-- Any change to accordion scroll behavior, `PrettyJson`, or citations rendering.
+- Rewriting the research agent's source-emission prompt (that already gets validated at `commitSourceRegistry`; auto-deactivation in B is enough for now).
+- Any changes to embeddings, chunking, dedup thresholds, PrettyJson, citations UI, or accordion scroll behavior.

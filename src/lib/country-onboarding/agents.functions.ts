@@ -726,6 +726,40 @@ export const runMinistrySectorMapAgent = createServerFn({ method: "POST" })
   });
 
 // ============================================================
+// LEARNED DOMAINS (read + demote)
+// ============================================================
+
+export const listCountryAuthorizedDomains = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("country_authorized_domains")
+      .select("id, domain, tier, first_seen_stage, citation_count, last_used_at, demoted_at, created_at")
+      .eq("country_code", data.countryCode)
+      .order("last_used_at", { ascending: false });
+    if (error) throw error;
+    return rows ?? [];
+  });
+
+export const demoteCountryAuthorizedDomain = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), demote: z.boolean().default(true) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("country_authorized_domains")
+      .update({ demoted_at: data.demote ? new Date().toISOString() : null })
+      .eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+
+// ============================================================
 // COMMITS
 // ============================================================
 

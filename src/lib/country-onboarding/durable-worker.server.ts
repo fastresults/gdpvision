@@ -127,6 +127,10 @@ async function nextRunnableStep(admin: any, job: any) {
       const parent = rows.find((s: any) => s.stage === "kpi_seed" && s.step_key === "kpi_seed");
       if (!parent || TERMINAL.includes(parent.status)) continue;
       const children = rows.filter((s: any) => s.stage === "kpi_seed" && s.step_type === "kpi");
+      const freshRunningChild = children.find(
+        (s: any) => s.status === "running" && s.heartbeat_at && Date.now() - new Date(s.heartbeat_at).getTime() < 15 * 60 * 1000,
+      );
+      if (freshRunningChild) return null;
       const child = children.find((s: any) => {
         if (TERMINAL.includes(s.status)) return false;
         if (s.status === "running" && s.heartbeat_at && Date.now() - new Date(s.heartbeat_at).getTime() < 15 * 60 * 1000) return false;

@@ -304,8 +304,9 @@ async function countCommittedTargets(admin: any, cc: string) {
   ]);
   const c = countryRow.data;
   return {
-    profile: { rows: c?.currency ? 1 : 0 },
-    gdp: { rows: c?.gdp_current_usd != null ? 1 : 0 },
+    profile: { rows: c?.profile_committed_at ? 1 : 0 },
+    gdp: { rows: c?.gdp_committed_at ? 1 : 0 },
+
     sector_composition: sectorsC,
     ministries: ministriesC,
     ministry_sector_map: ministrySectorsC,

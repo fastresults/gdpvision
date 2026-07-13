@@ -469,14 +469,16 @@ export const runMinistriesAgent = createServerFn({ method: "POST" })
               required: ["slug", "name", "mandate"],
             },
           },
+          ...SUMMARY_SCHEMA_FRAGMENT,
         },
-        required: ["ministries"],
+        required: ["ministries", "summary_md", "summary_highlights"],
       } as const;
 
       const result = await callSonar({
         model,
         system:
-          "You are a governance researcher. Return the current canonical ministries of the country. Prefer the official government portal.",
+          "You are a governance researcher. Return the current canonical ministries of the country. Prefer the official government portal." +
+          SUMMARY_SYSTEM_SUFFIX,
         user: `List the current cabinet ministries of ${country.name} as of 2026, with the full official name, current minister (if known), and a one-line mandate. Use the government's official website.`,
         responseSchema: schema as unknown as Record<string, unknown>,
         recency: "year",
@@ -484,6 +486,7 @@ export const runMinistriesAgent = createServerFn({ method: "POST" })
 
       const parsed = parseSonarJson<{ ministries: any[] }>(result.content);
       if (!parsed?.ministries?.length) throw new Error("Perplexity returned no ministries");
+      const inline = extractInlineSummary(parsed);
 
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
@@ -493,6 +496,8 @@ export const runMinistriesAgent = createServerFn({ method: "POST" })
         payload: parsed,
         confidence: result.citations.length >= 1 ? "high" : "low",
         citations: result.citations,
+        summary_md: inline.summary_md,
+        summary_highlights: inline.summary_highlights,
       });
 
       await finishRun(supabaseAdmin, runId, { status: "ready" });

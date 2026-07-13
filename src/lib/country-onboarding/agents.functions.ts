@@ -201,16 +201,18 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
 
     const cc = data.countryCode;
 
-    // Auto-reconcile stuck runs (>15 min in planning/ready with no finished_at)
+    // Auto-reconcile stuck runs by heartbeat, not raw start time. Long model
+    // calls can legitimately exceed 15 minutes, but a run whose row has not
+    // been touched for 45 minutes is no longer observable/recoverable.
     // BEFORE we snapshot state, so the UI sees a clean picture. Never touches
     // `committed` runs or any target-table rows.
-    const staleCutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const staleCutoff = new Date(Date.now() - 45 * 60 * 1000).toISOString();
     const reconcile = await supabaseAdmin
       .from("onboarding_runs")
-      .update({ status: "stale", finished_at: new Date().toISOString(), error: "auto-reconciled: stuck >15min" })
+      .update({ status: "stale", finished_at: new Date().toISOString(), error: "auto-reconciled: no heartbeat >45min" })
       .eq("country_code", cc)
       .in("status", ["planning", "ready"])
-      .lt("started_at", staleCutoff)
+      .lt("updated_at", staleCutoff)
       .is("finished_at", null);
     if (reconcile.error) {
       console.error("[getOnboardingStatus] stale reconcile failed:", reconcile.error);

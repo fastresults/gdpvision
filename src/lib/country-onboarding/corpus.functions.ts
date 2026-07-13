@@ -29,6 +29,21 @@ type Stage =
 // Small helpers (duplicated from agents.functions.ts to keep this file standalone)
 // ============================================================
 
+export function isValidHttpUrl(raw: unknown): raw is string {
+  if (typeof raw !== "string") return false;
+  const s = raw.trim();
+  if (!s || s.includes("(search:") || s.includes(" ")) return false;
+  try {
+    const u = new URL(s);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+    if (!u.hostname.includes(".")) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+
 async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data: isAdmin } = await context.supabase.rpc("has_role", {
     _user_id: context.userId,

@@ -205,13 +205,17 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
     // BEFORE we snapshot state, so the UI sees a clean picture. Never touches
     // `committed` runs or any target-table rows.
     const staleCutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-    await supabaseAdmin
+    const reconcile = await supabaseAdmin
       .from("onboarding_runs")
       .update({ status: "stale", finished_at: new Date().toISOString(), error: "auto-reconciled: stuck >15min" })
       .eq("country_code", cc)
       .in("status", ["planning", "ready"])
       .lt("started_at", staleCutoff)
       .is("finished_at", null);
+    if (reconcile.error) {
+      console.error("[getOnboardingStatus] stale reconcile failed:", reconcile.error);
+    }
+
 
     const [country, runs, drafts, cites, summaries, tgt] = await Promise.all([
       supabaseAdmin.from("countries").select("*").eq("code", cc).maybeSingle(),

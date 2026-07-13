@@ -468,8 +468,60 @@ function StageCard({
 
       {isOpen && (
         <div className="px-5 pb-5 space-y-4 border-t border-line-200 pt-4">
+          {/* Executive summary — the beautifully written natural result of this stage */}
+          {committed && summary && (
+            <div className="space-y-3">
+              <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-ink-500">
+                Executive summary
+              </div>
+              <p className="font-serif text-[15px] leading-relaxed text-ink-950 whitespace-pre-wrap">
+                {summary.summary_md}
+              </p>
+              {Array.isArray(summary.highlights) && summary.highlights.length > 0 && (
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 pt-1">
+                  {summary.highlights.map((h: any, i: number) => (
+                    <div key={i} className="flex items-baseline justify-between gap-3 border-b border-line-200/60 pb-1">
+                      <dt className="text-xs text-ink-500 uppercase tracking-wide">{h.label}</dt>
+                      <dd className="text-sm font-medium text-ink-950 text-right tabular-nums">{h.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              <div className="flex items-center gap-3 text-[11px] text-ink-500">
+                <span>
+                  Generated {new Date(summary.generated_at).toLocaleString()}
+                  {summary.model && <> · <code>{summary.model}</code></>}
+                </span>
+                <button
+                  type="button"
+                  onClick={doGenerateSummary}
+                  disabled={generatingSummary}
+                  className="underline hover:text-ink-950 disabled:opacity-50"
+                >
+                  {generatingSummary ? "Regenerating…" : "Regenerate"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {committed && !summary && (
+            <div className="rounded border border-dashed border-line-200 p-3 space-y-2">
+              <div className="text-xs text-ink-500">
+                No executive summary yet for this stage.
+              </div>
+              <button
+                type="button"
+                onClick={doGenerateSummary}
+                disabled={generatingSummary}
+                className="text-sm px-3 py-1.5 border border-ink-950 text-ink-950 hover:bg-ink-950 hover:text-paper-0 disabled:opacity-50"
+              >
+                {generatingSummary ? "Generating…" : "Generate executive summary"}
+              </button>
+            </div>
+          )}
+
           {lastRun && (
-            <div className="text-xs text-ink-500">
+            <div className="text-[11px] text-ink-500">
               Last run: {new Date(lastRun.started_at).toLocaleString()} · status {lastRun.status}
               {model && <> · model <code>{model}</code></>}
               {typeof lastRun.cost_cents === "number" && lastRun.cost_cents > 0 && (
@@ -485,6 +537,7 @@ function StageCard({
             <div className="rounded border border-red-500/50 bg-red-500/10 p-2 text-xs text-red-700">{err}</div>
           )}
 
+          {/* Draft (review) UI — shown when a draft is awaiting commit */}
           {draft && (
             <>
               <div className="rounded border border-line-200 bg-paper-100/50 p-3">
@@ -529,13 +582,24 @@ function StageCard({
             </>
           )}
 
-          {!draft && !running && (
+          {/* Optional raw-data reveal when committed (admin debugging) */}
+          {committed && (
+            <details className="text-xs" open={showRaw} onToggle={(e) => setShowRaw((e.target as HTMLDetailsElement).open)}>
+              <summary className="cursor-pointer text-ink-500 hover:text-ink-950">View raw committed data</summary>
+              <pre className="mt-2 max-h-80 overflow-auto bg-paper-100/50 border border-line-200 p-2 font-mono text-[11px] whitespace-pre-wrap">
+                {JSON.stringify(payload ?? draft?.payload ?? summary?.highlights ?? {}, null, 2)}
+              </pre>
+            </details>
+          )}
+
+          {!draft && !running && !committed && (
             <div className="text-xs text-ink-500">
               No draft yet. Click "Run AI research" to have the agent research {countryName} and produce a cited draft.
             </div>
           )}
         </div>
       )}
+
     </section>
   );
 }

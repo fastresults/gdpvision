@@ -270,12 +270,63 @@ function OnboardWizard() {
   );
 }
 
+function AccordionStages({
+  stages,
+  drafts,
+  runs,
+  countryName,
+  keyConfigured,
+  runners,
+  committers,
+  code,
+  refresh,
+}: {
+  stages: { key: Stage; label: string; short: string; desc: string }[];
+  drafts: any[];
+  runs: any[];
+  countryName: string;
+  keyConfigured: boolean;
+  runners: Record<string, any>;
+  committers: Record<string, any>;
+  code: string;
+  refresh: () => void;
+}) {
+  const [openStage, setOpenStage] = useState<string | null>(null);
+  return (
+    <>
+      {stages.map((s) => {
+        const draft = drafts.find((d) => d.stage === s.key);
+        const stageRuns = runs.filter((r) => r.stage === s.key);
+        const lastRun = stageRuns[0];
+        return (
+          <StageCard
+            key={s.key}
+            stage={s}
+            countryName={countryName}
+            draft={draft}
+            lastRun={lastRun}
+            keyConfigured={keyConfigured}
+            isOpen={openStage === s.key}
+            onToggle={() => setOpenStage(openStage === s.key ? null : s.key)}
+            onRun={() => runners[s.key]({ data: { countryCode: code } }).then(refresh)}
+            onCommit={(editedPayload) =>
+              committers[s.key]({ data: { draftId: draft.id, editedPayload } }).then(refresh)
+            }
+          />
+        );
+      })}
+    </>
+  );
+}
+
 function StageCard({
   stage,
   countryName,
   draft,
   lastRun,
   keyConfigured,
+  isOpen,
+  onToggle,
   onRun,
   onCommit,
 }: {
@@ -284,9 +335,12 @@ function StageCard({
   draft: any;
   lastRun: any;
   keyConfigured: boolean;
+  isOpen: boolean;
+  onToggle: () => void;
   onRun: () => Promise<unknown>;
   onCommit: (editedPayload: unknown) => Promise<unknown>;
 }) {
+
   const [running, setRunning] = useState(false);
   const [committing, setCommitting] = useState(false);
   const [edited, setEdited] = useState<string>("");

@@ -279,10 +279,10 @@ export const commitSourceRegistry = createServerFn({ method: "POST" })
 
     const { upsertCountrySource } = await import("@/lib/country-data/sources.server");
     let inserted = 0;
-    const rejected: Array<{ url: unknown; title?: string; reason: string }> = [];
+    const rejected: Array<{ url: string; title: string; reason: string }> = [];
     for (const s of payload.sources) {
       if (!isValidHttpUrl(s?.url)) {
-        rejected.push({ url: s?.url, title: s?.title, reason: "not a valid http(s) URL" });
+        rejected.push({ url: String(s?.url ?? ""), title: String(s?.title ?? ""), reason: "not a valid http(s) URL" });
         continue;
       }
       const res = await upsertCountrySource(supabaseAdmin, {

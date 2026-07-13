@@ -1,59 +1,220 @@
-# Why Stage 12 is stuck (evidence)
+## Audit finding
 
-From gateway logs + DB inspection of ATG (and cross-checked against LCA):
+The backend is healthy, but the workflow is brittle because long research stages run as one opaque request with weak progress tracking and stale-lock recovery. The current AIA workflow is sitting at **Stage 7: KPI seed** with:
 
-1. **Capital_flows runs blind.** `runCapitalFlowsAgent` (`corpus.functions.ts:1965`) calls `callSonar` with no `context`, no `countryTld`, no `extraDomains` — unlike stages 1–9 which route through `runWithFallbacks` + `buildCountryContext`. It forfeits the domain allow-list and promoted domains learned across stages 1–9.
-2. **It never reads what earlier stages already committed.** No query against `country_kpis` (ATG already has `fdi_net_inflows_gdp`, `govt_revenue_gdp`, `current_account_gdp`, `exports_of_goods_and_services` — these map 1:1 to `FDI_NET`, `TAX_REVENUE`, etc.), `country_sectors` (agriculture/construction/energy shares that seed WAGES_AGRI / INFRA_CAPEX / ENERGY_IMPORT), `country_sources` (curated registry with `quality_score`), `sector_dossiers`, `ministry_profiles` (Finance/Economic Dev), or `country_source_chunks` (335 chunks ingested for ATG).
-3. **Corpus is unusable anyway.** For ATG all 20 `country_source_documents` have `fetch_status != 'success'` (`fetched_ok=0`). Stage 10 "commits" but downstream RAG has no fetched body — capital_flows has nothing to retrieve even if it tried.
-4. **Write-path defect.** ATG has 3 stage-12 attempts including one `status='committed'` with `error: "reconciliation off by 100%"`, yet `country_capital_flows` has **0 rows for ATG and 0 rows for every country in the DB**. The commit function isn't persisting rows.
-5. **Pipeline ordering.** `capital_flows` sits in level 2, before `second_brain_seed` (level 3) in `orchestrator.functions.ts:69-70`, so second-brain memory is never available even in principle.
-6. **Cosmetic reconciliation.** `commitCapitalFlows` auto-inserts `RECONCILIATION_RESIDUAL` to force balance rather than cross-checking against sector composition (stage 3) or committed fiscal KPIs (stage 6).
+- a parent workflow marked `running` at `kpi_seed`
+- a child KPI run still `planning`
+- no KPI draft yet
+- no KPI attempt rows yet
+- a prior KPI run already auto-marked stale after 15 minutes
 
-Latest ATG draft: 1 flow (`TOURISM_SPEND`), 5/6 inputs missing, 6/6 outputs missing, 1 dropped flow (ECCB EC$8,891M rejected as unit/FX error). Coverage gate correctly refuses to commit → `needs_review`. That's the visible "stuck" state.
+So the process feels broken because the system cannot clearly distinguish **working**, **slow**, **stalled**, **partially completed**, and **recoverable**.
 
-# Fix plan
+## Recommendations
 
-## P0 — Unblock the immediate gate
+### 1. Make the workflow resumable, not one long fragile chain
 
-1. **Wire country context + domain allow-list into capital_flows.**
-   Refactor `runCapitalFlowPass` to accept `ctx: CountryContext` and pass `context`, `countryTld`, `extraDomains` into `callSonar`. `runCapitalFlowsAgent` builds `ctx` via `buildCountryContext(country_code)` once and threads it into all 3 fan-out passes.
+Replace the current “run all pending in one long server call” pattern with a resumable job model:
 
-2. **Seed nodes deterministically from committed upstream data BEFORE calling Perplexity.**
-   Add `loadCapitalFlowsGrounding(country_code)` in `capital-flows.server.ts` that reads:
-   - `countries` (GDP, currency)
-   - `country_kpis` — map: `fdi_net_inflows_gdp` → `FDI_NET`, `govt_revenue_gdp` → `TAX_REVENUE`, `personal_remittances_gdp` → `REMITTANCES`, `net_oda_gni` → `ODA_GRANTS`, `total_debt_service_gni`/`interest_payments_gdp` → `DEBT_SERVICE`, `gross_fixed_capital_formation_gdp` → `INFRA_CAPEX`, `imports_of_goods_and_services_gdp` → `ENERGY_IMPORT`+`IMPORT_LEAKAGE` (split by sector share).
-   - `country_sectors` — derive `WAGES_AGRI`, `DIGITAL_HEALTH_CAPEX`, etc. as GDP × share × standard-conversion.
-   - `country_sources` — filter by `kind ∈ ('gov','statistics','central_bank','multilateral')` ordered by `quality_score desc`, feed into `extraDomains`.
+- each stage writes a durable checkpoint before and after every substep
+- the workflow can resume from the last completed checkpoint
+- a failed stage does not poison the entire country onboarding run
+- retry only the failed unit, not the whole country
+- the UI reads progress from the database instead of waiting on one long request
 
-   Each seeded flow lands in the draft as `method='derived_from_kpi'` (or `'derived_from_sector_share'`) with citation copied from the source KPI/sector row. Perplexity is only used to fill the remaining gaps and to reconcile.
+For example:
 
-3. **Fix the commit write-path.**
-   Audit `commitCapitalFlows` (`corpus.functions.ts:2146`) — 0 rows in `country_capital_flows` despite a `status='committed'` run means the insert is either being rolled back, filtered by RLS on the admin path, or silently swallowed by an upsert conflict. Add a post-insert row-count assert; log the exact error; ensure `supabaseAdmin` is used inside the handler (per import-graph rule) rather than the request-scoped client.
+```text
+workflow_run
+  stage: kpi_seed
+  step: worldbank_backfill
+  processed: 9 / 24
+  status: running
+  last_heartbeat_at: 21:12:04
+  retry_count: 1
+```
 
-## P1 — Data integrity
+### 2. Add real heartbeats to every long stage
 
-4. **Reorder pipeline.** Move `capital_flows` out of level 2 into its own level 4, after `second_brain_seed`, so it can consume `memory_objects` + fully-ingested corpus.
+Right now corpus ingest has some progress updates, but KPI seed and several AI research stages do not. Add heartbeat/progress updates to:
 
-5. **Fix corpus fetch failures.** `country_source_documents.fetch_status` is not `success` for any ATG doc → the RAG chunks are keyed but empty. Investigate `ingest.server.ts` fetch/parse path (likely a Firecrawl / fetch step failing silently and still writing chunk stubs). Backfill: add a `retryFailedFetches(country_code)` action, and gate `corpus_ingest` "committed" status on `fetched_ok > 0`.
+- KPI seed: pass name, KPI code, processed/total, success/fail counts
+- ministry deep dive: current ministry, processed/total
+- sector dossiers: current sector, processed/total
+- second-brain seed: grounding loaded, model call running, commit pending
+- capital flows: deterministic seed count, node currently researched, validation result
 
-6. **RAG-ground the Perplexity fan-out.** For each remaining missing node, retrieve top-k `country_source_chunks` (e.g. MoF budget, IMF Article IV, central bank BOP) and inject the excerpts + source URLs into that node's prompt as `priorNote`. Prefer `sonar-deep-research` for the fan-out or at minimum the retry pass.
+A run should be considered stale based on `last_heartbeat_at`, not `started_at` alone.
 
-## P2 — Real reconciliation
+### 3. Split KPI seed into observable subjobs
 
-7. **Replace `RECONCILIATION_RESIDUAL` auto-plug** with a genuine cross-check: `sumIn` must be within ±10% of GDP-implied macro totals derived from stages 3+6, else the flow is flagged (not silently plugged) and the run stays `needs_review` with a concrete "what's off" report per node.
+KPI seed is the immediate pain point. It currently runs multiple passes internally, then records attempts only at the end. That means if it stalls or times out, the UI shows no useful evidence.
 
-8. **Feed capital_flows outputs back.** After commit, mirror `FDI_NET`, `REMITTANCES`, `TAX_REVENUE` into `country_kpis` (or a `memory_objects` "position") so future onboarding reruns converge instead of re-discovering.
+Change it so each KPI/pass writes an attempt immediately:
 
-## Technical touch-points
+- broad Perplexity sweep attempt
+- World Bank backfill per KPI
+- IMF backfill per KPI
+- targeted Perplexity per KPI
+- Lovable AI inference/escalation per KPI
 
-- `src/lib/country-onboarding/capital-flows.server.ts` — add `loadCapitalFlowsGrounding`, `seedFlowsFromUpstream`, KPI→node mapping table.
-- `src/lib/country-onboarding/corpus.functions.ts` — refactor `runCapitalFlowPass`/`runCapitalFlowsAgent` to accept `ctx` + seeded flows; harden `commitCapitalFlows` with row-count assertion and admin-client import inside handler.
-- `src/lib/country-onboarding/orchestrator.functions.ts` — move `capital_flows` to a new level after `second_brain_seed`.
-- `src/lib/country-onboarding/ingest.server.ts` — diagnose + fix `fetch_status` never reaching `'success'`; gate stage 10 commit on `fetched_ok > 0`.
-- `src/lib/country-onboarding/perplexity.server.ts` — allow `sonar-deep-research` model choice from capital_flows.
-- `supabase/migrations/…` — add `gdp_cap_multiplier` sanity defaults per node if missing; add optional `kpi_key_map` column on `capital_flow_nodes` to make the KPI→node mapping data-driven instead of hardcoded.
+This gives operators a live trail and allows retries for only missing KPIs.
 
-## Verification
+### 4. Stop relying on AI as the first source for canonical macro data
 
-- Rerun stage 12 for ATG. Expected: ≥3 inputs, ≥4 outputs seeded from committed KPIs/sectors before Perplexity even runs; residual ≤10%; `country_capital_flows` row count for ATG > 0 after commit; Sankey renders a full ledger.
-- Repeat for LCA (which has 31 prior runs) and confirm no country regresses.
+For reliable GDP/Sankey readiness, canonical numeric data should come from deterministic sources first:
+
+- World Bank indicators
+- IMF DataMapper/WEO where available
+- committed country profile/GDP rows
+- committed sector composition
+- committed source registry
+- already-ingested corpus chunks
+
+AI should then be used for:
+
+- filling gaps
+- resolving source URLs
+- summarizing rationale
+- checking plausibility
+- explaining missing values
+
+This makes the process AI-first in judgment and synthesis, but data-first in execution.
+
+### 5. Add stage-level quality gates with explicit outcomes
+
+Every stage should finish with one of these statuses:
+
+```text
+committed        usable and written to target tables
+ready           draft ready for review
+needs_review    partial but explainable; blocked from auto-commit
+failed          unrecoverable implementation/provider error
+stale           heartbeat expired
+skipped         upstream data already committed or dependency not ready
+```
+
+For each status, store a compact reason and next action. Example:
+
+```text
+KPI seed: needs_review
+Filled 18/24 required KPIs.
+Missing: unemployment_rate, fiscal_balance_gdp.
+Next action: retry missing KPIs using targeted source search.
+```
+
+### 6. Fix workflow ordering for final Sankey reliability
+
+Capital flows should run after the corpus and second-brain memory are available. Current ordering still places capital flows before second-brain seed in the parent workflow.
+
+Recommended order:
+
+```text
+Level 1: profile, GDP, sectors, ministries, source registry
+Level 2: KPI seed, ministry-sector map
+Level 3: sector dossiers, ministry deep dive, corpus ingest
+Level 4: second-brain seed
+Level 5: capital flows / Sankey workbook
+```
+
+Stage 12 should not run until:
+
+- GDP exists
+- sector rows exist
+- KPI seed has committed at least the required macro/fiscal KPIs
+- source registry has active sources
+- corpus ingest has at least one successful fetched document or a deterministic fallback is available
+
+### 7. Add provider guardrails and bounded retries
+
+Recent runs show provider/search-domain failures such as domain filter limits and empty payloads. Add a shared provider wrapper that enforces:
+
+- max 20 search domains before calling Perplexity
+- timeout per provider call
+- retry with relaxed domain filters
+- retry with deterministic public APIs before another AI call
+- normalized error categories: `provider_400`, `timeout`, `empty_payload`, `validation_failed`, `no_source_url`
+
+### 8. Make corpus ingest self-healing
+
+Current AIA has active sources but no fetched corpus yet. The workflow needs source-level repair:
+
+- show active / fetched / failed / unknown source counts before Stage 10
+- retry only failed or unknown sources
+- mark duplicate content as `deduped`, not silently “ok with 0 chunks”
+- require at least one useful corpus document before dependent RAG stages treat the corpus as available
+- keep per-source failure messages visible in the UI
+
+### 9. Improve the operator UI from “spinner” to command center
+
+Add a reliable workflow panel that shows:
+
+- active stage and active substep
+- elapsed time since last heartbeat
+- progress counts
+- latest error/blocked reason
+- retry buttons for stale/failed/needs-review stages
+- “resume workflow” instead of only “run all pending”
+- evidence preview for KPI and capital-flow attempts
+
+This directly addresses the user experience problem: no more guessing whether the process is actually working.
+
+## Implementation plan
+
+### Phase 1 — Stabilize the current stuck point
+
+- Add heartbeat/progress writes to KPI seed.
+- Record KPI attempts incrementally instead of only at the end.
+- Add a `resume/retry missing KPIs` path.
+- Update stale detection to use heartbeat age.
+- Surface live KPI progress in the onboarding UI.
+
+### Phase 2 — Make orchestration resumable
+
+- Introduce a durable checkpoint model in existing workflow/run tables or a small new workflow-step table.
+- Convert `run all pending` into a stage-by-stage resumable loop.
+- Add per-stage retry counts and final status reasons.
+- Make the parent workflow continue cleanly after recoverable `needs_review` stages.
+
+### Phase 3 — Harden data acquisition
+
+- Centralize provider calls behind a reliability wrapper.
+- Enforce domain-filter limits and timeout handling.
+- Prefer deterministic World Bank/IMF/committed-data sources before model calls.
+- Add source/corpus repair actions for failed or unknown fetches.
+
+### Phase 4 — Reorder and gate Sankey generation
+
+- Move capital flows after second-brain seed.
+- Add explicit preflight checks before Stage 12.
+- Keep deterministic capital-flow seeding from committed KPIs/sectors.
+- Run AI only for missing flow nodes and validation explanations.
+- Commit Stage 12 only when coverage and reconciliation gates pass; otherwise produce a clear review packet.
+
+### Phase 5 — Observability and operator trust
+
+- Add a workflow health dashboard with live heartbeat, current substep, run age, source/corpus coverage, KPI coverage, and Sankey readiness.
+- Add one-click retry/resume actions.
+- Add compact audit logs per stage so every committed number has a traceable source and every missing number has a reason.
+
+## Technical touchpoints
+
+- `src/lib/country-onboarding/orchestrator.functions.ts`
+- `src/lib/country-onboarding/corpus.functions.ts`
+- `src/lib/country-onboarding/kpi-research.server.ts`
+- `src/lib/country-onboarding/capital-flows.server.ts`
+- `src/lib/country-onboarding/ingest.server.ts`
+- `src/lib/country-onboarding/fallback.server.ts`
+- `src/routes/_authenticated/admin/countries.$code.onboard.tsx`
+- backend tables for onboarding runs, drafts, KPI attempts, capital-flow attempts, source documents, and workflow progress
+
+## Expected result
+
+After this hardening, country onboarding should behave like a reliable data pipeline:
+
+- it runs independently
+- it shows exactly what it is doing
+- it can recover from slow/failing providers
+- it does not lose partial work
+- it does not require rerunning everything after one bad stage
+- Stage 12 receives enough validated upstream data to produce a credible GDP Sankey workbook instead of guessing

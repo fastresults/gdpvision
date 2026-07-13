@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
+import { GdpVizStudio } from "@/components/viz/GdpVizStudio";
 import { MemoryVisual, type MemoryFilter } from "@/components/country-data/MemoryVisual";
 import { BrainConstellation, type BrainFilter } from "@/components/country-data/BrainConstellation";
 import { AddSourceDialog } from "@/components/country-data/AddSourceDialog";

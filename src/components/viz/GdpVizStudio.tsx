@@ -22,7 +22,7 @@ export function GdpVizStudio({ code }: { code: string }) {
   const { data: overview } = useSuspenseQuery(overviewQuery(code, fetchOverview));
   const [sector, setSector] = useState<string | null>(null);
 
-  const selectedSector = overview.sectors.find((s) => s.code === sector) ?? null;
+  const selectedSector = overview.sectors.find((s: any) => s.code === sector) ?? null;
 
   return (
     <div className="space-y-6">

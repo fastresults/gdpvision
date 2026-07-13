@@ -337,8 +337,10 @@ async function deterministicCandidates(workbook: Awaited<ReturnType<typeof loadW
     attempts.push({ ...leakFlow, pass: "deterministic-worldbank", provider: "worldbank", status: "accepted" });
   }
 
-  const publicAdmin = Number(workbook.bySector.get("public-administration")?.share_pct ?? 0);
-  const agriculture = Number(workbook.bySector.get("agriculture")?.share_pct ?? 0);
+  const publicAdminSector = workbook.bySector.get("public-administration") as any;
+  const agricultureSector = workbook.bySector.get("agriculture") as any;
+  const publicAdmin = Number(publicAdminSector?.share_pct ?? 0);
+  const agriculture = Number(agricultureSector?.share_pct ?? 0);
   if (publicAdmin + agriculture > 0) {
     const flow: CapitalFlowResolved = {
       node_key: "WAGES_AGRI",
@@ -357,7 +359,8 @@ async function deterministicCandidates(workbook: Awaited<ReturnType<typeof loadW
     attempts.push({ ...flow, pass: "deterministic-sector", provider: "committed-sector-composition", status: "accepted" });
   }
 
-  const capexSource = sourceFrom(workbook.byKpi.get("govt_revenue_gdp")?.source_url, fallbackUrl, "IMF / budget assumption");
+  const revenueKpi = workbook.byKpi.get("govt_revenue_gdp") as any;
+  const capexSource = sourceFrom(revenueKpi?.source_url, fallbackUrl, "IMF / budget assumption");
   if (capexSource) {
     const infra = gdp * 0.015;
     const digitalHealth = gdp * 0.006;

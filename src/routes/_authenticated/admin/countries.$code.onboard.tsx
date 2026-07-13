@@ -410,6 +410,19 @@ function StageCard({
     }
   }
 
+  async function doGenerateSummary() {
+    setGeneratingSummary(true);
+    setErr(null);
+    try {
+      await onGenerateSummary();
+    } catch (e: any) {
+      setErr(e?.message ?? String(e));
+    } finally {
+      setGeneratingSummary(false);
+    }
+  }
+
+
   return (
     <section className="border border-line-200 bg-paper-0">
       <div className="flex items-stretch justify-between gap-4">

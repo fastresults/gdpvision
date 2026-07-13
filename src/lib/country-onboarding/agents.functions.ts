@@ -10,6 +10,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { type SonarCitation, type SonarModel } from "./perplexity.server";
 import { runWithFallbacks, jsonParser } from "./fallback.server";
+import { buildCountryContext } from "./country-context.server";
 import { seedProfile, seedGdp, seedSectorComposition, seedMinistries, seedMinistrySectorMap } from "./seeds.server";
 import { SUMMARY_SCHEMA_FRAGMENT, SUMMARY_SYSTEM_SUFFIX, extractInlineSummary } from "./summary-inline";
 
@@ -231,6 +232,7 @@ export const runProfileAgent = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const country = await loadCountry(supabaseAdmin, data.countryCode);
+    const ctx = await buildCountryContext(supabaseAdmin, data.countryCode);
 
     const model: SonarModel = "sonar-pro";
     const runId = await openRun(supabaseAdmin, {
@@ -242,24 +244,31 @@ export const runProfileAgent = createServerFn({ method: "POST" })
 
     try {
       const fb = await runWithFallbacks<any>({
+        context: ctx,
+        topic: `${country.name} — country profile, head of government, population, HDI, main exports`,
         perplexity: {
           model,
           system:
-            "You are a country-profile researcher. Answer with a single JSON object matching the schema. Use only authoritative sources (national statistics offices, IMF, World Bank, UN). Cite every fact." +
+            "You are a country-profile researcher. Answer with a single JSON object matching the schema. Prefer the country's official government portal and national statistics office; secondary sources are IMF, World Bank, UN. Cite every fact. If a field is unknown from primary sources, return the most recent multilateral estimate and note it." +
             SUMMARY_SYSTEM_SUFFIX,
-          user: `Research the country of ${country.name} (${country.iso3 ?? country.code}). Return: currency code (ISO 4217), fiscal year start month (1-12), most recent population, HDI (or null), top 3-5 export categories, government type, and current head of government (as of 2026). Use only official/multilateral sources.`,
+          user: `Research ${country.name} (${country.iso3 ?? country.code}). Return:\n- currency (ISO 4217)\n- fiscal_year_start_month (1-12)\n- population (most recent official)\n- HDI (or null)\n- main_exports: top 3-5 export categories\n- government_type\n- head_of_government (verify the current holder as of ${new Date().getFullYear()} — cross-check the official portal AND a recent news source; do not rely solely on Wikipedia).`,
           responseSchema: ProfileSchema as unknown as Record<string, unknown>,
-          recency: "year",
+          recency: "month",
         },
         gemini: {
           system: "You are a country-profile researcher for " + country.name + ".",
-          user: `Country: ${country.name} (${country.iso3 ?? country.code}). Return most-recent population, HDI, top exports, government type, and head of government.`,
+          user: `Extract the profile fields for ${country.name} (${country.iso3 ?? country.code}) from the source material and partial output.`,
           schemaHint:
             `{ "currency": "ISO 4217", "fiscal_year_start_month": 1-12, "population": number, "hdi": number|null, "main_exports": string[], "government_type": string, "head_of_government": string, "notes": string, "summary_md": string, "summary_highlights": [{"label": string, "value": string}] }`,
         },
         parse: jsonParser<any>(),
-        validate: (v) => !!v && typeof v.currency === "string" && typeof v.head_of_government === "string",
-        infer: () => ({ ...seedProfile(country.name), summary_md: `Provisional profile for ${country.name} — please review.`, summary_highlights: [] }),
+        validate: (v) =>
+          !!v &&
+          typeof v.currency === "string" && /^[A-Z]{3}$/.test(v.currency) &&
+          typeof v.head_of_government === "string" && v.head_of_government.trim().length > 3 &&
+          !/unknown/i.test(v.head_of_government) &&
+          Number(v.population) > 0,
+        infer: () => ({ ...seedProfile(country.name, ctx), summary_md: `Provisional profile for ${country.name} — please review.`, summary_highlights: [] }),
       });
 
       const inline = extractInlineSummary(fb.data);
@@ -306,6 +315,7 @@ export const runGdpAgent = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const country = await loadCountry(supabaseAdmin, data.countryCode);
+    const ctx = await buildCountryContext(supabaseAdmin, data.countryCode);
 
     const model: SonarModel = "sonar-pro";
     const runId = await openRun(supabaseAdmin, {
@@ -316,23 +326,31 @@ export const runGdpAgent = createServerFn({ method: "POST" })
     });
 
     try {
+      const currentYear = new Date().getFullYear();
       const fb = await runWithFallbacks<any>({
+        context: ctx,
+        topic: `${country.name} nominal GDP most recent year (World Bank WDI, IMF WEO, national accounts)`,
         perplexity: {
           model,
           system:
-            "You are a macro-economics researcher. Return a single JSON object. Cross-check GDP between World Bank WDI and IMF WEO — pick the most recent year where BOTH publish a figure. Cite both sources." +
+            "You are a macro-economics researcher. Return a single JSON object. Cross-check GDP between World Bank WDI and IMF WEO — pick the most recent year where BOTH publish a figure. Cite both sources. Value MUST be in whole US dollars (not billions or millions)." +
             SUMMARY_SYSTEM_SUFFIX,
-          user: `What is the nominal GDP of ${country.name} in current US dollars, most recent year with an official figure? Prefer World Bank WDI and IMF WEO. Return the value in USD (not billions).`,
+          user: `What is the nominal GDP of ${country.name} in current US dollars, most recent year (${currentYear - 3}-${currentYear})? Prefer World Bank WDI and IMF WEO, cross-checked. Return the value in whole USD (e.g. 1750000000, not 1.75). Include both sources.`,
           responseSchema: GdpSchema as unknown as Record<string, unknown>,
           recency: "year",
         },
         gemini: {
           system: "You are a macro-economics researcher.",
-          user: `Return most-recent nominal GDP of ${country.name} in current USD. Prefer World Bank WDI / IMF WEO.`,
+          user: `Extract nominal GDP of ${country.name} in current USD from the source material. Value must be whole USD.`,
           schemaHint: `{ "gdp_current_usd": number, "gdp_year": integer, "source_primary": string, "source_secondary": string|null, "notes": string, "summary_md": string, "summary_highlights": [{"label": string, "value": string}] }`,
         },
         parse: jsonParser<any>(),
-        validate: (v) => !!v && typeof v.gdp_current_usd === "number" && typeof v.gdp_year === "number",
+        validate: (v) =>
+          !!v &&
+          typeof v.gdp_current_usd === "number" &&
+          v.gdp_current_usd > 1_000_000 && // sanity: at least 1M USD (rejects unit errors)
+          Number.isInteger(v.gdp_year) &&
+          v.gdp_year >= currentYear - 6 && v.gdp_year <= currentYear,
         infer: () => ({ ...seedGdp(), summary_md: `Provisional GDP for ${country.name} — please review.`, summary_highlights: [] }),
       });
 
@@ -367,6 +385,7 @@ export const runSectorCompositionAgent = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const country = await loadCountry(supabaseAdmin, data.countryCode);
     const sectors = await loadSectors(supabaseAdmin);
+    const ctx = await buildCountryContext(supabaseAdmin, data.countryCode);
 
     const model: SonarModel = "sonar-reasoning-pro";
     const runId = await openRun(supabaseAdmin, {
@@ -380,47 +399,53 @@ export const runSectorCompositionAgent = createServerFn({ method: "POST" })
       const sectorList = sectors.map((s) => `- ${s.code} (${s.label}${s.isic ? `, ISIC ${s.isic}` : ""})`).join("\n");
       const rowsSchema = {
         type: "object",
-        additionalProperties: false,
         properties: {
           rows: {
             type: "array",
             items: {
               type: "object",
-              additionalProperties: false,
               properties: {
                 sector_code: { type: "string" },
                 share_pct: { type: "number", minimum: 0, maximum: 100 },
                 confidence_grade: { type: "string", enum: ["A", "B", "C", "D", "F"] },
                 rationale: { type: "string" },
               },
-              required: ["sector_code", "share_pct", "confidence_grade", "rationale"],
+              required: ["sector_code", "share_pct"],
             },
           },
           method_note: { type: "string" },
           ...SUMMARY_SCHEMA_FRAGMENT,
         },
-        required: ["rows", "method_note", "summary_md", "summary_highlights"],
+        required: ["rows"],
       } as const;
 
       const fb = await runWithFallbacks<{ rows: any[]; method_note: string; summary_md?: string; summary_highlights?: any[] }>({
+        context: ctx,
+        topic: `${country.name} GDP by industry / sector composition (national accounts, ISIC breakdown)`,
         perplexity: {
           model,
           system:
-            "You are a national-accounts analyst. Map the country's GDP by industry (ISIC A-U) into the given sector taxonomy. Return one row per sector code (use 0 if the sector is negligible). Shares must sum to ~100%. Use A/B for values from official national accounts, C for multilateral estimates, D/F for inference. Cite each source." +
+            "You are a national-accounts analyst. Map the country's GDP by industry (ISIC A-U) into the given sector taxonomy. Return one row per sector code (use 0 if the sector is negligible). Shares must sum to ~100%. Use A/B for values from official national accounts, C for multilateral estimates, D/F for inference. Cite each source. Think step-by-step: identify the most recent national accounts publication, extract each ISIC branch, then map to the taxonomy." +
             SUMMARY_SYSTEM_SUFFIX,
-          user: `Country: ${country.name} (${country.iso3 ?? country.code}).\n\nSector taxonomy (return one row per code):\n${sectorList}\n\nUse the most recent full-year national accounts. Prefer the country's Central Statistical Office, then ECCB / CDB / IMF / World Bank.`,
+          user: `Country: ${country.name} (${country.iso3 ?? country.code}).\n\nSector taxonomy (return one row per code):\n${sectorList}\n\nUse the most recent full-year national accounts. Prefer the country's Central Statistical Office, then ECCB / CDB / IMF / World Bank. Show which ISIC branches map to which taxonomy sector in the rationale.`,
           responseSchema: rowsSchema as unknown as Record<string, unknown>,
           recency: "year",
         },
         gemini: {
           system: "You are a national-accounts analyst.",
-          user: `Country: ${country.name}. Sector taxonomy: ${sectorList}. Return share_pct per sector code, summing to ~100.`,
+          user: `Country: ${country.name}. Extract sector shares from the source material and map to this taxonomy: ${sectorList}. Return share_pct per sector code, summing to ~100.`,
           schemaHint: `{ "rows": [{"sector_code": string, "share_pct": number, "confidence_grade": "A"|"B"|"C"|"D"|"F", "rationale": string}], "method_note": string, "summary_md": string, "summary_highlights": [{"label": string, "value": string}] }`,
         },
         parse: jsonParser<{ rows: any[]; method_note: string }>(),
-        validate: (v) => !!v?.rows?.length,
+        validate: (v) => {
+          if (!v?.rows?.length) return false;
+          const nonZero = v.rows.filter((r: any) => Number(r.share_pct) > 0);
+          if (nonZero.length < 4) return false;
+          const total = v.rows.reduce((s: number, r: any) => s + Number(r.share_pct ?? 0), 0);
+          return total >= 85 && total <= 115;
+        },
         infer: () => ({
-          rows: seedSectorComposition(sectors.map((s) => s.code)),
+          rows: seedSectorComposition(sectors.map((s) => s.code), ctx),
           method_note: "Provisional small-state defaults — no primary source reached.",
           summary_md: `Provisional sector composition for ${country.name} — please review.`,
           summary_highlights: [],
@@ -475,6 +500,7 @@ export const runMinistriesAgent = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const country = await loadCountry(supabaseAdmin, data.countryCode);
+    const ctx = await buildCountryContext(supabaseAdmin, data.countryCode);
 
     const model: SonarModel = "sonar-pro";
     const runId = await openRun(supabaseAdmin, {
@@ -487,46 +513,53 @@ export const runMinistriesAgent = createServerFn({ method: "POST" })
     try {
       const schema = {
         type: "object",
-        additionalProperties: false,
         properties: {
           ministries: {
             type: "array",
             items: {
               type: "object",
-              additionalProperties: false,
               properties: {
                 slug: { type: "string", description: "kebab-case identifier" },
                 name: { type: "string", description: "Full official ministry name" },
                 minister: { type: ["string", "null"] },
                 mandate: { type: "string" },
               },
-              required: ["slug", "name", "mandate"],
+              required: ["slug", "name"],
             },
           },
           ...SUMMARY_SCHEMA_FRAGMENT,
         },
-        required: ["ministries", "summary_md", "summary_highlights"],
+        required: ["ministries"],
       } as const;
 
       const fb = await runWithFallbacks<{ ministries: any[]; summary_md?: string; summary_highlights?: any[] }>({
+        context: ctx,
+        topic: `${country.name} cabinet ministries and ministers (current)`,
         perplexity: {
           model,
           system:
-            "You are a governance researcher. Return the current canonical ministries of the country. Prefer the official government portal." +
+            `You are a governance researcher. Return the current canonical cabinet ministries of ${country.name}. Prefer the official government portal (${ctx.portal ?? "the country's .gov site"}) — its "Cabinet" or "Government" or "Ministries" page. Cross-check against a recent news article (past 12 months) confirming the current minister names. A small state typically has 8-18 ministries; do not return fewer than 6 unless you have explicit evidence of a smaller cabinet.` +
             SUMMARY_SYSTEM_SUFFIX,
-          user: `List the current cabinet ministries of ${country.name} as of 2026, with the full official name, current minister (if known), and a one-line mandate. Use the government's official website.`,
+          user: `List the current cabinet ministries of ${country.name} as of ${new Date().getFullYear()}.\n\nFor each ministry:\n- slug (kebab-case, e.g. "finance", "foreign-affairs")\n- name (full official ministry name)\n- minister (current holder's full name — verify from official portal AND recent news; null only if truly unknown)\n- mandate (one-line description of the portfolio's scope)\n\nStart from ${ctx.portal ?? "the official government portal"}. If a cabinet reshuffle happened recently, use the latest.`,
           responseSchema: schema as unknown as Record<string, unknown>,
-          recency: "year",
+          recency: "month",
         },
         gemini: {
           system: "You are a governance researcher.",
-          user: `List the current cabinet ministries of ${country.name} with slug (kebab-case), full official name, current minister (or null), and one-line mandate.`,
+          user: `Extract the current cabinet ministries of ${country.name} from the source material. Each item needs slug (kebab-case), full official name, current minister name (or null), and one-line mandate.`,
           schemaHint: `{ "ministries": [{"slug": string, "name": string, "minister": string|null, "mandate": string}], "summary_md": string, "summary_highlights": [{"label": string, "value": string}] }`,
         },
         parse: jsonParser<{ ministries: any[] }>(),
-        validate: (v) => !!v?.ministries?.length,
+        validate: (v) => {
+          if (!v?.ministries?.length || v.ministries.length < 6) return false;
+          return v.ministries.every(
+            (m: any) =>
+              typeof m?.slug === "string" && /^[a-z0-9-]+$/.test(m.slug) &&
+              typeof m?.name === "string" && m.name.trim().length > 3,
+          );
+        },
         infer: () => ({
-          ministries: seedMinistries(country.name),
+          ministries: seedMinistries(country.name, ctx),
           summary_md: `Provisional canonical ministries for ${country.name} — please verify against the government portal.`,
           summary_highlights: [],
         }),
@@ -563,6 +596,7 @@ export const runMinistrySectorMapAgent = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const country = await loadCountry(supabaseAdmin, data.countryCode);
     const sectors = await loadSectors(supabaseAdmin);
+    const ctx = await buildCountryContext(supabaseAdmin, data.countryCode);
     const { data: ministries, error: mErr } = await supabaseAdmin
       .from("ministries")
       .select("id, slug, name")
@@ -581,45 +615,54 @@ export const runMinistrySectorMapAgent = createServerFn({ method: "POST" })
     try {
       const schema = {
         type: "object",
-        additionalProperties: false,
         properties: {
           mappings: {
             type: "array",
             items: {
               type: "object",
-              additionalProperties: false,
               properties: {
                 ministry_slug: { type: "string" },
                 sector_code: { type: "string" },
-                weight: { type: "number", minimum: 0, maximum: 100, description: "Percentage responsibility 0-100" },
+                weight: { type: "number", minimum: 0, maximum: 100 },
                 rationale: { type: "string" },
               },
-              required: ["ministry_slug", "sector_code", "weight", "rationale"],
+              required: ["ministry_slug", "sector_code", "weight"],
             },
           },
           ...SUMMARY_SCHEMA_FRAGMENT,
         },
-        required: ["mappings", "summary_md", "summary_highlights"],
+        required: ["mappings"],
       } as const;
 
       const sectorList = sectors.map((s) => `${s.code} (${s.label})`).join(", ");
       const ministryList = ministries.map((m) => `${m.slug} (${m.name})`).join("\n- ");
+      const sectorWeights = ctx.committed.sectors.length
+        ? `\n\nCOMMITTED SECTOR WEIGHTS (distribute ministerial ownership consistently with these shares):\n${ctx.committed.sectors.map((s) => `- ${s.sector_code}: ${Number(s.share_pct).toFixed(1)}%`).join("\n")}`
+        : "";
       const fb = await runWithFallbacks<{ mappings: any[]; summary_md?: string; summary_highlights?: any[] }>({
+        context: ctx,
+        topic: `${country.name} ministerial portfolios and sector ownership`,
         perplexity: {
           model,
           system:
-            "You map ministerial portfolios to economic sectors. For each ministry, output the sectors it primarily oversees with a weight 0-100 representing its share of responsibility for that sector. Per-ministry weights across all its sectors should roughly sum to 100. Omit sectors a ministry has no role in." +
+            "You map ministerial portfolios to economic sectors. For each ministry, output the sectors it primarily oversees with a weight 0-100 representing its share of responsibility for that sector. Per-ministry weights across all its sectors should roughly sum to 100. Omit sectors a ministry has no role in. Use the official ministerial mandates on the government portal." +
             SUMMARY_SYSTEM_SUFFIX,
-          user: `Country: ${country.name}. Sectors: ${sectorList}. Ministries:\n- ${ministryList}\n\nProvide the ministry→sector mapping using the country's official ministerial mandates.`,
+          user: `Country: ${country.name}.\n\nSectors: ${sectorList}.\n\nMinistries:\n- ${ministryList}${sectorWeights}\n\nProvide the ministry→sector mapping. Every ministry MUST appear at least once. Ground the rationale in the actual mandate text where possible.`,
           responseSchema: schema as unknown as Record<string, unknown>,
         },
         gemini: {
           system: "You map ministerial portfolios to economic sectors.",
-          user: `Country: ${country.name}. Sectors: ${sectorList}. Ministries: ${ministryList}. Return mappings with weight 0-100.`,
+          user: `Country: ${country.name}. Sectors: ${sectorList}. Ministries: ${ministryList}. Extract mappings from source material; weight 0-100 per (ministry, sector); each ministry appears at least once.`,
           schemaHint: `{ "mappings": [{"ministry_slug": string, "sector_code": string, "weight": number, "rationale": string}], "summary_md": string, "summary_highlights": [{"label": string, "value": string}] }`,
         },
         parse: jsonParser<{ mappings: any[] }>(),
-        validate: (v) => !!v?.mappings?.length,
+        validate: (v) => {
+          if (!v?.mappings?.length) return false;
+          const ministrySet = new Set(ministries.map((m) => m.slug));
+          const covered = new Set(v.mappings.map((m: any) => m.ministry_slug));
+          // At least 60% of ministries should be represented; otherwise cascade.
+          return covered.size >= Math.ceil(ministrySet.size * 0.6);
+        },
         infer: () => ({
           mappings: seedMinistrySectorMap(ministries.map((m) => m.slug), sectors.map((s) => s.code)),
           summary_md: `Provisional canonical portfolio→sector mapping for ${country.name} — please review.`,

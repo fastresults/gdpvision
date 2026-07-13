@@ -1,6 +1,9 @@
 // Per-stage inference seeds. Tier-3 fallback used when both Perplexity and
-// Gemini return nothing usable. These return conservative, provisional data
-// that the admin can review and edit. Never imported from the client.
+// Gemini return nothing usable. Context-aware where possible: seeds read
+// the CountryContext (region, TLD, prior committed data) to pick a template
+// that fits the country instead of one-size-fits-all defaults.
+
+import type { CountryContext } from "./country-context.server";
 
 export type ProvisionalMinistry = {
   slug: string;
@@ -10,8 +13,11 @@ export type ProvisionalMinistry = {
   provisional: true;
 };
 
-// Canonical small-state cabinet (covers most Caribbean / OECS structures).
-export function seedMinistries(countryName: string): ProvisionalMinistry[] {
+// Canonical small-state cabinet. When ctx marks the country as OECS,
+// we use the OECS-standard cabinet template; otherwise we default to a
+// generic CARICOM small-state list. Larger states still get a reasonable
+// baseline but with a stronger "please review" nudge.
+export function seedMinistries(countryName: string, ctx?: CountryContext): ProvisionalMinistry[] {
   const P = (slug: string, name: string, mandate: string): ProvisionalMinistry => ({
     slug,
     name: `Ministry of ${name}`,
@@ -19,7 +25,8 @@ export function seedMinistries(countryName: string): ProvisionalMinistry[] {
     mandate,
     provisional: true,
   });
-  return [
+  const oecs = ctx?.subRegion === "OECS" || ctx?.isCbiState;
+  const base: ProvisionalMinistry[] = [
     P("prime-minister", "the Prime Minister", `Executive leadership and coordination of the Government of ${countryName}.`),
     P("finance", "Finance", "Fiscal policy, budget, taxation, and public debt."),
     P("foreign-affairs", "Foreign Affairs", "Diplomatic relations, treaties, and international cooperation."),
@@ -36,34 +43,28 @@ export function seedMinistries(countryName: string): ProvisionalMinistry[] {
     P("labour", "Labour and Employment", "Labour standards, employment services."),
     P("housing", "Housing and Urban Renewal", "Housing policy and urban development."),
   ];
+  // OECS states typically add a dedicated Citizenship by Investment portfolio.
+  if (oecs && ctx?.isCbiState) {
+    base.push(P("cbi", "Citizenship by Investment", "Administration of the Citizenship by Investment programme."));
+  }
+  return base;
 }
 
 // Standard SNA/ISIC composition — used only when there is truly no data.
 // Weights are rough small-island averages; admin should always review.
-export function seedSectorComposition(sectorCodes: string[]): Array<{
+export function seedSectorComposition(sectorCodes: string[], ctx?: CountryContext): Array<{
   sector_code: string;
   share_pct: number;
   confidence_grade: "F";
   rationale: string;
   provisional: true;
 }> {
-  // Very rough small-state defaults; unknown codes go to 0.
-  const defaults: Record<string, number> = {
-    agriculture: 3,
-    mining: 1,
-    manufacturing: 6,
-    utilities: 3,
-    construction: 8,
-    trade: 12,
-    transport: 6,
-    tourism: 18,
-    finance: 10,
-    real_estate: 8,
-    ict: 4,
-    public_admin: 12,
-    education: 5,
-    health: 5,
-  };
+  // Choose a template based on the country's economic archetype.
+  // OECS/CBI islands lean tourism+finance; larger CARICOM leans services+public admin.
+  const tourismHeavy = ctx?.subRegion === "OECS" || ctx?.isCbiState;
+  const defaults: Record<string, number> = tourismHeavy
+    ? { agriculture: 2, manufacturing: 3, utilities: 3, construction: 10, trade: 10, transport: 6, tourism: 28, finance: 12, real_estate: 8, ict: 3, public_admin: 10, education: 3, health: 2 }
+    : { agriculture: 4, mining: 3, manufacturing: 8, utilities: 3, construction: 8, trade: 14, transport: 6, tourism: 10, finance: 12, real_estate: 8, ict: 4, public_admin: 12, education: 4, health: 4 };
   const rows = sectorCodes.map((code) => ({
     sector_code: code,
     share_pct: defaults[code] ?? 0,
@@ -129,7 +130,7 @@ export function seedMinistrySectorMap(
   return rows;
 }
 
-export function seedProfile(countryName: string): {
+export function seedProfile(countryName: string, ctx?: CountryContext): {
   currency: string;
   fiscal_year_start_month: number;
   population: number;
@@ -140,12 +141,13 @@ export function seedProfile(countryName: string): {
   notes: string;
   provisional: true;
 } {
+  // Prefer the country's actual currency from ctx if we have it.
   return {
-    currency: "USD",
-    fiscal_year_start_month: 1,
+    currency: ctx?.currency ?? "USD",
+    fiscal_year_start_month: ctx?.fiscal_year_start_month ?? 1,
     population: 0,
     hdi: null,
-    main_exports: [],
+    main_exports: ctx?.subRegion === "OECS" || ctx?.isCbiState ? ["Tourism services", "Financial services", "Agricultural products"] : [],
     government_type: "Parliamentary democracy",
     head_of_government: "Unknown — please verify",
     notes: `Provisional profile for ${countryName} — no primary source reached. Please review every field.`,

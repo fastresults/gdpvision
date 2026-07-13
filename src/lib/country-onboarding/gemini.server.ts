@@ -1,6 +1,8 @@
-// Server-only Gemini (Lovable AI Gateway) JSON caller used as Tier-2 fallback
-// when Perplexity returns empty/unparseable. Also supports gpt-5.5 as a last
-// gateway retry. Never imported from the client.
+// Server-only Gemini (Lovable AI Gateway) JSON caller used as Tier-2 fallback.
+// Positioned as a REPAIR tier: it receives the Perplexity partial content,
+// the country context block, and (optionally) text fetched from the top
+// citation URLs, then extracts/repairs the structured payload from that
+// grounding material rather than guessing blind.
 
 import { generateText } from "ai";
 
@@ -19,24 +21,29 @@ const LAST_RESORT = "openai/gpt-5.5";
 export async function callGeminiJson<T = any>(opts: {
   system: string;
   user: string;
-  // Optional partial content from Tier 1 the model should try to repair/complete.
-  partial?: string | null;
-  // Free-form schema description injected into the prompt. We deliberately do
-  // NOT pass a strict JSON schema here — Gemini does best with a natural-language
-  // shape and json_object response format.
   schemaHint: string;
+  /** Full raw Perplexity content from all Tier-1 attempts (may be empty). */
+  partial?: string | null;
+  /** Country context block from renderContextBlock(). */
+  contextBlock?: string | null;
+  /** Concatenated text fetched from top citation URLs. */
+  citationText?: string | null;
 }): Promise<GeminiJsonResult<T>> {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("Missing LOVABLE_API_KEY");
   const { createLovableAiGatewayProvider } = await import("@/lib/ai-gateway.server");
   const gateway = createLovableAiGatewayProvider(key);
 
+  const contextBlock = opts.contextBlock?.trim() ? `\n\n${opts.contextBlock}` : "";
   const partialBlock = opts.partial?.trim()
-    ? `\n\nPARTIAL DRAFT from a previous attempt (may be empty, malformed, or incomplete — repair and complete it):\n${opts.partial.slice(0, 4000)}`
+    ? `\n\nPARTIAL / RAW SEARCH OUTPUT from Perplexity (may be empty, malformed, or incomplete — extract and repair what you can, do not invent facts not present here or in the source material):\n"""\n${opts.partial.slice(0, 8000)}\n"""`
+    : "";
+  const sourceBlock = opts.citationText?.trim()
+    ? `\n\nSOURCE MATERIAL fetched from top citations (use this as the primary factual grounding):\n"""\n${opts.citationText.slice(0, 16000)}\n"""`
     : "";
 
   const prompt =
-    `${opts.user}\n\nSHAPE (return ONLY a valid JSON object matching this shape, no prose, no code fences):\n${opts.schemaHint}${partialBlock}\n\nReturn json.`;
+    `${opts.user}${contextBlock}${sourceBlock}${partialBlock}\n\nSHAPE (return ONLY a valid JSON object matching this shape, no prose, no code fences):\n${opts.schemaHint}\n\nReturn json.`;
 
   const models = [PRIMARY, RETRY, LAST_RESORT];
   let lastErr: unknown = null;
@@ -45,7 +52,9 @@ export async function callGeminiJson<T = any>(opts: {
     try {
       const result = await generateText({
         model: gateway(model),
-        system: opts.system + " Always return a single valid JSON object. Never include prose or code fences.",
+        system:
+          opts.system +
+          " You are a repair/extraction tier — prefer facts present in SOURCE MATERIAL and PARTIAL / RAW SEARCH OUTPUT above your training data. Never invent numbers, names, or citations. Always return a single valid JSON object. Never include prose or code fences.",
         prompt,
       });
       const text = result.text ?? "";
@@ -55,9 +64,7 @@ export async function callGeminiJson<T = any>(opts: {
     } catch (err) {
       lastErr = err;
       const status = (err as { statusCode?: number }).statusCode;
-      // Non-retryable gateway errors: stop cascading
       if (status === 402) throw new Error("Lovable AI credits exhausted — top up in workspace billing.");
-      // 429 / 5xx / parse failures: fall through to next model
     }
   }
 

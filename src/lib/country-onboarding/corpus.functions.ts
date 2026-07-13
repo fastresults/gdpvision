@@ -85,7 +85,7 @@ async function openRun(admin: any, params: {
   if (error) {
     if ((error as any).code === "23505") {
       throw new Error(
-        `A ${params.stage} run is already in progress for ${params.country_code}. Wait for it to finish, or refresh the page — stale runs auto-clear after 15 minutes.`,
+        `A ${params.stage} run is already in progress for ${params.country_code}. Refresh to see live progress; stale runs auto-clear when their heartbeat is quiet for 45 minutes.`,
       );
     }
     throw error;
@@ -96,14 +96,14 @@ async function openRun(admin: any, params: {
 async function finishRun(admin: any, runId: string, patch: Record<string, unknown>) {
   await admin
     .from("onboarding_runs")
-    .update({ ...patch, finished_at: new Date().toISOString() })
+    .update({ ...patch, finished_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq("id", runId);
 }
 
 async function updateRunPlan(admin: any, runId: string | null, plan: Record<string, unknown>) {
   if (!runId) return;
   try {
-    await admin.from("onboarding_runs").update({ plan }).eq("id", runId);
+    await admin.from("onboarding_runs").update({ plan, updated_at: new Date().toISOString() }).eq("id", runId);
   } catch {
     /* heartbeat/progress is best-effort */
   }
@@ -663,6 +663,18 @@ export const runKpiSeedAgent = createServerFn({ method: "POST" })
 
       await finishRun(supabaseAdmin, runId, {
         status: "ready",
+        plan: {
+          kind: "kpi_seed_progress",
+          phase: "ready",
+          processed: enriched.length,
+          total: enriched.length,
+          okCount: attempts.filter((a) => a.ok).length,
+          failCount: attempts.filter((a) => !a.ok).length,
+          filled: coverage.filled,
+          missing: coverage.missing.length,
+          missingKpis: coverage.missing,
+          updatedAt: new Date().toISOString(),
+        },
         error:
           coverage.filled < coverage.total
             ? `partial: ${coverage.filled}/${coverage.total} required (missing: ${coverage.missing.join(", ")})`

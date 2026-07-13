@@ -577,6 +577,68 @@ function truncateMiddle(s: string, max: number): string {
   return `${s.slice(0, half)}…${s.slice(-half)}`;
 }
 
+function PipelineHealthPanel({
+  stages,
+  committedTargets,
+  drafts,
+  runs,
+  diagnostics,
+  latestPipeline,
+}: {
+  stages: { key: Stage; label: string; short: string; desc: string }[];
+  committedTargets: Record<string, { rows: number }>;
+  drafts: any[];
+  runs: any[];
+  diagnostics: Array<{ stage: Stage | string; message: string }>;
+  latestPipeline: any;
+}) {
+  const latestResults: any[] = Array.isArray(latestPipeline?.results) ? latestPipeline.results : [];
+  return (
+    <section className="border border-line-200 bg-paper-0 p-4 space-y-3">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-ink-500">Pipeline health</div>
+          {latestPipeline && (
+            <p className="mt-1 text-xs text-ink-500">
+              Latest workflow {latestPipeline.status} · {latestPipeline.mode} · {new Date(latestPipeline.started_at).toLocaleString()}
+              {latestPipeline.error ? ` · ${latestPipeline.error}` : ""}
+            </p>
+          )}
+        </div>
+        {diagnostics.length > 0 && (
+          <span className="border border-red-500 text-red-700 px-2 py-1 text-[10px] font-mono uppercase tracking-widest">
+            {diagnostics.length} status issue{diagnostics.length === 1 ? "" : "s"}
+          </span>
+        )}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+        {stages.map((s) => {
+          const targetRows = committedTargets[s.key]?.rows ?? 0;
+          const draft = drafts.find((d) => d.stage === s.key && !d.superseded);
+          const run = runs.find((r) => r.stage === s.key);
+          const diag = diagnostics.find((d) => d.stage === s.key);
+          const result = latestResults.find((r) => r.stage === s.key);
+          return (
+            <div key={s.key} className="border border-line-200 p-2 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium text-ink-950">{s.short}</span>
+                <span className={`font-mono text-[10px] ${diag ? "text-red-700" : targetRows > 0 ? "text-emerald-700" : draft ? "text-amber-700" : "text-ink-500"}`}>
+                  {diag ? "check failed" : targetRows > 0 ? `${targetRows} committed` : draft ? "draft ready" : "pending"}
+                </span>
+              </div>
+              <div className="mt-1 text-[11px] text-ink-500 space-y-0.5">
+                {run && <div>last run {run.status}</div>}
+                {result && <div>pipeline {result.status}{result.message ? ` — ${result.message}` : ""}</div>}
+                {diag && <div className="text-red-700 break-words">{diag.message}</div>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function summarizeRunResult(stage: Stage, res: any): string {
   if (!res) return "Completed.";
   if (stage === "corpus_ingest" && typeof res.okCount === "number") {

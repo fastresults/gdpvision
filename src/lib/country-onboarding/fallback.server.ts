@@ -188,6 +188,8 @@ export async function runWithFallbacks<T>(opts: FallbackOptions<T>): Promise<Fal
           notes,
           modelStack,
           attempts,
+          openWebWin: false,
+          winningAttempt: lastAttemptLabel,
         };
       }
       notes.push(`Gemini repair tier returned unusable payload (failed validator).`);

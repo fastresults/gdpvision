@@ -181,18 +181,32 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const [country, runs, drafts, cites, summaries] = await Promise.all([
-      supabaseAdmin.from("countries").select("*").eq("code", data.countryCode).maybeSingle(),
+    const cc = data.countryCode;
+
+    // Auto-reconcile stuck runs (>15 min in planning/ready with no finished_at)
+    // BEFORE we snapshot state, so the UI sees a clean picture. Never touches
+    // `committed` runs or any target-table rows.
+    const staleCutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    await supabaseAdmin
+      .from("onboarding_runs")
+      .update({ status: "stale", finished_at: new Date().toISOString(), error: "auto-reconciled: stuck >15min" })
+      .eq("country_code", cc)
+      .in("status", ["planning", "ready"])
+      .lt("started_at", staleCutoff)
+      .is("finished_at", null);
+
+    const [country, runs, drafts, cites, summaries, tgt] = await Promise.all([
+      supabaseAdmin.from("countries").select("*").eq("code", cc).maybeSingle(),
       supabaseAdmin
         .from("onboarding_runs")
         .select("*")
-        .eq("country_code", data.countryCode)
+        .eq("country_code", cc)
         .order("started_at", { ascending: false })
         .limit(50),
       supabaseAdmin
         .from("onboarding_drafts")
         .select("*")
-        .eq("country_code", data.countryCode)
+        .eq("country_code", cc)
         .is("committed_at", null)
         .order("created_at", { ascending: false }),
       supabaseAdmin
@@ -201,7 +215,8 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
       supabaseAdmin
         .from("onboarding_summaries")
         .select("*")
-        .eq("country_code", data.countryCode),
+        .eq("country_code", cc),
+      countCommittedTargets(supabaseAdmin, cc),
     ]);
 
     const draftIds = new Set((drafts.data ?? []).map((d) => d.id));
@@ -212,13 +227,75 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
       arr.push(c);
       cByDraft.set(c.draft_id, arr);
     }
+    // Dedupe drafts to the newest per stage; mark older ones superseded.
+    const seen = new Set<string>();
+    const dedupedDrafts = (drafts.data ?? []).map((d) => {
+      const superseded = seen.has(d.stage);
+      seen.add(d.stage);
+      return { ...d, superseded, citations: cByDraft.get(d.id) ?? [] };
+    });
     return {
       country: country.data,
       runs: runs.data ?? [],
-      drafts: (drafts.data ?? []).map((d) => ({ ...d, citations: cByDraft.get(d.id) ?? [] })),
+      drafts: dedupedDrafts,
       summaries: summaries.data ?? [],
+      committedTargets: tgt,
     };
   });
+
+// Row counts per stage in the actual target tables — the ground truth for
+// whether a stage is "committed" (vs the ephemeral run status).
+async function countCommittedTargets(admin: any, cc: string) {
+  const zero = { rows: 0 as number };
+  const count = async (q: any) => {
+    const { count, error } = await q;
+    if (error) return zero;
+    return { rows: count ?? 0 };
+  };
+  const [
+    countryRow,
+    sectorsC,
+    ministriesC,
+    ministrySectorsC,
+    sourcesC,
+    kpisC,
+    dossiersC,
+    ministerProfilesC,
+    chunksC,
+    memoryC,
+  ] = await Promise.all([
+    admin.from("countries").select("currency, gdp_current_usd").eq("code", cc).maybeSingle(),
+    count(admin.from("country_sectors").select("*", { count: "exact", head: true }).eq("country_code", cc)),
+    count(admin.from("ministries").select("*", { count: "exact", head: true }).eq("country_code", cc)),
+    count(
+      admin
+        .from("ministry_sectors")
+        .select("ministry_id, ministries!inner(country_code)", { count: "exact", head: true })
+        .eq("ministries.country_code", cc),
+    ),
+    count(admin.from("country_sources").select("*", { count: "exact", head: true }).eq("country_code", cc)),
+    count(admin.from("country_kpis").select("*", { count: "exact", head: true }).eq("country_code", cc)),
+    count(admin.from("sector_dossiers").select("*", { count: "exact", head: true }).eq("country_code", cc)),
+    count(admin.from("ministry_profiles").select("*", { count: "exact", head: true }).eq("country_code", cc)),
+    count(admin.from("country_source_chunks").select("*", { count: "exact", head: true }).eq("country_code", cc)),
+    count(admin.from("memory_objects").select("*", { count: "exact", head: true }).eq("country_code", cc)),
+  ]);
+  const c = countryRow.data;
+  return {
+    profile: { rows: c?.currency ? 1 : 0 },
+    gdp: { rows: c?.gdp_current_usd != null ? 1 : 0 },
+    sector_composition: sectorsC,
+    ministries: ministriesC,
+    ministry_sector_map: ministrySectorsC,
+    source_registry: sourcesC,
+    kpi_seed: kpisC,
+    sector_dossier: dossiersC,
+    ministry_deep_dive: ministerProfilesC,
+    corpus_ingest: chunksC,
+    second_brain_seed: memoryC,
+  } as Record<string, { rows: number }>;
+}
+
 
 
 // ============================================================

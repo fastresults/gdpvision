@@ -324,7 +324,12 @@ export const cleanInvalidCountrySources = createServerFn({ method: "POST" })
       .update({ active: false, fetch_status: "invalid_url", fetch_error: "URL not http(s) parseable" })
       .in("id", ids);
     if (uErr) throw uErr;
-    return { deactivated: bad.length, examples: bad.slice(0, 5) };
+    const examples = bad.slice(0, 5).map((r: any) => ({
+      id: String(r.id),
+      url: String(r.url ?? ""),
+      title: String(r.title ?? ""),
+    }));
+    return { deactivated: bad.length, examples };
   });
 
 // Lightweight poll target for the wizard's run banner.

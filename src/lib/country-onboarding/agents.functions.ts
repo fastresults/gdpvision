@@ -474,7 +474,7 @@ export const runMinistriesAgent = createServerFn({ method: "POST" })
         required: ["ministries", "summary_md", "summary_highlights"],
       } as const;
 
-      const result = await callSonar({
+      let result = await callSonar({
         model,
         system:
           "You are a governance researcher. Return the current canonical ministries of the country. Prefer the official government portal." +
@@ -484,8 +484,28 @@ export const runMinistriesAgent = createServerFn({ method: "POST" })
         recency: "year",
       });
 
-      const parsed = parseSonarJson<{ ministries: any[] }>(result.content);
-      if (!parsed?.ministries?.length) throw new Error("Perplexity returned no ministries");
+      let parsed = parseSonarJson<{ ministries: any[] }>(result.content);
+      // Retry once without the domain allowlist — small nations often sit on
+      // TLDs not in OFFICIAL_DOMAINS (e.g. .gov.ag), which starves the search.
+      if (!parsed?.ministries?.length) {
+        result = await callSonar({
+          model,
+          system:
+            "You are a governance researcher. Return the current canonical ministries of the country. Prefer official government sources but do not restrict to a fixed domain list." +
+            SUMMARY_SYSTEM_SUFFIX,
+          user: `List the current cabinet ministries of ${country.name} as of 2026, with the full official name, current minister (if known), and a one-line mandate.`,
+          responseSchema: schema as unknown as Record<string, unknown>,
+          recency: "year",
+          noDomainFilter: true,
+        });
+        parsed = parseSonarJson<{ ministries: any[] }>(result.content);
+      }
+      if (!parsed?.ministries?.length) {
+        throw new Error(
+          `Perplexity returned no ministries for ${country.name}. Raw content: ${(result.content ?? "").slice(0, 200)}`
+        );
+      }
+
       const inline = extractInlineSummary(parsed);
 
       const draftId = await saveDraft(supabaseAdmin, {

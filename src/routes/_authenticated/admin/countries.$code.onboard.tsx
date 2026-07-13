@@ -369,6 +369,62 @@ function OnboardWizard() {
           </div>
         )}
 
+        {/* Sticky Run banner — visible while a stage is running. */}
+        {activeRun && (
+          <div className="sticky top-2 z-30 rounded border border-ink-950 bg-ink-950 text-paper-0 p-3 shadow-lg flex items-center gap-4">
+            <div className="h-3 w-3 rounded-full bg-gold-500 animate-pulse" />
+            <div className="flex-1 text-sm">
+              <div className="font-medium">
+                Running: {activeRun.label} · {elapsed}s elapsed
+              </div>
+              {runProgress && typeof runProgress.processed === "number" && (
+                <div className="text-[11px] text-paper-0/70 font-mono mt-0.5">
+                  Processed {runProgress.processed}/{runProgress.total ?? "?"}
+                  {typeof runProgress.okCount === "number" && (
+                    <> · ok {runProgress.okCount} · fail {runProgress.failCount ?? 0}</>
+                  )}
+                  {runProgress.lastUrl && <> · last: {truncateMiddle(runProgress.lastUrl, 60)}</>}
+                </div>
+              )}
+            </div>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-paper-0/60">
+              Do not close this tab
+            </span>
+          </div>
+        )}
+
+        {/* Result banner — shown after a run resolves, until dismissed. */}
+        {runResult && !activeRun && (
+          <div
+            className={`rounded border p-3 text-sm flex items-start gap-3 ${
+              runResult.ok
+                ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-800"
+                : "border-red-500/50 bg-red-500/10 text-red-700"
+            }`}
+          >
+            <div className="flex-1">
+              <div className="font-medium">
+                {runResult.ok ? "✓" : "✕"} {runResult.label}
+              </div>
+              <div className="text-xs mt-1 whitespace-pre-wrap">{runResult.text}</div>
+            </div>
+            <button
+              type="button"
+              className="text-[10px] font-mono uppercase tracking-widest opacity-70 hover:opacity-100"
+              onClick={() => setRunResult(null)}
+            >
+              Dismiss
+            </button>
+            <button
+              type="button"
+              className="text-[10px] font-mono uppercase tracking-widest underline"
+              onClick={() => setOpenStage(runResult.stage)}
+            >
+              Open stage
+            </button>
+          </div>
+        )}
+
         <AccordionStages
           stages={STAGES}
           drafts={drafts}
@@ -380,6 +436,28 @@ function OnboardWizard() {
           committers={committers}
           code={code}
           refresh={refresh}
+          openStage={openStage}
+          setOpenStage={setOpenStage}
+          onCleanInvalidSources={async () => {
+            try {
+              const res: any = await cleanInvalid({ data: { countryCode: code } });
+              setRunResult({
+                stage: "corpus_ingest",
+                label: "Clean invalid source URLs",
+                ok: true,
+                text: `Deactivated ${res.deactivated} source(s) with invalid URLs.`,
+                meta: res,
+              });
+              await refresh();
+            } catch (e: any) {
+              setRunResult({
+                stage: "corpus_ingest",
+                label: "Clean invalid source URLs",
+                ok: false,
+                text: e?.message ?? String(e),
+              });
+            }
+          }}
           onGenerateSummary={(stage) => genSummary({ data: { countryCode: code, stage } }).then(refresh)}
         />
 
@@ -388,6 +466,23 @@ function OnboardWizard() {
     </SuperAdminShell>
   );
 }
+
+function truncateMiddle(s: string, max: number): string {
+  if (s.length <= max) return s;
+  const half = Math.floor((max - 1) / 2);
+  return `${s.slice(0, half)}…${s.slice(-half)}`;
+}
+
+function summarizeRunResult(stage: Stage, res: any): string {
+  if (!res) return "Completed.";
+  if (stage === "corpus_ingest" && typeof res.okCount === "number") {
+    return `Ingested ${res.totalChunks ?? 0} chunks across ${res.okCount} source(s) (${res.failCount ?? 0} failed).`;
+  }
+  if (typeof res.count === "number") return `Draft ready with ${res.count} item(s). Review below.`;
+  if (typeof res.inserted === "number") return `Inserted ${res.inserted} row(s).`;
+  return "Completed.";
+}
+
 
 function AccordionStages({
   stages,

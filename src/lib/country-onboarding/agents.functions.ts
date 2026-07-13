@@ -59,9 +59,18 @@ async function openRun(admin: any, params: {
     })
     .select("id")
     .single();
-  if (error) throw error;
+  if (error) {
+    // 23505 = unique_violation from onboarding_runs_one_open_per_stage
+    if ((error as any).code === "23505") {
+      throw new Error(
+        `A ${params.stage} run is already in progress for ${params.country_code}. Wait for it to finish, or refresh the page — stale runs auto-clear after 15 minutes.`,
+      );
+    }
+    throw error;
+  }
   return data.id as string;
 }
+
 
 async function finishRun(admin: any, runId: string, patch: Record<string, unknown>) {
   await admin

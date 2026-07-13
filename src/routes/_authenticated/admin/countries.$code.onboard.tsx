@@ -842,3 +842,86 @@ function StageCard({
   );
 }
 
+function CorpusIngestExtras({
+  lastRun,
+  onCleanInvalidSources,
+}: {
+  lastRun: any;
+  onCleanInvalidSources: () => Promise<void>;
+}) {
+  const [cleaning, setCleaning] = useState(false);
+  // The ingest run stores its final { results, okCount, failCount, totalChunks }
+  // in `plan` for finished runs (via the heartbeat writes) and in the committed
+  // draft payload. Prefer plan; fall back to nothing if not present.
+  const report: any = lastRun?.plan && typeof lastRun.plan === "object" ? lastRun.plan : null;
+  const results: any[] = Array.isArray(report?.results) ? report.results : [];
+
+  return (
+    <div className="rounded border border-line-200 bg-paper-100/50 p-3 space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-ink-500">
+          Corpus ingest health
+        </div>
+        <button
+          type="button"
+          disabled={cleaning}
+          onClick={async () => {
+            setCleaning(true);
+            try {
+              await onCleanInvalidSources();
+            } finally {
+              setCleaning(false);
+            }
+          }}
+          className="text-[11px] font-mono uppercase tracking-widest px-3 py-1 border border-ink-950 text-ink-950 hover:bg-ink-950 hover:text-paper-0 disabled:opacity-50"
+        >
+          {cleaning ? "Cleaning…" : "Clean invalid URLs"}
+        </button>
+      </div>
+      {report && (
+        <div className="text-[11px] font-mono text-ink-700">
+          {typeof report.okCount === "number" && (
+            <>
+              ok {report.okCount} · fail {report.failCount ?? 0}
+              {typeof report.totalChunks === "number" && <> · chunks {report.totalChunks}</>}
+              {typeof report.processed === "number" && typeof report.total === "number" && (
+                <> · processed {report.processed}/{report.total}</>
+              )}
+            </>
+          )}
+        </div>
+      )}
+      {results.length > 0 && (
+        <div className="max-h-64 overflow-y-auto border border-line-200 divide-y divide-line-200">
+          {results.map((r, i) => (
+            <div key={i} className="p-2 flex items-start gap-3 text-xs">
+              <span
+                className={`mt-0.5 inline-block h-2 w-2 rounded-full flex-shrink-0 ${
+                  r.ok ? "bg-emerald-500" : "bg-red-500"
+                }`}
+                aria-hidden
+              />
+              <div className="flex-1 min-w-0">
+                <div className="truncate font-mono text-[11px] text-ink-700">{r.url}</div>
+                {r.ok ? (
+                  <div className="text-[10px] text-ink-500 mt-0.5">
+                    {typeof r.chunks === "number" ? `${r.chunks} chunks` : "ok"}
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-red-600 mt-0.5 line-clamp-2">{r.error}</div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {!report && (
+        <p className="text-xs text-ink-500">
+          No ingest run yet — click <b>Run AI research</b> to scrape and embed active sources.
+        </p>
+      )}
+    </div>
+  );
+}
+
+

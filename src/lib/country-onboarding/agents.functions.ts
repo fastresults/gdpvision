@@ -566,7 +566,24 @@ async function markDraftCommitted(admin: any, draftId: string, runId: string) {
     target_type: "draft",
     target_id: draftId,
   });
+  // Fire-and-forget: generate a fresh executive summary for this stage.
+  try {
+    const { data: d } = await admin
+      .from("onboarding_drafts")
+      .select("country_code, stage")
+      .eq("id", draftId)
+      .maybeSingle();
+    if (d?.country_code && d?.stage) {
+      const { generateSummaryForStage } = await import("./summaries.functions");
+      generateSummaryForStage(admin, d.country_code, d.stage as any, runId).catch((e) => {
+        console.error("[onboarding] summary generation failed", d.stage, e);
+      });
+    }
+  } catch (e) {
+    console.error("[onboarding] summary hook lookup failed", e);
+  }
 }
+
 
 const CommitInput = z.object({
   draftId: z.string().uuid(),

@@ -221,6 +221,80 @@ export type Database = {
         }
         Relationships: []
       }
+      capital_flow_research_attempts: {
+        Row: {
+          confidence_grade: string | null
+          country_code: string
+          created_at: string
+          error: string | null
+          evidence: Json
+          formula: string | null
+          id: string
+          method: string | null
+          node_key: string
+          pass: string
+          period: string | null
+          provider: string
+          run_id: string | null
+          source_kind: string | null
+          source_org: string | null
+          source_url: string | null
+          status: string
+          validation: Json
+          value_usd_m: number | null
+        }
+        Insert: {
+          confidence_grade?: string | null
+          country_code: string
+          created_at?: string
+          error?: string | null
+          evidence?: Json
+          formula?: string | null
+          id?: string
+          method?: string | null
+          node_key: string
+          pass: string
+          period?: string | null
+          provider: string
+          run_id?: string | null
+          source_kind?: string | null
+          source_org?: string | null
+          source_url?: string | null
+          status?: string
+          validation?: Json
+          value_usd_m?: number | null
+        }
+        Update: {
+          confidence_grade?: string | null
+          country_code?: string
+          created_at?: string
+          error?: string | null
+          evidence?: Json
+          formula?: string | null
+          id?: string
+          method?: string | null
+          node_key?: string
+          pass?: string
+          period?: string | null
+          provider?: string
+          run_id?: string | null
+          source_kind?: string | null
+          source_org?: string | null
+          source_url?: string | null
+          status?: string
+          validation?: Json
+          value_usd_m?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capital_flow_research_attempts_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           behavior: string

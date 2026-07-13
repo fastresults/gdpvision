@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 
@@ -37,7 +37,13 @@ import {
   runSourceRegistryAgent,
   runCapitalFlowsAgent,
 } from "@/lib/country-onboarding/corpus.functions";
-import { runCountryOnboardingPipeline } from "@/lib/country-onboarding/orchestrator.functions";
+import {
+  cancelOnboardingJob,
+  getOnboardingJob,
+  recoverStaleOnboarding,
+  resumeOnboardingJob,
+  runCountryOnboardingPipeline,
+} from "@/lib/country-onboarding/orchestrator.functions";
 import { generateStageSummary } from "@/lib/country-onboarding/summaries.functions";
 
 
@@ -90,6 +96,13 @@ const ingestKeysQuery = queryOptions({
   queryFn: () => getIngestKeysStatus(),
 });
 
+const durableJobQuery = (code: string) =>
+  queryOptions({
+    queryKey: ["onboarding", "durable-job", code],
+    queryFn: () => getOnboardingJob({ data: { countryCode: code } }),
+    refetchInterval: 5000,
+  });
+
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/onboard")({
   head: ({ params }) => ({
     meta: [
@@ -123,6 +136,7 @@ function OnboardWizard() {
   const { data } = useSuspenseQuery(statusQuery(code));
   const { data: keyStatus } = useSuspenseQuery(keyStatusQuery);
   const { data: ingestKeys } = useSuspenseQuery(ingestKeysQuery);
+  const { data: durableJob } = useQuery(durableJobQuery(code));
   const qc = useQueryClient();
   const [bulkRunning, setBulkRunning] = useState<false | "pending" | "all">(false);
   const [bulkErr, setBulkErr] = useState<string | null>(null);
@@ -241,6 +255,9 @@ function OnboardWizard() {
   const latestPipeline = pipelineRuns[0] ?? null;
   const genSummary = useServerFn(generateStageSummary);
   const runPipeline = useServerFn(runCountryOnboardingPipeline);
+  const resumeJob = useServerFn(resumeOnboardingJob);
+  const cancelJob = useServerFn(cancelOnboardingJob);
+  const recoverStale = useServerFn(recoverStaleOnboarding);
 
   // Wrap each runner: open the accordion for that stage, show the sticky
   // banner, poll progress, and emit a result banner on resolve/reject.
@@ -289,10 +306,13 @@ function OnboardWizard() {
     setBulkRunning("pending");
     try {
       const res: any = await runPipeline({ data: { countryCode: code, mode: "pending" } });
-      const errors = (res.results ?? [])
-        .filter((r: any) => r.status === "failed")
-        .map((r: any) => ({ stage: r.stage as Stage, message: r.message ?? "Stage failed" }));
-      setRunErrors(errors);
+      setRunResult({
+        stage: "kpi_seed",
+        label: "Durable onboarding workflow",
+        ok: true,
+        text: `${res.queued ? "Queued" : "Resumed"} durable job ${res.jobId}. The worker will continue independently.`,
+        meta: res,
+      });
     } catch (e: any) {
       setBulkErr(e?.message ?? String(e));
     } finally {
@@ -308,10 +328,13 @@ function OnboardWizard() {
     setBulkRunning("all");
     try {
       const res: any = await runPipeline({ data: { countryCode: code, mode: "rerun" } });
-      const errors = (res.results ?? [])
-        .filter((r: any) => r.status === "failed")
-        .map((r: any) => ({ stage: r.stage as Stage, message: r.message ?? "Stage failed" }));
-      setRunErrors(errors);
+      setRunResult({
+        stage: "kpi_seed",
+        label: "Durable onboarding workflow",
+        ok: true,
+        text: `${res.queued ? "Queued" : "Resumed"} durable rerun job ${res.jobId}. The worker will continue independently.`,
+        meta: res,
+      });
     } catch (e: any) {
       setBulkErr(e?.message ?? String(e));
     } finally {
@@ -437,6 +460,30 @@ function OnboardWizard() {
           runs={runs}
           diagnostics={statusDiagnostics}
           latestPipeline={latestPipeline}
+        />
+
+        <DurableJobPanel
+          durableJob={durableJob as any}
+          onResume={async (jobId) => {
+            await resumeJob({ data: { jobId } });
+            await qc.invalidateQueries({ queryKey: ["onboarding", "durable-job", code] });
+          }}
+          onCancel={async (jobId) => {
+            await cancelJob({ data: { jobId } });
+            await qc.invalidateQueries({ queryKey: ["onboarding", "durable-job", code] });
+          }}
+          onRecover={async () => {
+            const res: any = await recoverStale({ data: { countryCode: code, staleMinutes: 15 } });
+            setRunResult({
+              stage: "kpi_seed",
+              label: "Recover stale workflow locks",
+              ok: true,
+              text: `Recovered ${res.staleRuns + res.stalePipelines + res.staleJobs + res.staleSteps} stale lock(s).`,
+              meta: res,
+            });
+            await refresh();
+            await qc.invalidateQueries({ queryKey: ["onboarding", "durable-job", code] });
+          }}
         />
 
         {runErrors.length > 0 && (
@@ -628,6 +675,108 @@ function PipelineHealthPanel({
           );
         })}
       </div>
+    </section>
+  );
+}
+
+function DurableJobPanel({
+  durableJob,
+  onResume,
+  onCancel,
+  onRecover,
+}: {
+  durableJob: any;
+  onResume: (jobId: string) => Promise<void>;
+  onCancel: (jobId: string) => Promise<void>;
+  onRecover: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const job = durableJob?.job;
+  const steps: any[] = durableJob?.steps ?? [];
+  const counts = steps.reduce((acc: Record<string, number>, s) => {
+    acc[s.status] = (acc[s.status] ?? 0) + 1;
+    return acc;
+  }, {});
+  const current = steps.find((s) => s.status === "running") ?? steps.find((s) => s.status === "queued") ?? null;
+  return (
+    <section className="border border-ink-950 bg-paper-0 p-4 space-y-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-ink-500">Durable workflow command center</div>
+          <p className="mt-1 text-xs text-ink-500">
+            {job
+              ? `Job ${job.status} · ${job.mode} · ${new Date(job.created_at).toLocaleString()}${current ? ` · current ${current.stage}` : ""}`
+              : "No durable job queued yet."}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {job && ["queued", "running", "failed", "blocked", "stale"].includes(job.status) && (
+            <button
+              type="button"
+              disabled={busy !== null}
+              onClick={async () => {
+                setBusy("resume");
+                try { await onResume(job.id); } finally { setBusy(null); }
+              }}
+              className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-widest border border-ink-950 bg-ink-950 text-paper-0 disabled:opacity-50"
+            >
+              {busy === "resume" ? "Resuming…" : "Resume job"}
+            </button>
+          )}
+          {job && ["queued", "running"].includes(job.status) && (
+            <button
+              type="button"
+              disabled={busy !== null}
+              onClick={async () => {
+                setBusy("cancel");
+                try { await onCancel(job.id); } finally { setBusy(null); }
+              }}
+              className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-widest border border-red-500 text-red-700 disabled:opacity-50"
+            >
+              {busy === "cancel" ? "Cancelling…" : "Cancel"}
+            </button>
+          )}
+          <button
+            type="button"
+            disabled={busy !== null}
+            onClick={async () => {
+              setBusy("recover");
+              try { await onRecover(); } finally { setBusy(null); }
+            }}
+            className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-widest border border-line-200 text-ink-700 disabled:opacity-50"
+          >
+            {busy === "recover" ? "Recovering…" : "Recover stale locks"}
+          </button>
+        </div>
+      </div>
+      {job && (
+        <>
+          <div className="flex flex-wrap gap-2 text-[10px] font-mono uppercase tracking-[0.15em]">
+            {Object.entries(counts).map(([status, count]) => (
+              <span key={status} className="border border-line-200 px-2 py-0.5 text-ink-600">
+                {status} {String(count)}
+              </span>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+            {steps.map((s) => (
+              <div key={s.id} className="border border-line-200 p-2 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium text-ink-950">{s.stage}</span>
+                  <span className={`font-mono text-[10px] ${s.status === "completed" || s.status === "skipped" ? "text-emerald-700" : s.status === "failed" || s.status === "blocked" || s.status === "stale" ? "text-red-700" : "text-amber-700"}`}>
+                    {s.status}
+                  </span>
+                </div>
+                <div className="mt-1 text-[11px] text-ink-500">
+                  attempts {s.attempt_count ?? 0}/{s.max_attempts ?? 3}
+                  {s.heartbeat_at ? ` · heartbeat ${new Date(s.heartbeat_at).toLocaleTimeString()}` : ""}
+                </div>
+                {s.error && <div className="mt-1 text-[11px] text-red-700 break-words">{s.error}</div>}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </section>
   );
 }

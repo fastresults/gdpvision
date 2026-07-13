@@ -380,14 +380,16 @@ export const runSectorCompositionAgent = createServerFn({ method: "POST" })
             },
           },
           method_note: { type: "string" },
+          ...SUMMARY_SCHEMA_FRAGMENT,
         },
-        required: ["rows", "method_note"],
+        required: ["rows", "method_note", "summary_md", "summary_highlights"],
       } as const;
 
       const result = await callSonar({
         model,
         system:
-          "You are a national-accounts analyst. Map the country's GDP by industry (ISIC A-U) into the given sector taxonomy. Return one row per sector code (use 0 if the sector is negligible). Shares must sum to ~100%. Use A/B for values from official national accounts, C for multilateral estimates, D/F for inference. Cite each source.",
+          "You are a national-accounts analyst. Map the country's GDP by industry (ISIC A-U) into the given sector taxonomy. Return one row per sector code (use 0 if the sector is negligible). Shares must sum to ~100%. Use A/B for values from official national accounts, C for multilateral estimates, D/F for inference. Cite each source." +
+          SUMMARY_SYSTEM_SUFFIX,
         user: `Country: ${country.name} (${country.iso3 ?? country.code}).\n\nSector taxonomy (return one row per code):\n${sectorList}\n\nUse the most recent full-year national accounts. Prefer the country's Central Statistical Office, then ECCB / CDB / IMF / World Bank.`,
         responseSchema: rowsSchema as unknown as Record<string, unknown>,
         recency: "year",
@@ -395,6 +397,7 @@ export const runSectorCompositionAgent = createServerFn({ method: "POST" })
 
       const parsed = parseSonarJson<{ rows: any[]; method_note: string }>(result.content);
       if (!parsed?.rows?.length) throw new Error("Perplexity returned no rows");
+      const inline = extractInlineSummary(parsed);
 
       // Ensure every sector has a row (fill missing with 0)
       const bySector = new Map(parsed.rows.map((r) => [String(r.sector_code), r]));
@@ -417,6 +420,8 @@ export const runSectorCompositionAgent = createServerFn({ method: "POST" })
         payload: { rows: complete, method_note: parsed.method_note, total_pct: total },
         confidence: total >= 95 && total <= 105 && result.citations.length >= 2 ? "high" : "medium",
         citations: result.citations,
+        summary_md: inline.summary_md,
+        summary_highlights: inline.summary_highlights,
       });
 
       await finishRun(supabaseAdmin, runId, { status: "ready" });

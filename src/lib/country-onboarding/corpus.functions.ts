@@ -363,17 +363,32 @@ export const cleanInvalidCountrySources = createServerFn({ method: "POST" })
 // Lightweight poll target for the wizard's run banner.
 export const getRunProgress = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ runId: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) => z.object({
+    runId: z.string().uuid().optional(),
+    countryCode: z.string().optional(),
+    stage: z.string().optional(),
+  }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from("onboarding_runs")
-      .select("id, stage, status, plan, started_at, finished_at, error")
-      .eq("id", data.runId)
-      .maybeSingle();
+      .select("id, country_code, stage, status, plan, started_at, updated_at, finished_at, error");
+    if (data.runId) {
+      query = query.eq("id", data.runId).limit(1);
+    } else if (data.countryCode && data.stage) {
+      query = query
+        .eq("country_code", data.countryCode)
+        .eq("stage", data.stage)
+        .in("status", ["planning", "ready", "needs_review", "failed"])
+        .order("started_at", { ascending: false })
+        .limit(1);
+    } else {
+      throw new Error("runId or countryCode+stage is required");
+    }
+    const { data: rows, error } = await query;
     if (error) throw error;
-    return row ?? null;
+    return Array.isArray(rows) ? rows[0] ?? null : rows ?? null;
   });
 
 
@@ -402,7 +417,11 @@ async function recordAttempts(
     error: a.error,
   }));
   // Best-effort — never fail the loop because logging failed.
-  await admin.from("kpi_research_attempts").insert(rows);
+  try {
+    await admin.from("kpi_research_attempts").insert(rows);
+  } catch (err) {
+    console.error("[kpi_seed] attempt logging failed", err);
+  }
 }
 
 type KpiProgressState = {

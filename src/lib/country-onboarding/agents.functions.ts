@@ -402,22 +402,34 @@ export const runSectorCompositionAgent = createServerFn({ method: "POST" })
         required: ["rows", "method_note", "summary_md", "summary_highlights"],
       } as const;
 
-      const result = await callSonar({
-        model,
-        system:
-          "You are a national-accounts analyst. Map the country's GDP by industry (ISIC A-U) into the given sector taxonomy. Return one row per sector code (use 0 if the sector is negligible). Shares must sum to ~100%. Use A/B for values from official national accounts, C for multilateral estimates, D/F for inference. Cite each source." +
-          SUMMARY_SYSTEM_SUFFIX,
-        user: `Country: ${country.name} (${country.iso3 ?? country.code}).\n\nSector taxonomy (return one row per code):\n${sectorList}\n\nUse the most recent full-year national accounts. Prefer the country's Central Statistical Office, then ECCB / CDB / IMF / World Bank.`,
-        responseSchema: rowsSchema as unknown as Record<string, unknown>,
-        recency: "year",
+      const fb = await runWithFallbacks<{ rows: any[]; method_note: string; summary_md?: string; summary_highlights?: any[] }>({
+        perplexity: {
+          model,
+          system:
+            "You are a national-accounts analyst. Map the country's GDP by industry (ISIC A-U) into the given sector taxonomy. Return one row per sector code (use 0 if the sector is negligible). Shares must sum to ~100%. Use A/B for values from official national accounts, C for multilateral estimates, D/F for inference. Cite each source." +
+            SUMMARY_SYSTEM_SUFFIX,
+          user: `Country: ${country.name} (${country.iso3 ?? country.code}).\n\nSector taxonomy (return one row per code):\n${sectorList}\n\nUse the most recent full-year national accounts. Prefer the country's Central Statistical Office, then ECCB / CDB / IMF / World Bank.`,
+          responseSchema: rowsSchema as unknown as Record<string, unknown>,
+          recency: "year",
+        },
+        gemini: {
+          system: "You are a national-accounts analyst.",
+          user: `Country: ${country.name}. Sector taxonomy: ${sectorList}. Return share_pct per sector code, summing to ~100.`,
+          schemaHint: `{ "rows": [{"sector_code": string, "share_pct": number, "confidence_grade": "A"|"B"|"C"|"D"|"F", "rationale": string}], "method_note": string, "summary_md": string, "summary_highlights": [{"label": string, "value": string}] }`,
+        },
+        parse: jsonParser<{ rows: any[]; method_note: string }>(),
+        validate: (v) => !!v?.rows?.length,
+        infer: () => ({
+          rows: seedSectorComposition(sectors.map((s) => s.code)),
+          method_note: "Provisional small-state defaults — no primary source reached.",
+          summary_md: `Provisional sector composition for ${country.name} — please review.`,
+          summary_highlights: [],
+        }),
       });
 
-      const parsed = parseSonarJson<{ rows: any[]; method_note: string }>(result.content);
-      if (!parsed?.rows?.length) throw new Error("Perplexity returned no rows");
-      const inline = extractInlineSummary(parsed);
-
-      // Ensure every sector has a row (fill missing with 0)
-      const bySector = new Map(parsed.rows.map((r) => [String(r.sector_code), r]));
+      const inline = extractInlineSummary(fb.data);
+      const parsedRows: any[] = fb.data.rows ?? [];
+      const bySector = new Map(parsedRows.map((r: any) => [String(r.sector_code), r]));
       const complete = sectors.map(
         (s) =>
           bySector.get(s.code) ?? {
@@ -427,22 +439,27 @@ export const runSectorCompositionAgent = createServerFn({ method: "POST" })
             rationale: "Not returned by agent — defaulted to 0",
           },
       );
-      const total = complete.reduce((sum, r) => sum + Number(r.share_pct ?? 0), 0);
+      const total = complete.reduce((sum: number, r: any) => sum + Number(r.share_pct ?? 0), 0);
 
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
         country_code: data.countryCode,
         stage: "sector_composition",
         target_table: "country_sectors",
-        payload: { rows: complete, method_note: parsed.method_note, total_pct: total },
-        confidence: total >= 95 && total <= 105 && result.citations.length >= 2 ? "high" : "medium",
-        citations: result.citations,
+        payload: { rows: complete, method_note: fb.data.method_note, total_pct: total },
+        confidence:
+          fb.tier === "inferred"
+            ? "low"
+            : total >= 95 && total <= 105 && fb.citations.length >= 2
+            ? "high"
+            : "medium",
+        citations: fb.citations,
         summary_md: inline.summary_md,
         summary_highlights: inline.summary_highlights,
       });
 
-      await finishRun(supabaseAdmin, runId, { status: "ready" });
-      return { runId, draftId, rows: complete, total_pct: total, citations: result.citations };
+      await finishRun(supabaseAdmin, runId, { status: "ready", model_stack: { ...fb.modelStack, notes: fb.notes } });
+      return { runId, draftId, rows: complete, total_pct: total, citations: fb.citations, tier: fb.tier, notes: fb.notes };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;

@@ -1429,6 +1429,7 @@ export type Database = {
           figure_kind: string
           figure_ref: Json
           id: string
+          label: string
           note: string | null
           scope: string
           scope_ref: string | null
@@ -1446,6 +1447,7 @@ export type Database = {
           figure_kind: string
           figure_ref: Json
           id?: string
+          label: string
           note?: string | null
           scope?: string
           scope_ref?: string | null
@@ -1463,6 +1465,7 @@ export type Database = {
           figure_kind?: string
           figure_ref?: Json
           id?: string
+          label?: string
           note?: string | null
           scope?: string
           scope_ref?: string | null

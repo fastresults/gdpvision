@@ -489,7 +489,10 @@ function usePublishGateCheck(cc: string): Check {
       ? { status: "pass", detail: "All gates green" }
       : {
           status: "warn",
-          detail: `${q.data.checks.filter((c) => !c.pass).length} gate(s) blocked`,
+          detail: `Blocked: ${q.data.checks
+            .filter((c) => !c.pass)
+            .map((c) => c.key ?? c.label ?? "check")
+            .join(", ")}`,
         }
     : q.error
       ? { status: "fail", detail: (q.error as Error).message }

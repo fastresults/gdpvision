@@ -3,9 +3,12 @@
 // role-gated inside the handler with has_role().
 
 import { createServerFn } from "@tanstack/react-start";
+import { generateText } from "ai";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Json } from "@/integrations/supabase/types";
+import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 
 const CountryInput = z.object({ countryCode: z.string().min(3).max(4) });
 

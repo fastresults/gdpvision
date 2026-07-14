@@ -219,6 +219,36 @@ export function WhyThisNumberPanel({
             </Section>
           )}
 
+          <Section title="Speak this number">
+            <p className="text-xs text-ink-500">
+              Hand this figure — value, grade and citations — to Counsel for a briefing or to
+              Narrative as a signal for comms.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={handoffMut.isPending || !data}
+                onClick={() => handoffMut.mutate("counsel")}
+              >
+                → Counsel
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={handoffMut.isPending || !data}
+                onClick={() => handoffMut.mutate("narrative")}
+              >
+                → Narrative
+              </Button>
+              {handoffMut.error && (
+                <span className="text-xs text-red-700">
+                  {(handoffMut.error as Error).message}
+                </span>
+              )}
+            </div>
+          </Section>
+
           <Section title="Pin to snapshot">
             <p className="text-xs text-ink-500">
               Save an immutable copy of this figure — value, grade, sources, and AI paragraph — so

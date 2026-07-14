@@ -980,12 +980,16 @@ function StageCard({
     stage.key === "capital_flows" &&
     Array.isArray(payload?.flows) &&
     payload.flows.some((flow: any) => typeof flow?.source_url === "string" && /^https?:\/\//.test(flow.source_url));
+  const hasRegistrySources =
+    stage.key === "source_registry" &&
+    Array.isArray(payload?.sources) &&
+    payload.sources.some((s: any) => typeof s?.url === "string" && /^https?:\/\//.test(s.url));
   const capitalFlowsCoverage = stage.key === "capital_flows" ? payload?.coverage : null;
   const capitalFlowsNeedsReview =
     stage.key === "capital_flows" && !!capitalFlowsCoverage && capitalFlowsCoverage.coverageOk === false;
   const canCommitDraft =
     !!draft &&
-    (citations.length > 0 || hasFlowSourceUrls) &&
+    (citations.length > 0 || hasFlowSourceUrls || hasRegistrySources) &&
     !capitalFlowsNeedsReview;
   const runActionLabel = running ? "Researching…" : draft || lastRun ? "Run again" : "Run AI research";
   const model = (lastRun?.model_stack && (lastRun.model_stack.research || Object.values(lastRun.model_stack)[0])) as

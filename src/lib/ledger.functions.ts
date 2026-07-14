@@ -1122,3 +1122,397 @@ export const askTheLedger = createServerFn({ method: "POST" })
     }
   });
 
+// ─── Phase 5 — Steward tools: reconciliation, source health, publish gate ────
+
+export interface ReconciliationIssue {
+  kind: "sector_shares" | "capital_flows";
+  subject_key: string;
+  label: string;
+  residual_pct: number | null;
+  detail: string;
+  severity: "info" | "warn" | "error";
+}
+
+export interface ReconciliationNoteRow {
+  id: string;
+  subject_kind: string;
+  subject_key: string;
+  residual_pct: number | null;
+  note: string;
+  created_by: string;
+  created_at: string;
+  resolved_at: string | null;
+}
+
+export interface ReconciliationReport {
+  isSteward: boolean;
+  issues: ReconciliationIssue[];
+  notes: ReconciliationNoteRow[];
+}
+
+export const getReconciliationReport = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => CountryInput.parse(data))
+  .handler(async ({ data, context }): Promise<ReconciliationReport> => {
+    const { supabase, userId } = context;
+    const cc = data.countryCode;
+
+    const [{ data: stewardCheck }, { data: adminCheck }] = await Promise.all([
+      supabase.rpc("has_role", { _user_id: userId, _role: "data_steward" }),
+      supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
+    ]);
+    const isSteward = Boolean(stewardCheck) || Boolean(adminCheck);
+
+    const [{ data: sectors }, { data: flowNodes }, { data: flowValues }, { data: notes }] =
+      await Promise.all([
+        supabase.from("country_sectors").select("sector_code,share_pct").eq("country_code", cc),
+        supabase.from("capital_flow_nodes").select("node_key,label,side"),
+        supabase
+          .from("country_capital_flows")
+          .select("node_key,period,value_usd_m")
+          .eq("country_code", cc)
+          .order("period", { ascending: false }),
+        supabase
+          .from("reconciliation_notes")
+          .select("id,subject_kind,subject_key,residual_pct,note,created_by,created_at,resolved_at")
+          .eq("country_code", cc)
+          .order("created_at", { ascending: false })
+          .limit(50),
+      ]);
+
+    const issues: ReconciliationIssue[] = [];
+
+    // Sector share total
+    const sumShares = (sectors ?? []).reduce((a, r) => a + Number(r.share_pct ?? 0), 0);
+    if (sectors && sectors.length > 0) {
+      const drift = sumShares - 100;
+      if (Math.abs(drift) > 0.5) {
+        issues.push({
+          kind: "sector_shares",
+          subject_key: "composition_total",
+          label: "Sector shares sum",
+          residual_pct: drift,
+          detail: `Composition totals ${sumShares.toFixed(2)}% (off by ${drift.toFixed(2)}pp).`,
+          severity: Math.abs(drift) > 5 ? "error" : "warn",
+        });
+      }
+    }
+
+    // Capital flows residual for latest period
+    const periods = Array.from(new Set((flowValues ?? []).map((v) => v.period))).sort((a, b) =>
+      b.localeCompare(a),
+    );
+    const latestPeriod = periods[0] ?? null;
+    if (latestPeriod && flowNodes) {
+      const sideByKey = new Map(flowNodes.map((n) => [n.node_key, n.side as string]));
+      let sumIn = 0;
+      let sumOut = 0;
+      for (const v of flowValues ?? []) {
+        if (v.period !== latestPeriod) continue;
+        if (v.node_key === "RECONCILIATION_RESIDUAL") continue;
+        const s = sideByKey.get(v.node_key);
+        if (s === "input") sumIn += Number(v.value_usd_m);
+        else if (s === "output") sumOut += Number(v.value_usd_m);
+      }
+      if (sumIn > 0 || sumOut > 0) {
+        const residualPct = sumIn > 0 ? ((sumIn - sumOut) / sumIn) * 100 : 0;
+        if (Math.abs(residualPct) > 10) {
+          issues.push({
+            kind: "capital_flows",
+            subject_key: `capital_flows:${latestPeriod}`,
+            label: `Capital flows ${latestPeriod}`,
+            residual_pct: residualPct,
+            detail: `Inflows ${sumIn.toFixed(1)}M vs outflows ${sumOut.toFixed(1)}M (residual ${residualPct.toFixed(1)}%).`,
+            severity: Math.abs(residualPct) > 25 ? "error" : "warn",
+          });
+        }
+      }
+    }
+
+    return {
+      isSteward,
+      issues,
+      notes: (notes ?? []).map((n) => ({
+        id: n.id as string,
+        subject_kind: n.subject_kind as string,
+        subject_key: n.subject_key as string,
+        residual_pct: n.residual_pct === null ? null : Number(n.residual_pct),
+        note: n.note as string,
+        created_by: n.created_by as string,
+        created_at: n.created_at as string,
+        resolved_at: (n.resolved_at as string | null) ?? null,
+      })),
+    };
+  });
+
+const ReconNoteInput = z.object({
+  countryCode: z.string().min(3).max(4),
+  subjectKind: z.enum(["sector_shares", "capital_flows", "other"]),
+  subjectKey: z.string().min(1).max(120),
+  residualPct: z.number().nullable().optional(),
+  note: z.string().min(3).max(1000),
+});
+
+export const saveReconciliationNote = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => ReconNoteInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: isSteward } = await supabase.rpc("has_role", {
+      _user_id: userId,
+      _role: "data_steward",
+    });
+    const { data: isAdmin } = await supabase.rpc("has_role", {
+      _user_id: userId,
+      _role: "admin",
+    });
+    if (!isSteward && !isAdmin) throw new Error("Steward role required.");
+    const { error } = await supabase.from("reconciliation_notes").insert({
+      country_code: data.countryCode,
+      subject_kind: data.subjectKind,
+      subject_key: data.subjectKey,
+      residual_pct: data.residualPct ?? null,
+      note: data.note,
+      created_by: userId,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ─── Source Health ──────────────────────────────────────────────────────────
+
+export interface SourceHealthRow {
+  source_id: string;
+  org: string;
+  title: string;
+  url: string | null;
+  active: boolean;
+  last_status: string | null;
+  last_fetched_at: string | null;
+  last_ok: boolean | null;
+  last_http: number | null;
+  last_error: string | null;
+  latency_ms: number | null;
+  checks_last_7d: number;
+  failures_last_7d: number;
+}
+
+export interface SourceHealthReport {
+  isSteward: boolean;
+  rows: SourceHealthRow[];
+  lastRunAt: string | null;
+}
+
+export const getSourceHealth = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => CountryInput.parse(data))
+  .handler(async ({ data, context }): Promise<SourceHealthReport> => {
+    const { supabase, userId } = context;
+    const cc = data.countryCode;
+    const [{ data: stewardCheck }, { data: adminCheck }] = await Promise.all([
+      supabase.rpc("has_role", { _user_id: userId, _role: "data_steward" }),
+      supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
+    ]);
+    const isSteward = Boolean(stewardCheck) || Boolean(adminCheck);
+
+    const [{ data: sources }, { data: checks }] = await Promise.all([
+      supabase
+        .from("country_sources")
+        .select("id,org,title,url,active,fetch_status,fetch_error,last_fetched_at")
+        .eq("country_code", cc),
+      supabase
+        .from("source_health_checks")
+        .select("source_id,checked_at,http_status,ok,latency_ms,error")
+        .eq("country_code", cc)
+        .gte("checked_at", new Date(Date.now() - 7 * 86400_000).toISOString())
+        .order("checked_at", { ascending: false })
+        .limit(500),
+    ]);
+
+    const byId = new Map<string, Array<NonNullable<typeof checks>[number]>>();
+    for (const c of checks ?? []) {
+      const arr = byId.get(c.source_id as string) ?? [];
+      arr.push(c);
+      byId.set(c.source_id as string, arr);
+    }
+
+    const rows: SourceHealthRow[] = (sources ?? []).map((s) => {
+      const list = byId.get(s.id as string) ?? [];
+      const latest = list[0];
+      const failures = list.filter((c) => !c.ok).length;
+      return {
+        source_id: s.id as string,
+        org: (s.org as string) ?? "",
+        title: (s.title as string) ?? "",
+        url: (s.url as string | null) ?? null,
+        active: Boolean(s.active),
+        last_status: (s.fetch_status as string | null) ?? null,
+        last_fetched_at: (s.last_fetched_at as string | null) ?? null,
+        last_ok: latest ? Boolean(latest.ok) : null,
+        last_http: latest ? (latest.http_status as number | null) : null,
+        last_error: latest ? ((latest.error as string | null) ?? (s.fetch_error as string | null)) : (s.fetch_error as string | null),
+        latency_ms: latest ? (latest.latency_ms as number | null) : null,
+        checks_last_7d: list.length,
+        failures_last_7d: failures,
+      };
+    });
+
+    const lastRunAt = (checks ?? []).reduce<string | null>((acc, c) => {
+      const t = c.checked_at as string;
+      return !acc || t > acc ? t : acc;
+    }, null);
+
+    return { isSteward, rows, lastRunAt };
+  });
+
+export const runSourceHealthChecks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => CountryInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: isSteward } = await supabase.rpc("has_role", {
+      _user_id: userId,
+      _role: "data_steward",
+    });
+    const { data: isAdmin } = await supabase.rpc("has_role", {
+      _user_id: userId,
+      _role: "admin",
+    });
+    if (!isSteward && !isAdmin) throw new Error("Steward role required.");
+
+    const { data: sources } = await supabase
+      .from("country_sources")
+      .select("id,url,country_code")
+      .eq("country_code", data.countryCode)
+      .eq("active", true);
+
+    let checked = 0;
+    let ok = 0;
+    for (const s of sources ?? []) {
+      if (!s.url) continue;
+      checked++;
+      const t0 = Date.now();
+      let status: number | null = null;
+      let good = false;
+      let err: string | null = null;
+      try {
+        const r = await fetch(s.url as string, { method: "HEAD", redirect: "follow" });
+        status = r.status;
+        good = r.ok;
+      } catch (e) {
+        err = e instanceof Error ? e.message : String(e);
+      }
+      const latency = Date.now() - t0;
+      if (good) ok++;
+      await supabase.from("source_health_checks").insert({
+        country_code: s.country_code as string,
+        source_id: s.id as string,
+        http_status: status,
+        ok: good,
+        latency_ms: latency,
+        error: err,
+      });
+      await supabase
+        .from("country_sources")
+        .update({
+          last_fetched_at: new Date().toISOString(),
+          fetch_status: good ? "ok" : status ? `http_${status}` : "error",
+          fetch_error: err,
+        })
+        .eq("id", s.id as string);
+    }
+    return { checked, ok, failed: checked - ok };
+  });
+
+// ─── Publish Gate ────────────────────────────────────────────────────────────
+
+export interface PublishGateReport {
+  green: boolean;
+  checks: Array<{ key: string; label: string; pass: boolean; detail: string }>;
+}
+
+export const getPublishGate = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => CountryInput.parse(data))
+  .handler(async ({ data, context }): Promise<PublishGateReport> => {
+    const { supabase } = context;
+    const cc = data.countryCode;
+
+    const [
+      { data: sectors },
+      { data: dossiers },
+      { data: fresh },
+      { data: alerts },
+      { data: sources },
+    ] = await Promise.all([
+      supabase.from("country_sectors").select("share_pct").eq("country_code", cc),
+      supabase.from("sector_dossiers").select("citations").eq("country_code", cc),
+      supabase.from("series_freshness").select("age_days").eq("country_code", cc),
+      supabase
+        .from("grade_alerts")
+        .select("id")
+        .eq("country_code", cc)
+        .is("acknowledged_at", null),
+      supabase
+        .from("country_sources")
+        .select("id,fetch_status,active")
+        .eq("country_code", cc)
+        .eq("active", true),
+    ]);
+
+    const sumShares = (sectors ?? []).reduce((a, r) => a + Number(r.share_pct ?? 0), 0);
+    const sharesOk = sectors && sectors.length > 0 && Math.abs(sumShares - 100) <= 0.5;
+
+    const totalDoss = dossiers?.length ?? 0;
+    const backed = (dossiers ?? []).filter(
+      (d) => Array.isArray(d.citations) && (d.citations as unknown[]).length > 0,
+    ).length;
+    const coveragePct = totalDoss === 0 ? 0 : (backed / totalDoss) * 100;
+    const coverageOk = totalDoss > 0 && coveragePct >= 95;
+
+    const stale = (fresh ?? []).filter(
+      (r) => r.age_days !== null && Number(r.age_days) > 365,
+    ).length;
+    const freshOk = (fresh?.length ?? 0) > 0 && stale === 0;
+
+    const openAlerts = alerts?.length ?? 0;
+
+    const brokenSources = (sources ?? []).filter(
+      (s) => s.fetch_status && s.fetch_status !== "ok" && s.fetch_status !== "pending",
+    ).length;
+
+    const checks = [
+      {
+        key: "shares",
+        label: "Composition reconciles to 100%",
+        pass: Boolean(sharesOk),
+        detail: `Sum = ${sumShares.toFixed(2)}%`,
+      },
+      {
+        key: "coverage",
+        label: "Citation coverage ≥ 95%",
+        pass: coverageOk,
+        detail: `${backed}/${totalDoss} dossiers backed (${coveragePct.toFixed(0)}%)`,
+      },
+      {
+        key: "freshness",
+        label: "No stale series (>365d)",
+        pass: freshOk,
+        detail: `${stale} stale of ${fresh?.length ?? 0}`,
+      },
+      {
+        key: "alerts",
+        label: "No un-acknowledged grade downgrades",
+        pass: openAlerts === 0,
+        detail: `${openAlerts} open`,
+      },
+      {
+        key: "sources",
+        label: "All active sources reachable",
+        pass: brokenSources === 0,
+        detail: `${brokenSources} unreachable`,
+      },
+    ];
+    return { green: checks.every((c) => c.pass), checks };
+  });
+

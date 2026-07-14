@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import { getStewardshipQueue, listInstanceBindings } from "@/lib/ledger.functions";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
+import { StewardTools } from "@/components/ledger/StewardTools";
+
 
 const bindingsQuery = queryOptions({
   queryKey: ["instance-bindings"],
@@ -146,6 +148,9 @@ function StewardshipPage() {
           </table>
         )}
       </section>
+
+      <StewardTools countryCode={code} />
     </main>
   );
 }
+

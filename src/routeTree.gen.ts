@@ -47,6 +47,7 @@ import { Route as AuthenticatedInstrumentPortfolioIndexRouteImport } from './rou
 import { Route as AuthenticatedInstrumentCabinetIndexRouteImport } from './routes/_authenticated/instrument/cabinet.index'
 import { Route as AuthenticatedAdminCountriesIndexRouteImport } from './routes/_authenticated/admin/countries.index'
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
+import { Route as ApiPublicHooksSourceHealthRouteImport } from './routes/api/public/hooks/source-health'
 import { Route as ApiPublicHooksNarrativeHarvestRouteImport } from './routes/api/public/hooks/narrative-harvest'
 import { Route as ApiPublicHooksCadenceDailyRouteImport } from './routes/api/public/hooks/cadence-daily'
 import { Route as AuthenticatedNarrativeTraceIdRouteImport } from './routes/_authenticated/narrative/trace.$id'
@@ -287,6 +288,12 @@ const KioskApiPublicPresentationPdfRoute =
     path: '/api/public/presentation-pdf',
     getParentRoute: () => KioskRoute,
   } as any)
+const ApiPublicHooksSourceHealthRoute =
+  ApiPublicHooksSourceHealthRouteImport.update({
+    id: '/api/public/hooks/source-health',
+    path: '/api/public/hooks/source-health',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksNarrativeHarvestRoute =
   ApiPublicHooksNarrativeHarvestRouteImport.update({
     id: '/api/public/hooks/narrative-harvest',
@@ -492,6 +499,7 @@ export interface FileRoutesByFullPath {
   '/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
+  '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/admin/countries/': typeof AuthenticatedAdminCountriesIndexRoute
   '/instrument/cabinet/': typeof AuthenticatedInstrumentCabinetIndexRoute
@@ -552,6 +560,7 @@ export interface FileRoutesByTo {
   '/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
+  '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/admin/countries': typeof AuthenticatedAdminCountriesIndexRoute
   '/instrument/cabinet': typeof AuthenticatedInstrumentCabinetIndexRoute
@@ -618,6 +627,7 @@ export interface FileRoutesById {
   '/_authenticated/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
+  '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/_authenticated/admin/countries/': typeof AuthenticatedAdminCountriesIndexRoute
   '/_authenticated/instrument/cabinet/': typeof AuthenticatedInstrumentCabinetIndexRoute
@@ -684,6 +694,7 @@ export interface FileRouteTypes {
     | '/narrative/trace/$id'
     | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/narrative-harvest'
+    | '/api/public/hooks/source-health'
     | '/kiosk/api/public/presentation-pdf'
     | '/admin/countries/'
     | '/instrument/cabinet/'
@@ -744,6 +755,7 @@ export interface FileRouteTypes {
     | '/narrative/trace/$id'
     | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/narrative-harvest'
+    | '/api/public/hooks/source-health'
     | '/kiosk/api/public/presentation-pdf'
     | '/admin/countries'
     | '/instrument/cabinet'
@@ -809,6 +821,7 @@ export interface FileRouteTypes {
     | '/_authenticated/narrative/trace/$id'
     | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/narrative-harvest'
+    | '/api/public/hooks/source-health'
     | '/kiosk/api/public/presentation-pdf'
     | '/_authenticated/admin/countries/'
     | '/_authenticated/instrument/cabinet/'
@@ -828,6 +841,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiPublicHooksCadenceDailyRoute: typeof ApiPublicHooksCadenceDailyRoute
   ApiPublicHooksNarrativeHarvestRoute: typeof ApiPublicHooksNarrativeHarvestRoute
+  ApiPublicHooksSourceHealthRoute: typeof ApiPublicHooksSourceHealthRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1097,6 +1111,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/kiosk/api/public/presentation-pdf'
       preLoaderRoute: typeof KioskApiPublicPresentationPdfRouteImport
       parentRoute: typeof KioskRoute
+    }
+    '/api/public/hooks/source-health': {
+      id: '/api/public/hooks/source-health'
+      path: '/api/public/hooks/source-health'
+      fullPath: '/api/public/hooks/source-health'
+      preLoaderRoute: typeof ApiPublicHooksSourceHealthRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/narrative-harvest': {
       id: '/api/public/hooks/narrative-harvest'
@@ -1486,6 +1507,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ApiPublicHooksCadenceDailyRoute: ApiPublicHooksCadenceDailyRoute,
   ApiPublicHooksNarrativeHarvestRoute: ApiPublicHooksNarrativeHarvestRoute,
+  ApiPublicHooksSourceHealthRoute: ApiPublicHooksSourceHealthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

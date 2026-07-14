@@ -4,6 +4,9 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Json } from "@/integrations/supabase/types";
+import { corpusRead } from "@/lib/corpus/gateway.server";
+import { searchMemory } from "@/lib/corpus/searchers/memory.server";
+import { upsertMemoryObjects, type MemoryObjectInput } from "@/lib/corpus/writers.server";
 
 const ScopeInput = z.object({ scopeKey: z.string().min(3).max(16) });
 
@@ -457,21 +460,64 @@ export const getCoverage = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => ScopeInput.parse(data))
   .handler(async ({ data, context }) => {
-    const [mem, sectors] = await Promise.all([
-      context.supabase.from("memory_objects").select("sector_code,kind").eq("scope_key", data.scopeKey),
-      context.supabase.from("sectors").select("code,label,sort_order").order("sort_order"),
-    ]);
-    if (mem.error) throw new Error(mem.error.message);
-    if (sectors.error) throw new Error(sectors.error.message);
+    const readMemory = async () =>
+      (
+        await context.supabase
+          .from("memory_objects")
+          .select("sector_code,kind")
+          .eq("scope_key", data.scopeKey)
+      ).data ?? [];
+
+    // Corpus-first: if the second brain is thin for this scope, trigger the
+    // external waterfall + write-back before computing coverage.
+    const memGateway = await corpusRead<{ rows: Array<{ sector_code: string; kind: string }> }>({
+      scope: { countryCode: data.scopeKey },
+      domain: "memory",
+      key: "coverage:all",
+      read: async () => ({ rows: await readMemory() }),
+      isEmpty: (t) => !t || t.rows.length < 5,
+      search: async (ctx) => {
+        const r = await searchMemory({ countryCode: ctx.countryCode });
+        if (!r) return null;
+        return {
+          data: {
+            rows: r.data.rows.map((row) => ({
+              sector_code: row.sector_code ?? "cross",
+              kind: row.kind ?? "evidence",
+            })),
+          },
+          citations: r.citations,
+          tier: r.tier,
+          notes: r.notes,
+        };
+      },
+      writeBack: async (_result) => {
+        const searchRes = await searchMemory({ countryCode: data.scopeKey });
+        if (searchRes?.data.rows.length) {
+          await upsertMemoryObjects(searchRes.data.rows as MemoryObjectInput[]);
+        }
+      },
+      budget: { maxMs: 25_000 },
+      actor: context.userId,
+    });
+
+    const memRows =
+      memGateway.source === "external" ? await readMemory() : memGateway.data.rows;
+
+    const { data: sectorsData, error: sectorsErr } = await context.supabase
+      .from("sectors")
+      .select("code,label,sort_order")
+      .order("sort_order");
+    if (sectorsErr) throw new Error(sectorsErr.message);
 
     const kinds = ["audience", "position", "statement", "outlet", "precedent"] as const;
     const buckets = new Map<string, Record<string, number>>();
-    for (const s of sectors.data ?? []) buckets.set(s.code, Object.fromEntries(kinds.map((k) => [k, 0])));
-    for (const m of mem.data ?? []) {
+    for (const s of sectorsData ?? []) buckets.set(s.code, Object.fromEntries(kinds.map((k) => [k, 0])));
+    for (const m of memRows) {
       const b = buckets.get(m.sector_code);
       if (b) b[m.kind] = (b[m.kind] ?? 0) + 1;
     }
-    return (sectors.data ?? []).map((s) => ({
+    return (sectorsData ?? []).map((s) => ({
       sectorCode: s.code,
       sectorName: s.label,
       counts: buckets.get(s.code) ?? {},

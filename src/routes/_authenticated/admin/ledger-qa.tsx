@@ -444,17 +444,27 @@ function useSourceHealthCheck(cc: string): Check {
   });
   const verdict: Verdict | null = q.data
     ? (() => {
-        const broken = q.data.rows.filter(
+        const rows = q.data.rows;
+        const total = rows.length;
+        if (total === 0) return { status: "warn", detail: "No sources registered" };
+        const invalidUrls = rows.filter(
+          (r) => !r.url || !/^https?:\/\//i.test(r.url),
+        ).length;
+        const broken = rows.filter(
           (r) =>
             r.last_ok === false ||
             (r.last_status && r.last_status !== "ok" && r.last_status !== "pending"),
         ).length;
-        if (q.data.rows.length === 0) {
-          return { status: "warn", detail: "No sources registered" };
+        const reachFailures = Math.max(0, broken - invalidUrls);
+        if (invalidUrls > 0) {
+          return {
+            status: "fail",
+            detail: `${invalidUrls}/${total} rows have non-URL text (upstream ingestion bug) · ${reachFailures} reachable failures`,
+          };
         }
         return broken === 0
-          ? { status: "pass", detail: `${q.data.rows.length} sources, all reachable` }
-          : { status: "fail", detail: `${broken}/${q.data.rows.length} unreachable` };
+          ? { status: "pass", detail: `${total} sources, all reachable` }
+          : { status: "fail", detail: `${broken}/${total} unreachable` };
       })()
     : q.error
       ? { status: "fail", detail: (q.error as Error).message }

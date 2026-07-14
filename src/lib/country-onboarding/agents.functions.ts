@@ -90,14 +90,8 @@ async function saveDraft(admin: any, args: {
   summary_md?: string | null;
   summary_highlights?: Array<{ label: string; value: string }> | null;
 }) {
-  // Enforce one live (uncommitted) draft per (country, stage): clear prior live drafts first.
-  await admin
-    .from("onboarding_drafts")
-    .delete()
-    .eq("country_code", args.country_code)
-    .eq("stage", args.stage)
-    .is("committed_at", null);
-
+  // Keep older uncommitted drafts as rollback evidence. The UI marks older
+  // drafts superseded, so a bad rerun cannot erase the last reviewable draft.
   const { data: draft, error } = await admin
     .from("onboarding_drafts")
     .insert({
@@ -1302,6 +1296,9 @@ export const commitSectorComposition = createServerFn({ method: "POST" })
         share_pct: r.share_pct,
         confidence_grade: r.confidence_grade || "C",
       }));
+    if (rows.length === 0) {
+      throw new Error("Commit rejected: sector composition has 0 valid rows. Draft remains open.");
+    }
     // Atomic replace via RPC — delete+insert in a single transaction.
     const { error: rpcErr } = await supabaseAdmin.rpc("replace_country_sectors", {
       _country_code: draft.country_code,
@@ -1334,10 +1331,22 @@ export const commitMinistries = createServerFn({ method: "POST" })
       name: m.name,
       sort_order: (i + 1) * 10,
     }));
+    if (rows.length === 0) {
+      throw new Error("Commit rejected: ministries draft has 0 rows. Draft remains open.");
+    }
     const { error: upErr } = await supabaseAdmin
       .from("ministries")
-      .upsert(rows, { onConflict: "country_code,slug" });
+      .upsert(rows, { onConflict: "country_code,slug" })
+      .select("id");
     if (upErr) throw upErr;
+    const { count: targetRows, error: countErr } = await supabaseAdmin
+      .from("ministries")
+      .select("*", { count: "exact", head: true })
+      .eq("country_code", draft.country_code);
+    if (countErr) throw countErr;
+    if ((targetRows ?? 0) === 0) {
+      throw new Error("Commit rejected: ministries write produced 0 target rows. Draft remains open.");
+    }
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
     return { ok: true, upserted: rows.length };
   });
@@ -1362,6 +1371,14 @@ export const commitMinistrySectorMap = createServerFn({ method: "POST" })
       _rows: payload.mappings as any,
     });
     if (rpcErr) throw rpcErr;
+    const { count: targetRows, error: countErr } = await supabaseAdmin
+      .from("ministry_sectors")
+      .select("ministry_id, ministries!inner(country_code)", { count: "exact", head: true })
+      .eq("ministries.country_code", draft.country_code);
+    if (countErr) throw countErr;
+    if ((targetRows ?? 0) === 0) {
+      throw new Error("Commit rejected: ministry-sector map wrote 0 target rows. Draft remains open.");
+    }
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
 
     return { ok: true, inserted: payload.mappings.length };

@@ -63,13 +63,8 @@ async function saveDraft(admin: any, args: {
   confidence: "high" | "medium" | "low";
   citations: SonarCitation[];
 }) {
-  await admin
-    .from("onboarding_drafts")
-    .delete()
-    .eq("country_code", args.country_code)
-    .eq("stage", "kpi_seed")
-    .is("committed_at", null);
-
+  // Keep older uncommitted drafts as rollback evidence. The UI marks older
+  // drafts superseded, so a bad rerun cannot erase the last reviewable draft.
   const { data: draft, error } = await admin
     .from("onboarding_drafts")
     .insert({
@@ -387,6 +382,9 @@ export async function runKpiSeedResearch(args: {
       const { ok } = await upsertResolvedKpi(args.admin, args.country.code, args.userId ?? null, k);
       if (ok) upserted++;
     }
+    if (upserted === 0) {
+      throw new Error("Auto-commit rejected: KPI seed wrote 0 target rows. Draft remains open.");
+    }
     await markDraftCommitted(args.admin, draftId, args.runId);
   }
 
@@ -499,6 +497,9 @@ export async function finalizeKpiSeedOutputs(args: {
     for (const k of enriched) {
       const { ok } = await upsertResolvedKpi(args.admin, args.countryCode, args.userId ?? null, k);
       if (ok) upserted++;
+    }
+    if (upserted === 0) {
+      throw new Error("Auto-commit rejected: KPI seed wrote 0 target rows. Draft remains open.");
     }
     await markDraftCommitted(args.admin, draftId, args.runId);
   }

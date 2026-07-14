@@ -655,6 +655,7 @@ function OnboardWizard() {
         <AccordionStages
           stages={STAGES}
           drafts={drafts}
+          committedDrafts={committedDrafts}
           runs={runs}
           summaries={summaries}
           diagnostics={statusDiagnostics}

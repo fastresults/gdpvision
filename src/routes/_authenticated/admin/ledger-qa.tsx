@@ -373,7 +373,7 @@ function useTrustSignalsCheck(cc: string): Check {
     ? (() => {
         const f = q.data.freshness;
         const total = f.fresh + f.aging + f.stale + f.unknown;
-        const coverage = q.data.citationCoverage.percentage;
+        const coverage = q.data.citationCoverage.coverage_pct;
         if (total > 0 && coverage >= 95) {
           return { status: "pass", detail: `Coverage ${coverage}% · ${f.stale} stale` };
         }

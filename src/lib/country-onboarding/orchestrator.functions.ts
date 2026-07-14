@@ -169,7 +169,6 @@ function isDraftCommitEligible(stage: Stage, payload: any): { ok: boolean; reaso
       return hasItems(payload.ministries) || hasItems(payload.profiles)
         ? { ok: true, reason: null }
         : { ok: false, reason: "ministry deep-dive draft has no profile rows" };
-  if (stage === "corpus_ingest") return { ok: false, reason: "corpus ingest auto-commits from its runner" };
     case "corpus_ingest":
       return { ok: false, reason: "corpus ingest auto-commits from its runner" };
     case "second_brain_seed":

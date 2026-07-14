@@ -1,5 +1,7 @@
 // Counsel — text/voice-adjacent RAG assistant over the Second Brain + Ledger.
 // Retrieval is currently keyword/weight-ranked; embeddings backfill lands with the harvest pipeline.
+// Memory reads route through corpusRead() so a sparse corpus automatically
+// triggers an external deep-search + write-back (see .lovable/plan.md).
 
 import { createServerFn } from "@tanstack/react-start";
 import { generateText } from "ai";
@@ -9,6 +11,9 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Json } from "@/integrations/supabase/types";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
+import { corpusRead } from "@/lib/corpus/gateway.server";
+import { searchMemory } from "@/lib/corpus/searchers/memory.server";
+import { upsertMemoryObjects, type MemoryObjectInput } from "@/lib/corpus/writers.server";
 
 const AskInput = z.object({
   scopeKey: z.string().min(3).max(16),
@@ -85,16 +90,58 @@ export const askCounsel = createServerFn({ method: "POST" })
       .eq("active", true);
     const suppressedIds = new Set((suppressions ?? []).map((s) => s.source_id));
 
-    let q = context.supabase
-      .from("memory_objects")
-      .select("id,title,kind,sector_code,weight,payload,source_id")
-      .in("scope_key", [data.scopeKey, "REGIONAL"])
-      .order("weight", { ascending: false })
-      .limit(120);
-    if (data.sectorHint) q = q.eq("sector_code", data.sectorHint);
-    const { data: memoryRaw, error: memErr } = await q;
-    if (memErr) throw new Error(memErr.message);
-    const memory = (memoryRaw ?? []).filter((m) => !m.source_id || !suppressedIds.has(m.source_id)).slice(0, 80);
+    const readMemory = async () => {
+      let q = context.supabase
+        .from("memory_objects")
+        .select("id,title,kind,sector_code,weight,payload,source_id")
+        .in("scope_key", [data.scopeKey, "REGIONAL"])
+        .order("weight", { ascending: false })
+        .limit(120);
+      if (data.sectorHint) q = q.eq("sector_code", data.sectorHint);
+      const { data: memoryRaw, error: memErr } = await q;
+      if (memErr) throw new Error(memErr.message);
+      return (memoryRaw ?? []).filter(
+        (m) => !m.source_id || !suppressedIds.has(m.source_id),
+      );
+    };
+
+    // Corpus-first: if the second brain is thin, corpusRead() triggers the
+    // external waterfall (Perplexity → Gemini repair → inference) and writes
+    // findings back before returning. The next read then sees the new rows.
+    const memoryGateway = await corpusRead<{ rows: MemoryObjectInput[] }>({
+      scope: { countryCode: data.scopeKey, sector: data.sectorHint },
+      domain: "memory",
+      key: data.sectorHint ? `sector:${data.sectorHint}` : "scope:all",
+      read: async () => {
+        const rows = await readMemory();
+        return { rows: rows as unknown as MemoryObjectInput[] };
+      },
+      isEmpty: (t) => !t || t.rows.length < 3,
+      search: async (ctx) => {
+        const r = await searchMemory({
+          countryCode: ctx.countryCode,
+          sector: ctx.sector,
+          question: data.question,
+        });
+        if (!r) return null;
+        return {
+          data: { rows: r.data.rows },
+          citations: r.citations,
+          tier: r.tier,
+          notes: r.notes,
+        };
+      },
+      writeBack: async (result) => {
+        if (result.rows.length) await upsertMemoryObjects(result.rows);
+      },
+      budget: { maxMs: 25_000 },
+      actor: context.userId,
+    });
+
+    // Re-query after any external write-back so we surface fresh rows.
+    const memory =
+      memoryGateway.source === "external" ? await readMemory() : (memoryGateway.data.rows as unknown as Awaited<ReturnType<typeof readMemory>>);
+    const memorySliced = memory.slice(0, 80);
 
     const tokens = tokenize(data.question);
     const scored = (memory ?? [])

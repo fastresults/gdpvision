@@ -7,6 +7,7 @@ import { SignatureRing } from "@/components/marketing/SignatureRing";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { CANONICAL_SECTORS } from "@/lib/caricom-registry";
 import { WhyThisNumberPanel } from "@/components/ledger/WhyThisNumberPanel";
+import { LedgerEnrichments } from "@/components/ledger/LedgerEnrichments";
 
 const bindingsQuery = queryOptions({
   queryKey: ["instance-bindings"],
@@ -188,6 +189,8 @@ function InstanceHome() {
         </div>
       </div>
 
+      <LedgerEnrichments countryCode={overview.country.code} countryName={overview.country.name} />
+
       {bindings.length === 0 ? (
         <div className="mt-16 border-t border-line-200 pt-8 text-sm text-ink-500">
           No instance is bound to your account yet. During Phase 1 rollout, OPEN Interactive
@@ -195,6 +198,7 @@ function InstanceHome() {
           pilot data.
         </div>
       ) : null}
+
 
       {panel && (
         <WhyThisNumberPanel

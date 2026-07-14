@@ -610,3 +610,228 @@ export const listFigureSnapshots = createServerFn({ method: "GET" })
     return rows ?? [];
   });
 
+// ─── Ledger enrichment (Phase 2 — time-scrubber, peers, flows, ministries) ────
+//
+// Single aggregate call for the ledger home. All reads pass through the
+// user's RLS. Empty tables (e.g. no exposure history yet) resolve to empty
+// arrays and the UI degrades gracefully.
+
+export interface LedgerEnrichment {
+  exposureHistory: Array<{ period: string; value: number; confidence_grade: string }>;
+  capitalFlowsPeriods: string[];
+  capitalFlows: {
+    period: string | null;
+    nodes: Array<{
+      node_key: string;
+      label: string;
+      side: "input" | "output" | "hub" | "residual";
+      sector_code: string | null;
+    }>;
+    values: Array<{ node_key: string; value_usd_m: number; confidence_grade: string }>;
+    totals: { inputs: number; outputs: number; residual: number };
+  };
+  ministries: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    sectors: Array<{ sector_code: string; weight: number }>;
+  }>;
+  peerComposition: Array<{
+    country_code: string;
+    country_name: string;
+    is_cbi_state: boolean;
+    top_sector_code: string;
+    top_sector_share: number;
+    grade: string;
+  }>;
+  recentRevisions: Array<{
+    id: string;
+    created_at: string;
+    reason: string | null;
+    period: string | null;
+    previous_value: number | null;
+    new_value: number | null;
+    metric: string | null;
+    sector_code: string | null;
+  }>;
+}
+
+export const getLedgerEnrichment = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => CountryInput.parse(data))
+  .handler(async ({ data, context }): Promise<LedgerEnrichment> => {
+    const { supabase } = context;
+    const cc = data.countryCode;
+
+    const [
+      { data: exposure },
+      { data: flowNodes },
+      { data: flowValues },
+      { data: ministriesRows },
+      { data: peerSectors },
+      { data: peerCountries },
+      { data: seriesRows },
+    ] = await Promise.all([
+      supabase
+        .from("exposure_index")
+        .select("period,value,confidence_grade")
+        .eq("country_code", cc)
+        .order("period", { ascending: true }),
+      supabase
+        .from("capital_flow_nodes")
+        .select("node_key,label,side,sector_code,sort_order")
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("country_capital_flows")
+        .select("node_key,period,value_usd_m,confidence_grade")
+        .eq("country_code", cc)
+        .order("period", { ascending: false }),
+      supabase
+        .from("ministries")
+        .select("id,slug,name,sort_order")
+        .eq("country_code", cc)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("country_sectors")
+        .select("country_code,sector_code,share_pct,confidence_grade"),
+      supabase
+        .from("countries")
+        .select("code,name,is_cbi_state"),
+      supabase
+        .from("series")
+        .select("id,metric,sector_code")
+        .eq("country_code", cc),
+    ]);
+
+    // Ministry × sector matrix
+    const ministryIds = (ministriesRows ?? []).map((m) => m.id);
+    const { data: msRows } = ministryIds.length
+      ? await supabase
+          .from("ministry_sectors")
+          .select("ministry_id,sector_code,weight")
+          .in("ministry_id", ministryIds)
+      : { data: [] as Array<{ ministry_id: string; sector_code: string; weight: number }> };
+    const ministries = (ministriesRows ?? []).map((m) => ({
+      id: m.id,
+      slug: m.slug,
+      name: m.name,
+      sectors: (msRows ?? [])
+        .filter((r) => r.ministry_id === m.id)
+        .map((r) => ({ sector_code: r.sector_code, weight: Number(r.weight ?? 1) })),
+    }));
+
+    // Capital flows: latest period only
+    const periods = Array.from(new Set((flowValues ?? []).map((v) => v.period))).sort((a, b) =>
+      b.localeCompare(a),
+    );
+    const latestPeriod = periods[0] ?? null;
+    const latestValues = latestPeriod
+      ? (flowValues ?? []).filter((v) => v.period === latestPeriod)
+      : [];
+    const sideByKey = new Map((flowNodes ?? []).map((n) => [n.node_key, n.side as string]));
+    let sumIn = 0;
+    let sumOut = 0;
+    for (const v of latestValues) {
+      if (v.node_key === "RECONCILIATION_RESIDUAL") continue;
+      const s = sideByKey.get(v.node_key);
+      if (s === "input") sumIn += Number(v.value_usd_m);
+      else if (s === "output") sumOut += Number(v.value_usd_m);
+    }
+
+    // Peer composition: top sector per country from peer set
+    const countryByCode = new Map(
+      (peerCountries ?? []).map((c) => [c.code, { name: c.name, cbi: c.is_cbi_state }]),
+    );
+    const groupedPeers = new Map<
+      string,
+      Array<{ sector_code: string; share_pct: number; confidence_grade: string }>
+    >();
+    for (const r of peerSectors ?? []) {
+      const arr = groupedPeers.get(r.country_code) ?? [];
+      arr.push({
+        sector_code: r.sector_code,
+        share_pct: Number(r.share_pct),
+        confidence_grade: r.confidence_grade,
+      });
+      groupedPeers.set(r.country_code, arr);
+    }
+    const peerComposition: LedgerEnrichment["peerComposition"] = [];
+    for (const [code, rows] of groupedPeers) {
+      const meta = countryByCode.get(code);
+      if (!meta) continue;
+      const top = rows.slice().sort((a, b) => b.share_pct - a.share_pct)[0];
+      if (!top) continue;
+      peerComposition.push({
+        country_code: code,
+        country_name: meta.name,
+        is_cbi_state: meta.cbi,
+        top_sector_code: top.sector_code,
+        top_sector_share: top.share_pct,
+        grade: top.confidence_grade,
+      });
+    }
+    peerComposition.sort((a, b) => Number(b.is_cbi_state) - Number(a.is_cbi_state));
+
+    // Recent revisions across this country's series
+    const seriesIds = (seriesRows ?? []).map((s) => s.id);
+    const seriesMeta = new Map(
+      (seriesRows ?? []).map((s) => [s.id, { metric: s.metric, sector_code: s.sector_code }]),
+    );
+    const { data: revs } = seriesIds.length
+      ? await supabase
+          .from("data_revisions")
+          .select("id,series_id,created_at,reason,period,previous_value,new_value")
+          .in("series_id", seriesIds)
+          .order("created_at", { ascending: false })
+          .limit(8)
+      : { data: [] as Array<{
+          id: string;
+          series_id: string;
+          created_at: string;
+          reason: string | null;
+          period: string | null;
+          previous_value: number | null;
+          new_value: number | null;
+        }> };
+
+    return {
+      exposureHistory: (exposure ?? []).map((e) => ({
+        period: e.period,
+        value: Number(e.value),
+        confidence_grade: e.confidence_grade,
+      })),
+      capitalFlowsPeriods: periods,
+      capitalFlows: {
+        period: latestPeriod,
+        nodes: (flowNodes ?? []).map((n) => ({
+          node_key: n.node_key,
+          label: n.label,
+          side: n.side as "input" | "output" | "hub" | "residual",
+          sector_code: n.sector_code ?? null,
+        })),
+        values: latestValues.map((v) => ({
+          node_key: v.node_key,
+          value_usd_m: Number(v.value_usd_m),
+          confidence_grade: v.confidence_grade,
+        })),
+        totals: { inputs: sumIn, outputs: sumOut, residual: sumIn - sumOut },
+      },
+      ministries,
+      peerComposition,
+      recentRevisions: (revs ?? []).map((r) => {
+        const meta = r.series_id ? seriesMeta.get(r.series_id as string) : undefined;
+        return {
+          id: r.id,
+          created_at: r.created_at,
+          reason: r.reason,
+          period: r.period,
+          previous_value: r.previous_value !== null ? Number(r.previous_value) : null,
+          new_value: r.new_value !== null ? Number(r.new_value) : null,
+          metric: meta?.metric ?? null,
+          sector_code: meta?.sector_code ?? null,
+        };
+      }),
+    };
+  });
+
+

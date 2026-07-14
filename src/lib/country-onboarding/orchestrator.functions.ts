@@ -160,13 +160,14 @@ async function readyDraftsByStage(admin: any, countryCode: string): Promise<Part
 
   const byStage: Partial<Record<Stage, ReadyDraft>> = {};
   for (const d of drafts ?? []) {
-    if (!isStage(d.stage) || byStage[d.stage]) continue;
+    const stage = d.stage;
+    if (!isStage(stage) || byStage[stage]) continue;
     const runStatus = d.run_id ? runStatusById.get(d.run_id) ?? null : null;
     if (runStatus && ["failed", "stale"].includes(runStatus)) continue;
-    const eligibility = isDraftCommitEligible(d.stage, d.payload);
-    byStage[d.stage] = {
+    const eligibility = isDraftCommitEligible(stage, d.payload);
+    byStage[stage] = {
       id: d.id,
-      stage: d.stage,
+      stage,
       target_table: d.target_table ?? null,
       created_at: d.created_at,
       run_id: d.run_id ?? null,

@@ -236,7 +236,7 @@ export function SovereignSankey({ countryCode }: { countryCode: string }) {
                 key={i}
                 d={ribbon(f.x0, f.y0, f.h0, f.x1, f.y1, f.h1)}
                 fill={f.color}
-                opacity={activeSet ? (on ? 0.88 : 0.05) : 0.42}
+                opacity={activeSet ? (on ? 0.88 : 0.30) : 0.42}
                 style={{ transition: "opacity 140ms" }}
                 onMouseEnter={() => setHover(f.from === "TREASURY" ? f.to : f.from)}
               />
@@ -266,7 +266,7 @@ export function SovereignSankey({ countryCode }: { countryCode: string }) {
                 width={NODE_W}
                 height={n.h}
                 fill={n.color}
-                opacity={active ? 1 : 0.22}
+                opacity={active ? 1 : 0.30}
                 stroke={focused ? "var(--ink-950, #0a0a0a)" : "none"}
                 strokeWidth={focused ? 2 : 0}
                 style={{ transition: "opacity 140ms" }}
@@ -356,7 +356,7 @@ export function SovereignSankey({ countryCode }: { countryCode: string }) {
                 width={NODE_W}
                 height={n.h}
                 fill={n.color}
-                opacity={active ? 1 : 0.22}
+                opacity={active ? 1 : 0.30}
                 stroke={focused ? "var(--ink-950, #0a0a0a)" : "none"}
                 strokeWidth={focused ? 2 : 0}
                 style={{ transition: "opacity 140ms" }}

@@ -24,6 +24,7 @@ import {
   repairInvalidSourceUrls,
   retryUnreachableSources,
 } from "@/lib/ledger-qa/remediate.functions";
+import { getCorpusMissStatus, redriveCorpusMisses } from "@/lib/corpus/audit.functions";
 import type { Finding } from "@/lib/ledger-qa/types";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 
@@ -120,6 +121,7 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
     usePublishGateCheck(countryCode),
     useSnapshotRoundtripCheck(countryCode),
     useHandoffCheck(countryCode),
+    useCorpusMissCheck(countryCode),
   ];
 
   const passCount = checks.filter((c) => c.verdict?.status === "pass").length;

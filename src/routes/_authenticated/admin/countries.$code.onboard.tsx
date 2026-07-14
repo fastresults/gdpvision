@@ -334,7 +334,10 @@ function OnboardWizard() {
             if (next.readyDraft && next.readyDraft.commit_eligible === false) {
               throw new Error(next.readyDraft.blocked_reason ?? "ready draft needs review before this stage can continue");
             }
-            await runners[stage]({ data: { countryCode: code } });
+            const runRes: any = await runners[stage]({ data: { countryCode: code } });
+            if (stage === "capital_flows" && runRes?.coverageOk !== true) {
+              throw new Error("capital-flow draft needs review before commit");
+            }
             const draftId = await findLatestDraftId(stage);
             if (draftId) {
               await committers[stage]({ data: { draftId } });
@@ -358,6 +361,43 @@ function OnboardWizard() {
   const runAllPending = () => runSequential("pending");
   const rerunAll = () => runSequential("rerun");
   const stopSequential = () => { stopRef.current = true; };
+
+  async function advanceOne() {
+    setBulkErr(null);
+    setRunErrors([]);
+    setBulkRunning("pending");
+    stopRef.current = true;
+    try {
+      const next: any = await advanceStep({ data: { countryCode: code } });
+      if (next.done || !next.nextStage) {
+        setRunResult({ stage: "capital_flows", label: "Resume", ok: true, text: "All stages are committed." });
+        return;
+      }
+      const stage = next.nextStage as Stage;
+      if (next.action === "commit_ready_draft" && next.draftId) {
+        setOpenStage(stage);
+        setActiveRun({ stage, label: `Committing ${stage}`, startedAt: Date.now() });
+        const commitRes: any = await committers[stage]({ data: { draftId: next.draftId } });
+        setRunResult({ stage, label: `Committed ${stage}`, ok: true, text: summarizeCommitResult(stage, commitRes), meta: commitRes });
+        return;
+      }
+      if (next.readyDraft && next.readyDraft.commit_eligible === false) {
+        throw new Error(next.readyDraft.blocked_reason ?? "ready draft needs review before this stage can continue");
+      }
+      const runRes: any = await runners[stage]({ data: { countryCode: code } });
+      if (stage === "capital_flows" && runRes?.coverageOk !== true) {
+        throw new Error("capital-flow draft needs review before commit");
+      }
+      const draftId = await findLatestDraftId(stage);
+      if (draftId) await committers[stage]({ data: { draftId } });
+    } catch (e: any) {
+      setBulkErr(e?.message ?? String(e));
+    } finally {
+      setActiveRun(null);
+      setBulkRunning(false);
+      await refresh();
+    }
+  }
 
   async function onClearLocks() {
     try {
@@ -427,6 +467,14 @@ function OnboardWizard() {
               className="px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0 hover:bg-ink-700 disabled:opacity-50"
             >
               {bulkRunning === "pending" ? "Running…" : "Run all pending"}
+            </button>
+            <button
+              type="button"
+              onClick={advanceOne}
+              disabled={bulkRunning !== false || !keyStatus.configured}
+              className="px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 text-ink-950 hover:bg-ink-950 hover:text-paper-0 disabled:opacity-50"
+            >
+              Resume one step
             </button>
             <button
               type="button"

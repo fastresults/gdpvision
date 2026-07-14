@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { getSectorDetail, listInstanceBindings } from "@/lib/ledger.functions";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { WhyThisNumber } from "@/components/marketing/WhyThisNumber";
+import { WhyThisNumberPanel } from "@/components/ledger/WhyThisNumberPanel";
 import { CANONICAL_SECTORS } from "@/lib/caricom-registry";
 
 const bindingsQuery = queryOptions({

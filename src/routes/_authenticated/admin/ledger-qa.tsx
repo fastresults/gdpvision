@@ -910,3 +910,28 @@ function useHandoffCheck(cc: string): Check {
     data: q.data,
   };
 }
+
+function useCorpusMissCheck(cc: string): Check {
+  const q = useQuery({
+    queryKey: ["ledger-qa", cc, "corpus-miss"],
+    queryFn: () => getCorpusMissStatus({ data: { countryCode: cc, hours: 24 } }),
+  });
+  const verdict: Verdict | null = q.data
+    ? q.data.status === "pass"
+      ? { status: "pass", detail: q.data.summary }
+      : q.data.status === "warn"
+        ? { status: "warn", detail: q.data.summary }
+        : { status: "fail", detail: q.data.summary }
+    : q.error
+      ? { status: "fail", detail: (q.error as Error).message }
+      : null;
+  return {
+    key: "corpus-miss",
+    label: "Corpus fallback active — no silent misses (24h)",
+    surface: { to: "/admin/corpus-audit", label: "/admin/corpus-audit" },
+    verdict,
+    loading: q.isFetching,
+    run: () => q.refetch(),
+    data: q.data,
+  };
+}

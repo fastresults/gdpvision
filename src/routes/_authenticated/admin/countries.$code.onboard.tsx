@@ -74,6 +74,77 @@ const STAGES: Array<{ key: Stage; label: string; short: string; desc: string }> 
   { key: "capital_flows", label: "12. Capital flows", short: "Flows", desc: "Sovereign Sankey ledger (BOP + fiscal, USD $M) with citations." },
 ];
 
+type DraftCommitEligibility = { ok: boolean; reason: string | null };
+
+function hasItems(value: unknown): boolean {
+  return Array.isArray(value) && value.length > 0;
+}
+
+function hasHttpUrl(raw: unknown): boolean {
+  return typeof raw === "string" && /^https?:\/\//.test(raw.trim());
+}
+
+function getDraftCommitEligibility(stage: Stage, payload: any, citations: any[] = []): DraftCommitEligibility {
+  if (!payload || typeof payload !== "object") return { ok: false, reason: "Run AI research first to produce a draft" };
+
+  switch (stage) {
+    case "profile":
+      return typeof payload.currency === "string" || Number(payload.population) > 0 || typeof payload.head_of_government === "string"
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "Profile draft has no core fields to commit" };
+    case "gdp":
+      return Number(payload.gdp_current_usd) > 0 && Number.isInteger(Number(payload.gdp_year))
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "GDP draft needs a value and year to commit" };
+    case "sector_composition":
+      return hasItems(payload.rows) || hasItems(payload.sectors)
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "Sector composition draft has no rows to commit" };
+    case "ministries":
+      return hasItems(payload.ministries)
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "Ministries draft has no ministry rows to commit" };
+    case "ministry_sector_map":
+      return hasItems(payload.mappings)
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "Ministry-sector draft has no mapping rows to commit" };
+    case "source_registry":
+      return hasItems(payload.sources) && payload.sources.some((s: any) => hasHttpUrl(s?.url))
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "Source registry draft has no valid source URLs to commit" };
+    case "kpi_seed":
+      return hasItems(payload.kpis)
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "KPI draft has no KPI rows to commit" };
+    case "sector_dossier":
+      return hasItems(payload.dossiers)
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "Sector dossier draft has no dossier rows to commit" };
+    case "ministry_deep_dive":
+      return hasItems(payload.ministries) || hasItems(payload.profiles)
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "Ministry deep-dive draft has no profile rows to commit" };
+    case "corpus_ingest":
+      return { ok: false, reason: "Corpus ingest auto-commits from its runner" };
+    case "second_brain_seed":
+      return hasItems(payload.memories)
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "Second-brain draft has no memory rows to commit" };
+    case "capital_flows": {
+      const hasFlows = hasItems(payload.flows);
+      const hasSources = hasFlows && payload.flows.some((flow: any) => hasHttpUrl(flow?.source_url));
+      const coverageOk = payload.coverage?.coverageOk === true;
+      if (hasFlows && hasSources && coverageOk) return { ok: true, reason: null };
+      if (!coverageOk) return { ok: false, reason: "Coverage incomplete — needs ≥3 inputs, ≥4 outputs, ≤10% residual" };
+      return { ok: false, reason: "Capital-flow draft has no valid source URLs to commit" };
+    }
+    default:
+      return citations.length > 0
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "Draft is missing commit-ready rows" };
+  }
+}
+
 // (Dependency map removed — the orchestrator loop below derives real deps
 // from server-side committedTargets ground truth per pipeline level.)
 
@@ -976,21 +1047,11 @@ function StageCard({
   const showDraftReadyHint = !committed && !!draft;
   const payload = draft?.payload;
   const citations: any[] = draft?.citations ?? [];
-  const hasFlowSourceUrls =
-    stage.key === "capital_flows" &&
-    Array.isArray(payload?.flows) &&
-    payload.flows.some((flow: any) => typeof flow?.source_url === "string" && /^https?:\/\//.test(flow.source_url));
-  const hasRegistrySources =
-    stage.key === "source_registry" &&
-    Array.isArray(payload?.sources) &&
-    payload.sources.some((s: any) => typeof s?.url === "string" && /^https?:\/\//.test(s.url));
+  const commitEligibility = draft
+    ? getDraftCommitEligibility(stage.key, payload, citations)
+    : { ok: false, reason: "Run AI research first to produce a draft" };
   const capitalFlowsCoverage = stage.key === "capital_flows" ? payload?.coverage : null;
-  const capitalFlowsNeedsReview =
-    stage.key === "capital_flows" && !!capitalFlowsCoverage && capitalFlowsCoverage.coverageOk === false;
-  const canCommitDraft =
-    !!draft &&
-    (citations.length > 0 || hasFlowSourceUrls || hasRegistrySources) &&
-    !capitalFlowsNeedsReview;
+  const canCommitDraft = !!draft && commitEligibility.ok;
   const runActionLabel = running ? "Researching…" : draft || lastRun ? "Run again" : "Run AI research";
   const model = (lastRun?.model_stack && (lastRun.model_stack.research || Object.values(lastRun.model_stack)[0])) as
     | string
@@ -1101,13 +1162,11 @@ function StageCard({
               title={
                 !draft
                   ? "Run AI research first to produce a draft"
-                  : capitalFlowsNeedsReview
-                    ? "Coverage incomplete — needs ≥3 inputs, ≥4 outputs, ≤10% residual"
-                    : !canCommitDraft
-                      ? "Draft has no citations — cannot commit"
-                      : hasNewerDraft
-                        ? "A newer draft is waiting — commit it to replace the currently-committed data"
-                        : "Commit draft to database"
+                  : !canCommitDraft
+                    ? commitEligibility.reason ?? "Draft is not ready to commit"
+                    : hasNewerDraft
+                      ? "A newer draft is waiting — commit it to replace the currently-committed data"
+                      : "Commit draft to database"
               }
               onClick={(e) => {
                 e.stopPropagation();
@@ -1253,7 +1312,7 @@ function StageCard({
               <div>
                 <div className="text-xs font-medium mb-1">Citations ({citations.length})</div>
                 {citations.length === 0 ? (
-                  <div className="text-xs text-red-600">⚠ No citations — cannot commit.</div>
+                  <div className="text-xs text-ink-500">No top-level citations saved for this draft. Commit eligibility is based on the stage payload.</div>
                 ) : (
                   <ul className="text-xs space-y-1">
                     {citations.map((c) => (

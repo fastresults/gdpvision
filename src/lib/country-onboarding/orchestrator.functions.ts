@@ -121,21 +121,70 @@ function isStage(raw: unknown): raw is Stage {
   return typeof raw === "string" && (STAGE_ORDER as readonly string[]).includes(raw);
 }
 
-function isCapitalFlowCommitEligible(payload: any): boolean {
-  return Boolean(
-    payload &&
-    Array.isArray(payload.flows) &&
-    payload.flows.length > 0 &&
-    payload.coverage?.coverageOk === true,
-  );
+function hasItems(value: unknown): boolean {
+  return Array.isArray(value) && value.length > 0;
+}
+
+function hasHttpUrl(raw: unknown): boolean {
+  return typeof raw === "string" && /^https?:\/\//.test(raw.trim());
 }
 
 function isDraftCommitEligible(stage: Stage, payload: any): { ok: boolean; reason: string | null } {
-  if (stage === "corpus_ingest") return { ok: false, reason: "corpus ingest auto-commits from its runner" };
-  if (stage === "capital_flows" && !isCapitalFlowCommitEligible(payload)) {
-    return { ok: false, reason: "capital-flow draft has not passed coverage/reconciliation gates" };
+  if (!payload || typeof payload !== "object") return { ok: false, reason: "draft has no payload" };
+
+  switch (stage) {
+    case "profile":
+      return typeof payload.currency === "string" || Number(payload.population) > 0 || typeof payload.head_of_government === "string"
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "profile draft has no core fields" };
+    case "gdp":
+      return Number(payload.gdp_current_usd) > 0 && Number.isInteger(Number(payload.gdp_year))
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "GDP draft needs a value and year" };
+    case "sector_composition":
+      return hasItems(payload.rows) || hasItems(payload.sectors)
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "sector composition draft has no rows" };
+    case "ministries":
+      return hasItems(payload.ministries)
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "ministries draft has no ministry rows" };
+    case "ministry_sector_map":
+      return hasItems(payload.mappings)
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "ministry-sector draft has no mapping rows" };
+    case "source_registry":
+      return hasItems(payload.sources) && payload.sources.some((s: any) => hasHttpUrl(s?.url))
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "source registry draft has no valid source URLs" };
+    case "kpi_seed":
+      return hasItems(payload.kpis)
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "KPI draft has no KPI rows" };
+    case "sector_dossier":
+      return hasItems(payload.dossiers)
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "sector dossier draft has no dossier rows" };
+    case "ministry_deep_dive":
+      return hasItems(payload.ministries) || hasItems(payload.profiles)
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "ministry deep-dive draft has no profile rows" };
+    case "corpus_ingest":
+      return { ok: false, reason: "corpus ingest auto-commits from its runner" };
+    case "second_brain_seed":
+      return hasItems(payload.memories)
+        ? { ok: true, reason: null }
+        : { ok: false, reason: "second-brain draft has no memory rows" };
+    case "capital_flows": {
+      const hasFlows = hasItems(payload.flows);
+      const hasSources = hasFlows && payload.flows.some((flow: any) => hasHttpUrl(flow?.source_url));
+      if (hasFlows && hasSources && payload.coverage?.coverageOk === true) return { ok: true, reason: null };
+      if (payload.coverage?.coverageOk !== true) return { ok: false, reason: "capital-flow draft has not passed coverage/reconciliation gates" };
+      return { ok: false, reason: "capital-flow draft has no valid source URLs" };
+    }
+    default:
+      return { ok: false, reason: "unknown onboarding stage" };
   }
-  return { ok: true, reason: null };
 }
 
 async function readyDraftsByStage(admin: any, countryCode: string): Promise<Partial<Record<Stage, ReadyDraft>>> {

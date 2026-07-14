@@ -316,7 +316,7 @@ function useExplainFigureCheck(cc: string): Check {
       : { status: "warn", detail: q.data.refusal_reason ?? "Ungrounded refusal (contract holds)" }
     : q.error
       ? { status: "fail", detail: (q.error as Error).message }
-      : null;
+      : IDLE_VERDICT;
   return {
     key: "explain",
     label: "Why this number? — Second Brain grounded",
@@ -343,7 +343,7 @@ function useAskLedgerCheck(cc: string): Check {
       : { status: "warn", detail: q.data.refusal_reason ?? "Refused (no corpus evidence)" }
     : q.error
       ? { status: "fail", detail: (q.error as Error).message }
-      : null;
+      : IDLE_VERDICT;
   return {
     key: "ask",
     label: "Ask the Ledger — grounded answer",
@@ -373,7 +373,7 @@ function useAskLedgerRefusalCheck(cc: string): Check {
       : { status: "fail", detail: "Answered without valid corpus evidence" }
     : q.error
       ? { status: "fail", detail: (q.error as Error).message }
-      : null;
+      : IDLE_VERDICT;
   return {
     key: "ask-refuse",
     label: "Ask the Ledger — refuses ungrounded probe",
@@ -529,7 +529,7 @@ function useSnapshotRoundtripCheck(cc: string): Check {
       : { status: "fail", detail: "Pinned but not returned by listFigureSnapshots" }
     : q.error
       ? { status: "fail", detail: (q.error as Error).message }
-      : null;
+      : IDLE_VERDICT;
   return {
     key: "snapshot-rt",
     label: "Snapshot pin round-trip (immutable)",
@@ -567,7 +567,7 @@ function useHandoffCheck(cc: string): Check {
       : { status: "fail", detail: "No signal id returned" }
     : q.error
       ? { status: "fail", detail: (q.error as Error).message }
-      : null;
+      : IDLE_VERDICT;
   return {
     key: "handoff",
     label: "Speak-this-number handoff → Narrative signal",

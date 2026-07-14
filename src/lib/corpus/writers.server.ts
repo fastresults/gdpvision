@@ -146,11 +146,11 @@ export async function upsertKpi(
     freshness_status: input.latest_value == null ? "missing" : "fresh",
     last_verified_at: new Date().toISOString(),
     provenance: input.tier ? `corpus-fallback:${input.tier}` : "verified",
-  } as Record<string, unknown>;
+  };
 
   const { data, error } = await supabaseAdmin
     .from("country_kpis")
-    .upsert(row, { onConflict: "country_code,kpi_code" })
+    .upsert(row as never, { onConflict: "country_code,kpi_code" })
     .select("id")
     .maybeSingle();
   if (error || !data) return { id: null, source_id };

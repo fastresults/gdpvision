@@ -100,7 +100,7 @@ async function logAttempt(row: {
       tier: row.tier ?? null,
       latency_ms: row.latency_ms,
       actor: row.actor ?? null,
-      notes: row.notes ?? null,
+      ...(row.notes ? { notes: row.notes as never } : {}),
     });
   } catch {
     // Never let audit-logging failure break the gateway.

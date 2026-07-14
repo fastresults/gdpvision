@@ -834,4 +834,146 @@ export const getLedgerEnrichment = createServerFn({ method: "GET" })
     };
   });
 
+// ─── Phase 3 — Trust signals ─────────────────────────────────────────────────
+//
+// Freshness meter, grade-downgrade alerts, and citation coverage. All reads
+// under the caller's RLS. Empty tables degrade gracefully.
+
+export interface TrustSignals {
+  freshness: {
+    total: number;
+    stale: number;           // > 365 days
+    aging: number;           // 180..365
+    fresh: number;           // < 180
+    unknown: number;         // no points yet
+    worst: Array<{
+      series_id: string;
+      sector_code: string | null;
+      metric: string;
+      last_period: string | null;
+      age_days: number | null;
+      confidence_grade: string;
+    }>;
+  };
+  gradeAlerts: Array<{
+    id: string;
+    sector_code: string | null;
+    series_id: string | null;
+    previous_grade: string | null;
+    new_grade: string;
+    reason: string | null;
+    created_at: string;
+    acknowledged_at: string | null;
+  }>;
+  citationCoverage: {
+    total_dossiers: number;
+    with_citations: number;
+    coverage_pct: number;
+    per_sector: Array<{ sector_code: string; total: number; with_citations: number }>;
+    unbacked: Array<{ id: string; sector_code: string; kind: string }>;
+  };
+}
+
+export const getTrustSignals = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => CountryInput.parse(data))
+  .handler(async ({ data, context }): Promise<TrustSignals> => {
+    const { supabase } = context;
+    const cc = data.countryCode;
+
+    const [{ data: freshRows }, { data: alertRows }, { data: dossierRows }] = await Promise.all([
+      supabase
+        .from("series_freshness")
+        .select("series_id,sector_code,metric,last_period,age_days,confidence_grade")
+        .eq("country_code", cc),
+      supabase
+        .from("grade_alerts")
+        .select("id,sector_code,series_id,previous_grade,new_grade,reason,created_at,acknowledged_at")
+        .eq("country_code", cc)
+        .order("created_at", { ascending: false })
+        .limit(20),
+      supabase
+        .from("sector_dossiers")
+        .select("id,sector_code,kind,citations")
+        .eq("country_code", cc),
+    ]);
+
+    // Freshness roll-up
+    let stale = 0, aging = 0, fresh = 0, unknown = 0;
+    const scored = (freshRows ?? []).map((r) => ({
+      series_id: r.series_id as string,
+      sector_code: (r.sector_code as string | null) ?? null,
+      metric: (r.metric as string) ?? "",
+      last_period: (r.last_period as string | null) ?? null,
+      age_days: r.age_days === null ? null : Number(r.age_days),
+      confidence_grade: (r.confidence_grade as string) ?? "D",
+    }));
+    for (const r of scored) {
+      if (r.age_days === null) unknown++;
+      else if (r.age_days > 365) stale++;
+      else if (r.age_days > 180) aging++;
+      else fresh++;
+    }
+    const worst = scored
+      .filter((r) => r.age_days !== null)
+      .sort((a, b) => (b.age_days ?? 0) - (a.age_days ?? 0))
+      .slice(0, 6);
+
+    // Citation coverage per sector dossier
+    const perSectorMap = new Map<string, { total: number; with_citations: number }>();
+    const unbacked: TrustSignals["citationCoverage"]["unbacked"] = [];
+    let withCit = 0;
+    for (const d of dossierRows ?? []) {
+      const arr = Array.isArray(d.citations) ? (d.citations as unknown[]) : [];
+      const has = arr.length > 0;
+      if (has) withCit++;
+      else unbacked.push({ id: d.id as string, sector_code: d.sector_code as string, kind: d.kind as string });
+      const key = d.sector_code as string;
+      const entry = perSectorMap.get(key) ?? { total: 0, with_citations: 0 };
+      entry.total += 1;
+      if (has) entry.with_citations += 1;
+      perSectorMap.set(key, entry);
+    }
+    const total = dossierRows?.length ?? 0;
+
+    return {
+      freshness: {
+        total: scored.length,
+        stale, aging, fresh, unknown,
+        worst,
+      },
+      gradeAlerts: (alertRows ?? []).map((a) => ({
+        id: a.id as string,
+        sector_code: (a.sector_code as string | null) ?? null,
+        series_id: (a.series_id as string | null) ?? null,
+        previous_grade: (a.previous_grade as string | null) ?? null,
+        new_grade: a.new_grade as string,
+        reason: (a.reason as string | null) ?? null,
+        created_at: a.created_at as string,
+        acknowledged_at: (a.acknowledged_at as string | null) ?? null,
+      })),
+      citationCoverage: {
+        total_dossiers: total,
+        with_citations: withCit,
+        coverage_pct: total === 0 ? 0 : (withCit / total) * 100,
+        per_sector: Array.from(perSectorMap.entries()).map(([sector_code, v]) => ({
+          sector_code, total: v.total, with_citations: v.with_citations,
+        })),
+        unbacked: unbacked.slice(0, 20),
+      },
+    };
+  });
+
+const AckInput = z.object({ id: z.string().uuid() });
+export const acknowledgeGradeAlert = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => AckInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("grade_alerts")
+      .update({ acknowledged_at: new Date().toISOString(), acknowledged_by: context.userId })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
 

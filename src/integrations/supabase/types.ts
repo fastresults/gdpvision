@@ -1418,6 +1418,71 @@ export type Database = {
           },
         ]
       }
+      figure_snapshots: {
+        Row: {
+          ai_explanation: string | null
+          citations: Json
+          confidence_grade: string | null
+          country_code: string
+          created_at: string
+          created_by: string
+          figure_kind: string
+          figure_ref: Json
+          id: string
+          label: string
+          note: string | null
+          scope: string
+          scope_ref: string | null
+          source_snapshot: Json
+          unit: string | null
+          value: number | null
+        }
+        Insert: {
+          ai_explanation?: string | null
+          citations?: Json
+          confidence_grade?: string | null
+          country_code: string
+          created_at?: string
+          created_by: string
+          figure_kind: string
+          figure_ref: Json
+          id?: string
+          label: string
+          note?: string | null
+          scope?: string
+          scope_ref?: string | null
+          source_snapshot?: Json
+          unit?: string | null
+          value?: number | null
+        }
+        Update: {
+          ai_explanation?: string | null
+          citations?: Json
+          confidence_grade?: string | null
+          country_code?: string
+          created_at?: string
+          created_by?: string
+          figure_kind?: string
+          figure_ref?: Json
+          id?: string
+          label?: string
+          note?: string | null
+          scope?: string
+          scope_ref?: string | null
+          source_snapshot?: Json
+          unit?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "figure_snapshots_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       galleries: {
         Row: {
           category_id: string

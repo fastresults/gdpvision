@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { getSectorDetail, listInstanceBindings } from "@/lib/ledger.functions";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { WhyThisNumber } from "@/components/marketing/WhyThisNumber";
+import { WhyThisNumberPanel } from "@/components/ledger/WhyThisNumberPanel";
 import { CANONICAL_SECTORS } from "@/lib/caricom-registry";
 
 const bindingsQuery = queryOptions({
@@ -55,6 +56,7 @@ function SectorDetailPage() {
   if (!meta) throw notFound();
 
   const { data } = useSuspenseQuery(sectorQuery(countryCode, code));
+  const [panelOpen, setPanelOpen] = useState(false);
 
   return (
     <main className="mx-auto max-w-7xl px-8 py-16">
@@ -78,7 +80,19 @@ function SectorDetailPage() {
       </div>
 
       <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-3">
-        <Stat label="Share of GDP" value={`${data.sector.share_pct.toFixed(1)}%`} why="sector-composition" />
+        <button
+          onClick={() => setPanelOpen(true)}
+          className="border-t border-line-200 pt-4 text-left transition-colors hover:border-ink-950"
+          title="Why this number? — grounded in the Second Brain"
+        >
+          <p className="flex items-baseline justify-between gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+            <span>Share of GDP</span>
+            <span className="text-ink-500 group-hover:text-ink-950">ⓘ ask</span>
+          </p>
+          <p className="mt-2 font-serif text-4xl text-ink-950" data-numeric>
+            {data.sector.share_pct.toFixed(1)}%
+          </p>
+        </button>
         <Stat label="Confidence" value={data.sector.confidence_grade} why="confidence" />
         <Stat label="Currency" value={data.country.currency} />
       </div>
@@ -96,11 +110,23 @@ function SectorDetailPage() {
         ) : (
           <div className="mt-8 space-y-12">
             {data.series.map((s) => (
-              <SeriesBlock key={s.id} series={s} accentVar={meta.cssVar} />
+              <SeriesBlock key={s.id} series={s} accentVar={meta.cssVar} countryCode={countryCode} sectorLabel={meta.label} />
             ))}
           </div>
         )}
       </section>
+
+      <WhyThisNumberPanel
+        open={panelOpen}
+        onOpenChange={setPanelOpen}
+        countryCode={countryCode}
+        figureKind="sector_share"
+        figureRef={{ sector_code: code, country_code: countryCode }}
+        label={`${meta.label} — share of GDP (${data.country.name})`}
+        value={data.sector.share_pct}
+        unit="%"
+        confidenceGrade={data.sector.confidence_grade}
+      />
     </main>
   );
 }
@@ -122,6 +148,8 @@ function Stat({ label, value, why }: { label: string; value: string; why?: strin
 function SeriesBlock({
   series,
   accentVar,
+  countryCode,
+  sectorLabel,
 }: {
   series: {
     id: string;
@@ -133,9 +161,12 @@ function SeriesBlock({
     points: Array<{ period: string; value: number }>;
   };
   accentVar: string;
+  countryCode: string;
+  sectorLabel: string;
 }) {
   const path = useMemo(() => buildPath(series.points), [series.points]);
   const last = series.points[series.points.length - 1];
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="border-t border-line-200 pt-6">
@@ -148,12 +179,21 @@ function SeriesBlock({
           </p>
         </div>
         {last ? (
-          <p className="font-serif text-3xl text-ink-950" data-numeric>
-            {last.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-            <span className="ml-3 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-              {last.period}
+          <button
+            onClick={() => setOpen(true)}
+            className="text-right"
+            title="Why this number? — grounded in the Second Brain"
+          >
+            <p className="font-serif text-3xl text-ink-950" data-numeric>
+              {last.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              <span className="ml-3 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+                {last.period}
+              </span>
+            </p>
+            <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+              ⓘ ask
             </span>
-          </p>
+          </button>
         ) : null}
       </div>
       {path ? (
@@ -168,6 +208,19 @@ function SeriesBlock({
         </svg>
       ) : (
         <p className="mt-6 text-xs text-ink-500">No observations recorded.</p>
+      )}
+      {last && (
+        <WhyThisNumberPanel
+          open={open}
+          onOpenChange={setOpen}
+          countryCode={countryCode}
+          figureKind="series_point"
+          figureRef={{ series_id: series.id, metric: series.metric, period: last.period, sector_label: sectorLabel }}
+          label={`${series.metric} · ${last.period} (${sectorLabel})`}
+          value={last.value}
+          unit={series.unit}
+          confidenceGrade={series.confidence_grade}
+        />
       )}
     </div>
   );

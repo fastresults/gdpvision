@@ -175,26 +175,34 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
 }
 
 function VerdictCell({ verdict, loading }: { verdict: Verdict | null; loading: boolean }): ReactNode {
-  if (loading || !verdict) {
+  if (loading) {
     return <span className="font-mono text-[11px] text-ink-500">running…</span>;
+  }
+  if (!verdict) {
+    return <span className="font-mono text-[11px] text-ink-500">—</span>;
   }
   const color =
     verdict.status === "pass"
       ? "text-emerald-700"
       : verdict.status === "warn"
         ? "text-gold-500"
-        : "text-red-700";
+        : verdict.status === "fail"
+          ? "text-red-700"
+          : "text-ink-500";
   const dot =
     verdict.status === "pass"
       ? "bg-emerald-600"
       : verdict.status === "warn"
         ? "bg-gold-500"
-        : "bg-red-600";
+        : verdict.status === "fail"
+          ? "bg-red-600"
+          : "bg-ink-300";
+  const label = verdict.status === "idle" ? "not run" : verdict.status;
   return (
     <span className="inline-flex items-baseline gap-2">
       <span className={`mt-1 h-2 w-2 rounded-full ${dot}`} />
       <span className={`font-mono text-[11px] uppercase tracking-widest ${color}`}>
-        {verdict.status}
+        {label}
       </span>
       <span className="font-mono text-[11px] text-ink-500">{verdict.detail}</span>
     </span>

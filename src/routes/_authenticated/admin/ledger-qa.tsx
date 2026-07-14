@@ -51,7 +51,8 @@ export const Route = createFileRoute("/_authenticated/admin/ledger-qa")({
   ),
 });
 
-type Verdict = { status: "pass" | "fail" | "warn"; detail: string };
+type Verdict = { status: "pass" | "fail" | "warn" | "idle"; detail: string };
+const IDLE_VERDICT: Verdict = { status: "idle", detail: "Manual — click Run (costs credits / writes data)" };
 type Check = {
   key: string;
   label: string;
@@ -174,26 +175,34 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
 }
 
 function VerdictCell({ verdict, loading }: { verdict: Verdict | null; loading: boolean }): ReactNode {
-  if (loading || !verdict) {
+  if (loading) {
     return <span className="font-mono text-[11px] text-ink-500">running…</span>;
+  }
+  if (!verdict) {
+    return <span className="font-mono text-[11px] text-ink-500">—</span>;
   }
   const color =
     verdict.status === "pass"
       ? "text-emerald-700"
       : verdict.status === "warn"
         ? "text-gold-500"
-        : "text-red-700";
+        : verdict.status === "fail"
+          ? "text-red-700"
+          : "text-ink-500";
   const dot =
     verdict.status === "pass"
       ? "bg-emerald-600"
       : verdict.status === "warn"
         ? "bg-gold-500"
-        : "bg-red-600";
+        : verdict.status === "fail"
+          ? "bg-red-600"
+          : "bg-ink-300";
+  const label = verdict.status === "idle" ? "not run" : verdict.status;
   return (
     <span className="inline-flex items-baseline gap-2">
       <span className={`mt-1 h-2 w-2 rounded-full ${dot}`} />
       <span className={`font-mono text-[11px] uppercase tracking-widest ${color}`}>
-        {verdict.status}
+        {label}
       </span>
       <span className="font-mono text-[11px] text-ink-500">{verdict.detail}</span>
     </span>
@@ -255,6 +264,12 @@ function useEnrichmentCheck(cc: string): Check {
           capitalFlows.totals.inputs > 0
             ? Math.abs(capitalFlows.totals.residual / capitalFlows.totals.inputs) * 100
             : 0;
+        if (inputs === 0 && outputs === 0) {
+          return {
+            status: "warn",
+            detail: `No capital_flows committed for ${cc} — run Stage 12 (capital_flows research) via country onboarding`,
+          };
+        }
         if (inputs >= 3 && outputs >= 4 && residualPct <= 10 && ministries.length > 0) {
           return {
             status: "pass",
@@ -263,7 +278,7 @@ function useEnrichmentCheck(cc: string): Check {
         }
         return {
           status: "warn",
-          detail: `Sankey ${inputs}→${outputs}, residual ${residualPct.toFixed(1)}%`,
+          detail: `Sankey ${inputs}→${outputs}, residual ${residualPct.toFixed(1)}%${ministries.length === 0 ? " · no ministries" : ""}`,
         };
       })()
     : q.error
@@ -301,7 +316,7 @@ function useExplainFigureCheck(cc: string): Check {
       : { status: "warn", detail: q.data.refusal_reason ?? "Ungrounded refusal (contract holds)" }
     : q.error
       ? { status: "fail", detail: (q.error as Error).message }
-      : null;
+      : IDLE_VERDICT;
   return {
     key: "explain",
     label: "Why this number? — Second Brain grounded",
@@ -328,7 +343,7 @@ function useAskLedgerCheck(cc: string): Check {
       : { status: "warn", detail: q.data.refusal_reason ?? "Refused (no corpus evidence)" }
     : q.error
       ? { status: "fail", detail: (q.error as Error).message }
-      : null;
+      : IDLE_VERDICT;
   return {
     key: "ask",
     label: "Ask the Ledger — grounded answer",
@@ -358,7 +373,7 @@ function useAskLedgerRefusalCheck(cc: string): Check {
       : { status: "fail", detail: "Answered without valid corpus evidence" }
     : q.error
       ? { status: "fail", detail: (q.error as Error).message }
-      : null;
+      : IDLE_VERDICT;
   return {
     key: "ask-refuse",
     label: "Ask the Ledger — refuses ungrounded probe",
@@ -429,17 +444,27 @@ function useSourceHealthCheck(cc: string): Check {
   });
   const verdict: Verdict | null = q.data
     ? (() => {
-        const broken = q.data.rows.filter(
+        const rows = q.data.rows;
+        const total = rows.length;
+        if (total === 0) return { status: "warn", detail: "No sources registered" };
+        const invalidUrls = rows.filter(
+          (r) => !r.url || !/^https?:\/\//i.test(r.url),
+        ).length;
+        const broken = rows.filter(
           (r) =>
             r.last_ok === false ||
             (r.last_status && r.last_status !== "ok" && r.last_status !== "pending"),
         ).length;
-        if (q.data.rows.length === 0) {
-          return { status: "warn", detail: "No sources registered" };
+        const reachFailures = Math.max(0, broken - invalidUrls);
+        if (invalidUrls > 0) {
+          return {
+            status: "fail",
+            detail: `${invalidUrls}/${total} rows have non-URL text (upstream ingestion bug) · ${reachFailures} reachable failures`,
+          };
         }
         return broken === 0
-          ? { status: "pass", detail: `${q.data.rows.length} sources, all reachable` }
-          : { status: "fail", detail: `${broken}/${q.data.rows.length} unreachable` };
+          ? { status: "pass", detail: `${total} sources, all reachable` }
+          : { status: "fail", detail: `${broken}/${total} unreachable` };
       })()
     : q.error
       ? { status: "fail", detail: (q.error as Error).message }
@@ -464,7 +489,10 @@ function usePublishGateCheck(cc: string): Check {
       ? { status: "pass", detail: "All gates green" }
       : {
           status: "warn",
-          detail: `${q.data.checks.filter((c) => !c.pass).length} gate(s) blocked`,
+          detail: `Blocked: ${q.data.checks
+            .filter((c) => !c.pass)
+            .map((c) => c.key)
+            .join(", ")}`,
         }
     : q.error
       ? { status: "fail", detail: (q.error as Error).message }
@@ -514,7 +542,7 @@ function useSnapshotRoundtripCheck(cc: string): Check {
       : { status: "fail", detail: "Pinned but not returned by listFigureSnapshots" }
     : q.error
       ? { status: "fail", detail: (q.error as Error).message }
-      : null;
+      : IDLE_VERDICT;
   return {
     key: "snapshot-rt",
     label: "Snapshot pin round-trip (immutable)",
@@ -552,7 +580,7 @@ function useHandoffCheck(cc: string): Check {
       : { status: "fail", detail: "No signal id returned" }
     : q.error
       ? { status: "fail", detail: (q.error as Error).message }
-      : null;
+      : IDLE_VERDICT;
   return {
     key: "handoff",
     label: "Speak-this-number handoff → Narrative signal",

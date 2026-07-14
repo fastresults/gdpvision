@@ -109,8 +109,10 @@ export const retryUnreachableSources = createServerFn({ method: "POST" })
       }
       await supabaseAdmin.from("source_health_checks").insert({
         source_id: r.id,
-        status,
+        country_code: data.countryCode,
+        ok: status === "ok",
         http_status: httpStatus,
+        error: status === "ok" ? null : status,
       });
       await supabaseAdmin
         .from("country_sources")

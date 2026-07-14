@@ -66,6 +66,8 @@ type Check = {
   verdict: Verdict | null;
   loading: boolean;
   run: () => void;
+  /** Raw data for the diagnoser to inspect */
+  data?: unknown;
 };
 
 function LedgerQaPage() {

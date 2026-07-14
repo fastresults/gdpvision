@@ -2,8 +2,8 @@
 //
 // One country = one run at a time. Each stage runs inline through the existing
 // per-stage runner + committer (called from the admin UI). No worker pool, no
-// cron, no durable job tables. The single helper below tells the UI which
-// stage to run next based on the committed-rows source of truth.
+// cron, no durable job tables. The helpers below tell the UI whether to run
+// missing work or commit an already-generated draft before spending more AI.
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -44,6 +44,19 @@ const Input = z.object({
   countryCode: z.string().min(2).max(4),
   rerun: z.boolean().optional().default(false),
 });
+
+export type NextOnboardingAction = "run_stage" | "commit_ready_draft" | "done";
+
+type ReadyDraft = {
+  id: string;
+  stage: Stage;
+  target_table: string | null;
+  created_at: string;
+  run_id: string | null;
+  run_status: string | null;
+  commit_eligible: boolean;
+  blocked_reason: string | null;
+};
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data: isAdmin } = await context.supabase.rpc("has_role", {
@@ -104,10 +117,128 @@ async function committedRowsByStage(
   };
 }
 
+function isStage(raw: unknown): raw is Stage {
+  return typeof raw === "string" && (STAGE_ORDER as readonly string[]).includes(raw);
+}
+
+function isCapitalFlowCommitEligible(payload: any): boolean {
+  return Boolean(
+    payload &&
+    Array.isArray(payload.flows) &&
+    payload.flows.length > 0 &&
+    payload.coverage?.coverageOk === true,
+  );
+}
+
+function isDraftCommitEligible(stage: Stage, payload: any): { ok: boolean; reason: string | null } {
+  if (stage === "corpus_ingest") return { ok: false, reason: "corpus ingest auto-commits from its runner" };
+  if (stage === "capital_flows" && !isCapitalFlowCommitEligible(payload)) {
+    return { ok: false, reason: "capital-flow draft has not passed coverage/reconciliation gates" };
+  }
+  return { ok: true, reason: null };
+}
+
+async function readyDraftsByStage(admin: any, countryCode: string): Promise<Partial<Record<Stage, ReadyDraft>>> {
+  const { data: drafts, error: draftsError } = await admin
+    .from("onboarding_drafts")
+    .select("id, stage, target_table, payload, created_at, run_id")
+    .eq("country_code", countryCode)
+    .is("committed_at", null)
+    .order("created_at", { ascending: false });
+  if (draftsError) throw draftsError;
+
+  const runIds = [...new Set((drafts ?? []).map((d: any) => d.run_id).filter(Boolean))];
+  const runStatusById = new Map<string, string>();
+  if (runIds.length) {
+    const { data: runs, error: runsError } = await admin
+      .from("onboarding_runs")
+      .select("id, status")
+      .in("id", runIds);
+    if (runsError) throw runsError;
+    for (const r of runs ?? []) runStatusById.set(r.id, r.status);
+  }
+
+  const byStage: Partial<Record<Stage, ReadyDraft>> = {};
+  for (const d of drafts ?? []) {
+    if (!isStage(d.stage) || byStage[d.stage]) continue;
+    const runStatus = d.run_id ? runStatusById.get(d.run_id) ?? null : null;
+    if (runStatus && ["failed", "stale"].includes(runStatus)) continue;
+    const eligibility = isDraftCommitEligible(d.stage, d.payload);
+    byStage[d.stage] = {
+      id: d.id,
+      stage: d.stage,
+      target_table: d.target_table ?? null,
+      created_at: d.created_at,
+      run_id: d.run_id ?? null,
+      run_status: runStatus,
+      commit_eligible: eligibility.ok,
+      blocked_reason: eligibility.reason,
+    };
+  }
+  return byStage;
+}
+
+async function getNextAction(admin: any, countryCode: string, rerun: boolean) {
+  const committed = await committedRowsByStage(admin, countryCode);
+  const readyDrafts = await readyDraftsByStage(admin, countryCode);
+
+  if (rerun) {
+    return {
+      action: "run_stage" as const,
+      nextStage: STAGE_ORDER[0],
+      draftId: null,
+      readyDraft: null,
+      done: false,
+      remaining: STAGE_ORDER.filter((s) => (committed[s] ?? 0) === 0).length,
+      committed,
+      readyDrafts,
+    };
+  }
+
+  for (const stage of STAGE_ORDER) {
+    if ((committed[stage] ?? 0) > 0) continue;
+    const readyDraft = readyDrafts[stage] ?? null;
+    if (readyDraft?.commit_eligible) {
+      return {
+        action: "commit_ready_draft" as const,
+        nextStage: stage,
+        draftId: readyDraft.id,
+        readyDraft,
+        done: false,
+        remaining: STAGE_ORDER.filter((s) => (committed[s] ?? 0) === 0).length,
+        committed,
+        readyDrafts,
+      };
+    }
+    return {
+      action: "run_stage" as const,
+      nextStage: stage,
+      draftId: null,
+      readyDraft,
+      done: false,
+      remaining: STAGE_ORDER.filter((s) => (committed[s] ?? 0) === 0).length,
+      committed,
+      readyDrafts,
+    };
+  }
+
+  return {
+    action: "done" as const,
+    nextStage: null,
+    draftId: null,
+    readyDraft: null,
+    done: true,
+    remaining: 0,
+    committed,
+    readyDrafts,
+  };
+}
+
 /**
- * Returns the next stage the admin UI should run for this country.
- * - In default mode: the first stage in `STAGE_ORDER` whose target table has zero rows.
- * - In rerun mode: always returns the first stage in `STAGE_ORDER`.
+ * Returns the next safe action for this country.
+ * - commit_ready_draft: target rows are missing, but a usable draft already exists.
+ * - run_stage: no usable draft exists, so the stage runner should execute.
+ * - done: every target has committed rows.
  *
  * The client-side "Run all pending" loop calls this, invokes that stage's
  * runner + committer, then calls this again — until `done: true`.
@@ -129,27 +260,25 @@ export const getNextOnboardingStage = createServerFn({ method: "POST" })
       .in("status", ["queued", "planning", "searching", "extracting", "validating"])
       .lt("updated_at", cutoff);
 
-    const committed = await committedRowsByStage(supabaseAdmin, data.countryCode);
+    return getNextAction(supabaseAdmin, data.countryCode, data.rerun);
+  });
 
-    let nextStage: Stage | null = null;
-    if (data.rerun) {
-      nextStage = STAGE_ORDER[0];
-    } else {
-      for (const stage of STAGE_ORDER) {
-        if ((committed[stage] ?? 0) === 0) {
-          nextStage = stage;
-          break;
-        }
-      }
-    }
+export const advanceCountryOnboarding = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => Input.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const remaining = STAGE_ORDER.filter((s) => (committed[s] ?? 0) === 0).length;
-    return {
-      nextStage,
-      done: nextStage === null,
-      remaining,
-      committed,
-    };
+    const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    await supabaseAdmin
+      .from("onboarding_runs")
+      .update({ status: "stale", finished_at: new Date().toISOString(), error: "auto-cleared: no heartbeat >15min" })
+      .eq("country_code", data.countryCode)
+      .in("status", ["queued", "planning", "searching", "extracting", "validating"])
+      .lt("updated_at", cutoff);
+
+    return getNextAction(supabaseAdmin, data.countryCode, data.rerun);
   });
 
 /**

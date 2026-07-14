@@ -219,7 +219,7 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
     }
 
 
-    const [country, runs, drafts, cites, summaries, pipelineRuns, tgt] = await Promise.all([
+    const [country, runs, drafts, committedDraftsRaw, cites, summaries, pipelineRuns, tgt] = await Promise.all([
       supabaseAdmin.from("countries").select("*").eq("code", cc).maybeSingle(),
       supabaseAdmin
         .from("onboarding_runs")
@@ -233,6 +233,12 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
         .eq("country_code", cc)
         .is("committed_at", null)
         .order("created_at", { ascending: false }),
+      supabaseAdmin
+        .from("onboarding_drafts")
+        .select("id, stage, payload, committed_at, run_id, target_table")
+        .eq("country_code", cc)
+        .not("committed_at", "is", null)
+        .order("committed_at", { ascending: false }),
       supabaseAdmin
         .from("onboarding_citations")
         .select("*"),
@@ -249,10 +255,19 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
       countCommittedTargets(supabaseAdmin, cc),
     ]);
 
+    // Dedupe committed drafts to newest per stage.
+    const seenCommitted = new Set<string>();
+    const committedDrafts = (committedDraftsRaw.data ?? []).filter((d: any) => {
+      if (seenCommitted.has(d.stage)) return false;
+      seenCommitted.add(d.stage);
+      return true;
+    });
+    const committedDraftIds = new Set(committedDrafts.map((d: any) => d.id));
+
     const draftIds = new Set((drafts.data ?? []).map((d) => d.id));
     const cByDraft = new Map<string, any[]>();
     for (const c of cites.data ?? []) {
-      if (!draftIds.has(c.draft_id)) continue;
+      if (!draftIds.has(c.draft_id) && !committedDraftIds.has(c.draft_id)) continue;
       const arr = cByDraft.get(c.draft_id) ?? [];
       arr.push(c);
       cByDraft.set(c.draft_id, arr);
@@ -264,15 +279,21 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
       seen.add(d.stage);
       return { ...d, superseded, citations: cByDraft.get(d.id) ?? [] };
     });
+    const committedDraftsWithCites = committedDrafts.map((d: any) => ({
+      ...d,
+      citations: cByDraft.get(d.id) ?? [],
+    }));
     return {
       country: country.data,
       runs: runs.data ?? [],
       drafts: dedupedDrafts,
+      committedDrafts: committedDraftsWithCites,
       summaries: summaries.data ?? [],
       pipelineRuns: pipelineRuns.data ?? [],
       committedTargets: tgt.targets,
       statusDiagnostics: tgt.diagnostics,
     };
+
   });
 
 // Row counts per stage in the actual target tables — the ground truth for

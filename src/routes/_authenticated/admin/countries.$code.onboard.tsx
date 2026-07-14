@@ -237,6 +237,7 @@ function OnboardWizard() {
     ]);
 
   const drafts: any[] = (data as any).drafts ?? [];
+  const committedDrafts: any[] = (data as any).committedDrafts ?? [];
   const runs: any[] = (data as any).runs ?? [];
   const country: any = (data as any).country;
   const summaries: any[] = (data as any).summaries ?? [];
@@ -654,6 +655,7 @@ function OnboardWizard() {
         <AccordionStages
           stages={STAGES}
           drafts={drafts}
+          committedDrafts={committedDrafts}
           runs={runs}
           summaries={summaries}
           diagnostics={statusDiagnostics}
@@ -801,6 +803,7 @@ function summarizeCommitResult(stage: Stage, res: any): string {
 function AccordionStages({
   stages,
   drafts,
+  committedDrafts,
   runs,
   summaries,
   diagnostics,
@@ -818,6 +821,7 @@ function AccordionStages({
 }: {
   stages: { key: Stage; label: string; short: string; desc: string }[];
   drafts: any[];
+  committedDrafts: any[];
   runs: any[];
   summaries: any[];
   diagnostics: Array<{ stage: Stage | string; message: string }>;
@@ -838,6 +842,7 @@ function AccordionStages({
       {stages.map((s) => {
         const stageDrafts = drafts.filter((d) => d.stage === s.key);
         const draft = stageDrafts.find((d) => !d.superseded) ?? stageDrafts[0];
+        const committedDraft = committedDrafts.find((d) => d.stage === s.key);
         const stageRuns = runs.filter((r) => r.stage === s.key);
         const lastRun = stageRuns[0];
         const lastCommitRun = stageRuns.find((r) => r.status === "committed");
@@ -850,6 +855,7 @@ function AccordionStages({
             stage={s}
             countryName={countryName}
             draft={draft}
+            committedDraft={committedDraft}
             lastRun={lastRun}
             lastCommitRun={lastCommitRun}
             targetRows={target.rows}
@@ -878,6 +884,7 @@ function StageCard({
   stage,
   countryName,
   draft,
+  committedDraft,
   lastRun,
   lastCommitRun,
   targetRows,
@@ -894,6 +901,7 @@ function StageCard({
   stage: { key: Stage; label: string; short: string; desc: string };
   countryName: string;
   draft: any;
+  committedDraft: any;
   lastRun: any;
   lastCommitRun: any;
   targetRows: number;
@@ -1240,17 +1248,21 @@ function StageCard({
           )}
 
           {/* Committed payload — human-readable primary view + raw debug toggle */}
-          {committed && (
-            <div className="space-y-2">
-              <PrettyJson value={payload ?? draft?.payload ?? summary?.highlights ?? {}} citations={citations as any} />
-              <details className="text-xs" open={showRaw} onToggle={(e) => setShowRaw((e.target as HTMLDetailsElement).open)}>
-                <summary className="cursor-pointer text-ink-500 hover:text-ink-950">View raw committed data (debug)</summary>
-                <pre className="mt-2 max-h-80 overflow-auto bg-paper-100/50 border border-line-200 p-2 font-mono text-[11px] whitespace-pre-wrap">
-                  {JSON.stringify(payload ?? draft?.payload ?? summary?.highlights ?? {}, null, 2)}
-                </pre>
-              </details>
-            </div>
-          )}
+          {committed && (() => {
+            const committedPayload = committedDraft?.payload ?? draft?.payload ?? summary?.highlights ?? {};
+            const committedCitations = (committedDraft?.citations?.length ? committedDraft.citations : citations) as any[];
+            return (
+              <div className="space-y-2">
+                <PrettyJson value={committedPayload} citations={committedCitations as any} />
+                <details className="text-xs" open={showRaw} onToggle={(e) => setShowRaw((e.target as HTMLDetailsElement).open)}>
+                  <summary className="cursor-pointer text-ink-500 hover:text-ink-950">View raw committed data (debug)</summary>
+                  <pre className="mt-2 max-h-80 overflow-auto bg-paper-100/50 border border-line-200 p-2 font-mono text-[11px] whitespace-pre-wrap">
+                    {JSON.stringify(committedPayload, null, 2)}
+                  </pre>
+                </details>
+              </div>
+            );
+          })()}
 
           {!draft && !running && !committed && (
             <div className="text-xs text-ink-500">

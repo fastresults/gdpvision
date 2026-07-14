@@ -157,28 +157,47 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
         </thead>
         <tbody>
           {checks.map((c) => (
-            <tr key={c.key} className="border-b border-line-200/60 align-top">
-              <td className="py-3 pr-4 text-ink-950">{c.label}</td>
-              <td className="py-3 pr-4">
-                <VerdictCell verdict={c.verdict} loading={c.loading} />
-              </td>
-              <td className="py-3 pr-4">
-                <SurfaceLink surface={c.surface} />
-              </td>
-              <td className="py-3 pl-4 text-right">
-                <button
-                  type="button"
-                  onClick={c.run}
-                  className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950 underline underline-offset-4"
-                >
-                  {c.loading ? "…" : "Run"}
-                </button>
-              </td>
-            </tr>
+            <CheckRow key={c.key} check={c} countryCode={countryCode} />
           ))}
         </tbody>
       </table>
+
+      <RecentActionsStrip countryCode={countryCode} />
     </section>
+  );
+}
+
+function CheckRow({ check, countryCode }: { check: Check; countryCode: string }) {
+  const finding = deriveFinding(check, countryCode);
+  const isNonGreen = check.verdict && check.verdict.status !== "pass";
+  return (
+    <>
+      <tr className="border-b border-line-200/60 align-top">
+        <td className="py-3 pr-4 text-ink-950">{check.label}</td>
+        <td className="py-3 pr-4">
+          <VerdictCell verdict={check.verdict} loading={check.loading} />
+        </td>
+        <td className="py-3 pr-4">
+          <SurfaceLink surface={check.surface} />
+        </td>
+        <td className="py-3 pl-4 text-right">
+          <button
+            type="button"
+            onClick={check.run}
+            className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950 underline underline-offset-4"
+          >
+            {check.loading ? "…" : "Run"}
+          </button>
+        </td>
+      </tr>
+      {isNonGreen && finding ? (
+        <tr className="border-b border-line-200/60 bg-ink-50/40">
+          <td colSpan={4} className="px-3 py-4">
+            <FindingDrawer finding={finding} countryCode={countryCode} />
+          </td>
+        </tr>
+      ) : null}
+    </>
   );
 }
 

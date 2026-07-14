@@ -55,16 +55,36 @@ function InstanceHome() {
   const [code] = useState<string>(defaultCode);
   const { data: overview } = useSuspenseQuery(overviewQuery(code));
   const [panel, setPanel] = useState<PanelState>(null);
+  const [pressSafe, setPressSafe] = useState(false);
 
-  const compositionTotal = overview.composition.reduce((s, r) => s + r.share_pct, 0);
+  const visibleComposition = pressSafe
+    ? overview.composition.filter((r) => r.confidence_grade !== "D")
+    : overview.composition;
+  const compositionTotal = visibleComposition.reduce((s, r) => s + r.share_pct, 0);
   const reconciliationDelta = 100 - compositionTotal;
 
   return (
-    <main className="mx-auto max-w-7xl px-8 py-16">
-      <SectionHeader
-        eyebrow={overview.country.isCbiState ? "CBI Pilot Instance" : "Sovereign Instance"}
-        title={`The ${overview.country.name} Instrument`}
-      />
+    <main className={`mx-auto max-w-7xl px-8 py-16 ${pressSafe ? "press-safe" : ""}`}>
+      <div className="mb-6 flex items-center justify-between">
+        <SectionHeader
+          eyebrow={overview.country.isCbiState ? "CBI Pilot Instance" : "Sovereign Instance"}
+          title={`The ${overview.country.name} Instrument`}
+        />
+        <label className="flex cursor-pointer select-none items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+          <input
+            type="checkbox"
+            checked={pressSafe}
+            onChange={(e) => setPressSafe(e.target.checked)}
+            className="h-3 w-3 accent-ink-950"
+          />
+          Press-safe view
+          {pressSafe && (
+            <span className="ml-2 border border-gold-500 bg-gold-500/10 px-2 py-0.5 text-[10px] tracking-widest text-ink-950">
+              Grade D hidden · export watermarked
+            </span>
+          )}
+        </label>
+      </div>
 
       {Math.abs(reconciliationDelta) > 0.5 && (
         <div className="mt-8 flex items-baseline gap-4 border-l-2 border-amber-500 bg-amber-50/40 px-4 py-3 text-sm text-amber-900">

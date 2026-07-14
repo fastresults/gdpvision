@@ -819,7 +819,7 @@ export const getLedgerEnrichment = createServerFn({ method: "GET" })
       ministries,
       peerComposition,
       recentRevisions: (revs ?? []).map((r) => {
-        const meta = r.series_id ? seriesMeta.get(r.series_id) : undefined;
+        const meta = r.series_id ? seriesMeta.get(r.series_id as string) : undefined;
         return {
           id: r.id,
           created_at: r.created_at,

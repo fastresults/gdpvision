@@ -4,12 +4,13 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useNavigate } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { explainFigure, pinFigureSnapshot } from "@/lib/ledger.functions";
+import { explainFigure, pinFigureSnapshot, handoffFigure } from "@/lib/ledger.functions";
 import { cn } from "@/lib/utils";
 
 type FigureKind =

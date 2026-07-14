@@ -192,7 +192,7 @@ function CorpusAuditPage() {
 
       <section>
         <h2 className="text-lg font-semibold mb-3">Recent attempts (50)</h2>
-        <PrettyJson data={data.recent} />
+        <PrettyJson value={data.recent} />
       </section>
     </div>
   );

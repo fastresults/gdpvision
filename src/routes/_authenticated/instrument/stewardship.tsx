@@ -148,6 +148,9 @@ function StewardshipPage() {
           </table>
         )}
       </section>
+
+      <StewardTools countryCode={code} />
     </main>
   );
 }
+

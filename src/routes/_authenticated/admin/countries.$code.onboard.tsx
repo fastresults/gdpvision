@@ -884,6 +884,7 @@ function StageCard({
   stage,
   countryName,
   draft,
+  committedDraft,
   lastRun,
   lastCommitRun,
   targetRows,
@@ -900,6 +901,7 @@ function StageCard({
   stage: { key: Stage; label: string; short: string; desc: string };
   countryName: string;
   draft: any;
+  committedDraft: any;
   lastRun: any;
   lastCommitRun: any;
   targetRows: number;

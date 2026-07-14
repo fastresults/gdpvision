@@ -86,7 +86,36 @@ export function WhyThisNumberPanel({
     },
   });
 
+  const handoffFn = useServerFn(handoffFigure);
+  const navigate = useNavigate();
+  const handoffMut = useMutation({
+    mutationFn: (target: "counsel" | "narrative") =>
+      handoffFn({
+        data: {
+          target,
+          countryCode,
+          sectorCode:
+            (figureRef.sector_code as string | undefined) ?? "cross-cutting",
+          figureLabel: label,
+          figureValue: typeof value === "number" ? value : null,
+          figureUnit: unit ?? null,
+          confidenceGrade: confidenceGrade ?? null,
+          note: note || null,
+          citationUrl: explainQuery.data?.citations?.[0]?.url ?? null,
+          citationTitle: explainQuery.data?.citations?.[0]?.title ?? null,
+        },
+      }),
+    onSuccess: (res) => {
+      if (res.target === "narrative") {
+        navigate({ to: "/narrative/signal/$id", params: { id: res.signalId } });
+      } else {
+        navigate({ to: "/counsel" });
+      }
+    },
+  });
+
   const data = explainQuery.data;
+
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

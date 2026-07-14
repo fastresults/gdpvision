@@ -497,6 +497,48 @@ export type Database = {
           },
         ]
       }
+      corpus_fetch_attempts: {
+        Row: {
+          actor: string | null
+          country_code: string
+          created_at: string
+          credits: number | null
+          domain: string
+          id: string
+          key: string
+          latency_ms: number | null
+          notes: Json | null
+          outcome: string
+          tier: string | null
+        }
+        Insert: {
+          actor?: string | null
+          country_code: string
+          created_at?: string
+          credits?: number | null
+          domain: string
+          id?: string
+          key: string
+          latency_ms?: number | null
+          notes?: Json | null
+          outcome: string
+          tier?: string | null
+        }
+        Update: {
+          actor?: string | null
+          country_code?: string
+          created_at?: string
+          credits?: number | null
+          domain?: string
+          id?: string
+          key?: string
+          latency_ms?: number | null
+          notes?: Json | null
+          outcome?: string
+          tier?: string | null
+        }
+        Relationships: []
+      }
       counsel_answers: {
         Row: {
           citations: Json

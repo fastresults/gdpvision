@@ -9,6 +9,8 @@ import { CANONICAL_SECTORS } from "@/lib/caricom-registry";
 import { WhyThisNumberPanel } from "@/components/ledger/WhyThisNumberPanel";
 import { LedgerEnrichments } from "@/components/ledger/LedgerEnrichments";
 import { TrustSignals } from "@/components/ledger/TrustSignals";
+import { AskTheLedger } from "@/components/ledger/AskTheLedger";
+
 
 
 const bindingsQuery = queryOptions({

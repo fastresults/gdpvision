@@ -2,6 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { queryOptions, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { PrettyJson } from "@/components/data/PrettyJson";
@@ -871,9 +872,20 @@ function AccordionStages({
             isOpen={openStage === s.key}
             onToggle={() => setOpenStage(openStage === s.key ? null : s.key)}
             onRun={() => runners[s.key]({ data: { countryCode: code } }).then(refresh)}
-            onCommit={(editedPayload) =>
-              committers[s.key]({ data: { draftId: draft.id, editedPayload } }).then(refresh)
-            }
+            onCommit={async (editedPayload) => {
+              try {
+                const res: any = await committers[s.key]({ data: { draftId: draft.id, editedPayload } });
+                const rejected = Array.isArray(res?.rejected) ? res.rejected : [];
+                if (rejected.length > 0) {
+                  const sample = rejected.slice(0, 3).map((r: any) => r.url || "(empty)").join(", ");
+                  toast.warning(`Committed ${res.inserted ?? "?"} — ${rejected.length} rows rejected: ${sample}`);
+                }
+              } catch (err) {
+                toast.error(`Commit failed: ${(err as Error).message}`);
+              } finally {
+                refresh();
+              }
+            }}
             onGenerateSummary={() => onGenerateSummary(s.key)}
             onCleanInvalidSources={s.key === "corpus_ingest" ? onCleanInvalidSources : undefined}
           />

@@ -228,7 +228,7 @@ const SourceRegistrySchema = {
           kind: { type: "string", enum: ["gov", "regional", "multilateral", "advisory", "ngo", "media", "summit", "other"] },
           org: { type: "string" },
           title: { type: "string" },
-          url: { type: "string" },
+          url: { type: "string", format: "uri", pattern: "^https?://", minLength: 8 },
           quality_score: { type: "integer", minimum: 1, maximum: 5 },
           tags: { type: "array", items: { type: "string" } },
           rationale: { type: "string" },
@@ -258,17 +258,35 @@ export const runSourceRegistryAgent = createServerFn({ method: "POST" })
     });
 
     try {
-      const result = await callSonar({
-        model,
-        system:
-          "You are a sovereign-intelligence librarian. Assemble a canonical, non-duplicative registry of the most authoritative URLs to monitor a country. Group by kind: gov (national ministries, statistics office, central bank, invest agencies, CBI/citizenship units), regional (ECCB, CDB, OECS, CARICOM), multilateral (IMF, World Bank, UN, PAHO, ECLAC, EU), advisory (industry advisory firms), ngo (research NGOs, foundations), media (recognised outlets covering the country), summit (relevant sector summits). Prefer official/institutional URLs over blog posts. quality_score: 5=official primary, 4=multilateral secondary, 3=recognised NGO/media, 2=advisory, 1=general. Return 20-40 sources." +
-          SUMMARY_SYSTEM_SUFFIX,
-        user: `Country: ${country.name} (${country.iso3 ?? country.code}). Return a canonical source registry for monitoring this country's economy, governance, and communications environment. Include the country's own ministries, statistics office, central bank, invest agency, CBI unit if any, plus regional (ECCB/CDB/CARICOM/OECS if applicable), multilateral (IMF, WB, UN, PAHO), and recognised media/NGOs.`,
-        responseSchema: SourceRegistrySchema as unknown as Record<string, unknown>,
-      });
+      const runAttempt = async (model: SonarModel, noDomainFilter = false) =>
+        callSonar({
+          model,
+          system:
+            "You are a sovereign-intelligence librarian. Assemble a canonical, non-duplicative registry of the most authoritative URLs to monitor a country. Group by kind: gov (national ministries, statistics office, central bank, invest agencies, CBI/citizenship units), regional (ECCB, CDB, OECS, CARICOM), multilateral (IMF, World Bank, UN, PAHO, ECLAC, EU), advisory (industry advisory firms), ngo (research NGOs, foundations), media (recognised outlets covering the country), summit (relevant sector summits). Prefer official/institutional URLs over blog posts. quality_score: 5=official primary, 4=multilateral secondary, 3=recognised NGO/media, 2=advisory, 1=general. Return 20-40 sources. CRITICAL: Every source MUST include a working absolute https:// URL to the organisation's homepage or the specific resource. NEVER return an empty url, a placeholder, or a relative path. If you cannot find a working URL for a candidate, DROP that candidate entirely — do not include it in the response." +
+            SUMMARY_SYSTEM_SUFFIX,
+          user: `Country: ${country.name} (${country.iso3 ?? country.code}). Return a canonical source registry for monitoring this country's economy, governance, and communications environment. Include the country's own ministries, statistics office, central bank, invest agency, CBI unit if any, plus regional (ECCB/CDB/CARICOM/OECS if applicable), multilateral (IMF, WB, UN, PAHO), and recognised media/NGOs. Every entry MUST have a working https:// url.`,
+          responseSchema: SourceRegistrySchema as unknown as Record<string, unknown>,
+          noDomainFilter,
+        });
 
-      const parsed = parseSonarJson<{ sources: any[] }>(result.content);
-      if (!parsed?.sources?.length) throw new Error("Perplexity returned no sources");
+      let result = await runAttempt(model);
+      let parsed = parseSonarJson<{ sources: any[] }>(result.content);
+      let validSources = (parsed?.sources ?? []).filter((s) => isValidHttpUrl(s?.url));
+
+      // Retry Tier 2 (sonar-pro, open web) when the extraction produced too few real URLs.
+      if (validSources.length < 10) {
+        const retry = await runAttempt("sonar-pro", true);
+        const retryParsed = parseSonarJson<{ sources: any[] }>(retry.content);
+        const retryValid = (retryParsed?.sources ?? []).filter((s) => isValidHttpUrl(s?.url));
+        if (retryValid.length > validSources.length) {
+          result = retry;
+          parsed = retryParsed;
+          validSources = retryValid;
+        }
+      }
+
+      if (!parsed || !validSources.length) throw new Error("Perplexity returned no sources with valid URLs");
+      parsed.sources = validSources;
       const inline = extractInlineSummary(parsed);
 
       const draftId = await saveDraft(supabaseAdmin, {
@@ -277,14 +295,14 @@ export const runSourceRegistryAgent = createServerFn({ method: "POST" })
         stage: "source_registry",
         target_table: "country_sources",
         payload: parsed,
-        confidence: parsed.sources.length >= 15 && result.citations.length >= 2 ? "high" : "medium",
+        confidence: validSources.length >= 15 && result.citations.length >= 2 ? "high" : "medium",
         citations: result.citations,
         summary_md: inline.summary_md,
         summary_highlights: inline.summary_highlights,
       });
 
       await finishRun(supabaseAdmin, runId, { status: "ready" });
-      return { runId, draftId, count: parsed.sources.length, citations: result.citations };
+      return { runId, draftId, count: validSources.length, citations: result.citations };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;
@@ -325,6 +343,13 @@ export const commitSourceRegistry = createServerFn({ method: "POST" })
         created_by: context.userId,
       });
       if (res) inserted++;
+    }
+
+    if (inserted === 0) {
+      const sample = rejected.slice(0, 3).map((r) => `${r.url || "(empty)"} — ${r.reason}`).join("; ");
+      throw new Error(
+        `Commit rejected: 0 valid sources inserted. All ${rejected.length} rows failed URL validation. Sample: ${sample}`,
+      );
     }
 
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);

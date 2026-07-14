@@ -1,68 +1,97 @@
+## What is actually broken
 
-You're right. I over-engineered this. 8,400 lines across 20 files, a durable-job worker table, cron pings, fan-out substeps, timeouts, resume logic — for a workflow that fundamentally just needs to run **one stage at a time, well**, for one country at a time.
+Do I know what the issue is? Yes.
 
-Here's the simpler plan.
+This is not one single model failure. The pipeline is failing operationally because the UI-driven sequential loop and the stage runners disagree about what “done” means.
 
-## Principle
+Evidence from the current backend state for AIA:
+- KPI seed is committed: `18` KPI rows exist.
+- Second-brain seed is committed: `20` memory rows exist.
+- Corpus ingest is weak but present: only `5` chunks exist.
+- Capital flows generated a valid ready draft with `coverageOk: true`, but `country_capital_flows` still has `0` committed rows.
+- The latest capital-flow run is `ready`, not committed, and an uncommitted capital-flow draft still exists.
 
-One country onboarding = one sequential run. Each stage finishes (or fails clearly) before the next starts. No fan-out, no worker pool, no cron, no "resume from step 47 of 122". Quality over throughput.
+So the immediate failure mode is: data can be generated, then stranded as a ready draft. The orchestrator sees zero committed rows and keeps treating the stage as incomplete instead of committing/recovering the ready draft cleanly.
 
-## What gets deleted
+## Plan
 
-- `durable-worker.server.ts` (971 lines)
-- `kpi-seed.server.ts` per-KPI fan-out substep expansion (522 lines → collapse into a single sequential pass)
-- `onboarding_jobs`, `onboarding_job_steps`, `onboarding_job_events` tables
-- `/api/public/hooks/onboarding-worker` route
-- The pg_cron trigger
-- The `DurableJobPanel` UI and its Resume/Recover controls
-- All "child step" / "lease" / "heartbeat every N seconds" bookkeeping
+### 1. Make generated-but-uncommitted drafts first-class
+- Update the server-side next-stage decision so it returns one of:
+  - `run_stage` — no usable draft exists, run the stage.
+  - `commit_ready_draft` — a ready draft exists and should be committed before re-running.
+  - `done` — target rows already exist.
+- This prevents rerunning expensive AI work when a good draft is already waiting.
+- For stages that are safe to auto-commit, the UI loop will commit the existing ready draft before starting another generation call.
 
-## What replaces it
+### 2. Recover AIA’s current state
+- Commit the existing capital-flow draft because it already passed the coverage gate.
+- Confirm rows land in `country_capital_flows`.
+- Leave genuinely incomplete or low-quality drafts in review rather than pretending the pipeline completed.
 
-**One table: `onboarding_runs`** (already exists) with fields we already have:
-`status`, `current_stage`, `stage_started_at`, `last_error`, `plan`.
+### 3. Add one durable server-side “advance once” operation
+- Replace the fragile client loop logic with a single server function that advances exactly one unit:
 
-**One server function: `runNextStage(runId)`**. It:
-1. Reads the run, picks the next stage in the fixed order.
-2. Sets `current_stage`, `stage_started_at`.
-3. Executes that stage inline, sequentially, to completion.
-4. Writes results to the real domain tables (kpis, ministries, sources, etc.) as it goes — each provider call commits immediately, same as today.
-5. On success → advances `current_stage`. On error → sets `status='failed'`, `last_error=<message>`, stops.
-
-**Fixed stage order** (sequential, no parallelism):
 ```text
-plan → kpi_seed → source_registry → ministry_deep_dive
-  → sector_dossiers → corpus_ingest → capital_flows → summarize → done
+advanceCountryOnboarding(country)
+  inspect committed rows + ready drafts
+  if ready draft exists -> commit it
+  else run the next missing stage
+  if stage creates an auto-commit-eligible draft -> commit it
+  return exact next state
 ```
 
-**Inside each stage** we also go sequential:
-- `kpi_seed`: iterate the KPI registry one KPI at a time. World Bank → IMF → AI fallback. Commit each KPI row before moving to the next. If one KPI fails, log it on the row and continue — never abort the stage.
-- `ministry_deep_dive`: one ministry at a time.
-- `corpus_ingest`: one source at a time.
-- Same pattern for the rest.
+- The UI can still call it repeatedly, but every call is atomic and resumable.
+- If the tab closes or auth refreshes, the backend state is still consistent.
 
-**Triggering:** the admin page has a single "Run next stage" button and an "Auto-advance" toggle that just polls `runNextStage` from the browser every few seconds while the tab is open. No background worker. If you close the tab, it pauses. Reopen, click Run, it continues from `current_stage`. That's the whole recovery story.
+### 4. Stop long stage calls from looking like total failure
+- Keep generation sequential, but make progress durable per stage:
+  - write `phase`, `processed`, `total`, `current item`, and last error into `onboarding_runs.plan`.
+  - commit item-level outputs as soon as they are valid where the stage supports it.
+- On timeout or failed fetch, the next click resumes from the first missing committed target or ready draft.
 
-**Timeouts:** each provider call gets a hard 60s timeout. If it trips, that item is marked failed on its own row and the stage moves on. No stage-wide hang possible.
+### 5. Tighten data quality gates without blocking good data
+- KPI seed: keep partial KPI rows committed, but show missing required KPIs explicitly as quality warnings, not as a hard blocker for all downstream stages when rows exist.
+- Corpus ingest: raise the quality signal. Five chunks is technically enough for the old gate, but not enough for a high-quality corpus. Add a warning threshold and a retry-clean-sources path.
+- Capital flows: if `coverageOk` is true, commit automatically; if false, leave the draft as `needs_review` and do not call the stage complete.
 
-## Admin UI
+### 6. Make the admin page tell the truth
+- Show separate states per stage:
+  - committed rows
+  - ready draft awaiting commit
+  - running
+  - failed with last error
+  - quality warning
+- Rename misleading copy like “bulk run continued past these” because the simplified loop stops at failures.
+- Add a “Resume / advance one step” button that runs the single backend advance operation.
 
-Replace the current job panel with:
-- Current stage + spinner
-- Per-stage checklist with counts (e.g. "KPIs: 14/18 committed, 2 failed, 2 pending")
-- Last error (if any) with a Retry-stage button
-- Run-next-stage / Auto-advance toggle / Stop buttons
+### 7. Verification
+- Verify AIA end-to-end from backend state, not just UI labels:
+  - committed targets for all completed stages
+  - no uncommitted ready draft stranded for a completed stage
+  - capital-flow rows exist after commit
+  - onboarding status panel reports the same state as the database
+- Check recent model/gateway logs only for actual provider failures; don’t treat every app fetch/auth interruption as a data-generation failure.
 
-No "steps", no "leases", no "heartbeat 1:40:30 AM" — just the stages and what's inside them.
+## Files to change
 
-## Migration path
+- `src/lib/country-onboarding/orchestrator.functions.ts`
+  - Add draft-aware next-action logic and `advanceCountryOnboarding`.
 
-1. New migration: drop `onboarding_jobs`, `onboarding_job_steps`, `onboarding_job_events`, drop the cron job, drop the worker route.
-2. Rewrite `orchestrator.functions.ts` around `runNextStage` (~200 lines).
-3. Rewrite each stage's server function to be a plain sequential loop that commits per item (KPI seed, ministries, sources, capital flows already mostly work this way — just remove the substep wrapping).
-4. Rewrite the admin panel around the new shape.
-5. Reset AIA's `onboarding_runs` row to `current_stage='kpi_seed'` and run it through end-to-end as the acceptance test.
+- `src/routes/_authenticated/admin/countries.$code.onboard.tsx`
+  - Replace the fragile local sequential loop with calls to `advanceCountryOnboarding`.
+  - Display ready-draft vs committed vs warning states clearly.
 
-## Result
+- `src/lib/country-onboarding/corpus.functions.ts`
+  - Ensure capital-flow drafts that pass `coverageOk` are auto-commit eligible.
+  - Keep second-brain and KPI gates based on committed data, with explicit query errors.
 
-~1,500 lines instead of 8,400. One button. One stage at a time. Failures are visible and per-item, not "the whole job is blocked". Quality checks (GDP clamp, ≥3 inputs, citations, etc.) stay exactly as they are — those are the point.
+- Optional small backend data action
+  - Commit AIA’s existing capital-flow draft if it still passes validation.
+
+## Acceptance criteria
+
+- Clicking resume does not rerun a stage when a ready draft already exists.
+- AIA’s capital-flow draft becomes committed rows.
+- A failed network/auth refresh does not strand the pipeline in an ambiguous state.
+- The admin UI shows exactly why a stage is pending: missing run, ready draft, failed run, or quality warning.
+- The process stays sequential and does not fan out uncontrolled AI calls.

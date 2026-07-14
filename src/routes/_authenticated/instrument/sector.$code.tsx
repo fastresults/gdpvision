@@ -56,6 +56,7 @@ function SectorDetailPage() {
   if (!meta) throw notFound();
 
   const { data } = useSuspenseQuery(sectorQuery(countryCode, code));
+  const [panelOpen, setPanelOpen] = useState(false);
 
   return (
     <main className="mx-auto max-w-7xl px-8 py-16">
@@ -79,7 +80,19 @@ function SectorDetailPage() {
       </div>
 
       <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-3">
-        <Stat label="Share of GDP" value={`${data.sector.share_pct.toFixed(1)}%`} why="sector-composition" />
+        <button
+          onClick={() => setPanelOpen(true)}
+          className="border-t border-line-200 pt-4 text-left transition-colors hover:border-ink-950"
+          title="Why this number? — grounded in the Second Brain"
+        >
+          <p className="flex items-baseline justify-between gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+            <span>Share of GDP</span>
+            <span className="text-ink-500 group-hover:text-ink-950">ⓘ ask</span>
+          </p>
+          <p className="mt-2 font-serif text-4xl text-ink-950" data-numeric>
+            {data.sector.share_pct.toFixed(1)}%
+          </p>
+        </button>
         <Stat label="Confidence" value={data.sector.confidence_grade} why="confidence" />
         <Stat label="Currency" value={data.country.currency} />
       </div>
@@ -97,11 +110,23 @@ function SectorDetailPage() {
         ) : (
           <div className="mt-8 space-y-12">
             {data.series.map((s) => (
-              <SeriesBlock key={s.id} series={s} accentVar={meta.cssVar} />
+              <SeriesBlock key={s.id} series={s} accentVar={meta.cssVar} countryCode={countryCode} sectorLabel={meta.label} />
             ))}
           </div>
         )}
       </section>
+
+      <WhyThisNumberPanel
+        open={panelOpen}
+        onOpenChange={setPanelOpen}
+        countryCode={countryCode}
+        figureKind="sector_share"
+        figureRef={{ sector_code: code, country_code: countryCode }}
+        label={`${meta.label} — share of GDP (${data.country.name})`}
+        value={data.sector.share_pct}
+        unit="%"
+        confidenceGrade={data.sector.confidence_grade}
+      />
     </main>
   );
 }

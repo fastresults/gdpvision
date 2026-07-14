@@ -38,6 +38,7 @@ import { Route as AuthenticatedInstrumentStewardshipRouteImport } from './routes
 import { Route as AuthenticatedInstrumentExposureRouteImport } from './routes/_authenticated/instrument/exposure'
 import { Route as AuthenticatedCounselMobileRouteImport } from './routes/_authenticated/counsel/mobile'
 import { Route as AuthenticatedCounselArchiveRouteImport } from './routes/_authenticated/counsel/archive'
+import { Route as AuthenticatedAdminLedgerQaRouteImport } from './routes/_authenticated/admin/ledger-qa'
 import { Route as AuthenticatedAdminDocumentsRouteImport } from './routes/_authenticated/admin/documents'
 import { Route as AuthenticatedAdminBrainRouteImport } from './routes/_authenticated/admin/brain'
 import { Route as AuthenticatedAdminActivityRouteImport } from './routes/_authenticated/admin/activity'
@@ -234,6 +235,12 @@ const AuthenticatedCounselArchiveRoute =
     id: '/counsel/archive',
     path: '/counsel/archive',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminLedgerQaRoute =
+  AuthenticatedAdminLedgerQaRouteImport.update({
+    id: '/ledger-qa',
+    path: '/ledger-qa',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminDocumentsRoute =
   AuthenticatedAdminDocumentsRouteImport.update({
@@ -458,6 +465,7 @@ export interface FileRoutesByFullPath {
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
+  '/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
   '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/counsel/mobile': typeof AuthenticatedCounselMobileRoute
   '/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
@@ -519,6 +527,7 @@ export interface FileRoutesByTo {
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
+  '/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
   '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/counsel/mobile': typeof AuthenticatedCounselMobileRoute
   '/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
@@ -586,6 +595,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/_authenticated/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/_authenticated/admin/documents': typeof AuthenticatedAdminDocumentsRoute
+  '/_authenticated/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
   '/_authenticated/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/_authenticated/counsel/mobile': typeof AuthenticatedCounselMobileRoute
   '/_authenticated/instrument/exposure': typeof AuthenticatedInstrumentExposureRoute
@@ -653,6 +663,7 @@ export interface FileRouteTypes {
     | '/admin/activity'
     | '/admin/brain'
     | '/admin/documents'
+    | '/admin/ledger-qa'
     | '/counsel/archive'
     | '/counsel/mobile'
     | '/instrument/exposure'
@@ -714,6 +725,7 @@ export interface FileRouteTypes {
     | '/admin/activity'
     | '/admin/brain'
     | '/admin/documents'
+    | '/admin/ledger-qa'
     | '/counsel/archive'
     | '/counsel/mobile'
     | '/instrument/exposure'
@@ -780,6 +792,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/activity'
     | '/_authenticated/admin/brain'
     | '/_authenticated/admin/documents'
+    | '/_authenticated/admin/ledger-qa'
     | '/_authenticated/counsel/archive'
     | '/_authenticated/counsel/mobile'
     | '/_authenticated/instrument/exposure'
@@ -1049,6 +1062,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCounselArchiveRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/ledger-qa': {
+      id: '/_authenticated/admin/ledger-qa'
+      path: '/ledger-qa'
+      fullPath: '/admin/ledger-qa'
+      preLoaderRoute: typeof AuthenticatedAdminLedgerQaRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/documents': {
       id: '/_authenticated/admin/documents'
       path: '/documents'
@@ -1301,6 +1321,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminActivityRoute: typeof AuthenticatedAdminActivityRoute
   AuthenticatedAdminBrainRoute: typeof AuthenticatedAdminBrainRoute
   AuthenticatedAdminDocumentsRoute: typeof AuthenticatedAdminDocumentsRoute
+  AuthenticatedAdminLedgerQaRoute: typeof AuthenticatedAdminLedgerQaRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminAuditsKeyingRoute: typeof AuthenticatedAdminAuditsKeyingRoute
   AuthenticatedAdminAuditsLogRoute: typeof AuthenticatedAdminAuditsLogRoute
@@ -1316,6 +1337,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminActivityRoute: AuthenticatedAdminActivityRoute,
     AuthenticatedAdminBrainRoute: AuthenticatedAdminBrainRoute,
     AuthenticatedAdminDocumentsRoute: AuthenticatedAdminDocumentsRoute,
+    AuthenticatedAdminLedgerQaRoute: AuthenticatedAdminLedgerQaRoute,
     AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
     AuthenticatedAdminAuditsKeyingRoute: AuthenticatedAdminAuditsKeyingRoute,
     AuthenticatedAdminAuditsLogRoute: AuthenticatedAdminAuditsLogRoute,

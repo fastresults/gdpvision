@@ -550,6 +550,7 @@ function useOverviewCheck(cc: string): Check {
     verdict,
     loading: q.isFetching,
     run: () => q.refetch(),
+    data: q.data,
   };
 }
 
@@ -598,6 +599,7 @@ function useEnrichmentCheck(cc: string): Check {
     verdict,
     loading: q.isFetching,
     run: () => q.refetch(),
+    data: q.data,
   };
 }
 
@@ -631,6 +633,7 @@ function useExplainFigureCheck(cc: string): Check {
     verdict,
     loading: q.isFetching,
     run: () => q.refetch(),
+    data: q.data,
   };
 }
 
@@ -658,6 +661,7 @@ function useAskLedgerCheck(cc: string): Check {
     verdict,
     loading: q.isFetching,
     run: () => q.refetch(),
+    data: q.data,
   };
 }
 
@@ -688,6 +692,7 @@ function useAskLedgerRefusalCheck(cc: string): Check {
     verdict,
     loading: q.isFetching,
     run: () => q.refetch(),
+    data: q.data,
   };
 }
 
@@ -719,6 +724,7 @@ function useTrustSignalsCheck(cc: string): Check {
     verdict,
     loading: q.isFetching,
     run: () => q.refetch(),
+    data: q.data,
   };
 }
 
@@ -741,6 +747,7 @@ function useReconciliationCheck(cc: string): Check {
     verdict,
     loading: q.isFetching,
     run: () => q.refetch(),
+    data: q.data,
   };
 }
 
@@ -783,6 +790,7 @@ function useSourceHealthCheck(cc: string): Check {
     verdict,
     loading: q.isFetching,
     run: () => q.refetch(),
+    data: q.data,
   };
 }
 
@@ -811,6 +819,7 @@ function usePublishGateCheck(cc: string): Check {
     verdict,
     loading: q.isFetching,
     run: () => q.refetch(),
+    data: q.data,
   };
 }
 
@@ -857,6 +866,7 @@ function useSnapshotRoundtripCheck(cc: string): Check {
     verdict,
     loading: q.isFetching,
     run: () => q.refetch(),
+    data: q.data,
   };
 }
 
@@ -895,5 +905,6 @@ function useHandoffCheck(cc: string): Check {
     verdict,
     loading: q.isFetching,
     run: () => q.refetch(),
+    data: q.data,
   };
 }

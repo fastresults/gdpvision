@@ -2,7 +2,7 @@
 // server function and links to the UI surface for manual verification.
 
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { queryOptions, useQuery, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useQuery, useSuspenseQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 
 import {
@@ -19,6 +19,12 @@ import {
   listInstanceBindings,
   pinFigureSnapshot,
 } from "@/lib/ledger.functions";
+import {
+  recentQaActions,
+  repairInvalidSourceUrls,
+  retryUnreachableSources,
+} from "@/lib/ledger-qa/remediate.functions";
+import type { Finding } from "@/lib/ledger-qa/types";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 
 const bindingsQuery = queryOptions({

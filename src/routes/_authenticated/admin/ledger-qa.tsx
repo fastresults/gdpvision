@@ -491,7 +491,7 @@ function usePublishGateCheck(cc: string): Check {
           status: "warn",
           detail: `Blocked: ${q.data.checks
             .filter((c) => !c.pass)
-            .map((c) => c.key ?? c.label ?? "check")
+            .map((c) => c.key)
             .join(", ")}`,
         }
     : q.error

@@ -35,6 +35,11 @@ export const Route = createFileRoute("/_authenticated/admin/ledger-qa")({
   }),
   loader: ({ context }) => context.queryClient.ensureQueryData(bindingsQuery),
   component: LedgerQaPage,
+  pendingComponent: () => (
+    <div className="mx-auto max-w-3xl px-8 py-24 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+      Loading ledger QA…
+    </div>
+  ),
   errorComponent: ({ error }) => (
     <div className="mx-auto max-w-3xl px-8 py-24 text-ink-500">
       <p className="font-mono text-[11px] uppercase tracking-[0.2em]">QA unavailable</p>

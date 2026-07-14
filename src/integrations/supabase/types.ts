@@ -1211,6 +1211,13 @@ export type Database = {
             referencedRelation: "series"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "data_revisions_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "series_freshness"
+            referencedColumns: ["series_id"]
+          },
         ]
       }
       decisions: {
@@ -1619,6 +1626,60 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "kpis"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      grade_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          country_code: string
+          created_at: string
+          id: string
+          new_grade: string
+          previous_grade: string | null
+          reason: string | null
+          sector_code: string | null
+          series_id: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          country_code: string
+          created_at?: string
+          id?: string
+          new_grade: string
+          previous_grade?: string | null
+          reason?: string | null
+          sector_code?: string | null
+          series_id?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          country_code?: string
+          created_at?: string
+          id?: string
+          new_grade?: string
+          previous_grade?: string | null
+          reason?: string | null
+          sector_code?: string | null
+          series_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grade_alerts_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "series"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grade_alerts_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "series_freshness"
+            referencedColumns: ["series_id"]
           },
         ]
       }
@@ -3125,6 +3186,13 @@ export type Database = {
             referencedRelation: "series"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "series_points_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "series_freshness"
+            referencedColumns: ["series_id"]
+          },
         ]
       }
       source_candidates: {
@@ -3340,7 +3408,35 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      series_freshness: {
+        Row: {
+          age_days: number | null
+          confidence_grade: string | null
+          country_code: string | null
+          frequency: string | null
+          last_period: string | null
+          metric: string | null
+          points_count: number | null
+          sector_code: string | null
+          series_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "series_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "series_sector_code_fkey"
+            columns: ["sector_code"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
     }
     Functions: {
       country_chunks_search: {

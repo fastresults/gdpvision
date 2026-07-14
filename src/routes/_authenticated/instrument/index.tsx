@@ -8,6 +8,8 @@ import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { CANONICAL_SECTORS } from "@/lib/caricom-registry";
 import { WhyThisNumberPanel } from "@/components/ledger/WhyThisNumberPanel";
 import { LedgerEnrichments } from "@/components/ledger/LedgerEnrichments";
+import { TrustSignals } from "@/components/ledger/TrustSignals";
+
 
 const bindingsQuery = queryOptions({
   queryKey: ["instance-bindings"],
@@ -189,7 +191,10 @@ function InstanceHome() {
         </div>
       </div>
 
+      <TrustSignals countryCode={overview.country.code} />
+
       <LedgerEnrichments countryCode={overview.country.code} countryName={overview.country.name} />
+
 
       {bindings.length === 0 ? (
         <div className="mt-16 border-t border-line-200 pt-8 text-sm text-ink-500">

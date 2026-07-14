@@ -6,6 +6,8 @@ import { getSectorDetail, listInstanceBindings } from "@/lib/ledger.functions";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { WhyThisNumber } from "@/components/marketing/WhyThisNumber";
 import { WhyThisNumberPanel } from "@/components/ledger/WhyThisNumberPanel";
+import { AskTheLedger } from "@/components/ledger/AskTheLedger";
+
 import { CANONICAL_SECTORS } from "@/lib/caricom-registry";
 
 const bindingsQuery = queryOptions({

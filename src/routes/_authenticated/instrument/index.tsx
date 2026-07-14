@@ -191,7 +191,10 @@ function InstanceHome() {
         </div>
       </div>
 
+      <TrustSignals countryCode={overview.country.code} />
+
       <LedgerEnrichments countryCode={overview.country.code} countryName={overview.country.name} />
+
 
       {bindings.length === 0 ? (
         <div className="mt-16 border-t border-line-200 pt-8 text-sm text-ink-500">

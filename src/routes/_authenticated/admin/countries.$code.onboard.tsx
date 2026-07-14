@@ -40,7 +40,6 @@ import {
 import {
   advanceCountryOnboarding,
   clearOnboardingLocks,
-  getNextOnboardingStage,
 } from "@/lib/country-onboarding/orchestrator.functions";
 import { generateStageSummary } from "@/lib/country-onboarding/summaries.functions";
 
@@ -246,7 +245,6 @@ function OnboardWizard() {
   const pipelineRuns: any[] = (data as any).pipelineRuns ?? [];
   const latestPipeline = pipelineRuns[0] ?? null;
   const genSummary = useServerFn(generateStageSummary);
-  const getNextStage = useServerFn(getNextOnboardingStage);
   const advanceStep = useServerFn(advanceCountryOnboarding);
   const clearLocks = useServerFn(clearOnboardingLocks);
 
@@ -535,7 +533,7 @@ function OnboardWizard() {
 
         {runErrors.length > 0 && (
           <div className="rounded border border-red-500/50 bg-red-500/10 p-3 text-xs text-red-700 space-y-1">
-            <div className="font-medium">Stage failures (bulk run continued past these):</div>
+            <div className="font-medium">Stage failure — sequential run stopped here:</div>
             {runErrors.map((e) => (
               <div key={e.stage} className="font-mono break-words">
                 • {e.stage}: {e.message}

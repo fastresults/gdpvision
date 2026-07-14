@@ -2832,6 +2832,45 @@ export type Database = {
           },
         ]
       }
+      reconciliation_notes: {
+        Row: {
+          country_code: string
+          created_at: string
+          created_by: string
+          id: string
+          note: string
+          residual_pct: number | null
+          resolved_at: string | null
+          resolved_by: string | null
+          subject_key: string
+          subject_kind: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          created_by: string
+          id?: string
+          note: string
+          residual_pct?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          subject_key: string
+          subject_kind: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          note?: string
+          residual_pct?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          subject_key?: string
+          subject_kind?: string
+        }
+        Relationships: []
+      }
       research_briefs: {
         Row: {
           created_at: string
@@ -3245,6 +3284,47 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "countries"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      source_health_checks: {
+        Row: {
+          checked_at: string
+          country_code: string
+          error: string | null
+          http_status: number | null
+          id: string
+          latency_ms: number | null
+          ok: boolean
+          source_id: string
+        }
+        Insert: {
+          checked_at?: string
+          country_code: string
+          error?: string | null
+          http_status?: number | null
+          id?: string
+          latency_ms?: number | null
+          ok?: boolean
+          source_id: string
+        }
+        Update: {
+          checked_at?: string
+          country_code?: string
+          error?: string | null
+          http_status?: number | null
+          id?: string
+          latency_ms?: number | null
+          ok?: boolean
+          source_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_health_checks_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "country_sources"
+            referencedColumns: ["id"]
           },
         ]
       }

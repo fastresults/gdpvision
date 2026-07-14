@@ -219,7 +219,261 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
     }
 
 
-    const [country, runs, drafts, committedDraftsRaw, cites, summaries, pipelineRuns, tgt] = await Promise.all([
+    const loadCommittedTargetData = async () => {
+      const [
+        countryRow,
+        sectors,
+        ministries,
+        ministrySectors,
+        sources,
+        kpis,
+        dossiers,
+        ministryProfiles,
+        chunks,
+        memories,
+        flows,
+      ] = await Promise.all([
+        supabaseAdmin
+          .from("countries")
+          .select("code, name, iso3, currency, fiscal_year_start_month, gdp_current_usd, gdp_year, membership_tier, is_caricom, is_oecs, is_cbi_state, country_pack, profile_committed_at, gdp_committed_at")
+          .eq("code", cc)
+          .maybeSingle(),
+        supabaseAdmin
+          .from("country_sectors")
+          .select("sector_code, share_pct, confidence_grade, source_ref, sectors(label, isic)")
+          .eq("country_code", cc)
+          .order("share_pct", { ascending: false }),
+        supabaseAdmin
+          .from("ministries")
+          .select("id, slug, name, sort_order, created_at, updated_at")
+          .eq("country_code", cc)
+          .order("sort_order"),
+        supabaseAdmin
+          .from("ministry_sectors")
+          .select("sector_code, weight, ministries!inner(slug, name, country_code)")
+          .eq("ministries.country_code", cc)
+          .order("sector_code"),
+        supabaseAdmin
+          .from("country_sources")
+          .select("id, title, org, kind, url, active, quality_score, fetch_status, fetch_error, last_fetched_at, tags, summary")
+          .eq("country_code", cc)
+          .order("quality_score", { ascending: false }),
+        supabaseAdmin
+          .from("country_kpis")
+          .select("kpi_code, label, unit, latest_value, latest_period, target, direction, category, freshness_status, provenance, confidence, source_url, notes, updated_at")
+          .eq("country_code", cc)
+          .order("category")
+          .order("label"),
+        supabaseAdmin
+          .from("sector_dossiers")
+          .select("sector_code, kind, confidence, payload, citations, source_ids, updated_at")
+          .eq("country_code", cc)
+          .order("sector_code"),
+        supabaseAdmin
+          .from("ministry_profiles")
+          .select("ministry_slug, minister, minister_profile, mandate, programmes, citations, source_ids, updated_at")
+          .eq("country_code", cc)
+          .order("ministry_slug"),
+        supabaseAdmin
+          .from("country_source_chunks")
+          .select("id, document_id, chunk_index, content, created_at")
+          .eq("country_code", cc)
+          .order("created_at", { ascending: false })
+          .limit(100),
+        supabaseAdmin
+          .from("memory_objects")
+          .select("kind, title, sector_code, payload, weight, verified, source_id, updated_at")
+          .eq("scope_key", cc)
+          .order("kind")
+          .order("title"),
+        supabaseAdmin
+          .from("country_capital_flows")
+          .select("node_key, value_usd_m, period, confidence_grade, method, provenance, notes, citations, updated_at")
+          .eq("country_code", cc)
+          .order("node_key"),
+      ]);
+
+      const logError = (stage: string, res: any) => {
+        if (res?.error) console.error(`[getOnboardingStatus] committed data read failed for ${stage}:`, res.error);
+      };
+      logError("profile/gdp", countryRow);
+      logError("sector_composition", sectors);
+      logError("ministries", ministries);
+      logError("ministry_sector_map", ministrySectors);
+      logError("source_registry", sources);
+      logError("kpi_seed", kpis);
+      logError("sector_dossier", dossiers);
+      logError("ministry_deep_dive", ministryProfiles);
+      logError("corpus_ingest", chunks);
+      logError("second_brain_seed", memories);
+      logError("capital_flows", flows);
+
+      const c: any = countryRow.data;
+      const countryPack = c?.country_pack && typeof c.country_pack === "object" ? c.country_pack : {};
+      const allCitations = (rows: any[] | null | undefined) =>
+        (rows ?? []).flatMap((r: any) => Array.isArray(r?.citations) ? r.citations : []);
+
+      return {
+        profile: c?.profile_committed_at
+          ? (countryPack.profile ?? {
+              code: c.code,
+              name: c.name,
+              iso3: c.iso3,
+              currency: c.currency,
+              fiscal_year_start_month: c.fiscal_year_start_month,
+              membership_tier: c.membership_tier,
+              is_caricom: c.is_caricom,
+              is_oecs: c.is_oecs,
+              is_cbi_state: c.is_cbi_state,
+            })
+          : null,
+        gdp: c?.gdp_committed_at
+          ? {
+              gdp_current_usd: c.gdp_current_usd,
+              gdp_year: c.gdp_year,
+              currency: c.currency,
+            }
+          : null,
+        sector_composition: (sectors.data ?? []).length
+          ? {
+              rows: (sectors.data ?? []).map((r: any) => ({
+                sector_code: r.sector_code,
+                sector_label: r.sectors?.label ?? r.sector_code,
+                share_pct: r.share_pct,
+                confidence_grade: r.confidence_grade,
+                source_ref: r.source_ref,
+              })),
+            }
+          : null,
+        ministries: (ministries.data ?? []).length
+          ? {
+              ministries: (ministries.data ?? []).map((m: any) => ({
+                slug: m.slug,
+                name: m.name,
+                sort_order: m.sort_order,
+              })),
+            }
+          : null,
+        ministry_sector_map: (ministrySectors.data ?? []).length
+          ? {
+              mappings: (ministrySectors.data ?? []).map((r: any) => ({
+                ministry_slug: r.ministries?.slug,
+                ministry_name: r.ministries?.name,
+                sector_code: r.sector_code,
+                weight: r.weight,
+              })),
+            }
+          : null,
+        source_registry: (sources.data ?? []).length
+          ? {
+              sources: (sources.data ?? []).map((s: any) => ({
+                title: s.title,
+                org: s.org,
+                kind: s.kind,
+                url: s.url,
+                active: s.active,
+                quality_score: s.quality_score,
+                fetch_status: s.fetch_status,
+                fetch_error: s.fetch_error,
+                last_fetched_at: s.last_fetched_at,
+                tags: s.tags,
+                summary: s.summary,
+              })),
+            }
+          : null,
+        kpi_seed: (kpis.data ?? []).length
+          ? {
+              kpis: (kpis.data ?? []).map((k: any) => ({
+                kpi_code: k.kpi_code,
+                label: k.label,
+                category: k.category,
+                latest_value: k.latest_value,
+                latest_period: k.latest_period,
+                unit: k.unit,
+                target: k.target,
+                direction: k.direction,
+                freshness_status: k.freshness_status,
+                provenance: k.provenance,
+                confidence: k.confidence,
+                source_url: k.source_url,
+                notes: k.notes,
+                updated_at: k.updated_at,
+              })),
+            }
+          : null,
+        sector_dossier: (dossiers.data ?? []).length
+          ? {
+              dossiers: (dossiers.data ?? []).map((d: any) => ({
+                sector_code: d.sector_code,
+                kind: d.kind,
+                confidence: d.confidence,
+                ...(d.payload && typeof d.payload === "object" ? d.payload : { payload: d.payload }),
+                source_ids: d.source_ids,
+                updated_at: d.updated_at,
+              })),
+            }
+          : null,
+        ministry_deep_dive: (ministryProfiles.data ?? []).length
+          ? {
+              ministries: (ministryProfiles.data ?? []).map((m: any) => ({
+                ministry_slug: m.ministry_slug,
+                minister: m.minister,
+                minister_profile: m.minister_profile,
+                mandate: m.mandate,
+                programmes: m.programmes,
+                source_ids: m.source_ids,
+                updated_at: m.updated_at,
+              })),
+            }
+          : null,
+        corpus_ingest: (chunks.data ?? []).length
+          ? {
+              chunks: (chunks.data ?? []).map((ch: any) => ({
+                document_id: ch.document_id,
+                chunk_index: ch.chunk_index,
+                content: typeof ch.content === "string" && ch.content.length > 700 ? `${ch.content.slice(0, 700)}…` : ch.content,
+                created_at: ch.created_at,
+              })),
+            }
+          : null,
+        second_brain_seed: (memories.data ?? []).length
+          ? {
+              memories: (memories.data ?? []).map((m: any) => ({
+                kind: m.kind,
+                title: m.title,
+                sector_code: m.sector_code,
+                weight: m.weight,
+                verified: m.verified,
+                payload: m.payload,
+                source_id: m.source_id,
+                updated_at: m.updated_at,
+              })),
+            }
+          : null,
+        capital_flows: (flows.data ?? []).length
+          ? {
+              flows: (flows.data ?? []).map((f: any) => ({
+                node_key: f.node_key,
+                value_usd_m: f.value_usd_m,
+                period: f.period,
+                confidence_grade: f.confidence_grade,
+                method: f.method,
+                provenance: f.provenance,
+                notes: f.notes,
+                citations: f.citations,
+                updated_at: f.updated_at,
+              })),
+            }
+          : null,
+        __citations: {
+          sector_dossier: allCitations(dossiers.data),
+          ministry_deep_dive: allCitations(ministryProfiles.data),
+          capital_flows: allCitations(flows.data),
+        },
+      };
+    };
+
+    const [country, runs, drafts, committedDraftsRaw, committedTargetData, cites, summaries, pipelineRuns, tgt] = await Promise.all([
       supabaseAdmin.from("countries").select("*").eq("code", cc).maybeSingle(),
       supabaseAdmin
         .from("onboarding_runs")
@@ -239,6 +493,7 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
         .eq("country_code", cc)
         .not("committed_at", "is", null)
         .order("committed_at", { ascending: false }),
+      loadCommittedTargetData(),
       supabaseAdmin
         .from("onboarding_citations")
         .select("*"),
@@ -283,11 +538,19 @@ export const getOnboardingStatus = createServerFn({ method: "POST" })
       ...d,
       citations: cByDraft.get(d.id) ?? [],
     }));
+    const committedData = Object.entries(committedTargetData)
+      .filter(([stage, payload]) => !stage.startsWith("__") && payload != null)
+      .map(([stage, payload]) => ({
+        stage,
+        payload,
+        citations: (committedTargetData.__citations as any)?.[stage] ?? [],
+      }));
     return {
       country: country.data,
       runs: runs.data ?? [],
       drafts: dedupedDrafts,
       committedDrafts: committedDraftsWithCites,
+      committedData,
       summaries: summaries.data ?? [],
       pipelineRuns: pipelineRuns.data ?? [],
       committedTargets: tgt.targets,

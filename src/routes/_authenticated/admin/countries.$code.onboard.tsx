@@ -1248,17 +1248,21 @@ function StageCard({
           )}
 
           {/* Committed payload — human-readable primary view + raw debug toggle */}
-          {committed && (
-            <div className="space-y-2">
-              <PrettyJson value={payload ?? draft?.payload ?? summary?.highlights ?? {}} citations={citations as any} />
-              <details className="text-xs" open={showRaw} onToggle={(e) => setShowRaw((e.target as HTMLDetailsElement).open)}>
-                <summary className="cursor-pointer text-ink-500 hover:text-ink-950">View raw committed data (debug)</summary>
-                <pre className="mt-2 max-h-80 overflow-auto bg-paper-100/50 border border-line-200 p-2 font-mono text-[11px] whitespace-pre-wrap">
-                  {JSON.stringify(payload ?? draft?.payload ?? summary?.highlights ?? {}, null, 2)}
-                </pre>
-              </details>
-            </div>
-          )}
+          {committed && (() => {
+            const committedPayload = committedDraft?.payload ?? draft?.payload ?? summary?.highlights ?? {};
+            const committedCitations = (committedDraft?.citations?.length ? committedDraft.citations : citations) as any[];
+            return (
+              <div className="space-y-2">
+                <PrettyJson value={committedPayload} citations={committedCitations as any} />
+                <details className="text-xs" open={showRaw} onToggle={(e) => setShowRaw((e.target as HTMLDetailsElement).open)}>
+                  <summary className="cursor-pointer text-ink-500 hover:text-ink-950">View raw committed data (debug)</summary>
+                  <pre className="mt-2 max-h-80 overflow-auto bg-paper-100/50 border border-line-200 p-2 font-mono text-[11px] whitespace-pre-wrap">
+                    {JSON.stringify(committedPayload, null, 2)}
+                  </pre>
+                </details>
+              </div>
+            );
+          })()}
 
           {!draft && !running && !committed && (
             <div className="text-xs text-ink-500">

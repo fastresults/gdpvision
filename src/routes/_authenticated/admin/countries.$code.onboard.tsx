@@ -38,6 +38,7 @@ import {
   runCapitalFlowsAgent,
 } from "@/lib/country-onboarding/corpus.functions";
 import {
+  advanceCountryOnboarding,
   clearOnboardingLocks,
   getNextOnboardingStage,
 } from "@/lib/country-onboarding/orchestrator.functions";
@@ -246,6 +247,7 @@ function OnboardWizard() {
   const latestPipeline = pipelineRuns[0] ?? null;
   const genSummary = useServerFn(generateStageSummary);
   const getNextStage = useServerFn(getNextOnboardingStage);
+  const advanceStep = useServerFn(advanceCountryOnboarding);
   const clearLocks = useServerFn(clearOnboardingLocks);
 
   // Wrap each runner: open the accordion for that stage, show the sticky
@@ -309,22 +311,39 @@ function OnboardWizard() {
     stopRef.current = false;
     const errors: Array<{ stage: Stage; message: string }> = [];
     try {
-      // Loop: ask the server for the next stage, run it, auto-commit its draft
-      // (when one exists), refresh, repeat — until done, stopped, or errored.
-      // Each iteration is a short server request, so a tab close only pauses.
+      // Loop: ask the server for the next safe action. If a ready draft already
+      // exists, commit it before spending more AI on another generation run.
       for (let safety = 0; safety < STAGES.length + 2; safety++) {
         if (stopRef.current) break;
-        const next: any = await getNextStage({ data: { countryCode: code, rerun: mode === "rerun" && safety === 0 } });
+        const next: any = await advanceStep({ data: { countryCode: code, rerun: mode === "rerun" && safety === 0 } });
         if (next.done || !next.nextStage) break;
         const stage = next.nextStage as Stage;
         try {
-          await runners[stage]({ data: { countryCode: code } });
-          const draftId = await findLatestDraftId(stage);
-          if (draftId) {
-            // Auto-commit the draft (some stages have a no-op committer).
-            await committers[stage]({ data: { draftId } });
+          if (next.action === "commit_ready_draft" && next.draftId) {
+            setRunResult(null);
+            setOpenStage(stage);
+            setActiveRun({ stage, label: `Committing ${stage}`, startedAt: Date.now() });
+            const commitRes: any = await committers[stage]({ data: { draftId: next.draftId } });
+            setRunResult({
+              stage,
+              label: `Committed ${stage}`,
+              ok: true,
+              text: summarizeCommitResult(stage, commitRes),
+              meta: commitRes,
+            });
+            setActiveRun(null);
+          } else {
+            if (next.readyDraft && next.readyDraft.commit_eligible === false) {
+              throw new Error(next.readyDraft.blocked_reason ?? "ready draft needs review before this stage can continue");
+            }
+            await runners[stage]({ data: { countryCode: code } });
+            const draftId = await findLatestDraftId(stage);
+            if (draftId) {
+              await committers[stage]({ data: { draftId } });
+            }
           }
         } catch (e: any) {
+          setActiveRun(null);
           errors.push({ stage, message: e?.message ?? String(e) });
           setRunErrors([...errors]);
           setBulkErr(`Stopped at ${stage}: ${e?.message ?? String(e)}`);
@@ -719,6 +738,17 @@ function summarizeRunResult(stage: Stage, res: any): string {
   if (typeof res.count === "number") return `Draft ready with ${res.count} item(s). Review below.`;
   if (typeof res.inserted === "number") return `Inserted ${res.inserted} row(s).`;
   return "Completed.";
+}
+
+function summarizeCommitResult(stage: Stage, res: any): string {
+  if (stage === "capital_flows" && res?.reconciliation) {
+    return `Committed ${res.upserted ?? 0} flow row(s); residual ${Number(res.reconciliation.residual ?? 0).toFixed(1)}.`;
+  }
+  if (typeof res?.upserted === "number") return `Committed ${res.upserted} row(s).`;
+  if (typeof res?.inserted === "number" || typeof res?.updated === "number") {
+    return `Committed ${res.inserted ?? 0} inserted, ${res.updated ?? 0} updated, ${res.skipped ?? 0} skipped.`;
+  }
+  return "Committed ready draft.";
 }
 
 

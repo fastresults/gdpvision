@@ -803,6 +803,7 @@ function summarizeCommitResult(stage: Stage, res: any): string {
 function AccordionStages({
   stages,
   drafts,
+  committedDrafts,
   runs,
   summaries,
   diagnostics,
@@ -820,6 +821,7 @@ function AccordionStages({
 }: {
   stages: { key: Stage; label: string; short: string; desc: string }[];
   drafts: any[];
+  committedDrafts: any[];
   runs: any[];
   summaries: any[];
   diagnostics: Array<{ stage: Stage | string; message: string }>;
@@ -840,6 +842,7 @@ function AccordionStages({
       {stages.map((s) => {
         const stageDrafts = drafts.filter((d) => d.stage === s.key);
         const draft = stageDrafts.find((d) => !d.superseded) ?? stageDrafts[0];
+        const committedDraft = committedDrafts.find((d) => d.stage === s.key);
         const stageRuns = runs.filter((r) => r.stage === s.key);
         const lastRun = stageRuns[0];
         const lastCommitRun = stageRuns.find((r) => r.status === "committed");

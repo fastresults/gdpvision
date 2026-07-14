@@ -51,7 +51,8 @@ export const Route = createFileRoute("/_authenticated/admin/ledger-qa")({
   ),
 });
 
-type Verdict = { status: "pass" | "fail" | "warn"; detail: string };
+type Verdict = { status: "pass" | "fail" | "warn" | "idle"; detail: string };
+const IDLE_VERDICT: Verdict = { status: "idle", detail: "Manual — click Run (costs credits / writes data)" };
 type Check = {
   key: string;
   label: string;

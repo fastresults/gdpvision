@@ -220,6 +220,12 @@ function InstanceHome() {
           confidenceGrade={panel.grade}
         />
       )}
+
+      <AskTheLedger
+        countryCode={overview.country.code}
+        countryName={overview.country.name}
+      />
     </main>
+
   );
 }

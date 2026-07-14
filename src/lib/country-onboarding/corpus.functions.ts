@@ -345,6 +345,13 @@ export const commitSourceRegistry = createServerFn({ method: "POST" })
       if (res) inserted++;
     }
 
+    if (inserted === 0) {
+      const sample = rejected.slice(0, 3).map((r) => `${r.url || "(empty)"} — ${r.reason}`).join("; ");
+      throw new Error(
+        `Commit rejected: 0 valid sources inserted. All ${rejected.length} rows failed URL validation. Sample: ${sample}`,
+      );
+    }
+
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
     return { ok: true, inserted, rejected };
   });

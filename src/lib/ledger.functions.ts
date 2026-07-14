@@ -977,3 +977,148 @@ export const acknowledgeGradeAlert = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ─── Phase 4 — "Ask the Ledger" (Second-Brain-grounded Q&A) ──────────────────
+//
+// Persistent right-rail chat, retrieval-only. Refuses ungrounded questions.
+// Non-streaming to keep server-route auth simple; Gemini flash returns in
+// under two seconds for typical corpus sizes. Sibling `pinFigureSnapshot`
+// captures Q/A into figure_snapshots (scope='personal' by default).
+
+const AskInput = z.object({
+  countryCode: z.string().min(3).max(4),
+  question: z.string().min(3).max(500),
+  sectorCode: z.string().min(2).max(64).optional(),
+});
+
+export interface LedgerAnswer {
+  grounded: boolean;
+  answer: string | null;
+  refusal_reason?: string;
+  citations: FigureCitation[];
+}
+
+export const askTheLedger = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => AskInput.parse(data))
+  .handler(async ({ data, context }): Promise<LedgerAnswer> => {
+    const { supabase } = context;
+    const tokens = tokenizeQuery(data.question);
+
+    const { data: suppressions } = await supabase
+      .from("source_suppressions")
+      .select("source_id")
+      .eq("scope_key", data.countryCode)
+      .eq("active", true);
+    const suppressed = new Set((suppressions ?? []).map((s) => s.source_id));
+
+    const orFilter = tokens.length
+      ? tokens.map((t) => `content.ilike.%${t.replace(/[%_]/g, "")}%`).join(",")
+      : null;
+    let chunkQuery = supabase
+      .from("country_source_chunks")
+      .select("id,content,chunk_index,document_id,country_source_documents!inner(country_source_id,title,country_sources!inner(id,url,title,org))")
+      .eq("country_code", data.countryCode)
+      .limit(40);
+    if (orFilter) chunkQuery = chunkQuery.or(orFilter);
+    const { data: chunkRows } = await chunkQuery;
+
+    type ChunkRow = {
+      id: string;
+      content: string;
+      chunk_index: number;
+      country_source_documents: {
+        country_source_id: string;
+        title: string | null;
+        country_sources: { id: string; url: string | null; title: string | null; org: string | null };
+      } | null;
+    };
+    const chunks: FigureCitation[] = (chunkRows as unknown as ChunkRow[] | null ?? [])
+      .filter((c) => {
+        const sid = c.country_source_documents?.country_sources.id ?? null;
+        return !sid || !suppressed.has(sid);
+      })
+      .slice(0, 6)
+      .map((c, i) => ({
+        n: i + 1,
+        kind: "chunk" as const,
+        title:
+          c.country_source_documents?.country_sources.title ??
+          c.country_source_documents?.title ??
+          "Source document",
+        url: c.country_source_documents?.country_sources.url ?? null,
+        org: c.country_source_documents?.country_sources.org ?? null,
+        source_id: c.country_source_documents?.country_sources.id ?? null,
+        excerpt: (c.content ?? "").slice(0, 400),
+      }));
+
+    let memQuery = supabase
+      .from("memory_objects")
+      .select("id,title,kind,sector_code,weight,payload,source_id")
+      .in("scope_key", [data.countryCode, "REGIONAL"])
+      .order("weight", { ascending: false })
+      .limit(20);
+    if (data.sectorCode) memQuery = memQuery.eq("sector_code", data.sectorCode);
+    const { data: memRows } = await memQuery;
+    const memories: FigureCitation[] = (memRows ?? [])
+      .filter((m) => !m.source_id || !suppressed.has(m.source_id))
+      .slice(0, 3)
+      .map((m, i) => ({
+        n: chunks.length + i + 1,
+        kind: "memory" as const,
+        title: m.title,
+        url: null,
+        org: m.kind,
+        source_id: m.source_id,
+        excerpt: JSON.stringify(m.payload ?? {}).slice(0, 300),
+      }));
+
+    const citations = [...chunks, ...memories];
+    if (citations.length === 0) {
+      return {
+        grounded: false,
+        answer: null,
+        refusal_reason: "The Second Brain has no matching evidence for this question yet.",
+        citations: [],
+      };
+    }
+
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) {
+      return {
+        grounded: false,
+        answer: null,
+        refusal_reason: "AI gateway unavailable — retrieved sources only.",
+        citations,
+      };
+    }
+
+    const contextBlock = citations
+      .map((c) => `[${c.n}] (${c.kind}·${c.org ?? "n/a"}) ${c.title}\n${c.excerpt}`)
+      .join("\n\n");
+
+    const system =
+      "You are the National Ledger's steward. Answer the user's question in ONE short paragraph (max 120 words), using ONLY the evidence in CONTEXT. Cite every factual claim with [N] markers matching the CONTEXT items. If the evidence does not answer the question, reply exactly 'The Second Brain has no grounded evidence for this question.' Never invent numbers, names, or dates.";
+
+    try {
+      const gateway = createLovableAiGatewayProvider(key);
+      const result = await generateText({
+        model: gateway("google/gemini-3-flash-preview"),
+        system,
+        prompt: `Question: ${data.question}\n\nCONTEXT:\n${contextBlock}\n\nAnswer now.`,
+      });
+      const answer = (result.text ?? "").trim() || null;
+      const grounded = !!answer && /\[\d+\]/.test(answer);
+      return {
+        grounded,
+        answer,
+        refusal_reason: grounded ? undefined : "Model returned no citation markers — treating as ungrounded.",
+        citations,
+      };
+    } catch (err) {
+      const status = (err as { statusCode?: number }).statusCode;
+      if (status === 429) throw new Error("Ledger AI rate limit — try again shortly.");
+      if (status === 402) throw new Error("Lovable AI credits exhausted — top up in workspace billing.");
+      throw err;
+    }
+  });
+

@@ -264,6 +264,12 @@ function useEnrichmentCheck(cc: string): Check {
           capitalFlows.totals.inputs > 0
             ? Math.abs(capitalFlows.totals.residual / capitalFlows.totals.inputs) * 100
             : 0;
+        if (inputs === 0 && outputs === 0) {
+          return {
+            status: "warn",
+            detail: `No capital_flows committed for ${cc} — run Stage 12 (capital_flows research) via country onboarding`,
+          };
+        }
         if (inputs >= 3 && outputs >= 4 && residualPct <= 10 && ministries.length > 0) {
           return {
             status: "pass",
@@ -272,7 +278,7 @@ function useEnrichmentCheck(cc: string): Check {
         }
         return {
           status: "warn",
-          detail: `Sankey ${inputs}→${outputs}, residual ${residualPct.toFixed(1)}%`,
+          detail: `Sankey ${inputs}→${outputs}, residual ${residualPct.toFixed(1)}%${ministries.length === 0 ? " · no ministries" : ""}`,
         };
       })()
     : q.error

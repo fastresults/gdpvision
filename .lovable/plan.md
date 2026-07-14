@@ -1,97 +1,47 @@
-## What is actually broken
+## Problem
 
-Do I know what the issue is? Yes.
+On `/admin/countries/:code/onboard`, stages that are already committed (e.g. KPI seed with 18/18 processed, Second-brain seed) render **"No data."** and an empty `{}` under "View raw committed data (debug)".
 
-This is not one single model failure. The pipeline is failing operationally because the UI-driven sequential loop and the stage runners disagree about what “done” means.
+## Root cause
 
-Evidence from the current backend state for AIA:
-- KPI seed is committed: `18` KPI rows exist.
-- Second-brain seed is committed: `20` memory rows exist.
-- Corpus ingest is weak but present: only `5` chunks exist.
-- Capital flows generated a valid ready draft with `coverageOk: true`, but `country_capital_flows` still has `0` committed rows.
-- The latest capital-flow run is `ready`, not committed, and an uncommitted capital-flow draft still exists.
+`getOnboardingStatus` in `src/lib/country-onboarding/agents.functions.ts` (line ~230) only returns **uncommitted** drafts:
 
-So the immediate failure mode is: data can be generated, then stranded as a ready draft. The orchestrator sees zero committed rows and keeps treating the stage as incomplete instead of committing/recovering the ready draft cleanly.
-
-## Plan
-
-### 1. Make generated-but-uncommitted drafts first-class
-- Update the server-side next-stage decision so it returns one of:
-  - `run_stage` — no usable draft exists, run the stage.
-  - `commit_ready_draft` — a ready draft exists and should be committed before re-running.
-  - `done` — target rows already exist.
-- This prevents rerunning expensive AI work when a good draft is already waiting.
-- For stages that are safe to auto-commit, the UI loop will commit the existing ready draft before starting another generation call.
-
-### 2. Recover AIA’s current state
-- Commit the existing capital-flow draft because it already passed the coverage gate.
-- Confirm rows land in `country_capital_flows`.
-- Leave genuinely incomplete or low-quality drafts in review rather than pretending the pipeline completed.
-
-### 3. Add one durable server-side “advance once” operation
-- Replace the fragile client loop logic with a single server function that advances exactly one unit:
-
-```text
-advanceCountryOnboarding(country)
-  inspect committed rows + ready drafts
-  if ready draft exists -> commit it
-  else run the next missing stage
-  if stage creates an auto-commit-eligible draft -> commit it
-  return exact next state
+```ts
+.from("onboarding_drafts").select("*").eq("country_code", cc).is("committed_at", null)
 ```
 
-- The UI can still call it repeatedly, but every call is atomic and resumable.
-- If the tab closes or auth refreshes, the backend state is still consistent.
+The onboard page (`countries.$code.onboard.tsx`, line ~949) does `const payload = draft?.payload;` and the committed panel (line ~1245) falls back through `payload ?? draft?.payload ?? summary?.highlights ?? {}`. Once a stage is committed, its draft is filtered out, so `draft` is `undefined`, `summary?.highlights` doesn't exist for stages without a generated summary, and the panel renders `{}` → PrettyJson prints "No data."
 
-### 4. Stop long stage calls from looking like total failure
-- Keep generation sequential, but make progress durable per stage:
-  - write `phase`, `processed`, `total`, `current item`, and last error into `onboarding_runs.plan`.
-  - commit item-level outputs as soon as they are valid where the stage supports it.
-- On timeout or failed fetch, the next click resumes from the first missing committed target or ready draft.
+The actual committed data lives in the target tables (`country_kpis`, `memory_objects`, etc.) and in the (now hidden) committed draft's `payload`.
 
-### 5. Tighten data quality gates without blocking good data
-- KPI seed: keep partial KPI rows committed, but show missing required KPIs explicitly as quality warnings, not as a hard blocker for all downstream stages when rows exist.
-- Corpus ingest: raise the quality signal. Five chunks is technically enough for the old gate, but not enough for a high-quality corpus. Add a warning threshold and a retry-clean-sources path.
-- Capital flows: if `coverageOk` is true, commit automatically; if false, leave the draft as `needs_review` and do not call the stage complete.
+## Fix
 
-### 6. Make the admin page tell the truth
-- Show separate states per stage:
-  - committed rows
-  - ready draft awaiting commit
-  - running
-  - failed with last error
-  - quality warning
-- Rename misleading copy like “bulk run continued past these” because the simplified loop stops at failures.
-- Add a “Resume / advance one step” button that runs the single backend advance operation.
+Return the **latest committed draft per stage** alongside the uncommitted drafts, and use it as the source for the committed panel.
 
-### 7. Verification
-- Verify AIA end-to-end from backend state, not just UI labels:
-  - committed targets for all completed stages
-  - no uncommitted ready draft stranded for a completed stage
-  - capital-flow rows exist after commit
-  - onboarding status panel reports the same state as the database
-- Check recent model/gateway logs only for actual provider failures; don’t treat every app fetch/auth interruption as a data-generation failure.
+### Backend — `src/lib/country-onboarding/agents.functions.ts`
+- In `getOnboardingStatus`, add a parallel query that fetches, per stage, the newest row where `committed_at IS NOT NULL` (single Supabase query ordered by `committed_at desc`, dedup to newest per stage in JS — same shape as existing `dedupedDrafts`).
+- Return it as `committedDrafts: Array<{ stage, payload, committed_at, citations }>` (attach citations via the same `onboarding_citations` join already loaded, extending the `draftIds` set).
 
-## Files to change
+### Frontend — `src/routes/_authenticated/admin/countries.$code.onboard.tsx`
+- Read `committedDrafts` from status (alongside `drafts`).
+- In `StageList`, find `committedDraft = committedDrafts.find(d => d.stage === s.key)` and pass it to `StageRow` as a new prop `committedDraft`.
+- In `StageRow`, change the committed panel (line ~1245) to prefer `committedDraft?.payload` before falling back to `draft?.payload`:
+  ```ts
+  const committedPayload = committedDraft?.payload ?? draft?.payload ?? null;
+  const committedCitations = committedDraft?.citations ?? citations;
+  ```
+  Render `<PrettyJson value={committedPayload ?? {}} citations={committedCitations} />` and the raw debug uses the same value.
+- Leave the uncommitted draft-review panel untouched (still uses `draft` = uncommitted).
 
-- `src/lib/country-onboarding/orchestrator.functions.ts`
-  - Add draft-aware next-action logic and `advanceCountryOnboarding`.
+### Out of scope
 
-- `src/routes/_authenticated/admin/countries.$code.onboard.tsx`
-  - Replace the fragile local sequential loop with calls to `advanceCountryOnboarding`.
-  - Display ready-draft vs committed vs warning states clearly.
+- No schema changes; `onboarding_drafts.committed_at` already exists and is populated by every commit path.
+- No changes to the orchestrator or commit logic.
+- No changes to summary generation.
 
-- `src/lib/country-onboarding/corpus.functions.ts`
-  - Ensure capital-flow drafts that pass `coverageOk` are auto-commit eligible.
-  - Keep second-brain and KPI gates based on committed data, with explicit query errors.
+## Verification
 
-- Optional small backend data action
-  - Commit AIA’s existing capital-flow draft if it still passes validation.
-
-## Acceptance criteria
-
-- Clicking resume does not rerun a stage when a ready draft already exists.
-- AIA’s capital-flow draft becomes committed rows.
-- A failed network/auth refresh does not strand the pipeline in an ambiguous state.
-- The admin UI shows exactly why a stage is pending: missing run, ready draft, failed run, or quality warning.
-- The process stays sequential and does not fan out uncontrolled AI calls.
+1. On AIA `/admin/countries/AIA/onboard`, KPI seed (committed) shows the committed KPI payload in PrettyJson instead of "No data".
+2. Second-brain seed (committed) shows the committed payload.
+3. Stages with a still-uncommitted draft continue to show the draft-review panel unchanged.
+4. Stages that have never been run still show "pending" with no data (unchanged).

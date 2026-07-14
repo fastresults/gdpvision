@@ -91,7 +91,8 @@ export async function callSonar(opts: {
 
   const doFetch = async (payload: Record<string, unknown>) => {
     const ctrl = new AbortController();
-    const timeout = setTimeout(() => ctrl.abort(), 75_000);
+    // sonar-reasoning-pro / sonar-deep-research can take 2-4 minutes; give them room.
+    const timeout = setTimeout(() => ctrl.abort(), 240_000);
     try {
       const r = await fetch("https://api.perplexity.ai/chat/completions", {
         method: "POST",

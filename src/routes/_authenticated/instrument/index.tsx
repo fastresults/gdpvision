@@ -119,7 +119,7 @@ function InstanceHome() {
             </thead>
             <tbody>
               {CANONICAL_SECTORS.map((s) => {
-                const row = overview.composition.find((c) => c.sector_code === s.slug);
+                const row = visibleComposition.find((c) => c.sector_code === s.slug);
                 return (
                   <tr key={s.slug} className="border-b border-line-200/60">
                     <td className="py-3">

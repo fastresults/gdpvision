@@ -237,6 +237,7 @@ function OnboardWizard() {
     ]);
 
   const drafts: any[] = (data as any).drafts ?? [];
+  const committedDrafts: any[] = (data as any).committedDrafts ?? [];
   const runs: any[] = (data as any).runs ?? [];
   const country: any = (data as any).country;
   const summaries: any[] = (data as any).summaries ?? [];

@@ -92,3 +92,240 @@ export async function recordFallbackRevision(_params: {
 }): Promise<void> {
   // Intentionally empty — `corpus_fetch_attempts` is the audit trail.
 }
+
+// --- KPI + KPI points ----------------------------------------------------
+// Idempotent upsert on (country_code, kpi_code). Delegates source dedup to
+// upsertCountrySource so re-runs cannot spawn duplicate provider rows.
+export type KpiWriteInput = {
+  country_code: string;
+  kpi_code: string;
+  label: string;
+  unit: string;
+  direction?: string;
+  category?: string;
+  latest_value: number | null;
+  latest_period: string | null;
+  target?: number | null;
+  notes?: string | null;
+  source_url?: string | null;
+  source_org?: string | null;
+  tier?: string;
+};
+
+export async function upsertKpi(
+  input: KpiWriteInput,
+): Promise<{ id: string | null; source_id: string | null }> {
+  let source_id: string | null = null;
+  if (input.source_url) {
+    const src = await upsertCountrySource(supabaseAdmin, {
+      country_code: input.country_code,
+      url: input.source_url,
+      title: input.source_org ? `${input.source_org} — KPI source` : "Auto — KPI source",
+      org: input.source_org ?? "Auto",
+      kind: "kpi_source",
+      tags: ["auto", "kpi", "corpus-fallback"],
+      quality_score: 3,
+      active: true,
+    });
+    source_id = src?.id ?? null;
+  }
+
+  const row = {
+    country_code: input.country_code,
+    kpi_code: input.kpi_code,
+    label: input.label,
+    unit: input.unit,
+    direction: input.direction ?? "up",
+    category: input.category ?? "macro",
+    source_id,
+    source_url: input.source_url ?? null,
+    latest_value: input.latest_value,
+    latest_period: input.latest_period,
+    target: input.target ?? null,
+    notes: input.notes ?? null,
+    freshness_status: input.latest_value == null ? "missing" : "fresh",
+    last_verified_at: new Date().toISOString(),
+    provenance: input.tier ? `corpus-fallback:${input.tier}` : "verified",
+  };
+
+  const { data, error } = await supabaseAdmin
+    .from("country_kpis")
+    .upsert(row as never, { onConflict: "country_code,kpi_code" })
+    .select("id")
+    .maybeSingle();
+  if (error || !data) return { id: null, source_id };
+  return { id: data.id as string, source_id };
+}
+
+export async function upsertKpiPoint(input: {
+  country_kpi_id: string;
+  period: string;
+  value: number;
+  source_id?: string | null;
+  source_url?: string | null;
+}): Promise<void> {
+  // Dedup on (country_kpi_id, period).
+  const { data: existing } = await supabaseAdmin
+    .from("country_kpi_points")
+    .select("id")
+    .eq("country_kpi_id", input.country_kpi_id)
+    .eq("period", input.period)
+    .maybeSingle();
+  if (existing?.id) {
+    await supabaseAdmin
+      .from("country_kpi_points")
+      .update({
+        value: input.value,
+        source_id: input.source_id ?? null,
+        source_url: input.source_url ?? null,
+      })
+      .eq("id", existing.id);
+    return;
+  }
+  await supabaseAdmin.from("country_kpi_points").insert({
+    country_kpi_id: input.country_kpi_id,
+    period: input.period,
+    value: input.value,
+    source_id: input.source_id ?? null,
+    source_url: input.source_url ?? null,
+  });
+}
+
+// --- Sector dossier -------------------------------------------------------
+// Dedup on (country_code, sector_code, kind).
+export async function upsertSectorDossier(input: {
+  country_code: string;
+  sector_code: string;
+  kind: string;
+  payload: unknown;
+  citations?: CorpusCitation[];
+  confidence?: string;
+}): Promise<void> {
+  const { data: existing } = await supabaseAdmin
+    .from("sector_dossiers")
+    .select("id")
+    .eq("country_code", input.country_code)
+    .eq("sector_code", input.sector_code)
+    .eq("kind", input.kind)
+    .maybeSingle();
+  const row = {
+    payload: (input.payload ?? {}) as Json,
+    citations: (input.citations ?? []) as unknown as Json,
+    confidence: input.confidence ?? "medium",
+    updated_at: new Date().toISOString(),
+  };
+  if (existing?.id) {
+    await supabaseAdmin.from("sector_dossiers").update(row).eq("id", existing.id);
+    return;
+  }
+  await supabaseAdmin.from("sector_dossiers").insert({
+    country_code: input.country_code,
+    sector_code: input.sector_code,
+    kind: input.kind,
+    ...row,
+  });
+}
+
+// --- Ministry profile -----------------------------------------------------
+// Dedup on (country_code, ministry_slug).
+export async function upsertMinistryProfile(input: {
+  country_code: string;
+  ministry_slug: string;
+  minister?: string | null;
+  minister_profile?: unknown;
+  mandate?: string | null;
+  programmes?: unknown;
+  citations?: CorpusCitation[];
+}): Promise<void> {
+  const { data: existing } = await supabaseAdmin
+    .from("ministry_profiles")
+    .select("id")
+    .eq("country_code", input.country_code)
+    .eq("ministry_slug", input.ministry_slug)
+    .maybeSingle();
+  const row = {
+    minister: input.minister ?? null,
+    minister_profile: (input.minister_profile ?? {}) as Json,
+    mandate: input.mandate ?? null,
+    programmes: (input.programmes ?? []) as Json,
+    citations: (input.citations ?? []) as unknown as Json,
+    updated_at: new Date().toISOString(),
+  };
+  if (existing?.id) {
+    await supabaseAdmin.from("ministry_profiles").update(row).eq("id", existing.id);
+    return;
+  }
+  await supabaseAdmin.from("ministry_profiles").insert({
+    country_code: input.country_code,
+    ministry_slug: input.ministry_slug,
+    ...row,
+  });
+}
+
+// --- Capital flow value ---------------------------------------------------
+// Dedup on (country_code, node_key, period).
+export async function upsertCapitalFlow(input: {
+  country_code: string;
+  node_key: string;
+  period: string;
+  value_usd_m: number;
+  method?: string;
+  confidence_grade?: string;
+  provenance?: string;
+  notes?: string | null;
+  citations?: CorpusCitation[];
+}): Promise<void> {
+  const { data: existing } = await supabaseAdmin
+    .from("country_capital_flows")
+    .select("id")
+    .eq("country_code", input.country_code)
+    .eq("node_key", input.node_key)
+    .eq("period", input.period)
+    .maybeSingle();
+  const row = {
+    value_usd_m: input.value_usd_m,
+    method: input.method ?? "corpus-fallback",
+    confidence_grade: input.confidence_grade ?? "C",
+    provenance: input.provenance ?? "corpus-fallback",
+    notes: input.notes ?? null,
+    citations: (input.citations ?? []) as unknown as Json,
+    updated_at: new Date().toISOString(),
+  };
+  if (existing?.id) {
+    await supabaseAdmin.from("country_capital_flows").update(row).eq("id", existing.id);
+    return;
+  }
+  await supabaseAdmin.from("country_capital_flows").insert({
+    country_code: input.country_code,
+    node_key: input.node_key,
+    period: input.period,
+    ...row,
+  });
+}
+
+// --- Citation record ------------------------------------------------------
+// Deduped on (draft_id, url) via the unique index in migration 20260714204429_*.
+// Citations are always attached to an onboarding_drafts row; call sites that
+// don't have a draft should mint a lightweight "corpus-fallback" draft first.
+export async function recordCitation(input: {
+  draft_id: string;
+  url: string;
+  title?: string | null;
+  domain?: string | null;
+}): Promise<void> {
+  const { data: existing } = await supabaseAdmin
+    .from("onboarding_citations")
+    .select("id")
+    .eq("draft_id", input.draft_id)
+    .eq("url", input.url)
+    .maybeSingle();
+  if (existing?.id) return;
+  await supabaseAdmin.from("onboarding_citations").insert({
+    draft_id: input.draft_id,
+    url: input.url,
+    title: input.title ?? null,
+    domain: input.domain ?? null,
+  });
+}
+
+

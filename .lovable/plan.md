@@ -1,118 +1,81 @@
-## Goal
+## Yes — meaningful gaps remain
 
-Make one **global rule** enforceable across the codebase: any code path that asks the corpus for data and comes up short MUST — automatically, in-line — trigger an external deep search (Perplexity → Firecrawl → World Bank / IMF → Gemini gateway → inference), and any usable result MUST be written back into the corpus (deduped) before the caller returns. No silent `?? []`, no silent thin output.
+What's live today:
+- Gateway (`corpusRead`), audit table, kill-switch, cooldown, write-back — done.
+- Memory searcher (Perplexity → Gemini → inference) — done, wired into `counsel.askCounsel` and `narrative.getCoverage`.
+- Lightweight audit-only instrumentation on `viz.getVizOverview`, `consume.listCountryKpis`, `ledger.getPublishGate`.
+- Admin `/admin/corpus-audit` + Ledger-QA "Corpus fallback active" check — done.
 
-Today: two isolated waterfalls (`runWithFallbacks` in `fallback.server.ts`, `kpi-research.server.ts`) exist but only run from the admin-triggered onboarding pipeline. Every *runtime* consumer (`counsel`, `narrative`, `dossier`, `viz`, `scenarios`, `ledger`, `consume`, `flows`) reads directly with plain Supabase queries and silently degrades on miss. This plan closes that gap universally.
+Gaps that still leave silent misses possible:
 
-## The contract (one function, one shape)
+### 1. Five of the six domain searchers do not exist yet
+Only `memory` has an external waterfall. `kpi`, `sector`, `ministry`, `dossier`, `flow`, `citation` reads currently log `empty` to the audit table but have no auto-search → the corpus never self-heals for those domains.
 
-`src/lib/corpus/gateway.server.ts` — the ONLY sanctioned way to read the corpus:
+### 2. ~30+ runtime read sites still bypass the gateway
+Sampling only the non-writer/onboarding files, these still do raw `.from(...).select(...)` with no audit trail or fallback:
 
-```ts
-export async function corpusRead<T>(spec: {
-  scope: { countryCode: string; sector?: string; ministry?: string };
-  domain: "sources" | "memory" | "kpi" | "sector" | "ministry" | "dossier" | "flow" | "citation";
-  key: string;                              // stable natural key (dedup fingerprint)
-  read: () => Promise<T | null>;            // Supabase read; returns null/[] on miss
-  isEmpty: (t: T | null) => boolean;        // caller decides "empty enough to search"
-  search: (ctx: CorpusCtx) => Promise<{ data: T; citations: Citation[]; tier: string; }>;
-  writeBack: (t: T, citations: Citation[]) => Promise<void>;  // idempotent upsert
-  budget?: { maxMs?: number; maxCredits?: number; forceRefresh?: boolean };
-}): Promise<{ data: T; source: "corpus" | "external"; tier?: string; citations?: Citation[] }>
-```
+- `ledger.functions.ts`: lines 50, 135, 424, 681-711, 896, 1055, 1168-1172, 1320, 1384 (sectors, memory, flows, ministries, dossiers, sources)
+- `ledger.functions.ts:1450` (sectors, still un-instrumented)
+- `viz.functions.ts:218` (kpi_points), `:292` (sector_dossiers), `:298` (memory_objects)
+- `flows.functions.ts:69, 71` (capital flow nodes + values)
+- `dossier.functions.ts:101` (memory)
+- `citations.functions.ts:143` (memory)
+- `scenarios.functions.ts:34, 68` (ministries + ministry_sectors)
+- `config.functions.ts:97, 102, 210` (sectors, ministries)
+- `narrative.functions.ts:32` (`listMemoryObjects` — corpus not audited)
+- `mandate.functions.ts` (unaudited)
 
-Behavior:
-1. Call `read()`. If `!isEmpty`, return `{ source: "corpus" }` — done.
-2. Otherwise check a **cooldown log** (`corpus_fetch_attempts`) — if we searched for this `(scope,domain,key)` within N minutes and it also came back empty, return the empty result and skip. Prevents storms.
-3. Call `search(ctx)` (delegates to the domain-appropriate waterfall — see below).
-4. Await `writeBack(data, citations)` **before** returning, so the next reader hits the corpus.
-5. Log every attempt (hit/miss/tier/latency/credits) to `corpus_fetch_attempts` for the audit trail.
-6. Emit a `<PrettyJson>`-friendly `provenance` object the UI can render as a "how we got this" chip.
+### 3. No structural enforcement
+There is no ESLint / grep gate. Any new PR can add another raw `supabase.from("memory_objects").select(...)` and it will silently degrade on miss with no signal.
 
-## Domain waterfalls (thin adapters over what already exists)
+### 4. Write-back paths are still per-domain-ad-hoc
+`writers.server.ts` re-exports `upsertCountrySource` + `upsertMemoryObject`. It doesn't yet unify `upsertKpi / upsertKpiPoint / upsertSectorDossier / upsertMinistryProfile / upsertCapitalFlow / insertOnboardingCitation`. Domain searchers can't cleanly write back without those wrappers.
 
-`src/lib/corpus/searchers/` — one file per domain, each returning the standard `{data, citations, tier}` shape:
+### 5. Admin visibility is partial
+`/admin/corpus-audit` shows outcomes per domain, but has no "empty" list per domain and no per-key "Re-drive this miss" button (the redrive function exists — just not exposed row-by-row).
 
-- **memory / sources / dossier / ministry / flow** → wrap `runWithFallbacks` (`fallback.server.ts`). Adds Firecrawl `search` (not just `scrape`) as an intermediate tier before Gemini escalation, using the discovered domains from Perplexity.
-- **kpi / kpi_points** → wrap the existing 5-pass pipeline in `kpi-research.server.ts` (sweep → WB → IMF → targeted → Gemini).
-- **sector** → composition inference: Perplexity sweep on `country_sectors` shape, then WB SL.AGR.EMPL/etc. as ground truth, then Gemini repair.
-- **citation** → Perplexity `discoverOfficialUrls` + `fetchCitationText`, dedup on URL.
+---
 
-Every searcher receives `buildCountryContext(cc)` so it never asks a question the corpus already answers.
+## Phased plan to close them
 
-## Write-back is centralized, not per-call
+Each phase is a self-contained turn — approve one at a time.
 
-`src/lib/corpus/writers.server.ts` — thin wrappers that ALREADY exist but are re-exported here so `corpusRead` can call them uniformly:
+**Phase A — Unify writers** (small, prerequisite)
+Add to `writers.server.ts`:
+- `upsertKpi` + `upsertKpiPoint` (delegate to existing `kpi-seed.server.ts` writer)
+- `upsertSectorDossier`, `upsertMinistryProfile` (delegate to existing `corpus.functions.ts` writers)
+- `upsertCapitalFlow` (delegate to `capital-flows.server.ts`)
+- `recordCitation` (dedup on `(country_code, url)` unique index we already added)
 
-- `upsertCountrySource` (already in `sources.server.ts` — reuse, dedup on `(country_code, kind, org)` for `kpi_source` else `(country_code, url)`)
-- `upsertMemoryObject` (extract from the inlined block in `corpus.functions.ts:1817-1846`; formalize dedup key = `sha256(scope_key + kind + title + content)`)
-- `upsertKpi` / `upsertKpiPoint` (already `onConflict: "country_code,kpi_code"`)
-- `upsertSectorDossier`, `upsertMinistryProfile`, `upsertCapitalFlow` (already exist inline; wrap)
-- `insertOnboardingCitation` — **add** missing dedup key `(country_code, url)` unique index (currently duplicating on re-runs — flagged in audit gap #6).
+**Phase B — Domain searchers** (one file each, wraps existing waterfalls)
+- `searchers/kpi.server.ts` — targeted Perplexity + WB + IMF + Gemini for a single KPI
+- `searchers/sector.server.ts` — Perplexity sector-share reasoning + WB validation
+- `searchers/ministry.server.ts` — Perplexity minister-profile + gov site
+- `searchers/dossier.server.ts` — Perplexity sector-dossier facts
+- `searchers/flow.server.ts` — Perplexity capital-flow reasoning (already exists in `capital-flows.server.ts`, just wrap)
+- `searchers/citation.server.ts` — Perplexity source discovery
 
-Every writer records to `data_revisions` (already exists) with `source='external-fallback'` and the tier tag, so the audit trail is queryable.
+**Phase C — Migrate the 30+ read sites** (batched by file)
+- Batch 1: `ledger.functions.ts` (7 read groups) → `corpusRead()` where the read feeds user-visible output; `recordCorpusReadOutcome()` where it's an internal count.
+- Batch 2: `viz.functions.ts` remaining reads (dossiers/memory/kpi_points).
+- Batch 3: `flows.functions.ts` → `corpusRead` with flow searcher.
+- Batch 4: `dossier.functions.ts`, `citations.functions.ts`, `scenarios.functions.ts`, `config.functions.ts`, `narrative.listMemoryObjects`, `mandate.functions.ts`.
 
-## Audit table + one migration
+**Phase D — Structural enforcement**
+- Custom ESLint rule `no-raw-corpus-read`: forbids `.from("<protected-table>").select(...)` outside an allow-list (writers, admin QA, migrations, gateway itself).
+- Add to `eslint.config.ts`. Fail CI on violation.
 
-`corpus_fetch_attempts` (new): `id, country_code, domain, key, outcome (hit|external|empty|throttled), tier, credits, latency_ms, actor, created_at`. Super-admin-only SELECT, service_role INSERT. Index on `(country_code, domain, key, created_at DESC)` for the cooldown check.
+**Phase E — Admin polish**
+- `/admin/corpus-audit`: add per-domain "empty keys" table with a per-row **Re-drive** button (hits existing `redriveCorpusMisses`).
+- Show tier + latency histograms.
 
-Also add the missing unique index on `onboarding_citations (country_code, url)` in the same migration.
+**Phase F — Optional: proactive backfill cron**
+- Nightly server route reads unresolved-miss list and re-drives top N. Skip unless you want it — the on-demand loop already self-heals.
 
-## Enforcement (the "audit everything" part)
+---
 
-Two mechanisms, both automatic:
+## Recommendation
 
-1. **ESLint rule** (`.eslintrc` custom rule under `eslint-rules/no-raw-corpus-read.ts`):
-   - Forbid `supabase.from("<corpus-table>").select(...)` outside an allow-list of writer/admin/QA files (`corpus/**`, `country-onboarding/**`, `country-data/manage.functions.ts`, `admin/**`, `ledger-qa/**`).
-   - Every other file must go through `corpusRead(...)`. Violations fail typecheck.
-   - Table list: `country_sources`, `country_source_documents`, `country_source_chunks`, `memory_objects`, `country_kpis`, `country_kpi_points`, `country_sectors`, `country_capital_flows`, `ministry_profiles`, `sector_dossiers`, `onboarding_citations`.
+Start with **Phase A + B together** (writers + all six searcher stubs) as the next turn — that closes the "no waterfall for 5 domains" gap and unlocks migrations. Then Phase C in 1-file batches. Phase D last so the lint gate doesn't fire mid-migration.
 
-2. **Runtime audit page** — `/admin/corpus-audit` (super-admin): reads `corpus_fetch_attempts` grouped by `(domain, key)` for a country and shows:
-   - miss rate per domain (last 24h/7d)
-   - top 20 empty keys (candidates for scheduled backfill)
-   - "external tier used" breakdown (Perplexity vs WB vs Gemini …)
-   - a "Re-drive misses" button that re-runs the cooldown-throttled searches with `forceRefresh: true`
-
-## Migration of existing read sites (ranked, per audit gaps)
-
-Applied in order — each is a mechanical rewrite from `supabase.from(X).select(...)` to `corpusRead({...})`:
-
-1. **`counsel.functions.ts:89`** (memory_objects) — highest blast radius.
-2. **`scenarios.functions.ts:84,225` + `ledger.functions.ts:50,135,695,1168,1448`** (country_sectors).
-3. **`consume.functions.ts:39` + `viz.functions.ts:112,197`** (country_kpis / points).
-4. **`narrative.functions.ts:34,61,174,461` + `dossier.functions.ts:101`** (memory_objects).
-5. **`viz.functions.ts:114,271`, `flows.functions.ts:71`, `ledger.functions.ts:685,896,1171,1449`** (ministries / dossiers / flows).
-
-Admin CRUD in `country-data/manage.functions.ts` is intentionally excluded from the rule — admins editing raw rows must see reality, not fallback data.
-
-## Guardrails
-
-- **Never call searchers from a public route loader**: server functions only; loaders that need fresh data get it via `useQuery` in the component, so SSR doesn't burn credits on every crawl.
-- **Credit budget per request**: `budget.maxCredits` defaults to a small ceiling; `corpusRead` short-circuits to empty if the budget is exhausted and logs `outcome=throttled`.
-- **Cooldown** default 30 min per `(country, domain, key)` — configurable; prevents a burst of identical searches when a page has many misses.
-- **Feature flag** `CORPUS_FALLBACK_ENABLED` in `app_settings` — default on; a super-admin kill switch if a searcher misbehaves.
-- **Idempotent writers** — writers already upsert; audit adds the one missing unique index on `onboarding_citations`.
-
-## Deliverables (in order)
-
-1. Migration: `corpus_fetch_attempts` table + grants + RLS + `onboarding_citations (country_code, url)` unique index.
-2. `src/lib/corpus/gateway.server.ts` (`corpusRead` + cooldown + audit log).
-3. `src/lib/corpus/writers.server.ts` (re-exports + extract `upsertMemoryObject`).
-4. `src/lib/corpus/searchers/{memory,sources,kpi,sector,ministry,dossier,flow,citation}.server.ts` — thin adapters over `runWithFallbacks` and `kpi-research`.
-5. ESLint rule `eslint-rules/no-raw-corpus-read.ts` + allow-list; run in the same typecheck.
-6. Migrate the 5 ranked call-site groups above (one commit per group).
-7. `/admin/corpus-audit` route: miss-rate table, tier breakdown, top empty keys, re-drive button.
-8. Ledger-QA cross-link: add a new check row "Corpus fallback active — no silent misses last 24h" that goes RED if `corpus_fetch_attempts` shows any `outcome='empty'` without a subsequent successful `outcome='external'`, and its `systemicFix` is a one-click "re-drive" using the new gateway.
-
-## Verification
-
-- `bunx tsgo --noEmit` + `bun lint` — the ESLint rule reports zero violations after migration.
-- `/admin/corpus-audit` for LCA: after visiting `/instrument`, `/counsel`, `/narrative` on a country with sparse data, the audit page shows external fetches with tier=`sonar-pro`/`worldbank`/etc. and the corpus row counts grow.
-- Second visit to the same page shows `source: "corpus"` for what was just fetched — proves write-back is closing the loop.
-- Ledger-QA row goes green.
-
-## Out of scope
-
-- Actually seeding demo data for LCA (operator action).
-- Streaming search progress to the UI (nice-to-have follow-up; the audit page + provenance chip is enough for v1).
-- Cron-driven proactive backfill of the "top empty keys" list — framework supports it; wiring deferred.
+Reply "proceed" to run Phase A+B, or pick a specific phase.

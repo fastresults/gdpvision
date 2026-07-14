@@ -855,6 +855,7 @@ function AccordionStages({
             stage={s}
             countryName={countryName}
             draft={draft}
+            committedDraft={committedDraft}
             lastRun={lastRun}
             lastCommitRun={lastCommitRun}
             targetRows={target.rows}

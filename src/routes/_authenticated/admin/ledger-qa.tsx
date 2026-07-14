@@ -249,6 +249,286 @@ function SurfaceLink({ surface }: { surface: Check["surface"] }) {
   );
 }
 
+// ───────────────────────── forensic drawer + diagnose ─────────────────────────
+
+function deriveFinding(check: Check, cc: string): Finding | null {
+  const v = check.verdict;
+  if (!v || v.status === "pass") return null;
+
+  // Manual / not-run checks
+  if (v.status === "idle") {
+    return {
+      checkKey: check.key,
+      severity: "info",
+      class: "not-run",
+      rootCause: "Check has not been executed yet.",
+      evidence: [{ label: "Reason", value: "Manual — costs credits / writes data" }],
+      systemicFix: {
+        kind: "operator-action",
+        description: "Click Run on this row to execute the probe.",
+        canAutoApply: false,
+      },
+    };
+  }
+
+  switch (check.key) {
+    case "sources": {
+      const data = check.data as { rows: Array<{ url: string | null; last_ok: boolean | null; last_status: string | null }> } | undefined;
+      if (!data) return genericFinding(check, cc);
+      const rows = data.rows;
+      const total = rows.length;
+      const invalid = rows.filter((r) => !r.url || !/^https?:\/\//i.test(String(r.url)));
+      const reachFail = rows.filter(
+        (r) => r.url && /^https?:\/\//i.test(String(r.url)) &&
+          (r.last_ok === false || (r.last_status && r.last_status !== "ok" && r.last_status !== "pending")),
+      );
+      if (invalid.length > 0) {
+        return {
+          checkKey: check.key,
+          severity: "fail",
+          class: "data-quality",
+          rootCause: `${invalid.length}/${total} country_sources rows contain search-instruction prose instead of a real URL.`,
+          evidence: [
+            { label: "Invalid URLs", value: invalid.length },
+            { label: "Reachable failures", value: reachFail.length },
+            { label: "Total rows", value: total },
+            { label: "Sample", value: String(invalid[0]?.url ?? "").slice(0, 120) },
+          ],
+          affectedRows: invalid.length,
+          systemicFix: {
+            kind: "auto-migration",
+            description:
+              "Quarantine every row whose url does not match ^https?:// — set active=false, fetch_status='invalid_url', move offending text to fetch_error. Idempotent, no deletes.",
+            previewSql:
+              "UPDATE country_sources SET active=false, fetch_status='invalid_url', fetch_error=<url text>\n  WHERE country_code=$1 AND (url IS NULL OR url !~* '^https?://');",
+            canAutoApply: true,
+            remediatorKey: "repairInvalidSourceUrls",
+          },
+        };
+      }
+      return {
+        checkKey: check.key,
+        severity: "fail",
+        class: "external-outage",
+        rootCause: `${reachFail.length}/${total} sources returned non-OK on last HEAD check.`,
+        evidence: [{ label: "Unreachable", value: reachFail.length }, { label: "Total", value: total }],
+        affectedRows: reachFail.length,
+        systemicFix: {
+          kind: "retry",
+          description: "Re-run HEAD checks with an 8s timeout; update source_health_checks + country_sources.fetch_status.",
+          canAutoApply: true,
+          remediatorKey: "retryUnreachableSources",
+        },
+      };
+    }
+
+    case "enrichment": {
+      const data = check.data as { capitalFlows: { totals: { inputs: number } } } | undefined;
+      const noFlows = !data || data.capitalFlows.totals.inputs === 0;
+      if (noFlows) {
+        return {
+          checkKey: check.key,
+          severity: "warn",
+          class: "data-missing",
+          rootCause: `country_capital_flows has 0 committed rows for ${cc}. Stage 12 (capital-flows research) has not run.`,
+          evidence: [{ label: "Committed flows", value: 0 }],
+          systemicFix: {
+            kind: "operator-action",
+            description: `Open country onboarding and run Stage 12 for ${cc}. Commit only when residual ≤ 10%.`,
+            href: `/admin/countries/${cc}/onboard`,
+            canAutoApply: false,
+          },
+        };
+      }
+      return genericFinding(check, cc, "data-quality", "Capital flows committed but reconciliation is off. Review nodes in stewardship.");
+    }
+
+    case "trust": {
+      return {
+        checkKey: check.key,
+        severity: "warn",
+        class: "data-missing",
+        rootCause: `country_kpi_points has no committed series for ${cc}. KPI ingest has not populated the trust corpus.`,
+        evidence: [{ label: "Series indexed", value: 0 }],
+        systemicFix: {
+          kind: "operator-action",
+          description: `Run KPI research/ingest for ${cc} from country onboarding.`,
+          href: `/admin/countries/${cc}/onboard`,
+          canAutoApply: false,
+        },
+      };
+    }
+
+    case "gate": {
+      const data = check.data as { checks: Array<{ key: string; pass: boolean; detail?: string }> } | undefined;
+      const blocked = data?.checks.filter((c) => !c.pass) ?? [];
+      return {
+        checkKey: check.key,
+        severity: "warn",
+        class: "config",
+        rootCause: `Publish gate is blocked by ${blocked.length} upstream check(s). Cascade — fix upstream first.`,
+        evidence: blocked.map((b) => ({ label: b.key, value: b.detail ?? "blocked" })),
+        systemicFix: {
+          kind: "operator-action",
+          description: "Resolve each blocked upstream check above. This row will clear automatically.",
+          canAutoApply: false,
+        },
+      };
+    }
+
+    default:
+      return genericFinding(check, cc);
+  }
+}
+
+function genericFinding(
+  check: Check,
+  cc: string,
+  cls: Finding["class"] = "config",
+  extra?: string,
+): Finding {
+  return {
+    checkKey: check.key,
+    severity: check.verdict?.status === "fail" ? "fail" : "warn",
+    class: cls,
+    rootCause: check.verdict?.detail ?? "Non-green with no structured diagnosis.",
+    evidence: [{ label: "Country", value: cc }, { label: "Detail", value: check.verdict?.detail ?? "—" }],
+    systemicFix: {
+      kind: "none",
+      description: extra ?? "No systemic fix registered — inspect the surface and file an issue.",
+      canAutoApply: false,
+    },
+  };
+}
+
+function FindingDrawer({ finding, countryCode }: { finding: Finding; countryCode: string }) {
+  const qc = useQueryClient();
+  const repair = useMutation({
+    mutationFn: () => repairInvalidSourceUrls({ data: { countryCode } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] }),
+  });
+  const retry = useMutation({
+    mutationFn: () => retryUnreachableSources({ data: { countryCode } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] }),
+  });
+
+  const classColor: Record<Finding["class"], string> = {
+    "data-missing": "text-gold-500 border-gold-500",
+    "data-quality": "text-red-700 border-red-700",
+    "code-defect": "text-red-700 border-red-700",
+    "external-outage": "text-gold-500 border-gold-500",
+    config: "text-ink-500 border-ink-300",
+    "not-run": "text-ink-500 border-ink-300",
+  };
+
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto]">
+      <div>
+        <div className="flex items-center gap-2">
+          <span className={`border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.2em] ${classColor[finding.class]}`}>
+            {finding.class}
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">forensic diagnosis</span>
+        </div>
+        <p className="mt-2 text-sm text-ink-950">{finding.rootCause}</p>
+        <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 font-mono text-[11px] text-ink-500 md:grid-cols-4">
+          {finding.evidence.map((e, i) => (
+            <div key={i}>
+              <dt className="uppercase tracking-widest">{e.label}</dt>
+              <dd className="text-ink-950">{String(e.value)}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-3 text-xs text-ink-500">
+          <span className="font-mono uppercase tracking-widest">Systemic fix · </span>
+          {finding.systemicFix.description}
+        </p>
+        {finding.systemicFix.previewSql ? (
+          <pre className="mt-2 overflow-x-auto border border-line-200 bg-white p-3 font-mono text-[11px] text-ink-950">
+            {finding.systemicFix.previewSql}
+          </pre>
+        ) : null}
+      </div>
+
+      <div className="flex flex-col items-end gap-2">
+        {finding.systemicFix.kind === "auto-migration" && finding.systemicFix.remediatorKey === "repairInvalidSourceUrls" ? (
+          <>
+            <button
+              type="button"
+              disabled={repair.isPending}
+              onClick={() => repair.mutate()}
+              className="border border-ink-950 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950 disabled:opacity-50"
+            >
+              {repair.isPending ? "Repairing…" : "Apply repair"}
+            </button>
+            {repair.data ? (
+              <span className="font-mono text-[10px] text-emerald-700">
+                Quarantined {repair.data.activeQuarantined} · total {repair.data.rowsFixed}
+              </span>
+            ) : null}
+            {repair.error ? (
+              <span className="font-mono text-[10px] text-red-700">{(repair.error as Error).message}</span>
+            ) : null}
+          </>
+        ) : null}
+        {finding.systemicFix.kind === "retry" && finding.systemicFix.remediatorKey === "retryUnreachableSources" ? (
+          <>
+            <button
+              type="button"
+              disabled={retry.isPending}
+              onClick={() => retry.mutate()}
+              className="border border-ink-950 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950 disabled:opacity-50"
+            >
+              {retry.isPending ? "Retrying…" : "Retry now"}
+            </button>
+            {retry.data ? (
+              <span className="font-mono text-[10px] text-emerald-700">
+                {retry.data.ok}/{retry.data.attempted} reachable
+              </span>
+            ) : null}
+          </>
+        ) : null}
+        {finding.systemicFix.kind === "operator-action" && finding.systemicFix.href ? (
+          <Link
+            to={finding.systemicFix.href}
+            className="border border-ink-950 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950"
+          >
+            Open surface →
+          </Link>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function RecentActionsStrip({ countryCode }: { countryCode: string }) {
+  const q = useQuery({
+    queryKey: ["ledger-qa-actions", countryCode],
+    queryFn: () => recentQaActions({ data: { countryCode } }),
+  });
+  if (!q.data || q.data.length === 0) return null;
+  return (
+    <div className="mt-8 border-t border-line-200 pt-4">
+      <h4 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+        Recent remediation actions
+      </h4>
+      <ul className="mt-3 space-y-1 font-mono text-[11px] text-ink-500">
+        {q.data.map((r) => (
+          <li key={r.id}>
+            <span className="text-ink-950">{new Date(r.created_at).toISOString().slice(0, 19).replace("T", " ")}</span>
+            {" · "}
+            <span className="uppercase tracking-widest">{r.check_key}</span>
+            {" · "}
+            {r.action}
+            {" · "}
+            {r.rows_before ?? "—"}→{r.rows_after ?? "—"}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 // ───────────────────────────── individual checks ──────────────────────────────
 
 function useOverviewCheck(cc: string): Check {

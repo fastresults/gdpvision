@@ -238,6 +238,7 @@ function OnboardWizard() {
 
   const drafts: any[] = (data as any).drafts ?? [];
   const committedDrafts: any[] = (data as any).committedDrafts ?? [];
+  const committedData: any[] = (data as any).committedData ?? [];
   const runs: any[] = (data as any).runs ?? [];
   const country: any = (data as any).country;
   const summaries: any[] = (data as any).summaries ?? [];
@@ -656,6 +657,7 @@ function OnboardWizard() {
           stages={STAGES}
           drafts={drafts}
           committedDrafts={committedDrafts}
+          committedData={committedData}
           runs={runs}
           summaries={summaries}
           diagnostics={statusDiagnostics}
@@ -804,6 +806,7 @@ function AccordionStages({
   stages,
   drafts,
   committedDrafts,
+  committedData,
   runs,
   summaries,
   diagnostics,
@@ -822,6 +825,7 @@ function AccordionStages({
   stages: { key: Stage; label: string; short: string; desc: string }[];
   drafts: any[];
   committedDrafts: any[];
+  committedData: any[];
   runs: any[];
   summaries: any[];
   diagnostics: Array<{ stage: Stage | string; message: string }>;
@@ -843,6 +847,7 @@ function AccordionStages({
         const stageDrafts = drafts.filter((d) => d.stage === s.key);
         const draft = stageDrafts.find((d) => !d.superseded) ?? stageDrafts[0];
         const committedDraft = committedDrafts.find((d) => d.stage === s.key);
+        const committedTargetData = committedData.find((d) => d.stage === s.key);
         const stageRuns = runs.filter((r) => r.stage === s.key);
         const lastRun = stageRuns[0];
         const lastCommitRun = stageRuns.find((r) => r.status === "committed");
@@ -856,6 +861,7 @@ function AccordionStages({
             countryName={countryName}
             draft={draft}
             committedDraft={committedDraft}
+            committedTargetData={committedTargetData}
             lastRun={lastRun}
             lastCommitRun={lastCommitRun}
             targetRows={target.rows}
@@ -885,6 +891,7 @@ function StageCard({
   countryName,
   draft,
   committedDraft,
+  committedTargetData,
   lastRun,
   lastCommitRun,
   targetRows,
@@ -902,6 +909,7 @@ function StageCard({
   countryName: string;
   draft: any;
   committedDraft: any;
+  committedTargetData: any;
   lastRun: any;
   lastCommitRun: any;
   targetRows: number;
@@ -1249,8 +1257,12 @@ function StageCard({
 
           {/* Committed payload — human-readable primary view + raw debug toggle */}
           {committed && (() => {
-            const committedPayload = committedDraft?.payload ?? draft?.payload ?? summary?.highlights ?? {};
-            const committedCitations = (committedDraft?.citations?.length ? committedDraft.citations : citations) as any[];
+            const committedPayload = committedTargetData?.payload ?? committedDraft?.payload ?? draft?.payload ?? summary?.highlights ?? {};
+            const committedCitations = (
+              committedTargetData?.citations?.length ? committedTargetData.citations :
+              committedDraft?.citations?.length ? committedDraft.citations :
+              citations
+            ) as any[];
             return (
               <div className="space-y-2">
                 <PrettyJson value={committedPayload} citations={committedCitations as any} />

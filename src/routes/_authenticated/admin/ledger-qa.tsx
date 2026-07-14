@@ -24,6 +24,7 @@ import {
   repairInvalidSourceUrls,
   retryUnreachableSources,
 } from "@/lib/ledger-qa/remediate.functions";
+import { getCorpusMissStatus, redriveCorpusMisses } from "@/lib/corpus/audit.functions";
 import type { Finding } from "@/lib/ledger-qa/types";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 
@@ -120,6 +121,7 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
     usePublishGateCheck(countryCode),
     useSnapshotRoundtripCheck(countryCode),
     useHandoffCheck(countryCode),
+    useCorpusMissCheck(countryCode),
   ];
 
   const passCount = checks.filter((c) => c.verdict?.status === "pass").length;
@@ -902,6 +904,31 @@ function useHandoffCheck(cc: string): Check {
     key: "handoff",
     label: "Speak-this-number handoff → Narrative signal",
     surface: { to: "/narrative", label: "/narrative" },
+    verdict,
+    loading: q.isFetching,
+    run: () => q.refetch(),
+    data: q.data,
+  };
+}
+
+function useCorpusMissCheck(cc: string): Check {
+  const q = useQuery({
+    queryKey: ["ledger-qa", cc, "corpus-miss"],
+    queryFn: () => getCorpusMissStatus({ data: { countryCode: cc, hours: 24 } }),
+  });
+  const verdict: Verdict | null = q.data
+    ? q.data.status === "pass"
+      ? { status: "pass", detail: q.data.summary }
+      : q.data.status === "warn"
+        ? { status: "warn", detail: q.data.summary }
+        : { status: "fail", detail: q.data.summary }
+    : q.error
+      ? { status: "fail", detail: (q.error as Error).message }
+      : null;
+  return {
+    key: "corpus-miss",
+    label: "Corpus fallback active — no silent misses (24h)",
+    surface: { to: "/admin/corpus-audit", label: "/admin/corpus-audit" },
     verdict,
     loading: q.isFetching,
     run: () => q.refetch(),

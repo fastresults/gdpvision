@@ -120,14 +120,8 @@ async function saveDraft(admin: any, args: {
   summary_md?: string | null;
   summary_highlights?: Array<{ label: string; value: string }> | null;
 }) {
-  // Enforce one live (uncommitted) draft per (country, stage).
-  await admin
-    .from("onboarding_drafts")
-    .delete()
-    .eq("country_code", args.country_code)
-    .eq("stage", args.stage)
-    .is("committed_at", null);
-
+  // Keep older uncommitted drafts as rollback evidence. The UI marks older
+  // drafts superseded, so a bad rerun cannot erase the last reviewable draft.
   const { data: draft, error } = await admin
     .from("onboarding_drafts")
     .insert({
@@ -342,13 +336,17 @@ export const commitSourceRegistry = createServerFn({ method: "POST" })
         active: true,
         created_by: context.userId,
       });
-      if (res) inserted++;
+      if (res) {
+        inserted++;
+      } else {
+        rejected.push({ url: String(s.url ?? ""), title: String(s?.title ?? ""), reason: "source upsert failed" });
+      }
     }
 
     if (inserted === 0) {
       const sample = rejected.slice(0, 3).map((r) => `${r.url || "(empty)"} — ${r.reason}`).join("; ");
       throw new Error(
-        `Commit rejected: 0 valid sources inserted. All ${rejected.length} rows failed URL validation. Sample: ${sample}`,
+        `Commit rejected: 0 valid sources inserted. ${rejected.length} row(s) rejected. Sample: ${sample}`,
       );
     }
 
@@ -868,6 +866,9 @@ export const commitKpis = createServerFn({ method: "POST" })
       );
       if (ok) upserted++;
     }
+    if (upserted === 0) {
+      throw new Error("Commit rejected: KPI draft wrote 0 target rows. Draft remains open.");
+    }
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
     return { ok: true, upserted };
   });
@@ -1172,6 +1173,9 @@ export const commitSectorDossiers = createServerFn({ method: "POST" })
         if (!upErr) upserted++;
       }
     }
+    if (upserted === 0) {
+      throw new Error("Commit rejected: sector-dossier draft wrote 0 target rows. Draft remains open.");
+    }
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
     return { ok: true, upserted };
   });
@@ -1400,6 +1404,9 @@ export const commitMinistryDeepDive = createServerFn({ method: "POST" })
         { onConflict: "country_code,ministry_slug" },
       );
       if (!upErr) upserted++;
+    }
+    if (upserted === 0) {
+      throw new Error("Commit rejected: ministry deep-dive draft wrote 0 target rows. Draft remains open.");
     }
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
     return { ok: true, upserted };
@@ -1854,6 +1861,9 @@ export const commitSecondBrainSeed = createServerFn({ method: "POST" })
         throw insErr;
       }
     }
+    if (inserted + updated + skipped === 0) {
+      throw new Error("Commit rejected: second-brain draft wrote 0 target rows. Draft remains open.");
+    }
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
     return { ok: true, inserted, updated, skipped };
   });
@@ -2163,6 +2173,9 @@ export const commitCapitalFlows = createServerFn({ method: "POST" })
         );
       if (upErr) throw upErr;
       upserted++;
+    }
+    if (upserted === 0) {
+      throw new Error("Commit rejected: capital-flow draft wrote 0 target rows. Draft remains open.");
     }
 
     // Reconciliation residual — insert if inputs and outputs disagree > 10%.

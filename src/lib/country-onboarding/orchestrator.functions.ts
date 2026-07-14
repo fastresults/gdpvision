@@ -164,7 +164,9 @@ async function readyDraftsByStage(admin: any, countryCode: string): Promise<Part
     if (!isStage(stage) || byStage[stage]) continue;
     const runStatus = d.run_id ? runStatusById.get(d.run_id) ?? null : null;
     if (runStatus && ["failed", "stale"].includes(runStatus)) continue;
-    const eligibility = isDraftCommitEligible(stage, d.payload);
+    const eligibility = runStatus === "needs_review"
+      ? { ok: false, reason: "latest draft needs review before auto-commit" }
+      : isDraftCommitEligible(stage, d.payload);
     byStage[stage] = {
       id: d.id,
       stage,

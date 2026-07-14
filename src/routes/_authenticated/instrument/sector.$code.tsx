@@ -148,6 +148,8 @@ function Stat({ label, value, why }: { label: string; value: string; why?: strin
 function SeriesBlock({
   series,
   accentVar,
+  countryCode,
+  sectorLabel,
 }: {
   series: {
     id: string;
@@ -159,9 +161,12 @@ function SeriesBlock({
     points: Array<{ period: string; value: number }>;
   };
   accentVar: string;
+  countryCode: string;
+  sectorLabel: string;
 }) {
   const path = useMemo(() => buildPath(series.points), [series.points]);
   const last = series.points[series.points.length - 1];
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="border-t border-line-200 pt-6">
@@ -174,12 +179,21 @@ function SeriesBlock({
           </p>
         </div>
         {last ? (
-          <p className="font-serif text-3xl text-ink-950" data-numeric>
-            {last.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-            <span className="ml-3 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-              {last.period}
+          <button
+            onClick={() => setOpen(true)}
+            className="text-right"
+            title="Why this number? — grounded in the Second Brain"
+          >
+            <p className="font-serif text-3xl text-ink-950" data-numeric>
+              {last.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              <span className="ml-3 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+                {last.period}
+              </span>
+            </p>
+            <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+              ⓘ ask
             </span>
-          </p>
+          </button>
         ) : null}
       </div>
       {path ? (
@@ -194,6 +208,19 @@ function SeriesBlock({
         </svg>
       ) : (
         <p className="mt-6 text-xs text-ink-500">No observations recorded.</p>
+      )}
+      {last && (
+        <WhyThisNumberPanel
+          open={open}
+          onOpenChange={setOpen}
+          countryCode={countryCode}
+          figureKind="series_point"
+          figureRef={{ series_id: series.id, metric: series.metric, period: last.period, sector_label: sectorLabel }}
+          label={`${series.metric} · ${last.period} (${sectorLabel})`}
+          value={last.value}
+          unit={series.unit}
+          confidenceGrade={series.confidence_grade}
+        />
       )}
     </div>
   );

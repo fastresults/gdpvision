@@ -34,6 +34,8 @@ export const listCountryKpis = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => CodeInput.parse(d))
   .handler(async ({ data, context }): Promise<ConsumerKpi[]> => {
+    const { recordCorpusReadOutcome } = await import("@/lib/corpus/gateway.server");
+    const t0 = Date.now();
     // RLS scopes to bound users + admins.
     const { data: rows, error } = await context.supabase
       .from("country_kpis")
@@ -44,6 +46,15 @@ export const listCountryKpis = createServerFn({ method: "POST" })
       .order("category", { ascending: true })
       .order("kpi_code", { ascending: true });
     if (error) throw error;
+
+    void recordCorpusReadOutcome({
+      countryCode: data.countryCode,
+      domain: "kpi",
+      key: "consume:list",
+      outcome: (rows?.length ?? 0) > 0 ? "hit" : "empty",
+      latencyMs: Date.now() - t0,
+      actor: context.userId,
+    });
 
     // Hide KPIs whose linked source is toggled off. KPIs without a source
     // still surface (manually curated or inferred) so operators are not blocked.

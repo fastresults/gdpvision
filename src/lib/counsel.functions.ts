@@ -144,7 +144,7 @@ export const askCounsel = createServerFn({ method: "POST" })
     const memorySliced = memory.slice(0, 80);
 
     const tokens = tokenize(data.question);
-    const scored = (memory ?? [])
+    const scored = memorySliced
       .map((m) => {
         const hay = `${m.title} ${JSON.stringify(m.payload ?? {})}`.toLowerCase();
         const overlap = tokens.reduce((s, t) => s + (hay.includes(t) ? 1 : 0), 0);

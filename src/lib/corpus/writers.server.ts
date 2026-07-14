@@ -304,28 +304,28 @@ export async function upsertCapitalFlow(input: {
 }
 
 // --- Citation record ------------------------------------------------------
-// Onboarding citations are deduped on (country_code, url) via the unique index
-// migration 20260714204429_*. Uses ON CONFLICT DO NOTHING semantics.
+// Deduped on (draft_id, url) via the unique index in migration 20260714204429_*.
+// Citations are always attached to an onboarding_drafts row; call sites that
+// don't have a draft should mint a lightweight "corpus-fallback" draft first.
 export async function recordCitation(input: {
-  country_code: string;
+  draft_id: string;
   url: string;
   title?: string | null;
   domain?: string | null;
-  draft_id?: string | null;
 }): Promise<void> {
   const { data: existing } = await supabaseAdmin
     .from("onboarding_citations")
     .select("id")
-    .eq("country_code", input.country_code)
+    .eq("draft_id", input.draft_id)
     .eq("url", input.url)
     .maybeSingle();
   if (existing?.id) return;
   await supabaseAdmin.from("onboarding_citations").insert({
-    country_code: input.country_code,
+    draft_id: input.draft_id,
     url: input.url,
     title: input.title ?? null,
     domain: input.domain ?? null,
-    draft_id: input.draft_id ?? null,
   });
 }
+
 

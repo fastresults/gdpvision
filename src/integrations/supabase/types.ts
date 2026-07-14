@@ -2125,6 +2125,45 @@ export type Database = {
           },
         ]
       }
+      ledger_qa_actions: {
+        Row: {
+          action: string
+          actor: string | null
+          check_key: string
+          country_code: string
+          created_at: string
+          detail: Json
+          finding_class: string
+          id: string
+          rows_after: number | null
+          rows_before: number | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          check_key: string
+          country_code: string
+          created_at?: string
+          detail?: Json
+          finding_class: string
+          id?: string
+          rows_after?: number | null
+          rows_before?: number | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          check_key?: string
+          country_code?: string
+          created_at?: string
+          detail?: Json
+          finding_class?: string
+          id?: string
+          rows_after?: number | null
+          rows_before?: number | null
+        }
+        Relationships: []
+      }
       levers: {
         Row: {
           bounds: Json

@@ -7,6 +7,7 @@ import { SignatureRing } from "@/components/marketing/SignatureRing";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { CANONICAL_SECTORS } from "@/lib/caricom-registry";
 import { WhyThisNumberPanel } from "@/components/ledger/WhyThisNumberPanel";
+import { LedgerEnrichments } from "@/components/ledger/LedgerEnrichments";
 
 const bindingsQuery = queryOptions({
   queryKey: ["instance-bindings"],

@@ -302,3 +302,35 @@ export async function corpusRead<T>(spec: CorpusReadSpec<T>): Promise<CorpusRead
     },
   };
 }
+
+// ---------------------------------------------------------------------------
+// Lightweight observability helper: instrument reads that don't yet have a
+// domain-specific search waterfall wired up. Every runtime corpus read should
+// call this so misses land in /admin/corpus-audit and the Ledger-QA corpus
+// check.
+//
+// When a domain gets its own searcher, migrate the call site to `corpusRead`
+// and drop `recordCorpusReadOutcome`.
+// ---------------------------------------------------------------------------
+export async function recordCorpusReadOutcome(params: {
+  countryCode: string;
+  domain: CorpusDomain;
+  key: string;
+  outcome: CorpusOutcome;
+  latencyMs: number;
+  actor?: string | null;
+  tier?: string | null;
+  notes?: unknown;
+}): Promise<void> {
+  await logAttempt({
+    country_code: params.countryCode,
+    domain: params.domain,
+    key: params.key,
+    outcome: params.outcome,
+    latency_ms: params.latencyMs,
+    actor: params.actor ?? null,
+    tier: params.tier ?? null,
+    notes: params.notes ?? null,
+  });
+}
+

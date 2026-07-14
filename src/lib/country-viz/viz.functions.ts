@@ -96,8 +96,10 @@ export const getVizOverview = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { recordCorpusReadOutcome } = await import("@/lib/corpus/gateway.server");
     const cc = data.countryCode;
 
+    const t0 = Date.now();
     const [
       { data: country },
       { data: sectorsReg },
@@ -113,6 +115,25 @@ export const getVizOverview = createServerFn({ method: "POST" })
       supabaseAdmin.from("ministries").select("id, slug, name, sort_order").eq("country_code", cc).order("sort_order"),
       supabaseAdmin.from("ministry_profiles").select("ministry_slug, minister").eq("country_code", cc),
     ]);
+
+    // Corpus-audit trail for the viz aggregate: log each domain's outcome so
+    // /admin/corpus-audit and the Ledger-QA check can spot silent gaps.
+    const readLatency = Date.now() - t0;
+    void recordCorpusReadOutcome({
+      countryCode: cc, domain: "kpi", key: "viz:all",
+      outcome: (kpis?.length ?? 0) > 0 ? "hit" : "empty",
+      latencyMs: readLatency, actor: context.userId,
+    });
+    void recordCorpusReadOutcome({
+      countryCode: cc, domain: "sector", key: "viz:sectors",
+      outcome: (countrySectors?.length ?? 0) > 0 ? "hit" : "empty",
+      latencyMs: readLatency, actor: context.userId,
+    });
+    void recordCorpusReadOutcome({
+      countryCode: cc, domain: "ministry", key: "viz:ministries",
+      outcome: (ministries?.length ?? 0) > 0 ? "hit" : "empty",
+      latencyMs: readLatency, actor: context.userId,
+    });
 
     const ministryIds = (ministries ?? []).map((m: any) => m.id);
     const ministrySectors = ministryIds.length

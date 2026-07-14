@@ -1437,6 +1437,8 @@ export const getPublishGate = createServerFn({ method: "GET" })
   .handler(async ({ data, context }): Promise<PublishGateReport> => {
     const { supabase } = context;
     const cc = data.countryCode;
+    const { recordCorpusReadOutcome } = await import("@/lib/corpus/gateway.server");
+    const t0 = Date.now();
 
     const [
       { data: sectors },
@@ -1459,6 +1461,18 @@ export const getPublishGate = createServerFn({ method: "GET" })
         .eq("country_code", cc)
         .eq("active", true),
     ]);
+
+    const latency = Date.now() - t0;
+    void recordCorpusReadOutcome({
+      countryCode: cc, domain: "dossier", key: "publishgate:dossiers",
+      outcome: (dossiers?.length ?? 0) > 0 ? "hit" : "empty",
+      latencyMs: latency, actor: context.userId,
+    });
+    void recordCorpusReadOutcome({
+      countryCode: cc, domain: "sources", key: "publishgate:sources",
+      outcome: (sources?.length ?? 0) > 0 ? "hit" : "empty",
+      latencyMs: latency, actor: context.userId,
+    });
 
     const sumShares = (sectors ?? []).reduce((a, r) => a + Number(r.share_pct ?? 0), 0);
     const sharesOk = sectors && sectors.length > 0 && Math.abs(sumShares - 100) <= 0.5;

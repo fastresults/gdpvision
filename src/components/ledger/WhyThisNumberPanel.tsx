@@ -4,12 +4,13 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useNavigate } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { explainFigure, pinFigureSnapshot } from "@/lib/ledger.functions";
+import { explainFigure, pinFigureSnapshot, handoffFigure } from "@/lib/ledger.functions";
 import { cn } from "@/lib/utils";
 
 type FigureKind =
@@ -85,7 +86,36 @@ export function WhyThisNumberPanel({
     },
   });
 
+  const handoffFn = useServerFn(handoffFigure);
+  const navigate = useNavigate();
+  const handoffMut = useMutation({
+    mutationFn: (target: "counsel" | "narrative") =>
+      handoffFn({
+        data: {
+          target,
+          countryCode,
+          sectorCode:
+            (figureRef.sector_code as string | undefined) ?? "cross-cutting",
+          figureLabel: label,
+          figureValue: typeof value === "number" ? value : null,
+          figureUnit: unit ?? null,
+          confidenceGrade: confidenceGrade ?? null,
+          note: note || null,
+          citationUrl: explainQuery.data?.citations?.[0]?.url ?? null,
+          citationTitle: explainQuery.data?.citations?.[0]?.title ?? null,
+        },
+      }),
+    onSuccess: (res) => {
+      if (res.target === "narrative") {
+        navigate({ to: "/narrative/signal/$id", params: { id: res.signalId } });
+      } else {
+        navigate({ to: "/counsel" });
+      }
+    },
+  });
+
   const data = explainQuery.data;
+
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -188,6 +218,36 @@ export function WhyThisNumberPanel({
               </ul>
             </Section>
           )}
+
+          <Section title="Speak this number">
+            <p className="text-xs text-ink-500">
+              Hand this figure — value, grade and citations — to Counsel for a briefing or to
+              Narrative as a signal for comms.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={handoffMut.isPending || !data}
+                onClick={() => handoffMut.mutate("counsel")}
+              >
+                → Counsel
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={handoffMut.isPending || !data}
+                onClick={() => handoffMut.mutate("narrative")}
+              >
+                → Narrative
+              </Button>
+              {handoffMut.error && (
+                <span className="text-xs text-red-700">
+                  {(handoffMut.error as Error).message}
+                </span>
+              )}
+            </div>
+          </Section>
 
           <Section title="Pin to snapshot">
             <p className="text-xs text-ink-500">

@@ -1516,3 +1516,82 @@ export const getPublishGate = createServerFn({ method: "GET" })
     return { green: checks.every((c) => c.pass), checks };
   });
 
+
+// ─── Phase 6 — Handoffs (Counsel + Narrative) and press-safe surfaces ────────
+//
+// Every figure clicked in the instrument can be "spoken" into Counsel or
+// Narrative with its grade, value and citations pre-loaded. Handoffs create
+// an intake_items row (the Narrative signal) and, for Counsel, a paired
+// dossier_questions row scoped to that signal. Both writes go through the
+// user's RLS.
+
+const HandoffInput = z.object({
+  target: z.enum(["counsel", "narrative"]),
+  countryCode: z.string().min(3).max(4),
+  sectorCode: z.string().min(2).max(24).default("cross-cutting"),
+  figureLabel: z.string().min(1).max(240),
+  figureValue: z.number().nullable().optional(),
+  figureUnit: z.string().max(32).nullable().optional(),
+  confidenceGrade: z.string().max(1).nullable().optional(),
+  note: z.string().max(1000).nullable().optional(),
+  citationUrl: z.string().url().nullable().optional(),
+  citationTitle: z.string().max(240).nullable().optional(),
+});
+
+export const handoffFigure = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => HandoffInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const scopeKey = data.countryCode.toLowerCase();
+    const valueBit =
+      data.figureValue !== null && data.figureValue !== undefined
+        ? ` = ${data.figureValue}${data.figureUnit ? ` ${data.figureUnit}` : ""}`
+        : "";
+    const topic = `Speak this number — ${data.figureLabel}${valueBit}`;
+    const summary =
+      (data.note ? `${data.note}\n\n` : "") +
+      `Figure: ${data.figureLabel}${valueBit}` +
+      (data.confidenceGrade ? ` · Grade ${data.confidenceGrade}` : "") +
+      (data.citationTitle ? `\nCitation: ${data.citationTitle}` : "") +
+      (data.citationUrl ? `\n${data.citationUrl}` : "");
+
+    const { data: signal, error: sigErr } = await supabase
+      .from("intake_items")
+      .insert({
+        scope_key: scopeKey,
+        sector_code: data.sectorCode,
+        topic,
+        summary,
+        url: data.citationUrl ?? null,
+        proposed_weight: 3,
+        state: "pending",
+      } as never)
+      .select("id")
+      .single();
+    if (sigErr) throw new Error(sigErr.message);
+
+    let questionId: string | null = null;
+    if (data.target === "counsel") {
+      const { data: q, error: qErr } = await supabase
+        .from("dossier_questions")
+        .insert({
+          signal_id: (signal as { id: string }).id,
+          scope_key: scopeKey,
+          sector_code: data.sectorCode,
+          question: `Brief Counsel on: ${data.figureLabel}${valueBit}. ${data.note ?? ""}`.trim(),
+          status: "open",
+          created_by: context.userId,
+        } as never)
+        .select("id")
+        .single();
+      if (qErr) throw new Error(qErr.message);
+      questionId = (q as { id: string }).id;
+    }
+
+    return {
+      target: data.target,
+      signalId: (signal as { id: string }).id,
+      questionId,
+    };
+  });

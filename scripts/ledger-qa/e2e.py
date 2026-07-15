@@ -73,7 +73,7 @@ async def main():
             await asyncio.sleep(1)
         await page.screenshot(path=str(OUT/"3_cold_start.png"))
         tl = await page.locator("text=Cold-start timeline · ").first.inner_text()
-        m2 = re.search(r"(\d+) step\(s\) · (\d+)ms total", tl)
+        m2 = re.search(r"(\d+) step\(s\) · (\d+)ms total", tl, re.IGNORECASE)
         assert m2, f"could not parse timeline: {tl!r}"
         steps, total_ms = map(int, m2.groups())
         print(f"[cold-start] steps={steps} total_ms={total_ms}")

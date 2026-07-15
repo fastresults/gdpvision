@@ -22,11 +22,14 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const Input = z.object({
   countryCode: z.string().length(3),
-  /** Max heal attempts per step (default 1). Guards against thrash. */
-  maxHealAttempts: z.number().int().min(0).max(2).default(1),
+  /** Max heal attempts per step (default 3). Guards against thrash. */
+  maxHealAttempts: z.number().int().min(0).max(6).default(3),
   /** Include write-probe checks (explain/ask/snapshot/handoff) — skipped by default. */
   includeWriteProbes: z.boolean().default(false),
+  /** Global wall-clock budget in ms; sequencer aborts once exceeded. */
+  wallBudgetMs: z.number().int().min(30_000).max(30 * 60_000).default(15 * 60_000),
 });
+
 
 export type SelfHealPhase = "check" | "heal" | "recheck";
 export type SelfHealStatus = "pass" | "warn" | "fail" | "skipped" | "healed" | "heal-failed";

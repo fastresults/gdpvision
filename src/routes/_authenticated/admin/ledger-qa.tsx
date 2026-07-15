@@ -24,9 +24,18 @@ import {
   repairInvalidSourceUrls,
   retryUnreachableSources,
 } from "@/lib/ledger-qa/remediate.functions";
+import {
+  backfillCapitalFlows,
+  backfillSectors,
+  backfillMinistryProfiles,
+  backfillKpiSeries,
+  getRecentCorpusAttempts,
+} from "@/lib/ledger-qa/backfill.functions";
 import { getCorpusMissStatus, redriveCorpusMisses } from "@/lib/corpus/audit.functions";
+import { lookupRemediator, type RemediatorKey } from "@/lib/ledger-qa/remediators";
 import type { Finding } from "@/lib/ledger-qa/types";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
+
 
 const bindingsQuery = queryOptions({
   queryKey: ["instance-bindings"],

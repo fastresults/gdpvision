@@ -1,36 +1,68 @@
-# Ledger-QA verification harness — status
 
-## Layers shipped
+# Chamber 01 v2 acceptance — get the gate to pass
 
-| Layer | Script | npm | What it proves |
-|---|---|---|---|
-| Fast-lane (multi-country hook) | `scripts/ledger-qa/verify.sh` | `ledger-qa:verify` | Public hook returns 12 verdicts per country with correct contract (zod-parity). Defaults: BRB LCA JAM GUY GBR. |
-| Cascade invariants (read-only) | `scripts/ledger-qa/cascade-invariants.py` | `ledger-qa:invariants` | Asserts the 5 invariants each cascade remediator would restore (sectors sum≈100, ministry_profiles cover ministries, kpis have latest_value, source URLs valid, capital flows committed). Uses service-role reads; no mutations. |
-| E2E (headless browser) | `scripts/ledger-qa/e2e.py` | `ledger-qa:e2e` | Signs in with the injected Supabase session, opens `/admin/ledger-qa`, clicks **Run all reads** and **Simulate cold-start**, screenshots each step, asserts summary parity between the header and the run-strip, and fails on non-fake latency. |
-| All-in-one | — | `ledger-qa:all` | Runs all three in sequence. |
+## Mission (restated in plain words)
 
-## Running
+`/admin/ledger-qa` titled **"Chamber 01 v2 acceptance"** is the ship gate for Chamber 01 v2. Every row is a criterion. The product is shippable when — for the canonical country (LCA, the default binding) — every row is **green**, on cold-start, without manual intervention. Anything less is "Chamber 01 v2 is not ready."
 
-```bash
-LEDGER_QA_HOOK_KEY=… npm run ledger-qa:verify           # 5-country fast lane
-npm run ledger-qa:invariants                             # read-only DB sweep
-LOVABLE_BROWSER_… vars set → npm run ledger-qa:e2e       # browser walk
-npm run ledger-qa:all                                    # everything
-```
+The harness I built proves the buttons wire up. It does **not** prove acceptance. Right now acceptance is **failing** on LCA (capital flows empty → `enrichment` warn, `gate` blocked, `I5 flows` ERR in invariants). That's the actual failure the user is pointing at.
 
-Exit code is non-zero when any check fails, so this is CI-friendly.
+## Ship criteria (what "pass" means)
 
-## Findings from the last sweep
+For LCA (canonical country), all of these must be true in a single fresh page load:
 
-- **BRB** — 12/12 sectors OK, 18 kpis OK, sources clean, **0/12 ministry_profiles** (missing profiles), **0 capital flows committed** (backfill hasn't run).
-- **LCA** — all 5 invariants green.
-- **JAM, GUY** — not onboarded (no sectors / kpis / ministries / flows). Expected, not a regression.
-- **Public hook** parity across BRB / LCA / JAM verified — all 12 verdicts present, no fails, wall time 1.4–2.4s.
-- **UI parity** — summary strip now matches the header counts (fixed in the previous phase; e2e re-verifies each run).
+1. Every read-check row renders `pass` (no warns).
+2. Every write-probe, when run once, renders `pass`.
+3. Publish gate → `pass` (no blocked upstreams).
+4. `ledger-qa:invariants LCA` exits 0 (all 5 invariants OK).
+5. `ledger-qa:verify LCA` returns 0 warns and 0 fails on the public hook.
+6. Cold-start simulation ends with the summary strip matching the header, 0 warns / 0 fails.
 
-The remaining warns are honest data gaps (BRB ministries + flows) that map cleanly to `backfillMinistryProfiles` and `backfillCapitalFlows` — one click each in `/admin/ledger-qa`.
+The same six must hold for BRB next, then be repeatable via one-click onboarding for JAM / GUY / GBR.
 
-## Deferred
+## Current gaps against those criteria
 
-- **Layer 1 (direct handler smoke)** — the TanStack `createServerFn` handlers need a request context to invoke outside the RPC transport; the fast-lane hook already exercises every read-check codepath, and E2E covers the write probes and remediators.
-- **Cascade stress on a scratch country** — requires an isolated DB / staging schema so mutations don't pollute production. Not worth the seed-teardown cost while the invariants script gives us the same signal on real countries read-only.
+| Country | Gap | Fix |
+|---|---|---|
+| LCA | `country_capital_flows` empty → `enrichment` warn + `gate` blocked + `I5 flows` ERR | Run `backfillCapitalFlows` for LCA, commit ≥3 inputs / ≥4 outputs, ≤10% residual. |
+| LCA | Confirm `corpus-miss` stays green after backfill (no new empty attempts) | Re-run hook + invariants after backfill. |
+| BRB | `0/12 ministry_profiles`, `0 capital flows` | `backfillMinistryProfiles` then `backfillCapitalFlows`. |
+| JAM / GUY / GBR | Not onboarded (no sectors / kpis / ministries / flows) | Not blocking Chamber 01 v2 ship on LCA — track separately, not part of this plan. |
+
+## Plan (in order — do not batch)
+
+### Step 1 · Make the acceptance gate visible at the top of the page
+Add a single **"Acceptance"** verdict at the very top of `/admin/ledger-qa` that reads *SHIPPABLE* only when all six ship criteria above are true for the selected country. This is the north-star signal — every other row exists to inform it. If it's red, Chamber 01 v2 is not shippable, period.
+
+Implementation: derive from existing verdicts + a small server function that returns `{ invariants: 5, verdicts: N, blocked: [...] }`. No new checks; a compositor over what's already there.
+
+### Step 2 · Close the LCA gap end-to-end
+1. From the page, click **Backfill capital flows** for LCA. Await the sync-await response.
+2. Re-run **Run all reads**. Confirm `enrichment` → `pass`, `gate` → `pass`, `recon` still `pass`.
+3. Run **Run everything** (write probes). Confirm 12/12 pass.
+4. From shell: `LEDGER_QA_HOOK_KEY=… npm run ledger-qa:verify LCA` — expect 0 warn, 0 fail.
+5. From shell: `npm run ledger-qa:invariants LCA` — expect all 5 OK, incl. `I5 flows`.
+6. **Acceptance verdict** at top of page reads *SHIPPABLE — LCA*.
+
+If step 1 fails (Perplexity waterfall doesn't produce a commit-eligible draft: <3 inputs, <4 outputs, or >10% residual), do **not** widen the tolerance. Diagnose the searcher / prompt / node registry, fix the root cause, and re-run — the mission is a real green, not a lowered bar.
+
+### Step 3 · Do the same for BRB
+Run `backfillMinistryProfiles` → `backfillCapitalFlows` → re-verify. Acceptance verdict must reach *SHIPPABLE — BRB*.
+
+### Step 4 · Wire ship-criteria into the harness
+Change `npm run ledger-qa:all` to fail unless the **Acceptance** verdict for LCA (and BRB) is *SHIPPABLE*. Today it can pass with warns. That was the harness lying by omission — it should not.
+
+Concretely: `verify.sh LCA` should exit non-zero on any `warn`, not only `fail`, when the country is in the "must-ship" list. Add `MUST_SHIP=LCA,BRB` env var; hook fails when any must-ship country has warns.
+
+### Step 5 · Update `.lovable/plan.md`
+Replace the current "harness status" doc with a **mission status** doc: the six ship criteria and the current state per country. The doc's job is to tell any future reader whether Chamber 01 v2 is shippable, not to inventory scripts.
+
+## Out of scope (deliberately)
+
+- Onboarding JAM / GUY / GBR. That's a separate mission (Chamber 01 v2 roster expansion), not the acceptance gate.
+- Any new harness layers. The three we have are enough — the problem was grading criteria, not signal coverage.
+- Loosening any threshold to force green. If a check is red, we fix the data or the code, not the check.
+
+## Definition of done for this plan
+
+`npm run ledger-qa:all` exits 0 **and** the top-of-page **Acceptance** verdict reads *SHIPPABLE — LCA* and *SHIPPABLE — BRB* on a fresh load, with no manual intervention beyond the initial one-click backfills. At that point Chamber 01 v2 is genuinely shippable and I can say so honestly.

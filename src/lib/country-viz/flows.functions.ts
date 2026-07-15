@@ -62,7 +62,9 @@ export const getCapitalFlows = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { recordCorpusReadOutcome } = await import("@/lib/corpus/gateway.server");
     const cc = data.countryCode;
+    const t0 = Date.now();
 
     const [{ data: country }, { data: registry }, { data: allValues }] = await Promise.all([
       supabaseAdmin.from("countries").select("code, name").eq("code", cc).maybeSingle(),
@@ -73,6 +75,12 @@ export const getCapitalFlows = createServerFn({ method: "POST" })
         .eq("country_code", cc)
         .order("period", { ascending: false }),
     ]);
+
+    void recordCorpusReadOutcome({
+      countryCode: cc, domain: "flow", key: "capital_flows:all",
+      outcome: (allValues?.length ?? 0) > 0 ? "hit" : "empty",
+      latencyMs: Date.now() - t0, actor: context.userId,
+    });
 
     const nodes: FlowNode[] = (registry ?? []).map((r: any) => ({
       node_key: r.node_key,

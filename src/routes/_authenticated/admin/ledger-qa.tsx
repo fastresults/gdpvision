@@ -163,12 +163,17 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
   const snapshotVerdicts = () =>
     checks.map((c) => ({ key: c.key, status: c.verdict?.status ?? "idle" }));
 
+  const PROBE_CACHE_MS = 10 * 60_000;
   const runAll = async (includeWrites: boolean) => {
     const before = snapshotVerdicts();
     const t0 = Date.now();
-    const targets = checks.filter((c) => includeWrites || !c.isWriteProbe);
+    const targets = checks.filter((c) => {
+      if (!includeWrites && c.isWriteProbe) return false;
+      // Cache-gate: skip write probes with fresh data <10 min old.
+      if (c.isWriteProbe && c.cachedAt && Date.now() - c.cachedAt < PROBE_CACHE_MS) return false;
+      return true;
+    });
     await Promise.allSettled(targets.map((c) => Promise.resolve(c.run())));
-    // react-query state updates are synchronous after refetch resolves; yield a tick
     await new Promise((r) => setTimeout(r, 0));
     qc.invalidateQueries({ queryKey: ["ledger-qa-actions", countryCode] });
     const after = snapshotVerdicts();
@@ -178,9 +183,10 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
     const pass = after.filter((v) => v.status === "pass").length;
     const warn = after.filter((v) => v.status === "warn").length;
     const fail = after.filter((v) => v.status === "fail").length;
+    const skipped = checks.length - targets.length - (includeWrites ? 0 : checks.filter((c) => c.isWriteProbe).length);
     setLastRun({
       at: new Date().toISOString(),
-      label: includeWrites ? "Run everything" : "Run all reads",
+      label: includeWrites ? `Run everything (${skipped} cache-skipped)` : "Run all reads",
       pass, warn, fail, flipped, ms: Date.now() - t0,
     });
   };

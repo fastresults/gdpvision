@@ -78,7 +78,11 @@ type Check = {
   run: () => void;
   /** Raw data for the diagnoser to inspect */
   data?: unknown;
+  /** True for probes that cost credits or write demo rows; excluded from
+   *  "Run all reads" and only fired by "Run everything". */
+  isWriteProbe?: boolean;
 };
+
 
 function LedgerQaPage() {
   const { data: bindings } = useSuspenseQuery(bindingsQuery);

@@ -62,7 +62,7 @@ export const getCapitalFlows = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { recordCorpusReadOutcome } = await import("@/lib/corpus/gateway.server");
+    const { recordCorpusReadOutcome, triggerCorpusBackfill } = await import("@/lib/corpus/gateway.server");
     const cc = data.countryCode;
     const t0 = Date.now();
 
@@ -76,11 +76,38 @@ export const getCapitalFlows = createServerFn({ method: "POST" })
         .order("period", { ascending: false }),
     ]);
 
+    const flowsEmpty = (allValues?.length ?? 0) === 0;
     void recordCorpusReadOutcome({
       countryCode: cc, domain: "flow", key: "capital_flows:all",
-      outcome: (allValues?.length ?? 0) > 0 ? "hit" : "empty",
+      outcome: flowsEmpty ? "empty" : "hit",
       latencyMs: Date.now() - t0, actor: context.userId,
     });
+
+    if (flowsEmpty) {
+      const { searchCapitalFlows } = await import("@/lib/corpus/searchers/flow.server");
+      const { upsertCapitalFlow } = await import("@/lib/corpus/writers.server");
+      triggerCorpusBackfill<{ period: string; flows: Array<{ node_key: string; value_usd_m: number; confidence_grade?: string; notes?: string; source_url?: string }> }>({
+        scope: { countryCode: cc },
+        domain: "flow",
+        key: "capital_flows:all",
+        actor: context.userId,
+        search: async (ctx) => searchCapitalFlows({ countryCode: ctx.countryCode }),
+        writeBack: async (payload, citations) => {
+          for (const f of payload.flows) {
+            await upsertCapitalFlow({
+              country_code: cc,
+              node_key: f.node_key,
+              period: payload.period,
+              value_usd_m: f.value_usd_m,
+              confidence_grade: f.confidence_grade,
+              notes: f.notes ?? null,
+              citations,
+            });
+          }
+        },
+      });
+    }
+
 
     const nodes: FlowNode[] = (registry ?? []).map((r: any) => ({
       node_key: r.node_key,

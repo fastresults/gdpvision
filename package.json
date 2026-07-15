@@ -9,7 +9,9 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "ledger-qa:verify": "bash scripts/ledger-qa/verify.sh",
+    "ledger-qa:e2e": "python3 scripts/ledger-qa/e2e.py"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.7",

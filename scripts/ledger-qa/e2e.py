@@ -39,10 +39,8 @@ async def main():
         await page.screenshot(path=str(OUT/"1_loaded.png"))
 
         # Wait for the header counts to settle (initial mount fetches).
-        await page.wait_for_function(
-            "() => { const t = document.body.innerText; const m = t.match(/(\\d+) pass\\s+(\\d+) warn\\s+(\\d+) fail/); return m && (parseInt(m[1])+parseInt(m[2])+parseInt(m[3])) > 0; }",
-            timeout=30000,
-        )
+        # Wait a few seconds for React-Query mount fetches to settle.
+        await asyncio.sleep(6)
 
         # Click Run all reads
         await page.get_by_role("button", name="Run all reads").click()

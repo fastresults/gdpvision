@@ -44,11 +44,12 @@ export const Route = createFileRoute("/api/public/hooks/ledger-qa")({
         push({ key: "enrichment", status: (flowCount ?? 0) > 0 ? "pass" : "warn",
           detail: `${flowCount ?? 0} committed flows` });
 
-        // kpi points / trust
+        // country_kpis / trust — count rows with a committed latest_value.
         const { count: kpiCount } = await supabase
-          .from("country_kpi_points").select("*", { head: true, count: "exact" }).eq("country_code", cc);
+          .from("country_kpis").select("*", { head: true, count: "exact" })
+          .eq("country_code", cc).not("latest_value", "is", null);
         push({ key: "trust", status: (kpiCount ?? 0) > 0 ? "pass" : "warn",
-          detail: `${kpiCount ?? 0} kpi points` });
+          detail: `${kpiCount ?? 0} kpis with latest_value` });
 
         // sources
         const { data: sources } = await supabase

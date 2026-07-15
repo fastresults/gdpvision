@@ -96,7 +96,7 @@ export const getVizOverview = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { recordCorpusReadOutcome } = await import("@/lib/corpus/gateway.server");
+    const { recordCorpusReadOutcome, triggerCorpusBackfill } = await import("@/lib/corpus/gateway.server");
     const cc = data.countryCode;
 
     const t0 = Date.now();
@@ -116,24 +116,77 @@ export const getVizOverview = createServerFn({ method: "POST" })
       supabaseAdmin.from("ministry_profiles").select("ministry_slug, minister").eq("country_code", cc),
     ]);
 
-    // Corpus-audit trail for the viz aggregate: log each domain's outcome so
-    // /admin/corpus-audit and the Ledger-QA check can spot silent gaps.
+    // Corpus-audit trail for the viz aggregate.
     const readLatency = Date.now() - t0;
+    const kpisEmpty = (kpis?.length ?? 0) === 0;
+    const sectorsEmpty = (countrySectors?.length ?? 0) === 0;
+    const ministriesList = ministries ?? [];
+    const profileSlugs = new Set((ministryProfiles ?? []).map((p: any) => p.ministry_slug));
+    const missingProfiles = ministriesList.filter((m: any) => !profileSlugs.has(m.slug));
+
     void recordCorpusReadOutcome({
       countryCode: cc, domain: "kpi", key: "viz:all",
-      outcome: (kpis?.length ?? 0) > 0 ? "hit" : "empty",
+      outcome: kpisEmpty ? "empty" : "hit",
       latencyMs: readLatency, actor: context.userId,
     });
     void recordCorpusReadOutcome({
       countryCode: cc, domain: "sector", key: "viz:sectors",
-      outcome: (countrySectors?.length ?? 0) > 0 ? "hit" : "empty",
+      outcome: sectorsEmpty ? "empty" : "hit",
       latencyMs: readLatency, actor: context.userId,
     });
     void recordCorpusReadOutcome({
       countryCode: cc, domain: "ministry", key: "viz:ministries",
-      outcome: (ministries?.length ?? 0) > 0 ? "hit" : "empty",
+      outcome: ministriesList.length > 0 ? "hit" : "empty",
       latencyMs: readLatency, actor: context.userId,
     });
+
+    // Fire-and-forget backfill: sector composition.
+    if (sectorsEmpty) {
+      const { searchSectors } = await import("@/lib/corpus/searchers/sector.server");
+      triggerCorpusBackfill<{ sectors: Array<{ sector_code: string; share_pct: number; confidence_grade?: string; source_ref?: string }> }>({
+        scope: { countryCode: cc },
+        domain: "sector",
+        key: "viz:sectors",
+        actor: context.userId,
+        search: async (ctx) => searchSectors({ countryCode: ctx.countryCode }),
+        writeBack: async (payload) => {
+          await supabaseAdmin.rpc("replace_country_sectors", {
+            _country_code: cc,
+            _rows: payload.sectors as never,
+          });
+        },
+      });
+    }
+
+    // Fire-and-forget backfill: any ministry missing a profile.
+    for (const m of missingProfiles) {
+      const { searchMinistry } = await import("@/lib/corpus/searchers/ministry.server");
+      const { upsertMinistryProfile } = await import("@/lib/corpus/writers.server");
+      triggerCorpusBackfill<{
+        minister: string | null;
+        minister_profile: unknown;
+        mandate: string;
+        programmes: unknown;
+      }>({
+        scope: { countryCode: cc, ministry: m.slug },
+        domain: "ministry",
+        key: `ministry_profile:${m.slug}`,
+        actor: context.userId,
+        search: async (ctx) => searchMinistry({ countryCode: ctx.countryCode, ministrySlug: m.slug, ministryName: m.name }),
+        writeBack: async (payload, citations) => {
+          await upsertMinistryProfile({
+            country_code: cc,
+            ministry_slug: m.slug,
+            minister: payload.minister ?? null,
+            minister_profile: payload.minister_profile,
+            mandate: payload.mandate,
+            programmes: payload.programmes,
+            citations,
+          });
+        },
+      });
+    }
+
 
     const ministryIds = (ministries ?? []).map((m: any) => m.id);
     const ministrySectors = ministryIds.length

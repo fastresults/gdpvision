@@ -1,81 +1,53 @@
-## Yes — meaningful gaps remain
+## Remaining corpus-miss gaps
 
-What's live today:
-- Gateway (`corpusRead`), audit table, kill-switch, cooldown, write-back — done.
-- Memory searcher (Perplexity → Gemini → inference) — done, wired into `counsel.askCounsel` and `narrative.getCoverage`.
-- Lightweight audit-only instrumentation on `viz.getVizOverview`, `consume.listCountryKpis`, `ledger.getPublishGate`.
-- Admin `/admin/corpus-audit` + Ledger-QA "Corpus fallback active" check — done.
+After Phase A/B (unified writers + six domain searchers) and the recent instrumentation pass, the remaining gaps fall into three buckets. None are new production bugs — they're all "silent empty" read paths that would still return `[]` without landing in `/admin/corpus-audit`.
 
-Gaps that still leave silent misses possible:
+### 1. Read sites still un-instrumented (silent empties)
 
-### 1. Five of the six domain searchers do not exist yet
-Only `memory` has an external waterfall. `kpi`, `sector`, `ministry`, `dossier`, `flow`, `citation` reads currently log `empty` to the audit table but have no auto-search → the corpus never self-heals for those domains.
+Reads that can legitimately return empty but currently log nothing:
 
-### 2. ~30+ runtime read sites still bypass the gateway
-Sampling only the non-writer/onboarding files, these still do raw `.from(...).select(...)` with no audit trail or fallback:
+- **`src/lib/ledger.functions.ts`**
+  - `~L1168–1172` — sectors + capital_flow_nodes fan-out (ledger reconcile view)
+  - `~L1450–1452` — sectors + sector_dossiers + series_freshness (trust-signals aggregate)
+- **`src/lib/country-viz/viz.functions.ts`**
+  - `~L111–116, 140` — the country-pack fan-out (`sectors`, `country_sectors`, `country_kpis`, `ministries`, `ministry_profiles`, `ministry_sectors`) has 4 audit calls but not one per domain
+- **`src/lib/audits.functions.ts`** `~L62–75` — probe reads for admin audits page (low priority; admin-only)
+- **`src/lib/config.functions.ts`** `~L33–34` — instance_bindings + countries (user config; not a corpus domain)
 
-- `ledger.functions.ts`: lines 50, 135, 424, 681-711, 896, 1055, 1168-1172, 1320, 1384 (sectors, memory, flows, ministries, dossiers, sources)
-- `ledger.functions.ts:1450` (sectors, still un-instrumented)
-- `viz.functions.ts:218` (kpi_points), `:292` (sector_dossiers), `:298` (memory_objects)
-- `flows.functions.ts:69, 71` (capital flow nodes + values)
-- `dossier.functions.ts:101` (memory)
-- `citations.functions.ts:143` (memory)
-- `scenarios.functions.ts:34, 68` (ministries + ministry_sectors)
-- `config.functions.ts:97, 102, 210` (sectors, ministries)
-- `narrative.functions.ts:32` (`listMemoryObjects` — corpus not audited)
-- `mandate.functions.ts` (unaudited)
+### 2. Searchers wired but not yet invoked via `corpusRead`
 
-### 3. No structural enforcement
-There is no ESLint / grep gate. Any new PR can add another raw `supabase.from("memory_objects").select(...)` and it will silently degrade on miss with no signal.
+Phase B built `searchers/{kpi,sector,ministry,dossier,flow,citation}.server.ts` + matching writers, but no read site actually calls `corpusRead({ search: searchSectors, writeBack: upsertSectorDossier, ... })`. Today they're dead code — the waterfall only fires when a caller opts in.
 
-### 4. Write-back paths are still per-domain-ad-hoc
-`writers.server.ts` re-exports `upsertCountrySource` + `upsertMemoryObject`. It doesn't yet unify `upsertKpi / upsertKpiPoint / upsertSectorDossier / upsertMinistryProfile / upsertCapitalFlow / insertOnboardingCitation`. Domain searchers can't cleanly write back without those wrappers.
+Highest-leverage first callers:
+- `viz.functions.ts` country-pack sectors → `searchSectors` + `replace_country_sectors` RPC
+- `viz.functions.ts` ministries/ministry_profiles → `searchMinistries`
+- `ledger.functions.ts` sector_dossiers read → `searchDossier`
+- `flows.functions.ts` capital_flow_nodes → `searchFlows`
 
-### 5. Admin visibility is partial
-`/admin/corpus-audit` shows outcomes per domain, but has no "empty" list per domain and no per-key "Re-drive this miss" button (the redrive function exists — just not exposed row-by-row).
+### 3. Structural enforcement (Phase D from prior plan)
+
+No lint gate exists, so any new `supabaseAdmin.from(...).select(...)` slides in without audit. Deferring this until §1 and §2 land keeps the gate from firing mid-migration.
 
 ---
 
-## Phased plan to close them
+## Proposed next step (single batch)
 
-Each phase is a self-contained turn — approve one at a time.
+**Batch 1 — Wire the six searchers into their top read sites** (closes §2 + the highest-value §1 items in one pass):
 
-**Phase A — Unify writers** (small, prerequisite)
-Add to `writers.server.ts`:
-- `upsertKpi` + `upsertKpiPoint` (delegate to existing `kpi-seed.server.ts` writer)
-- `upsertSectorDossier`, `upsertMinistryProfile` (delegate to existing `corpus.functions.ts` writers)
-- `upsertCapitalFlow` (delegate to `capital-flows.server.ts`)
-- `recordCitation` (dedup on `(country_code, url)` unique index we already added)
+1. `viz.functions.ts` country-pack: wrap the 6-way fan-out in `corpusRead` per domain (sectors, ministry, kpi). Miss → `searchSectors` / `searchMinistries` / `searchKpis` → write-back → return fresh data.
+2. `ledger.functions.ts` trust-signals + reconcile: wrap sector_dossiers + capital_flow_nodes reads in `corpusRead` with `searchDossier` / `searchFlows`.
+3. `flows.functions.ts` capital_flow_nodes: promote existing `recordCorpusReadOutcome` call to full `corpusRead` with `searchFlows`.
 
-**Phase B — Domain searchers** (one file each, wraps existing waterfalls)
-- `searchers/kpi.server.ts` — targeted Perplexity + WB + IMF + Gemini for a single KPI
-- `searchers/sector.server.ts` — Perplexity sector-share reasoning + WB validation
-- `searchers/ministry.server.ts` — Perplexity minister-profile + gov site
-- `searchers/dossier.server.ts` — Perplexity sector-dossier facts
-- `searchers/flow.server.ts` — Perplexity capital-flow reasoning (already exists in `capital-flows.server.ts`, just wrap)
-- `searchers/citation.server.ts` — Perplexity source discovery
+Every wrapped call:
+- Uses natural key `${domain}:${countryCode}` (or `${domain}:${countryCode}:${slug}` for sub-scoped).
+- Sets `budget.maxMs = 30_000`, default 30m cooldown.
+- Passes `actor: context.userId`.
+- Idempotent write-back via the Phase-A writers.
 
-**Phase C — Migrate the 30+ read sites** (batched by file)
-- Batch 1: `ledger.functions.ts` (7 read groups) → `corpusRead()` where the read feeds user-visible output; `recordCorpusReadOutcome()` where it's an internal count.
-- Batch 2: `viz.functions.ts` remaining reads (dossiers/memory/kpi_points).
-- Batch 3: `flows.functions.ts` → `corpusRead` with flow searcher.
-- Batch 4: `dossier.functions.ts`, `citations.functions.ts`, `scenarios.functions.ts`, `config.functions.ts`, `narrative.listMemoryObjects`, `mandate.functions.ts`.
+Verification: `bunx tsgo --noEmit` + a manual /admin/corpus-audit inspection after one country reload to confirm new `external` outcomes appear.
 
-**Phase D — Structural enforcement**
-- Custom ESLint rule `no-raw-corpus-read`: forbids `.from("<protected-table>").select(...)` outside an allow-list (writers, admin QA, migrations, gateway itself).
-- Add to `eslint.config.ts`. Fail CI on violation.
+**Batch 2 (later)** — instrument the remaining `audits.functions.ts` + `config.functions.ts` reads with `recordCorpusReadOutcome` only (no waterfall — they aren't corpus domains).
 
-**Phase E — Admin polish**
-- `/admin/corpus-audit`: add per-domain "empty keys" table with a per-row **Re-drive** button (hits existing `redriveCorpusMisses`).
-- Show tier + latency histograms.
+**Batch 3 (last)** — Phase D lint gate (`no-raw-corpus-read`) with allow-list for writers/searchers/gateway.
 
-**Phase F — Optional: proactive backfill cron**
-- Nightly server route reads unresolved-miss list and re-drives top N. Skip unless you want it — the on-demand loop already self-heals.
-
----
-
-## Recommendation
-
-Start with **Phase A + B together** (writers + all six searcher stubs) as the next turn — that closes the "no waterfall for 5 domains" gap and unlocks migrations. Then Phase C in 1-file batches. Phase D last so the lint gate doesn't fire mid-migration.
-
-Reply "proceed" to run Phase A+B, or pick a specific phase.
+Skip: `traceability`, `settings`, `admin`, `country-admin`, `cadence`, `media`, `items`, `galleries`, `idle-images`, `categories`, `factcheck`, `narrative` update paths, `mandate` insert paths, `onboarding` insert paths, `corpus.functions.ts` writes, `remediate.functions.ts` — all inserts/updates or non-corpus reads.

@@ -334,3 +334,35 @@ export async function recordCorpusReadOutcome(params: {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Fire-and-forget corpus backfill for callers that already have their (empty)
+// read result and don't want to block the request on an external waterfall.
+// Respects the same kill-switch + cooldown as `corpusRead`; on success the
+// data lands in the corpus and the next read is a hit.
+// ---------------------------------------------------------------------------
+export function triggerCorpusBackfill<T>(spec: {
+  scope: CorpusSearchCtx;
+  domain: CorpusDomain;
+  key: string;
+  search: CorpusReadSpec<T>["search"];
+  writeBack: CorpusReadSpec<T>["writeBack"];
+  actor?: string | null;
+  budget?: CorpusReadSpec<T>["budget"];
+}): void {
+  void corpusRead<T>({
+    scope: spec.scope,
+    domain: spec.domain,
+    key: spec.key,
+    read: async () => null as unknown as T,
+    isEmpty: () => true,
+    search: spec.search,
+    writeBack: spec.writeBack,
+    actor: spec.actor,
+    budget: spec.budget,
+  }).catch(() => {
+    // Backfill errors are already logged inside corpusRead.
+  });
+}
+
+
+

@@ -7,6 +7,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { registryFor } from "@/lib/country-onboarding/kpi-registry";
 
 type Verdict = {
   key: string;
@@ -16,6 +17,7 @@ type Verdict = {
 };
 
 const PROBE_KEYS = ["explain", "ask", "ask-refuse", "snapshot-rt", "handoff"];
+const REQUIRED_KPI_COUNT = registryFor(["all"]).filter((k) => k.required).length;
 
 export const Route = createFileRoute("/api/public/hooks/ledger-qa")({
   server: {
@@ -57,19 +59,58 @@ export const Route = createFileRoute("/api/public/hooks/ledger-qa")({
           return { key: "overview", status: (count ?? 0) > 0 ? "pass" : "warn", detail: `${count ?? 0} sectors`, ms: 0 };
         });
 
-        // enrichment: capital flows
+        const readFlowQuality = async () => {
+          const [{ data: nodes, error: nodesError }, { data: rows, error: rowsError }] = await Promise.all([
+            supabase.from("capital_flow_nodes").select("node_key,side"),
+            supabase
+              .from("country_capital_flows")
+              .select("node_key,period,value_usd_m")
+              .eq("country_code", cc)
+              .order("period", { ascending: false }),
+          ]);
+          if (nodesError) throw new Error(nodesError.message);
+          if (rowsError) throw new Error(rowsError.message);
+          const allRows = rows ?? [];
+          if (allRows.length === 0) return { ok: false, detail: "0 committed flows", inputs: 0, outputs: 0, residualPct: 1 };
+          const periods = Array.from(new Set(allRows.map((r) => String(r.period ?? "")))).filter(Boolean).sort((a, b) => b.localeCompare(a));
+          const period = periods[0] ?? null;
+          const latest = period ? allRows.filter((r) => r.period === period) : allRows;
+          const sideByKey = new Map((nodes ?? []).map((n) => [String(n.node_key), String(n.side)]));
+          let inputs = 0, outputs = 0, sumIn = 0, sumOut = 0, unknown = 0;
+          for (const r of latest) {
+            if (r.node_key === "RECONCILIATION_RESIDUAL") continue;
+            const side = sideByKey.get(String(r.node_key));
+            if (!side) { unknown += 1; continue; }
+            const value = Number(r.value_usd_m ?? 0);
+            if (side === "input") { inputs += 1; sumIn += value; }
+            if (side === "output") { outputs += 1; sumOut += value; }
+          }
+          const residualPct = sumIn > 0 ? Math.abs(sumIn - sumOut) / sumIn : 1;
+          const ok = inputs >= 3 && outputs >= 4 && residualPct <= 0.1 && unknown === 0;
+          return {
+            ok,
+            inputs,
+            outputs,
+            residualPct,
+            detail: `${latest.length} flows${period ? ` (${period})` : ""} · ${inputs} inputs · ${outputs} outputs · residual ${(residualPct * 100).toFixed(1)}%${unknown ? ` · ${unknown} unknown keys` : ""}`,
+          };
+        };
+
+        // enrichment: acceptance-grade capital flows
         await time("enrichment", async () => {
-          const { count } = await supabase
-            .from("country_capital_flows").select("*", { head: true, count: "exact" }).eq("country_code", cc);
-          return { key: "enrichment", status: (count ?? 0) > 0 ? "pass" : "warn", detail: `${count ?? 0} committed flows`, ms: 0 };
+          const flow = await readFlowQuality();
+          return { key: "enrichment", status: flow.ok ? "pass" : "warn", detail: flow.detail, ms: 0 };
         });
 
-        // trust: kpis with latest_value + freshness
+        // trust: required KPIs with latest_value
         await time("trust", async () => {
-          const { count } = await supabase
-            .from("country_kpis").select("*", { head: true, count: "exact" })
+          const requiredCodes = registryFor(["all"]).filter((k) => k.required).map((k) => k.kpi_code);
+          const { data: rows } = await supabase
+            .from("country_kpis").select("kpi_code")
             .eq("country_code", cc).not("latest_value", "is", null);
-          return { key: "trust", status: (count ?? 0) > 0 ? "pass" : "warn", detail: `${count ?? 0} kpis with latest_value`, ms: 0 };
+          const have = new Set((rows ?? []).map((r) => String(r.kpi_code)));
+          const filledRequired = requiredCodes.filter((k) => have.has(k)).length;
+          return { key: "trust", status: filledRequired >= REQUIRED_KPI_COUNT ? "pass" : "warn", detail: `${filledRequired}/${REQUIRED_KPI_COUNT} required kpis with latest_value`, ms: 0 };
         });
 
         // recon: shares vs flows residual (rough parity — sum(sectors.share_pct) close to 100)

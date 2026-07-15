@@ -33,6 +33,8 @@ export async function searchCapitalFlows(input: FlowSearchInput): Promise<{
     .from("capital_flow_nodes")
     .select("node_key, label, side")
     .order("sort_order");
+  const validKeys = new Set((nodes ?? []).map((n) => String(n.node_key)));
+  const canonicalKeys = [...validKeys].join(" | ");
   const nodeCatalog = (nodes ?? [])
     .map((n) => `- ${n.node_key} (${n.side}): ${n.label}`)
     .join("\n");
@@ -42,8 +44,8 @@ export async function searchCapitalFlows(input: FlowSearchInput): Promise<{
     topic: `${ctx.name} capital flows (USD millions, latest year)`,
     perplexity: {
       model: "sonar-reasoning-pro",
-      system: `You are a national accounts economist. For each node in the catalog, return the latest annual value in USD millions. Return ONLY JSON. If a node is genuinely unknown, omit it — never fabricate.`,
-      user: `Country: ${ctx.name}. Return latest-year capital flow values (USD millions) for these nodes:\n${nodeCatalog}\n\nUse World Bank, IMF WEO, national central bank, or Ministry of Finance. Report the year (period) used.`,
+      system: `You are a national accounts economist. For each node in the catalog, return the latest annual value in USD millions. Return ONLY JSON. node_key MUST be one of: ${canonicalKeys}. If a node is genuinely unknown, omit it — never fabricate or invent alternate key names.`,
+      user: `Country: ${ctx.name}. Return latest-year capital flow values (USD millions) for these exact node keys:\n${nodeCatalog}\n\nUse World Bank, IMF WEO, national central bank, or Ministry of Finance. Report the year (period) used.`,
       recency: "year",
       responseSchema: {
         type: "object",
@@ -54,7 +56,7 @@ export async function searchCapitalFlows(input: FlowSearchInput): Promise<{
             items: {
               type: "object",
               properties: {
-                node_key: { type: "string" },
+                node_key: { type: "string", enum: [...validKeys] },
                 value_usd_m: { type: "number" },
                 confidence_grade: { type: "string" },
                 notes: { type: "string" },
@@ -68,17 +70,20 @@ export async function searchCapitalFlows(input: FlowSearchInput): Promise<{
       },
     },
     gemini: {
-      system: `Repair the JSON. Every flow needs a node_key from the catalog and a numeric value_usd_m.`,
+      system: `Repair the JSON. Every flow needs a canonical node_key from this exact set: ${canonicalKeys}; never invent lowercase aliases. Every value_usd_m must be numeric.`,
       user: `Extract capital flows for ${ctx.name}.`,
-      schemaHint: `{"period":"2024","flows":[{"node_key":"fdi_in","value_usd_m":123.4,"confidence_grade":"B","source_url":"https://..."}]}`,
+      schemaHint: `{"period":"2024","flows":[{"node_key":"FDI_NET","value_usd_m":123.4,"confidence_grade":"B","source_url":"https://..."}]}`,
     },
     parse: jsonParser<FlowPayload>(),
-    validate: (v) => !!v?.period && Array.isArray(v.flows) && v.flows.length > 0,
+    validate: (v) => !!v?.period && Array.isArray(v.flows) && v.flows.some((f) => validKeys.has(String(f.node_key))),
     infer: () => ({ period: "", flows: [] }),
   });
 
-  if (!result.data.flows.length) return null;
+  const canonicalFlows = result.data.flows
+    .map((f) => ({ ...f, node_key: String(f.node_key ?? "").trim().toUpperCase() }))
+    .filter((f) => validKeys.has(f.node_key) && Number.isFinite(Number(f.value_usd_m)) && Number(f.value_usd_m) > 0);
+  if (!canonicalFlows.length) return null;
 
   const citations: CorpusCitation[] = result.citations.map((c) => ({ url: c.url, title: c.title }));
-  return { data: result.data, citations, tier: result.tier, notes: result.notes };
+  return { data: { ...result.data, flows: canonicalFlows }, citations, tier: result.tier, notes: result.notes };
 }

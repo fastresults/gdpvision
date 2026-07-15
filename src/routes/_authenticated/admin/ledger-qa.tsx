@@ -777,6 +777,7 @@ function useExplainFigureCheck(cc: string): Check {
       : IDLE_VERDICT;
   return {
     key: "explain",
+    isWriteProbe: true,
     label: "Why this number? — Second Brain grounded",
     surface: { to: "/instrument", label: "/instrument" },
     verdict,
@@ -805,6 +806,7 @@ function useAskLedgerCheck(cc: string): Check {
       : IDLE_VERDICT;
   return {
     key: "ask",
+    isWriteProbe: true,
     label: "Ask the Ledger — grounded answer",
     surface: { to: "/instrument", label: "/instrument" },
     verdict,
@@ -836,6 +838,7 @@ function useAskLedgerRefusalCheck(cc: string): Check {
       : IDLE_VERDICT;
   return {
     key: "ask-refuse",
+    isWriteProbe: true,
     label: "Ask the Ledger — refuses ungrounded probe",
     surface: { to: "/instrument", label: "/instrument" },
     verdict,
@@ -1010,6 +1013,7 @@ function useSnapshotRoundtripCheck(cc: string): Check {
       : IDLE_VERDICT;
   return {
     key: "snapshot-rt",
+    isWriteProbe: true,
     label: "Snapshot pin round-trip (immutable)",
     surface: { to: "/instrument", label: "/instrument" },
     verdict,
@@ -1049,6 +1053,7 @@ function useHandoffCheck(cc: string): Check {
       : IDLE_VERDICT;
   return {
     key: "handoff",
+    isWriteProbe: true,
     label: "Speak-this-number handoff → Narrative signal",
     surface: { to: "/narrative", label: "/narrative" },
     verdict,

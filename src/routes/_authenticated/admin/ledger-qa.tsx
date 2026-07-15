@@ -493,7 +493,7 @@ function useRemediator(key: RemediatorKey | undefined, countryCode: string) {
   const invalidate = () =>
     qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] });
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<{ r: unknown; steps?: string[] }> => {
       switch (key) {
         case "repairInvalidSourceUrls":
           return { r: await repairInvalidSourceUrls({ data: { countryCode } }) };
@@ -509,6 +509,25 @@ function useRemediator(key: RemediatorKey | undefined, countryCode: string) {
           return { r: await backfillKpiSeries({ data: { countryCode } }) };
         case "redriveCorpusMisses":
           return { r: await redriveCorpusMisses({ data: { countryCode, hours: 24 } }) };
+        case "cascadeFix": {
+          // Fetch gate, iterate blocked check keys, dispatch each mapped remediator.
+          const gate = await getPublishGate({ data: { countryCode } });
+          const steps: string[] = [];
+          for (const c of gate.checks.filter((c) => !c.pass)) {
+            const chain = CASCADE_MAP[c.key];
+            if (!chain) { steps.push(`skip:${c.key} (no auto-remediator)`); continue; }
+            for (const rk of chain) {
+              try {
+                const out = await runRemediatorByKey(rk, countryCode);
+                steps.push(`${c.key}:${rk} → ${summarizeResult(rk, out)}`);
+              } catch (e) {
+                steps.push(`${c.key}:${rk} ✗ ${(e as Error).message}`);
+              }
+            }
+          }
+          const after = await getPublishGate({ data: { countryCode } });
+          return { r: { green: after.green, blocked: after.checks.filter((c) => !c.pass).map((c) => c.key) }, steps };
+        }
         default:
           throw new Error(`No remediator wired for key: ${key ?? "(none)"}`);
       }
@@ -516,6 +535,20 @@ function useRemediator(key: RemediatorKey | undefined, countryCode: string) {
     onSuccess: invalidate,
   });
 }
+
+async function runRemediatorByKey(key: RemediatorKey, countryCode: string): Promise<unknown> {
+  switch (key) {
+    case "repairInvalidSourceUrls": return await repairInvalidSourceUrls({ data: { countryCode } });
+    case "retryUnreachableSources": return await retryUnreachableSources({ data: { countryCode } });
+    case "backfillCapitalFlows": return await backfillCapitalFlows({ data: { countryCode } });
+    case "backfillSectors": return await backfillSectors({ data: { countryCode } });
+    case "backfillMinistryProfiles": return await backfillMinistryProfiles({ data: { countryCode } });
+    case "backfillKpiSeries": return await backfillKpiSeries({ data: { countryCode } });
+    case "redriveCorpusMisses": return await redriveCorpusMisses({ data: { countryCode, hours: 24 } });
+    default: throw new Error(`runRemediatorByKey: unsupported ${key}`);
+  }
+}
+
 
 function summarizeResult(key: RemediatorKey | undefined, r: unknown): string {
   if (!r || typeof r !== "object") return "Done";

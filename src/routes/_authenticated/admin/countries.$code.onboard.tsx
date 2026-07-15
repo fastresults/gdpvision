@@ -430,11 +430,41 @@ function OnboardWizard() {
         }
         await refresh();
       }
+      // After stages 1-12 finish (or bail early), run the acceptance
+      // self-heal loop so residual gaps (missing profiles, KPIs, unresolved
+      // corpus misses, capital-flow residuals) converge automatically.
+      if (!stopRef.current) {
+        try {
+          setActiveRun({ stage: "capital_flows", label: "Acceptance self-heal", startedAt: Date.now() });
+          const heal: any = await selfHeal({
+            data: { countryCode: code, maxHealAttempts: 3, includeWriteProbes: false },
+          });
+          setRunResult({
+            stage: "capital_flows",
+            label: heal.shippable ? "SHIPPABLE" : "Self-heal complete",
+            ok: heal.shippable,
+            text: heal.shippable
+              ? `All ${Object.keys(heal.finalVerdicts).length} acceptance checks pass.`
+              : `Remaining blockers: ${heal.blockers.join(", ")}`,
+            meta: heal,
+          });
+        } catch (e: any) {
+          setRunResult({
+            stage: "capital_flows",
+            label: "Self-heal failed",
+            ok: false,
+            text: e?.message ?? String(e),
+          });
+        } finally {
+          setActiveRun(null);
+        }
+      }
     } finally {
       await refresh();
       setBulkRunning(false);
     }
   }
+
 
   const runAllPending = () => runSequential("pending");
   const rerunAll = () => runSequential("rerun");

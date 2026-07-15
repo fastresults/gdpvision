@@ -77,11 +77,15 @@ type Check = {
   verdict: Verdict | null;
   loading: boolean;
   run: () => void;
+  /** Awaitable variant — resolves after react-query settles. */
+  runAsync: () => Promise<Verdict | null>;
   /** Raw data for the diagnoser to inspect */
   data?: unknown;
   /** True for probes that cost credits or write demo rows; excluded from
    *  "Run all reads" and only fired by "Run everything". */
   isWriteProbe?: boolean;
+  /** Human cost hint shown in remediator buttons and confirms. */
+  costHint?: string;
 };
 
 

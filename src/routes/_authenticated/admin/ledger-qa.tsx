@@ -32,6 +32,7 @@ import {
   getRecentCorpusAttempts,
 } from "@/lib/ledger-qa/backfill.functions";
 import { tombstoneQaProbes } from "@/lib/ledger-qa/probes.functions";
+import { runSelfHealingAcceptance, type SelfHealStep } from "@/lib/ledger-qa/self-heal.functions";
 import { getCorpusMissStatus, redriveCorpusMisses } from "@/lib/corpus/audit.functions";
 import { lookupRemediator, CASCADE_MAP, type RemediatorKey } from "@/lib/ledger-qa/remediators";
 import { diagnoseFinding, type Diagnosis } from "@/lib/ledger-qa/diagnose.functions";
@@ -161,6 +162,21 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
   const [simRunning, setSimRunning] = useState(false);
   const simCancelRef = useState<{ cancel: boolean }>({ cancel: false })[0];
 
+  // Self-heal state (streams the server-side sequencer's timeline).
+  const [healTimeline, setHealTimeline] = useState<SelfHealStep[]>([]);
+  const [healSummary, setHealSummary] = useState<{ shippable: boolean; blockers: string[]; wallMs: number } | null>(null);
+  const selfHealMutation = useMutation({
+    mutationFn: () => runSelfHealingAcceptance({ data: { countryCode, maxHealAttempts: 1, includeWriteProbes: false } }),
+    onMutate: () => { setHealTimeline([]); setHealSummary(null); },
+    onSuccess: (r) => {
+      setHealTimeline(r.timeline);
+      setHealSummary({ shippable: r.shippable, blockers: r.blockers, wallMs: r.wallMs });
+      // Re-run client-side checks so the top banner + rows reflect the healed state.
+      void runAll(false);
+      qc.invalidateQueries({ queryKey: ["ledger-qa-actions", countryCode] });
+    },
+  });
+
   const snapshotVerdicts = () =>
     checks.map((c) => ({ key: c.key, status: c.verdict?.status ?? "idle" }));
 
@@ -212,6 +228,7 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
     setSimRunning(false);
   };
 
+
   // Chamber 01 v2 acceptance gate (top-of-page):
   // SHIPPABLE only when every check has a pass verdict (0 warns / 0 fails / 0 idle).
   // Write-probes count as idle until "Run everything" fires them at least once.
@@ -234,17 +251,75 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
   return (
     <section className="mt-12">
       {/* Acceptance gate — north-star verdict for Chamber 01 v2 ship-readiness. */}
-      <div className={`mb-6 flex items-center justify-between border-2 ${acceptance.color} bg-white px-5 py-4`}>
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
-            Chamber 01 v2 · Acceptance · {countryCode}
-          </p>
-          <p className={`mt-1 font-mono text-lg uppercase tracking-widest ${acceptance.color.split(" ")[0]}`}>
-            {acceptance.label}
-          </p>
+      <div className={`mb-6 border-2 ${acceptance.color} bg-white px-5 py-4`}>
+        <div className="flex items-center justify-between gap-6">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+              Chamber 01 v2 · Acceptance · {countryCode}
+            </p>
+            <p className={`mt-1 font-mono text-lg uppercase tracking-widest ${acceptance.color.split(" ")[0]}`}>
+              {acceptance.label}
+            </p>
+          </div>
+          <p className="max-w-xl flex-1 text-right text-xs text-ink-700">{acceptance.reason}</p>
+          <button
+            type="button"
+            onClick={() => {
+              const ok = window.confirm(
+                "Self-heal to ship: walk every acceptance step top-to-bottom for " +
+                  countryCode +
+                  ". Any warn/fail triggers the mapped searcher→writer to populate the corpus, then re-checks. Costs AI credits (Perplexity + Gemini) proportional to the number of gaps.",
+              );
+              if (ok) selfHealMutation.mutate();
+            }}
+            disabled={selfHealMutation.isPending}
+            className="border-2 border-ink-950 bg-ink-950 px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-white disabled:opacity-50"
+            title="Runs the server-side sequencer: check → heal → recheck for every step, in order."
+          >
+            {selfHealMutation.isPending ? "healing…" : "Self-heal to ship"}
+          </button>
         </div>
-        <p className="max-w-xl text-right text-xs text-ink-700">{acceptance.reason}</p>
+        {healSummary || healTimeline.length > 0 || selfHealMutation.isPending ? (
+          <div className="mt-4 border-t border-line-200 pt-3">
+            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+              Self-heal timeline
+              {healSummary ? ` · ${healSummary.wallMs}ms · ${healSummary.shippable ? "SHIPPABLE" : `blocked: ${healSummary.blockers.join(", ")}`}` : selfHealMutation.isPending ? " · running…" : ""}
+            </p>
+            {selfHealMutation.error ? (
+              <p className="mt-2 font-mono text-[11px] text-red-700">
+                {(selfHealMutation.error as Error).message}
+              </p>
+            ) : null}
+            {healTimeline.length > 0 ? (
+              <ol className="mt-2 space-y-0.5 font-mono text-[11px] text-ink-500">
+                {healTimeline.map((s, i) => {
+                  const tag =
+                    s.phase === "check" ? "read " :
+                    s.phase === "recheck" ? "again" :
+                    "heal ";
+                  const color =
+                    s.status === "pass" ? "text-emerald-700" :
+                    s.status === "healed" ? "text-emerald-600" :
+                    s.status === "warn" ? "text-gold-500" :
+                    s.status === "fail" || s.status === "heal-failed" ? "text-red-700" :
+                    "text-ink-500";
+                  return (
+                    <li key={i}>
+                      <span className="text-ink-950">{String(i + 1).padStart(2, "0")}.</span>{" "}
+                      <span className="uppercase tracking-widest">{tag}</span>{" · "}
+                      <span className={`${color} uppercase tracking-widest`}>{s.status}</span>{" · "}
+                      <span className="text-ink-950">{s.key}</span>
+                      {s.action ? <> · <span className="text-ink-700">{s.action}</span></> : null}
+                      {" · "}{s.ms}ms · {s.detail}
+                    </li>
+                  );
+                })}
+              </ol>
+            ) : null}
+          </div>
+        ) : null}
       </div>
+
 
       <div className="flex items-baseline justify-between">
         <h3 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">

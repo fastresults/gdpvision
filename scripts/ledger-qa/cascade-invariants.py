@@ -44,7 +44,7 @@ def check_country(cc: str) -> list[tuple[str, bool, str]]:
     if not mins:
         out.append(("I2 ministries ", True, "n=0 (no ministries yet)"))
     else:
-        ids = ",".join(m["id"] for m in mins)
+        ids = ",".join(f'"{m["id"]}"' for m in mins)
         profs = rest("ministry_profiles", {"ministry_id": f"in.({ids})", "select": "ministry_id"})
         missing = len(mins) - len({p["ministry_id"] for p in profs})
         out.append(("I2 ministries ", missing == 0, f"{len(mins)-missing}/{len(mins)} profiled"))

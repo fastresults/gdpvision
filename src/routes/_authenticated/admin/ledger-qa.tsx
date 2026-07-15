@@ -1061,6 +1061,7 @@ function useExplainFigureCheck(cc: string): Check {
     loading: q.isFetching,
     run: () => q.refetch(),
     data: q.data,
+    cachedAt: q.dataUpdatedAt || undefined,
   };
 }
 
@@ -1090,6 +1091,7 @@ function useAskLedgerCheck(cc: string): Check {
     loading: q.isFetching,
     run: () => q.refetch(),
     data: q.data,
+    cachedAt: q.dataUpdatedAt || undefined,
   };
 }
 
@@ -1122,6 +1124,7 @@ function useAskLedgerRefusalCheck(cc: string): Check {
     loading: q.isFetching,
     run: () => q.refetch(),
     data: q.data,
+    cachedAt: q.dataUpdatedAt || undefined,
   };
 }
 

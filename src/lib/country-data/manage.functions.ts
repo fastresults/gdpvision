@@ -745,6 +745,19 @@ export const corpusStats = createServerFn({ method: "POST" })
       documents = d ?? 0;
       last_ingest_at = latest?.[0]?.fetched_at ?? null;
     }
+    try {
+      const { recordCorpusReadOutcome } = await import("@/lib/corpus/gateway.server");
+      void recordCorpusReadOutcome({
+        countryCode: data.countryCode,
+        domain: "sources",
+        key: "corpus:stats",
+        outcome: (sourcesActive ?? 0) > 0 ? "hit" : "empty",
+        latencyMs: 0,
+        actor: context.userId,
+      });
+    } catch {
+      // audit-only
+    }
     return {
       sources_total: sourcesTotal ?? 0,
       sources_active: sourcesActive ?? 0,

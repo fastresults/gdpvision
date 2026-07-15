@@ -1,88 +1,106 @@
-You're right — the current Ledger-QA is theater. "Run all" only invalidates cached reads, credit-costing probes stay `NOT RUN` forever, WARN copy is hand-coded strings that ignore live state, and the enrichment WARN still says "go run Stage 12 in onboarding" even though we just wired an inline capital-flows backfill. Below is an end-to-end fix.
 
-## What's actually broken today
+# Ledger-QA — bulletproof pass #2
 
-1. **"Run all" is a lie.** It calls `queryClient.invalidateQueries` on the row keys, so any check with `enabled: false` (explain / ask / ask-refuse / snapshot-rt / handoff) just re-shows `IDLE_VERDICT`. Five of twelve rows never run.
-2. **Findings ignore live state.** `deriveFinding` is a `switch` over `check.key` returning hand-written copy. It doesn't peek at `corpus_fetch_attempts`, so a WARN row keeps saying "run Stage 12 in onboarding" 5 seconds after the background backfill already fired.
-3. **No inline self-heal for the four biggest WARN classes** (missing capital_flows, missing KPI series, missing sector composition, missing ministry_profiles). Each one throws the operator back to `/admin/countries/$cc/onboard` — the loop the whole corpus-miss infra was built to avoid.
-4. **Fire-and-forget backfill has no receipt.** `triggerCorpusBackfill` runs in the background but the drawer shows nothing about it. The user cannot tell "already tried, cooling down" from "never tried".
-5. **Publish gate cascade is dead-end text.** It lists blocked upstream keys but offers no button that fixes them and re-runs the gate.
-6. **Write-probes leak data.** `snapshot-rt` and `handoff` insert a fresh row every run. Ten `Run all`s = ten probe rows in `figure_snapshots` and ten narrative signals — noise indistinguishable from real work.
-7. **No AI fallback.** When the fixture-shaped switch doesn't match, we render "No systemic fix registered." Dead end.
+Stress-tested each surface end-to-end. The last round shipped Phases 1–6 and 8; the following gaps still make "Run All" lie or leave the operator without a receipt. This plan closes them and finishes Phase 7 (write-probe hygiene).
 
-## Bulletproof plan — 8 phases
+## Gaps found in the current build
 
-### Phase 1 · Make `Run all` real
-- Two buttons: **Run all reads** (default; safe) and **Run everything (incl. write probes)** (behind a confirm modal; explains cost).
-- Every check gets `runsWithRunAll: "always" | "reads-only" | "on-demand"`. Reads always run; write probes only when the second button fires.
-- `refetch({ throwOnError: false })` in a `Promise.allSettled`; store per-run outcomes in a session-scoped `run_id` and display a summary strip (`10 pass · 1 warn · 1 fail`).
+### A. "Run all" still not honest
+- `runAll(includeWrites)` fires `c.run()` in a tight loop and returns immediately. React-Query refetches are in flight but the UI has no per-run receipt.
+- The plan called for a `Promise.allSettled` + `run_id` + summary strip (`10 pass · 1 warn · 1 fail`); we render only the standing header counts, which don't reflect *what this click did*.
+- No detection of "silent no-op" (verdict unchanged after run) — user can't tell if the click did anything.
 
-### Phase 2 · Universal remediator registry (`src/lib/ledger-qa/remediators.ts`)
-Replace the `switch` in `deriveFinding` with a lookup table keyed by `(checkKey, findingClass)`:
+### B. Cold-start simulator is a fake clock
+- The loop does `c.run()` then `await sleep(800)` and snapshots the verdict. Reads that take >800ms record `idle`; fast reads still show the *previous* verdict because React-Query hasn't rendered yet.
+- No await on `q.isFetching → false`. No cancel button. No aggregated latency budget.
 
-```text
-enrichment  / data-missing    → backfillCapitalFlows(cc)   sync-await
-trust       / data-missing    → backfillKpiSeries(cc)      sync-await
-overview    / data-missing    → backfillSectors(cc)        sync-await
-overview    / data-quality    → backfillMinistryProfiles(cc) sync-await
-sources     / data-quality    → repairInvalidSourceUrls    (exists)
-sources     / external-outage → retryUnreachableSources    (exists)
-gate        / config          → cascadeFix(blocked_keys)   compound
-corpus-miss / *               → redriveCorpusMisses(domain) (exists)
-*           / unknown         → aiDiagnoseFinding()         AI-shaped
-```
+### C. Findings still ignore live state for two big cases
+- `overview` only handles missing sectors — never surfaces "sectors present but no ministry_profiles", so the ministry backfill is unreachable from the drawer.
+- `enrichment` warns "run Stage 12 in onboarding" as the fallback copy even though `backfillCapitalFlows` is wired — the string should mention the button.
 
-Each remediator returns `{ summary, refetchKeys, wroteRows }` and writes a `ledger_qa_actions` row. UI dispatches by key — no more per-row `case` statements.
+### D. Cascade fix under-invalidates
+- After `cascadeFix` finishes, only `["ledger-qa", cc]` prefix is invalidated. Recent Actions + attempts panels don't refresh; the gate row updates but the upstream rows (sources/trust/overview) stay stale until the operator re-clicks.
+- No dedup across chains: if two blocked keys map to the same remediator, we run it twice per click.
 
-### Phase 3 · New sync-await backfill server fns
-Wrap the Phase-B searchers with `.middleware([requireSupabaseAuth])` + admin check + inline `await search…() → writer`, returning row-counts:
-- `backfillCapitalFlows` — `searchCapitalFlows` → `upsertCapitalFlow` (one per node), returns `{ period, wrote }`.
-- `backfillSectors` — `searchSectors` → `replace_country_sectors` RPC, returns `{ wrote }`.
-- `backfillMinistryProfiles(cc)` — loops `ministries` missing a profile, calls `searchMinistry` + `upsertMinistryProfile`.
-- `backfillKpiSeries(cc)` — iterates `country_kpis` with `latest_value IS NULL`, calls `searchKpi` (Phase-B) + `upsertKpi/upsertKpiPoint`.
+### E. AI Diagnose is read-only
+- When the AI returns a `remediator_key` that matches the registry, we render text but don't offer a "Run suggested remediator" button. Dead end for the operator.
 
-Each is admin-only, idempotent, budgeted (30s per call), logs a `corpus_fetch_attempts` row through `corpusRead` so the audit page stays authoritative.
+### F. Write probes still leak (Phase 7 unfinished)
+- `snapshot-rt` inserts a new `figure_snapshots` row every click.
+- `handoff` inserts a new `intake_items` row every click.
+- `explain`, `ask`, `ask-refuse` burn AI credits on every click with no cache.
+- Ten "Run everything" clicks = 10 probe rows in each surface, indistinguishable from real work.
 
-### Phase 4 · AI Diagnose fallback (`diagnoseFinding` server fn)
-For anything the registry doesn't handle:
-1. Load `check.data`, `verdict`, the check's country_code, and the last 25 `corpus_fetch_attempts` rows for that (country, likely-domain).
-2. Load table row-counts + last-updated timestamps for the tables the check touches.
-3. Send bundle to Lovable AI (`google/gemini-3.1-flash`) with strict JSON schema:
-   ```json
-   {"root_cause": string, "class": "data-missing|data-quality|code-defect|external-outage|config", "remediator_key": string|null, "operator_steps": string[], "confidence": "low|med|high"}
-   ```
-4. UI renders the AI-shaped finding; if `remediator_key` matches a registry entry, offer that same button — otherwise show the operator steps.
+### G. Public hook is over-scoped and wrong-keyed
+- Uses `SUPABASE_SERVICE_ROLE_KEY` to compare against the publishable anon key — a mismatch of intent (service role reads bypass RLS with a public bearer). Should use a dedicated `LEDGER_QA_HOOK_KEY` secret and read via publishable client.
+- Missing `explain`, `ask`, `snapshot-rt`, `handoff`, `recon`, `gate` — only 5 of 12 checks, so CI parity is broken.
 
-Every non-registry WARN/FAIL drawer gets an **AI diagnose** button. Result is cached 10min per (check_key, cc) so repeated Run-Alls don't burn credits.
+### H. Confirm-gap on writes
+- Every remediator button (backfills cost credits, retry HEAD checks fires 20–40 outbound requests) fires on a single click with no confirmation.
 
-### Phase 5 · Backfill visibility in every drawer
-- New server fn `getRecentCorpusAttempts(cc, domain)` — last 5 rows, small.
-- Each `data-missing` drawer renders: `Last attempt: 2m ago · tier: perplexity · outcome: external (wrote 8 rows)`. Buttons: **Backfill now** (forceRefresh=true) and **Wait & re-check** (polls the query every 15s for 90s).
-- If cooldown active, show `Cooling down — next attempt allowed at 14:32:15` with a **Force refresh** override.
+---
 
-### Phase 6 · Publish-gate cascade auto-fix
-`gate/config` finding now maps blocked upstream keys → their remediator, and renders:
-- **Fix upstream cascade** button: iterates blocked keys, dispatches each auto-applicable remediator serially, refetches the gate at the end.
-- Non-auto items become a numbered checklist with deep links.
+## Fix plan — 8 focused edits
 
-### Phase 7 · Credit-safe / dedup-safe write probes
-- `snapshot-rt`: label pattern stays; before insert, delete any probe rows older than the latest 3. Cache result 10min so Run All doesn't re-pin.
-- `handoff`: same treatment — tombstone signals tagged `qa-probe` beyond latest 3.
-- `explain` / `ask` / `ask-refuse`: results cached 10min in a lightweight `qa_probe_cache` table keyed by `(cc, check_key)`; "Force fresh probe" toggle bypasses cache.
+### 1. Honest Run-all + per-click summary
+`ledger-qa.tsx`
+- Replace the fire-and-forget loop with `Promise.allSettled(checks.filter(...).map(c => c.refetchPromise()))`. Each hook exposes `refetch: () => Promise<QueryObserverResult>` (React-Query already returns a promise; wire it through the `Check` type).
+- Snapshot verdicts BEFORE and AFTER the batch; render a `Last run: 10 pass · 1 warn · 1 fail · Δ 3 flipped (2 warn→pass, 1 pass→fail)` strip with timestamp and a "Copy JSON" button.
+- Same treatment for `Run everything` (adds write probes and shows credit tally at the end).
 
-### Phase 8 · Cold-start simulator + CLI parity
-- Top-of-page **Simulate cold-start** button: runs every check in sequence, showing a step-by-step timeline (`read → miss → remediator → re-read → verdict`). Proves the loop end-to-end in one click.
-- Public route `src/routes/api/public/hooks/ledger-qa.ts` (HMAC-verified) returns the same 12-check JSON verdict list for cron / CI.
+### 2. Real cold-start simulator
+- Convert the loop to `for (const c of reads) { const t0 = Date.now(); const res = await c.refetchPromise(); timeline.push({...}) }`.
+- Add per-step Cancel (aborts the loop, keeps prior rows).
+- Show cumulative ms budget vs 30s ceiling; red-flag any read >5s.
 
-## Rollout order (each step ships independently)
+### 3. Wider overview + friendlier enrichment copy
+`deriveFinding`
+- `overview`: if sectors present but any ministry lacks a `ministry_profiles` row, downgrade to `data-quality` and map to `backfillMinistryProfiles` (already in registry).
+- `enrichment` (`data-missing`): rewrite `rootCause` to "No capital_flows committed for {cc} — click *Backfill capital flows* below (3-pass Perplexity waterfall, ~60s, writes to `country_capital_flows`)."
 
-1. **Phase 3** — backfill server fns ✅ shipped.
-2. **Phase 2** — remediator registry ✅ shipped.
-3. **Phase 5** — backfill visibility (RecentAttemptsPanel) ✅ shipped.
-4. **Phase 6** — cascade fix ✅ shipped (client-side `useRemediator` cascadeFix loops `CASCADE_MAP` per blocked gate check).
-5. **Phase 1** — real "Run all" (reads-only + everything) ✅ shipped.
-6. **Phase 7** — write-probe hygiene ⏳ pending (probes still write per run; cache table not yet added).
-7. **Phase 4** — AI diagnose fallback ✅ shipped (`diagnoseFinding` server fn + `AiDiagnoseButton` per drawer, 10min in-memory cache).
-8. **Phase 8** — cold-start simulator ✅ shipped (button + step timeline) + public `/api/public/hooks/ledger-qa?country=XXX` GET returning verdict JSON (apikey-gated).
+### 4. Cascade fix — dedup + full invalidation
+- `cascadeFix`: deduplicate the remediator chain (`Array.from(new Set(chain))` across all blocked keys) before running.
+- `onSuccess` for every remediator mutation invalidates: `["ledger-qa", cc]`, `["ledger-qa-actions", cc]`, and every `["ledger-qa", cc, "attempts", *]` domain used by open drawers.
+- After the cascade completes, force `refetch` on all read checks so the header counts settle without a manual second click.
 
-Verification each phase: `bunx tsgo --noEmit`, hit `/admin/ledger-qa` on LCA, watch the specific WARN row flip green after clicking its remediator, confirm one `ledger_qa_actions` row and one `corpus_fetch_attempts` row per action.
+### 5. AI Diagnose → dispatchable
+- In `AiDiagnoseButton`, when `mut.data.remediator_key` is a valid `RemediatorKey`, render a secondary "Run suggested remediator" button that calls `runRemediatorByKey` (already exported) and invalidates like the primary path.
+- Keep the 10-min in-memory cache; add a "Force fresh diagnose" toggle for debugging.
+
+### 6. Phase 7 — credit-safe write probes
+- New migration `qa_probe_cache(cc text, check_key text, response jsonb, created_at timestamptz default now(), primary key (cc, check_key))` + grants + admin-only RLS.
+- Wrap `explainFigure`, `askTheLedger` calls behind a `runProbe(cc, key, fn)` helper that reads the row if `< 10 min` old, else calls the fn and upserts.
+- `snapshot-rt`: before insert, delete probe rows in `figure_snapshots` where `label LIKE 'QA snapshot probe · %'` and `id NOT IN (top 3)` for this cc. Cache result 10 min.
+- `handoff`: same treatment on `intake_items` tagged `note='Ledger-QA handoff probe'`.
+- Add a "Force fresh probe" checkbox in each probe drawer (bypasses cache).
+
+### 7. Public hook — parity + dedicated key
+- Add secret `LEDGER_QA_HOOK_KEY` (via `secrets--add_secret`); compare that instead of the anon key.
+- Extend the GET to emit all 12 verdict rows by calling the same server functions the UI uses (`getPublishGate`, `getReconciliationReport`, `getSourceHealth`, `getTrustSignals`, `getCorpusMissStatus`) via `supabaseAdmin` inside the handler, plus a "skipped" placeholder for the 4 write probes.
+- Add `run_id` (uuid) and `wall_ms` per verdict in the JSON shape so cron/CI can chart trend.
+
+### 8. Confirm before spending
+- Wrap every remediator button in a lightweight confirm: `window.confirm('Run <label>? This calls Perplexity/AI and writes rows.')`. Skip confirm for `repairInvalidSourceUrls` and `retryUnreachableSources` (idempotent, no external cost).
+- Show estimated cost class next to each button (`~10 credits`, `HEAD-only, free`, `writes ~30 rows`).
+
+---
+
+## Verification
+
+- `bunx tsgo --noEmit` after each edit batch.
+- On `/admin/ledger-qa` for LCA: click *Run all reads*, confirm summary strip appears and rows settle without a second click.
+- Click *Simulate cold-start*, confirm timeline shows actual latencies and no `idle` entries for reads that succeed.
+- Trigger *Backfill capital flows*, confirm `RecentAttemptsPanel` refreshes within 20s and enrichment row flips to pass on next Run All.
+- `curl -H "apikey: $LEDGER_QA_HOOK_KEY" 'https://gdpvision.lovable.app/api/public/hooks/ledger-qa?country=LCA'` returns 12 verdicts.
+
+## Rollout order
+
+1. Fix D (cascade invalidation) — 1 file, 15 lines.
+2. Fix C (overview + enrichment copy).
+3. Fix 1 + 2 (honest run-all + real cold-start).
+4. Fix 5 (AI diagnose dispatch).
+5. Fix 6 (Phase 7 write-probe hygiene) — includes migration.
+6. Fix 7 (public hook parity + dedicated key).
+7. Fix 8 (confirm modals + cost hints).
+
+Each phase is independently shippable; no phase depends on a later one.

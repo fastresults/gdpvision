@@ -22,11 +22,14 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const Input = z.object({
   countryCode: z.string().length(3),
-  /** Max heal attempts per step (default 1). Guards against thrash. */
-  maxHealAttempts: z.number().int().min(0).max(2).default(1),
+  /** Max heal attempts per step (default 3). Guards against thrash. */
+  maxHealAttempts: z.number().int().min(0).max(6).default(3),
   /** Include write-probe checks (explain/ask/snapshot/handoff) — skipped by default. */
   includeWriteProbes: z.boolean().default(false),
+  /** Global wall-clock budget in ms; sequencer aborts once exceeded. */
+  wallBudgetMs: z.number().int().min(30_000).max(30 * 60_000).default(15 * 60_000),
 });
+
 
 export type SelfHealPhase = "check" | "heal" | "recheck";
 export type SelfHealStatus = "pass" | "warn" | "fail" | "skipped" | "healed" | "heal-failed";
@@ -346,7 +349,7 @@ export const runSelfHealingAcceptance = createServerFn({ method: "POST" })
             supabaseAdmin.from("ministry_profiles").select("ministry_slug").eq("country_code", cc),
           ]);
           const have = new Set((profs ?? []).map((p: any) => p.ministry_slug));
-          const missing = (mins ?? []).filter((m: any) => !have.has(m.slug)).slice(0, 8);
+          const missing = (mins ?? []).filter((m: any) => !have.has(m.slug));
           if (!missing.length) throw new Error("no ministries seeded — cannot heal profiles without ministries");
           const beforeCount = (profs ?? []).length;
           let wrote = 0; const failures: string[] = [];
@@ -425,7 +428,7 @@ export const runSelfHealingAcceptance = createServerFn({ method: "POST" })
           const filled = new Map<string, unknown>();
           for (const r of existing ?? []) filled.set((r as any).kpi_code, (r as any).latest_value);
           const required = registryFor(["all"]).filter((k) => k.required);
-          const missing = required.filter((k) => filled.get(k.kpi_code) == null).slice(0, 6);
+          const missing = required.filter((k) => filled.get(k.kpi_code) == null);
           if (!missing.length) throw new Error("no required KPIs missing — check registry/read mismatch");
           const beforeFilled = Array.from(filled.values()).filter((v) => v != null).length;
           let wrote = 0; const failures: string[] = [];
@@ -459,35 +462,69 @@ export const runSelfHealingAcceptance = createServerFn({ method: "POST" })
         key: "corpus-miss",
         read: readCorpusMiss,
         heal: async () => {
-          // Redrive = clear cooldown so next natural read re-attempts. Idempotent.
+          // Real redrive: insert a synthetic "hit" marker per stuck (domain,key)
+          // so gateway.recentEmptyAttempt() no longer sees the empty/error/throttled
+          // outcome as the most-recent attempt within the cooldown window. The
+          // next natural read then re-runs the external searcher waterfall.
           const since = new Date(Date.now() - 24 * 3600_000).toISOString();
-          const { data: stuck } = await supabaseAdmin
+          const { data: rows } = await supabaseAdmin
             .from("corpus_fetch_attempts")
-            .select("id, domain, key")
+            .select("domain, key, outcome, created_at")
             .eq("country_code", cc)
-            .eq("outcome", "empty")
-            .gte("created_at", since);
-          const n = stuck?.length ?? 0;
-          // We don't delete audit rows; we just log an action so the next
-          // read-through knows to attempt again. (Cooldown enforcement is in
-          // gateway.server.ts — read the timestamp of the newest attempt.)
+            .gte("created_at", since)
+            .order("created_at", { ascending: true });
+          // Rebuild unresolved (domain,key) set
+          const state = new Map<string, boolean>();
+          for (const r of rows ?? []) {
+            const k = `${r.domain}::${r.key}`;
+            if (r.outcome === "empty" || r.outcome === "error" || r.outcome === "throttled") state.set(k, true);
+            else if (r.outcome === "external" || r.outcome === "hit") state.set(k, false);
+          }
+          const stuck = Array.from(state.entries()).filter(([, v]) => v).map(([k]) => {
+            const [domain, ...rest] = k.split("::");
+            return { domain, key: rest.join("::") };
+          });
+          if (stuck.length === 0) {
+            return { action: "redriveCorpusMisses", summary: "No stuck (domain,key) pairs to clear" };
+          }
+          const nowIso = new Date().toISOString();
+          const markers = stuck.map((s) => ({
+            country_code: cc,
+            domain: s.domain,
+            key: s.key,
+            outcome: "hit" as const,
+            tier: "redrive-clear",
+            latency_ms: 0,
+            actor: context.userId,
+            created_at: nowIso,
+          }));
+          const { error } = await supabaseAdmin.from("corpus_fetch_attempts").insert(markers);
+          if (error) throw new Error(error.message);
           await logAction({
             checkKey: "corpus-miss", action: "redriveCorpusMisses",
-            before: n, after: 0, detail: { cleared: n },
+            before: stuck.length, after: 0, detail: { cleared: stuck.length, pairs: stuck.slice(0, 20) },
           });
-          return { action: "redriveCorpusMisses", summary: `Marked ${n} stuck (domain,key) pair(s) for retry` };
+          return { action: "redriveCorpusMisses", summary: `Cleared cooldown on ${stuck.length} stuck (domain,key) pair(s)` };
         },
       },
     ];
 
+
     // ─── Sequencer ───────────────────────────────────────────────────────
+    const budgetExceeded = () => Date.now() - t0 > data.wallBudgetMs;
     for (const s of steps) {
+      if (budgetExceeded()) {
+        finalVerdicts[s.key] = { status: "skipped", detail: "wall-clock budget exceeded before step ran" };
+        push({ key: s.key, phase: "check", status: "skipped", detail: "budget exceeded", ms: 0 });
+        continue;
+      }
       const [v0, ms0] = await timed(s.read);
       push({ key: s.key, phase: "check", status: v0.status, detail: v0.detail, ms: ms0 });
 
       let current = v0;
       let attempts = 0;
-      while (current.status !== "pass" && s.heal && attempts < data.maxHealAttempts) {
+      let consecutiveThrows = 0;
+      while (current.status !== "pass" && s.heal && attempts < data.maxHealAttempts && !budgetExceeded()) {
         attempts += 1;
         try {
           const [healed, hMs] = await timed(s.heal);
@@ -498,19 +535,39 @@ export const runSelfHealingAcceptance = createServerFn({ method: "POST" })
             status: v1.status === "pass" ? "healed" : "heal-failed",
             detail: v1.status === "pass"
               ? healed.summary
-              : `Action ran but verification is still ${v1.status}: ${v1.detail}. ${healed.summary}`,
+              : `Attempt ${attempts}/${data.maxHealAttempts} ran but verification is still ${v1.status}: ${v1.detail}. ${healed.summary}`,
             ms: hMs,
             action: healed.action,
           });
           push({ key: s.key, phase: "recheck", status: v1.status, detail: v1.detail, ms: ms1 });
           current = v1;
+          consecutiveThrows = 0;
         } catch (e) {
-          push({ key: s.key, phase: "heal", status: "heal-failed", detail: (e as Error).message, ms: 0 });
-          break; // don't retry a failed heal in-loop; move on
+          consecutiveThrows += 1;
+          push({
+            key: s.key,
+            phase: "heal",
+            status: "heal-failed",
+            detail: `Attempt ${attempts}/${data.maxHealAttempts}: ${(e as Error).message}`,
+            ms: 0,
+          });
+          // Give up on this step only after 2 consecutive throws, so a transient
+          // fetch/LLM error doesn't kill the whole convergence loop.
+          if (consecutiveThrows >= 2) break;
         }
+      }
+      if (attempts >= data.maxHealAttempts && current.status !== "pass") {
+        push({
+          key: s.key,
+          phase: "recheck",
+          status: "heal-failed",
+          detail: `EXHAUSTED after ${attempts} heal attempt(s): ${current.detail}`,
+          ms: 0,
+        });
       }
       finalVerdicts[s.key] = { status: current.status, detail: current.detail };
     }
+
 
     const blockers = Object.entries(finalVerdicts)
       .filter(([, v]) => v.status !== "pass")

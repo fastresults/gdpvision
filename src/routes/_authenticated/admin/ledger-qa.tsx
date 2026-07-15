@@ -24,9 +24,18 @@ import {
   repairInvalidSourceUrls,
   retryUnreachableSources,
 } from "@/lib/ledger-qa/remediate.functions";
+import {
+  backfillCapitalFlows,
+  backfillSectors,
+  backfillMinistryProfiles,
+  backfillKpiSeries,
+  getRecentCorpusAttempts,
+} from "@/lib/ledger-qa/backfill.functions";
 import { getCorpusMissStatus, redriveCorpusMisses } from "@/lib/corpus/audit.functions";
+import { lookupRemediator, type RemediatorKey } from "@/lib/ledger-qa/remediators";
 import type { Finding } from "@/lib/ledger-qa/types";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
+
 
 const bindingsQuery = queryOptions({
   queryKey: ["instance-bindings"],
@@ -69,7 +78,11 @@ type Check = {
   run: () => void;
   /** Raw data for the diagnoser to inspect */
   data?: unknown;
+  /** True for probes that cost credits or write demo rows; excluded from
+   *  "Run all reads" and only fired by "Run everything". */
+  isWriteProbe?: boolean;
 };
+
 
 function LedgerQaPage() {
   const { data: bindings } = useSuspenseQuery(bindingsQuery);
@@ -128,6 +141,17 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
   const failCount = checks.filter((c) => c.verdict?.status === "fail").length;
   const warnCount = checks.filter((c) => c.verdict?.status === "warn").length;
 
+  const runAll = (includeWrites: boolean) => {
+    for (const c of checks) {
+      // Cheap reads: skip write probes unless the operator opted in.
+      if (!includeWrites && c.isWriteProbe) continue;
+      try { c.run(); } catch {}
+    }
+    // Also refresh derived queries (recent actions, attempts panels).
+    qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] });
+    qc.invalidateQueries({ queryKey: ["ledger-qa-actions", countryCode] });
+  };
+
   return (
     <section className="mt-12">
       <div className="flex items-baseline justify-between">
@@ -140,10 +164,23 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
           <span className="text-red-700">{failCount} fail</span>
           <button
             type="button"
-            onClick={() => qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] })}
+            onClick={() => runAll(false)}
             className="border border-ink-950 px-3 py-1.5 text-ink-950"
           >
-            Run all
+            Run all reads
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const ok = window.confirm(
+                "Run every probe including write/credit-costing ones (explain, ask, snapshot, handoff)? This will charge AI credits and write demo rows.",
+              );
+              if (ok) runAll(true);
+            }}
+            className="border border-ink-950 px-3 py-1.5 text-ink-950"
+            title="Runs every probe including AI-credit-costing writes"
+          >
+            Run everything
           </button>
         </div>
       </div>
@@ -168,6 +205,7 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
     </section>
   );
 }
+
 
 function CheckRow({ check, countryCode }: { check: Check; countryCode: string }) {
   const finding = deriveFinding(check, countryCode);
@@ -253,6 +291,21 @@ function SurfaceLink({ surface }: { surface: Check["surface"] }) {
 
 // ───────────────────────── forensic drawer + diagnose ─────────────────────────
 
+function attachRemediator(f: Finding, checkKey: string, findingClass: Finding["class"]): Finding {
+  const r = lookupRemediator(checkKey, findingClass);
+  if (!r) return f;
+  return {
+    ...f,
+    systemicFix: {
+      ...f.systemicFix,
+      description: f.systemicFix.description || r.description,
+      canAutoApply: r.canAutoApply,
+      remediatorKey: r.key as Finding["systemicFix"]["remediatorKey"],
+      corpusDomain: r.corpusDomain ?? f.systemicFix.corpusDomain,
+    },
+  };
+}
+
 function deriveFinding(check: Check, cc: string): Finding | null {
   const v = check.verdict;
   if (!v || v.status === "pass") return null;
@@ -285,7 +338,7 @@ function deriveFinding(check: Check, cc: string): Finding | null {
           (r.last_ok === false || (r.last_status && r.last_status !== "ok" && r.last_status !== "pending")),
       );
       if (invalid.length > 0) {
-        return {
+        return attachRemediator({
           checkKey: check.key,
           severity: "fail",
           class: "data-quality",
@@ -300,15 +353,14 @@ function deriveFinding(check: Check, cc: string): Finding | null {
           systemicFix: {
             kind: "auto-migration",
             description:
-              "Quarantine every row whose url does not match ^https?:// — set active=false, fetch_status='invalid_url', move offending text to fetch_error. Idempotent, no deletes.",
+              "Quarantine every row whose url does not match ^https?:// — set active=false, fetch_status='invalid_url', move offending text to fetch_error.",
             previewSql:
               "UPDATE country_sources SET active=false, fetch_status='invalid_url', fetch_error=<url text>\n  WHERE country_code=$1 AND (url IS NULL OR url !~* '^https?://');",
             canAutoApply: true,
-            remediatorKey: "repairInvalidSourceUrls",
           },
-        };
+        }, check.key, "data-quality");
       }
-      return {
+      return attachRemediator({
         checkKey: check.key,
         severity: "fail",
         class: "external-outage",
@@ -319,52 +371,65 @@ function deriveFinding(check: Check, cc: string): Finding | null {
           kind: "retry",
           description: "Re-run HEAD checks with an 8s timeout; update source_health_checks + country_sources.fetch_status.",
           canAutoApply: true,
-          remediatorKey: "retryUnreachableSources",
         },
-      };
+      }, check.key, "external-outage");
+    }
+
+    case "overview": {
+      // WARN: no sector composition.
+      return attachRemediator({
+        checkKey: check.key,
+        severity: "warn",
+        class: "data-missing",
+        rootCause: `country_sectors is empty for ${cc}. Sector composition never committed.`,
+        evidence: [{ label: "Sectors", value: 0 }],
+        systemicFix: {
+          kind: "writer-patch",
+          description: "",
+          canAutoApply: true,
+        },
+      }, check.key, "data-missing");
     }
 
     case "enrichment": {
-      const data = check.data as { capitalFlows: { totals: { inputs: number } } } | undefined;
+      const data = check.data as { capitalFlows: { totals: { inputs: number } }; ministries?: Array<unknown> } | undefined;
       const noFlows = !data || data.capitalFlows.totals.inputs === 0;
       if (noFlows) {
-        return {
+        return attachRemediator({
           checkKey: check.key,
           severity: "warn",
           class: "data-missing",
           rootCause: `country_capital_flows has 0 committed rows for ${cc}. Stage 12 (capital-flows research) has not run.`,
           evidence: [{ label: "Committed flows", value: 0 }],
           systemicFix: {
-            kind: "operator-action",
-            description: `Open country onboarding and run Stage 12 for ${cc}. Commit only when residual ≤ 10%.`,
-            href: `/admin/countries/${cc}/onboard`,
-            canAutoApply: false,
+            kind: "writer-patch",
+            description: "",
+            canAutoApply: true,
           },
-        };
+        }, check.key, "data-missing");
       }
       return genericFinding(check, cc, "data-quality", "Capital flows committed but reconciliation is off. Review nodes in stewardship.");
     }
 
     case "trust": {
-      return {
+      return attachRemediator({
         checkKey: check.key,
         severity: "warn",
         class: "data-missing",
         rootCause: `country_kpi_points has no committed series for ${cc}. KPI ingest has not populated the trust corpus.`,
         evidence: [{ label: "Series indexed", value: 0 }],
         systemicFix: {
-          kind: "operator-action",
-          description: `Run KPI research/ingest for ${cc} from country onboarding.`,
-          href: `/admin/countries/${cc}/onboard`,
-          canAutoApply: false,
+          kind: "writer-patch",
+          description: "",
+          canAutoApply: true,
         },
-      };
+      }, check.key, "data-missing");
     }
 
     case "gate": {
       const data = check.data as { checks: Array<{ key: string; pass: boolean; detail?: string }> } | undefined;
       const blocked = data?.checks.filter((c) => !c.pass) ?? [];
-      return {
+      return attachRemediator({
         checkKey: check.key,
         severity: "warn",
         class: "config",
@@ -372,16 +437,33 @@ function deriveFinding(check: Check, cc: string): Finding | null {
         evidence: blocked.map((b) => ({ label: b.key, value: b.detail ?? "blocked" })),
         systemicFix: {
           kind: "operator-action",
-          description: "Resolve each blocked upstream check above. This row will clear automatically.",
+          description: "Resolve each blocked upstream check above. Cascade fix runs each in order.",
           canAutoApply: false,
+          cascadeKeys: blocked.map((b) => b.key),
         },
-      };
+      }, check.key, "config");
+    }
+
+    case "corpus-miss": {
+      return attachRemediator({
+        checkKey: check.key,
+        severity: v.status === "fail" ? "fail" : "warn",
+        class: "data-missing",
+        rootCause: v.detail,
+        evidence: [{ label: "Detail", value: v.detail }],
+        systemicFix: {
+          kind: "retry",
+          description: "",
+          canAutoApply: true,
+        },
+      }, check.key, "data-missing");
     }
 
     default:
       return genericFinding(check, cc);
   }
 }
+
 
 function genericFinding(
   check: Check,
@@ -403,16 +485,90 @@ function genericFinding(
   };
 }
 
-function FindingDrawer({ finding, countryCode }: { finding: Finding; countryCode: string }) {
+// Central mutation dispatcher — every remediator uses the same server-fn
+// shape (`{ data: { countryCode } }`) and returns a stringifiable summary.
+function useRemediator(key: RemediatorKey | undefined, countryCode: string) {
   const qc = useQueryClient();
-  const repair = useMutation({
-    mutationFn: () => repairInvalidSourceUrls({ data: { countryCode } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] }),
+  const invalidate = () =>
+    qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] });
+  return useMutation({
+    mutationFn: async () => {
+      switch (key) {
+        case "repairInvalidSourceUrls":
+          return { r: await repairInvalidSourceUrls({ data: { countryCode } }) };
+        case "retryUnreachableSources":
+          return { r: await retryUnreachableSources({ data: { countryCode } }) };
+        case "backfillCapitalFlows":
+          return { r: await backfillCapitalFlows({ data: { countryCode } }) };
+        case "backfillSectors":
+          return { r: await backfillSectors({ data: { countryCode } }) };
+        case "backfillMinistryProfiles":
+          return { r: await backfillMinistryProfiles({ data: { countryCode } }) };
+        case "backfillKpiSeries":
+          return { r: await backfillKpiSeries({ data: { countryCode } }) };
+        case "redriveCorpusMisses":
+          return { r: await redriveCorpusMisses({ data: { countryCode, hours: 24 } }) };
+        default:
+          throw new Error(`No remediator wired for key: ${key ?? "(none)"}`);
+      }
+    },
+    onSuccess: invalidate,
   });
-  const retry = useMutation({
-    mutationFn: () => retryUnreachableSources({ data: { countryCode } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] }),
+}
+
+function summarizeResult(key: RemediatorKey | undefined, r: unknown): string {
+  if (!r || typeof r !== "object") return "Done";
+  const o = r as Record<string, unknown>;
+  if (typeof o.summary === "string") return o.summary;
+  if (key === "repairInvalidSourceUrls") {
+    return `Quarantined ${o.activeQuarantined ?? 0} · total ${o.rowsFixed ?? 0}`;
+  }
+  if (key === "retryUnreachableSources") {
+    return `${o.ok ?? 0}/${o.attempted ?? 0} reachable`;
+  }
+  if (key === "redriveCorpusMisses") {
+    return `Cleared ${o.cleared ?? 0} cooldown marker(s)`;
+  }
+  return "Done";
+}
+
+function RecentAttemptsPanel({ countryCode, domain }: { countryCode: string; domain: string }) {
+  const q = useQuery({
+    queryKey: ["ledger-qa", countryCode, "attempts", domain],
+    queryFn: () => getRecentCorpusAttempts({ data: { countryCode, domain, limit: 5 } }),
+    staleTime: 15_000,
+    refetchInterval: 20_000,
   });
+  if (!q.data || q.data.length === 0) {
+    return (
+      <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.15em] text-ink-500">
+        No recent {domain} corpus attempts.
+      </p>
+    );
+  }
+  return (
+    <div className="mt-3 border-t border-line-200 pt-2">
+      <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-ink-500">
+        Last {q.data.length} corpus attempt(s) · domain {domain}
+      </p>
+      <ul className="mt-1 space-y-0.5 font-mono text-[10px] text-ink-500">
+        {q.data.map((r: any) => (
+          <li key={r.id}>
+            <span className="text-ink-950">{new Date(r.created_at).toISOString().slice(11, 19)}Z</span>
+            {" · "}<span className="uppercase tracking-widest">{r.outcome}</span>
+            {r.tier ? ` · ${r.tier}` : ""}
+            {typeof r.latency_ms === "number" ? ` · ${r.latency_ms}ms` : ""}
+            {" · "}{r.key}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function FindingDrawer({ finding, countryCode }: { finding: Finding; countryCode: string }) {
+  const remediatorKey = finding.systemicFix.remediatorKey;
+  const mut = useRemediator(remediatorKey, countryCode);
 
   const classColor: Record<Finding["class"], string> = {
     "data-missing": "text-gold-500 border-gold-500",
@@ -450,42 +606,32 @@ function FindingDrawer({ finding, countryCode }: { finding: Finding; countryCode
             {finding.systemicFix.previewSql}
           </pre>
         ) : null}
+        {finding.systemicFix.corpusDomain ? (
+          <RecentAttemptsPanel countryCode={countryCode} domain={finding.systemicFix.corpusDomain} />
+        ) : null}
       </div>
 
       <div className="flex flex-col items-end gap-2">
-        {finding.systemicFix.kind === "auto-migration" && finding.systemicFix.remediatorKey === "repairInvalidSourceUrls" ? (
+        {remediatorKey ? (
           <>
             <button
               type="button"
-              disabled={repair.isPending}
-              onClick={() => repair.mutate()}
+              disabled={mut.isPending}
+              onClick={() => mut.mutate()}
               className="border border-ink-950 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950 disabled:opacity-50"
             >
-              {repair.isPending ? "Repairing…" : "Apply repair"}
+              {mut.isPending
+                ? "Running…"
+                : lookupRemediator(finding.checkKey, finding.class)?.label ?? "Run remediator"}
             </button>
-            {repair.data ? (
-              <span className="font-mono text-[10px] text-emerald-700">
-                Quarantined {repair.data.activeQuarantined} · total {repair.data.rowsFixed}
+            {mut.data ? (
+              <span className="font-mono text-[10px] text-emerald-700 text-right max-w-[280px]">
+                {summarizeResult(remediatorKey, (mut.data as { r: unknown }).r)}
               </span>
             ) : null}
-            {repair.error ? (
-              <span className="font-mono text-[10px] text-red-700">{(repair.error as Error).message}</span>
-            ) : null}
-          </>
-        ) : null}
-        {finding.systemicFix.kind === "retry" && finding.systemicFix.remediatorKey === "retryUnreachableSources" ? (
-          <>
-            <button
-              type="button"
-              disabled={retry.isPending}
-              onClick={() => retry.mutate()}
-              className="border border-ink-950 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950 disabled:opacity-50"
-            >
-              {retry.isPending ? "Retrying…" : "Retry now"}
-            </button>
-            {retry.data ? (
-              <span className="font-mono text-[10px] text-emerald-700">
-                {retry.data.ok}/{retry.data.attempted} reachable
+            {mut.error ? (
+              <span className="font-mono text-[10px] text-red-700 text-right max-w-[280px]">
+                {(mut.error as Error).message}
               </span>
             ) : null}
           </>
@@ -502,6 +648,7 @@ function FindingDrawer({ finding, countryCode }: { finding: Finding; countryCode
     </div>
   );
 }
+
 
 function RecentActionsStrip({ countryCode }: { countryCode: string }) {
   const q = useQuery({
@@ -630,6 +777,7 @@ function useExplainFigureCheck(cc: string): Check {
       : IDLE_VERDICT;
   return {
     key: "explain",
+    isWriteProbe: true,
     label: "Why this number? — Second Brain grounded",
     surface: { to: "/instrument", label: "/instrument" },
     verdict,
@@ -658,6 +806,7 @@ function useAskLedgerCheck(cc: string): Check {
       : IDLE_VERDICT;
   return {
     key: "ask",
+    isWriteProbe: true,
     label: "Ask the Ledger — grounded answer",
     surface: { to: "/instrument", label: "/instrument" },
     verdict,
@@ -689,6 +838,7 @@ function useAskLedgerRefusalCheck(cc: string): Check {
       : IDLE_VERDICT;
   return {
     key: "ask-refuse",
+    isWriteProbe: true,
     label: "Ask the Ledger — refuses ungrounded probe",
     surface: { to: "/instrument", label: "/instrument" },
     verdict,
@@ -863,6 +1013,7 @@ function useSnapshotRoundtripCheck(cc: string): Check {
       : IDLE_VERDICT;
   return {
     key: "snapshot-rt",
+    isWriteProbe: true,
     label: "Snapshot pin round-trip (immutable)",
     surface: { to: "/instrument", label: "/instrument" },
     verdict,
@@ -902,6 +1053,7 @@ function useHandoffCheck(cc: string): Check {
       : IDLE_VERDICT;
   return {
     key: "handoff",
+    isWriteProbe: true,
     label: "Speak-this-number handoff → Narrative signal",
     surface: { to: "/narrative", label: "/narrative" },
     verdict,

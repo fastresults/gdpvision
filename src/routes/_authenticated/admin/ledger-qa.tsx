@@ -166,7 +166,7 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
   const [healTimeline, setHealTimeline] = useState<SelfHealStep[]>([]);
   const [healSummary, setHealSummary] = useState<{ shippable: boolean; blockers: string[]; wallMs: number } | null>(null);
   const selfHealMutation = useMutation({
-    mutationFn: () => runSelfHealingAcceptance({ data: { countryCode, maxHealAttempts: 1, includeWriteProbes: false } }),
+    mutationFn: () => runSelfHealingAcceptance({ data: { countryCode, maxHealAttempts: 3, includeWriteProbes: false } }),
     onMutate: () => { setHealTimeline([]); setHealSummary(null); },
     onSuccess: (r) => {
       setHealTimeline(r.timeline);

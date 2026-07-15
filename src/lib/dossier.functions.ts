@@ -128,6 +128,20 @@ export const getDossier = createServerFn({ method: "GET" })
       .filter((m) => !m.source_id || !suppressedIds.has(m.source_id))
       .slice(0, 20);
 
+    try {
+      const { recordCorpusReadOutcome } = await import("@/lib/corpus/gateway.server");
+      void recordCorpusReadOutcome({
+        countryCode: signal.scope_key,
+        domain: "memory",
+        key: `dossier:${signal.sector_code}:${signal.id}`,
+        outcome: memory.length > 0 ? "hit" : "empty",
+        latencyMs: 0,
+        actor: context.userId,
+      });
+    } catch {
+      // audit failures never break the read
+    }
+
     return {
       signal,
       memory: memory.map((m) => ({

@@ -456,16 +456,90 @@ function genericFinding(
   };
 }
 
-function FindingDrawer({ finding, countryCode }: { finding: Finding; countryCode: string }) {
+// Central mutation dispatcher — every remediator uses the same server-fn
+// shape (`{ data: { countryCode } }`) and returns a stringifiable summary.
+function useRemediator(key: RemediatorKey | undefined, countryCode: string) {
   const qc = useQueryClient();
-  const repair = useMutation({
-    mutationFn: () => repairInvalidSourceUrls({ data: { countryCode } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] }),
+  const invalidate = () =>
+    qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] });
+  return useMutation({
+    mutationFn: async () => {
+      switch (key) {
+        case "repairInvalidSourceUrls":
+          return { r: await repairInvalidSourceUrls({ data: { countryCode } }) };
+        case "retryUnreachableSources":
+          return { r: await retryUnreachableSources({ data: { countryCode } }) };
+        case "backfillCapitalFlows":
+          return { r: await backfillCapitalFlows({ data: { countryCode } }) };
+        case "backfillSectors":
+          return { r: await backfillSectors({ data: { countryCode } }) };
+        case "backfillMinistryProfiles":
+          return { r: await backfillMinistryProfiles({ data: { countryCode } }) };
+        case "backfillKpiSeries":
+          return { r: await backfillKpiSeries({ data: { countryCode } }) };
+        case "redriveCorpusMisses":
+          return { r: await redriveCorpusMisses({ data: { countryCode, hours: 24 } }) };
+        default:
+          throw new Error(`No remediator wired for key: ${key ?? "(none)"}`);
+      }
+    },
+    onSuccess: invalidate,
   });
-  const retry = useMutation({
-    mutationFn: () => retryUnreachableSources({ data: { countryCode } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] }),
+}
+
+function summarizeResult(key: RemediatorKey | undefined, r: unknown): string {
+  if (!r || typeof r !== "object") return "Done";
+  const o = r as Record<string, unknown>;
+  if (typeof o.summary === "string") return o.summary;
+  if (key === "repairInvalidSourceUrls") {
+    return `Quarantined ${o.activeQuarantined ?? 0} · total ${o.rowsFixed ?? 0}`;
+  }
+  if (key === "retryUnreachableSources") {
+    return `${o.ok ?? 0}/${o.attempted ?? 0} reachable`;
+  }
+  if (key === "redriveCorpusMisses") {
+    return `Cleared ${o.cleared ?? 0} cooldown marker(s)`;
+  }
+  return "Done";
+}
+
+function RecentAttemptsPanel({ countryCode, domain }: { countryCode: string; domain: string }) {
+  const q = useQuery({
+    queryKey: ["ledger-qa", countryCode, "attempts", domain],
+    queryFn: () => getRecentCorpusAttempts({ data: { countryCode, domain, limit: 5 } }),
+    staleTime: 15_000,
+    refetchInterval: 20_000,
   });
+  if (!q.data || q.data.length === 0) {
+    return (
+      <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.15em] text-ink-500">
+        No recent {domain} corpus attempts.
+      </p>
+    );
+  }
+  return (
+    <div className="mt-3 border-t border-line-200 pt-2">
+      <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-ink-500">
+        Last {q.data.length} corpus attempt(s) · domain {domain}
+      </p>
+      <ul className="mt-1 space-y-0.5 font-mono text-[10px] text-ink-500">
+        {q.data.map((r: any) => (
+          <li key={r.id}>
+            <span className="text-ink-950">{new Date(r.created_at).toISOString().slice(11, 19)}Z</span>
+            {" · "}<span className="uppercase tracking-widest">{r.outcome}</span>
+            {r.tier ? ` · ${r.tier}` : ""}
+            {typeof r.latency_ms === "number" ? ` · ${r.latency_ms}ms` : ""}
+            {" · "}{r.key}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function FindingDrawer({ finding, countryCode }: { finding: Finding; countryCode: string }) {
+  const remediatorKey = finding.systemicFix.remediatorKey;
+  const mut = useRemediator(remediatorKey, countryCode);
 
   const classColor: Record<Finding["class"], string> = {
     "data-missing": "text-gold-500 border-gold-500",
@@ -503,42 +577,32 @@ function FindingDrawer({ finding, countryCode }: { finding: Finding; countryCode
             {finding.systemicFix.previewSql}
           </pre>
         ) : null}
+        {finding.systemicFix.corpusDomain ? (
+          <RecentAttemptsPanel countryCode={countryCode} domain={finding.systemicFix.corpusDomain} />
+        ) : null}
       </div>
 
       <div className="flex flex-col items-end gap-2">
-        {finding.systemicFix.kind === "auto-migration" && finding.systemicFix.remediatorKey === "repairInvalidSourceUrls" ? (
+        {remediatorKey ? (
           <>
             <button
               type="button"
-              disabled={repair.isPending}
-              onClick={() => repair.mutate()}
+              disabled={mut.isPending}
+              onClick={() => mut.mutate()}
               className="border border-ink-950 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950 disabled:opacity-50"
             >
-              {repair.isPending ? "Repairing…" : "Apply repair"}
+              {mut.isPending
+                ? "Running…"
+                : lookupRemediator(finding.checkKey, finding.class)?.label ?? "Run remediator"}
             </button>
-            {repair.data ? (
-              <span className="font-mono text-[10px] text-emerald-700">
-                Quarantined {repair.data.activeQuarantined} · total {repair.data.rowsFixed}
+            {mut.data ? (
+              <span className="font-mono text-[10px] text-emerald-700 text-right max-w-[280px]">
+                {summarizeResult(remediatorKey, (mut.data as { r: unknown }).r)}
               </span>
             ) : null}
-            {repair.error ? (
-              <span className="font-mono text-[10px] text-red-700">{(repair.error as Error).message}</span>
-            ) : null}
-          </>
-        ) : null}
-        {finding.systemicFix.kind === "retry" && finding.systemicFix.remediatorKey === "retryUnreachableSources" ? (
-          <>
-            <button
-              type="button"
-              disabled={retry.isPending}
-              onClick={() => retry.mutate()}
-              className="border border-ink-950 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950 disabled:opacity-50"
-            >
-              {retry.isPending ? "Retrying…" : "Retry now"}
-            </button>
-            {retry.data ? (
-              <span className="font-mono text-[10px] text-emerald-700">
-                {retry.data.ok}/{retry.data.attempted} reachable
+            {mut.error ? (
+              <span className="font-mono text-[10px] text-red-700 text-right max-w-[280px]">
+                {(mut.error as Error).message}
               </span>
             ) : null}
           </>
@@ -555,6 +619,7 @@ function FindingDrawer({ finding, countryCode }: { finding: Finding; countryCode
     </div>
   );
 }
+
 
 function RecentActionsStrip({ countryCode }: { countryCode: string }) {
   const q = useQuery({

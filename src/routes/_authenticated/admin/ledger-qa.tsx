@@ -31,6 +31,7 @@ import {
   backfillKpiSeries,
   getRecentCorpusAttempts,
 } from "@/lib/ledger-qa/backfill.functions";
+import { tombstoneQaProbes } from "@/lib/ledger-qa/probes.functions";
 import { getCorpusMissStatus, redriveCorpusMisses } from "@/lib/corpus/audit.functions";
 import { lookupRemediator, CASCADE_MAP, type RemediatorKey } from "@/lib/ledger-qa/remediators";
 import { diagnoseFinding, type Diagnosis } from "@/lib/ledger-qa/diagnose.functions";

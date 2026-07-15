@@ -1,36 +1,52 @@
-# Ledger-QA verification harness — status
+# Chamber 01 v2 acceptance — mission status
 
-## Layers shipped
+`/admin/ledger-qa` titled **"Chamber 01 v2 acceptance"** is the ship gate for
+Chamber 01 v2. The product is shippable when — for the canonical country
+(LCA, the default binding) — every acceptance row is **pass**, on cold-start,
+without manual intervention. This doc reports that ship-readiness — nothing
+else.
 
-| Layer | Script | npm | What it proves |
-|---|---|---|---|
-| Fast-lane (multi-country hook) | `scripts/ledger-qa/verify.sh` | `ledger-qa:verify` | Public hook returns 12 verdicts per country with correct contract (zod-parity). Defaults: BRB LCA JAM GUY GBR. |
-| Cascade invariants (read-only) | `scripts/ledger-qa/cascade-invariants.py` | `ledger-qa:invariants` | Asserts the 5 invariants each cascade remediator would restore (sectors sum≈100, ministry_profiles cover ministries, kpis have latest_value, source URLs valid, capital flows committed). Uses service-role reads; no mutations. |
-| E2E (headless browser) | `scripts/ledger-qa/e2e.py` | `ledger-qa:e2e` | Signs in with the injected Supabase session, opens `/admin/ledger-qa`, clicks **Run all reads** and **Simulate cold-start**, screenshots each step, asserts summary parity between the header and the run-strip, and fails on non-fake latency. |
-| All-in-one | — | `ledger-qa:all` | Runs all three in sequence. |
+## Ship criteria (a country counts as "shippable" when all 6 are true)
 
-## Running
+1. Every read-check row renders `pass` (no warns, no fails).
+2. Every write-probe, when run once, renders `pass`.
+3. Publish gate → `pass` (no blocked upstreams).
+4. `npm run ledger-qa:invariants <CC>` exits 0 (5/5 invariants OK).
+5. `MUST_SHIP=<CC> npm run ledger-qa:verify <CC>` exits 0 (strict mode: 0 warn, 0 fail).
+6. Cold-start ends with the summary strip matching the header, 0 warn / 0 fail.
 
-```bash
-LEDGER_QA_HOOK_KEY=… npm run ledger-qa:verify           # 5-country fast lane
-npm run ledger-qa:invariants                             # read-only DB sweep
-LOVABLE_BROWSER_… vars set → npm run ledger-qa:e2e       # browser walk
-npm run ledger-qa:all                                    # everything
-```
+The top-of-page **Acceptance** banner in `/admin/ledger-qa` is the single north-star
+verdict — SHIPPABLE (green) or NOT SHIPPABLE (red) with the blocker list.
 
-Exit code is non-zero when any check fails, so this is CI-friendly.
+## Roster status
 
-## Findings from the last sweep
+| Country | Ship state | Blockers (as of last sweep) |
+|---|---|---|
+| LCA (canonical) | NOT SHIPPABLE | `country_capital_flows` empty → `enrichment` warn, `gate` blocked, invariant `I5 flows` ERR. One click of **Backfill capital flows** closes this. |
+| BRB | NOT SHIPPABLE | `0/12 ministry_profiles`, `0 capital flows`. Click **Backfill ministry profiles** then **Backfill capital flows**. |
+| JAM, GUY, GBR | Out of scope for this gate | Not onboarded (separate mission: Chamber 01 v2 roster expansion). |
 
-- **BRB** — 12/12 sectors OK, 18 kpis OK, sources clean, **0/12 ministry_profiles** (missing profiles), **0 capital flows committed** (backfill hasn't run).
-- **LCA** — all 5 invariants green.
-- **JAM, GUY** — not onboarded (no sectors / kpis / ministries / flows). Expected, not a regression.
-- **Public hook** parity across BRB / LCA / JAM verified — all 12 verdicts present, no fails, wall time 1.4–2.4s.
-- **UI parity** — summary strip now matches the header counts (fixed in the previous phase; e2e re-verifies each run).
+## Harness (grades the mission, not just the plumbing)
 
-The remaining warns are honest data gaps (BRB ministries + flows) that map cleanly to `backfillMinistryProfiles` and `backfillCapitalFlows` — one click each in `/admin/ledger-qa`.
+| npm script | Purpose |
+|---|---|
+| `ledger-qa:verify` | Fast-lane: hits the public hook per country, asserts 12-verdict contract. In strict mode (`MUST_SHIP=LCA,BRB`) a warn on those countries exits non-zero. Default arg list: BRB LCA JAM GUY GBR. |
+| `ledger-qa:invariants` | Read-only DB sweep: asserts the 5 invariants each cascade remediator would restore. |
+| `ledger-qa:e2e` | Signs in with the injected Supabase session, opens `/admin/ledger-qa`, clicks **Run all reads** + **Simulate cold-start**, screenshots each step, asserts parity between header and run-strip. |
+| `ledger-qa:all` | Runs all three in sequence, short-circuits on the first failure. |
 
-## Deferred
+Recommended CI wiring: `MUST_SHIP=LCA,BRB npm run ledger-qa:all`. Exit 0 =
+Chamber 01 v2 is shippable for the canonical roster; exit 1 = not shippable,
+consult the failing row.
 
-- **Layer 1 (direct handler smoke)** — the TanStack `createServerFn` handlers need a request context to invoke outside the RPC transport; the fast-lane hook already exercises every read-check codepath, and E2E covers the write probes and remediators.
-- **Cascade stress on a scratch country** — requires an isolated DB / staging schema so mutations don't pollute production. Not worth the seed-teardown cost while the invariants script gives us the same signal on real countries read-only.
+## Definition of done for the acceptance gate
+
+`MUST_SHIP=LCA,BRB npm run ledger-qa:all` exits 0 **and** the top-of-page
+**Acceptance** banner reads *SHIPPABLE* for both LCA and BRB on a fresh page
+load, with no manual intervention beyond the initial one-click backfills.
+
+## Out of scope
+
+- Onboarding JAM / GUY / GBR (separate mission).
+- Loosening any threshold to force green — a red row is fixed by fixing the
+  data or the code, not by lowering the bar.

@@ -212,8 +212,40 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
     setSimRunning(false);
   };
 
+  // Chamber 01 v2 acceptance gate (top-of-page):
+  // SHIPPABLE only when every check has a pass verdict (0 warns / 0 fails / 0 idle).
+  // Write-probes count as idle until "Run everything" fires them at least once.
+  const totalChecks = checks.length;
+  const idleCount = checks.filter((c) => !c.verdict || c.verdict.status === "idle").length;
+  const shipReady = failCount === 0 && warnCount === 0 && idleCount === 0 && passCount === totalChecks;
+  const blockers = checks
+    .filter((c) => c.verdict && (c.verdict.status === "warn" || c.verdict.status === "fail"))
+    .map((c) => `${c.key} ${c.verdict!.status}`);
+  const acceptance = {
+    label: shipReady ? "SHIPPABLE" : "NOT SHIPPABLE",
+    color: shipReady ? "text-emerald-700 border-emerald-700" : "text-red-700 border-red-700",
+    reason: shipReady
+      ? `All ${totalChecks} acceptance rows green for ${countryCode}.`
+      : idleCount > 0 && blockers.length === 0
+        ? `${idleCount} check(s) not yet run — click "Run everything" to complete acceptance.`
+        : `${blockers.length} blocker(s): ${blockers.join(", ")}${idleCount > 0 ? ` · ${idleCount} not yet run` : ""}.`,
+  };
+
   return (
     <section className="mt-12">
+      {/* Acceptance gate — north-star verdict for Chamber 01 v2 ship-readiness. */}
+      <div className={`mb-6 flex items-center justify-between border-2 ${acceptance.color} bg-white px-5 py-4`}>
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+            Chamber 01 v2 · Acceptance · {countryCode}
+          </p>
+          <p className={`mt-1 font-mono text-lg uppercase tracking-widest ${acceptance.color.split(" ")[0]}`}>
+            {acceptance.label}
+          </p>
+        </div>
+        <p className="max-w-xl text-right text-xs text-ink-700">{acceptance.reason}</p>
+      </div>
+
       <div className="flex items-baseline justify-between">
         <h3 className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
           {countryCode} · {checks.length} checks
@@ -262,6 +294,7 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
           )}
         </div>
       </div>
+
 
       {lastRun ? (
         <div className="mt-3 border border-line-200 bg-white px-4 py-2 font-mono text-[11px] text-ink-500">

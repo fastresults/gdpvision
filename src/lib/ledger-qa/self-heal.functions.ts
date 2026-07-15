@@ -511,13 +511,20 @@ export const runSelfHealingAcceptance = createServerFn({ method: "POST" })
 
 
     // ─── Sequencer ───────────────────────────────────────────────────────
+    const budgetExceeded = () => Date.now() - t0 > data.wallBudgetMs;
     for (const s of steps) {
+      if (budgetExceeded()) {
+        finalVerdicts[s.key] = { status: "skipped", detail: "wall-clock budget exceeded before step ran" };
+        push({ key: s.key, phase: "check", status: "skipped", detail: "budget exceeded", ms: 0 });
+        continue;
+      }
       const [v0, ms0] = await timed(s.read);
       push({ key: s.key, phase: "check", status: v0.status, detail: v0.detail, ms: ms0 });
 
       let current = v0;
       let attempts = 0;
-      while (current.status !== "pass" && s.heal && attempts < data.maxHealAttempts) {
+      let consecutiveThrows = 0;
+      while (current.status !== "pass" && s.heal && attempts < data.maxHealAttempts && !budgetExceeded()) {
         attempts += 1;
         try {
           const [healed, hMs] = await timed(s.heal);
@@ -528,19 +535,39 @@ export const runSelfHealingAcceptance = createServerFn({ method: "POST" })
             status: v1.status === "pass" ? "healed" : "heal-failed",
             detail: v1.status === "pass"
               ? healed.summary
-              : `Action ran but verification is still ${v1.status}: ${v1.detail}. ${healed.summary}`,
+              : `Attempt ${attempts}/${data.maxHealAttempts} ran but verification is still ${v1.status}: ${v1.detail}. ${healed.summary}`,
             ms: hMs,
             action: healed.action,
           });
           push({ key: s.key, phase: "recheck", status: v1.status, detail: v1.detail, ms: ms1 });
           current = v1;
+          consecutiveThrows = 0;
         } catch (e) {
-          push({ key: s.key, phase: "heal", status: "heal-failed", detail: (e as Error).message, ms: 0 });
-          break; // don't retry a failed heal in-loop; move on
+          consecutiveThrows += 1;
+          push({
+            key: s.key,
+            phase: "heal",
+            status: "heal-failed",
+            detail: `Attempt ${attempts}/${data.maxHealAttempts}: ${(e as Error).message}`,
+            ms: 0,
+          });
+          // Give up on this step only after 2 consecutive throws, so a transient
+          // fetch/LLM error doesn't kill the whole convergence loop.
+          if (consecutiveThrows >= 2) break;
         }
+      }
+      if (attempts >= data.maxHealAttempts && current.status !== "pass") {
+        push({
+          key: s.key,
+          phase: "recheck",
+          status: "heal-failed",
+          detail: `EXHAUSTED after ${attempts} heal attempt(s): ${current.detail}`,
+          ms: 0,
+        });
       }
       finalVerdicts[s.key] = { status: current.status, detail: current.detail };
     }
+
 
     const blockers = Object.entries(finalVerdicts)
       .filter(([, v]) => v.status !== "pass")

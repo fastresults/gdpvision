@@ -1255,6 +1255,8 @@ function useSnapshotRoundtripCheck(cc: string): Check {
   const q = useQuery({
     queryKey: ["ledger-qa", cc, "snapshot-rt"],
     queryFn: async () => {
+      // Trim stale probe rows to latest 3 before writing a new one.
+      try { await tombstoneQaProbes({ data: { countryCode: cc, keep: 3 } }); } catch {}
       const label = `QA snapshot probe · ${new Date().toISOString()}`;
       const pinned = await pinFigureSnapshot({
         data: {
@@ -1296,6 +1298,7 @@ function useSnapshotRoundtripCheck(cc: string): Check {
     loading: q.isFetching,
     run: () => q.refetch(),
     data: q.data,
+    cachedAt: q.dataUpdatedAt || undefined,
   };
 }
 
@@ -1303,6 +1306,7 @@ function useHandoffCheck(cc: string): Check {
   const q = useQuery({
     queryKey: ["ledger-qa", cc, "handoff"],
     queryFn: async () => {
+      try { await tombstoneQaProbes({ data: { countryCode: cc, keep: 3 } }); } catch {}
       const res = await handoffFigure({
         data: {
           target: "narrative",
@@ -1336,6 +1340,7 @@ function useHandoffCheck(cc: string): Check {
     loading: q.isFetching,
     run: () => q.refetch(),
     data: q.data,
+    cachedAt: q.dataUpdatedAt || undefined,
   };
 }
 

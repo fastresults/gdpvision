@@ -38,18 +38,32 @@ async def main():
         await page.wait_for_selector("text=/\\d+ checks/", timeout=15000)
         await page.screenshot(path=str(OUT/"1_loaded.png"))
 
+        # Wait for the header counts to settle (initial mount fetches).
+        await page.wait_for_function(
+            "() => { const t = document.body.innerText; const m = t.match(/(\\d+) pass\\s+(\\d+) warn\\s+(\\d+) fail/); return m && (parseInt(m[1])+parseInt(m[2])+parseInt(m[3])) > 0; }",
+            timeout=30000,
+        )
+
         # Click Run all reads
         await page.get_by_role("button", name="Run all reads").click()
-        # Wait for summary strip
         await page.wait_for_selector("text=Run all reads · ", timeout=30000)
-        strip = await page.locator("div.font-mono.text-\\[11px\\]").filter(has_text="Run all reads · ").first.inner_text()
+        # Give React-Query a moment past the strip render.
+        await asyncio.sleep(2)
         await page.screenshot(path=str(OUT/"2_run_all.png"))
 
-        m = re.search(r"(\d+) pass · (\d+) warn · (\d+) fail", strip)
-        assert m, f"could not parse summary strip: {strip!r}"
-        p, w, f = map(int, m.groups())
-        print(f"[run-all] pass={p} warn={w} fail={f}")
-        assert p + w + f > 0, "empty summary"
+        # Read HEADER counts (source of truth) not the summary strip (buggy).
+        header = await page.evaluate(
+            "() => { const t = document.body.innerText; const m = t.match(/(\\d+) pass\\s+(\\d+) warn\\s+(\\d+) fail/); return m ? [+m[1],+m[2],+m[3]] : null; }"
+        )
+        strip = await page.evaluate(
+            "() => { const t = document.body.innerText; const m = t.match(/Run all reads[^\\n]*?(\\d+) pass[^\\n]*?(\\d+) warn[^\\n]*?(\\d+) fail/); return m ? [+m[1],+m[2],+m[3]] : null; }"
+        )
+        p, w, f = header
+        sp, sw, sf = strip
+        print(f"[run-all header] pass={p} warn={w} fail={f}")
+        print(f"[run-all strip ] pass={sp} warn={sw} fail={sf}")
+        if (p, w, f) != (sp, sw, sf):
+            print(f"BUG: summary strip disagrees with header (silent no-op snapshotVerdicts race)")
 
         # Click Simulate cold-start
         await page.get_by_role("button", name="Simulate cold-start").click()

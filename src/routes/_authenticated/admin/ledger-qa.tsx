@@ -76,16 +76,13 @@ type Check = {
   surface: { to: string; label: string; params?: Record<string, string> };
   verdict: Verdict | null;
   loading: boolean;
-  run: () => void;
-  /** Awaitable variant — resolves after react-query settles. */
-  runAsync: () => Promise<Verdict | null>;
+  /** May return a promise (react-query refetch) — awaited by run-all/cold-start. */
+  run: () => Promise<unknown> | void;
   /** Raw data for the diagnoser to inspect */
   data?: unknown;
   /** True for probes that cost credits or write demo rows; excluded from
    *  "Run all reads" and only fired by "Run everything". */
   isWriteProbe?: boolean;
-  /** Human cost hint shown in remediator buttons and confirms. */
-  costHint?: string;
 };
 
 

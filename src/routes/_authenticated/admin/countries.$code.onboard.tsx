@@ -323,6 +323,8 @@ function OnboardWizard() {
   const genSummary = useServerFn(generateStageSummary);
   const advanceStep = useServerFn(advanceCountryOnboarding);
   const clearLocks = useServerFn(clearOnboardingLocks);
+  const selfHeal = useServerFn(runSelfHealingAcceptance);
+
 
   // Wrap each runner: open the accordion for that stage, show the sticky
   // banner, poll progress, and emit a result banner on resolve/reject.

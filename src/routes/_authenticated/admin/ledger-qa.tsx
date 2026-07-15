@@ -143,30 +143,55 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
   const failCount = checks.filter((c) => c.verdict?.status === "fail").length;
   const warnCount = checks.filter((c) => c.verdict?.status === "warn").length;
 
+  type RunSummary = {
+    at: string;
+    label: string;
+    pass: number;
+    warn: number;
+    fail: number;
+    flipped: Array<{ key: string; from: string; to: string }>;
+    ms: number;
+  };
+  const [lastRun, setLastRun] = useState<RunSummary | null>(null);
   const [simTimeline, setSimTimeline] = useState<Array<{ key: string; status: string; detail: string; ms: number }>>([]);
   const [simRunning, setSimRunning] = useState(false);
+  const simCancelRef = useState<{ cancel: boolean }>({ cancel: false })[0];
 
-  const runAll = (includeWrites: boolean) => {
-    for (const c of checks) {
-      // Cheap reads: skip write probes unless the operator opted in.
-      if (!includeWrites && c.isWriteProbe) continue;
-      try { c.run(); } catch {}
-    }
-    // Also refresh derived queries (recent actions, attempts panels).
-    qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] });
+  const snapshotVerdicts = () =>
+    checks.map((c) => ({ key: c.key, status: c.verdict?.status ?? "idle" }));
+
+  const runAll = async (includeWrites: boolean) => {
+    const before = snapshotVerdicts();
+    const t0 = Date.now();
+    const targets = checks.filter((c) => includeWrites || !c.isWriteProbe);
+    await Promise.allSettled(targets.map((c) => Promise.resolve(c.run())));
+    // react-query state updates are synchronous after refetch resolves; yield a tick
+    await new Promise((r) => setTimeout(r, 0));
     qc.invalidateQueries({ queryKey: ["ledger-qa-actions", countryCode] });
+    const after = snapshotVerdicts();
+    const flipped = after
+      .map((a, i) => ({ key: a.key, from: before[i].status, to: a.status }))
+      .filter((x) => x.from !== x.to);
+    const pass = after.filter((v) => v.status === "pass").length;
+    const warn = after.filter((v) => v.status === "warn").length;
+    const fail = after.filter((v) => v.status === "fail").length;
+    setLastRun({
+      at: new Date().toISOString(),
+      label: includeWrites ? "Run everything" : "Run all reads",
+      pass, warn, fail, flipped, ms: Date.now() - t0,
+    });
   };
 
   const runColdStart = async () => {
     setSimRunning(true);
     setSimTimeline([]);
+    simCancelRef.cancel = false;
     for (const c of checks) {
-      if (c.isWriteProbe) continue; // skip credit-costing probes
+      if (simCancelRef.cancel) break;
+      if (c.isWriteProbe) continue;
       const t0 = Date.now();
       try {
-        c.run();
-        // wait briefly for react-query to settle; poll verdict
-        await new Promise((r) => setTimeout(r, 800));
+        await Promise.resolve(c.run());
       } catch {}
       const v = c.verdict;
       setSimTimeline((prev) => [
@@ -198,7 +223,7 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
             type="button"
             onClick={() => {
               const ok = window.confirm(
-                "Run every probe including write/credit-costing ones (explain, ask, snapshot, handoff)? This will charge AI credits and write demo rows.",
+                "Run every probe including write/credit-costing ones (explain, ask, snapshot, handoff)? This will charge AI credits and write demo rows (deduped to latest 3 per probe).",
               );
               if (ok) runAll(true);
             }}
@@ -207,26 +232,50 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
           >
             Run everything
           </button>
-          <button
-            type="button"
-            onClick={runColdStart}
-            disabled={simRunning}
-            className="border border-ink-950 px-3 py-1.5 text-ink-950 disabled:opacity-50"
-            title="Runs every read check sequentially and shows a step-by-step timeline"
-          >
-            {simRunning ? "Simulating…" : "Simulate cold-start"}
-          </button>
+          {simRunning ? (
+            <button
+              type="button"
+              onClick={() => { simCancelRef.cancel = true; }}
+              className="border border-red-700 px-3 py-1.5 text-red-700"
+            >
+              Cancel
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={runColdStart}
+              className="border border-ink-950 px-3 py-1.5 text-ink-950"
+              title="Runs every read check sequentially and shows a step-by-step timeline"
+            >
+              Simulate cold-start
+            </button>
+          )}
         </div>
       </div>
+
+      {lastRun ? (
+        <div className="mt-3 border border-line-200 bg-white px-4 py-2 font-mono text-[11px] text-ink-500">
+          <span className="text-ink-950">{lastRun.label}</span>{" · "}
+          {new Date(lastRun.at).toISOString().slice(11, 19)}Z · {lastRun.ms}ms ·
+          <span className="text-emerald-700"> {lastRun.pass} pass</span>{" · "}
+          <span className="text-gold-500">{lastRun.warn} warn</span>{" · "}
+          <span className="text-red-700">{lastRun.fail} fail</span>
+          {lastRun.flipped.length > 0 ? (
+            <span>{" · "}Δ {lastRun.flipped.length} flipped: {lastRun.flipped.map((f) => `${f.key} ${f.from}→${f.to}`).join(", ")}</span>
+          ) : (
+            <span>{" · "}no changes</span>
+          )}
+        </div>
+      ) : null}
 
       {simTimeline.length > 0 ? (
         <div className="mt-4 border border-line-200 bg-ink-50/50 p-4">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            Cold-start timeline · {simTimeline.length} step(s)
+            Cold-start timeline · {simTimeline.length} step(s) · {simTimeline.reduce((s, x) => s + x.ms, 0)}ms total
           </p>
           <ol className="mt-2 space-y-0.5 font-mono text-[11px] text-ink-500">
             {simTimeline.map((s, i) => (
-              <li key={i}>
+              <li key={i} className={s.ms > 5000 ? "text-red-700" : undefined}>
                 <span className="text-ink-950">{String(i + 1).padStart(2, "0")}.</span>{" "}
                 <span className="uppercase tracking-widest">{s.status}</span>{" · "}
                 <span className="text-ink-950">{s.key}</span>{" · "}

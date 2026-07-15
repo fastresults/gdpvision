@@ -663,6 +663,13 @@ function FindingDrawer({ finding, countryCode }: { finding: Finding; countryCode
                 {summarizeResult(remediatorKey, (mut.data as { r: unknown }).r)}
               </span>
             ) : null}
+            {(mut.data as { steps?: string[] } | undefined)?.steps ? (
+              <ul className="font-mono text-[10px] text-ink-500 text-right max-w-[320px] space-y-0.5">
+                {(mut.data as { steps: string[] }).steps.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            ) : null}
             {mut.error ? (
               <span className="font-mono text-[10px] text-red-700 text-right max-w-[280px]">
                 {(mut.error as Error).message}
@@ -678,7 +685,44 @@ function FindingDrawer({ finding, countryCode }: { finding: Finding; countryCode
             Open surface →
           </Link>
         ) : null}
+        <AiDiagnoseButton checkKey={finding.checkKey} countryCode={countryCode} verdictDetail={finding.rootCause} />
       </div>
+    </div>
+  );
+}
+
+function AiDiagnoseButton({ checkKey, countryCode, verdictDetail }: { checkKey: string; countryCode: string; verdictDetail: string }) {
+  const mut = useMutation({
+    mutationFn: async (): Promise<Diagnosis> =>
+      await diagnoseFinding({ data: { checkKey, countryCode, verdictDetail } }),
+  });
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <button
+        type="button"
+        disabled={mut.isPending}
+        onClick={() => mut.mutate()}
+        className="border border-dashed border-ink-500 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 disabled:opacity-50"
+        title="Ask Lovable AI to inspect live corpus attempts and suggest a fix"
+      >
+        {mut.isPending ? "Diagnosing…" : "AI diagnose"}
+      </button>
+      {mut.data ? (
+        <div className="max-w-[320px] text-right space-y-1">
+          <p className="font-mono text-[10px] text-ink-950">{mut.data.root_cause}</p>
+          <p className="font-mono text-[10px] text-ink-500">
+            class: {mut.data.class} · remediator: {mut.data.remediator_key ?? "—"} · confidence: {mut.data.confidence}
+          </p>
+          {mut.data.operator_steps.length > 0 ? (
+            <ol className="list-decimal list-inside font-mono text-[10px] text-ink-500 text-left">
+              {mut.data.operator_steps.map((s, i) => <li key={i}>{s}</li>)}
+            </ol>
+          ) : null}
+        </div>
+      ) : null}
+      {mut.error ? (
+        <span className="font-mono text-[10px] text-red-700">{(mut.error as Error).message}</span>
+      ) : null}
     </div>
   );
 }

@@ -83,6 +83,9 @@ type Check = {
   /** True for probes that cost credits or write demo rows; excluded from
    *  "Run all reads" and only fired by "Run everything". */
   isWriteProbe?: boolean;
+  /** ms-since-epoch when the underlying react-query last resolved; used to
+   *  cache-gate write-probes in "Run everything". */
+  cachedAt?: number;
 };
 
 

@@ -53,10 +53,11 @@ def check_country(cc: str) -> list[tuple[str, bool, str]]:
     kpis = rest("country_kpis", {"country_code": f"eq.{cc}", "latest_value": "not.is.null", "select": "id"})
     out.append(("I3 kpis latest", len(kpis) > 0, f"n={len(kpis)} with latest_value"))
 
-    # I4 no invalid active source URLs
-    bad = rest("country_sources", {"country_code": f"eq.{cc}", "active": "eq.true",
-                                     "url": "not.ilike.http*", "select": "id"})
-    out.append(("I4 sources url", len(bad) == 0, f"{len(bad)} active non-URL rows"))
+    # I4 no invalid active source URLs (filter client-side; PostgREST wildcard
+    # escaping is fiddly and we already have the row set from the hook)
+    srcs = rest("country_sources", {"country_code": f"eq.{cc}", "active": "eq.true", "select": "url"})
+    bad = [s for s in srcs if not str(s.get("url") or "").lower().startswith(("http://", "https://"))]
+    out.append(("I4 sources url", len(bad) == 0, f"{len(bad)}/{len(srcs)} active non-URL rows"))
 
     # I5 capital flows
     flows = rest("country_capital_flows", {"country_code": f"eq.{cc}", "select": "id"})

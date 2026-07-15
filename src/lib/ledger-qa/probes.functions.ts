@@ -51,12 +51,12 @@ export const tombstoneQaProbes = createServerFn({ method: "POST" })
       if (!error) snapDeleted = snapDrop.length;
     }
 
-    // intake_items — QA handoff probe rows
+    // intake_items — QA handoff probe rows (scope_key is lowercased CC; note is embedded in summary)
     const { data: items } = await supabaseAdmin
       .from("intake_items")
       .select("id, created_at")
-      .eq("country_code", cc)
-      .eq("note", "Ledger-QA handoff probe")
+      .eq("scope_key", cc.toLowerCase())
+      .like("summary", "%Ledger-QA handoff probe%")
       .order("created_at", { ascending: false });
     const itemKeep = (items ?? []).slice(0, data.keep).map((r) => r.id);
     const itemDrop = (items ?? []).filter((r) => !itemKeep.includes(r.id)).map((r) => r.id);

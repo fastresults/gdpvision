@@ -76,13 +76,13 @@ Every non-registry WARN/FAIL drawer gets an **AI diagnose** button. Result is ca
 
 ## Rollout order (each step ships independently)
 
-1. **Phase 3** — backfill server fns (foundation for every self-heal button).
-2. **Phase 2** — remediator registry + wire the three new backfill buttons into `deriveFinding`. Immediately closes the enrichment/trust/overview WARN dead-ends.
-3. **Phase 5** — backfill visibility.
-4. **Phase 6** — cascade fix.
-5. **Phase 1** — real "Run all".
-6. **Phase 7** — write-probe hygiene.
-7. **Phase 4** — AI diagnose fallback.
-8. **Phase 8** — cold-start simulator + public hook.
+1. **Phase 3** — backfill server fns ✅ shipped.
+2. **Phase 2** — remediator registry ✅ shipped.
+3. **Phase 5** — backfill visibility (RecentAttemptsPanel) ✅ shipped.
+4. **Phase 6** — cascade fix ✅ shipped (client-side `useRemediator` cascadeFix loops `CASCADE_MAP` per blocked gate check).
+5. **Phase 1** — real "Run all" (reads-only + everything) ✅ shipped.
+6. **Phase 7** — write-probe hygiene ⏳ pending (probes still write per run; cache table not yet added).
+7. **Phase 4** — AI diagnose fallback ✅ shipped (`diagnoseFinding` server fn + `AiDiagnoseButton` per drawer, 10min in-memory cache).
+8. **Phase 8** — cold-start simulator ✅ shipped (button + step timeline) + public `/api/public/hooks/ledger-qa?country=XXX` GET returning verdict JSON (apikey-gated).
 
 Verification each phase: `bunx tsgo --noEmit`, hit `/admin/ledger-qa` on LCA, watch the specific WARN row flip green after clicking its remediator, confirm one `ledger_qa_actions` row and one `corpus_fetch_attempts` row per action.

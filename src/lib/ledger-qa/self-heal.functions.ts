@@ -349,7 +349,7 @@ export const runSelfHealingAcceptance = createServerFn({ method: "POST" })
             supabaseAdmin.from("ministry_profiles").select("ministry_slug").eq("country_code", cc),
           ]);
           const have = new Set((profs ?? []).map((p: any) => p.ministry_slug));
-          const missing = (mins ?? []).filter((m: any) => !have.has(m.slug)).slice(0, 8);
+          const missing = (mins ?? []).filter((m: any) => !have.has(m.slug));
           if (!missing.length) throw new Error("no ministries seeded — cannot heal profiles without ministries");
           const beforeCount = (profs ?? []).length;
           let wrote = 0; const failures: string[] = [];

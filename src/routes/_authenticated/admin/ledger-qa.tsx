@@ -32,7 +32,8 @@ import {
   getRecentCorpusAttempts,
 } from "@/lib/ledger-qa/backfill.functions";
 import { getCorpusMissStatus, redriveCorpusMisses } from "@/lib/corpus/audit.functions";
-import { lookupRemediator, type RemediatorKey } from "@/lib/ledger-qa/remediators";
+import { lookupRemediator, CASCADE_MAP, type RemediatorKey } from "@/lib/ledger-qa/remediators";
+import { diagnoseFinding, type Diagnosis } from "@/lib/ledger-qa/diagnose.functions";
 import type { Finding } from "@/lib/ledger-qa/types";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 
@@ -141,6 +142,9 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
   const failCount = checks.filter((c) => c.verdict?.status === "fail").length;
   const warnCount = checks.filter((c) => c.verdict?.status === "warn").length;
 
+  const [simTimeline, setSimTimeline] = useState<Array<{ key: string; status: string; detail: string; ms: number }>>([]);
+  const [simRunning, setSimRunning] = useState(false);
+
   const runAll = (includeWrites: boolean) => {
     for (const c of checks) {
       // Cheap reads: skip write probes unless the operator opted in.
@@ -150,6 +154,26 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
     // Also refresh derived queries (recent actions, attempts panels).
     qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] });
     qc.invalidateQueries({ queryKey: ["ledger-qa-actions", countryCode] });
+  };
+
+  const runColdStart = async () => {
+    setSimRunning(true);
+    setSimTimeline([]);
+    for (const c of checks) {
+      if (c.isWriteProbe) continue; // skip credit-costing probes
+      const t0 = Date.now();
+      try {
+        c.run();
+        // wait briefly for react-query to settle; poll verdict
+        await new Promise((r) => setTimeout(r, 800));
+      } catch {}
+      const v = c.verdict;
+      setSimTimeline((prev) => [
+        ...prev,
+        { key: c.key, status: v?.status ?? "idle", detail: v?.detail ?? "—", ms: Date.now() - t0 },
+      ]);
+    }
+    setSimRunning(false);
   };
 
   return (
@@ -182,8 +206,35 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
           >
             Run everything
           </button>
+          <button
+            type="button"
+            onClick={runColdStart}
+            disabled={simRunning}
+            className="border border-ink-950 px-3 py-1.5 text-ink-950 disabled:opacity-50"
+            title="Runs every read check sequentially and shows a step-by-step timeline"
+          >
+            {simRunning ? "Simulating…" : "Simulate cold-start"}
+          </button>
         </div>
       </div>
+
+      {simTimeline.length > 0 ? (
+        <div className="mt-4 border border-line-200 bg-ink-50/50 p-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            Cold-start timeline · {simTimeline.length} step(s)
+          </p>
+          <ol className="mt-2 space-y-0.5 font-mono text-[11px] text-ink-500">
+            {simTimeline.map((s, i) => (
+              <li key={i}>
+                <span className="text-ink-950">{String(i + 1).padStart(2, "0")}.</span>{" "}
+                <span className="uppercase tracking-widest">{s.status}</span>{" · "}
+                <span className="text-ink-950">{s.key}</span>{" · "}
+                {s.ms}ms · {s.detail}
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
 
       <table className="mt-6 w-full text-sm">
         <thead>
@@ -492,7 +543,7 @@ function useRemediator(key: RemediatorKey | undefined, countryCode: string) {
   const invalidate = () =>
     qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] });
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<{ r: unknown; steps?: string[] }> => {
       switch (key) {
         case "repairInvalidSourceUrls":
           return { r: await repairInvalidSourceUrls({ data: { countryCode } }) };
@@ -508,6 +559,25 @@ function useRemediator(key: RemediatorKey | undefined, countryCode: string) {
           return { r: await backfillKpiSeries({ data: { countryCode } }) };
         case "redriveCorpusMisses":
           return { r: await redriveCorpusMisses({ data: { countryCode, hours: 24 } }) };
+        case "cascadeFix": {
+          // Fetch gate, iterate blocked check keys, dispatch each mapped remediator.
+          const gate = await getPublishGate({ data: { countryCode } });
+          const steps: string[] = [];
+          for (const c of gate.checks.filter((c) => !c.pass)) {
+            const chain = CASCADE_MAP[c.key];
+            if (!chain) { steps.push(`skip:${c.key} (no auto-remediator)`); continue; }
+            for (const rk of chain) {
+              try {
+                const out = await runRemediatorByKey(rk, countryCode);
+                steps.push(`${c.key}:${rk} → ${summarizeResult(rk, out)}`);
+              } catch (e) {
+                steps.push(`${c.key}:${rk} ✗ ${(e as Error).message}`);
+              }
+            }
+          }
+          const after = await getPublishGate({ data: { countryCode } });
+          return { r: { green: after.green, blocked: after.checks.filter((c) => !c.pass).map((c) => c.key) }, steps };
+        }
         default:
           throw new Error(`No remediator wired for key: ${key ?? "(none)"}`);
       }
@@ -515,6 +585,20 @@ function useRemediator(key: RemediatorKey | undefined, countryCode: string) {
     onSuccess: invalidate,
   });
 }
+
+async function runRemediatorByKey(key: RemediatorKey, countryCode: string): Promise<unknown> {
+  switch (key) {
+    case "repairInvalidSourceUrls": return await repairInvalidSourceUrls({ data: { countryCode } });
+    case "retryUnreachableSources": return await retryUnreachableSources({ data: { countryCode } });
+    case "backfillCapitalFlows": return await backfillCapitalFlows({ data: { countryCode } });
+    case "backfillSectors": return await backfillSectors({ data: { countryCode } });
+    case "backfillMinistryProfiles": return await backfillMinistryProfiles({ data: { countryCode } });
+    case "backfillKpiSeries": return await backfillKpiSeries({ data: { countryCode } });
+    case "redriveCorpusMisses": return await redriveCorpusMisses({ data: { countryCode, hours: 24 } });
+    default: throw new Error(`runRemediatorByKey: unsupported ${key}`);
+  }
+}
+
 
 function summarizeResult(key: RemediatorKey | undefined, r: unknown): string {
   if (!r || typeof r !== "object") return "Done";
@@ -629,6 +713,13 @@ function FindingDrawer({ finding, countryCode }: { finding: Finding; countryCode
                 {summarizeResult(remediatorKey, (mut.data as { r: unknown }).r)}
               </span>
             ) : null}
+            {(mut.data as { steps?: string[] } | undefined)?.steps ? (
+              <ul className="font-mono text-[10px] text-ink-500 text-right max-w-[320px] space-y-0.5">
+                {(mut.data as { steps: string[] }).steps.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            ) : null}
             {mut.error ? (
               <span className="font-mono text-[10px] text-red-700 text-right max-w-[280px]">
                 {(mut.error as Error).message}
@@ -644,7 +735,44 @@ function FindingDrawer({ finding, countryCode }: { finding: Finding; countryCode
             Open surface →
           </Link>
         ) : null}
+        <AiDiagnoseButton checkKey={finding.checkKey} countryCode={countryCode} verdictDetail={finding.rootCause} />
       </div>
+    </div>
+  );
+}
+
+function AiDiagnoseButton({ checkKey, countryCode, verdictDetail }: { checkKey: string; countryCode: string; verdictDetail: string }) {
+  const mut = useMutation({
+    mutationFn: async (): Promise<Diagnosis> =>
+      await diagnoseFinding({ data: { checkKey, countryCode, verdictDetail } }),
+  });
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <button
+        type="button"
+        disabled={mut.isPending}
+        onClick={() => mut.mutate()}
+        className="border border-dashed border-ink-500 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 disabled:opacity-50"
+        title="Ask Lovable AI to inspect live corpus attempts and suggest a fix"
+      >
+        {mut.isPending ? "Diagnosing…" : "AI diagnose"}
+      </button>
+      {mut.data ? (
+        <div className="max-w-[320px] text-right space-y-1">
+          <p className="font-mono text-[10px] text-ink-950">{mut.data.root_cause}</p>
+          <p className="font-mono text-[10px] text-ink-500">
+            class: {mut.data.class} · remediator: {mut.data.remediator_key ?? "—"} · confidence: {mut.data.confidence}
+          </p>
+          {mut.data.operator_steps.length > 0 ? (
+            <ol className="list-decimal list-inside font-mono text-[10px] text-ink-500 text-left">
+              {mut.data.operator_steps.map((s, i) => <li key={i}>{s}</li>)}
+            </ol>
+          ) : null}
+        </div>
+      ) : null}
+      {mut.error ? (
+        <span className="font-mono text-[10px] text-red-700">{(mut.error as Error).message}</span>
+      ) : null}
     </div>
   );
 }

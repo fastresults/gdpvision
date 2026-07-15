@@ -51,6 +51,7 @@ import { Route as AuthenticatedAdminCountriesIndexRouteImport } from './routes/_
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
 import { Route as ApiPublicHooksSourceHealthRouteImport } from './routes/api/public/hooks/source-health'
 import { Route as ApiPublicHooksNarrativeHarvestRouteImport } from './routes/api/public/hooks/narrative-harvest'
+import { Route as ApiPublicHooksLedgerQaRouteImport } from './routes/api/public/hooks/ledger-qa'
 import { Route as ApiPublicHooksCadenceDailyRouteImport } from './routes/api/public/hooks/cadence-daily'
 import { Route as AuthenticatedNarrativeTraceIdRouteImport } from './routes/_authenticated/narrative/trace.$id'
 import { Route as AuthenticatedNarrativeStrategyNewRouteImport } from './routes/_authenticated/narrative/strategy.new'
@@ -314,6 +315,11 @@ const ApiPublicHooksNarrativeHarvestRoute =
     path: '/api/public/hooks/narrative-harvest',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksLedgerQaRoute = ApiPublicHooksLedgerQaRouteImport.update({
+  id: '/api/public/hooks/ledger-qa',
+  path: '/api/public/hooks/ledger-qa',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksCadenceDailyRoute =
   ApiPublicHooksCadenceDailyRouteImport.update({
     id: '/api/public/hooks/cadence-daily',
@@ -514,6 +520,7 @@ export interface FileRoutesByFullPath {
   '/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
+  '/api/public/hooks/ledger-qa': typeof ApiPublicHooksLedgerQaRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
@@ -577,6 +584,7 @@ export interface FileRoutesByTo {
   '/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
+  '/api/public/hooks/ledger-qa': typeof ApiPublicHooksLedgerQaRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
@@ -646,6 +654,7 @@ export interface FileRoutesById {
   '/_authenticated/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/_authenticated/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
+  '/api/public/hooks/ledger-qa': typeof ApiPublicHooksLedgerQaRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
@@ -715,6 +724,7 @@ export interface FileRouteTypes {
     | '/narrative/strategy/new'
     | '/narrative/trace/$id'
     | '/api/public/hooks/cadence-daily'
+    | '/api/public/hooks/ledger-qa'
     | '/api/public/hooks/narrative-harvest'
     | '/api/public/hooks/source-health'
     | '/kiosk/api/public/presentation-pdf'
@@ -778,6 +788,7 @@ export interface FileRouteTypes {
     | '/narrative/strategy/new'
     | '/narrative/trace/$id'
     | '/api/public/hooks/cadence-daily'
+    | '/api/public/hooks/ledger-qa'
     | '/api/public/hooks/narrative-harvest'
     | '/api/public/hooks/source-health'
     | '/kiosk/api/public/presentation-pdf'
@@ -846,6 +857,7 @@ export interface FileRouteTypes {
     | '/_authenticated/narrative/strategy/new'
     | '/_authenticated/narrative/trace/$id'
     | '/api/public/hooks/cadence-daily'
+    | '/api/public/hooks/ledger-qa'
     | '/api/public/hooks/narrative-harvest'
     | '/api/public/hooks/source-health'
     | '/kiosk/api/public/presentation-pdf'
@@ -866,6 +878,7 @@ export interface RootRouteChildren {
   KioskRoute: typeof KioskRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiPublicHooksCadenceDailyRoute: typeof ApiPublicHooksCadenceDailyRoute
+  ApiPublicHooksLedgerQaRoute: typeof ApiPublicHooksLedgerQaRoute
   ApiPublicHooksNarrativeHarvestRoute: typeof ApiPublicHooksNarrativeHarvestRoute
   ApiPublicHooksSourceHealthRoute: typeof ApiPublicHooksSourceHealthRoute
 }
@@ -1164,6 +1177,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/narrative-harvest'
       fullPath: '/api/public/hooks/narrative-harvest'
       preLoaderRoute: typeof ApiPublicHooksNarrativeHarvestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/ledger-qa': {
+      id: '/api/public/hooks/ledger-qa'
+      path: '/api/public/hooks/ledger-qa'
+      fullPath: '/api/public/hooks/ledger-qa'
+      preLoaderRoute: typeof ApiPublicHooksLedgerQaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/cadence-daily': {
@@ -1550,6 +1570,7 @@ const rootRouteChildren: RootRouteChildren = {
   KioskRoute: KioskRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiPublicHooksCadenceDailyRoute: ApiPublicHooksCadenceDailyRoute,
+  ApiPublicHooksLedgerQaRoute: ApiPublicHooksLedgerQaRoute,
   ApiPublicHooksNarrativeHarvestRoute: ApiPublicHooksNarrativeHarvestRoute,
   ApiPublicHooksSourceHealthRoute: ApiPublicHooksSourceHealthRoute,
 }

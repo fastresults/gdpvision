@@ -11,7 +11,9 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "ledger-qa:verify": "bash scripts/ledger-qa/verify.sh",
-    "ledger-qa:e2e": "python3 scripts/ledger-qa/e2e.py"
+    "ledger-qa:invariants": "python3 scripts/ledger-qa/cascade-invariants.py",
+    "ledger-qa:e2e": "python3 scripts/ledger-qa/e2e.py",
+    "ledger-qa:all": "bash scripts/ledger-qa/verify.sh && python3 scripts/ledger-qa/cascade-invariants.py && python3 scripts/ledger-qa/e2e.py"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.7",

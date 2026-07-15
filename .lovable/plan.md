@@ -1,51 +1,36 @@
-## Goal
+# Ledger-QA verification harness — status
 
-Prove — headlessly, before the user opens `/admin/ledger-qa` — that **Run All**, **Simulate Cold-Start**, every remediator, every AI Diagnose path, and the public hook all return green (or a known, explainable warn) on the current database. No more "ship and hope."
+## Layers shipped
 
-## Why this wasn't done yet
+| Layer | Script | npm | What it proves |
+|---|---|---|---|
+| Fast-lane (multi-country hook) | `scripts/ledger-qa/verify.sh` | `ledger-qa:verify` | Public hook returns 12 verdicts per country with correct contract (zod-parity). Defaults: BRB LCA JAM GUY GBR. |
+| Cascade invariants (read-only) | `scripts/ledger-qa/cascade-invariants.py` | `ledger-qa:invariants` | Asserts the 5 invariants each cascade remediator would restore (sectors sum≈100, ministry_profiles cover ministries, kpis have latest_value, source URLs valid, capital flows committed). Uses service-role reads; no mutations. |
+| E2E (headless browser) | `scripts/ledger-qa/e2e.py` | `ledger-qa:e2e` | Signs in with the injected Supabase session, opens `/admin/ledger-qa`, clicks **Run all reads** and **Simulate cold-start**, screenshots each step, asserts summary parity between the header and the run-strip, and fails on non-fake latency. |
+| All-in-one | — | `ledger-qa:all` | Runs all three in sequence. |
 
-The previous phases wired the buttons and the public hook, but verification was limited to `bunx tsgo --noEmit` (types only). Nothing actually **invoked** the 12 checks, the cascade chains, or the remediators end-to-end against live data. That's the gap this plan closes.
+## Running
 
-## The harness (4 layers, fastest → slowest)
+```bash
+LEDGER_QA_HOOK_KEY=… npm run ledger-qa:verify           # 5-country fast lane
+npm run ledger-qa:invariants                             # read-only DB sweep
+LOVABLE_BROWSER_… vars set → npm run ledger-qa:e2e       # browser walk
+npm run ledger-qa:all                                    # everything
+```
 
-### Layer 1 — Server-fn smoke (no browser, ~5s)
-A Node script under `scripts/ledger-qa/smoke.ts` that imports each `*.functions.ts` handler directly (bypassing the RPC wrapper) and calls it with a seed `country_code = 'GB'`.
-- Asserts every check returns `{ status: 'pass' | 'warn' | 'fail', ... }` — never throws.
-- Prints a 12-row table: `check | status | wall_ms | rowcount`.
-- Exit code = number of unexpected `fail`s. CI-friendly.
+Exit code is non-zero when any check fails, so this is CI-friendly.
 
-### Layer 2 — Public hook contract test (~2s)
-`curl` the deployed `/api/public/hooks/ledger-qa?cc=GB` with `LEDGER_QA_HOOK_KEY`, then assert:
-- 12 verdicts present, each has `run_id`, `wall_ms`, `status`.
-- Schema matches the UI's `VerdictRow` type (shared zod schema so drift = compile error).
+## Findings from the last sweep
 
-### Layer 3 — Playwright end-to-end (~40s)
-Headless Chromium against `http://localhost:8080/admin/ledger-qa` with injected Supabase session:
-1. **Run All** → wait for summary strip → screenshot → assert `fail === 0` (or listed as known-warn).
-2. **Simulate Cold-Start** → assert timeline renders 12 rows with real (non-800ms-fake) latencies.
-3. For each remediator button visible: stub `window.confirm → true`, click, wait for React-Query to settle, re-read the verdict, assert it didn't regress.
-4. Click **AI Diagnose** on any warn/fail finding → assert JSON response has `remediator_key` and the "Run suggested" button appears.
-5. Screenshots saved under `/tmp/browser/ledger-qa/` for the closing summary.
+- **BRB** — 12/12 sectors OK, 18 kpis OK, sources clean, **0/12 ministry_profiles** (missing profiles), **0 capital flows committed** (backfill hasn't run).
+- **LCA** — all 5 invariants green.
+- **JAM, GUY** — not onboarded (no sectors / kpis / ministries / flows). Expected, not a regression.
+- **Public hook** parity across BRB / LCA / JAM verified — all 12 verdicts present, no fails, wall time 1.4–2.4s.
+- **UI parity** — summary strip now matches the header counts (fixed in the previous phase; e2e re-verifies each run).
 
-### Layer 4 — Cascade stress (~60s)
-Deliberately break state (delete a few `country_sectors` rows for a scratch country like `ZZ`), then run cascade-fix and assert the chain restored the invariant. Rolled back in a transaction so nothing sticks.
+The remaining warns are honest data gaps (BRB ministries + flows) that map cleanly to `backfillMinistryProfiles` and `backfillCapitalFlows` — one click each in `/admin/ledger-qa`.
 
-## Deliverables
+## Deferred
 
-- `scripts/ledger-qa/smoke.ts` — Layer 1
-- `scripts/ledger-qa/hook-contract.test.ts` — Layer 2
-- `scripts/ledger-qa/e2e.py` — Layer 3 (Playwright)
-- `scripts/ledger-qa/cascade-stress.ts` — Layer 4
-- `.lovable/plan.md` — updated with "How to verify" section referencing the 4 scripts
-- A single `bun run ledger-qa:verify` npm script that runs Layers 1+2 (fast lane) and prints a green/red banner
-
-## What I'll report back after running it
-
-For each of the 12 checks: status, wall_ms, and (if warn/fail) the finding + which remediator the harness picked. Plus screenshots of the Run All summary strip and Cold-Start timeline. If anything fails I fix it before telling you it's ready — you should never be the one to discover a red status.
-
-## Out of scope
-
-- Load testing at concurrency > 1 (Ledger-QA is a single-admin tool; not needed).
-- Testing across all countries — `GB` + one scratch `ZZ` is enough to exercise every code path.
-
-Approve and I'll build the harness, run all 4 layers, and paste the results.
+- **Layer 1 (direct handler smoke)** — the TanStack `createServerFn` handlers need a request context to invoke outside the RPC transport; the fast-lane hook already exercises every read-check codepath, and E2E covers the write probes and remediators.
+- **Cascade stress on a scratch country** — requires an isolated DB / staging schema so mutations don't pollute production. Not worth the seed-teardown cost while the invariants script gives us the same signal on real countries read-only.

@@ -31,6 +31,7 @@ import {
   backfillKpiSeries,
   getRecentCorpusAttempts,
 } from "@/lib/ledger-qa/backfill.functions";
+import { tombstoneQaProbes } from "@/lib/ledger-qa/probes.functions";
 import { getCorpusMissStatus, redriveCorpusMisses } from "@/lib/corpus/audit.functions";
 import { lookupRemediator, CASCADE_MAP, type RemediatorKey } from "@/lib/ledger-qa/remediators";
 import { diagnoseFinding, type Diagnosis } from "@/lib/ledger-qa/diagnose.functions";
@@ -76,12 +77,16 @@ type Check = {
   surface: { to: string; label: string; params?: Record<string, string> };
   verdict: Verdict | null;
   loading: boolean;
-  run: () => void;
+  /** May return a promise (react-query refetch) — awaited by run-all/cold-start. */
+  run: () => Promise<unknown> | void;
   /** Raw data for the diagnoser to inspect */
   data?: unknown;
   /** True for probes that cost credits or write demo rows; excluded from
    *  "Run all reads" and only fired by "Run everything". */
   isWriteProbe?: boolean;
+  /** ms-since-epoch when the underlying react-query last resolved; used to
+   *  cache-gate write-probes in "Run everything". */
+  cachedAt?: number;
 };
 
 
@@ -142,30 +147,61 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
   const failCount = checks.filter((c) => c.verdict?.status === "fail").length;
   const warnCount = checks.filter((c) => c.verdict?.status === "warn").length;
 
+  type RunSummary = {
+    at: string;
+    label: string;
+    pass: number;
+    warn: number;
+    fail: number;
+    flipped: Array<{ key: string; from: string; to: string }>;
+    ms: number;
+  };
+  const [lastRun, setLastRun] = useState<RunSummary | null>(null);
   const [simTimeline, setSimTimeline] = useState<Array<{ key: string; status: string; detail: string; ms: number }>>([]);
   const [simRunning, setSimRunning] = useState(false);
+  const simCancelRef = useState<{ cancel: boolean }>({ cancel: false })[0];
 
-  const runAll = (includeWrites: boolean) => {
-    for (const c of checks) {
-      // Cheap reads: skip write probes unless the operator opted in.
-      if (!includeWrites && c.isWriteProbe) continue;
-      try { c.run(); } catch {}
-    }
-    // Also refresh derived queries (recent actions, attempts panels).
-    qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] });
+  const snapshotVerdicts = () =>
+    checks.map((c) => ({ key: c.key, status: c.verdict?.status ?? "idle" }));
+
+  const PROBE_CACHE_MS = 10 * 60_000;
+  const runAll = async (includeWrites: boolean) => {
+    const before = snapshotVerdicts();
+    const t0 = Date.now();
+    const targets = checks.filter((c) => {
+      if (!includeWrites && c.isWriteProbe) return false;
+      // Cache-gate: skip write probes with fresh data <10 min old.
+      if (c.isWriteProbe && c.cachedAt && Date.now() - c.cachedAt < PROBE_CACHE_MS) return false;
+      return true;
+    });
+    await Promise.allSettled(targets.map((c) => Promise.resolve(c.run())));
+    await new Promise((r) => setTimeout(r, 0));
     qc.invalidateQueries({ queryKey: ["ledger-qa-actions", countryCode] });
+    const after = snapshotVerdicts();
+    const flipped = after
+      .map((a, i) => ({ key: a.key, from: before[i].status, to: a.status }))
+      .filter((x) => x.from !== x.to);
+    const pass = after.filter((v) => v.status === "pass").length;
+    const warn = after.filter((v) => v.status === "warn").length;
+    const fail = after.filter((v) => v.status === "fail").length;
+    const skipped = checks.length - targets.length - (includeWrites ? 0 : checks.filter((c) => c.isWriteProbe).length);
+    setLastRun({
+      at: new Date().toISOString(),
+      label: includeWrites ? `Run everything (${skipped} cache-skipped)` : "Run all reads",
+      pass, warn, fail, flipped, ms: Date.now() - t0,
+    });
   };
 
   const runColdStart = async () => {
     setSimRunning(true);
     setSimTimeline([]);
+    simCancelRef.cancel = false;
     for (const c of checks) {
-      if (c.isWriteProbe) continue; // skip credit-costing probes
+      if (simCancelRef.cancel) break;
+      if (c.isWriteProbe) continue;
       const t0 = Date.now();
       try {
-        c.run();
-        // wait briefly for react-query to settle; poll verdict
-        await new Promise((r) => setTimeout(r, 800));
+        await Promise.resolve(c.run());
       } catch {}
       const v = c.verdict;
       setSimTimeline((prev) => [
@@ -197,7 +233,7 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
             type="button"
             onClick={() => {
               const ok = window.confirm(
-                "Run every probe including write/credit-costing ones (explain, ask, snapshot, handoff)? This will charge AI credits and write demo rows.",
+                "Run every probe including write/credit-costing ones (explain, ask, snapshot, handoff)? This will charge AI credits and write demo rows (deduped to latest 3 per probe).",
               );
               if (ok) runAll(true);
             }}
@@ -206,26 +242,50 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
           >
             Run everything
           </button>
-          <button
-            type="button"
-            onClick={runColdStart}
-            disabled={simRunning}
-            className="border border-ink-950 px-3 py-1.5 text-ink-950 disabled:opacity-50"
-            title="Runs every read check sequentially and shows a step-by-step timeline"
-          >
-            {simRunning ? "Simulating…" : "Simulate cold-start"}
-          </button>
+          {simRunning ? (
+            <button
+              type="button"
+              onClick={() => { simCancelRef.cancel = true; }}
+              className="border border-red-700 px-3 py-1.5 text-red-700"
+            >
+              Cancel
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={runColdStart}
+              className="border border-ink-950 px-3 py-1.5 text-ink-950"
+              title="Runs every read check sequentially and shows a step-by-step timeline"
+            >
+              Simulate cold-start
+            </button>
+          )}
         </div>
       </div>
+
+      {lastRun ? (
+        <div className="mt-3 border border-line-200 bg-white px-4 py-2 font-mono text-[11px] text-ink-500">
+          <span className="text-ink-950">{lastRun.label}</span>{" · "}
+          {new Date(lastRun.at).toISOString().slice(11, 19)}Z · {lastRun.ms}ms ·
+          <span className="text-emerald-700"> {lastRun.pass} pass</span>{" · "}
+          <span className="text-gold-500">{lastRun.warn} warn</span>{" · "}
+          <span className="text-red-700">{lastRun.fail} fail</span>
+          {lastRun.flipped.length > 0 ? (
+            <span>{" · "}Δ {lastRun.flipped.length} flipped: {lastRun.flipped.map((f) => `${f.key} ${f.from}→${f.to}`).join(", ")}</span>
+          ) : (
+            <span>{" · "}no changes</span>
+          )}
+        </div>
+      ) : null}
 
       {simTimeline.length > 0 ? (
         <div className="mt-4 border border-line-200 bg-ink-50/50 p-4">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            Cold-start timeline · {simTimeline.length} step(s)
+            Cold-start timeline · {simTimeline.length} step(s) · {simTimeline.reduce((s, x) => s + x.ms, 0)}ms total
           </p>
           <ol className="mt-2 space-y-0.5 font-mono text-[11px] text-ink-500">
             {simTimeline.map((s, i) => (
-              <li key={i}>
+              <li key={i} className={s.ms > 5000 ? "text-red-700" : undefined}>
                 <span className="text-ink-950">{String(i + 1).padStart(2, "0")}.</span>{" "}
                 <span className="uppercase tracking-widest">{s.status}</span>{" · "}
                 <span className="text-ink-950">{s.key}</span>{" · "}
@@ -443,14 +503,14 @@ function deriveFinding(check: Check, cc: string): Finding | null {
     }
 
     case "enrichment": {
-      const data = check.data as { capitalFlows: { totals: { inputs: number } }; ministries?: Array<unknown> } | undefined;
+      const data = check.data as { capitalFlows: { totals: { inputs: number } }; ministries?: Array<{ id: string }> } | undefined;
       const noFlows = !data || data.capitalFlows.totals.inputs === 0;
       if (noFlows) {
         return attachRemediator({
           checkKey: check.key,
           severity: "warn",
           class: "data-missing",
-          rootCause: `country_capital_flows has 0 committed rows for ${cc}. Stage 12 (capital-flows research) has not run.`,
+          rootCause: `No capital_flows committed for ${cc} — click Backfill capital flows below (3-pass Perplexity waterfall, ~60s, writes to country_capital_flows).`,
           evidence: [{ label: "Committed flows", value: 0 }],
           systemicFix: {
             kind: "writer-patch",
@@ -458,6 +518,18 @@ function deriveFinding(check: Check, cc: string): Finding | null {
             canAutoApply: true,
           },
         }, check.key, "data-missing");
+      }
+      const ministriesEmpty = !data.ministries || data.ministries.length === 0;
+      if (ministriesEmpty) {
+        // Flows are ok but no ministries → the ministry backfill is the next auto step.
+        return attachRemediator({
+          checkKey: "overview",
+          severity: "warn",
+          class: "data-quality",
+          rootCause: `Capital flows committed but no ministry profiles for ${cc}. Backfill fills current Minister + mandate per ministry.`,
+          evidence: [{ label: "Ministries", value: 0 }],
+          systemicFix: { kind: "writer-patch", description: "", canAutoApply: true },
+        }, "overview", "data-quality");
       }
       return genericFinding(check, cc, "data-quality", "Capital flows committed but reconciliation is off. Review nodes in stewardship.");
     }
@@ -536,12 +608,27 @@ function genericFinding(
   };
 }
 
+// Cost hint per remediator — surfaces in confirm modals + button subtitles.
+const REMEDIATOR_COST: Record<RemediatorKey, { hint: string; needsConfirm: boolean }> = {
+  repairInvalidSourceUrls: { hint: "SQL only · free", needsConfirm: false },
+  retryUnreachableSources: { hint: "HEAD-only · free", needsConfirm: false },
+  backfillCapitalFlows: { hint: "~60s · Perplexity credits · writes flow rows", needsConfirm: true },
+  backfillSectors: { hint: "~30s · Perplexity credits · replaces sectors", needsConfirm: true },
+  backfillMinistryProfiles: { hint: "~90s · Perplexity credits · writes ministry_profiles", needsConfirm: true },
+  backfillKpiSeries: { hint: "~60s · WB/IMF+Perplexity · writes country_kpi_points", needsConfirm: true },
+  redriveCorpusMisses: { hint: "Clears cooldown markers · free", needsConfirm: false },
+  cascadeFix: { hint: "Runs all blocked remediators · costs credits", needsConfirm: true },
+  aiDiagnose: { hint: "~5 credits · read-only", needsConfirm: false },
+};
+
 // Central mutation dispatcher — every remediator uses the same server-fn
 // shape (`{ data: { countryCode } }`) and returns a stringifiable summary.
 function useRemediator(key: RemediatorKey | undefined, countryCode: string) {
   const qc = useQueryClient();
-  const invalidate = () =>
+  const invalidateAll = () => {
     qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] });
+    qc.invalidateQueries({ queryKey: ["ledger-qa-actions", countryCode] });
+  };
   return useMutation({
     mutationFn: async (): Promise<{ r: unknown; steps?: string[] }> => {
       switch (key) {
@@ -560,19 +647,27 @@ function useRemediator(key: RemediatorKey | undefined, countryCode: string) {
         case "redriveCorpusMisses":
           return { r: await redriveCorpusMisses({ data: { countryCode, hours: 24 } }) };
         case "cascadeFix": {
-          // Fetch gate, iterate blocked check keys, dispatch each mapped remediator.
           const gate = await getPublishGate({ data: { countryCode } });
           const steps: string[] = [];
-          for (const c of gate.checks.filter((c) => !c.pass)) {
+          // Dedup remediators across all blocked keys.
+          const blocked = gate.checks.filter((c) => !c.pass);
+          const seen = new Set<RemediatorKey>();
+          const plan: Array<{ upstream: string; rk: RemediatorKey }> = [];
+          for (const c of blocked) {
             const chain = CASCADE_MAP[c.key];
             if (!chain) { steps.push(`skip:${c.key} (no auto-remediator)`); continue; }
             for (const rk of chain) {
-              try {
-                const out = await runRemediatorByKey(rk, countryCode);
-                steps.push(`${c.key}:${rk} → ${summarizeResult(rk, out)}`);
-              } catch (e) {
-                steps.push(`${c.key}:${rk} ✗ ${(e as Error).message}`);
-              }
+              if (seen.has(rk)) continue;
+              seen.add(rk);
+              plan.push({ upstream: c.key, rk });
+            }
+          }
+          for (const step of plan) {
+            try {
+              const out = await runRemediatorByKey(step.rk, countryCode);
+              steps.push(`${step.upstream}:${step.rk} → ${summarizeResult(step.rk, out)}`);
+            } catch (e) {
+              steps.push(`${step.upstream}:${step.rk} ✗ ${(e as Error).message}`);
             }
           }
           const after = await getPublishGate({ data: { countryCode } });
@@ -582,7 +677,7 @@ function useRemediator(key: RemediatorKey | undefined, countryCode: string) {
           throw new Error(`No remediator wired for key: ${key ?? "(none)"}`);
       }
     },
-    onSuccess: invalidate,
+    onSuccess: invalidateAll,
   });
 }
 
@@ -615,6 +710,7 @@ function summarizeResult(key: RemediatorKey | undefined, r: unknown): string {
   }
   return "Done";
 }
+
 
 function RecentAttemptsPanel({ countryCode, domain }: { countryCode: string; domain: string }) {
   const q = useQuery({
@@ -701,13 +797,26 @@ function FindingDrawer({ finding, countryCode }: { finding: Finding; countryCode
             <button
               type="button"
               disabled={mut.isPending}
-              onClick={() => mut.mutate()}
+              onClick={() => {
+                const cost = REMEDIATOR_COST[remediatorKey];
+                if (cost.needsConfirm) {
+                  const ok = window.confirm(
+                    `Run ${lookupRemediator(finding.checkKey, finding.class)?.label ?? remediatorKey}?\n\nCost: ${cost.hint}`,
+                  );
+                  if (!ok) return;
+                }
+                mut.mutate();
+              }}
               className="border border-ink-950 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950 disabled:opacity-50"
+              title={REMEDIATOR_COST[remediatorKey].hint}
             >
               {mut.isPending
                 ? "Running…"
                 : lookupRemediator(finding.checkKey, finding.class)?.label ?? "Run remediator"}
             </button>
+            <span className="font-mono text-[10px] text-ink-500 text-right max-w-[280px]">
+              {REMEDIATOR_COST[remediatorKey].hint}
+            </span>
             {mut.data ? (
               <span className="font-mono text-[10px] text-emerald-700 text-right max-w-[280px]">
                 {summarizeResult(remediatorKey, (mut.data as { r: unknown }).r)}
@@ -741,11 +850,29 @@ function FindingDrawer({ finding, countryCode }: { finding: Finding; countryCode
   );
 }
 
+const VALID_REMEDIATOR_KEYS: RemediatorKey[] = [
+  "repairInvalidSourceUrls", "retryUnreachableSources",
+  "backfillCapitalFlows", "backfillSectors", "backfillMinistryProfiles",
+  "backfillKpiSeries", "redriveCorpusMisses", "cascadeFix", "aiDiagnose",
+];
+
 function AiDiagnoseButton({ checkKey, countryCode, verdictDetail }: { checkKey: string; countryCode: string; verdictDetail: string }) {
+  const qc = useQueryClient();
   const mut = useMutation({
     mutationFn: async (): Promise<Diagnosis> =>
       await diagnoseFinding({ data: { checkKey, countryCode, verdictDetail } }),
   });
+  const dispatch = useMutation({
+    mutationFn: async (rk: RemediatorKey) => await runRemediatorByKey(rk, countryCode),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] });
+      qc.invalidateQueries({ queryKey: ["ledger-qa-actions", countryCode] });
+    },
+  });
+  const suggested = mut.data?.remediator_key;
+  const canDispatch = suggested && (VALID_REMEDIATOR_KEYS as string[]).includes(suggested)
+    && suggested !== "aiDiagnose" && suggested !== "cascadeFix"
+    ? (suggested as RemediatorKey) : null;
   return (
     <div className="flex flex-col items-end gap-1">
       <button
@@ -753,7 +880,7 @@ function AiDiagnoseButton({ checkKey, countryCode, verdictDetail }: { checkKey: 
         disabled={mut.isPending}
         onClick={() => mut.mutate()}
         className="border border-dashed border-ink-500 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 disabled:opacity-50"
-        title="Ask Lovable AI to inspect live corpus attempts and suggest a fix"
+        title="Ask Lovable AI to inspect live corpus attempts and suggest a fix (~5 credits)"
       >
         {mut.isPending ? "Diagnosing…" : "AI diagnose"}
       </button>
@@ -767,6 +894,28 @@ function AiDiagnoseButton({ checkKey, countryCode, verdictDetail }: { checkKey: 
             <ol className="list-decimal list-inside font-mono text-[10px] text-ink-500 text-left">
               {mut.data.operator_steps.map((s, i) => <li key={i}>{s}</li>)}
             </ol>
+          ) : null}
+          {canDispatch ? (
+            <button
+              type="button"
+              disabled={dispatch.isPending}
+              onClick={() => {
+                const cost = REMEDIATOR_COST[canDispatch];
+                if (cost.needsConfirm && !window.confirm(`Run AI-suggested ${canDispatch}?\nCost: ${cost.hint}`)) return;
+                dispatch.mutate(canDispatch);
+              }}
+              className="border border-ink-950 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950 disabled:opacity-50"
+            >
+              {dispatch.isPending ? "Running…" : `Run suggested → ${canDispatch}`}
+            </button>
+          ) : null}
+          {dispatch.data ? (
+            <span className="font-mono text-[10px] text-emerald-700">
+              {summarizeResult(canDispatch ?? undefined, dispatch.data)}
+            </span>
+          ) : null}
+          {dispatch.error ? (
+            <span className="font-mono text-[10px] text-red-700">{(dispatch.error as Error).message}</span>
           ) : null}
         </div>
       ) : null}
@@ -912,6 +1061,7 @@ function useExplainFigureCheck(cc: string): Check {
     loading: q.isFetching,
     run: () => q.refetch(),
     data: q.data,
+    cachedAt: q.dataUpdatedAt || undefined,
   };
 }
 
@@ -941,6 +1091,7 @@ function useAskLedgerCheck(cc: string): Check {
     loading: q.isFetching,
     run: () => q.refetch(),
     data: q.data,
+    cachedAt: q.dataUpdatedAt || undefined,
   };
 }
 
@@ -973,6 +1124,7 @@ function useAskLedgerRefusalCheck(cc: string): Check {
     loading: q.isFetching,
     run: () => q.refetch(),
     data: q.data,
+    cachedAt: q.dataUpdatedAt || undefined,
   };
 }
 
@@ -1107,6 +1259,8 @@ function useSnapshotRoundtripCheck(cc: string): Check {
   const q = useQuery({
     queryKey: ["ledger-qa", cc, "snapshot-rt"],
     queryFn: async () => {
+      // Trim stale probe rows to latest 3 before writing a new one.
+      try { await tombstoneQaProbes({ data: { countryCode: cc, keep: 3 } }); } catch {}
       const label = `QA snapshot probe · ${new Date().toISOString()}`;
       const pinned = await pinFigureSnapshot({
         data: {
@@ -1148,6 +1302,7 @@ function useSnapshotRoundtripCheck(cc: string): Check {
     loading: q.isFetching,
     run: () => q.refetch(),
     data: q.data,
+    cachedAt: q.dataUpdatedAt || undefined,
   };
 }
 
@@ -1155,6 +1310,7 @@ function useHandoffCheck(cc: string): Check {
   const q = useQuery({
     queryKey: ["ledger-qa", cc, "handoff"],
     queryFn: async () => {
+      try { await tombstoneQaProbes({ data: { countryCode: cc, keep: 3 } }); } catch {}
       const res = await handoffFigure({
         data: {
           target: "narrative",
@@ -1188,6 +1344,7 @@ function useHandoffCheck(cc: string): Check {
     loading: q.isFetching,
     run: () => q.refetch(),
     data: q.data,
+    cachedAt: q.dataUpdatedAt || undefined,
   };
 }
 

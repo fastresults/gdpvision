@@ -262,6 +262,21 @@ function SurfaceLink({ surface }: { surface: Check["surface"] }) {
 
 // ───────────────────────── forensic drawer + diagnose ─────────────────────────
 
+function attachRemediator(f: Finding, checkKey: string, findingClass: Finding["class"]): Finding {
+  const r = lookupRemediator(checkKey, findingClass);
+  if (!r) return f;
+  return {
+    ...f,
+    systemicFix: {
+      ...f.systemicFix,
+      description: f.systemicFix.description || r.description,
+      canAutoApply: r.canAutoApply,
+      remediatorKey: r.key as Finding["systemicFix"]["remediatorKey"],
+      corpusDomain: r.corpusDomain ?? f.systemicFix.corpusDomain,
+    },
+  };
+}
+
 function deriveFinding(check: Check, cc: string): Finding | null {
   const v = check.verdict;
   if (!v || v.status === "pass") return null;
@@ -294,7 +309,7 @@ function deriveFinding(check: Check, cc: string): Finding | null {
           (r.last_ok === false || (r.last_status && r.last_status !== "ok" && r.last_status !== "pending")),
       );
       if (invalid.length > 0) {
-        return {
+        return attachRemediator({
           checkKey: check.key,
           severity: "fail",
           class: "data-quality",
@@ -309,15 +324,14 @@ function deriveFinding(check: Check, cc: string): Finding | null {
           systemicFix: {
             kind: "auto-migration",
             description:
-              "Quarantine every row whose url does not match ^https?:// — set active=false, fetch_status='invalid_url', move offending text to fetch_error. Idempotent, no deletes.",
+              "Quarantine every row whose url does not match ^https?:// — set active=false, fetch_status='invalid_url', move offending text to fetch_error.",
             previewSql:
               "UPDATE country_sources SET active=false, fetch_status='invalid_url', fetch_error=<url text>\n  WHERE country_code=$1 AND (url IS NULL OR url !~* '^https?://');",
             canAutoApply: true,
-            remediatorKey: "repairInvalidSourceUrls",
           },
-        };
+        }, check.key, "data-quality");
       }
-      return {
+      return attachRemediator({
         checkKey: check.key,
         severity: "fail",
         class: "external-outage",
@@ -328,52 +342,65 @@ function deriveFinding(check: Check, cc: string): Finding | null {
           kind: "retry",
           description: "Re-run HEAD checks with an 8s timeout; update source_health_checks + country_sources.fetch_status.",
           canAutoApply: true,
-          remediatorKey: "retryUnreachableSources",
         },
-      };
+      }, check.key, "external-outage");
+    }
+
+    case "overview": {
+      // WARN: no sector composition.
+      return attachRemediator({
+        checkKey: check.key,
+        severity: "warn",
+        class: "data-missing",
+        rootCause: `country_sectors is empty for ${cc}. Sector composition never committed.`,
+        evidence: [{ label: "Sectors", value: 0 }],
+        systemicFix: {
+          kind: "writer-patch",
+          description: "",
+          canAutoApply: true,
+        },
+      }, check.key, "data-missing");
     }
 
     case "enrichment": {
-      const data = check.data as { capitalFlows: { totals: { inputs: number } } } | undefined;
+      const data = check.data as { capitalFlows: { totals: { inputs: number } }; ministries?: Array<unknown> } | undefined;
       const noFlows = !data || data.capitalFlows.totals.inputs === 0;
       if (noFlows) {
-        return {
+        return attachRemediator({
           checkKey: check.key,
           severity: "warn",
           class: "data-missing",
           rootCause: `country_capital_flows has 0 committed rows for ${cc}. Stage 12 (capital-flows research) has not run.`,
           evidence: [{ label: "Committed flows", value: 0 }],
           systemicFix: {
-            kind: "operator-action",
-            description: `Open country onboarding and run Stage 12 for ${cc}. Commit only when residual ≤ 10%.`,
-            href: `/admin/countries/${cc}/onboard`,
-            canAutoApply: false,
+            kind: "writer-patch",
+            description: "",
+            canAutoApply: true,
           },
-        };
+        }, check.key, "data-missing");
       }
       return genericFinding(check, cc, "data-quality", "Capital flows committed but reconciliation is off. Review nodes in stewardship.");
     }
 
     case "trust": {
-      return {
+      return attachRemediator({
         checkKey: check.key,
         severity: "warn",
         class: "data-missing",
         rootCause: `country_kpi_points has no committed series for ${cc}. KPI ingest has not populated the trust corpus.`,
         evidence: [{ label: "Series indexed", value: 0 }],
         systemicFix: {
-          kind: "operator-action",
-          description: `Run KPI research/ingest for ${cc} from country onboarding.`,
-          href: `/admin/countries/${cc}/onboard`,
-          canAutoApply: false,
+          kind: "writer-patch",
+          description: "",
+          canAutoApply: true,
         },
-      };
+      }, check.key, "data-missing");
     }
 
     case "gate": {
       const data = check.data as { checks: Array<{ key: string; pass: boolean; detail?: string }> } | undefined;
       const blocked = data?.checks.filter((c) => !c.pass) ?? [];
-      return {
+      return attachRemediator({
         checkKey: check.key,
         severity: "warn",
         class: "config",
@@ -381,16 +408,33 @@ function deriveFinding(check: Check, cc: string): Finding | null {
         evidence: blocked.map((b) => ({ label: b.key, value: b.detail ?? "blocked" })),
         systemicFix: {
           kind: "operator-action",
-          description: "Resolve each blocked upstream check above. This row will clear automatically.",
+          description: "Resolve each blocked upstream check above. Cascade fix runs each in order.",
           canAutoApply: false,
+          cascadeKeys: blocked.map((b) => b.key),
         },
-      };
+      }, check.key, "config");
+    }
+
+    case "corpus-miss": {
+      return attachRemediator({
+        checkKey: check.key,
+        severity: v.status === "fail" ? "fail" : "warn",
+        class: "data-missing",
+        rootCause: v.detail,
+        evidence: [{ label: "Detail", value: v.detail }],
+        systemicFix: {
+          kind: "retry",
+          description: "",
+          canAutoApply: true,
+        },
+      }, check.key, "data-missing");
     }
 
     default:
       return genericFinding(check, cc);
   }
 }
+
 
 function genericFinding(
   check: Check,

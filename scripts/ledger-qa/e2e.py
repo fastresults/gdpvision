@@ -51,10 +51,10 @@ async def main():
 
         # Read HEADER counts (source of truth) not the summary strip (buggy).
         header = await page.evaluate(
-            "() => { const t = document.body.innerText; const m = t.match(/(\\d+) pass\\s+(\\d+) warn\\s+(\\d+) fail/); return m ? [+m[1],+m[2],+m[3]] : null; }"
+            "() => { const t = document.body.innerText; const m = t.match(/(\\d+)\\s+pass[\\s\\S]{0,20}?(\\d+)\\s+warn[\\s\\S]{0,20}?(\\d+)\\s+fail/i); return m ? [+m[1],+m[2],+m[3]] : null; }"
         )
         strip = await page.evaluate(
-            "() => { const t = document.body.innerText; const m = t.match(/Run all reads[^\\n]*?(\\d+) pass[^\\n]*?(\\d+) warn[^\\n]*?(\\d+) fail/); return m ? [+m[1],+m[2],+m[3]] : null; }"
+            "() => { const t = document.body.innerText; const m = t.match(/Run all reads[\\s\\S]{0,80}?(\\d+)\\s+pass[\\s\\S]{0,20}?(\\d+)\\s+warn[\\s\\S]{0,20}?(\\d+)\\s+fail/i); return m ? [+m[1],+m[2],+m[3]] : null; }"
         )
         p, w, f = header
         sp, sw, sf = strip

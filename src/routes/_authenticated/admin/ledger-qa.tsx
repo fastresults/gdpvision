@@ -598,12 +598,27 @@ function genericFinding(
   };
 }
 
+// Cost hint per remediator — surfaces in confirm modals + button subtitles.
+const REMEDIATOR_COST: Record<RemediatorKey, { hint: string; needsConfirm: boolean }> = {
+  repairInvalidSourceUrls: { hint: "SQL only · free", needsConfirm: false },
+  retryUnreachableSources: { hint: "HEAD-only · free", needsConfirm: false },
+  backfillCapitalFlows: { hint: "~60s · Perplexity credits · writes flow rows", needsConfirm: true },
+  backfillSectors: { hint: "~30s · Perplexity credits · replaces sectors", needsConfirm: true },
+  backfillMinistryProfiles: { hint: "~90s · Perplexity credits · writes ministry_profiles", needsConfirm: true },
+  backfillKpiSeries: { hint: "~60s · WB/IMF+Perplexity · writes country_kpi_points", needsConfirm: true },
+  redriveCorpusMisses: { hint: "Clears cooldown markers · free", needsConfirm: false },
+  cascadeFix: { hint: "Runs all blocked remediators · costs credits", needsConfirm: true },
+  aiDiagnose: { hint: "~5 credits · read-only", needsConfirm: false },
+};
+
 // Central mutation dispatcher — every remediator uses the same server-fn
 // shape (`{ data: { countryCode } }`) and returns a stringifiable summary.
 function useRemediator(key: RemediatorKey | undefined, countryCode: string) {
   const qc = useQueryClient();
-  const invalidate = () =>
+  const invalidateAll = () => {
     qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] });
+    qc.invalidateQueries({ queryKey: ["ledger-qa-actions", countryCode] });
+  };
   return useMutation({
     mutationFn: async (): Promise<{ r: unknown; steps?: string[] }> => {
       switch (key) {
@@ -622,19 +637,27 @@ function useRemediator(key: RemediatorKey | undefined, countryCode: string) {
         case "redriveCorpusMisses":
           return { r: await redriveCorpusMisses({ data: { countryCode, hours: 24 } }) };
         case "cascadeFix": {
-          // Fetch gate, iterate blocked check keys, dispatch each mapped remediator.
           const gate = await getPublishGate({ data: { countryCode } });
           const steps: string[] = [];
-          for (const c of gate.checks.filter((c) => !c.pass)) {
+          // Dedup remediators across all blocked keys.
+          const blocked = gate.checks.filter((c) => !c.pass);
+          const seen = new Set<RemediatorKey>();
+          const plan: Array<{ upstream: string; rk: RemediatorKey }> = [];
+          for (const c of blocked) {
             const chain = CASCADE_MAP[c.key];
             if (!chain) { steps.push(`skip:${c.key} (no auto-remediator)`); continue; }
             for (const rk of chain) {
-              try {
-                const out = await runRemediatorByKey(rk, countryCode);
-                steps.push(`${c.key}:${rk} → ${summarizeResult(rk, out)}`);
-              } catch (e) {
-                steps.push(`${c.key}:${rk} ✗ ${(e as Error).message}`);
-              }
+              if (seen.has(rk)) continue;
+              seen.add(rk);
+              plan.push({ upstream: c.key, rk });
+            }
+          }
+          for (const step of plan) {
+            try {
+              const out = await runRemediatorByKey(step.rk, countryCode);
+              steps.push(`${step.upstream}:${step.rk} → ${summarizeResult(step.rk, out)}`);
+            } catch (e) {
+              steps.push(`${step.upstream}:${step.rk} ✗ ${(e as Error).message}`);
             }
           }
           const after = await getPublishGate({ data: { countryCode } });
@@ -644,7 +667,7 @@ function useRemediator(key: RemediatorKey | undefined, countryCode: string) {
           throw new Error(`No remediator wired for key: ${key ?? "(none)"}`);
       }
     },
-    onSuccess: invalidate,
+    onSuccess: invalidateAll,
   });
 }
 
@@ -677,6 +700,7 @@ function summarizeResult(key: RemediatorKey | undefined, r: unknown): string {
   }
   return "Done";
 }
+
 
 function RecentAttemptsPanel({ countryCode, domain }: { countryCode: string; domain: string }) {
   const q = useQuery({

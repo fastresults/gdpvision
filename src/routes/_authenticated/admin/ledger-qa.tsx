@@ -777,6 +777,7 @@ function useExplainFigureCheck(cc: string): Check {
       : IDLE_VERDICT;
   return {
     key: "explain",
+    isWriteProbe: true,
     label: "Why this number? — Second Brain grounded",
     surface: { to: "/instrument", label: "/instrument" },
     verdict,
@@ -804,6 +805,7 @@ function useAskLedgerCheck(cc: string): Check {
       ? { status: "fail", detail: (q.error as Error).message }
       : IDLE_VERDICT;
   return {
+    isWriteProbe: true,
     key: "ask",
     label: "Ask the Ledger — grounded answer",
     surface: { to: "/instrument", label: "/instrument" },
@@ -834,6 +836,7 @@ function useAskLedgerRefusalCheck(cc: string): Check {
     : q.error
       ? { status: "fail", detail: (q.error as Error).message }
       : IDLE_VERDICT;
+    isWriteProbe: true,
   return {
     key: "ask-refuse",
     label: "Ask the Ledger — refuses ungrounded probe",
@@ -1007,6 +1010,7 @@ function useSnapshotRoundtripCheck(cc: string): Check {
       : { status: "fail", detail: "Pinned but not returned by listFigureSnapshots" }
     : q.error
       ? { status: "fail", detail: (q.error as Error).message }
+    isWriteProbe: true,
       : IDLE_VERDICT;
   return {
     key: "snapshot-rt",
@@ -1045,6 +1049,7 @@ function useHandoffCheck(cc: string): Check {
       ? { status: "pass", detail: `Signal created ${q.data.signalId.slice(0, 8)}…` }
       : { status: "fail", detail: "No signal id returned" }
     : q.error
+    isWriteProbe: true,
       ? { status: "fail", detail: (q.error as Error).message }
       : IDLE_VERDICT;
   return {

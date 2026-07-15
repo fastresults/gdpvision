@@ -1446,6 +1446,8 @@ export const getPublishGate = createServerFn({ method: "GET" })
       { data: fresh },
       { data: alerts },
       { data: sources },
+      { data: flowNodes },
+      { data: flowRows },
     ] = await Promise.all([
       supabase.from("country_sectors").select("share_pct").eq("country_code", cc),
       supabase.from("sector_dossiers").select("citations").eq("country_code", cc),
@@ -1460,6 +1462,12 @@ export const getPublishGate = createServerFn({ method: "GET" })
         .select("id,fetch_status,active")
         .eq("country_code", cc)
         .eq("active", true),
+      supabase.from("capital_flow_nodes").select("node_key,side"),
+      supabase
+        .from("country_capital_flows")
+        .select("node_key,period,value_usd_m")
+        .eq("country_code", cc)
+        .order("period", { ascending: false }),
     ]);
 
     const latency = Date.now() - t0;
@@ -1495,6 +1503,26 @@ export const getPublishGate = createServerFn({ method: "GET" })
       (s) => s.fetch_status && s.fetch_status !== "ok" && s.fetch_status !== "pending",
     ).length;
 
+    const flowPeriods = Array.from(new Set((flowRows ?? []).map((r) => String(r.period ?? "")))).filter(Boolean).sort((a, b) => b.localeCompare(a));
+    const flowPeriod = flowPeriods[0] ?? null;
+    const latestFlows = flowPeriod ? (flowRows ?? []).filter((r) => r.period === flowPeriod) : (flowRows ?? []);
+    const sideByKey = new Map((flowNodes ?? []).map((n) => [String(n.node_key), String(n.side)]));
+    let flowInputs = 0;
+    let flowOutputs = 0;
+    let flowSumIn = 0;
+    let flowSumOut = 0;
+    let unknownFlowKeys = 0;
+    for (const f of latestFlows) {
+      if (f.node_key === "RECONCILIATION_RESIDUAL") continue;
+      const side = sideByKey.get(String(f.node_key));
+      if (!side) { unknownFlowKeys += 1; continue; }
+      const value = Number(f.value_usd_m ?? 0);
+      if (side === "input") { flowInputs += 1; flowSumIn += value; }
+      if (side === "output") { flowOutputs += 1; flowSumOut += value; }
+    }
+    const flowResidualPct = flowSumIn > 0 ? Math.abs(flowSumIn - flowSumOut) / flowSumIn : 1;
+    const flowsOk = flowInputs >= 3 && flowOutputs >= 4 && flowResidualPct <= 0.1 && unknownFlowKeys === 0;
+
     const checks = [
       {
         key: "shares",
@@ -1525,6 +1553,12 @@ export const getPublishGate = createServerFn({ method: "GET" })
         label: "All active sources reachable",
         pass: brokenSources === 0,
         detail: `${brokenSources} unreachable`,
+      },
+      {
+        key: "flows",
+        label: "Capital-flow Sankey coverage",
+        pass: flowsOk,
+        detail: `${latestFlows.length} flows${flowPeriod ? ` (${flowPeriod})` : ""}; ${flowInputs}/6 inputs, ${flowOutputs}/6 outputs, ${(flowResidualPct * 100).toFixed(1)}% residual${unknownFlowKeys ? `, ${unknownFlowKeys} unknown keys` : ""}`,
       },
     ];
     return { green: checks.every((c) => c.pass), checks };

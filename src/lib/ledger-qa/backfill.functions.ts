@@ -53,9 +53,8 @@ export const backfillCapitalFlows = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const cc = data.countryCode;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { searchCapitalFlows } = await import("@/lib/corpus/searchers/flow.server");
-    const { upsertCapitalFlow } = await import("@/lib/corpus/writers.server");
     const { recordCorpusReadOutcome } = await import("@/lib/corpus/gateway.server");
+    const { researchAndCommitCapitalFlowsForAcceptance } = await import("@/lib/ledger-qa/capital-flow-acceptance.server");
 
     const t0 = Date.now();
     const { count: before } = await supabaseAdmin
@@ -63,55 +62,21 @@ export const backfillCapitalFlows = createServerFn({ method: "POST" })
       .select("id", { head: true, count: "exact" })
       .eq("country_code", cc);
 
-    const result = await searchCapitalFlows({ countryCode: cc });
-    if (!result) {
-      void recordCorpusReadOutcome({
-        countryCode: cc, domain: "flow", key: "capital_flows:all",
-        outcome: "empty", latencyMs: Date.now() - t0, actor: context.userId,
-      });
-      await logAction({
-        supabaseAdmin, countryCode: cc, checkKey: "enrichment",
-        action: "backfillCapitalFlows", before: before ?? 0, after: before ?? 0,
-        detail: { note: "searcher returned no data" }, actor: context.userId,
-      });
-      return { wrote: 0, period: null, before: before ?? 0, summary: "External search returned no data" };
-    }
-
-    let wrote = 0;
-    for (const f of result.data.flows) {
-      try {
-        await upsertCapitalFlow({
-          country_code: cc,
-          node_key: f.node_key,
-          period: result.data.period,
-          value_usd_m: f.value_usd_m,
-          confidence_grade: f.confidence_grade,
-          notes: f.notes ?? null,
-          citations: result.citations,
-        });
-        wrote += 1;
-      } catch {
-        // continue on individual failures
-      }
-    }
-
-    const { count: after } = await supabaseAdmin
-      .from("country_capital_flows")
-      .select("id", { head: true, count: "exact" })
-      .eq("country_code", cc);
+    const result = await researchAndCommitCapitalFlowsForAcceptance(supabaseAdmin, { countryCode: cc, userId: context.userId });
 
     void recordCorpusReadOutcome({
       countryCode: cc, domain: "flow", key: "capital_flows:all",
-      outcome: wrote > 0 ? "external" : "empty",
-      tier: result.tier, latencyMs: Date.now() - t0, actor: context.userId,
+      outcome: result.after > 0 ? "external" : "empty",
+      tier: "workbook", latencyMs: Date.now() - t0, actor: context.userId,
+      notes: { runId: result.runId, draftId: result.draftId, inputs: result.inputs, outputs: result.outputs, residual_pct: result.residualPct, attempts: result.attempts },
     });
     await logAction({
       supabaseAdmin, countryCode: cc, checkKey: "enrichment",
-      action: "backfillCapitalFlows", before: before ?? 0, after: after ?? 0,
-      detail: { period: result.data.period, wrote, tier: result.tier }, actor: context.userId,
+      action: "backfillCapitalFlows", before: before ?? 0, after: result.after,
+      detail: { ...result, tier: "workbook" }, actor: context.userId,
     });
 
-    return { wrote, period: result.data.period, before: before ?? 0, summary: `Wrote ${wrote} flow node(s) for ${result.data.period} via ${result.tier}` };
+    return { wrote: result.upserted, period: result.period, before: before ?? 0, summary: result.summary };
   });
 
 // ─── 2. Sectors ──────────────────────────────────────────────────────────────
@@ -213,22 +178,29 @@ export const backfillMinistryProfiles = createServerFn({ method: "POST" })
           outcome: "external", tier: result.tier, latencyMs: 0, actor: context.userId,
         });
       } catch (e) {
-        failures.push(m.slug);
+        failures.push(`${m.slug}:${(e as Error).message.slice(0, 140)}`);
       }
     }
+
+    const { data: afterProfiles } = await supabaseAdmin
+      .from("ministry_profiles")
+      .select("ministry_slug")
+      .eq("country_code", cc);
+    const verifiedAfter = afterProfiles?.length ?? before;
+    const verifiedDelta = Math.max(0, verifiedAfter - before);
 
     await logAction({
       supabaseAdmin, countryCode: cc, checkKey: "overview",
       action: "backfillMinistryProfiles",
-      before, after: before + wrote,
-      detail: { attempted: targets.length, wrote, failures, remaining_missing: missing.length - targets.length },
+      before, after: verifiedAfter,
+      detail: { attempted: targets.length, attempted_writes: wrote, verified_after: verifiedAfter, failures, remaining_missing: missing.length - targets.length },
       actor: context.userId,
     });
 
     const remaining = missing.length - targets.length;
     return {
-      wrote, before, missing: missing.length,
-      summary: `Wrote ${wrote}/${targets.length} profile(s)${remaining > 0 ? `, ${remaining} still queued` : ""}${failures.length ? ` · failed: ${failures.join(", ")}` : ""}`,
+      wrote: verifiedDelta, before, missing: missing.length,
+      summary: `Committed ${verifiedDelta}/${targets.length} profile(s)${remaining > 0 ? `, ${remaining} still queued` : ""}${failures.length ? ` · failed: ${failures.join(", ")}` : ""}`,
       latencyMs: Date.now() - t0,
     };
   });
@@ -273,22 +245,30 @@ export const backfillKpiSeries = createServerFn({ method: "POST" })
           countryCode: cc, domain: "kpi", key: `kpi:${k.kpi_code}`,
           outcome: "external", tier: result.tier, latencyMs: 0, actor: context.userId,
         });
-      } catch {
-        failures.push(k.kpi_code);
+      } catch (e) {
+        failures.push(`${k.kpi_code}:${(e as Error).message.slice(0, 140)}`);
       }
     }
+
+    const { count: afterFilled } = await supabaseAdmin
+      .from("country_kpis")
+      .select("id", { head: true, count: "exact" })
+      .eq("country_code", cc)
+      .not("latest_value", "is", null);
+    const verifiedAfter = afterFilled ?? before;
+    const verifiedDelta = Math.max(0, verifiedAfter - before);
 
     await logAction({
       supabaseAdmin, countryCode: cc, checkKey: "trust",
       action: "backfillKpiSeries",
-      before, after: before + wrote,
-      detail: { attempted: missing.length, wrote, failures, total_required: required.length },
+      before, after: verifiedAfter,
+      detail: { attempted: missing.length, attempted_writes: wrote, verified_after: verifiedAfter, failures, total_required: required.length },
       actor: context.userId,
     });
 
     return {
-      wrote, before, missing: missing.length,
-      summary: `Wrote ${wrote}/${missing.length} KPI value(s)${failures.length ? ` · failed: ${failures.join(", ")}` : ""}`,
+      wrote: verifiedDelta, before, missing: missing.length,
+      summary: `Committed ${verifiedDelta}/${missing.length} KPI value(s)${failures.length ? ` · failed: ${failures.join(", ")}` : ""}`,
       latencyMs: Date.now() - t0,
     };
   });

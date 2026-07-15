@@ -258,11 +258,13 @@ export async function corpusRead<T>(spec: CorpusReadSpec<T>): Promise<CorpusRead
   }
 
   // 4. Write-back (BEFORE returning, so next reader hits the corpus).
+  let writeBackError: string | null = null;
   try {
     await spec.writeBack(searchResult.data, searchResult.citations);
   } catch (err) {
     // Write-back failure doesn't hide the freshly-fetched data from the caller;
     // it just means the next reader will search again.
+    writeBackError = (err as Error).message.slice(0, 400);
     void logAttempt({
       country_code: spec.scope.countryCode,
       domain: spec.domain,
@@ -271,11 +273,28 @@ export async function corpusRead<T>(spec: CorpusReadSpec<T>): Promise<CorpusRead
       tier: searchResult.tier,
       latency_ms: Date.now() - t0,
       actor: spec.actor ?? null,
-      notes: { writeback_error: (err as Error).message.slice(0, 400) },
+      notes: { writeback_error: writeBackError },
     });
   }
 
   const latency = Date.now() - t0;
+  if (writeBackError) {
+    return {
+      data: searchResult.data,
+      source: "external",
+      outcome: "error",
+      tier: searchResult.tier,
+      citations: searchResult.citations,
+      provenance: {
+        domain: spec.domain,
+        key: spec.key,
+        country_code: spec.scope.countryCode,
+        latency_ms: latency,
+        tier: searchResult.tier,
+        notes: [`Write-back failed: ${writeBackError}`],
+      },
+    };
+  }
   void logAttempt({
     country_code: spec.scope.countryCode,
     domain: spec.domain,

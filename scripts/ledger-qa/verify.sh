@@ -5,6 +5,7 @@
 set -uo pipefail
 
 BASE="${LEDGER_QA_BASE:-http://localhost:8080}"
+export MUST_SHIP="${MUST_SHIP:-LCA,BRB}"
 if [ -z "${LEDGER_QA_HOOK_KEY:-}" ]; then
   echo "LEDGER_QA_HOOK_KEY missing" >&2; exit 2
 fi

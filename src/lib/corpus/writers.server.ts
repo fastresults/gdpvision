@@ -7,6 +7,29 @@ import { upsertCountrySource as upsertCountrySourceImpl } from "@/lib/country-da
 import type { Json } from "@/integrations/supabase/types";
 import type { CorpusCitation } from "./types";
 
+type DbErrorLike = {
+  message?: string;
+  code?: string;
+  details?: string | null;
+  hint?: string | null;
+};
+
+function dbErrorMessage(error: DbErrorLike): string {
+  return [error.message, error.code ? `code=${error.code}` : null, error.details, error.hint]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function assertDbOk(result: { error?: DbErrorLike | null }, label: string): void {
+  if (result.error) throw new Error(`${label} failed: ${dbErrorMessage(result.error)}`);
+}
+
+function assertDbRow<T>(result: { data?: T | null; error?: DbErrorLike | null }, label: string): NonNullable<T> {
+  assertDbOk(result, label);
+  if (!result.data) throw new Error(`${label} failed: no row returned after write`);
+  return result.data as NonNullable<T>;
+}
+
 // Re-export the canonical sources upsert.
 export const upsertCountrySource = upsertCountrySourceImpl;
 
@@ -38,7 +61,7 @@ export async function upsertMemoryObject(
   const payload = (input.payload ?? {}) as Json;
 
   if (existing?.id) {
-    await supabaseAdmin
+    const res = await supabaseAdmin
       .from("memory_objects")
       .update({
         weight: Math.max(Number(existing.weight ?? 0), input.weight ?? 1),
@@ -47,10 +70,11 @@ export async function upsertMemoryObject(
         ...(input.source_id !== undefined ? { source_id: input.source_id } : {}),
       })
       .eq("id", existing.id);
+    assertDbOk(res, "update memory_object");
     return { id: existing.id as string, existed: true };
   }
 
-  const { data: created, error } = await supabaseAdmin
+  const created = assertDbRow<{ id: string }>(await supabaseAdmin
     .from("memory_objects")
     .insert({
       scope_key: input.scope_key,
@@ -62,8 +86,7 @@ export async function upsertMemoryObject(
       ...(input.source_id ? { source_id: input.source_id } : {}),
     })
     .select("id")
-    .single();
-  if (error || !created) return null;
+    .single(), "insert memory_object");
   return { id: created.id as string, existed: false };
 }
 
@@ -153,7 +176,8 @@ export async function upsertKpi(
     .upsert(row as never, { onConflict: "country_code,kpi_code" })
     .select("id")
     .maybeSingle();
-  if (error || !data) return { id: null, source_id };
+  if (error) throw new Error(`upsert KPI ${input.kpi_code} failed: ${dbErrorMessage(error)}`);
+  if (!data) throw new Error(`upsert KPI ${input.kpi_code} failed: no row returned after write`);
   return { id: data.id as string, source_id };
 }
 
@@ -172,7 +196,7 @@ export async function upsertKpiPoint(input: {
     .eq("period", input.period)
     .maybeSingle();
   if (existing?.id) {
-    await supabaseAdmin
+    const res = await supabaseAdmin
       .from("country_kpi_points")
       .update({
         value: input.value,
@@ -180,15 +204,16 @@ export async function upsertKpiPoint(input: {
         source_url: input.source_url ?? null,
       })
       .eq("id", existing.id);
+    assertDbOk(res, "update KPI point");
     return;
   }
-  await supabaseAdmin.from("country_kpi_points").insert({
+  assertDbOk(await supabaseAdmin.from("country_kpi_points").insert({
     country_kpi_id: input.country_kpi_id,
     period: input.period,
     value: input.value,
     source_id: input.source_id ?? null,
     source_url: input.source_url ?? null,
-  });
+  }), "insert KPI point");
 }
 
 // --- Sector dossier -------------------------------------------------------
@@ -215,15 +240,15 @@ export async function upsertSectorDossier(input: {
     updated_at: new Date().toISOString(),
   };
   if (existing?.id) {
-    await supabaseAdmin.from("sector_dossiers").update(row).eq("id", existing.id);
+    assertDbOk(await supabaseAdmin.from("sector_dossiers").update(row).eq("id", existing.id), "update sector dossier");
     return;
   }
-  await supabaseAdmin.from("sector_dossiers").insert({
+  assertDbOk(await supabaseAdmin.from("sector_dossiers").insert({
     country_code: input.country_code,
     sector_code: input.sector_code,
     kind: input.kind,
     ...row,
-  });
+  }), "insert sector dossier");
 }
 
 // --- Ministry profile -----------------------------------------------------
@@ -252,14 +277,14 @@ export async function upsertMinistryProfile(input: {
     updated_at: new Date().toISOString(),
   };
   if (existing?.id) {
-    await supabaseAdmin.from("ministry_profiles").update(row).eq("id", existing.id);
+    assertDbOk(await supabaseAdmin.from("ministry_profiles").update(row).eq("id", existing.id), "update ministry profile");
     return;
   }
-  await supabaseAdmin.from("ministry_profiles").insert({
+  assertDbOk(await supabaseAdmin.from("ministry_profiles").insert({
     country_code: input.country_code,
     ministry_slug: input.ministry_slug,
     ...row,
-  });
+  }), "insert ministry profile");
 }
 
 // --- Capital flow value ---------------------------------------------------
@@ -274,33 +299,25 @@ export async function upsertCapitalFlow(input: {
   provenance?: string;
   notes?: string | null;
   citations?: CorpusCitation[];
-}): Promise<void> {
-  const { data: existing } = await supabaseAdmin
-    .from("country_capital_flows")
-    .select("id")
-    .eq("country_code", input.country_code)
-    .eq("node_key", input.node_key)
-    .eq("period", input.period)
-    .maybeSingle();
+}): Promise<{ id: string }> {
   const row = {
+    country_code: input.country_code,
+    node_key: input.node_key,
+    period: input.period,
     value_usd_m: input.value_usd_m,
-    method: input.method ?? "corpus-fallback",
+    method: input.method ?? "modelled",
     confidence_grade: input.confidence_grade ?? "C",
     provenance: input.provenance ?? "corpus-fallback",
     notes: input.notes ?? null,
     citations: (input.citations ?? []) as unknown as Json,
     updated_at: new Date().toISOString(),
   };
-  if (existing?.id) {
-    await supabaseAdmin.from("country_capital_flows").update(row).eq("id", existing.id);
-    return;
-  }
-  await supabaseAdmin.from("country_capital_flows").insert({
-    country_code: input.country_code,
-    node_key: input.node_key,
-    period: input.period,
-    ...row,
-  });
+  const written = assertDbRow<{ id: string }>(await supabaseAdmin
+    .from("country_capital_flows")
+    .upsert(row as never, { onConflict: "country_code,node_key,period" })
+    .select("id")
+    .single(), `upsert capital flow ${input.country_code}/${input.node_key}/${input.period}`);
+  return { id: written.id as string };
 }
 
 // --- Citation record ------------------------------------------------------
@@ -320,12 +337,12 @@ export async function recordCitation(input: {
     .eq("url", input.url)
     .maybeSingle();
   if (existing?.id) return;
-  await supabaseAdmin.from("onboarding_citations").insert({
+  assertDbOk(await supabaseAdmin.from("onboarding_citations").insert({
     draft_id: input.draft_id,
     url: input.url,
     title: input.title ?? null,
     domain: input.domain ?? null,
-  });
+  }), "insert onboarding citation");
 }
 
 

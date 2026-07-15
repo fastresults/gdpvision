@@ -122,6 +122,18 @@ export type UpsertSourceRow = {
   created_by?: string | null;
 };
 
+type DbErrorLike = { message?: string; code?: string; details?: string | null; hint?: string | null };
+
+function dbErrorMessage(error: DbErrorLike): string {
+  return [error.message, error.code ? `code=${error.code}` : null, error.details, error.hint]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function assertDbOk(result: { error?: DbErrorLike | null }, label: string): void {
+  if (result.error) throw new Error(`${label} failed: ${dbErrorMessage(result.error)}`);
+}
+
 /**
  * Canonical, dedupe-safe upsert for country_sources.
  * - For kind='kpi_source', collapses onto the (country, org) canonical row.
@@ -154,10 +166,11 @@ export async function upsertCountrySource(
       .ilike("org", org)
       .maybeSingle();
     if (existing?.id) {
-      await admin
+      const res = await admin
         .from("country_sources")
         .update({ url, title, quality_score: quality, active: input.active ?? true })
         .eq("id", existing.id);
+      assertDbOk(res, "update KPI country source");
       return { id: existing.id as string, existed: true };
     }
   } else {
@@ -169,7 +182,7 @@ export async function upsertCountrySource(
       .eq("url", url)
       .maybeSingle();
     if (existing?.id) {
-      await admin
+      const res = await admin
         .from("country_sources")
         .update({
           title,
@@ -179,6 +192,7 @@ export async function upsertCountrySource(
           ...(input.tags ? { tags: input.tags } : {}),
         })
         .eq("id", existing.id);
+      assertDbOk(res, "update country source");
       return { id: existing.id as string, existed: true };
     }
   }
@@ -205,7 +219,8 @@ export async function upsertCountrySource(
     })
     .select("id")
     .single();
-  if (error || !created) return null;
+  if (error) throw new Error(`insert country source failed: ${dbErrorMessage(error)}`);
+  if (!created) throw new Error("insert country source failed: no row returned after write");
   return { id: created.id as string, existed: false };
 }
 

@@ -10,7 +10,7 @@ Invariants checked per country_code:
   I2 ministries  — every ministries row has a matching ministry_profiles row
   I3 kpis        — >=1 country_kpis row with latest_value NOT NULL
   I4 sources     — 0 rows where active=true AND url NOT LIKE 'http%'
-  I5 flows       — country_capital_flows row count > 0
+  I5 flows       — latest country_capital_flows has >=3 inputs, >=4 outputs, residual <=10%, no unknown node keys
 
 Usage: python3 scripts/ledger-qa/cascade-invariants.py [CC1 CC2 ...]
 Defaults to BRB LCA JAM GUY GB.
@@ -63,9 +63,30 @@ def check_country(cc: str) -> list[tuple[str, bool, str]]:
     bad = [s for s in srcs if not str(s.get("url") or "").lower().startswith(("http://", "https://"))]
     out.append(("I4 sources url", len(bad) == 0, f"{len(bad)}/{len(srcs)} active non-URL rows"))
 
-    # I5 capital flows
-    flows = rest("country_capital_flows", {"country_code": f"eq.{cc}", "select": "id"})
-    out.append(("I5 flows      ", len(flows) > 0, f"n={len(flows)}"))
+    # I5 capital flows — acceptance-grade Sankey coverage
+    nodes = rest("capital_flow_nodes", {"select": "node_key,side"})
+    side_by_key = {r["node_key"]: r["side"] for r in nodes}
+    flows = rest("country_capital_flows", {"country_code": f"eq.{cc}", "select": "node_key,period,value_usd_m"})
+    periods = sorted({str(f.get("period") or "") for f in flows if f.get("period")}, reverse=True)
+    latest_period = periods[0] if periods else None
+    latest = [f for f in flows if not latest_period or f.get("period") == latest_period]
+    inputs = outputs = unknown = 0
+    sum_in = sum_out = 0.0
+    for f in latest:
+        key = f.get("node_key")
+        if key == "RECONCILIATION_RESIDUAL":
+            continue
+        side = side_by_key.get(key)
+        val = float(f.get("value_usd_m") or 0)
+        if side == "input":
+            inputs += 1; sum_in += val
+        elif side == "output":
+            outputs += 1; sum_out += val
+        else:
+            unknown += 1
+    residual_pct = abs(sum_in - sum_out) / sum_in if sum_in > 0 else 1.0
+    ok = inputs >= 3 and outputs >= 4 and residual_pct <= 0.10 and unknown == 0
+    out.append(("I5 flows      ", ok, f"n={len(latest)} period={latest_period or '-'} inputs={inputs}/6 outputs={outputs}/6 residual={residual_pct*100:.1f}% unknown={unknown}"))
     return out
 
 def main():

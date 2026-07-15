@@ -137,6 +137,17 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
   const failCount = checks.filter((c) => c.verdict?.status === "fail").length;
   const warnCount = checks.filter((c) => c.verdict?.status === "warn").length;
 
+  const runAll = (includeWrites: boolean) => {
+    for (const c of checks) {
+      // Cheap reads: skip write probes unless the operator opted in.
+      if (!includeWrites && c.isWriteProbe) continue;
+      try { c.run(); } catch {}
+    }
+    // Also refresh derived queries (recent actions, attempts panels).
+    qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] });
+    qc.invalidateQueries({ queryKey: ["ledger-qa-actions", countryCode] });
+  };
+
   return (
     <section className="mt-12">
       <div className="flex items-baseline justify-between">
@@ -149,10 +160,23 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
           <span className="text-red-700">{failCount} fail</span>
           <button
             type="button"
-            onClick={() => qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] })}
+            onClick={() => runAll(false)}
             className="border border-ink-950 px-3 py-1.5 text-ink-950"
           >
-            Run all
+            Run all reads
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const ok = window.confirm(
+                "Run every probe including write/credit-costing ones (explain, ask, snapshot, handoff)? This will charge AI credits and write demo rows.",
+              );
+              if (ok) runAll(true);
+            }}
+            className="border border-ink-950 px-3 py-1.5 text-ink-950"
+            title="Runs every probe including AI-credit-costing writes"
+          >
+            Run everything
           </button>
         </div>
       </div>
@@ -177,6 +201,7 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
     </section>
   );
 }
+
 
 function CheckRow({ check, countryCode }: { check: Check; countryCode: string }) {
   const finding = deriveFinding(check, countryCode);

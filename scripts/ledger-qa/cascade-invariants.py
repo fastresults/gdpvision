@@ -43,14 +43,14 @@ def check_country(cc: str) -> list[tuple[str, bool, str]]:
     ok = len(rows) > 0 and 95.0 <= total <= 105.0
     out.append(("I1 sectors    ", ok, f"n={len(rows)} sum={total:.1f}%"))
 
-    # I2 ministries have profiles
-    mins = rest("ministries", {"country_code": f"eq.{cc}", "select": "id"})
+    # I2 ministries have profiles (joined on country_code + ministry_slug)
+    mins = rest("ministries", {"country_code": f"eq.{cc}", "select": "slug"})
+    profs = rest("ministry_profiles", {"country_code": f"eq.{cc}", "select": "ministry_slug"})
     if not mins:
         out.append(("I2 ministries ", True, "n=0 (no ministries yet)"))
     else:
-        ids = ",".join(f'"{m["id"]}"' for m in mins)
-        profs = rest("ministry_profiles", {"ministry_id": f"in.({ids})", "select": "ministry_id"})
-        missing = len(mins) - len({p["ministry_id"] for p in profs})
+        have = {p["ministry_slug"] for p in profs}
+        missing = sum(1 for m in mins if m["slug"] not in have)
         out.append(("I2 ministries ", missing == 0, f"{len(mins)-missing}/{len(mins)} profiled"))
 
     # I3 kpis have latest_value

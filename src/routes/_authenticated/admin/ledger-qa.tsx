@@ -32,6 +32,7 @@ import {
   getRecentCorpusAttempts,
 } from "@/lib/ledger-qa/backfill.functions";
 import { tombstoneQaProbes } from "@/lib/ledger-qa/probes.functions";
+import { runSelfHealingAcceptance, type SelfHealStep } from "@/lib/ledger-qa/self-heal.functions";
 import { getCorpusMissStatus, redriveCorpusMisses } from "@/lib/corpus/audit.functions";
 import { lookupRemediator, CASCADE_MAP, type RemediatorKey } from "@/lib/ledger-qa/remediators";
 import { diagnoseFinding, type Diagnosis } from "@/lib/ledger-qa/diagnose.functions";
@@ -161,6 +162,21 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
   const [simRunning, setSimRunning] = useState(false);
   const simCancelRef = useState<{ cancel: boolean }>({ cancel: false })[0];
 
+  // Self-heal state (streams the server-side sequencer's timeline).
+  const [healTimeline, setHealTimeline] = useState<SelfHealStep[]>([]);
+  const [healSummary, setHealSummary] = useState<{ shippable: boolean; blockers: string[]; wallMs: number } | null>(null);
+  const selfHealMutation = useMutation({
+    mutationFn: () => runSelfHealingAcceptance({ data: { countryCode, maxHealAttempts: 1, includeWriteProbes: false } }),
+    onMutate: () => { setHealTimeline([]); setHealSummary(null); },
+    onSuccess: (r) => {
+      setHealTimeline(r.timeline);
+      setHealSummary({ shippable: r.shippable, blockers: r.blockers, wallMs: r.wallMs });
+      // Re-run client-side checks so the top banner + rows reflect the healed state.
+      void runAll(false);
+      qc.invalidateQueries({ queryKey: ["ledger-qa-actions", countryCode] });
+    },
+  });
+
   const snapshotVerdicts = () =>
     checks.map((c) => ({ key: c.key, status: c.verdict?.status ?? "idle" }));
 
@@ -211,6 +227,7 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
     }
     setSimRunning(false);
   };
+
 
   // Chamber 01 v2 acceptance gate (top-of-page):
   // SHIPPABLE only when every check has a pass verdict (0 warns / 0 fails / 0 idle).

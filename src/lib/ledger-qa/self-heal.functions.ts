@@ -428,7 +428,7 @@ export const runSelfHealingAcceptance = createServerFn({ method: "POST" })
           const filled = new Map<string, unknown>();
           for (const r of existing ?? []) filled.set((r as any).kpi_code, (r as any).latest_value);
           const required = registryFor(["all"]).filter((k) => k.required);
-          const missing = required.filter((k) => filled.get(k.kpi_code) == null).slice(0, 6);
+          const missing = required.filter((k) => filled.get(k.kpi_code) == null);
           if (!missing.length) throw new Error("no required KPIs missing — check registry/read mismatch");
           const beforeFilled = Array.from(filled.values()).filter((v) => v != null).length;
           let wrote = 0; const failures: string[] = [];

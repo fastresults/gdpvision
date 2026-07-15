@@ -22,13 +22,17 @@ URL = os.environ["SUPABASE_URL"].rstrip("/")
 KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 
 def rest(path: str, params: dict) -> list:
-    q = urllib.parse.urlencode(params, safe="=,.*()")
+    q = urllib.parse.urlencode(params, safe="=,.*()\"")
     req = urllib.request.Request(
         f"{URL}/rest/v1/{path}?{q}",
         headers={"apikey": KEY, "Authorization": f"Bearer {KEY}", "Accept": "application/json"},
     )
-    with urllib.request.urlopen(req, timeout=15) as r:
-        return json.loads(r.read().decode())
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()[:200]
+        raise RuntimeError(f"{e.code} {path}?{q} :: {body}") from None
 
 def check_country(cc: str) -> list[tuple[str, bool, str]]:
     out: list[tuple[str, bool, str]] = []

@@ -34,6 +34,20 @@ export type Finding = {
     /** Whether the remediator can auto-run (super-admin only) */
     canAutoApply: boolean;
     /** Registry key the UI dispatches to the remediator */
-    remediatorKey?: "repairInvalidSourceUrls" | "retryUnreachableSources";
+    remediatorKey?:
+      | "repairInvalidSourceUrls"
+      | "retryUnreachableSources"
+      | "backfillCapitalFlows"
+      | "backfillSectors"
+      | "backfillMinistryProfiles"
+      | "backfillKpiSeries"
+      | "redriveCorpusMisses"
+      | "cascadeFix"
+      | "aiDiagnose";
+    /** Corpus domain for the "last attempt" panel */
+    corpusDomain?: string;
+    /** Upstream check keys blocked (used by gate/cascadeFix) */
+    cascadeKeys?: string[];
   };
 };
+

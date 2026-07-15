@@ -43,6 +43,8 @@ import {
   clearOnboardingLocks,
 } from "@/lib/country-onboarding/orchestrator.functions";
 import { generateStageSummary } from "@/lib/country-onboarding/summaries.functions";
+import { runSelfHealingAcceptance } from "@/lib/ledger-qa/self-heal.functions";
+
 
 
 type Stage =

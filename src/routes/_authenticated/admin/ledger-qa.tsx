@@ -32,7 +32,9 @@ import {
   getRecentCorpusAttempts,
 } from "@/lib/ledger-qa/backfill.functions";
 import { getCorpusMissStatus, redriveCorpusMisses } from "@/lib/corpus/audit.functions";
-import { lookupRemediator, type RemediatorKey } from "@/lib/ledger-qa/remediators";
+import { lookupRemediator, CASCADE_MAP, type RemediatorKey } from "@/lib/ledger-qa/remediators";
+import { diagnoseFinding, type Diagnosis } from "@/lib/ledger-qa/diagnose.functions";
+import { getPublishGate } from "@/lib/ledger.functions";
 import type { Finding } from "@/lib/ledger-qa/types";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 

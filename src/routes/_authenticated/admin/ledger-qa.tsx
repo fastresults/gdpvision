@@ -142,6 +142,9 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
   const failCount = checks.filter((c) => c.verdict?.status === "fail").length;
   const warnCount = checks.filter((c) => c.verdict?.status === "warn").length;
 
+  const [simTimeline, setSimTimeline] = useState<Array<{ key: string; status: string; detail: string; ms: number }>>([]);
+  const [simRunning, setSimRunning] = useState(false);
+
   const runAll = (includeWrites: boolean) => {
     for (const c of checks) {
       // Cheap reads: skip write probes unless the operator opted in.
@@ -151,6 +154,26 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
     // Also refresh derived queries (recent actions, attempts panels).
     qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] });
     qc.invalidateQueries({ queryKey: ["ledger-qa-actions", countryCode] });
+  };
+
+  const runColdStart = async () => {
+    setSimRunning(true);
+    setSimTimeline([]);
+    for (const c of checks) {
+      if (c.isWriteProbe) continue; // skip credit-costing probes
+      const t0 = Date.now();
+      try {
+        c.run();
+        // wait briefly for react-query to settle; poll verdict
+        await new Promise((r) => setTimeout(r, 800));
+      } catch {}
+      const v = c.verdict;
+      setSimTimeline((prev) => [
+        ...prev,
+        { key: c.key, status: v?.status ?? "idle", detail: v?.detail ?? "—", ms: Date.now() - t0 },
+      ]);
+    }
+    setSimRunning(false);
   };
 
   return (

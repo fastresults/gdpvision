@@ -840,11 +840,29 @@ function FindingDrawer({ finding, countryCode }: { finding: Finding; countryCode
   );
 }
 
+const VALID_REMEDIATOR_KEYS: RemediatorKey[] = [
+  "repairInvalidSourceUrls", "retryUnreachableSources",
+  "backfillCapitalFlows", "backfillSectors", "backfillMinistryProfiles",
+  "backfillKpiSeries", "redriveCorpusMisses", "cascadeFix", "aiDiagnose",
+];
+
 function AiDiagnoseButton({ checkKey, countryCode, verdictDetail }: { checkKey: string; countryCode: string; verdictDetail: string }) {
+  const qc = useQueryClient();
   const mut = useMutation({
     mutationFn: async (): Promise<Diagnosis> =>
       await diagnoseFinding({ data: { checkKey, countryCode, verdictDetail } }),
   });
+  const dispatch = useMutation({
+    mutationFn: async (rk: RemediatorKey) => await runRemediatorByKey(rk, countryCode),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ledger-qa", countryCode] });
+      qc.invalidateQueries({ queryKey: ["ledger-qa-actions", countryCode] });
+    },
+  });
+  const suggested = mut.data?.remediator_key;
+  const canDispatch = suggested && (VALID_REMEDIATOR_KEYS as string[]).includes(suggested)
+    && suggested !== "aiDiagnose" && suggested !== "cascadeFix"
+    ? (suggested as RemediatorKey) : null;
   return (
     <div className="flex flex-col items-end gap-1">
       <button
@@ -852,7 +870,7 @@ function AiDiagnoseButton({ checkKey, countryCode, verdictDetail }: { checkKey: 
         disabled={mut.isPending}
         onClick={() => mut.mutate()}
         className="border border-dashed border-ink-500 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 disabled:opacity-50"
-        title="Ask Lovable AI to inspect live corpus attempts and suggest a fix"
+        title="Ask Lovable AI to inspect live corpus attempts and suggest a fix (~5 credits)"
       >
         {mut.isPending ? "Diagnosing…" : "AI diagnose"}
       </button>
@@ -866,6 +884,28 @@ function AiDiagnoseButton({ checkKey, countryCode, verdictDetail }: { checkKey: 
             <ol className="list-decimal list-inside font-mono text-[10px] text-ink-500 text-left">
               {mut.data.operator_steps.map((s, i) => <li key={i}>{s}</li>)}
             </ol>
+          ) : null}
+          {canDispatch ? (
+            <button
+              type="button"
+              disabled={dispatch.isPending}
+              onClick={() => {
+                const cost = REMEDIATOR_COST[canDispatch];
+                if (cost.needsConfirm && !window.confirm(`Run AI-suggested ${canDispatch}?\nCost: ${cost.hint}`)) return;
+                dispatch.mutate(canDispatch);
+              }}
+              className="border border-ink-950 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950 disabled:opacity-50"
+            >
+              {dispatch.isPending ? "Running…" : `Run suggested → ${canDispatch}`}
+            </button>
+          ) : null}
+          {dispatch.data ? (
+            <span className="font-mono text-[10px] text-emerald-700">
+              {summarizeResult(canDispatch ?? undefined, dispatch.data)}
+            </span>
+          ) : null}
+          {dispatch.error ? (
+            <span className="font-mono text-[10px] text-red-700">{(dispatch.error as Error).message}</span>
           ) : null}
         </div>
       ) : null}

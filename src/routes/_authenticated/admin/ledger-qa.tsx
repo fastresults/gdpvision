@@ -787,13 +787,26 @@ function FindingDrawer({ finding, countryCode }: { finding: Finding; countryCode
             <button
               type="button"
               disabled={mut.isPending}
-              onClick={() => mut.mutate()}
+              onClick={() => {
+                const cost = REMEDIATOR_COST[remediatorKey];
+                if (cost.needsConfirm) {
+                  const ok = window.confirm(
+                    `Run ${lookupRemediator(finding.checkKey, finding.class)?.label ?? remediatorKey}?\n\nCost: ${cost.hint}`,
+                  );
+                  if (!ok) return;
+                }
+                mut.mutate();
+              }}
               className="border border-ink-950 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950 disabled:opacity-50"
+              title={REMEDIATOR_COST[remediatorKey].hint}
             >
               {mut.isPending
                 ? "Running…"
                 : lookupRemediator(finding.checkKey, finding.class)?.label ?? "Run remediator"}
             </button>
+            <span className="font-mono text-[10px] text-ink-500 text-right max-w-[280px]">
+              {REMEDIATOR_COST[remediatorKey].hint}
+            </span>
             {mut.data ? (
               <span className="font-mono text-[10px] text-emerald-700 text-right max-w-[280px]">
                 {summarizeResult(remediatorKey, (mut.data as { r: unknown }).r)}

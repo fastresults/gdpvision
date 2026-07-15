@@ -493,14 +493,14 @@ function deriveFinding(check: Check, cc: string): Finding | null {
     }
 
     case "enrichment": {
-      const data = check.data as { capitalFlows: { totals: { inputs: number } }; ministries?: Array<unknown> } | undefined;
+      const data = check.data as { capitalFlows: { totals: { inputs: number } }; ministries?: Array<{ id: string }> } | undefined;
       const noFlows = !data || data.capitalFlows.totals.inputs === 0;
       if (noFlows) {
         return attachRemediator({
           checkKey: check.key,
           severity: "warn",
           class: "data-missing",
-          rootCause: `country_capital_flows has 0 committed rows for ${cc}. Stage 12 (capital-flows research) has not run.`,
+          rootCause: `No capital_flows committed for ${cc} — click Backfill capital flows below (3-pass Perplexity waterfall, ~60s, writes to country_capital_flows).`,
           evidence: [{ label: "Committed flows", value: 0 }],
           systemicFix: {
             kind: "writer-patch",
@@ -508,6 +508,18 @@ function deriveFinding(check: Check, cc: string): Finding | null {
             canAutoApply: true,
           },
         }, check.key, "data-missing");
+      }
+      const ministriesEmpty = !data.ministries || data.ministries.length === 0;
+      if (ministriesEmpty) {
+        // Flows are ok but no ministries → the ministry backfill is the next auto step.
+        return attachRemediator({
+          checkKey: "overview",
+          severity: "warn",
+          class: "data-quality",
+          rootCause: `Capital flows committed but no ministry profiles for ${cc}. Backfill fills current Minister + mandate per ministry.`,
+          evidence: [{ label: "Ministries", value: 0 }],
+          systemicFix: { kind: "writer-patch", description: "", canAutoApply: true },
+        }, "overview", "data-quality");
       }
       return genericFinding(check, cc, "data-quality", "Capital flows committed but reconciliation is off. Review nodes in stewardship.");
     }

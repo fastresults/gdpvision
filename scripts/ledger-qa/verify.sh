@@ -12,7 +12,7 @@ fi
 if [ "$#" -gt 0 ]; then
   CCS=("$@")
 else
-  CCS=(BRB LCA JAM GUY GB)
+  CCS=(BRB LCA JAM GUY GBR)
 fi
 
 overall_fail=0

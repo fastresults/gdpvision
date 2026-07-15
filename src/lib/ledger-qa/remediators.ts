@@ -91,6 +91,15 @@ export const REMEDIATOR_TABLE: Record<string, RemediatorEntry> = {
   }),
 };
 
+// Cascade map — for publish-gate check keys, run these remediators in order.
+export const CASCADE_MAP: Record<string, RemediatorKey[]> = {
+  shares: ["backfillSectors"],
+  coverage: ["backfillMinistryProfiles"],
+  freshness: ["backfillKpiSeries"],
+  sources: ["repairInvalidSourceUrls", "retryUnreachableSources"],
+  // "alerts" has no auto-remediator — operator must acknowledge.
+};
+
 export function lookupRemediator(checkKey: string, findingClass: string): RemediatorEntry | null {
   return REMEDIATOR_TABLE[`${checkKey}|${findingClass}`] ?? null;
 }

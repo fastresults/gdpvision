@@ -462,26 +462,53 @@ export const runSelfHealingAcceptance = createServerFn({ method: "POST" })
         key: "corpus-miss",
         read: readCorpusMiss,
         heal: async () => {
-          // Redrive = clear cooldown so next natural read re-attempts. Idempotent.
+          // Real redrive: insert a synthetic "hit" marker per stuck (domain,key)
+          // so gateway.recentEmptyAttempt() no longer sees the empty/error/throttled
+          // outcome as the most-recent attempt within the cooldown window. The
+          // next natural read then re-runs the external searcher waterfall.
           const since = new Date(Date.now() - 24 * 3600_000).toISOString();
-          const { data: stuck } = await supabaseAdmin
+          const { data: rows } = await supabaseAdmin
             .from("corpus_fetch_attempts")
-            .select("id, domain, key")
+            .select("domain, key, outcome, created_at")
             .eq("country_code", cc)
-            .eq("outcome", "empty")
-            .gte("created_at", since);
-          const n = stuck?.length ?? 0;
-          // We don't delete audit rows; we just log an action so the next
-          // read-through knows to attempt again. (Cooldown enforcement is in
-          // gateway.server.ts — read the timestamp of the newest attempt.)
+            .gte("created_at", since)
+            .order("created_at", { ascending: true });
+          // Rebuild unresolved (domain,key) set
+          const state = new Map<string, boolean>();
+          for (const r of rows ?? []) {
+            const k = `${r.domain}::${r.key}`;
+            if (r.outcome === "empty" || r.outcome === "error" || r.outcome === "throttled") state.set(k, true);
+            else if (r.outcome === "external" || r.outcome === "hit") state.set(k, false);
+          }
+          const stuck = Array.from(state.entries()).filter(([, v]) => v).map(([k]) => {
+            const [domain, ...rest] = k.split("::");
+            return { domain, key: rest.join("::") };
+          });
+          if (stuck.length === 0) {
+            return { action: "redriveCorpusMisses", summary: "No stuck (domain,key) pairs to clear" };
+          }
+          const nowIso = new Date().toISOString();
+          const markers = stuck.map((s) => ({
+            country_code: cc,
+            domain: s.domain,
+            key: s.key,
+            outcome: "hit" as const,
+            tier: "redrive-clear",
+            latency_ms: 0,
+            actor: context.userId,
+            created_at: nowIso,
+          }));
+          const { error } = await supabaseAdmin.from("corpus_fetch_attempts").insert(markers);
+          if (error) throw new Error(error.message);
           await logAction({
             checkKey: "corpus-miss", action: "redriveCorpusMisses",
-            before: n, after: 0, detail: { cleared: n },
+            before: stuck.length, after: 0, detail: { cleared: stuck.length, pairs: stuck.slice(0, 20) },
           });
-          return { action: "redriveCorpusMisses", summary: `Marked ${n} stuck (domain,key) pair(s) for retry` };
+          return { action: "redriveCorpusMisses", summary: `Cleared cooldown on ${stuck.length} stuck (domain,key) pair(s)` };
         },
       },
     ];
+
 
     // ─── Sequencer ───────────────────────────────────────────────────────
     for (const s of steps) {

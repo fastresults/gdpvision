@@ -1,3 +1,7 @@
+**Pass #2 shipped (Jul 15 2026):** honest Run All + summary strip, real cold-start with cancel, wider overview/enrichment findings, deduped cascade + broad invalidation, dispatchable AI diagnose, write-probe tombstone (`tombstoneQaProbes`) + 10-min cache-gate on all 5 probes, hardened public hook (`LEDGER_QA_HOOK_KEY`, 12-check parity, `run_id`/`wall_ms`), and confirm+cost-hint on every write remediator. Verified `bunx tsgo --noEmit` clean.
+
+---
+
 
 # Ledger-QA — bulletproof pass #2
 

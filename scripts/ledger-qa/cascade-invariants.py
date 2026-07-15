@@ -65,7 +65,7 @@ def check_country(cc: str) -> list[tuple[str, bool, str]]:
     return out
 
 def main():
-    ccs = [c.upper() for c in sys.argv[1:]] or ["BRB", "LCA", "JAM", "GUY", "GB"]
+    ccs = [c.upper() for c in sys.argv[1:]] or ["BRB", "LCA", "JAM", "GUY", "GBR"]
     total_fail = 0
     for cc in ccs:
         print(f"── {cc} ──────────────────────────────")

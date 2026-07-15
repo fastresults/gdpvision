@@ -206,8 +206,35 @@ function ChecklistTable({ countryCode }: { countryCode: string }) {
           >
             Run everything
           </button>
+          <button
+            type="button"
+            onClick={runColdStart}
+            disabled={simRunning}
+            className="border border-ink-950 px-3 py-1.5 text-ink-950 disabled:opacity-50"
+            title="Runs every read check sequentially and shows a step-by-step timeline"
+          >
+            {simRunning ? "Simulating…" : "Simulate cold-start"}
+          </button>
         </div>
       </div>
+
+      {simTimeline.length > 0 ? (
+        <div className="mt-4 border border-line-200 bg-ink-50/50 p-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            Cold-start timeline · {simTimeline.length} step(s)
+          </p>
+          <ol className="mt-2 space-y-0.5 font-mono text-[11px] text-ink-500">
+            {simTimeline.map((s, i) => (
+              <li key={i}>
+                <span className="text-ink-950">{String(i + 1).padStart(2, "0")}.</span>{" "}
+                <span className="uppercase tracking-widest">{s.status}</span>{" · "}
+                <span className="text-ink-950">{s.key}</span>{" · "}
+                {s.ms}ms · {s.detail}
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
 
       <table className="mt-6 w-full text-sm">
         <thead>

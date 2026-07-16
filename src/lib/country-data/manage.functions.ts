@@ -1339,6 +1339,8 @@ export const bulkAddLinks = createServerFn({ method: "POST" })
           active: true,
           tags: ["bulk"],
           created_by: context.userId,
+          visibility: data.visibility,
+          uploaded_by: data.visibility === "private" ? context.userId : null,
         });
         if (!res) errors.push({ url, error: "insert failed" });
         else if (res.existed) duplicates++;

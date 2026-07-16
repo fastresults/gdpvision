@@ -181,7 +181,7 @@ function BulkLinksTab({ countryCode, visibility, onDone }: { countryCode: string
   );
 }
 
-function DocumentsTab({ countryCode, onDone }: { countryCode: string; onDone: () => void }) {
+function DocumentsTab({ countryCode, visibility, onDone }: { countryCode: string; visibility: "public" | "private"; onDone: () => void }) {
   const ingest = useServerFn(ingestDocumentSource);
   const [dragOver, setDragOver] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
@@ -201,7 +201,8 @@ function DocumentsTab({ countryCode, onDone }: { countryCode: string; onDone: ()
             mime_type: f.type || "application/octet-stream",
             content_b64: b64,
             title: f.name,
-            org: org || "Uploaded document",
+            org: org || (visibility === "private" ? "Private upload" : "Uploaded document"),
+            visibility,
           },
         });
       }

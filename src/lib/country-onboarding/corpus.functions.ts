@@ -147,7 +147,7 @@ async function saveDraft(admin: any, args: {
     .maybeSingle();
   if (existingError) throw existingError;
 
-  const { data: draft, error } = existing?.id
+  let draftResult = existing?.id
     ? await admin
         .from("onboarding_drafts")
         .update(patch)
@@ -159,7 +159,28 @@ async function saveDraft(admin: any, args: {
         .insert(patch)
         .select("id")
         .single();
-  if (error) throw error;
+  if (draftResult.error && (draftResult.error as any).code === "23505") {
+    const { data: racedExisting, error: racedExistingError } = await admin
+      .from("onboarding_drafts")
+      .select("id")
+      .eq("country_code", args.country_code)
+      .eq("stage", args.stage)
+      .is("committed_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (racedExistingError) throw racedExistingError;
+    if (racedExisting?.id) {
+      draftResult = await admin
+        .from("onboarding_drafts")
+        .update(patch)
+        .eq("id", racedExisting.id)
+        .select("id")
+        .single();
+    }
+  }
+  if (draftResult.error) throw draftResult.error;
+  const draft = draftResult.data;
   await admin.from("onboarding_citations").delete().eq("draft_id", draft.id);
   if (args.citations.length) {
     await admin.from("onboarding_citations").insert(
@@ -2107,7 +2128,7 @@ export const runCapitalFlowsAgent = createServerFn({ method: "POST" })
     });
 
     try {
-      const workbook = await buildCapitalFlowsDraft({
+    const workbook = await buildCapitalFlowsDraft({
         admin: supabaseAdmin,
         country,
         runId,
@@ -2130,7 +2151,7 @@ export const runCapitalFlowsAgent = createServerFn({ method: "POST" })
         status: workbook.coverageOk ? "ready" : "needs_review",
         error: workbook.coverageOk
           ? null
-          : `Coverage insufficient: ${workbook.payload.coverage.inputs.length}/6 inputs, ${workbook.payload.coverage.outputs.length}/6 outputs, ${(workbook.reconciliationPct * 100).toFixed(0)}% residual`,
+          : `Coverage insufficient: ${workbook.payload.coverage.inputs.length}/${workbook.payload.coverage.applicableInputs?.length ?? 6} inputs, ${workbook.payload.coverage.outputs.length}/${workbook.payload.coverage.applicableOutputs?.length ?? 6} outputs, ${(workbook.reconciliationPct * 100).toFixed(0)}% residual`,
         plan: {
           strategy: "evidence-workbook-per-node",
           attempts: workbook.attempts,
@@ -2263,20 +2284,23 @@ export const commitCapitalFlows = createServerFn({ method: "POST" })
       throw new Error("Commit rejected: capital-flow draft wrote 0 target rows. Draft remains open.");
     }
 
-    // Reconciliation residual — insert if inputs and outputs disagree > 10%.
+    // Reconciliation residual — insert a balancer only when the reviewed
+    // payload did not already include the workbook's explicit residual row.
     const { data: registry } = await supabaseAdmin.from("capital_flow_nodes").select("node_key, side");
     const sideByKey = new Map<string, string>();
     for (const r of registry ?? []) sideByKey.set(r.node_key, r.side);
     let sumIn = 0, sumOut = 0;
+    const presentKeys = new Set<string>();
     for (const f of payload.flows) {
+      presentKeys.add(f.node_key);
       const s = sideByKey.get(f.node_key);
       if (s === "input") sumIn += Number(f.value_usd_m ?? 0);
       else if (s === "output") sumOut += Number(f.value_usd_m ?? 0);
     }
     const residual = sumIn - sumOut;
-    if (Math.abs(residual) > 0.01 && sumIn > 0 && Math.abs(residual) / sumIn > 0.1) {
+    if (!presentKeys.has("RECONCILIATION_RESIDUAL") && !presentKeys.has("RECONCILIATION_INFLOW_RESIDUAL") && Math.abs(residual) > 0.01 && sumIn > 0 && Math.abs(residual) / Math.max(sumIn, sumOut) > 0.1) {
       // The residual goes on the side with the smaller total, to balance the diagram.
-      const nodeKey = "RECONCILIATION_RESIDUAL";
+      const nodeKey = residual > 0 ? "RECONCILIATION_RESIDUAL" : "RECONCILIATION_INFLOW_RESIDUAL";
       const { error: residualErr } = await supabaseAdmin.from("country_capital_flows").upsert(
         {
           country_code: draft.country_code,
@@ -2285,7 +2309,7 @@ export const commitCapitalFlows = createServerFn({ method: "POST" })
           value_usd_m: Math.abs(residual),
           method: "residual",
           confidence_grade: "C",
-          notes: residual > 0 ? "Auto-balancer: inputs exceed disclosed outputs" : "Auto-balancer: outputs exceed disclosed inputs",
+          notes: residual > 0 ? "Auto-balancer: inputs exceed disclosed outputs" : "Auto-balancer: outputs exceed disclosed inputs; unattributed financing/inflow required to reconcile the ledger",
           citations: orderedCitations as any,
         },
         { onConflict: "country_code,node_key,period" },

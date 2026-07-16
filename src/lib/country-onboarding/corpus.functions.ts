@@ -1289,76 +1289,9 @@ export const commitSectorDossiers = createServerFn({ method: "POST" })
 // Stage 9: Ministry deep-dive
 // ============================================================
 
-const MinisterProfileSchema = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    name: { type: ["string", "null"] },
-    title: { type: ["string", "null"] },
-    party: { type: ["string", "null"] },
-    appointed_at: { type: ["string", "null"] },
-    bio: { type: ["string", "null"] },
-    birth_date: { type: ["string", "null"] },
-    education: { type: "array", items: { type: "string" } },
-    career: { type: "array", items: { type: "string" } },
-    contact: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        office_phone: { type: ["string", "null"] },
-        email: { type: ["string", "null"] },
-        office_address: { type: ["string", "null"] },
-        website: { type: ["string", "null"] },
-      },
-    },
-    socials: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        twitter: { type: ["string", "null"] },
-        facebook: { type: ["string", "null"] },
-        linkedin: { type: ["string", "null"] },
-        instagram: { type: ["string", "null"] },
-      },
-    },
-    portrait_url: { type: ["string", "null"] },
-  },
-} as const;
-
-const MinistryDeepDiveSchema = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    ministries: {
-      type: "array",
-      items: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          ministry_slug: { type: "string" },
-          minister: { type: ["string", "null"] },
-          minister_profile: MinisterProfileSchema,
-          mandate: { type: "string" },
-          programmes: {
-            type: "array",
-            items: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                name: { type: "string" },
-                objective: { type: "string" },
-                status: { type: "string" },
-              },
-              required: ["name", "objective", "status"],
-            },
-          },
-        },
-        required: ["ministry_slug", "mandate", "programmes"],
-      },
-    },
-  },
-  required: ["ministries"],
-} as const;
+// The canonical minister profile schema now lives in `minister-research.server.ts`
+// so stage 5 (M×S sidecar) and stage 9 (deep-dive commit) reference one source.
+export { MinisterProfileSchema } from "./minister-research.server";
 
 
 export const runMinistryDeepDiveAgent = createServerFn({ method: "POST" })
@@ -1374,67 +1307,57 @@ export const runMinistryDeepDiveAgent = createServerFn({ method: "POST" })
       .eq("country_code", data.countryCode);
     if (!ministries?.length) throw new Error("Commit ministries first — none exist for this country");
 
-    const model: SonarModel = "sonar-pro";
+    const { buildCountryContext } = await import("./country-context.server");
+    const { resolveMinister } = await import("./minister-research.server");
+    const ctx = await buildCountryContext(supabaseAdmin, data.countryCode);
+
+    const model: SonarModel = "sonar-reasoning-pro";
     const runId = await openRun(supabaseAdmin, {
       country_code: data.countryCode,
       stage: "ministry_deep_dive",
       userId: context.userId,
-      model_stack: { perplexity: model },
+      model_stack: { perplexity: model, extractor: "google/gemini-3.1-flash-lite" },
     });
 
     try {
-      // Research each ministry independently so a single officeholder can't
-      // dominate the result set. Domain filter is disabled so Perplexity can
-      // reach the actual ministry / gov websites, press releases, and
-      // Wikipedia infoboxes that name the current minister.
-      const perMinistrySchema = {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          ministry_slug: { type: "string" },
-          minister: { type: ["string", "null"] },
-          minister_profile: MinisterProfileSchema,
-          mandate: { type: "string" },
-          programmes: {
-            type: "array",
-            items: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                name: { type: "string" },
-                objective: { type: "string" },
-                status: { type: "string" },
-              },
-              required: ["name", "objective", "status"],
-            },
-          },
-        },
-        required: ["ministry_slug", "mandate", "programmes"],
-      } as const;
-
+      // Corpus-first → targeted-web → wide-web → cross-check loop per ministry.
+      // Each ministry is researched independently so a single officeholder can't
+      // dominate the result set.
       const allCitations: SonarCitation[] = [];
       const seenCiteUrls = new Set<string>();
       const ministryEntries: any[] = [];
       const errors: string[] = [];
+      const perMinistryDiagnostics: any[] = [];
+      let resolvedCount = 0;
 
       for (const m of ministries as Array<{ slug: string; name: string }>) {
         try {
-          const perRes = await callSonar({
-            model,
-            system:
-              "You are a governance analyst. Research the SPECIFIC ministry named by the user and return ONE JSON object matching the schema. `minister_profile.name` must be the CURRENT officeholder of THIS ministry — do NOT default to the head of government unless they personally hold this portfolio. If you cannot verify the current minister from an official ministry website, government gazette, parliamentary record, or a current Wikipedia infobox, set minister and minister_profile.name to null. Include title, party, appointment date (ISO), a <=400 char bio, education, career highlights, contact block (office_phone, email, office_address, website), verified official socials, and portrait_url when publicly available. Provide a concrete mandate paragraph and 2-5 flagship programmes (name/objective/status). Return null for any field you cannot verify — never guess.",
-            user: `Country: ${country.name}.\nMinistry slug: ${m.slug}\nMinistry name: ${m.name}\n\nReturn a single object with ministry_slug="${m.slug}".`,
-            responseSchema: perMinistrySchema as unknown as Record<string, unknown>,
-            noDomainFilter: true,
+          const result = await resolveMinister({
+            admin: supabaseAdmin,
+            countryCode: data.countryCode,
+            countryName: country.name,
+            ministry: m,
+            ctx,
+            actor: context.userId,
           });
-          const parsedOne = parseSonarJson<any>(perRes.content);
-          if (parsedOne && typeof parsedOne === "object") {
-            parsedOne.ministry_slug = m.slug; // enforce
-            ministryEntries.push(parsedOne);
-          } else {
-            errors.push(`${m.slug}: empty response`);
-          }
-          for (const c of perRes.citations) {
+
+          ministryEntries.push({
+            ministry_slug: m.slug,
+            minister: result.minister,
+            minister_profile: result.minister_profile,
+            mandate: result.mandate,
+            programmes: result.programmes,
+          });
+          if (result.minister) resolvedCount++;
+          perMinistryDiagnostics.push({
+            ministry_slug: m.slug,
+            minister: result.minister,
+            confidence: result.confidence,
+            source_tier: result.source_tier,
+            candidates: result.candidates,
+            notes: result.notes,
+          });
+          for (const c of result.citations) {
             if (!seenCiteUrls.has(c.url)) {
               seenCiteUrls.add(c.url);
               allCitations.push(c);
@@ -1449,7 +1372,15 @@ export const runMinistryDeepDiveAgent = createServerFn({ method: "POST" })
         throw new Error(`Perplexity returned no ministry entries. ${errors.slice(0, 3).join("; ")}`);
       }
 
-      const parsed = { ministries: ministryEntries };
+      // Acceptance gate: draft is "medium" only when ≥70% of ministries have a
+      // resolved minister name AND at least one citation is attached.
+      const resolvedPct = resolvedCount / ministries.length;
+      const confidence =
+        resolvedPct >= 0.7 && allCitations.length >= ministries.length
+          ? "medium"
+          : "low";
+
+      const parsed = { ministries: ministryEntries, diagnostics: perMinistryDiagnostics };
 
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
@@ -1457,7 +1388,7 @@ export const runMinistryDeepDiveAgent = createServerFn({ method: "POST" })
         stage: "ministry_deep_dive",
         target_table: "ministry_profiles",
         payload: parsed,
-        confidence: allCitations.length >= ministries.length ? "medium" : "low",
+        confidence,
         citations: allCitations,
       });
 
@@ -1466,14 +1397,17 @@ export const runMinistryDeepDiveAgent = createServerFn({ method: "POST" })
         runId,
         draftId,
         count: parsed.ministries.length,
+        resolved: resolvedCount,
         citations: allCitations,
         errors: errors.length ? errors : undefined,
+        diagnostics: perMinistryDiagnostics,
       };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;
     }
   });
+
 
 
 export const commitMinistryDeepDive = createServerFn({ method: "POST" })

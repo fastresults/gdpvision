@@ -733,7 +733,12 @@ export async function buildCapitalFlowsDraft(args: {
 
   await recordAttempts(args.admin, args.country.code, args.runId, attempts);
 
-  const finalFlows = [...flows.values()].sort((a, b) => requiredNodes.indexOf(a.node_key) - requiredNodes.indexOf(b.node_key));
+  const sortIndex = (key: string) => {
+    const i = requiredNodes.indexOf(key);
+    if (i >= 0) return i;
+    return RESIDUAL_KEYS.has(key) ? requiredNodes.length + 1 : requiredNodes.length + 20;
+  };
+  const finalFlows = [...flows.values()].sort((a, b) => sortIndex(a.node_key) - sortIndex(b.node_key));
   const period = latestPeriod(finalFlows, workbook.period);
   const citeMap = new Map<string, SonarCitation>();
   for (const c of citations) if (validUrl(c.url) && !citeMap.has(c.url)) citeMap.set(c.url, c);

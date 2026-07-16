@@ -148,7 +148,7 @@ function CountriesQueue() {
                 <th className="px-4 py-2">Country</th>
                 <th className="px-4 py-2">GDP</th>
                 {STAGES.map((s) => (
-                  <th key={s.key} className="px-2 py-2 text-center">{s.label}</th>
+                  <th key={s.key} title={s.title} className="px-1 py-2 text-center">{s.num}</th>
                 ))}
                 <th className="px-4 py-2 text-right">Progress</th>
                 <th className="px-4 py-2 text-right">Last activity</th>

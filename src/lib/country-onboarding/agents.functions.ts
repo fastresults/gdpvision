@@ -1102,6 +1102,22 @@ export const runMinistrySectorMapAgent = createServerFn({ method: "POST" })
     if (mErr) throw mErr;
     if (!ministries?.length) throw new Error("Commit ministries first — none exist for this country");
 
+    // Pull committed minister identities so the mapping can attribute weights
+    // to a real officeholder. Empty when stage 9 (ministry_deep_dive) hasn't
+    // run yet — we still emit the mapping, just without minister attribution.
+    const { data: profileRows } = await supabaseAdmin
+      .from("ministry_profiles")
+      .select("ministry_slug, minister, minister_profile")
+      .eq("country_code", data.countryCode);
+    const ministerBySlug = new Map<string, { name: string | null; title: string | null }>(
+      (profileRows ?? []).map((r: any) => [
+        r.ministry_slug,
+        { name: r.minister ?? null, title: (r.minister_profile as any)?.title ?? null },
+      ]),
+    );
+    const ministersResolved = Array.from(ministerBySlug.values()).filter((v) => v.name).length;
+
+
     const model: SonarModel = "sonar-pro";
     const runId = await openRun(supabaseAdmin, {
       country_code: data.countryCode,

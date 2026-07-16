@@ -32,7 +32,6 @@ import {
   getRunProgress,
   runCorpusIngest,
   runKpiSeedAgent,
-  runMinistryDeepDiveAgent,
   runSecondBrainSeedAgent,
   runSectorDossierAgent,
   runSourceRegistryAgent,

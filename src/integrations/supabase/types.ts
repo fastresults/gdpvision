@@ -232,6 +232,7 @@ export type Database = {
           id: string
           method: string | null
           node_key: string
+          owner_country_code: string | null
           pass: string
           period: string | null
           provider: string
@@ -240,8 +241,10 @@ export type Database = {
           source_org: string | null
           source_url: string | null
           status: string
+          uploaded_by: string | null
           validation: Json
           value_usd_m: number | null
+          visibility: string
         }
         Insert: {
           confidence_grade?: string | null
@@ -253,6 +256,7 @@ export type Database = {
           id?: string
           method?: string | null
           node_key: string
+          owner_country_code?: string | null
           pass: string
           period?: string | null
           provider: string
@@ -261,8 +265,10 @@ export type Database = {
           source_org?: string | null
           source_url?: string | null
           status?: string
+          uploaded_by?: string | null
           validation?: Json
           value_usd_m?: number | null
+          visibility?: string
         }
         Update: {
           confidence_grade?: string | null
@@ -274,6 +280,7 @@ export type Database = {
           id?: string
           method?: string | null
           node_key?: string
+          owner_country_code?: string | null
           pass?: string
           period?: string | null
           provider?: string
@@ -282,8 +289,10 @@ export type Database = {
           source_org?: string | null
           source_url?: string | null
           status?: string
+          uploaded_by?: string | null
           validation?: Json
           value_usd_m?: number | null
+          visibility?: string
         }
         Relationships: [
           {
@@ -341,6 +350,7 @@ export type Database = {
           created_by: string
           id: string
           memory_object_id: string | null
+          owner_country_code: string | null
           owner_id: string
           owner_type: string
           position_offset: number | null
@@ -348,6 +358,8 @@ export type Database = {
           scope_key: string
           sector_code: string | null
           updated_at: string
+          uploaded_by: string | null
+          visibility: string
         }
         Insert: {
           bucket?: string | null
@@ -355,6 +367,7 @@ export type Database = {
           created_by: string
           id?: string
           memory_object_id?: string | null
+          owner_country_code?: string | null
           owner_id: string
           owner_type: string
           position_offset?: number | null
@@ -362,6 +375,8 @@ export type Database = {
           scope_key: string
           sector_code?: string | null
           updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
         }
         Update: {
           bucket?: string | null
@@ -369,6 +384,7 @@ export type Database = {
           created_by?: string
           id?: string
           memory_object_id?: string | null
+          owner_country_code?: string | null
           owner_id?: string
           owner_type?: string
           position_offset?: number | null
@@ -376,6 +392,8 @@ export type Database = {
           scope_key?: string
           sector_code?: string | null
           updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
         }
         Relationships: [
           {
@@ -737,10 +755,13 @@ export type Database = {
           method: string
           node_key: string
           notes: string | null
+          owner_country_code: string | null
           period: string
           provenance: string
           updated_at: string
+          uploaded_by: string | null
           value_usd_m: number
+          visibility: string
         }
         Insert: {
           citations?: Json
@@ -751,10 +772,13 @@ export type Database = {
           method?: string
           node_key: string
           notes?: string | null
+          owner_country_code?: string | null
           period: string
           provenance?: string
           updated_at?: string
+          uploaded_by?: string | null
           value_usd_m: number
+          visibility?: string
         }
         Update: {
           citations?: Json
@@ -765,10 +789,13 @@ export type Database = {
           method?: string
           node_key?: string
           notes?: string | null
+          owner_country_code?: string | null
           period?: string
           provenance?: string
           updated_at?: string
+          uploaded_by?: string | null
           value_usd_m?: number
+          visibility?: string
         }
         Relationships: [
           {
@@ -785,28 +812,37 @@ export type Database = {
           country_kpi_id: string
           created_at: string
           id: string
+          owner_country_code: string | null
           period: string
           source_id: string | null
           source_url: string | null
+          uploaded_by: string | null
           value: number
+          visibility: string
         }
         Insert: {
           country_kpi_id: string
           created_at?: string
           id?: string
+          owner_country_code?: string | null
           period: string
           source_id?: string | null
           source_url?: string | null
+          uploaded_by?: string | null
           value: number
+          visibility?: string
         }
         Update: {
           country_kpi_id?: string
           created_at?: string
           id?: string
+          owner_country_code?: string | null
           period?: string
           source_id?: string | null
           source_url?: string | null
+          uploaded_by?: string | null
           value?: number
+          visibility?: string
         }
         Relationships: [
           {
@@ -846,6 +882,7 @@ export type Database = {
           latest_period: string | null
           latest_value: number | null
           notes: string | null
+          owner_country_code: string | null
           provenance: string
           research_notes: string | null
           source_id: string | null
@@ -853,8 +890,10 @@ export type Database = {
           target: number | null
           unit: string
           updated_at: string
+          uploaded_by: string | null
           verified_at: string | null
           verified_by: string | null
+          visibility: string
         }
         Insert: {
           admin_note?: string | null
@@ -876,6 +915,7 @@ export type Database = {
           latest_period?: string | null
           latest_value?: number | null
           notes?: string | null
+          owner_country_code?: string | null
           provenance?: string
           research_notes?: string | null
           source_id?: string | null
@@ -883,8 +923,10 @@ export type Database = {
           target?: number | null
           unit: string
           updated_at?: string
+          uploaded_by?: string | null
           verified_at?: string | null
           verified_by?: string | null
+          visibility?: string
         }
         Update: {
           admin_note?: string | null
@@ -906,6 +948,7 @@ export type Database = {
           latest_period?: string | null
           latest_value?: number | null
           notes?: string | null
+          owner_country_code?: string | null
           provenance?: string
           research_notes?: string | null
           source_id?: string | null
@@ -913,8 +956,10 @@ export type Database = {
           target?: number | null
           unit?: string
           updated_at?: string
+          uploaded_by?: string | null
           verified_at?: string | null
           verified_by?: string | null
+          visibility?: string
         }
         Relationships: [
           {
@@ -987,6 +1032,9 @@ export type Database = {
           document_id: string
           embedding: string | null
           id: string
+          owner_country_code: string | null
+          uploaded_by: string | null
+          visibility: string
         }
         Insert: {
           chunk_index: number
@@ -996,6 +1044,9 @@ export type Database = {
           document_id: string
           embedding?: string | null
           id?: string
+          owner_country_code?: string | null
+          uploaded_by?: string | null
+          visibility?: string
         }
         Update: {
           chunk_index?: number
@@ -1005,6 +1056,9 @@ export type Database = {
           document_id?: string
           embedding?: string | null
           id?: string
+          owner_country_code?: string | null
+          uploaded_by?: string | null
+          visibility?: string
         }
         Relationships: [
           {
@@ -1078,7 +1132,10 @@ export type Database = {
           created_at: string
           fetched_at: string
           id: string
+          owner_country_code: string | null
           raw_text: string
+          uploaded_by: string | null
+          visibility: string
         }
         Insert: {
           char_count: number
@@ -1088,7 +1145,10 @@ export type Database = {
           created_at?: string
           fetched_at?: string
           id?: string
+          owner_country_code?: string | null
           raw_text: string
+          uploaded_by?: string | null
+          visibility?: string
         }
         Update: {
           char_count?: number
@@ -1098,7 +1158,10 @@ export type Database = {
           created_at?: string
           fetched_at?: string
           id?: string
+          owner_country_code?: string | null
           raw_text?: string
+          uploaded_by?: string | null
+          visibility?: string
         }
         Relationships: [
           {
@@ -1123,6 +1186,7 @@ export type Database = {
           kind: string
           last_fetched_at: string | null
           org: string
+          owner_country_code: string | null
           quality_score: number
           storage_path: string | null
           summary: string | null
@@ -1131,7 +1195,9 @@ export type Database = {
           title: string
           tld: string | null
           updated_at: string
+          uploaded_by: string | null
           url: string
+          visibility: string
         }
         Insert: {
           active?: boolean
@@ -1145,6 +1211,7 @@ export type Database = {
           kind: string
           last_fetched_at?: string | null
           org: string
+          owner_country_code?: string | null
           quality_score?: number
           storage_path?: string | null
           summary?: string | null
@@ -1153,7 +1220,9 @@ export type Database = {
           title: string
           tld?: string | null
           updated_at?: string
+          uploaded_by?: string | null
           url: string
+          visibility?: string
         }
         Update: {
           active?: boolean
@@ -1167,6 +1236,7 @@ export type Database = {
           kind?: string
           last_fetched_at?: string | null
           org?: string
+          owner_country_code?: string | null
           quality_score?: number
           storage_path?: string | null
           summary?: string | null
@@ -1175,7 +1245,9 @@ export type Database = {
           title?: string
           tld?: string | null
           updated_at?: string
+          uploaded_by?: string | null
           url?: string
+          visibility?: string
         }
         Relationships: [
           {
@@ -2364,13 +2436,16 @@ export type Database = {
           embedding: string | null
           id: string
           kind: string
+          owner_country_code: string | null
           payload: Json
           scope_key: string
           sector_code: string
           source_id: string | null
           title: string
           updated_at: string
+          uploaded_by: string | null
           verified: boolean
+          visibility: string
           weight: number
         }
         Insert: {
@@ -2379,13 +2454,16 @@ export type Database = {
           embedding?: string | null
           id?: string
           kind: string
+          owner_country_code?: string | null
           payload?: Json
           scope_key: string
           sector_code: string
           source_id?: string | null
           title: string
           updated_at?: string
+          uploaded_by?: string | null
           verified?: boolean
+          visibility?: string
           weight?: number
         }
         Update: {
@@ -2394,13 +2472,16 @@ export type Database = {
           embedding?: string | null
           id?: string
           kind?: string
+          owner_country_code?: string | null
           payload?: Json
           scope_key?: string
           sector_code?: string
           source_id?: string | null
           title?: string
           updated_at?: string
+          uploaded_by?: string | null
           verified?: boolean
+          visibility?: string
           weight?: number
         }
         Relationships: [
@@ -2461,9 +2542,12 @@ export type Database = {
           minister: string | null
           minister_profile: Json
           ministry_slug: string
+          owner_country_code: string | null
           programmes: Json
           source_ids: string[]
           updated_at: string
+          uploaded_by: string | null
+          visibility: string
         }
         Insert: {
           citations?: Json
@@ -2474,9 +2558,12 @@ export type Database = {
           minister?: string | null
           minister_profile?: Json
           ministry_slug: string
+          owner_country_code?: string | null
           programmes?: Json
           source_ids?: string[]
           updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
         }
         Update: {
           citations?: Json
@@ -2487,9 +2574,12 @@ export type Database = {
           minister?: string | null
           minister_profile?: Json
           ministry_slug?: string
+          owner_country_code?: string | null
           programmes?: Json
           source_ids?: string[]
           updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
         }
         Relationships: [
           {
@@ -2585,11 +2675,14 @@ export type Database = {
           domain_tier: string | null
           draft_id: string
           id: string
+          owner_country_code: string | null
           promoted_domain: boolean
           published_at: string | null
           quote: string | null
           title: string | null
+          uploaded_by: string | null
           url: string
+          visibility: string
         }
         Insert: {
           created_at?: string
@@ -2597,11 +2690,14 @@ export type Database = {
           domain_tier?: string | null
           draft_id: string
           id?: string
+          owner_country_code?: string | null
           promoted_domain?: boolean
           published_at?: string | null
           quote?: string | null
           title?: string | null
+          uploaded_by?: string | null
           url: string
+          visibility?: string
         }
         Update: {
           created_at?: string
@@ -2609,11 +2705,14 @@ export type Database = {
           domain_tier?: string | null
           draft_id?: string
           id?: string
+          owner_country_code?: string | null
           promoted_domain?: boolean
           published_at?: string | null
           quote?: string | null
           title?: string | null
+          uploaded_by?: string | null
           url?: string
+          visibility?: string
         }
         Relationships: [
           {
@@ -3107,10 +3206,13 @@ export type Database = {
           created_at: string
           id: string
           kind: string
+          owner_country_code: string | null
           payload: Json
           sector_code: string
           source_ids: string[]
           updated_at: string
+          uploaded_by: string | null
+          visibility: string
         }
         Insert: {
           citations?: Json
@@ -3119,10 +3221,13 @@ export type Database = {
           created_at?: string
           id?: string
           kind: string
+          owner_country_code?: string | null
           payload: Json
           sector_code: string
           source_ids?: string[]
           updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
         }
         Update: {
           citations?: Json
@@ -3131,10 +3236,13 @@ export type Database = {
           created_at?: string
           id?: string
           kind?: string
+          owner_country_code?: string | null
           payload?: Json
           sector_code?: string
           source_ids?: string[]
           updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
         }
         Relationships: [
           {
@@ -3615,6 +3723,10 @@ export type Database = {
           source_title: string
           source_url: string
         }[]
+      }
+      has_country_access: {
+        Args: { _country_code: string; _user_id: string }
+        Returns: boolean
       }
       has_country_role: {
         Args: {

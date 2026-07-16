@@ -1,65 +1,72 @@
+## Goal
 
-# Make "Run 1→12" actually ship-ready
+Split every corpus row into **public** (shared across the platform) and **private** (visible only to the owning country's admins/users), across ingest, storage, retrieval, and UI. Everything currently in the corpus stays **public**; a new admin upload path introduces **private** at the moment of upload.
 
-## Current gap (why the answer is "not yet")
+## Data model
 
-Two pipelines exist and neither closes the loop on its own:
+Add to every corpus table that holds country intelligence:
 
-1. **Onboarding orchestrator** (`getNextOnboardingStage`) walks stages 1-12, but only advances when a committable draft exists. When a stage produces a draft that fails its gate (e.g. capital_flows residual >10%), it stops and waits for a human.
-2. **Acceptance self-heal** (`runSelfHealingAcceptance`) is meant to close residual gaps, but:
-   - Covers 6 of 12 UI acceptance rows (no explainFigure, askLedger, trust, reconciliation, publishGate, snapshot, handoff).
-   - `includeWriteProbes` is dead code.
-   - `maxHealAttempts` caps at 1; ministry/KPI heals slice at 8/6 per run.
-   - `corpus-miss` heal writes an audit row but does not clear cooldowns or re-fetch.
-   - Two different definitions of "shippable" (self-heal vs UI banner).
+```text
+visibility   text  NOT NULL DEFAULT 'public'  CHECK (visibility IN ('public','private'))
+owner_country_code text NULL      -- required when visibility='private' (trigger)
+uploaded_by  uuid  NULL           -- auth.users id at private upload time
+```
 
-Result: pressing "Run all pending" completes stages 1-11 optimistically, stage 12 parks as `needs_review`, and self-heal reports SHIPPABLE while the on-page banner says NOT SHIPPABLE.
+Tables touched (all backfilled to `public`):
+- `country_sources`, `country_source_documents`, `country_source_chunks`
+- `memory_objects`, `country_kpis`, `country_kpi_points`
+- `sector_dossiers`, `ministry_profiles`
+- `onboarding_citations`, `country_capital_flows`, `capital_flow_research_attempts`
+- `citations` (already has `owner_type/owner_id`; add `visibility`)
 
-## Plan — one converging pipeline
+Add `has_country_access(uid, code)` SECURITY DEFINER helper reading `user_roles` (`country_admin` or `country_user` with matching `country_code`, plus platform `admin`).
 
-### 1. Unify the acceptance contract
-- Extract the 12 acceptance checks into a single registry `src/lib/ledger-qa/acceptance-registry.ts` with `{ id, read, heal, requiredForShip }`.
-- Both the UI (`ledger-qa.tsx`) and `runSelfHealingAcceptance` iterate this registry. One source of truth for "shippable".
+RLS rewrite per table (SELECT):
+```sql
+USING (
+  visibility = 'public'
+  OR public.has_country_access(auth.uid(), country_code)
+)
+```
+INSERT/UPDATE/DELETE policies gated by `has_country_access` for `private`, and by existing admin roles for `public`. Add a BEFORE INSERT/UPDATE trigger enforcing `visibility='private' ⇒ owner_country_code = country_code AND uploaded_by IS NOT NULL`.
 
-### 2. Add the missing 6 heal steps
-For each of `explainFigure, askLedger(+refusal), trustSignals, reconciliation, publishGate, snapshotRoundtrip, handoff`:
-- Implement a `heal()` that identifies the underlying deficit (missing citations, missing sector composition, missing publish-gate fields, stale snapshot) and calls the existing writer or re-runs the specific onboarding stage that produces it.
-- Wire `includeWriteProbes: true` to actually branch into these steps.
+## Ingest paths
 
-### 3. Make self-heal actually converge
-- Replace the `maxHealAttempts=1` single-shot with a per-step budget (default 3) and a global wall-clock (e.g. 10 min) so long-tail ministries/KPIs finish.
-- Remove the `slice(0, 8)`/`slice(0, 6)` caps; heal all missing items in a single step, chunked internally with backoff.
-- `corpus-miss` heal: after logging the redrive, actually invalidate cooldown rows and call the domain searcher for each stuck `(domain,key)`, then re-count.
+- **Onboarding orchestrator, deep-research, self-heal, capital-flow acceptance, corpus writers** (`src/lib/corpus/writers.server.ts`, `src/lib/country-onboarding/*`, `src/lib/ledger-qa/*`, `src/lib/country-data/sources.server.ts`): thread an explicit `visibility: 'public'` on every insert/upsert. All web-scoured data stays public — no change in behavior, just an explicit tag.
+- **New private upload path**: extend `AddSourceDialog` / `AddMemoryDialog` / documents upload with a required "Visibility" control (Public / Private to this country). On submit, server fn stamps `visibility='private'`, `owner_country_code=<code>`, `uploaded_by=auth.uid()`. Private PDFs go to a `private-corpus/{country}/` storage prefix with signed-URL-only access; public assets keep current bucket layout.
+- Dedupe keys change to `(country_code, visibility, <existing key>)` so a public row and a private row with the same URL/title can coexist without collision.
 
-### 4. Wire stage 12 into the same self-heal loop
-- Move `researchAndCommitCapitalFlowsForAcceptance` behind a `capital_flows` acceptance step.
-- On `needs_review`, self-heal re-runs the 3-pass Perplexity fan-out with expanded queries until it meets the ≥3/≥4/≤10% gate OR exhausts a budget — then records `EXHAUSTED` with the rejected candidates as evidence (never lowers thresholds).
+## Retrieval paths
 
-### 5. Fuse onboarding + acceptance in the UI
-- "Run all pending" on `/admin/countries/$code/onboard` becomes: run stages 1-12 → then run acceptance self-heal against the unified registry → loop until all 12 pass or every step reports `EXHAUSTED` with logged evidence.
-- Stream the timeline (already implemented for self-heal) to cover both phases.
+Every reader that composes corpus context must filter to `{public} ∪ {private WHERE country_code = ctx.countryCode AND has_country_access}`:
+- `src/lib/corpus/searchers/*.server.ts` (memory, ministry, sector, kpi, flow, citation, dossier)
+- `src/lib/corpus/gateway.server.ts`
+- `src/lib/counsel.functions.ts`, `src/lib/dossier.functions.ts`, `src/lib/narrative.functions.ts`, `src/lib/traceability.functions.ts`, `src/lib/factcheck.functions.ts`, `src/lib/briefing.functions.ts`, `src/lib/ledger.functions.ts`, `src/lib/country-viz/*`
+- `src/lib/country-data/consume.functions.ts` and `manage.functions.ts`
+- Public hooks in `src/routes/api/public/hooks/*` and the `/kiosk` data route must serve **public-only** (no session ⇒ no private).
 
-### 6. Forensic telemetry
-- Every step logs `RESEARCHING | REJECTED | COMMITTED | VERIFIED | EXHAUSTED` to `ledger_qa_actions` with the candidate URLs/values considered.
-- Post-run summary shows per-step verdict, attempts used, and evidence for any EXHAUSTED step so a human knows exactly what to unblock.
+Retrieval helper `withVisibilityScope(query, { countryCode, userId })` centralizes the filter so no call site can forget it. `applySourceSuppressions`-style pattern.
 
-### 7. Regression harness
-- Extend `scripts/ledger-qa/verify.sh` to assert the 12-row registry is fully green for a canary country (LCA or BRB) after `Run all pending` completes on a clean slate.
-- CI-friendly exit codes.
+## UI
 
-## Deliverable
+- Every corpus surface (SourceDetailSheet, MemoryVisual, BrainConstellation, CitationsRail, dossier, KPI cards, ministry cards, Sankey, Ledger) shows a **Public / Private** badge and filters by a scope toggle (`All`, `Public`, `Private`).
+- Upload dialogs get a Visibility radio with a short explainer ("Private data is only visible to your country's team"). Default = Public for admin-triggered research runs; default = Private for direct uploads.
+- Steward tools / publish gate blocks publishing a public artifact that cites private sources (fail-closed with an explicit reason).
 
-A single click on "Run all pending" for any country walks stages 1→12, then runs the 12-step acceptance loop with real research/write-back, and finishes with either **SHIPPABLE** (all 12 green, banner + self-heal agree) or a per-step **EXHAUSTED** report with evidence — no silent failures, no divergent verdicts, no manual backfills.
+## Acceptance / self-heal
 
-## Files touched (planned)
+- Twelve-step acceptance runs against **public** corpus only for the public-hook verdict; a second internal pass includes private for the country admin view.
+- `verify.sh`/`verify_assert.py` gain assertions: no `private` row is exposed through a public hook fetch; every private row has `owner_country_code` and `uploaded_by`.
 
-- `src/lib/ledger-qa/acceptance-registry.ts` (new)
-- `src/lib/ledger-qa/self-heal.functions.ts` (rewrite around registry, remove caps, honor `includeWriteProbes`)
-- `src/lib/ledger-qa/heals/*.ts` (new per-step heals for the missing 6)
-- `src/lib/corpus/gateway.server.ts` (real cooldown invalidation for corpus-miss heal)
-- `src/lib/ledger-qa/capital-flow-acceptance.server.ts` (loopable, budgeted)
-- `src/routes/_authenticated/admin/ledger-qa.tsx` (read verdicts from registry)
-- `src/routes/_authenticated/admin/countries.$code.onboard.tsx` ("Run all pending" chains into self-heal)
-- `scripts/ledger-qa/verify.sh` + `verify_assert.py` (12-row assertion)
+## Migration order (single migration, then code)
 
-Approve this and I'll implement it end-to-end.
+1. Add columns + trigger + `has_country_access` + rewrite RLS on all listed tables. Grants: `authenticated` full CRUD (RLS enforces), `anon` SELECT only where public policy allows.
+2. Backfill `visibility='public'` for every existing row; leave `owner_country_code` NULL for public rows.
+3. Ship code changes: writers stamp `public`, new upload path stamps `private`, all readers go through `withVisibilityScope`, UI badges + toggle + upload control.
+4. Playwright smoke: (a) country admin uploads a private PDF → visible in their dossier, invisible on public hook; (b) other-country user cannot read it; (c) existing public corpus unchanged.
+
+## Out of scope
+
+- No new per-row ACLs beyond country scope (no per-user sharing).
+- Encryption at rest for private uploads uses the standard Storage bucket; no client-side E2E encryption.
+- No re-classification workflow yet (private → public) — will be a follow-up admin action.

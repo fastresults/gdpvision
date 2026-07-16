@@ -132,7 +132,7 @@ function SingleLinkTab({ countryCode, visibility, onDone }: { countryCode: strin
   );
 }
 
-function BulkLinksTab({ countryCode, onDone }: { countryCode: string; onDone: () => void }) {
+function BulkLinksTab({ countryCode, visibility, onDone }: { countryCode: string; visibility: "public" | "private"; onDone: () => void }) {
   const bulk = useServerFn(bulkAddLinks);
   const [text, setText] = useState("");
   const [kind, setKind] = useState("gov");
@@ -140,7 +140,7 @@ function BulkLinksTab({ countryCode, onDone }: { countryCode: string; onDone: ()
   const mut = useMutation({
     mutationFn: async () => {
       const urls = text.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
-      return bulk({ data: { countryCode, urls, kind, quality_score: 3 } });
+      return bulk({ data: { countryCode, urls, kind, quality_score: 3, visibility } });
     },
     onSuccess: (r) => { setResult(r); onDone(); },
   });

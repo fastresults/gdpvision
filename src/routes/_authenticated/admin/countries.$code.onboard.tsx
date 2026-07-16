@@ -38,6 +38,7 @@ import {
   runSourceRegistryAgent,
   runCapitalFlowsAgent,
 } from "@/lib/country-onboarding/corpus.functions";
+import { runMinistryDeepDiveFlow } from "@/lib/country-onboarding/ministry-deep-dive-flow";
 import {
   advanceCountryOnboarding,
   clearOnboardingLocks,

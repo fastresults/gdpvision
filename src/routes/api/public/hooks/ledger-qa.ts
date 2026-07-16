@@ -66,6 +66,7 @@ export const Route = createFileRoute("/api/public/hooks/ledger-qa")({
               .from("country_capital_flows")
               .select("node_key,period,value_usd_m")
               .eq("country_code", cc)
+              .eq("visibility", "public")
               .order("period", { ascending: false }),
           ]);
           if (nodesError) throw new Error(nodesError.message);

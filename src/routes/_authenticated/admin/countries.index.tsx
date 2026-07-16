@@ -7,14 +7,14 @@ import {
   listOnboardingCountries,
   listOnboardingRuns,
 } from "@/lib/country-onboarding/agents.functions";
+import { ONBOARDING_STAGES } from "@/lib/country-onboarding/stages";
 
-const STAGES = [
-  { key: "profile", label: "Profile" },
-  { key: "gdp", label: "GDP" },
-  { key: "sector_composition", label: "Sectors" },
-  { key: "ministries", label: "Ministries" },
-  { key: "ministry_sector_map", label: "Ministry×Sector" },
-] as const;
+const STAGES = ONBOARDING_STAGES.map((s, i) => ({
+  key: s.key,
+  label: s.short,
+  num: i + 1,
+  title: `${s.label} — ${s.desc}`,
+}));
 
 const countriesQuery = queryOptions({
   queryKey: ["onboarding", "countries"],

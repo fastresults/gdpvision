@@ -2630,6 +2630,66 @@ export type Database = {
           },
         ]
       }
+      ministry_deep_dive_items: {
+        Row: {
+          citations: Json
+          confidence: string | null
+          country_code: string
+          created_at: string
+          diagnostics: Json
+          error: string | null
+          id: string
+          mandate: string | null
+          minister: string | null
+          minister_profile: Json
+          ministry_name: string
+          ministry_slug: string
+          programmes: Json
+          run_id: string
+          source_tier: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          citations?: Json
+          confidence?: string | null
+          country_code: string
+          created_at?: string
+          diagnostics?: Json
+          error?: string | null
+          id?: string
+          mandate?: string | null
+          minister?: string | null
+          minister_profile?: Json
+          ministry_name: string
+          ministry_slug: string
+          programmes?: Json
+          run_id: string
+          source_tier?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          citations?: Json
+          confidence?: string | null
+          country_code?: string
+          created_at?: string
+          diagnostics?: Json
+          error?: string | null
+          id?: string
+          mandate?: string | null
+          minister?: string | null
+          minister_profile?: Json
+          ministry_name?: string
+          ministry_slug?: string
+          programmes?: Json
+          run_id?: string
+          source_tier?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ministry_profiles: {
         Row: {
           citations: Json

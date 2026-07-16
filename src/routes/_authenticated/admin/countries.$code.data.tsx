@@ -20,8 +20,8 @@ import {
   listKpiCoverage,
   reverifyAllKpis,
   runCorpusIngest,
-  runMinistryDeepDiveAgent,
 } from "@/lib/country-onboarding/corpus.functions";
+import { runMinistryDeepDiveFlow } from "@/lib/country-onboarding/ministry-deep-dive-flow";
 import {
   acceptKpiInference,
   acceptAllHighConfidenceInferences,
@@ -841,7 +841,6 @@ function MinistriesTab({ code }: { code: string }) {
     | { phase: "ready"; draftId: string; count: number; citations: any[]; payload: any }
     | { phase: "error"; message: string }
   >({ phase: "idle" });
-  const runAgent = useServerFn(runMinistryDeepDiveAgent);
   const commitAgent = useServerFn(commitMinistryDeepDive);
   const qc = useQueryClient();
   const [committing, setCommitting] = useState(false);
@@ -849,7 +848,7 @@ function MinistriesTab({ code }: { code: string }) {
   const onRefresh = async () => {
     setRefresh({ phase: "running" });
     try {
-      const res: any = await runAgent({ data: { countryCode: code } });
+      const res: any = await runMinistryDeepDiveFlow(code);
       // Fetch the draft payload so we can preview it
       const { data: draft, error } = await (await import("@/integrations/supabase/client")).supabase
         .from("onboarding_drafts").select("payload").eq("id", res.draftId).single();

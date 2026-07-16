@@ -32,12 +32,12 @@ import {
   getRunProgress,
   runCorpusIngest,
   runKpiSeedAgent,
-  runMinistryDeepDiveAgent,
   runSecondBrainSeedAgent,
   runSectorDossierAgent,
   runSourceRegistryAgent,
   runCapitalFlowsAgent,
 } from "@/lib/country-onboarding/corpus.functions";
+import { runMinistryDeepDiveFlow } from "@/lib/country-onboarding/ministry-deep-dive-flow";
 import {
   advanceCountryOnboarding,
   clearOnboardingLocks,
@@ -257,7 +257,25 @@ function OnboardWizard() {
     source_registry: useServerFn(runSourceRegistryAgent),
     kpi_seed: useServerFn(runKpiSeedAgent),
     sector_dossier: useServerFn(runSectorDossierAgent),
-    ministry_deep_dive: useServerFn(runMinistryDeepDiveAgent),
+    // Stage 9 uses a client-driven plan → resolve-loop → finalize flow so no
+    // single request has to Perplexity-research every ministry serially (that
+    // pattern hit the sandbox proxy timeout). Progress ticks per ministry.
+    ministry_deep_dive: async (arg: { data: { countryCode: string } }) => {
+      return await runMinistryDeepDiveFlow(arg.data.countryCode, {
+        onProgress: (p) => {
+          setRunProgress((prev) => ({
+            ...(prev ?? {}),
+            phase: "resolving",
+            processed: p.processed,
+            total: p.total,
+            currentKpi: p.ministry_slug ?? prev?.currentKpi ?? null,
+          }));
+          if (p.runId) {
+            setActiveRun((prev) => (prev ? { ...prev, runId: p.runId } : prev));
+          }
+        },
+      });
+    },
     corpus_ingest: useServerFn(runCorpusIngest),
     second_brain_seed: useServerFn(runSecondBrainSeedAgent),
     capital_flows: useServerFn(runCapitalFlowsAgent),

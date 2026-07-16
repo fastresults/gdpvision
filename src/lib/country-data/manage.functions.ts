@@ -1312,6 +1312,7 @@ const BulkLinksInput = z.object({
   urls: z.array(z.string().url()).min(1).max(50),
   kind: z.string().default("gov"),
   quality_score: z.number().int().min(1).max(5).default(3),
+  visibility: z.enum(["public", "private"]).default("public"),
 });
 
 export const bulkAddLinks = createServerFn({ method: "POST" })

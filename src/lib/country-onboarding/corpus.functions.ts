@@ -120,24 +120,47 @@ async function saveDraft(admin: any, args: {
   summary_md?: string | null;
   summary_highlights?: Array<{ label: string; value: string }> | null;
 }) {
-  // Keep older uncommitted drafts as rollback evidence. The UI marks older
-  // drafts superseded, so a bad rerun cannot erase the last reviewable draft.
-  const { data: draft, error } = await admin
+  // One live uncommitted draft is allowed per (country, stage). Re-runs update
+  // that live draft instead of tripping the unique index; committed drafts stay
+  // immutable audit history.
+  const patch = {
+    run_id: args.run_id,
+    country_code: args.country_code,
+    stage: args.stage,
+    target_table: args.target_table,
+    payload: args.payload as any,
+    confidence: args.confidence,
+    needs_review: true,
+    summary_md: args.summary_md ?? null,
+    summary_highlights: (args.summary_highlights ?? []) as any,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: existing, error: existingError } = await admin
     .from("onboarding_drafts")
-    .insert({
-      run_id: args.run_id,
-      country_code: args.country_code,
-      stage: args.stage,
-      target_table: args.target_table,
-      payload: args.payload as any,
-      confidence: args.confidence,
-      needs_review: true,
-      summary_md: args.summary_md ?? null,
-      summary_highlights: (args.summary_highlights ?? []) as any,
-    })
     .select("id")
-    .single();
+    .eq("country_code", args.country_code)
+    .eq("stage", args.stage)
+    .is("committed_at", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (existingError) throw existingError;
+
+  const { data: draft, error } = existing?.id
+    ? await admin
+        .from("onboarding_drafts")
+        .update(patch)
+        .eq("id", existing.id)
+        .select("id")
+        .single()
+    : await admin
+        .from("onboarding_drafts")
+        .insert(patch)
+        .select("id")
+        .single();
   if (error) throw error;
+  await admin.from("onboarding_citations").delete().eq("draft_id", draft.id);
   if (args.citations.length) {
     await admin.from("onboarding_citations").insert(
       args.citations.map((c) => ({
@@ -1081,7 +1104,7 @@ export const runSectorDossierAgent = createServerFn({ method: "POST" })
     const sectorCodes = (sectors ?? []).map((s: any) => s.sector_code);
     if (!sectorCodes.length) throw new Error("Commit sector composition first — no country_sectors rows");
 
-    const model: SonarModel = "sonar-reasoning-pro";
+    const model: SonarModel = "sonar-pro";
     const runId = await openRun(supabaseAdmin, {
       country_code: data.countryCode,
       stage: "sector_dossier",
@@ -1090,17 +1113,78 @@ export const runSectorDossierAgent = createServerFn({ method: "POST" })
     });
 
     try {
-      const result = await callSonar({
-        model,
-        system:
-          "You are a sovereign sector analyst. For each sector code, return a policy stack (statutes, institutions, national plans, regulatory instruments), a comms stack (channels, spokespeople, dominant narratives, reputation risks), and a regional benchmark (peer countries, leader/average/laggard, rationale). Be concrete — use real institution and statute names." +
-          SUMMARY_SYSTEM_SUFFIX,
-        user: `Country: ${country.name} (${country.iso3 ?? country.code}). Sector codes to profile: ${sectorCodes.join(", ")}. Return one dossier per sector code.`,
-        responseSchema: SectorDossierSchema as unknown as Record<string, unknown>,
-      });
+      const perSectorSchema = {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          dossier: (SectorDossierSchema as any).properties.dossiers.items,
+        },
+        required: ["dossier"],
+      } as const;
+      const allCitations: SonarCitation[] = [];
+      const seenCitationUrls = new Set<string>();
+      const dossiers: any[] = [];
+      const errors: string[] = [];
+      const batchSize = 3;
 
-      const parsed = parseSonarJson<{ dossiers: any[] }>(result.content);
-      if (!parsed?.dossiers?.length) throw new Error("Perplexity returned no dossiers");
+      for (let i = 0; i < sectorCodes.length; i += batchSize) {
+        const batch = sectorCodes.slice(i, i + batchSize);
+        await updateRunPlan(supabaseAdmin, runId, {
+          phase: "sector_dossier",
+          processed: i,
+          total: sectorCodes.length,
+          currentSectors: batch,
+          errors,
+          updatedAt: new Date().toISOString(),
+        });
+        const results = await Promise.all(batch.map(async (sectorCode) => {
+          try {
+            const result = await callSonar({
+              model,
+              system:
+                "You are a sovereign sector analyst. Return one JSON object for the requested sector code. Include a policy stack (statutes, institutions, national plans, regulatory instruments), a comms stack (channels, spokespeople, dominant narratives, reputation risks), and a regional benchmark (peer countries, leader/average/laggard, rationale). Be concrete — use real institution and statute names.",
+              user: `Country: ${country.name} (${country.iso3 ?? country.code}). Sector code to profile: ${sectorCode}. Return exactly one dossier for sector_code=${sectorCode}.`,
+              responseSchema: perSectorSchema as unknown as Record<string, unknown>,
+              noDomainFilter: true,
+            });
+            const parsedOne = parseSonarJson<{ dossier: any }>(result.content);
+            if (!parsedOne?.dossier) throw new Error("empty dossier");
+            parsedOne.dossier.sector_code = sectorCode;
+            return { dossier: parsedOne.dossier, citations: result.citations };
+          } catch (e) {
+            errors.push(`${sectorCode}: ${(e as Error).message.slice(0, 160)}`);
+            return null;
+          }
+        }));
+        for (const r of results) {
+          if (!r) continue;
+          dossiers.push(r.dossier);
+          for (const c of r.citations) {
+            if (seenCitationUrls.has(c.url)) continue;
+            seenCitationUrls.add(c.url);
+            allCitations.push(c);
+          }
+        }
+        await updateRunPlan(supabaseAdmin, runId, {
+          phase: "sector_dossier",
+          processed: Math.min(i + batch.length, sectorCodes.length),
+          total: sectorCodes.length,
+          okCount: dossiers.length,
+          failCount: errors.length,
+          errors,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+
+      if (!dossiers.length) throw new Error(`Perplexity returned no dossiers. ${errors.slice(0, 3).join("; ")}`);
+      const parsed = {
+        dossiers,
+        summary_md: `Prepared ${dossiers.length}/${sectorCodes.length} sector dossier(s) for ${country.name}. ${errors.length ? `Unresolved sectors: ${errors.join("; ")}` : "All requested sectors returned policy, communications, and benchmark coverage."}`,
+        summary_highlights: [
+          { label: "Sectors profiled", value: `${dossiers.length}/${sectorCodes.length}` },
+          { label: "Research failures", value: String(errors.length) },
+        ],
+      };
       const inline = extractInlineSummary(parsed);
 
       const draftId = await saveDraft(supabaseAdmin, {
@@ -1109,14 +1193,14 @@ export const runSectorDossierAgent = createServerFn({ method: "POST" })
         stage: "sector_dossier",
         target_table: "sector_dossiers",
         payload: parsed,
-        confidence: result.citations.length >= 2 ? "high" : "medium",
-        citations: result.citations,
+        confidence: dossiers.length === sectorCodes.length && allCitations.length >= 2 ? "high" : "medium",
+        citations: allCitations,
         summary_md: inline.summary_md,
         summary_highlights: inline.summary_highlights,
       });
 
       await finishRun(supabaseAdmin, runId, { status: "ready" });
-      return { runId, draftId, count: parsed.dossiers.length, citations: result.citations };
+      return { runId, draftId, count: parsed.dossiers.length, citations: allCitations, errors: errors.length ? errors : undefined };
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;
@@ -1430,7 +1514,7 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
       .eq("country_code", data.countryCode)
       .eq("active", true)
       .order("quality_score", { ascending: false })
-      .limit(data.limit ?? 25);
+      .limit(data.limit ?? 8);
     if (sErr) throw sErr;
     if (!sources?.length) throw new Error("Commit source registry first — no active sources");
 
@@ -1466,7 +1550,7 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
       try {
         await supabaseAdmin
           .from("onboarding_runs")
-          .update({ plan: { processed, total, lastUrl, okCount: okC, failCount: failC, totalChunks } })
+          .update({ plan: { phase: "corpus_ingest", processed, total, lastUrl, okCount: okC, failCount: failC, totalChunks, updatedAt: new Date().toISOString() }, updated_at: new Date().toISOString() })
           .eq("id", runId);
       } catch { /* ignore */ }
     };
@@ -1578,7 +1662,7 @@ export const runCorpusIngest = createServerFn({ method: "POST" })
       try {
         await supabaseAdmin
           .from("onboarding_runs")
-          .update({ plan: { processed: total, total, okCount, failCount, totalChunks, results } })
+          .update({ plan: { phase: "corpus_ingest", processed: total, total, okCount, failCount, totalChunks, results, updatedAt: new Date().toISOString() }, updated_at: new Date().toISOString() })
           .eq("id", runId);
       } catch { /* best effort */ }
       // Auto-commit only when we actually landed useful data. Otherwise leave the
@@ -2027,6 +2111,7 @@ export const runCapitalFlowsAgent = createServerFn({ method: "POST" })
         admin: supabaseAdmin,
         country,
         runId,
+        onProgress: (plan) => updateRunPlan(supabaseAdmin, runId, plan),
       });
 
       const draftId = await saveDraft(supabaseAdmin, {

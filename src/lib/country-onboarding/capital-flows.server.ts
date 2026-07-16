@@ -585,27 +585,46 @@ export async function buildCapitalFlowsDraft(args: {
   admin: any;
   country: CountryRow;
   runId: string;
+  onProgress?: (plan: Record<string, unknown>) => Promise<unknown>;
 }) {
   const model: SonarModel = "sonar-reasoning-pro";
   const workbook = await loadWorkbook(args.admin, args.country);
   const attempts: Attempt[] = [];
   const citations: SonarCitation[] = [];
+  const reportProgress = async (patch: Record<string, unknown>) => {
+    if (!args.onProgress) return;
+    try {
+      await args.onProgress({
+        phase: "capital_flows",
+        ...patch,
+        updatedAt: new Date().toISOString(),
+      });
+    } catch {
+      /* progress is best-effort */
+    }
+  };
+  await reportProgress({ step: "loading-workbook", processed: 0, total: [...INPUT_KEYS, ...OUTPUT_KEYS].length });
   const deterministic = await deterministicCandidates(workbook, args.country);
   for (const [k, v] of deterministic.flows) workbook.registry.some((r) => r.node_key === k) && deterministic.flows.set(k, v);
   attempts.push(...deterministic.attempts);
   const flows = new Map(deterministic.flows);
+  await reportProgress({ step: "deterministic-candidates", processed: flows.size, total: [...INPUT_KEYS, ...OUTPUT_KEYS].length, okCount: flows.size });
 
   const requiredNodes = [...INPUT_KEYS, ...OUTPUT_KEYS];
-  for (const nodeKey of requiredNodes) {
+  for (let i = 0; i < requiredNodes.length; i++) {
+    const nodeKey = requiredNodes[i];
     if (flows.has(nodeKey) && !["TOURISM_SPEND", "CBI_INFLOWS"].includes(nodeKey)) continue;
     if (nodeKey === "CBI_INFLOWS" && !workbook.ctx.isCbiState) {
       attempts.push({ node_key: nodeKey, pass: "country-context", provider: "country-registry", status: "omitted", error: "country is not marked as a CBI state" });
+      await reportProgress({ step: "research-node", processed: i + 1, total: requiredNodes.length, currentNode: nodeKey, okCount: flows.size, attempts: attempts.length });
       continue;
     }
+    await reportProgress({ step: "research-node", processed: i, total: requiredNodes.length, currentNode: nodeKey, okCount: flows.size, attempts: attempts.length });
     const ai = await aiNodeCandidate({ country: args.country, nodeKey, workbook, model });
     attempts.push(ai.attempt);
     citations.push(...ai.citations);
     if (ai.flow) flows.set(nodeKey, ai.flow);
+    await reportProgress({ step: "research-node", processed: i + 1, total: requiredNodes.length, currentNode: nodeKey, okCount: flows.size, attempts: attempts.length });
   }
 
   const validation = validateAndReconcile({
@@ -614,6 +633,15 @@ export async function buildCapitalFlowsDraft(args: {
     gdpUsdM: workbook.gdpUsdM,
     attempts,
     period: workbook.period,
+  });
+  await reportProgress({
+    step: "validating",
+    processed: requiredNodes.length,
+    total: requiredNodes.length,
+    okCount: flows.size,
+    attempts: attempts.length,
+    coverage: { inputs: validation.inputs, outputs: validation.outputs, missingInputs: validation.missingInputs, missingOutputs: validation.missingOutputs, coverageOk: validation.coverageOk },
+    reconciliation: { residual: validation.residual, residual_pct: validation.reconciliationPct, sumIn: validation.sumIn, sumOut: validation.sumOut },
   });
 
   await recordAttempts(args.admin, args.country.code, args.runId, attempts);

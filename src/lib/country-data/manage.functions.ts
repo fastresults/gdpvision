@@ -70,6 +70,7 @@ const UpsertSourceInput = z.object({
   quality_score: z.number().int().min(1).max(5).default(3),
   active: z.boolean().default(true),
   tags: z.array(z.string()).default([]),
+  visibility: z.enum(["public", "private"]).default("public"),
 });
 
 export const upsertSource = createServerFn({ method: "POST" })

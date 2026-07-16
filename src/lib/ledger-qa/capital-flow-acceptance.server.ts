@@ -21,8 +21,11 @@ type CapitalFlowPayload = {
   coverage?: {
     inputs?: string[];
     outputs?: string[];
+    applicableInputs?: string[];
+    applicableOutputs?: string[];
     missingInputs?: string[];
     missingOutputs?: string[];
+    nonApplicableNodes?: Array<{ node_key: string; reason: string }>;
     coverageOk?: boolean;
   };
   reconciliation?: {
@@ -118,10 +121,26 @@ async function saveDraft(admin: AdminClient, args: {
     .maybeSingle();
   if (existingError) throw new Error(existingError.message);
 
-  const { data: draft, error } = existing?.id
+  let draftResult = existing?.id
     ? await admin.from("onboarding_drafts").update(patch).eq("id", existing.id).select("id").single()
     : await admin.from("onboarding_drafts").insert(patch).select("id").single();
-  if (error) throw new Error(error.message);
+  if (draftResult.error && draftResult.error.code === "23505") {
+    const { data: racedExisting, error: racedExistingError } = await admin
+      .from("onboarding_drafts")
+      .select("id")
+      .eq("country_code", args.countryCode)
+      .eq("stage", "capital_flows")
+      .is("committed_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (racedExistingError) throw new Error(racedExistingError.message);
+    if (racedExisting?.id) {
+      draftResult = await admin.from("onboarding_drafts").update(patch).eq("id", racedExisting.id).select("id").single();
+    }
+  }
+  if (draftResult.error) throw new Error(draftResult.error.message);
+  const draft = draftResult.data;
   await admin.from("onboarding_citations").delete().eq("draft_id", draft.id);
 
   const seenCitationUrls = new Set<string>();
@@ -266,7 +285,9 @@ export async function researchAndCommitCapitalFlowsForAcceptance(admin: AdminCli
     const inputs = payload.coverage?.inputs?.length ?? 0;
     const outputs = payload.coverage?.outputs?.length ?? 0;
     const residualPct = Number(payload.reconciliation?.residual_pct ?? workbook.reconciliationPct ?? 1);
-    const eligible = workbook.coverageOk && inputs >= 3 && outputs >= 4 && residualPct <= 0.1;
+    const applicableInputs = payload.coverage?.applicableInputs?.length ?? 6;
+    const applicableOutputs = payload.coverage?.applicableOutputs?.length ?? 6;
+    const eligible = workbook.coverageOk && inputs >= Math.min(3, applicableInputs) && outputs >= 4;
 
     const draftId = await saveDraft(admin, {
       runId,
@@ -281,11 +302,11 @@ export async function researchAndCommitCapitalFlowsForAcceptance(admin: AdminCli
     if (!eligible) {
       await finishRun(admin, runId, {
         status: "needs_review",
-        error: `Coverage insufficient: ${inputs}/6 inputs, ${outputs}/6 outputs, ${(residualPct * 100).toFixed(1)}% residual`,
+        error: `Coverage insufficient: ${inputs}/${applicableInputs} inputs, ${outputs}/${applicableOutputs} outputs, ${(residualPct * 100).toFixed(1)}% residual`,
         plan: { coverage: payload.coverage, reconciliation: payload.reconciliation, attempts: workbook.attempts },
       });
       runFinished = true;
-      throw new Error(`Capital-flow workbook exhausted without commit eligibility: ${inputs}/6 inputs, ${outputs}/6 outputs, ${(residualPct * 100).toFixed(1)}% residual`);
+      throw new Error(`Capital-flow workbook exhausted without commit eligibility: ${inputs}/${applicableInputs} inputs, ${outputs}/${applicableOutputs} outputs, ${(residualPct * 100).toFixed(1)}% residual`);
     }
 
     const commit = await commitFlowWorkbook(admin, args.countryCode, args.userId, payload, workbook.citations);

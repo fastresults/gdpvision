@@ -1,55 +1,73 @@
-## What I found
+## Findings
 
-- **Run all pending is not durable.** The onboarding page runs stages sequentially from the browser tab. Each stage is a long server call, then the UI commits the draft, then asks for the next stage.
-- **Stage 8 is currently stuck in `planning` for BLZ.** It opened a run row, then never finished or updated heartbeat/progress. That lock blocks reruns until the stale-lock cleanup catches it.
-- **Stages 10 and 11 have no committed rows.** They cannot complete the downstream pipeline yet.
-- **Stage 12 already produced a needs-review capital-flow draft.** It failed coverage/reconciliation gates, then a later retry/self-heal attempted to create another live draft and hit the unique “one live draft per stage” constraint.
-- **Stage 9 succeeds because it is comparatively more tolerant.** It researches ministries one by one, catches per-ministry failures, and can still commit partial successful results.
-- **Stages 8, 10, and 12 are timeout-prone.** Stage 8 uses one large reasoning call for all sectors, stage 10 scrapes/embeds many sources sequentially, and stage 12 performs multi-pass per-node research. These should not run as one fragile browser-driven chain.
+Stage 12 is not mainly “stuck” because no data exists; for BLZ it produced a draft, but the draft is blocked by the current quality gates and draft lifecycle.
+
+- **BLZ draft exists but is not committed:** 11 flow rows were generated, 0 committed rows exist.
+- **Coverage gate is too literal:** Belize is not marked as a CBI country, so `CBI_INFLOWS` was correctly omitted, but the gate still reports `5/6 inputs` and treats that as incomplete.
+- **Reconciliation gate is misfit for the current ledger model:** generated inputs total about **US$1.65B**, outputs about **US$5.04B**, residual about **67%**. This comes from mixing BOP/fiscal inflows with broad import/GDP-proxy outputs, especially `IMPORT_LEAKAGE` derived from total imports.
+- **Residual handling cannot balance both directions:** the existing residual node is output-sided. When outputs exceed inputs, committing a residual as an output makes the chart less balanced instead of more balanced.
+- **Duplicate draft failures still happen in the acceptance/self-heal path:** a later run failed on the “one live draft per stage” constraint after an existing `needs_review` capital-flow draft already existed.
+- **There are two capital-flow implementations drifting apart:** the route file still contains older “3-pass” pass definitions, but the active runner now calls the newer per-node workbook builder. This makes behavior harder to reason about and test.
 
 ## Plan
 
-### 1. Unblock the immediate BLZ state safely
-- Add a repair path that marks stale `planning/searching/extracting/validating` onboarding runs as `stale` sooner when they have no heartbeat.
-- Make the existing **Clear locks** action also surface exactly which stages were cleared.
-- Ensure a needs-review draft is treated as a deliberate stop, not as something the runner keeps trying to overwrite.
+### 1. Make the capital-flow gate understand applicable nodes
+- Treat `CBI_INFLOWS` as **not applicable** for non-CBI countries instead of “missing.”
+- Store omitted/non-applicable nodes separately in the draft payload.
+- Compute coverage against applicable required nodes, not a fixed `6 inputs / 6 outputs` denominator.
+- Keep the call-out in the summary: “CBI omitted because the country is not a CBI state.”
 
-### 2. Fix the run-all orchestration contract
-- Replace the browser-only “keep this tab open” loop with a durable onboarding pipeline record.
-- When admin clicks **Run all pending**, create a pipeline job and return immediately.
-- The UI polls the pipeline job for current stage, progress, errors, and review blockers.
-- Each stage becomes resumable: completed stages are skipped, ready drafts are committed, needs-review drafts pause the pipeline with a clear reason.
+### 2. Fix residual balancing so drafts can commit safely
+- Add/support a second residual direction for cases where **outputs exceed inputs**.
+- Use:
+  - output-side residual when inputs exceed outputs;
+  - input-side “unattributed financing / unclassified inflow” when outputs exceed inputs.
+- Exclude residual-balancer nodes from “missing required nodes” diagnostics.
+- Update commit logic so the residual node actually lands on the smaller side of the Sankey.
 
-### 3. Break long stages into bounded units
-- **Stage 8 sector dossiers:** run one sector or a small batch per unit, save progress after each batch, and commit successfully produced rows instead of requiring one giant all-sector response.
-- **Stage 10 corpus ingest:** process a limited number of sources per unit, persist per-source status, and resume until all active sources are attempted.
-- **Stage 11 second-brain seed:** run only after sector dossiers and corpus chunks exist; use committed public corpus plus any allowed private corpus scope later.
-- **Stage 12 capital flows:** keep the current coverage gate, but if a draft is `needs_review`, pause and show “review/commit or supersede draft” rather than retrying into a duplicate-draft error.
+### 3. Separate “bad draft” from “usable with disclosed inference”
+- Keep hard rejection for drafts with no valid sources or too few applicable rows.
+- Allow a draft to become commit-ready when it has:
+  - enough applicable input/output coverage;
+  - valid source URLs for each populated node;
+  - an explicit residual/inference disclosure when reconciliation is above 10%.
+- Mark the confidence lower when the ledger depends on balancing or modelled proxies.
 
-### 4. Make draft lifecycle explicit
-- Introduce one of two safe behaviors for re-runs:
-  - **Supersede old uncommitted draft** before creating a new one, or
-  - **Update the existing live draft** for the same country/stage.
-- Do this consistently for sector dossiers, corpus ingest reports, second-brain seed, and capital flows.
-- Keep committed drafts immutable as audit history.
+### 4. Improve the research hierarchy for each node
+Implement the intended order consistently:
 
-### 5. Add progress and heartbeat updates everywhere
-- Update `onboarding_runs.updated_at` and `plan` before and after every expensive external call.
-- Add progress fields for stage 8 sector count, stage 10 source count/chunk count, stage 11 memory generation, and stage 12 node attempts/reconciliation.
-- Auto-mark runs stale only when no heartbeat has been seen for the chosen timeout window.
+```text
+Committed corpus / KPIs / known public APIs
+→ targeted deep research attempts
+→ transparent inference/modelled fallback
+→ explicit data-gap call-out
+```
 
-### 6. Preserve the intended data logic
-- Keep the decision order: check existing corpus first, run deep research when corpus is insufficient, then infer only after research attempts are exhausted.
-- Log which data was directly sourced vs inferred in the draft payload and summary so admins can see how gaps were filled.
-- Ensure public corpus outputs are stamped public; private admin uploads remain excluded unless the run is explicitly country-private scoped.
+- Prefer committed corpus and official/multilateral sources before open web sources.
+- Reject weak sources for high-impact nodes when a preferred source class exists.
+- Keep formula, source basis, confidence grade, and data-gap notes on every inferred row.
+- Use bounded per-node research so one bad node does not block the whole stage.
 
-### 7. Add verification for this failure mode
-- Add tests/assertions that:
-  - A stuck `planning` run is recoverable.
-  - A needs-review capital-flow draft does not trigger duplicate-draft errors.
-  - Run-all resumes after stages 7/9 are already committed.
-  - Stage 10 can process sources incrementally without blocking the whole pipeline.
+### 5. Remove duplicate-draft failure modes
+- Harden both the onboarding runner and acceptance/self-heal path to update the existing live Stage 12 draft instead of failing on the live-draft uniqueness rule.
+- If a race still hits the uniqueness constraint, re-read the existing draft and update it instead of failing the run.
+- When a `needs_review` draft already exists, “Run all pending” should pause with the review reason instead of repeatedly generating another draft.
 
-## Expected result
+### 6. Consolidate the active Stage 12 implementation
+- Remove or clearly retire the unused older 3-pass code path in the route function file.
+- Keep one source of truth: the capital-flow workbook builder.
+- Make the summary, attempts table, draft payload, and commit path all use the same coverage/reconciliation calculations.
 
-Admins can click **Run all pending** once, leave the tab, and the system will either finish stages 8-12 or pause with a specific review blocker instead of getting stuck in `planning` or duplicate-draft failures.
+### 7. Repair BLZ after the code fix
+- Re-evaluate the current BLZ draft with the new applicability and residual rules.
+- If the existing draft is usable, commit it with the residual/inference disclosure.
+- If not, run the refined Stage 12 once and verify:
+  - `country_capital_flows` has committed rows;
+  - the Sankey has balanced totals or an explicit balancing node;
+  - the onboarding page no longer loops on Stage 12.
+
+### 8. Add regression checks
+- Non-CBI country does not fail coverage for missing `CBI_INFLOWS`.
+- Outputs-greater-than-inputs creates an input-side residual, not an output-side residual.
+- Existing live capital-flow drafts are updated, not duplicated.
+- “Run all pending” stops for true review blocks and does not spin or re-run indefinitely.

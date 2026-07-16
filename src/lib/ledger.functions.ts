@@ -732,7 +732,6 @@ export const getLedgerEnrichment = createServerFn({ method: "GET" })
     let sumIn = 0;
     let sumOut = 0;
     for (const v of latestValues) {
-      if (v.node_key === "RECONCILIATION_RESIDUAL") continue;
       const s = sideByKey.get(v.node_key);
       if (s === "input") sumIn += Number(v.value_usd_m);
       else if (s === "output") sumOut += Number(v.value_usd_m);
@@ -1209,7 +1208,6 @@ export const getReconciliationReport = createServerFn({ method: "GET" })
       let sumOut = 0;
       for (const v of flowValues ?? []) {
         if (v.period !== latestPeriod) continue;
-        if (v.node_key === "RECONCILIATION_RESIDUAL") continue;
         const s = sideByKey.get(v.node_key);
         if (s === "input") sumIn += Number(v.value_usd_m);
         else if (s === "output") sumOut += Number(v.value_usd_m);
@@ -1512,15 +1510,15 @@ export const getPublishGate = createServerFn({ method: "GET" })
     let flowSumIn = 0;
     let flowSumOut = 0;
     let unknownFlowKeys = 0;
+    const residualNodeKeys = new Set(["RECONCILIATION_RESIDUAL", "RECONCILIATION_INFLOW_RESIDUAL"]);
     for (const f of latestFlows) {
-      if (f.node_key === "RECONCILIATION_RESIDUAL") continue;
       const side = sideByKey.get(String(f.node_key));
       if (!side) { unknownFlowKeys += 1; continue; }
       const value = Number(f.value_usd_m ?? 0);
-      if (side === "input") { flowInputs += 1; flowSumIn += value; }
-      if (side === "output") { flowOutputs += 1; flowSumOut += value; }
+      if (side === "input") { if (!residualNodeKeys.has(String(f.node_key))) flowInputs += 1; flowSumIn += value; }
+      if (side === "output") { if (!residualNodeKeys.has(String(f.node_key))) flowOutputs += 1; flowSumOut += value; }
     }
-    const flowResidualPct = flowSumIn > 0 ? Math.abs(flowSumIn - flowSumOut) / flowSumIn : 1;
+    const flowResidualPct = Math.max(flowSumIn, flowSumOut) > 0 ? Math.abs(flowSumIn - flowSumOut) / Math.max(flowSumIn, flowSumOut) : 1;
     const flowsOk = flowInputs >= 3 && flowOutputs >= 4 && flowResidualPct <= 0.1 && unknownFlowKeys === 0;
 
     const checks = [

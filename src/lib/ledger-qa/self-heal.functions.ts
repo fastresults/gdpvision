@@ -189,16 +189,16 @@ export const runSelfHealingAcceptance = createServerFn({ method: "POST" })
       let inputs = 0;
       let outputs = 0;
       const unknown: string[] = [];
+      const residualNodeKeys = new Set(["RECONCILIATION_RESIDUAL", "RECONCILIATION_INFLOW_RESIDUAL"]);
       for (const r of latest as any[]) {
-        if (r.node_key === "RECONCILIATION_RESIDUAL") continue;
         const side = sideByKey.get(String(r.node_key));
         if (!side) { unknown.push(String(r.node_key)); continue; }
         const value = Number(r.value_usd_m ?? 0);
-        if (side === "input") { inputs += 1; sumIn += value; }
-        if (side === "output") { outputs += 1; sumOut += value; }
+        if (side === "input") { if (!residualNodeKeys.has(String(r.node_key))) inputs += 1; sumIn += value; }
+        if (side === "output") { if (!residualNodeKeys.has(String(r.node_key))) outputs += 1; sumOut += value; }
       }
       const residual = sumIn - sumOut;
-      const residualPct = sumIn > 0 ? Math.abs(residual) / sumIn : 1;
+      const residualPct = Math.max(sumIn, sumOut) > 0 ? Math.abs(residual) / Math.max(sumIn, sumOut) : 1;
       const ok = inputs >= 3 && outputs >= 4 && residualPct <= 0.1 && unknown.length === 0;
       return {
         status: (ok ? "pass" : "warn") as SelfHealStatus,

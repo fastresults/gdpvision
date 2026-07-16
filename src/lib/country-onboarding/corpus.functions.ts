@@ -147,7 +147,7 @@ async function saveDraft(admin: any, args: {
     .maybeSingle();
   if (existingError) throw existingError;
 
-  const { data: draft, error } = existing?.id
+  let draftResult = existing?.id
     ? await admin
         .from("onboarding_drafts")
         .update(patch)
@@ -159,7 +159,28 @@ async function saveDraft(admin: any, args: {
         .insert(patch)
         .select("id")
         .single();
-  if (error) throw error;
+  if (draftResult.error && (draftResult.error as any).code === "23505") {
+    const { data: racedExisting, error: racedExistingError } = await admin
+      .from("onboarding_drafts")
+      .select("id")
+      .eq("country_code", args.country_code)
+      .eq("stage", args.stage)
+      .is("committed_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (racedExistingError) throw racedExistingError;
+    if (racedExisting?.id) {
+      draftResult = await admin
+        .from("onboarding_drafts")
+        .update(patch)
+        .eq("id", racedExisting.id)
+        .select("id")
+        .single();
+    }
+  }
+  if (draftResult.error) throw draftResult.error;
+  const draft = draftResult.data;
   await admin.from("onboarding_citations").delete().eq("draft_id", draft.id);
   if (args.citations.length) {
     await admin.from("onboarding_citations").insert(
@@ -1957,121 +1978,6 @@ export const commitSecondBrainSeed = createServerFn({ method: "POST" })
 // ============================================================
 // Stage 12: Capital Flows — Sovereign Sankey ledger (USD $M)
 // ============================================================
-
-// Per-node definitions used to build focused, per-pass prompts.
-const NODE_DEFS: Record<string, { label: string; def: string; sources: string }> = {
-  TOURISM_SPEND:        { label: "Gross Tourism Spend",           def: "BOP travel credits / gross visitor expenditure (all inbound tourism).", sources: "ECCB Selected Tourism Statistics, UNWTO, WTTC, country tourism authority annual report, IMF Article IV BOP tables." },
-  CBI_INFLOWS:          { label: "CBI Inflows",                    def: "Citizenship-by-Investment fiscal receipts. OMIT the row entirely if the country has no CBI programme.", sources: "CIU annual report, IMF Article IV, MoF budget statement." },
-  FDI_NET:              { label: "Foreign Direct Investment",      def: "Net FDI inflows (equity + reinvested earnings + intercompany loans).", sources: "UNCTAD FDI/STAT, WB WDI (BX.KLT.DINV.CD.WD), ECCB BOP, IMF BPM6 tables." },
-  REMITTANCES:          { label: "Remittances",                    def: "Personal remittances received (BOP secondary income, workers' remittances).", sources: "WB Migration & Remittances, IMF BPM6 secondary-income table, ECCB." },
-  ODA_GRANTS:           { label: "ODA & Grants",                   def: "Official development assistance grant component (net disbursements).", sources: "OECD DAC CRS, WB IDS, EU/CDB/IADB grant registers." },
-  TAX_REVENUE:          { label: "Tax Revenue",                    def: "Central-government tax revenue collected (excludes grants, non-tax fees).", sources: "MoF Estimates of Revenue & Expenditure, IMF Article IV fiscal tables, Inland Revenue annual report." },
-  WAGES_AGRI:           { label: "Local Wages / Agriculture",      def: "Central-government wage bill PLUS agricultural gross value-add (proxy for local-economy real-side spending).", sources: "MoF Estimates of R&E (personal emoluments), national accounts / FAO / statistics office agricultural GVA." },
-  INFRA_CAPEX:          { label: "Public Works & Infrastructure",  def: "Public capital expenditure on works & infrastructure (excludes health & digital).", sources: "MoF Public Sector Investment Programme, budget capital estimates, CDB/IADB project registers." },
-  DEBT_SERVICE:         { label: "External Debt Service",          def: "External public debt service (principal + interest paid to non-resident creditors).", sources: "WB IDS (DT.TDS.DECT.CD), IMF Article IV DSA, MoF debt bulletin." },
-  DIGITAL_HEALTH_CAPEX: { label: "Digital & Health CapEx",         def: "Public capital expenditure on digital government + health infrastructure & equipment.", sources: "MoF PSIP, Ministry of Health capital estimates, ITU / WB Digital Development." },
-  ENERGY_IMPORT:        { label: "Energy & Utilities Import",      def: "Fuel + utility imports (mineral fuels HS27, electricity where imported).", sources: "UN Comtrade HS27, national customs/statistics office trade tables." },
-  IMPORT_LEAKAGE:       { label: "Import Leakages",                def: "All other merchandise imports NOT captured under ENERGY_IMPORT (residual of goods imports).", sources: "UN Comtrade, WITS, national statistics office trade table." },
-};
-
-const PASSES: Array<{ name: string; nodes: string[] }> = [
-  { name: "inputs",     nodes: ["TOURISM_SPEND","CBI_INFLOWS","FDI_NET","REMITTANCES","ODA_GRANTS","TAX_REVENUE"] },
-  { name: "fiscal_out", nodes: ["WAGES_AGRI","INFRA_CAPEX","DEBT_SERVICE","DIGITAL_HEALTH_CAPEX"] },
-  { name: "imports",    nodes: ["ENERGY_IMPORT","IMPORT_LEAKAGE"] },
-];
-
-type CapitalFlow = {
-  node_key: string;
-  value_usd_m: number;
-  period?: string;
-  method: string;
-  confidence_grade: string;
-  source_url: string;
-  source_org: string;
-  notes?: string;
-};
-
-function buildPassSchema(nodeKeys: string[]) {
-  return {
-    type: "object",
-    additionalProperties: false,
-    properties: {
-      period: { type: "string", description: "Fiscal year, e.g. '2023'." },
-      flows: {
-        type: "array",
-        items: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            node_key: { type: "string", enum: nodeKeys },
-            value_usd_m: { type: "number" },
-            period: { type: "string" },
-            method: { type: "string", enum: ["reported","derived","modelled"] },
-            confidence_grade: { type: "string", enum: ["A","B","C"] },
-            source_url: { type: "string", description: "Absolute https URL of the primary source, not a citation label." },
-            source_org: { type: "string" },
-            notes: { type: "string" },
-          },
-          required: ["node_key","value_usd_m","period","method","confidence_grade","source_url","source_org"],
-        },
-      },
-    },
-    required: ["period","flows"],
-  } as const;
-}
-
-async function runCapitalFlowPass(opts: {
-  model: SonarModel;
-  countryName: string;
-  countryISO: string;
-  currency: string;
-  passName: string;
-  nodes: string[];
-  gdpUsdM: number | null;
-  previousDroppedNote?: string;
-}): Promise<{ flows: CapitalFlow[]; dropped: Array<CapitalFlow & { reason: string }>; citations: SonarCitation[] }> {
-  const nodeMenu = opts.nodes.map((k) => `- ${k} (${NODE_DEFS[k]?.label ?? k}): ${NODE_DEFS[k]?.def ?? ""} Preferred sources: ${NODE_DEFS[k]?.sources ?? ""}`).join("\n");
-  const gdpHint = opts.gdpUsdM ? `Country GDP is approximately US$${opts.gdpUsdM.toFixed(0)}m — every single node value must be plausible relative to this.` : "";
-  const priorNote = opts.previousDroppedNote ? `\nPrevious attempt had issues: ${opts.previousDroppedNote}\nCorrect those errors this time.` : "";
-
-  const result = await callSonar({
-    model: opts.model,
-    system:
-      "You are a sovereign-macro analyst assembling a Balance-of-Payments + Fiscal capital-flow ledger. " +
-      "Return one JSON object with a `flows` array containing ONE row per applicable node_key from the menu below. " +
-      "value_usd_m is USD millions — convert from local currency if needed and note the FX rate in `notes`. " +
-      "source_url MUST be an absolute https:// URL that returns the actual figure (not a search page, not the citation title). " +
-      "If you cannot find a real primary-source URL for a node, OMIT that node — do not fabricate a URL. " +
-      "confidence_grade: A = official primary; B = multilateral secondary or recent budget; C = modelled/estimated. " +
-      "method: 'reported' if directly from a table, 'derived' if computed from disclosed components, 'modelled' if reasoned. " +
-      "Use the same fiscal year across all rows (most recent complete year with data). " +
-      "For any node that does not apply to this country (e.g. CBI where there is no programme), OMIT the row entirely.",
-    user:
-`Country: ${opts.countryName} (${opts.countryISO}). Local currency: ${opts.currency}.
-Assemble the "${opts.passName}" slice of the capital-flow ledger in USD millions for the most recent complete fiscal year.
-${gdpHint}
-Nodes for THIS pass (return only these):
-${nodeMenu}
-${priorNote}`,
-    responseSchema: buildPassSchema(opts.nodes) as unknown as Record<string, unknown>,
-    recency: "year",
-  });
-
-  const parsed = parseSonarJson<{ period?: string; flows?: CapitalFlow[] }>(result.content);
-  const raw = Array.isArray(parsed?.flows) ? parsed!.flows : [];
-  const flows: CapitalFlow[] = [];
-  const dropped: Array<CapitalFlow & { reason: string }> = [];
-  for (const f of raw) {
-    if (!f || typeof f !== "object") continue;
-    if (!opts.nodes.includes(f.node_key)) { dropped.push({ ...f, reason: `node_key '${f.node_key}' not in pass '${opts.passName}'` }); continue; }
-    if (!isValidHttpUrl(f.source_url)) { dropped.push({ ...f, reason: `source_url is not a valid https URL: ${String(f.source_url).slice(0, 80)}` }); continue; }
-    const v = Number(f.value_usd_m);
-    if (!Number.isFinite(v) || v <= 0) { dropped.push({ ...f, reason: "value_usd_m missing or non-positive" }); continue; }
-    flows.push({ ...f, value_usd_m: v });
-  }
-  return { flows, dropped, citations: result.citations };
-}
-
 export const runCapitalFlowsAgent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
@@ -2107,7 +2013,7 @@ export const runCapitalFlowsAgent = createServerFn({ method: "POST" })
     });
 
     try {
-      const workbook = await buildCapitalFlowsDraft({
+    const workbook = await buildCapitalFlowsDraft({
         admin: supabaseAdmin,
         country,
         runId,
@@ -2130,7 +2036,7 @@ export const runCapitalFlowsAgent = createServerFn({ method: "POST" })
         status: workbook.coverageOk ? "ready" : "needs_review",
         error: workbook.coverageOk
           ? null
-          : `Coverage insufficient: ${workbook.payload.coverage.inputs.length}/6 inputs, ${workbook.payload.coverage.outputs.length}/6 outputs, ${(workbook.reconciliationPct * 100).toFixed(0)}% residual`,
+          : `Coverage insufficient: ${workbook.payload.coverage.inputs.length}/${workbook.payload.coverage.applicableInputs?.length ?? 6} inputs, ${workbook.payload.coverage.outputs.length}/${workbook.payload.coverage.applicableOutputs?.length ?? 6} outputs, ${(workbook.reconciliationPct * 100).toFixed(0)}% residual`,
         plan: {
           strategy: "evidence-workbook-per-node",
           attempts: workbook.attempts,
@@ -2263,20 +2169,23 @@ export const commitCapitalFlows = createServerFn({ method: "POST" })
       throw new Error("Commit rejected: capital-flow draft wrote 0 target rows. Draft remains open.");
     }
 
-    // Reconciliation residual — insert if inputs and outputs disagree > 10%.
+    // Reconciliation residual — insert a balancer only when the reviewed
+    // payload did not already include the workbook's explicit residual row.
     const { data: registry } = await supabaseAdmin.from("capital_flow_nodes").select("node_key, side");
     const sideByKey = new Map<string, string>();
     for (const r of registry ?? []) sideByKey.set(r.node_key, r.side);
     let sumIn = 0, sumOut = 0;
+    const presentKeys = new Set<string>();
     for (const f of payload.flows) {
+      presentKeys.add(f.node_key);
       const s = sideByKey.get(f.node_key);
       if (s === "input") sumIn += Number(f.value_usd_m ?? 0);
       else if (s === "output") sumOut += Number(f.value_usd_m ?? 0);
     }
     const residual = sumIn - sumOut;
-    if (Math.abs(residual) > 0.01 && sumIn > 0 && Math.abs(residual) / sumIn > 0.1) {
+    if (!presentKeys.has("RECONCILIATION_RESIDUAL") && !presentKeys.has("RECONCILIATION_INFLOW_RESIDUAL") && Math.abs(residual) > 0.01 && sumIn > 0 && Math.abs(residual) / Math.max(sumIn, sumOut) > 0.1) {
       // The residual goes on the side with the smaller total, to balance the diagram.
-      const nodeKey = "RECONCILIATION_RESIDUAL";
+      const nodeKey = residual > 0 ? "RECONCILIATION_RESIDUAL" : "RECONCILIATION_INFLOW_RESIDUAL";
       const { error: residualErr } = await supabaseAdmin.from("country_capital_flows").upsert(
         {
           country_code: draft.country_code,
@@ -2285,7 +2194,7 @@ export const commitCapitalFlows = createServerFn({ method: "POST" })
           value_usd_m: Math.abs(residual),
           method: "residual",
           confidence_grade: "C",
-          notes: residual > 0 ? "Auto-balancer: inputs exceed disclosed outputs" : "Auto-balancer: outputs exceed disclosed inputs",
+          notes: residual > 0 ? "Auto-balancer: inputs exceed disclosed outputs" : "Auto-balancer: outputs exceed disclosed inputs; unattributed financing/inflow required to reconcile the ledger",
           citations: orderedCitations as any,
         },
         { onConflict: "country_code,node_key,period" },
@@ -2297,7 +2206,7 @@ export const commitCapitalFlows = createServerFn({ method: "POST" })
         .from("country_capital_flows")
         .delete()
         .eq("country_code", draft.country_code)
-        .eq("node_key", "RECONCILIATION_RESIDUAL")
+        .in("node_key", ["RECONCILIATION_RESIDUAL", "RECONCILIATION_INFLOW_RESIDUAL"])
         .eq("period", payload.period);
       if (deleteResidualErr) throw deleteResidualErr;
     }

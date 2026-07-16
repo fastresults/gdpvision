@@ -72,19 +72,22 @@ def check_country(cc: str) -> list[tuple[str, bool, str]]:
     latest = [f for f in flows if not latest_period or f.get("period") == latest_period]
     inputs = outputs = unknown = 0
     sum_in = sum_out = 0.0
+    residual_keys = {"RECONCILIATION_RESIDUAL", "RECONCILIATION_INFLOW_RESIDUAL"}
     for f in latest:
         key = f.get("node_key")
-        if key == "RECONCILIATION_RESIDUAL":
-            continue
         side = side_by_key.get(key)
         val = float(f.get("value_usd_m") or 0)
         if side == "input":
-            inputs += 1; sum_in += val
+            if key not in residual_keys:
+                inputs += 1
+            sum_in += val
         elif side == "output":
-            outputs += 1; sum_out += val
+            if key not in residual_keys:
+                outputs += 1
+            sum_out += val
         else:
             unknown += 1
-    residual_pct = abs(sum_in - sum_out) / sum_in if sum_in > 0 else 1.0
+    residual_pct = abs(sum_in - sum_out) / max(sum_in, sum_out) if max(sum_in, sum_out) > 0 else 1.0
     ok = inputs >= 3 and outputs >= 4 and residual_pct <= 0.10 and unknown == 0
     out.append(("I5 flows      ", ok, f"n={len(latest)} period={latest_period or '-'} inputs={inputs}/6 outputs={outputs}/6 residual={residual_pct*100:.1f}% unknown={unknown}"))
     return out

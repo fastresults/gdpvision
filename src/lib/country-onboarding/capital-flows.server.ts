@@ -20,6 +20,8 @@ type RegistryNode = {
   preferred_sources?: string[] | null;
 };
 
+type NonApplicableNode = { node_key: string; reason: string };
+
 export type CapitalFlowResolved = {
   node_key: string;
   value_usd_m: number;
@@ -110,6 +112,10 @@ const NODE_DEFS: Record<string, { label: string; prompt: string; query: string }
 
 const INPUT_KEYS = ["TOURISM_SPEND", "CBI_INFLOWS", "FDI_NET", "REMITTANCES", "ODA_GRANTS", "TAX_REVENUE"];
 const OUTPUT_KEYS = ["WAGES_AGRI", "INFRA_CAPEX", "DEBT_SERVICE", "DIGITAL_HEALTH_CAPEX", "ENERGY_IMPORT", "IMPORT_LEAKAGE"];
+const OUTPUT_RESIDUAL_KEY = "RECONCILIATION_RESIDUAL";
+const INPUT_RESIDUAL_KEY = "RECONCILIATION_INFLOW_RESIDUAL";
+const RESIDUAL_KEYS = new Set([OUTPUT_RESIDUAL_KEY, INPUT_RESIDUAL_KEY]);
+const HIGH_IMPACT_NODES = new Set(["TOURISM_SPEND", "FDI_NET", "TAX_REVENUE", "IMPORT_LEAKAGE", "ENERGY_IMPORT"]);
 
 function validUrl(raw: unknown): raw is string {
   if (typeof raw !== "string") return false;
@@ -141,6 +147,22 @@ function latestPeriod(values: Array<{ period?: string | null; latest_period?: st
 function sourceFrom(url: string | null | undefined, fallbackUrl: string | null | undefined, fallbackOrg: string) {
   const resolved = validUrl(url) ? url : validUrl(fallbackUrl) ? fallbackUrl : null;
   return resolved ? { source_url: resolved, source_org: fallbackOrg } : null;
+}
+
+function isPreferredSource(source: string | null | undefined): boolean {
+  return /world bank|imf|unctad|unwto|oecd|iadb|cdb|eccb|ministry|government|statistics|central bank|treasury|finance/i.test(source ?? "");
+}
+
+function isWeakOpenWebSource(source: string | null | undefined): boolean {
+  return /blog|lawyer|consult|immigration|news|press|medium|substack|wikipedia/i.test(source ?? "") && !isPreferredSource(source);
+}
+
+function inferNonApplicableNodes(workbook: Awaited<ReturnType<typeof loadWorkbook>>): NonApplicableNode[] {
+  const nodes: NonApplicableNode[] = [];
+  if (!workbook.ctx.isCbiState) {
+    nodes.push({ node_key: "CBI_INFLOWS", reason: "country is not marked as a CBI state" });
+  }
+  return nodes;
 }
 
 async function wbLatest(indicator: string, iso3: string): Promise<{ value: number; period: string; url: string } | null> {
@@ -462,6 +484,10 @@ async function aiNodeCandidate(args: {
     if (!Number.isFinite(value) || value <= 0 || !sourceUrl) {
       return { flow: null, citations: result.citations, attempt: { node_key: args.nodeKey, pass: "ai-node", provider: args.model, status: "rejected", value_usd_m: Number.isFinite(value) ? value : undefined, source_url: parsed?.source_url ?? null, evidence, error: "AI returned missing/non-positive value or no usable source URL" } };
     }
+    const sourceOrg = parsed.source_org ?? domainOf(sourceUrl) ?? "AI-selected source";
+    if (HIGH_IMPACT_NODES.has(args.nodeKey) && isWeakOpenWebSource(`${sourceOrg} ${sourceUrl}`)) {
+      return { flow: null, citations: result.citations, attempt: { node_key: args.nodeKey, pass: "ai-node", provider: args.model, status: "rejected", value_usd_m: value, source_url: sourceUrl, source_org: sourceOrg, evidence, error: "Rejected weak open-web source for high-impact capital-flow node; requires official or multilateral grounding" } };
+    }
     const flow: CapitalFlowResolved = {
       node_key: args.nodeKey,
       value_usd_m: Number(value.toFixed(1)),
@@ -469,7 +495,7 @@ async function aiNodeCandidate(args: {
       method: parsed.method ?? "modelled",
       confidence_grade: parsed.confidence_grade ?? "C",
       source_url: sourceUrl,
-      source_org: parsed.source_org ?? domainOf(sourceUrl) ?? "AI-selected source",
+      source_org: sourceOrg,
       source_kind: parsed.source_kind ?? (sourceUrl === parsed.source_url ? "direct" : "assumption_based"),
       formula: parsed.formula ?? undefined,
       notes: parsed.notes ?? `${node.label} researched from AI-selected evidence.`,
@@ -487,10 +513,13 @@ function validateAndReconcile(args: {
   gdpUsdM: number | null;
   attempts: Attempt[];
   period: string;
+  nonApplicableNodes: NonApplicableNode[];
+  fallbackSourceUrl: string | null | undefined;
 }) {
   const capByKey = new Map(args.registry.map((r) => [r.node_key, Number(r.gdp_cap_multiplier ?? 1.5)]));
   const sideByKey = new Map(args.registry.map((r) => [r.node_key, r.side]));
   const dropped: Array<CapitalFlowResolved & { reason: string }> = [];
+  const nonApplicableSet = new Set(args.nonApplicableNodes.map((n) => n.node_key));
 
   for (const [key, flow] of [...args.flows.entries()]) {
     const cap = capByKey.get(key) ?? 1.5;
@@ -531,7 +560,8 @@ function validateAndReconcile(args: {
 
   let { sumIn, sumOut } = sums();
   const importLeak = args.flows.get("IMPORT_LEAKAGE");
-  if (importLeak && sumIn > 0 && sumOut > 0) {
+  const directOrPreferredImportLeak = importLeak && (importLeak.source_kind === "direct" || isPreferredSource(`${importLeak.source_org} ${importLeak.source_url}`));
+  if (importLeak && directOrPreferredImportLeak && sumIn > 0 && sumOut > 0) {
     const othersOut = sumOut - importLeak.value_usd_m;
     const balancedLeak = Math.max(0, sumIn - othersOut);
     if (balancedLeak > 0 && Math.abs(balancedLeak - importLeak.value_usd_m) / Math.max(importLeak.value_usd_m, 1) > 0.1) {
@@ -546,16 +576,70 @@ function validateAndReconcile(args: {
   }
 
   ({ sumIn, sumOut } = sums());
+  const preBalancing = {
+    sumIn,
+    sumOut,
+    residual: sumIn - sumOut,
+    residual_pct: Math.max(sumIn, sumOut) > 0 ? Math.abs(sumIn - sumOut) / Math.max(sumIn, sumOut) : 1,
+  };
+  const applicableInputs = INPUT_KEYS.filter((k) => !nonApplicableSet.has(k));
+  const applicableOutputs = OUTPUT_KEYS.filter((k) => !nonApplicableSet.has(k));
+  const inputs = applicableInputs.filter((k) => args.flows.has(k));
+  const outputs = applicableOutputs.filter((k) => args.flows.has(k));
+  const missingInputs = applicableInputs.filter((k) => !args.flows.has(k));
+  const missingOutputs = applicableOutputs.filter((k) => !args.flows.has(k));
+  const minimumInputs = Math.min(3, applicableInputs.length);
+  const baseCoverageOk = inputs.length >= minimumInputs && outputs.length >= 4;
+  let balancer: CapitalFlowResolved | null = null;
+
+  if (baseCoverageOk && Math.abs(preBalancing.residual) > 0.01 && preBalancing.residual_pct > 0.1) {
+    const side: NodeSide = preBalancing.residual > 0 ? "output" : "input";
+    const nodeKey = side === "output" ? OUTPUT_RESIDUAL_KEY : INPUT_RESIDUAL_KEY;
+    const fallbackSourceUrl = validUrl(args.fallbackSourceUrl) ? args.fallbackSourceUrl : "https://www.imf.org/en/Countries";
+    balancer = {
+      node_key: nodeKey,
+      value_usd_m: Number(Math.abs(preBalancing.residual).toFixed(1)),
+      period: args.period,
+      method: "residual",
+      confidence_grade: "C",
+      source_url: fallbackSourceUrl,
+      source_org: side === "output" ? "Ledger reconciliation — unclassified outflow" : "Ledger reconciliation — unattributed financing",
+      source_kind: "assumption_based",
+      formula: side === "output" ? "Validated inputs − classified outputs" : "Classified outputs − validated inputs",
+      notes: side === "output"
+        ? "Balancing residual added because disclosed/modelled inflows exceed classified outflows. This is an explicit data-gap call-out, not a researched source row."
+        : "Balancing inflow added because classified outflows exceed disclosed/modelled inflows. This records unattributed financing or unclassified inflow required to reconcile the ledger.",
+      evidence: { pre_balancing: preBalancing, coverage: { inputs, outputs, missingInputs, missingOutputs }, non_applicable_nodes: args.nonApplicableNodes },
+      validation: { reconciliation_balancer: true, side, pre_balancing_residual_pct: preBalancing.residual_pct },
+    };
+    args.flows.set(nodeKey, balancer);
+    args.attempts.push({ ...balancer, pass: "reconciliation", provider: "ledger-validator", status: "accepted" });
+  }
+
+  ({ sumIn, sumOut } = sums());
   const residual = sumIn - sumOut;
   const denom = Math.max(sumIn, sumOut);
   const reconciliationPct = denom > 0 ? Math.abs(residual) / denom : 1;
-  const inputs = INPUT_KEYS.filter((k) => args.flows.has(k));
-  const outputs = OUTPUT_KEYS.filter((k) => args.flows.has(k));
-  const missingInputs = INPUT_KEYS.filter((k) => !args.flows.has(k));
-  const missingOutputs = OUTPUT_KEYS.filter((k) => !args.flows.has(k));
-  const coverageOk = inputs.length >= 3 && outputs.length >= 4 && reconciliationPct <= 0.1;
+  const coverageOk = baseCoverageOk && (reconciliationPct <= 0.1 || !!balancer);
 
-  return { dropped, inputs, outputs, missingInputs, missingOutputs, sumIn, sumOut, residual, reconciliationPct, coverageOk };
+  return {
+    dropped,
+    inputs,
+    outputs,
+    applicableInputs,
+    applicableOutputs,
+    missingInputs,
+    missingOutputs,
+    nonApplicableNodes: args.nonApplicableNodes,
+    sumIn,
+    sumOut,
+    residual,
+    reconciliationPct,
+    preBalancing,
+    balancer,
+    coverageOk,
+    baseCoverageOk,
+  };
 }
 
 async function recordAttempts(admin: any, countryCode: string, runId: string, attempts: Attempt[]) {
@@ -591,6 +675,7 @@ export async function buildCapitalFlowsDraft(args: {
   const workbook = await loadWorkbook(args.admin, args.country);
   const attempts: Attempt[] = [];
   const citations: SonarCitation[] = [];
+  const nonApplicableNodes = inferNonApplicableNodes(workbook);
   const reportProgress = async (patch: Record<string, unknown>) => {
     if (!args.onProgress) return;
     try {
@@ -633,6 +718,8 @@ export async function buildCapitalFlowsDraft(args: {
     gdpUsdM: workbook.gdpUsdM,
     attempts,
     period: workbook.period,
+    nonApplicableNodes,
+    fallbackSourceUrl: workbook.defaultSource?.url ?? `https://www.imf.org/en/Countries/${args.country.iso3 ?? args.country.code}`,
   });
   await reportProgress({
     step: "validating",
@@ -640,25 +727,36 @@ export async function buildCapitalFlowsDraft(args: {
     total: requiredNodes.length,
     okCount: flows.size,
     attempts: attempts.length,
-    coverage: { inputs: validation.inputs, outputs: validation.outputs, missingInputs: validation.missingInputs, missingOutputs: validation.missingOutputs, coverageOk: validation.coverageOk },
-    reconciliation: { residual: validation.residual, residual_pct: validation.reconciliationPct, sumIn: validation.sumIn, sumOut: validation.sumOut },
+    coverage: { inputs: validation.inputs, outputs: validation.outputs, applicableInputs: validation.applicableInputs, applicableOutputs: validation.applicableOutputs, missingInputs: validation.missingInputs, missingOutputs: validation.missingOutputs, nonApplicableNodes: validation.nonApplicableNodes, coverageOk: validation.coverageOk },
+    reconciliation: { residual: validation.residual, residual_pct: validation.reconciliationPct, sumIn: validation.sumIn, sumOut: validation.sumOut, pre_balancing: validation.preBalancing, balancer: validation.balancer ? { node_key: validation.balancer.node_key, value_usd_m: validation.balancer.value_usd_m, side: validation.balancer.validation?.side } : null },
   });
 
   await recordAttempts(args.admin, args.country.code, args.runId, attempts);
 
-  const finalFlows = [...flows.values()].sort((a, b) => requiredNodes.indexOf(a.node_key) - requiredNodes.indexOf(b.node_key));
+  const sortIndex = (key: string) => {
+    const i = requiredNodes.indexOf(key);
+    if (i >= 0) return i;
+    return RESIDUAL_KEYS.has(key) ? requiredNodes.length + 1 : requiredNodes.length + 20;
+  };
+  const finalFlows = [...flows.values()].sort((a, b) => sortIndex(a.node_key) - sortIndex(b.node_key));
   const period = latestPeriod(finalFlows, workbook.period);
   const citeMap = new Map<string, SonarCitation>();
   for (const c of citations) if (validUrl(c.url) && !citeMap.has(c.url)) citeMap.set(c.url, c);
   for (const f of finalFlows) if (validUrl(f.source_url) && !citeMap.has(f.source_url)) citeMap.set(f.source_url, { url: f.source_url, domain: domainOf(f.source_url), title: f.source_org });
 
+  const nonApplicableNote = validation.nonApplicableNodes.length
+    ? ` Non-applicable: ${validation.nonApplicableNodes.map((n) => `${n.node_key} (${n.reason})`).join("; ")}.`
+    : "";
+  const balancingNote = validation.balancer
+    ? ` A ${validation.balancer.node_key} balancing row of US$${validation.balancer.value_usd_m.toFixed(0)}m was added because the pre-balancing residual was ${(validation.preBalancing.residual_pct * 100).toFixed(1)}%; this is disclosed as an inference/data-gap row.`
+    : "";
   const summary_md = validation.coverageOk
-    ? `Capital-flow workbook produced a reconciled ${period} Sankey ledger: ${validation.inputs.length} inputs (US$${validation.sumIn.toFixed(0)}m) and ${validation.outputs.length} outputs (US$${validation.sumOut.toFixed(0)}m), residual ${(validation.reconciliationPct * 100).toFixed(1)}%.`
-    : `Capital-flow workbook remains incomplete for ${period}: ${validation.inputs.length}/6 inputs, ${validation.outputs.length}/6 outputs, residual ${(validation.reconciliationPct * 100).toFixed(0)}%. Missing: ${[...validation.missingInputs, ...validation.missingOutputs].join(", ") || "—"}.`;
+    ? `Capital-flow workbook produced a ${period} Sankey ledger with ${validation.inputs.length}/${validation.applicableInputs.length} applicable inputs and ${validation.outputs.length}/${validation.applicableOutputs.length} outputs. Final residual ${(validation.reconciliationPct * 100).toFixed(1)}%.${balancingNote}${nonApplicableNote}`
+    : `Capital-flow workbook remains incomplete for ${period}: ${validation.inputs.length}/${validation.applicableInputs.length} applicable inputs, ${validation.outputs.length}/${validation.applicableOutputs.length} outputs. Missing: ${[...validation.missingInputs, ...validation.missingOutputs].join(", ") || "—"}.${nonApplicableNote}`;
   const summary_highlights = [
     { label: "Period", value: period },
-    { label: "Inputs populated", value: `${validation.inputs.length}/6` },
-    { label: "Outputs populated", value: `${validation.outputs.length}/6` },
+    { label: "Inputs populated", value: `${validation.inputs.length}/${validation.applicableInputs.length}` },
+    { label: "Outputs populated", value: `${validation.outputs.length}/${validation.applicableOutputs.length}` },
     { label: "Reconciliation", value: `${(validation.reconciliationPct * 100).toFixed(1)}% off` },
     { label: "Research attempts", value: String(attempts.length) },
   ];
@@ -686,14 +784,14 @@ export async function buildCapitalFlowsDraft(args: {
       period,
       flows: finalFlows,
       dropped_flows: validation.dropped,
-      coverage: { inputs: validation.inputs, outputs: validation.outputs, missingInputs: validation.missingInputs, missingOutputs: validation.missingOutputs, coverageOk: validation.coverageOk },
-      reconciliation: { sumIn: validation.sumIn, sumOut: validation.sumOut, residual: validation.residual, residual_pct: validation.reconciliationPct },
+      coverage: { inputs: validation.inputs, outputs: validation.outputs, applicableInputs: validation.applicableInputs, applicableOutputs: validation.applicableOutputs, missingInputs: validation.missingInputs, missingOutputs: validation.missingOutputs, nonApplicableNodes: validation.nonApplicableNodes, coverageOk: validation.coverageOk },
+      reconciliation: { sumIn: validation.sumIn, sumOut: validation.sumOut, residual: validation.residual, residual_pct: validation.reconciliationPct, pre_balancing: validation.preBalancing, balancer: validation.balancer ? { node_key: validation.balancer.node_key, value_usd_m: validation.balancer.value_usd_m, side: validation.balancer.validation?.side } : null },
       workbook: workbookPayload,
       summary_md,
       summary_highlights,
     },
     citations: [...citeMap.values()],
-    confidence: validation.coverageOk ? "high" as const : validation.reconciliationPct < 0.25 ? "medium" as const : "low" as const,
+    confidence: validation.coverageOk ? (validation.balancer ? "medium" as const : "high" as const) : validation.reconciliationPct < 0.25 ? "medium" as const : "low" as const,
     summary_md,
     summary_highlights,
     count: finalFlows.length,

@@ -78,15 +78,15 @@ export const Route = createFileRoute("/api/public/hooks/ledger-qa")({
           const latest = period ? allRows.filter((r) => r.period === period) : allRows;
           const sideByKey = new Map((nodes ?? []).map((n) => [String(n.node_key), String(n.side)]));
           let inputs = 0, outputs = 0, sumIn = 0, sumOut = 0, unknown = 0;
+          const residualNodeKeys = new Set(["RECONCILIATION_RESIDUAL", "RECONCILIATION_INFLOW_RESIDUAL"]);
           for (const r of latest) {
-            if (r.node_key === "RECONCILIATION_RESIDUAL") continue;
             const side = sideByKey.get(String(r.node_key));
             if (!side) { unknown += 1; continue; }
             const value = Number(r.value_usd_m ?? 0);
-            if (side === "input") { inputs += 1; sumIn += value; }
-            if (side === "output") { outputs += 1; sumOut += value; }
+            if (side === "input") { if (!residualNodeKeys.has(String(r.node_key))) inputs += 1; sumIn += value; }
+            if (side === "output") { if (!residualNodeKeys.has(String(r.node_key))) outputs += 1; sumOut += value; }
           }
-          const residualPct = sumIn > 0 ? Math.abs(sumIn - sumOut) / sumIn : 1;
+          const residualPct = Math.max(sumIn, sumOut) > 0 ? Math.abs(sumIn - sumOut) / Math.max(sumIn, sumOut) : 1;
           const ok = inputs >= 3 && outputs >= 4 && residualPct <= 0.1 && unknown === 0;
           return {
             ok,

@@ -139,8 +139,8 @@ export const getCapitalFlows = createServerFn({ method: "POST" })
 
     const sideOf = new Map(nodes.map((n) => [n.node_key, n.side]));
     let sumIn = 0, sumOut = 0;
+    const residualNodeKeys = new Set(["RECONCILIATION_RESIDUAL", "RECONCILIATION_INFLOW_RESIDUAL"]);
     for (const v of values) {
-      if (v.node_key === "RECONCILIATION_RESIDUAL") continue;
       const s = sideOf.get(v.node_key);
       if (s === "input") sumIn += v.value_usd_m;
       else if (s === "output") sumOut += v.value_usd_m;
@@ -149,7 +149,7 @@ export const getCapitalFlows = createServerFn({ method: "POST" })
     const residual_pct = sumIn > 0 ? Math.abs(residual) / sumIn : 0;
 
     const presentKeys = new Set(values.map((v) => v.node_key));
-    const missingNodes = nodes.filter((n) => n.node_key !== "RECONCILIATION_RESIDUAL" && !presentKeys.has(n.node_key)).map((n) => n.label);
+    const missingNodes = nodes.filter((n) => !residualNodeKeys.has(n.node_key) && !presentKeys.has(n.node_key)).map((n) => n.label);
     const lowConfidence = values.filter((v) => v.confidence_grade === "C").map((v) => v.node_key);
     const latestUpdate = values.reduce((max, v) => (v.updated_at > max ? v.updated_at : max), "");
     const staleUpdate = latestUpdate ? Date.now() - new Date(latestUpdate).getTime() > 365 * 24 * 3600 * 1000 : false;

@@ -1544,6 +1544,8 @@ const CAPITAL_FLOW_NODE_LABELS: Record<string, string> = {
   DIGITAL_HEALTH_CAPEX: "Digital & Health CapEx",
   ENERGY_IMPORT: "Energy & Utilities Import",
   IMPORT_LEAKAGE: "Import Leakages",
+  RECONCILIATION_RESIDUAL: "Unattributed Outflow Residual",
+  RECONCILIATION_INFLOW_RESIDUAL: "Unattributed Financing / Inflow Residual",
 };
 
 function CapitalFlowsCoverage({

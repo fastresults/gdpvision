@@ -1,77 +1,58 @@
-# Persistent Minister Backfill Jobs
+## What's failing on KNA
 
-Today `backfillMinisters` runs inline in a single HTTP request. If the tab closes, the request is aborted mid-run and there is no way to see status, partial progress, or resume. This plan converts it into a **persistent job** with a durable status row, per-country progress, live polling in the UI, and a resume path.
+The KNA workflow is stuck on **Stage 5 (ministry_sector_map)**. The last run (`211f97cb…`, 21:54:15Z) failed with:
 
-## Data model (new tables)
-
-Two tables, both admin-only, `service_role` for writes, `authenticated` read gated by `has_role(auth.uid(),'admin')`.
-
-```text
-minister_backfill_runs
-  id uuid pk
-  status text  ('queued'|'running'|'succeeded'|'failed'|'cancelled')
-  requested_by uuid (auth.users.id)
-  params jsonb   -- { country_code?, ministry_slugs?, force, dry_run, concurrency }
-  totals jsonb   -- { attempted, resolved, updated, skipped, failed }
-  started_at, finished_at, heartbeat_at, created_at timestamptz
-  error text
-
-minister_backfill_country_runs
-  id uuid pk
-  run_id uuid fk -> minister_backfill_runs(id) on delete cascade
-  country_code text
-  status text  ('queued'|'running'|'succeeded'|'failed'|'skipped')
-  attempted, resolved, updated, skipped, failed int
-  ministries jsonb  -- per-ministry action rows (same shape as today's CountrySummary.ministries)
-  started_at, finished_at timestamptz
-  unique(run_id, country_code)
+```
+duplicate key value violates unique constraint "onboarding_drafts_one_live_per_stage"
 ```
 
-`heartbeat_at` lets the UI show "stalled" if no update for >90s.
+That index is:
 
-## Server functions
+```sql
+CREATE UNIQUE INDEX onboarding_drafts_one_live_per_stage
+  ON onboarding_drafts (country_code, stage)
+  WHERE committed_at IS NULL;
+```
 
-New file `src/lib/country-onboarding/minister-backfill-jobs.functions.ts`:
+The earlier successful run (`6626d346…`, 21:51:18Z) already produced a live (uncommitted) `ministry_sector_map` draft for KNA. When the stage was re-run without committing that draft first, the second `INSERT` collided with the partial unique index.
 
-- `startMinisterBackfill(params)` — admin-only. Inserts a `queued` run row + one `queued` country row per target. Kicks off processing in the same request via `context.waitUntil(...)` when available, otherwise `void processRun(runId)` (fire-and-forget). Returns `{ run_id }` immediately.
-- `getMinisterBackfillRun({ run_id })` — returns the run + all country rows for polling.
-- `listMinisterBackfillRuns({ limit })` — recent runs for the history panel.
-- `cancelMinisterBackfillRun({ run_id })` — sets `status='cancelled'`; processor checks this between countries and exits cleanly.
+## Why this is systemic
 
-Refactor `minister-backfill.functions.ts`:
+There are three `saveDraft` helpers in the onboarding code:
 
-- Extract the current per-country logic into an internal `processCountry(runId, countryRow, ctx, params)` helper that updates the country row (`running` → totals → `succeeded`/`failed`) as it goes, and bumps `heartbeat_at` on the parent after each ministry.
-- Keep the existing `backfillMinisters` export as a thin wrapper that calls `startMinisterBackfill` + polls to completion — preserves existing UI/API behavior for callers that want sync.
+| File | Behavior |
+|---|---|
+| `src/lib/country-onboarding/corpus.functions.ts` | ✅ Correct: SELECTs the existing live draft and UPDATEs it, with a 23505 race fallback + citation refresh. |
+| `src/lib/country-onboarding/agents.functions.ts` | ❌ Naive `INSERT` — trips the index on every re-run of `profile`, `gdp`, `sector_composition`, `ministries`, `ministry_sector_map`. |
+| `src/lib/country-onboarding/kpi-seed.server.ts` | ❌ Naive `INSERT` — same failure mode for the `kpi_seed` stage. |
 
-## UI changes
+KNA hit it on `ministry_sector_map`, but every stage owned by `agents.functions.ts` or `kpi-seed.server.ts` will fail identically on any re-run before commit. This is the "fix once for all future countries" part.
 
-`src/routes/_authenticated/admin/countries.index.tsx`:
+## Fix
 
-- "Run backfill" now calls `startMinisterBackfill` and stores `run_id` in component state + `localStorage` so a refresh reattaches.
-- Add a `useQuery` polling `getMinisterBackfillRun` every 3s while `status ∈ {queued, running}`; stop when terminal.
-- Show a progress list: per country → `attempted / resolved / updated / failed`, spinner while `running`, checkmark on `succeeded`.
-- "Cancel" button while running.
-- Small history dropdown (last 10 runs) via `listMinisterBackfillRuns`.
+Port the proven `corpus.functions.ts` `saveDraft` pattern into the other two helpers. No schema changes.
 
-## Resume & safety
+### `src/lib/country-onboarding/agents.functions.ts` (lines 82–123)
 
-- `dry_run` still fully supported; UI toggle unchanged.
-- On process start, any run stuck in `running` with `heartbeat_at < now() - 5 min` is auto-marked `failed` with `error='stalled'` at the top of `startMinisterBackfill` (cheap sweep). Reruns are safe because the backfill is idempotent (only touches gaps unless `force`).
-- Because the loop is idempotent, "resume" is just: start a new non-force run — it will skip anything already filled.
+Replace the naive insert with:
+1. `SELECT id FROM onboarding_drafts WHERE country_code=? AND stage=? AND committed_at IS NULL` (newest first, limit 1).
+2. If found → `UPDATE` that row with the new payload/citations/confidence/summary and bump `updated_at`.
+3. Else → `INSERT`.
+4. On `23505` from the insert (race), re-select and update the winner.
+5. `DELETE FROM onboarding_citations WHERE draft_id = ?` then re-insert `args.citations` so citations always match the current payload (matches corpus behavior).
+
+### `src/lib/country-onboarding/kpi-seed.server.ts` (lines 59–94)
+
+Same pattern, stage hard-coded to `"kpi_seed"`.
+
+### Recovery for KNA
+
+The existing live `ministry_sector_map` draft (`55893500-…`, created 21:51:18Z) is valid — the second run only failed because the first was never committed. After the fix, the admin can either commit that draft or re-run Stage 5, and the re-run will update the same draft instead of erroring.
+
+No migration required; no other code paths change.
 
 ## Verification
 
-1. TS check clean (`bunx tsgo --noEmit`).
-2. Start a dry-run against a single country (e.g. KNA) → run row goes queued → running → succeeded within a few seconds; UI shows per-ministry planned rows.
-3. Start a live run against KNA → refresh the browser mid-run → UI reattaches to the same `run_id` and continues showing progress.
-4. Confirm `ministry_profiles` rows for KNA are populated afterward.
-5. Cancel a run mid-flight → status flips to `cancelled`, processor stops before the next country.
-
-## Files touched
-
-- New migration: `minister_backfill_runs` + `minister_backfill_country_runs` (with GRANTs + RLS as above).
-- New: `src/lib/country-onboarding/minister-backfill-jobs.functions.ts`.
-- Edited: `src/lib/country-onboarding/minister-backfill.functions.ts` (extract `processCountry`, keep sync wrapper).
-- Edited: `src/routes/_authenticated/admin/countries.index.tsx` (polling UI, cancel, history).
-
-No changes to `minister-research.server.ts`, Stage 5, or Stage 9.
+- `bunx tsgo --noEmit` clean.
+- Manually re-run Stage 5 on KNA in the admin UI; expect the run to end `ready` and the existing live draft to be updated in place (same draft id, new `updated_at`).
+- Re-run any earlier stage (e.g. `profile`) on any country without committing first; expect no 23505 error.

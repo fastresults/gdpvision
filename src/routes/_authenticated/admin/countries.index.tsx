@@ -121,6 +121,8 @@ function CountriesQueue() {
           </div>
         </div>
 
+        <MinisterBackfillPanel countries={countries as Array<{ code: string; name: string }>} />
+
         <div className="flex flex-wrap items-center gap-3">
           <input
             type="text"

@@ -133,7 +133,7 @@ export const Route = createFileRoute("/api/public/hooks/ledger-qa")({
         await time("sources", async () => {
           const { data } = await supabase
             .from("country_sources").select("url,fetch_status,active")
-            .eq("country_code", cc).eq("active", true);
+            .eq("country_code", cc).eq("visibility", "public").eq("active", true);
           const invalid = (data ?? []).filter((r) => !r.url || !/^https?:\/\//i.test(String(r.url))).length;
           const broken = (data ?? []).filter((r) => r.fetch_status && r.fetch_status !== "ok" && r.fetch_status !== "pending").length;
           return {

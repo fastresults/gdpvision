@@ -9,11 +9,18 @@ import json, os, sys
 r = json.load(sys.stdin)
 assert r.get("ok") is True, r
 vs = r["verdicts"]
-assert len(vs) == 12, f"expected 12 verdicts, got {len(vs)}"
+assert len(vs) == 13, f"expected 13 verdicts, got {len(vs)}"
 required = {"key", "status", "detail", "ms"}
 for v in vs:
     assert required.issubset(v.keys()), f"missing keys on {v}"
     assert v["status"] in ("pass", "warn", "fail", "skipped"), v
+
+# Regression: visibility-guard must always pass — private rows must be
+# properly stamped (owner_country_code + uploaded_by). A warn/fail here
+# means the public/private data boundary is compromised.
+vg = next((v for v in vs if v["key"] == "visibility-guard"), None)
+assert vg is not None, "missing visibility-guard verdict"
+assert vg["status"] == "pass", f"visibility-guard must pass: {vg['detail']}"
 
 s = r["summary"]
 cc = r.get("country", "")

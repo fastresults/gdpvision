@@ -27,6 +27,7 @@ type Props = {
 };
 
 export function AddSourceDialog({ countryCode, open, onClose, onDone }: Props) {
+  const [visibility, setVisibility] = useState<"public" | "private">("public");
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-2xl">
@@ -36,6 +37,7 @@ export function AddSourceDialog({ countryCode, open, onClose, onDone }: Props) {
             Add links, upload documents, or connect an API / MCP server. Duplicates are collapsed automatically — the same source can never appear twice.
           </DialogDescription>
         </DialogHeader>
+        <VisibilityToggle value={visibility} onChange={setVisibility} />
         <Tabs defaultValue="link" className="mt-4">
           <TabsList className="grid grid-cols-4 w-full">
             <TabsTrigger value="link">Link</TabsTrigger>
@@ -44,13 +46,13 @@ export function AddSourceDialog({ countryCode, open, onClose, onDone }: Props) {
             <TabsTrigger value="api">API / MCP</TabsTrigger>
           </TabsList>
           <TabsContent value="link" className="mt-4">
-            <SingleLinkTab countryCode={countryCode} onDone={() => { onDone(); onClose(); }} />
+            <SingleLinkTab countryCode={countryCode} visibility={visibility} onDone={() => { onDone(); onClose(); }} />
           </TabsContent>
           <TabsContent value="bulk" className="mt-4">
-            <BulkLinksTab countryCode={countryCode} onDone={() => { onDone(); onClose(); }} />
+            <BulkLinksTab countryCode={countryCode} visibility={visibility} onDone={() => { onDone(); onClose(); }} />
           </TabsContent>
           <TabsContent value="documents" className="mt-4">
-            <DocumentsTab countryCode={countryCode} onDone={() => { onDone(); onClose(); }} />
+            <DocumentsTab countryCode={countryCode} visibility={visibility} onDone={() => { onDone(); onClose(); }} />
           </TabsContent>
           <TabsContent value="api" className="mt-4">
             <ApiMcpTab countryCode={countryCode} onDone={() => { onDone(); onClose(); }} />
@@ -58,6 +60,39 @@ export function AddSourceDialog({ countryCode, open, onClose, onDone }: Props) {
         </Tabs>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function VisibilityToggle({ value, onChange }: { value: "public" | "private"; onChange: (v: "public" | "private") => void }) {
+  return (
+    <div className="mt-2 border border-line-200 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500">Visibility</p>
+          <p className="text-xs text-ink-700 mt-1">
+            {value === "private"
+              ? "Only your country's admins and team members can see this. Never surfaced on public hooks."
+              : "Shared across the platform. Anyone (including anonymous visitors) can read this source."}
+          </p>
+        </div>
+        <div className="flex gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => onChange("public")}
+            className={`px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] border ${value === "public" ? "border-ink-950 bg-ink-950 text-paper-0" : "border-line-200"}`}
+          >
+            Public
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange("private")}
+            className={`px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] border ${value === "private" ? "border-ink-950 bg-ink-950 text-paper-0" : "border-line-200"}`}
+          >
+            Private
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

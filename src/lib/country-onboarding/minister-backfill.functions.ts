@@ -2,39 +2,31 @@
 // ministry_profiles.minister_profile for every existing country that already
 // has ministries, using the 4-pass resolveMinister loop.
 //
-// Idempotent by default: only touches rows where minister IS NULL OR
-// minister_profile = '{}'. Pass force:true to re-resolve everything.
-// Pass dry_run:true to preview the plan without writing.
+// Runs are persisted as long-running jobs in `minister_backfill_runs` +
+// `minister_backfill_country_runs`, so the UI can poll for live progress and
+// survive page refreshes / tab closes.
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const Input = z.object({
+const StartInput = z.object({
   country_code: z.string().optional(),
+  country_codes: z.array(z.string()).optional(),
   ministry_slugs: z.array(z.string()).optional(),
   force: z.boolean().optional().default(false),
   dry_run: z.boolean().optional().default(false),
   concurrency: z.number().int().min(1).max(5).optional().default(3),
 });
 
-type CountrySummary = {
-  country_code: string;
-  country_name: string;
-  attempted: number;
-  resolved: number;
-  updated: number;
-  skipped: number;
-  failed: number;
-  ministries: Array<{
-    slug: string;
-    name: string;
-    action: "skipped" | "planned" | "updated" | "failed" | "unresolved";
-    minister: string | null;
-    confidence?: "low" | "medium" | "high";
-    source_tier?: string;
-    error?: string;
-  }>;
+type MinistryAction = {
+  slug: string;
+  name: string;
+  action: "skipped" | "planned" | "updated" | "failed" | "unresolved";
+  minister: string | null;
+  confidence?: "low" | "medium" | "high";
+  source_tier?: string;
+  error?: string;
 };
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
@@ -45,7 +37,6 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
   if (!isAdmin) throw new Error("Forbidden: super admin only");
 }
 
-// Small concurrency helper — process items N-at-a-time.
 async function runPool<T, R>(items: T[], limit: number, worker: (item: T) => Promise<R>): Promise<R[]> {
   const out: R[] = new Array(items.length);
   let cursor = 0;
@@ -61,8 +52,6 @@ async function runPool<T, R>(items: T[], limit: number, worker: (item: T) => Pro
 }
 
 function mergeProfile(existing: Record<string, unknown>, incoming: Record<string, unknown>): Record<string, unknown> {
-  // Merge shallowly, preferring non-null/non-empty existing values so we don't
-  // clobber a stronger profile with a weaker one. Deep-merge contact + socials.
   const isEmpty = (v: unknown) =>
     v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0);
   const merged: Record<string, unknown> = { ...existing };
@@ -95,221 +84,483 @@ function dedupCitations(a: any[], b: any[]) {
   return out;
 }
 
-export const backfillMinisters = createServerFn({ method: "POST" })
+// ---------------------------------------------------------------------------
+// Job orchestration
+// ---------------------------------------------------------------------------
+
+export const startMinisterBackfill = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => Input.parse(d))
+  .inputValidator((d: unknown) => StartInput.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { resolveMinister } = await import("./minister-research.server");
-    const { buildCountryContext } = await import("./country-context.server");
 
-    // 1. Pick target countries
+    // Sweep: mark any stale "running" jobs (heartbeat >5 min old) as failed.
+    await supabaseAdmin
+      .from("minister_backfill_runs")
+      .update({ status: "failed", error: "stalled", finished_at: new Date().toISOString() })
+      .eq("status", "running")
+      .lt("heartbeat_at", new Date(Date.now() - 5 * 60 * 1000).toISOString());
+
+    // Determine target countries.
     let countryQuery = supabaseAdmin.from("countries").select("code, name");
-    if (data.country_code) countryQuery = countryQuery.eq("code", data.country_code);
+    const codes =
+      (data.country_codes && data.country_codes.length ? data.country_codes : null) ??
+      (data.country_code ? [data.country_code] : null);
+    if (codes) countryQuery = countryQuery.in("code", codes);
     const { data: allCountries, error: cErr } = await countryQuery;
     if (cErr) throw new Error(`countries load failed: ${cErr.message}`);
 
-    // Keep only countries that have at least one ministry.
     const { data: ministriesAll, error: mErr } = await supabaseAdmin
       .from("ministries")
-      .select("country_code, slug, name")
+      .select("country_code")
       .order("country_code");
     if (mErr) throw new Error(`ministries load failed: ${mErr.message}`);
+    const withMinistries = new Set((ministriesAll ?? []).map((m: any) => m.country_code));
+    const targets = (allCountries ?? []).filter((c: any) => withMinistries.has(c.code));
 
-    const byCountry = new Map<string, Array<{ slug: string; name: string }>>();
-    for (const m of (ministriesAll ?? []) as Array<{ country_code: string; slug: string; name: string }>) {
-      const list = byCountry.get(m.country_code) ?? [];
-      list.push({ slug: m.slug, name: m.name });
-      byCountry.set(m.country_code, list);
+    if (targets.length === 0) throw new Error("No target countries with ministries.");
+
+    // Create run row.
+    const { data: run, error: runErr } = await supabaseAdmin
+      .from("minister_backfill_runs")
+      .insert({
+        status: "queued",
+        requested_by: context.userId,
+        params: {
+          country_codes: targets.map((c: any) => c.code),
+          ministry_slugs: data.ministry_slugs ?? null,
+          force: data.force,
+          dry_run: data.dry_run,
+          concurrency: data.concurrency,
+        },
+        totals: { attempted: 0, resolved: 0, updated: 0, skipped: 0, failed: 0 },
+        heartbeat_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+    if (runErr) throw new Error(`run insert failed: ${runErr.message}`);
+
+    // Create per-country queued rows.
+    const countryRows = targets.map((c: any) => ({
+      run_id: run.id,
+      country_code: c.code,
+      status: "queued",
+    }));
+    const { error: cRunErr } = await supabaseAdmin
+      .from("minister_backfill_country_runs")
+      .insert(countryRows);
+    if (cRunErr) throw new Error(`country runs insert failed: ${cRunErr.message}`);
+
+    // Fire-and-forget processing. The handler returns immediately; the UI polls.
+    void processRun(run.id).catch(async (err) => {
+      const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+      await admin
+        .from("minister_backfill_runs")
+        .update({
+          status: "failed",
+          error: (err as Error).message.slice(0, 500),
+          finished_at: new Date().toISOString(),
+        })
+        .eq("id", run.id);
+    });
+
+    return { run_id: run.id as string };
+  });
+
+export const getMinisterBackfillRun = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ run_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: run, error: rErr } = await supabaseAdmin
+      .from("minister_backfill_runs")
+      .select("*")
+      .eq("id", data.run_id)
+      .maybeSingle();
+    if (rErr) throw new Error(rErr.message);
+    if (!run) throw new Error("Run not found");
+    const { data: countries, error: cErr } = await supabaseAdmin
+      .from("minister_backfill_country_runs")
+      .select("*")
+      .eq("run_id", data.run_id)
+      .order("country_code");
+    if (cErr) throw new Error(cErr.message);
+    return { run, countries: countries ?? [] };
+  });
+
+export const listMinisterBackfillRuns = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ limit: z.number().int().min(1).max(50).optional().default(10) }).parse(d ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: runs, error } = await supabaseAdmin
+      .from("minister_backfill_runs")
+      .select("id, status, params, totals, error, started_at, finished_at, heartbeat_at, created_at")
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (error) throw new Error(error.message);
+    return runs ?? [];
+  });
+
+export const cancelMinisterBackfillRun = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ run_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin
+      .from("minister_backfill_runs")
+      .update({ status: "cancelled", finished_at: new Date().toISOString() })
+      .eq("id", data.run_id)
+      .in("status", ["queued", "running"]);
+    return { ok: true };
+  });
+
+// Back-compat sync wrapper: kicks off a job and polls until it completes.
+export const backfillMinisters = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => StartInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const started = await startMinisterBackfill({ data });
+    // Poll until terminal or timeout (~10 min max).
+    const deadline = Date.now() + 10 * 60 * 1000;
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 3000));
+      const { data: run } = await supabaseAdmin
+        .from("minister_backfill_runs")
+        .select("status, totals, error")
+        .eq("id", started.run_id)
+        .single();
+      if (run && !["queued", "running"].includes(run.status as string)) {
+        const { data: countries } = await supabaseAdmin
+          .from("minister_backfill_country_runs")
+          .select("*")
+          .eq("run_id", started.run_id);
+        return {
+          ok: run.status === "succeeded",
+          run_id: started.run_id,
+          dry_run: data.dry_run,
+          force: data.force,
+          totals: run.totals,
+          countries: countries ?? [],
+          error: run.error,
+        };
+      }
+    }
+    return { ok: false, run_id: started.run_id, timeout: true };
+  });
+
+// ---------------------------------------------------------------------------
+// Background processor
+// ---------------------------------------------------------------------------
+
+async function processRun(runId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { resolveMinister } = await import("./minister-research.server");
+  const { buildCountryContext } = await import("./country-context.server");
+
+  const { data: run } = await supabaseAdmin
+    .from("minister_backfill_runs")
+    .select("*")
+    .eq("id", runId)
+    .single();
+  if (!run) return;
+
+  const params = (run.params ?? {}) as {
+    country_codes?: string[];
+    ministry_slugs?: string[] | null;
+    force?: boolean;
+    dry_run?: boolean;
+    concurrency?: number;
+  };
+  const codes = params.country_codes ?? [];
+  const dryRun = !!params.dry_run;
+  const force = !!params.force;
+  const concurrency = params.concurrency ?? 3;
+
+  await supabaseAdmin
+    .from("minister_backfill_runs")
+    .update({ status: "running", started_at: new Date().toISOString(), heartbeat_at: new Date().toISOString() })
+    .eq("id", runId);
+
+  const { data: countryRows } = await supabaseAdmin
+    .from("countries")
+    .select("code, name")
+    .in("code", codes);
+  const nameByCode = new Map<string, string>();
+  for (const c of (countryRows ?? []) as any[]) nameByCode.set(c.code, c.name);
+
+  const totals = { attempted: 0, resolved: 0, updated: 0, skipped: 0, failed: 0 };
+
+  for (const code of codes) {
+    // Check for cancellation between countries.
+    const { data: current } = await supabaseAdmin
+      .from("minister_backfill_runs")
+      .select("status")
+      .eq("id", runId)
+      .single();
+    if (current?.status === "cancelled") {
+      await supabaseAdmin
+        .from("minister_backfill_country_runs")
+        .update({ status: "cancelled" })
+        .eq("run_id", runId)
+        .eq("status", "queued");
+      return;
     }
 
-    const targets = (allCountries ?? []).filter((c: any) => byCountry.has(c.code));
+    const countryName = nameByCode.get(code) ?? code;
+    await supabaseAdmin
+      .from("minister_backfill_country_runs")
+      .update({ status: "running", started_at: new Date().toISOString() })
+      .eq("run_id", runId)
+      .eq("country_code", code);
 
-    const summaries: CountrySummary[] = [];
-
-    for (const country of targets as Array<{ code: string; name: string }>) {
-      const allMinistries = byCountry.get(country.code) ?? [];
-      const slugFilter = data.ministry_slugs?.length ? new Set(data.ministry_slugs) : null;
-      const ministries = slugFilter
-        ? allMinistries.filter((m) => slugFilter.has(m.slug))
-        : allMinistries;
-
-      // Existing profiles for gap detection
-      const { data: existingProfiles } = await supabaseAdmin
-        .from("ministry_profiles")
-        .select("ministry_slug, minister, minister_profile, citations, source_ids, mandate, programmes")
-        .eq("country_code", country.code);
-      const existingBySlug = new Map<string, any>();
-      for (const p of (existingProfiles ?? []) as any[]) {
-        existingBySlug.set(p.ministry_slug, p);
-      }
-
-      const needsWork = ministries.filter((m) => {
-        if (data.force) return true;
-        const p = existingBySlug.get(m.slug);
-        if (!p) return true; // no profile row
-        const hasName = !!(p.minister && String(p.minister).trim());
-        const profile = p.minister_profile ?? {};
-        const hasProfile =
-          profile && typeof profile === "object" && Object.keys(profile).length > 0;
-        return !hasName || !hasProfile;
+    try {
+      const summary = await processCountry({
+        countryCode: code,
+        countryName,
+        ministrySlugs: params.ministry_slugs ?? null,
+        force,
+        dryRun,
+        concurrency,
+        actor: run.requested_by,
+        resolveMinister,
+        buildCountryContext,
+        admin: supabaseAdmin,
+        onHeartbeat: async () => {
+          await supabaseAdmin
+            .from("minister_backfill_runs")
+            .update({ heartbeat_at: new Date().toISOString() })
+            .eq("id", runId);
+        },
       });
 
-      const summary: CountrySummary = {
-        country_code: country.code,
-        country_name: country.name,
-        attempted: needsWork.length,
-        resolved: 0,
-        updated: 0,
-        skipped: ministries.length - needsWork.length,
-        failed: 0,
-        ministries: [],
-      };
+      totals.attempted += summary.attempted;
+      totals.resolved += summary.resolved;
+      totals.updated += summary.updated;
+      totals.skipped += summary.skipped;
+      totals.failed += summary.failed;
 
-      // Emit skipped rows for visibility
-      for (const m of ministries) {
-        if (!needsWork.find((x) => x.slug === m.slug)) {
-          summary.ministries.push({
-            slug: m.slug,
-            name: m.name,
-            action: "skipped",
-            minister: existingBySlug.get(m.slug)?.minister ?? null,
-          });
-        }
-      }
+      await supabaseAdmin
+        .from("minister_backfill_country_runs")
+        .update({
+          status: "succeeded",
+          attempted: summary.attempted,
+          resolved: summary.resolved,
+          updated: summary.updated,
+          skipped: summary.skipped,
+          failed: summary.failed,
+          ministries: summary.ministries,
+          finished_at: new Date().toISOString(),
+        })
+        .eq("run_id", runId)
+        .eq("country_code", code);
 
-      if (needsWork.length === 0) {
-        summaries.push(summary);
-        continue;
-      }
+      await supabaseAdmin
+        .from("minister_backfill_runs")
+        .update({ totals, heartbeat_at: new Date().toISOString() })
+        .eq("id", runId);
+    } catch (err) {
+      await supabaseAdmin
+        .from("minister_backfill_country_runs")
+        .update({
+          status: "failed",
+          error: (err as Error).message.slice(0, 500),
+          finished_at: new Date().toISOString(),
+        })
+        .eq("run_id", runId)
+        .eq("country_code", code);
+    }
+  }
 
-      let ctx: any = null;
-      try {
-        ctx = await buildCountryContext(supabaseAdmin, country.code);
-      } catch (e) {
-        summary.ministries.push({
-          slug: "*context*",
-          name: "country context",
-          action: "failed",
-          minister: null,
-          error: (e as Error).message,
-        });
-        summary.failed = needsWork.length;
-        summaries.push(summary);
-        continue;
-      }
+  await supabaseAdmin
+    .from("minister_backfill_runs")
+    .update({
+      status: "succeeded",
+      totals,
+      finished_at: new Date().toISOString(),
+      heartbeat_at: new Date().toISOString(),
+    })
+    .eq("id", runId);
+}
 
-      const results = await runPool(needsWork, data.concurrency, async (m) => {
-        try {
-          const result = await resolveMinister({
-            admin: supabaseAdmin,
-            countryCode: country.code,
-            countryName: country.name,
-            ministry: m,
-            ctx,
-            actor: context.userId,
-          });
-          return { m, result, error: null as string | null };
-        } catch (e) {
-          return { m, result: null, error: (e as Error).message };
-        }
+async function processCountry(opts: {
+  countryCode: string;
+  countryName: string;
+  ministrySlugs: string[] | null;
+  force: boolean;
+  dryRun: boolean;
+  concurrency: number;
+  actor: string | null;
+  admin: any;
+  resolveMinister: any;
+  buildCountryContext: any;
+  onHeartbeat: () => Promise<void>;
+}): Promise<{
+  attempted: number;
+  resolved: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+  ministries: MinistryAction[];
+}> {
+  const { admin, resolveMinister, buildCountryContext } = opts;
+
+  const { data: ministries, error: mErr } = await admin
+    .from("ministries")
+    .select("slug, name")
+    .eq("country_code", opts.countryCode)
+    .order("slug");
+  if (mErr) throw new Error(mErr.message);
+
+  const slugFilter = opts.ministrySlugs?.length ? new Set(opts.ministrySlugs) : null;
+  const filtered = (slugFilter
+    ? (ministries ?? []).filter((m: any) => slugFilter.has(m.slug))
+    : (ministries ?? [])) as Array<{ slug: string; name: string }>;
+
+  const { data: existingProfiles } = await admin
+    .from("ministry_profiles")
+    .select("ministry_slug, minister, minister_profile, citations, source_ids, mandate, programmes")
+    .eq("country_code", opts.countryCode);
+  const existingBySlug = new Map<string, any>();
+  for (const p of (existingProfiles ?? []) as any[]) existingBySlug.set(p.ministry_slug, p);
+
+  const needsWork = filtered.filter((m) => {
+    if (opts.force) return true;
+    const p = existingBySlug.get(m.slug);
+    if (!p) return true;
+    const hasName = !!(p.minister && String(p.minister).trim());
+    const profile = p.minister_profile ?? {};
+    const hasProfile = profile && typeof profile === "object" && Object.keys(profile).length > 0;
+    return !hasName || !hasProfile;
+  });
+
+  const out: MinistryAction[] = [];
+  let resolved = 0, updated = 0, failed = 0;
+  const skipped = filtered.length - needsWork.length;
+
+  for (const m of filtered) {
+    if (!needsWork.find((x) => x.slug === m.slug)) {
+      out.push({
+        slug: m.slug,
+        name: m.name,
+        action: "skipped",
+        minister: existingBySlug.get(m.slug)?.minister ?? null,
       });
+    }
+  }
 
-      for (const { m, result, error } of results) {
-        if (error || !result) {
-          summary.failed++;
-          summary.ministries.push({
-            slug: m.slug,
-            name: m.name,
-            action: "failed",
-            minister: null,
-            error: error ?? "unknown",
-          });
-          continue;
-        }
-        if (result.minister) summary.resolved++;
+  if (needsWork.length === 0) {
+    return { attempted: 0, resolved: 0, updated: 0, skipped, failed: 0, ministries: out };
+  }
 
-        if (data.dry_run) {
-          summary.ministries.push({
-            slug: m.slug,
-            name: m.name,
-            action: result.minister ? "planned" : "unresolved",
-            minister: result.minister,
-            confidence: result.confidence,
-            source_tier: result.source_tier,
-          });
-          continue;
-        }
+  let ctx: any;
+  try {
+    ctx = await buildCountryContext(admin, opts.countryCode);
+  } catch (e) {
+    out.push({
+      slug: "*context*",
+      name: "country context",
+      action: "failed",
+      minister: null,
+      error: (e as Error).message,
+    });
+    return { attempted: needsWork.length, resolved: 0, updated: 0, skipped, failed: needsWork.length, ministries: out };
+  }
 
-        // Upsert with merge semantics
-        const existing = existingBySlug.get(m.slug);
-        const mergedProfile = mergeProfile(
-          (existing?.minister_profile as Record<string, unknown>) ?? {},
-          (result.minister_profile as Record<string, unknown>) ?? {},
-        );
-        const finalName =
-          (mergedProfile.name as string | null) ??
-          result.minister ??
-          existing?.minister ??
-          null;
-        const mergedCitations = dedupCitations(
-          Array.isArray(existing?.citations) ? existing.citations : [],
-          result.citations ?? [],
-        );
+  const results = await runPool(needsWork, opts.concurrency, async (m) => {
+    try {
+      const result = await resolveMinister({
+        admin,
+        countryCode: opts.countryCode,
+        countryName: opts.countryName,
+        ministry: m,
+        ctx,
+        actor: opts.actor ?? undefined,
+      });
+      return { m, result, error: null as string | null };
+    } catch (e) {
+      return { m, result: null, error: (e as Error).message };
+    }
+  });
 
-        const { error: upErr } = await supabaseAdmin
-          .from("ministry_profiles")
-          .upsert(
-            {
-              country_code: country.code,
-              ministry_slug: m.slug,
-              minister: finalName,
-              minister_profile: { ...mergedProfile, name: finalName },
-              mandate: existing?.mandate ?? result.mandate ?? "",
-              programmes: existing?.programmes?.length ? existing.programmes : (result.programmes ?? []),
-              source_ids: existing?.source_ids ?? [],
-              citations: mergedCitations,
-            },
-            { onConflict: "country_code,ministry_slug" },
-          );
+  for (const { m, result, error } of results) {
+    if (error || !result) {
+      failed++;
+      out.push({ slug: m.slug, name: m.name, action: "failed", minister: null, error: error ?? "unknown" });
+      continue;
+    }
+    if (result.minister) resolved++;
 
-        if (upErr) {
-          summary.failed++;
-          summary.ministries.push({
-            slug: m.slug,
-            name: m.name,
-            action: "failed",
-            minister: result.minister,
-            error: upErr.message,
-          });
-          continue;
-        }
-
-        summary.updated++;
-        summary.ministries.push({
-          slug: m.slug,
-          name: m.name,
-          action: result.minister ? "updated" : "unresolved",
-          minister: result.minister,
-          confidence: result.confidence,
-          source_tier: result.source_tier,
-        });
-      }
-
-      summaries.push(summary);
+    if (opts.dryRun) {
+      out.push({
+        slug: m.slug,
+        name: m.name,
+        action: result.minister ? "planned" : "unresolved",
+        minister: result.minister,
+        confidence: result.confidence,
+        source_tier: result.source_tier,
+      });
+      await opts.onHeartbeat();
+      continue;
     }
 
-    const totals = summaries.reduce(
-      (acc, s) => ({
-        attempted: acc.attempted + s.attempted,
-        resolved: acc.resolved + s.resolved,
-        updated: acc.updated + s.updated,
-        skipped: acc.skipped + s.skipped,
-        failed: acc.failed + s.failed,
-      }),
-      { attempted: 0, resolved: 0, updated: 0, skipped: 0, failed: 0 },
+    const existing = existingBySlug.get(m.slug);
+    const mergedProfile = mergeProfile(
+      (existing?.minister_profile as Record<string, unknown>) ?? {},
+      (result.minister_profile as Record<string, unknown>) ?? {},
+    );
+    const finalName =
+      (mergedProfile.name as string | null) ?? result.minister ?? existing?.minister ?? null;
+    const mergedCitations = dedupCitations(
+      Array.isArray(existing?.citations) ? existing.citations : [],
+      result.citations ?? [],
     );
 
-    return { ok: true, dry_run: data.dry_run, force: data.force, totals, countries: summaries };
-  });
+    const { error: upErr } = await admin.from("ministry_profiles").upsert(
+      {
+        country_code: opts.countryCode,
+        ministry_slug: m.slug,
+        minister: finalName,
+        minister_profile: { ...mergedProfile, name: finalName },
+        mandate: existing?.mandate ?? result.mandate ?? "",
+        programmes: existing?.programmes?.length ? existing.programmes : (result.programmes ?? []),
+        source_ids: existing?.source_ids ?? [],
+        citations: mergedCitations,
+      },
+      { onConflict: "country_code,ministry_slug" },
+    );
+
+    if (upErr) {
+      failed++;
+      out.push({
+        slug: m.slug,
+        name: m.name,
+        action: "failed",
+        minister: result.minister,
+        error: upErr.message,
+      });
+      continue;
+    }
+
+    updated++;
+    out.push({
+      slug: m.slug,
+      name: m.name,
+      action: result.minister ? "updated" : "unresolved",
+      minister: result.minister,
+      confidence: result.confidence,
+      source_tier: result.source_tier,
+    });
+    await opts.onHeartbeat();
+  }
+
+  return { attempted: needsWork.length, resolved, updated, skipped, failed, ministries: out };
+}

@@ -2494,6 +2494,104 @@ export type Database = {
           },
         ]
       }
+      minister_backfill_country_runs: {
+        Row: {
+          attempted: number
+          country_code: string
+          created_at: string
+          error: string | null
+          failed: number
+          finished_at: string | null
+          id: string
+          ministries: Json
+          resolved: number
+          run_id: string
+          skipped: number
+          started_at: string | null
+          status: string
+          updated: number
+        }
+        Insert: {
+          attempted?: number
+          country_code: string
+          created_at?: string
+          error?: string | null
+          failed?: number
+          finished_at?: string | null
+          id?: string
+          ministries?: Json
+          resolved?: number
+          run_id: string
+          skipped?: number
+          started_at?: string | null
+          status?: string
+          updated?: number
+        }
+        Update: {
+          attempted?: number
+          country_code?: string
+          created_at?: string
+          error?: string | null
+          failed?: number
+          finished_at?: string | null
+          id?: string
+          ministries?: Json
+          resolved?: number
+          run_id?: string
+          skipped?: number
+          started_at?: string | null
+          status?: string
+          updated?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "minister_backfill_country_runs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "minister_backfill_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      minister_backfill_runs: {
+        Row: {
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          heartbeat_at: string | null
+          id: string
+          params: Json
+          requested_by: string | null
+          started_at: string | null
+          status: string
+          totals: Json
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          heartbeat_at?: string | null
+          id?: string
+          params?: Json
+          requested_by?: string | null
+          started_at?: string | null
+          status?: string
+          totals?: Json
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          heartbeat_at?: string | null
+          id?: string
+          params?: Json
+          requested_by?: string | null
+          started_at?: string | null
+          status?: string
+          totals?: Json
+        }
+        Relationships: []
+      }
       ministries: {
         Row: {
           country_code: string

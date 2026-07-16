@@ -170,6 +170,35 @@ export const Route = createFileRoute("/api/public/hooks/ledger-qa")({
           };
         });
 
+        // visibility-guard: every private row must be correctly stamped
+        // (owner_country_code = country, uploaded_by present) so the public
+        // hook's `visibility='public'` filter is a real security boundary.
+        await time("visibility-guard", async () => {
+          const tables = ["country_sources", "country_kpis", "country_capital_flows"] as const;
+          const problems: string[] = [];
+          let privateTotal = 0;
+          for (const t of tables) {
+            const { data, error } = await supabase
+              .from(t)
+              .select("id,owner_country_code,uploaded_by")
+              .eq("country_code", cc)
+              .eq("visibility", "private");
+            if (error) throw new Error(`${t}: ${error.message}`);
+            const rows = data ?? [];
+            privateTotal += rows.length;
+            const bad = rows.filter((r) => !r.owner_country_code || r.owner_country_code !== cc || !r.uploaded_by);
+            if (bad.length > 0) problems.push(`${t}:${bad.length}`);
+          }
+          return {
+            key: "visibility-guard",
+            status: problems.length === 0 ? "pass" : "fail",
+            detail: problems.length === 0
+              ? `${privateTotal} private rows · all correctly stamped`
+              : `mis-stamped private rows: ${problems.join(", ")}`,
+            ms: 0,
+          };
+        });
+
         // Write probes are skipped in the public hook (they cost credits / write rows).
         for (const k of PROBE_KEYS) {
           verdicts.push({ key: k, status: "skipped", detail: "write-probe · run via /admin/ledger-qa", ms: 0 });

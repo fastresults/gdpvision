@@ -137,7 +137,7 @@ function getDraftCommitEligibility(stage: Stage, payload: any, citations: any[] 
       const hasSources = hasFlows && payload.flows.some((flow: any) => hasHttpUrl(flow?.source_url));
       const coverageOk = payload.coverage?.coverageOk === true;
       if (hasFlows && hasSources && coverageOk) return { ok: true, reason: null };
-      if (!coverageOk) return { ok: false, reason: "Coverage incomplete — needs ≥3 inputs, ≥4 outputs, ≤10% residual" };
+      if (!coverageOk) return { ok: false, reason: "Coverage incomplete — needs enough applicable nodes and an explicit reconciliation/inference row when residuals remain" };
       return { ok: false, reason: "Capital-flow draft has no valid source URLs to commit" };
     }
     default:
@@ -1551,16 +1551,21 @@ function CapitalFlowsCoverage({
   reconciliation,
   droppedFlows,
 }: {
-  coverage: { inputs?: string[]; outputs?: string[]; missingInputs?: string[]; missingOutputs?: string[]; coverageOk?: boolean };
-  reconciliation?: { sumIn?: number; sumOut?: number; residual_pct?: number };
+  coverage: { inputs?: string[]; outputs?: string[]; applicableInputs?: string[]; applicableOutputs?: string[]; missingInputs?: string[]; missingOutputs?: string[]; nonApplicableNodes?: Array<{ node_key?: string; reason?: string }>; coverageOk?: boolean };
+  reconciliation?: { sumIn?: number; sumOut?: number; residual_pct?: number; pre_balancing?: { residual_pct?: number }; balancer?: { node_key?: string; value_usd_m?: number; side?: string } | null };
   droppedFlows?: Array<{ node_key?: string; reason?: string; value_usd_m?: number }>;
 }) {
   const inputs = coverage.inputs ?? [];
   const outputs = coverage.outputs ?? [];
+  const applicableInputs = coverage.applicableInputs ?? ["TOURISM_SPEND", "CBI_INFLOWS", "FDI_NET", "REMITTANCES", "ODA_GRANTS", "TAX_REVENUE"];
+  const applicableOutputs = coverage.applicableOutputs ?? ["WAGES_AGRI", "INFRA_CAPEX", "DEBT_SERVICE", "DIGITAL_HEALTH_CAPEX", "ENERGY_IMPORT", "IMPORT_LEAKAGE"];
   const missingInputs = coverage.missingInputs ?? [];
   const missingOutputs = coverage.missingOutputs ?? [];
+  const nonApplicable = coverage.nonApplicableNodes ?? [];
   const ok = coverage.coverageOk === true;
   const resPct = reconciliation?.residual_pct != null ? Math.round(reconciliation.residual_pct * 100) : null;
+  const preBalancePct = reconciliation?.pre_balancing?.residual_pct != null ? Math.round(reconciliation.pre_balancing.residual_pct * 100) : null;
+  const balancer = reconciliation?.balancer ?? null;
   const chip = (key: string, populated: boolean) => (
     <span
       key={key}
@@ -1576,13 +1581,20 @@ function CapitalFlowsCoverage({
     <div className={`rounded border p-3 space-y-2 ${ok ? "border-emerald-500/40 bg-emerald-500/5" : "border-amber-500/50 bg-amber-500/5"}`}>
       <div className="flex items-baseline justify-between gap-3">
         <div className="text-xs font-medium">
-          {ok ? "✓ Coverage complete" : "⚠ Coverage incomplete — needs ≥3 inputs, ≥4 outputs, ≤10% residual"}
+          {ok ? "✓ Coverage complete" : "⚠ Coverage incomplete — needs enough applicable nodes and reconciliation disclosure"}
         </div>
         <div className="text-[11px] text-ink-500 tabular-nums">
-          {inputs.length}/6 inputs · {outputs.length}/6 outputs
+          {inputs.length}/{applicableInputs.length} inputs · {outputs.length}/{applicableOutputs.length} outputs
           {resPct != null && <span> · residual {resPct}%</span>}
         </div>
       </div>
+      {balancer?.node_key && (
+        <div className="rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-800">
+          Reconciliation uses {CAPITAL_FLOW_NODE_LABELS[balancer.node_key] ?? balancer.node_key}
+          {balancer.value_usd_m != null ? ` (US$${Number(balancer.value_usd_m).toFixed(1)}m)` : ""}
+          {preBalancePct != null ? ` after a ${preBalancePct}% pre-balance gap` : ""}.
+        </div>
+      )}
       <div>
         <div className="text-[10px] font-mono uppercase tracking-widest text-ink-500 mb-1">Inputs</div>
         <div className="flex flex-wrap gap-1">
@@ -1597,6 +1609,18 @@ function CapitalFlowsCoverage({
           {missingOutputs.map((k) => chip(k, false))}
         </div>
       </div>
+      {nonApplicable.length > 0 && (
+        <div>
+          <div className="text-[10px] font-mono uppercase tracking-widest text-ink-500 mb-1">Not applicable</div>
+          <div className="flex flex-wrap gap-1">
+            {nonApplicable.map((n) => (
+              <span key={n.node_key} className="inline-flex items-center gap-1 rounded bg-ink-500/10 px-2 py-0.5 text-[11px] text-ink-600">
+                {CAPITAL_FLOW_NODE_LABELS[String(n.node_key)] ?? n.node_key} · {n.reason ?? "not applicable"}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       {Array.isArray(droppedFlows) && droppedFlows.length > 0 && (
         <details className="text-xs">
           <summary className="cursor-pointer text-ink-500 hover:text-ink-950">

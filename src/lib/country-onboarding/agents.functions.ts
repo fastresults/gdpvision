@@ -1149,10 +1149,21 @@ export const runMinistrySectorMapAgent = createServerFn({ method: "POST" })
       } as const;
 
       const sectorList = sectors.map((s) => `${s.code} (${s.label})`).join(", ");
-      const ministryList = ministries.map((m) => `${m.slug} (${m.name})`).join("\n- ");
+      const ministryList = ministries
+        .map((m) => {
+          const mp = ministerBySlug.get(m.slug);
+          const attribution = mp?.name
+            ? ` — Minister: ${mp.name}${mp.title ? ` (${mp.title})` : ""}`
+            : "";
+          return `${m.slug} (${m.name})${attribution}`;
+        })
+        .join("\n- ");
       const sectorWeights = ctx.committed.sectors.length
         ? `\n\nCOMMITTED SECTOR WEIGHTS (distribute ministerial ownership consistently with these shares):\n${ctx.committed.sectors.map((s) => `- ${s.sector_code}: ${Number(s.share_pct).toFixed(1)}%`).join("\n")}`
         : "";
+      const ministerHint = ministersResolved
+        ? `\n\nATTRIBUTED MINISTERS: ${ministersResolved}/${ministries.length} ministries have a verified officeholder above. Ground rationales in the named minister's public statements or mandate.`
+        : `\n\nNOTE: minister names for this country have not been researched yet — run Stage 9 (ministry deep-dive) before this stage for attributed weights.`;
       const fb = await runWithFallbacks<{ mappings: any[]; summary_md?: string; summary_highlights?: any[] }>({
         context: ctx,
         topic: `${country.name} ministerial portfolios and sector ownership`,
@@ -1161,7 +1172,7 @@ export const runMinistrySectorMapAgent = createServerFn({ method: "POST" })
           system:
             "You map ministerial portfolios to economic sectors. For each ministry, output the sectors it primarily oversees with a weight 0-100 representing its share of responsibility for that sector. Per-ministry weights across all its sectors should roughly sum to 100. Omit sectors a ministry has no role in. Use the official ministerial mandates on the government portal." +
             SUMMARY_SYSTEM_SUFFIX,
-          user: `Country: ${country.name}.\n\nSectors: ${sectorList}.\n\nMinistries:\n- ${ministryList}${sectorWeights}\n\nProvide the ministry→sector mapping. Every ministry MUST appear at least once. Ground the rationale in the actual mandate text where possible.`,
+          user: `Country: ${country.name}.\n\nSectors: ${sectorList}.\n\nMinistries:\n- ${ministryList}${sectorWeights}${ministerHint}\n\nProvide the ministry→sector mapping. Every ministry MUST appear at least once. Ground the rationale in the actual mandate text where possible.`,
           responseSchema: schema as unknown as Record<string, unknown>,
         },
         gemini: {
@@ -1184,22 +1195,51 @@ export const runMinistrySectorMapAgent = createServerFn({ method: "POST" })
         }),
       });
 
-      const inline = extractInlineSummary(fb.data);
+      // Sidecar: minister index attached to draft payload so the review UI
+      // can render "Sector X → Minister Y (Title Z)" without a DB migration.
+      // The commit RPC ignores unknown fields; this is display-only.
+      const minister_index = Object.fromEntries(
+        Array.from(ministerBySlug.entries()).map(([slug, v]) => [slug, { name: v.name, title: v.title }]),
+      );
+      const enrichedMappings = Array.isArray(fb.data.mappings)
+        ? fb.data.mappings.map((row: any) => {
+            const mp = ministerBySlug.get(row?.ministry_slug);
+            if (!mp?.name) return row;
+            return { ...row, minister_name: mp.name, minister_title: mp.title ?? null };
+          })
+        : fb.data.mappings;
+      const enrichedPayload = { ...fb.data, mappings: enrichedMappings, minister_index };
+
+      const inline = extractInlineSummary(enrichedPayload);
+      const draftSummary = ministersResolved
+        ? inline.summary_md
+        : `${inline.summary_md ?? ""}\n\n⚠️ Minister names unresolved — run Stage 9 (ministry deep-dive) first for attributed weights.`.trim();
+
       const draftId = await saveDraft(supabaseAdmin, {
         run_id: runId,
         country_code: data.countryCode,
         stage: "ministry_sector_map",
         target_table: "ministry_sectors",
-        payload: fb.data,
+        payload: enrichedPayload,
         confidence: fb.tier === "perplexity" && fb.citations.length >= 1 ? "medium" : "low",
         citations: fb.citations,
-        summary_md: inline.summary_md,
+        summary_md: draftSummary,
         summary_highlights: inline.summary_highlights,
       });
 
       await promoteAfterDraft(supabaseAdmin, data.countryCode, "ministry_sector_map", draftId, fb);
       await finishRun(supabaseAdmin, runId, { status: "ready", model_stack: { ...fb.modelStack, notes: fb.notes } });
-      return { runId, draftId, mappings: fb.data.mappings, citations: fb.citations, tier: fb.tier, notes: fb.notes };
+      return {
+        runId,
+        draftId,
+        mappings: enrichedMappings,
+        minister_index,
+        ministers_resolved: ministersResolved,
+        citations: fb.citations,
+        tier: fb.tier,
+        notes: fb.notes,
+      };
+
     } catch (err) {
       await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
       throw err;

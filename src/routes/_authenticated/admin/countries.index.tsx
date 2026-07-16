@@ -176,7 +176,7 @@ function CountriesQueue() {
                         : <span className="text-ink-500">—</span>}
                     </td>
                     {STAGES.map((s) => (
-                      <td key={s.key} className="px-2 py-3 text-center">
+                      <td key={s.key} title={s.title} className="px-1 py-3 text-center">
                         {done.has(s.key) ? (
                           <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
                         ) : (

@@ -1406,6 +1406,7 @@ const UploadDocInput = z.object({
   content_b64: z.string().min(1),
   title: z.string().optional(),
   org: z.string().optional(),
+  visibility: z.enum(["public", "private"]).default("public"),
 });
 
 export const ingestDocumentSource = createServerFn({ method: "POST" })

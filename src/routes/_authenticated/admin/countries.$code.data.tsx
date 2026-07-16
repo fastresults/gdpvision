@@ -20,8 +20,8 @@ import {
   listKpiCoverage,
   reverifyAllKpis,
   runCorpusIngest,
-  runMinistryDeepDiveAgent,
 } from "@/lib/country-onboarding/corpus.functions";
+import { runMinistryDeepDiveFlow } from "@/lib/country-onboarding/ministry-deep-dive-flow";
 import {
   acceptKpiInference,
   acceptAllHighConfidenceInferences,

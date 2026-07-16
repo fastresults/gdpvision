@@ -163,28 +163,90 @@ export const listOnboardingCountries = createServerFn({ method: "GET" })
     const [countriesRes, runsRes] = await Promise.all([
       supabaseAdmin
         .from("countries")
-        .select("code, name, iso3, gdp_current_usd, gdp_year, membership_tier")
-        .order("name"),
+        .select("code, name, iso3, gdp_current_usd, gdp_year, membership_tier, profile_committed_at, gdp_committed_at"),
       supabaseAdmin
         .from("onboarding_runs")
         .select("country_code, stage, status")
-        .in("status", ["ready", "committed"]),
+        .eq("status", "committed"),
     ]);
 
     if (countriesRes.error) throw countriesRes.error;
-    const runs = runsRes.data ?? [];
+    const countries = countriesRes.data ?? [];
+    const codes = countries.map((c: any) => c.code);
+
+    // Committed-run stages.
     const stagesByCountry = new Map<string, Set<string>>();
-    for (const r of runs) {
-      if (r.status !== "committed") continue;
+    for (const r of (runsRes.data ?? [])) {
       const s = stagesByCountry.get(r.country_code) ?? new Set<string>();
       s.add(r.stage);
       stagesByCountry.set(r.country_code, s);
     }
-    return (countriesRes.data ?? []).map((c) => ({
+
+    // Data-presence union: a stage counts as complete when the canonical target
+    // table has content, even if the onboarding_run row never flipped to
+    // `committed` (acceptance-gate misses, aborted retries, etc.). Keeps the
+    // dot grid in sync with what the corpus/ledger actually contain.
+    const addStage = (cc: string, stage: string) => {
+      if (!cc) return;
+      const s = stagesByCountry.get(cc) ?? new Set<string>();
+      s.add(stage);
+      stagesByCountry.set(cc, s);
+    };
+
+    // Stages 1 & 2 come straight off the countries row.
+    for (const c of countries as any[]) {
+      if (c.profile_committed_at) addStage(c.code, "profile");
+      if (c.gdp_current_usd != null) addStage(c.code, "gdp");
+    }
+
+    const [
+      sectorsRes,
+      ministriesRes,
+      msRes,
+      sourcesRes,
+      kpisRes,
+      dossiersRes,
+      minProfRes,
+      chunksRes,
+      memRes,
+      flowsRes,
+    ] = await Promise.all([
+      supabaseAdmin.from("country_sectors").select("country_code").in("country_code", codes),
+      supabaseAdmin.from("ministries").select("country_code").in("country_code", codes),
+      supabaseAdmin
+        .from("ministry_sectors")
+        .select("ministries!inner(country_code)")
+        .in("ministries.country_code", codes),
+      supabaseAdmin.from("country_sources").select("country_code").in("country_code", codes),
+      supabaseAdmin.from("country_kpis").select("country_code").in("country_code", codes).not("latest_value", "is", null),
+      supabaseAdmin.from("sector_dossiers").select("country_code").in("country_code", codes),
+      supabaseAdmin
+        .from("ministry_profiles")
+        .select("country_code")
+        .in("country_code", codes)
+        .not("minister_profile", "is", null),
+      supabaseAdmin.from("country_source_chunks").select("country_code").in("country_code", codes),
+      supabaseAdmin.from("memory_objects").select("scope_key").in("scope_key", codes),
+      supabaseAdmin.from("country_capital_flows").select("country_code").in("country_code", codes),
+    ]);
+
+    for (const r of (sectorsRes.data ?? [])) addStage((r as any).country_code, "sector_composition");
+    for (const r of (ministriesRes.data ?? [])) addStage((r as any).country_code, "ministries");
+    for (const r of (msRes.data ?? [])) addStage((r as any).ministries?.country_code, "ministry_sector_map");
+    for (const r of (sourcesRes.data ?? [])) addStage((r as any).country_code, "source_registry");
+    for (const r of (kpisRes.data ?? [])) addStage((r as any).country_code, "kpi_seed");
+    for (const r of (dossiersRes.data ?? [])) addStage((r as any).country_code, "sector_dossier");
+    for (const r of (minProfRes.data ?? [])) addStage((r as any).country_code, "ministry_deep_dive");
+    for (const r of (chunksRes.data ?? [])) addStage((r as any).country_code, "corpus_ingest");
+    for (const r of (memRes.data ?? [])) addStage((r as any).scope_key, "second_brain_seed");
+    for (const r of (flowsRes.data ?? [])) addStage((r as any).country_code, "capital_flows");
+
+    return countries.map((c: any) => ({
       ...c,
       completed_stages: Array.from(stagesByCountry.get(c.code) ?? []),
     }));
   });
+
 
 export const getOnboardingStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

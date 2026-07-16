@@ -115,6 +115,7 @@ const OUTPUT_KEYS = ["WAGES_AGRI", "INFRA_CAPEX", "DEBT_SERVICE", "DIGITAL_HEALT
 const OUTPUT_RESIDUAL_KEY = "RECONCILIATION_RESIDUAL";
 const INPUT_RESIDUAL_KEY = "RECONCILIATION_INFLOW_RESIDUAL";
 const RESIDUAL_KEYS = new Set([OUTPUT_RESIDUAL_KEY, INPUT_RESIDUAL_KEY]);
+const HIGH_IMPACT_NODES = new Set(["TOURISM_SPEND", "FDI_NET", "TAX_REVENUE", "IMPORT_LEAKAGE", "ENERGY_IMPORT"]);
 
 function validUrl(raw: unknown): raw is string {
   if (typeof raw !== "string") return false;
@@ -150,6 +151,10 @@ function sourceFrom(url: string | null | undefined, fallbackUrl: string | null |
 
 function isPreferredSource(source: string | null | undefined): boolean {
   return /world bank|imf|unctad|unwto|oecd|iadb|cdb|eccb|ministry|government|statistics|central bank|treasury|finance/i.test(source ?? "");
+}
+
+function isWeakOpenWebSource(source: string | null | undefined): boolean {
+  return /blog|lawyer|consult|immigration|news|press|medium|substack|wikipedia/i.test(source ?? "") && !isPreferredSource(source);
 }
 
 function inferNonApplicableNodes(workbook: Awaited<ReturnType<typeof loadWorkbook>>): NonApplicableNode[] {
@@ -479,6 +484,10 @@ async function aiNodeCandidate(args: {
     if (!Number.isFinite(value) || value <= 0 || !sourceUrl) {
       return { flow: null, citations: result.citations, attempt: { node_key: args.nodeKey, pass: "ai-node", provider: args.model, status: "rejected", value_usd_m: Number.isFinite(value) ? value : undefined, source_url: parsed?.source_url ?? null, evidence, error: "AI returned missing/non-positive value or no usable source URL" } };
     }
+    const sourceOrg = parsed.source_org ?? domainOf(sourceUrl) ?? "AI-selected source";
+    if (HIGH_IMPACT_NODES.has(args.nodeKey) && isWeakOpenWebSource(`${sourceOrg} ${sourceUrl}`)) {
+      return { flow: null, citations: result.citations, attempt: { node_key: args.nodeKey, pass: "ai-node", provider: args.model, status: "rejected", value_usd_m: value, source_url: sourceUrl, source_org: sourceOrg, evidence, error: "Rejected weak open-web source for high-impact capital-flow node; requires official or multilateral grounding" } };
+    }
     const flow: CapitalFlowResolved = {
       node_key: args.nodeKey,
       value_usd_m: Number(value.toFixed(1)),
@@ -486,7 +495,7 @@ async function aiNodeCandidate(args: {
       method: parsed.method ?? "modelled",
       confidence_grade: parsed.confidence_grade ?? "C",
       source_url: sourceUrl,
-      source_org: parsed.source_org ?? domainOf(sourceUrl) ?? "AI-selected source",
+      source_org: sourceOrg,
       source_kind: parsed.source_kind ?? (sourceUrl === parsed.source_url ? "direct" : "assumption_based"),
       formula: parsed.formula ?? undefined,
       notes: parsed.notes ?? `${node.label} researched from AI-selected evidence.`,
@@ -777,7 +786,7 @@ export async function buildCapitalFlowsDraft(args: {
       summary_highlights,
     },
     citations: [...citeMap.values()],
-    confidence: validation.coverageOk ? "high" as const : validation.reconciliationPct < 0.25 ? "medium" as const : "low" as const,
+    confidence: validation.coverageOk ? (validation.balancer ? "medium" as const : "high" as const) : validation.reconciliationPct < 0.25 ? "medium" as const : "low" as const,
     summary_md,
     summary_highlights,
     count: finalFlows.length,

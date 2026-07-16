@@ -1,58 +1,69 @@
-## What's failing on KNA
+## Why KNA stopped at "ministry_deep_dive"
 
-The KNA workflow is stuck on **Stage 5 (ministry_sector_map)**. The last run (`211f97cb…`, 21:54:15Z) failed with:
+The 502 `sandbox proxy failed` is a **request timeout**, not a code bug. `runMinistryDeepDiveAgent` in `src/lib/country-onboarding/corpus.functions.ts` (lines 1297-1400) does everything inline in a single server function call:
 
-```
-duplicate key value violates unique constraint "onboarding_drafts_one_live_per_stage"
-```
-
-That index is:
-
-```sql
-CREATE UNIQUE INDEX onboarding_drafts_one_live_per_stage
-  ON onboarding_drafts (country_code, stage)
-  WHERE committed_at IS NULL;
+```text
+for each ministry (KNA has ~14):
+  resolveMinister(...)
+    pass 1  corpus search   (embed + gemini extract)
+    pass 2  Perplexity sonar-reasoning-pro (targeted)
+    pass 3  Perplexity sonar-reasoning-pro (wide, if empty)
+    pass 4  Perplexity sonar-pro (cross-check)
 ```
 
-The earlier successful run (`6626d346…`, 21:51:18Z) already produced a live (uncommitted) `ministry_sector_map` draft for KNA. When the stage was re-run without committing that draft first, the second `INSERT` collided with the partial unique index.
+That is ~3-4 Perplexity calls × 14 ministries executed **serially**. Each `sonar-reasoning-pro` call is 10-40s. Total wall time easily exceeds the sandbox/edge request cap, so the proxy kills the connection and the orchestrator marks the run stopped. Every other stage (profile, gdp, ministries, kpi_seed, capital_flows) fits in one call; this one doesn't and never will as ministry counts grow.
 
-## Why this is systemic
+The `minister-backfill` module already solved the same problem for the admin backfill tool: it persists a job in `minister_backfill_runs` + `minister_backfill_country_runs` and the client drives it one ministry at a time. We reuse that pattern for stage 9 so it works for every future country onboarding.
 
-There are three `saveDraft` helpers in the onboarding code:
+## Fix — turn stage 9 into a resumable per-ministry job
 
-| File | Behavior |
-|---|---|
-| `src/lib/country-onboarding/corpus.functions.ts` | ✅ Correct: SELECTs the existing live draft and UPDATEs it, with a 23505 race fallback + citation refresh. |
-| `src/lib/country-onboarding/agents.functions.ts` | ❌ Naive `INSERT` — trips the index on every re-run of `profile`, `gdp`, `sector_composition`, `ministries`, `ministry_sector_map`. |
-| `src/lib/country-onboarding/kpi-seed.server.ts` | ❌ Naive `INSERT` — same failure mode for the `kpi_seed` stage. |
+### 1. Split `runMinistryDeepDiveAgent` into three short server functions
 
-KNA hit it on `ministry_sector_map`, but every stage owned by `agents.functions.ts` or `kpi-seed.server.ts` will fail identically on any re-run before commit. This is the "fix once for all future countries" part.
+In `src/lib/country-onboarding/corpus.functions.ts`:
 
-## Fix
+- **`planMinistryDeepDive({ countryCode })`**
+  - Opens the `onboarding_pipeline_runs` row (`stage: "ministry_deep_dive"`, `status: "planning"`).
+  - Loads ministries, writes one work item per ministry into a new lightweight table `ministry_deep_dive_items(run_id, country_code, ministry_slug, ministry_name, status, minister, minister_profile jsonb, mandate, programmes jsonb, citations jsonb, confidence, source_tier, error, updated_at)` with `status='pending'`.
+  - Returns `{ runId, total }`. Fast; no Perplexity work.
 
-Port the proven `corpus.functions.ts` `saveDraft` pattern into the other two helpers. No schema changes.
+- **`resolveNextMinistryDeepDive({ runId, batchSize=1 })`**
+  - Claims up to `batchSize` pending items (`UPDATE ... RETURNING` with `status='pending'` → `status='running'`).
+  - Runs `resolveMinister` for each (still sequential inside one call, but `batchSize=1` keeps every call under ~60s).
+  - Writes results back to the item row and flips it to `done` or `failed`. Refreshes `onboarding_pipeline_runs.updated_at`.
+  - Returns `{ completed, remaining }`.
 
-### `src/lib/country-onboarding/agents.functions.ts` (lines 82–123)
+- **`finalizeMinistryDeepDive({ runId })`**
+  - Assembles `parsed = { ministries, diagnostics }` and the merged citation set from the item rows.
+  - Applies the existing acceptance gate (≥70% resolved + citations ≥ ministries → medium, else low).
+  - Calls the existing `saveDraft` (already upsert-safe from the earlier fix) with `stage: "ministry_deep_dive"`, `target_table: "ministry_profiles"`.
+  - Calls `finishRun(..., { status: "ready" })`.
 
-Replace the naive insert with:
-1. `SELECT id FROM onboarding_drafts WHERE country_code=? AND stage=? AND committed_at IS NULL` (newest first, limit 1).
-2. If found → `UPDATE` that row with the new payload/citations/confidence/summary and bump `updated_at`.
-3. Else → `INSERT`.
-4. On `23505` from the insert (race), re-select and update the winner.
-5. `DELETE FROM onboarding_citations WHERE draft_id = ?` then re-insert `args.citations` so citations always match the current payload (matches corpus behavior).
+### 2. Orchestrator wiring
 
-### `src/lib/country-onboarding/kpi-seed.server.ts` (lines 59–94)
+In `src/lib/country-onboarding/orchestrator.functions.ts`, replace the single `runMinistryDeepDiveAgent` call for stage `ministry_deep_dive` with:
 
-Same pattern, stage hard-coded to `"kpi_seed"`.
+```text
+plan → loop { resolveNext until remaining === 0 } → finalize
+```
 
-### Recovery for KNA
+Each iteration is its own server function call, so the sandbox timeout no longer matters. Add a per-ministry timeout in `resolveMinister` (e.g. 45s cap on each Perplexity pass via `AbortController`) so a single hung upstream call fails that ministry instead of the whole run — matching how `minister-backfill` treats failures.
 
-The existing live `ministry_sector_map` draft (`55893500-…`, created 21:51:18Z) is valid — the second run only failed because the first was never committed. After the fix, the admin can either commit that draft or re-run Stage 5, and the re-run will update the same draft instead of erroring.
+### 3. UI / polling
 
-No migration required; no other code paths change.
+The onboarding page already polls `getRunProgress` every 3s. Extend the progress payload for `ministry_deep_dive` to include `{ completed, total, currentMinistry }` read from `ministry_deep_dive_items`, so the run card shows "9 / 14 ministries resolved…" instead of an opaque spinner. When `remaining===0`, the client calls `finalize`.
+
+### 4. Recovery for KNA now
+
+- Reset the current stuck run: mark the `onboarding_pipeline_runs` row for `ministry_deep_dive` as `failed` (or delete and re-plan).
+- Re-run stage 9 from the admin UI. The new plan → resolve-loop → finalize path replays cleanly; the earlier stages remain unchanged.
+
+### 5. Migration
+
+One SQL migration adds `ministry_deep_dive_items` with `GRANT SELECT, INSERT, UPDATE ON ... TO authenticated`, `GRANT ALL TO service_role`, RLS enabled, and admin-only policies (mirrors `minister_backfill_country_runs`). No changes to `onboarding_drafts` / `onboarding_citations` shape.
 
 ## Verification
 
 - `bunx tsgo --noEmit` clean.
-- Manually re-run Stage 5 on KNA in the admin UI; expect the run to end `ready` and the existing live draft to be updated in place (same draft id, new `updated_at`).
-- Re-run any earlier stage (e.g. `profile`) on any country without committing first; expect no 23505 error.
+- Re-run stage 9 on KNA end-to-end from the admin UI; expect progress to tick per ministry and the run to end `ready` with a `ministry_deep_dive` draft equivalent to the pre-timeout intent.
+- Run stage 9 on a second country (e.g. any small OECS one) to confirm the pattern is generic; each per-ministry call finishes well under the sandbox timeout.
+- Kill one Perplexity pass mid-run (network throttle) and confirm only that ministry is marked `failed`, the loop continues, and finalize still produces a draft with `confidence: "low"`.

@@ -90,25 +90,70 @@ async function saveDraft(admin: any, args: {
   summary_md?: string | null;
   summary_highlights?: Array<{ label: string; value: string }> | null;
 }) {
-  // Keep older uncommitted drafts as rollback evidence. The UI marks older
-  // drafts superseded, so a bad rerun cannot erase the last reviewable draft.
-  const { data: draft, error } = await admin
-    .from("onboarding_drafts")
-    .insert({
-      run_id: args.run_id,
-      country_code: args.country_code,
-      stage: args.stage,
-      target_table: args.target_table,
-      payload: args.payload as any,
-      confidence: args.confidence,
-      needs_review: true,
-      summary_md: args.summary_md ?? null,
-      summary_highlights: (args.summary_highlights ?? []) as any,
-    })
-    .select("id")
-    .single();
-  if (error) throw error;
+  // One live uncommitted draft is allowed per (country, stage) per the
+  // partial unique index `onboarding_drafts_one_live_per_stage`. Re-runs
+  // update the live draft instead of tripping the index; committed drafts
+  // stay immutable audit history.
+  const patch = {
+    run_id: args.run_id,
+    country_code: args.country_code,
+    stage: args.stage,
+    target_table: args.target_table,
+    payload: args.payload as any,
+    confidence: args.confidence,
+    needs_review: true,
+    summary_md: args.summary_md ?? null,
+    summary_highlights: (args.summary_highlights ?? []) as any,
+    updated_at: new Date().toISOString(),
+  };
 
+  const { data: existing, error: existingError } = await admin
+    .from("onboarding_drafts")
+    .select("id")
+    .eq("country_code", args.country_code)
+    .eq("stage", args.stage)
+    .is("committed_at", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (existingError) throw existingError;
+
+  let draftResult = existing?.id
+    ? await admin
+        .from("onboarding_drafts")
+        .update(patch)
+        .eq("id", existing.id)
+        .select("id")
+        .single()
+    : await admin
+        .from("onboarding_drafts")
+        .insert(patch)
+        .select("id")
+        .single();
+  if (draftResult.error && (draftResult.error as any).code === "23505") {
+    const { data: racedExisting, error: racedExistingError } = await admin
+      .from("onboarding_drafts")
+      .select("id")
+      .eq("country_code", args.country_code)
+      .eq("stage", args.stage)
+      .is("committed_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (racedExistingError) throw racedExistingError;
+    if (racedExisting?.id) {
+      draftResult = await admin
+        .from("onboarding_drafts")
+        .update(patch)
+        .eq("id", racedExisting.id)
+        .select("id")
+        .single();
+    }
+  }
+  if (draftResult.error) throw draftResult.error;
+  const draft = draftResult.data;
+
+  await admin.from("onboarding_citations").delete().eq("draft_id", draft.id);
   if (args.citations.length) {
     await admin.from("onboarding_citations").insert(
       args.citations.map((c) => ({

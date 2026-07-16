@@ -7,14 +7,14 @@ import {
   listOnboardingCountries,
   listOnboardingRuns,
 } from "@/lib/country-onboarding/agents.functions";
+import { ONBOARDING_STAGES } from "@/lib/country-onboarding/stages";
 
-const STAGES = [
-  { key: "profile", label: "Profile" },
-  { key: "gdp", label: "GDP" },
-  { key: "sector_composition", label: "Sectors" },
-  { key: "ministries", label: "Ministries" },
-  { key: "ministry_sector_map", label: "Ministry×Sector" },
-] as const;
+const STAGES = ONBOARDING_STAGES.map((s, i) => ({
+  key: s.key,
+  label: s.short,
+  num: i + 1,
+  title: `${s.label} — ${s.desc}`,
+}));
 
 const countriesQuery = queryOptions({
   queryKey: ["onboarding", "countries"],
@@ -148,7 +148,7 @@ function CountriesQueue() {
                 <th className="px-4 py-2">Country</th>
                 <th className="px-4 py-2">GDP</th>
                 {STAGES.map((s) => (
-                  <th key={s.key} className="px-2 py-2 text-center">{s.label}</th>
+                  <th key={s.key} title={s.title} className="px-1 py-2 text-center">{s.num}</th>
                 ))}
                 <th className="px-4 py-2 text-right">Progress</th>
                 <th className="px-4 py-2 text-right">Last activity</th>
@@ -176,7 +176,7 @@ function CountriesQueue() {
                         : <span className="text-ink-500">—</span>}
                     </td>
                     {STAGES.map((s) => (
-                      <td key={s.key} className="px-2 py-3 text-center">
+                      <td key={s.key} title={s.title} className="px-1 py-3 text-center">
                         {done.has(s.key) ? (
                           <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
                         ) : (

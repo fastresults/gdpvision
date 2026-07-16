@@ -2206,7 +2206,7 @@ export const commitCapitalFlows = createServerFn({ method: "POST" })
         .from("country_capital_flows")
         .delete()
         .eq("country_code", draft.country_code)
-        .eq("node_key", "RECONCILIATION_RESIDUAL")
+        .in("node_key", ["RECONCILIATION_RESIDUAL", "RECONCILIATION_INFLOW_RESIDUAL"])
         .eq("period", payload.period);
       if (deleteResidualErr) throw deleteResidualErr;
     }

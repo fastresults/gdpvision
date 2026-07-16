@@ -96,7 +96,7 @@ function VisibilityToggle({ value, onChange }: { value: "public" | "private"; on
   );
 }
 
-function SingleLinkTab({ countryCode, onDone }: { countryCode: string; onDone: () => void }) {
+function SingleLinkTab({ countryCode, visibility, onDone }: { countryCode: string; visibility: "public" | "private"; onDone: () => void }) {
   const upsert = useServerFn(upsertSource);
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
@@ -105,7 +105,7 @@ function SingleLinkTab({ countryCode, onDone }: { countryCode: string; onDone: (
   const [q, setQ] = useState(3);
   const mut = useMutation({
     mutationFn: async () =>
-      upsert({ data: { countryCode, url, title, org, kind, quality_score: q, active: true, tags: [] } }),
+      upsert({ data: { countryCode, url, title, org, kind, quality_score: q, active: true, tags: [], visibility } }),
     onSuccess: onDone,
   });
   return (

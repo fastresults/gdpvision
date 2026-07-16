@@ -108,7 +108,7 @@ export const Route = createFileRoute("/api/public/hooks/ledger-qa")({
           const requiredCodes = registryFor(["all"]).filter((k) => k.required).map((k) => k.kpi_code);
           const { data: rows } = await supabase
             .from("country_kpis").select("kpi_code")
-            .eq("country_code", cc).not("latest_value", "is", null);
+            .eq("country_code", cc).eq("visibility", "public").not("latest_value", "is", null);
           const have = new Set((rows ?? []).map((r) => String(r.kpi_code)));
           const filledRequired = requiredCodes.filter((k) => have.has(k)).length;
           return { key: "trust", status: filledRequired >= REQUIRED_KPI_COUNT ? "pass" : "warn", detail: `${filledRequired}/${REQUIRED_KPI_COUNT} required kpis with latest_value`, ms: 0 };

@@ -45,7 +45,9 @@ const Input = z.object({
   rerun: z.boolean().optional().default(false),
 });
 
-export type NextOnboardingAction = "run_stage" | "commit_ready_draft" | "done";
+const STALE_RUN_MS = 8 * 60 * 1000;
+
+export type NextOnboardingAction = "run_stage" | "commit_ready_draft" | "review_blocked" | "done";
 
 type ReadyDraft = {
   id: string;
@@ -57,6 +59,24 @@ type ReadyDraft = {
   commit_eligible: boolean;
   blocked_reason: string | null;
 };
+
+async function clearStaleRuns(admin: any, countryCode: string) {
+  const cutoff = new Date(Date.now() - STALE_RUN_MS).toISOString();
+  const { data, error } = await admin
+    .from("onboarding_runs")
+    .update({
+      status: "stale",
+      finished_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      error: "auto-cleared: no heartbeat >8min",
+    })
+    .eq("country_code", countryCode)
+    .in("status", ["queued", "planning", "searching", "extracting", "validating"])
+    .lt("updated_at", cutoff)
+    .select("id, stage");
+  if (error) throw error;
+  return data ?? [];
+}
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data: isAdmin } = await context.supabase.rpc("has_role", {
@@ -235,9 +255,10 @@ async function getNextAction(admin: any, countryCode: string, rerun: boolean) {
   const readyDrafts = await readyDraftsByStage(admin, countryCode);
 
   if (rerun) {
+    const firstMissing = STAGE_ORDER.find((s) => (committed[s] ?? 0) === 0) ?? STAGE_ORDER[0];
     return {
       action: "run_stage" as const,
-      nextStage: STAGE_ORDER[0],
+      nextStage: firstMissing,
       draftId: null,
       readyDraft: null,
       done: false,
@@ -253,6 +274,18 @@ async function getNextAction(admin: any, countryCode: string, rerun: boolean) {
     if (readyDraft?.commit_eligible) {
       return {
         action: "commit_ready_draft" as const,
+        nextStage: stage,
+        draftId: readyDraft.id,
+        readyDraft,
+        done: false,
+        remaining: STAGE_ORDER.filter((s) => (committed[s] ?? 0) === 0).length,
+        committed,
+        readyDrafts,
+      };
+    }
+    if (readyDraft && readyDraft.commit_eligible === false) {
+      return {
+        action: "review_blocked" as const,
         nextStage: stage,
         draftId: readyDraft.id,
         readyDraft,
@@ -302,15 +335,9 @@ export const getNextOnboardingStage = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Clear any stale open onboarding_runs row for this country (>15min without heartbeat)
+    // Clear any stale open onboarding_runs row for this country (>8min without heartbeat)
     // so a new run for the same stage isn't blocked by the unique index.
-    const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-    await supabaseAdmin
-      .from("onboarding_runs")
-      .update({ status: "stale", finished_at: new Date().toISOString(), error: "auto-cleared: no heartbeat >15min" })
-      .eq("country_code", data.countryCode)
-      .in("status", ["queued", "planning", "searching", "extracting", "validating"])
-      .lt("updated_at", cutoff);
+    await clearStaleRuns(supabaseAdmin, data.countryCode);
 
     return getNextAction(supabaseAdmin, data.countryCode, data.rerun);
   });
@@ -322,13 +349,7 @@ export const advanceCountryOnboarding = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-    await supabaseAdmin
-      .from("onboarding_runs")
-      .update({ status: "stale", finished_at: new Date().toISOString(), error: "auto-cleared: no heartbeat >15min" })
-      .eq("country_code", data.countryCode)
-      .in("status", ["queued", "planning", "searching", "extracting", "validating"])
-      .lt("updated_at", cutoff);
+    await clearStaleRuns(supabaseAdmin, data.countryCode);
 
     return getNextAction(supabaseAdmin, data.countryCode, data.rerun);
   });
@@ -346,10 +367,10 @@ export const clearOnboardingLocks = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: cleared, error } = await supabaseAdmin
       .from("onboarding_runs")
-      .update({ status: "stale", finished_at: new Date().toISOString(), error: "manually cleared" })
+      .update({ status: "stale", finished_at: new Date().toISOString(), updated_at: new Date().toISOString(), error: "manually cleared" })
       .eq("country_code", data.countryCode)
       .in("status", ["queued", "planning", "searching", "extracting", "validating"])
-      .select("id, stage");
+      .select("id, stage, updated_at");
     if (error) throw error;
     return { cleared: cleared?.length ?? 0, stages: (cleared ?? []).map((r: any) => r.stage) };
   });

@@ -390,6 +390,18 @@ export const runSelfHealingAcceptance = createServerFn({ method: "POST" })
         read: readFlows,
         heal: async () => {
           const before = await readFlows();
+          const { data: reviewDraft } = await supabaseAdmin
+            .from("onboarding_drafts")
+            .select("id, run_id, created_at")
+            .eq("country_code", cc)
+            .eq("stage", "capital_flows")
+            .is("committed_at", null)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (reviewDraft?.id) {
+            throw new Error(`capital-flow draft ${reviewDraft.id} is waiting for admin review; commit or rerun it before self-heal retries`);
+          }
           const result = await researchAndCommitCapitalFlowsForAcceptance(supabaseAdmin, {
             countryCode: cc,
             userId: context.userId,

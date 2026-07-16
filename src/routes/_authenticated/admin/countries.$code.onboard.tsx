@@ -234,7 +234,7 @@ function OnboardWizard() {
   const [elapsed, setElapsed] = useState(0);
   const [runResult, setRunResult] = useState<
     | { stage: Stage; label: string; ok: true; text: string; meta?: any }
-    | { stage: Stage; label: string; ok: false; text: string }
+    | { stage: Stage; label: string; ok: false; text: string; meta?: any }
     | null
   >(null);
 
@@ -386,6 +386,7 @@ function OnboardWizard() {
     setBulkRunning(mode);
     stopRef.current = false;
     const errors: Array<{ stage: Stage; message: string }> = [];
+    let pausedForReview = false;
     try {
       // Loop: ask the server for the next safe action. If a ready draft already
       // exists, commit it before spending more AI on another generation run.
@@ -408,6 +409,19 @@ function OnboardWizard() {
               meta: commitRes,
             });
             setActiveRun(null);
+          } else if (next.action === "review_blocked") {
+            pausedForReview = true;
+            setOpenStage(stage);
+            const message = next.readyDraft?.blocked_reason ?? "draft needs review before this stage can continue";
+            setRunResult({
+              stage,
+              label: `Review required: ${stage}`,
+              ok: false,
+              text: message,
+              meta: next.readyDraft,
+            });
+            setBulkErr(`Paused at ${stage}: ${message}`);
+            break;
           } else {
             if (next.readyDraft && next.readyDraft.commit_eligible === false) {
               throw new Error(next.readyDraft.blocked_reason ?? "ready draft needs review before this stage can continue");
@@ -433,7 +447,7 @@ function OnboardWizard() {
       // After stages 1-12 finish (or bail early), run the acceptance
       // self-heal loop so residual gaps (missing profiles, KPIs, unresolved
       // corpus misses, capital-flow residuals) converge automatically.
-      if (!stopRef.current) {
+      if (!stopRef.current && !pausedForReview && errors.length === 0) {
         try {
           setActiveRun({ stage: "capital_flows", label: "Acceptance self-heal", startedAt: Date.now() });
           const heal: any = await selfHeal({
@@ -482,6 +496,10 @@ function OnboardWizard() {
         return;
       }
       const stage = next.nextStage as Stage;
+      if (next.action === "review_blocked") {
+        setOpenStage(stage);
+        throw new Error(next.readyDraft?.blocked_reason ?? "draft needs review before this stage can continue");
+      }
       if (next.action === "commit_ready_draft" && next.draftId) {
         setOpenStage(stage);
         setActiveRun({ stage, label: `Committing ${stage}`, startedAt: Date.now() });

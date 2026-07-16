@@ -95,22 +95,34 @@ async function saveDraft(admin: AdminClient, args: {
   summaryMd?: string | null;
   summaryHighlights?: Array<{ label: string; value: string }> | null;
 }): Promise<string> {
-  const { data: draft, error } = await admin
+  const patch = {
+    run_id: args.runId,
+    country_code: args.countryCode,
+    stage: "capital_flows",
+    target_table: "country_capital_flows",
+    payload: args.payload as unknown as Json,
+    confidence: args.confidence,
+    needs_review: true,
+    summary_md: args.summaryMd ?? null,
+    summary_highlights: (args.summaryHighlights ?? []) as unknown as Json,
+    updated_at: new Date().toISOString(),
+  };
+  const { data: existing, error: existingError } = await admin
     .from("onboarding_drafts")
-    .insert({
-      run_id: args.runId,
-      country_code: args.countryCode,
-      stage: "capital_flows",
-      target_table: "country_capital_flows",
-      payload: args.payload as unknown as Json,
-      confidence: args.confidence,
-      needs_review: true,
-      summary_md: args.summaryMd ?? null,
-      summary_highlights: (args.summaryHighlights ?? []) as unknown as Json,
-    })
     .select("id")
-    .single();
+    .eq("country_code", args.countryCode)
+    .eq("stage", "capital_flows")
+    .is("committed_at", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (existingError) throw new Error(existingError.message);
+
+  const { data: draft, error } = existing?.id
+    ? await admin.from("onboarding_drafts").update(patch).eq("id", existing.id).select("id").single()
+    : await admin.from("onboarding_drafts").insert(patch).select("id").single();
   if (error) throw new Error(error.message);
+  await admin.from("onboarding_citations").delete().eq("draft_id", draft.id);
 
   const seenCitationUrls = new Set<string>();
   const citationRows = args.citations
@@ -239,7 +251,17 @@ export async function researchAndCommitCapitalFlowsForAcceptance(admin: AdminCli
   const runId = await openRun(admin, args.countryCode, args.userId);
   let runFinished = false;
   try {
-    const workbook = await buildCapitalFlowsDraft({ admin, country, runId });
+    const workbook = await buildCapitalFlowsDraft({
+      admin,
+      country,
+      runId,
+      onProgress: async (plan) => {
+        await admin
+          .from("onboarding_runs")
+          .update({ plan, updated_at: new Date().toISOString() })
+          .eq("id", runId);
+      },
+    });
     const payload = workbook.payload as CapitalFlowPayload;
     const inputs = payload.coverage?.inputs?.length ?? 0;
     const outputs = payload.coverage?.outputs?.length ?? 0;

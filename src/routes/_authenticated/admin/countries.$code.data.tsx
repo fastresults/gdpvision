@@ -841,6 +841,7 @@ function MinistriesTab({ code }: { code: string }) {
     | { phase: "ready"; draftId: string; count: number; citations: any[]; payload: any }
     | { phase: "error"; message: string }
   >({ phase: "idle" });
+  const commitAgent = useServerFn(commitMinistryDeepDive);
   const qc = useQueryClient();
   const [committing, setCommitting] = useState(false);
 

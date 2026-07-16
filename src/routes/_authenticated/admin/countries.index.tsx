@@ -227,3 +227,112 @@ function Stat({ label, value, tone }: { label: string; value: number; tone: "eme
     </div>
   );
 }
+
+function MinisterBackfillPanel({ countries }: { countries: Array<{ code: string; name: string }> }) {
+  const run = useServerFn(backfillMinisters);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [force, setForce] = useState(false);
+  const [dryRun, setDryRun] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const toggle = (code: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
+      return next;
+    });
+  };
+
+  async function handleRun() {
+    setBusy(true);
+    setError(null);
+    setResult(null);
+    try {
+      const targets = selected.size === 0 ? [undefined] : Array.from(selected);
+      const collected: any[] = [];
+      const totals = { attempted: 0, resolved: 0, updated: 0, skipped: 0, failed: 0 };
+      for (const code of targets) {
+        const r = await run({ data: { country_code: code, force, dry_run: dryRun } });
+        for (const c of r.countries) collected.push(c);
+        totals.attempted += r.totals.attempted;
+        totals.resolved += r.totals.resolved;
+        totals.updated += r.totals.updated;
+        totals.skipped += r.totals.skipped;
+        totals.failed += r.totals.failed;
+        setResult({ dry_run: dryRun, force, totals, countries: [...collected] });
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <details className="border border-line-200 bg-paper-100/40">
+      <summary className="cursor-pointer px-4 py-3 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950">
+        Minister backfill · resolve minister names + profiles across countries
+      </summary>
+      <div className="space-y-4 border-t border-line-200 p-4">
+        <div className="flex flex-wrap gap-2">
+          {countries.map((c) => (
+            <button
+              key={c.code}
+              onClick={() => toggle(c.code)}
+              className={`px-2.5 py-1 text-[11px] font-mono uppercase tracking-[0.18em] border ${
+                selected.has(c.code)
+                  ? "border-ink-950 bg-ink-950 text-paper-0"
+                  : "border-line-200 text-ink-500 hover:text-ink-950"
+              }`}
+            >
+              {c.code}
+            </button>
+          ))}
+          {selected.size > 0 && (
+            <button
+              onClick={() => setSelected(new Set())}
+              className="px-2.5 py-1 text-[11px] font-mono uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950"
+            >
+              clear
+            </button>
+          )}
+        </div>
+        <div className="text-xs text-ink-500">
+          {selected.size === 0
+            ? "No countries selected → will process ALL countries that have ministries."
+            : `${selected.size} selected.`}
+        </div>
+        <div className="flex flex-wrap items-center gap-4 text-xs">
+          <label className="inline-flex items-center gap-2">
+            <input type="checkbox" checked={dryRun} onChange={(e) => setDryRun(e.target.checked)} />
+            Dry run (no writes)
+          </label>
+          <label className="inline-flex items-center gap-2">
+            <input type="checkbox" checked={force} onChange={(e) => setForce(e.target.checked)} />
+            Force refresh (re-resolve already-filled rows)
+          </label>
+          <button
+            onClick={handleRun}
+            disabled={busy}
+            className="ml-auto px-3 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0 disabled:opacity-50"
+          >
+            {busy ? "Running…" : dryRun ? "Preview backfill" : "Run backfill"}
+          </button>
+        </div>
+        {error && <div className="text-sm text-red-600">{error}</div>}
+        {result && (
+          <div className="space-y-2">
+            <div className="text-xs text-ink-500">
+              attempted {result.totals.attempted} · resolved {result.totals.resolved} · updated{" "}
+              {result.totals.updated} · skipped {result.totals.skipped} · failed {result.totals.failed}
+            </div>
+            <PrettyJson value={result} />
+          </div>
+        )}
+      </div>
+    </details>
+  );
+}

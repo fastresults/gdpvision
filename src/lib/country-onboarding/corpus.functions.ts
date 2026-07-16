@@ -1294,22 +1294,36 @@ export const commitSectorDossiers = createServerFn({ method: "POST" })
 export { MinisterProfileSchema } from "./minister-research.server";
 
 
-export const runMinistryDeepDiveAgent = createServerFn({ method: "POST" })
+// ---------------------------------------------------------------------------
+// Ministry deep-dive (stage 9)
+//
+// Split into three short server functions so a single request never runs
+// Perplexity for every ministry serially (that pattern hit the sandbox
+// proxy timeout on countries with many ministries — e.g. KNA @ 14+):
+//
+//   1. planMinistryDeepDive     — opens the run + one work row per ministry.
+//   2. resolveNextMinistryDeepDive — resolves ONE pending ministry per call.
+//   3. finalizeMinistryDeepDive — assembles the draft from the work rows.
+//
+// A tiny client-side helper (see `ministry-deep-dive-flow.ts`) drives the
+// loop by calling `resolveNext` until `remaining === 0`, then `finalize`.
+// The existing `runMinistryDeepDiveFlow` wrapper preserves the original
+// `{ runId, draftId, count, resolved, citations, ... }` return shape used
+// by the onboarding wizard and the country-data admin page.
+// ---------------------------------------------------------------------------
+
+export const planMinistryDeepDive = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const country = await loadCountry(supabaseAdmin, data.countryCode);
+    await loadCountry(supabaseAdmin, data.countryCode);
     const { data: ministries } = await supabaseAdmin
       .from("ministries")
       .select("slug, name")
       .eq("country_code", data.countryCode);
     if (!ministries?.length) throw new Error("Commit ministries first — none exist for this country");
-
-    const { buildCountryContext } = await import("./country-context.server");
-    const { resolveMinister } = await import("./minister-research.server");
-    const ctx = await buildCountryContext(supabaseAdmin, data.countryCode);
 
     const model: SonarModel = "sonar-reasoning-pro";
     const runId = await openRun(supabaseAdmin, {
@@ -1319,94 +1333,243 @@ export const runMinistryDeepDiveAgent = createServerFn({ method: "POST" })
       model_stack: { perplexity: model, extractor: "google/gemini-3.1-flash-lite" },
     });
 
+    // Fresh work rows for this run. `run_id` differs per run, so this never
+    // conflicts with previous runs' rows.
+    const rows = (ministries as Array<{ slug: string; name: string }>).map((m) => ({
+      run_id: runId,
+      country_code: data.countryCode,
+      ministry_slug: m.slug,
+      ministry_name: m.name,
+      status: "pending" as const,
+    }));
+    const { error: insertErr } = await supabaseAdmin
+      .from("ministry_deep_dive_items")
+      .insert(rows);
+    if (insertErr) {
+      await finishRun(supabaseAdmin, runId, { status: "failed", error: insertErr.message });
+      throw insertErr;
+    }
+
+    await updateRunPlan(supabaseAdmin, runId, {
+      phase: "resolving",
+      processed: 0,
+      total: rows.length,
+    });
+
+    return { runId, total: rows.length };
+  });
+
+export const resolveNextMinistryDeepDive = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ runId: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Claim the oldest pending row for this run.
+    const { data: pending, error: selErr } = await supabaseAdmin
+      .from("ministry_deep_dive_items")
+      .select("id, country_code, ministry_slug, ministry_name")
+      .eq("run_id", data.runId)
+      .eq("status", "pending")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (selErr) throw selErr;
+
+    if (!pending) {
+      const { count: remaining } = await supabaseAdmin
+        .from("ministry_deep_dive_items")
+        .select("id", { head: true, count: "exact" })
+        .eq("run_id", data.runId)
+        .in("status", ["pending", "running"]);
+      const { count: total } = await supabaseAdmin
+        .from("ministry_deep_dive_items")
+        .select("id", { head: true, count: "exact" })
+        .eq("run_id", data.runId);
+      return { completed: 0, remaining: remaining ?? 0, total: total ?? 0, ministry_slug: null, minister: null };
+    }
+
+    const { error: claimErr } = await supabaseAdmin
+      .from("ministry_deep_dive_items")
+      .update({ status: "running", updated_at: new Date().toISOString() })
+      .eq("id", pending.id)
+      .eq("status", "pending");
+    if (claimErr) throw claimErr;
+
+    const { buildCountryContext } = await import("./country-context.server");
+    const { resolveMinister } = await import("./minister-research.server");
+    const country = await loadCountry(supabaseAdmin, pending.country_code);
+    const ctx = await buildCountryContext(supabaseAdmin, pending.country_code);
+
+    let ministerName: string | null = null;
     try {
-      // Corpus-first → targeted-web → wide-web → cross-check loop per ministry.
-      // Each ministry is researched independently so a single officeholder can't
-      // dominate the result set.
-      const allCitations: SonarCitation[] = [];
-      const seenCiteUrls = new Set<string>();
-      const ministryEntries: any[] = [];
-      const errors: string[] = [];
-      const perMinistryDiagnostics: any[] = [];
-      let resolvedCount = 0;
-
-      for (const m of ministries as Array<{ slug: string; name: string }>) {
-        try {
-          const result = await resolveMinister({
-            admin: supabaseAdmin,
-            countryCode: data.countryCode,
-            countryName: country.name,
-            ministry: m,
-            ctx,
-            actor: context.userId,
-          });
-
-          ministryEntries.push({
-            ministry_slug: m.slug,
-            minister: result.minister,
-            minister_profile: result.minister_profile,
-            mandate: result.mandate,
-            programmes: result.programmes,
-          });
-          if (result.minister) resolvedCount++;
-          perMinistryDiagnostics.push({
-            ministry_slug: m.slug,
-            minister: result.minister,
-            confidence: result.confidence,
-            source_tier: result.source_tier,
+      const result = await resolveMinister({
+        admin: supabaseAdmin,
+        countryCode: pending.country_code,
+        countryName: country.name,
+        ministry: { slug: pending.ministry_slug, name: pending.ministry_name },
+        ctx,
+        actor: context.userId,
+      });
+      ministerName = result.minister;
+      const { error: updErr } = await supabaseAdmin
+        .from("ministry_deep_dive_items")
+        .update({
+          status: "done",
+          minister: result.minister,
+          minister_profile: result.minister_profile as any,
+          mandate: result.mandate,
+          programmes: result.programmes as any,
+          citations: result.citations as any,
+          confidence: result.confidence,
+          source_tier: result.source_tier,
+          diagnostics: {
             candidates: result.candidates,
             notes: result.notes,
-          });
-          for (const c of result.citations) {
-            if (!seenCiteUrls.has(c.url)) {
-              seenCiteUrls.add(c.url);
-              allCitations.push(c);
-            }
-          }
-        } catch (e) {
-          errors.push(`${m.slug}: ${(e as Error).message}`);
+          } as any,
+          error: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", pending.id);
+      if (updErr) throw updErr;
+    } catch (err) {
+      await supabaseAdmin
+        .from("ministry_deep_dive_items")
+        .update({
+          status: "failed",
+          error: (err as Error).message.slice(0, 500),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", pending.id);
+    }
+
+    const { count: done } = await supabaseAdmin
+      .from("ministry_deep_dive_items")
+      .select("id", { head: true, count: "exact" })
+      .eq("run_id", data.runId)
+      .in("status", ["done", "failed"]);
+    const { count: total } = await supabaseAdmin
+      .from("ministry_deep_dive_items")
+      .select("id", { head: true, count: "exact" })
+      .eq("run_id", data.runId);
+    const remaining = Math.max(0, (total ?? 0) - (done ?? 0));
+
+    await updateRunPlan(supabaseAdmin, data.runId, {
+      phase: "resolving",
+      processed: done ?? 0,
+      total: total ?? 0,
+      currentKpi: pending.ministry_slug,
+    });
+
+    return {
+      completed: 1,
+      remaining,
+      total: total ?? 0,
+      ministry_slug: pending.ministry_slug,
+      minister: ministerName,
+    };
+  });
+
+export const finalizeMinistryDeepDive = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ runId: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: run, error: runErr } = await supabaseAdmin
+      .from("onboarding_runs")
+      .select("id, country_code, status")
+      .eq("id", data.runId)
+      .single();
+    if (runErr || !run) throw new Error("Run not found");
+
+    const { data: items, error: itemsErr } = await supabaseAdmin
+      .from("ministry_deep_dive_items")
+      .select("ministry_slug, ministry_name, status, minister, minister_profile, mandate, programmes, citations, confidence, source_tier, diagnostics, error")
+      .eq("run_id", data.runId)
+      .order("created_at", { ascending: true });
+    if (itemsErr) throw itemsErr;
+    if (!items?.length) throw new Error("No ministry work items found for this run");
+
+    const pendingLeft = items.filter((r: any) => r.status === "pending" || r.status === "running").length;
+    if (pendingLeft > 0) {
+      throw new Error(`Cannot finalize: ${pendingLeft} ministry item(s) still pending. Keep resolving first.`);
+    }
+
+    const doneItems = items.filter((r: any) => r.status === "done");
+    const ministryEntries: any[] = [];
+    const perMinistryDiagnostics: any[] = [];
+    const allCitations: SonarCitation[] = [];
+    const seenCiteUrls = new Set<string>();
+    const errors: string[] = items.filter((r: any) => r.status === "failed").map((r: any) => `${r.ministry_slug}: ${r.error ?? "failed"}`);
+    let resolvedCount = 0;
+
+    for (const r of doneItems as any[]) {
+      const profile = (r.minister_profile && typeof r.minister_profile === "object") ? r.minister_profile : {};
+      ministryEntries.push({
+        ministry_slug: r.ministry_slug,
+        minister: r.minister,
+        minister_profile: profile,
+        mandate: r.mandate ?? "",
+        programmes: Array.isArray(r.programmes) ? r.programmes : [],
+      });
+      if (r.minister) resolvedCount++;
+      perMinistryDiagnostics.push({
+        ministry_slug: r.ministry_slug,
+        minister: r.minister,
+        confidence: r.confidence,
+        source_tier: r.source_tier,
+        ...(r.diagnostics && typeof r.diagnostics === "object" ? r.diagnostics : {}),
+      });
+      for (const c of (Array.isArray(r.citations) ? r.citations : []) as SonarCitation[]) {
+        if (c?.url && !seenCiteUrls.has(c.url)) {
+          seenCiteUrls.add(c.url);
+          allCitations.push(c);
         }
       }
-
-      if (!ministryEntries.length) {
-        throw new Error(`Perplexity returned no ministry entries. ${errors.slice(0, 3).join("; ")}`);
-      }
-
-      // Acceptance gate: draft is "medium" only when ≥70% of ministries have a
-      // resolved minister name AND at least one citation is attached.
-      const resolvedPct = resolvedCount / ministries.length;
-      const confidence =
-        resolvedPct >= 0.7 && allCitations.length >= ministries.length
-          ? "medium"
-          : "low";
-
-      const parsed = { ministries: ministryEntries, diagnostics: perMinistryDiagnostics };
-
-      const draftId = await saveDraft(supabaseAdmin, {
-        run_id: runId,
-        country_code: data.countryCode,
-        stage: "ministry_deep_dive",
-        target_table: "ministry_profiles",
-        payload: parsed,
-        confidence,
-        citations: allCitations,
-      });
-
-      await finishRun(supabaseAdmin, runId, { status: "ready" });
-      return {
-        runId,
-        draftId,
-        count: parsed.ministries.length,
-        resolved: resolvedCount,
-        citations: allCitations,
-        errors: errors.length ? errors : undefined,
-        diagnostics: perMinistryDiagnostics,
-      };
-    } catch (err) {
-      await finishRun(supabaseAdmin, runId, { status: "failed", error: (err as Error).message });
-      throw err;
     }
+
+    if (!ministryEntries.length) {
+      await finishRun(supabaseAdmin, data.runId, { status: "failed", error: errors.slice(0, 3).join("; ") || "No ministries resolved" });
+      throw new Error(`Ministry deep-dive produced no entries. ${errors.slice(0, 3).join("; ")}`);
+    }
+
+    const resolvedPct = resolvedCount / items.length;
+    const confidence =
+      resolvedPct >= 0.7 && allCitations.length >= items.length ? "medium" : "low";
+
+    const parsed = { ministries: ministryEntries, diagnostics: perMinistryDiagnostics };
+
+    const draftId = await saveDraft(supabaseAdmin, {
+      run_id: data.runId,
+      country_code: run.country_code,
+      stage: "ministry_deep_dive",
+      target_table: "ministry_profiles",
+      payload: parsed,
+      confidence,
+      citations: allCitations,
+    });
+
+    await finishRun(supabaseAdmin, data.runId, { status: "ready" });
+    return {
+      runId: data.runId,
+      draftId,
+      count: parsed.ministries.length,
+      resolved: resolvedCount,
+      citations: allCitations,
+      errors: errors.length ? errors : undefined,
+      diagnostics: perMinistryDiagnostics,
+    };
   });
+
+// Back-compat named export: the old single-call agent name still works, but
+// now returns *only* the plan result. Callers that want the finished draft
+// must use `runMinistryDeepDiveFlow` in `ministry-deep-dive-flow.ts` (which
+// drives plan → resolve loop → finalize on the client side).
+export const runMinistryDeepDiveAgent = planMinistryDeepDive;
+
 
 
 

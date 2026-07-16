@@ -113,6 +113,8 @@ export const upsertSource = createServerFn({ method: "POST" })
       active: data.active,
       tags: data.tags,
       created_by: context.userId,
+      visibility: data.visibility,
+      uploaded_by: data.visibility === "private" ? context.userId : null,
     });
     if (!result) throw new Error("Failed to upsert source");
     return { id: result.id };

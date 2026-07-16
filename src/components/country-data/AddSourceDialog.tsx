@@ -27,6 +27,7 @@ type Props = {
 };
 
 export function AddSourceDialog({ countryCode, open, onClose, onDone }: Props) {
+  const [visibility, setVisibility] = useState<"public" | "private">("public");
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-2xl">
@@ -36,6 +37,7 @@ export function AddSourceDialog({ countryCode, open, onClose, onDone }: Props) {
             Add links, upload documents, or connect an API / MCP server. Duplicates are collapsed automatically — the same source can never appear twice.
           </DialogDescription>
         </DialogHeader>
+        <VisibilityToggle value={visibility} onChange={setVisibility} />
         <Tabs defaultValue="link" className="mt-4">
           <TabsList className="grid grid-cols-4 w-full">
             <TabsTrigger value="link">Link</TabsTrigger>
@@ -44,13 +46,13 @@ export function AddSourceDialog({ countryCode, open, onClose, onDone }: Props) {
             <TabsTrigger value="api">API / MCP</TabsTrigger>
           </TabsList>
           <TabsContent value="link" className="mt-4">
-            <SingleLinkTab countryCode={countryCode} onDone={() => { onDone(); onClose(); }} />
+            <SingleLinkTab countryCode={countryCode} visibility={visibility} onDone={() => { onDone(); onClose(); }} />
           </TabsContent>
           <TabsContent value="bulk" className="mt-4">
-            <BulkLinksTab countryCode={countryCode} onDone={() => { onDone(); onClose(); }} />
+            <BulkLinksTab countryCode={countryCode} visibility={visibility} onDone={() => { onDone(); onClose(); }} />
           </TabsContent>
           <TabsContent value="documents" className="mt-4">
-            <DocumentsTab countryCode={countryCode} onDone={() => { onDone(); onClose(); }} />
+            <DocumentsTab countryCode={countryCode} visibility={visibility} onDone={() => { onDone(); onClose(); }} />
           </TabsContent>
           <TabsContent value="api" className="mt-4">
             <ApiMcpTab countryCode={countryCode} onDone={() => { onDone(); onClose(); }} />
@@ -61,7 +63,40 @@ export function AddSourceDialog({ countryCode, open, onClose, onDone }: Props) {
   );
 }
 
-function SingleLinkTab({ countryCode, onDone }: { countryCode: string; onDone: () => void }) {
+function VisibilityToggle({ value, onChange }: { value: "public" | "private"; onChange: (v: "public" | "private") => void }) {
+  return (
+    <div className="mt-2 border border-line-200 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500">Visibility</p>
+          <p className="text-xs text-ink-700 mt-1">
+            {value === "private"
+              ? "Only your country's admins and team members can see this. Never surfaced on public hooks."
+              : "Shared across the platform. Anyone (including anonymous visitors) can read this source."}
+          </p>
+        </div>
+        <div className="flex gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => onChange("public")}
+            className={`px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] border ${value === "public" ? "border-ink-950 bg-ink-950 text-paper-0" : "border-line-200"}`}
+          >
+            Public
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange("private")}
+            className={`px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] border ${value === "private" ? "border-ink-950 bg-ink-950 text-paper-0" : "border-line-200"}`}
+          >
+            Private
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SingleLinkTab({ countryCode, visibility, onDone }: { countryCode: string; visibility: "public" | "private"; onDone: () => void }) {
   const upsert = useServerFn(upsertSource);
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
@@ -70,7 +105,7 @@ function SingleLinkTab({ countryCode, onDone }: { countryCode: string; onDone: (
   const [q, setQ] = useState(3);
   const mut = useMutation({
     mutationFn: async () =>
-      upsert({ data: { countryCode, url, title, org, kind, quality_score: q, active: true, tags: [] } }),
+      upsert({ data: { countryCode, url, title, org, kind, quality_score: q, active: true, tags: [], visibility } }),
     onSuccess: onDone,
   });
   return (
@@ -97,7 +132,7 @@ function SingleLinkTab({ countryCode, onDone }: { countryCode: string; onDone: (
   );
 }
 
-function BulkLinksTab({ countryCode, onDone }: { countryCode: string; onDone: () => void }) {
+function BulkLinksTab({ countryCode, visibility, onDone }: { countryCode: string; visibility: "public" | "private"; onDone: () => void }) {
   const bulk = useServerFn(bulkAddLinks);
   const [text, setText] = useState("");
   const [kind, setKind] = useState("gov");
@@ -105,7 +140,7 @@ function BulkLinksTab({ countryCode, onDone }: { countryCode: string; onDone: ()
   const mut = useMutation({
     mutationFn: async () => {
       const urls = text.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
-      return bulk({ data: { countryCode, urls, kind, quality_score: 3 } });
+      return bulk({ data: { countryCode, urls, kind, quality_score: 3, visibility } });
     },
     onSuccess: (r) => { setResult(r); onDone(); },
   });
@@ -146,7 +181,7 @@ function BulkLinksTab({ countryCode, onDone }: { countryCode: string; onDone: ()
   );
 }
 
-function DocumentsTab({ countryCode, onDone }: { countryCode: string; onDone: () => void }) {
+function DocumentsTab({ countryCode, visibility, onDone }: { countryCode: string; visibility: "public" | "private"; onDone: () => void }) {
   const ingest = useServerFn(ingestDocumentSource);
   const [dragOver, setDragOver] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
@@ -166,7 +201,8 @@ function DocumentsTab({ countryCode, onDone }: { countryCode: string; onDone: ()
             mime_type: f.type || "application/octet-stream",
             content_b64: b64,
             title: f.name,
-            org: org || "Uploaded document",
+            org: org || (visibility === "private" ? "Private upload" : "Uploaded document"),
+            visibility,
           },
         });
       }

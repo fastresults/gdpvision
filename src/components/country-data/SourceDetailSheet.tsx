@@ -70,6 +70,12 @@ export function SourceDetailSheet({
         ) : (
           <div className="mt-6 space-y-6">
             <div className="flex flex-wrap gap-2 text-[11px] font-mono uppercase tracking-[0.15em]">
+              <span
+                className={`px-2 py-1 border ${src.visibility === "private" ? "border-amber-600 bg-amber-50 text-amber-800" : "border-line-200 text-ink-700"}`}
+                title={src.visibility === "private" ? "Private — only your country's team can see this" : "Public — shared across the platform"}
+              >
+                {src.visibility === "private" ? "🔒 Private" : "Public"}
+              </span>
               <span className="px-2 py-1 border border-line-200">{"★".repeat(src.quality_score)}</span>
               <span className={`px-2 py-1 border ${src.active ? "border-emerald-500 text-emerald-700" : "border-line-200 text-ink-500"}`}>
                 {src.active ? "active" : "disabled"}

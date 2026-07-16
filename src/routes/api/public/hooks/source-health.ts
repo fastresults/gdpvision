@@ -30,6 +30,7 @@ export const Route = createFileRoute("/api/public/hooks/source-health")({
           .from("country_sources")
           .select("id,url,country_code,last_fetched_at")
           .eq("active", true)
+          .eq("visibility", "public")
           .not("url", "is", null)
           .order("last_fetched_at", { ascending: true, nullsFirst: true })
           .limit(limit);

@@ -70,6 +70,7 @@ const UpsertSourceInput = z.object({
   quality_score: z.number().int().min(1).max(5).default(3),
   active: z.boolean().default(true),
   tags: z.array(z.string()).default([]),
+  visibility: z.enum(["public", "private"]).default("public"),
 });
 
 export const upsertSource = createServerFn({ method: "POST" })
@@ -112,6 +113,8 @@ export const upsertSource = createServerFn({ method: "POST" })
       active: data.active,
       tags: data.tags,
       created_by: context.userId,
+      visibility: data.visibility,
+      uploaded_by: data.visibility === "private" ? context.userId : null,
     });
     if (!result) throw new Error("Failed to upsert source");
     return { id: result.id };
@@ -1309,6 +1312,7 @@ const BulkLinksInput = z.object({
   urls: z.array(z.string().url()).min(1).max(50),
   kind: z.string().default("gov"),
   quality_score: z.number().int().min(1).max(5).default(3),
+  visibility: z.enum(["public", "private"]).default("public"),
 });
 
 export const bulkAddLinks = createServerFn({ method: "POST" })
@@ -1335,6 +1339,8 @@ export const bulkAddLinks = createServerFn({ method: "POST" })
           active: true,
           tags: ["bulk"],
           created_by: context.userId,
+          visibility: data.visibility,
+          uploaded_by: data.visibility === "private" ? context.userId : null,
         });
         if (!res) errors.push({ url, error: "insert failed" });
         else if (res.existed) duplicates++;
@@ -1400,6 +1406,7 @@ const UploadDocInput = z.object({
   content_b64: z.string().min(1),
   title: z.string().optional(),
   org: z.string().optional(),
+  visibility: z.enum(["public", "private"]).default("public"),
 });
 
 export const ingestDocumentSource = createServerFn({ method: "POST" })
@@ -1410,17 +1417,20 @@ export const ingestDocumentSource = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { upsertCountrySource } = await import("@/lib/country-data/sources.server");
 
-    // Upload the raw file to the country-sources bucket.
+    // Upload the raw file. Private uploads land under a private-corpus prefix
+    // so they can never leak into public buckets or public listings.
     const bytes = Buffer.from(data.content_b64, "base64");
     const safeName = data.filename.replace(/[^a-z0-9._-]/gi, "_");
-    const storagePath = `${data.countryCode}/${Date.now()}_${safeName}`;
+    const isPrivate = data.visibility === "private";
+    const prefix = isPrivate ? `private/${data.countryCode}` : data.countryCode;
+    const storagePath = `${prefix}/${Date.now()}_${safeName}`;
     const { error: upErr } = await supabaseAdmin.storage
       .from("country-sources")
       .upload(storagePath, bytes, { contentType: data.mime_type, upsert: false });
     if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
 
     const title = data.title || data.filename;
-    const org = data.org || "Uploaded document";
+    const org = data.org || (isPrivate ? "Private upload" : "Uploaded document");
     const virtualUrl = `lovable-storage://country-sources/${storagePath}`;
 
     const res = await upsertCountrySource(supabaseAdmin, {
@@ -1433,8 +1443,10 @@ export const ingestDocumentSource = createServerFn({ method: "POST" })
       storage_path: storagePath,
       quality_score: 4,
       active: true,
-      tags: ["upload", data.mime_type.split("/")[1] ?? "doc"],
+      tags: ["upload", data.mime_type.split("/")[1] ?? "doc", ...(isPrivate ? ["private"] : [])],
       created_by: context.userId,
+      visibility: data.visibility,
+      uploaded_by: isPrivate ? context.userId : null,
     });
     if (!res) throw new Error("Failed to register document source");
 
@@ -1466,8 +1478,6 @@ export const ingestDocumentSource = createServerFn({ method: "POST" })
     if (text.trim().length > 0) {
       const { contentHash } = await import("@/lib/country-onboarding/memory-dedup.server");
       const hash = contentHash(text);
-      // Skip re-embed if we already have a document for this source with the
-      // same content hash (matches country_source_documents_content_dedup_idx).
       const { data: existingDoc } = await supabaseAdmin
         .from("country_source_documents")
         .select("id")
@@ -1485,6 +1495,9 @@ export const ingestDocumentSource = createServerFn({ method: "POST" })
             chunk_count: chunks.length,
             char_count: text.length,
             content_hash: hash,
+            visibility: data.visibility,
+            owner_country_code: isPrivate ? data.countryCode : null,
+            uploaded_by: isPrivate ? context.userId : null,
           })
           .select("id")
           .single();
@@ -1498,6 +1511,9 @@ export const ingestDocumentSource = createServerFn({ method: "POST" })
               chunk_index: i + idx,
               content,
               embedding: `[${embs[idx].join(",")}]` as unknown as string,
+              visibility: data.visibility,
+              owner_country_code: isPrivate ? data.countryCode : null,
+              uploaded_by: isPrivate ? context.userId : null,
             }));
             await supabaseAdmin.from("country_source_chunks").insert(rows);
           }

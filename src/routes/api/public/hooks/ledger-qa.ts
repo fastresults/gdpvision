@@ -66,6 +66,7 @@ export const Route = createFileRoute("/api/public/hooks/ledger-qa")({
               .from("country_capital_flows")
               .select("node_key,period,value_usd_m")
               .eq("country_code", cc)
+              .eq("visibility", "public")
               .order("period", { ascending: false }),
           ]);
           if (nodesError) throw new Error(nodesError.message);
@@ -107,7 +108,7 @@ export const Route = createFileRoute("/api/public/hooks/ledger-qa")({
           const requiredCodes = registryFor(["all"]).filter((k) => k.required).map((k) => k.kpi_code);
           const { data: rows } = await supabase
             .from("country_kpis").select("kpi_code")
-            .eq("country_code", cc).not("latest_value", "is", null);
+            .eq("country_code", cc).eq("visibility", "public").not("latest_value", "is", null);
           const have = new Set((rows ?? []).map((r) => String(r.kpi_code)));
           const filledRequired = requiredCodes.filter((k) => have.has(k)).length;
           return { key: "trust", status: filledRequired >= REQUIRED_KPI_COUNT ? "pass" : "warn", detail: `${filledRequired}/${REQUIRED_KPI_COUNT} required kpis with latest_value`, ms: 0 };
@@ -132,7 +133,7 @@ export const Route = createFileRoute("/api/public/hooks/ledger-qa")({
         await time("sources", async () => {
           const { data } = await supabase
             .from("country_sources").select("url,fetch_status,active")
-            .eq("country_code", cc).eq("active", true);
+            .eq("country_code", cc).eq("visibility", "public").eq("active", true);
           const invalid = (data ?? []).filter((r) => !r.url || !/^https?:\/\//i.test(String(r.url))).length;
           const broken = (data ?? []).filter((r) => r.fetch_status && r.fetch_status !== "ok" && r.fetch_status !== "pending").length;
           return {

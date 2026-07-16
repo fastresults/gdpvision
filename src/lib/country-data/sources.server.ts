@@ -108,6 +108,8 @@ export function resolveKpiProvider(countryCode: string, url: string):
   return null;
 }
 
+export type Visibility = "public" | "private";
+
 export type UpsertSourceRow = {
   country_code: string;
   url: string;
@@ -120,6 +122,9 @@ export type UpsertSourceRow = {
   connection_kind?: ConnectionKind;
   storage_path?: string | null;
   created_by?: string | null;
+  visibility?: Visibility;
+  owner_country_code?: string | null;
+  uploaded_by?: string | null;
 };
 
 type DbErrorLike = { message?: string; code?: string; details?: string | null; hint?: string | null };
@@ -136,18 +141,22 @@ function assertDbOk(result: { error?: DbErrorLike | null }, label: string): void
 
 /**
  * Canonical, dedupe-safe upsert for country_sources.
- * - For kind='kpi_source', collapses onto the (country, org) canonical row.
- * - Otherwise uses the existing (country_code, url) unique constraint.
- * Returns { id, existed }.
+ * - Public and private rows are deduped independently (an admin can upload a
+ *   private copy of a URL that also exists as a public shared source).
+ * - For kind='kpi_source', collapses onto the (country, org, visibility) canonical row.
+ * - Otherwise uses (country_code, url, visibility) as the dedupe key.
+ * Returns { id, existed, visibility }.
  */
 export async function upsertCountrySource(
   admin: any,
   input: UpsertSourceRow,
-): Promise<{ id: string; existed: boolean } | null> {
+): Promise<{ id: string; existed: boolean; visibility: Visibility } | null> {
   let url = input.url;
   let org = input.org;
   let title = input.title;
   let quality = input.quality_score ?? 3;
+  const visibility: Visibility = input.visibility === "private" ? "private" : "public";
+  const ownerCountry = visibility === "private" ? (input.owner_country_code ?? input.country_code) : null;
 
   if (input.kind === "kpi_source") {
     const canon = resolveKpiProvider(input.country_code, input.url);
@@ -157,12 +166,12 @@ export async function upsertCountrySource(
       url = canon.canonicalUrl;
       quality = Math.max(quality, canon.quality);
     }
-    // Look up by (country, lower(org)) since that's the unique key for kpi_source
     const { data: existing } = await admin
       .from("country_sources")
       .select("id")
       .eq("country_code", input.country_code)
       .eq("kind", "kpi_source")
+      .eq("visibility", visibility)
       .ilike("org", org)
       .maybeSingle();
     if (existing?.id) {
@@ -171,15 +180,15 @@ export async function upsertCountrySource(
         .update({ url, title, quality_score: quality, active: input.active ?? true })
         .eq("id", existing.id);
       assertDbOk(res, "update KPI country source");
-      return { id: existing.id as string, existed: true };
+      return { id: existing.id as string, existed: true, visibility };
     }
   } else {
-    // Non-KPI: dedupe by (country_code, url)
     const { data: existing } = await admin
       .from("country_sources")
       .select("id")
       .eq("country_code", input.country_code)
       .eq("url", url)
+      .eq("visibility", visibility)
       .maybeSingle();
     if (existing?.id) {
       const res = await admin
@@ -193,7 +202,7 @@ export async function upsertCountrySource(
         })
         .eq("id", existing.id);
       assertDbOk(res, "update country source");
-      return { id: existing.id as string, existed: true };
+      return { id: existing.id as string, existed: true, visibility };
     }
   }
 
@@ -216,12 +225,15 @@ export async function upsertCountrySource(
       connection_kind: input.connection_kind ?? "link",
       storage_path: input.storage_path ?? null,
       created_by: input.created_by ?? null,
+      visibility,
+      owner_country_code: ownerCountry,
+      uploaded_by: visibility === "private" ? (input.uploaded_by ?? input.created_by ?? null) : null,
     })
     .select("id")
     .single();
   if (error) throw new Error(`insert country source failed: ${dbErrorMessage(error)}`);
   if (!created) throw new Error("insert country source failed: no row returned after write");
-  return { id: created.id as string, existed: false };
+  return { id: created.id as string, existed: false, visibility };
 }
 
 /** Generate an AI summary of a source using Lovable AI Gateway + Gemini. */

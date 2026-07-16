@@ -249,6 +249,14 @@ function SourcesTab({ code }: { code: string }) {
                   >
                     {s.title}
                   </button>
+                  {(s as any).visibility === "private" && (
+                    <span
+                      className="ml-2 align-middle text-[10px] font-mono uppercase tracking-[0.15em] px-1.5 py-0.5 border border-amber-600 bg-amber-50 text-amber-800"
+                      title="Private — only your country's team can see this source"
+                    >
+                      🔒 Private
+                    </span>
+                  )}
                   <div className="text-xs text-ink-500">
                     {s.org} · {(() => { try { return new URL(s.url).hostname; } catch { return s.connection_kind ?? ""; } })()}
                     {s.summary ? " · AI summary" : ""}

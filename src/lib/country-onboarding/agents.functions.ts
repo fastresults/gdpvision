@@ -1483,10 +1483,24 @@ export const commitMinistrySectorMap = createServerFn({ method: "POST" })
     if (error || !draft) throw new Error("Draft not found");
     const payload = (data.editedPayload ?? draft.payload) as { mappings: Array<{ ministry_slug: string; sector_code: string; weight: number }> };
 
+    // Guard against the AI hallucinating sector codes outside the canonical taxonomy.
+    const { data: sectorRows, error: sErr } = await supabaseAdmin.from("sectors").select("code");
+    if (sErr) throw sErr;
+    const validCodes = new Set((sectorRows ?? []).map((r: any) => r.code));
+    const allMappings = payload.mappings ?? [];
+    const cleanMappings = allMappings.filter((m) => validCodes.has(m.sector_code));
+    const dropped = allMappings.filter((m) => !validCodes.has(m.sector_code));
+    if (cleanMappings.length === 0) {
+      throw new Error(
+        `Commit rejected: none of ${allMappings.length} mapping(s) reference a valid sector code. ` +
+          `Unknown codes: ${[...new Set(dropped.map((d) => d.sector_code))].join(", ")}`,
+      );
+    }
+
     // Atomic replace via RPC. The RPC resolves ministry_slug → ministry_id server-side.
     const { error: rpcErr } = await supabaseAdmin.rpc("replace_ministry_sectors", {
       _country_code: draft.country_code,
-      _rows: payload.mappings as any,
+      _rows: cleanMappings as any,
     });
     if (rpcErr) throw rpcErr;
     const { count: targetRows, error: countErr } = await supabaseAdmin

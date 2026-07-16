@@ -1,73 +1,21 @@
-## Findings
+## Problem
 
-Stage 12 is not mainly “stuck” because no data exists; for BLZ it produced a draft, but the draft is blocked by the current quality gates and draft lifecycle.
+Countries queue page (`/admin/countries`) shows Anguilla as **"9/5" with only 4 green dots**, even though 9 pipeline stages are committed in the database. The row's classification (in-progress vs complete) is also wrong.
 
-- **BLZ draft exists but is not committed:** 11 flow rows were generated, 0 committed rows exist.
-- **Coverage gate is too literal:** Belize is not marked as a CBI country, so `CBI_INFLOWS` was correctly omitted, but the gate still reports `5/6 inputs` and treats that as incomplete.
-- **Reconciliation gate is misfit for the current ledger model:** generated inputs total about **US$1.65B**, outputs about **US$5.04B**, residual about **67%**. This comes from mixing BOP/fiscal inflows with broad import/GDP-proxy outputs, especially `IMPORT_LEAKAGE` derived from total imports.
-- **Residual handling cannot balance both directions:** the existing residual node is output-sided. When outputs exceed inputs, committing a residual as an output makes the chart less balanced instead of more balanced.
-- **Duplicate draft failures still happen in the acceptance/self-heal path:** a later run failed on the “one live draft per stage” constraint after an existing `needs_review` capital-flow draft already existed.
-- **There are two capital-flow implementations drifting apart:** the route file still contains older “3-pass” pass definitions, but the active runner now calls the newer per-node workbook builder. This makes behavior harder to reason about and test.
+Root cause: `src/routes/_authenticated/admin/countries.index.tsx` hardcodes a stale 5-stage `STAGES` array (profile, gdp, sector_composition, ministries, ministry_sector_map). The onboarding pipeline is actually 12 stages — the canonical list lives in `src/routes/_authenticated/admin/countries.$code.onboard.tsx`. The index page never got updated, so it under-counts the denominator and only renders dots for the legacy 5 stages while the "completed_stages" set (from `listOnboardingCountries`) already includes every committed stage.
 
-## Plan
+Anguilla's committed stages in the DB: profile, gdp, sector_composition, ministries, source_registry, kpi_seed, sector_dossier, second_brain_seed, capital_flows (9). Missing: ministry_sector_map, ministry_deep_dive, corpus_ingest.
 
-### 1. Make the capital-flow gate understand applicable nodes
-- Treat `CBI_INFLOWS` as **not applicable** for non-CBI countries instead of “missing.”
-- Store omitted/non-applicable nodes separately in the draft payload.
-- Compute coverage against applicable required nodes, not a fixed `6 inputs / 6 outputs` denominator.
-- Keep the call-out in the summary: “CBI omitted because the country is not a CBI state.”
+## Fix
 
-### 2. Fix residual balancing so drafts can commit safely
-- Add/support a second residual direction for cases where **outputs exceed inputs**.
-- Use:
-  - output-side residual when inputs exceed outputs;
-  - input-side “unattributed financing / unclassified inflow” when outputs exceed inputs.
-- Exclude residual-balancer nodes from “missing required nodes” diagnostics.
-- Update commit logic so the residual node actually lands on the smaller side of the Sankey.
+1. **Sync the queue's stage list to the full 12-stage pipeline.** In `src/routes/_authenticated/admin/countries.index.tsx`, replace the 5-item `STAGES` constant with the same 12-stage list already used on the per-country onboarding page (keys: `profile, gdp, sector_composition, ministries, ministry_sector_map, source_registry, kpi_seed, sector_dossier, ministry_deep_dive, corpus_ingest, second_brain_seed, capital_flows`). Use short labels (e.g. numeric badges "1"–"12" with a tooltip) so the row still fits on one line.
 
-### 3. Separate “bad draft” from “usable with disclosed inference”
-- Keep hard rejection for drafts with no valid sources or too few applicable rows.
-- Allow a draft to become commit-ready when it has:
-  - enough applicable input/output coverage;
-  - valid source URLs for each populated node;
-  - an explicit residual/inference disclosure when reconciliation is above 10%.
-- Mark the confidence lower when the ledger depends on balancing or modelled proxies.
+2. **Extract the stage list to a shared module** so the two pages cannot drift again. New file `src/lib/country-onboarding/stages.ts` exporting `ONBOARDING_STAGES` (key, label, short). Import from both `countries.index.tsx` and `countries.$code.onboard.tsx`.
 
-### 4. Improve the research hierarchy for each node
-Implement the intended order consistently:
+3. **Fix progress classification.** Counter logic already uses `STAGES.length`, so it self-corrects once the array is right. Verify Anguilla now reads **9/12** and is classified as *in-progress* (correct — 3 stages still missing).
 
-```text
-Committed corpus / KPIs / known public APIs
-→ targeted deep research attempts
-→ transparent inference/modelled fallback
-→ explicit data-gap call-out
-```
+4. **Verify.** After edit, load `/admin/countries`, confirm Anguilla shows 12 dots with 9 green / 3 grey, and denominator reads 9/12.
 
-- Prefer committed corpus and official/multilateral sources before open web sources.
-- Reject weak sources for high-impact nodes when a preferred source class exists.
-- Keep formula, source basis, confidence grade, and data-gap notes on every inferred row.
-- Use bounded per-node research so one bad node does not block the whole stage.
+## Out of scope
 
-### 5. Remove duplicate-draft failure modes
-- Harden both the onboarding runner and acceptance/self-heal path to update the existing live Stage 12 draft instead of failing on the live-draft uniqueness rule.
-- If a race still hits the uniqueness constraint, re-read the existing draft and update it instead of failing the run.
-- When a `needs_review` draft already exists, “Run all pending” should pause with the review reason instead of repeatedly generating another draft.
-
-### 6. Consolidate the active Stage 12 implementation
-- Remove or clearly retire the unused older 3-pass code path in the route function file.
-- Keep one source of truth: the capital-flow workbook builder.
-- Make the summary, attempts table, draft payload, and commit path all use the same coverage/reconciliation calculations.
-
-### 7. Repair BLZ after the code fix
-- Re-evaluate the current BLZ draft with the new applicability and residual rules.
-- If the existing draft is usable, commit it with the residual/inference disclosure.
-- If not, run the refined Stage 12 once and verify:
-  - `country_capital_flows` has committed rows;
-  - the Sankey has balanced totals or an explicit balancing node;
-  - the onboarding page no longer loops on Stage 12.
-
-### 8. Add regression checks
-- Non-CBI country does not fail coverage for missing `CBI_INFLOWS`.
-- Outputs-greater-than-inputs creates an input-side residual, not an output-side residual.
-- Existing live capital-flow drafts are updated, not duplicated.
-- “Run all pending” stops for true review blocks and does not spin or re-run indefinitely.
+No backend, no schema, no server-fn changes. Purely a UI sync between the aggregated `completed_stages` payload the server already returns and the row rendering.

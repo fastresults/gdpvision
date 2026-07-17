@@ -29,13 +29,10 @@ function normalizeItemUrl(raw: string): string {
   if (/^https?:\/\//i.test(s)) return s;
   return `https://${s.replace(/^\/+/, "")}`;
 }
-const UrlField = z
-  .string()
-  .trim()
-  .min(1)
-  .max(2000)
-  .transform(normalizeItemUrl)
-  .pipe(z.string().url().max(2000));
+const UrlField = z.preprocess(
+  (value) => (typeof value === "string" ? normalizeItemUrl(value) : value),
+  z.string().url().max(2000),
+);
 
 
 const ALLOWED_VIDEO_MIME = ["video/mp4", "video/webm", "video/quicktime"];

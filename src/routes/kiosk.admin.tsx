@@ -66,6 +66,13 @@ const CATEGORY_TO_SETTING: Record<ItemCategory, SettingKey> = {
   brand: "label_brand",
 };
 
+function normalizeEditableUrl(raw: string) {
+  const trimmed = raw.trim();
+  if (!trimmed) return trimmed;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed.replace(/^\/+/, "")}`;
+}
+
 function InlineEditable({
   value,
   onSave,
@@ -220,7 +227,7 @@ function AdminContent() {
         const { publicUrl } = await uploadVideo({ data: fd });
         finalUrl = publicUrl;
       }
-      const res = await create({ data: { category: categoryTab, label, url: finalUrl, tooltip: tooltip.trim() || null } });
+      const res = await create({ data: { category: categoryTab, label, url: normalizeEditableUrl(finalUrl), tooltip: tooltip.trim() || null } });
       // Kick off thumbnail generation for non-video items (don't block UI)
       if (res?.id && !isVideoTab) {
         genThumb({ data: { id: res.id } })
@@ -248,7 +255,7 @@ function AdminContent() {
   const updateMut = useMutation({
     mutationFn: (item: Item) =>
       update({
-        data: { id: item.id, label: editLabel, url: editUrl, tooltip: editTooltip.trim() || null },
+        data: { id: item.id, label: editLabel, url: normalizeEditableUrl(editUrl), tooltip: editTooltip.trim() || null },
       }),
     onSuccess: () => {
       setEditingId(null);

@@ -1326,7 +1326,7 @@ export const summarizeSource = createServerFn({ method: "POST" })
 
 const BulkLinksInput = z.object({
   countryCode: z.string().min(2).max(4),
-  urls: z.array(z.string().url()).min(1).max(50),
+  urls: z.array(UrlField).min(1).max(50),
   kind: z.string().default("gov"),
   quality_score: z.number().int().min(1).max(5).default(3),
   visibility: z.enum(["public", "private"]).default("public"),

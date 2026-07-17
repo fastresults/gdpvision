@@ -76,13 +76,36 @@ async function clearStaleRuns(admin: any, countryCode: string) {
       status: "stale",
       finished_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      error: "auto-cleared: no heartbeat >8min",
+      error: `auto-cleared: no heartbeat >${STALE_RUN_MINUTES}min`,
     })
     .eq("country_code", countryCode)
-    .in("status", ["queued", "planning", "searching", "extracting", "validating"])
+    .in("status", OPEN_RUN_STATUSES as unknown as string[])
     .lt("updated_at", cutoff)
     .select("id, stage");
   if (error) throw error;
+  return data ?? [];
+}
+
+/**
+ * Single-stage variant. Called at lock-acquire time so a stage can self-heal
+ * its own stale row before failing the unique-index insert.
+ */
+export async function clearStaleStageRuns(admin: any, countryCode: string, stage: string) {
+  const cutoff = new Date(Date.now() - STALE_RUN_MS).toISOString();
+  const { data, error } = await admin
+    .from("onboarding_runs")
+    .update({
+      status: "stale",
+      finished_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      error: `auto-cleared: no heartbeat >${STALE_RUN_MINUTES}min`,
+    })
+    .eq("country_code", countryCode)
+    .eq("stage", stage)
+    .in("status", OPEN_RUN_STATUSES as unknown as string[])
+    .lt("updated_at", cutoff)
+    .select("id");
+  if (error) return [];
   return data ?? [];
 }
 

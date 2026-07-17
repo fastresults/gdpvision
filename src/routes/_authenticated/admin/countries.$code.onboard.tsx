@@ -31,12 +31,12 @@ import {
   getIngestKeysStatus,
   getRunProgress,
   runCorpusIngest,
-  runKpiSeedAgent,
   runSecondBrainSeedAgent,
   runSectorDossierAgent,
   runSourceRegistryAgent,
   runCapitalFlowsAgent,
 } from "@/lib/country-onboarding/corpus.functions";
+import { runKpiSeedFlow } from "@/lib/country-onboarding/kpi-seed-flow";
 import { runMinistryDeepDiveFlow } from "@/lib/country-onboarding/ministry-deep-dive-flow";
 import {
   advanceCountryOnboarding,
@@ -255,7 +255,28 @@ function OnboardWizard() {
     ministries: useServerFn(runMinistriesAgent),
     ministry_sector_map: useServerFn(runMinistrySectorMapAgent),
     source_registry: useServerFn(runSourceRegistryAgent),
-    kpi_seed: useServerFn(runKpiSeedAgent),
+    // Stage 7 uses a durable client-driven flow: plan → sweep → one KPI-pass
+    // per request → finalize. This prevents the long multi-pass KPI loop from
+    // exceeding the sandbox proxy timeout while preserving live progress.
+    kpi_seed: async (arg: { data: { countryCode: string } }) => {
+      return await runKpiSeedFlow(arg.data.countryCode, {
+        onProgress: (p) => {
+          setRunProgress((prev) => ({
+            ...(prev ?? {}),
+            phase: p.phase ?? prev?.phase,
+            processed: p.processed,
+            total: p.total,
+            currentKpi: p.currentKpi ?? prev?.currentKpi ?? null,
+            filled: p.filled ?? prev?.filled,
+            missing: p.missing ?? prev?.missing,
+            missingKpis: p.missingKpis ?? prev?.missingKpis,
+          }));
+          if (p.runId) {
+            setActiveRun((prev) => (prev ? { ...prev, runId: p.runId } : prev));
+          }
+        },
+      });
+    },
     sector_dossier: useServerFn(runSectorDossierAgent),
     // Stage 9 uses a client-driven plan → resolve-loop → finalize flow so no
     // single request has to Perplexity-research every ministry serially (that
@@ -453,10 +474,18 @@ function OnboardWizard() {
                 (err && (err.code === "RUN_LOCKED" || err.name === "RUN_LOCKED")) ||
                 /already in progress/i.test(msg);
               const isTransientNet =
-                /failed to fetch|networkerror|network error|aborterror|the operation was aborted|load failed|\b(502|503|504)\b/i.test(msg);
+                /failed to fetch|internal server error|sandbox proxy failed|networkerror|network error|aborterror|the operation was aborted|load failed|\b(502|503|504)\b/i.test(msg);
               if (!isLocked && !isTransientNet) throw err;
               if (isTransientNet) {
-                try { await clearLocks({ data: { countryCode: code, stage } }); } catch {}
+                // Durable split flows (KPI seed, ministry deep-dive) resume from
+                // their item tables. Do not clear their open run on a dropped
+                // browser connection; the next planner call adopts it and
+                // resets any claimed item. Older monolithic stages still need
+                // the lock cleared before retrying.
+                const hasDurableResume = stage === "kpi_seed" || stage === "ministry_deep_dive";
+                if (!hasDurableResume) {
+                  try { await clearLocks({ data: { countryCode: code, stage } }); } catch {}
+                }
                 await new Promise((r) => setTimeout(r, 8000));
                 // Prefer commit path: if the dropped call still finished
                 // server-side, a draft is now ready. advance will report

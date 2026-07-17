@@ -1,46 +1,75 @@
-## Root cause (verified)
+## What I found
 
-"Run all pending" hit **"Failed to fetch"** at stage 6 (source_registry). The UI card shows `last run planning`, meaning the `onboarding_runs` row is still open — the server-side handler never finished (from the client's perspective).
+- The hosted backend and database are healthy, so this is not an infrastructure outage.
+- The failing TCA `kpi_seed` run actually continued after the browser saw `Internal server error, sandbox proxy failed` and produced a KPI draft at `20:49:46`.
+- The run took about 10 minutes and was still inside the long server call when the browser/proxy connection dropped.
+- The current Stage 7 flow is still one long synchronous request that performs sweep + World Bank + IMF + targeted search + AI inference before returning. That is the same failure pattern we already fixed for Stage 9 and partially fixed for source registry.
+- A recovery path exists in the UI, but for Stage 7 it is not enough because the browser can fail before the server function returns, leaving the admin with a red error even if the backend later wrote a draft.
 
-What actually happened:
-- `runSourceRegistryAgent` uses `sonar-reasoning-pro` as its primary model (`corpus.functions.ts:300`), and if the first pass returns <10 valid URLs it does a second `sonar-pro` retry (`:325-334`).
-- `callSonar` in `perplexity.server.ts:95` allows **240s** per call, so the worst case is ~8 minutes of a single synchronous server function.
-- The browser/edge proxy in front of `createServerFn` aborts long-lived POSTs well before that (~60–120s). The abort surfaces to the client as **`TypeError: Failed to fetch`** — nothing to do with Perplexity or the DB.
-- The client-side `runAllPending` loop (`countries.$code.onboard.tsx:433-447`) only retries on `RUN_LOCKED` / "already in progress". A `Failed to fetch` is thrown out as a hard stop, and the row is left in `planning`, blocking the next attempt until the 10-minute stale-lock sweep.
+## Goal
 
-This is the same class of failure we already fixed for `ministry_deep_dive` — a single long server call vs. a short-lived edge proxy — and it will hit any future stage that leans on `sonar-reasoning-pro` twice in one call.
+Make Stage 7 `kpi_seed` behave like a durable workflow, not a long fragile request: visible progress, resumable work, short request units, idempotent commits, and automatic recovery for future countries.
 
-## Fix (generalizes to every stage, not just source_registry)
+## Plan
 
-### 1. Shorten the source_registry server call so it fits one proxy window
-`src/lib/country-onboarding/corpus.functions.ts` `runSourceRegistryAgent`:
-- Primary model: `sonar-pro` (fast, ample citations for a link registry — reasoning tokens add nothing here).
-- Retry tier only if the primary produced `<10` valid URLs: switch to `sonar-reasoning-pro` with `noDomainFilter: true`, but **cap that retry with a hard `AbortController` at 55s** so the total handler stays under the proxy budget. If the retry aborts, keep the primary result.
-- Keep the existing "≥1 valid URL required" gate; drop primary result to a draft even if the retry aborted.
+1. **Split KPI seed into short, durable steps**
+   - Add a KPI seed flow similar to the Stage 9 ministry deep-dive flow.
+   - Keep each browser-to-server request small:
+     - plan/open KPI seed run
+     - broad sweep
+     - deterministic World Bank pass
+     - deterministic IMF pass
+     - targeted per-KPI research
+     - inference for remaining gaps
+     - finalize draft
+   - Persist progress after each unit so a dropped connection does not lose completed research.
 
-### 2. Make the client resilient to transient proxy disconnects (any stage)
-`src/routes/_authenticated/admin/countries.$code.onboard.tsx` `runSequential`:
-- Extend the existing recoverable-error branch (currently just `RUN_LOCKED` / "already in progress") to also treat `Failed to fetch` / `NetworkError` / `AbortError` / HTTP 502/504 as **transient**.
-- Recovery sequence when transient:
-  1. `await clearOnboardingLocks({ countryCode: code, stage })` — release the `planning` row so the resume path is clean.
-  2. Wait 8s, then call `advanceStep` again. Because the disconnected handler often *does* complete server-side and write a draft, the orchestrator will usually return `commit_ready_draft` on the next tick — we commit for free with no extra AI spend.
-  3. If no draft is ready, re-invoke the runner once (max 1 retry).
-- Update the "Stage failure" banner copy to say `transient network error — retried` when this path recovers, so operators see it worked.
+2. **Persist per-KPI work state**
+   - Add a `kpi_seed_items` tracking table keyed by run + KPI code.
+   - Store status, pass, value, period, source URL, source org, notes, inference payload, attempt count, and last error.
+   - Use explicit grants and RLS policies consistent with the existing admin-only onboarding workflow.
 
-### 3. Recover the current TCA run
-Immediately after the code change, one manual click of **Run all pending** on `/admin/countries/TCA/onboard`:
-- Clears the stuck `planning` lock (new client logic auto-clears; if the user prefers, they can hit the existing **Clear locks** button first).
-- Resumes from `source_registry` with `sonar-pro`, commits, and continues through stages 7–12.
+3. **Make `runKpiSeedAgent` resume-first**
+   - If a `kpi_seed` run is already open for the country, adopt it instead of failing with `RUN_LOCKED`.
+   - Reset only items that were mid-flight and stale.
+   - Do not redo completed KPI items unless the admin explicitly reruns.
 
-## Why this prevents recurrence
+4. **Replace the Stage 7 UI call with a client-driven KPI loop**
+   - Wire the onboarding page so `kpi_seed` uses the new durable flow instead of one long server call.
+   - Reuse the sticky status banner to show:
+     - current pass
+     - KPI being processed
+     - processed / total
+     - filled / missing
+     - elapsed time
+   - Keep the admin informed at all times until the draft is ready or review is required.
 
-- **Budgeted server work.** No source_registry call can exceed ~60s wall time regardless of retry, so it fits the edge proxy.
-- **Uniform transient handling.** Every stage in the sequential runner now survives a dropped POST the same way — clear lock, prefer commit-ready draft, single retry — instead of each stage needing bespoke resume plumbing.
-- **No wasted spend.** When the server did finish behind a dropped connection, the retry finds the draft and commits instead of re-running Perplexity.
+5. **Improve proxy-failure recovery**
+   - Treat `sandbox proxy failed`, `Internal server error`, `Failed to fetch`, 502/503/504, and abort errors as transient network/proxy failures.
+   - After a transient failure, poll the run state and draft state before declaring failure.
+   - If the backend finished and wrote a draft, auto-commit it when eligible and continue onboarding.
+   - If no draft exists, resume from the persisted item state instead of restarting the whole stage.
 
-## Files touched
+6. **Preserve data-quality gates**
+   - Keep the canonical KPI registry and plausibility bounds.
+   - Keep verified/inferred provenance.
+   - Continue producing draft coverage, citations, and `kpi_research_attempts` audit history.
+   - Partial KPI coverage should produce a reviewable draft, not a hard workflow stop, unless zero KPI rows are produced.
 
-- `src/lib/country-onboarding/corpus.functions.ts` — swap primary/retry models and add AbortController budget in `runSourceRegistryAgent`.
-- `src/routes/_authenticated/admin/countries.$code.onboard.tsx` — broaden transient-error recovery in `runSequential`, add lock-clear-then-advance step.
+7. **Add forensic visibility for future failures**
+   - Store a structured plan/status object on the run for each pass and KPI.
+   - Surface latest per-KPI errors in the UI so admins can see whether the issue is unavailable data, provider timeout, inference failure, or validation rejection.
+   - Keep the red failure banner only for unrecoverable failures; transient proxy drops should become “recovering / resuming”.
 
-No schema changes, no new tables, no new secrets.
+8. **Validate on TCA**
+   - Verify the existing TCA draft can be picked up and committed or reviewed.
+   - Run Stage 7 again through the new durable path to confirm it resumes rather than timing out.
+   - Confirm `Run all pending` continues past KPI seed into stages 8–12 when Stage 7 has a usable draft.
+
+## Technical implementation notes
+
+- New migration: `public.kpi_seed_items` with RLS and grants.
+- New/updated server functions in `src/lib/country-onboarding/corpus.functions.ts` for planning, processing, and finalizing KPI seed runs.
+- Reuse `finalizeKpiSeedOutputs` from `src/lib/country-onboarding/kpi-seed.server.ts` instead of duplicating final draft logic.
+- New client helper modeled after `src/lib/country-onboarding/ministry-deep-dive-flow.ts`.
+- Update `src/routes/_authenticated/admin/countries.$code.onboard.tsx` so Stage 7 uses the durable helper and transient recovery logic recognizes `sandbox proxy failed`.

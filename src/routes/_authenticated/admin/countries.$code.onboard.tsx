@@ -602,6 +602,61 @@ function OnboardWizard() {
       ]}
     >
       <div className="space-y-6">
+        {(bulkRunning || activeRun) && (() => {
+          const idx = activeRun ? STAGES.findIndex((s) => s.key === activeRun.stage) : -1;
+          const stepNum = idx >= 0 ? idx + 1 : null;
+          const mm = Math.floor(elapsed / 60);
+          const ss = elapsed % 60;
+          const elapsedLabel = `${mm}:${ss.toString().padStart(2, "0")}`;
+          const phaseBits: string[] = [];
+          if (runProgress?.phase) phaseBits.push(runProgress.phase);
+          if (typeof runProgress?.processed === "number" && typeof runProgress?.total === "number") {
+            phaseBits.push(`${runProgress.processed}/${runProgress.total}`);
+          }
+          if (runProgress?.currentKpi) phaseBits.push(runProgress.currentKpi);
+          return (
+            <div className="sticky top-0 z-40 -mx-4 px-4 py-3 border-b border-ink-950 bg-ink-950 text-paper-0 shadow-lg">
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" aria-hidden />
+                <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-emerald-300">
+                  {bulkRunning === "rerun" ? "Rerun all" : bulkRunning === "pending" ? "Run all pending" : "Working"}
+                </span>
+                {stepNum !== null && (
+                  <span className="font-mono text-[11px] tracking-widest text-paper-0/90">
+                    Step {stepNum}/{STAGES.length}
+                  </span>
+                )}
+                <span className="text-sm font-medium">
+                  {activeRun?.label ?? "Preparing next stage…"}
+                </span>
+                {phaseBits.length > 0 && (
+                  <span className="font-mono text-[11px] text-paper-0/70">· {phaseBits.join(" · ")}</span>
+                )}
+                <span className="ml-auto font-mono text-[11px] tabular-nums text-paper-0/80">
+                  {elapsedLabel}
+                </span>
+                {bulkRunning && (
+                  <button
+                    type="button"
+                    onClick={stopSequential}
+                    className="px-2 py-0.5 text-[10px] font-mono uppercase tracking-widest border border-red-400 text-red-300 hover:bg-red-500 hover:text-paper-0"
+                  >
+                    Stop
+                  </button>
+                )}
+              </div>
+              {stepNum !== null && (
+                <div className="mt-2 h-1 w-full bg-paper-0/10 overflow-hidden">
+                  <div
+                    className="h-full bg-emerald-400 transition-all"
+                    style={{ width: `${(stepNum / STAGES.length) * 100}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         <header className="flex items-start justify-between gap-6">
           <div className="space-y-2">
             <h1 className="font-serif text-3xl">{country?.name}</h1>

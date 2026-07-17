@@ -1542,12 +1542,26 @@ export const commitMinistrySectorMap = createServerFn({ method: "POST" })
       );
     }
 
+    // Dedupe by (ministry_slug, sector_code) — the AI sometimes emits the same
+    // pair twice, which would violate ministry_sectors_pkey (ministry_id,
+    // sector_code) on the RPC's bulk insert. Keep the max weight per pair.
+    const dedupMap = new Map<string, { ministry_slug: string; sector_code: string; weight: number }>();
+    for (const m of cleanMappings) {
+      const key = `${m.ministry_slug}|${m.sector_code}`;
+      const prev = dedupMap.get(key);
+      const weight = Number(m.weight ?? 1) || 1;
+      if (!prev || weight > prev.weight) dedupMap.set(key, { ...m, weight });
+    }
+    const uniqueMappings = [...dedupMap.values()];
+    const duplicatesCollapsed = cleanMappings.length - uniqueMappings.length;
+
     // Atomic replace via RPC. The RPC resolves ministry_slug → ministry_id server-side.
     const { error: rpcErr } = await supabaseAdmin.rpc("replace_ministry_sectors", {
       _country_code: draft.country_code,
-      _rows: cleanMappings as any,
+      _rows: uniqueMappings as any,
     });
     if (rpcErr) throw rpcErr;
+
     const { count: targetRows, error: countErr } = await supabaseAdmin
       .from("ministry_sectors")
       .select("ministry_id, ministries!inner(country_code)", { count: "exact", head: true })

@@ -60,10 +60,26 @@ export const listSources = createServerFn({ method: "POST" })
     }));
   });
 
+// Accepts bare hostnames (e.g. "cafs27.cafs27.com" or "sub.example.com/path")
+// and normalizes to a full https:// URL before validating.
+function normalizeSourceUrl(raw: string): string {
+  const s = (raw ?? "").trim();
+  if (!s) return s;
+  if (/^https?:\/\//i.test(s)) return s;
+  return `https://${s.replace(/^\/+/, "")}`;
+}
+
+const UrlField = z
+  .string()
+  .trim()
+  .min(1)
+  .transform(normalizeSourceUrl)
+  .pipe(z.string().url());
+
 const UpsertSourceInput = z.object({
   id: z.string().uuid().optional(),
   countryCode: z.string().min(2).max(4),
-  url: z.string().url(),
+  url: UrlField,
   title: z.string().min(1),
   org: z.string().min(1),
   kind: z.string().min(2),
@@ -72,6 +88,7 @@ const UpsertSourceInput = z.object({
   tags: z.array(z.string()).default([]),
   visibility: z.enum(["public", "private"]).default("public"),
 });
+
 
 export const upsertSource = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -1309,7 +1326,7 @@ export const summarizeSource = createServerFn({ method: "POST" })
 
 const BulkLinksInput = z.object({
   countryCode: z.string().min(2).max(4),
-  urls: z.array(z.string().url()).min(1).max(50),
+  urls: z.array(UrlField).min(1).max(50),
   kind: z.string().default("gov"),
   quality_score: z.number().int().min(1).max(5).default(3),
   visibility: z.enum(["public", "private"]).default("public"),

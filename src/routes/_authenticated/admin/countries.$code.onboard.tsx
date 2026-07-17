@@ -420,13 +420,30 @@ function OnboardWizard() {
             if (next.readyDraft && next.readyDraft.commit_eligible === false) {
               throw new Error(next.readyDraft.blocked_reason ?? "ready draft needs review before this stage can continue");
             }
-            const runRes: any = await runners[stage]({ data: { countryCode: code } });
-            if (stage === "capital_flows" && runRes?.coverageOk !== true) {
-              throw new Error("capital-flow draft needs review before commit");
-            }
-            const draftId = await findLatestDraftId(stage);
-            if (draftId) {
-              await committers[stage]({ data: { draftId } });
+            const invoke = async () => {
+              const runRes: any = await runners[stage]({ data: { countryCode: code } });
+              if (stage === "capital_flows" && runRes?.coverageOk !== true) {
+                throw new Error("capital-flow draft needs review before commit");
+              }
+              const draftId = await findLatestDraftId(stage);
+              if (draftId) {
+                await committers[stage]({ data: { draftId } });
+              }
+            };
+            try {
+              await invoke();
+            } catch (err: any) {
+              // Recoverable lock error: a previous attempt of this stage is
+              // still marked open. Wait briefly and retry once — planMinistry-
+              // DeepDive (and other resume-aware planners) will adopt the
+              // existing run instead of blocking.
+              const msg = String(err?.message ?? err ?? "");
+              const isLocked =
+                (err && (err.code === "RUN_LOCKED" || err.name === "RUN_LOCKED")) ||
+                /already in progress/i.test(msg);
+              if (!isLocked) throw err;
+              await new Promise((r) => setTimeout(r, 5000));
+              await invoke();
             }
           }
         } catch (e: any) {
@@ -702,11 +719,31 @@ function OnboardWizard() {
         {runErrors.length > 0 && (
           <div className="rounded border border-red-500/50 bg-red-500/10 p-3 text-xs text-red-700 space-y-1">
             <div className="font-medium">Stage failure — sequential run stopped here:</div>
-            {runErrors.map((e) => (
-              <div key={e.stage} className="font-mono break-words">
-                • {e.stage}: {e.message}
-              </div>
-            ))}
+            {runErrors.map((e) => {
+              const isLocked = /already in progress/i.test(e.message);
+              return (
+                <div key={e.stage} className="font-mono break-words flex items-start gap-3">
+                  <span className="flex-1">• {e.stage}: {e.message}</span>
+                  {isLocked && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await clearLocks({ data: { countryCode: code, stage: e.stage } });
+                          setRunErrors((prev) => prev.filter((r) => r.stage !== e.stage));
+                          await refresh();
+                        } catch (err) {
+                          setBulkErr((err as Error)?.message ?? String(err));
+                        }
+                      }}
+                      className="shrink-0 px-2 py-0.5 text-[10px] uppercase tracking-widest border border-red-500/50 hover:bg-red-500 hover:text-paper-0"
+                    >
+                      Clear stuck lock
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 

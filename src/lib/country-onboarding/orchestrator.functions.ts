@@ -45,7 +45,15 @@ const Input = z.object({
   rerun: z.boolean().optional().default(false),
 });
 
-const STALE_RUN_MS = 8 * 60 * 1000;
+// Single source of truth for how long an open onboarding_runs row is allowed to
+// sit without a heartbeat before it is considered stale and auto-cleared. Used
+// by the orchestrator sweep, by openRun in corpus.functions.ts (per-stage
+// self-heal at lock-acquire time), and by the user-facing "already in progress"
+// error message so the wait time we advertise always matches the wait time we
+// actually enforce.
+export const STALE_RUN_MS = 10 * 60 * 1000;
+export const STALE_RUN_MINUTES = Math.round(STALE_RUN_MS / 60000);
+const OPEN_RUN_STATUSES = ["queued", "planning", "searching", "extracting", "validating"] as const;
 
 export type NextOnboardingAction = "run_stage" | "commit_ready_draft" | "review_blocked" | "done";
 
@@ -68,13 +76,36 @@ async function clearStaleRuns(admin: any, countryCode: string) {
       status: "stale",
       finished_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      error: "auto-cleared: no heartbeat >8min",
+      error: `auto-cleared: no heartbeat >${STALE_RUN_MINUTES}min`,
     })
     .eq("country_code", countryCode)
-    .in("status", ["queued", "planning", "searching", "extracting", "validating"])
+    .in("status", OPEN_RUN_STATUSES as unknown as string[])
     .lt("updated_at", cutoff)
     .select("id, stage");
   if (error) throw error;
+  return data ?? [];
+}
+
+/**
+ * Single-stage variant. Called at lock-acquire time so a stage can self-heal
+ * its own stale row before failing the unique-index insert.
+ */
+export async function clearStaleStageRuns(admin: any, countryCode: string, stage: string) {
+  const cutoff = new Date(Date.now() - STALE_RUN_MS).toISOString();
+  const { data, error } = await admin
+    .from("onboarding_runs")
+    .update({
+      status: "stale",
+      finished_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      error: `auto-cleared: no heartbeat >${STALE_RUN_MINUTES}min`,
+    })
+    .eq("country_code", countryCode)
+    .eq("stage", stage)
+    .in("status", OPEN_RUN_STATUSES as unknown as string[])
+    .lt("updated_at", cutoff)
+    .select("id");
+  if (error) return [];
   return data ?? [];
 }
 
@@ -361,16 +392,24 @@ export const advanceCountryOnboarding = createServerFn({ method: "POST" })
  */
 export const clearOnboardingLocks = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ countryCode: z.string().min(2).max(4) }).parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        countryCode: z.string().min(2).max(4),
+        stage: z.string().optional(),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: cleared, error } = await supabaseAdmin
+    let q = supabaseAdmin
       .from("onboarding_runs")
       .update({ status: "stale", finished_at: new Date().toISOString(), updated_at: new Date().toISOString(), error: "manually cleared" })
       .eq("country_code", data.countryCode)
-      .in("status", ["queued", "planning", "searching", "extracting", "validating"])
-      .select("id, stage, updated_at");
+      .in("status", OPEN_RUN_STATUSES as unknown as string[]);
+    if (data.stage) q = q.eq("stage", data.stage);
+    const { data: cleared, error } = await q.select("id, stage, updated_at");
     if (error) throw error;
     return { cleared: cleared?.length ?? 0, stages: (cleared ?? []).map((r: any) => r.stage) };
   });

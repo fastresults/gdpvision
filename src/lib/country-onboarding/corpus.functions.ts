@@ -71,6 +71,12 @@ async function openRun(admin: any, params: {
   userId: string;
   model_stack: Record<string, string>;
 }) {
+  // Self-heal: sweep any stale open row for this (country, stage) before we try
+  // to acquire the lock, so a previous crash doesn't strand the country until
+  // the orchestrator sweep happens to run.
+  const { clearStaleStageRuns, STALE_RUN_MINUTES } = await import("./orchestrator.functions");
+  await clearStaleStageRuns(admin, params.country_code, params.stage);
+
   const { data, error } = await admin
     .from("onboarding_runs")
     .insert({
@@ -84,9 +90,13 @@ async function openRun(admin: any, params: {
     .single();
   if (error) {
     if ((error as any).code === "23505") {
-      throw new Error(
-        `A ${params.stage} run is already in progress for ${params.country_code}. Refresh to see live progress; stale runs auto-clear when their heartbeat is quiet for 45 minutes.`,
+      const err = new Error(
+        `A ${params.stage} run is already in progress for ${params.country_code}. Refresh to see live progress; stale runs auto-clear when their heartbeat is quiet for ${STALE_RUN_MINUTES} minutes.`,
       );
+      (err as any).code = "RUN_LOCKED";
+      (err as any).stage = params.stage;
+      (err as any).countryCode = params.country_code;
+      throw err;
     }
     throw error;
   }
@@ -1326,6 +1336,52 @@ export const planMinistryDeepDive = createServerFn({ method: "POST" })
     if (!ministries?.length) throw new Error("Commit ministries first — none exist for this country");
 
     const model: SonarModel = "sonar-reasoning-pro";
+
+    // Resume-first: if an open ministry_deep_dive run already exists for this
+    // country and has items, adopt it. This means a "Failed to fetch" mid-loop,
+    // a closed tab, or a retried Run-All-Pending picks up exactly where it
+    // stopped instead of throwing "already in progress" or wasting the
+    // ministries already resolved.
+    const { clearStaleStageRuns } = await import("./orchestrator.functions");
+    await clearStaleStageRuns(supabaseAdmin, data.countryCode, "ministry_deep_dive");
+
+    const { data: openRuns } = await supabaseAdmin
+      .from("onboarding_runs")
+      .select("id, status, updated_at")
+      .eq("country_code", data.countryCode)
+      .eq("stage", "ministry_deep_dive")
+      .in("status", ["queued", "planning", "searching", "extracting", "validating"])
+      .order("updated_at", { ascending: false })
+      .limit(1);
+    const existingRun = openRuns?.[0];
+    if (existingRun) {
+      const { count: itemCount } = await supabaseAdmin
+        .from("ministry_deep_dive_items")
+        .select("id", { head: true, count: "exact" })
+        .eq("run_id", existingRun.id);
+      if ((itemCount ?? 0) > 0) {
+        // Reset any 'running' rows back to 'pending' — a previous resolver call
+        // crashed after claiming but before writing done/failed.
+        await supabaseAdmin
+          .from("ministry_deep_dive_items")
+          .update({ status: "pending", updated_at: new Date().toISOString() })
+          .eq("run_id", existingRun.id)
+          .eq("status", "running");
+        // Touch the run so the stale sweeper won't clobber it while the client
+        // loop is warming up.
+        await updateRunPlan(supabaseAdmin, existingRun.id, {
+          phase: "resuming",
+          resumed_at: new Date().toISOString(),
+        });
+        return { runId: existingRun.id as string, total: itemCount ?? 0, resumed: true };
+      }
+      // Empty plan row — nothing to resume. Retire it and open a fresh one.
+      await finishRun(supabaseAdmin, existingRun.id, {
+        status: "stale",
+        error: "empty plan superseded by resume",
+      });
+    }
+
     const runId = await openRun(supabaseAdmin, {
       country_code: data.countryCode,
       stage: "ministry_deep_dive",
@@ -1356,7 +1412,7 @@ export const planMinistryDeepDive = createServerFn({ method: "POST" })
       total: rows.length,
     });
 
-    return { runId, total: rows.length };
+    return { runId, total: rows.length, resumed: false };
   });
 
 export const resolveNextMinistryDeepDive = createServerFn({ method: "POST" })

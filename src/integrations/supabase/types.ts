@@ -2123,6 +2123,69 @@ export type Database = {
           },
         ]
       }
+      kpi_seed_items: {
+        Row: {
+          attempt_count: number
+          country_code: string
+          created_at: string
+          diagnostics: Json
+          id: string
+          inference: Json | null
+          kpi_code: string
+          label: string
+          last_error: string | null
+          notes: string | null
+          pass: string
+          period: string | null
+          run_id: string
+          source_org: string | null
+          source_url: string | null
+          status: string
+          updated_at: string
+          value: number | null
+        }
+        Insert: {
+          attempt_count?: number
+          country_code: string
+          created_at?: string
+          diagnostics?: Json
+          id?: string
+          inference?: Json | null
+          kpi_code: string
+          label: string
+          last_error?: string | null
+          notes?: string | null
+          pass?: string
+          period?: string | null
+          run_id: string
+          source_org?: string | null
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+          value?: number | null
+        }
+        Update: {
+          attempt_count?: number
+          country_code?: string
+          created_at?: string
+          diagnostics?: Json
+          id?: string
+          inference?: Json | null
+          kpi_code?: string
+          label?: string
+          last_error?: string | null
+          notes?: string | null
+          pass?: string
+          period?: string | null
+          run_id?: string
+          source_org?: string | null
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+          value?: number | null
+        }
+        Relationships: []
+      }
       kpi_snapshots: {
         Row: {
           captured_at: string

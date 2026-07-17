@@ -45,7 +45,15 @@ const Input = z.object({
   rerun: z.boolean().optional().default(false),
 });
 
-const STALE_RUN_MS = 8 * 60 * 1000;
+// Single source of truth for how long an open onboarding_runs row is allowed to
+// sit without a heartbeat before it is considered stale and auto-cleared. Used
+// by the orchestrator sweep, by openRun in corpus.functions.ts (per-stage
+// self-heal at lock-acquire time), and by the user-facing "already in progress"
+// error message so the wait time we advertise always matches the wait time we
+// actually enforce.
+export const STALE_RUN_MS = 10 * 60 * 1000;
+export const STALE_RUN_MINUTES = Math.round(STALE_RUN_MS / 60000);
+const OPEN_RUN_STATUSES = ["queued", "planning", "searching", "extracting", "validating"] as const;
 
 export type NextOnboardingAction = "run_stage" | "commit_ready_draft" | "review_blocked" | "done";
 

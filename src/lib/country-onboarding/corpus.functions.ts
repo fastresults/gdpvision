@@ -753,6 +753,438 @@ export const runKpiSeedAgent = createServerFn({ method: "POST" })
     }
   });
 
+// ---------------------------------------------------------------------------
+// KPI seed durable flow (stage 7)
+//
+// The legacy `runKpiSeedAgent` above is intentionally left in place for
+// compatibility, but the onboarding UI uses the split flow below. Stage 7 used
+// to run sweep + WB + IMF + targeted search + escalation + inference in one
+// long request. Browser/proxy timeouts surfaced as "sandbox proxy failed" even
+// when the backend later wrote the draft. The split flow persists one row per
+// KPI and processes at most one expensive KPI pass per request.
+// ---------------------------------------------------------------------------
+
+const KPI_SEED_OPEN_STATUSES = ["queued", "planning", "searching", "extracting", "validating"] as const;
+const KPI_PASS_ORDER = ["worldbank", "imf", "targeted", "escalation", "inference"] as const;
+type KpiSeedPass = (typeof KPI_PASS_ORDER)[number] | "queued" | "sweep";
+
+function nextKpiPass(pass: string | null | undefined): KpiSeedPass | null {
+  switch (pass) {
+    case "queued":
+    case "sweep":
+    case "worldbank":
+      return "imf";
+    case "imf":
+      return "targeted";
+    case "targeted":
+      return "escalation";
+    case "escalation":
+      return "inference";
+    default:
+      return null;
+  }
+}
+
+async function summarizeKpiSeedItems(admin: any, runId: string) {
+  const { registryFor } = await import("./kpi-registry");
+  const registry = registryFor(["all"]);
+  const required = new Set(registry.filter((k) => k.required).map((k) => k.kpi_code));
+  const { data: items, error } = await admin
+    .from("kpi_seed_items")
+    .select("kpi_code, status, pass, value")
+    .eq("run_id", runId);
+  if (error) throw error;
+  const rows = (items ?? []) as Array<{ kpi_code: string; status: string; pass: string; value: number | string | null }>;
+  const filled = rows.filter((r) => required.has(r.kpi_code) && r.value != null).length;
+  const missingKpis = registry
+    .filter((k) => k.required && !rows.some((r) => r.kpi_code === k.kpi_code && r.value != null))
+    .map((k) => k.kpi_code);
+  const pending = rows.filter((r) => r.status === "pending" || r.status === "running").length;
+  const done = rows.filter((r) => r.status === "done").length;
+  const failed = rows.filter((r) => r.status === "failed").length;
+  return {
+    total: rows.length,
+    processed: done + failed,
+    pending,
+    filled,
+    missing: missingKpis.length,
+    missingKpis,
+  };
+}
+
+async function updateKpiSeedProgress(
+  admin: any,
+  runId: string,
+  patch: Record<string, unknown>,
+) {
+  const summary = await summarizeKpiSeedItems(admin, runId);
+  const plan = {
+    kind: "kpi_seed_progress",
+    ...summary,
+    ...patch,
+    updatedAt: new Date().toISOString(),
+  };
+  await updateRunPlan(admin, runId, plan);
+  return plan;
+}
+
+async function setKpiItemFromAttempt(
+  admin: any,
+  itemId: string,
+  pass: KpiSeedPass,
+  attempt: import("./kpi-research.server").AttemptRecord,
+  value: import("./kpi-research.server").ResearchedValue | null,
+  inference?: import("./kpi-inference.server").InferenceResult | null,
+) {
+  if (value?.value != null) {
+    const { error } = await admin
+      .from("kpi_seed_items")
+      .update({
+        status: "done",
+        pass,
+        value: value.value,
+        period: value.period,
+        source_url: value.source_url,
+        source_org: value.source_org,
+        notes: value.notes,
+        inference: inference ?? null,
+        last_error: null,
+        attempt_count: 1,
+        diagnostics: { last_attempt: attempt } as any,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", itemId);
+    if (error) throw error;
+    return "done" as const;
+  }
+
+  const nextPass = nextKpiPass(pass);
+  const { error } = await admin
+    .from("kpi_seed_items")
+    .update({
+      status: nextPass ? "pending" : "failed",
+      pass: nextPass ?? pass,
+      last_error: attempt.error ?? "no value returned",
+      attempt_count: 1,
+      diagnostics: { last_attempt: attempt } as any,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", itemId);
+  if (error) throw error;
+  return nextPass ? "pending" : "failed";
+}
+
+export const planKpiSeed = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const country = await loadCountry(supabaseAdmin, data.countryCode);
+    const { registryFor } = await import("./kpi-registry");
+
+    const { clearStaleStageRuns } = await import("./orchestrator.functions");
+    await clearStaleStageRuns(supabaseAdmin, data.countryCode, "kpi_seed");
+
+    const { data: openRuns } = await supabaseAdmin
+      .from("onboarding_runs")
+      .select("id, status, updated_at")
+      .eq("country_code", data.countryCode)
+      .eq("stage", "kpi_seed")
+      .in("status", KPI_SEED_OPEN_STATUSES as unknown as string[])
+      .order("updated_at", { ascending: false })
+      .limit(1);
+    const existingRun = openRuns?.[0];
+    if (existingRun) {
+      const { count: itemCount } = await supabaseAdmin
+        .from("kpi_seed_items")
+        .select("id", { head: true, count: "exact" })
+        .eq("run_id", existingRun.id);
+      if ((itemCount ?? 0) > 0) {
+        await supabaseAdmin
+          .from("kpi_seed_items")
+          .update({ status: "pending", updated_at: new Date().toISOString() })
+          .eq("run_id", existingRun.id)
+          .eq("status", "running");
+        const plan = await updateKpiSeedProgress(supabaseAdmin, existingRun.id, {
+          phase: "resuming",
+          countryCode: country.code,
+        });
+        return { runId: existingRun.id as string, total: itemCount ?? 0, resumed: true, plan };
+      }
+      await finishRun(supabaseAdmin, existingRun.id, {
+        status: "stale",
+        error: "empty KPI seed plan superseded by resume",
+      });
+    }
+
+    const runId = await openRun(supabaseAdmin, {
+      country_code: data.countryCode,
+      stage: "kpi_seed",
+      userId: context.userId,
+      model_stack: {
+        perplexity: "sonar-pro",
+        lovable_ai: "google/gemini-2.5-pro",
+        worldbank: "wdi-api",
+        imf: "datamapper-api",
+      },
+    });
+
+    const registry = registryFor(["all"]);
+    const rows = registry.map((k) => ({
+      run_id: runId,
+      country_code: data.countryCode,
+      kpi_code: k.kpi_code,
+      label: k.label,
+      status: "pending" as const,
+      pass: "queued" as const,
+    }));
+    const { error: insertErr } = await supabaseAdmin.from("kpi_seed_items").insert(rows);
+    if (insertErr) {
+      await finishRun(supabaseAdmin, runId, { status: "failed", error: insertErr.message });
+      throw insertErr;
+    }
+
+    const plan = await updateKpiSeedProgress(supabaseAdmin, runId, {
+      phase: "planned",
+      currentKpi: null,
+    });
+    return { runId, total: rows.length, resumed: false, plan };
+  });
+
+export const runKpiSeedSweep = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ runId: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { registryFor } = await import("./kpi-registry");
+    const research = await import("./kpi-research.server");
+
+    const { data: run, error: runErr } = await supabaseAdmin
+      .from("onboarding_runs")
+      .select("id, country_code, status")
+      .eq("id", data.runId)
+      .single();
+    if (runErr || !run) throw new Error("KPI seed run not found");
+
+    const { count: alreadySwept } = await supabaseAdmin
+      .from("kpi_seed_items")
+      .select("id", { head: true, count: "exact" })
+      .eq("run_id", data.runId)
+      .neq("pass", "queued");
+    if ((alreadySwept ?? 0) > 0) {
+      const plan = await updateKpiSeedProgress(supabaseAdmin, data.runId, { phase: "resume_after_sweep" });
+      return { runId: data.runId, skipped: true, remaining: plan.pending, total: plan.total, plan };
+    }
+
+    const country = await loadCountry(supabaseAdmin, run.country_code);
+    const registry = registryFor(["all"]);
+    await updateKpiSeedProgress(supabaseAdmin, data.runId, { phase: "sweep", processed: 0, total: registry.length });
+
+    const sweep = await research.sweepPerplexity({ country, registry });
+    await recordAttempts(supabaseAdmin, data.runId, run.country_code, sweep.attempts);
+    const byCode = new Map(sweep.values.map((v) => [v.kpi_code, research.normalizeValue(v)]));
+    const attemptByCode = new Map(sweep.attempts.filter((a) => a.kpi_code !== "*").map((a) => [a.kpi_code, a]));
+    const globalError = sweep.attempts.find((a) => a.kpi_code === "*")?.error ?? null;
+
+    const { data: items, error: itemsErr } = await supabaseAdmin
+      .from("kpi_seed_items")
+      .select("id, kpi_code")
+      .eq("run_id", data.runId)
+      .order("created_at", { ascending: true });
+    if (itemsErr) throw itemsErr;
+
+    for (const item of (items ?? []) as Array<{ id: string; kpi_code: string }>) {
+      const value = byCode.get(item.kpi_code) ?? null;
+      const attempt = attemptByCode.get(item.kpi_code) ?? {
+        kpi_code: item.kpi_code,
+        pass: "sweep" as const,
+        provider: "perplexity" as const,
+        model: "sonar-pro",
+        ok: false,
+        value: null,
+        period: null,
+        source_url: null,
+        error: globalError ?? "not filled by sweep",
+      };
+      await setKpiItemFromAttempt(supabaseAdmin, item.id, "worldbank", attempt, value);
+    }
+
+    const plan = await updateKpiSeedProgress(supabaseAdmin, data.runId, { phase: "worldbank", currentKpi: null });
+    return { runId: data.runId, remaining: plan.pending, total: plan.total, plan };
+  });
+
+export const resolveNextKpiSeedItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ runId: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { registryFor, findRegistryEntry } = await import("./kpi-registry");
+    const research = await import("./kpi-research.server");
+
+    const { data: run, error: runErr } = await supabaseAdmin
+      .from("onboarding_runs")
+      .select("id, country_code")
+      .eq("id", data.runId)
+      .single();
+    if (runErr || !run) throw new Error("KPI seed run not found");
+
+    const { data: pending, error: selErr } = await supabaseAdmin
+      .from("kpi_seed_items")
+      .select("id, country_code, kpi_code, pass, attempt_count")
+      .eq("run_id", data.runId)
+      .eq("status", "pending")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (selErr) throw selErr;
+
+    if (!pending) {
+      const plan = await updateKpiSeedProgress(supabaseAdmin, data.runId, { phase: "ready_to_finalize", currentKpi: null });
+      return { completed: 0, remaining: plan.pending, total: plan.total, currentKpi: null, phase: "ready_to_finalize", plan };
+    }
+
+    const pass = (pending.pass === "queued" || pending.pass === "sweep" ? "worldbank" : pending.pass) as KpiSeedPass;
+    const country = await loadCountry(supabaseAdmin, pending.country_code);
+    const kpi = findRegistryEntry(pending.kpi_code);
+    if (!kpi) {
+      await supabaseAdmin
+        .from("kpi_seed_items")
+        .update({ status: "failed", last_error: "KPI not found in registry", updated_at: new Date().toISOString() })
+        .eq("id", pending.id);
+      const plan = await updateKpiSeedProgress(supabaseAdmin, data.runId, { phase: pass, currentKpi: pending.kpi_code });
+      return { completed: 1, remaining: plan.pending, total: plan.total, currentKpi: pending.kpi_code, phase: pass, plan };
+    }
+
+    await supabaseAdmin
+      .from("kpi_seed_items")
+      .update({ status: "running", pass, updated_at: new Date().toISOString() })
+      .eq("id", pending.id)
+      .eq("status", "pending");
+    await updateKpiSeedProgress(supabaseAdmin, data.runId, { phase: pass, currentKpi: pending.kpi_code });
+
+    let attempt: import("./kpi-research.server").AttemptRecord;
+    let value: import("./kpi-research.server").ResearchedValue | null = null;
+    let inference: import("./kpi-inference.server").InferenceResult | null = null;
+    const iso3 = country.iso3 ?? country.code;
+
+    if (pass === "worldbank") {
+      const res = await research.backfillWorldBank(iso3, kpi);
+      attempt = res.attempt;
+      value = res.value ? research.normalizeValue(res.value) : null;
+    } else if (pass === "imf") {
+      const res = await research.backfillImf(iso3, kpi);
+      attempt = res.attempt;
+      value = res.value ? research.normalizeValue(res.value) : null;
+    } else if (pass === "targeted") {
+      const res = await research.targetedPerplexity({ country, kpi });
+      attempt = res.attempt;
+      value = res.value ? research.normalizeValue(res.value) : null;
+    } else if (pass === "escalation") {
+      const res = await research.escalateGemini({ country, kpi });
+      attempt = res.attempt;
+      value = res.value ? research.normalizeValue(res.value) : null;
+    } else {
+      const inferMod = await import("./kpi-inference.server");
+      const res = await inferMod.inferOneKpi({ admin: supabaseAdmin, country, kpi });
+      inference = res.result;
+      attempt = {
+        kpi_code: res.attempt.kpi_code,
+        pass: "escalation",
+        provider: "lovable-ai",
+        model: res.attempt.model,
+        ok: res.attempt.ok,
+        value: res.attempt.value,
+        period: res.attempt.period,
+        source_url: res.attempt.source_url,
+        error: res.attempt.error ? `inference: ${res.attempt.error}` : null,
+      };
+      if (res.result) {
+        value = research.normalizeValue({
+          kpi_code: res.result.kpi_code,
+          value: res.result.value,
+          period: res.result.period,
+          source_url: res.result.source_url,
+          source_org: res.result.source_org,
+          notes: `Inferred (${res.result.confidence}) via ${res.result.model}`,
+        });
+      }
+    }
+
+    await recordAttempts(supabaseAdmin, data.runId, pending.country_code, [attempt]);
+    const itemStatus = await setKpiItemFromAttempt(supabaseAdmin, pending.id, pass, attempt, value, inference);
+    const plan = await updateKpiSeedProgress(supabaseAdmin, data.runId, {
+      phase: itemStatus === "pending" ? nextKpiPass(pass) ?? pass : pass,
+      currentKpi: pending.kpi_code,
+    });
+    const registryTotal = registryFor(["all"]).length;
+    return {
+      completed: itemStatus === "done" || itemStatus === "failed" ? 1 : 0,
+      remaining: plan.pending,
+      total: plan.total || registryTotal,
+      currentKpi: pending.kpi_code,
+      phase: pass,
+      ok: attempt.ok,
+      plan,
+    };
+  });
+
+export const finalizeKpiSeedRun = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ runId: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { registryFor } = await import("./kpi-registry");
+
+    const { data: run, error: runErr } = await supabaseAdmin
+      .from("onboarding_runs")
+      .select("id, country_code")
+      .eq("id", data.runId)
+      .single();
+    if (runErr || !run) throw new Error("KPI seed run not found");
+
+    const { data: items, error: itemsErr } = await supabaseAdmin
+      .from("kpi_seed_items")
+      .select("kpi_code, status, value, period, source_url, source_org, notes, inference, last_error")
+      .eq("run_id", data.runId)
+      .order("created_at", { ascending: true });
+    if (itemsErr) throw itemsErr;
+    if (!items?.length) throw new Error("No KPI seed work items found for this run");
+    const pendingLeft = (items as any[]).filter((r) => r.status === "pending" || r.status === "running").length;
+    if (pendingLeft > 0) throw new Error(`Cannot finalize: ${pendingLeft} KPI item(s) still pending. Keep resolving first.`);
+
+    const registry = registryFor(["all"]);
+    const itemByCode = new Map((items as any[]).map((r) => [r.kpi_code, r]));
+    const outputs = registry.map((k) => {
+      const item = itemByCode.get(k.kpi_code) as any;
+      const rawValue = item?.value;
+      const value = rawValue == null ? null : Number(rawValue);
+      return {
+        kpi_code: k.kpi_code,
+        value: Number.isFinite(value as number) ? value : null,
+        period: item?.period ?? null,
+        source_url: item?.source_url ?? null,
+        source_org: item?.source_org ?? null,
+        notes: item?.notes ?? item?.last_error ?? "not found after durable per-KPI research",
+        inference: item?.inference ?? null,
+      };
+    });
+
+    const { finalizeKpiSeedOutputs } = await import("./kpi-seed.server");
+    const res = await finalizeKpiSeedOutputs({
+      admin: supabaseAdmin,
+      runId: data.runId,
+      countryCode: run.country_code,
+      userId: context.userId,
+      outputs,
+      autoCommit: false,
+    });
+    return { runId: data.runId, ...res };
+  });
+
 // ============================================================
 // Source auto-attach + upsert (used by commit, backfill, re-verify)
 // ============================================================

@@ -477,7 +477,15 @@ function OnboardWizard() {
                 /failed to fetch|internal server error|sandbox proxy failed|networkerror|network error|aborterror|the operation was aborted|load failed|\b(502|503|504)\b/i.test(msg);
               if (!isLocked && !isTransientNet) throw err;
               if (isTransientNet) {
-                try { await clearLocks({ data: { countryCode: code, stage } }); } catch {}
+                // Durable split flows (KPI seed, ministry deep-dive) resume from
+                // their item tables. Do not clear their open run on a dropped
+                // browser connection; the next planner call adopts it and
+                // resets any claimed item. Older monolithic stages still need
+                // the lock cleared before retrying.
+                const hasDurableResume = stage === "kpi_seed" || stage === "ministry_deep_dive";
+                if (!hasDurableResume) {
+                  try { await clearLocks({ data: { countryCode: code, stage } }); } catch {}
+                }
                 await new Promise((r) => setTimeout(r, 8000));
                 // Prefer commit path: if the dropped call still finished
                 // server-side, a draft is now ready. advance will report

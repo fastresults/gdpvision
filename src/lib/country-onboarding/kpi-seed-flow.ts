@@ -139,7 +139,7 @@ export async function runKpiSeedFlow(
 
     if (remaining >= lastRemaining) {
       stuckRounds++;
-      if (stuckRounds >= 25) {
+      if (stuckRounds >= 300) {
         throw new Error(
           `KPI seed stuck: ${remaining} item(s) still pending (last KPI: ${(step as any).currentKpi ?? "n/a"})`,
         );

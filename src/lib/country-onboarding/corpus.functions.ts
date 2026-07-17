@@ -1044,7 +1044,7 @@ export const resolveNextKpiSeedItem = createServerFn({ method: "POST" })
     if (selErr) throw selErr;
 
     if (!pending) {
-      const staleCutoff = new Date(Date.now() - 8 * 60 * 1000).toISOString();
+      const staleCutoff = new Date(Date.now() - 4 * 60 * 1000).toISOString();
       await supabaseAdmin
         .from("kpi_seed_items")
         .update({ status: "pending", updated_at: new Date().toISOString() })

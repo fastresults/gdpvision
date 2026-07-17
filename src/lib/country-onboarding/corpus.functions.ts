@@ -71,6 +71,12 @@ async function openRun(admin: any, params: {
   userId: string;
   model_stack: Record<string, string>;
 }) {
+  // Self-heal: sweep any stale open row for this (country, stage) before we try
+  // to acquire the lock, so a previous crash doesn't strand the country until
+  // the orchestrator sweep happens to run.
+  const { clearStaleStageRuns, STALE_RUN_MINUTES } = await import("./orchestrator.functions");
+  await clearStaleStageRuns(admin, params.country_code, params.stage);
+
   const { data, error } = await admin
     .from("onboarding_runs")
     .insert({
@@ -84,9 +90,13 @@ async function openRun(admin: any, params: {
     .single();
   if (error) {
     if ((error as any).code === "23505") {
-      throw new Error(
-        `A ${params.stage} run is already in progress for ${params.country_code}. Refresh to see live progress; stale runs auto-clear when their heartbeat is quiet for 45 minutes.`,
+      const err = new Error(
+        `A ${params.stage} run is already in progress for ${params.country_code}. Refresh to see live progress; stale runs auto-clear when their heartbeat is quiet for ${STALE_RUN_MINUTES} minutes.`,
       );
+      (err as any).code = "RUN_LOCKED";
+      (err as any).stage = params.stage;
+      (err as any).countryCode = params.country_code;
+      throw err;
     }
     throw error;
   }

@@ -1,69 +1,62 @@
-## Why KNA stopped at "ministry_deep_dive"
+## What actually happened
 
-The 502 `sandbox proxy failed` is a **request timeout**, not a code bug. `runMinistryDeepDiveAgent` in `src/lib/country-onboarding/corpus.functions.ts` (lines 1297-1400) does everything inline in a single server function call:
+You saw:
+> `A ministry_deep_dive run is already in progress for VCT. Refresh to see live progress; stale runs auto-clear when their heartbeat is quiet for 45 minutes.`
 
-```text
-for each ministry (KNA has ~14):
-  resolveMinister(...)
-    pass 1  corpus search   (embed + gemini extract)
-    pass 2  Perplexity sonar-reasoning-pro (targeted)
-    pass 3  Perplexity sonar-reasoning-pro (wide, if empty)
-    pass 4  Perplexity sonar-pro (cross-check)
-```
+Root cause (verified in `src/lib/country-onboarding/corpus.functions.ts` and `orchestrator.functions.ts`):
 
-That is ~3-4 Perplexity calls × 14 ministries executed **serially**. Each `sonar-reasoning-pro` call is 10-40s. Total wall time easily exceeds the sandbox/edge request cap, so the proxy kills the connection and the orchestrator marks the run stopped. Every other stage (profile, gdp, ministries, kpi_seed, capital_flows) fits in one call; this one doesn't and never will as ministry counts grow.
+1. Every stage acquires a per-country lock via a unique constraint on open `onboarding_runs`. `openRun` throws `23505` → the human-readable "already in progress" message (line 88).
+2. **The message and the actual cleanup are inconsistent.** The message says "45 minutes"; the sweeper (`clearStaleRuns`, line 48) uses **8 minutes**.
+3. **The sweeper only runs from the orchestrator's `nextAction`, not from `planMinistryDeepDive`.** If a previous Stage 9 run died mid-loop (browser closed, "Failed to fetch" before the last turn's retry landed, tab throttled), the row sits in `planning`/`resolving` and blocks the next attempt until you happen to trigger the orchestrator path.
+4. **Stage 9 is now item-based and fully resumable** (rows in `ministry_deep_dive_items` with `pending` / `done` / `failed`). Throwing on the existing run wastes that work — a resume is trivially safe. Right now we don't take advantage of it.
+5. `runAllPending` in the onboard page treats "already in progress" as a hard stop, so the sequential run halts on a condition that is actually recoverable.
 
-The `minister-backfill` module already solved the same problem for the admin backfill tool: it persists a job in `minister_backfill_runs` + `minister_backfill_country_runs` and the client drives it one ministry at a time. We reuse that pattern for stage 9 so it works for every future country onboarding.
+## Improvement principle
 
-## Fix — turn stage 9 into a resumable per-ministry job
+Every recurring error should either (a) auto-recover on the next attempt or (b) collapse to a one-click operator action — never require waiting out a 45-minute timer. Apply that principle here.
 
-### 1. Split `runMinistryDeepDiveAgent` into three short server functions
+## Plan
 
-In `src/lib/country-onboarding/corpus.functions.ts`:
+### 1. Stage 9 becomes resume-first, not lock-first
+In `planMinistryDeepDive`:
+- Before calling `openRun`, look for an existing non-terminal `onboarding_runs` row for `(country, ministry_deep_dive)`.
+- If found and it has `ministry_deep_dive_items` rows:
+  - Reset any `running` items back to `pending` (previous resolver crashed mid-call).
+  - Touch `updated_at` so the sweeper won't clobber it while the client loop is active.
+  - Return `{ runId, total }` from the existing run — the client loop picks up exactly where it stopped.
+- Only if no items exist (truly a stillborn plan), delete the empty run row and open a fresh one.
 
-- **`planMinistryDeepDive({ countryCode })`**
-  - Opens the `onboarding_pipeline_runs` row (`stage: "ministry_deep_dive"`, `status: "planning"`).
-  - Loads ministries, writes one work item per ministry into a new lightweight table `ministry_deep_dive_items(run_id, country_code, ministry_slug, ministry_name, status, minister, minister_profile jsonb, mandate, programmes jsonb, citations jsonb, confidence, source_tier, error, updated_at)` with `status='pending'`.
-  - Returns `{ runId, total }`. Fast; no Perplexity work.
+This turns "already in progress" from a blocker into a resume, and preserves every ministry already resolved.
 
-- **`resolveNextMinistryDeepDive({ runId, batchSize=1 })`**
-  - Claims up to `batchSize` pending items (`UPDATE ... RETURNING` with `status='pending'` → `status='running'`).
-  - Runs `resolveMinister` for each (still sequential inside one call, but `batchSize=1` keeps every call under ~60s).
-  - Writes results back to the item row and flips it to `done` or `failed`. Refreshes `onboarding_pipeline_runs.updated_at`.
-  - Returns `{ completed, remaining }`.
+### 2. Unify the stale-run window and honor it at lock time
+- Add `clearStaleRuns(admin, countryCode, stage)` (single-stage variant) and call it inside `openRun` right before insert, so every stage self-heals its own stale lock instead of waiting for the orchestrator.
+- Move the timeout to one constant `STALE_RUN_MS` in a shared file and use it everywhere (`orchestrator.functions.ts` and the error message in `corpus.functions.ts`). Set it to **10 minutes** — long enough for a legitimate stage-9 ministry to finish, short enough that a dead tab doesn't strand the country.
+- The user-visible error message reads the same constant, so the "45 minutes" / "8 minutes" drift can never happen again.
 
-- **`finalizeMinistryDeepDive({ runId })`**
-  - Assembles `parsed = { ministries, diagnostics }` and the merged citation set from the item rows.
-  - Applies the existing acceptance gate (≥70% resolved + citations ≥ ministries → medium, else low).
-  - Calls the existing `saveDraft` (already upsert-safe from the earlier fix) with `stage: "ministry_deep_dive"`, `target_table: "ministry_profiles"`.
-  - Calls `finishRun(..., { status: "ready" })`.
+### 3. `runAllPending` treats the lock as recoverable
+In `src/routes/_authenticated/admin/countries.$code.onboard.tsx` (`runAllPending`):
+- Detect the "already in progress" error class (match on the error tag we throw, not the string).
+- On that class, wait ~5s and retry the same stage once. With change #1 the second call adopts the existing run and the sequential pipeline keeps flowing.
+- Only surface the red banner if the retry also fails.
 
-### 2. Orchestrator wiring
+### 4. Client loop pings a heartbeat while resolving
+`runMinistryDeepDiveFlow` (client) already loops one HTTP call per ministry. Add a lightweight heartbeat: each `resolveNext` server call already writes `updated_at` via `updateRunPlan`. Confirm that path fires even when an item marks itself `failed`, and add a heartbeat write from `planMinistryDeepDive` too, so a resumed run's `updated_at` is fresh the moment the loop restarts.
 
-In `src/lib/country-onboarding/orchestrator.functions.ts`, replace the single `runMinistryDeepDiveAgent` call for stage `ministry_deep_dive` with:
+### 5. Operator escape hatch on the banner
+The current "Stage failure" banner just says "Dismiss / Open stage." Add a third link **"Clear stuck lock"** that calls a small server function `clearStageLock({ countryCode, stage })`. Super-admin only, marks any open run for that stage as `stale`, and refreshes. This is the manual fallback the user asked for after the KPI-7 wait — no more sitting for minutes.
 
-```text
-plan → loop { resolveNext until remaining === 0 } → finalize
-```
+## Files to change (technical detail)
 
-Each iteration is its own server function call, so the sandbox timeout no longer matters. Add a per-ministry timeout in `resolveMinister` (e.g. 45s cap on each Perplexity pass via `AbortController`) so a single hung upstream call fails that ministry instead of the whole run — matching how `minister-backfill` treats failures.
+- `src/lib/country-onboarding/orchestrator.functions.ts` — export `STALE_RUN_MS`, add `clearStaleStageRuns(admin, countryCode, stage)`, tighten to 10 min.
+- `src/lib/country-onboarding/corpus.functions.ts` — `openRun` calls the single-stage sweeper first; `planMinistryDeepDive` adopts an existing run with items; new `clearStageLock` server fn; error message reads the shared constant. Throw a tagged error (`err.code = "RUN_LOCKED"`) so the client can branch.
+- `src/routes/_authenticated/admin/countries.$code.onboard.tsx` — `runAllPending` retries once on `RUN_LOCKED`; banner adds "Clear stuck lock" action wired to `clearStageLock`.
 
-### 3. UI / polling
+No database migration needed — `ministry_deep_dive_items` and `onboarding_runs` already carry the fields we need.
 
-The onboarding page already polls `getRunProgress` every 3s. Extend the progress payload for `ministry_deep_dive` to include `{ completed, total, currentMinistry }` read from `ministry_deep_dive_items`, so the run card shows "9 / 14 ministries resolved…" instead of an opaque spinner. When `remaining===0`, the client calls `finalize`.
+## What "improving each onboarding" looks like after this
 
-### 4. Recovery for KNA now
-
-- Reset the current stuck run: mark the `onboarding_pipeline_runs` row for `ministry_deep_dive` as `failed` (or delete and re-plan).
-- Re-run stage 9 from the admin UI. The new plan → resolve-loop → finalize path replays cleanly; the earlier stages remain unchanged.
-
-### 5. Migration
-
-One SQL migration adds `ministry_deep_dive_items` with `GRANT SELECT, INSERT, UPDATE ON ... TO authenticated`, `GRANT ALL TO service_role`, RLS enabled, and admin-only policies (mirrors `minister_backfill_country_runs`). No changes to `onboarding_drafts` / `onboarding_citations` shape.
-
-## Verification
-
-- `bunx tsgo --noEmit` clean.
-- Re-run stage 9 on KNA end-to-end from the admin UI; expect progress to tick per ministry and the run to end `ready` with a `ministry_deep_dive` draft equivalent to the pre-timeout intent.
-- Run stage 9 on a second country (e.g. any small OECS one) to confirm the pattern is generic; each per-ministry call finishes well under the sandbox timeout.
-- Kill one Perplexity pass mid-run (network throttle) and confirm only that ministry is marked `failed`, the loop continues, and finalize still produces a draft with `confidence: "low"`.
+- A stuck Stage 9 self-heals in ≤10 min without you touching anything.
+- Re-running the stage from the UI now resumes; you never lose the ministries already resolved.
+- Run-All-Pending survives the exact class of error you just hit without operator intervention.
+- If you ever need to force it, one click on the banner clears the lock — no waiting.
+- Same pattern (resume-on-lock + shared stale window + one-click clear) can be applied to Stage 10 / 12 next; this plan lays the reusable primitives.

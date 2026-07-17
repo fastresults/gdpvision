@@ -22,6 +22,21 @@ async function getBehaviorForSlug(
 
 const categorySchema = z.string().min(1).max(64);
 
+// Accepts bare hostnames (e.g. "cafs27.cafs27.com") and normalizes to https://.
+function normalizeItemUrl(raw: string): string {
+  const s = (raw ?? "").trim();
+  if (!s) return s;
+  if (/^https?:\/\//i.test(s)) return s;
+  return `https://${s.replace(/^\/+/, "")}`;
+}
+const UrlField = z
+  .string()
+  .trim()
+  .min(1)
+  .max(2000)
+  .transform(normalizeItemUrl)
+  .pipe(z.string().url().max(2000));
+
 
 const ALLOWED_VIDEO_MIME = ["video/mp4", "video/webm", "video/quicktime"];
 const MAX_VIDEO_BYTES = 500 * 1024 * 1024;

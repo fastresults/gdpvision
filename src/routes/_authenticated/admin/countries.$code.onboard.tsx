@@ -719,11 +719,31 @@ function OnboardWizard() {
         {runErrors.length > 0 && (
           <div className="rounded border border-red-500/50 bg-red-500/10 p-3 text-xs text-red-700 space-y-1">
             <div className="font-medium">Stage failure — sequential run stopped here:</div>
-            {runErrors.map((e) => (
-              <div key={e.stage} className="font-mono break-words">
-                • {e.stage}: {e.message}
-              </div>
-            ))}
+            {runErrors.map((e) => {
+              const isLocked = /already in progress/i.test(e.message);
+              return (
+                <div key={e.stage} className="font-mono break-words flex items-start gap-3">
+                  <span className="flex-1">• {e.stage}: {e.message}</span>
+                  {isLocked && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await clearLocks({ data: { countryCode: code, stage: e.stage } });
+                          setRunErrors((prev) => prev.filter((r) => r.stage !== e.stage));
+                          await refresh();
+                        } catch (err) {
+                          setBulkErr((err as Error)?.message ?? String(err));
+                        }
+                      }}
+                      className="shrink-0 px-2 py-0.5 text-[10px] uppercase tracking-widest border border-red-500/50 hover:bg-red-500 hover:text-paper-0"
+                    >
+                      Clear stuck lock
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 

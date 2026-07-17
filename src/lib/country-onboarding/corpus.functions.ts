@@ -772,6 +772,7 @@ function nextKpiPass(pass: string | null | undefined): KpiSeedPass | null {
   switch (pass) {
     case "queued":
     case "sweep":
+      return "worldbank";
     case "worldbank":
       return "imf";
     case "imf":
@@ -1008,7 +1009,7 @@ export const runKpiSeedSweep = createServerFn({ method: "POST" })
         source_url: null,
         error: globalError ?? "not filled by sweep",
       };
-      await setKpiItemFromAttempt(supabaseAdmin, item.id, "worldbank", attempt, value);
+      await setKpiItemFromAttempt(supabaseAdmin, item.id, "sweep", attempt, value);
     }
 
     const plan = await updateKpiSeedProgress(supabaseAdmin, data.runId, { phase: "worldbank", currentKpi: null });

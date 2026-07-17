@@ -836,6 +836,7 @@ async function setKpiItemFromAttempt(
   attempt: import("./kpi-research.server").AttemptRecord,
   value: import("./kpi-research.server").ResearchedValue | null,
   inference?: import("./kpi-inference.server").InferenceResult | null,
+  previousAttemptCount = 0,
 ) {
   if (value?.value != null) {
     const { error } = await admin
@@ -850,7 +851,7 @@ async function setKpiItemFromAttempt(
         notes: value.notes,
         inference: inference ?? null,
         last_error: null,
-        attempt_count: 1,
+        attempt_count: previousAttemptCount + 1,
         diagnostics: { last_attempt: attempt } as any,
         updated_at: new Date().toISOString(),
       })
@@ -866,7 +867,7 @@ async function setKpiItemFromAttempt(
       status: nextPass ? "pending" : "failed",
       pass: nextPass ?? pass,
       last_error: attempt.error ?? "no value returned",
-      attempt_count: 1,
+      attempt_count: previousAttemptCount + 1,
       diagnostics: { last_attempt: attempt } as any,
       updated_at: new Date().toISOString(),
     })
@@ -1009,7 +1010,7 @@ export const runKpiSeedSweep = createServerFn({ method: "POST" })
         source_url: null,
         error: globalError ?? "not filled by sweep",
       };
-      await setKpiItemFromAttempt(supabaseAdmin, item.id, "sweep", attempt, value);
+      await setKpiItemFromAttempt(supabaseAdmin, item.id, "sweep", attempt, value, null, 0);
     }
 
     const plan = await updateKpiSeedProgress(supabaseAdmin, data.runId, { phase: "worldbank", currentKpi: null });
@@ -1115,7 +1116,15 @@ export const resolveNextKpiSeedItem = createServerFn({ method: "POST" })
     }
 
     await recordAttempts(supabaseAdmin, data.runId, pending.country_code, [attempt]);
-    const itemStatus = await setKpiItemFromAttempt(supabaseAdmin, pending.id, pass, attempt, value, inference);
+    const itemStatus = await setKpiItemFromAttempt(
+      supabaseAdmin,
+      pending.id,
+      pass,
+      attempt,
+      value,
+      inference,
+      Number(pending.attempt_count ?? 0),
+    );
     const plan = await updateKpiSeedProgress(supabaseAdmin, data.runId, {
       phase: itemStatus === "pending" ? nextKpiPass(pass) ?? pass : pass,
       currentKpi: pending.kpi_code,

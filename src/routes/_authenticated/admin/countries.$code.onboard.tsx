@@ -433,17 +433,45 @@ function OnboardWizard() {
             try {
               await invoke();
             } catch (err: any) {
-              // Recoverable lock error: a previous attempt of this stage is
-              // still marked open. Wait briefly and retry once — planMinistry-
-              // DeepDive (and other resume-aware planners) will adopt the
-              // existing run instead of blocking.
+              // Recoverable errors we retry once:
+              //  - RUN_LOCKED / "already in progress": the run row is still
+              //    open from a previous attempt; resume-aware planners will
+              //    adopt it on the next call.
+              //  - "Failed to fetch" / NetworkError / AbortError / 502/504:
+              //    the edge proxy dropped a long-running POST but the
+              //    server-side handler often completes and writes a draft.
+              //    Clear the stuck lock and let advanceStep pick up the
+              //    ready draft (or re-run if none exists) — no wasted AI.
               const msg = String(err?.message ?? err ?? "");
               const isLocked =
                 (err && (err.code === "RUN_LOCKED" || err.name === "RUN_LOCKED")) ||
                 /already in progress/i.test(msg);
-              if (!isLocked) throw err;
-              await new Promise((r) => setTimeout(r, 5000));
-              await invoke();
+              const isTransientNet =
+                /failed to fetch|networkerror|network error|aborterror|the operation was aborted|load failed|\b(502|503|504)\b/i.test(msg);
+              if (!isLocked && !isTransientNet) throw err;
+              if (isTransientNet) {
+                try { await clearLocks({ data: { countryCode: code, stage } }); } catch {}
+                await new Promise((r) => setTimeout(r, 8000));
+                // Prefer commit path: if the dropped call still finished
+                // server-side, a draft is now ready. advance will report
+                // commit_ready_draft; commit and continue this loop.
+                const next2: any = await advanceStep({ data: { countryCode: code } });
+                if (next2.action === "commit_ready_draft" && next2.draftId && next2.nextStage === stage) {
+                  const commitRes: any = await committers[stage]({ data: { draftId: next2.draftId } });
+                  setRunResult({
+                    stage,
+                    label: `Recovered ${stage} (network retry)`,
+                    ok: true,
+                    text: summarizeCommitResult(stage, commitRes),
+                    meta: commitRes,
+                  });
+                } else {
+                  await invoke();
+                }
+              } else {
+                await new Promise((r) => setTimeout(r, 5000));
+                await invoke();
+              }
             }
           }
         } catch (e: any) {

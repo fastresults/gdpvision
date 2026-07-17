@@ -297,7 +297,10 @@ export const runSourceRegistryAgent = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const country = await loadCountry(supabaseAdmin, data.countryCode);
 
-    const model: SonarModel = "sonar-reasoning-pro";
+    // sonar-pro is fast enough to reliably fit under the edge-proxy timeout
+    // window (~60-120s). sonar-reasoning-pro is reserved for a bounded
+    // fallback if the primary produced too few valid URLs.
+    const model: SonarModel = "sonar-pro";
     const runId = await openRun(supabaseAdmin, {
       country_code: data.countryCode,
       stage: "source_registry",
@@ -306,9 +309,9 @@ export const runSourceRegistryAgent = createServerFn({ method: "POST" })
     });
 
     try {
-      const runAttempt = async (model: SonarModel, noDomainFilter = false) =>
+      const runAttempt = async (m: SonarModel, noDomainFilter = false) =>
         callSonar({
-          model,
+          model: m,
           system:
             "You are a sovereign-intelligence librarian. Assemble a canonical, non-duplicative registry of the most authoritative URLs to monitor a country. Group by kind: gov (national ministries, statistics office, central bank, invest agencies, CBI/citizenship units), regional (ECCB, CDB, OECS, CARICOM), multilateral (IMF, World Bank, UN, PAHO, ECLAC, EU), advisory (industry advisory firms), ngo (research NGOs, foundations), media (recognised outlets covering the country), summit (relevant sector summits). Prefer official/institutional URLs over blog posts. quality_score: 5=official primary, 4=multilateral secondary, 3=recognised NGO/media, 2=advisory, 1=general. Return 20-40 sources. CRITICAL: Every source MUST include a working absolute https:// URL to the organisation's homepage or the specific resource. NEVER return an empty url, a placeholder, or a relative path. If you cannot find a working URL for a candidate, DROP that candidate entirely — do not include it in the response." +
             SUMMARY_SYSTEM_SUFFIX,
@@ -321,15 +324,26 @@ export const runSourceRegistryAgent = createServerFn({ method: "POST" })
       let parsed = parseSonarJson<{ sources: any[] }>(result.content);
       let validSources = (parsed?.sources ?? []).filter((s) => isValidHttpUrl(s?.url));
 
-      // Retry Tier 2 (sonar-pro, open web) when the extraction produced too few real URLs.
+      // Bounded higher-reasoning retry when the primary produced too few real
+      // URLs. Budget it so the whole handler stays under the edge-proxy
+      // window; if the retry doesn't finish in time, keep the primary result.
       if (validSources.length < 10) {
-        const retry = await runAttempt("sonar-pro", true);
-        const retryParsed = parseSonarJson<{ sources: any[] }>(retry.content);
-        const retryValid = (retryParsed?.sources ?? []).filter((s) => isValidHttpUrl(s?.url));
-        if (retryValid.length > validSources.length) {
-          result = retry;
-          parsed = retryParsed;
-          validSources = retryValid;
+        try {
+          const retry = await Promise.race([
+            runAttempt("sonar-reasoning-pro", true),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("retry budget exceeded")), 55_000),
+            ),
+          ]);
+          const retryParsed = parseSonarJson<{ sources: any[] }>(retry.content);
+          const retryValid = (retryParsed?.sources ?? []).filter((s) => isValidHttpUrl(s?.url));
+          if (retryValid.length > validSources.length) {
+            result = retry;
+            parsed = retryParsed;
+            validSources = retryValid;
+          }
+        } catch {
+          // Budget exceeded or retry failed — fall through with primary result.
         }
       }
 

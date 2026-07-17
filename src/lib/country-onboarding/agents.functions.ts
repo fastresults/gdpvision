@@ -1572,7 +1572,7 @@ export const commitMinistrySectorMap = createServerFn({ method: "POST" })
     }
     await markDraftCommitted(supabaseAdmin, draft.id, draft.run_id);
 
-    return { ok: true, inserted: cleanMappings.length, dropped: dropped.length, dropped_codes: [...new Set(dropped.map((d) => d.sector_code))] };
+    return { ok: true, inserted: uniqueMappings.length, dropped: dropped.length, dropped_codes: [...new Set(dropped.map((d) => d.sector_code))], duplicates_collapsed: duplicatesCollapsed };
 
   });
 

@@ -1,18 +1,16 @@
 // Client-side driver for stage 9 (ministry deep-dive).
 //
-// The old single-call `runMinistryDeepDiveAgent` server function did all
-// Perplexity work (~3-4 slow API calls × N ministries) inside one request,
-// which reliably hit the sandbox proxy timeout on countries with many
-// ministries. The stage is now split into three short server functions:
-//
+// Split server flow:
 //   planMinistryDeepDive        — opens run + seeds one row per ministry.
 //   resolveNextMinistryDeepDive — resolves ONE pending ministry per call.
 //   finalizeMinistryDeepDive    — assembles the draft from the item rows.
 //
-// This helper drives the loop from the browser (fresh request per ministry),
-// so no single request ever exceeds the sandbox timeout and progress is
-// visible per-ministry. It preserves the original return shape so existing
-// UI code (onboarding wizard, country-data page) doesn't need to change.
+// Each call is its own HTTP request so no single request exceeds the sandbox
+// proxy timeout. Because Perplexity, edge-runtime cold starts, and the
+// sandbox proxy occasionally drop a connection (surfaces as browser
+// `TypeError: Failed to fetch`), every call is wrapped in a
+// retry-with-backoff. `resolveNext` is server-idempotent — it picks the next
+// pending item — so a retry safely re-attempts the same ministry.
 
 import {
   planMinistryDeepDive,
@@ -32,13 +30,62 @@ export type MinistryDeepDiveResult = Awaited<
   ReturnType<typeof finalizeMinistryDeepDive>
 >;
 
-/**
- * Runs the full stage-9 flow client-driven.
- *
- * Each `resolveNext` call is its own HTTP request, so individual Perplexity
- * work always fits comfortably under the sandbox timeout. `onProgress` fires
- * after every ministry so callers can update UI.
- */
+const TRANSIENT_PATTERNS = [
+  "failed to fetch",
+  "networkerror",
+  "network error",
+  "load failed",
+  "fetch failed",
+  "socket hang up",
+  "econnreset",
+  "etimedout",
+  "aborted",
+  "the operation was aborted",
+  "502",
+  "503",
+  "504",
+  "gateway timeout",
+  "bad gateway",
+  "service unavailable",
+];
+
+function isTransient(err: unknown): boolean {
+  if (!err) return false;
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  // TypeError from window.fetch on network drop is the classic "Failed to fetch".
+  if (err instanceof TypeError) return true;
+  return TRANSIENT_PATTERNS.some((p) => msg.includes(p));
+}
+
+async function withRetry<T>(
+  label: string,
+  fn: () => Promise<T>,
+  opts: { retries?: number; baseDelayMs?: number; signal?: AbortSignal } = {},
+): Promise<T> {
+  const retries = opts.retries ?? 4;
+  const base = opts.baseDelayMs ?? 1500;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (opts.signal?.aborted) throw new Error(`${label} aborted`);
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (attempt === retries || !isTransient(err)) {
+        throw err;
+      }
+      const delay = base * Math.pow(2, attempt) + Math.random() * 500;
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[ministry-deep-dive] ${label} transient failure (attempt ${attempt + 1}/${retries + 1}), retrying in ${Math.round(delay)}ms`,
+        err,
+      );
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw lastErr;
+}
+
 export async function runMinistryDeepDiveFlow(
   countryCode: string,
   opts?: {
@@ -47,15 +94,18 @@ export async function runMinistryDeepDiveFlow(
     maxIterations?: number;
   },
 ): Promise<MinistryDeepDiveResult> {
-  const { runId, total } = await planMinistryDeepDive({
-    data: { countryCode },
-  });
+  const { runId, total } = await withRetry(
+    "plan",
+    () => planMinistryDeepDive({ data: { countryCode } }),
+    { signal: opts?.signal },
+  );
 
-  const cap = opts?.maxIterations ?? Math.max(total * 2, 30);
+  const cap = opts?.maxIterations ?? Math.max(total * 3, 40);
   let iterations = 0;
   let processed = 0;
+  let lastRemaining = total;
+  let stuckRounds = 0;
 
-  // Emit an initial progress tick so the UI shows the plan immediately.
   opts?.onProgress?.({
     runId,
     processed: 0,
@@ -67,7 +117,11 @@ export async function runMinistryDeepDiveFlow(
   while (iterations < cap) {
     if (opts?.signal?.aborted) throw new Error("Ministry deep-dive aborted");
     iterations++;
-    const step = await resolveNextMinistryDeepDive({ data: { runId } });
+    const step = await withRetry(
+      `resolve #${iterations}`,
+      () => resolveNextMinistryDeepDive({ data: { runId } }),
+      { signal: opts?.signal, retries: 5, baseDelayMs: 2000 },
+    );
     processed = Math.max(processed, (step.total ?? total) - step.remaining);
     opts?.onProgress?.({
       runId,
@@ -77,6 +131,19 @@ export async function runMinistryDeepDiveFlow(
       minister: step.minister,
     });
     if (step.remaining <= 0) break;
+
+    // Safety: if remaining hasn't dropped for several rounds, bail loudly.
+    if (step.remaining >= lastRemaining) {
+      stuckRounds++;
+      if (stuckRounds >= 5) {
+        throw new Error(
+          `Ministry deep-dive stuck: ${step.remaining} items remaining and not progressing (last slug: ${step.ministry_slug ?? "n/a"})`,
+        );
+      }
+    } else {
+      stuckRounds = 0;
+      lastRemaining = step.remaining;
+    }
   }
 
   if (iterations >= cap) {
@@ -85,5 +152,9 @@ export async function runMinistryDeepDiveFlow(
     );
   }
 
-  return await finalizeMinistryDeepDive({ data: { runId } });
+  return await withRetry(
+    "finalize",
+    () => finalizeMinistryDeepDive({ data: { runId } }),
+    { signal: opts?.signal },
+  );
 }

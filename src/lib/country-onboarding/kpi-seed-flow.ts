@@ -144,6 +144,7 @@ export async function runKpiSeedFlow(
           `KPI seed stuck: ${remaining} item(s) still pending (last KPI: ${(step as any).currentKpi ?? "n/a"})`,
         );
       }
+      await new Promise((r) => setTimeout(r, 1500));
     } else {
       stuckRounds = 0;
       lastRemaining = remaining;

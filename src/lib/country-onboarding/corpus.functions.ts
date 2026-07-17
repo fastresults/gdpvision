@@ -1044,6 +1044,13 @@ export const resolveNextKpiSeedItem = createServerFn({ method: "POST" })
     if (selErr) throw selErr;
 
     if (!pending) {
+      const staleCutoff = new Date(Date.now() - 8 * 60 * 1000).toISOString();
+      await supabaseAdmin
+        .from("kpi_seed_items")
+        .update({ status: "pending", updated_at: new Date().toISOString() })
+        .eq("run_id", data.runId)
+        .eq("status", "running")
+        .lt("updated_at", staleCutoff);
       const plan = await updateKpiSeedProgress(supabaseAdmin, data.runId, { phase: "ready_to_finalize", currentKpi: null });
       return { completed: 0, remaining: plan.pending, total: plan.total, currentKpi: null, phase: "ready_to_finalize", plan };
     }

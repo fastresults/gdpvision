@@ -392,16 +392,24 @@ export const advanceCountryOnboarding = createServerFn({ method: "POST" })
  */
 export const clearOnboardingLocks = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ countryCode: z.string().min(2).max(4) }).parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        countryCode: z.string().min(2).max(4),
+        stage: z.string().optional(),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: cleared, error } = await supabaseAdmin
+    let q = supabaseAdmin
       .from("onboarding_runs")
       .update({ status: "stale", finished_at: new Date().toISOString(), updated_at: new Date().toISOString(), error: "manually cleared" })
       .eq("country_code", data.countryCode)
-      .in("status", ["queued", "planning", "searching", "extracting", "validating"])
-      .select("id, stage, updated_at");
+      .in("status", OPEN_RUN_STATUSES as unknown as string[]);
+    if (data.stage) q = q.eq("stage", data.stage);
+    const { data: cleared, error } = await q.select("id, stage, updated_at");
     if (error) throw error;
     return { cleared: cleared?.length ?? 0, stages: (cleared ?? []).map((r: any) => r.stage) };
   });

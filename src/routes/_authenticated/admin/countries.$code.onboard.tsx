@@ -420,11 +420,16 @@ function OnboardWizard() {
             if (next.readyDraft && next.readyDraft.commit_eligible === false) {
               throw new Error(next.readyDraft.blocked_reason ?? "ready draft needs review before this stage can continue");
             }
+            const stageMeta = STAGES.find((s) => s.key === stage);
+            setRunResult(null);
+            setOpenStage(stage);
+            setActiveRun({ stage, label: `Running ${stageMeta?.label ?? stage}`, startedAt: Date.now() });
             const invoke = async () => {
               const runRes: any = await runners[stage]({ data: { countryCode: code } });
               if (stage === "capital_flows" && runRes?.coverageOk !== true) {
                 throw new Error("capital-flow draft needs review before commit");
               }
+              setActiveRun({ stage, label: `Committing ${stageMeta?.label ?? stage}`, startedAt: Date.now() });
               const draftId = await findLatestDraftId(stage);
               if (draftId) {
                 await committers[stage]({ data: { draftId } });
@@ -432,6 +437,7 @@ function OnboardWizard() {
             };
             try {
               await invoke();
+              setActiveRun(null);
             } catch (err: any) {
               // Recoverable errors we retry once:
               //  - RUN_LOCKED / "already in progress": the run row is still

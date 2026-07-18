@@ -990,10 +990,13 @@ const AskInput = z.object({
 });
 
 export interface LedgerStructuredAnswer {
+  situation?: string;
   direct_answer: string;
   key_evidence: string[];
+  so_what?: string[];
   confidence: "high" | "medium" | "low";
   caveats: string[];
+  needs_research?: boolean;
 }
 
 export interface LedgerAnswer {
@@ -1002,6 +1005,78 @@ export interface LedgerAnswer {
   structured?: LedgerStructuredAnswer | null;
   refusal_reason?: string;
   citations: FigureCitation[];
+  sources_used: { corpus: number; country_context: number; web: number };
+  extended_with_research?: boolean;
+}
+
+// ── Helpers: embeddings, semantic search, country context, deep research ─────
+
+async function embedQuery(query: string, apiKey: string): Promise<number[] | null> {
+  try {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Lovable-API-Key": apiKey,
+      },
+      body: JSON.stringify({
+        model: "openai/text-embedding-3-small",
+        input: query.slice(0, 4000),
+      }),
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { data?: Array<{ embedding: number[] }> };
+    return json.data?.[0]?.embedding ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function perplexityDeepResearch(
+  question: string,
+  countryName: string,
+  briefContext: string,
+): Promise<{ text: string; citations: string[] } | null> {
+  const key = process.env.PERPLEXITY_API_KEY;
+  if (!key) return null;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000);
+    const res = await fetch("https://api.perplexity.ai/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "sonar-reasoning-pro",
+        messages: [
+          {
+            role: "system",
+            content: `You are a McKinsey associate partner researching the economy of ${countryName}. Be precise, quantitative, cite reputable sources (IMF, World Bank, national statistics, ministry sites, ECCB, CDB, credible press). Skip Wikipedia and low-authority blogs.`,
+          },
+          {
+            role: "user",
+            content: `Country brief:\n${briefContext}\n\nQuestion: ${question}\n\nAnswer in 4-8 sentences with concrete figures, dates and cited sources.`,
+          },
+        ],
+        temperature: 0.2,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+      citations?: string[];
+    };
+    const text = json.choices?.[0]?.message?.content ?? "";
+    const citations = Array.isArray(json.citations) ? json.citations : [];
+    if (!text.trim()) return null;
+    return { text, citations };
+  } catch {
+    return null;
+  }
 }
 
 export const askTheLedger = createServerFn({ method: "POST" })
@@ -1009,6 +1084,7 @@ export const askTheLedger = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => AskInput.parse(data))
   .handler(async ({ data, context }): Promise<LedgerAnswer> => {
     const { supabase } = context;
+    const key = process.env.LOVABLE_API_KEY;
     const tokens = tokenizeQuery(data.question);
 
     const { data: suppressions } = await supabase
@@ -1018,7 +1094,32 @@ export const askTheLedger = createServerFn({ method: "POST" })
       .eq("active", true);
     const suppressed = new Set((suppressions ?? []).map((s) => s.source_id));
 
-    // Wider candidate pool; re-rank by token overlap + dedupe by source.
+    // ─── Tier 1a: semantic search (embeddings) ────────────────────────────────
+    type SemanticHit = {
+      id: string;
+      content: string;
+      distance: number;
+      source_url: string | null;
+      source_title: string | null;
+      source_org: string | null;
+      source_id: string | null;
+    };
+    let semanticHits: SemanticHit[] = [];
+    if (key) {
+      const embedding = await embedQuery(data.question, key);
+      if (embedding && embedding.length === 1536) {
+        const { data: rows } = await supabase.rpc("country_chunks_search", {
+          _country_code: data.countryCode,
+          _query_embedding: `[${embedding.join(",")}]`,
+          _limit: 12,
+        });
+        semanticHits = ((rows as SemanticHit[] | null) ?? []).filter(
+          (r) => !r.source_id || !suppressed.has(r.source_id),
+        );
+      }
+    }
+
+    // ─── Tier 1b: keyword search (fallback / augmentation) ───────────────────
     const orFilter = tokens.length
       ? tokens.map((t) => `content.ilike.%${t.replace(/[%_]/g, "")}%`).join(",")
       : null;
@@ -1026,7 +1127,7 @@ export const askTheLedger = createServerFn({ method: "POST" })
       .from("country_source_chunks")
       .select("id,content,chunk_index,document_id,country_source_documents!inner(country_source_id,title,country_sources!inner(id,url,title,org,weight))")
       .eq("country_code", data.countryCode)
-      .limit(60);
+      .limit(40);
     if (orFilter) chunkQuery = chunkQuery.or(orFilter);
     const { data: chunkRows } = await chunkQuery;
 
@@ -1041,98 +1142,202 @@ export const askTheLedger = createServerFn({ method: "POST" })
       } | null;
     };
 
-    const rankedChunks = ((chunkRows as unknown as ChunkRow[] | null) ?? [])
-      .filter((c) => {
-        const sid = c.country_source_documents?.country_sources.id ?? null;
-        return !sid || !suppressed.has(sid);
-      })
-      .map((c) => {
-        const content = (c.content ?? "").toLowerCase();
-        let overlap = 0;
-        for (const t of tokens) if (content.includes(t)) overlap += 1;
-        const w = Number(c.country_source_documents?.country_sources.weight ?? 0);
-        return { c, score: overlap * 10 + w };
-      })
-      .sort((a, b) => b.score - a.score);
-
-    // Dedupe: max 2 chunks per source.
-    const perSource = new Map<string, number>();
-    const picked: ChunkRow[] = [];
-    for (const { c } of rankedChunks) {
-      const sid = c.country_source_documents?.country_sources.id ?? c.id;
-      const used = perSource.get(sid) ?? 0;
-      if (used >= 2) continue;
-      perSource.set(sid, used + 1);
-      picked.push(c);
-      if (picked.length >= 8) break;
+    // Merge: semantic hits (score by inverse distance) + keyword hits (score by overlap).
+    type Scored = { id: string; content: string; score: number; source_id: string | null; url: string | null; title: string; org: string | null };
+    const scored = new Map<string, Scored>();
+    for (const h of semanticHits) {
+      const sim = 1 - Math.min(1, Math.max(0, h.distance));
+      scored.set(h.id, {
+        id: h.id,
+        content: h.content ?? "",
+        score: sim * 100, // semantic weighted heavily
+        source_id: h.source_id,
+        url: h.source_url,
+        title: h.source_title ?? "Source document",
+        org: h.source_org,
+      });
+    }
+    for (const c of ((chunkRows as unknown as ChunkRow[] | null) ?? [])) {
+      const sid = c.country_source_documents?.country_sources.id ?? null;
+      if (sid && suppressed.has(sid)) continue;
+      const content = (c.content ?? "").toLowerCase();
+      let overlap = 0;
+      for (const t of tokens) if (content.includes(t)) overlap += 1;
+      const w = Number(c.country_source_documents?.country_sources.weight ?? 0);
+      const existing = scored.get(c.id);
+      const kwScore = overlap * 10 + w;
+      if (existing) {
+        existing.score += kwScore;
+      } else if (overlap > 0) {
+        scored.set(c.id, {
+          id: c.id,
+          content: c.content ?? "",
+          score: kwScore,
+          source_id: sid,
+          url: c.country_source_documents?.country_sources.url ?? null,
+          title:
+            c.country_source_documents?.country_sources.title ??
+            c.country_source_documents?.title ??
+            "Source document",
+          org: c.country_source_documents?.country_sources.org ?? null,
+        });
+      }
     }
 
-    const chunks: FigureCitation[] = picked.map((c, i) => ({
+    // Dedupe max 2 per source, cap at 8 chunks.
+    const perSource = new Map<string, number>();
+    const pickedChunks: Scored[] = [];
+    for (const s of Array.from(scored.values()).sort((a, b) => b.score - a.score)) {
+      const key = s.source_id ?? s.id;
+      const used = perSource.get(key) ?? 0;
+      if (used >= 2) continue;
+      perSource.set(key, used + 1);
+      pickedChunks.push(s);
+      if (pickedChunks.length >= 8) break;
+    }
+
+    const chunks: FigureCitation[] = pickedChunks.map((c, i) => ({
       n: i + 1,
       kind: "chunk" as const,
-      title:
-        c.country_source_documents?.country_sources.title ??
-        c.country_source_documents?.title ??
-        "Source document",
-      url: c.country_source_documents?.country_sources.url ?? null,
-      org: c.country_source_documents?.country_sources.org ?? null,
-      source_id: c.country_source_documents?.country_sources.id ?? null,
+      title: c.title,
+      url: c.url,
+      org: c.org,
+      source_id: c.source_id,
       excerpt: (c.content ?? "").slice(0, 400),
     }));
 
-    // Anchor with canonical figures: KPIs and (optionally) sector dossier.
-    const [{ data: kpiRows }, { data: dossierRow }] = await Promise.all([
+    // ─── Tier 2: whole-country context (always included) ─────────────────────
+    const [
+      { data: countryRow },
+      { data: kpiRows },
+      { data: sectorRows },
+      { data: dossierRows },
+      { data: ministryRows },
+      { data: exposureRow },
+    ] = await Promise.all([
+      supabase
+        .from("countries")
+        .select("code,name,currency,is_cbi_state,country_pack")
+        .eq("code", data.countryCode)
+        .maybeSingle(),
       supabase
         .from("country_kpis")
         .select("kpi_code,label,latest_value,unit,latest_period,target")
         .eq("country_code", data.countryCode)
+        .limit(40),
+      supabase
+        .from("country_sectors")
+        .select("sector_code,share_pct,confidence_grade")
+        .eq("country_code", data.countryCode),
+      supabase
+        .from("sector_dossiers")
+        .select("sector_code,payload")
+        .eq("country_code", data.countryCode)
         .limit(20),
-      data.sectorCode
-        ? supabase
-            .from("sector_dossiers")
-            .select("sector_code,payload")
-            .eq("country_code", data.countryCode)
-            .eq("sector_code", data.sectorCode)
-            .maybeSingle()
-        : Promise.resolve({ data: null } as { data: null }),
+      supabase
+        .from("ministry_profiles")
+        .select("ministry_slug,minister,minister_profile,mandate")
+        .eq("country_code", data.countryCode)
+        .limit(20),
+      supabase
+        .from("exposure_index")
+        .select("period,value,confidence_grade")
+        .eq("country_code", data.countryCode)
+        .order("period", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
+    const countryName = countryRow?.name ?? data.countryCode;
     const anchors: FigureCitation[] = [];
+    let anchorIdx = chunks.length;
+
     if (kpiRows && kpiRows.length > 0) {
-      const lowerQ = data.question.toLowerCase();
       const kpiText = kpiRows
-        .filter((k) => {
-          const label = String(k.label ?? "").toLowerCase();
-          return tokens.some((t) => label.includes(t)) || tokens.length === 0 || lowerQ.includes(String(k.kpi_code ?? "").toLowerCase());
-        })
-        .slice(0, 8)
+        .slice(0, 24)
         .map((k) => `${k.label ?? k.kpi_code}: ${k.latest_value ?? "—"} ${k.unit ?? ""} (${k.latest_period ?? "n/a"}${k.target != null ? `, target ${k.target}` : ""})`)
         .join("; ");
       if (kpiText) {
+        anchorIdx += 1;
         anchors.push({
-          n: chunks.length + anchors.length + 1,
+          n: anchorIdx,
           kind: "memory",
-          title: "Country KPIs (canonical)",
+          title: `${countryName} — Canonical KPIs`,
           url: null,
           org: "ledger",
           source_id: null,
-          excerpt: kpiText.slice(0, 500),
+          excerpt: kpiText.slice(0, 1200),
         });
       }
     }
-    if (dossierRow) {
-      const d = dossierRow as { sector_code: string; payload: unknown };
-      const excerpt = JSON.stringify(d.payload ?? {}).slice(0, 500);
+
+    if (sectorRows && sectorRows.length > 0) {
+      const sectorText = sectorRows
+        .map((s) => `${s.sector_code}: ${Number(s.share_pct).toFixed(1)}% (grade ${s.confidence_grade})`)
+        .join("; ");
+      anchorIdx += 1;
+      anchors.push({
+        n: anchorIdx,
+        kind: "memory",
+        title: `${countryName} — GDP Composition`,
+        url: null,
+        org: "ledger",
+        source_id: null,
+        excerpt: sectorText.slice(0, 800),
+      });
+    }
+
+    if (exposureRow) {
+      anchorIdx += 1;
+      anchors.push({
+        n: anchorIdx,
+        kind: "memory",
+        title: `${countryName} — Exposure Index`,
+        url: null,
+        org: "ledger",
+        source_id: null,
+        excerpt: `Period ${exposureRow.period}: ${Number(exposureRow.value).toFixed(2)} (grade ${exposureRow.confidence_grade})`,
+      });
+    }
+
+    for (const d of (dossierRows ?? [])) {
+      const payload = (d as { sector_code: string; payload: unknown }).payload;
+      const excerpt = JSON.stringify(payload ?? {}).slice(0, 700);
       if (excerpt && excerpt !== "{}") {
+        anchorIdx += 1;
         anchors.push({
-          n: chunks.length + anchors.length + 1,
+          n: anchorIdx,
           kind: "memory",
-          title: `Sector dossier · ${d.sector_code}`,
+          title: `Sector dossier · ${(d as { sector_code: string }).sector_code}`,
           url: null,
           org: "dossier",
           source_id: null,
           excerpt,
         });
+        if (anchors.length > 12) break;
+      }
+    }
+
+    for (const m of (ministryRows ?? [])) {
+      const row = m as { ministry_slug: string; minister: string | null; minister_profile: unknown; mandate: string | null };
+      const mp = (row.minister_profile ?? {}) as { name?: string; party?: string };
+      const excerpt = [
+        row.minister ? `Minister: ${row.minister}` : mp?.name ? `Minister: ${mp.name}` : null,
+        mp?.party ? `Party: ${mp.party}` : null,
+        row.mandate ? `Mandate: ${row.mandate}` : null,
+      ].filter(Boolean).join(" · ").slice(0, 500);
+      if (excerpt) {
+        anchorIdx += 1;
+        anchors.push({
+          n: anchorIdx,
+          kind: "memory",
+          title: `Ministry · ${row.ministry_slug}`,
+          url: null,
+          org: "ministry",
+          source_id: null,
+          excerpt,
+        });
+        if (anchors.length > 20) break;
       }
     }
 
@@ -1141,104 +1346,185 @@ export const askTheLedger = createServerFn({ method: "POST" })
       .select("id,title,kind,sector_code,weight,payload,source_id")
       .in("scope_key", [data.countryCode, "REGIONAL"])
       .order("weight", { ascending: false })
-      .limit(20);
+      .limit(10);
     if (data.sectorCode) memQuery = memQuery.eq("sector_code", data.sectorCode);
     const { data: memRows } = await memQuery;
-    const memories: FigureCitation[] = (memRows ?? [])
-      .filter((m) => !m.source_id || !suppressed.has(m.source_id))
-      .slice(0, 3)
-      .map((m, i) => ({
-        n: chunks.length + anchors.length + i + 1,
-        kind: "memory" as const,
+    for (const m of (memRows ?? []).slice(0, 4)) {
+      if (m.source_id && suppressed.has(m.source_id)) continue;
+      anchorIdx += 1;
+      anchors.push({
+        n: anchorIdx,
+        kind: "memory",
         title: m.title,
         url: null,
         org: m.kind,
         source_id: m.source_id,
-        excerpt: JSON.stringify(m.payload ?? {}).slice(0, 300),
-      }));
-
-    const citations = [...chunks, ...anchors, ...memories];
-    if (citations.length === 0) {
-      return {
-        grounded: false,
-        answer: null,
-        refusal_reason: "The Second Brain has no matching evidence for this question yet.",
-        citations: [],
-      };
+        excerpt: JSON.stringify(m.payload ?? {}).slice(0, 400),
+      });
     }
 
-    const key = process.env.LOVABLE_API_KEY;
     if (!key) {
+      const citations = [...chunks, ...anchors];
       return {
         grounded: false,
         answer: null,
         refusal_reason: "AI gateway unavailable — retrieved sources only.",
         citations,
+        sources_used: { corpus: chunks.length, country_context: anchors.length, web: 0 },
       };
     }
 
-    const contextBlock = citations
-      .map((c) => `[${c.n}] (${c.kind}·${c.org ?? "n/a"}) ${c.title}\n${c.excerpt}`)
-      .join("\n\n");
+    // ─── First model pass: corpus + country context ──────────────────────────
+    const buildContextBlock = (all: FigureCitation[]): string =>
+      all.map((c) => `[${c.n}] (${c.kind}·${c.org ?? "n/a"}) ${c.title}\n${c.excerpt}`).join("\n\n");
 
     const system = [
-      "ROLE: You are the National Ledger's steward. Answer like a McKinsey associate partner — precise, quantitative, disciplined.",
+      "ROLE: You are the National Ledger's steward. Answer like a McKinsey associate partner — precise, quantitative, disciplined, structured.",
       "",
-      "RULES (violating any rule = failed answer):",
-      "1. Answer ONLY the exact question asked. Do NOT volunteer recommendations, opinions, next steps, or strategic advice unless the user explicitly asked for them.",
-      "2. Use ONLY facts present in CONTEXT. Every numeric, name, or date claim MUST carry a [N] citation matching a CONTEXT item.",
-      "3. If CONTEXT does not contain the answer, set direct_answer to exactly: \"The Second Brain has no grounded evidence for this question.\" and confidence to \"low\".",
-      "4. No hedging, no filler (\"it is important to note…\"), no restating the question.",
-      "5. Prefer numbers over adjectives. Round consistently.",
+      "EVIDENCE HIERARCHY:",
+      "• CHUNK citations = primary evidence (highest weight). Every numeric/name/date claim must carry a matching [N] chunk citation when possible.",
+      "• MEMORY citations = canonical country facts (KPIs, composition, dossiers, ministries). You MAY reason from these to synthesize context, framing, and 'so what' when chunks don't fully answer.",
+      "• WEB citations = external research (only present when supplied). Cite with [N] like any other source.",
       "",
-      "FORMAT: Return ONLY a JSON object (no prose, no markdown fences) with these keys:",
+      "RULES:",
+      "1. Answer ONLY the exact question asked; do not volunteer strategy unless asked.",
+      "2. Prefer numbers over adjectives. Round consistently. State the period.",
+      "3. If neither chunks nor memory contain enough to answer, set needs_research=true and write a 1-sentence provisional answer based on memory + your general knowledge of the region, flagged as low confidence.",
+      "4. NEVER refuse. Always produce the best answer the available evidence supports; use caveats to flag thin evidence.",
+      "5. No hedging filler ('it is important to note'). No restating the question.",
+      "",
+      "FORMAT: Return ONLY a JSON object (no prose, no fences) with keys:",
       "{",
-      "  \"direct_answer\": string (≤60 words, the single crisp answer, with [N] citations),",
-      "  \"key_evidence\": string[] (2-4 bullets, each ≤25 words with at least one [N] citation),",
+      "  \"situation\": string (≤25 words framing the question in country context, cite [N] where possible),",
+      "  \"direct_answer\": string (≤60 words, single crisp answer with [N] citations),",
+      "  \"key_evidence\": string[] (2-4 bullets, each ≤25 words with ≥1 [N] citation when possible),",
+      "  \"so_what\": string[] (0-3 bullets of implication — ≤20 words each),",
       "  \"confidence\": \"high\" | \"medium\" | \"low\",",
-      "  \"caveats\": string[] (0-2 items, only when CONTEXT is thin)",
+      "  \"caveats\": string[] (0-2 items),",
+      "  \"needs_research\": boolean (true only when chunks + memory can't ground a numeric answer)",
       "}",
     ].join("\n");
 
-    try {
-      const gateway = createLovableAiGatewayProvider(key);
-      const result = await generateText({
-        model: gateway("google/gemini-3.5-flash"),
-        system,
-        prompt: `Question: ${data.question}\n\nCONTEXT:\n${contextBlock}\n\nReturn ONLY the JSON object now.`,
-      });
-      const raw = (result.text ?? "").trim();
-      const structured = parseStructuredAnswer(raw);
-      if (structured) {
-        const combined = [
-          structured.direct_answer,
-          structured.key_evidence.length ? "\n\nEvidence:\n" + structured.key_evidence.map((e) => `• ${e}`).join("\n") : "",
-        ].join("");
-        const grounded = /\[\d+\]/.test(combined) && !/no grounded evidence/i.test(structured.direct_answer);
-        return {
-          grounded,
-          answer: combined,
-          structured,
-          refusal_reason: grounded ? undefined : structured.direct_answer,
-          citations,
-        };
+    let citations: FigureCitation[] = [...chunks, ...anchors];
+    let structured: LedgerStructuredAnswer | null = null;
+    let extendedWithResearch = false;
+
+    async function runModel(cits: FigureCitation[]): Promise<LedgerStructuredAnswer | null> {
+      try {
+        const gateway = createLovableAiGatewayProvider(key!);
+        const result = await generateText({
+          model: gateway("google/gemini-3.5-flash"),
+          system,
+          prompt: `Question: ${data.question}\n\nCONTEXT:\n${buildContextBlock(cits)}\n\nReturn ONLY the JSON object now.`,
+        });
+        return parseStructuredAnswer((result.text ?? "").trim());
+      } catch (err) {
+        const status = (err as { statusCode?: number }).statusCode;
+        if (status === 429) throw new Error("Ledger AI rate limit — try again shortly.");
+        if (status === 402) throw new Error("Lovable AI credits exhausted — top up in workspace billing.");
+        throw err;
       }
-      // Fallback: treat raw text as legacy answer.
-      const grounded = raw.length > 0 && /\[\d+\]/.test(raw);
-      return {
-        grounded,
-        answer: raw || null,
-        structured: null,
-        refusal_reason: grounded ? undefined : "Model returned no structured answer.",
-        citations,
-      };
-    } catch (err) {
-      const status = (err as { statusCode?: number }).statusCode;
-      if (status === 429) throw new Error("Ledger AI rate limit — try again shortly.");
-      if (status === 402) throw new Error("Lovable AI credits exhausted — top up in workspace billing.");
-      throw err;
     }
+
+    structured = await runModel(citations);
+
+    // ─── Tier 3: deep web research (only when the model flags it or refuses) ─
+    const noCitedNumeric = structured && !/\[\d+\]/.test(structured.direct_answer);
+    const modelWantsResearch = structured?.needs_research === true;
+    const shouldEscalate = !structured || modelWantsResearch || noCitedNumeric || chunks.length === 0;
+
+    if (shouldEscalate) {
+      const brief = [
+        `Country: ${countryName} (${data.countryCode})`,
+        countryRow?.currency ? `Currency: ${countryRow.currency}` : "",
+        countryRow?.is_cbi_state ? "CBI state: yes" : "",
+        anchors.slice(0, 4).map((a) => `• ${a.title}: ${a.excerpt}`).join("\n"),
+      ].filter(Boolean).join("\n");
+      const research = await perplexityDeepResearch(data.question, countryName, brief);
+      if (research) {
+        extendedWithResearch = true;
+        const webCitations: FigureCitation[] = research.citations.slice(0, 6).map((url, i) => {
+          try {
+            const u = new URL(url);
+            return {
+              n: citations.length + i + 1,
+              kind: "web" as const,
+              title: u.hostname.replace(/^www\./, ""),
+              url,
+              org: "web",
+              source_id: null,
+              excerpt: url,
+            };
+          } catch {
+            return {
+              n: citations.length + i + 1,
+              kind: "web" as const,
+              title: "Web source",
+              url: null,
+              org: "web",
+              source_id: null,
+              excerpt: url,
+            };
+          }
+        });
+
+        const researchAnchor: FigureCitation = {
+          n: citations.length + webCitations.length + 1,
+          kind: "web",
+          title: "Deep research synthesis",
+          url: null,
+          org: "perplexity",
+          source_id: null,
+          excerpt: research.text
+            .replace(/<think>[\s\S]*?<\/think>/gi, "")
+            .replace(/\s+/g, " ")
+            .slice(0, 1400),
+        };
+
+        citations = [...citations, ...webCitations, researchAnchor];
+        const secondPass = await runModel(citations);
+        if (secondPass) structured = secondPass;
+      }
+    }
+
+    if (!structured) {
+      return {
+        grounded: false,
+        answer: null,
+        refusal_reason: "Model returned no structured answer.",
+        citations,
+        sources_used: {
+          corpus: chunks.length,
+          country_context: anchors.length,
+          web: citations.filter((c) => c.kind === "web").length,
+        },
+        extended_with_research: extendedWithResearch,
+      };
+    }
+
+    const combined = [
+      structured.situation ? `${structured.situation}\n\n` : "",
+      structured.direct_answer,
+      structured.key_evidence.length ? "\n\nEvidence:\n" + structured.key_evidence.map((e) => `• ${e}`).join("\n") : "",
+      structured.so_what?.length ? "\n\nSo what:\n" + structured.so_what.map((e) => `• ${e}`).join("\n") : "",
+    ].join("");
+    const grounded = /\[\d+\]/.test(combined);
+
+    return {
+      grounded,
+      answer: combined,
+      structured,
+      refusal_reason: grounded ? undefined : "Answer is provisional — no citation could be anchored.",
+      citations,
+      sources_used: {
+        corpus: chunks.length,
+        country_context: anchors.length,
+        web: citations.filter((c) => c.kind === "web").length,
+      },
+      extended_with_research: extendedWithResearch,
+    };
   });
+
 
 function parseStructuredAnswer(raw: string): LedgerStructuredAnswer | null {
   if (!raw) return null;

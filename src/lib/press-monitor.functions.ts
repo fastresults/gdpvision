@@ -238,3 +238,45 @@ Only include feeds you have real evidence for. No commentary.`;
       return { suggestions: [] };
     }
   });
+
+// ─── Layer 4 · run source discovery for one country (admin/country_admin) ───
+
+export const discoverSources = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ countryCode: z.string(), countryName: z.string() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: role } = await context.supabase.rpc("has_country_role", {
+      _user_id: context.userId,
+      _role: "country_admin",
+      _country_code: data.countryCode,
+    });
+    if (!role) throw new Error("Only country admins can discover sources.");
+    const { discoverForCountry } = await import("@/lib/press-discover.server");
+    return await discoverForCountry(data.countryCode, data.countryName);
+  });
+
+// ─── Coverage for the most recent run (per country) ─────────────────────────
+
+export interface CoverageCell {
+  local: number;
+  regional: number;
+  international: number;
+  total: number;
+}
+
+export const coverageFor = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .handler(async ({ data, context }): Promise<CoverageCell> => {
+    const { data: run } = await context.supabase
+      .from("narrative_harvest_runs")
+      .select("coverage")
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const cov = ((run?.coverage ?? {}) as Record<string, CoverageCell>)[data.countryCode];
+    return cov ?? { local: 0, regional: 0, international: 0, total: 0 };
+  });
+

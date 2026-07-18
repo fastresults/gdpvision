@@ -177,7 +177,6 @@ function Builder() {
     for (const [slug, locked] of Object.entries(locks)) if (locked) d[slug] = levers[slug];
     setGhostPath(current.output.gdpGrowthPath);
     setLevers(d);
-    scheduleRun(d, horizonYears);
   }
 
   function applyComposition(ids: Set<string>) {
@@ -194,7 +193,6 @@ function Builder() {
     for (const [slug, locked] of Object.entries(locks)) if (locked) composed[slug] = levers[slug];
     setGhostPath(current.output.gdpGrowthPath);
     setLevers(composed);
-    scheduleRun(composed, horizonYears);
   }
 
   function resetDefaults() {
@@ -203,7 +201,6 @@ function Builder() {
     setGhostPath(current.output.gdpGrowthPath);
     setActivePlaybookIds(new Set(["baseline"]));
     setLevers(d);
-    scheduleRun(d, horizonYears);
   }
   function resetLever(slug: string) {
     const def = init.leverDefs.find((d) => d.slug === slug);

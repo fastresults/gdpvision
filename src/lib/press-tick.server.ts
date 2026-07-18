@@ -116,7 +116,8 @@ export async function runPressTick(opts: {
     // Fair per-country slice: pull the newest N per country from state=new
     // so a burst from one country cannot starve the classification queue.
     const perCountryFetch = 40;
-    const perCountryPool = new Map<string, Array<{ id: string; country_code: string; url: string | null; title: string; raw_excerpt: string | null }>>();
+    type PoolItem = { id: string; country_code: string; url: string | null; title: string; raw_excerpt: string | null };
+    const perCountryPool = new Map<string, PoolItem[]>();
     const targetCountries = filterCountry ? [filterCountry] : Array.from(universe);
     await pMap(targetCountries, async (cc) => {
       const { data } = await supabaseAdmin
@@ -126,7 +127,14 @@ export async function runPressTick(opts: {
         .eq("country_code", cc)
         .order("fetched_at", { ascending: false })
         .limit(perCountryFetch);
-      if (data && data.length) perCountryPool.set(cc, data);
+      const rows: PoolItem[] = (data ?? []).map((r) => ({
+        id: r.id as string,
+        country_code: r.country_code as string,
+        url: (r.url as string | null) ?? null,
+        title: (r.title as string | null) ?? "",
+        raw_excerpt: (r.raw_excerpt as string | null) ?? null,
+      }));
+      if (rows.length) perCountryPool.set(cc, rows);
     }, 8);
 
     const canonSet = new Set<string>();

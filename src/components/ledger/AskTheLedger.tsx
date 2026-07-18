@@ -405,24 +405,62 @@ function IconButton({
 
 function TurnBlock({
   turn,
+  countryCode,
+  countryName,
+  loading,
+  onCancel,
   onPin,
   pinPending,
   onCopy,
   onRegenerate,
+  onToggleArtifact,
 }: {
   turn: Turn;
+  countryCode: string;
+  countryName: string;
+  loading: boolean;
+  onCancel?: () => void;
   onPin: () => void;
   pinPending: boolean;
   onCopy: () => void;
   onRegenerate: () => void;
+  onToggleArtifact: (kind: LedgerArtifactKind) => void;
 }) {
   const s = turn.answer?.structured ?? null;
+  const activeArtifacts = new Set<LedgerArtifactKind>(turn.artifacts ?? []);
+  const sourceAnswerText = turn.answer
+    ? s
+      ? [
+          s.situation,
+          s.direct_answer,
+          s.key_evidence.length ? "Evidence:\n" + s.key_evidence.map((e) => `• ${e}`).join("\n") : "",
+          s.so_what?.length ? "So What:\n" + s.so_what.map((e) => `• ${e}`).join("\n") : "",
+          s.caveats.length ? "Caveats:\n" + s.caveats.map((c) => `• ${c}`).join("\n") : "",
+        ]
+          .filter(Boolean)
+          .join("\n\n")
+      : (turn.answer.answer ?? "")
+    : "";
+  const canExpand = !!turn.answer?.grounded && !!turn.answer?.answer;
+
   return (
     <div className="border-l-2 border-line-200 pl-3">
       <p className="text-sm font-medium text-ink-950">{turn.question}</p>
 
+      {loading && !turn.answer && (
+        <div className="mt-3">
+          <AskProgress question={turn.question} onCancel={onCancel} finalized={null} />
+        </div>
+      )}
+
       {turn.error && <p className="mt-2 text-xs text-red-700">{turn.error}</p>}
 
+      {turn.answer && (
+        <></>
+      )}
+      {turn.answer && (
+        <></>
+      )}
       {turn.answer && (
         <>
           {(turn.answer.extended_with_research || (turn.answer.sources_used?.web ?? 0) > 0) && (

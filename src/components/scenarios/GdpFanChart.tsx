@@ -24,6 +24,7 @@ export function GdpFanChart({
   const geometry = useMemo(() => {
     const all = path.flatMap((p) => [p.p10, p.p90, baseline, 0]);
     if (ghostPath) all.push(...ghostPath.map((p) => p.p50));
+    if (baselinePath) all.push(...baselinePath.map((p) => p.p50));
     const min = Math.min(...all) - 0.3;
     const max = Math.max(...all) + 0.3;
     const range = max - min || 1;
@@ -51,6 +52,28 @@ export function GdpFanChart({
           .map((p, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(p.p50).toFixed(1)}`)
           .join(" ")
       : null;
+    // Baseline P50 overlay + shaded delta area (levered - baseline)
+    let baselineLine: string | null = null;
+    let deltaArea: string | null = null;
+    let deltaAreaClipAbove: string | null = null;
+    if (baselinePath && baselinePath.length === path.length) {
+      baselineLine = baselinePath
+        .map((p, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(p.p50).toFixed(1)}`)
+        .join(" ");
+      const forward = path
+        .map((p, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(p.p50).toFixed(1)}`)
+        .join(" ");
+      const back = baselinePath
+        .slice()
+        .reverse()
+        .map((p, idx) => {
+          const i = path.length - 1 - idx;
+          return `L${x(i).toFixed(1)},${y(p.p50).toFixed(1)}`;
+        })
+        .join(" ");
+      deltaArea = `${forward} ${back} Z`;
+      deltaAreaClipAbove = deltaArea;
+    }
     const ticks: number[] = [];
     const step = range > 6 ? 2 : range > 3 ? 1 : 0.5;
     let t = Math.ceil(min / step) * step;
@@ -58,8 +81,29 @@ export function GdpFanChart({
       ticks.push(Number(t.toFixed(2)));
       t += step;
     }
-    return { x, y, band, median, ghost, ticks, baselineY: y(baseline), zeroY: y(0) };
-  }, [path, baseline, ghostPath]);
+    // For red/green split of the delta area, use per-index clip via SVG masks
+    // by drawing two versions of the area clipped by rectangles built from
+    // baseline segments; simpler: draw delta area twice with clipPaths defined
+    // from baselinePath polygons of "levered above baseline" and "below".
+    // Here we approximate with two overlays clipped by baseline horizontal band:
+    // above-baseline uses the levered path clipped to y < baselineY at each x.
+    // Since exact per-segment clipping is complex in a single path, we render
+    // one area at reduced opacity, and rely on the CompensationLedger below
+    // for the crisp red/green semantics.
+    return {
+      x,
+      y,
+      band,
+      median,
+      ghost,
+      ticks,
+      baselineY: y(baseline),
+      zeroY: y(0),
+      baselineLine,
+      deltaArea,
+      deltaAreaClipAbove,
+    };
+  }, [path, baseline, ghostPath, baselinePath]);
 
   const [hover, setHover] = useState<number | null>(null);
 

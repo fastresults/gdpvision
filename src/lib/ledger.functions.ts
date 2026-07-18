@@ -1488,42 +1488,116 @@ export const askTheLedger = createServerFn({ method: "POST" })
     }
 
     if (!structured) {
+      const prunedFallback = pruneCitations(null, "", citations);
       return {
         grounded: false,
         answer: null,
         refusal_reason: "Model returned no structured answer.",
-        citations,
-        sources_used: {
-          corpus: chunks.length,
-          country_context: anchors.length,
-          web: citations.filter((c) => c.kind === "web").length,
-        },
+        citations: prunedFallback.activeCitations,
+        sources_used: countSourcesUsed(prunedFallback.activeCitations),
         extended_with_research: extendedWithResearch,
       };
     }
 
+    const pruned = pruneCitations(structured, "", citations);
+    const activeStructured = pruned.structured ?? structured;
     const combined = [
-      structured.situation ? `${structured.situation}\n\n` : "",
-      structured.direct_answer,
-      structured.key_evidence.length ? "\n\nEvidence:\n" + structured.key_evidence.map((e) => `• ${e}`).join("\n") : "",
-      structured.so_what?.length ? "\n\nSo what:\n" + structured.so_what.map((e) => `• ${e}`).join("\n") : "",
+      activeStructured.situation ? `${activeStructured.situation}\n\n` : "",
+      activeStructured.direct_answer,
+      activeStructured.key_evidence.length ? "\n\nEvidence:\n" + activeStructured.key_evidence.map((e) => `• ${e}`).join("\n") : "",
+      activeStructured.so_what?.length ? "\n\nSo what:\n" + activeStructured.so_what.map((e) => `• ${e}`).join("\n") : "",
     ].join("");
     const grounded = /\[\d+\]/.test(combined);
 
     return {
       grounded,
       answer: combined,
-      structured,
+      structured: activeStructured,
       refusal_reason: grounded ? undefined : "Answer is provisional — no citation could be anchored.",
-      citations,
-      sources_used: {
-        corpus: chunks.length,
-        country_context: anchors.length,
-        web: citations.filter((c) => c.kind === "web").length,
-      },
+      citations: pruned.activeCitations,
+      sources_used: countSourcesUsed(pruned.activeCitations),
       extended_with_research: extendedWithResearch,
     };
   });
+
+function countSourcesUsed(cs: FigureCitation[]) {
+  return {
+    corpus: cs.filter((c) => c.kind === "chunk").length,
+    country_context: cs.filter((c) => c.kind === "memory").length,
+    web: cs.filter((c) => c.kind === "web" || c.kind === "citation").length,
+  };
+}
+
+// Prune citations to only those actually referenced in the structured answer
+// (or the fallback text), drop blank ones, and renumber sequentially so the
+// [N] markers and the source list stay in lockstep.
+function pruneCitations(
+  s: LedgerStructuredAnswer | null,
+  fallbackText: string,
+  all: FigureCitation[],
+): { structured: LedgerStructuredAnswer | null; activeCitations: FigureCitation[] } {
+  const byN = new Map(all.map((c) => [c.n, c]));
+  const isBlank = (c: FigureCitation | undefined) =>
+    !c || (!c.title?.trim() && !c.url?.trim() && !c.excerpt?.trim());
+
+  // Collect all [N] references in first-appearance order across every field.
+  const orderedOld: number[] = [];
+  const seen = new Set<number>();
+  const scan = (txt: string | undefined | null) => {
+    if (!txt) return;
+    const re = /\[(\d+)\]/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(txt))) {
+      const n = Number(m[1]);
+      if (seen.has(n)) continue;
+      const c = byN.get(n);
+      if (isBlank(c)) continue; // drop empties even when referenced
+      seen.add(n);
+      orderedOld.push(n);
+    }
+  };
+  if (s) {
+    scan(s.situation);
+    scan(s.direct_answer);
+    s.key_evidence.forEach(scan);
+    s.so_what?.forEach(scan);
+    s.caveats.forEach(scan);
+  }
+  scan(fallbackText);
+
+  const remap = new Map<number, number>();
+  orderedOld.forEach((oldN, i) => remap.set(oldN, i + 1));
+
+  const rewrite = (txt: string | undefined): string | undefined => {
+    if (!txt) return txt;
+    return txt.replace(/\[(\d+)\]/g, (_, d) => {
+      const n = Number(d);
+      const mapped = remap.get(n);
+      if (mapped) return `[${mapped}]`;
+      // Referenced but blank/missing citation — strip the marker.
+      return "";
+    }).replace(/\s{2,}/g, " ").replace(/\s+([.,;:!?])/g, "$1");
+  };
+
+  const activeCitations: FigureCitation[] = orderedOld.map((oldN, i) => {
+    const c = byN.get(oldN)!;
+    return { ...c, n: i + 1 };
+  });
+
+  const structured: LedgerStructuredAnswer | null = s
+    ? {
+        ...s,
+        situation: rewrite(s.situation),
+        direct_answer: rewrite(s.direct_answer) ?? s.direct_answer,
+        key_evidence: s.key_evidence.map((e) => rewrite(e) ?? e),
+        so_what: s.so_what?.map((e) => rewrite(e) ?? e),
+        caveats: s.caveats.map((e) => rewrite(e) ?? e),
+      }
+    : null;
+
+  return { structured, activeCitations };
+}
+
 
 
 function parseStructuredAnswer(raw: string): LedgerStructuredAnswer | null {

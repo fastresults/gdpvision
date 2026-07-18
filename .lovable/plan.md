@@ -1,108 +1,119 @@
+# Chamber 05 · Automated Press Monitoring
 
-# Chamber 05 — The Narrative Chamber (rebuild)
+A twice-daily (07:00 & 19:00 local) harvester that pulls open press + gov + multilateral streams for every onboarded country, dedupes & AI-classifies each item against the country's ministries and GDP sectors, and lands it in the Signal Radar you already built — ready to triage.
 
-## Why this rebuild
+## 1 · What we listen to (all public, no paid keys)
 
-Today's `/narrative/*` surface is generic (workspace-wide), tab-heavy, and disconnected from the country context that Chambers 01–04 established. It exposes primitives (intake, queue, strategy, comms, coverage) but not a *workflow*. A Prime Minister's press office needs a **single, guided canvas** that takes a raw local/regional/international signal and converts it into an approved, on-message, cited statement inside one working day.
+Each country carries a **feed registry**. Sources are grouped by scope so the Radar can filter cleanly:
 
-We keep the existing server functions and DB tables (`intake_items`, `strategy_statements`, `comms_artifacts`, `narrative_lineage`, `memory_objects`) and rebuild the UX + a few new server functions on top.
+| Scope | Streams |
+| --- | --- |
+| Local | Country gov press pages (per-ministry), national newspapers/TV RSS, official gazettes, central-bank news, national statistical office news |
+| Regional | CARICOM, OECS, ECCB, CDB, OAS press rooms; regional wires (Caribbean Media Corp, Loop, Jamaica Observer, Trinidad Guardian, Barbados Today) |
+| International | IMF/World Bank/UN/UNDP/UNCTAD press RSS + country pages, Reuters/AP topic feeds, Google News RSS (`when:12h` per-country query), GDELT DOC 2.0 (per-country ISO), OFAC/FATF updates |
 
-## Design principles (match Chambers 03/04)
+Feed formats we support at ingest: RSS/Atom, JSON feeds, Google News RSS, GDELT DOC API, and generic HTML (scraped through Firecrawl — the connector is already wired).
 
-- **Country-scoped route** `/admin/countries/$code/narrative` (not global `/narrative`) — returns to onboarding via `returnCode`.
-- **Two-rail McKinsey shell**: left = Active Signals rail (CRUD like Chamber 04 threats); right = 4-Act workspace.
-- **Guided Journey bar** (sticky top): Act 1 Monitor → Act 2 Triage → Act 3 Position → Act 4 Publish. Progress ticks per signal.
-- **Guidance banners + ExplainHover (3.5s)** on every panel — reuse `explain-copy.ts` primitives from Chamber 04.
-- **Grounded AI** — every generated line carries a `[N]` citation into the country's second brain / source registry (reuse `country_sources` + `citations` pattern).
+Two things make the source list scale:
+- A **seeded catalogue** (below) covers every onboarded country on day one.
+- Country admins can add/mute sources in a new **Signal Sources** tab inside Chamber 5 without touching code.
 
-## The 4-Act workflow
+## 2 · Data model additions (small, reversible)
+
+New tables (`public`, RLS + GRANTs per project standard, `has_country_access` reused):
+
+- `narrative_feeds` — one row per source: `country_code`, `scope` (local|regional|international), `kind` (rss|json|gdelt|google_news|html), `endpoint`, `sector_hint`, `ministry_hint`, `language`, `active`, `weight`, `last_polled_at`, `etag`, `last_hash`.
+- `narrative_feed_items` — raw hits: `feed_id`, `country_code`, `guid_hash` (unique with feed), `url`, `title`, `published_at`, `raw_excerpt`, `state` (`new|classified|promoted|discarded|duplicate`), `signal_id` (nullable → `intake_items.id`), `fetched_at`.
+- `narrative_harvest_runs` — one row per cron tick: `started_at`, `finished_at`, `countries_run`, `feeds_polled`, `items_fetched`, `items_new`, `items_promoted`, `errors jsonb`.
+
+Reuse existing `intake_items` (already extended with `scope`, `severity`, `reach`, `sentiment`, `recommendation`, `metadata`) as the classified-signal store — no duplication.
+
+**Dedup key**: `sha256(canonical_url || normalized_title)`; matched globally then per-country to catch syndications.
+
+## 3 · Pipeline (per 12h tick)
 
 ```text
- ┌─────────────────────────────────────────────────────────────┐
- │  Journey:  ① Monitor  →  ② Triage  →  ③ Position  →  ④ Publish │
- └─────────────────────────────────────────────────────────────┘
-   Signal Radar   Dossier +      Strategy         Draft →
-   (local /       Angle Matrix   Statement        Approve →
-    regional /    + Severity/    (7-part) +       Coverage
-    intl feeds)   Reach/Urgency  Talking Points   ledger
+                  ┌─ pg_cron (07:00 / 19:00)
+                  ▼
+         /api/public/hooks/press-tick   (TSS server route, apikey-verified)
+                  │
+    ┌─────────────┼─────────────┐
+    ▼             ▼             ▼
+ Local feeds  Regional      International    ← poll in parallel, honour ETag / If-Modified
+    │             │             │
+    └──────► narrative_feed_items (raw, deduped by guid_hash)
+                     │
+                     ▼
+        AI classifier fan-out (Perplexity sonar-pro)
+        · scope · sector_code · ministry_slug
+        · severity 1-5 · reach 1-5 · sentiment -2..+2
+        · recommendation lead|amplify|counter|monitor|ignore
+        · 4-bullet dossier · citations
+                     │
+                     ▼
+              intake_items  (state='new_signal')
+                     │
+                     ▼
+      Sidebar Radar (already built) + Realtime channel push
 ```
 
-### Act 1 — Signal Radar (Monitor)
-- **World Map + heat panel** grouped by scope: `local | regional | international`.
-- **Live signals stream** (existing `intake_items` per country) plus new **"Add signal"** flow: paste URL → server fn calls Perplexity/Firecrawl → auto-classifies scope, sector, sentiment, severity, reach, decay half-life; drafts a 3-line dossier.
-- **Deep-research pass** ("Redrive") re-queries the web with country + sector framing and enriches the signal (reuse pattern from Stage-12 3-pass fan-out).
-- **Filters**: sector (from `country_sectors`), scope, sentiment (−/0/+), status (new/triaged/positioned/published/archived).
+Guardrails: per-feed 3-retry backoff, per-tick 10-minute wall-clock, per-country cap of 60 new signals/tick, provider errors written to `narrative_harvest_runs.errors` and surfaced in the UI.
 
-### Act 2 — Triage (Dossier + Angle Matrix)
-- Signal detail opens a **Dossier card**: what happened, why now, who's affected, historical analogs (from `memory_objects`), sector exposure (join `country_sectors` × severity).
-- **Angle Matrix** (2×2): *Severity × Reach* with each competing narrative angle plotted; drag-to-prioritize.
-- **Recommendation engine**: AI proposes *Lead | Amplify | Counter | Monitor-only | Ignore* with rationale + confidence grade (A–D like KPIs).
-- CRUD: edit signal, mark decided, snooze, archive.
+## 4 · Automation (cron, no new infra)
 
-### Act 3 — Position (Strategy Statement)
-- Uses existing `strategy_statements` (7-part frame). Rewritten as a **guided form** with:
-  - Auto-drafted **problem / stakeholder / promise / proof / ask / risks / next-step** grounded in country KPIs and cited sources.
-  - **Message House** visualization (roof = promise, pillars = 3 proofs, foundation = evidence chips).
-  - **Talking points bank** (3–7 lines, ≤ 20 words each) with tone chips (empathetic / confident / technical).
-  - **Risk register** side panel — auto-lists likely blowback with mitigation lines.
-- Reviewer checklist inline (facts cited, tone approved, legal flag).
+- Enable `pg_cron` + `pg_net` (already in project).
+- Schedule two ticks:
 
-### Act 4 — Publish (Comms + Coverage)
-- **Draft studio** (existing `comms_artifacts`): channel presets — Press release, PM statement, X/thread, LinkedIn, Cabinet memo, Radio 60-sec, Op-ed lede.
-- **One-click generation** per channel from the approved strategy; each output shows character/word counts, reading grade, tone score.
-- **Approval workflow**: draft → review → approved → published, with signer, timestamp, and diff.
-- **Publish ledger**: log outbound artifact (link, channel, published_at) → auto-open **Coverage tracker** that watches for pickup via Perplexity/web search and grades sentiment shift vs baseline.
-- **Narrative lineage graph** (reuse `narrative_lineage`): signal → dossier → strategy → artifact → coverage, rendered as a horizontal 5-node chevron per closed loop.
+```sql
+select cron.schedule('press-tick-am','0 11 * * *',$$
+  select net.http_post(
+    url:='https://project--28b673a0-5141-49a9-b7c6-8a7a9fb07172.lovable.app/api/public/hooks/press-tick',
+    headers:='{"Content-Type":"application/json","apikey":"<anon>"}'::jsonb,
+    body:='{"window":"am"}'::jsonb
+  );$$);
+-- and 23:00 UTC for the PM tick
+```
 
-## Session Mode — "From signal to statement by 5pm"
-Sticky **Day Clock** header showing SLA budget: signal ingested at 09:12 → target publish 17:00. Journey bar turns amber < 2h remaining, red at overrun. Provides the McKinsey cadence promise the PRD calls for.
+The route iterates onboarded countries, dispatches feed pollers in parallel (max 8), writes `narrative_harvest_runs`, and pushes any newly promoted signals via Supabase Realtime.
 
-## Files to add / change
+Manual "Run now" button in the Radar calls the same route with a `?country=XXX` filter for on-demand refresh.
 
-**New route tree (country-scoped, mirrors `studio.tsx`):**
-- `src/routes/_authenticated/admin/countries.$code.narrative.tsx` — shell (two-rail, journey bar, day clock, breadcrumb w/ `returnCode`)
-- `src/routes/_authenticated/admin/countries.$code.narrative.index.tsx` — Act 1 Radar
-- `src/routes/_authenticated/admin/countries.$code.narrative.signal.$id.tsx` — Acts 2–4 workspace per signal
+## 5 · Visual & UX layer inside Chamber 5
 
-**New components** under `src/components/narrative/`:
-- `SignalRadar.tsx`, `AddSignalDialog.tsx`, `SignalRow.tsx`
-- `DossierCard.tsx`, `AngleMatrix.tsx`, `RecommendationChip.tsx`
-- `MessageHouse.tsx`, `TalkingPointsEditor.tsx`, `RiskRegister.tsx`
-- `DraftStudio.tsx` (channel-preset tabs), `ApprovalStrip.tsx`
-- `CoverageTracker.tsx`, `LineageChevron.tsx`, `DayClock.tsx`
-- `JourneyBar.tsx` (or reuse Chamber 04's `WorkbenchJourney`)
+Add three surfaces to the existing narrative shell — no route explosion:
 
-**New / extended server fns** in `src/lib/narrative.functions.ts`:
-- `ingestSignalFromUrl` — Firecrawl+Perplexity → intake row w/ classification
-- `redriveSignal` — deep-research pass, enriches dossier + cites
-- `recommendAngle` — AI verdict (Lead/Amplify/…​) + confidence
-- `generateStrategyDraft` — 7-part fill grounded in KPIs + citations
-- `generateChannelDraft` — { strategyId, channel } → artifact
-- `publishArtifact` — writes lineage row, opens coverage watcher
-- `pollCoverage` — server route `src/routes/api/public/hooks/narrative-coverage.ts` (cron-safe)
+1. **Radar heat-strip** (top of `/narrative` index): 24 hourly cells × 3 scope rows (local/regional/intl). Cell intensity = new-signal count; hover reveals top 3 topics. Instantly answers "what changed since I last looked?"
+2. **Ministry & sector rails** on the sidebar: chips filter signals to Ministry X / Sector Y. Counts update live via Realtime.
+3. **Signal Sources tab** (new): table of `narrative_feeds` with Add / Test / Mute; a "Suggest sources" button uses Perplexity to propose 10 gov + 10 media feeds for the country and stages them for one-click approval.
 
-**Launcher update:**
-- `src/components/country/ChambersLauncher.tsx` — Chamber 05 link becomes params-based `to: "/admin/countries/$code/narrative"`.
+Every raw item retains its "provenance chevron" (`Feed → Raw → Classified → Signal`) already scaffolded via `LineageChevron`.
 
-**Retire (later, out of scope):**
-- Old global `/narrative/*` tree stays functional but the launcher no longer points at it; can be deprecated in a follow-up.
+## 6 · Seeding countries on day one
 
-## Data model
+Ship a migration with the catalogue: for each onboarded ISO-3 (start with ATG, KNA, LCA, GRD, VCT, DMA, BRB, JAM, TTO, GUY, BLZ, BHS, HTI, SUR, DOM, CUB, VGB, AIA, MSR, TCA), insert ~12 seed feeds (5 local gov, 3 local media, 2 regional, 2 intl country-page). Ministries with public press URLs (already in `ministries` / `ministry_profiles`) get their gov page auto-added with `ministry_hint` set — so any downstream signal lands pre-tagged to the right minister.
 
-All existing tables are sufficient. Two small migrations:
-1. `intake_items`: add `scope text check in ('local','regional','international')`, `severity int`, `reach int`, `sentiment int`, `status text`, `country_code text` (backfill from `scope_key`), plus indexes on `(country_code, status)`.
-2. `comms_artifacts`: add `channel text`, `approved_by uuid`, `published_at timestamptz`, `published_url text`.
+## 7 · Cost, throttling, resilience
 
-Both include `GRANT SELECT/INSERT/UPDATE/DELETE … TO authenticated` and RLS via `has_country_access`.
+- Perplexity classifier only fires on **new** items → typical tick: 300 new items × sonar-pro ≈ well within existing budget.
+- ETag / `If-Modified-Since` cuts >70% of feed traffic.
+- Circuit-breaker per feed: 3 consecutive failures ⇒ `active=false` + alert in Radar.
+- All writes idempotent (`ON CONFLICT (feed_id, guid_hash) DO NOTHING`).
+- Every tick writes a `narrative_harvest_runs` row so the admin has a persistent "last run at HH:MM, N signals" banner.
 
-## Verification
+## 8 · Delivery order (each step ships independently)
 
-- Manual walkthrough: paste a real news URL for ATG → signal appears with dossier → recommend Lead → strategy auto-drafts with citations → generate press release + X thread → approve → publish → lineage chevron completes → coverage tracker begins polling.
-- Playwright: 4-act happy path screenshot per act.
-- Typecheck + build.
+1. Migration: `narrative_feeds`, `narrative_feed_items`, `narrative_harvest_runs` (+ GRANTs, RLS, `visibility` follows public/private framework).
+2. Server route `/api/public/hooks/press-tick` + feed pollers (RSS/JSON/GDELT/GoogleNews/Firecrawl-HTML) with parallel fan-out.
+3. Classifier fan-out reusing existing `classifyWithPerplexity`, dedup guard, promote-to-`intake_items`.
+4. Cron: two 12-hour schedules + a stable manual-trigger button in Radar.
+5. Seed catalogue migration for every onboarded country.
+6. UI: Radar heat-strip, Ministry/Sector rails, Signal Sources tab with AI "Suggest sources".
+7. Realtime channel + last-run banner + circuit-breaker surfacing.
 
-## Out of scope (follow-ups)
+## Technical notes
 
-- Full deprecation/removal of the legacy `/narrative` global tree.
-- Multi-language drafting.
-- Broadcast/video artifact rendering.
+- Data API grants + RLS follow project standard (`has_country_access`, `visibility` public/private).
+- Google News RSS URL pattern: `https://news.google.com/rss/search?q=<country>+when:12h&hl=en&gl=<cc>&ceid=<cc>:en`.
+- GDELT: `https://api.gdeltproject.org/api/v2/doc/doc?query=sourcecountry:<ISO2>&mode=ArtList&format=json&timespan=12h`.
+- Firecrawl mode: use whichever is live (`uses_connector_gateway` on the linked connection determines gateway vs direct — already documented in the project).
+- All new server logic is `createServerFn` or `/api/public/*` server routes — **no new Supabase Edge Functions**.

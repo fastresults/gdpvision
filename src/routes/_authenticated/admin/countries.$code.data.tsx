@@ -1671,7 +1671,7 @@ function CorpusDrawer({ drill, detail, onClose }: { drill: Exclude<DrillKey, nul
 // Second brain memory
 // ============================================================
 
-export function MemoryTab({ code }: { code: string }) {
+export function MemoryTab({ code, embedded = false }: { code: string; embedded?: boolean }) {
   const qc = useQueryClient();
   const { data: rows } = useSuspenseQuery(memoryQuery(code));
   

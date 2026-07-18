@@ -817,6 +817,10 @@ function OnboardWizard() {
           latestPipeline={latestPipeline}
         />
 
+        <DataStoresBanner code={code} countryName={country?.name ?? code} />
+
+
+
         <section className="border border-line-200 bg-paper-0 p-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-ink-500">Sequential runner</div>

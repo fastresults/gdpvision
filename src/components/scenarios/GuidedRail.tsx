@@ -1,8 +1,10 @@
-import { useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, ChevronDown, Pin, Save, Sparkles } from "lucide-react";
+import { useMemo } from "react";
+import { ArrowLeft, ArrowRight, ChevronDown, Pin, Save, Sparkles, X } from "lucide-react";
 import type { EngineRunResult } from "@/lib/scenarios.functions";
+import { PLAYBOOKS, type Playbook } from "@/lib/scenarios/playbooks";
 import { StepProgress, type Step } from "./StepProgress";
 import { PlaybookCard } from "./PlaybookCard";
+import { AiPlaySuggestions } from "./AiPlaySuggestions";
 import { LeverRow } from "./LeverRow";
 import { CoachTip } from "./CoachTip";
 
@@ -22,6 +24,7 @@ export function GuidedRail({
   step,
   furthest,
   onStep,
+  countryCode,
   // Step 1
   title,
   onTitle,
@@ -32,8 +35,11 @@ export function GuidedRail({
   onHorizon,
   // Step 2
   init,
-  activePlaybook,
-  onPickPlaybook,
+  activePlaybookIds,
+  onTogglePlaybook,
+  onClearPlaybooks,
+  aiPlays,
+  onRegisterAiPlay,
   // Step 3
   levers,
   locks,
@@ -55,6 +61,7 @@ export function GuidedRail({
   step: number;
   furthest: number;
   onStep: (n: number) => void;
+  countryCode: string;
   title: string;
   onTitle: (v: string) => void;
   ministries: Ministry[];
@@ -63,8 +70,11 @@ export function GuidedRail({
   horizonYears: number;
   onHorizon: (v: number) => void;
   init: EngineRunResult;
-  activePlaybook: string | null;
-  onPickPlaybook: (id: string, levers: Record<string, number>) => void;
+  activePlaybookIds: Set<string>;
+  onTogglePlaybook: (p: Playbook) => void;
+  onClearPlaybooks: () => void;
+  aiPlays: Playbook[];
+  onRegisterAiPlay: (p: Playbook) => void;
   levers: Record<string, number>;
   locks: Record<string, boolean>;
   onLever: (slug: string, value: number) => void;
@@ -81,11 +91,20 @@ export function GuidedRail({
   savePending: boolean;
   saveError: string | null;
 }) {
+  const activePlaybooks = useMemo<Playbook[]>(() => {
+    const byId = new Map<string, Playbook>();
+    for (const p of PLAYBOOKS) byId.set(p.id, p);
+    for (const p of aiPlays) byId.set(p.id, p);
+    return Array.from(activePlaybookIds)
+      .map((id) => byId.get(id))
+      .filter((p): p is Playbook => !!p);
+  }, [activePlaybookIds, aiPlays]);
+
   const canAdvance = useMemo(() => {
     if (step === 1) return title.trim().length > 0;
-    if (step === 2) return activePlaybook !== null;
+    if (step === 2) return activePlaybookIds.size > 0;
     return true;
-  }, [step, title, activePlaybook]);
+  }, [step, title, activePlaybookIds]);
 
   const attributionMap = useMemo(() => {
     const m: Record<string, number> = {};
@@ -205,24 +224,65 @@ export function GuidedRail({
           <div className="space-y-4">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
-                Pick a starting play
+                Stack one or more plays
               </p>
               <p className="mt-1.5 text-[12px] leading-relaxed text-ink-700">
-                Each play is a plausible policy stance. It seeds the levers so you can start from
-                intent, not a blank slate. You'll tune the specifics next.
+                Plays are policy stances that seed levers. Select any combination — their moves
+                compose (conflicting directions net out). Continue to tune the specifics.
               </p>
             </div>
+
+            {activePlaybooks.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 border-y border-line-200 py-2">
+                <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-ink-500">
+                  Stacked
+                </span>
+                {activePlaybooks.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => onTogglePlaybook(p)}
+                    className="inline-flex items-center gap-1 border border-ink-950 bg-ink-950 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.18em] text-paper-0 hover:bg-ink-700"
+                    title={`Remove ${p.label}`}
+                  >
+                    {p.ai && <Sparkles size={8} />}
+                    {p.label}
+                    <X size={9} />
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={onClearPlaybooks}
+                  className="font-mono text-[9px] uppercase tracking-[0.22em] text-ink-500 hover:text-ink-950"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+
             <PlaybookCard
               defs={init.leverDefs}
-              activeId={activePlaybook}
-              onPick={onPickPlaybook}
+              activeIds={activePlaybookIds}
+              onToggle={onTogglePlaybook}
             />
+
+            <AiPlaySuggestions
+              countryCode={countryCode}
+              ministrySlug={ministrySlug || null}
+              leverDefs={init.leverDefs}
+              activeIds={activePlaybookIds}
+              onToggle={(p) => {
+                onRegisterAiPlay(p);
+                onTogglePlaybook(p);
+              }}
+            />
+
             <p className="text-[11px] leading-relaxed text-ink-500">
-              Not seeing the right posture? Pick <em>Baseline hold</em> and adjust levers by hand
-              in the next step.
+              Nothing quite right? Pick <em>Baseline hold</em> and hand-tune levers next.
             </p>
           </div>
         )}
+
 
         {step === 3 && (
           <div className="space-y-4">
@@ -302,9 +362,12 @@ export function GuidedRail({
               <Row label="Question">{title || "(untitled)"}</Row>
               <Row label="Scope">{ministryName}</Row>
               <Row label="Horizon">{horizonYears} years</Row>
-              <Row label="Starting play">
-                {activePlaybook ?? "—"}
+              <Row label="Starting plays">
+                {activePlaybooks.length === 0
+                  ? "—"
+                  : activePlaybooks.map((p) => p.label).join(" + ")}
               </Row>
+
             </dl>
 
             <div>

@@ -423,9 +423,21 @@ function CommsDetail({ id, code, onDeleted, isTemplateTab }: { id: string; code:
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const [tab, setTab] = useState<"body" | "history">("body");
+  const [tab, setTab] = useState<"body" | "edit" | "history">("body");
   const [titleDraft, setTitleDraft] = useState<string | null>(null);
+  const [bodyDraft, setBodyDraft] = useState<string | null>(null);
   const [tagDraft, setTagDraft] = useState("");
+
+  const updateBodyM = useMutation({
+    mutationFn: (input: { body: string; title?: string }) => updateBodyFn({ data: { id, ...input } }),
+    onSuccess: () => {
+      invalidateAll();
+      toast.success("Saved revision");
+      setBodyDraft(null);
+      setTab("body");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   if (detailQ.isLoading) {
     return <div className="border border-line-200 p-6 text-sm text-ink-500">Loading…</div>;

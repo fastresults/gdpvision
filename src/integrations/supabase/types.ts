@@ -4303,6 +4303,14 @@ export type Database = {
           source_url: string
         }[]
       }
+      find_story_cluster: {
+        Args: { _country: string; _norm_title: string; _since: string }
+        Returns: {
+          primary_id: string
+          similarity: number
+          story_key: string
+        }[]
+      }
       has_country_access: {
         Args: { _country_code: string; _user_id: string }
         Returns: boolean

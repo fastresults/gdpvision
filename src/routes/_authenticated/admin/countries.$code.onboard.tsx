@@ -765,17 +765,19 @@ function OnboardWizard() {
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2 font-mono text-[10px] uppercase tracking-[0.15em]">
-          <span className={`px-2 py-0.5 border ${ingestKeys.perplexity ? "border-emerald-500 text-emerald-700" : "border-red-500 text-red-700"}`}>
-            Perplexity {ingestKeys.perplexity ? "✓" : "✕"}
-          </span>
-          <span className={`px-2 py-0.5 border ${ingestKeys.firecrawl ? "border-emerald-500 text-emerald-700" : "border-red-500 text-red-700"}`}>
-            Firecrawl {ingestKeys.firecrawl ? "✓" : "✕"}
-          </span>
-          <span className={`px-2 py-0.5 border ${ingestKeys.lovable_ai ? "border-emerald-500 text-emerald-700" : "border-red-500 text-red-700"}`}>
-            Lovable AI {ingestKeys.lovable_ai ? "✓" : "✕"}
-          </span>
-        </div>
+        {(() => {
+          const missing = [
+            !ingestKeys.perplexity && "Perplexity",
+            !ingestKeys.firecrawl && "Firecrawl",
+            !ingestKeys.lovable_ai && "Lovable AI",
+          ].filter(Boolean) as string[];
+          if (!missing.length) return null;
+          return (
+            <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-red-700">
+              Missing keys: {missing.join(", ")}
+            </div>
+          );
+        })()}
 
 
         {bulkErr && (

@@ -1539,6 +1539,125 @@ export type Database = {
           },
         ]
       }
+      fdi_strategies: {
+        Row: {
+          actions: Json
+          allocation: Json
+          country_code: string
+          created_at: string
+          created_by: string | null
+          fdi_threat_id: string
+          id: string
+          metrics: Json
+          name: string
+          owner_country_code: string | null
+          promoted_at: string | null
+          promoted_scenario_id: string | null
+          status: string
+          updated_at: string
+          uploaded_by: string | null
+          visibility: string
+        }
+        Insert: {
+          actions?: Json
+          allocation?: Json
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          fdi_threat_id: string
+          id?: string
+          metrics?: Json
+          name: string
+          owner_country_code?: string | null
+          promoted_at?: string | null
+          promoted_scenario_id?: string | null
+          status?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Update: {
+          actions?: Json
+          allocation?: Json
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          fdi_threat_id?: string
+          id?: string
+          metrics?: Json
+          name?: string
+          owner_country_code?: string | null
+          promoted_at?: string | null
+          promoted_scenario_id?: string | null
+          status?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fdi_strategies_fdi_threat_id_fkey"
+            columns: ["fdi_threat_id"]
+            isOneToOne: false
+            referencedRelation: "fdi_threats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fdi_threats: {
+        Row: {
+          brief: Json
+          country_code: string
+          created_at: string
+          created_by: string | null
+          horizon_years: number
+          id: string
+          name: string
+          onset: string
+          owner_country_code: string | null
+          severity_pct: number
+          target_sector_codes: string[]
+          threat_type: string
+          updated_at: string
+          uploaded_by: string | null
+          visibility: string
+        }
+        Insert: {
+          brief?: Json
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          horizon_years?: number
+          id?: string
+          name: string
+          onset?: string
+          owner_country_code?: string | null
+          severity_pct?: number
+          target_sector_codes?: string[]
+          threat_type: string
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Update: {
+          brief?: Json
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          horizon_years?: number
+          id?: string
+          name?: string
+          onset?: string
+          owner_country_code?: string | null
+          severity_pct?: number
+          target_sector_codes?: string[]
+          threat_type?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Relationships: []
+      }
       figure_snapshots: {
         Row: {
           ai_explanation: string | null

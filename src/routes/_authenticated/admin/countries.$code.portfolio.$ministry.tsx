@@ -257,7 +257,8 @@ function PortfolioDetail() {
             Scenarios ({data.scenarios.length})
           </h3>
           <Link
-            to="/instrument/scenarios/new"
+            to="/admin/countries/$code/scenarios/new"
+            params={{ code }}
             search={{ ministry: data.ministry.slug }}
             className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950 hover:underline underline-offset-4"
           >
@@ -274,8 +275,8 @@ function PortfolioDetail() {
             {data.scenarios.map((s) => (
               <li key={s.id}>
                 <Link
-                  to="/instrument/scenarios/$id"
-                  params={{ id: s.id }}
+                  to="/admin/countries/$code/scenarios/$id"
+                  params={{ code, id: s.id }}
                   className="grid grid-cols-[1fr_auto] items-center gap-6 py-4 hover:bg-paper-100"
                 >
                   <div>

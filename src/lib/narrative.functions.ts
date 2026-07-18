@@ -911,3 +911,84 @@ export const restoreCommsRevision = createServerFn({ method: "POST" })
     if (uErr) throw new Error(uErr.message);
     return { ok: true };
   });
+
+// ─── Body editor (Draft/Review) — every save is versioned via DB trigger ────
+
+const CHANNEL_LABELS: Record<string, string> = {
+  press_release: "Press release",
+  pm_statement: "PM statement",
+  x_thread: "X thread",
+  linkedin: "LinkedIn post",
+  cabinet_memo: "Cabinet memo",
+  radio_60: "Radio 60s",
+  op_ed_lede: "Op-ed lede",
+};
+
+export const updateCommsBody = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({
+      id: z.string().uuid(),
+      body: z.string().min(1).max(60000),
+      title: z.string().max(200).optional(),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: cur, error: fErr } = await context.supabase
+      .from("comms_artifacts")
+      .select("draft_state")
+      .eq("id", data.id)
+      .single();
+    if (fErr) throw new Error(fErr.message);
+    if (cur.draft_state === "released") {
+      throw new Error("Released artifacts cannot be edited. Duplicate to revise.");
+    }
+    const patch: { body: string; updated_at: string; title?: string } = {
+      body: data.body,
+      updated_at: new Date().toISOString(),
+    };
+    if (data.title !== undefined) patch.title = data.title.slice(0, 200);
+    const { error } = await context.supabase
+      .from("comms_artifacts")
+      .update(patch)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const backfillCommsTitles = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => ScopeInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("comms_artifacts")
+      .select("id,channel,strategy_id,title")
+      .eq("scope_key", data.scopeKey)
+      .is("deleted_at", null)
+      .or("title.is.null,title.eq.")
+      .limit(500);
+    if (error) throw new Error(error.message);
+    const stratIds = Array.from(
+      new Set((rows ?? []).map((r) => r.strategy_id).filter(Boolean) as string[]),
+    );
+    const stratTitles = new Map<string, string>();
+    if (stratIds.length) {
+      const { data: strats } = await context.supabase
+        .from("strategy_statements")
+        .select("id,title")
+        .in("id", stratIds);
+      for (const s of strats ?? []) stratTitles.set(s.id, (s.title ?? "").trim());
+    }
+    let updated = 0;
+    for (const r of rows ?? []) {
+      const ch = CHANNEL_LABELS[r.channel] ?? r.channel ?? "Draft";
+      const st = r.strategy_id ? stratTitles.get(r.strategy_id) ?? "" : "";
+      const title = (st ? `${st} — ${ch}` : `${ch} draft`).slice(0, 140);
+      const { error: uErr } = await context.supabase
+        .from("comms_artifacts")
+        .update({ title })
+        .eq("id", r.id);
+      if (!uErr) updated++;
+    }
+    return { updated };
+  });

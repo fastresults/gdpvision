@@ -1,34 +1,90 @@
-## Current state (verified)
+## Problems observed
 
-- `narrative_feeds` has 12 active feeds × **22 countries** (AIA, ATG, BHS, BLZ, BMU, BRB, CYM, DMA, GLP, GRD, GUY, HTI, JAM, KNA, LCA, MSR, MTQ, SUR, TCA, TTO, VCT, VGB) — matches the full `countries` table.
-- `runPressTick()` with no `filterCountry` iterates every active feed, so a cron POST with `{}` body naturally sweeps all 22 countries in one pass.
-- `narrative_harvest_runs` history shows only 2 rows, both `triggered_by='manual'`. **No cron-triggered run has ever landed.** Either the pg_cron schedule was never installed, or it's firing but failing (auth/URL) before writing a run row.
+1. **White screen on Comms Library.** The route
+   `src/routes/_authenticated/admin/countries.$code.narrative.library.tsx`
+   has no `errorComponent`, no `notFoundComponent`, and no `Suspense`
+   fallback. Any thrown error (transient auth token, first-load race on
+   `getCommsDetail`, chunk load failure) bubbles past the shell and paints
+   nothing.
+2. **No way to edit body during review.** `WorkflowRail` moves state
+   forward, but `CommsDetail` renders the body read-only through
+   `CitedMarkdown`. A reviewer can't fix a typo before approving — they
+   have to reject → open the signal → regenerate.
+3. **Drafts land as "Untitled draft".** `generateChannelDraft` in
+   `src/lib/narrative-chamber.functions.ts` inserts `comms_artifacts`
+   with no `title` column. `deriveTitle(channel, topic)` runs only in the
+   list snippet — the detail header shows the raw null → "Untitled
+   draft". There is also no obvious rename affordance.
 
-So the coverage design is right; the schedule is the gap. Also worth hardening so a partial failure per-country doesn't silently drop countries from the sweep.
+## Fix plan
 
-## Plan
+### A. Kill the white screen
 
-### 1. Verify + (re)install the twice-daily cron
-Run a diagnostic query against `cron.job` / `cron.job_run_details` (via `supabase--read_query`) to see whether a `press-tick-*` job exists and, if so, its last execution status. Based on that:
-- If missing → install two schedules (AM + PM UTC) that POST to `/api/public/hooks/press-tick` with `apikey` = anon key and empty body `{}` (which fans out to all countries).
-- If present but failing → capture the pg_net response, fix the URL/apikey, reinstall.
+Edit `countries.$code.narrative.library.tsx`:
+- Add route-level `errorComponent` and `notFoundComponent` that render
+  inside the narrative shell (message + "Reload" button that calls
+  `router.invalidate()` + `reset()`).
+- Wrap `<CommsDetail />` in `<Suspense fallback="Loading…">` and an
+  inline `ErrorBoundary` so a single failing detail fetch never
+  unmounts the list.
+- Harden `activeId`: only set from `rows[0]?.id` after the list query is
+  `isSuccess` (avoids briefly requesting a stale id during re-fetch).
 
-Schedules (staggered so PM ingest sees AM primaries for clustering):
-- `press-tick-am`  → `0 6 * * *` (06:00 UTC)
-- `press-tick-pm`  → `0 18 * * *` (18:00 UTC)
+### B. Edit body before approval
 
-Use the stable production URL `https://project--28b673a0-5141-49a9-b7c6-8a7a9fb07172.lovable.app/api/public/hooks/press-tick`.
+Add a body editor to `CommsDetail`:
+- New tab `Edit` (visible when `draft_state ∈ {draft, review}` and user
+  has `advisor | comms_director | line_minister | cabinet_secretary |
+  admin` — reuse `has_role` via a new lightweight `canEditComms` server
+  fn returning a boolean).
+- Textarea (or lightweight markdown editor) bound to a local draft; on
+  Save → new server fn `updateCommsBody({ id, body, note? })`:
+  - Loads existing row, guards `draft_state !== 'released'`.
+  - Writes `body` + bumps `updated_at`.
+  - The existing `comms_artifact_snapshot_revision` trigger already
+    snapshots the previous body into `comms_artifact_revisions`, so
+    every edit becomes a reviewable revision automatically.
+- After save: `invalidateQueries` on detail + library; toast "Saved
+  revision" and flip tab back to `Body`. Activity tab already renders
+  revisions via `UnifiedTimeline`.
+- `WorkflowRail`: when body has been edited during `review`, show a
+  small "Re-approve needed" hint alongside the Approve button
+  (client-side flag using `updated_at > last approval `at`).
 
-### 2. Make the sweep resilient per-country
-In `src/lib/press-tick.server.ts`:
-- Wrap the per-feed fetch + per-country promotion loop so one country's failure (Perplexity timeout, feed 5xx) cannot abort the sweep — record the error into `narrative_harvest_runs.failures[]` and continue.
-- After the loop, assert `countries_run.length === activeCountryCount` and, for any missing country, emit a `failures[]` entry so the coverage gap is visible in the UI.
+### C. Auto-name drafts + rename
 
-### 3. Coverage UI signal (small)
-Extend the "Signals" header on `/admin/countries/$code/narrative` with a small badge showing the last cron run's `countries_run` count vs. total active countries (22/22 green, otherwise amber with a tooltip listing missing codes). Reads from `narrative_harvest_runs` — no schema change.
+- In `generateChannelDraft` (server), compute a title before insert:
+  `${strategyTitleShort} — ${channelLabel}` (e.g. "Venezuela quake
+  response — LinkedIn"), fall back to `deriveTitle(channel,
+  signal.topic)` when strategy title is missing. Truncate at 140 chars.
+  Store on `comms_artifacts.title`.
+- Backfill: one-shot server fn `backfillCommsTitles({ scopeKey })`
+  callable by admins that fills `title` for rows where it's null using
+  the same logic. Not automatic; exposed as a small button in the
+  library empty-state / header for admins only.
+- Rename UX: the header already has an inline title `<input>` — add a
+  visible pencil icon + "Rename" tooltip so users discover it; keep the
+  blur-to-save behaviour that already calls `updateCommsMeta`.
 
-### 4. Weekly discovery pass
-`press-discover.server.ts` already resolves per country. Add a `press-discover-weekly` cron (`0 4 * * 1`) that iterates all 22 countries so new local outlets get promoted into `narrative_feeds` without manual intervention.
+### D. Docs / minor
 
-## Answer to your question
-Yes — architecturally the cron already fans out to all 22 countries in one call. But the scheduled job either isn't installed or isn't executing (zero cron rows in `narrative_harvest_runs`). Step 1 fixes that; steps 2–4 make sure a single country never quietly drops out of a run again.
+- Update the workflow tooltip on the "In review" state to say "You can
+  still edit the copy before approving — every save is versioned."
+
+## Files touched
+
+```text
+src/routes/_authenticated/admin/countries.$code.narrative.library.tsx
+src/components/narrative/comms/WorkflowRail.tsx
+src/lib/narrative.functions.ts                 (updateCommsBody, canEditComms, backfillCommsTitles)
+src/lib/narrative-chamber.functions.ts         (title on insert)
+```
+
+No schema changes: `comms_artifacts.title` already exists, and the
+revision trigger already snapshots edits.
+
+## Out of scope
+
+Rich-text editing (stick with markdown textarea + preview toggle),
+comment threads on revisions, and per-line diff view — flag if you
+want any of those in a follow-up.

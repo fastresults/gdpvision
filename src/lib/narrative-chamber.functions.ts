@@ -464,6 +464,19 @@ export const generateChannelDraft = createServerFn({ method: "POST" })
     const j = await res.json();
     const body: string = j?.choices?.[0]?.message?.content ?? "";
 
+    const CHANNEL_LABELS: Record<string, string> = {
+      press_release: "Press release",
+      pm_statement: "PM statement",
+      x_thread: "X thread",
+      linkedin: "LinkedIn post",
+      cabinet_memo: "Cabinet memo",
+      radio_60: "Radio 60s",
+      op_ed_lede: "Op-ed lede",
+    };
+    const stratTitle = (strat.title ?? "").trim();
+    const channelLabel = CHANNEL_LABELS[data.channel] ?? data.channel;
+    const autoTitle = (stratTitle ? `${stratTitle} — ${channelLabel}` : `${channelLabel} draft`).slice(0, 140);
+
     const { data: row, error } = await context.supabase
       .from("comms_artifacts")
       .insert({
@@ -474,6 +487,7 @@ export const generateChannelDraft = createServerFn({ method: "POST" })
         audience: spec.audience,
         channel: data.channel,
         body,
+        title: autoTitle,
         draft_state: "draft",
         created_by: context.userId,
       })

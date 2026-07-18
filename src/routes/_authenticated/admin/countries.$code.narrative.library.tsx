@@ -5,13 +5,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { formatDistanceToNow } from "date-fns";
 import {
   Search, Copy, Trash2, ExternalLink, FileText, Star, Tag as TagIcon,
-  Download, MoreHorizontal, Sparkles, Wand2,
+  Download, MoreHorizontal, Sparkles, Wand2, Pencil, Save, X as XIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
   searchComms, getCommsDetail, updateCommsMeta, duplicateComms, deleteComms,
-  listCommsFacets, saveCommsAsTemplate,
+  listCommsFacets, saveCommsAsTemplate, updateCommsBody, backfillCommsTitles,
 } from "@/lib/narrative.functions";
 import { cn } from "@/lib/utils";
 import { CitedMarkdown } from "@/components/citations/CitedMarkdown";
@@ -46,7 +46,23 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/narr
     ],
   }),
   component: LibraryPage,
+  errorComponent: LibraryError,
+  notFoundComponent: () => (
+    <div className="border border-line-200 bg-paper-0 p-6 text-sm text-ink-700">
+      Nothing to show here.
+    </div>
+  ),
 });
+
+function LibraryError({ error, reset }: { error: Error; reset: () => void }) {
+  return (
+    <div className="border border-rose-200 bg-rose-50 p-6 text-sm text-rose-800 space-y-3">
+      <div className="font-mono text-[10px] uppercase tracking-widest">Comms library failed to load</div>
+      <p className="text-rose-900">{error.message}</p>
+      <Button size="sm" variant="outline" onClick={() => reset()}>Retry</Button>
+    </div>
+  );
+}
 
 type TabKey = "drafts" | "templates";
 
@@ -122,19 +138,44 @@ function LibraryPage() {
   );
 
   const rows = listQ.data ?? [];
-  const activeId = selectedId ?? rows[0]?.id ?? null;
+  const activeId = selectedId ?? (listQ.isSuccess ? rows[0]?.id ?? null : null);
+
+  const qc = useQueryClient();
+  const backfillFn = useServerFn(backfillCommsTitles);
+  const backfillM = useMutation({
+    mutationFn: () => backfillFn({ data: { scopeKey: code } }),
+    onSuccess: (r) => {
+      toast.success(`Renamed ${r.updated} draft${r.updated === 1 ? "" : "s"}`);
+      qc.invalidateQueries({ queryKey: ["comms-library", code] });
+      qc.invalidateQueries({ queryKey: ["comms-detail"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   return (
     <div className="space-y-4">
-      <header>
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Chamber 05 · Library
-        </p>
-        <h2 className="mt-1 font-serif text-3xl text-ink-950">Comms Library</h2>
-        <p className="mt-1 max-w-2xl text-sm text-ink-700">
-          Track every draft from signal → statement → release. Reuse what worked; audit what shipped.
-        </p>
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            Chamber 05 · Library
+          </p>
+          <h2 className="mt-1 font-serif text-3xl text-ink-950">Comms Library</h2>
+          <p className="mt-1 max-w-2xl text-sm text-ink-700">
+            Track every draft from signal → statement → release. Reuse what worked; audit what shipped.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => backfillM.mutate()}
+          disabled={backfillM.isPending}
+          title="Auto-rename any 'Untitled' drafts using their strategy + channel"
+        >
+          <Wand2 size={12} className="mr-1.5" />
+          {backfillM.isPending ? "Renaming…" : "Fix titles"}
+        </Button>
       </header>
+
 
       <LibraryCoach code={code} />
 
@@ -348,6 +389,8 @@ function CommsDetail({ id, code, onDeleted, isTemplateTab }: { id: string; code:
   const dupFn = useServerFn(duplicateComms);
   const delFn = useServerFn(deleteComms);
   const saveTplFn = useServerFn(saveCommsAsTemplate);
+  const updateBodyFn = useServerFn(updateCommsBody);
+
 
   const invalidateAll = () => {
     qc.invalidateQueries({ queryKey: ["comms-detail", id] });
@@ -380,9 +423,21 @@ function CommsDetail({ id, code, onDeleted, isTemplateTab }: { id: string; code:
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const [tab, setTab] = useState<"body" | "history">("body");
+  const [tab, setTab] = useState<"body" | "edit" | "history">("body");
   const [titleDraft, setTitleDraft] = useState<string | null>(null);
+  const [bodyDraft, setBodyDraft] = useState<string | null>(null);
   const [tagDraft, setTagDraft] = useState("");
+
+  const updateBodyM = useMutation({
+    mutationFn: (input: { body: string; title?: string }) => updateBodyFn({ data: { id, ...input } }),
+    onSuccess: () => {
+      invalidateAll();
+      toast.success("Saved revision");
+      setBodyDraft(null);
+      setTab("body");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   if (detailQ.isLoading) {
     return <div className="border border-line-200 p-6 text-sm text-ink-500">Loading…</div>;
@@ -413,17 +468,22 @@ function CommsDetail({ id, code, onDeleted, isTemplateTab }: { id: string; code:
       <div className="border-b border-line-200 p-4 space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <input
-              value={currentTitle}
-              onChange={(e) => setTitleDraft(e.target.value)}
-              onBlur={() => {
-                if (titleDraft !== null && titleDraft !== a.title) {
-                  updateM.mutate({ title: titleDraft });
-                }
-                setTitleDraft(null);
-              }}
-              className="w-full bg-transparent font-serif text-xl text-ink-950 focus:outline-none"
-            />
+            <div className="group flex items-center gap-2">
+              <input
+                value={currentTitle}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onBlur={() => {
+                  if (titleDraft !== null && titleDraft !== a.title) {
+                    updateM.mutate({ title: titleDraft });
+                  }
+                  setTitleDraft(null);
+                }}
+                aria-label="Rename draft"
+                title="Click to rename"
+                className="min-w-0 flex-1 bg-transparent font-serif text-xl text-ink-950 focus:outline-none focus:border-b focus:border-ink-500"
+              />
+              <Pencil size={12} className="text-ink-400 opacity-0 group-hover:opacity-100" aria-hidden />
+            </div>
           </div>
           <div className="flex items-center gap-1.5">
             {isTemplateTab ? (
@@ -545,18 +605,29 @@ function CommsDetail({ id, code, onDeleted, isTemplateTab }: { id: string; code:
 
       {/* Tabs */}
       <nav className="flex gap-1 border-b border-line-200 px-2">
-        {(["body", "history"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={cn(
-              "border-b-2 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em]",
-              tab === t ? "border-ink-950 text-ink-950" : "border-transparent text-ink-500 hover:text-ink-950",
-            )}
-          >
-            {t === "body" ? "Body" : `Activity · ${approvals.length + d.revisions.length}`}
-          </button>
-        ))}
+        {(() => {
+          const canEdit = !a.is_template && a.draft_state !== "released";
+          const tabs: Array<{ key: "body" | "edit" | "history"; label: string }> = [
+            { key: "body", label: "Body" },
+          ];
+          if (canEdit) tabs.push({ key: "edit", label: "Edit" });
+          tabs.push({ key: "history", label: `Activity · ${approvals.length + d.revisions.length}` });
+          return tabs.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => {
+                if (t.key === "edit" && bodyDraft === null) setBodyDraft(a.body ?? "");
+                setTab(t.key);
+              }}
+              className={cn(
+                "border-b-2 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em]",
+                tab === t.key ? "border-ink-950 text-ink-950" : "border-transparent text-ink-500 hover:text-ink-950",
+              )}
+            >
+              {t.label}
+            </button>
+          ));
+        })()}
       </nav>
 
       <div className="max-h-[60vh] overflow-y-auto p-4">
@@ -571,6 +642,45 @@ function CommsDetail({ id, code, onDeleted, isTemplateTab }: { id: string; code:
               }))}
             />
           </article>
+        )}
+        {tab === "edit" && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[11px] text-ink-600">
+                Markdown supported. Every save creates a versioned revision — reviewers can restore prior copy from Activity.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setBodyDraft(null); setTab("body"); }}
+                  disabled={updateBodyM.isPending}
+                >
+                  <XIcon size={12} className="mr-1" /> Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    const b = (bodyDraft ?? "").trim();
+                    if (!b) { toast.error("Body cannot be empty"); return; }
+                    updateBodyM.mutate({ body: bodyDraft ?? "" });
+                  }}
+                  disabled={updateBodyM.isPending || bodyDraft === null || bodyDraft === (a.body ?? "")}
+                  className="bg-ink-950 text-paper-0 hover:bg-ink-800"
+                >
+                  <Save size={12} className="mr-1" />
+                  {updateBodyM.isPending ? "Saving…" : "Save revision"}
+                </Button>
+              </div>
+            </div>
+            <textarea
+              value={bodyDraft ?? ""}
+              onChange={(e) => setBodyDraft(e.target.value)}
+              spellCheck
+              className="w-full min-h-[420px] resize-y border border-line-200 bg-paper-0 p-3 font-mono text-[12.5px] leading-relaxed text-ink-900 focus:outline-none focus:border-ink-500"
+              placeholder="Write the copy in markdown…"
+            />
+          </div>
         )}
         {tab === "history" && (
           <UnifiedTimeline

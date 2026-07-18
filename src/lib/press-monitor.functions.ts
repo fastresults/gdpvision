@@ -141,21 +141,12 @@ export const runManualTick = createServerFn({ method: "POST" })
       _user_id: context.userId, _role: "country_admin", _country_code: data.countryCode,
     });
     if (!role) throw new Error("Only country admins can run the press tick.");
-
-    const url = process.env.SUPABASE_URL ? "" : ""; // no-op; url built below
-    const apiKey = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY;
-    if (!apiKey) throw new Error("Publishable key missing on server.");
-    // Call our own public route from server to run the pipeline inline.
-    const base = process.env.SITE_URL
-      ?? "https://project--28b673a0-5141-49a9-b7c6-8a7a9fb07172.lovable.app";
-    void url;
-    const res = await fetch(`${base}/api/public/hooks/press-tick`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", apikey: apiKey },
-      body: JSON.stringify({ window: "manual", country: data.countryCode }),
+    const { runPressTick } = await import("@/lib/press-tick.server");
+    return await runPressTick({
+      windowKey: "manual",
+      filterCountry: data.countryCode,
+      triggeredBy: "manual",
     });
-    if (!res.ok) throw new Error(`press-tick failed: ${res.status}`);
-    return await res.json();
   });
 
 // ─── Latest harvest run (for the persistent banner) ─────────────────────────

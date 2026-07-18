@@ -142,7 +142,7 @@ export function SignalTriageRail({
                 <button
                   onClick={() => toggleCollapse(lvl)}
                   className={cn(
-                    "flex w-full items-center justify-between border-l-4 bg-paper-100/60 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-700",
+                    "sticky top-0 z-10 flex w-full items-center justify-between border-l-4 bg-paper-0/95 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-700 backdrop-blur",
                     meta.borderClass,
                   )}
                 >

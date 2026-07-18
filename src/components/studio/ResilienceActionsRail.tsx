@@ -162,6 +162,7 @@ export function ResilienceActionsRail({
                     onChange={(e) => update(a.id, { staging_year: Number(e.target.value) })}
                     className="w-full border-b border-line-200 bg-transparent py-1 focus:border-ink-950 focus:outline-none"
                   >
+                    <option value={0}>— Unstaged —</option>
                     {Array.from({ length: horizon }, (_, i) => i + 1).map((y) => (
                       <option key={y} value={y}>
                         Y{y}

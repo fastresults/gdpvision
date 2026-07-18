@@ -1084,13 +1084,13 @@ export const askTheLedger = createServerFn({ method: "POST" })
     const [{ data: kpiRows }, { data: dossierRow }] = await Promise.all([
       supabase
         .from("country_kpis")
-        .select("kpi_code,label,latest_value,unit,period,target")
+        .select("kpi_code,label,latest_value,unit,latest_period,target")
         .eq("country_code", data.countryCode)
         .limit(20),
       data.sectorCode
         ? supabase
             .from("sector_dossiers")
-            .select("sector_code,summary,structure,risks,opportunities")
+            .select("sector_code,payload")
             .eq("country_code", data.countryCode)
             .eq("sector_code", data.sectorCode)
             .maybeSingle()
@@ -1106,7 +1106,7 @@ export const askTheLedger = createServerFn({ method: "POST" })
           return tokens.some((t) => label.includes(t)) || tokens.length === 0 || lowerQ.includes(String(k.kpi_code ?? "").toLowerCase());
         })
         .slice(0, 8)
-        .map((k) => `${k.label ?? k.kpi_code}: ${k.latest_value ?? "—"} ${k.unit ?? ""} (${k.period ?? "n/a"}${k.target != null ? `, target ${k.target}` : ""})`)
+        .map((k) => `${k.label ?? k.kpi_code}: ${k.latest_value ?? "—"} ${k.unit ?? ""} (${k.latest_period ?? "n/a"}${k.target != null ? `, target ${k.target}` : ""})`)
         .join("; ");
       if (kpiText) {
         anchors.push({
@@ -1120,17 +1120,20 @@ export const askTheLedger = createServerFn({ method: "POST" })
         });
       }
     }
-    if (dossierRow && (dossierRow as { summary?: string | null }).summary) {
-      const d = dossierRow as { sector_code: string; summary: string | null; structure: unknown; risks: unknown; opportunities: unknown };
-      anchors.push({
-        n: chunks.length + anchors.length + 1,
-        kind: "memory",
-        title: `Sector dossier · ${d.sector_code}`,
-        url: null,
-        org: "dossier",
-        source_id: null,
-        excerpt: (d.summary ?? "").slice(0, 500),
-      });
+    if (dossierRow) {
+      const d = dossierRow as { sector_code: string; payload: unknown };
+      const excerpt = JSON.stringify(d.payload ?? {}).slice(0, 500);
+      if (excerpt && excerpt !== "{}") {
+        anchors.push({
+          n: chunks.length + anchors.length + 1,
+          kind: "memory",
+          title: `Sector dossier · ${d.sector_code}`,
+          url: null,
+          org: "dossier",
+          source_id: null,
+          excerpt,
+        });
+      }
     }
 
     let memQuery = supabase

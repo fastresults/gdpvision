@@ -198,8 +198,8 @@ export function AskTheLedger({
         {turns.length === 0 && (
           <div className="space-y-3">
             <p className="text-xs text-ink-500">
-              Grounded in this country's Second Brain only. Answers cite [N] sources and refuse when
-              evidence is missing. For recommendations, use the Scenario Engine.
+              Corpus first, whole-country context second, live web research third.
+              Answers cite [N] sources and flag confidence when evidence is thin.
             </p>
             <div className="grid grid-cols-1 gap-2">
               {SUGGESTIONS.map((s) => (

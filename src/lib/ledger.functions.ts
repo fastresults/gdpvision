@@ -989,9 +989,17 @@ const AskInput = z.object({
   sectorCode: z.string().min(2).max(64).optional(),
 });
 
+export interface LedgerStructuredAnswer {
+  direct_answer: string;
+  key_evidence: string[];
+  confidence: "high" | "medium" | "low";
+  caveats: string[];
+}
+
 export interface LedgerAnswer {
   grounded: boolean;
   answer: string | null;
+  structured?: LedgerStructuredAnswer | null;
   refusal_reason?: string;
   citations: FigureCitation[];
 }
@@ -1010,14 +1018,15 @@ export const askTheLedger = createServerFn({ method: "POST" })
       .eq("active", true);
     const suppressed = new Set((suppressions ?? []).map((s) => s.source_id));
 
+    // Wider candidate pool; re-rank by token overlap + dedupe by source.
     const orFilter = tokens.length
       ? tokens.map((t) => `content.ilike.%${t.replace(/[%_]/g, "")}%`).join(",")
       : null;
     let chunkQuery = supabase
       .from("country_source_chunks")
-      .select("id,content,chunk_index,document_id,country_source_documents!inner(country_source_id,title,country_sources!inner(id,url,title,org))")
+      .select("id,content,chunk_index,document_id,country_source_documents!inner(country_source_id,title,country_sources!inner(id,url,title,org,weight))")
       .eq("country_code", data.countryCode)
-      .limit(40);
+      .limit(60);
     if (orFilter) chunkQuery = chunkQuery.or(orFilter);
     const { data: chunkRows } = await chunkQuery;
 
@@ -1028,27 +1037,104 @@ export const askTheLedger = createServerFn({ method: "POST" })
       country_source_documents: {
         country_source_id: string;
         title: string | null;
-        country_sources: { id: string; url: string | null; title: string | null; org: string | null };
+        country_sources: { id: string; url: string | null; title: string | null; org: string | null; weight: number | null };
       } | null;
     };
-    const chunks: FigureCitation[] = (chunkRows as unknown as ChunkRow[] | null ?? [])
+
+    const rankedChunks = ((chunkRows as unknown as ChunkRow[] | null) ?? [])
       .filter((c) => {
         const sid = c.country_source_documents?.country_sources.id ?? null;
         return !sid || !suppressed.has(sid);
       })
-      .slice(0, 6)
-      .map((c, i) => ({
-        n: i + 1,
-        kind: "chunk" as const,
-        title:
-          c.country_source_documents?.country_sources.title ??
-          c.country_source_documents?.title ??
-          "Source document",
-        url: c.country_source_documents?.country_sources.url ?? null,
-        org: c.country_source_documents?.country_sources.org ?? null,
-        source_id: c.country_source_documents?.country_sources.id ?? null,
-        excerpt: (c.content ?? "").slice(0, 400),
-      }));
+      .map((c) => {
+        const content = (c.content ?? "").toLowerCase();
+        let overlap = 0;
+        for (const t of tokens) if (content.includes(t)) overlap += 1;
+        const w = Number(c.country_source_documents?.country_sources.weight ?? 0);
+        return { c, score: overlap * 10 + w };
+      })
+      .sort((a, b) => b.score - a.score);
+
+    // Dedupe: max 2 chunks per source.
+    const perSource = new Map<string, number>();
+    const picked: ChunkRow[] = [];
+    for (const { c } of rankedChunks) {
+      const sid = c.country_source_documents?.country_sources.id ?? c.id;
+      const used = perSource.get(sid) ?? 0;
+      if (used >= 2) continue;
+      perSource.set(sid, used + 1);
+      picked.push(c);
+      if (picked.length >= 8) break;
+    }
+
+    const chunks: FigureCitation[] = picked.map((c, i) => ({
+      n: i + 1,
+      kind: "chunk" as const,
+      title:
+        c.country_source_documents?.country_sources.title ??
+        c.country_source_documents?.title ??
+        "Source document",
+      url: c.country_source_documents?.country_sources.url ?? null,
+      org: c.country_source_documents?.country_sources.org ?? null,
+      source_id: c.country_source_documents?.country_sources.id ?? null,
+      excerpt: (c.content ?? "").slice(0, 400),
+    }));
+
+    // Anchor with canonical figures: KPIs and (optionally) sector dossier.
+    const [{ data: kpiRows }, { data: dossierRow }] = await Promise.all([
+      supabase
+        .from("country_kpis")
+        .select("kpi_code,label,latest_value,unit,latest_period,target")
+        .eq("country_code", data.countryCode)
+        .limit(20),
+      data.sectorCode
+        ? supabase
+            .from("sector_dossiers")
+            .select("sector_code,payload")
+            .eq("country_code", data.countryCode)
+            .eq("sector_code", data.sectorCode)
+            .maybeSingle()
+        : Promise.resolve({ data: null } as { data: null }),
+    ]);
+
+    const anchors: FigureCitation[] = [];
+    if (kpiRows && kpiRows.length > 0) {
+      const lowerQ = data.question.toLowerCase();
+      const kpiText = kpiRows
+        .filter((k) => {
+          const label = String(k.label ?? "").toLowerCase();
+          return tokens.some((t) => label.includes(t)) || tokens.length === 0 || lowerQ.includes(String(k.kpi_code ?? "").toLowerCase());
+        })
+        .slice(0, 8)
+        .map((k) => `${k.label ?? k.kpi_code}: ${k.latest_value ?? "—"} ${k.unit ?? ""} (${k.latest_period ?? "n/a"}${k.target != null ? `, target ${k.target}` : ""})`)
+        .join("; ");
+      if (kpiText) {
+        anchors.push({
+          n: chunks.length + anchors.length + 1,
+          kind: "memory",
+          title: "Country KPIs (canonical)",
+          url: null,
+          org: "ledger",
+          source_id: null,
+          excerpt: kpiText.slice(0, 500),
+        });
+      }
+    }
+    if (dossierRow) {
+      const d = dossierRow as { sector_code: string; payload: unknown };
+      const excerpt = JSON.stringify(d.payload ?? {}).slice(0, 500);
+      if (excerpt && excerpt !== "{}") {
+        anchors.push({
+          n: chunks.length + anchors.length + 1,
+          kind: "memory",
+          title: `Sector dossier · ${d.sector_code}`,
+          url: null,
+          org: "dossier",
+          source_id: null,
+          excerpt,
+        });
+      }
+    }
 
     let memQuery = supabase
       .from("memory_objects")
@@ -1062,7 +1148,7 @@ export const askTheLedger = createServerFn({ method: "POST" })
       .filter((m) => !m.source_id || !suppressed.has(m.source_id))
       .slice(0, 3)
       .map((m, i) => ({
-        n: chunks.length + i + 1,
+        n: chunks.length + anchors.length + i + 1,
         kind: "memory" as const,
         title: m.title,
         url: null,
@@ -1071,7 +1157,7 @@ export const askTheLedger = createServerFn({ method: "POST" })
         excerpt: JSON.stringify(m.payload ?? {}).slice(0, 300),
       }));
 
-    const citations = [...chunks, ...memories];
+    const citations = [...chunks, ...anchors, ...memories];
     if (citations.length === 0) {
       return {
         grounded: false,
@@ -1095,22 +1181,55 @@ export const askTheLedger = createServerFn({ method: "POST" })
       .map((c) => `[${c.n}] (${c.kind}·${c.org ?? "n/a"}) ${c.title}\n${c.excerpt}`)
       .join("\n\n");
 
-    const system =
-      "You are the National Ledger's steward. Answer the user's question in ONE short paragraph (max 120 words), using ONLY the evidence in CONTEXT. Cite every factual claim with [N] markers matching the CONTEXT items. If the evidence does not answer the question, reply exactly 'The Second Brain has no grounded evidence for this question.' Never invent numbers, names, or dates.";
+    const system = [
+      "ROLE: You are the National Ledger's steward. Answer like a McKinsey associate partner — precise, quantitative, disciplined.",
+      "",
+      "RULES (violating any rule = failed answer):",
+      "1. Answer ONLY the exact question asked. Do NOT volunteer recommendations, opinions, next steps, or strategic advice unless the user explicitly asked for them.",
+      "2. Use ONLY facts present in CONTEXT. Every numeric, name, or date claim MUST carry a [N] citation matching a CONTEXT item.",
+      "3. If CONTEXT does not contain the answer, set direct_answer to exactly: \"The Second Brain has no grounded evidence for this question.\" and confidence to \"low\".",
+      "4. No hedging, no filler (\"it is important to note…\"), no restating the question.",
+      "5. Prefer numbers over adjectives. Round consistently.",
+      "",
+      "FORMAT: Return ONLY a JSON object (no prose, no markdown fences) with these keys:",
+      "{",
+      "  \"direct_answer\": string (≤60 words, the single crisp answer, with [N] citations),",
+      "  \"key_evidence\": string[] (2-4 bullets, each ≤25 words with at least one [N] citation),",
+      "  \"confidence\": \"high\" | \"medium\" | \"low\",",
+      "  \"caveats\": string[] (0-2 items, only when CONTEXT is thin)",
+      "}",
+    ].join("\n");
 
     try {
       const gateway = createLovableAiGatewayProvider(key);
       const result = await generateText({
-        model: gateway("google/gemini-3-flash-preview"),
+        model: gateway("google/gemini-3.5-flash"),
         system,
-        prompt: `Question: ${data.question}\n\nCONTEXT:\n${contextBlock}\n\nAnswer now.`,
+        prompt: `Question: ${data.question}\n\nCONTEXT:\n${contextBlock}\n\nReturn ONLY the JSON object now.`,
       });
-      const answer = (result.text ?? "").trim() || null;
-      const grounded = !!answer && /\[\d+\]/.test(answer);
+      const raw = (result.text ?? "").trim();
+      const structured = parseStructuredAnswer(raw);
+      if (structured) {
+        const combined = [
+          structured.direct_answer,
+          structured.key_evidence.length ? "\n\nEvidence:\n" + structured.key_evidence.map((e) => `• ${e}`).join("\n") : "",
+        ].join("");
+        const grounded = /\[\d+\]/.test(combined) && !/no grounded evidence/i.test(structured.direct_answer);
+        return {
+          grounded,
+          answer: combined,
+          structured,
+          refusal_reason: grounded ? undefined : structured.direct_answer,
+          citations,
+        };
+      }
+      // Fallback: treat raw text as legacy answer.
+      const grounded = raw.length > 0 && /\[\d+\]/.test(raw);
       return {
         grounded,
-        answer,
-        refusal_reason: grounded ? undefined : "Model returned no citation markers — treating as ungrounded.",
+        answer: raw || null,
+        structured: null,
+        refusal_reason: grounded ? undefined : "Model returned no structured answer.",
         citations,
       };
     } catch (err) {
@@ -1119,6 +1238,80 @@ export const askTheLedger = createServerFn({ method: "POST" })
       if (status === 402) throw new Error("Lovable AI credits exhausted — top up in workspace billing.");
       throw err;
     }
+  });
+
+function parseStructuredAnswer(raw: string): LedgerStructuredAnswer | null {
+  if (!raw) return null;
+  // Strip common markdown fences.
+  let s = raw.trim();
+  if (s.startsWith("```")) {
+    s = s.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+  }
+  const start = s.indexOf("{");
+  const end = s.lastIndexOf("}");
+  if (start === -1 || end === -1 || end <= start) return null;
+  try {
+    const obj = JSON.parse(s.slice(start, end + 1)) as Partial<LedgerStructuredAnswer>;
+    if (typeof obj.direct_answer !== "string") return null;
+    const conf = obj.confidence;
+    return {
+      direct_answer: obj.direct_answer.trim(),
+      key_evidence: Array.isArray(obj.key_evidence) ? obj.key_evidence.filter((x) => typeof x === "string").slice(0, 4) : [],
+      confidence: conf === "high" || conf === "medium" || conf === "low" ? conf : "medium",
+      caveats: Array.isArray(obj.caveats) ? obj.caveats.filter((x) => typeof x === "string").slice(0, 2) : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ─── Voice transcription (mobile-first mic input for Ask-the-Ledger) ─────────
+
+const TranscribeInput = z.object({
+  base64: z.string().min(64),
+  mime: z.string().min(3).max(64),
+});
+
+export const transcribeAudio = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => TranscribeInput.parse(data))
+  .handler(async ({ data }): Promise<{ text: string }> => {
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("AI gateway unavailable.");
+
+    // Decode base64 → Uint8Array → Blob for multipart upload.
+    const bin = atob(data.base64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const blob = new Blob([bytes], { type: data.mime });
+
+    const extMap: Record<string, string> = {
+      "audio/webm": "webm",
+      "audio/webm;codecs=opus": "webm",
+      "audio/mp4": "mp4",
+      "audio/mpeg": "mp3",
+      "audio/wav": "wav",
+      "audio/mp3": "mp3",
+    };
+    const ext = extMap[data.mime.split(";")[0]] ?? "webm";
+
+    const form = new FormData();
+    form.append("model", "openai/gpt-4o-mini-transcribe");
+    form.append("file", blob, `voice.${ext}`);
+
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}` },
+      body: form,
+    });
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      if (resp.status === 429) throw new Error("Transcription rate limit — try again shortly.");
+      if (resp.status === 402) throw new Error("Lovable AI credits exhausted.");
+      throw new Error(`Transcription failed [${resp.status}]: ${text.slice(0, 200)}`);
+    }
+    const json = (await resp.json()) as { text?: string };
+    return { text: (json.text ?? "").trim() };
   });
 
 // ─── Phase 5 — Steward tools: reconciliation, source health, publish gate ────

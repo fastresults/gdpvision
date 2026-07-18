@@ -459,6 +459,44 @@ export type Database = {
           },
         ]
       }
+      comms_artifact_revisions: {
+        Row: {
+          artifact_id: string
+          body: string
+          edited_at: string
+          editor_id: string | null
+          id: string
+          scope_key: string
+          title: string | null
+        }
+        Insert: {
+          artifact_id: string
+          body: string
+          edited_at?: string
+          editor_id?: string | null
+          id?: string
+          scope_key: string
+          title?: string | null
+        }
+        Update: {
+          artifact_id?: string
+          body?: string
+          edited_at?: string
+          editor_id?: string | null
+          id?: string
+          scope_key?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comms_artifact_revisions_artifact_id_fkey"
+            columns: ["artifact_id"]
+            isOneToOne: false
+            referencedRelation: "comms_artifacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comms_artifacts: {
         Row: {
           approvals: Json
@@ -467,8 +505,10 @@ export type Database = {
           channel: string
           created_at: string
           created_by: string | null
+          deleted_at: string | null
           draft_state: string
           id: string
+          is_template: boolean
           kind: string
           published_at: string | null
           published_url: string | null
@@ -476,6 +516,8 @@ export type Database = {
           scope_key: string
           signal_id: string | null
           strategy_id: string | null
+          tags: string[]
+          title: string | null
           updated_at: string
         }
         Insert: {
@@ -485,8 +527,10 @@ export type Database = {
           channel: string
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
           draft_state?: string
           id?: string
+          is_template?: boolean
           kind: string
           published_at?: string | null
           published_url?: string | null
@@ -494,6 +538,8 @@ export type Database = {
           scope_key: string
           signal_id?: string | null
           strategy_id?: string | null
+          tags?: string[]
+          title?: string | null
           updated_at?: string
         }
         Update: {
@@ -503,8 +549,10 @@ export type Database = {
           channel?: string
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
           draft_state?: string
           id?: string
+          is_template?: boolean
           kind?: string
           published_at?: string | null
           published_url?: string | null
@@ -512,6 +560,8 @@ export type Database = {
           scope_key?: string
           signal_id?: string | null
           strategy_id?: string | null
+          tags?: string[]
+          title?: string | null
           updated_at?: string
         }
         Relationships: [

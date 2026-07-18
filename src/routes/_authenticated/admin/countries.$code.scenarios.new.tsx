@@ -251,6 +251,15 @@ function Builder() {
   const baselineY1 = init.output.gdpGrowthPath[0]?.p50 ?? 2.0;
   const baselineYEnd =
     init.output.gdpGrowthPath[init.output.gdpGrowthPath.length - 1]?.p50 ?? 2.0;
+  const compensation = useMemo(
+    () =>
+      computeCompensation(
+        init.output.gdpGrowthPath,
+        current.output.gdpGrowthPath,
+        current.output.years,
+      ),
+    [init.output.gdpGrowthPath, current.output.gdpGrowthPath, current.output.years],
+  );
 
   const save = useMutation({
     mutationFn: (opts: { pin?: boolean } = {}) =>

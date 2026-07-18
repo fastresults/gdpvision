@@ -39,7 +39,7 @@ function MinutesPage() {
               <ArrowLeft size={12} /> Room
             </Link>
             <div className="flex items-center gap-2">
-              <CopyButton text={md} label="Copy minutes" />
+              <CopyButton value={md} label="Copy minutes" variant="chip" />
               <button onClick={() => window.print()} className="inline-flex items-center gap-2 border border-line-200 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] hover:border-ink-950">
                 <Printer size={12} /> Print
               </button>

@@ -92,6 +92,17 @@ export function DraftStudio({ signalId }: { signalId: string }) {
     enabled: !!forActive?.id,
   });
 
+  const getS = useServerFn(getStrategy);
+  const strategyQ = useQuery({
+    queryKey: ["narrative-strategy", strategyId],
+    queryFn: () => getS({ data: { id: strategyId! } }),
+    enabled: !!strategyId,
+  });
+  const citations: CitationRef[] = useMemo(() => {
+    const raw = (strategyQ.data?.sources as Array<{ label?: string; ref?: string }> | null) ?? [];
+    return raw.map((s) => ({ url: s.ref, title: s.label, label: s.label }));
+  }, [strategyQ.data]);
+
   const runBatch = useMutation({
     mutationFn: async (channels: ChannelKey[]) => {
       if (!channels.length) throw new Error("Select at least one channel.");

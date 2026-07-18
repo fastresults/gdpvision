@@ -1,9 +1,11 @@
 import { cn } from "@/lib/utils";
+import { ExplainHover } from "./ExplainHover";
+import { EXPLAIN } from "./explain-copy";
 
 const STEPS = [
-  { n: 1, label: "Name the threat", key: "threat" },
-  { n: 2, label: "Rebuild strategy", key: "strategy" },
-  { n: 3, label: "Stress-test & commit", key: "stress" },
+  { n: 1, label: "Name the threat", key: "threat", copyKey: "step_compose" },
+  { n: 2, label: "Rebuild strategy", key: "strategy", copyKey: "step_strategy" },
+  { n: 3, label: "Stress-test & commit", key: "stress", copyKey: "step_stress" },
 ] as const;
 
 export type StepKey = (typeof STEPS)[number]["key"];

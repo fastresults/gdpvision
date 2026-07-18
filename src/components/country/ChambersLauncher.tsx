@@ -3,7 +3,7 @@ import { Activity, ArrowUpRight, BookOpen, Landmark, Layers, MessageSquare, Tren
 
 const CHAMBERS = [
   { n: "01", icon: BookOpen, title: "The National Ledger", blurb: "Authoritative decomposition of the national economy.", to: "/admin/countries/$code/ledger" as const, kind: "params" as const },
-  { n: "02", icon: Layers, title: "Portfolio Workspaces", blurb: "One workspace per ministerial portfolio.", to: "/instrument/portfolio" as const, kind: "search" as const },
+  { n: "02", icon: Layers, title: "Portfolio Workspaces", blurb: "One workspace per ministerial portfolio.", to: "/admin/countries/$code/portfolio" as const, kind: "params" as const },
   { n: "03", icon: Activity, title: "The Scenario Engine", blurb: "Consequence-free rehearsal across every downstream metric.", to: "/instrument/scenarios" as const, kind: "search" as const },
   { n: "04", icon: TrendingUp, title: "The FDI Transition Studio", blurb: "Replacement plan for the CBI wind-down, sector by sector.", to: "/instrument/studio/packages" as const, kind: "search" as const },
   { n: "05", icon: MessageSquare, title: "The Narrative Chamber", blurb: "Signal to statement inside a working day.", to: "/narrative" as const, kind: "search" as const },

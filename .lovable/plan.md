@@ -1,43 +1,73 @@
-## Diagnosis (verified in code)
+## Chamber 02 — Portfolio Workspaces (country-scoped build-out)
 
-I read `src/components/country-data/DataStoresPanel.tsx` and the tab source in `src/routes/_authenticated/admin/countries.$code.data.tsx`. Three concrete defects explain what you saw — I'm not guessing:
+### Problem with today's route
+`ChambersLauncher` sends Chamber 02 to `/instrument/portfolio` — that lives in the `_authenticated/instrument` shell (its own header/nav) and reads the "default country binding", not the country the admin is inside. Clicking the card from `/admin/countries/ATG/onboard` yanks the user out of the ATG admin surface, exactly like the tab problem we just fixed for Data Stores. Chamber 01 (`/admin/countries/$code/ledger`) already models the right pattern: country in the URL, wrapped in `SuperAdminShell`.
 
-1. **White flash on every tab click.** The panel wraps *all seven* tab bodies in a single `<Suspense fallback="Loading…">`. Every tab component calls `useSuspenseQuery(...)` on mount (SourcesTab L185, KpisTab L328–330, DossiersTab L784, MinistriesTab L841, CorpusTab L1377–1378, MemoryTab L1676, plus GdpVizStudio). Because I re-render tabs with `{tab === "x" && <Tab />}`, switching tabs **unmounts** the old one and **mounts** a fresh one that suspends → the shared Suspense boundary blanks the entire panel to the fallback string until the new query resolves. That is the white flash. Scroll position, filters, dialogs, and cached DOM are all lost each switch.
+### Goal
+Give Chamber 02 the same country-scoped, in-shell UX as Chamber 01 — one workspace per ministerial portfolio for the current country, with the ministry roster on the left, a portfolio detail pane on the right, and no page yank.
 
-2. **Tabs "pop me out to another page."** Some tab bodies contain `<Link to="/admin/countries/$code/onboard">` or `to="/admin/countries/$code/data"` (e.g. MemoryTab L1733, header L142). The header `<Link to="/admin/countries/$code/data">Open full view →`" also sits right next to the tab strip and is easy to hit. MinistriesTab / DossiersTab cards contain child navigations too. Any of these takes the user off the onboard page.
+### Routes to add (country-scoped, admin shell)
+```
+src/routes/_authenticated/admin/
+  countries.$code.portfolio.tsx           → layout (SuperAdminShell + <Outlet/>)
+  countries.$code.portfolio.index.tsx     → roster + empty detail pane
+  countries.$code.portfolio.$ministry.tsx → roster + selected ministry detail
+```
 
-3. **State loss between switches.** Because tabs unmount, dialogs (`showAdd`), selected rows (`openId`), scroll, and inline editors reset every time — reinforcing the "not fluid" feel.
+- `ChambersLauncher` Chamber 02 link changes from `/instrument/portfolio` to `/admin/countries/$code/portfolio` (params link, matches Chamber 01's shape). No other chamber destinations change in this pass.
+- Existing `/instrument/portfolio*` routes stay (used by the instrument shell for country-admin users) — we're adding, not deleting.
 
-## Plan
+### UI / UX
 
-### 1. Keep every tab mounted; only hide the inactive ones
-Replace the `{tab === "x" && ...}` switch with all seven tabs rendered simultaneously, wrapped in `<div hidden={tab !== "x"}>` (or `className={tab === "x" ? "" : "hidden"}`). Each tab keeps its own React state, its query cache stays warm, and switching becomes an instant CSS toggle — no unmount, no suspend, no flash.
+Two-column layout inside `SuperAdminShell` (matches Ledger chamber chrome):
 
-Trade-off: first visit to the panel does 7 initial fetches. Mitigate by:
-- Rendering the active tab immediately and mounting the other six lazily on first `requestIdleCallback` (or on first hover of their tab button).
-- Alternatively: mount a tab the first time it becomes active, then keep it alive after that (a `mountedTabs: Set<DataTabKey>` in state). This gives instant re-switch after the first visit without paying for tabs the user never opens. **This is the approach I'll ship** — it fixes the flash without upfront cost.
+```
+┌─ CeremonialHeader (country name, chamber label "02 · Portfolio Workspaces") ─┐
+│                                                                              │
+│ ┌── Ministries rail (sticky) ──┐  ┌── Portfolio detail ─────────────────┐    │
+│ │  Search / filter             │  │  Minister card (name, party,        │    │
+│ │  • Ministry A  · 3 sectors   │  │    portrait, contact) — from        │    │
+│ │  • Ministry B  · 2 sectors   │  │    ministry_profiles.minister_profile│   │
+│ │  • Ministry C  · 1 sector    │  │                                     │    │
+│ │  ...                         │  │  Sectors in portfolio (table:       │    │
+│ │                              │  │    sector · GDP share · weight)     │    │
+│ │                              │  │                                     │    │
+│ │                              │  │  KPI strip (small multiples for     │    │
+│ │                              │  │    each sector's headline KPI)      │    │
+│ │                              │  │                                     │    │
+│ │                              │  │  Scenarios (list + New scenario →)  │    │
+│ │                              │  │                                     │    │
+│ │                              │  │  Actions: Open in Scenario Engine,  │    │
+│ │                              │  │    Open Ministry dossier            │    │
+│ └──────────────────────────────┘  └─────────────────────────────────────┘    │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
 
-### 2. Per-tab Suspense boundary with a stable skeleton
-Give each tab its own `<Suspense>` with a compact skeleton (rows/blocks matching the tab, `bg-paper-100 animate-pulse`) instead of the shared "Loading tab…" text. Only the tab being visited for the first time shows a skeleton; already-mounted tabs re-appear instantly.
+Behaviors:
+- Selecting a ministry in the rail navigates to `/admin/countries/$code/portfolio/$ministry` — child route swap, rail stays mounted, no white flash.
+- `/portfolio` (index) shows the rail plus an empty-state pane ("Select a portfolio to open its workspace") and auto-preloads the first ministry on hover.
+- Empty ministries list → same empty-state copy as `/instrument/portfolio` today, plus link back to onboarding Stage 09.
+- Sector name links open the country's sector dossier (reuse existing `/instrument/sector/$code` for now; a country-scoped variant is out of scope for this pass).
+- "New scenario →" preserves current behavior (opens `/instrument/scenarios/new?ministry=<slug>`).
+- Collapse: rail can collapse to icon-only (persist in `localStorage` per country, same pattern as Data Stores panel).
 
-### 3. Smooth switching with `useTransition`
-Wrap `setTab` in `startTransition`. React keeps the previous tab visible while the new one prepares, so even a first-visit fetch shows the old content until ready — no white gap.
+### Data (reuse existing server fns, no schema changes)
+- `listMinistries({ countryCode })` — rail.
+- `getPortfolio({ countryCode, slug })` — detail (ministry + sectors + composition + scenarios).
+- `ministry_profiles.minister_profile` (already canonical) — Minister card at top of detail.
+- KPI strip: reuse `KpiSmallMultiples` fed by existing `country_kpis` points, filtered to sectors in the portfolio.
 
-### 4. Stop tabs from routing away when embedded
-- Add an optional `embedded?: boolean` prop to `SourcesTab / KpisTab / DossiersTab / MinistriesTab / CorpusTab / MemoryTab`.
-- In embedded mode: suppress or replace any `<Link to="/admin/countries/$code/onboard">` / `to="/admin/countries/$code/data">` inside the tab body with in-panel actions (e.g. MemoryTab empty state's "Run the seed agent" becomes a scroll-to-onboarding-stage-N action or a plain instruction; CorpusTab's "Go to Sources" already correctly uses `onGoToSources`, keep that pattern).
-- Pass `embedded` from `DataStoresPanel`.
-- Remove the "Open full view →" `<Link>` from the panel header, or turn it into `target="_blank" rel="noreferrer"` so an accidental click can't yank the user off the onboard page.
+All queries stay under `_authenticated/admin/` so RLS/route guards match the rest of the country admin surface.
 
-### 5. Verify
-Drive Playwright headlessly against `http://localhost:8080/admin/countries/ATG/onboard`:
-- Restore the Supabase session per the browser-use rules.
-- Click each of the 7 tabs in order and screenshot after each; assert URL stays on `/onboard` and no full-white frame is captured (compare a mid-transition screenshot's average pixel to the surrounding frames).
-- Click a tab twice and confirm second visit is instant (no skeleton).
-- Confirm dialogs/filters set on one tab survive a round-trip to another tab and back.
+### Technical notes
+- Route filenames use dot-nesting, `createFileRoute("/_authenticated/admin/countries/$code/portfolio")` etc., matching project convention.
+- Layout route's component returns `SuperAdminShell` around `<Outlet/>`; index and `$ministry` render the rail + pane so the rail remounts once and children swap.
+- Use `queryOptions` + `ensureQueryData` in loaders + `useSuspenseQuery` in components (project default read shape). Preload ministry detail on rail hover via `router.preloadRoute`.
+- Add `errorComponent` and `notFoundComponent` on each route (project convention).
+- Head metadata per route: `"Portfolios · <code> — GDPVision"` and `"<Ministry> · Portfolio · <code> — GDPVision"`, both `robots: noindex`.
+- Update `src/components/country/ChambersLauncher.tsx`: change Chamber 02 entry's `to` to `/admin/countries/$code/portfolio` and `kind` to `"params"`.
 
-## Files touched
-- `src/components/country-data/DataStoresPanel.tsx` — mounted-tabs set, per-tab Suspense, `startTransition`, drop or externalize the "Open full view" link, pass `embedded` down.
-- `src/routes/_authenticated/admin/countries.$code.data.tsx` — add `embedded?: boolean` to the six tab exports; gate the in-tab `<Link>`s that leave the page (MemoryTab L1733, and audit each tab's card/row navigations the same way).
-
-No backend or data changes.
+### Out of scope (call out, do not build here)
+- Country-scoped sector dossier route.
+- Editing minister/sector mapping from inside the chamber (that stays in Data Stores → Ministries).
+- Rewiring Chambers 03–06 to country-scoped routes — same fix pattern, tracked separately.

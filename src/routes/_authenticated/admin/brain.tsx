@@ -5,6 +5,15 @@ import { useState } from "react";
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { BrainConstellation, type BrainFilter } from "@/components/country-data/BrainConstellation";
 import { listAllMemory } from "@/lib/country-data/manage.functions";
+import { CARICOM_OECS_REGISTRY } from "@/lib/caricom-registry";
+
+const COUNTRY_NAMES: Record<string, string> = CARICOM_OECS_REGISTRY.reduce(
+  (acc, n) => {
+    acc[n.code] = n.name;
+    return acc;
+  },
+  {} as Record<string, string>,
+);
 
 const allMemoryQuery = queryOptions({
   queryKey: ["admin", "all-memory"],

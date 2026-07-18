@@ -13,7 +13,7 @@ import { ResilienceActionsRail } from "@/components/studio/ResilienceActionsRail
 import { StagingTimeline } from "@/components/studio/StagingTimeline";
 import { StressTestPanel } from "@/components/studio/StressTestPanel";
 import { CommitBar } from "@/components/studio/CommitBar";
-import { threatLabel } from "@/components/studio/threat-presets";
+import { onsetLabel, threatLabel, threatTypeChip } from "@/components/studio/threat-presets";
 import {
   getThreat,
   listStudioContext,

@@ -344,16 +344,16 @@ function Builder() {
             <span
               className={
                 "inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.22em] " +
-                (preview.isPending ? "text-ink-950" : "text-ink-500")
+                (false ? "text-ink-950" : "text-ink-500")
               }
             >
               <span
                 className={
                   "inline-block h-1.5 w-1.5 rounded-full " +
-                  (preview.isPending ? "animate-pulse bg-ink-950" : "bg-emerald-500")
+                  (false ? "animate-pulse bg-ink-950" : "bg-emerald-500")
                 }
               />
-              {preview.isPending ? "Recomputing…" : recomputedLabel}
+              {false ? "Recomputing…" : recomputedLabel}
             </span>
             <span className="hidden truncate font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500 md:inline">
               · {activeLeverCount} lever{activeLeverCount === 1 ? "" : "s"} off default
@@ -383,7 +383,7 @@ function Builder() {
 
           {/* Stat strip */}
           <StatStrip
-            pending={preview.isPending}
+            pending={false}
             cells={[
               {
                 label: "Year 1 · P50 GDP growth",

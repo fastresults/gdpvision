@@ -219,37 +219,41 @@ function StrategyWorkbench() {
           Threat briefing
         </p>
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-6">
-          <label className="group relative block min-w-0">
-            <span className="sr-only">Rename strategy</span>
-            <textarea
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value.replace(/\n/g, " "));
-                setDirty(true);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") e.preventDefault();
-              }}
-              rows={1}
-              aria-label="Rename strategy"
-              title={name}
-              spellCheck={false}
-              className="block w-full resize-none overflow-hidden break-words border-b border-transparent bg-transparent font-serif text-3xl leading-tight text-ink-950 outline-none transition-colors group-hover:border-line-200 focus-visible:border-line-200 focus-visible:ring-1 focus-visible:ring-ink-950/10 md:text-4xl"
-              style={{ fieldSizing: "content" } as React.CSSProperties}
-            />
-            <span className="pointer-events-none absolute -bottom-4 left-0 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-              Click to rename
-            </span>
-          </label>
-          <button
-            type="button"
-            onClick={() => suggestMut.mutate()}
-            disabled={suggestMut.isPending}
-            className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap border border-ink-950 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-950 transition-colors hover:bg-ink-950 hover:text-paper-0 disabled:opacity-40"
-          >
-            <Sparkles size={13} />
-            {suggestMut.isPending ? "Modelling…" : "Suggest resilient allocation"}
-          </button>
+          <ExplainHover copy={EXPLAIN.strategy_title} side="bottom">
+            <label className="group relative block min-w-0">
+              <span className="sr-only">Rename strategy</span>
+              <textarea
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value.replace(/\n/g, " "));
+                  setDirty(true);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") e.preventDefault();
+                }}
+                rows={1}
+                aria-label="Rename strategy"
+                title={name}
+                spellCheck={false}
+                className="block w-full resize-none overflow-hidden break-words border-b border-transparent bg-transparent font-serif text-3xl leading-tight text-ink-950 outline-none transition-colors group-hover:border-line-200 focus-visible:border-line-200 focus-visible:ring-1 focus-visible:ring-ink-950/10 md:text-4xl"
+                style={{ fieldSizing: "content" } as React.CSSProperties}
+              />
+              <span className="pointer-events-none absolute -bottom-4 left-0 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                Click to rename
+              </span>
+            </label>
+          </ExplainHover>
+          <ExplainHover copy={EXPLAIN.suggest_allocation} side="left">
+            <button
+              type="button"
+              onClick={() => suggestMut.mutate()}
+              disabled={suggestMut.isPending}
+              className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap border border-ink-950 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-950 transition-colors hover:bg-ink-950 hover:text-paper-0 disabled:opacity-40"
+            >
+              <Sparkles size={13} />
+              {suggestMut.isPending ? "Modelling…" : "Suggest resilient allocation"}
+            </button>
+          </ExplainHover>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 pt-2">

@@ -762,3 +762,152 @@ export const listCommsFacets = createServerFn({ method: "GET" })
       states,
     };
   });
+
+// ─── Comms Library — guided workflow additions ─────────────────────────────
+
+const STALE_REVIEW_DAYS = 3;
+
+export const listCommsWorkflowCounts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => ScopeInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("comms_artifacts")
+      .select("id,draft_state,updated_at,released_at,scheduled_for,is_template,created_by,assigned_reviewers")
+      .eq("scope_key", data.scopeKey)
+      .is("deleted_at", null)
+      .limit(2000);
+    if (error) throw new Error(error.message);
+    const me = context.userId;
+    const now = Date.now();
+    const staleCut = now - STALE_REVIEW_DAYS * 24 * 3600 * 1000;
+    const releasedCut = now - 7 * 24 * 3600 * 1000;
+
+    let needsYou = 0, inReview = 0, staleReview = 0, scheduled = 0, released = 0, templates = 0, drafts = 0;
+    for (const r of rows ?? []) {
+      if (r.is_template) { templates++; continue; }
+      const reviewers = (r.assigned_reviewers ?? []) as string[];
+      if (r.draft_state === "draft") drafts++;
+      if (r.draft_state === "review") {
+        inReview++;
+        if (new Date(r.updated_at).getTime() < staleCut) staleReview++;
+        if (reviewers.includes(me) || (reviewers.length === 0 && r.created_by === me)) needsYou++;
+      }
+      if (r.draft_state === "approved" && r.created_by === me) needsYou++;
+      if (r.scheduled_for && new Date(r.scheduled_for).getTime() > now) scheduled++;
+      if (r.released_at && new Date(r.released_at).getTime() > releasedCut) released++;
+    }
+    return { needsYou, inReview, staleReview, scheduled, released, templates, drafts };
+  });
+
+const TransitionInput = z.object({
+  id: z.string().uuid(),
+  to: z.enum(["draft", "review", "approved", "released"]),
+  note: z.string().max(1000).optional(),
+  reviewers: z.array(z.string().uuid()).max(10).optional(),
+});
+
+export const transitionCommsState = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => TransitionInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: cur, error: fErr } = await context.supabase
+      .from("comms_artifacts")
+      .select("draft_state,approvals,scope_key")
+      .eq("id", data.id).single();
+    if (fErr) throw new Error(fErr.message);
+
+    const entry = {
+      from: cur.draft_state,
+      to: data.to,
+      actor_id: context.userId,
+      note: data.note ?? null,
+      at: new Date().toISOString(),
+    };
+    const prior = Array.isArray(cur.approvals) ? (cur.approvals as unknown[]) : [];
+    const patch: {
+      draft_state: string;
+      approvals: unknown;
+      updated_at: string;
+      released_at?: string | null;
+      assigned_reviewers?: string[];
+    } = {
+      draft_state: data.to,
+      approvals: [...prior, entry] as unknown,
+      updated_at: new Date().toISOString(),
+    };
+    if (data.to === "released") patch.released_at = new Date().toISOString();
+    if (data.to === "review" && data.reviewers) patch.assigned_reviewers = data.reviewers;
+
+    const { error } = await context.supabase
+      .from("comms_artifacts")
+      .update(patch)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true, state: data.to };
+  });
+
+const ScheduleInput = z.object({
+  id: z.string().uuid(),
+  scheduledFor: z.string().datetime().nullable(),
+});
+
+export const scheduleComms = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => ScheduleInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("comms_artifacts")
+      .update({ scheduled_for: data.scheduledFor, updated_at: new Date().toISOString() })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const saveCommsAsTemplate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid(), title: z.string().max(200).optional() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: src, error } = await context.supabase
+      .from("comms_artifacts")
+      .select("scope_key,strategy_id,kind,audience,channel,body,title,tags")
+      .eq("id", data.id).single();
+    if (error) throw new Error(error.message);
+    const { data: row, error: iErr } = await context.supabase
+      .from("comms_artifacts")
+      .insert({
+        scope_key: src.scope_key,
+        strategy_id: src.strategy_id,
+        signal_id: null,
+        kind: src.kind,
+        audience: src.audience,
+        channel: src.channel,
+        body: src.body,
+        title: data.title ?? `${src.title ?? "Draft"} (template)`,
+        tags: src.tags ?? [],
+        is_template: true,
+        draft_state: "approved",
+        created_by: context.userId,
+      })
+      .select("id").single();
+    if (iErr) throw new Error(iErr.message);
+    return { id: row.id };
+  });
+
+export const restoreCommsRevision = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ artifactId: z.string().uuid(), revisionId: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: rev, error } = await context.supabase
+      .from("comms_artifact_revisions")
+      .select("body,title")
+      .eq("id", data.revisionId)
+      .single();
+    if (error) throw new Error(error.message);
+    const { error: uErr } = await context.supabase
+      .from("comms_artifacts")
+      .update({ body: rev.body, title: rev.title, updated_at: new Date().toISOString() })
+      .eq("id", data.artifactId);
+    if (uErr) throw new Error(uErr.message);
+    return { ok: true };
+  });

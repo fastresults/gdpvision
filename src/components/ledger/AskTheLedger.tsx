@@ -553,6 +553,26 @@ function TurnBlock({
               </button>
             )}
           </div>
+
+          {canExpand && (
+            <>
+              <ExpandActions onPick={onToggleArtifact} activeKinds={activeArtifacts} />
+              {[...activeArtifacts].map((kind) => (
+                <ArtifactPanel
+                  key={kind}
+                  countryCode={countryCode}
+                  countryName={countryName}
+                  artifact={kind}
+                  sourceQuestion={turn.question}
+                  sourceAnswer={sourceAnswerText}
+                  citations={turn.answer!.citations}
+                  onClose={() => onToggleArtifact(kind)}
+                  renderCitations={renderCitations}
+                  CitationRow={CitationRow}
+                />
+              ))}
+            </>
+          )}
         </>
       )}
     </div>

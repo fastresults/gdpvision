@@ -384,39 +384,55 @@ function StrategyWorkbench() {
       </header>
 
 
-      <ThreatBriefCard
-        brief={threat.brief}
-        onRegenerate={() => regenBriefMut.mutate()}
-        regenerating={regenBriefMut.isPending}
-      />
+      <div id="briefing">
+        <ThreatBriefCard
+          brief={threat.brief}
+          onRegenerate={() => regenBriefMut.mutate()}
+          regenerating={regenBriefMut.isPending}
+        />
+      </div>
+
+      {showEmptyCoach && (
+        <EmptyStrategyCoach
+          onSuggest={() => suggestMut.mutate()}
+          onManual={() => scrollTo("actions")}
+          suggesting={suggestMut.isPending}
+        />
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">
-          <ReallocationMarimekko
-            entries={entries}
-            sectors={ctx.sectors}
-            onChange={(next) => {
-              setEntries(next);
-              setDirty(true);
-            }}
-          />
-          <StagingTimeline
-            actions={actions}
-            horizon={Math.max(3, threat.horizon_years)}
-            sectors={ctx.sectors}
-            onMove={(aid, year) => {
-              setActions((list) =>
-                list.map((a) => (a.id === aid ? { ...a, staging_year: year } : a)),
-              );
-              setDirty(true);
-            }}
-          />
-          <StressTestPanel
-            metrics={metrics}
-            allocation={allocation}
-            actions={actions}
-            sectors={ctx.sectors}
-          />
+          <div id="reallocation">
+            <ReallocationMarimekko
+              entries={entries}
+              sectors={ctx.sectors}
+              onChange={(next) => {
+                setEntries(next);
+                setDirty(true);
+              }}
+            />
+          </div>
+          <div id="staging">
+            <StagingTimeline
+              actions={actions}
+              horizon={Math.max(3, threat.horizon_years)}
+              sectors={ctx.sectors}
+              onMove={(aid, year) => {
+                setActions((list) =>
+                  list.map((a) => (a.id === aid ? { ...a, staging_year: year } : a)),
+                );
+                setDirty(true);
+              }}
+            />
+          </div>
+          <div id="stress">
+            <StressTestPanel
+              metrics={metrics}
+              allocation={allocation}
+              actions={actions}
+              sectors={ctx.sectors}
+            />
+          </div>
         </div>
         <div className="space-y-6">
           <ExposureLedger
@@ -424,18 +440,21 @@ function StrategyWorkbench() {
             sectors={ctx.sectors}
             targets={threat.target_sector_codes}
           />
-          <ResilienceActionsRail
-            actions={actions}
-            onChange={(next) => {
-              setActions(next);
-              setDirty(true);
-            }}
-            sectors={ctx.sectors}
-            ministries={ctx.ministries}
-            horizon={Math.max(3, threat.horizon_years)}
-          />
+          <div id="actions">
+            <ResilienceActionsRail
+              actions={actions}
+              onChange={(next) => {
+                setActions(next);
+                setDirty(true);
+              }}
+              sectors={ctx.sectors}
+              ministries={ctx.ministries}
+              horizon={Math.max(3, threat.horizon_years)}
+            />
+          </div>
         </div>
       </div>
+
 
       {(saveMut.error || promotePackagesMut.error || promoteScenarioMut.error || suggestMut.error || regenBriefMut.error) && (
         <p className="text-sm text-red-600">

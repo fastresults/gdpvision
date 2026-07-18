@@ -2,12 +2,12 @@ import { Link } from "@tanstack/react-router";
 import { Activity, ArrowUpRight, BookOpen, Landmark, Layers, MessageSquare, TrendingUp } from "lucide-react";
 
 const CHAMBERS = [
-  { n: "01", icon: BookOpen, title: "The National Ledger", blurb: "Authoritative decomposition of the national economy.", to: "/admin/countries/$code/ledger" as const, withParams: true },
-  { n: "02", icon: Layers, title: "Portfolio Workspaces", blurb: "One workspace per ministerial portfolio.", to: "/instrument/portfolio" as const, withParams: false },
-  { n: "03", icon: Activity, title: "The Scenario Engine", blurb: "Consequence-free rehearsal across every downstream metric.", to: "/instrument/scenarios" as const, withParams: false },
-  { n: "04", icon: TrendingUp, title: "The FDI Transition Studio", blurb: "Replacement plan for the CBI wind-down, sector by sector.", to: "/instrument/studio/packages" as const, withParams: false },
-  { n: "05", icon: MessageSquare, title: "The Narrative Chamber", blurb: "Signal to statement inside a working day.", to: "/narrative" as const, withParams: false },
-  { n: "06", icon: Landmark, title: "The Cabinet Room", blurb: "Consolidated national view, Session Mode, commitments register.", to: "/instrument/cabinet" as const, withParams: false },
+  { n: "01", icon: BookOpen, title: "The National Ledger", blurb: "Authoritative decomposition of the national economy.", to: "/admin/countries/$code/ledger" as const, kind: "params" as const },
+  { n: "02", icon: Layers, title: "Portfolio Workspaces", blurb: "One workspace per ministerial portfolio.", to: "/instrument/portfolio" as const, kind: "search" as const },
+  { n: "03", icon: Activity, title: "The Scenario Engine", blurb: "Consequence-free rehearsal across every downstream metric.", to: "/instrument/scenarios" as const, kind: "search" as const },
+  { n: "04", icon: TrendingUp, title: "The FDI Transition Studio", blurb: "Replacement plan for the CBI wind-down, sector by sector.", to: "/instrument/studio/packages" as const, kind: "search" as const },
+  { n: "05", icon: MessageSquare, title: "The Narrative Chamber", blurb: "Signal to statement inside a working day.", to: "/narrative" as const, kind: "search" as const },
+  { n: "06", icon: Landmark, title: "The Cabinet Room", blurb: "Consolidated national view, Session Mode, commitments register.", to: "/instrument/cabinet" as const, kind: "search" as const },
 ];
 
 export function ChambersLauncher({ code }: { code: string }) {
@@ -20,7 +20,10 @@ export function ChambersLauncher({ code }: { code: string }) {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
         {CHAMBERS.map((c) => {
           const Icon = c.icon;
-          const linkProps = c.withParams ? { to: c.to, params: { code } } : { to: c.to };
+          const linkProps =
+            c.kind === "params"
+              ? { to: c.to, params: { code } }
+              : { to: c.to, search: { code } };
           return (
             <Link
               key={c.n}

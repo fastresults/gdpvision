@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { useState } from "react";
 
 import { listMinistries } from "@/lib/scenarios.functions";
 import { listInstanceBindings } from "@/lib/ledger.functions";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { CANONICAL_SECTORS } from "@/lib/caricom-registry";
+import { useChamberCountry } from "@/hooks/useChamberCountry";
 
 const bindingsQuery = queryOptions({
   queryKey: ["instance-bindings"],
@@ -32,9 +32,7 @@ export const Route = createFileRoute("/_authenticated/instrument/portfolio/")({
 
 function PortfolioIndex() {
   const { data: bindings } = useSuspenseQuery(bindingsQuery);
-  const defaultCode =
-    bindings.find((b) => b.is_default)?.country_code ?? bindings[0]?.country_code ?? "LCA";
-  const [code] = useState(defaultCode);
+  const code = useChamberCountry(bindings);
   const { data: ministries } = useSuspenseQuery(ministriesQuery(code));
 
   return (

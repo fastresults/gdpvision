@@ -6,6 +6,7 @@ import { useState } from "react";
 import { createSession, listCommitments, listSessions, updateCommitmentStatus } from "@/lib/mandate.functions";
 import { listInstanceBindings } from "@/lib/ledger.functions";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
+import { useChamberCountry } from "@/hooks/useChamberCountry";
 
 const bindingsQuery = queryOptions({
   queryKey: ["instance-bindings"],
@@ -33,7 +34,7 @@ export const Route = createFileRoute("/_authenticated/instrument/cabinet/")({
 
 function CabinetRoom() {
   const { data: bindings } = useSuspenseQuery(bindingsQuery);
-  const code = bindings.find((b) => b.is_default)?.country_code ?? bindings[0]?.country_code ?? "LCA";
+  const code = useChamberCountry(bindings);
   const { data: sessions } = useSuspenseQuery(sessionsQuery(code));
   const { data: commits } = useSuspenseQuery(commitmentsQuery(code));
 

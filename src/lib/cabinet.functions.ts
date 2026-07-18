@@ -600,7 +600,11 @@ export const updateCommitment = createServerFn({ method: "POST" })
     successMetric: z.string().max(300).nullable().optional(),
   }).parse(d))
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      status?: "open"|"in_progress"|"delivered"|"blocked"|"cancelled";
+      due_at?: string | null;
+      success_metric?: string | null;
+    } = {};
     if (data.status) patch.status = data.status;
     if (data.dueAt !== undefined) patch.due_at = data.dueAt;
     if (data.successMetric !== undefined) patch.success_metric = data.successMetric;

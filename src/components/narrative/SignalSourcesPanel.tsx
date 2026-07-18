@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Check, ExternalLink, Loader2, Plus, Sparkles, Trash2, X } from "lucide-react";
 
-import { deleteFeed, listFeeds, suggestFeeds, testFeed, upsertFeed } from "@/lib/press-monitor.functions";
+import { deleteFeed, listFeeds, suggestFeeds, testFeed, upsertFeed, type FeedRow } from "@/lib/press-monitor.functions";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";

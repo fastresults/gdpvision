@@ -2,6 +2,7 @@
 // Voice input (mic), clear conversation, copy answers, regenerate, pin to snapshots.
 
 import { useEffect, useRef, useState } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Mic, Square, Send, Trash2, Copy, RefreshCw, Pin, X, MessageSquare } from "lucide-react";
@@ -11,6 +12,7 @@ import {
   pinFigureSnapshot,
   transcribeAudio,
   type LedgerAnswer,
+  type FigureCitation,
 } from "@/lib/ledger.functions";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
@@ -471,25 +473,13 @@ function TurnBlock({
           {turn.answer.citations.length > 0 && (
             <ul className="mt-3 space-y-1">
               {turn.answer.citations.map((c) => (
-                <li key={c.n} className="text-[11px] leading-snug text-ink-500">
-                  <span className="font-mono text-ink-950">[{c.n}]</span>{" "}
-                  {c.url ? (
-                    <a
-                      href={c.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline underline-offset-2 hover:text-ink-950"
-                    >
-                      {c.title}
-                    </a>
-                  ) : (
-                    <span className="text-ink-700">{c.title}</span>
-                  )}
-                  {c.org && <span className="ml-1 text-ink-500/70">· {c.org}</span>}
+                <li key={c.n}>
+                  <CitationRow cite={c} />
                 </li>
               ))}
             </ul>
           )}
+
 
           <div className="mt-3 flex flex-wrap items-center gap-3 font-mono text-[10px] uppercase tracking-widest text-ink-500">
             {turn.answer.answer && (
@@ -546,7 +536,7 @@ function SourcesUsedChip({ sources }: { sources?: { corpus: number; country_cont
   );
 }
 
-function renderCitations(text: string, citations: Array<{ n: number; url: string | null }>) {
+function renderCitations(text: string, citations: FigureCitation[]) {
   const parts: Array<string | React.ReactNode> = [];
   const re = /\[(\d+)\]/g;
   let last = 0;
@@ -555,25 +545,117 @@ function renderCitations(text: string, citations: Array<{ n: number; url: string
     if (match.index > last) parts.push(text.slice(last, match.index));
     const n = Number(match[1]);
     const cite = citations.find((c) => c.n === n);
-    parts.push(
-      cite?.url ? (
-        <a
-          key={`${match.index}-${n}`}
-          href={cite.url}
-          target="_blank"
-          rel="noreferrer"
-          className="mx-0.5 align-super text-[10px] font-mono text-ink-950 underline underline-offset-2"
-        >
-          [{n}]
-        </a>
-      ) : (
-        <span key={`${match.index}-${n}`} className="mx-0.5 align-super text-[10px] font-mono text-ink-500">
-          [{n}]
-        </span>
-      ),
-    );
+    if (!cite) {
+      // Post-prune orphan; drop the marker entirely.
+      last = match.index + match[0].length;
+      continue;
+    }
+    parts.push(<CitationRef key={`${match.index}-${n}`} cite={cite} />);
     last = match.index + match[0].length;
   }
   if (last < text.length) parts.push(text.slice(last));
   return parts;
 }
+
+function kindLabel(kind: FigureCitation["kind"]): string {
+  switch (kind) {
+    case "chunk":
+      return "Corpus";
+    case "memory":
+      return "Country Context";
+    case "web":
+      return "Web Research";
+    case "citation":
+      return "Citation";
+    default:
+      return "Source";
+  }
+}
+
+function CitationCard({ cite }: { cite: FigureCitation }) {
+  return (
+    <div className="w-80 space-y-2 p-1">
+      <div className="flex items-center justify-between gap-2">
+        <span className="inline-block border border-line-200 bg-paper-50 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-ink-700">
+          {kindLabel(cite.kind)}
+        </span>
+        {cite.org && (
+          <span className="truncate font-mono text-[9px] uppercase tracking-widest text-ink-500">
+            {cite.org}
+          </span>
+        )}
+      </div>
+      <p className="text-sm font-medium leading-snug text-ink-950">
+        {cite.title || "Untitled source"}
+      </p>
+      {cite.excerpt && (
+        <p className="line-clamp-6 whitespace-pre-wrap text-[12px] leading-relaxed text-ink-700">
+          {cite.excerpt}
+        </p>
+      )}
+      {cite.url && (
+        <a
+          href={cite.url}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-ink-950 underline underline-offset-2 hover:text-ink-700"
+        >
+          Open source ↗
+        </a>
+      )}
+    </div>
+  );
+}
+
+function CitationRef({ cite }: { cite: FigureCitation }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          onMouseEnter={() => setOpen(true)}
+          onMouseLeave={() => setOpen(false)}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setOpen(false)}
+          aria-label={`Source ${cite.n}: ${cite.title || "untitled"}`}
+          className="mx-0.5 inline align-super font-mono text-[10px] text-ink-950 underline underline-offset-2 hover:text-ink-700 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink-950"
+        >
+          [{cite.n}]
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        side="top"
+        align="center"
+        className="w-auto p-3"
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+      >
+        <CitationCard cite={cite} />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function CitationRow({ cite }: { cite: FigureCitation }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="block w-full cursor-pointer text-left text-[11px] leading-snug text-ink-500 hover:text-ink-950"
+        >
+          <span className="font-mono text-ink-950">[{cite.n}]</span>{" "}
+          <span className="underline underline-offset-2">
+            {cite.title || cite.url || "Untitled source"}
+          </span>
+          {cite.org && <span className="ml-1 text-ink-500/70">· {cite.org}</span>}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent side="top" align="start" className="w-auto p-3">
+        <CitationCard cite={cite} />
+      </PopoverContent>
+    </Popover>
+  );
+}
+

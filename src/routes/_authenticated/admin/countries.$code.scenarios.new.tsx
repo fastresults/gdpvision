@@ -119,6 +119,46 @@ function Builder() {
     null,
   );
 
+  // AI Recommend drawer
+  const [aiDrawerOpen, setAiDrawerOpen] = useState(false);
+  const [aiPreviewActive, setAiPreviewActive] = useState(false);
+
+  function applyRecommendation(s: RecommendedScenario, mode: "preview" | "apply") {
+    setGhostPath(current.output.gdpGrowthPath);
+    const play = buildAiPlaybook(
+      s.playbook.id,
+      s.playbook.label,
+      s.playbook.blurb,
+      s.playbook.lever_moves,
+      s.playbook.thesis,
+      s.citations,
+    );
+    registerAiPlay(play);
+    // respect locks — keep any locked lever at its current value
+    const next = { ...s.levers };
+    for (const [slug, locked] of Object.entries(locks)) if (locked) next[slug] = levers[slug];
+    setLevers(next);
+    setActivePlaybookIds(new Set([play.id]));
+    if (mode === "apply") {
+      if (s.title) setTitle(s.title);
+      if (s.horizonYears) setHorizonYears(s.horizonYears);
+      setAssumptionsNote(
+        [
+          s.thesis,
+          s.assumptions.length ? `\n\nWhat must be true:\n- ${s.assumptions.join("\n- ")}` : "",
+          s.risks.length ? `\n\nRisks:\n- ${s.risks.join("\n- ")}` : "",
+        ]
+          .join("")
+          .slice(0, 4000),
+      );
+      setAiPreviewActive(false);
+      setStep(3);
+      setFurthest((f) => Math.max(f, 3));
+    } else {
+      setAiPreviewActive(true);
+    }
+  }
+
   useEffect(() => {
     setPinCount(readPins(code).length);
     const on = () => setPinCount(readPins(code).length);

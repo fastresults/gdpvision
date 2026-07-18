@@ -304,7 +304,63 @@ export function GuidedRail({
               </p>
             </div>
 
-            <div className="divide-y divide-line-200 border-y border-line-200">
+            {init.leverDefs.length === 0 && !showLeverSynth && (
+              <div className="space-y-3 border border-dashed border-line-200 bg-paper-100/40 p-4">
+                <div className="flex items-start gap-2">
+                  <Sparkles size={14} className="mt-0.5 text-ink-950" />
+                  <div>
+                    <p className="text-sm text-ink-950">No levers defined for {countryCode} yet</p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-ink-500">
+                      Let AI synthesize a starting set from {countryCode}'s sectors, KPIs,
+                      ministries, capital flows and live signals. You review, edit, and commit
+                      before they become drivable in the engine.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowLeverSynth(true)}
+                  className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-paper-0 hover:bg-ink-700"
+                >
+                  <Sparkles size={12} /> Synthesize levers with AI
+                </button>
+              </div>
+            )}
+
+            {showLeverSynth && (
+              <LeverDraftReview
+                countryCode={countryCode}
+                onCommitted={() => {
+                  setShowLeverSynth(false);
+                  onLeversCommitted?.();
+                }}
+                onDismiss={() => setShowLeverSynth(false)}
+              />
+            )}
+
+            {init.leverDefs.length > 0 && (
+              <div className="divide-y divide-line-200 border-y border-line-200">
+                {init.leverDefs
+                  .filter((d) => focusedSlugs.has(d.slug))
+                  .map((def) => {
+                    const value = levers[def.slug] ?? def.bounds.default ?? def.bounds.min;
+                    return (
+                      <LeverRow
+                        key={def.slug}
+                        def={def}
+                        value={value}
+                        locked={!!locks[def.slug]}
+                        attribution={current.output.attribution.find(
+                          (a) => a.lever_slug === def.slug,
+                        )}
+                        onChange={(v) => onLever(def.slug, v)}
+                        onToggleLock={() => onToggleLock(def.slug)}
+                        onReset={() => onResetLever(def.slug)}
+                      />
+                    );
+                  })}
+              </div>
+            )}
               {init.leverDefs
                 .filter((d) => focusedSlugs.has(d.slug))
                 .map((def) => {

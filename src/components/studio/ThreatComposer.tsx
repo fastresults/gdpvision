@@ -181,14 +181,16 @@ export function ThreatComposer({
       ) : null}
 
       <div className="flex items-center justify-end gap-3">
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className="inline-flex items-center gap-2 border border-ink-950 bg-ink-950 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 disabled:opacity-40"
-        >
-          {mut.isPending ? "Framing threat…" : "Frame the threat"}
-          <ArrowRight size={14} />
-        </button>
+        <ExplainHover copy={EXPLAIN.frame_threat} side="top">
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className="inline-flex items-center gap-2 border border-ink-950 bg-ink-950 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 disabled:opacity-40"
+          >
+            {mut.isPending ? "Framing threat…" : "Frame the threat"}
+            <ArrowRight size={14} />
+          </button>
+        </ExplainHover>
       </div>
     </form>
   );

@@ -29,6 +29,7 @@ export function ExposureLedger({
 }) {
   const byCode = new Map(sectors.map((s, i) => [s.code, { s, i }]));
   const rows = [...allocation.entries].sort((a, b) => b.exposure_delta_pp - a.exposure_delta_pp);
+  const [explainOpen, setExplainOpen] = useState(false);
   return (
     <div className="border border-line-200">
       <div className="flex items-baseline justify-between border-b border-line-200 px-4 py-3">

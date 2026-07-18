@@ -114,7 +114,7 @@ function Builder() {
     setTitle(`${fork.data.title} (fork)`);
     setHorizonYears(fork.data.horizon_years);
     setLevers({ ...fork.data.lever_settings });
-    setActivePlaybook(null);
+    setActivePlaybookIds(new Set());
     setFurthest(3);
   }, [fork.data]);
 
@@ -137,9 +137,8 @@ function Builder() {
 
   function updateLever(slug: string, value: number) {
     if (locks[slug]) return;
-    // Snapshot the pre-change P50 curve exactly once per drag session
     setGhostPath((prev) => prev ?? current.output.gdpGrowthPath);
-    setActivePlaybook(null);
+    setActivePlaybookIds(new Set()); // manual edits break the composition
     const next = { ...levers, [slug]: value };
     setLevers(next);
     scheduleRun(next, horizonYears);
@@ -148,19 +147,66 @@ function Builder() {
     setHorizonYears(v);
     scheduleRun(levers, v);
   }
-  function applyPlaybook(id: string, next: Record<string, number>) {
-    const merged = { ...next };
-    for (const [slug, locked] of Object.entries(locks)) if (locked) merged[slug] = levers[slug];
-    setGhostPath(current.output.gdpGrowthPath);
-    setActivePlaybook(id);
-    setLevers(merged);
-    scheduleRun(merged, horizonYears);
+
+  function registerAiPlay(p: Playbook) {
+    setAiPlays((prev) => (prev.find((x) => x.id === p.id) ? prev : [...prev, p]));
   }
+
+  function togglePlaybook(p: Playbook) {
+    setActivePlaybookIds((prev) => {
+      const next = new Set(prev);
+      // Baseline is exclusive
+      if (p.id === "baseline") {
+        if (next.has("baseline")) next.delete("baseline");
+        else {
+          next.clear();
+          next.add("baseline");
+        }
+      } else {
+        if (next.has(p.id)) next.delete(p.id);
+        else {
+          next.delete("baseline");
+          next.add(p.id);
+        }
+      }
+      applyComposition(next);
+      return next;
+    });
+  }
+
+  function clearPlaybooks() {
+    setActivePlaybookIds(new Set());
+    // Reset levers to defaults but respect locks
+    const d: Record<string, number> = {};
+    for (const def of init.leverDefs) d[def.slug] = def.bounds.default ?? def.bounds.min;
+    for (const [slug, locked] of Object.entries(locks)) if (locked) d[slug] = levers[slug];
+    setGhostPath(current.output.gdpGrowthPath);
+    setLevers(d);
+    scheduleRun(d, horizonYears);
+  }
+
+  function applyComposition(ids: Set<string>) {
+    const byId = new Map<string, Playbook>();
+    for (const p of PLAYBOOKS) byId.set(p.id, p);
+    for (const p of aiPlays) byId.set(p.id, p);
+    const selected: Playbook[] = [];
+    for (const id of ids) {
+      const p = byId.get(id);
+      if (p) selected.push(p);
+    }
+    const { levers: composed } = composePlaybooks(init.leverDefs, selected);
+    // respect locks
+    for (const [slug, locked] of Object.entries(locks)) if (locked) composed[slug] = levers[slug];
+    setGhostPath(current.output.gdpGrowthPath);
+    setLevers(composed);
+    scheduleRun(composed, horizonYears);
+  }
+
   function resetDefaults() {
     const d: Record<string, number> = {};
     for (const def of init.leverDefs) d[def.slug] = def.bounds.default ?? def.bounds.min;
     setGhostPath(current.output.gdpGrowthPath);
-    setActivePlaybook("baseline");
+    setActivePlaybookIds(new Set(["baseline"]));
     setLevers(d);
     scheduleRun(d, horizonYears);
   }

@@ -158,7 +158,19 @@ export const getDossier = createServerFn({ method: "GET" })
     }
 
     return {
-      signal,
+      signal: {
+        id: signal.id,
+        scope_key: signal.scope_key,
+        sector_code: signal.sector_code,
+        topic: signal.topic,
+        summary: signal.summary,
+        url: signal.url,
+        proposed_weight: signal.proposed_weight,
+        final_weight: signal.final_weight,
+        state: signal.state,
+        created_at: signal.created_at,
+        citations: signalCitations,
+      },
       memory: memory.map((m) => ({
         id: m.id,
         kind: m.kind as string,

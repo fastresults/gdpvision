@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, ChevronDown, Pin, Save, Sparkles, X } from "lucide-react";
 import type { EngineRunResult } from "@/lib/scenarios.functions";
 import { PLAYBOOKS, type Playbook } from "@/lib/scenarios/playbooks";
@@ -7,6 +7,7 @@ import { PlaybookCard } from "./PlaybookCard";
 import { AiPlaySuggestions } from "./AiPlaySuggestions";
 import { LeverRow } from "./LeverRow";
 import { CoachTip } from "./CoachTip";
+import { LeverDraftReview } from "./LeverDraftReview";
 
 const STEPS: Step[] = [
   { id: 1, label: "Frame the question", hint: "Name the decision you're rehearsing." },

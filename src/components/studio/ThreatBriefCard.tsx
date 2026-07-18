@@ -2,6 +2,10 @@ import { Sparkles, RefreshCw } from "lucide-react";
 
 import type { ThreatBrief } from "@/lib/fdi-resilience.functions";
 import { CitationChipButton, ReadMore } from "./ReadMore";
+import { ExplainHover } from "./ExplainHover";
+import { EXPLAIN } from "./explain-copy";
+
+const BULLET_COPY_KEYS = ["briefing_mechanism", "briefing_first_order", "briefing_second_order"];
 
 export function ThreatBriefCard({
   brief,

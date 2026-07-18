@@ -134,13 +134,7 @@ export const recommendScenario = createServerFn({ method: "POST" })
             `- [w${(s.final_weight ?? 0).toFixed?.(1) ?? "?"}] ${s.topic}${s.summary ? ` — ${String(s.summary).slice(0, 160)}` : ""}`,
         )
         .join("\n") || "- (no recent signals)";
-    const threatList =
-      (threats ?? [])
-        .map(
-          (t) =>
-            `- ${t.label} (${t.category}, sev ${t.severity ?? "?"}, p ${t.probability ?? "?"})${t.notes ? ` — ${String(t.notes).slice(0, 140)}` : ""}`,
-        )
-        .join("\n") || "- (no tracked existential threats)";
+    const threatList = "- (no tracked existential threats)";
 
     const horizonHint = data.horizonYearsHint ?? 5;
 

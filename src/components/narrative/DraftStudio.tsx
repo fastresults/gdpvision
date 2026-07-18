@@ -34,6 +34,7 @@ type Progress = {
 export function DraftStudio({ signalId }: { signalId: string }) {
   const qc = useQueryClient();
   const gen = useServerFn(generateChannelDraft);
+  const draftStrategy = useServerFn(generateStrategyDraft);
   const publish = useServerFn(publishArtifact);
   const getC = useServerFn(getComms);
   const [active, setActive] = useState<ChannelKey>("press_release");

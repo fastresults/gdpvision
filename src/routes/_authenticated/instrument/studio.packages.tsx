@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_authenticated/instrument/studio/packages
 
 function PackagesPage() {
   const { data: bindings } = useSuspenseQuery(bindingsQuery);
-  const code = bindings.find((b) => b.is_default)?.country_code ?? bindings[0]?.country_code ?? "LCA";
+  const code = useChamberCountry(bindings);
   const { data: gap } = useSuspenseQuery(gapQuery(code));
 
   const qc = useQueryClient();

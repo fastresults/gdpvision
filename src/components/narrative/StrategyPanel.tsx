@@ -73,9 +73,11 @@ export function StrategyPanel({ signalId }: { signalId: string }) {
           {(["situation", "complication", "question", "answer", "grounds", "warrant", "call"] as const).map((k) => (
             <div key={k} className="border border-line-200 p-3">
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">{k}</p>
-              <p className="mt-1 whitespace-pre-wrap text-sm text-ink-800">
-                <CitedText text={String(seven[k] ?? "—")} citations={citations} />
-              </p>
+              <CitedMarkdown
+                className="mt-1 text-sm text-ink-800"
+                source={String(seven[k] ?? "—")}
+                citations={citations}
+              />
             </div>
           ))}
           {Array.isArray(seven.talking_points) && (

@@ -414,6 +414,7 @@ export async function runPressTick(opts: {
         _clusters_merged: clustersMerged,
         _universe: Array.from(universe),
         _missing: missing,
+        _gap_filled: gapFilled,
       },
     })
     .eq("id", run.id);

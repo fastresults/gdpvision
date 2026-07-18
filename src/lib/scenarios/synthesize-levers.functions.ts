@@ -75,6 +75,68 @@ function slugify(s: string) {
     .slice(0, 60);
 }
 
+async function commitLeverRows({
+  supabase,
+  draftId,
+  selectedSlugs,
+  edits,
+}: {
+  supabase: { from: (table: string) => any };
+  draftId: string;
+  selectedSlugs: string[];
+  edits?: Record<string, { name?: string; min?: number; max?: number; default?: number }>;
+}): Promise<{ inserted: number }> {
+  const { data: draft, error: dErr } = await supabase
+    .from("lever_drafts")
+    .select("id,country_code,payload,status")
+    .eq("id", draftId)
+    .maybeSingle();
+  if (dErr || !draft) throw new Error(dErr?.message ?? "Draft not found");
+  if (draft.status === "committed") throw new Error("Draft already committed");
+
+  const payload = draft.payload as { proposals?: LeverProposal[] };
+  const proposals = Array.isArray(payload?.proposals) ? payload.proposals : [];
+  const bySlug = new Map(proposals.map((p) => [p.slug, p]));
+  const rows: Array<Record<string, unknown>> = [];
+  const safeEdits = edits ?? {};
+
+  for (const slug of selectedSlugs) {
+    const p = bySlug.get(slug);
+    if (!p) continue;
+    const edit = safeEdits[slug] ?? {};
+    const min = edit.min ?? p.bounds.min;
+    const max = edit.max ?? p.bounds.max;
+    const dflt = Math.min(max, Math.max(min, edit.default ?? p.bounds.default));
+    rows.push({
+      country_code: draft.country_code,
+      sector_code: p.sector_code,
+      slug: p.slug,
+      name: edit.name ?? p.name,
+      unit: p.unit,
+      response_fn_ref: p.response_fn_ref,
+      methodology_ref: `ai_synth:${draft.id}`,
+      bounds: { min, max, default: dflt },
+      rationale: p.rationale,
+      citations: p.citations as unknown as never,
+      draft_id: draft.id,
+    });
+  }
+
+  if (rows.length === 0) return { inserted: 0 };
+
+  const { error: upErr } = await supabase
+    .from("levers")
+    .upsert(rows as never, { onConflict: "country_code,slug" });
+  if (upErr) throw new Error(upErr.message);
+
+  await supabase
+    .from("lever_drafts")
+    .update({ status: "committed", committed_at: new Date().toISOString() })
+    .eq("id", draft.id);
+
+  return { inserted: rows.length };
+}
+
 export const synthesizeLevers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => SynthesizeInput.parse(data))
@@ -375,7 +437,11 @@ export const activateLatestLeverDraft = createServerFn({ method: "POST" })
     const selectedSlugs = (payload.proposals ?? []).map((p) => p.slug).filter(Boolean);
     if (selectedSlugs.length === 0) throw new Error("The latest draft has no usable levers.");
 
-    const result = await commitLeverDraft({ data: { draftId: chosen.id, selectedSlugs } });
+    const result = await commitLeverRows({
+      supabase: context.supabase,
+      draftId: chosen.id,
+      selectedSlugs,
+    });
     return { draftId: chosen.id, inserted: result.inserted };
   });
 
@@ -383,55 +449,10 @@ export const commitLeverDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => CommitInput.parse(data))
   .handler(async ({ data, context }): Promise<{ inserted: number }> => {
-    const { supabase } = context;
-
-    const { data: draft, error: dErr } = await supabase
-      .from("lever_drafts")
-      .select("id,country_code,payload,status")
-      .eq("id", data.draftId)
-      .maybeSingle();
-    if (dErr || !draft) throw new Error(dErr?.message ?? "Draft not found");
-    if (draft.status === "committed") throw new Error("Draft already committed");
-
-    const payload = draft.payload as { proposals?: LeverProposal[] };
-    const proposals = Array.isArray(payload?.proposals) ? payload.proposals : [];
-    const bySlug = new Map(proposals.map((p) => [p.slug, p]));
-    const rows: Array<Record<string, unknown>> = [];
-    const edits = data.edits ?? {};
-
-    for (const slug of data.selectedSlugs) {
-      const p = bySlug.get(slug);
-      if (!p) continue;
-      const edit = edits[slug] ?? {};
-      const min = edit.min ?? p.bounds.min;
-      const max = edit.max ?? p.bounds.max;
-      const dflt = Math.min(max, Math.max(min, edit.default ?? p.bounds.default));
-      rows.push({
-        country_code: draft.country_code,
-        sector_code: p.sector_code,
-        slug: p.slug,
-        name: edit.name ?? p.name,
-        unit: p.unit,
-        response_fn_ref: p.response_fn_ref,
-        methodology_ref: `ai_synth:${draft.id}`,
-        bounds: { min, max, default: dflt },
-        rationale: p.rationale,
-        citations: p.citations as unknown as never,
-        draft_id: draft.id,
-      });
-    }
-
-    if (rows.length === 0) return { inserted: 0 };
-
-    const { error: upErr } = await supabase
-      .from("levers")
-      .upsert(rows as never, { onConflict: "country_code,slug" });
-    if (upErr) throw new Error(upErr.message);
-
-    await supabase
-      .from("lever_drafts")
-      .update({ status: "committed", committed_at: new Date().toISOString() })
-      .eq("id", draft.id);
-
-    return { inserted: rows.length };
+    return commitLeverRows({
+      supabase: context.supabase,
+      draftId: data.draftId,
+      selectedSlugs: data.selectedSlugs,
+      edits: data.edits,
+    });
   });

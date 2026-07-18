@@ -6,6 +6,8 @@ import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { listSignals } from "@/lib/narrative-chamber.functions";
 import { AddSignalDialog } from "@/components/narrative/AddSignalDialog";
 import { SignalTriageRail } from "@/components/narrative/SignalTriageRail";
+import { CoverageBadge } from "@/components/narrative/CoverageBadge";
+
 
 function signalsQuery(code: string) {
   return queryOptions({

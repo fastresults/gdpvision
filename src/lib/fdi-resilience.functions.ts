@@ -126,6 +126,26 @@ const CreateThreatInput = z.object({
   onset: z.enum(["immediate", "phased", "tail_risk"]).default("phased"),
 });
 
+const UpdateThreatInput = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).max(200),
+  threatType: z.enum([
+    "tariff",
+    "climate",
+    "cbi_wind_down",
+    "tourism_collapse",
+    "anchor_exit",
+    "commodity_shock",
+    "sanctions",
+    "treaty_change",
+    "custom",
+  ]),
+  targetSectorCodes: z.array(z.string().min(1).max(64)).min(1).max(12),
+  severityPct: z.number().min(0).max(100),
+  horizonYears: z.number().int().min(1).max(20),
+  onset: z.enum(["immediate", "phased", "tail_risk"]),
+});
+
 const AllocationEntryZ = z.object({
   sector_code: z.string(),
   current_pct: z.number().min(0).max(100),

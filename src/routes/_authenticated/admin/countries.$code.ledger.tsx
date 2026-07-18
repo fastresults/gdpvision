@@ -45,7 +45,14 @@ function LedgerChamber() {
   );
 
   return (
-    <SuperAdminShell>
+    <SuperAdminShell
+      crumbs={[
+        { label: "Countries", to: "/admin/countries" },
+        { label: code, to: "/admin/countries/$code/onboard", params: { code } },
+        { label: "Ledger" },
+      ]}
+    >
+
       <div className="min-h-dvh bg-paper-0 text-ink-950">
         <CeremonialHeader overview={overview} code={code} />
 

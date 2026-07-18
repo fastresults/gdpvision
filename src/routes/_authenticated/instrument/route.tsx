@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, redirect, useNavigate, useSearch } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 
 import { listInstanceBindings } from "@/lib/ledger.functions";
@@ -28,8 +28,11 @@ export const Route = createFileRoute("/_authenticated/instrument")({
 function InstrumentShell() {
   const { data: bindings } = useSuspenseQuery(bindingsQuery);
   const navigate = useNavigate();
+  const search = useSearch({ strict: false }) as { returnCode?: string };
+  const returnCode = typeof search?.returnCode === "string" ? search.returnCode : null;
   const defaultCode =
     bindings.find((b) => b.is_default)?.country_code ?? bindings[0]?.country_code ?? "LCA";
+
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -68,12 +71,22 @@ function InstrumentShell() {
           </nav>
         </div>
         <div className="flex items-center gap-6 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500">
+          {returnCode && (
+            <Link
+              to="/admin/countries/$code/onboard"
+              params={{ code: returnCode }}
+              className="border border-line-200 px-3 py-1 text-ink-950 hover:border-ink-950"
+            >
+              ← Back to {returnCode} chambers
+            </Link>
+          )}
           <Link to="/codex" className="hover:text-ink-950">Codex</Link>
           <Link to="/config" className="hover:text-ink-950">Config</Link>
           <Link to="/admin" className="hover:text-ink-950">Admin</Link>
           <span data-numeric>{defaultCode}</span>
           <button onClick={signOut} className="hover:text-ink-950">Sign out</button>
         </div>
+
       </header>
       <Outlet />
     </div>

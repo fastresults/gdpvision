@@ -208,6 +208,27 @@ export async function runPressTick(opts: {
     errors.push({ scope: "tick", msg: (e as Error).message });
   }
 
+  // Layer 4 coverage: per-country counts of promoted items in this run, split by scope.
+  const coverage: Record<string, { local: number; regional: number; international: number; total: number }> = {};
+  const sinceRun = new Date(Date.now() - 6 * 3600_000).toISOString();
+  const { data: promotedRows } = await supabaseAdmin
+    .from("intake_items")
+    .select("scope_key,scope")
+    .gte("created_at", sinceRun)
+    .in("scope_key", Array.from(countryList));
+  for (const r of promotedRows ?? []) {
+    const cc = (r.scope_key as string) ?? "";
+    if (!cc) continue;
+    const bucket = coverage[cc] ?? { local: 0, regional: 0, international: 0, total: 0 };
+    const sc = (r.scope as "local" | "regional" | "international" | null) ?? "local";
+    bucket[sc] = (bucket[sc] ?? 0) + 1;
+    bucket.total += 1;
+    coverage[cc] = bucket;
+  }
+  for (const cc of countryList) {
+    if (!coverage[cc]) coverage[cc] = { local: 0, regional: 0, international: 0, total: 0 };
+  }
+
   await supabaseAdmin
     .from("narrative_harvest_runs")
     .update({
@@ -218,6 +239,7 @@ export async function runPressTick(opts: {
       items_new: itemsNew,
       items_promoted: itemsPromoted,
       errors: errors.slice(0, 50),
+      coverage,
     })
     .eq("id", run.id);
 

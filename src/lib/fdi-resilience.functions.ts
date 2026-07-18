@@ -389,15 +389,12 @@ async function fetchCountryContext(supabase: any, countryCode: string) {
 }
 
 const BriefSchema = z.object({
-  bullets: z
-    .array(
-      z.object({
-        label: z.string().min(2).max(60),
-        body: z.string().min(10).max(600),
-      }),
-    )
-    .min(3)
-    .max(3),
+  bullets: z.array(
+    z.object({
+      label: z.string(),
+      body: z.string(),
+    }),
+  ),
 });
 
 async function buildThreatBrief(
@@ -431,19 +428,38 @@ async function buildThreatBrief(
       .slice(0, 10)
       .map((s) => `${s.sector_code} ${s.share_pct}%`)
       .join(", ")}.`,
-    "Write a McKinsey-tone 3-bullet framing of this shock's implications for the country's FDI strategy. Bullet 1 label 'Mechanism' — how the shock transmits. Bullet 2 label 'First-order FDI exposure' — quantified where possible in pp of GDP. Bullet 3 label 'Second-order spillovers' — adjacent sectors and multiplier risks. Concise, sovereign policy register.",
+    "Write a McKinsey-tone 3-bullet framing of this shock's implications for the country's FDI strategy. Bullet 1 label 'Mechanism' — how the shock transmits. Bullet 2 label 'First-order FDI exposure' — quantified where possible in pp of GDP. Bullet 3 label 'Second-order spillovers' — adjacent sectors and multiplier risks. Concise, sovereign policy register. Return STRICT JSON: {\"bullets\":[{\"label\":string,\"body\":string},...3 items]}. No prose outside JSON.",
   ].join(" ");
-  const result = await generateText({
-    model: gateway(model),
-    prompt,
-    experimental_output: Output.object({ schema: BriefSchema }) as any,
-  } as any);
-  const out = (result as any).experimental_output ?? (result as any).output;
-  if (!out?.bullets?.length) {
+
+  let bullets: Array<{ label: string; body: string }> = [];
+  try {
+    const result = await generateText({
+      model: gateway(model),
+      prompt,
+      experimental_output: Output.object({ schema: BriefSchema }) as any,
+    } as any);
+    const out = (result as any).experimental_output ?? (result as any).output;
+    if (out?.bullets?.length) {
+      bullets = out.bullets;
+    } else {
+      const raw = (result as any).text ?? "";
+      bullets = parseBulletsFromText(raw);
+    }
+  } catch (err: any) {
+    const raw = err?.text ?? err?.response?.text ?? "";
+    bullets = parseBulletsFromText(raw);
+    if (!bullets.length) {
+      // Retry once with plain text output.
+      const retry = await generateText({ model: gateway(model), prompt });
+      bullets = parseBulletsFromText((retry as any).text ?? "");
+    }
+  }
+
+  if (!bullets.length) {
     throw new Error("AI returned no briefing content. Try again.");
   }
   return {
-    bullets: out.bullets,
+    bullets: bullets.slice(0, 3),
     citations: targetSectors.map((s, i) => ({
       n: i + 1,
       title: `${s.sector_code} sector share ${s.share_pct}% (grade ${s.confidence_grade})`,
@@ -453,6 +469,23 @@ async function buildThreatBrief(
     ai_model: model,
   };
 }
+
+function parseBulletsFromText(raw: string): Array<{ label: string; body: string }> {
+  if (!raw) return [];
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (match) {
+    try {
+      const parsed = JSON.parse(match[0]);
+      if (Array.isArray(parsed?.bullets)) {
+        return parsed.bullets
+          .filter((b: any) => b && typeof b.label === "string" && typeof b.body === "string")
+          .map((b: any) => ({ label: b.label, body: b.body }));
+      }
+    } catch {}
+  }
+  return [];
+}
+
 
 export const createThreat = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

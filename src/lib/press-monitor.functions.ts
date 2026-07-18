@@ -2,6 +2,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Json } from "@/integrations/supabase/types";
 
 // ─── Types (kept thin so this file stays a client-safe wrapper) ─────────────
 
@@ -33,7 +34,7 @@ export interface HarvestRun {
   items_fetched: number;
   items_new: number;
   items_promoted: number;
-  errors: unknown[];
+  errors: Json;
   triggered_by: string;
 }
 

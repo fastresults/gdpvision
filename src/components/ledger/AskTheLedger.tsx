@@ -226,7 +226,7 @@ export function AskTheLedger({
         ))}
         {ask.isPending && (
           <p className="font-mono text-[10px] uppercase tracking-widest text-ink-500">
-            Retrieving from Second Brain…
+            Searching corpus · reading country context · escalating to deep research if needed…
           </p>
         )}
       </div>

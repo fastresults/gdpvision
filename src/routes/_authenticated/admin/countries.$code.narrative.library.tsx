@@ -389,6 +389,8 @@ function CommsDetail({ id, code, onDeleted, isTemplateTab }: { id: string; code:
   const dupFn = useServerFn(duplicateComms);
   const delFn = useServerFn(deleteComms);
   const saveTplFn = useServerFn(saveCommsAsTemplate);
+  const updateBodyFn = useServerFn(updateCommsBody);
+
 
   const invalidateAll = () => {
     qc.invalidateQueries({ queryKey: ["comms-detail", id] });

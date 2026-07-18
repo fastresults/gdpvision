@@ -32,6 +32,21 @@ export async function runPressTick(opts: {
 
   const errors: Array<{ scope: string; msg: string }> = [];
   const countryList = new Set<string>();
+  // Seed the coverage universe up-front: every country that has at least one
+  // active feed. This way `countries_run` always reflects the intended sweep,
+  // and any country that is dropped mid-run (feed error, classify failure)
+  // shows up as a coverage gap in the UI rather than silently disappearing.
+  const universe = new Set<string>();
+  {
+    let uniQ = supabaseAdmin
+      .from("narrative_feeds")
+      .select("country_code")
+      .eq("active", true);
+    if (filterCountry) uniQ = uniQ.eq("country_code", filterCountry);
+    const { data: uni } = await uniQ;
+    for (const r of uni ?? []) universe.add(r.country_code as string);
+    for (const cc of universe) countryList.add(cc);
+  }
   let feedsPolled = 0, itemsFetched = 0, itemsNew = 0, itemsPromoted = 0, clustersMerged = 0;
 
   try {
@@ -42,6 +57,7 @@ export async function runPressTick(opts: {
     if (filterCountry) feedsQ = feedsQ.eq("country_code", filterCountry);
     const { data: feeds, error: fErr } = await feedsQ;
     if (fErr) throw fErr;
+
 
     const fetched = await pMap(feeds ?? [], async (f) => {
       feedsPolled++;

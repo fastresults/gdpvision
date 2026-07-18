@@ -138,6 +138,21 @@ export function SignalSourcesPanel({ code, countryName }: { code: string; countr
   );
 }
 
+function LayerChip({ row }: { row: FeedRow }) {
+  const label = row.is_query ? "query" : row.discovered_at ? "discovered" : row.is_seed ? "curated" : "custom";
+  const tone =
+    label === "query"
+      ? "border-sky-500/40 bg-sky-50 text-sky-800"
+      : label === "discovered"
+      ? "border-violet-500/40 bg-violet-50 text-violet-800"
+      : label === "curated"
+      ? "border-emerald-500/40 bg-emerald-50 text-emerald-800"
+      : "border-line-200 bg-paper-100 text-ink-500";
+  return (
+    <span className={cn("border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest", tone)}>{label}</span>
+  );
+}
+
 function TestButton({ onClick, pending }: { onClick: () => void; pending: boolean }) {
   return (
     <button onClick={onClick} disabled={pending}

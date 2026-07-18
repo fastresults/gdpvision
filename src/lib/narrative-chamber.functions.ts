@@ -28,7 +28,7 @@ export interface SignalRow {
   reach: number | null;
   sentiment: number | null;
   recommendation: SignalRecommendation | null;
-  metadata: Record<string, unknown>;
+  metadata: Json;
   created_at: string;
 }
 

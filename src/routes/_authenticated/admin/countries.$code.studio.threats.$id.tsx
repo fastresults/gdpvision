@@ -207,32 +207,75 @@ function StrategyWorkbench() {
   const canPromote = strategyId && !dirty;
 
   return (
-    <div className="space-y-6 pb-24">
-      <ThreatStepper active="stress" onSelect={() => {}} />
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            Threat · {threatLabel(threat.threat_type)} · severity {threat.severity_pct}%
-          </p>
-          <input
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              setDirty(true);
-            }}
-            className="mt-1 w-full max-w-xl border-b border-transparent bg-transparent font-serif text-3xl text-ink-950 focus:border-line-200 focus:outline-none"
-          />
-        </div>
-        <button
-          type="button"
-          onClick={() => suggestMut.mutate()}
-          disabled={suggestMut.isPending}
-          className="inline-flex items-center gap-2 border border-ink-950 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-950 hover:bg-ink-950 hover:text-paper-0 disabled:opacity-40"
-        >
-          <Sparkles size={13} />
-          {suggestMut.isPending ? "Modelling…" : "Suggest resilient allocation"}
-        </button>
+    <div className="space-y-8 pb-24">
+      <div className="border-b border-line-200/60 pb-2">
+        <ThreatStepper active="stress" onSelect={() => {}} />
       </div>
+
+      <header className="space-y-4 border-b border-line-200 pb-6">
+        <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
+          Threat briefing
+        </p>
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-6">
+          <label className="group relative block min-w-0">
+            <span className="sr-only">Rename strategy</span>
+            <textarea
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value.replace(/\n/g, " "));
+                setDirty(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.preventDefault();
+              }}
+              rows={1}
+              aria-label="Rename strategy"
+              title={name}
+              spellCheck={false}
+              className="block w-full resize-none overflow-hidden break-words border-b border-transparent bg-transparent font-serif text-3xl leading-tight text-ink-950 outline-none transition-colors group-hover:border-line-200 focus-visible:border-line-200 focus-visible:ring-1 focus-visible:ring-ink-950/10 md:text-4xl"
+              style={{ fieldSizing: "content" } as React.CSSProperties}
+            />
+            <span className="pointer-events-none absolute -bottom-4 left-0 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+              Click to rename
+            </span>
+          </label>
+          <button
+            type="button"
+            onClick={() => suggestMut.mutate()}
+            disabled={suggestMut.isPending}
+            className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap border border-ink-950 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-950 transition-colors hover:bg-ink-950 hover:text-paper-0 disabled:opacity-40"
+          >
+            <Sparkles size={13} />
+            {suggestMut.isPending ? "Modelling…" : "Suggest resilient allocation"}
+          </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 pt-2">
+          <span className="inline-flex items-center gap-1.5 border border-line-200 bg-paper-0 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-700">
+            <span
+              className="inline-block h-1.5 w-1.5 rounded-full"
+              style={{ background: threatTypeChip(threat.threat_type).dot }}
+            />
+            {threatTypeChip(threat.threat_type).label}
+          </span>
+          <span className="inline-flex items-center gap-2 border border-line-200 bg-paper-0 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-700">
+            Severity <span className="tabular-nums text-ink-950">{threat.severity_pct}%</span>
+            <span className="relative inline-block h-1 w-10 bg-line-200">
+              <span
+                className="absolute inset-y-0 left-0 bg-ink-950"
+                style={{ width: `${Math.min(100, Math.max(0, threat.severity_pct))}%` }}
+              />
+            </span>
+          </span>
+          <span className="inline-flex items-center gap-1.5 border border-line-200 bg-paper-0 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-700">
+            Horizon <span className="tabular-nums text-ink-950">{threat.horizon_years}y</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5 border border-line-200 bg-paper-0 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-700">
+            {onsetLabel(threat.onset)}
+          </span>
+        </div>
+      </header>
+
 
       <ThreatBriefCard
         brief={threat.brief}

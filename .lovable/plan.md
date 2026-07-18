@@ -1,51 +1,53 @@
 
 ## Goal
+Add a prominent, always-visible **"AI Recommend Scenario"** action in the Scenario Engine wizard that, given a plain-language challenge (e.g. "wind down CBI", "increase airlift + rooms", "Cat-4 hurricane hits Q3"), reads the country's second brain and returns a fully-configured scenario — title, horizon, composed playbooks, exact lever positions, rationale, and citations — that the user can preview instantly and one-click apply.
 
-While the user drags sliders in Step 3/4, make it visually obvious — every frame — whether the levers are (a) still short of the baseline gap, (b) exactly compensating, or (c) surpassing baseline into surplus, and by how much across the stated horizon.
+## UX — where it lives
 
-Today the fan chart shows a levered path plus a ghost of the last path, but there is no explicit reference against the do-nothing baseline, no cumulative "net revenue" readout, and no threshold marker for break-even.
+A new **"Ask AI to design this scenario"** primary CTA appears in three complementary places so it's unmissable:
 
-## What the user will see
+1. **Sticky status bar** (top of live canvas, all steps) — compact `✨ Ask AI` button.
+2. **Step 1 hero card** — full "Describe your challenge" prompt box with example chips ("Wind down CBI over 3 years", "Hurricane Cat-4 in Q3", "Double stayover arrivals by Y3", "IMF fiscal consolidation").
+3. **Step 2 header** — "Or let AI compose the plays for you" secondary entry that pre-fills the prompt.
 
-Two new tightly-coupled UI elements sitting directly under the GDP fan chart, both driven by the local engine so they update at 60fps with slider drags:
+Clicking opens a right-side **Recommendation Drawer**:
+- Prompt textarea + example chips + horizon hint
+- "Generate" streams a McKinsey-style brief with: **Thesis**, **Recommended plays** (multi-select composition), **Lever moves** (table: lever · from → to · Δ pp GDP), **Risks/what must be true**, **Citations**.
+- Two actions: **Preview in canvas** (ghost-applies levers so fan chart & compensation ledger bend live without committing) and **Apply scenario** (writes title, horizon, playbook selection, lever values into state, jumps to Step 3).
 
-1. **Compensation Ledger strip** — a single horizontal band showing cumulative Δ GDP (levered − baseline) across each horizon year, tinted deficit-red below zero and surplus-green above, with a bold zero break-even line. A large numeric callout on the right reads:
-   - `Gap closed: 62%` while still in deficit,
-   - `Break-even Y3` at the crossover year,
-   - `+1.8 pp surplus by Y5` once surpassing.
-2. **Baseline-vs-levered overlay on the fan chart** — draw the flat baseline P50 as a second dashed line (distinct from the "previous drag" ghost) and shade the area between baseline and levered P50: red where levered < baseline, green where levered ≥ baseline. The chart legend gains three swatches (Baseline, Levered, Ghost).
+## AI pipeline
 
-A compact status pill above the ledger states the current regime in plain language: *"Levers offsetting deficit"*, *"At break-even"*, or *"Net surplus vs. baseline"*, with the crossover year when applicable.
+New server fn `recommendScenario` in `src/lib/scenarios/recommend-scenario.functions.ts`:
 
-## How it computes
+1. **Context assembly** (server-only): pull country pack — macro snapshot, top sectors, active KPIs, ministry portfolios, existing threats from `existential_threats`, current lever defs + bounds + rationale, playbook catalog (built-in + prior AI plays).
+2. **Model**: `google/gemini-3.1-pro-preview` via Lovable AI Gateway (structured output disabled — schema kept constraint-free per gateway rules; fallback parse from `error.text`).
+3. **Output schema** (small, flat):
+   - `title`, `thesis`, `horizonYears`
+   - `playbookIds[]` (subset of catalog) + `newPlaybook?` (if none fits, emit one grounded play)
+   - `leverMoves[]`: `{ slug, value, rationaleShort }` — validated against `init.leverDefs` bounds server-side
+   - `risks[]`, `assumptions[]`, `citations[]` (from second brain)
+4. **Guardrails**: drop lever slugs not in `leverDefs`; clamp values to bounds; if `<3` valid moves, ask AI to retry once with stricter grounding; degrade to plays-only if still empty.
 
-Purely client-side, reusing the existing `runLocalEngine` output so nothing new hits the server:
+## Preview vs Apply
 
-- **Baseline path**: already available as `init.output.gdpGrowthPath` (levers at default). Cache once.
-- **Levered path**: `current.output.gdpGrowthPath` (recomputed on every slider change).
-- **Per-year delta**: `levered.p50[i] - baseline.p50[i]`.
-- **Cumulative delta**: running sum of per-year deltas (pp·years — treated as the "net revenue picture" proxy since v1_macro is GDP-growth based).
-- **Break-even year**: first `i` where cumulative delta ≥ 0.
-- **Gap-closed %**: `min(100, cumulative_levered / cumulative_baseline_shortfall * 100)` when still negative; `null` once surplus.
-
-All derivations live in a small pure helper `src/lib/scenarios/compensation.ts` so the same numbers can later feed the saved artifact summary.
+- **Preview**: sets `ghostPath` from current output, then applies recommended levers into local state without persisting — user sees fan chart bend and compensation ledger update in real time. A "Revert preview" chip appears until Apply or dismiss.
+- **Apply**: writes `title`, `horizonYears`, `activePlaybookIds`, `levers`, and appends AI-authored plays via existing `registerAiPlay`; auto-advances to Step 3 with drawer closed.
 
 ## Files
 
-- **New** `src/lib/scenarios/compensation.ts` — `computeCompensation(baselinePath, leveredPath)` returning `{ perYear, cumulative, breakEvenYear, regime, gapClosedPct, surplusEndPp }`.
-- **New** `src/components/scenarios/CompensationLedger.tsx` — the strip + numeric callout + regime pill; pure presentational, takes the helper's output.
-- **Edit** `src/components/scenarios/GdpFanChart.tsx` — accept optional `baselinePath` prop; when provided, render dashed baseline line and shade the area between baseline P50 and levered P50 with red/green split at the crossover. Keep existing `ghostPath` behavior untouched.
-- **Edit** `src/routes/_authenticated/admin/countries.$code.scenarios.new.tsx` — compute `baselinePath` once from `init`, pass to `GdpFanChart`, and mount `<CompensationLedger />` immediately below the fan chart inside Step 3 and Step 4 panes.
-- **Edit** `src/components/scenarios/StatStrip.tsx` (light) — add a fourth tile "Net vs baseline" showing cumulative pp and break-even year, so the top-of-canvas KPIs stay in sync with the ledger.
+**New**
+- `src/lib/scenarios/recommend-scenario.functions.ts` — server fn + context assembler
+- `src/components/scenarios/AiRecommendDrawer.tsx` — prompt UI, streaming brief, preview/apply
+- `src/components/scenarios/AiRecommendButton.tsx` — shared trigger (compact + hero variants)
 
-## Interaction & polish
+**Edited**
+- `src/routes/_authenticated/admin/countries.$code.scenarios.new.tsx` — mount drawer, wire preview/apply handlers, add trigger to sticky bar + Step 1 hero
+- `src/components/scenarios/GuidedRail.tsx` — Step 1 hero prompt card, Step 2 header entry
+- `src/components/scenarios/AiPlaySuggestions.tsx` — reuse styling patterns
 
-- 60fps: everything derives from the already-local engine output; no queries, no effects beyond `useMemo`.
-- Colors reuse existing semantic tokens (`--sector-*` for surplus, muted red token for deficit) — no hardcoded hex.
-- Accessible: numeric callouts use tabular-nums, regime pill has an `aria-live="polite"` region so screen readers announce crossover transitions.
-- Empty/edge cases: when levered ≡ baseline (all sliders at default), ledger shows a neutral "At baseline — move a lever to see compensation" hint instead of a flat green bar.
+## Technical notes
 
-## Out of scope
-
-- No server-side changes, no schema changes, no changes to saved scenario artifacts (can be a follow-up so archived scenarios also render the ledger).
-- Attribution waterfall and sector impact list are unchanged.
+- Reuse `runLocalEngine` to preview lever moves synchronously — no server round-trip after recommendation returns.
+- Citations use existing `<CitedMarkdown>` for the rationale block.
+- Empty-lever countries: recommendation drawer detects `init.leverDefs.length === 0` and routes user to Synthesize first, then re-opens with prompt preserved.
+- Errors: 429/402 surfaced with plain-language toast per gateway rules; terminal errors don't auto-retry.

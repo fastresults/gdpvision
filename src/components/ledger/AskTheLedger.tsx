@@ -198,8 +198,8 @@ export function AskTheLedger({
         {turns.length === 0 && (
           <div className="space-y-3">
             <p className="text-xs text-ink-500">
-              Grounded in this country's Second Brain only. Answers cite [N] sources and refuse when
-              evidence is missing. For recommendations, use the Scenario Engine.
+              Corpus first, whole-country context second, live web research third.
+              Answers cite [N] sources and flag confidence when evidence is thin.
             </p>
             <div className="grid grid-cols-1 gap-2">
               {SUGGESTIONS.map((s) => (
@@ -226,7 +226,7 @@ export function AskTheLedger({
         ))}
         {ask.isPending && (
           <p className="font-mono text-[10px] uppercase tracking-widest text-ink-500">
-            Retrieving from Second Brain…
+            Searching corpus · reading country context · escalating to deep research if needed…
           </p>
         )}
       </div>
@@ -405,8 +405,18 @@ function TurnBlock({
 
       {turn.answer && (
         <>
+          {(turn.answer.extended_with_research || (turn.answer.sources_used?.web ?? 0) > 0) && (
+            <div className="mt-2 inline-flex items-center gap-1 border border-indigo-200 bg-indigo-50 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-indigo-800">
+              Extended with live web research
+            </div>
+          )}
           {s ? (
             <div className="mt-2 space-y-3">
+              {s.situation && (
+                <p className="text-[13px] italic text-ink-700">
+                  {renderCitations(s.situation, turn.answer.citations)}
+                </p>
+              )}
               <p className="whitespace-pre-wrap text-sm text-ink-950">
                 {renderCitations(s.direct_answer, turn.answer.citations)}
               </p>
@@ -420,6 +430,19 @@ function TurnBlock({
                   ))}
                 </ul>
               )}
+              {s.so_what && s.so_what.length > 0 && (
+                <div>
+                  <p className="font-mono text-[9px] uppercase tracking-widest text-ink-500">So What</p>
+                  <ul className="mt-1 space-y-1 text-[13px] text-ink-700">
+                    {s.so_what.map((e, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-ink-950" aria-hidden />
+                        <span>{renderCitations(e, turn.answer!.citations)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {s.caveats.length > 0 && (
                 <div className="border-l-2 border-amber-300 bg-amber-50/40 px-2 py-1.5">
                   <p className="font-mono text-[9px] uppercase tracking-widest text-amber-800">Caveats</p>
@@ -430,7 +453,10 @@ function TurnBlock({
                   </ul>
                 </div>
               )}
-              <ConfidenceChip level={s.confidence} />
+              <div className="flex flex-wrap items-center gap-2">
+                <ConfidenceChip level={s.confidence} />
+                <SourcesUsedChip sources={turn.answer.sources_used} />
+              </div>
             </div>
           ) : turn.answer.grounded && turn.answer.answer ? (
             <p className="mt-2 whitespace-pre-wrap text-sm text-ink-700">
@@ -502,6 +528,20 @@ function ConfidenceChip({ level }: { level: "high" | "medium" | "low" }) {
   return (
     <span className={`inline-block border px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest ${styles}`}>
       Confidence · {level}
+    </span>
+  );
+}
+
+function SourcesUsedChip({ sources }: { sources?: { corpus: number; country_context: number; web: number } }) {
+  if (!sources) return null;
+  const parts: string[] = [];
+  if (sources.corpus) parts.push(`Corpus · ${sources.corpus}`);
+  if (sources.country_context) parts.push(`Country · ${sources.country_context}`);
+  if (sources.web) parts.push(`Web · ${sources.web}`);
+  if (parts.length === 0) return null;
+  return (
+    <span className="inline-block border border-line-200 bg-paper-0 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-ink-500">
+      {parts.join(" · ")}
     </span>
   );
 }

@@ -3940,6 +3940,7 @@ export type Database = {
           content: string
           distance: number
           id: string
+          source_id: string
           source_org: string
           source_title: string
           source_url: string

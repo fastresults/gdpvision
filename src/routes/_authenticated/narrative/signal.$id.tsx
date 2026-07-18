@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 
 import { generateDossierQuestions, getDossier, updateDossierQuestion } from "@/lib/dossier.functions";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
+import { CitedText } from "@/components/citations/CitedText";
 
 function dossierQuery(id: string) {
   return queryOptions({

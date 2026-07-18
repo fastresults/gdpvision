@@ -146,6 +146,22 @@ export function GdpFanChart({
           </g>
         ))}
         <path d={geometry.band} fill="var(--sector-03)" opacity={0.18} />
+        {geometry.deltaArea && (
+          <path
+            d={geometry.deltaArea}
+            fill="var(--sector-06)"
+            opacity={0.18}
+          />
+        )}
+        {geometry.baselineLine && (
+          <path
+            d={geometry.baselineLine}
+            fill="none"
+            stroke="var(--ink-500)"
+            strokeWidth={1}
+            strokeDasharray="4 3"
+          />
+        )}
         <line
           x1={pad.l}
           x2={w - pad.r}

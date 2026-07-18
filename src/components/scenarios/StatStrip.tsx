@@ -17,10 +17,11 @@ export function StatStrip({
   return (
     <div
       className={
-        "grid grid-cols-2 gap-px overflow-hidden border border-line-200 bg-line-200 md:grid-cols-4 " +
+        "grid grid-cols-2 gap-px border border-line-200 bg-line-200 md:grid-cols-4 " +
         (pending ? "animate-pulse" : "")
       }
     >
+
       {cells.map((c, i) => (
         <div key={i} className="min-w-0 bg-paper-0 px-3 py-4 sm:px-4">
           <p className="truncate font-mono text-[9px] uppercase tracking-[0.22em] text-ink-500">

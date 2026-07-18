@@ -3,6 +3,8 @@ import { Plus, Sparkles, Trash2 } from "lucide-react";
 import type { ActionType, ResilienceAction } from "@/lib/fdi-resilience.functions";
 import { sectorColor } from "@/components/viz/sector-color";
 import { cn } from "@/lib/utils";
+import { ExplainHover } from "./ExplainHover";
+import { EXPLAIN } from "./explain-copy";
 
 type Sector = { code: string; label: string; hue_token?: string | null };
 type Ministry = { slug: string; name: string };

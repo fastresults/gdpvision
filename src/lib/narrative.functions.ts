@@ -824,16 +824,16 @@ export const transitionCommsState = createServerFn({ method: "POST" })
       note: data.note ?? null,
       at: new Date().toISOString(),
     };
-    const prior = Array.isArray(cur.approvals) ? (cur.approvals as unknown[]) : [];
+    const prior = Array.isArray(cur.approvals) ? (cur.approvals as Json[]) : [];
     const patch: {
       draft_state: string;
-      approvals: unknown;
+      approvals: Json;
       updated_at: string;
       released_at?: string | null;
       assigned_reviewers?: string[];
     } = {
       draft_state: data.to,
-      approvals: [...prior, entry] as unknown,
+      approvals: [...prior, entry as unknown as Json] as Json,
       updated_at: new Date().toISOString(),
     };
     if (data.to === "released") patch.released_at = new Date().toISOString();

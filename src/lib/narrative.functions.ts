@@ -524,3 +524,235 @@ export const getCoverage = createServerFn({ method: "GET" })
     }));
   });
 
+
+// ─── Comms Library (search / detail / manage) ───────────────────────────────
+
+const LibrarySearch = z.object({
+  scopeKey: z.string().min(3).max(16),
+  q: z.string().max(200).optional(),
+  states: z.array(z.enum(["draft", "review", "approved", "released"])).optional(),
+  channels: z.array(z.string().max(60)).optional(),
+  audiences: z.array(z.string().max(120)).optional(),
+  tags: z.array(z.string().max(60)).optional(),
+  isTemplate: z.boolean().optional(),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  sort: z.enum(["updated", "released", "channel"]).default("updated"),
+  limit: z.number().int().min(1).max(200).default(50),
+  offset: z.number().int().min(0).default(0),
+});
+
+export const searchComms = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => LibrarySearch.parse(data))
+  .handler(async ({ data, context }) => {
+    let q = context.supabase
+      .from("comms_artifacts")
+      .select("id,title,kind,audience,channel,draft_state,released_at,updated_at,created_at,tags,is_template,signal_id,strategy_id,body")
+      .eq("scope_key", data.scopeKey)
+      .is("deleted_at", null);
+
+    if (data.q && data.q.trim()) {
+      const like = `%${data.q.trim().replace(/[%_]/g, (m) => `\\${m}`)}%`;
+      q = q.or(`title.ilike.${like},body.ilike.${like},audience.ilike.${like}`);
+    }
+    if (data.states?.length) q = q.in("draft_state", data.states);
+    if (data.channels?.length) q = q.in("channel", data.channels);
+    if (data.audiences?.length) q = q.in("audience", data.audiences);
+    if (data.tags?.length) q = q.contains("tags", data.tags);
+    if (typeof data.isTemplate === "boolean") q = q.eq("is_template", data.isTemplate);
+    if (data.from) q = q.gte("updated_at", data.from);
+    if (data.to) q = q.lte("updated_at", data.to);
+
+    const sortCol = data.sort === "released" ? "released_at" : data.sort === "channel" ? "channel" : "updated_at";
+    q = q.order(sortCol, { ascending: false, nullsFirst: false }).range(data.offset, data.offset + data.limit - 1);
+
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+
+    // Snippet + attach signal topic
+    const signalIds = Array.from(new Set((rows ?? []).map((r) => r.signal_id).filter(Boolean))) as string[];
+    let signalMap = new Map<string, { topic: string | null; priority: number | null }>();
+    if (signalIds.length) {
+      const { data: sigs } = await context.supabase
+        .from("intake_items")
+        .select("id,topic,metadata")
+        .in("id", signalIds);
+      for (const s of sigs ?? []) {
+        const meta = (s.metadata as Record<string, unknown> | null) ?? {};
+        const priority = typeof meta.priority === "number" ? (meta.priority as number) : null;
+        signalMap.set(s.id, { topic: s.topic ?? null, priority });
+      }
+    }
+
+    return (rows ?? []).map((r) => {
+      const body = r.body ?? "";
+      const snippet = body.replace(/[#*_>`]/g, "").slice(0, 220);
+      const sig = r.signal_id ? signalMap.get(r.signal_id) : null;
+      return {
+        id: r.id,
+        title: r.title ?? deriveTitle(r.channel, sig?.topic),
+        kind: r.kind,
+        audience: r.audience,
+        channel: r.channel,
+        draft_state: r.draft_state,
+        released_at: r.released_at,
+        updated_at: r.updated_at,
+        created_at: r.created_at,
+        tags: r.tags ?? [],
+        is_template: r.is_template ?? false,
+        signal_id: r.signal_id,
+        signal_topic: sig?.topic ?? null,
+        signal_priority: sig?.priority ?? null,
+        strategy_id: r.strategy_id,
+        snippet,
+      };
+    });
+  });
+
+function deriveTitle(channel: string, topic: string | null | undefined): string {
+  const c = channel ? channel.replace(/[_-]/g, " ") : "Draft";
+  return topic ? `${c} — ${topic.slice(0, 80)}` : c;
+}
+
+export const getCommsDetail = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("comms_artifacts")
+      .select("id,scope_key,strategy_id,signal_id,kind,audience,channel,body,title,tags,is_template,draft_state,approvals,released_at,published_url,published_at,updated_at,created_at,created_by")
+      .eq("id", data.id)
+      .single();
+    if (error) throw new Error(error.message);
+
+    let signal: { id: string; topic: string | null; priority: number | null } | null = null;
+    if (row.signal_id) {
+      const { data: s } = await context.supabase
+        .from("intake_items")
+        .select("id,topic,metadata")
+        .eq("id", row.signal_id)
+        .maybeSingle();
+      if (s) {
+        const meta = (s.metadata as Record<string, unknown> | null) ?? {};
+        signal = { id: s.id, topic: s.topic ?? null, priority: typeof meta.priority === "number" ? (meta.priority as number) : null };
+      }
+    }
+
+    let strategySources: unknown[] = [];
+    if (row.strategy_id) {
+      const { data: st } = await context.supabase
+        .from("strategy_statements")
+        .select("data")
+        .eq("id", row.strategy_id)
+        .maybeSingle();
+      const d = (st?.data as Record<string, unknown> | null) ?? {};
+      if (Array.isArray(d.sources)) strategySources = d.sources as unknown[];
+    }
+
+    const { data: revisions } = await context.supabase
+      .from("comms_artifact_revisions")
+      .select("id,edited_at,editor_id,body")
+      .eq("artifact_id", data.id)
+      .order("edited_at", { ascending: false })
+      .limit(50);
+
+    return { artifact: row, signal, strategySources, revisions: revisions ?? [] };
+  });
+
+const MetaUpdate = z.object({
+  id: z.string().uuid(),
+  title: z.string().max(200).optional(),
+  tags: z.array(z.string().max(60)).max(20).optional(),
+  isTemplate: z.boolean().optional(),
+});
+
+export const updateCommsMeta = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => MetaUpdate.parse(data))
+  .handler(async ({ data, context }) => {
+    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (typeof data.title === "string") patch.title = data.title;
+    if (Array.isArray(data.tags)) patch.tags = data.tags;
+    if (typeof data.isTemplate === "boolean") patch.is_template = data.isTemplate;
+    const { error } = await context.supabase.from("comms_artifacts").update(patch).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const duplicateComms = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid(), asTemplate: z.boolean().default(false) }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: src, error } = await context.supabase
+      .from("comms_artifacts")
+      .select("scope_key,strategy_id,signal_id,kind,audience,channel,body,title,tags")
+      .eq("id", data.id).single();
+    if (error) throw new Error(error.message);
+    const { data: row, error: iErr } = await context.supabase
+      .from("comms_artifacts")
+      .insert({
+        scope_key: src.scope_key,
+        strategy_id: src.strategy_id,
+        signal_id: data.asTemplate ? null : src.signal_id,
+        kind: src.kind,
+        audience: src.audience,
+        channel: src.channel,
+        body: src.body,
+        title: (src.title ?? "Draft") + (data.asTemplate ? " (template)" : " (copy)"),
+        tags: src.tags ?? [],
+        is_template: data.asTemplate,
+        draft_state: "draft",
+        created_by: context.userId,
+      })
+      .select("id").single();
+    if (iErr) throw new Error(iErr.message);
+    return { id: row.id };
+  });
+
+export const deleteComms = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: cur, error: fErr } = await context.supabase
+      .from("comms_artifacts").select("draft_state").eq("id", data.id).single();
+    if (fErr) throw new Error(fErr.message);
+    if (cur.draft_state === "released") {
+      throw new Error("Released artifacts cannot be deleted. Duplicate or supersede instead.");
+    }
+    const { error } = await context.supabase
+      .from("comms_artifacts")
+      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const listCommsFacets = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => ScopeInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("comms_artifacts")
+      .select("channel,audience,tags,draft_state")
+      .eq("scope_key", data.scopeKey)
+      .is("deleted_at", null)
+      .limit(1000);
+    if (error) throw new Error(error.message);
+    const channels = new Set<string>();
+    const audiences = new Set<string>();
+    const tags = new Set<string>();
+    const states: Record<string, number> = { draft: 0, review: 0, approved: 0, released: 0 };
+    for (const r of rows ?? []) {
+      if (r.channel) channels.add(r.channel);
+      if (r.audience) audiences.add(r.audience);
+      for (const t of (r.tags ?? []) as string[]) tags.add(t);
+      if (r.draft_state && states[r.draft_state] !== undefined) states[r.draft_state]++;
+    }
+    return {
+      channels: [...channels].sort(),
+      audiences: [...audiences].sort(),
+      tags: [...tags].sort(),
+      states,
+    };
+  });

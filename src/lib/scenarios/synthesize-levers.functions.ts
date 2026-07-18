@@ -132,7 +132,7 @@ export const synthesizeLevers = createServerFn({ method: "POST" })
           .join("\n") || "- (no ministries)";
       const flowList =
         (flows ?? [])
-          .map((f) => `- ${f.flow_type}: ${f.label} ($${Number(f.value_usd_m ?? 0).toFixed(1)}M)`)
+          .map((f) => `- ${f.node_key} (${f.period}): $${Number(f.value_usd_m ?? 0).toFixed(1)}M`)
           .join("\n") || "- (no capital flow snapshots)";
       const signalList =
         (signals ?? [])

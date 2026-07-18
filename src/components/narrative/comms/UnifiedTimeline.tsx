@@ -73,6 +73,14 @@ export function UnifiedTimeline({
                 <span className="text-[11px] text-ink-500 line-clamp-1 flex-1">
                   {e.r.body.slice(0, 120).replace(/[#*_>`]/g, "")}…
                 </span>
+                <CopyButton
+                  value={e.r.body}
+                  variant="ghost"
+                  label="Copy"
+                  iconSize={10}
+                  className="text-[10px] font-mono uppercase tracking-widest"
+                  title="Copy this revision"
+                />
                 <Button
                   size="sm"
                   variant="outline"

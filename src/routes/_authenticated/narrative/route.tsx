@@ -58,10 +58,20 @@ function NarrativeShell() {
           </nav>
         </div>
         <div className="flex items-center gap-6 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500">
+          {returnCode && (
+            <Link
+              to="/admin/countries/$code/onboard"
+              params={{ code: returnCode }}
+              className="border border-line-200 px-3 py-1 text-ink-950 hover:border-ink-950"
+            >
+              ← Back to {returnCode} chambers
+            </Link>
+          )}
           <Link to="/instrument" className="hover:text-ink-950">Instrument</Link>
           <span data-numeric>{defaultCode}</span>
           <button onClick={signOut} className="hover:text-ink-950">Sign out</button>
         </div>
+
       </header>
       <Outlet />
     </div>

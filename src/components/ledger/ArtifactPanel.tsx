@@ -70,10 +70,10 @@ export function ArtifactPanel({
   });
 
   // Auto-fire on mount.
-  useState(() => {
+  useEffect(() => {
     draft.mutate(undefined);
-    return null;
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const result = draft.data;
 

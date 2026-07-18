@@ -126,6 +126,26 @@ const CreateThreatInput = z.object({
   onset: z.enum(["immediate", "phased", "tail_risk"]).default("phased"),
 });
 
+const UpdateThreatInput = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).max(200),
+  threatType: z.enum([
+    "tariff",
+    "climate",
+    "cbi_wind_down",
+    "tourism_collapse",
+    "anchor_exit",
+    "commodity_shock",
+    "sanctions",
+    "treaty_change",
+    "custom",
+  ]),
+  targetSectorCodes: z.array(z.string().min(1).max(64)).min(1).max(12),
+  severityPct: z.number().min(0).max(100),
+  horizonYears: z.number().int().min(1).max(20),
+  onset: z.enum(["immediate", "phased", "tail_risk"]),
+});
+
 const AllocationEntryZ = z.object({
   sector_code: z.string(),
   current_pct: z.number().min(0).max(100),
@@ -891,4 +911,38 @@ export const promoteStrategyToScenario = createServerFn({ method: "POST" })
       .update({ promoted_scenario_id: scen.id })
       .eq("id", strategy.id);
     return { scenarioId: scen.id };
+  });
+
+// ─── Update / delete threat ──────────────────────────────────────────────────
+
+export const updateThreat = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => UpdateThreatInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("fdi_threats")
+      .update({
+        name: data.name,
+        threat_type: data.threatType,
+        target_sector_codes: data.targetSectorCodes,
+        severity_pct: data.severityPct,
+        horizon_years: data.horizonYears,
+        onset: data.onset,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { id: data.id };
+  });
+
+export const deleteThreat = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => IdInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("fdi_threats")
+      .delete()
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });

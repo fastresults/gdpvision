@@ -36,6 +36,8 @@ export function StrategyPanel({ signalId }: { signalId: string }) {
   });
 
   const seven = (strat.data?.seven_part ?? {}) as Record<string, string | string[]>;
+  const rawSources = (strat.data?.sources as Array<{ label?: string; ref?: string }> | null) ?? [];
+  const citations: CitationRef[] = rawSources.map((s) => ({ url: s.ref, title: s.label, label: s.label }));
 
   return (
     <section id="strategy" className="border border-line-200 bg-paper-0 p-5">

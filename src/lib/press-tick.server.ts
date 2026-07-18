@@ -112,14 +112,30 @@ export async function runPressTick(opts: {
     }
 
     const perCountryCap = 60;
-    const seenPerCountry = new Map<string, number>();
 
-    const { data: newItems } = await supabaseAdmin
-      .from("narrative_feed_items")
-      .select("id,country_code,url,title,raw_excerpt")
-      .eq("state", "new")
-      .order("fetched_at", { ascending: false })
-      .limit(500);
+    // Fair per-country slice: pull the newest N per country from state=new
+    // so a burst from one country cannot starve the classification queue.
+    const perCountryFetch = 40;
+    type PoolItem = { id: string; country_code: string; url: string | null; title: string; raw_excerpt: string | null };
+    const perCountryPool = new Map<string, PoolItem[]>();
+    const targetCountries = filterCountry ? [filterCountry] : Array.from(universe);
+    await pMap(targetCountries, async (cc) => {
+      const { data } = await supabaseAdmin
+        .from("narrative_feed_items")
+        .select("id,country_code,url,title,raw_excerpt")
+        .eq("state", "new")
+        .eq("country_code", cc)
+        .order("fetched_at", { ascending: false })
+        .limit(perCountryFetch);
+      const rows: PoolItem[] = (data ?? []).map((r) => ({
+        id: r.id as string,
+        country_code: r.country_code as string,
+        url: (r.url as string | null) ?? null,
+        title: (r.title as string | null) ?? "",
+        raw_excerpt: (r.raw_excerpt as string | null) ?? null,
+      }));
+      if (rows.length) perCountryPool.set(cc, rows);
+    }, 8);
 
     const canonSet = new Set<string>();
     const since = new Date(Date.now() - 3 * 86400_000).toISOString();
@@ -130,13 +146,28 @@ export async function runPressTick(opts: {
       .limit(2000);
     for (const r of recent ?? []) if (r.url) canonSet.add(canonicalUrl(r.url));
 
-    const toClassify = (newItems ?? []).filter((it) => {
-      const c = seenPerCountry.get(it.country_code) ?? 0;
-      if (c >= perCountryCap) return false;
-      if (it.url && canonSet.has(canonicalUrl(it.url))) return false;
-      seenPerCountry.set(it.country_code, c + 1);
-      return true;
-    });
+    // Round-robin interleave so every country gets classification progress.
+    const seenPerCountry = new Map<string, number>();
+    const toClassify: PoolItem[] = [];
+    const cursors = new Map<string, number>();
+    const countryQueue = Array.from(perCountryPool.keys());
+    let anyLeft = true;
+    while (anyLeft) {
+      anyLeft = false;
+      for (const cc of countryQueue) {
+        const pool = perCountryPool.get(cc) ?? [];
+        const idx = cursors.get(cc) ?? 0;
+        if (idx >= pool.length) continue;
+        cursors.set(cc, idx + 1);
+        anyLeft = true;
+        const it = pool[idx];
+        const c = seenPerCountry.get(it.country_code) ?? 0;
+        if (c >= perCountryCap) continue;
+        if (it.url && canonSet.has(canonicalUrl(it.url))) continue;
+        seenPerCountry.set(it.country_code, c + 1);
+        toClassify.push(it);
+      }
+    }
 
     // Layer 3 · Firecrawl upgrade: fetch full-text markdown for the top-8 items
     // per country in this batch, keyed by first-seen order. Failures fall back to the snippet.
@@ -346,6 +377,28 @@ export async function runPressTick(opts: {
     }
   }
 
+  // Gap-fill: sequentially re-tick up to 8 missing countries so a single
+  // slow feed or classify miss doesn't leave a country empty until the next
+  // hourly sweep. Skipped when this run is already a gap-fill or single-country tick.
+  let gapFilled = 0;
+  const gapFillErrors: Array<{ scope: string; msg: string }> = [];
+  if (!filterCountry && windowKey !== "gap-fill" && missing.length > 0) {
+    const targets = missing.slice(0, 8);
+    for (const cc of targets) {
+      try {
+        const sub = await runPressTick({
+          windowKey: "gap-fill",
+          filterCountry: cc,
+          triggeredBy: "auto",
+        });
+        if (sub.items_promoted > 0) gapFilled++;
+      } catch (e) {
+        gapFillErrors.push({ scope: `gap-fill:${cc}`, msg: (e as Error).message });
+      }
+    }
+    if (gapFillErrors.length) errors.push(...gapFillErrors);
+  }
+
   await supabaseAdmin
     .from("narrative_harvest_runs")
     .update({
@@ -361,6 +414,7 @@ export async function runPressTick(opts: {
         _clusters_merged: clustersMerged,
         _universe: Array.from(universe),
         _missing: missing,
+        _gap_filled: gapFilled,
       },
     })
     .eq("id", run.id);

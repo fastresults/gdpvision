@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { useState } from "react";
 
 import { listScenarios } from "@/lib/scenarios.functions";
 import { listInstanceBindings } from "@/lib/ledger.functions";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
+import { useChamberCountry } from "@/hooks/useChamberCountry";
 
 const bindingsQuery = queryOptions({
   queryKey: ["instance-bindings"],

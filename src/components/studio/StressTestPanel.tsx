@@ -1,6 +1,8 @@
 import type { Allocation, ResilienceAction, StrategyMetrics } from "@/lib/fdi-resilience.functions";
 import { StatStrip } from "@/components/scenarios/StatStrip";
 import { sectorColor } from "@/components/viz/sector-color";
+import { ExplainHover } from "./ExplainHover";
+import { EXPLAIN } from "./explain-copy";
 
 type Sector = { code: string; label: string; hue_token?: string | null };
 

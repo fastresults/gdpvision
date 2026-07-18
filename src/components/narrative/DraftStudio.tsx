@@ -291,7 +291,7 @@ export function DraftStudio({ signalId }: { signalId: string }) {
       {runBatch.error && <p className="mt-3 text-sm text-rose-600">{(runBatch.error as Error).message}</p>}
 
       {!strategyId && (
-        <p className="mt-4 text-sm text-ink-500">Draft a strategy statement (Act 3) before generating channel copy.</p>
+        <p className="mt-4 text-sm text-ink-500">No strategy statement yet — Generate will draft one automatically (Act 3), then write your selected channel copy.</p>
       )}
 
       {forActive ? (

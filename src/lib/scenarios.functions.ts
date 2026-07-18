@@ -357,3 +357,141 @@ export const promoteScenario = createServerFn({ method: "POST" })
 
     return { id: data.id, status: data.toStatus };
   });
+
+// ─── AI executive narrative ──────────────────────────────────────────────────
+
+const NarrateSchema = z.object({
+  scenarioId: z.string().uuid().optional(),
+  livePayload: z
+    .object({
+      countryCode: z.string().min(3).max(4),
+      title: z.string().min(1).max(200),
+      horizonYears: z.number().int().min(1).max(20),
+      levers: z.record(z.string(), z.number()),
+      engineOutput: z.record(z.string(), z.any()),
+    })
+    .optional(),
+});
+export type NarrateInput = z.infer<typeof NarrateSchema>;
+
+export const narrateScenario = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => NarrateSchema.parse(data))
+  .handler(async ({ data, context }): Promise<{ narrative_md: string; generated_at: string }> => {
+    const { supabase } = context;
+
+    // Resolve source scenario (persisted or live).
+    let countryCode: string;
+    let title: string;
+    let horizonYears: number;
+    let levers: Record<string, number>;
+    let engineOutput: Record<string, unknown>;
+
+    if (data.scenarioId) {
+      const { data: s, error } = await supabase
+        .from("scenarios")
+        .select("country_code,title,horizon_years,lever_settings,results")
+        .eq("id", data.scenarioId)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!s) throw new Error("Scenario not found");
+      countryCode = s.country_code;
+      title = s.title;
+      horizonYears = s.horizon_years;
+      levers = (s.lever_settings ?? {}) as Record<string, number>;
+      engineOutput = (s.results ?? {}) as Record<string, unknown>;
+    } else if (data.livePayload) {
+      ({ countryCode, title, horizonYears, levers, engineOutput } = data.livePayload);
+    } else {
+      throw new Error("Provide scenarioId or livePayload");
+    }
+
+    // Enrich with country name + baseline composition (safe to send to model).
+    const [{ data: country }, { data: comp }] = await Promise.all([
+      supabase.from("countries").select("name").eq("code", countryCode).maybeSingle(),
+      supabase
+        .from("country_sectors")
+        .select("sector_code,share_pct,confidence_grade")
+        .eq("country_code", countryCode),
+    ]);
+
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("Lovable AI Gateway not configured");
+
+    const prompt = [
+      `You are a McKinsey senior partner drafting an executive brief for the ${country?.name ?? countryCode} government.`,
+      `Scenario title: "${title}" · Horizon: ${horizonYears} years · Engine: ${ENGINE_VERSION}.`,
+      "",
+      "Baseline sector composition (share % of GDP):",
+      (comp ?? [])
+        .map((r) => `- ${r.sector_code}: ${Number(r.share_pct).toFixed(1)}% (grade ${r.confidence_grade})`)
+        .join("\n") || "- none available",
+      "",
+      "Policy lever settings:",
+      Object.entries(levers)
+        .map(([k, v]) => `- ${k}: ${Number(v).toFixed(2)}`)
+        .join("\n") || "- defaults",
+      "",
+      "Engine output (JSON):",
+      JSON.stringify(engineOutput).slice(0, 6000),
+      "",
+      "Write a tight brief in Markdown with these sections (use ## for headings):",
+      "## Situation",
+      "## Complication",
+      "## Recommendation",
+      "## Downside risks",
+      "## Watch-list KPIs",
+      "",
+      "Rules:",
+      "- Ground every claim in the numbers above. No filler.",
+      "- Quote specific delta values (pp) and years.",
+      "- Recommendation: 3 crisp actions, each with an owner ministry hint.",
+      "- 250-400 words total.",
+    ].join("\n");
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Lovable-API-Key": apiKey,
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: "You produce grounded executive briefs, McKinsey style." },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.3,
+      }),
+    });
+    if (!res.ok) {
+      if (res.status === 429) throw new Error("AI Gateway rate limit — try again in a moment.");
+      if (res.status === 402) throw new Error("AI credits exhausted for this workspace.");
+      throw new Error(`AI Gateway ${res.status}: ${await res.text()}`);
+    }
+    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    const narrative_md = json.choices?.[0]?.message?.content?.trim() ?? "";
+    const generated_at = new Date().toISOString();
+    if (!narrative_md) throw new Error("AI returned an empty narrative.");
+
+    // Persist onto the artifact when we have one.
+    if (data.scenarioId) {
+      const { data: cur } = await supabase
+        .from("scenarios")
+        .select("assumptions")
+        .eq("id", data.scenarioId)
+        .maybeSingle();
+      const next = {
+        ...(((cur?.assumptions ?? {}) as JsonObject) || {}),
+        narrative_md,
+        narrative_generated_at: generated_at,
+      } as unknown as JsonObject;
+      await supabase
+        .from("scenarios")
+        .update({ assumptions: next })
+        .eq("id", data.scenarioId);
+    }
+
+    return { narrative_md, generated_at };
+  });
+

@@ -161,7 +161,7 @@ export const runManualTick = createServerFn({ method: "POST" })
 
 export const lastHarvestRun = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<HarvestRun | null> => {
+  .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("narrative_harvest_runs")
       .select("*")
@@ -169,7 +169,7 @@ export const lastHarvestRun = createServerFn({ method: "GET" })
       .limit(1)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return data as unknown as HarvestRun | null;
+    return data as HarvestRun | null;
   });
 
 // ─── Radar 24h heat-strip data ──────────────────────────────────────────────

@@ -60,7 +60,10 @@ export const Route = createFileRoute("/api/public/hooks/press-tick")({
               endpoint: f.endpoint, etag: f.etag,
               active: f.active, consecutive_failures: f.consecutive_failures ?? 0,
             });
-            const patch: Record<string, unknown> = {
+            const patch: {
+              last_polled_at: string; last_status: string; last_error: string | null;
+              consecutive_failures?: number; etag?: string; active?: boolean;
+            } = {
               last_polled_at: new Date().toISOString(),
               last_status: r.status,
               last_error: r.error ?? null,

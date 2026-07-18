@@ -1,53 +1,89 @@
+# Why KNA (and most non-ATG countries) show 0 signals
 
-## Goal
-Add a prominent, always-visible **"AI Recommend Scenario"** action in the Scenario Engine wizard that, given a plain-language challenge (e.g. "wind down CBI", "increase airlift + rooms", "Cat-4 hurricane hits Q3"), reads the country's second brain and returns a fully-configured scenario — title, horizon, composed playbooks, exact lever positions, rationale, and citations — that the user can preview instantly and one-click apply.
+I ran the forensics against the live database and cron schedule. Every one of the 22 countries in the second brain is correctly seeded — each has 12 active feeds in `narrative_feeds`. So the *coverage universe* is right. The failure is downstream, in **how the harvester is scheduled and how it distributes work**.
 
-## UX — where it lives
+Three root causes, in order of blast radius:
 
-A new **"Ask AI to design this scenario"** primary CTA appears in three complementary places so it's unmissable:
+## 1. The hourly cron is a stub — it does not harvest anything
 
-1. **Sticky status bar** (top of live canvas, all steps) — compact `✨ Ask AI` button.
-2. **Step 1 hero card** — full "Describe your challenge" prompt box with example chips ("Wind down CBI over 3 years", "Hurricane Cat-4 in Q3", "Double stayover arrivals by Y3", "IMF fiscal consolidation").
-3. **Step 2 header** — "Or let AI compose the plays for you" secondary entry that pre-fills the prompt.
+`pg_cron` has four narrative jobs. Only one runs hourly:
 
-Clicking opens a right-side **Recommendation Drawer**:
-- Prompt textarea + example chips + horizon hint
-- "Generate" streams a McKinsey-style brief with: **Thesis**, **Recommended plays** (multi-select composition), **Lever moves** (table: lever · from → to · Δ pp GDP), **Risks/what must be true**, **Citations**.
-- Two actions: **Preview in canvas** (ghost-applies levers so fan chart & compensation ledger bend live without committing) and **Apply scenario** (writes title, horizon, playbook selection, lever values into state, jumps to Step 3).
+```text
+narrative-harvest-hourly     15 * * * *   → /api/public/hooks/narrative-harvest
+narrative-press-tick-morning  0 7 * * *   → /api/public/hooks/press-tick
+narrative-press-tick-evening  0 19 * * *  → /api/public/hooks/press-tick
+narrative-press-discover-weekly 0 2 * * 0 → /api/public/hooks/press-discover
+```
 
-## AI pipeline
+The hourly one calls `narrative-harvest.ts`, which is a leftover **skeleton** — it inserts an empty `harvest_runs` row and returns. It never fetches a feed, never classifies, never writes to `intake_items`. The real harvester (`runPressTick`) only runs **twice a day**. If any country's feeds error or produce nothing in a given 12-hour window, that country stays at zero for up to 12 hours — which is exactly what KNA is showing.
 
-New server fn `recommendScenario` in `src/lib/scenarios/recommend-scenario.functions.ts`:
+## 2. When the real tick does run, it is unfair across countries
 
-1. **Context assembly** (server-only): pull country pack — macro snapshot, top sectors, active KPIs, ministry portfolios, existing threats from `existential_threats`, current lever defs + bounds + rationale, playbook catalog (built-in + prior AI plays).
-2. **Model**: `google/gemini-3.1-pro-preview` via Lovable AI Gateway (structured output disabled — schema kept constraint-free per gateway rules; fallback parse from `error.text`).
-3. **Output schema** (small, flat):
-   - `title`, `thesis`, `horizonYears`
-   - `playbookIds[]` (subset of catalog) + `newPlaybook?` (if none fits, emit one grounded play)
-   - `leverMoves[]`: `{ slug, value, rationaleShort }` — validated against `init.leverDefs` bounds server-side
-   - `risks[]`, `assumptions[]`, `citations[]` (from second brain)
-4. **Guardrails**: drop lever slugs not in `leverDefs`; clamp values to bounds; if `<3` valid moves, ask AI to retry once with stricter grounding; degrade to plays-only if still empty.
+Inside `runPressTick` (`src/lib/press-tick.server.ts`):
 
-## Preview vs Apply
+```ts
+const { data: newItems } = await supabaseAdmin
+  .from("narrative_feed_items")
+  .select(...)
+  .eq("state", "new")
+  .order("fetched_at", { ascending: false })
+  .limit(500);           // ← global cap, not per-country
+```
 
-- **Preview**: sets `ghostPath` from current output, then applies recommended levers into local state without persisting — user sees fan chart bend and compensation ledger update in real time. A "Revert preview" chip appears until Apply or dismiss.
-- **Apply**: writes `title`, `horizonYears`, `activePlaybookIds`, `levers`, and appends AI-authored plays via existing `registerAiPlay`; auto-advances to Step 3 with drawer closed.
+With 22 countries × 12 feeds, a single tick easily yields >500 new items. The global `LIMIT 500` ordered by `fetched_at DESC` means whichever country's feeds happened to respond fastest fills the classification queue and starves the rest. The database confirms this: in the last 48h, `intake_items` has **149 rows for ATG and 0 for every other country** — because recent runs were manual, ATG-scoped, and the classifier only ever saw ATG items.
 
-## Files
+## 3. Manual "Run now" filters to one country and no gap-fill exists
 
-**New**
-- `src/lib/scenarios/recommend-scenario.functions.ts` — server fn + context assembler
-- `src/components/scenarios/AiRecommendDrawer.tsx` — prompt UI, streaming brief, preview/apply
-- `src/components/scenarios/AiRecommendButton.tsx` — shared trigger (compact + hero variants)
+The UI's Run Now button passes `filterCountry: <code>`, and the hourly stub does nothing. There is no mechanism that says "any country that produced zero signals this window, sweep it again." The `_missing` list is computed and stored on the run row, but nothing acts on it.
 
-**Edited**
-- `src/routes/_authenticated/admin/countries.$code.scenarios.new.tsx` — mount drawer, wire preview/apply handlers, add trigger to sticky bar + Step 1 hero
-- `src/components/scenarios/GuidedRail.tsx` — Step 1 hero prompt card, Step 2 header entry
-- `src/components/scenarios/AiPlaySuggestions.tsx` — reuse styling patterns
+# The fix
 
-## Technical notes
+Four changes, all backend + one small UI safety net. No new tables.
 
-- Reuse `runLocalEngine` to preview lever moves synchronously — no server round-trip after recommendation returns.
-- Citations use existing `<CitedMarkdown>` for the rationale block.
-- Empty-lever countries: recommendation drawer detects `init.leverDefs.length === 0` and routes user to Synthesize first, then re-opens with prompt preserved.
-- Errors: 429/402 surfaced with plain-language toast per gateway rules; terminal errors don't auto-retry.
+## A. Make the hourly cron actually harvest — for all countries
+
+- **Rewrite** `src/routes/api/public/hooks/narrative-harvest.ts` to call `runPressTick({ windowKey: "hourly", filterCountry: null, triggeredBy: "cron" })`. Same auth pattern as `press-tick.ts` (validate `apikey` header against `SUPABASE_PUBLISHABLE_KEY`).
+- **Reschedule** via `supabase--insert`: unschedule `narrative-harvest-hourly` and replace with a job that hits `/api/public/hooks/press-tick` every hour with `body='{}'`. Keep the 7am/7pm jobs as `window:"morning"` / `"evening"` for the durable run log. Remove the stub route file once no cron references it.
+- Net effect: every country gets a full sweep every 60 minutes instead of every 12 hours.
+
+## B. Fair per-country classification queue
+
+In `runPressTick`, replace the global `LIMIT 500` with a **per-country round-robin** so every country gets a guaranteed slice each tick:
+
+1. Query `narrative_feed_items` where `state='new'`, then in-code group by `country_code` and take up to N (e.g. 25) newest per country before flattening. Guarantees KNA is never starved by a burst from ATG.
+2. Interleave the flattened list by country (round-robin) so classification progress is visible across the map, not sequential.
+3. Keep the existing `perCountryCap = 60` promotion cap as an upper bound.
+
+## C. Automatic gap-fill for coverage misses
+
+At the end of `runPressTick`, after `_missing` is computed:
+
+- For every country in `_missing` (cap 8 per tick to protect the Perplexity budget), enqueue a follow-up single-country tick inline via `runPressTick({ filterCountry: cc, windowKey: "gap-fill", triggeredBy: "auto" })`. Run sequentially with a small delay and swallow errors into the parent run's `errors` array so one bad country never blocks the rest.
+- The coverage badge already surfaces `_missing`; gap-fill will usually close it before the next hourly tick.
+
+## D. UI safety net — never show a bare "0 signals" when data exists
+
+In `src/routes/_authenticated/admin/countries.$code.narrative.tsx` and the Signal Radar card:
+
+- If the last-24h count is 0 for the current country, automatically widen the query to the last 7 days and add a small "Showing last 7 days — no fresh signals in 24h" note plus a one-click **Run now** for that country. This turns the current dead-end screen into an actionable state while the hourly cron catches up.
+
+## E. Operational visibility
+
+- Extend the `CoverageBadge` hover to also show "Last successful sweep per country" (derived from the most recent `narrative_harvest_runs.coverage` row where `coverage[cc].total > 0`). Makes it obvious whether KNA is "cron never touched it" vs "cron ran but produced 0."
+
+# Files touched
+
+```text
+src/routes/api/public/hooks/narrative-harvest.ts   rewrite → calls runPressTick, or delete after cron migration
+src/lib/press-tick.server.ts                       per-country fair queue + inline gap-fill
+src/components/narrative/CoverageBadge.tsx         add per-country last-good sweep
+src/routes/_authenticated/admin/countries.$code.narrative.tsx  7-day fallback + inline Run Now
+supabase (cron)                                    unschedule stub, add hourly press-tick job
+```
+
+# Verification after build
+
+1. Trigger `/api/public/hooks/press-tick` once with empty body, confirm `narrative_harvest_runs.countries_run` contains all 22 codes and `items_promoted > 0` for the majority.
+2. Query `intake_items` in the last 2h grouped by `scope_key` — expect rows for most countries, not just ATG.
+3. Reload `/admin/countries/KNA/narrative` — expect Signal Radar populated (or the 7-day fallback with a Run Now CTA if truly zero).
+4. Confirm hourly `cron.job_run_details` shows successful `press-tick` runs going forward.

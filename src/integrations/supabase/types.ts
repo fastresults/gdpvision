@@ -2994,6 +2994,183 @@ export type Database = {
           },
         ]
       }
+      narrative_feed_items: {
+        Row: {
+          country_code: string
+          error: string | null
+          feed_id: string
+          fetched_at: string
+          guid_hash: string
+          id: string
+          published_at: string | null
+          raw_excerpt: string | null
+          signal_id: string | null
+          state: string
+          title: string | null
+          url: string | null
+        }
+        Insert: {
+          country_code: string
+          error?: string | null
+          feed_id: string
+          fetched_at?: string
+          guid_hash: string
+          id?: string
+          published_at?: string | null
+          raw_excerpt?: string | null
+          signal_id?: string | null
+          state?: string
+          title?: string | null
+          url?: string | null
+        }
+        Update: {
+          country_code?: string
+          error?: string | null
+          feed_id?: string
+          fetched_at?: string
+          guid_hash?: string
+          id?: string
+          published_at?: string | null
+          raw_excerpt?: string | null
+          signal_id?: string | null
+          state?: string
+          title?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "narrative_feed_items_feed_id_fkey"
+            columns: ["feed_id"]
+            isOneToOne: false
+            referencedRelation: "narrative_feeds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "narrative_feed_items_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "intake_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      narrative_feeds: {
+        Row: {
+          active: boolean
+          consecutive_failures: number
+          country_code: string
+          created_at: string
+          endpoint: string
+          etag: string | null
+          id: string
+          kind: string
+          label: string | null
+          language: string | null
+          last_error: string | null
+          last_hash: string | null
+          last_polled_at: string | null
+          last_status: string | null
+          ministry_hint: string | null
+          owner_country_code: string | null
+          scope: string
+          sector_hint: string | null
+          updated_at: string
+          uploaded_by: string | null
+          visibility: string
+          weight: number
+        }
+        Insert: {
+          active?: boolean
+          consecutive_failures?: number
+          country_code: string
+          created_at?: string
+          endpoint: string
+          etag?: string | null
+          id?: string
+          kind: string
+          label?: string | null
+          language?: string | null
+          last_error?: string | null
+          last_hash?: string | null
+          last_polled_at?: string | null
+          last_status?: string | null
+          ministry_hint?: string | null
+          owner_country_code?: string | null
+          scope: string
+          sector_hint?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+          weight?: number
+        }
+        Update: {
+          active?: boolean
+          consecutive_failures?: number
+          country_code?: string
+          created_at?: string
+          endpoint?: string
+          etag?: string | null
+          id?: string
+          kind?: string
+          label?: string | null
+          language?: string | null
+          last_error?: string | null
+          last_hash?: string | null
+          last_polled_at?: string | null
+          last_status?: string | null
+          ministry_hint?: string | null
+          owner_country_code?: string | null
+          scope?: string
+          sector_hint?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+          weight?: number
+        }
+        Relationships: []
+      }
+      narrative_harvest_runs: {
+        Row: {
+          countries_run: string[]
+          errors: Json
+          feeds_polled: number
+          finished_at: string | null
+          id: string
+          items_fetched: number
+          items_new: number
+          items_promoted: number
+          started_at: string
+          triggered_by: string
+          window_key: string | null
+        }
+        Insert: {
+          countries_run?: string[]
+          errors?: Json
+          feeds_polled?: number
+          finished_at?: string | null
+          id?: string
+          items_fetched?: number
+          items_new?: number
+          items_promoted?: number
+          started_at?: string
+          triggered_by?: string
+          window_key?: string | null
+        }
+        Update: {
+          countries_run?: string[]
+          errors?: Json
+          feeds_polled?: number
+          finished_at?: string | null
+          id?: string
+          items_fetched?: number
+          items_new?: number
+          items_promoted?: number
+          started_at?: string
+          triggered_by?: string
+          window_key?: string | null
+        }
+        Relationships: []
+      }
       narrative_lineage: {
         Row: {
           artifact_id: string

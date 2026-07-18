@@ -111,7 +111,7 @@ export function DraftStudio({ signalId }: { signalId: string }) {
         const ch = channels[i];
         setProgress((p) => (p ? { ...p, current: ch } : p));
         try {
-          await gen({ data: { strategyId, signalId, channel: ch } });
+          await gen({ data: { strategyId: sid, signalId, channel: ch } });
           if (!firstGenerated) firstGenerated = ch;
           await qc.invalidateQueries({ queryKey: ["narrative-artifacts", signalId] });
         } catch (e) {

@@ -66,6 +66,24 @@ function NarrativeLayout() {
             </p>
           </div>
 
+          <Link
+            to="/admin/countries/$code/narrative/library"
+            params={{ code }}
+            className="flex items-center justify-between gap-2 border border-ink-950 bg-ink-950 px-3 py-2.5 text-paper-0 hover:bg-ink-800"
+            activeProps={{ className: "ring-2 ring-amber-400 ring-offset-2" }}
+          >
+            <span className="flex items-center gap-2">
+              <FolderOpen size={14} />
+              <span className="font-mono text-[11px] uppercase tracking-[0.18em]">Comms Library</span>
+            </span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-paper-0/70">
+              Drafts · Approved · Released
+            </span>
+          </Link>
+          <p className="-mt-2 text-[11px] leading-snug text-ink-500">
+            Every draft, review, approval and released statement lives here.
+          </p>
+
           <AddSignalDialog code={code} />
 
           <div>
@@ -87,14 +105,6 @@ function NarrativeLayout() {
             </div>
           </div>
 
-          <Link
-            to="/admin/countries/$code/narrative/library"
-            params={{ code }}
-            className="mt-4 flex items-center gap-2 border border-line-200 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-950 hover:bg-paper-100"
-            activeProps={{ className: "bg-ink-950 text-paper-0 border-ink-950" }}
-          >
-            <FolderOpen size={13} /> Comms Library
-          </Link>
 
 
           <Link

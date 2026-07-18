@@ -78,6 +78,7 @@ import { Route as AuthenticatedAdminCountriesCodePortfolioRouteImport } from './
 import { Route as AuthenticatedAdminCountriesCodeOnboardRouteImport } from './routes/_authenticated/admin/countries.$code.onboard'
 import { Route as AuthenticatedAdminCountriesCodeLedgerRouteImport } from './routes/_authenticated/admin/countries.$code.ledger'
 import { Route as AuthenticatedAdminCountriesCodeDataRouteImport } from './routes/_authenticated/admin/countries.$code.data'
+import { Route as AuthenticatedAdminCountriesCodePortfolioIndexRouteImport } from './routes/_authenticated/admin/countries.$code.portfolio.index'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -478,6 +479,12 @@ const AuthenticatedAdminCountriesCodeDataRoute =
     path: '/countries/$code/data',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminCountriesCodePortfolioIndexRoute =
+  AuthenticatedAdminCountriesCodePortfolioIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminCountriesCodePortfolioRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -546,8 +553,9 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
   '/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
-  '/admin/countries/$code/portfolio': typeof AuthenticatedAdminCountriesCodePortfolioRoute
+  '/admin/countries/$code/portfolio': typeof AuthenticatedAdminCountriesCodePortfolioRouteWithChildren
   '/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
+  '/admin/countries/$code/portfolio/': typeof AuthenticatedAdminCountriesCodePortfolioIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -612,8 +620,8 @@ export interface FileRoutesByTo {
   '/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
   '/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
-  '/admin/countries/$code/portfolio': typeof AuthenticatedAdminCountriesCodePortfolioRoute
   '/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
+  '/admin/countries/$code/portfolio': typeof AuthenticatedAdminCountriesCodePortfolioIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -684,8 +692,9 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
   '/_authenticated/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/_authenticated/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
-  '/_authenticated/admin/countries/$code/portfolio': typeof AuthenticatedAdminCountriesCodePortfolioRoute
+  '/_authenticated/admin/countries/$code/portfolio': typeof AuthenticatedAdminCountriesCodePortfolioRouteWithChildren
   '/_authenticated/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
+  '/_authenticated/admin/countries/$code/portfolio/': typeof AuthenticatedAdminCountriesCodePortfolioIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -758,6 +767,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/onboard'
     | '/admin/countries/$code/portfolio'
     | '/admin/countries/$code/viz'
+    | '/admin/countries/$code/portfolio/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -822,8 +832,8 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/data'
     | '/admin/countries/$code/ledger'
     | '/admin/countries/$code/onboard'
-    | '/admin/countries/$code/portfolio'
     | '/admin/countries/$code/viz'
+    | '/admin/countries/$code/portfolio'
   id:
     | '__root__'
     | '/'
@@ -895,6 +905,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/countries/$code/onboard'
     | '/_authenticated/admin/countries/$code/portfolio'
     | '/_authenticated/admin/countries/$code/viz'
+    | '/_authenticated/admin/countries/$code/portfolio/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1394,8 +1405,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeDataRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/countries/$code/portfolio/': {
+      id: '/_authenticated/admin/countries/$code/portfolio/'
+      path: '/'
+      fullPath: '/admin/countries/$code/portfolio/'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePortfolioIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodePortfolioRoute
+    }
   }
 }
+
+interface AuthenticatedAdminCountriesCodePortfolioRouteChildren {
+  AuthenticatedAdminCountriesCodePortfolioIndexRoute: typeof AuthenticatedAdminCountriesCodePortfolioIndexRoute
+}
+
+const AuthenticatedAdminCountriesCodePortfolioRouteChildren: AuthenticatedAdminCountriesCodePortfolioRouteChildren =
+  {
+    AuthenticatedAdminCountriesCodePortfolioIndexRoute:
+      AuthenticatedAdminCountriesCodePortfolioIndexRoute,
+  }
+
+const AuthenticatedAdminCountriesCodePortfolioRouteWithChildren =
+  AuthenticatedAdminCountriesCodePortfolioRoute._addFileChildren(
+    AuthenticatedAdminCountriesCodePortfolioRouteChildren,
+  )
 
 interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminActivityRoute: typeof AuthenticatedAdminActivityRoute
@@ -1411,7 +1444,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminCountriesCodeDataRoute: typeof AuthenticatedAdminCountriesCodeDataRoute
   AuthenticatedAdminCountriesCodeLedgerRoute: typeof AuthenticatedAdminCountriesCodeLedgerRoute
   AuthenticatedAdminCountriesCodeOnboardRoute: typeof AuthenticatedAdminCountriesCodeOnboardRoute
-  AuthenticatedAdminCountriesCodePortfolioRoute: typeof AuthenticatedAdminCountriesCodePortfolioRoute
+  AuthenticatedAdminCountriesCodePortfolioRoute: typeof AuthenticatedAdminCountriesCodePortfolioRouteWithChildren
   AuthenticatedAdminCountriesCodeVizRoute: typeof AuthenticatedAdminCountriesCodeVizRoute
 }
 
@@ -1435,7 +1468,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminCountriesCodeOnboardRoute:
       AuthenticatedAdminCountriesCodeOnboardRoute,
     AuthenticatedAdminCountriesCodePortfolioRoute:
-      AuthenticatedAdminCountriesCodePortfolioRoute,
+      AuthenticatedAdminCountriesCodePortfolioRouteWithChildren,
     AuthenticatedAdminCountriesCodeVizRoute:
       AuthenticatedAdminCountriesCodeVizRoute,
   }

@@ -12,6 +12,7 @@ import {
   pinFigureSnapshot,
   transcribeAudio,
   type LedgerAnswer,
+  type FigureCitation,
 } from "@/lib/ledger.functions";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";

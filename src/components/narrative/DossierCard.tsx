@@ -24,6 +24,12 @@ export function DossierCard({ signal, code }: { signal: SignalRow; code: string 
     citations?: string[];
   };
 
+  const citationRefs: CitationRef[] = (meta.citations ?? []).map((u) => {
+    let host: string | undefined;
+    try { host = new URL(u).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
+    return { url: u, title: host, label: host };
+  });
+
   return (
     <section className="border border-line-200 bg-paper-0 p-5">
       <header className="flex items-start justify-between gap-4">
@@ -56,7 +62,9 @@ export function DossierCard({ signal, code }: { signal: SignalRow; code: string 
         </div>
       </header>
 
-      <p className="mt-4 text-sm leading-relaxed text-ink-700">{signal.summary}</p>
+      <p className="mt-4 text-sm leading-relaxed text-ink-700">
+        <CitedText text={signal.summary ?? ""} citations={citationRefs} />
+      </p>
 
       <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Scope" value={signal.scope ?? "—"} />
@@ -83,7 +91,7 @@ export function DossierCard({ signal, code }: { signal: SignalRow; code: string 
             {meta.dossier_bullets.map((b, i) => (
               <li key={i} className="flex gap-2">
                 <span className="mt-1.5 h-1 w-1 flex-none rounded-full bg-ink-500" />
-                <span>{b}</span>
+                <span><CitedText text={b} citations={citationRefs} /></span>
               </li>
             ))}
           </ul>
@@ -92,21 +100,21 @@ export function DossierCard({ signal, code }: { signal: SignalRow; code: string 
 
       {meta.rationale && (
         <p className="mt-4 border-l-2 border-ink-950 pl-3 text-sm italic text-ink-700">
-          {meta.rationale}
+          <CitedText text={meta.rationale} citations={citationRefs} />
         </p>
       )}
 
-      {meta.citations && meta.citations.length > 0 && (
+      {citationRefs.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2">
-          {meta.citations.slice(0, 6).map((u, i) => (
+          {citationRefs.slice(0, 10).map((c, i) => (
             <a
-              key={u}
-              href={u}
+              key={c.url}
+              href={c.url}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1 border border-line-200 px-1.5 py-0.5 font-mono text-[10px] text-ink-500 hover:border-ink-950 hover:text-ink-950"
             >
-              [{i + 1}] {new URL(u).hostname}
+              <sup className="font-semibold text-ink-950">{i + 1}</sup> {c.title ?? c.url}
             </a>
           ))}
         </div>

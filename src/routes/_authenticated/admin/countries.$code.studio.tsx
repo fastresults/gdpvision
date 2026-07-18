@@ -1,9 +1,27 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { AlertOctagon, ChevronRight, ShieldCheck } from "lucide-react";
+import { createFileRoute, Link, Outlet, useNavigate, useParams } from "@tanstack/react-router";
+import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
+import { AlertOctagon, ChevronRight, Pencil, ShieldCheck, Trash2 } from "lucide-react";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
-import { listStudioContext, listThreats } from "@/lib/fdi-resilience.functions";
+import {
+  deleteThreat,
+  listStudioContext,
+  listThreats,
+  type FdiThreatRow,
+} from "@/lib/fdi-resilience.functions";
+import { ThreatEditorDialog } from "@/components/studio/ThreatEditorDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 function ctxQuery(code: string) {
   return queryOptions({

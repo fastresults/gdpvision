@@ -22,6 +22,10 @@ export interface FeedRow {
   last_status: string | null;
   last_error: string | null;
   consecutive_failures: number;
+  is_seed: boolean;
+  is_query: boolean;
+  discovered_at: string | null;
+  tier_hint: string | null;
 }
 
 export interface HarvestRun {

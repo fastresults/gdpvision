@@ -54,49 +54,61 @@ export function ThreatBriefCard({
   return (
     <div className="border border-line-200 bg-paper-100/40 p-5">
       <div className="flex items-center gap-2">
-        <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          <Sparkles size={12} /> Threat briefing
-        </p>
+        <ExplainHover copy={EXPLAIN.briefing} side="right">
+          <p className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            <Sparkles size={12} /> Threat briefing
+          </p>
+        </ExplainHover>
         {brief.ai_model && (
           <span className="font-mono text-[10px] text-ink-500/70">{brief.ai_model}</span>
         )}
         {onRegenerate && (
-          <button
-            type="button"
-            onClick={onRegenerate}
-            disabled={regenerating}
-            className="ml-auto inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950 disabled:opacity-40"
-          >
-            <RefreshCw size={11} className={regenerating ? "animate-spin" : undefined} />
-            {regenerating ? "Regenerating…" : "Regenerate"}
-          </button>
+          <ExplainHover copy={EXPLAIN.regenerate_briefing} side="left">
+            <button
+              type="button"
+              onClick={onRegenerate}
+              disabled={regenerating}
+              className="ml-auto inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950 disabled:opacity-40"
+            >
+              <RefreshCw size={11} className={regenerating ? "animate-spin" : undefined} />
+              {regenerating ? "Regenerating…" : "Regenerate"}
+            </button>
+          </ExplainHover>
         )}
       </div>
       <ul className="mt-4 space-y-4">
-        {brief.bullets.map((b, i) => (
-          <li key={i} className="grid grid-cols-[120px_1fr] gap-4">
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
-              {b.label}
-            </span>
-            <ReadMore
-              title={b.label}
-              text={b.body}
-              clamp={4}
-              className="text-sm text-ink-950"
-            />
-          </li>
-        ))}
+        {brief.bullets.map((b, i) => {
+          const copyKey = BULLET_COPY_KEYS[i] ?? "briefing";
+          return (
+            <li key={i} className="grid grid-cols-[120px_1fr] gap-4">
+              <ExplainHover copy={EXPLAIN[copyKey]} side="right">
+                <span className="cursor-help font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500 underline decoration-dotted decoration-line-200 underline-offset-4">
+                  {b.label}
+                </span>
+              </ExplainHover>
+              <ReadMore
+                title={b.label}
+                text={b.body}
+                clamp={4}
+                className="text-sm text-ink-950"
+              />
+            </li>
+          );
+        })}
       </ul>
       {brief.citations?.length ? (
         <div className="mt-4 flex flex-wrap gap-1.5">
           {brief.citations.map((c) => (
-            <CitationChipButton
-              key={c.n}
-              n={c.n}
-              org={c.org}
-              title={c.title}
-              url={c.url}
-            />
+            <ExplainHover key={c.n} copy={EXPLAIN.citation_chip} side="top">
+              <span className="inline-flex">
+                <CitationChipButton
+                  n={c.n}
+                  org={c.org}
+                  title={c.title}
+                  url={c.url}
+                />
+              </span>
+            </ExplainHover>
           ))}
         </div>
       ) : null}

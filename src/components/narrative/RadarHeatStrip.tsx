@@ -1,16 +1,24 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Play, RefreshCw } from "lucide-react";
+import { Play, RefreshCw, Radar } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-import { heatStrip24h, lastHarvestRun, runManualTick } from "@/lib/press-monitor.functions";
+import {
+  heatStrip24h,
+  lastHarvestRun,
+  runManualTick,
+  coverageFor,
+  discoverSources,
+} from "@/lib/press-monitor.functions";
 
-export function RadarHeatStrip({ code }: { code: string }) {
+export function RadarHeatStrip({ code, countryName }: { code: string; countryName?: string }) {
   const qc = useQueryClient();
   const heat = useServerFn(heatStrip24h);
   const last = useServerFn(lastHarvestRun);
   const run = useServerFn(runManualTick);
+  const cov = useServerFn(coverageFor);
+  const discover = useServerFn(discoverSources);
 
   const cells = useQuery({
     queryKey: ["radar-heat", code],
@@ -18,6 +26,11 @@ export function RadarHeatStrip({ code }: { code: string }) {
     refetchInterval: 60_000,
   });
   const lastRun = useQuery({ queryKey: ["radar-last-run"], queryFn: () => last(), refetchInterval: 60_000 });
+  const coverage = useQuery({
+    queryKey: ["radar-coverage", code],
+    queryFn: () => cov({ data: { countryCode: code } }),
+    refetchInterval: 60_000,
+  });
 
   const m = useMutation({
     mutationFn: async () => run({ data: { countryCode: code } }),
@@ -25,8 +38,17 @@ export function RadarHeatStrip({ code }: { code: string }) {
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["radar-heat", code] }),
         qc.invalidateQueries({ queryKey: ["radar-last-run"] }),
+        qc.invalidateQueries({ queryKey: ["radar-coverage", code] }),
         qc.invalidateQueries({ queryKey: ["narrative-signals", code] }),
       ]);
+    },
+  });
+
+  const d = useMutation({
+    mutationFn: async () =>
+      discover({ data: { countryCode: code, countryName: countryName ?? code } }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["narrative-feeds", code] });
     },
   });
 
@@ -59,16 +81,47 @@ export function RadarHeatStrip({ code }: { code: string }) {
             </p>
           )}
         </div>
-        <button
-          onClick={() => m.mutate()}
-          disabled={m.isPending}
-          className="inline-flex items-center gap-2 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-paper-0 hover:bg-ink-800 disabled:opacity-50"
-          title="Run press harvester now for this country"
-        >
-          {m.isPending ? <RefreshCw size={12} className="animate-spin" /> : <Play size={12} />}
-          {m.isPending ? "Harvesting…" : "Run now"}
-        </button>
+        <div className="flex flex-col items-end gap-2">
+          <button
+            onClick={() => m.mutate()}
+            disabled={m.isPending}
+            className="inline-flex items-center gap-2 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-paper-0 hover:bg-ink-800 disabled:opacity-50"
+            title="Run press harvester now for this country"
+          >
+            {m.isPending ? <RefreshCw size={12} className="animate-spin" /> : <Play size={12} />}
+            {m.isPending ? "Harvesting…" : "Run now"}
+          </button>
+          {coverage.data && (coverage.data.local === 0 || coverage.data.total < 3) && (
+            <button
+              onClick={() => d.mutate()}
+              disabled={d.isPending}
+              className="inline-flex items-center gap-2 border border-amber-600 bg-paper-0 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-amber-800 hover:bg-amber-50 disabled:opacity-50"
+              title="Ask AI to find more press sources for this country"
+            >
+              {d.isPending ? <RefreshCw size={12} className="animate-spin" /> : <Radar size={12} />}
+              {d.isPending ? "Discovering…" : "Discover sources"}
+            </button>
+          )}
+        </div>
       </header>
+
+      {coverage.data && (
+        <div className="mt-3 flex flex-wrap gap-2 font-mono text-[10px] uppercase tracking-[0.18em]">
+          <span className="border border-line-200 px-2 py-1 text-ink-600">
+            Coverage (last run) · L {coverage.data.local} · R {coverage.data.regional} · I {coverage.data.international}
+          </span>
+          {coverage.data.local === 0 && (
+            <span className="border border-amber-400 bg-amber-50 px-2 py-1 text-amber-900">
+              No local signals — discovery recommended
+            </span>
+          )}
+          {d.data && (
+            <span className="border border-emerald-400 bg-emerald-50 px-2 py-1 text-emerald-900">
+              {d.data.inserted} new · {d.data.suggested} suggested
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="mt-4 space-y-1.5">
         {(["local", "regional", "international"] as const).map((scope) => (

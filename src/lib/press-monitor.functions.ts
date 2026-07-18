@@ -22,6 +22,10 @@ export interface FeedRow {
   last_status: string | null;
   last_error: string | null;
   consecutive_failures: number;
+  is_seed: boolean;
+  is_query: boolean;
+  discovered_at: string | null;
+  tier_hint: string | null;
 }
 
 export interface HarvestRun {
@@ -46,7 +50,7 @@ export const listFeeds = createServerFn({ method: "GET" })
   .handler(async ({ data, context }): Promise<FeedRow[]> => {
     const { data: rows, error } = await context.supabase
       .from("narrative_feeds")
-      .select("id,country_code,scope,kind,endpoint,label,language,sector_hint,ministry_hint,weight,active,last_polled_at,last_status,last_error,consecutive_failures")
+      .select("id,country_code,scope,kind,endpoint,label,language,sector_hint,ministry_hint,weight,active,last_polled_at,last_status,last_error,consecutive_failures,is_seed,is_query,discovered_at,tier_hint")
       .eq("country_code", data.countryCode)
       .order("scope", { ascending: true })
       .order("label", { ascending: true });
@@ -238,3 +242,45 @@ Only include feeds you have real evidence for. No commentary.`;
       return { suggestions: [] };
     }
   });
+
+// ─── Layer 4 · run source discovery for one country (admin/country_admin) ───
+
+export const discoverSources = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ countryCode: z.string(), countryName: z.string() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: role } = await context.supabase.rpc("has_country_role", {
+      _user_id: context.userId,
+      _role: "country_admin",
+      _country_code: data.countryCode,
+    });
+    if (!role) throw new Error("Only country admins can discover sources.");
+    const { discoverForCountry } = await import("@/lib/press-discover.server");
+    return await discoverForCountry(data.countryCode, data.countryName);
+  });
+
+// ─── Coverage for the most recent run (per country) ─────────────────────────
+
+export interface CoverageCell {
+  local: number;
+  regional: number;
+  international: number;
+  total: number;
+}
+
+export const coverageFor = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .handler(async ({ data, context }): Promise<CoverageCell> => {
+    const { data: run } = await context.supabase
+      .from("narrative_harvest_runs")
+      .select("coverage")
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const cov = ((run?.coverage ?? {}) as unknown as Record<string, CoverageCell>)[data.countryCode];
+    return cov ?? { local: 0, regional: 0, international: 0, total: 0 };
+  });
+

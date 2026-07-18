@@ -3060,9 +3060,12 @@ export type Database = {
           consecutive_failures: number
           country_code: string
           created_at: string
+          discovered_at: string | null
           endpoint: string
           etag: string | null
           id: string
+          is_query: boolean
+          is_seed: boolean
           kind: string
           label: string | null
           language: string | null
@@ -3072,8 +3075,10 @@ export type Database = {
           last_status: string | null
           ministry_hint: string | null
           owner_country_code: string | null
+          query_template: string | null
           scope: string
           sector_hint: string | null
+          tier_hint: string | null
           updated_at: string
           uploaded_by: string | null
           visibility: string
@@ -3084,9 +3089,12 @@ export type Database = {
           consecutive_failures?: number
           country_code: string
           created_at?: string
+          discovered_at?: string | null
           endpoint: string
           etag?: string | null
           id?: string
+          is_query?: boolean
+          is_seed?: boolean
           kind: string
           label?: string | null
           language?: string | null
@@ -3096,8 +3104,10 @@ export type Database = {
           last_status?: string | null
           ministry_hint?: string | null
           owner_country_code?: string | null
+          query_template?: string | null
           scope: string
           sector_hint?: string | null
+          tier_hint?: string | null
           updated_at?: string
           uploaded_by?: string | null
           visibility?: string
@@ -3108,9 +3118,12 @@ export type Database = {
           consecutive_failures?: number
           country_code?: string
           created_at?: string
+          discovered_at?: string | null
           endpoint?: string
           etag?: string | null
           id?: string
+          is_query?: boolean
+          is_seed?: boolean
           kind?: string
           label?: string | null
           language?: string | null
@@ -3120,8 +3133,10 @@ export type Database = {
           last_status?: string | null
           ministry_hint?: string | null
           owner_country_code?: string | null
+          query_template?: string | null
           scope?: string
           sector_hint?: string | null
+          tier_hint?: string | null
           updated_at?: string
           uploaded_by?: string | null
           visibility?: string
@@ -3132,6 +3147,7 @@ export type Database = {
       narrative_harvest_runs: {
         Row: {
           countries_run: string[]
+          coverage: Json
           errors: Json
           feeds_polled: number
           finished_at: string | null
@@ -3145,6 +3161,7 @@ export type Database = {
         }
         Insert: {
           countries_run?: string[]
+          coverage?: Json
           errors?: Json
           feeds_polled?: number
           finished_at?: string | null
@@ -3158,6 +3175,7 @@ export type Database = {
         }
         Update: {
           countries_run?: string[]
+          coverage?: Json
           errors?: Json
           feeds_polled?: number
           finished_at?: string | null

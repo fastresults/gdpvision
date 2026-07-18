@@ -1,119 +1,124 @@
-# Chamber 05 · Automated Press Monitoring
 
-A twice-daily (07:00 & 19:00 local) harvester that pulls open press + gov + multilateral streams for every onboarded country, dedupes & AI-classifies each item against the country's ministries and GDP sectors, and lands it in the Signal Radar you already built — ready to triage.
+# Chamber 05 — Real Web Press Harvesting Plan
 
-## 1 · What we listen to (all public, no paid keys)
+Today Chamber 05 has plumbing (`narrative_feeds`, `press-tick`, radar) but no
+actual **harvest strategy**. It only polls whatever feeds happen to be in the
+table — which for most countries is empty or stale. We need a deliberate,
+layered approach that guarantees local + regional + international coverage
+for every onboarded country and keeps discovering new sources over time.
 
-Each country carries a **feed registry**. Sources are grouped by scope so the Radar can filter cleanly:
-
-| Scope | Streams |
-| --- | --- |
-| Local | Country gov press pages (per-ministry), national newspapers/TV RSS, official gazettes, central-bank news, national statistical office news |
-| Regional | CARICOM, OECS, ECCB, CDB, OAS press rooms; regional wires (Caribbean Media Corp, Loop, Jamaica Observer, Trinidad Guardian, Barbados Today) |
-| International | IMF/World Bank/UN/UNDP/UNCTAD press RSS + country pages, Reuters/AP topic feeds, Google News RSS (`when:12h` per-country query), GDELT DOC 2.0 (per-country ISO), OFAC/FATF updates |
-
-Feed formats we support at ingest: RSS/Atom, JSON feeds, Google News RSS, GDELT DOC API, and generic HTML (scraped through Firecrawl — the connector is already wired).
-
-Two things make the source list scale:
-- A **seeded catalogue** (below) covers every onboarded country on day one.
-- Country admins can add/mute sources in a new **Signal Sources** tab inside Chamber 5 without touching code.
-
-## 2 · Data model additions (small, reversible)
-
-New tables (`public`, RLS + GRANTs per project standard, `has_country_access` reused):
-
-- `narrative_feeds` — one row per source: `country_code`, `scope` (local|regional|international), `kind` (rss|json|gdelt|google_news|html), `endpoint`, `sector_hint`, `ministry_hint`, `language`, `active`, `weight`, `last_polled_at`, `etag`, `last_hash`.
-- `narrative_feed_items` — raw hits: `feed_id`, `country_code`, `guid_hash` (unique with feed), `url`, `title`, `published_at`, `raw_excerpt`, `state` (`new|classified|promoted|discarded|duplicate`), `signal_id` (nullable → `intake_items.id`), `fetched_at`.
-- `narrative_harvest_runs` — one row per cron tick: `started_at`, `finished_at`, `countries_run`, `feeds_polled`, `items_fetched`, `items_new`, `items_promoted`, `errors jsonb`.
-
-Reuse existing `intake_items` (already extended with `scope`, `severity`, `reach`, `sentiment`, `recommendation`, `metadata`) as the classified-signal store — no duplication.
-
-**Dedup key**: `sha256(canonical_url || normalized_title)`; matched globally then per-country to catch syndications.
-
-## 3 · Pipeline (per 12h tick)
+## The four layers of coverage
 
 ```text
-                  ┌─ pg_cron (07:00 / 19:00)
-                  ▼
-         /api/public/hooks/press-tick   (TSS server route, apikey-verified)
-                  │
-    ┌─────────────┼─────────────┐
-    ▼             ▼             ▼
- Local feeds  Regional      International    ← poll in parallel, honour ETag / If-Modified
-    │             │             │
-    └──────► narrative_feed_items (raw, deduped by guid_hash)
-                     │
-                     ▼
-        AI classifier fan-out (Perplexity sonar-pro)
-        · scope · sector_code · ministry_slug
-        · severity 1-5 · reach 1-5 · sentiment -2..+2
-        · recommendation lead|amplify|counter|monitor|ignore
-        · 4-bullet dossier · citations
-                     │
-                     ▼
-              intake_items  (state='new_signal')
-                     │
-                     ▼
-      Sidebar Radar (already built) + Realtime channel push
+Layer 1  Seeded catalog        curated per country + regional + global
+Layer 2  Query-based streams   Google News RSS + GDELT DOC + Bing News
+Layer 3  Deep scrape           Firecrawl for JS-heavy / paywalled outlets
+Layer 4  Source discovery      AI + Firecrawl map to expand the catalog
 ```
 
-Guardrails: per-feed 3-retry backoff, per-tick 10-minute wall-clock, per-country cap of 60 new signals/tick, provider errors written to `narrative_harvest_runs.errors` and surfaced in the UI.
+Each layer feeds the same `narrative_feed_items` table, dedupes by canonical
+URL + title hash (already implemented), and hands new items to the existing
+Perplexity classifier.
 
-## 4 · Automation (cron, no new infra)
+### Layer 1 — Seeded catalog (deterministic backbone)
 
-- Enable `pg_cron` + `pg_net` (already in project).
-- Schedule two ticks:
+A migration seeds ~15-25 feeds per country across three tiers:
 
-```sql
-select cron.schedule('press-tick-am','0 11 * * *',$$
-  select net.http_post(
-    url:='https://project--28b673a0-5141-49a9-b7c6-8a7a9fb07172.lovable.app/api/public/hooks/press-tick',
-    headers:='{"Content-Type":"application/json","apikey":"<anon>"}'::jsonb,
-    body:='{"window":"am"}'::jsonb
-  );$$);
--- and 23:00 UTC for the PM tick
+- **Local**: national newspaper of record, gov press office, central bank,
+  finance ministry, statistics office, top 2 private outlets.
+- **Regional**: CARICOM Today, ECCB, Caribbean Media Corporation, Loop News
+  Caribbean, Jamaica Observer regional desk, Guardian TT business, OECS.
+- **International**: IMF country page RSS, World Bank news, Reuters Caribbean
+  tag, Bloomberg LatAm, FT Caribbean, AP Caribbean, Al Jazeera Americas.
+
+Stored as rows in `narrative_feeds` with `is_seed=true` so a nightly job
+re-asserts them if an admin accidentally deletes one.
+
+### Layer 2 — Query-based streams (breadth guarantee)
+
+For every country we register three synthetic "query feeds" that always
+return recent hits even when curated outlets go quiet:
+
+1. **Google News RSS** — `https://news.google.com/rss/search?q="{Country}"+(economy OR investment OR IMF OR tourism OR debt)&hl=en&gl=US`
+2. **GDELT DOC 2.0** — `https://api.gdeltproject.org/api/v2/doc/doc?query=sourcecountry:{ISO}+(economy OR sovereign OR FDI)&mode=ArtList&format=json&timespan=1d`
+3. **Bing News RSS** — country + ministry synonyms.
+
+Each ministry (from `ministry_profiles`) also gets a targeted query feed
+(`"{Country} Ministry of Finance"`, etc.) so sector-specific chatter surfaces
+even when the source outlet isn't in the seeded catalog.
+
+### Layer 3 — Deep scrape (quality lift)
+
+Google News excerpts are 30-40 words. Before classification we upgrade the
+top N items per tick via **Firecrawl `/v2/scrape`** (markdown, `onlyMainContent`)
+so the classifier and dossier bullets are grounded in the full article, not
+the RSS teaser. Budget: 60 scrapes per tick, prioritized by severity hints
+(keywords: downgrade, default, IMF, hurricane, coup, indictment, election).
+
+### Layer 4 — Source discovery loop (self-healing catalog)
+
+Once a week a job runs per country:
+
+1. Ask Perplexity `sonar-pro`: "List 20 news outlets covering {Country}
+   economy, politics, business — return domain, name, tier (local/regional/
+   international), RSS if known."
+2. For domains without a known RSS, run **Firecrawl `/v2/map`** on the
+   domain to find `/feed`, `/rss`, `/atom.xml`, or `/news` pages.
+3. Test each candidate with a HEAD + parse; if valid, insert into
+   `narrative_feeds` with `is_seed=false, discovered_at=now()`.
+4. Auto-mute feeds with `consecutive_failures >= 5` (already implemented)
+   and surface them in the Sources tab for admin review.
+
+## Cron & orchestration
+
+- **07:00 UTC** and **19:00 UTC** — full press-tick across all countries
+  (Layers 1-3). Already wired via `runPressTick`.
+- **02:00 UTC Sundays** — discovery run (Layer 4) per country, staggered
+  6 countries at a time.
+- **On-demand** — the existing "Run now" button in `RadarHeatStrip`.
+
+All three schedules call the same `/api/public/hooks/press-tick` route with
+different `mode` payloads so we keep one code path.
+
+## Coverage guarantees (per country, per 24h)
+
+The tick writes a per-country coverage row to `narrative_harvest_runs.coverage`:
+
+```json
+{ "local": 8, "regional": 4, "international": 6, "ministries_covered": 12 }
 ```
 
-The route iterates onboarded countries, dispatches feed pollers in parallel (max 8), writes `narrative_harvest_runs`, and pushes any newly promoted signals via Supabase Realtime.
+If any tier is `0` for two consecutive ticks, the harvester automatically
+triggers a discovery run for that country and emits a UI warning in
+`RadarHeatStrip` ("Local coverage gap — running discovery").
 
-Manual "Run now" button in the Radar calls the same route with a `?country=XXX` filter for on-demand refresh.
+## What changes in code
 
-## 5 · Visual & UX layer inside Chamber 5
+- **DB migration** — add `is_seed`, `discovered_at`, `query_template`, `tier_hint`
+  to `narrative_feeds`; add `coverage jsonb` to `narrative_harvest_runs`;
+  seed Layer 1 feeds for all onboarded countries.
+- **`press-monitor.server.ts`** — add `buildQueryFeeds(countryCode)` for Layer 2,
+  `firecrawlUpgrade(items)` for Layer 3, `discoverFeeds(countryCode)` for Layer 4.
+- **`press-tick.server.ts`** — pipeline becomes: fetch seeded → append query
+  feeds → dedupe → Firecrawl-upgrade top-N → classify → coverage check.
+- **`RadarHeatStrip.tsx`** — show a coverage badge per tier and a "Discover
+  sources" button when a gap is detected.
+- **`SignalSourcesPanel.tsx`** — split view into "Curated / Query / Discovered"
+  groups; discovered feeds show a "Promote to curated" action.
+- **New route** `/api/public/hooks/press-discover` — weekly discovery cron.
+- **New migration** — pg_cron entries for 07:00, 19:00, and Sunday 02:00.
 
-Add three surfaces to the existing narrative shell — no route explosion:
+## Cost & rate-limit notes (technical)
 
-1. **Radar heat-strip** (top of `/narrative` index): 24 hourly cells × 3 scope rows (local/regional/intl). Cell intensity = new-signal count; hover reveals top 3 topics. Instantly answers "what changed since I last looked?"
-2. **Ministry & sector rails** on the sidebar: chips filter signals to Ministry X / Sector Y. Counts update live via Realtime.
-3. **Signal Sources tab** (new): table of `narrative_feeds` with Add / Test / Mute; a "Suggest sources" button uses Perplexity to propose 10 gov + 10 media feeds for the country and stages them for one-click approval.
+- Google News RSS + GDELT are free and unauthenticated. Bing News RSS is free.
+- Firecrawl: capped at 60 scrapes/tick × 12 countries × 2 ticks = ~1,440/day.
+  Well inside the standard connector allotment.
+- Perplexity: dedup already cuts classifier calls >70%; discovery adds
+  ~12 sonar-pro calls per week per country.
 
-Every raw item retains its "provenance chevron" (`Feed → Raw → Classified → Signal`) already scaffolded via `LineageChevron`.
+## Success criteria
 
-## 6 · Seeding countries on day one
-
-Ship a migration with the catalogue: for each onboarded ISO-3 (start with ATG, KNA, LCA, GRD, VCT, DMA, BRB, JAM, TTO, GUY, BLZ, BHS, HTI, SUR, DOM, CUB, VGB, AIA, MSR, TCA), insert ~12 seed feeds (5 local gov, 3 local media, 2 regional, 2 intl country-page). Ministries with public press URLs (already in `ministries` / `ministry_profiles`) get their gov page auto-added with `ministry_hint` set — so any downstream signal lands pre-tagged to the right minister.
-
-## 7 · Cost, throttling, resilience
-
-- Perplexity classifier only fires on **new** items → typical tick: 300 new items × sonar-pro ≈ well within existing budget.
-- ETag / `If-Modified-Since` cuts >70% of feed traffic.
-- Circuit-breaker per feed: 3 consecutive failures ⇒ `active=false` + alert in Radar.
-- All writes idempotent (`ON CONFLICT (feed_id, guid_hash) DO NOTHING`).
-- Every tick writes a `narrative_harvest_runs` row so the admin has a persistent "last run at HH:MM, N signals" banner.
-
-## 8 · Delivery order (each step ships independently)
-
-1. Migration: `narrative_feeds`, `narrative_feed_items`, `narrative_harvest_runs` (+ GRANTs, RLS, `visibility` follows public/private framework).
-2. Server route `/api/public/hooks/press-tick` + feed pollers (RSS/JSON/GDELT/GoogleNews/Firecrawl-HTML) with parallel fan-out.
-3. Classifier fan-out reusing existing `classifyWithPerplexity`, dedup guard, promote-to-`intake_items`.
-4. Cron: two 12-hour schedules + a stable manual-trigger button in Radar.
-5. Seed catalogue migration for every onboarded country.
-6. UI: Radar heat-strip, Ministry/Sector rails, Signal Sources tab with AI "Suggest sources".
-7. Realtime channel + last-run banner + circuit-breaker surfacing.
-
-## Technical notes
-
-- Data API grants + RLS follow project standard (`has_country_access`, `visibility` public/private).
-- Google News RSS URL pattern: `https://news.google.com/rss/search?q=<country>+when:12h&hl=en&gl=<cc>&ceid=<cc>:en`.
-- GDELT: `https://api.gdeltproject.org/api/v2/doc/doc?query=sourcecountry:<ISO2>&mode=ArtList&format=json&timespan=12h`.
-- Firecrawl mode: use whichever is live (`uses_connector_gateway` on the linked connection determines gateway vs direct — already documented in the project).
-- All new server logic is `createServerFn` or `/api/public/*` server routes — **no new Supabase Edge Functions**.
+- Every onboarded country shows ≥ 5 local, ≥ 3 regional, ≥ 3 international
+  signals in the Radar within 24h of a fresh install.
+- Zero-signal countries drop to 0 within one week of enabling discovery.
+- Article body (not RSS teaser) is present in ≥ 80% of classified signals.

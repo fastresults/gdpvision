@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Check, ExternalLink, Loader2, Plus, Sparkles, Trash2, X } from "lucide-react";
 
-import { deleteFeed, listFeeds, suggestFeeds, testFeed, upsertFeed } from "@/lib/press-monitor.functions";
+import { deleteFeed, listFeeds, suggestFeeds, testFeed, upsertFeed, type FeedRow } from "@/lib/press-monitor.functions";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -74,7 +74,10 @@ export function SignalSourcesPanel({ code, countryName }: { code: string; countr
                 {items.map((r) => (
                   <tr key={r.id} className="border-b border-line-200 align-top last:border-b-0">
                     <td className="max-w-md px-3 py-2">
-                      <div className="truncate font-medium text-ink-950">{r.label ?? r.endpoint}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="truncate font-medium text-ink-950">{r.label ?? r.endpoint}</span>
+                        <LayerChip row={r} />
+                      </div>
                       <a href={r.endpoint} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 truncate text-[11px] text-ink-500 hover:text-ink-950">
                         <ExternalLink size={10} /> <span className="truncate">{r.endpoint}</span>
                       </a>
@@ -132,6 +135,21 @@ export function SignalSourcesPanel({ code, countryName }: { code: string; countr
         </div>
       )}
     </section>
+  );
+}
+
+function LayerChip({ row }: { row: FeedRow }) {
+  const label = row.is_query ? "query" : row.discovered_at ? "discovered" : row.is_seed ? "curated" : "custom";
+  const tone =
+    label === "query"
+      ? "border-sky-500/40 bg-sky-50 text-sky-800"
+      : label === "discovered"
+      ? "border-violet-500/40 bg-violet-50 text-violet-800"
+      : label === "curated"
+      ? "border-emerald-500/40 bg-emerald-50 text-emerald-800"
+      : "border-line-200 bg-paper-100 text-ink-500";
+  return (
+    <span className={cn("border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest", tone)}>{label}</span>
   );
 }
 

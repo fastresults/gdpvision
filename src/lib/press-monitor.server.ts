@@ -281,3 +281,28 @@ export async function pMap<T, R>(
   await Promise.all(Array.from({ length: Math.min(concurrency, arr.length) }, worker));
   return results;
 }
+
+// ─── Firecrawl deep-scrape upgrade (Layer 3) ─────────────────────────────────
+// Fetches full-text markdown for a small batch of high-value items; failures are
+// non-fatal — items fall back to their snippet.
+export async function firecrawlUpgrade(url: string, timeoutMs = 20_000): Promise<string | null> {
+  const key = process.env.FIRECRAWL_API_KEY;
+  if (!key || !url) return null;
+  try {
+    const res = await fetchWithTimeout(
+      "https://api.firecrawl.dev/v2/scrape",
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: true }),
+      },
+      timeoutMs,
+    );
+    if (!res.ok) return null;
+    const body = (await res.json()) as { markdown?: string; data?: { markdown?: string } };
+    const md = body.markdown ?? body.data?.markdown ?? null;
+    return md ? md.slice(0, 6_000) : null;
+  } catch {
+    return null;
+  }
+}

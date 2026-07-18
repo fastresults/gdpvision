@@ -1,6 +1,6 @@
 // Chamber 05 · shared press-tick harvester (invoked inline by server fn + public route).
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { fetchFeed, classifySignal, pMap, canonicalUrl } from "@/lib/press-monitor.server";
+import { fetchFeed, classifySignal, pMap, canonicalUrl, firecrawlUpgrade } from "@/lib/press-monitor.server";
 
 export type PressTickResult = {
   ok: true;
@@ -121,6 +121,27 @@ export async function runPressTick(opts: {
       return true;
     });
 
+    // Layer 3 · Firecrawl upgrade: fetch full-text markdown for the top-8 items
+    // per country in this batch, keyed by first-seen order. Failures fall back to the snippet.
+    const upgradeCapPerCountry = 8;
+    const upgradeSeen = new Map<string, number>();
+    const upgradeTargets = toClassify.filter((it) => {
+      if (!it.url) return false;
+      const n = upgradeSeen.get(it.country_code) ?? 0;
+      if (n >= upgradeCapPerCountry) return false;
+      upgradeSeen.set(it.country_code, n + 1);
+      return true;
+    });
+    const upgraded = new Map<string, string>();
+    await pMap(
+      upgradeTargets,
+      async (it) => {
+        const md = await firecrawlUpgrade(it.url!);
+        if (md) upgraded.set(it.id, md);
+      },
+      4,
+    );
+
     const sectorMenuCache = new Map<string, string[]>();
     async function menu(cc: string) {
       const cached = sectorMenuCache.get(cc);
@@ -134,10 +155,14 @@ export async function runPressTick(opts: {
     await pMap(toClassify, async (it) => {
       try {
         const sectorMenu = await menu(it.country_code);
+        const upgradedMd = upgraded.get(it.id);
+        const rawForClassify = upgradedMd
+          ? [it.title, upgradedMd].filter(Boolean).join("\n\n")
+          : [it.title, it.raw_excerpt].filter(Boolean).join("\n\n");
         const c = await classifySignal({
           countryCode: it.country_code,
           url: it.url,
-          raw: [it.title, it.raw_excerpt].filter(Boolean).join("\n\n"),
+          raw: rawForClassify,
           sectorMenu,
         });
         const { data: sig, error: sigErr } = await supabaseAdmin
@@ -183,6 +208,27 @@ export async function runPressTick(opts: {
     errors.push({ scope: "tick", msg: (e as Error).message });
   }
 
+  // Layer 4 coverage: per-country counts of promoted items in this run, split by scope.
+  const coverage: Record<string, { local: number; regional: number; international: number; total: number }> = {};
+  const sinceRun = new Date(Date.now() - 6 * 3600_000).toISOString();
+  const { data: promotedRows } = await supabaseAdmin
+    .from("intake_items")
+    .select("scope_key,scope")
+    .gte("created_at", sinceRun)
+    .in("scope_key", Array.from(countryList));
+  for (const r of promotedRows ?? []) {
+    const cc = (r.scope_key as string) ?? "";
+    if (!cc) continue;
+    const bucket = coverage[cc] ?? { local: 0, regional: 0, international: 0, total: 0 };
+    const sc = (r.scope as "local" | "regional" | "international" | null) ?? "local";
+    bucket[sc] = (bucket[sc] ?? 0) + 1;
+    bucket.total += 1;
+    coverage[cc] = bucket;
+  }
+  for (const cc of countryList) {
+    if (!coverage[cc]) coverage[cc] = { local: 0, regional: 0, international: 0, total: 0 };
+  }
+
   await supabaseAdmin
     .from("narrative_harvest_runs")
     .update({
@@ -193,6 +239,7 @@ export async function runPressTick(opts: {
       items_new: itemsNew,
       items_promoted: itemsPromoted,
       errors: errors.slice(0, 50),
+      coverage,
     })
     .eq("id", run.id);
 

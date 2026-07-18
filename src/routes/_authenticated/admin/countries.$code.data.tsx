@@ -1372,7 +1372,7 @@ function MinisterEditDialog({ row, countryCode, onClose }: { row: any; countryCo
 
 type DrillKey = "sources" | "active" | "documents" | "chunks" | "runs" | null;
 
-export function CorpusTab({ code, onGoToSources }: { code: string; onGoToSources: () => void }) {
+export function CorpusTab({ code, onGoToSources, embedded: _embedded }: { code: string; onGoToSources: () => void; embedded?: boolean }) {
   const qc = useQueryClient();
   const { data: stats } = useSuspenseQuery(statsQuery(code));
   const { data: detail } = useSuspenseQuery(corpusDetailQuery(code));
@@ -1671,7 +1671,7 @@ function CorpusDrawer({ drill, detail, onClose }: { drill: Exclude<DrillKey, nul
 // Second brain memory
 // ============================================================
 
-export function MemoryTab({ code }: { code: string }) {
+export function MemoryTab({ code, embedded = false }: { code: string; embedded?: boolean }) {
   const qc = useQueryClient();
   const { data: rows } = useSuspenseQuery(memoryQuery(code));
   
@@ -1730,13 +1730,17 @@ export function MemoryTab({ code }: { code: string }) {
       {all.length === 0 ? (
         <div className="border border-dashed border-line-200 p-8 text-center text-sm text-ink-500">
           Second brain seed hasn't been committed for this country yet.{" "}
-          <Link
-            to="/admin/countries/$code/onboard"
-            params={{ code }}
-            className="text-ink-950 underline"
-          >
-            Run the seed agent
-          </Link>
+          {embedded ? (
+            <span className="text-ink-950">Run the seed agent from the onboarding stages above.</span>
+          ) : (
+            <Link
+              to="/admin/countries/$code/onboard"
+              params={{ code }}
+              className="text-ink-950 underline"
+            >
+              Run the seed agent
+            </Link>
+          )}
           .
         </div>
       ) : view === "constellation" ? (

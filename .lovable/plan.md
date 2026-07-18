@@ -1,114 +1,129 @@
+# Chamber 06 · Cabinet Room — Prime-Time Rebuild
 
-# Chamber 06 — The Cabinet Room
+Today the Room is four grey tiles and a text list. Cabinets don't decide from tiles — they decide from a *situation picture*. This plan turns the Cabinet Room into a visual, data-rich, decision-first workspace that draws on every corpus already in the second brain (Ledger, Ministries, Sectors, KPIs, Narrative, Studio/FDI, Scenarios, Comms, Capital Flows, Grades) and turns them into agenda-ready packets.
 
-Today, Chamber 06 points at `/instrument/cabinet`, a legacy cross-country page with a plain list of sessions + a commitments dropdown, plus a separate Session Mode (dark slideshow) and a Decisions register. It is not country-scoped like Chambers 01–05, has no agenda, no minutes, no attendance, no linkage to Ledger/Scenarios/Narrative, and no cabinet-grade UI. We rebuild it as the sovereign decision theatre where evidence turns into a signed decision with owners, dates, and a paper trail.
+## Design principles (McKinsey lens)
 
-## Guiding POV (sovereign PM lens)
+1. **Situation → Options → Decision** on every screen (Pyramid Principle).
+2. **One-page truth**: the top fold answers "what must Cabinet decide this week, and what's the evidence?"
+3. **Every number is clickable back to source** — reuse `CitedMarkdown`, `WhyThisNumberPanel`, `TrustSignals`.
+4. **Second-brain first**: no static placeholders; every card is fed by an existing table.
+5. **State of the Nation, not a to-do list**: charts, heatmaps, sparklines, sector chips — the language the rest of the app already speaks.
 
-A Prime Minister comes to Cabinet to (1) know what's on today, (2) see the evidence behind each item, (3) make a decision fast, (4) leave with named owners and dates, (5) trust the record. Every feature below serves that loop.
-
-## Route architecture
-
-New country-scoped chamber matching Chambers 01–05:
+## New Room layout (replaces current 4-stat + 2-panel grid)
 
 ```text
-/admin/countries/$code/cabinet                → Room (dashboard)
-/admin/countries/$code/cabinet/agenda/$sid    → Agenda builder for a session
-/admin/countries/$code/cabinet/session/$sid   → Session Mode (present + record live)
-/admin/countries/$code/cabinet/minutes/$sid   → Minutes + signed export
-/admin/countries/$code/cabinet/register       → Decisions + Commitments register
+┌──────────────────────────────────────────────────────────────────────┐
+│  HERO STRIP · Country · Next session countdown · Readiness ring      │
+│  · Decision velocity spark · Overdue heat · Grade posture            │
+├──────────────────────────────────────────────────────────────────────┤
+│  A · STATE OF THE NATION (auto-brief, 120w, McKinsey pyramid)        │
+│      Situation | Complication | Question | Recommendation            │
+│      — Generated from KPIs, Narrative P1/P2, Grade downgrades,       │
+│        Studio exposure, open Commitments. Cited [N].                 │
+├──────────────────────────────────────────────────────────────────────┤
+│  B · SITUATION BOARD (3 columns)                                     │
+│   Macro Pulse    │ Sector Heat        │ Fiscal & Capital             │
+│   MacroStrip     │ GdpTreemap +       │ SovereignSankey +            │
+│   KpiSmall-      │ SectorTrendBars    │ DebtHorizon                  │
+│   Multiples      │ (top movers)       │                              │
+├──────────────────────────────────────────────────────────────────────┤
+│  C · WHAT NEEDS A DECISION (the queue)                               │
+│   Ranked cards, each = a proposed agenda item                        │
+│   [Signal chip] Title · Sponsor Ministry · Impact bar · Confidence   │
+│   Evidence rail (3-5 [N] chips) · [Add to agenda] [Draft brief]      │
+├──────────────────────────────────────────────────────────────────────┤
+│  D · MINISTRY READINESS MATRIX                                       │
+│   Rows = ministries, cols = (Brief · Sponsor · Metric · Owner)       │
+│   Cell colored by readiness — click → ministry profile drawer        │
+├──────────────────────────────────────────────────────────────────────┤
+│  E · COMMITMENTS COCKPIT                                             │
+│   Marimekko: status × ministry · overdue red band · median age       │
+│   Ageing waterfall · SLA breach list                                 │
+├──────────────────────────────────────────────────────────────────────┤
+│  F · SESSION TIMELINE (12-mo cadence, past+scheduled+draft)          │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-`ChambersLauncher` Chamber 06 tile re-points to `/admin/countries/$code/cabinet` (params, not search). Legacy `/instrument/cabinet*` routes stay as thin redirects so existing links don't 404.
+Tabs remain (Room · Signals · Register · Sessions) but each is rebuilt with the same visual vocabulary.
 
-## The Room (landing dashboard)
+## Second-brain wiring (per card → source)
 
-Ceremonial header (same visual grammar as Ledger): country crest, live clock, "as-of" strip. Below, a 4-rail cabinet-grade layout:
+| Card | Source table(s) / helper |
+|---|---|
+| Readiness ring | `cabinet_agenda_items` (brief_md, dossier, sponsor) |
+| Grade posture | `grade_alerts`, `series.confidence_grade` |
+| State-of-nation brief | Lovable AI (Gemini) over KPI deltas + top P1 signals + open commitments; stored in `cabinet_sessions.brief_md` with citations to `country_kpis`, `intake_items`, `fdi_threats` |
+| Macro Pulse | `MacroStrip` from `country_kpis` (GDP, inflation, unemp, debt/GDP, current-account) |
+| Sector Heat | `GdpTreemap`, `SectorTrendBars` from `country_sectors` + `sector_dossiers` momentum |
+| Fiscal & Capital | `SovereignSankey` + `DebtHorizon` from `country_capital_flows`, `capital_flow_nodes` |
+| Decision queue | union of: `intake_items` (P1/P2), `grade_alerts` (new downgrades), `fdi_threats` (severity ≥ high), `scenarios` (promoted), open items in `strategy_statements`, unresolved `dossier_questions` — ranked by a `decisionScore` (priority × recency × exposure) |
+| Ministry Readiness | `ministries` × `ministry_profiles` × `ministry_sectors` × unresolved commitments |
+| Commitments Cockpit | `commitments` (status, due_at, ministry_id) + `decisions` |
+| Session Timeline | `cabinet_sessions` (past/scheduled) + `cabinet_agenda_items` count |
+| Evidence rails | `onboarding_citations` + `citations` — rendered via `CitedMarkdown`/`CitationSup` |
 
-1. **Next Session rail** — date, classification, attendee count, agenda-readiness meter (% of items with dossier + recommendation attached). Primary action: *Enter Session Mode*.
-2. **Commitments Heat** — status treemap (Open / In-progress / Delivered / Blocked / Cancelled) sized by count, colored by overdue-risk. Click a tile → filtered register.
-3. **Decisions velocity** — 12-week sparkline of decisions recorded, with a "time-to-decision" median chip.
-4. **Signals inbox** — auto-pulled unresolved items from other chambers ready for cabinet attention:
-   - Narrative P1/P2 stories not yet triaged
-   - Studio strategies awaiting sign-off
-   - Scenario runs flagged "promote to policy"
-   - Ledger grade downgrades (from `grade_alerts`)
-   Each row has a one-click **"Add to next agenda"**.
+## New / extended server functions in `src/lib/cabinet.functions.ts`
 
-## The Agenda Builder
+- `getSituationPicture(countryCode)` — returns macro strip, sector movers, capital-flow summary, grade posture, exposure headline. Aggregates from existing viz helpers.
+- `getDecisionQueue(countryCode)` — ranked, deduped union of signals with `decisionScore`, sponsor ministry inference, and pre-built evidence dossier.
+- `getMinistryReadiness(countryCode)` — per-ministry readiness score (brief, sponsor set, metric defined, owner assigned).
+- `getCommitmentsCockpit(countryCode)` — status × ministry matrix, ageing buckets, SLA breaches, median close time.
+- `generateSituationBrief(countryCode, sessionId?)` — Lovable AI Gemini call, McKinsey pyramid, ≤180 words, citations [N] wired to `onboarding_citations` + `intake_items`. Persisted in `cabinet_sessions.brief_md` or a new `cabinet_brief_cache` row keyed by (country, date).
+- Extend `getRoomOverview` to include a `situationHeadline` string and `postureBadges` (fiscal, external, social, political).
 
-Drag-orderable list of agenda items. Each item is a first-class object with:
+All new functions use `requireSupabaseAuth`; no schema changes required except a lightweight `cabinet_brief_cache(country_code, generated_at, brief_md, citations jsonb)` table with the standard grants + RLS pattern (admin + `has_country_access`).
 
-- Title, sponsor (minister), classification (`public / restricted / secret`)
-- **Evidence dossier**: attach Ledger snapshots, Scenario runs, Studio strategy IDs, Narrative statements, Sector dossiers, KPIs. All become citations on the resulting decision.
-- **Recommendation**: single "the ask" line + suggested motion text (Approve / Note / Refer back / Defer).
-- **Time box** (minutes).
-- **Auto-brief** button → Lovable AI Gateway (Gemini) generates a 120-word McKinsey-style brief from the attached evidence, editable, saved to the item.
+## New components (all under `src/components/cabinet/`)
 
-Readiness meter turns green only when title + sponsor + dossier + recommendation are all present.
+- `SituationHero.tsx` — countdown, readiness ring (SVG), posture badges, decision-velocity spark.
+- `StateOfNationBrief.tsx` — `CitedMarkdown` render + regenerate button + last-generated stamp.
+- `SituationBoard.tsx` — 3-col wrapper reusing `MacroStrip`, `GdpTreemap`, `SectorTrendBars`, `SovereignSankey`, `DebtHorizon`.
+- `DecisionQueue.tsx` — ranked cards with impact bar, confidence pill, evidence chips, sponsor selector, `Add to agenda` / `Draft brief` actions.
+- `MinistryReadinessMatrix.tsx` — colour-graded grid; row click opens a right-side `MinistryDrawer` with the ministry profile + minister block.
+- `CommitmentsCockpit.tsx` — Marimekko (reuses `ReallocationMarimekko` pattern), ageing waterfall, breach list.
+- `SessionTimeline.tsx` — horizontal 12-mo ribbon with markers.
+- `PostureBadge.tsx`, `ImpactBar.tsx`, `ReadinessRing.tsx`, `EvidenceChips.tsx` — small primitives.
 
-## Session Mode (the theatre)
+## Tab upgrades
 
-Full-screen dark UI, keyboard-driven, one item at a time. Left rail: agenda progress. Center: the item — brief, evidence tiles, live KPIs. Right rail: **live capture**:
+- **Signals**: add filters (kind, priority, ministry, sector), a heat sparkline per source, and a "Bundle into agenda item" multi-select that creates one agenda item with a combined brief.
+- **Register**: swap the flat table for a decisions timeline + commitments Kanban (open / in_progress / delivered / blocked), with ministry swimlanes and overdue highlighting.
+- **Sessions**: cards with agenda preview, readiness ring, dossier count, and last-modified — plus "Duplicate" and "Convert to recurring".
 
-- Motion selector (Approve / Note / Refer / Defer)
-- Vote tally (for / against / abstain) with attendee chips
-- Decision text (auto-drafted from the recommendation, editable)
-- Commitments composer (title, owner minister, due date, success metric) — add multiple, hit Enter to save
-- Timer that started when the item opened → contributes to time-to-decision analytics
+## Agenda & Session Mode polish (same visual language)
 
-On item close, everything writes to `decisions` + `commitments` atomically and the timer stops. Escape exits, resumable — the session is a durable record, not a slideshow.
+- Agenda editor: add the Situation Board mini-strip at the top, per-item impact/confidence sliders, and a "Fill from second brain" action that pre-populates dossier chips from `getDecisionQueue` evidence.
+- Session Mode: keep the dark theatre, but add a persistent right-rail thumbnail of the active item's evidence chart (sector treemap slice, macro spark, or flow ribbon) — decision-makers see the *thing*, not just its title.
 
-## Minutes & signed export
+## Auto-brief pipeline
 
-Auto-generated the moment the session closes:
-
-- Header (country, date, classification, attendees, quorum)
-- Per-item block: brief, evidence citations (from dossier), motion, vote, decision text, commitments
-- Chair sign-off block (typed name + timestamp; PDF via existing `renderDocument`)
-- Distribution list with per-recipient classification redaction (secret items stripped for public copy)
-
-## Decisions + Commitments register
-
-Unified table with filters (status, minister, sector, session, date range) and full-text search. Each row expands to show the originating session, evidence citations, and current commitment status. Bulk export to CSV / PDF. Overdue commitments get a red pill and appear in the Room's Signals inbox next cycle.
-
-## High-value interactive features (ranked)
-
-1. **Signals inbox → one-click agenda** — collapses the whole "who should we hear from today" question.
-2. **Auto-brief from attached evidence** — cuts brief-prep from hours to a minute; every claim already cited.
-3. **Session Mode live capture** — decision + commitments recorded *in* the meeting, not reconstructed after.
-4. **Readiness meter** — no item enters Cabinet under-baked; forces discipline upstream.
-5. **Time-to-decision analytics** — measurable cabinet performance metric.
-6. **Classification-aware distribution** — one session produces public and restricted minutes without a second edit pass.
-7. **Cross-chamber deep links** — every evidence chip in a decision jumps back to the exact Ledger figure / Scenario run / Narrative statement.
-8. **Commitments accountability loop** — overdue commitments auto-resurface in next Room view; ministers see their own overdue list first.
-
-## Data model (mostly reuses existing tables)
-
-Existing: `cabinet_sessions`, `decisions`, `commitments`, `figure_snapshots`, `citations`, `grade_alerts`, `scenarios`, `fdi_strategies`, `comms_artifacts`.
-
-Additions (single migration, with GRANTs + RLS scoped via `has_country_access`):
-- `cabinet_agenda_items` — `id, session_id, country_code, ordinal, title, sponsor_ministry_id, classification, time_box_min, recommendation, motion_kind, brief_md, dossier jsonb, readiness_score, created_at`
-- `cabinet_attendance` — `session_id, attendee_name, role, present bool, is_chair`
-- `cabinet_votes` — `agenda_item_id, for_count, against_count, abstain_count, notes`
-- `decisions` gets nullable `agenda_item_id`, `motion_kind`, `classification`, `decision_ts`, `duration_sec`
-- `commitments` gets nullable `agenda_item_id`, `success_metric`, `sector_code`
-
-## Server functions (`src/lib/cabinet.functions.ts`, new)
-
-`getRoomOverview`, `listAgenda`, `saveAgendaItem`, `reorderAgenda`, `generateAgendaBrief` (Lovable AI Gateway), `getSessionLive`, `recordAgendaOutcome` (atomic decision+votes+commitments), `closeSession` (locks minutes), `getMinutes`, `listRegister`, `signalsInbox` (cross-chamber query). All `.middleware([requireSupabaseAuth])`, RLS scoped by country.
-
-## Components (`src/components/cabinet/`)
-
-`CabinetHeader`, `NextSessionCard`, `CommitmentsHeat`, `DecisionsSparkline`, `SignalsInbox`, `AgendaBuilder` (dnd-kit — already in deps if present, else lightweight up/down), `AgendaItemEditor`, `EvidenceDossierPicker`, `AutoBriefButton`, `SessionStage`, `LiveCaptureRail`, `MinutesDocument`, `RegisterTable`.
+Nightly (or on demand):
+1. Pull KPI deltas (WoW/MoM), top 5 narrative signals ≥ P2, new grade downgrades, active FDI threats, open commitments > 30 days.
+2. Compose McKinsey pyramid prompt with strict Zod output schema `{ situation, complication, question, recommendation, citations[] }`.
+3. Gemini via `createLovableAiGatewayProvider` with `structuredOutputs`, `google/gemini-3.5-flash`.
+4. Persist to `cabinet_brief_cache`; render via `CitedMarkdown`.
+5. Optional `/api/public/hooks/cabinet-brief` cron endpoint for pg_cron (HMAC-verified) — later.
 
 ## Rollout
 
-1. Migration + `cabinet.functions.ts` + Signals inbox query.
-2. Country-scoped Room dashboard + repoint launcher tile + legacy redirects.
-3. Agenda builder + evidence picker + auto-brief.
-4. Session Mode live capture + atomic outcome write.
-5. Minutes generator + signed PDF export via existing `renderDocument`.
-6. Register (decisions + commitments unified) with filters/search/export.
+1. **Data layer** — new server functions + `cabinet_brief_cache` migration with grants + RLS.
+2. **Primitives** — `ReadinessRing`, `PostureBadge`, `ImpactBar`, `EvidenceChips`.
+3. **Situation Hero + State of Nation brief** (replaces current stat strip).
+4. **Situation Board** (wire existing viz components; no new charts).
+5. **Decision Queue** (replaces "Signals awaiting a session").
+6. **Ministry Readiness Matrix + Ministry Drawer**.
+7. **Commitments Cockpit** (replaces Register flat table).
+8. **Session Timeline + Sessions tab upgrade**.
+9. **Agenda + Session Mode polish**.
+10. **Auto-brief cron endpoint** (optional final step).
 
-Each step is a working slice; the chamber is usable after step 2 and becomes a full decision theatre by step 4.
+Each step is shippable on its own; the Room becomes noticeably better after step 3 and prime-time by step 7.
+
+## Out of scope (call out explicitly)
+
+- No changes to auth, RLS helpers, or existing chamber routes.
+- No new chart libraries — reuse `src/components/viz/*` and `src/components/scenarios/*`.
+- No mobile-specific redesign in this pass (desktop-first, responsive down to tablet).
+
+Approve and I'll build in the order above, starting with the data layer + primitives + Situation Hero so you see a visible lift on the first commit.

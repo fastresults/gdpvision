@@ -1,84 +1,71 @@
-## Goal
+# Ask the Ledger — 3-Tier Answer Engine
 
-Replace the "no timeseries" empty state on every Sector-linked KPI card with a Sovereign Pulse–style trend visualization, and add a companion **Sector Profiling Matrix** table underneath. Both must render for every sector on day one — even before Stage 7 has committed KPI history — by synthesizing a deterministic 24‑month micro‑trend from the data we already store (latest value, target, direction, GDP share, confidence grade).
+Today `askTheLedger` retrieves chunks by naive keyword overlap. When no chunk contains the query tokens (e.g. "blue economy" isn't literally in any indexed doc), the model refuses with "no grounded evidence" — even though KPIs, sector dossiers, ministry profiles, and the wider corpus almost always have relevant context, and Perplexity could fill any remaining gap.
 
-## Reference (from Sovereign Pulse screenshots)
+## New Tiered Resolver
 
-- Sector-linked KPI cards: colored gradient vertical **bar micro-chart** (12–14 bars, per-sector hue), momentum pill (Accelerating / Steady / Decelerating), risk dots, data-confidence score in the header row.
-- Sector profiling matrix: dense table — Sector · GDP Share · 24-mo trend bars · Momentum · Risk · Data Conf.
+Every question runs through up to three tiers. The first tier that yields a confident, cited answer wins. Lower tiers are additive context, not replacements — later tiers always see everything earlier tiers pulled.
 
-## Where it lands
+### Tier 1 — Corpus (grounded citations, highest weight)
+- Keep the current retrieval, but upgrade it:
+  - Add **embeddings-based semantic search** over `country_source_chunks.content` (Lovable AI `google/gemini-embedding-001`, cosine top-40) alongside the existing keyword filter, then merge + rerank.
+  - Backfill embeddings on ingest (new `embedding vector(3072)` column with HNSW halfvec index) and a one-shot backfill script for existing chunks.
+  - Semantically expand query tokens (synonyms/sector aliases like "blue economy" → fisheries, marine, ocean, coastal, aquaculture) via a tiny Gemini call before search.
+- Weight: chunks & their `[N]` citations rank first in the final prompt.
 
-- Route: `/admin/countries/$code/ledger` and any surface using `KpiSmallMultiples`.
-- Files to edit / add:
-  - `src/components/viz/KpiSmallMultiples.tsx` (rewrite card body)
-  - `src/components/viz/SectorTrendBars.tsx` (new — 24‑bar micro-chart)
-  - `src/components/viz/SectorProfilingMatrix.tsx` (new — dense table)
-  - `src/components/viz/momentum.ts` (new — pure helpers: momentum, risk, confidence, synthesized series)
-  - Wire matrix into the ledger's Visual Studio section next to `KpiSmallMultiples`.
+### Tier 2 — Whole-country context (always included when Tier 1 is thin)
+Aggregate the full Second Brain for the country, regardless of query match:
+- All `country_kpis` (latest_value, target, trend), `country_sectors` composition + confidence grades.
+- All `sector_dossiers.payload` (compact JSON summary — headline metrics, drivers, risks).
+- All `ministry_profiles` (mandate, minister, programmes).
+- Top `memory_objects` by weight for the country + `REGIONAL`.
+- Exposure index + capital flows snapshot.
 
-## Trend visualization
+These become **anchor citations** (`kind: "memory"`) with source_id → dossier/kpi rows so `[N]` markers remain clickable. The model is told: "corpus citations are primary evidence; anchors are canonical country facts you may reason from."
 
-Each sector card renders a **24‑bar vertical trend** in that sector's hue (`sectorColor(hue_token)`), with a subtle opacity ramp from left→right so the eye tracks toward "now".
+### Tier 3 — Deep research fallback (only if Tiers 1+2 still can't answer)
+- The model returns a structured `needs_research: true` flag when confidence would be "low" and no corpus citation supports the claim.
+- Server then calls **Perplexity `sonar-reasoning-pro`** (already wired in the onboarding stack) with the question + a country brief.
+- Perplexity's answer + its citations are appended as `kind: "web"` citations. A final Gemini pass composes the McKinsey-style answer over the combined evidence.
+- Newly discovered high-quality sources are queued into `country_sources` as `pending_review` so the corpus self-heals over time (reuses the existing dedupe / upsert path).
 
-Two data paths, same visual:
-1. **Real series present** (`sectorKpiSeries[i].points.length ≥ 2`): resample to 24 buckets (last-value carry-forward), normalize to per-series min/max, render bar heights.
-2. **No series yet** (today's state): synthesize 24 monotone-ish bars from `{ latest, target, direction, share_pct }` using a **deterministic seeded PRNG** keyed on `country_code + sector_code` so it's stable across renders and users. Card is tagged **"modelled"** (small mono chip) so we never mislead — and it auto-swaps to real data the instant Stage 7 points arrive. No fake numbers are displayed; only bar shapes.
+### McKinsey-style output (all tiers)
+Structured JSON stays the same shape but adds:
+- `situation` (1 sentence framing), `answer` (direct), `so_what` (2–3 bullets of implication), `evidence` (with [N]), `confidence`, `caveats`, `sources_used` (`corpus` | `country_context` | `web_research`).
+- Confidence rubric: `high` = ≥2 corpus citations; `medium` = anchors + ≥1 corpus OR strong web with anchors; `low` = web-only or no numeric grounding.
 
-Bars are pure inline SVG (no chart library, no new deps). Matches the existing minimal aesthetic.
+## UX Changes (`AskTheLedger.tsx`)
+- Small "Sources used" chip row on each answer: `Corpus · 4` / `Country context · 3` / `Web · 2`.
+- When Tier 3 fires, show a subtle "Extended with live web research" note above the answer.
+- Loading states: "Searching corpus…" → "Reading country context…" → "Deep research…" so the user knows why it took longer.
+- Never return the "no grounded evidence" dead-end again — worst case is a Tier-2 answer flagged `confidence: low` with caveats.
 
-## Momentum, risk, confidence (pure functions)
+## Technical Section
 
-- **Momentum**: slope of the last 6 buckets vs. the previous 6.
-  - `> +2%` → Accelerating (emerald pill)
-  - `< -2%` → Decelerating (rose pill)
-  - else → Steady (slate pill)
-- **Risk (3 dots)**: derived from `direction` + gap-to-target + `freshness_status`.
-  - green / green-amber / amber-red on the three dots (1–3 lit).
-- **Data confidence (0–100)**: mapped from `confidence_grade` (A=90, B=78, C=66, D=52) with small bonuses for freshness and having a target set. Right-aligned tabular-nums.
+### Files to change
+- `src/lib/ledger.functions.ts` — refactor `askTheLedger` into `tier1Corpus()`, `tier2CountryContext()`, `tier3DeepResearch()`, plus an orchestrator. Add `expandQuery()` and `semanticSearchChunks()` helpers.
+- `src/lib/ledger-embeddings.server.ts` (new) — Lovable AI embeddings client + backfill utility.
+- `src/lib/ledger-deep-research.server.ts` (new) — Perplexity sonar-reasoning-pro wrapper reusing keys/patterns from `src/lib/country-onboarding/*`.
+- `src/components/ledger/AskTheLedger.tsx` — render `sources_used` chips, tier progress, "extended with research" badge.
+- New migration:
+  - `alter table country_source_chunks add column embedding vector(3072)`.
+  - HNSW halfvec index on `(embedding::halfvec(3072)) halfvec_cosine_ops`.
+  - `match_country_chunks(country_code, query_embedding, k)` SQL function with `SECURITY INVOKER` (respects RLS).
+  - GRANTs preserved for authenticated/service_role.
+- Backfill: one-off server function `backfillChunkEmbeddings({ countryCode })` (batched, 96/req).
 
-All logic lives in `momentum.ts` — no server changes.
+### Model choices
+- Query expansion + final synthesis: `google/gemini-3.5-flash` (fast, JSON-mode).
+- Embeddings: `google/gemini-embedding-001` (3072 dims, matches memory of no-duplicates corpus contract).
+- Deep research: Perplexity `sonar-reasoning-pro` (existing key), 45s timeout, single call per question.
 
-## Card layout (updated)
+### Guardrails
+- Tier 3 gated by `has_role(authenticated, 'admin')` OR a per-country daily quota (10 web calls/country/day) to control credit spend — configurable in `app_settings`.
+- Every web citation must include `url`; drop uncited web claims.
+- Preserve existing suppression list, PrettyJson rules, and idempotent source upserts.
+- No changes to auth middleware; new endpoint stays under `requireSupabaseAuth`.
 
-```text
-┌──────────────────────────────────────────────┐
-│ ● TOURISM                     30.0%          │
-│ Tourism                                      │
-│                                              │
-│  ▁▂▂▃▄▄▅▅▆▆▇▇▇▆▆▅▅▄▃▃▂▂▁▁   ← 24 bars       │
-│                                              │
-│ [Steady]      ● ● ○   Conf 72                │
-│ Latest 42.0 % GDP · target 45 %              │
-└──────────────────────────────────────────────┘
-```
-
-Click still toggles sector focus (existing `onSelect`).
-
-## Sector Profiling Matrix (new)
-
-Table rendered below the small multiples on desktop, collapsible on mobile:
-
-| Sector (icon + role) | GDP Share | 24‑mo trend | Momentum | Risk | Data Conf. |
-
-- Sector icon uses the same hue token, small rounded square.
-- 24‑mo trend is the same `SectorTrendBars` in compact height (28px).
-- Rows sorted by GDP share desc; clicking a row calls the shared `onSelect(code)` so the card grid + matrix stay in sync.
-
-## Responsive
-
-- Cards: existing `sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4` retained.
-- Matrix: horizontal scroll under `sm`; sector cell uses `grid-cols-[auto_minmax(0,1fr)]` + `min-w-0` + `truncate` per the responsive layout rule.
-
-## Non-goals
-
-- No new tables, no schema changes, no server function edits.
-- No fake KPI numbers — only bar shapes when a real series is absent, and only with a visible "modelled" chip.
-- Ministry / capital-flow surfaces untouched.
-
-## Acceptance
-
-- Every sector card shows a colored 24‑bar trend on `/admin/countries/ATG/ledger` today (Antigua & Barbuda has no committed KPI points yet).
-- Cards backed by real `country_kpi_points` render the actual series with no "modelled" chip.
-- New Sector Profiling Matrix appears under the small multiples, sortable by clicking a sector, visually consistent with the reference screenshot.
-- Momentum / risk / confidence values are deterministic per (country, sector) and update when underlying KPI data changes.
+### Rollout
+1. Ship migration + embeddings backfill (safe: additive column).
+2. Ship refactored `askTheLedger` with Tiers 1+2 (already a strict upgrade — no more dead-ends for Antigua's "blue economy" question).
+3. Enable Tier 3 behind a feature flag, verify credit usage, then remove flag.

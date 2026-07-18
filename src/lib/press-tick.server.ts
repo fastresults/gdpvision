@@ -121,6 +121,27 @@ export async function runPressTick(opts: {
       return true;
     });
 
+    // Layer 3 · Firecrawl upgrade: fetch full-text markdown for the top-8 items
+    // per country in this batch, keyed by first-seen order. Failures fall back to the snippet.
+    const upgradeCapPerCountry = 8;
+    const upgradeSeen = new Map<string, number>();
+    const upgradeTargets = toClassify.filter((it) => {
+      if (!it.url) return false;
+      const n = upgradeSeen.get(it.country_code) ?? 0;
+      if (n >= upgradeCapPerCountry) return false;
+      upgradeSeen.set(it.country_code, n + 1);
+      return true;
+    });
+    const upgraded = new Map<string, string>();
+    await pMap(
+      upgradeTargets,
+      async (it) => {
+        const md = await firecrawlUpgrade(it.url!);
+        if (md) upgraded.set(it.id, md);
+      },
+      4,
+    );
+
     const sectorMenuCache = new Map<string, string[]>();
     async function menu(cc: string) {
       const cached = sectorMenuCache.get(cc);

@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Activity, ArrowUpRight, BookOpen, Landmark, Layers, MessageSquare, TrendingUp } from "lucide-react";
 
 const CHAMBERS = [
-  { n: "01", icon: BookOpen, title: "The National Ledger", blurb: "Authoritative decomposition of the national economy.", to: "/admin/countries/$code/data" as const, withParams: true },
+  { n: "01", icon: BookOpen, title: "The National Ledger", blurb: "Authoritative decomposition of the national economy.", to: "/admin/countries/$code/ledger" as const, withParams: true },
   { n: "02", icon: Layers, title: "Portfolio Workspaces", blurb: "One workspace per ministerial portfolio.", to: "/instrument/portfolio" as const, withParams: false },
   { n: "03", icon: Activity, title: "The Scenario Engine", blurb: "Consequence-free rehearsal across every downstream metric.", to: "/instrument/scenarios" as const, withParams: false },
   { n: "04", icon: TrendingUp, title: "The FDI Transition Studio", blurb: "Replacement plan for the CBI wind-down, sector by sector.", to: "/instrument/studio/packages" as const, withParams: false },

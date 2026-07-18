@@ -56,7 +56,14 @@ export function GdpVizStudio({ code }: { code: string }) {
             </button>
           )}
         </div>
-        <KpiSmallMultiples sectors={overview.sectors} series={overview.sectorKpiSeries} selected={sector} onSelect={setSector} />
+        <KpiSmallMultiples countryCode={code} sectors={overview.sectors} series={overview.sectorKpiSeries} allKpis={overview.allKpis} selected={sector} onSelect={setSector} />
+        <div className="mt-6">
+          <div className="mb-2">
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">Profiling matrix</div>
+            <h3 className="font-serif text-lg">Sector profiling</h3>
+          </div>
+          <SectorProfilingMatrix countryCode={code} sectors={overview.sectors} series={overview.sectorKpiSeries} allKpis={overview.allKpis} selected={sector} onSelect={setSector} />
+        </div>
       </div>
 
       <SovereignSankey countryCode={code} />

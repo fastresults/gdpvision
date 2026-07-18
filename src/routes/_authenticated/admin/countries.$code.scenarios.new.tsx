@@ -16,6 +16,8 @@ import { GdpFanChart } from "@/components/scenarios/GdpFanChart";
 import { SectorWaterfall } from "@/components/scenarios/SectorWaterfall";
 import { AttributionStack } from "@/components/scenarios/AttributionStack";
 import { StatStrip } from "@/components/scenarios/StatStrip";
+import { CompensationLedger } from "@/components/scenarios/CompensationLedger";
+import { computeCompensation } from "@/lib/scenarios/compensation";
 import { NarrativePanel } from "@/components/scenarios/NarrativePanel";
 import { EmptyLevers } from "@/components/scenarios/EmptyLevers";
 import { CompareSlots } from "@/components/scenarios/CompareSlots";
@@ -249,6 +251,17 @@ function Builder() {
   const baselineY1 = init.output.gdpGrowthPath[0]?.p50 ?? 2.0;
   const baselineYEnd =
     init.output.gdpGrowthPath[init.output.gdpGrowthPath.length - 1]?.p50 ?? 2.0;
+  const baselinePath = useMemo(() => {
+    // Synthesize a flat baseline (do-nothing) path aligned to the current
+    // horizon so the fan-chart overlay and ledger stay in sync when the
+    // user changes horizon length.
+    const b1 = init.output.gdpGrowthPath[0] ?? { p10: baselineY1 - 0.6, p50: baselineY1, p90: baselineY1 + 0.6 };
+    return current.output.gdpGrowthPath.map(() => ({ p10: b1.p10, p50: b1.p50, p90: b1.p90 }));
+  }, [init.output.gdpGrowthPath, current.output.gdpGrowthPath, baselineY1]);
+  const compensation = useMemo(
+    () => computeCompensation(baselinePath, current.output.gdpGrowthPath, current.output.years),
+    [baselinePath, current.output.gdpGrowthPath, current.output.years],
+  );
 
   const save = useMutation({
     mutationFn: (opts: { pin?: boolean } = {}) =>
@@ -423,8 +436,20 @@ function Builder() {
                   : undefined,
               },
               {
-                label: "Exposure index · end",
-                value: exposureEnd === null ? "—" : exposureEnd.toFixed(1),
+                label: "Net vs baseline · cumulative",
+                value:
+                  compensation.regime === "at_baseline"
+                    ? "—"
+                    : `${compensation.cumulativeEndPp >= 0 ? "+" : ""}${compensation.cumulativeEndPp.toFixed(2)} pp`,
+                delta: compensation.cumulativeEndPp,
+                sub:
+                  compensation.regime === "surplus" && compensation.breakEvenYear
+                    ? `Break-even Y${compensation.breakEvenYear}`
+                    : compensation.regime === "deficit" && compensation.gapClosedPct !== null
+                    ? `Gap closed ${compensation.gapClosedPct.toFixed(0)}%`
+                    : compensation.regime === "break_even"
+                    ? "At break-even"
+                    : "Move a lever",
               },
               {
                 label: "Levers off default",
@@ -459,13 +484,40 @@ function Builder() {
                 years={current.output.years}
                 path={current.output.gdpGrowthPath}
                 ghostPath={step === 3 && ghostPath ? ghostPath : undefined}
+                baselinePath={step >= 2 ? baselinePath : undefined}
               />
             </div>
+            {step >= 2 && (
+              <div className="mt-3 flex flex-wrap items-center gap-4 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="inline-block h-px w-4 bg-ink-950" /> Levered P50
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span
+                    className="inline-block h-px w-4"
+                    style={{ borderTop: "1px dashed var(--ink-500)" }}
+                  />
+                  Do-nothing baseline
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span
+                    className="inline-block h-2 w-3"
+                    style={{ background: "var(--sector-06)", opacity: 0.35 }}
+                  />
+                  Compensation area
+                </span>
+              </div>
+            )}
             {step === 1 && (
               <p className="mt-2 text-[11px] italic text-ink-500">
                 This is your <strong>do-nothing baseline</strong> over the current horizon —
                 the reference you'll bend from in the next steps.
               </p>
+            )}
+            {step >= 2 && (
+              <div className="mt-4">
+                <CompensationLedger summary={compensation} />
+              </div>
             )}
           </section>
 

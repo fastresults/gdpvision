@@ -1,60 +1,115 @@
-## What happened
+## Chamber 01 — The National Ledger
 
-The Chambers launcher was built on a different route than the one you're viewing:
+Right now "National Ledger" on the launcher points at `/admin/countries/$code/data`, which is a data-management console (tabs for Sources / KPIs / Dossiers / Ministries / Corpus / Second brain / Viz). That's the workbench, not the chamber. The chamber must be a **read-first, evidence-anchored, cinematic view of the country's economy** — the surface a Minister opens on a Monday morning.
 
-- Installed on: `/admin/country/ATG` (file `country.$code.tsx`)
-- You are on: `/admin/countries/ATG/onboard` (file `countries.$code.onboard.tsx`)
+### What each chamber must do (framework)
 
-Two separate pages exist for a country, and the launcher only landed on the seldom-used one. That's why the onboarding page you actually land on shows no Chambers grid.
+Every chamber has the same skeleton and inherits the same shell:
 
-## Plan
+1. **Ceremonial header** — country crest, name, live "as-of" clock, headline figure, one-line stewardship state.
+2. **Hero visualization** — one signature chart that answers the chamber's single question.
+3. **Answer bar** — 3–5 pinnable numbers with confidence grade and last-verified date.
+4. **Evidence rail** — right-side sticky column of citations for whatever is on screen.
+5. **Ask this chamber** — natural-language box that queries only the chamber's slice.
+6. **Deep dives** — 3–4 expandable sections with domain-specific data views.
+7. **Handoff dock** — buttons to send the current view into Scenarios, Narrative, or Cabinet.
 
-### 1. Put the launcher where you actually work
+The National Ledger is the reference implementation. The other five chambers will inherit the shell.
 
-Embed `ChambersLauncher` on `countries.$code.onboard.tsx`, placed directly under the country header/status chips and above the Pipeline Health card — matching the position you described ("below country name and captured data").
+### Chamber 01 — the single question
 
-### 2. Reorganize the onboarding page header
+> "What is our economy made of right now, how confident are we in that, and where is it going?"
 
-Current header is a wall of chips + 4 stacked action buttons on the right. Restructure into three clean bands:
+### Route & wiring
+
+- New route: `/admin/countries/$code/ledger` (file `countries.$code.ledger.tsx`).
+- Update `ChambersLauncher` tile #01 to point here.
+- `/admin/countries/$code/data` stays — repurposed as "Manage data stores" (already linked from the onboard overflow menu).
+
+### Screen composition
 
 ```text
-┌───────────────────────────────────────────────────────────┐
-│  Breadcrumb                                               │
-│  Antigua & Barbuda        [Run all pending] [Resume] [⋯]  │
-│  ATG · XCD · FY M1 · GDP $2.21B (2024)                    │
-├───────────────────────────────────────────────────────────┤
-│  Stage chips (Profile · GDP · Sectors · … · Flows)        │
-│  — single wrapping row, muted when done, bold when pending │
-├───────────────────────────────────────────────────────────┤
-│  CHAMBERS (6-tile launcher)                               │
-├───────────────────────────────────────────────────────────┤
-│  Pipeline health · Sticky status · Stage cards            │
-└───────────────────────────────────────────────────────────┘
+┌──────────────────────────────── Ceremonial header ────────────────────────────────┐
+│  Crest  Antigua & Barbuda        GDP  $2.21 B  (2024, A-grade)   ⏱ as of 08:14  │
+│  ATG · XCD · fiscal year starts Jan · CBI state · 12/12 pipeline committed        │
+└───────────────────────────────────────────────────────────────────────────────────┘
+
+┌──── Hero: Composition of the economy ─────────────────┐  ┌── Evidence rail ─────┐
+│  Interactive treemap (sectors sized by GDP share).    │  │  Live citations for  │
+│  Hover → sector card. Click → deep-dive drawer.       │  │  every figure on     │
+│  Time-slider bottom: 2019 → 2024, tween shares.       │  │  screen. Grouped by  │
+│                                                       │  │  ministry / period.  │
+│  Answer bar under hero:                               │  │  Click → source      │
+│  [ GDP $2.21B ] [ Real growth +5.1% ] [ CBI 22% of   │  │  modal with quote,   │
+│   revenue ] [ Debt/GDP 78% ] [ Reserves 4.2 mo ]     │  │  URL, retrieved-at.  │
+└───────────────────────────────────────────────────────┘  └──────────────────────┘
+
+┌──── Ask the Ledger ────────────────────────────────────────────────────────────┐
+│  > "How much of GDP is tourism and how has it moved since 2019?"                │
+│  Answer streams with inline [1][2] citation refs into the evidence rail.        │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌── Deep dive 1 ─────────────┐  ┌── Deep dive 2 ─────────────┐
+│  Sector detail             │  │  Capital flows sankey      │
+│  (uses GdpTreemap +        │  │  (uses SovereignSankey)    │
+│  KpiSmallMultiples per     │  │  Inputs → Government →     │
+│  selected sector)          │  │  Outflows                  │
+└────────────────────────────┘  └────────────────────────────┘
+
+┌── Deep dive 3 ─────────────┐  ┌── Deep dive 4 ─────────────┐
+│  Ministry × Sector heatmap │  │  Debt & fiscal horizon     │
+│  (MinistrySectorHeatmap)   │  │  (DebtHorizon +            │
+│                            │  │  MacroStrip)               │
+└────────────────────────────┘  └────────────────────────────┘
+
+┌──── Handoff dock (sticky) ─────────────────────────────────────────────────────┐
+│  [ Rehearse this in Scenarios → ]  [ Draft a statement → ]  [ Send to Cabinet ]│
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Specifics:
-- Collapse the four right-rail buttons into a primary `Run all pending` + a small overflow menu (`Resume one step`, `Rerun all`, `Manage data stores`, `GDP visualizations`). Frees horizontal space and stops the vertical stack.
-- Stage chips become one compact wrapping row with consistent width, using the same green/neutral tokens (no oversized boxes).
-- Add a thin divider between bands so the eye can group them.
+### Data sources (already exist — no new backend)
 
-### 3. Retire the duplicate country page
+- `getInstanceOverview`, `getSectorDetail`, `getExposureHistory` — hero + answer bar.
+- `getLedgerEnrichment`, `getTrustSignals`, `getReconciliationReport` — trust chips + evidence.
+- `askTheLedger` (streamed) — Ask box.
+- `getSourceHealth`, `listFigureSnapshots` — evidence rail.
+- Viz components: `GdpTreemap`, `SovereignSankey`, `MinistrySectorHeatmap`, `DebtHorizon`, `MacroStrip`, `KpiSmallMultiples`.
+- Ledger components: `WhyThisNumberPanel`, `TrustSignals`, `LedgerEnrichments`, `AskTheLedger`.
 
-`/admin/country/$code` is now a dead-end duplicate. Redirect it to `/admin/countries/$code/onboard` so any old links keep working and there's one canonical page.
+All chamber pages will use TanStack Query `ensureQueryData` in the loader and `useSuspenseQuery` in the component.
 
-### 4. Chambers tile polish (small)
+### Award-winning design system for chambers
 
-Keep the icon-led tiles from the previous install, but:
-- Use `bg-card` + `border` + hover lift instead of the current flat panel
-- 3 columns desktop / 2 tablet / 1 mobile
-- Ensure the six routes are wired: National Ledger, Portfolio, Scenario Engine, FDI Studio, Narrative Chamber, Cabinet Room (stubs are fine where routes don't exist yet — they already exist from the earlier install)
+Reuse existing tokens (`paper-0`, `ink-950`, `line-200`, `gold-500`, serif display, mono labels) with these chamber-specific rules:
 
-## Files touched
+- **Typography**: Serif hero numbers at 72px+ (`font-serif tabular-nums`), mono for labels and units, sans for prose. Numbers get an underline-on-hover that opens `WhyThisNumberPanel`.
+- **Color**: Neutral paper background, one accent per chamber (Ledger = gold). Sector colors reuse `sector-color.ts` for continuity across charts.
+- **Motion**: 300ms ease-out on chart mounts; treemap tiles morph on time-slider drag (Framer Motion `layout`); numbers count-up on first paint (`useReducedMotion` respected).
+- **Trust chips**: Every figure carries a confidence letter grade (A/B/C/D) as a small square swatch; A = filled ink, D = outlined muted. Same visual vocabulary already used in the codebase.
+- **Empty & partial states**: If a KPI is missing, show a discreet "Not yet ledgered — request via onboarding" affordance instead of an error.
+- **Print/export**: `@media print` renders the hero + answer bar + evidence rail as a one-page briefing.
 
-- `src/routes/_authenticated/admin/countries.$code.onboard.tsx` — import `ChambersLauncher`, restructure header, add overflow menu
-- `src/routes/_authenticated/admin/country.$code.tsx` — replace body with a redirect to `../countries/$code/onboard`
-- No new components; reuse the existing `ChambersLauncher`
+### Files touched
 
-## Out of scope
+New:
+- `src/routes/_authenticated/admin/countries.$code.ledger.tsx` — Chamber 01 page
+- `src/components/chamber/ChamberShell.tsx` — reusable ceremonial header + evidence rail + handoff dock (basis for chambers 02–06)
+- `src/components/chamber/AnswerBar.tsx` — pinnable-number strip
+- `src/components/chamber/HeroTreemap.tsx` — treemap + time slider wrapper around `GdpTreemap`
+- `src/components/chamber/AskThisChamber.tsx` — thin wrapper around `askTheLedger`
 
-- No changes to onboarding pipeline logic, self-heal, or stage runners
-- No changes to Chambers destination routes themselves
+Edited:
+- `src/components/country/ChambersLauncher.tsx` — retarget tile 01 to `/admin/countries/$code/ledger`
+
+Out of scope for this pass:
+- Chambers 02–06 (built next once the shell is proven on 01)
+- Any new server functions or schema changes
+- Write actions on the chamber page (writes still live in Manage data stores)
+
+### Acceptance
+
+- Ledger page loads without loaders in the header ("as-of" clock present).
+- Treemap renders sectors for ATG at correct shares and animates across 2019–2024.
+- Every visible figure has a confidence chip and at least one citation reachable in ≤2 clicks.
+- Ask the Ledger streams an answer with citation refs that highlight the correct evidence-rail entries.
+- Lighthouse a11y ≥ 95; reduced-motion honored; page prints as one clean briefing.

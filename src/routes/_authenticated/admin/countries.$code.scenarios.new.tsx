@@ -436,8 +436,20 @@ function Builder() {
                   : undefined,
               },
               {
-                label: "Exposure index · end",
-                value: exposureEnd === null ? "—" : exposureEnd.toFixed(1),
+                label: "Net vs baseline · cumulative",
+                value:
+                  compensation.regime === "at_baseline"
+                    ? "—"
+                    : `${compensation.cumulativeEndPp >= 0 ? "+" : ""}${compensation.cumulativeEndPp.toFixed(2)} pp`,
+                delta: compensation.cumulativeEndPp,
+                sub:
+                  compensation.regime === "surplus" && compensation.breakEvenYear
+                    ? `Break-even Y${compensation.breakEvenYear}`
+                    : compensation.regime === "deficit" && compensation.gapClosedPct !== null
+                    ? `Gap closed ${compensation.gapClosedPct.toFixed(0)}%`
+                    : compensation.regime === "break_even"
+                    ? "At break-even"
+                    : "Move a lever",
               },
               {
                 label: "Levers off default",

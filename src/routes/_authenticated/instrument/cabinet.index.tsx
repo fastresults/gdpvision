@@ -33,7 +33,7 @@ export const Route = createFileRoute("/_authenticated/instrument/cabinet/")({
 
 function CabinetRoom() {
   const { data: bindings } = useSuspenseQuery(bindingsQuery);
-  const code = bindings.find((b) => b.is_default)?.country_code ?? bindings[0]?.country_code ?? "LCA";
+  const code = useChamberCountry(bindings);
   const { data: sessions } = useSuspenseQuery(sessionsQuery(code));
   const { data: commits } = useSuspenseQuery(commitmentsQuery(code));
 

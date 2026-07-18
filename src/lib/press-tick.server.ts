@@ -335,6 +335,17 @@ export async function runPressTick(opts: {
     if (!coverage[cc]) coverage[cc] = { local: 0, regional: 0, international: 0, total: 0 };
   }
 
+  // Coverage gap: any country in the intended universe that produced zero
+  // promoted or duplicate items in this window. Surfaced as a `missing:*`
+  // failure so the UI badge can call it out.
+  const missing: string[] = [];
+  for (const cc of universe) {
+    if ((coverage[cc]?.total ?? 0) === 0) {
+      missing.push(cc);
+      errors.push({ scope: `missing:${cc}`, msg: "no items promoted this window" });
+    }
+  }
+
   await supabaseAdmin
     .from("narrative_harvest_runs")
     .update({
@@ -344,10 +355,16 @@ export async function runPressTick(opts: {
       items_fetched: itemsFetched,
       items_new: itemsNew,
       items_promoted: itemsPromoted,
-      errors: errors.slice(0, 50),
-      coverage: { ...coverage, _clusters_merged: clustersMerged },
+      errors: errors.slice(0, 80),
+      coverage: {
+        ...coverage,
+        _clusters_merged: clustersMerged,
+        _universe: Array.from(universe),
+        _missing: missing,
+      },
     })
     .eq("id", run.id);
+
 
   return {
     ok: true,

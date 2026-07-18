@@ -5,7 +5,7 @@ import { Radar } from "lucide-react";
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { listSignals } from "@/lib/narrative-chamber.functions";
 import { AddSignalDialog } from "@/components/narrative/AddSignalDialog";
-import { SignalRow } from "@/components/narrative/SignalRow";
+import { SignalTriageRail } from "@/components/narrative/SignalTriageRail";
 
 function signalsQuery(code: string) {
   return queryOptions({

@@ -19,6 +19,7 @@ import {
   listStudioContext,
   promoteStrategyToPackages,
   promoteStrategyToScenario,
+  regenerateThreatBrief,
   saveStrategy,
   suggestResilientStrategy,
   type Allocation,

@@ -112,14 +112,22 @@ export async function runPressTick(opts: {
     }
 
     const perCountryCap = 60;
-    const seenPerCountry = new Map<string, number>();
 
-    const { data: newItems } = await supabaseAdmin
-      .from("narrative_feed_items")
-      .select("id,country_code,url,title,raw_excerpt")
-      .eq("state", "new")
-      .order("fetched_at", { ascending: false })
-      .limit(500);
+    // Fair per-country slice: pull the newest N per country from state=new
+    // so a burst from one country cannot starve the classification queue.
+    const perCountryFetch = 40;
+    const perCountryPool = new Map<string, Array<{ id: string; country_code: string; url: string | null; title: string; raw_excerpt: string | null }>>();
+    const targetCountries = filterCountry ? [filterCountry] : Array.from(universe);
+    await pMap(targetCountries, async (cc) => {
+      const { data } = await supabaseAdmin
+        .from("narrative_feed_items")
+        .select("id,country_code,url,title,raw_excerpt")
+        .eq("state", "new")
+        .eq("country_code", cc)
+        .order("fetched_at", { ascending: false })
+        .limit(perCountryFetch);
+      if (data && data.length) perCountryPool.set(cc, data);
+    }, 8);
 
     const canonSet = new Set<string>();
     const since = new Date(Date.now() - 3 * 86400_000).toISOString();
@@ -130,13 +138,28 @@ export async function runPressTick(opts: {
       .limit(2000);
     for (const r of recent ?? []) if (r.url) canonSet.add(canonicalUrl(r.url));
 
-    const toClassify = (newItems ?? []).filter((it) => {
-      const c = seenPerCountry.get(it.country_code) ?? 0;
-      if (c >= perCountryCap) return false;
-      if (it.url && canonSet.has(canonicalUrl(it.url))) return false;
-      seenPerCountry.set(it.country_code, c + 1);
-      return true;
-    });
+    // Round-robin interleave so every country gets classification progress.
+    const seenPerCountry = new Map<string, number>();
+    const toClassify: Array<{ id: string; country_code: string; url: string | null; title: string; raw_excerpt: string | null }> = [];
+    const cursors = new Map<string, number>();
+    const countryQueue = Array.from(perCountryPool.keys());
+    let anyLeft = true;
+    while (anyLeft) {
+      anyLeft = false;
+      for (const cc of countryQueue) {
+        const pool = perCountryPool.get(cc) ?? [];
+        const idx = cursors.get(cc) ?? 0;
+        if (idx >= pool.length) continue;
+        cursors.set(cc, idx + 1);
+        anyLeft = true;
+        const it = pool[idx];
+        const c = seenPerCountry.get(it.country_code) ?? 0;
+        if (c >= perCountryCap) continue;
+        if (it.url && canonSet.has(canonicalUrl(it.url))) continue;
+        seenPerCountry.set(it.country_code, c + 1);
+        toClassify.push(it);
+      }
+    }
 
     // Layer 3 · Firecrawl upgrade: fetch full-text markdown for the top-8 items
     // per country in this batch, keyed by first-seen order. Failures fall back to the snippet.

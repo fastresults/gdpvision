@@ -250,7 +250,14 @@ function Builder() {
           title: title.trim() || "Untitled scenario",
           horizonYears,
           levers,
-          assumptions: { note: assumptionsNote, playbook: activePlaybook, locks },
+          assumptions: {
+            note: assumptionsNote,
+            selected_playbook_ids: Array.from(activePlaybookIds),
+            ai_playbooks: aiPlays
+              .filter((p) => activePlaybookIds.has(p.id))
+              .map((p) => ({ id: p.id, label: p.label, blurb: p.blurb, thesis: p.thesis })),
+            locks,
+          },
         },
       }).then((res) => ({ ...res, ...opts })),
     onSuccess: ({ id, pin }) => {

@@ -230,6 +230,43 @@ function asMetrics(v: unknown): StrategyMetrics {
   };
 }
 
+// ─── Studio context (sectors + ministries) ───────────────────────────────────
+
+export interface StudioSector {
+  code: string;
+  label: string;
+  hue_token: string | null;
+  share_pct: number;
+}
+export interface StudioMinistry { id: string; slug: string; name: string }
+
+export const listStudioContext = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => CountryInput.parse(d))
+  .handler(async ({ data, context }): Promise<{ sectors: StudioSector[]; ministries: StudioMinistry[] }> => {
+    const [csRes, minRes] = await Promise.all([
+      context.supabase
+        .from("country_sectors")
+        .select("sector_code,share_pct,sectors(label,hue_token)")
+        .eq("country_code", data.countryCode)
+        .order("share_pct", { ascending: false }),
+      context.supabase
+        .from("ministries")
+        .select("id,slug,name")
+        .eq("country_code", data.countryCode)
+        .order("sort_order", { ascending: true }),
+    ]);
+    if (csRes.error) throw new Error(csRes.error.message);
+    if (minRes.error) throw new Error(minRes.error.message);
+    const sectors: StudioSector[] = (csRes.data ?? []).map((r: any) => ({
+      code: r.sector_code,
+      label: r.sectors?.label ?? r.sector_code,
+      hue_token: r.sectors?.hue_token ?? null,
+      share_pct: Number(r.share_pct ?? 0),
+    }));
+    return { sectors, ministries: (minRes.data ?? []) as StudioMinistry[] };
+  });
+
 // ─── Threats ─────────────────────────────────────────────────────────────────
 
 export const listThreats = createServerFn({ method: "GET" })

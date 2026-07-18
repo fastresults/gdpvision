@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { restoreCommsRevision } from "@/lib/narrative.functions";
 import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/ui/copy-button";
 
 type Approval = { from?: string; to?: string; actor_id?: string; note?: string | null; at?: string };
 type Revision = { id: string; edited_at: string; editor_id: string | null; body: string };

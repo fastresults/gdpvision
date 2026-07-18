@@ -65,6 +65,7 @@ function Builder() {
 
   const { data: ministries } = useSuspenseQuery(ministriesQuery(code));
   const { data: init } = useSuspenseQuery(initRunQuery(code));
+  const queryClient = useQueryClient();
 
   const fork = useQuery({
     queryKey: ["scenario-fork", search.fork],

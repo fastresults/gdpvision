@@ -33,7 +33,7 @@ export interface HarvestRun {
   items_fetched: number;
   items_new: number;
   items_promoted: number;
-  errors: unknown;
+  errors: unknown[];
   triggered_by: string;
 }
 

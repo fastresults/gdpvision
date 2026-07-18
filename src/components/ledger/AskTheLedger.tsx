@@ -28,6 +28,7 @@ type Turn = {
   error?: string;
   pinnedAt?: string;
   copied?: boolean;
+  artifacts?: LedgerArtifactKind[];
 };
 
 const SUGGESTIONS = [

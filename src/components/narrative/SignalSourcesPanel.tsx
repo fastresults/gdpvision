@@ -74,7 +74,10 @@ export function SignalSourcesPanel({ code, countryName }: { code: string; countr
                 {items.map((r) => (
                   <tr key={r.id} className="border-b border-line-200 align-top last:border-b-0">
                     <td className="max-w-md px-3 py-2">
-                      <div className="truncate font-medium text-ink-950">{r.label ?? r.endpoint}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="truncate font-medium text-ink-950">{r.label ?? r.endpoint}</span>
+                        <LayerChip row={r} />
+                      </div>
                       <a href={r.endpoint} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 truncate text-[11px] text-ink-500 hover:text-ink-950">
                         <ExternalLink size={10} /> <span className="truncate">{r.endpoint}</span>
                       </a>

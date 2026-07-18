@@ -159,6 +159,13 @@ function StrategyWorkbench() {
     },
   });
 
+  const regenBriefMut = useMutation({
+    mutationFn: () => regenBriefFn({ data: { id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["studio-threat", id] });
+    },
+  });
+
   const saveMut = useMutation({
     mutationFn: () =>
       saveFn({

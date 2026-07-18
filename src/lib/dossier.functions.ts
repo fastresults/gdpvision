@@ -56,10 +56,24 @@ export const getDossier = createServerFn({ method: "GET" })
     const { supabase } = context;
     const { data: signal, error: sErr } = await supabase
       .from("intake_items")
-      .select("id,scope_key,sector_code,topic,summary,url,proposed_weight,final_weight,state,created_at")
+      .select("id,scope_key,sector_code,topic,summary,url,proposed_weight,final_weight,state,created_at,metadata")
       .eq("id", data.intakeId)
       .single();
     if (sErr) throw new Error(sErr.message);
+    const rawCitations = (signal as { metadata?: { citations?: unknown } })?.metadata?.citations;
+    const signalCitations: Array<{ url?: string; title?: string; org?: string | null; label?: string }> =
+      Array.isArray(rawCitations)
+        ? rawCitations.map((c) =>
+            typeof c === "string"
+              ? { url: c }
+              : {
+                  url: (c as { url?: string; ref?: string })?.url ?? (c as { ref?: string })?.ref,
+                  title: (c as { title?: string; label?: string })?.title ?? (c as { label?: string })?.label,
+                  label: (c as { label?: string })?.label,
+                  org: (c as { org?: string | null })?.org ?? null,
+                },
+          )
+        : [];
 
     // Pull recent Ledger facts scoped to this signal's country+sector.
     const { data: series } = await supabase

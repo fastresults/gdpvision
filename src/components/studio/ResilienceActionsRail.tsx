@@ -27,7 +27,7 @@ function newAction(sector: string): ResilienceAction {
     action_type: "attract_new_fdi",
     label: "New action",
     target_pp: 1,
-    staging_year: 1,
+    staging_year: 0,
     sponsor_ministry_slug: null,
   };
 }
@@ -75,10 +75,14 @@ export function ResilienceActionsRail({
           </button>
         </ExplainHover>
       </div>
+      <p className="border-b border-line-200 bg-paper-100/40 px-4 py-2 text-[11px] leading-snug text-ink-700">
+        Actions you add here appear in the <strong>Staging Timeline</strong> as
+        draggable tiles — drop each into the year it lands.
+      </p>
       <ul className="divide-y divide-line-200">
         {actions.length === 0 && (
           <li className="px-4 py-6 text-center text-sm text-ink-500">
-            No actions yet — run “Suggest resilient allocation” or add manually.
+            No actions yet — run "Suggest resilient allocation" or add manually.
           </li>
         )}
         {actions.map((a) => {
@@ -158,6 +162,7 @@ export function ResilienceActionsRail({
                     onChange={(e) => update(a.id, { staging_year: Number(e.target.value) })}
                     className="w-full border-b border-line-200 bg-transparent py-1 focus:border-ink-950 focus:outline-none"
                   >
+                    <option value={0}>— Unstaged —</option>
                     {Array.from({ length: horizon }, (_, i) => i + 1).map((y) => (
                       <option key={y} value={y}>
                         Y{y}

@@ -71,7 +71,7 @@ export function ReallocationMarimekko({
       <div className="flex items-baseline justify-between">
         <ExplainHover copy={EXPLAIN.marimekko} side="bottom">
           <p className="cursor-help font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 underline decoration-dotted decoration-line-200 underline-offset-4">
-            FDI envelope reallocation
+            <span className="mr-1 text-ink-950">2</span>· Reshape the mix · FDI envelope reallocation
           </p>
         </ExplainHover>
         <p className="font-mono text-[10px] text-ink-500">drag between sectors →</p>

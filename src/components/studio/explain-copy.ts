@@ -219,4 +219,48 @@ export const EXPLAIN: Record<string, ExplainCopy> = {
     why: "Keeps the workspace clean; draft strategies you no longer believe in shouldn't clutter the record.",
     how: "The threat itself and its briefing stay — only this strategy is removed.",
   },
+
+  // ── Additional composer + workbench ─────────────────────────────────────
+  pick_threat: {
+    title: "Pick a threat",
+    what: "Choose the class of shock this scenario models.",
+    why: "The preset encodes how the shock transmits — a tariff, a hurricane and a treaty exit all behave differently.",
+    how: "Pick the closest match; you can rename it and refine target sectors, severity and horizon below.",
+  },
+  frame_threat: {
+    title: "Frame the threat",
+    what: "Commits the composed threat and generates the AI briefing.",
+    why: "Turns your inputs into a decision-ready framing grounded in the country's live sector data.",
+    how: "Opens the Strategy Workbench for Act 2. You can regenerate the briefing later without losing your work.",
+  },
+  waterfall: {
+    title: "Exposure → mitigation waterfall",
+    what: "Sector-by-sector view of exposure at risk (red) against exposure closed by your actions (green).",
+    why: "Shows exactly where mitigation is landing — and which sectors are still uncovered.",
+    how: "If a red bar has little green, add resilience actions targeting that sector.",
+  },
+  stress_metrics: {
+    title: "Stress-test metrics",
+    what: "Four headline indicators for the current strategy: exposure closed, residual risk, diversification (HHI Δ), and time to resilience.",
+    why: "Ministers need to defend the plan on a small set of numbers — these are the ones creditors and cabinets ask about.",
+    how: "Aim for residual risk near zero, negative HHI Δ, and a time-to-resilience horizon that matches political runway.",
+  },
+  commit_save: {
+    title: "Save draft",
+    what: "Persists the current strategy state without promoting it.",
+    why: "Lets you iterate over multiple sessions without losing work or committing prematurely.",
+    how: "Save often. Promotion actions require a saved, stress-tested strategy.",
+  },
+  commit_plan: {
+    title: "Promote to plan of record",
+    what: "Freezes this strategy as the country's committed FDI resilience response to the threat.",
+    why: "Establishes a single source of truth other chambers and ministries can reference.",
+    how: "Reversible — supersede later with a new plan. Requires a saved, stress-tested strategy.",
+  },
+  commit_scenario: {
+    title: "Model as scenario",
+    what: "Sends this strategy into Chamber 03 (Scenario Engine) as a runnable projection.",
+    why: "Lets you compare the resilient strategy head-to-head against baseline and alternative scenarios.",
+    how: "Available after saving. The scenario appears in Chamber 03 with the strategy's reallocation and actions preloaded.",
+  },
 };

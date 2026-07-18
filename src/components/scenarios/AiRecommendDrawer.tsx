@@ -55,7 +55,6 @@ export function AiRecommendDrawer({
           horizonYearsHint: horizonYears,
           leverDefs: leverDefs.map((d) => ({
             slug: d.slug,
-            label: d.label,
             sector_code: d.sector_code,
             response_fn_ref: d.response_fn_ref,
             bounds: d.bounds,

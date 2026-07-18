@@ -106,7 +106,7 @@ export const recommendScenario = createServerFn({ method: "POST" })
       .slice(0, 80)
       .map(
         (d) =>
-          `- ${d.slug} (sector:${d.sector_code} bounds:${d.bounds.min}..${d.bounds.max} default:${d.bounds.default ?? d.bounds.min})${d.label ? ` — ${d.label}` : ""}`,
+          `- ${d.slug} (sector:${d.sector_code} bounds:${d.bounds.min}..${d.bounds.max} default:${d.bounds.default ?? d.bounds.min})`,
       )
       .join("\n");
     const sectorList =
@@ -253,7 +253,7 @@ export const recommendScenario = createServerFn({ method: "POST" })
       leversOut[slug] = clamped;
       moves.push({
         slug,
-        label: def.label ?? slug,
+        label: slug,
         from,
         to: clamped,
         rationale: String(m.rationale ?? "").slice(0, 200),

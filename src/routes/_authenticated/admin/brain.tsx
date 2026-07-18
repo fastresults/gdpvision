@@ -74,7 +74,7 @@ function BrainSystemPage() {
         <BrainConstellation
           rows={filtered as any}
           mode="system"
-          centerLabel={filter.country ?? "SYSTEM"}
+          centerLabel={focusedName ?? "SYSTEM"}
           filter={filter}
           onFilter={setFilter}
           onSelectCountry={(code) => setFilter({ country: code })}

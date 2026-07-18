@@ -221,21 +221,34 @@ export function AskTheLedger({
             </div>
           </div>
         )}
-        {turns.map((t) => (
-          <TurnBlock
-            key={t.id}
-            turn={t}
-            onPin={() => pin.mutate(t)}
-            pinPending={pin.isPending}
-            onCopy={() => copyAnswer(t)}
-            onRegenerate={() => regenerate(t)}
-          />
-        ))}
-        {ask.isPending && (
-          <p className="font-mono text-[10px] uppercase tracking-widest text-ink-500">
-            Searching corpus · reading country context · escalating to deep research if needed…
-          </p>
-        )}
+        {turns.map((t, i) => {
+          const isLast = i === turns.length - 1;
+          return (
+            <TurnBlock
+              key={t.id}
+              turn={t}
+              countryCode={countryCode}
+              countryName={countryName}
+              loading={isLast && ask.isPending}
+              onCancel={isLast && ask.isPending ? () => ask.reset() : undefined}
+              onPin={() => pin.mutate(t)}
+              pinPending={pin.isPending}
+              onCopy={() => copyAnswer(t)}
+              onRegenerate={() => regenerate(t)}
+              onToggleArtifact={(kind) => {
+                setTurns((prev) =>
+                  prev.map((x) => {
+                    if (x.id !== t.id) return x;
+                    const cur = new Set(x.artifacts ?? []);
+                    if (cur.has(kind)) cur.delete(kind);
+                    else cur.add(kind);
+                    return { ...x, artifacts: [...cur] };
+                  }),
+                );
+              }}
+            />
+          );
+        })}
       </div>
 
       {/* Composer */}

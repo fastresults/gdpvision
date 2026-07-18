@@ -80,7 +80,8 @@ function Builder() {
   const [levers, setLevers] = useState<Record<string, number>>({});
   const [locks, setLocks] = useState<Record<string, boolean>>({});
   const [assumptionsNote, setAssumptionsNote] = useState("");
-  const [activePlaybook, setActivePlaybook] = useState<string | null>(null);
+  const [activePlaybookIds, setActivePlaybookIds] = useState<Set<string>>(new Set());
+  const [aiPlays, setAiPlays] = useState<Playbook[]>([]);
   const [showAllLevers, setShowAllLevers] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [lastRunAt, setLastRunAt] = useState<number | null>(null);

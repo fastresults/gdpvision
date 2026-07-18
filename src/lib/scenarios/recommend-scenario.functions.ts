@@ -67,7 +67,6 @@ export const recommendScenario = createServerFn({ method: "POST" })
       { data: kpis },
       { data: ministry },
       { data: signals },
-      { data: threats },
     ] = await Promise.all([
       supabase.from("countries").select("name").eq("code", data.countryCode).maybeSingle(),
       supabase
@@ -101,13 +100,6 @@ export const recommendScenario = createServerFn({ method: "POST" })
         .eq("scope_key", data.countryCode)
         .order("final_weight", { ascending: false, nullsFirst: false })
         .limit(8),
-      supabase
-        .from("existential_threats")
-        .select("label,category,severity,probability,notes")
-        .eq("country_code", data.countryCode)
-        .limit(10)
-        .then((r) => r)
-        .catch(() => ({ data: null as null | Array<{ label: string; category: string; severity: number | null; probability: number | null; notes: string | null }> })),
     ]);
 
     const countryName = country?.name ?? data.countryCode;

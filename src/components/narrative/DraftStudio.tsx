@@ -308,8 +308,8 @@ export function DraftStudio({ signalId }: { signalId: string }) {
 
       {forActive ? (
         <>
-          <article className="prose prose-sm mt-4 max-w-none border border-line-200 bg-paper-100/30 p-4">
-            <ReactMarkdown>{body || "_empty_"}</ReactMarkdown>
+          <article className="mt-4 border border-line-200 bg-paper-100/30 p-4 text-[13px] leading-relaxed text-ink-800">
+            <CitedMarkdown source={body || "_empty_"} citations={citations} />
           </article>
           <div className="mt-2 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
             <span>{words} words · {body.length} chars</span>

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import ReactMarkdown from "react-markdown";
 import { Copy, Send, Sparkles, Square } from "lucide-react";
 
 import {
@@ -10,7 +9,9 @@ import {
   listArtifactsForSignal,
   publishArtifact,
 } from "@/lib/narrative-chamber.functions";
-import { getComms } from "@/lib/narrative.functions";
+import { getComms, getStrategy } from "@/lib/narrative.functions";
+import { CitedMarkdown } from "@/components/citations/CitedMarkdown";
+import type { CitationRef } from "@/components/citations/CitationSup";
 import { cn } from "@/lib/utils";
 
 const CHANNELS = [

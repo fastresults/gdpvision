@@ -674,6 +674,19 @@ function Builder() {
         onReset={resetDefaults}
         activeCount={activeLeverCount}
       />
+
+      <AiRecommendDrawer
+        open={aiDrawerOpen}
+        onClose={() => setAiDrawerOpen(false)}
+        countryCode={code}
+        ministrySlug={ministrySlug || null}
+        leverDefs={init.leverDefs}
+        horizonYears={horizonYears}
+        disabled={init.leverDefs.length === 0}
+        disabledReason="Activate or synthesize country levers first (Step 2) — then reopen the recommender."
+        onPreview={(s) => applyRecommendation(s, "preview")}
+        onApply={(s) => applyRecommendation(s, "apply")}
+      />
     </div>
   );
 }

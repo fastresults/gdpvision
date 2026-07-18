@@ -7,8 +7,11 @@ import { supabase } from "@/integrations/supabase/client";
 type Props = {
   eyebrow?: string;
   crumbs?: Array<{ label: string; to?: string; params?: Record<string, string> }>;
+  /** When true, uses a wider content container for canvas-heavy chambers. */
+  wide?: boolean;
   children: ReactNode;
 };
+
 
 const NAV = [
   { to: "/admin/countries", label: "Countries" },
@@ -19,7 +22,7 @@ const NAV = [
   { to: "/admin/audits/log", label: "Audit log" },
 ] as const;
 
-export function SuperAdminShell({ eyebrow, crumbs, children }: Props) {
+export function SuperAdminShell({ eyebrow, crumbs, wide, children }: Props) {
   const navigate = useNavigate();
 
   async function signOut() {
@@ -54,7 +57,7 @@ export function SuperAdminShell({ eyebrow, crumbs, children }: Props) {
         </nav>
       </header>
 
-      <main className="mx-auto max-w-6xl px-8 py-10">
+      <main className={`mx-auto ${wide ? "max-w-[1440px]" : "max-w-6xl"} px-8 py-10`}>
         {(eyebrow || crumbs?.length) && (
           <div className="mb-6 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
             {crumbs?.map((c, i) => (

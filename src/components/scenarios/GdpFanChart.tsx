@@ -52,10 +52,12 @@ export function GdpFanChart({
   const [hover, setHover] = useState<number | null>(null);
 
   return (
-    <div className="relative">
+    <div className="relative min-w-0 w-full">
       <svg
         viewBox={`0 0 ${w} ${h}`}
-        className="h-56 w-full"
+        preserveAspectRatio="none"
+        className="block h-56 w-full"
+
         onMouseLeave={() => setHover(null)}
         onMouseMove={(e) => {
           const rect = (e.currentTarget as SVGSVGElement).getBoundingClientRect();

@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { CitedMarkdown } from "@/components/citations/CitedMarkdown";
 import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/ui/copy-button";
 import { Input } from "@/components/ui/input";
 import { PRIORITY_META } from "@/lib/narrative-priority";
 import { TriageCards, type SmartView } from "@/components/narrative/comms/TriageCards";

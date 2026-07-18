@@ -7,6 +7,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { commitLeverRows } from "./lever-draft-commit.server";
 
 const RESPONSE_FN_REFS = [
   "v1_macro.linear_gdp",
@@ -36,6 +37,15 @@ const CommitInput = z.object({
     .optional(),
 });
 
+const DraftsInput = z.object({
+  countryCode: z.string().min(3).max(4),
+  limit: z.number().int().min(1).max(10).default(5),
+});
+
+const ActivateLatestInput = z.object({
+  countryCode: z.string().min(3).max(4),
+});
+
 export interface LeverProposal {
   slug: string;
   name: string;
@@ -45,6 +55,17 @@ export interface LeverProposal {
   bounds: { min: number; max: number; default: number };
   rationale: string;
   citations: Array<{ label: string; kind: string; ref?: string }>;
+}
+
+export interface LeverDraftSummary {
+  id: string;
+  country_code: string;
+  status: string;
+  proposal_count: number;
+  created_at: string;
+  committed_at: string | null;
+  note: string | null;
+  sample_names: string[];
 }
 
 function slugify(s: string) {
@@ -304,59 +325,73 @@ export const synthesizeLevers = createServerFn({ method: "POST" })
     },
   );
 
+export const listLeverDrafts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => DraftsInput.parse(data))
+  .handler(async ({ data, context }): Promise<LeverDraftSummary[]> => {
+    const { data: rows, error } = await context.supabase
+      .from("lever_drafts")
+      .select("id,country_code,status,payload,note,created_at,committed_at")
+      .eq("country_code", data.countryCode)
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (error) throw new Error(error.message);
+
+    return (rows ?? []).map((r) => {
+      const payload = r.payload as { proposals?: LeverProposal[] } | null;
+      const proposals = Array.isArray(payload?.proposals) ? payload.proposals : [];
+      return {
+        id: r.id,
+        country_code: r.country_code,
+        status: r.status,
+        proposal_count: proposals.length,
+        created_at: r.created_at,
+        committed_at: r.committed_at ?? null,
+        note: r.note ?? null,
+        sample_names: proposals.slice(0, 3).map((p) => p.name || p.slug),
+      };
+    });
+  });
+
+export const activateLatestLeverDraft = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => ActivateLatestInput.parse(data))
+  .handler(async ({ data, context }): Promise<{ draftId: string; inserted: number }> => {
+    const { data: rows, error } = await context.supabase
+      .from("lever_drafts")
+      .select("id,payload,status")
+      .eq("country_code", data.countryCode)
+      .eq("status", "draft")
+      .order("created_at", { ascending: false })
+      .limit(5);
+    if (error) throw new Error(error.message);
+
+    const chosen = (rows ?? []).find((r) => {
+      const payload = r.payload as { proposals?: LeverProposal[] } | null;
+      return Array.isArray(payload?.proposals) && payload.proposals.length > 0;
+    });
+    if (!chosen) throw new Error("No usable AI lever draft is ready for this country.");
+
+    const payload = chosen.payload as { proposals?: LeverProposal[] };
+    const selectedSlugs = (payload.proposals ?? []).map((p) => p.slug).filter(Boolean);
+    if (selectedSlugs.length === 0) throw new Error("The latest draft has no usable levers.");
+
+    const result = await commitLeverRows({
+      supabase: context.supabase,
+      draftId: chosen.id,
+      selectedSlugs,
+    });
+    return { draftId: chosen.id, inserted: result.inserted };
+  });
+
 export const commitLeverDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => CommitInput.parse(data))
   .handler(async ({ data, context }): Promise<{ inserted: number }> => {
-    const { supabase } = context;
-
-    const { data: draft, error: dErr } = await supabase
-      .from("lever_drafts")
-      .select("id,country_code,payload,status")
-      .eq("id", data.draftId)
-      .maybeSingle();
-    if (dErr || !draft) throw new Error(dErr?.message ?? "Draft not found");
-    if (draft.status === "committed") throw new Error("Draft already committed");
-
-    const payload = draft.payload as { proposals?: LeverProposal[] };
-    const proposals = Array.isArray(payload?.proposals) ? payload.proposals : [];
-    const bySlug = new Map(proposals.map((p) => [p.slug, p]));
-    const rows: Array<Record<string, unknown>> = [];
-    const edits = data.edits ?? {};
-
-    for (const slug of data.selectedSlugs) {
-      const p = bySlug.get(slug);
-      if (!p) continue;
-      const edit = edits[slug] ?? {};
-      const min = edit.min ?? p.bounds.min;
-      const max = edit.max ?? p.bounds.max;
-      const dflt = Math.min(max, Math.max(min, edit.default ?? p.bounds.default));
-      rows.push({
-        country_code: draft.country_code,
-        sector_code: p.sector_code,
-        slug: p.slug,
-        name: edit.name ?? p.name,
-        unit: p.unit,
-        response_fn_ref: p.response_fn_ref,
-        methodology_ref: `ai_synth:${draft.id}`,
-        bounds: { min, max, default: dflt },
-        rationale: p.rationale,
-        citations: p.citations as unknown as never,
-        draft_id: draft.id,
-      });
-    }
-
-    if (rows.length === 0) return { inserted: 0 };
-
-    const { error: upErr } = await supabase
-      .from("levers")
-      .upsert(rows as never, { onConflict: "country_code,slug" });
-    if (upErr) throw new Error(upErr.message);
-
-    await supabase
-      .from("lever_drafts")
-      .update({ status: "committed", committed_at: new Date().toISOString() })
-      .eq("id", draft.id);
-
-    return { inserted: rows.length };
+    return commitLeverRows({
+      supabase: context.supabase,
+      draftId: data.draftId,
+      selectedSlugs: data.selectedSlugs,
+      edits: data.edits,
+    });
   });

@@ -107,9 +107,9 @@ export function GuidedRail({
 
   const canAdvance = useMemo(() => {
     if (step === 1) return title.trim().length > 0;
-    if (step === 2) return activePlaybookIds.size > 0;
+    if (step === 2) return activePlaybookIds.size > 0 && init.leverDefs.length > 0;
     return true;
-  }, [step, title, activePlaybookIds]);
+  }, [step, title, activePlaybookIds, init.leverDefs.length]);
 
   const attributionMap = useMemo(() => {
     const m: Record<string, number> = {};
@@ -238,14 +238,34 @@ export function GuidedRail({
             </div>
 
             {init.leverDefs.length === 0 && (
-              <div className="flex items-start gap-2 border border-dashed border-ink-950/40 bg-paper-100/60 p-3">
-                <Sparkles size={14} className="mt-0.5 shrink-0 text-ink-950" />
-                <div className="min-w-0 text-[11px] leading-relaxed text-ink-700">
-                  <strong className="text-ink-950">Heads up:</strong> {countryCode} has no levers
-                  synthesised yet. Pick any play, then jump to Step 3 — you'll get a one-click
-                  "Synthesize with AI" button that grounds levers in {countryCode}'s sectors,
-                  KPIs, and ministries so you can drag and see impact.
+              <div className="space-y-3 border border-dashed border-ink-950/40 bg-paper-100/60 p-3">
+                <div className="flex items-start gap-2">
+                  <Sparkles size={14} className="mt-0.5 shrink-0 text-ink-950" />
+                  <div className="min-w-0 text-[11px] leading-relaxed text-ink-700">
+                    <strong className="text-ink-950">Levers must be activated first.</strong> Plays
+                    cannot move the forecast until {countryCode} has committed policy levers.
+                    Activate the latest AI draft or generate a new set here, then continue to the
+                    slider workbench.
+                  </div>
                 </div>
+                {showLeverSynth ? (
+                  <LeverDraftReview
+                    countryCode={countryCode}
+                    onCommitted={() => {
+                      setShowLeverSynth(false);
+                      onLeversCommitted?.();
+                    }}
+                    onDismiss={() => setShowLeverSynth(false)}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowLeverSynth(true)}
+                    className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-paper-0 hover:bg-ink-700"
+                  >
+                    <Sparkles size={12} /> Activate or synthesize levers
+                  </button>
+                )}
               </div>
             )}
 
@@ -440,13 +460,40 @@ export function GuidedRail({
                 </CoachTip>
               </p>
               <div className="mt-3">
-                <SensitivityMini
-                  slugs={topAttribution.map((a) => a.lever_slug)}
-                  defs={init.leverDefs}
-                  levers={levers}
-                  attribution={current.output.attribution}
-                  onLever={onLever}
-                />
+                {init.leverDefs.length === 0 ? (
+                  <div className="space-y-3 border border-dashed border-line-200 bg-paper-100/40 p-4">
+                    <p className="text-[12px] leading-relaxed text-ink-700">
+                      This is still a baseline-only readout. Activate AI levers to reveal the top
+                      movers and tune the scenario from this page.
+                    </p>
+                    {showLeverSynth ? (
+                      <LeverDraftReview
+                        countryCode={countryCode}
+                        onCommitted={() => {
+                          setShowLeverSynth(false);
+                          onLeversCommitted?.();
+                        }}
+                        onDismiss={() => setShowLeverSynth(false)}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowLeverSynth(true)}
+                        className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-paper-0 hover:bg-ink-700"
+                      >
+                        <Sparkles size={12} /> Activate sliders
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <SensitivityMini
+                    slugs={topAttribution.map((a) => a.lever_slug)}
+                    defs={init.leverDefs}
+                    levers={levers}
+                    attribution={current.output.attribution}
+                    onLever={onLever}
+                  />
+                )}
               </div>
             </div>
 

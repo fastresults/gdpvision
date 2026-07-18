@@ -315,7 +315,7 @@ const ExplainFigureInput = z.object({
 
 export interface FigureCitation {
   n: number;                       // 1-indexed marker for [N]
-  kind: "chunk" | "memory" | "citation";
+  kind: "chunk" | "memory" | "citation" | "web";
   title: string;
   url: string | null;
   org: string | null;

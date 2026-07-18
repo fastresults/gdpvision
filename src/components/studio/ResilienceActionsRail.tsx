@@ -75,10 +75,14 @@ export function ResilienceActionsRail({
           </button>
         </ExplainHover>
       </div>
+      <p className="border-b border-line-200 bg-paper-100/40 px-4 py-2 text-[11px] leading-snug text-ink-700">
+        Actions you add here appear in the <strong>Staging Timeline</strong> as
+        draggable tiles — drop each into the year it lands.
+      </p>
       <ul className="divide-y divide-line-200">
         {actions.length === 0 && (
           <li className="px-4 py-6 text-center text-sm text-ink-500">
-            No actions yet — run “Suggest resilient allocation” or add manually.
+            No actions yet — run "Suggest resilient allocation" or add manually.
           </li>
         )}
         {actions.map((a) => {

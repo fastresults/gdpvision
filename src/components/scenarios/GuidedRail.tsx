@@ -237,6 +237,19 @@ export function GuidedRail({
               </p>
             </div>
 
+            {init.leverDefs.length === 0 && (
+              <div className="flex items-start gap-2 border border-dashed border-ink-950/40 bg-paper-100/60 p-3">
+                <Sparkles size={14} className="mt-0.5 shrink-0 text-ink-950" />
+                <div className="min-w-0 text-[11px] leading-relaxed text-ink-700">
+                  <strong className="text-ink-950">Heads up:</strong> {countryCode} has no levers
+                  synthesised yet. Pick any play, then jump to Step 3 — you'll get a one-click
+                  "Synthesize with AI" button that grounds levers in {countryCode}'s sectors,
+                  KPIs, and ministries so you can drag and see impact.
+                </div>
+              </div>
+            )}
+
+
             {activePlaybooks.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5 border-y border-line-200 py-2">
                 <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-ink-500">

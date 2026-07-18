@@ -287,10 +287,10 @@ function StrategyWorkbench() {
         </div>
       </div>
 
-      {(saveMut.error || promotePackagesMut.error || promoteScenarioMut.error || suggestMut.error) && (
+      {(saveMut.error || promotePackagesMut.error || promoteScenarioMut.error || suggestMut.error || regenBriefMut.error) && (
         <p className="text-sm text-red-600">
-          {(saveMut.error || promotePackagesMut.error || promoteScenarioMut.error || suggestMut.error) instanceof Error
-            ? ((saveMut.error || promotePackagesMut.error || promoteScenarioMut.error || suggestMut.error) as Error).message
+          {(saveMut.error || promotePackagesMut.error || promoteScenarioMut.error || suggestMut.error || regenBriefMut.error) instanceof Error
+            ? ((saveMut.error || promotePackagesMut.error || promoteScenarioMut.error || suggestMut.error || regenBriefMut.error) as Error).message
             : "Something went wrong"}
         </p>
       )}

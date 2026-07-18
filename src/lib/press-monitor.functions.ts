@@ -284,3 +284,42 @@ export const coverageFor = createServerFn({ method: "GET" })
     return cov ?? { local: 0, regional: 0, international: 0, total: 0 };
   });
 
+// ─── Latest cron sweep coverage (for the "N/22" badge in the sidebar) ───────
+
+export interface CronCoverage {
+  runId: string | null;
+  startedAt: string | null;
+  window: string | null;
+  universeCount: number;
+  coveredCount: number;
+  missing: string[];
+}
+
+export const latestCronCoverage = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<CronCoverage> => {
+    const { data: run } = await context.supabase
+      .from("narrative_harvest_runs")
+      .select("id,started_at,window_key,countries_run,coverage")
+      .eq("triggered_by", "cron")
+      .not("finished_at", "is", null)
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!run) {
+      return { runId: null, startedAt: null, window: null, universeCount: 0, coveredCount: 0, missing: [] };
+    }
+    const cov = (run.coverage ?? {}) as Record<string, unknown>;
+    const universe = Array.isArray(cov._universe) ? (cov._universe as string[]) : (run.countries_run ?? []);
+    const missing = Array.isArray(cov._missing) ? (cov._missing as string[]) : [];
+    return {
+      runId: run.id as string,
+      startedAt: run.started_at as string,
+      window: (run.window_key as string | null) ?? null,
+      universeCount: universe.length,
+      coveredCount: Math.max(0, universe.length - missing.length),
+      missing,
+    };
+  });
+
+

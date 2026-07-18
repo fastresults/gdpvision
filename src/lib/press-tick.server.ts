@@ -32,6 +32,21 @@ export async function runPressTick(opts: {
 
   const errors: Array<{ scope: string; msg: string }> = [];
   const countryList = new Set<string>();
+  // Seed the coverage universe up-front: every country that has at least one
+  // active feed. This way `countries_run` always reflects the intended sweep,
+  // and any country that is dropped mid-run (feed error, classify failure)
+  // shows up as a coverage gap in the UI rather than silently disappearing.
+  const universe = new Set<string>();
+  {
+    let uniQ = supabaseAdmin
+      .from("narrative_feeds")
+      .select("country_code")
+      .eq("active", true);
+    if (filterCountry) uniQ = uniQ.eq("country_code", filterCountry);
+    const { data: uni } = await uniQ;
+    for (const r of uni ?? []) universe.add(r.country_code as string);
+    for (const cc of universe) countryList.add(cc);
+  }
   let feedsPolled = 0, itemsFetched = 0, itemsNew = 0, itemsPromoted = 0, clustersMerged = 0;
 
   try {
@@ -42,6 +57,7 @@ export async function runPressTick(opts: {
     if (filterCountry) feedsQ = feedsQ.eq("country_code", filterCountry);
     const { data: feeds, error: fErr } = await feedsQ;
     if (fErr) throw fErr;
+
 
     const fetched = await pMap(feeds ?? [], async (f) => {
       feedsPolled++;
@@ -319,6 +335,17 @@ export async function runPressTick(opts: {
     if (!coverage[cc]) coverage[cc] = { local: 0, regional: 0, international: 0, total: 0 };
   }
 
+  // Coverage gap: any country in the intended universe that produced zero
+  // promoted or duplicate items in this window. Surfaced as a `missing:*`
+  // failure so the UI badge can call it out.
+  const missing: string[] = [];
+  for (const cc of universe) {
+    if ((coverage[cc]?.total ?? 0) === 0) {
+      missing.push(cc);
+      errors.push({ scope: `missing:${cc}`, msg: "no items promoted this window" });
+    }
+  }
+
   await supabaseAdmin
     .from("narrative_harvest_runs")
     .update({
@@ -328,10 +355,16 @@ export async function runPressTick(opts: {
       items_fetched: itemsFetched,
       items_new: itemsNew,
       items_promoted: itemsPromoted,
-      errors: errors.slice(0, 50),
-      coverage: { ...coverage, _clusters_merged: clustersMerged },
+      errors: errors.slice(0, 80),
+      coverage: {
+        ...coverage,
+        _clusters_merged: clustersMerged,
+        _universe: Array.from(universe),
+        _missing: missing,
+      },
     })
     .eq("id", run.id);
+
 
   return {
     ok: true,

@@ -1,111 +1,34 @@
-# Comms Library — Guided Experience Plan
+## Current state (verified)
 
-Today the Library is a raw list + detail view: search, filters, and a document previewer. Diplomats using this daily don't need "another file browser" — they need a **workflow surface** that tells them what needs their attention, walks them through review → approval → release, and makes reuse of past drafts effortless.
+- `narrative_feeds` has 12 active feeds × **22 countries** (AIA, ATG, BHS, BLZ, BMU, BRB, CYM, DMA, GLP, GRD, GUY, HTI, JAM, KNA, LCA, MSR, MTQ, SUR, TCA, TTO, VCT, VGB) — matches the full `countries` table.
+- `runPressTick()` with no `filterCountry` iterates every active feed, so a cron POST with `{}` body naturally sweeps all 22 countries in one pass.
+- `narrative_harvest_runs` history shows only 2 rows, both `triggered_by='manual'`. **No cron-triggered run has ever landed.** Either the pg_cron schedule was never installed, or it's firing but failing (auth/URL) before writing a run row.
 
-## What's wrong today
+So the coverage design is right; the schedule is the gap. Also worth hardening so a partial failure per-country doesn't silently drop countries from the sweep.
 
-1. Cold open — no orientation, no next-best-action. New drafts, drafts stuck in review, and released items all look the same.
-2. State pills are filters, not a workflow. There is no visible path `draft → review → approved → released`.
-3. Approvals/history exist as tabs but the user is never *prompted* to advance the document.
-4. Search is manual; there are no saved views, no "my drafts", no "stale in review > 3 days".
-5. Templates are just a `★` badge — no way to *start from template*, no gallery, no reuse flow.
-6. Detail view is read-mostly. Duplicate/download/delete are buried; approve/release/schedule don't exist as first-class actions.
-7. No connection back to the originating Signal / Strategy — the diplomat loses the "why" behind each artifact.
+## Plan
 
-## Guided experience — the plan
+### 1. Verify + (re)install the twice-daily cron
+Run a diagnostic query against `cron.job` / `cron.job_run_details` (via `supabase--read_query`) to see whether a `press-tick-*` job exists and, if so, its last execution status. Based on that:
+- If missing → install two schedules (AM + PM UTC) that POST to `/api/public/hooks/press-tick` with `apikey` = anon key and empty body `{}` (which fans out to all countries).
+- If present but failing → capture the pg_net response, fix the URL/apikey, reinstall.
 
-### 1. Library home = a dashboard, not a list
+Schedules (staggered so PM ingest sees AM primaries for clustering):
+- `press-tick-am`  → `0 6 * * *` (06:00 UTC)
+- `press-tick-pm`  → `0 18 * * *` (18:00 UTC)
 
-Replace the current header strip with a **triage header** showing 4 smart-view cards. Clicking a card applies the underlying filter set to the list below.
+Use the stable production URL `https://project--28b673a0-5141-49a9-b7c6-8a7a9fb07172.lovable.app/api/public/hooks/press-tick`.
 
-```text
-┌──────────────┬──────────────┬──────────────┬──────────────┐
-│ NEEDS YOU    │ IN REVIEW    │ SCHEDULED    │ RECENTLY     │
-│ 3 drafts     │ 2 · 1 stale  │ 1 today      │ RELEASED (7) │
-│ awaiting     │ >3 days      │              │              │
-│ your action  │              │              │              │
-└──────────────┴──────────────┴──────────────┴──────────────┘
-```
+### 2. Make the sweep resilient per-country
+In `src/lib/press-tick.server.ts`:
+- Wrap the per-feed fetch + per-country promotion loop so one country's failure (Perplexity timeout, feed 5xx) cannot abort the sweep — record the error into `narrative_harvest_runs.failures[]` and continue.
+- After the loop, assert `countries_run.length === activeCountryCount` and, for any missing country, emit a `failures[]` entry so the coverage gap is visible in the UI.
 
-Smart views computed client-side from existing fields: `draft_state`, `updated_at`, `released_at`, `approvals[]`, `scheduled_for` (new, optional).
+### 3. Coverage UI signal (small)
+Extend the "Signals" header on `/admin/countries/$code/narrative` with a small badge showing the last cron run's `countries_run` count vs. total active countries (22/22 green, otherwise amber with a tooltip listing missing codes). Reads from `narrative_harvest_runs` — no schema change.
 
-### 2. A visible workflow rail on every artifact
+### 4. Weekly discovery pass
+`press-discover.server.ts` already resolves per country. Add a `press-discover-weekly` cron (`0 4 * * 1`) that iterates all 22 countries so new local outlets get promoted into `narrative_feeds` without manual intervention.
 
-Replace the flat state pill in the detail header with a 4-step tracker + primary CTA that always tells the user the next action:
-
-```text
-[Draft] ──► [Review] ──► [Approved] ──► [Released]
-                ▲ you are here
-    ┌────────────────────────────────────────────┐
-    │  Next: request approval from Comms Lead    │
-    │              [ Send for approval ]         │
-    └────────────────────────────────────────────┘
-```
-
-- Primary CTA changes by state: `Send for review` / `Approve` / `Schedule or Release now` / `Archive`.
-- Secondary actions (Duplicate, Download, Delete, Save as template) collapse into an overflow menu.
-- Each transition writes an entry into `approvals[]` (already a jsonb array) with actor, timestamp, note.
-
-### 3. Guided empty & first-time states
-
-- Empty library: full-bleed coach card explaining what lands here, with two CTAs — "Draft from a Signal" (deep-link to Chamber 5 radar) and "Browse templates".
-- Empty filter result: shows the *closest matches* (drop one filter at a time) instead of a dead end.
-- First-time visitor (no `localStorage` flag): a 3-step "how the Library works" popover walkthrough — triage cards → workflow rail → templates.
-
-### 4. Templates get a real home
-
-- New "Templates" tab at the top of the Library page (sibling to the default "Drafts" view), showing only `is_template = true`, grouped by channel.
-- Each template card has a **"Use template"** button that duplicates it into a new draft, opens the detail, and pre-fills title/tags — replacing today's manual duplicate-then-edit dance.
-- In the detail view, add a one-click **"Save as template"** on released or approved artifacts.
-
-### 5. Context ribbon — the "why"
-
-Above the document body, show a compact ribbon:
-
-```text
-From signal:  "IMF Article IV — external buffer risk"   [open ↗]
-Strategy:     Position #4 · Reassure investors           [open ↗]
-Channel:      Press release · Audience: Investors
-```
-
-Wire from the existing `signal_id`, `strategy_id`, `channel`, `audience` fields already returned by `getCommsDetail`. Links deep-link back into Chamber 5 signal/strategy views. Restores the narrative thread that today's viewer strips out.
-
-### 6. Search & saved views
-
-- Add quick-chip presets above search: `Mine`, `This week`, `Awaiting approval`, `Released this month`.
-- Persist last-used filter set in `localStorage` per country so returning users land where they left off.
-- Keyboard: `/` focuses search, `j`/`k` move selection, `Enter` opens, `E` opens approval action. Show a one-line hint in the list header.
-
-### 7. Approvals & schedule as first-class flows
-
-- `Send for approval` opens a lightweight dialog: pick reviewer(s) from country team, optional note. Writes into `approvals[]`, moves state to `review`, banner on the reviewer's Library home surfaces it under "Needs you".
-- `Approve` / `Request changes` dialog with required note; state advances.
-- `Release` dialog offers **Release now** or **Schedule** (`scheduled_for` timestamp). Scheduled items appear in the "Scheduled" triage card and on a small calendar strip.
-
-### 8. History tab becomes a real audit trail
-
-Merge `comms_artifact_revisions` (already exists) with `approvals[]` entries into a single unified timeline: who did what, when, with diff-preview on body changes and a **Restore this version** action.
-
-## Files to touch (technical)
-
-- `src/routes/_authenticated/admin/countries.$code.narrative.library.tsx` — split into: `LibraryPage` (triage header + tabs), `TriageCards`, `TemplatesTab`, `SavedViewsBar`.
-- `src/components/narrative/comms/` (new) — `WorkflowRail.tsx`, `ContextRibbon.tsx`, `ApprovalDialog.tsx`, `ScheduleDialog.tsx`, `UnifiedTimeline.tsx`, `TemplateCard.tsx`, `LibraryCoach.tsx`.
-- `src/lib/narrative.functions.ts` — add `transitionCommsState`, `recordApprovalDecision`, `scheduleComms`, `restoreCommsRevision`, `saveAsTemplate`, `useTemplate`; extend `searchComms` with `smartView` param (`needs_you | in_review | scheduled | recently_released`).
-- Schema (migration): add `scheduled_for timestamptz`, `assigned_reviewers uuid[]` on `comms_artifacts`; index on `(scope_key, draft_state, updated_at)` for smart-view queries. Keep RLS/grants aligned with existing policy.
-- Deep-link helpers to Chamber 5 signal/strategy routes for the Context Ribbon.
-- One-time coach uses `localStorage` key `comms-library-coach-seen-v1`.
-
-## Out of scope
-
-- No changes to Draft Studio generation logic.
-- No changes to press-monitor / signal ingest.
-- No new AI calls in this pass — guided UX first; AI-suggested next-actions can layer on later.
-
-## Rollout
-
-1. Ship schema migration + server function additions.
-2. Ship WorkflowRail + ContextRibbon + overflow menu in detail view (immediate diplomat value).
-3. Ship TriageCards + smart views + saved filter persistence.
-4. Ship Templates tab + Save-as-template + Use-template flow.
-5. Ship UnifiedTimeline + revision restore.
-6. Ship first-run coach + keyboard shortcuts.
+## Answer to your question
+Yes — architecturally the cron already fans out to all 22 countries in one call. But the scheduled job either isn't installed or isn't executing (zero cron rows in `narrative_harvest_runs`). Step 1 fixes that; steps 2–4 make sure a single country never quietly drops out of a run again.

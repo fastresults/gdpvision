@@ -1,9 +1,20 @@
+import { useState } from "react";
+import { Info } from "lucide-react";
 import type { Allocation } from "@/lib/fdi-resilience.functions";
 import { sectorColor } from "@/components/viz/sector-color";
 import { cn } from "@/lib/utils";
 import { ReadMore } from "./ReadMore";
 import { ExplainHover } from "./ExplainHover";
 import { EXPLAIN } from "./explain-copy";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 type Sector = { code: string; label: string; hue_token?: string | null };
 
@@ -18,6 +29,7 @@ export function ExposureLedger({
 }) {
   const byCode = new Map(sectors.map((s, i) => [s.code, { s, i }]));
   const rows = [...allocation.entries].sort((a, b) => b.exposure_delta_pp - a.exposure_delta_pp);
+  const [explainOpen, setExplainOpen] = useState(false);
   return (
     <div className="border border-line-200">
       <div className="flex items-baseline justify-between border-b border-line-200 px-4 py-3">
@@ -26,8 +38,55 @@ export function ExposureLedger({
             Exposure ledger
           </p>
         </ExplainHover>
-        <p className="font-mono text-[10px] text-ink-500">what breaks</p>
+        <div className="flex items-center gap-2">
+          <p className="font-mono text-[10px] text-ink-500">what breaks</p>
+          <button
+            type="button"
+            onClick={() => setExplainOpen(true)}
+            aria-label="Explain exposure ledger"
+            className="grid h-5 w-5 place-items-center rounded-full text-ink-500 hover:bg-paper-100 hover:text-ink-950"
+          >
+            <Info size={13} strokeWidth={1.5} />
+          </button>
+        </div>
       </div>
+      <Dialog open={explainOpen} onOpenChange={setExplainOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-xl">How to read this exposure</DialogTitle>
+            <DialogDescription className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+              A McKinsey-style briefing · ~120 words
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[70vh] space-y-3 overflow-y-auto text-sm leading-relaxed text-ink-800">
+            <p>
+              <span className="font-semibold text-ink-950">What this is.</span> A per-sector
+              delta between today's FDI mix and the resilient mix the framed threat requires.
+            </p>
+            <p>
+              <span className="font-semibold text-ink-950">How to read it.</span>{" "}
+              <span className="font-mono text-[11px]">now %</span> is the baseline share,{" "}
+              <span className="font-mono text-[11px]">new %</span> is the post-reallocation share,{" "}
+              <span className="font-mono text-[11px]">Δ pp</span> is the shift in percentage points —
+              red for contraction, green for growth. The red bar shows the magnitude of forced retreat.
+            </p>
+            <p>
+              <span className="font-semibold text-ink-950">"Target" sectors</span> were flagged by the
+              threat brief as directly exposed; they carry the burden of reallocation.
+            </p>
+            <p>
+              <span className="font-semibold text-ink-950">What to do.</span> Stage actions in the
+              timeline that de-risk targets (Δ negative) or absorb reallocated capital in
+              beneficiaries (Δ positive).
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExplainOpen(false)}>
+              Got it
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <ul className="divide-y divide-line-200">
         {rows.map((r) => {
           const s = byCode.get(r.sector_code);

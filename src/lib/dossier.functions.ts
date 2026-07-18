@@ -40,6 +40,7 @@ export interface Dossier {
     final_weight: number | null;
     state: string;
     created_at: string;
+    citations: Array<{ url?: string; title?: string; org?: string | null; label?: string }>;
   };
   memory: Array<{ id: string; kind: string; title: string; weight: number | null; created_at: string }>;
   strategies: Array<{ id: string; title: string; status: string; created_at: string }>;

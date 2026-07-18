@@ -235,7 +235,7 @@ function LibraryPage() {
                     {priorityMeta && (
                       <>
                         <span>·</span>
-                        <span className={priorityMeta.textClass}>{priorityMeta.label}</span>
+                        <span className={priorityMeta.pillClass.split(" ").find((c) => c.startsWith("text-")) ?? ""}>{priorityMeta.label}</span>
                       </>
                     )}
                     <span>·</span>

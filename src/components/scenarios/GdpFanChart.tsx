@@ -7,12 +7,15 @@ export function GdpFanChart({
   path,
   baseline = 2.0,
   ghostPath,
+  baselinePath,
 }: {
   years: number[];
   path: Band[];
   baseline?: number;
   /** Previous P50 path drawn as a dashed line so drag consequences are visible. */
   ghostPath?: Band[];
+  /** Do-nothing baseline P50 path — overlaid dashed with red/green shaded delta band. */
+  baselinePath?: Band[];
 }) {
   const w = 640;
   const h = 220;

@@ -11,6 +11,7 @@ import {
   type EngineRunResult,
 } from "@/lib/scenarios.functions";
 import { composePlaybooks, PLAYBOOKS, type Playbook } from "@/lib/scenarios/playbooks";
+import { runLocalEngine } from "@/lib/scenarios/local-engine";
 import { GdpFanChart } from "@/components/scenarios/GdpFanChart";
 import { SectorWaterfall } from "@/components/scenarios/SectorWaterfall";
 import { AttributionStack } from "@/components/scenarios/AttributionStack";
@@ -119,34 +120,27 @@ function Builder() {
     setFurthest(3);
   }, [fork.data]);
 
-  const preview = useMutation({
-    mutationFn: (payload: { levers: Record<string, number>; horizonYears: number }) =>
-      runScenarioEngine({
-        data: { countryCode: code, horizonYears: payload.horizonYears, levers: payload.levers },
-      }),
-    onSuccess: () => setLastRunAt(Date.now()),
-  });
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  function scheduleRun(next: Record<string, number>, hy: number) {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      preview.mutate({ levers: next, horizonYears: hy });
-    }, 250);
-  }
-
-  const current: EngineRunResult = preview.data ?? init;
+  // Real-time preview: the engine is pure and deterministic — compute it on
+  // every state change so the fan chart, stat strip, waterfall and attribution
+  // stack all bend within a single animation frame. Server `runScenarioEngine`
+  // is only used to fetch the initial baseline + leverDefs and to persist on
+  // save; results reconcile exactly because the same math runs both sides.
+  const current: EngineRunResult = useMemo(
+    () => runLocalEngine(init, levers, horizonYears),
+    [init, levers, horizonYears],
+  );
+  useEffect(() => {
+    setLastRunAt(Date.now());
+  }, [current]);
 
   function updateLever(slug: string, value: number) {
     if (locks[slug]) return;
     setGhostPath((prev) => prev ?? current.output.gdpGrowthPath);
     setActivePlaybookIds(new Set()); // manual edits break the composition
-    const next = { ...levers, [slug]: value };
-    setLevers(next);
-    scheduleRun(next, horizonYears);
+    setLevers((prev) => ({ ...prev, [slug]: value }));
   }
   function updateHorizon(v: number) {
     setHorizonYears(v);
-    scheduleRun(levers, v);
   }
 
   function registerAiPlay(p: Playbook) {
@@ -183,7 +177,6 @@ function Builder() {
     for (const [slug, locked] of Object.entries(locks)) if (locked) d[slug] = levers[slug];
     setGhostPath(current.output.gdpGrowthPath);
     setLevers(d);
-    scheduleRun(d, horizonYears);
   }
 
   function applyComposition(ids: Set<string>) {
@@ -200,7 +193,6 @@ function Builder() {
     for (const [slug, locked] of Object.entries(locks)) if (locked) composed[slug] = levers[slug];
     setGhostPath(current.output.gdpGrowthPath);
     setLevers(composed);
-    scheduleRun(composed, horizonYears);
   }
 
   function resetDefaults() {
@@ -209,7 +201,6 @@ function Builder() {
     setGhostPath(current.output.gdpGrowthPath);
     setActivePlaybookIds(new Set(["baseline"]));
     setLevers(d);
-    scheduleRun(d, horizonYears);
   }
   function resetLever(slug: string) {
     const def = init.leverDefs.find((d) => d.slug === slug);
@@ -353,16 +344,16 @@ function Builder() {
             <span
               className={
                 "inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.22em] " +
-                (preview.isPending ? "text-ink-950" : "text-ink-500")
+                (false ? "text-ink-950" : "text-ink-500")
               }
             >
               <span
                 className={
                   "inline-block h-1.5 w-1.5 rounded-full " +
-                  (preview.isPending ? "animate-pulse bg-ink-950" : "bg-emerald-500")
+                  (false ? "animate-pulse bg-ink-950" : "bg-emerald-500")
                 }
               />
-              {preview.isPending ? "Recomputing…" : recomputedLabel}
+              {false ? "Recomputing…" : recomputedLabel}
             </span>
             <span className="hidden truncate font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500 md:inline">
               · {activeLeverCount} lever{activeLeverCount === 1 ? "" : "s"} off default
@@ -392,7 +383,7 @@ function Builder() {
 
           {/* Stat strip */}
           <StatStrip
-            pending={preview.isPending}
+            pending={false}
             cells={[
               {
                 label: "Year 1 · P50 GDP growth",

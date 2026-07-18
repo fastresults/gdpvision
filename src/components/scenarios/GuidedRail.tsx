@@ -5,7 +5,8 @@ import { PLAYBOOKS, type Playbook } from "@/lib/scenarios/playbooks";
 import { StepProgress, type Step } from "./StepProgress";
 import { PlaybookCard } from "./PlaybookCard";
 import { AiPlaySuggestions } from "./AiPlaySuggestions";
-import { LeverRow } from "./LeverRow";
+import { LeverRowV2 } from "./LeverRowV2";
+import { SensitivityMini } from "./SensitivityMini";
 import { CoachTip } from "./CoachTip";
 import { LeverDraftReview } from "./LeverDraftReview";
 
@@ -236,6 +237,19 @@ export function GuidedRail({
               </p>
             </div>
 
+            {init.leverDefs.length === 0 && (
+              <div className="flex items-start gap-2 border border-dashed border-ink-950/40 bg-paper-100/60 p-3">
+                <Sparkles size={14} className="mt-0.5 shrink-0 text-ink-950" />
+                <div className="min-w-0 text-[11px] leading-relaxed text-ink-700">
+                  <strong className="text-ink-950">Heads up:</strong> {countryCode} has no levers
+                  synthesised yet. Pick any play, then jump to Step 3 — you'll get a one-click
+                  "Synthesize with AI" button that grounds levers in {countryCode}'s sectors,
+                  KPIs, and ministries so you can drag and see impact.
+                </div>
+              </div>
+            )}
+
+
             {activePlaybooks.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5 border-y border-line-200 py-2">
                 <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-ink-500">
@@ -340,25 +354,32 @@ export function GuidedRail({
 
             {init.leverDefs.length > 0 && (
               <div className="divide-y divide-line-200 border-y border-line-200">
-                {init.leverDefs
-                  .filter((d) => focusedSlugs.has(d.slug))
-                  .map((def) => {
-                    const value = levers[def.slug] ?? def.bounds.default ?? def.bounds.min;
-                    return (
-                      <LeverRow
-                        key={def.slug}
-                        def={def}
-                        value={value}
-                        locked={!!locks[def.slug]}
-                        attribution={current.output.attribution.find(
-                          (a) => a.lever_slug === def.slug,
-                        )}
-                        onChange={(v) => onLever(def.slug, v)}
-                        onToggleLock={() => onToggleLock(def.slug)}
-                        onReset={() => onResetLever(def.slug)}
-                      />
-                    );
-                  })}
+                {(() => {
+                  const totalAbs = current.output.attribution.reduce(
+                    (s, a) => s + Math.abs(a.contribution_pp),
+                    0,
+                  );
+                  return init.leverDefs
+                    .filter((d) => focusedSlugs.has(d.slug))
+                    .map((def) => {
+                      const value = levers[def.slug] ?? def.bounds.default ?? def.bounds.min;
+                      return (
+                        <LeverRowV2
+                          key={def.slug}
+                          def={def}
+                          value={value}
+                          locked={!!locks[def.slug]}
+                          attribution={current.output.attribution.find(
+                            (a) => a.lever_slug === def.slug,
+                          )}
+                          totalAbsAttribution={totalAbs}
+                          onChange={(v) => onLever(def.slug, v)}
+                          onToggleLock={() => onToggleLock(def.slug)}
+                          onReset={() => onResetLever(def.slug)}
+                        />
+                      );
+                    });
+                })()}
               </div>
             )}
 
@@ -411,33 +432,22 @@ export function GuidedRail({
             </dl>
 
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
-                Top 3 movers · Y1 GDP contribution
+              <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
+                Top movers · fine-tune here
+                <CoachTip id="sensitivity" title="Sensitivity dials">
+                  These are the three levers doing most of the work. Drag any one — the fan
+                  chart on the right redraws instantly. Save when the story lands.
+                </CoachTip>
               </p>
-              <ul className="mt-2 space-y-1.5 text-[12px]">
-                {topAttribution.length === 0 && (
-                  <li className="text-ink-500">Levers at default — no attribution.</li>
-                )}
-                {topAttribution.map((a) => (
-                  <li key={a.lever_slug} className="flex items-baseline justify-between gap-2">
-                    <span className="truncate text-ink-950">{a.lever_slug}</span>
-                    <span
-                      className="shrink-0 font-mono text-[11px] tabular-nums"
-                      style={{
-                        color:
-                          a.contribution_pp > 0
-                            ? "var(--sector-06)"
-                            : a.contribution_pp < 0
-                              ? "var(--sector-04)"
-                              : "var(--ink-500)",
-                      }}
-                    >
-                      {a.contribution_pp > 0 ? "+" : ""}
-                      {a.contribution_pp.toFixed(2)} pp
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <div className="mt-3">
+                <SensitivityMini
+                  slugs={topAttribution.map((a) => a.lever_slug)}
+                  defs={init.leverDefs}
+                  levers={levers}
+                  attribution={current.output.attribution}
+                  onLever={onLever}
+                />
+              </div>
             </div>
 
             <label className="block">

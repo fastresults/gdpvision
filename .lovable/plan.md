@@ -1,29 +1,49 @@
-## Problem
+## Goal
+Turn the "Data stores" banner on the country onboarding page into a fully inline, tabbed panel that shows Sources / KPIs / Sector dossiers / Ministries / Corpus / Second brain / GDP Visualizations without leaving `/admin/countries/$code/onboard`, plus a collapse control so the whole panel (and each large sub-section) can be reduced back to a compact card.
 
-In `ArtifactPanel` (Press Release, Policy Memo, etc.), the LLM returns Markdown (`**bold**`, `### heading`, `-` lists). It is being displayed as raw source instead of being rendered — so users see `**GOVERNMENT OF ANTIGUA AND BARBUDA**` and `### ANTIGUA…` literally, with the asterisks and hashes visible.
+## Approach
 
-## Fix
+### 1. Extract the tab bodies from `countries.$code.data.tsx` into reusable panels
+Currently every tab (`SourcesTab`, `KpisTab`, `DossiersTab`, `MinistriesTab`, `CorpusTab`, `MemoryTab`, plus `GdpVizStudio`) lives inside the `/data` route file. Move each `*Tab` component into its own file under `src/components/country-data/panels/`:
 
-Swap the raw text renderer inside `src/components/ledger/ArtifactPanel.tsx` for a proper Markdown renderer, using the same library already in the project (`react-markdown` + `remark-gfm`, already used elsewhere in the ledger UI).
+```text
+src/components/country-data/panels/
+  SourcesPanel.tsx
+  KpisPanel.tsx
+  DossiersPanel.tsx
+  MinistriesPanel.tsx
+  CorpusPanel.tsx
+  MemoryPanel.tsx
+  VizPanel.tsx  (thin wrapper around GdpVizStudio)
+```
+Each panel takes `{ code }` and owns its own `useSuspenseQuery` calls (unchanged logic). `countries.$code.data.tsx` is refactored to import and render these panels so the standalone `/data` route keeps working exactly as today — no behavior change there.
 
-Steps:
+### 2. Replace `DataStoresBanner` with an inline `DataStoresPanel` on the onboard page
+In `src/routes/_authenticated/admin/countries.$code.onboard.tsx`:
 
-1. In `ArtifactPanel.tsx`, replace the current `<div className="whitespace-pre-wrap">{body_md}</div>` (or equivalent) with a `<ReactMarkdown remarkPlugins={[remarkGfm]}>` block wrapped in a `prose` container tuned to the app tokens:
-   - `prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-ink-950 prose-p:text-ink-800 prose-strong:text-ink-950 prose-li:text-ink-800 prose-a:text-indigo-700 prose-hr:border-line-200`
-   - Preserve the editorial serif/mono accents already used in the ledger (headings use the same font stack as the rest of the chamber).
+- Replace the `<Link>`-based tab bar with `<button>` tabs that update local state (`activeTab`) — no navigation.
+- Render the selected panel below the tab bar, wrapped in a Suspense boundary with a lightweight skeleton (so switching tabs doesn't block the whole page while a panel's queries load).
+- Keep the existing "Manage data stores →" deep link (line 763) as a secondary "Open in dedicated view" affordance for users who want the full-screen data page.
 
-2. Keep `[N]` citation markers clickable. The Markdown text still contains `[1]`, `[2, 5]` etc. — post-process each rendered text node (custom `components={{ p, li, strong, em }}` renderers) to run the existing `renderCitations(text, citations)` helper on string children so `<CitationRef>` popovers keep working inside the rendered Markdown, exactly like they do in the main answer block.
+### 3. Collapse controls
+Two levels of collapse, both persisted to `localStorage` per country code so the choice sticks between visits:
 
-3. Do the same treatment inside the "Refined" re-render path so a refined artifact also renders as formatted Markdown.
+- **Panel-level collapse** on the Data stores card itself: a chevron button in the header collapses the entire panel (tab bar + body) back to a one-line summary card ("Data stores · 7 tabs · click to expand"). Storage key: `gdpv:onboard:datastores:collapsed:<code>`.
+- **Section-level collapse** inside heavy panels (Sources table, KPIs matrix, Corpus chunks, Second brain constellation): wrap each large sub-section in a small `<CollapsibleSection title=... defaultOpen=... storageKey=...>` component (new, `src/components/ui/CollapsibleSection.tsx`) so the user can hide long tables/visuals independently.
 
-4. No changes to server prompts, artifact kinds, or citations shape. Purely a rendering fix in one component.
+Additionally, add a "Collapse all / Expand all" toggle at the top of the onboard page's right rail that broadcasts to every `CollapsibleSection` on the page (via a tiny React context) so the whole onboarding view can be reduced to compact cards in one click.
 
-## Files
+### 4. Route + URL behavior
+- The onboard page gains an optional `?data=<tabKey>` search param (validated the same way as the `/data` route's `tab` param) so a specific tab can be linked to inline.
+- The standalone `/admin/countries/$code/data` route is unchanged; it becomes the "full-screen" version of the same panels.
 
-- `src/components/ledger/ArtifactPanel.tsx` — swap raw text for `ReactMarkdown`, wire `renderCitations` through custom component renderers, apply `prose` classes.
+### 5. Non-goals / out of scope
+- No changes to any server functions, queries, or business logic in the panels themselves — this is a pure UI/composition change.
+- No changes to the ledger, chambers, or pipeline sections above the Data stores card.
 
-## Acceptance
-
-- Press Release, Policy Memo, Executive Brief, Talking Points, and Op-Ed all render with real headings, bold, italics, lists, and horizontal rules — no visible `**`, `###`, or `-` source characters.
-- `[N]` citation chips inside the rendered artifact remain clickable and open the same citation popover as the main answer.
-- Copy / Download .md still emit the original Markdown source (unchanged).
+## Files touched
+- `src/components/country-data/panels/*.tsx` (new — extracted from data route)
+- `src/components/ui/CollapsibleSection.tsx` (new)
+- `src/components/country-data/DataStoresPanel.tsx` (new — inline tabbed panel + collapse header)
+- `src/routes/_authenticated/admin/countries.$code.onboard.tsx` (swap `DataStoresBanner` for `DataStoresPanel`, add `?data=` search param, add global collapse-all toggle)
+- `src/routes/_authenticated/admin/countries.$code.data.tsx` (refactor to import extracted panels; no UX change)

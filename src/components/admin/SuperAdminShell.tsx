@@ -7,8 +7,11 @@ import { supabase } from "@/integrations/supabase/client";
 type Props = {
   eyebrow?: string;
   crumbs?: Array<{ label: string; to?: string; params?: Record<string, string> }>;
+  /** When true, uses a wider content container for canvas-heavy chambers. */
+  wide?: boolean;
   children: ReactNode;
 };
+
 
 const NAV = [
   { to: "/admin/countries", label: "Countries" },

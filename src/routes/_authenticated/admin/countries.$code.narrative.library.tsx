@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { CitedMarkdown } from "@/components/citations/CitedMarkdown";
 import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/ui/copy-button";
 import { Input } from "@/components/ui/input";
 import { PRIORITY_META } from "@/lib/narrative-priority";
 import { TriageCards, type SmartView } from "@/components/narrative/comms/TriageCards";
@@ -632,16 +633,32 @@ function CommsDetail({ id, code, onDeleted, isTemplateTab }: { id: string; code:
 
       <div className="max-h-[60vh] overflow-y-auto p-4">
         {tab === "body" && (
-          <article className="prose prose-sm max-w-none">
-            <CitedMarkdown
-              source={a.body ?? ""}
-              citations={sources.map((s) => ({
-                url: s.url ?? "",
-                title: s.title,
-                org: s.publisher,
-              }))}
-            />
-          </article>
+          <div className="relative">
+            <div className="mb-2 flex items-center justify-end gap-2">
+              <CopyButton
+                value={() => a.body ?? ""}
+                variant="chip"
+                label="Copy body"
+                title="Copy body markdown"
+              />
+              <CopyButton
+                value={() => `# ${a.title ?? "Draft"}\n\n${a.body ?? ""}`}
+                variant="chip"
+                label="Copy with title"
+                title="Copy title + body as markdown"
+              />
+            </div>
+            <article className="prose prose-sm max-w-none">
+              <CitedMarkdown
+                source={a.body ?? ""}
+                citations={sources.map((s) => ({
+                  url: s.url ?? "",
+                  title: s.title,
+                  org: s.publisher,
+                }))}
+              />
+            </article>
+          </div>
         )}
         {tab === "edit" && (
           <div className="space-y-3">
@@ -650,6 +667,12 @@ function CommsDetail({ id, code, onDeleted, isTemplateTab }: { id: string; code:
                 Markdown supported. Every save creates a versioned revision — reviewers can restore prior copy from Activity.
               </p>
               <div className="flex items-center gap-2">
+                <CopyButton
+                  value={() => bodyDraft ?? a.body ?? ""}
+                  variant="chip"
+                  label="Copy"
+                  title="Copy current draft"
+                />
                 <Button
                   size="sm"
                   variant="outline"

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { restoreCommsRevision } from "@/lib/narrative.functions";
 import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/ui/copy-button";
 
 type Approval = { from?: string; to?: string; actor_id?: string; note?: string | null; at?: string };
 type Revision = { id: string; edited_at: string; editor_id: string | null; body: string };
@@ -72,6 +73,14 @@ export function UnifiedTimeline({
                 <span className="text-[11px] text-ink-500 line-clamp-1 flex-1">
                   {e.r.body.slice(0, 120).replace(/[#*_>`]/g, "")}…
                 </span>
+                <CopyButton
+                  value={e.r.body}
+                  variant="ghost"
+                  label="Copy"
+                  iconSize={10}
+                  className="text-[10px] font-mono uppercase tracking-widest"
+                  title="Copy this revision"
+                />
                 <Button
                   size="sm"
                   variant="outline"

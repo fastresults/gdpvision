@@ -46,7 +46,23 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/narr
     ],
   }),
   component: LibraryPage,
+  errorComponent: LibraryError,
+  notFoundComponent: () => (
+    <div className="border border-line-200 bg-paper-0 p-6 text-sm text-ink-700">
+      Nothing to show here.
+    </div>
+  ),
 });
+
+function LibraryError({ error, reset }: { error: Error; reset: () => void }) {
+  return (
+    <div className="border border-rose-200 bg-rose-50 p-6 text-sm text-rose-800 space-y-3">
+      <div className="font-mono text-[10px] uppercase tracking-widest">Comms library failed to load</div>
+      <p className="text-rose-900">{error.message}</p>
+      <Button size="sm" variant="outline" onClick={() => reset()}>Retry</Button>
+    </div>
+  );
+}
 
 type TabKey = "drafts" | "templates";
 

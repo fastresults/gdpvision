@@ -5,7 +5,8 @@ import { PLAYBOOKS, type Playbook } from "@/lib/scenarios/playbooks";
 import { StepProgress, type Step } from "./StepProgress";
 import { PlaybookCard } from "./PlaybookCard";
 import { AiPlaySuggestions } from "./AiPlaySuggestions";
-import { LeverRow } from "./LeverRow";
+import { LeverRowV2 } from "./LeverRowV2";
+import { SensitivityMini } from "./SensitivityMini";
 import { CoachTip } from "./CoachTip";
 import { LeverDraftReview } from "./LeverDraftReview";
 
@@ -340,25 +341,32 @@ export function GuidedRail({
 
             {init.leverDefs.length > 0 && (
               <div className="divide-y divide-line-200 border-y border-line-200">
-                {init.leverDefs
-                  .filter((d) => focusedSlugs.has(d.slug))
-                  .map((def) => {
-                    const value = levers[def.slug] ?? def.bounds.default ?? def.bounds.min;
-                    return (
-                      <LeverRow
-                        key={def.slug}
-                        def={def}
-                        value={value}
-                        locked={!!locks[def.slug]}
-                        attribution={current.output.attribution.find(
-                          (a) => a.lever_slug === def.slug,
-                        )}
-                        onChange={(v) => onLever(def.slug, v)}
-                        onToggleLock={() => onToggleLock(def.slug)}
-                        onReset={() => onResetLever(def.slug)}
-                      />
-                    );
-                  })}
+                {(() => {
+                  const totalAbs = current.output.attribution.reduce(
+                    (s, a) => s + Math.abs(a.contribution_pp),
+                    0,
+                  );
+                  return init.leverDefs
+                    .filter((d) => focusedSlugs.has(d.slug))
+                    .map((def) => {
+                      const value = levers[def.slug] ?? def.bounds.default ?? def.bounds.min;
+                      return (
+                        <LeverRowV2
+                          key={def.slug}
+                          def={def}
+                          value={value}
+                          locked={!!locks[def.slug]}
+                          attribution={current.output.attribution.find(
+                            (a) => a.lever_slug === def.slug,
+                          )}
+                          totalAbsAttribution={totalAbs}
+                          onChange={(v) => onLever(def.slug, v)}
+                          onToggleLock={() => onToggleLock(def.slug)}
+                          onReset={() => onResetLever(def.slug)}
+                        />
+                      );
+                    });
+                })()}
               </div>
             )}
 

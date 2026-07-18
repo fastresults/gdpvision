@@ -5,6 +5,15 @@ import { useState } from "react";
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { BrainConstellation, type BrainFilter } from "@/components/country-data/BrainConstellation";
 import { listAllMemory } from "@/lib/country-data/manage.functions";
+import { CARICOM_OECS_REGISTRY } from "@/lib/caricom-registry";
+
+const COUNTRY_NAMES: Record<string, string> = CARICOM_OECS_REGISTRY.reduce(
+  (acc, n) => {
+    acc[n.code] = n.name;
+    return acc;
+  },
+  {} as Record<string, string>,
+);
 
 const allMemoryQuery = queryOptions({
   queryKey: ["admin", "all-memory"],
@@ -34,12 +43,13 @@ function BrainSystemPage() {
   const sectorCount = new Set(rows.map((r) => r.sector_code || "—")).size;
 
   const filtered = filter.country ? rows.filter((r) => r.scope_key === filter.country) : rows;
+  const focusedName = filter.country ? COUNTRY_NAMES[filter.country] ?? filter.country : null;
 
   return (
     <SuperAdminShell
       crumbs={[
         { label: "Admin", to: "/admin/countries" },
-        { label: filter.country ? `Second brain · ${filter.country}` : "Second brain · System" },
+        { label: focusedName ? `Second brain · ${focusedName}` : "Second brain · System" },
       ]}
     >
       <div className="space-y-4">
@@ -64,7 +74,7 @@ function BrainSystemPage() {
         <BrainConstellation
           rows={filtered as any}
           mode="system"
-          centerLabel={filter.country ?? "SYSTEM"}
+          centerLabel={focusedName ?? "SYSTEM"}
           filter={filter}
           onFilter={setFilter}
           onSelectCountry={(code) => setFilter({ country: code })}

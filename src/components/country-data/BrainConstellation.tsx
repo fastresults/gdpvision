@@ -1,5 +1,19 @@
 import { useMemo, useState } from "react";
 
+import { CARICOM_OECS_REGISTRY } from "@/lib/caricom-registry";
+
+const COUNTRY_NAME_BY_CODE: Record<string, string> = CARICOM_OECS_REGISTRY.reduce(
+  (acc, n) => {
+    acc[n.code] = n.name;
+    return acc;
+  },
+  {} as Record<string, string>,
+);
+
+function countryName(code: string): string {
+  return COUNTRY_NAME_BY_CODE[code] ?? code;
+}
+
 export type BrainRow = {
   id: string;
   title: string;
@@ -271,18 +285,31 @@ export function BrainConstellation({
           {/* Country orbs */}
           {countryPositions.map((c) => {
             const r = 14 + (c.count / c.maxN) * 14;
+            const name = countryName(c.code);
             return (
               <g
                 key={`cn-${c.code}`}
                 onClick={() => (onSelectCountry ? onSelectCountry(c.code) : onFilter({ ...filter, country: c.code }))}
-                onMouseEnter={() => setHover({ label: `${c.code} · ${c.count} memories`, x: c.x, y: c.y })}
+                onMouseEnter={() => setHover({ label: `${name} · ${c.count} memories`, x: c.x, y: c.y })}
                 onMouseLeave={() => setHover(null)}
                 className="cursor-pointer"
               >
+                <title>{`${name} (${c.code})`}</title>
                 <circle cx={c.x} cy={c.y} r={r + 8} fill="#0f172a" opacity="0.08" />
                 <circle cx={c.x} cy={c.y} r={r} fill="#0f172a" />
                 <text x={c.x} y={c.y + 3} textAnchor="middle" fontSize="10" fill="#fafafa" fontFamily="ui-monospace, monospace">
                   {c.code}
+                </text>
+                <text
+                  x={c.x}
+                  y={c.y + r + 14}
+                  textAnchor="middle"
+                  fontSize="11"
+                  fill="#0f172a"
+                  fontFamily="ui-sans-serif, system-ui"
+                  fontWeight="500"
+                >
+                  {name}
                 </text>
               </g>
             );

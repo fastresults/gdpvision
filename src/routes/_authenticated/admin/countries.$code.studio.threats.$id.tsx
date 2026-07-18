@@ -14,6 +14,9 @@ import { StagingTimeline } from "@/components/studio/StagingTimeline";
 import { StressTestPanel } from "@/components/studio/StressTestPanel";
 import { CommitBar } from "@/components/studio/CommitBar";
 import { ExplainHover } from "@/components/studio/ExplainHover";
+import { WorkbenchJourney, type JourneyStepKey } from "@/components/studio/WorkbenchJourney";
+import { GuidanceBanner } from "@/components/studio/GuidanceBanner";
+import { EmptyStrategyCoach } from "@/components/studio/EmptyStrategyCoach";
 import { EXPLAIN } from "@/components/studio/explain-copy";
 import { onsetLabel, threatTypeChip } from "@/components/studio/threat-presets";
 import {

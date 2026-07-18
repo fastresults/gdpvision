@@ -69,6 +69,7 @@ function componentsFor(
       <blockquote className="my-3 border-l-2 border-ink-950/30 bg-paper-50/60 px-3 py-1.5 italic text-ink-700">
         {wrap(children)}
       </blockquote>
+    ),
     hr: () => <hr className="my-4 border-line-200" />,
     code: ({ children }) => (
       <code className="rounded-sm bg-paper-100 px-1 py-0.5 font-mono text-[12px] text-ink-950">{children}</code>

@@ -817,7 +817,7 @@ function OnboardWizard() {
           latestPipeline={latestPipeline}
         />
 
-        <DataStoresBanner code={code} countryName={country?.name ?? code} />
+        <DataStoresPanel code={code} countryName={country?.name ?? code} />
 
 
 

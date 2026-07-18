@@ -88,17 +88,18 @@ export function ResilienceActionsRail({
                 <input
                   value={a.label}
                   onChange={(e) => update(a.id, { label: e.target.value })}
-                  className="w-full border-b border-line-200 bg-transparent py-0.5 text-sm focus:border-ink-950 focus:outline-none"
+                  title={a.label}
+                  className="min-w-0 flex-1 border-b border-line-200 bg-transparent py-0.5 text-sm text-ellipsis focus:border-ink-950 focus:outline-none"
                 />
                 {a.ai_generated && (
-                  <span className="inline-flex items-center gap-0.5 border border-line-200 bg-paper-100 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-ink-500">
+                  <span className="inline-flex shrink-0 items-center gap-0.5 border border-line-200 bg-paper-100 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-ink-500">
                     <Sparkles size={10} /> AI
                   </span>
                 )}
                 <button
                   type="button"
                   onClick={() => remove(a.id)}
-                  className="text-ink-500 hover:text-rose-600"
+                  className="shrink-0 text-ink-500 hover:text-rose-600"
                   aria-label="Remove"
                 >
                   <Trash2 size={13} />

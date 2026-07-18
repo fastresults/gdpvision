@@ -8,6 +8,7 @@ import {
 } from "@/lib/narrative-chamber.functions";
 import { getStrategy } from "@/lib/narrative.functions";
 import { CitedText } from "@/components/citations/CitedText";
+import { CitedMarkdown } from "@/components/citations/CitedMarkdown";
 import type { CitationRef } from "@/components/citations/CitationSup";
 
 export function StrategyPanel({ signalId }: { signalId: string }) {

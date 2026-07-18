@@ -329,7 +329,7 @@ export async function runPressTick(opts: {
       items_new: itemsNew,
       items_promoted: itemsPromoted,
       errors: errors.slice(0, 50),
-      coverage,
+      coverage: { ...coverage, _clusters_merged: clustersMerged },
     })
     .eq("id", run.id);
 

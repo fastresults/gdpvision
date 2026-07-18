@@ -13,9 +13,13 @@ import {
   transcribeAudio,
   type LedgerAnswer,
   type FigureCitation,
+  type LedgerArtifactKind,
 } from "@/lib/ledger.functions";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import { AskProgress } from "./AskProgress";
+import { ExpandActions } from "./ExpandActions";
+import { ArtifactPanel } from "./ArtifactPanel";
 
 type Turn = {
   id: string;

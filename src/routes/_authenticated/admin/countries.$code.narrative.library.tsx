@@ -473,12 +473,11 @@ function CommsDetail({ id, code, onDeleted }: { id: string; code: string; onDele
         {tab === "body" && (
           <article className="prose prose-sm max-w-none">
             <CitedMarkdown
-              text={a.body ?? ""}
-              citations={sources.map((s, i) => ({
-                n: i + 1,
+              source={a.body ?? ""}
+              citations={sources.map((s) => ({
                 url: s.url ?? "",
                 title: s.title,
-                publisher: s.publisher,
+                org: s.publisher,
               }))}
             />
           </article>

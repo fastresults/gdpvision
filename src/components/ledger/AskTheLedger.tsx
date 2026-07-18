@@ -532,6 +532,20 @@ function ConfidenceChip({ level }: { level: "high" | "medium" | "low" }) {
   );
 }
 
+function SourcesUsedChip({ sources }: { sources?: { corpus: number; country_context: number; web: number } }) {
+  if (!sources) return null;
+  const parts: string[] = [];
+  if (sources.corpus) parts.push(`Corpus · ${sources.corpus}`);
+  if (sources.country_context) parts.push(`Country · ${sources.country_context}`);
+  if (sources.web) parts.push(`Web · ${sources.web}`);
+  if (parts.length === 0) return null;
+  return (
+    <span className="inline-block border border-line-200 bg-paper-0 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-ink-500">
+      {parts.join(" · ")}
+    </span>
+  );
+}
+
 function renderCitations(text: string, citations: Array<{ n: number; url: string | null }>) {
   const parts: Array<string | React.ReactNode> = [];
   const re = /\[(\d+)\]/g;

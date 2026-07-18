@@ -211,11 +211,109 @@ function StrategyWorkbench() {
 
   const canPromote = strategyId && !dirty;
 
+  // Journey step state derived from live data
+  const hasReallocation = entries.some(
+    (e) => Math.abs(e.resilient_pct - e.current_pct) > 0.05,
+  );
+  const hasActions = actions.length > 0;
+  const stagedCount = actions.filter((a) => (a.staging_year ?? 0) >= 1).length;
+  const allStaged = hasActions && stagedCount === actions.length;
+  const isSaved = !!strategyId && !dirty;
+
+  let active: JourneyStepKey = "read";
+  if (isSaved || allStaged) active = "commit";
+  else if (hasActions) active = "stage";
+  else if (hasReallocation) active = "reshape";
+
+  const journeySteps = [
+    {
+      key: "read" as JourneyStepKey,
+      title: "Read the threat",
+      caption: "Review the AI briefing and exposure chips.",
+      done: true,
+      anchor: "briefing",
+    },
+    {
+      key: "reshape" as JourneyStepKey,
+      title: "Reshape the mix",
+      caption: "Drag handles to reallocate FDI across sectors.",
+      done: hasReallocation,
+      anchor: "reallocation",
+    },
+    {
+      key: "stage" as JourneyStepKey,
+      title: "Stage the actions",
+      caption: "Create actions, then drag each into a year.",
+      done: allStaged,
+      anchor: "staging",
+    },
+    {
+      key: "commit" as JourneyStepKey,
+      title: "Stress-test & commit",
+      caption: "Review what breaks, then save or promote.",
+      done: isSaved,
+      anchor: "stress",
+    },
+  ];
+
+  const showEmptyCoach = !hasActions && !hasReallocation && !strategy;
+
+  let guidance: { message: string; tone?: "info" | "success" } | null = null;
+  if (!hasActions && !hasReallocation) {
+    guidance = {
+      message:
+        "Click Suggest resilient allocation for an AI-drafted plan, or add your first action manually.",
+    };
+  } else if (!allStaged) {
+    const unstaged = actions.length - stagedCount;
+    guidance = {
+      message:
+        unstaged > 0
+          ? `Drag your ${unstaged} unstaged action${unstaged === 1 ? "" : "s"} into the year it lands.`
+          : "Add at least one resilience action to your plan.",
+    };
+  } else if (dirty) {
+    guidance = {
+      message: "Plan looks complete. Review the stress test, then Save draft.",
+    };
+  } else if (isSaved && !promoted.packages && !promoted.scenarioId) {
+    guidance = {
+      message: "Saved. Promote to Plan of Record or model as a scenario.",
+      tone: "success",
+    };
+  }
+
+  function scrollTo(anchor: string) {
+    document.getElementById(anchor)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }
+
   return (
     <div className="space-y-8 pb-24">
       <div className="border-b border-line-200/60 pb-2">
         <ThreatStepper active="stress" onSelect={() => {}} />
       </div>
+
+      <WorkbenchJourney steps={journeySteps} active={active} />
+
+      {guidance && (
+        <GuidanceBanner
+          message={guidance.message}
+          tone={guidance.tone}
+          cta={
+            !hasActions && !hasReallocation
+              ? {
+                  label: suggestMut.isPending ? "Modelling…" : "Suggest plan",
+                  onClick: () => suggestMut.mutate(),
+                  icon: "sparkles",
+                }
+              : undefined
+          }
+        />
+      )}
+
 
       <header className="space-y-4 border-b border-line-200 pb-6">
         <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">

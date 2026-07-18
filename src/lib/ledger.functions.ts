@@ -2199,3 +2199,142 @@ export const handoffFigure = createServerFn({ method: "POST" })
       questionId,
     };
   });
+
+// ─── Expand Answer: convert a good response into an artifact ────────────────
+
+const ARTIFACT_KINDS = [
+  "policy_memo",
+  "exec_brief",
+  "press_release",
+  "talking_points",
+  "op_ed",
+] as const;
+export type LedgerArtifactKind = (typeof ARTIFACT_KINDS)[number];
+
+const ExpandInput = z.object({
+  countryCode: z.string().min(3).max(4),
+  countryName: z.string().min(1).max(200),
+  artifact: z.enum(ARTIFACT_KINDS),
+  sourceQuestion: z.string().min(3).max(2000),
+  sourceAnswer: z.string().min(3).max(20000),
+  citations: z
+    .array(
+      z.object({
+        n: z.number(),
+        kind: z.string().optional(),
+        title: z.string().optional().nullable(),
+        url: z.string().optional().nullable(),
+        org: z.string().optional().nullable(),
+        excerpt: z.string().optional().nullable(),
+      }),
+    )
+    .max(40)
+    .default([]),
+  refinement: z.string().max(500).optional(),
+});
+
+export interface LedgerArtifactResult {
+  artifact: LedgerArtifactKind;
+  title: string;
+  body_md: string;
+  citations: FigureCitation[];
+}
+
+function artifactSystemPrompt(kind: LedgerArtifactKind, countryName: string): string {
+  const shared = `You are the National Ledger's steward for ${countryName}. Ground every claim in the SOURCE ANSWER and SOURCES provided. Preserve every [N] citation marker exactly where the underlying fact is used. Do not invent figures. Return well-formed Markdown only — no preface, no closing note.`;
+  const map: Record<LedgerArtifactKind, string> = {
+    policy_memo:
+      `${shared}\n\nWrite a 1–2 page POLICY MEMO in McKinsey associate-partner voice. Sections (as ## headings): Context, Options (numbered with tradeoffs), Recommendation, Risks & Mitigations, Next Steps (owner + timeline). Precise, quantitative, disciplined.`,
+    exec_brief:
+      `${shared}\n\nWrite a 1-page EXECUTIVE BRIEF. Sections (as ## headings): TL;DR (2 sentences), Key Findings (3 bullets, each with [N]), Decision Required, Owner & Timeline. Tight, decision-forward.`,
+    press_release:
+      `${shared}\n\nWrite a PRESS RELEASE in Government of ${countryName} voice. Include: Headline, Dateline, Lede paragraph, 2 body paragraphs, 1 quote from the relevant Minister (attribute plausibly), 1 quote from a stakeholder, Boilerplate. Formal, embargo-ready tone.`,
+    talking_points:
+      `${shared}\n\nWrite CABINET TALKING POINTS for the responsible Minister. 5–7 bullets in first-person spoken voice. Follow with an "## Anticipated Q&A" section: 3 likely questions and one-paragraph answers grounded in the sources.`,
+    op_ed:
+      `${shared}\n\nWrite a ~600 word OP-ED in first-person Ministerial voice. Compelling hook, 3 argument beats each grounded in [N] citations, one clear call to action. No headings other than the title.`,
+  };
+  return map[kind];
+}
+
+function artifactTitle(kind: LedgerArtifactKind, q: string): string {
+  const short = q.length > 90 ? q.slice(0, 87) + "…" : q;
+  const label: Record<LedgerArtifactKind, string> = {
+    policy_memo: "Policy Memo",
+    exec_brief: "Executive Brief",
+    press_release: "Press Release",
+    talking_points: "Cabinet Talking Points",
+    op_ed: "Op-Ed Draft",
+  };
+  return `${label[kind]} — ${short}`;
+}
+
+export const expandLedgerAnswer = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => ExpandInput.parse(data))
+  .handler(async ({ data }): Promise<LedgerArtifactResult> => {
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("Missing LOVABLE_API_KEY");
+
+    // Normalize citations to FigureCitation shape for reuse in UI popovers.
+    const citations: FigureCitation[] = data.citations.map((c) => ({
+      n: c.n,
+      kind: (c.kind ?? "citation") as FigureCitation["kind"],
+      title: c.title ?? "",
+      url: c.url ?? null,
+      org: c.org ?? null,
+      source_id: null,
+      excerpt: c.excerpt ?? "",
+    }));
+
+    const sourcesBlock = citations.length
+      ? citations
+          .map(
+            (c) =>
+              `[${c.n}] ${c.title || "Untitled"}${c.org ? ` — ${c.org}` : ""}${c.url ? ` (${c.url})` : ""}${c.excerpt ? `\n    excerpt: ${c.excerpt.slice(0, 400)}` : ""}`,
+          )
+          .join("\n")
+      : "(no external sources supplied — rely solely on SOURCE ANSWER)";
+
+    const refinement = data.refinement?.trim()
+      ? `\n\nADDITIONAL REFINEMENT FROM USER: ${data.refinement.trim()}`
+      : "";
+
+    const prompt = [
+      `ORIGINAL QUESTION:\n${data.sourceQuestion}`,
+      `\nSOURCE ANSWER (grounded):\n${data.sourceAnswer}`,
+      `\nSOURCES:\n${sourcesBlock}${refinement}`,
+      `\nWrite the artifact now.`,
+    ].join("\n");
+
+    const gateway = createLovableAiGatewayProvider(key);
+    let bodyMd = "";
+    try {
+      const result = await generateText({
+        model: gateway("google/gemini-3.5-flash"),
+        system: artifactSystemPrompt(data.artifact, data.countryName),
+        prompt,
+      });
+      bodyMd = (result.text ?? "").trim();
+    } catch (err) {
+      const status = (err as { statusCode?: number }).statusCode;
+      if (status === 429) throw new Error("Ledger AI rate limit — try again shortly.");
+      if (status === 402) throw new Error("Lovable AI credits exhausted — top up in workspace billing.");
+      throw err;
+    }
+    if (!bodyMd) throw new Error("Model returned an empty artifact.");
+
+    // Keep only citations actually referenced in the artifact.
+    const usedNums = new Set<number>();
+    const re = /\[(\d+)\]/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(bodyMd))) usedNums.add(Number(m[1]));
+    const activeCitations = citations.filter((c) => usedNums.has(c.n));
+
+    return {
+      artifact: data.artifact,
+      title: artifactTitle(data.artifact, data.sourceQuestion),
+      body_md: bodyMd,
+      citations: activeCitations,
+    };
+  });

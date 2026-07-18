@@ -13,9 +13,13 @@ import {
   transcribeAudio,
   type LedgerAnswer,
   type FigureCitation,
+  type LedgerArtifactKind,
 } from "@/lib/ledger.functions";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import { AskProgress } from "./AskProgress";
+import { ExpandActions } from "./ExpandActions";
+import { ArtifactPanel } from "./ArtifactPanel";
 
 type Turn = {
   id: string;
@@ -24,6 +28,7 @@ type Turn = {
   error?: string;
   pinnedAt?: string;
   copied?: boolean;
+  artifacts?: LedgerArtifactKind[];
 };
 
 const SUGGESTIONS = [
@@ -216,21 +221,34 @@ export function AskTheLedger({
             </div>
           </div>
         )}
-        {turns.map((t) => (
-          <TurnBlock
-            key={t.id}
-            turn={t}
-            onPin={() => pin.mutate(t)}
-            pinPending={pin.isPending}
-            onCopy={() => copyAnswer(t)}
-            onRegenerate={() => regenerate(t)}
-          />
-        ))}
-        {ask.isPending && (
-          <p className="font-mono text-[10px] uppercase tracking-widest text-ink-500">
-            Searching corpus · reading country context · escalating to deep research if needed…
-          </p>
-        )}
+        {turns.map((t, i) => {
+          const isLast = i === turns.length - 1;
+          return (
+            <TurnBlock
+              key={t.id}
+              turn={t}
+              countryCode={countryCode}
+              countryName={countryName}
+              loading={isLast && ask.isPending}
+              onCancel={isLast && ask.isPending ? () => ask.reset() : undefined}
+              onPin={() => pin.mutate(t)}
+              pinPending={pin.isPending}
+              onCopy={() => copyAnswer(t)}
+              onRegenerate={() => regenerate(t)}
+              onToggleArtifact={(kind) => {
+                setTurns((prev) =>
+                  prev.map((x) => {
+                    if (x.id !== t.id) return x;
+                    const cur = new Set(x.artifacts ?? []);
+                    if (cur.has(kind)) cur.delete(kind);
+                    else cur.add(kind);
+                    return { ...x, artifacts: [...cur] };
+                  }),
+                );
+              }}
+            />
+          );
+        })}
       </div>
 
       {/* Composer */}
@@ -387,21 +405,53 @@ function IconButton({
 
 function TurnBlock({
   turn,
+  countryCode,
+  countryName,
+  loading,
+  onCancel,
   onPin,
   pinPending,
   onCopy,
   onRegenerate,
+  onToggleArtifact,
 }: {
   turn: Turn;
+  countryCode: string;
+  countryName: string;
+  loading: boolean;
+  onCancel?: () => void;
   onPin: () => void;
   pinPending: boolean;
   onCopy: () => void;
   onRegenerate: () => void;
+  onToggleArtifact: (kind: LedgerArtifactKind) => void;
 }) {
   const s = turn.answer?.structured ?? null;
+  const activeArtifacts = new Set<LedgerArtifactKind>(turn.artifacts ?? []);
+  const sourceAnswerText = turn.answer
+    ? s
+      ? [
+          s.situation,
+          s.direct_answer,
+          s.key_evidence.length ? "Evidence:\n" + s.key_evidence.map((e) => `• ${e}`).join("\n") : "",
+          s.so_what?.length ? "So What:\n" + s.so_what.map((e) => `• ${e}`).join("\n") : "",
+          s.caveats.length ? "Caveats:\n" + s.caveats.map((c) => `• ${c}`).join("\n") : "",
+        ]
+          .filter(Boolean)
+          .join("\n\n")
+      : (turn.answer.answer ?? "")
+    : "";
+  const canExpand = !!turn.answer?.grounded && !!turn.answer?.answer;
+
   return (
     <div className="border-l-2 border-line-200 pl-3">
       <p className="text-sm font-medium text-ink-950">{turn.question}</p>
+
+      {loading && !turn.answer && (
+        <div className="mt-3">
+          <AskProgress question={turn.question} onCancel={onCancel} finalized={null} />
+        </div>
+      )}
 
       {turn.error && <p className="mt-2 text-xs text-red-700">{turn.error}</p>}
 
@@ -503,6 +553,26 @@ function TurnBlock({
               </button>
             )}
           </div>
+
+          {canExpand && (
+            <>
+              <ExpandActions onPick={onToggleArtifact} activeKinds={activeArtifacts} />
+              {[...activeArtifacts].map((kind) => (
+                <ArtifactPanel
+                  key={kind}
+                  countryCode={countryCode}
+                  countryName={countryName}
+                  artifact={kind}
+                  sourceQuestion={turn.question}
+                  sourceAnswer={sourceAnswerText}
+                  citations={turn.answer!.citations}
+                  onClose={() => onToggleArtifact(kind)}
+                  renderCitations={renderCitations}
+                  CitationRow={CitationRow}
+                />
+              ))}
+            </>
+          )}
         </>
       )}
     </div>

@@ -1372,7 +1372,7 @@ function MinisterEditDialog({ row, countryCode, onClose }: { row: any; countryCo
 
 type DrillKey = "sources" | "active" | "documents" | "chunks" | "runs" | null;
 
-export function CorpusTab({ code, onGoToSources }: { code: string; onGoToSources: () => void }) {
+export function CorpusTab({ code, onGoToSources, embedded: _embedded }: { code: string; onGoToSources: () => void; embedded?: boolean }) {
   const qc = useQueryClient();
   const { data: stats } = useSuspenseQuery(statsQuery(code));
   const { data: detail } = useSuspenseQuery(corpusDetailQuery(code));

@@ -1,23 +1,32 @@
-import { useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { formatDistanceToNow } from "date-fns";
 import {
-  Search, Filter, Copy, Trash2, ExternalLink, FileText, Star, Tag as TagIcon,
-  Download, History, Send, ArrowUpRight,
+  Search, Copy, Trash2, ExternalLink, FileText, Star, Tag as TagIcon,
+  Download, MoreHorizontal, Sparkles, Wand2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   searchComms, getCommsDetail, updateCommsMeta, duplicateComms, deleteComms,
-  listCommsFacets,
+  listCommsFacets, saveCommsAsTemplate,
 } from "@/lib/narrative.functions";
 import { cn } from "@/lib/utils";
 import { CitedMarkdown } from "@/components/citations/CitedMarkdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { PRIORITY_META } from "@/lib/narrative-priority";
+import { TriageCards, type SmartView } from "@/components/narrative/comms/TriageCards";
+import { WorkflowRail } from "@/components/narrative/comms/WorkflowRail";
+import { ContextRibbon } from "@/components/narrative/comms/ContextRibbon";
+import { LibraryCoach } from "@/components/narrative/comms/LibraryCoach";
+import { ScheduleDialog } from "@/components/narrative/comms/ScheduleDialog";
+import { UnifiedTimeline } from "@/components/narrative/comms/UnifiedTimeline";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const STATES = ["draft", "review", "approved", "released"] as const;
 type DraftState = (typeof STATES)[number];
@@ -39,34 +48,69 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/narr
   component: LibraryPage,
 });
 
+type TabKey = "drafts" | "templates";
+
 function LibraryPage() {
   const { code } = Route.useParams();
+  const [tab, setTab] = useState<TabKey>("drafts");
+  const [smart, setSmart] = useState<SmartView>(null);
   const [q, setQ] = useState("");
   const [states, setStates] = useState<DraftState[]>([]);
   const [channels, setChannels] = useState<string[]>([]);
-  const [tagsSel, setTagsSel] = useState<string[]>([]);
   const [sort, setSort] = useState<"updated" | "released" | "channel">("updated");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Persist filters per country
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(`comms-lib-${code}`);
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s.states) setStates(s.states);
+        if (s.channels) setChannels(s.channels);
+        if (s.sort) setSort(s.sort);
+      }
+    } catch { /* noop */ }
+  }, [code]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(`comms-lib-${code}`, JSON.stringify({ states, channels, sort }));
+    } catch { /* noop */ }
+  }, [code, states, channels, sort]);
+
+  const smartFilter = useMemo(() => {
+    switch (smart) {
+      case "needs_you": return { states: ["review", "approved"] as DraftState[], isTemplate: false };
+      case "in_review": return { states: ["review"] as DraftState[], isTemplate: false };
+      case "recently_released": return { states: ["released"] as DraftState[], isTemplate: false };
+      case "scheduled": return { states: undefined, isTemplate: false }; // client filter
+      default: return {};
+    }
+  }, [smart]);
+
+  const effStates = smart ? smartFilter.states : (states.length ? states : undefined);
+  const effIsTemplate = tab === "templates" ? true : (smart ? smartFilter.isTemplate : undefined);
 
   const listOpts = useMemo(
     () =>
       queryOptions({
-        queryKey: ["comms-library", code, q, states, channels, tagsSel, sort],
+        queryKey: ["comms-library", code, tab, smart, q, effStates, channels, sort],
         queryFn: () =>
           searchComms({
             data: {
               scopeKey: code,
               q: q || undefined,
-              states: states.length ? states : undefined,
+              states: effStates,
               channels: channels.length ? channels : undefined,
-              tags: tagsSel.length ? tagsSel : undefined,
+              isTemplate: effIsTemplate,
               sort,
               limit: 100,
               offset: 0,
             },
           }),
       }),
-    [code, q, states, channels, tagsSel, sort],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [code, tab, smart, q, JSON.stringify(effStates), channels, sort, effIsTemplate],
   );
   const listQ = useQuery(listOpts);
 
@@ -88,13 +132,43 @@ function LibraryPage() {
         </p>
         <h2 className="mt-1 font-serif text-3xl text-ink-950">Comms Library</h2>
         <p className="mt-1 max-w-2xl text-sm text-ink-700">
-          Every press release, PM statement, LinkedIn post, and diplomatic memo drafted for
-          this country — searchable, taggable, and audit-tracked.
+          Track every draft from signal → statement → release. Reuse what worked; audit what shipped.
         </p>
       </header>
 
-      {/* Search + top filters */}
-      <div className="border border-line-200 bg-paper-0 p-3 space-y-3">
+      <LibraryCoach code={code} />
+
+      {/* Triage cards */}
+      <TriageCards code={code} active={smart} onChange={(v) => { setSmart(v); setTab("drafts"); }} />
+
+      {/* Tabs: Drafts / Templates */}
+      <div className="flex items-center justify-between gap-3 border-b border-line-200">
+        <nav className="flex gap-1">
+          {(["drafts", "templates"] as const).map((k) => (
+            <button
+              key={k}
+              onClick={() => { setTab(k); setSmart(null); }}
+              className={cn(
+                "border-b-2 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em]",
+                tab === k ? "border-ink-950 text-ink-950" : "border-transparent text-ink-500 hover:text-ink-950",
+              )}
+            >
+              {k === "drafts" ? "Drafts" : "Templates"}
+            </button>
+          ))}
+        </nav>
+        {smart && (
+          <button
+            onClick={() => setSmart(null)}
+            className="text-[11px] text-ink-500 hover:text-ink-950 underline"
+          >
+            Clear smart view
+          </button>
+        )}
+      </div>
+
+      {/* Search + filters */}
+      <div className="space-y-3">
         <div className="flex items-center gap-2">
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-500" size={14} />
@@ -116,30 +190,31 @@ function LibraryPage() {
           </select>
         </div>
 
-        <div className="flex flex-wrap gap-1.5">
-          {STATES.map((s) => {
-            const active = states.includes(s);
-            const count = facetsQ.data?.states?.[s] ?? 0;
-            return (
-              <button
-                key={s}
-                onClick={() =>
-                  setStates((prev) => (active ? prev.filter((x) => x !== s) : [...prev, s]))
-                }
-                className={cn(
-                  "border px-2 py-1 font-mono text-[10px] uppercase tracking-widest",
-                  active ? STATE_TONE[s] : "border-line-200 text-ink-700 hover:border-ink-500",
-                )}
-              >
-                {s} · {count}
-              </button>
-            );
-          })}
-        </div>
+        {tab === "drafts" && !smart && (
+          <div className="flex flex-wrap gap-1.5">
+            {STATES.map((s) => {
+              const active = states.includes(s);
+              const count = facetsQ.data?.states?.[s] ?? 0;
+              return (
+                <button
+                  key={s}
+                  onClick={() =>
+                    setStates((prev) => (active ? prev.filter((x) => x !== s) : [...prev, s]))
+                  }
+                  className={cn(
+                    "border px-2 py-1 font-mono text-[10px] uppercase tracking-widest",
+                    active ? STATE_TONE[s] : "border-line-200 text-ink-700 hover:border-ink-500",
+                  )}
+                >
+                  {s} · {count}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {(facetsQ.data?.channels?.length ?? 0) > 0 && (
           <div className="flex flex-wrap items-center gap-1.5">
-            <Filter size={11} className="text-ink-500" />
             <span className="font-mono text-[10px] uppercase tracking-widest text-ink-500">Channel:</span>
             {facetsQ.data!.channels.map((c) => {
               const active = channels.includes(c);
@@ -162,46 +237,17 @@ function LibraryPage() {
             })}
           </div>
         )}
-
-        {(facetsQ.data?.tags?.length ?? 0) > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <TagIcon size={11} className="text-ink-500" />
-            <span className="font-mono text-[10px] uppercase tracking-widest text-ink-500">Tags:</span>
-            {facetsQ.data!.tags.slice(0, 20).map((t) => {
-              const active = tagsSel.includes(t);
-              return (
-                <button
-                  key={t}
-                  onClick={() =>
-                    setTagsSel((prev) => (active ? prev.filter((x) => x !== t) : [...prev, t]))
-                  }
-                  className={cn(
-                    "border px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest",
-                    active
-                      ? "border-ink-950 bg-ink-950 text-paper-0"
-                      : "border-line-200 text-ink-700 hover:border-ink-500",
-                  )}
-                >
-                  #{t}
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* Split list + detail */}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
         <div className="min-w-0 border border-line-200 bg-paper-0">
           <div className="border-b border-line-200 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-ink-500">
-            {listQ.isLoading ? "Loading…" : `${rows.length} result${rows.length === 1 ? "" : "s"}`}
+            {listQ.isLoading ? "Loading…" : `${rows.length} ${tab === "templates" ? "template" : "draft"}${rows.length === 1 ? "" : "s"}`}
           </div>
           <div className="max-h-[70vh] overflow-y-auto divide-y divide-line-200">
             {rows.length === 0 && !listQ.isLoading && (
-              <div className="p-6 text-center text-sm text-ink-500">
-                <FileText size={24} className="mx-auto text-ink-500" strokeWidth={1.5} />
-                <p className="mt-2">No drafts match your filters.</p>
-              </div>
+              <EmptyList tab={tab} smart={smart} onReset={() => { setSmart(null); setStates([]); setChannels([]); setQ(""); }} />
             )}
             {rows.map((r) => {
               const priorityMeta = r.signal_priority ? PRIORITY_META[r.signal_priority as 1 | 2 | 3 | 4 | 5] : null;
@@ -224,7 +270,7 @@ function LibraryPage() {
                         STATE_TONE[r.draft_state as DraftState],
                       )}
                     >
-                      {r.draft_state}
+                      {r.is_template ? "template" : r.draft_state}
                     </span>
                   </div>
                   <p className="mt-1 line-clamp-2 text-[11px] text-ink-700">{r.snippet}</p>
@@ -240,12 +286,6 @@ function LibraryPage() {
                     )}
                     <span>·</span>
                     <span>{formatDistanceToNow(new Date(r.updated_at), { addSuffix: true })}</span>
-                    {r.is_template && (
-                      <>
-                        <span>·</span>
-                        <span className="text-amber-700">★ template</span>
-                      </>
-                    )}
                   </div>
                   {r.tags.length > 0 && (
                     <div className="mt-1.5 flex flex-wrap gap-1">
@@ -265,7 +305,7 @@ function LibraryPage() {
         {/* Detail */}
         <div className="min-w-0">
           {activeId ? (
-            <CommsDetail id={activeId} code={code} onDeleted={() => setSelectedId(null)} />
+            <CommsDetail id={activeId} code={code} onDeleted={() => setSelectedId(null)} isTemplateTab={tab === "templates"} />
           ) : (
             <div className="border border-dashed border-line-200 p-8 text-center text-sm text-ink-500">
               Select a draft to preview it.
@@ -277,7 +317,26 @@ function LibraryPage() {
   );
 }
 
-function CommsDetail({ id, code, onDeleted }: { id: string; code: string; onDeleted: () => void }) {
+function EmptyList({ tab, smart, onReset }: { tab: TabKey; smart: SmartView; onReset: () => void }) {
+  if (tab === "templates") {
+    return (
+      <div className="p-6 text-center text-sm text-ink-500">
+        <Star size={24} className="mx-auto text-ink-500" strokeWidth={1.5} />
+        <p className="mt-2 text-ink-700">No templates yet.</p>
+        <p className="mt-1 text-[12px]">Open a released or approved draft and hit <b>Save as template</b>.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="p-6 text-center text-sm text-ink-500">
+      <FileText size={24} className="mx-auto text-ink-500" strokeWidth={1.5} />
+      <p className="mt-2">{smart ? "Nothing in this view right now." : "No drafts match your filters."}</p>
+      <button className="mt-2 text-[11px] underline text-ink-700" onClick={onReset}>Reset filters</button>
+    </div>
+  );
+}
+
+function CommsDetail({ id, code, onDeleted, isTemplateTab }: { id: string; code: string; onDeleted: () => void; isTemplateTab: boolean }) {
   const qc = useQueryClient();
   const detailOpts = queryOptions({
     queryKey: ["comms-detail", id],
@@ -288,31 +347,40 @@ function CommsDetail({ id, code, onDeleted }: { id: string; code: string; onDele
   const updateMeta = useServerFn(updateCommsMeta);
   const dupFn = useServerFn(duplicateComms);
   const delFn = useServerFn(deleteComms);
+  const saveTplFn = useServerFn(saveCommsAsTemplate);
+
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey: ["comms-detail", id] });
+    qc.invalidateQueries({ queryKey: ["comms-library", code] });
+    qc.invalidateQueries({ queryKey: ["comms-library-facets", code] });
+    qc.invalidateQueries({ queryKey: ["comms-workflow-counts", code] });
+  };
 
   const updateM = useMutation({
     mutationFn: (input: { title?: string; tags?: string[]; isTemplate?: boolean }) =>
       updateMeta({ data: { id, ...input } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["comms-detail", id] });
-      qc.invalidateQueries({ queryKey: ["comms-library", code] });
-      qc.invalidateQueries({ queryKey: ["comms-library-facets", code] });
-    },
+    onSuccess: invalidateAll,
   });
   const dupM = useMutation({
     mutationFn: (asTemplate: boolean) => dupFn({ data: { id, asTemplate } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["comms-library", code] });
+    onSuccess: (res) => {
+      invalidateAll();
+      toast.success("Duplicated");
+      void res;
     },
+  });
+  const saveTplM = useMutation({
+    mutationFn: () => saveTplFn({ data: { id } }),
+    onSuccess: () => { invalidateAll(); toast.success("Saved as template"); },
+    onError: (e: Error) => toast.error(e.message),
   });
   const delM = useMutation({
     mutationFn: () => delFn({ data: { id } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["comms-library", code] });
-      onDeleted();
-    },
+    onSuccess: () => { invalidateAll(); onDeleted(); toast.success("Moved to trash"); },
+    onError: (e: Error) => toast.error(e.message),
   });
 
-  const [tab, setTab] = useState<"body" | "approvals" | "history">("body");
+  const [tab, setTab] = useState<"body" | "history">("body");
   const [titleDraft, setTitleDraft] = useState<string | null>(null);
   const [tagDraft, setTagDraft] = useState("");
 
@@ -356,69 +424,91 @@ function CommsDetail({ id, code, onDeleted }: { id: string; code: string; onDele
               }}
               className="w-full bg-transparent font-serif text-xl text-ink-950 focus:outline-none"
             />
-            <div className="mt-1 flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-ink-500">
-              <span className={cn("border px-1.5 py-0.5", STATE_TONE[a.draft_state as DraftState])}>
-                {a.draft_state}
-              </span>
-              <span>{a.channel.replace(/[_-]/g, " ")}</span>
-              <span>· {a.audience}</span>
-              <span>· updated {formatDistanceToNow(new Date(a.updated_at), { addSuffix: true })}</span>
-              {a.released_at && <span>· released {formatDistanceToNow(new Date(a.released_at), { addSuffix: true })}</span>}
-            </div>
-            {d.signal && (
-              <Link
-                to="/admin/countries/$code/narrative/signal/$id"
-                params={{ code, id: d.signal.id }}
-                className="mt-2 inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-ink-500 hover:text-ink-950"
-              >
-                <ArrowUpRight size={11} /> Signal · {d.signal.topic ?? "untitled"}
-              </Link>
-            )}
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <div className="flex gap-1">
-              <Button size="sm" variant="outline" onClick={() => navigator.clipboard.writeText(a.body ?? "")}>
-                <Copy size={12} /> Copy
-              </Button>
-              <Button size="sm" variant="outline" onClick={download}>
-                <Download size={12} /> .md
-              </Button>
+          <div className="flex items-center gap-1.5">
+            {isTemplateTab ? (
               <Button
                 size="sm"
-                variant="outline"
-                onClick={() => updateM.mutate({ isTemplate: !a.is_template })}
-                title={a.is_template ? "Unpin template" : "Pin as template"}
+                onClick={() => dupM.mutate(false)}
+                className="bg-ink-950 text-paper-0 hover:bg-ink-800"
               >
-                <Star size={12} className={a.is_template ? "fill-amber-500 text-amber-500" : ""} /> Template
+                <Wand2 size={12} className="mr-1" /> Use template
               </Button>
-              <Button size="sm" variant="outline" onClick={() => dupM.mutate(false)}>
-                <Copy size={12} /> Duplicate
-              </Button>
-              {a.draft_state !== "released" && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-rose-200 text-rose-700 hover:bg-rose-50"
-                  onClick={() => {
-                    if (confirm("Move draft to trash?")) delM.mutate();
-                  }}
-                >
-                  <Trash2 size={12} />
-                </Button>
-              )}
-            </div>
-            {a.published_url && (
-              <a
-                href={a.published_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-emerald-700 hover:text-emerald-900"
-              >
-                <ExternalLink size={11} /> Published
-              </a>
+            ) : (
+              a.draft_state === "approved" && (
+                <ScheduleDialog artifactId={id} scopeKey={code} current={(a as { scheduled_for?: string | null }).scheduled_for ?? null} />
+              )
             )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" aria-label="More">
+                  <MoreHorizontal size={14} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(a.body ?? ""); toast.success("Copied"); }}>
+                  <Copy size={12} className="mr-2" /> Copy body
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={download}>
+                  <Download size={12} className="mr-2" /> Download .md
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => dupM.mutate(false)}>
+                  <Copy size={12} className="mr-2" /> Duplicate
+                </DropdownMenuItem>
+                {!a.is_template && (
+                  <DropdownMenuItem onClick={() => saveTplM.mutate()}>
+                    <Sparkles size={12} className="mr-2" /> Save as template
+                  </DropdownMenuItem>
+                )}
+                {a.is_template && (
+                  <DropdownMenuItem onClick={() => updateM.mutate({ isTemplate: false })}>
+                    <Star size={12} className="mr-2" /> Unpin template
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                {a.draft_state !== "released" && (
+                  <DropdownMenuItem
+                    className="text-rose-700 focus:text-rose-800"
+                    onClick={() => {
+                      if (confirm("Move draft to trash?")) delM.mutate();
+                    }}
+                  >
+                    <Trash2 size={12} className="mr-2" /> Delete
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
+
+        {/* Workflow rail (skip for templates) */}
+        {!a.is_template && (
+          <WorkflowRail
+            artifactId={id}
+            state={a.draft_state as DraftState}
+            scopeKey={code}
+          />
+        )}
+
+        {/* Context ribbon */}
+        <ContextRibbon
+          code={code}
+          signal={d.signal}
+          strategyId={a.strategy_id ?? null}
+          channel={a.channel ?? ""}
+          audience={a.audience ?? ""}
+        />
+
+        {a.published_url && (
+          <a
+            href={a.published_url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-emerald-700 hover:text-emerald-900"
+          >
+            <ExternalLink size={11} /> View published
+          </a>
+        )}
 
         {/* Tags */}
         <div className="flex flex-wrap items-center gap-1.5">
@@ -455,7 +545,7 @@ function CommsDetail({ id, code, onDeleted }: { id: string; code: string; onDele
 
       {/* Tabs */}
       <nav className="flex gap-1 border-b border-line-200 px-2">
-        {(["body", "approvals", "history"] as const).map((t) => (
+        {(["body", "history"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -464,7 +554,7 @@ function CommsDetail({ id, code, onDeleted }: { id: string; code: string; onDele
               tab === t ? "border-ink-950 text-ink-950" : "border-transparent text-ink-500 hover:text-ink-950",
             )}
           >
-            {t === "body" ? "Body" : t === "approvals" ? `Approvals · ${approvals.length}` : `History · ${d.revisions.length}`}
+            {t === "body" ? "Body" : `Activity · ${approvals.length + d.revisions.length}`}
           </button>
         ))}
       </nav>
@@ -482,53 +572,13 @@ function CommsDetail({ id, code, onDeleted }: { id: string; code: string; onDele
             />
           </article>
         )}
-        {tab === "approvals" && (
-          <div className="space-y-3">
-            {approvals.length === 0 ? (
-              <p className="text-sm text-ink-500">No approvals recorded. Submit for review from the signal workspace.</p>
-            ) : (
-              approvals.map((entry, i) => (
-                <div key={i} className="border border-line-200 p-3">
-                  <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-ink-500">
-                    <Send size={11} />
-                    <span>{String(entry.from ?? "?")} → {String(entry.to ?? "?")}</span>
-                    <span>·</span>
-                    <span>{entry.at ? formatDistanceToNow(new Date(String(entry.at)), { addSuffix: true }) : ""}</span>
-                  </div>
-                  {typeof entry.note === "string" && entry.note && (
-                    <p className="mt-2 text-sm text-ink-700">{entry.note}</p>
-                  )}
-                  {Array.isArray(entry.figures) && entry.figures.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {(entry.figures as unknown[]).map((f, j) => (
-                        <Badge key={j} variant="secondary">{String(f)}</Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        )}
         {tab === "history" && (
-          <div className="space-y-2">
-            {d.revisions.length === 0 ? (
-              <p className="text-sm text-ink-500">No prior revisions. Every future edit is captured here automatically.</p>
-            ) : (
-              d.revisions.map((r) => (
-                <details key={r.id} className="border border-line-200 p-3">
-                  <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-widest text-ink-500">
-                    <History size={11} className="mr-1 inline" />
-                    {formatDistanceToNow(new Date(r.edited_at), { addSuffix: true })} ·{" "}
-                    {(r.body ?? "").length.toLocaleString()} chars
-                  </summary>
-                  <pre className="mt-2 whitespace-pre-wrap font-serif text-[12px] leading-relaxed text-ink-800">
-                    {r.body}
-                  </pre>
-                </details>
-              ))
-            )}
-          </div>
+          <UnifiedTimeline
+            artifactId={id}
+            scopeKey={code}
+            approvals={approvals as Parameters<typeof UnifiedTimeline>[0]["approvals"]}
+            revisions={d.revisions}
+          />
         )}
       </div>
     </div>

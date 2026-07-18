@@ -22,16 +22,17 @@ export function StatStrip({
       }
     >
       {cells.map((c, i) => (
-        <div key={i} className="min-w-0 bg-paper-0 p-4">
+        <div key={i} className="min-w-0 bg-paper-0 px-3 py-4 sm:px-4">
           <p className="truncate font-mono text-[9px] uppercase tracking-[0.22em] text-ink-500">
             {c.label}
           </p>
           <p
-            className="mt-2 truncate font-serif text-[32px] leading-none text-ink-950 tabular-nums"
+            className="mt-2 whitespace-nowrap font-serif text-[26px] leading-none text-ink-950 tabular-nums lg:text-[30px]"
             data-numeric
           >
             {c.value}
           </p>
+
           <div className="mt-2 flex min-h-[16px] items-center gap-2 text-[10px]">
             {typeof c.delta === "number" && Math.abs(c.delta) > 0.001 ? (
               <span

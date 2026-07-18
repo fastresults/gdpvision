@@ -1541,10 +1541,13 @@ function parseStructuredAnswer(raw: string): LedgerStructuredAnswer | null {
     if (typeof obj.direct_answer !== "string") return null;
     const conf = obj.confidence;
     return {
+      situation: typeof obj.situation === "string" ? obj.situation.trim() : undefined,
       direct_answer: obj.direct_answer.trim(),
       key_evidence: Array.isArray(obj.key_evidence) ? obj.key_evidence.filter((x) => typeof x === "string").slice(0, 4) : [],
+      so_what: Array.isArray(obj.so_what) ? obj.so_what.filter((x) => typeof x === "string").slice(0, 3) : [],
       confidence: conf === "high" || conf === "medium" || conf === "low" ? conf : "medium",
       caveats: Array.isArray(obj.caveats) ? obj.caveats.filter((x) => typeof x === "string").slice(0, 2) : [],
+      needs_research: obj.needs_research === true,
     };
   } catch {
     return null;

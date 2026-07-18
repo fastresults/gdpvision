@@ -43,12 +43,13 @@ function BrainSystemPage() {
   const sectorCount = new Set(rows.map((r) => r.sector_code || "—")).size;
 
   const filtered = filter.country ? rows.filter((r) => r.scope_key === filter.country) : rows;
+  const focusedName = filter.country ? COUNTRY_NAMES[filter.country] ?? filter.country : null;
 
   return (
     <SuperAdminShell
       crumbs={[
         { label: "Admin", to: "/admin/countries" },
-        { label: filter.country ? `Second brain · ${filter.country}` : "Second brain · System" },
+        { label: focusedName ? `Second brain · ${focusedName}` : "Second brain · System" },
       ]}
     >
       <div className="space-y-4">

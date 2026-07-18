@@ -49,6 +49,9 @@ export const listSignals = createServerFn({ method: "GET" })
         "id,scope_key,sector_code,topic,summary,url,proposed_weight,final_weight,state,scope,severity,reach,sentiment,recommendation,metadata,created_at",
       )
       .eq("scope_key", data.countryCode)
+      // Hide clustered siblings — only primary signals show in the rail.
+      .or("story_primary.is.true,story_primary.is.null")
+      .neq("state", "duplicate")
       .order("created_at", { ascending: false })
       .limit(200);
     if (data.state) q = q.eq("state", data.state);

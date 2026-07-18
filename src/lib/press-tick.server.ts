@@ -1,6 +1,7 @@
 // Chamber 05 · shared press-tick harvester (invoked inline by server fn + public route).
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { fetchFeed, classifySignal, pMap, canonicalUrl, firecrawlUpgrade } from "@/lib/press-monitor.server";
+import { findCluster, storyKeyFromTitle, attachSibling } from "@/lib/story-cluster.server";
 
 export type PressTickResult = {
   ok: true;
@@ -31,7 +32,7 @@ export async function runPressTick(opts: {
 
   const errors: Array<{ scope: string; msg: string }> = [];
   const countryList = new Set<string>();
-  let feedsPolled = 0, itemsFetched = 0, itemsNew = 0, itemsPromoted = 0;
+  let feedsPolled = 0, itemsFetched = 0, itemsNew = 0, itemsPromoted = 0, clustersMerged = 0;
 
   try {
     let feedsQ = supabaseAdmin
@@ -152,6 +153,13 @@ export async function runPressTick(opts: {
       return m;
     }
 
+    // Phase 1 — classify all in parallel, collect results (no inserts yet).
+    type ClassifyResult = {
+      it: typeof toClassify[number];
+      c: Awaited<ReturnType<typeof classifySignal>>;
+      pScore: number;
+    };
+    const classified: ClassifyResult[] = [];
     await pMap(toClassify, async (it) => {
       try {
         const sectorMenu = await menu(it.country_code);
@@ -165,12 +173,91 @@ export async function runPressTick(opts: {
           raw: rawForClassify,
           sectorMenu,
         });
+        // Derive same P1..P5 score used by the triage rail so the highest-urgency
+        // items are inserted (and cluster-headed) first.
+        const sev = Math.max(1, Math.min(5, c.severity));
+        const reach = Math.max(1, Math.min(5, c.reach));
+        const leadish = c.recommendation === "lead" || c.recommendation === "counter";
+        const amplify = c.recommendation === "amplify";
+        const pScore =
+          leadish && sev >= 4 ? 1 :
+          leadish || (amplify && sev >= 4) ? 2 :
+          amplify || sev >= 4 ? 3 :
+          sev >= 3 || reach >= 3 ? 4 : 5;
+        classified.push({ it, c, pScore });
+      } catch (e) {
+        errors.push({ scope: `classify:${it.id}`, msg: (e as Error).message });
+        await supabaseAdmin
+          .from("narrative_feed_items")
+          .update({ state: "error", error: (e as Error).message.slice(0, 400) })
+          .eq("id", it.id);
+      }
+    }, 4);
+
+    // Phase 2 — priority-ordered sequential insert with story clustering.
+    // Sequential (per country) so newly-inserted primaries are visible to the
+    // next findCluster() call in the same tick.
+    classified.sort((a, b) =>
+      a.pScore - b.pScore ||
+      (b.c.severity + b.c.reach) - (a.c.severity + a.c.reach),
+    );
+
+    const outletOf = (u: string | null) => {
+      if (!u) return null;
+      try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return null; }
+    };
+
+    for (const { it, c } of classified) {
+      try {
+        const topic = (c.topic || it.title || "").slice(0, 240);
+        const match = await findCluster(it.country_code, topic);
+        if (match) {
+          // Sibling — attach to the existing primary, don't create a new card.
+          await supabaseAdmin
+            .from("intake_items")
+            .insert({
+              scope_key: it.country_code,
+              sector_code: c.sector_code || "cross",
+              topic,
+              summary: c.summary,
+              url: it.url,
+              proposed_weight: Math.max(1, Math.min(5, Math.round((c.severity + c.reach) / 2))),
+              scope: c.scope,
+              severity: Math.max(1, Math.min(5, c.severity)),
+              reach: Math.max(1, Math.min(5, c.reach)),
+              sentiment: Math.max(-2, Math.min(2, c.sentiment)),
+              recommendation: c.recommendation,
+              story_key: match.story_key,
+              story_primary: false,
+              duplicate_of: match.primary_id,
+              state: "duplicate",
+              metadata: {
+                dossier_bullets: c.dossier_bullets,
+                rationale: c.rationale,
+                citations: c.citations ?? [],
+                source: "press-tick",
+                ingested_at: new Date().toISOString(),
+                clustered_into: match.primary_id,
+                cluster_similarity: match.similarity,
+              },
+            });
+          await attachSibling(match.primary_id, { url: it.url, title: topic, outlet: outletOf(it.url) });
+          await supabaseAdmin
+            .from("narrative_feed_items")
+            .update({ state: "duplicate", signal_id: match.primary_id })
+            .eq("id", it.id);
+          clustersMerged++;
+          if (it.url) canonSet.add(canonicalUrl(it.url));
+          continue;
+        }
+        // New primary.
+        const storyKey = storyKeyFromTitle(topic);
         const { data: sig, error: sigErr } = await supabaseAdmin
           .from("intake_items")
           .insert({
             scope_key: it.country_code,
             sector_code: c.sector_code || "cross",
-            topic: (c.topic || it.title || "").slice(0, 240),
+            topic,
             summary: c.summary,
             url: it.url,
             proposed_weight: Math.max(1, Math.min(5, Math.round((c.severity + c.reach) / 2))),
@@ -179,12 +266,15 @@ export async function runPressTick(opts: {
             reach: Math.max(1, Math.min(5, c.reach)),
             sentiment: Math.max(-2, Math.min(2, c.sentiment)),
             recommendation: c.recommendation,
+            story_key: storyKey,
+            story_primary: true,
             metadata: {
               dossier_bullets: c.dossier_bullets,
               rationale: c.rationale,
               citations: c.citations ?? [],
               source: "press-tick",
               ingested_at: new Date().toISOString(),
+              outlet: outletOf(it.url),
             },
           })
           .select("id")
@@ -197,13 +287,13 @@ export async function runPressTick(opts: {
         itemsPromoted++;
         if (it.url) canonSet.add(canonicalUrl(it.url));
       } catch (e) {
-        errors.push({ scope: `classify:${it.id}`, msg: (e as Error).message });
+        errors.push({ scope: `insert:${it.id}`, msg: (e as Error).message });
         await supabaseAdmin
           .from("narrative_feed_items")
           .update({ state: "error", error: (e as Error).message.slice(0, 400) })
           .eq("id", it.id);
       }
-    }, 4);
+    }
   } catch (e) {
     errors.push({ scope: "tick", msg: (e as Error).message });
   }
@@ -239,7 +329,7 @@ export async function runPressTick(opts: {
       items_new: itemsNew,
       items_promoted: itemsPromoted,
       errors: errors.slice(0, 50),
-      coverage,
+      coverage: { ...coverage, _clusters_merged: clustersMerged },
     })
     .eq("id", run.id);
 

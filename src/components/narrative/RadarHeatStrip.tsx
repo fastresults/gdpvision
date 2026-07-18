@@ -1,16 +1,24 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Play, RefreshCw } from "lucide-react";
+import { Play, RefreshCw, Radar } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-import { heatStrip24h, lastHarvestRun, runManualTick } from "@/lib/press-monitor.functions";
+import {
+  heatStrip24h,
+  lastHarvestRun,
+  runManualTick,
+  coverageFor,
+  discoverSources,
+} from "@/lib/press-monitor.functions";
 
-export function RadarHeatStrip({ code }: { code: string }) {
+export function RadarHeatStrip({ code, countryName }: { code: string; countryName?: string }) {
   const qc = useQueryClient();
   const heat = useServerFn(heatStrip24h);
   const last = useServerFn(lastHarvestRun);
   const run = useServerFn(runManualTick);
+  const cov = useServerFn(coverageFor);
+  const discover = useServerFn(discoverSources);
 
   const cells = useQuery({
     queryKey: ["radar-heat", code],
@@ -18,6 +26,11 @@ export function RadarHeatStrip({ code }: { code: string }) {
     refetchInterval: 60_000,
   });
   const lastRun = useQuery({ queryKey: ["radar-last-run"], queryFn: () => last(), refetchInterval: 60_000 });
+  const coverage = useQuery({
+    queryKey: ["radar-coverage", code],
+    queryFn: () => cov({ data: { countryCode: code } }),
+    refetchInterval: 60_000,
+  });
 
   const m = useMutation({
     mutationFn: async () => run({ data: { countryCode: code } }),
@@ -25,8 +38,17 @@ export function RadarHeatStrip({ code }: { code: string }) {
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["radar-heat", code] }),
         qc.invalidateQueries({ queryKey: ["radar-last-run"] }),
+        qc.invalidateQueries({ queryKey: ["radar-coverage", code] }),
         qc.invalidateQueries({ queryKey: ["narrative-signals", code] }),
       ]);
+    },
+  });
+
+  const d = useMutation({
+    mutationFn: async () =>
+      discover({ data: { countryCode: code, countryName: countryName ?? code } }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["narrative-feeds", code] });
     },
   });
 

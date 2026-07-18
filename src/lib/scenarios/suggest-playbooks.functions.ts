@@ -63,7 +63,7 @@ export const suggestPlaybooks = createServerFn({ method: "POST" })
         .limit(12),
       supabase
         .from("country_kpis")
-        .select("code,name,latest_value,unit,target,direction")
+        .select("kpi_code,label,latest_value,unit,target,direction")
         .eq("country_code", data.countryCode)
         .limit(15),
       data.ministrySlug
@@ -76,10 +76,9 @@ export const suggestPlaybooks = createServerFn({ method: "POST" })
         : Promise.resolve({ data: null as null | { name: string; slug: string; ministry_sectors: Array<{ sector_code: string; weight: number }> } }),
       supabase
         .from("intake_items")
-        .select("topic,priority,summary")
+        .select("topic,summary,severity,final_weight")
         .eq("scope_key", data.countryCode)
-        .in("priority", ["P1", "P2"])
-        .order("created_at", { ascending: false })
+        .order("final_weight", { ascending: false, nullsFirst: false })
         .limit(8),
     ]);
 

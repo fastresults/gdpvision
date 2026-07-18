@@ -24,6 +24,10 @@ import { CompareSlots } from "@/components/scenarios/CompareSlots";
 import { LeversDrawer } from "@/components/scenarios/LeversDrawer";
 import { GuidedRail } from "@/components/scenarios/GuidedRail";
 import { CoachTip } from "@/components/scenarios/CoachTip";
+import { AiRecommendDrawer } from "@/components/scenarios/AiRecommendDrawer";
+import { buildAiPlaybook } from "@/lib/scenarios/playbooks";
+import type { RecommendedScenario } from "@/lib/scenarios/recommend-scenario.functions";
+import { Sparkles } from "lucide-react";
 import { RouteError } from "@/components/state/RouteState";
 import { writePins, readPins } from "./countries.$code.scenarios";
 

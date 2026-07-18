@@ -95,6 +95,7 @@ import { Route as AuthenticatedAdminCountriesCodePortfolioMinistryRouteImport } 
 import { Route as AuthenticatedAdminCountriesCodeNarrativeLibraryRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.library'
 import { Route as AuthenticatedAdminCountriesCodeStudioThreatsIdRouteImport } from './routes/_authenticated/admin/countries.$code.studio.threats.$id'
 import { Route as AuthenticatedAdminCountriesCodeNarrativeSignalIdRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.signal.$id'
+import { Route as AuthenticatedAdminCountriesCodeCabinetAgendaSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.agenda.$sid'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -596,6 +597,12 @@ const AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute =
     path: '/signal/$id',
     getParentRoute: () => AuthenticatedAdminCountriesCodeNarrativeRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute =
+  AuthenticatedAdminCountriesCodeCabinetAgendaSidRouteImport.update({
+    id: '/countries/$code/cabinet/agenda/$sid',
+    path: '/countries/$code/cabinet/agenda/$sid',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -681,6 +688,7 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/portfolio/': typeof AuthenticatedAdminCountriesCodePortfolioIndexRoute
   '/admin/countries/$code/scenarios/': typeof AuthenticatedAdminCountriesCodeScenariosIndexRoute
   '/admin/countries/$code/studio/': typeof AuthenticatedAdminCountriesCodeStudioIndexRoute
+  '/admin/countries/$code/cabinet/agenda/$sid': typeof AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute
   '/admin/countries/$code/narrative/signal/$id': typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute
   '/admin/countries/$code/studio/threats/$id': typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRoute
 }
@@ -760,6 +768,7 @@ export interface FileRoutesByTo {
   '/admin/countries/$code/portfolio': typeof AuthenticatedAdminCountriesCodePortfolioIndexRoute
   '/admin/countries/$code/scenarios': typeof AuthenticatedAdminCountriesCodeScenariosIndexRoute
   '/admin/countries/$code/studio': typeof AuthenticatedAdminCountriesCodeStudioIndexRoute
+  '/admin/countries/$code/cabinet/agenda/$sid': typeof AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute
   '/admin/countries/$code/narrative/signal/$id': typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute
   '/admin/countries/$code/studio/threats/$id': typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRoute
 }
@@ -849,6 +858,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/portfolio/': typeof AuthenticatedAdminCountriesCodePortfolioIndexRoute
   '/_authenticated/admin/countries/$code/scenarios/': typeof AuthenticatedAdminCountriesCodeScenariosIndexRoute
   '/_authenticated/admin/countries/$code/studio/': typeof AuthenticatedAdminCountriesCodeStudioIndexRoute
+  '/_authenticated/admin/countries/$code/cabinet/agenda/$sid': typeof AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute
   '/_authenticated/admin/countries/$code/narrative/signal/$id': typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute
   '/_authenticated/admin/countries/$code/studio/threats/$id': typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRoute
 }
@@ -938,6 +948,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/portfolio/'
     | '/admin/countries/$code/scenarios/'
     | '/admin/countries/$code/studio/'
+    | '/admin/countries/$code/cabinet/agenda/$sid'
     | '/admin/countries/$code/narrative/signal/$id'
     | '/admin/countries/$code/studio/threats/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -1017,6 +1028,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/portfolio'
     | '/admin/countries/$code/scenarios'
     | '/admin/countries/$code/studio'
+    | '/admin/countries/$code/cabinet/agenda/$sid'
     | '/admin/countries/$code/narrative/signal/$id'
     | '/admin/countries/$code/studio/threats/$id'
   id:
@@ -1105,6 +1117,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/countries/$code/portfolio/'
     | '/_authenticated/admin/countries/$code/scenarios/'
     | '/_authenticated/admin/countries/$code/studio/'
+    | '/_authenticated/admin/countries/$code/cabinet/agenda/$sid'
     | '/_authenticated/admin/countries/$code/narrative/signal/$id'
     | '/_authenticated/admin/countries/$code/studio/threats/$id'
   fileRoutesById: FileRoutesById
@@ -1727,6 +1740,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRouteImport
       parentRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRoute
     }
+    '/_authenticated/admin/countries/$code/cabinet/agenda/$sid': {
+      id: '/_authenticated/admin/countries/$code/cabinet/agenda/$sid'
+      path: '/countries/$code/cabinet/agenda/$sid'
+      fullPath: '/admin/countries/$code/cabinet/agenda/$sid'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeCabinetAgendaSidRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
   }
 }
 
@@ -1831,6 +1851,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminCountriesCodeStudioRoute: typeof AuthenticatedAdminCountriesCodeStudioRouteWithChildren
   AuthenticatedAdminCountriesCodeVizRoute: typeof AuthenticatedAdminCountriesCodeVizRoute
   AuthenticatedAdminCountriesCodeCabinetIndexRoute: typeof AuthenticatedAdminCountriesCodeCabinetIndexRoute
+  AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute: typeof AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute
 }
 
 const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
@@ -1864,6 +1885,8 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
       AuthenticatedAdminCountriesCodeVizRoute,
     AuthenticatedAdminCountriesCodeCabinetIndexRoute:
       AuthenticatedAdminCountriesCodeCabinetIndexRoute,
+    AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute:
+      AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute,
   }
 
 const AuthenticatedAdminRouteRouteWithChildren =

@@ -419,33 +419,22 @@ export function GuidedRail({
             </dl>
 
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
-                Top 3 movers · Y1 GDP contribution
+              <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
+                Top movers · fine-tune here
+                <CoachTip id="sensitivity" title="Sensitivity dials">
+                  These are the three levers doing most of the work. Drag any one — the fan
+                  chart on the right redraws instantly. Save when the story lands.
+                </CoachTip>
               </p>
-              <ul className="mt-2 space-y-1.5 text-[12px]">
-                {topAttribution.length === 0 && (
-                  <li className="text-ink-500">Levers at default — no attribution.</li>
-                )}
-                {topAttribution.map((a) => (
-                  <li key={a.lever_slug} className="flex items-baseline justify-between gap-2">
-                    <span className="truncate text-ink-950">{a.lever_slug}</span>
-                    <span
-                      className="shrink-0 font-mono text-[11px] tabular-nums"
-                      style={{
-                        color:
-                          a.contribution_pp > 0
-                            ? "var(--sector-06)"
-                            : a.contribution_pp < 0
-                              ? "var(--sector-04)"
-                              : "var(--ink-500)",
-                      }}
-                    >
-                      {a.contribution_pp > 0 ? "+" : ""}
-                      {a.contribution_pp.toFixed(2)} pp
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <div className="mt-3">
+                <SensitivityMini
+                  slugs={topAttribution.map((a) => a.lever_slug)}
+                  defs={init.leverDefs}
+                  levers={levers}
+                  attribution={current.output.attribution}
+                  onLever={onLever}
+                />
+              </div>
             </div>
 
             <label className="block">

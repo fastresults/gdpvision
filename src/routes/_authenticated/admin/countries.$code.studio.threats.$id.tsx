@@ -110,6 +110,7 @@ function StrategyWorkbench() {
   const saveFn = useServerFn(saveStrategy);
   const promotePackagesFn = useServerFn(promoteStrategyToPackages);
   const promoteScenarioFn = useServerFn(promoteStrategyToScenario);
+  const regenBriefFn = useServerFn(regenerateThreatBrief);
 
   const [name, setName] = useState(
     strategy?.name ?? `Resilient strategy · ${threat.name}`,

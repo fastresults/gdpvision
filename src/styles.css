@@ -60,11 +60,15 @@
   /* GDPVision instrument tokens exposed as Tailwind color utilities */
   --color-ink-950: var(--ink-950);
   --color-ink-900: var(--ink-900);
+  --color-ink-800: var(--ink-800);
   --color-ink-700: var(--ink-700);
+  --color-ink-600: var(--ink-600);
   --color-ink-500: var(--ink-500);
+  --color-ink-400: var(--ink-400);
   --color-ink-300: var(--ink-300);
   --color-paper-0: var(--paper-0);
   --color-paper-100: var(--paper-100);
+  --color-line-100: var(--line-100);
   --color-line-200: var(--line-200);
   --color-gold-500: var(--gold-500);
   --color-gold-300: var(--gold-300);
@@ -100,11 +104,15 @@
   /* Foundation — ink & paper */
   --ink-950: #08111f;
   --ink-900: #0d1b2e;
+  --ink-800: #142640;
   --ink-700: #1e3350;
+  --ink-600: #334966;
   --ink-500: #48607f;
+  --ink-400: #6b81a0;
   --ink-300: #9daec2;
   --paper-0: #fcfcfa;
   --paper-100: #f4f4ef;
+  --line-100: #eeefe8;
   --line-200: #e3e4dd;
 
   /* Sovereign accent */

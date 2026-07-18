@@ -148,7 +148,7 @@ export async function runPressTick(opts: {
 
     // Round-robin interleave so every country gets classification progress.
     const seenPerCountry = new Map<string, number>();
-    const toClassify: Array<{ id: string; country_code: string; url: string | null; title: string; raw_excerpt: string | null }> = [];
+    const toClassify: PoolItem[] = [];
     const cursors = new Map<string, number>();
     const countryQueue = Array.from(perCountryPool.keys());
     let anyLeft = true;

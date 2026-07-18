@@ -1,71 +1,49 @@
-# Ask the Ledger — 3-Tier Answer Engine
+# Only-Active Citations + Source Popovers in Ask the Ledger
 
-Today `askTheLedger` retrieves chunks by naive keyword overlap. When no chunk contains the query tokens (e.g. "blue economy" isn't literally in any indexed doc), the model refuses with "no grounded evidence" — even though KPIs, sector dossiers, ministry profiles, and the wider corpus almost always have relevant context, and Perplexity could fill any remaining gap.
+Today, `askTheLedger` returns every candidate source it retrieved (corpus chunks, country context anchors, web results) as `citations[]`, even when the model never references them. The inline `[N]` markers link out with a plain `target="_blank"` anchor, and the "Sources" list at the bottom includes every candidate — including entries with a title but no URL or with an empty title.
 
-## New Tiered Resolver
+Two problems to fix:
+1. Blank / unused citations appear under every answer.
+2. There's no way to preview a source without leaving the page.
 
-Every question runs through up to three tiers. The first tier that yields a confident, cited answer wins. Lower tiers are additive context, not replacements — later tiers always see everything earlier tiers pulled.
+## Changes
 
-### Tier 1 — Corpus (grounded citations, highest weight)
-- Keep the current retrieval, but upgrade it:
-  - Add **embeddings-based semantic search** over `country_source_chunks.content` (Lovable AI `google/gemini-embedding-001`, cosine top-40) alongside the existing keyword filter, then merge + rerank.
-  - Backfill embeddings on ingest (new `embedding vector(3072)` column with HNSW halfvec index) and a one-shot backfill script for existing chunks.
-  - Semantically expand query tokens (synonyms/sector aliases like "blue economy" → fisheries, marine, ocean, coastal, aquaculture) via a tiny Gemini call before search.
-- Weight: chunks & their `[N]` citations rank first in the final prompt.
+### 1. Server — prune to only-active citations (`src/lib/ledger.functions.ts`)
 
-### Tier 2 — Whole-country context (always included when Tier 1 is thin)
-Aggregate the full Second Brain for the country, regardless of query match:
-- All `country_kpis` (latest_value, target, trend), `country_sectors` composition + confidence grades.
-- All `sector_dossiers.payload` (compact JSON summary — headline metrics, drivers, risks).
-- All `ministry_profiles` (mandate, minister, programmes).
-- Top `memory_objects` by weight for the country + `REGIONAL`.
-- Exposure index + capital flows snapshot.
+After the model returns its `structured` answer (and before responding to the client):
 
-These become **anchor citations** (`kind: "memory"`) with source_id → dossier/kpi rows so `[N]` markers remain clickable. The model is told: "corpus citations are primary evidence; anchors are canonical country facts you may reason from."
+- Collect every `[N]` marker across `situation`, `direct_answer`, `key_evidence[]`, `so_what[]`, and `caveats[]` (plus the plain-text fallback `answer` when structured parsing failed).
+- Build the outgoing `citations[]` from that set only, in first-appearance order, and renumber sequentially (`1..k`).
+- Rewrite every `[N]` in the answer text to the new numbering so markers and list stay in sync.
+- Drop any citation that is empty (no `title` AND no `url` AND no `excerpt`) even if referenced — replace its marker with plain text.
+- Recompute `sources_used = { corpus, country_context, web }` from the pruned set so the chip matches reality.
 
-### Tier 3 — Deep research fallback (only if Tiers 1+2 still can't answer)
-- The model returns a structured `needs_research: true` flag when confidence would be "low" and no corpus citation supports the claim.
-- Server then calls **Perplexity `sonar-reasoning-pro`** (already wired in the onboarding stack) with the question + a country brief.
-- Perplexity's answer + its citations are appended as `kind: "web"` citations. A final Gemini pass composes the McKinsey-style answer over the combined evidence.
-- Newly discovered high-quality sources are queued into `country_sources` as `pending_review` so the corpus self-heals over time (reuses the existing dedupe / upsert path).
+This applies uniformly whether the answer came from Tier 1 (corpus), Tier 2 (country context), or Tier 3 (deep research).
 
-### McKinsey-style output (all tiers)
-Structured JSON stays the same shape but adds:
-- `situation` (1 sentence framing), `answer` (direct), `so_what` (2–3 bullets of implication), `evidence` (with [N]), `confidence`, `caveats`, `sources_used` (`corpus` | `country_context` | `web_research`).
-- Confidence rubric: `high` = ≥2 corpus citations; `medium` = anchors + ≥1 corpus OR strong web with anchors; `low` = web-only or no numeric grounding.
+### 2. Client — source popover on every `[N]` (`src/components/ledger/AskTheLedger.tsx`)
 
-## UX Changes (`AskTheLedger.tsx`)
-- Small "Sources used" chip row on each answer: `Corpus · 4` / `Country context · 3` / `Web · 2`.
-- When Tier 3 fires, show a subtle "Extended with live web research" note above the answer.
-- Loading states: "Searching corpus…" → "Reading country context…" → "Deep research…" so the user knows why it took longer.
-- Never return the "no grounded evidence" dead-end again — worst case is a Tier-2 answer flagged `confidence: low` with caveats.
+Replace the current inline `<a>` in `renderCitations()` with the shadcn `Popover` primitive, wrapping a small button that shows `[N]`:
 
-## Technical Section
+- **Trigger**: superscript `[N]` button (keyboard-focusable, `aria-label="Source N: <title>"`).
+- **Content**: title, org, one-line source kind badge (Corpus / Country Context / Web), the excerpt (line-clamped to ~5 lines), and an "Open source ↗" link when a URL exists.
+- Popover opens on click (works on touch) AND on keyboard focus; add a small `onMouseEnter` delay to also open on hover for desktop parity.
+- If the citation has no URL, show the excerpt only and omit the outbound link.
 
-### Files to change
-- `src/lib/ledger.functions.ts` — refactor `askTheLedger` into `tier1Corpus()`, `tier2CountryContext()`, `tier3DeepResearch()`, plus an orchestrator. Add `expandQuery()` and `semanticSearchChunks()` helpers.
-- `src/lib/ledger-embeddings.server.ts` (new) — Lovable AI embeddings client + backfill utility.
-- `src/lib/ledger-deep-research.server.ts` (new) — Perplexity sonar-reasoning-pro wrapper reusing keys/patterns from `src/lib/country-onboarding/*`.
-- `src/components/ledger/AskTheLedger.tsx` — render `sources_used` chips, tier progress, "extended with research" badge.
-- New migration:
-  - `alter table country_source_chunks add column embedding vector(3072)`.
-  - HNSW halfvec index on `(embedding::halfvec(3072)) halfvec_cosine_ops`.
-  - `match_country_chunks(country_code, query_embedding, k)` SQL function with `SECURITY INVOKER` (respects RLS).
-  - GRANTs preserved for authenticated/service_role.
-- Backfill: one-off server function `backfillChunkEmbeddings({ countryCode })` (batched, 96/req).
+The bottom "Sources" list keeps its current layout but now reflects the pruned set automatically. Each row also becomes a popover trigger (same content) so the user can preview without leaving the page.
 
-### Model choices
-- Query expansion + final synthesis: `google/gemini-3.5-flash` (fast, JSON-mode).
-- Embeddings: `google/gemini-embedding-001` (3072 dims, matches memory of no-duplicates corpus contract).
-- Deep research: Perplexity `sonar-reasoning-pro` (existing key), 45s timeout, single call per question.
+### 3. Types
 
-### Guardrails
-- Tier 3 gated by `has_role(authenticated, 'admin')` OR a per-country daily quota (10 web calls/country/day) to control credit spend — configurable in `app_settings`.
-- Every web citation must include `url`; drop uncited web claims.
-- Preserve existing suppression list, PrettyJson rules, and idempotent source upserts.
-- No changes to auth middleware; new endpoint stays under `requireSupabaseAuth`.
+Extend `FigureCitation` in `src/lib/ledger.functions.ts` (already carries `title`, `url`, `org`, `excerpt`, `kind`) — no schema change, just make sure the pruning helper preserves `excerpt` and `kind` on the returned objects.
 
-### Rollout
-1. Ship migration + embeddings backfill (safe: additive column).
-2. Ship refactored `askTheLedger` with Tiers 1+2 (already a strict upgrade — no more dead-ends for Antigua's "blue economy" question).
-3. Enable Tier 3 behind a feature flag, verify credit usage, then remove flag.
+## Out of scope
+
+- No database changes.
+- No changes to how citations are gathered pre-answer (corpus/context/web retrieval logic stays as-is).
+- Voice recorder, clear/copy/regenerate, and confidence chip are unchanged.
+
+## Verification
+
+1. Ask a question that produces a structured answer citing e.g. `[2]` and `[5]` out of 8 retrieved sources → the response and the "Sources" list show exactly 2 entries, renumbered `[1]` and `[2]`.
+2. Ask a question where the model returns no `[N]` markers → citations array is empty; no "Sources" block renders.
+3. Click and hover any `[N]` → popover shows title, org, kind badge, excerpt, and (when present) an outbound link.
+4. Confirm no citation row appears with a blank title and no URL.

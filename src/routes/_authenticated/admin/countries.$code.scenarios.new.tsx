@@ -251,14 +251,16 @@ function Builder() {
   const baselineY1 = init.output.gdpGrowthPath[0]?.p50 ?? 2.0;
   const baselineYEnd =
     init.output.gdpGrowthPath[init.output.gdpGrowthPath.length - 1]?.p50 ?? 2.0;
+  const baselinePath = useMemo(() => {
+    // Synthesize a flat baseline (do-nothing) path aligned to the current
+    // horizon so the fan-chart overlay and ledger stay in sync when the
+    // user changes horizon length.
+    const b1 = init.output.gdpGrowthPath[0] ?? { p10: baselineY1 - 0.6, p50: baselineY1, p90: baselineY1 + 0.6 };
+    return current.output.gdpGrowthPath.map(() => ({ p10: b1.p10, p50: b1.p50, p90: b1.p90 }));
+  }, [init.output.gdpGrowthPath, current.output.gdpGrowthPath, baselineY1]);
   const compensation = useMemo(
-    () =>
-      computeCompensation(
-        init.output.gdpGrowthPath,
-        current.output.gdpGrowthPath,
-        current.output.years,
-      ),
-    [init.output.gdpGrowthPath, current.output.gdpGrowthPath, current.output.years],
+    () => computeCompensation(baselinePath, current.output.gdpGrowthPath, current.output.years),
+    [baselinePath, current.output.gdpGrowthPath, current.output.years],
   );
 
   const save = useMutation({

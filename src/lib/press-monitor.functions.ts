@@ -50,7 +50,7 @@ export const listFeeds = createServerFn({ method: "GET" })
   .handler(async ({ data, context }): Promise<FeedRow[]> => {
     const { data: rows, error } = await context.supabase
       .from("narrative_feeds")
-      .select("id,country_code,scope,kind,endpoint,label,language,sector_hint,ministry_hint,weight,active,last_polled_at,last_status,last_error,consecutive_failures")
+      .select("id,country_code,scope,kind,endpoint,label,language,sector_hint,ministry_hint,weight,active,last_polled_at,last_status,last_error,consecutive_failures,is_seed,is_query,discovered_at,tier_hint")
       .eq("country_code", data.countryCode)
       .order("scope", { ascending: true })
       .order("label", { ascending: true });

@@ -605,18 +605,29 @@ function CommsDetail({ id, code, onDeleted, isTemplateTab }: { id: string; code:
 
       {/* Tabs */}
       <nav className="flex gap-1 border-b border-line-200 px-2">
-        {(["body", "history"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={cn(
-              "border-b-2 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em]",
-              tab === t ? "border-ink-950 text-ink-950" : "border-transparent text-ink-500 hover:text-ink-950",
-            )}
-          >
-            {t === "body" ? "Body" : `Activity · ${approvals.length + d.revisions.length}`}
-          </button>
-        ))}
+        {(() => {
+          const canEdit = !a.is_template && a.draft_state !== "released";
+          const tabs: Array<{ key: "body" | "edit" | "history"; label: string }> = [
+            { key: "body", label: "Body" },
+          ];
+          if (canEdit) tabs.push({ key: "edit", label: "Edit" });
+          tabs.push({ key: "history", label: `Activity · ${approvals.length + d.revisions.length}` });
+          return tabs.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => {
+                if (t.key === "edit" && bodyDraft === null) setBodyDraft(a.body ?? "");
+                setTab(t.key);
+              }}
+              className={cn(
+                "border-b-2 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em]",
+                tab === t.key ? "border-ink-950 text-ink-950" : "border-transparent text-ink-500 hover:text-ink-950",
+              )}
+            >
+              {t.label}
+            </button>
+          ));
+        })()}
       </nav>
 
       <div className="max-h-[60vh] overflow-y-auto p-4">
@@ -631,6 +642,45 @@ function CommsDetail({ id, code, onDeleted, isTemplateTab }: { id: string; code:
               }))}
             />
           </article>
+        )}
+        {tab === "edit" && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[11px] text-ink-600">
+                Markdown supported. Every save creates a versioned revision — reviewers can restore prior copy from Activity.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setBodyDraft(null); setTab("body"); }}
+                  disabled={updateBodyM.isPending}
+                >
+                  <XIcon size={12} className="mr-1" /> Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    const b = (bodyDraft ?? "").trim();
+                    if (!b) { toast.error("Body cannot be empty"); return; }
+                    updateBodyM.mutate({ body: bodyDraft ?? "" });
+                  }}
+                  disabled={updateBodyM.isPending || bodyDraft === null || bodyDraft === (a.body ?? "")}
+                  className="bg-ink-950 text-paper-0 hover:bg-ink-800"
+                >
+                  <Save size={12} className="mr-1" />
+                  {updateBodyM.isPending ? "Saving…" : "Save revision"}
+                </Button>
+              </div>
+            </div>
+            <textarea
+              value={bodyDraft ?? ""}
+              onChange={(e) => setBodyDraft(e.target.value)}
+              spellCheck
+              className="w-full min-h-[420px] resize-y border border-line-200 bg-paper-0 p-3 font-mono text-[12.5px] leading-relaxed text-ink-900 focus:outline-none focus:border-ink-500"
+              placeholder="Write the copy in markdown…"
+            />
+          </div>
         )}
         {tab === "history" && (
           <UnifiedTimeline

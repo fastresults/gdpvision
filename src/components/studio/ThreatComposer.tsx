@@ -65,32 +65,35 @@ export function ThreatComposer({
       className="space-y-8"
     >
       <section>
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Step 1 · Pick a threat
-        </p>
+        <ExplainHover copy={EXPLAIN.pick_threat} side="right">
+          <p className="cursor-help font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 underline decoration-dotted decoration-line-200 underline-offset-4">
+            Step 1 · Pick a threat
+          </p>
+        </ExplainHover>
         <div className="mt-3 flex flex-wrap gap-2">
           {THREAT_PRESETS.map((p) => (
-            <button
-              type="button"
-              key={p.key}
-              onClick={() => setType(p.key)}
-              className={cn(
-                "border px-3 py-2 text-left transition",
-                type === p.key
-                  ? "border-ink-950 bg-ink-950 text-paper-0"
-                  : "border-line-200 text-ink-700 hover:border-ink-950",
-              )}
-            >
-              <span className="block text-sm">{p.label}</span>
-              <span
+            <ExplainHover key={p.key} copy={{ title: p.label, what: p.hint, why: "Presets encode the transmission channel so the AI briefing and stress test use the right model of how this shock propagates.", how: "Pick the closest match; you can refine severity, horizon and onset below." }} side="top">
+              <button
+                type="button"
+                onClick={() => setType(p.key)}
                 className={cn(
-                  "block text-[11px]",
-                  type === p.key ? "text-paper-0/70" : "text-ink-500",
+                  "border px-3 py-2 text-left transition",
+                  type === p.key
+                    ? "border-ink-950 bg-ink-950 text-paper-0"
+                    : "border-line-200 text-ink-700 hover:border-ink-950",
                 )}
               >
-                {p.hint}
-              </span>
-            </button>
+                <span className="block text-sm">{p.label}</span>
+                <span
+                  className={cn(
+                    "block text-[11px]",
+                    type === p.key ? "text-paper-0/70" : "text-ink-500",
+                  )}
+                >
+                  {p.hint}
+                </span>
+              </button>
+            </ExplainHover>
           ))}
         </div>
         <label className="mt-4 block">

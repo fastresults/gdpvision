@@ -6,7 +6,7 @@ const CHAMBERS = [
   { n: "02", icon: Layers, title: "Portfolio Workspaces", blurb: "One workspace per ministerial portfolio.", to: "/admin/countries/$code/portfolio" as const, kind: "params" as const },
   { n: "03", icon: Activity, title: "The Scenario Engine", blurb: "Consequence-free rehearsal across every downstream metric.", to: "/admin/countries/$code/scenarios" as const, kind: "params" as const },
   { n: "04", icon: TrendingUp, title: "The FDI Transition Studio", blurb: "Threat in, resilient FDI strategy out — sector by sector.", to: "/admin/countries/$code/studio" as const, kind: "params" as const },
-  { n: "05", icon: MessageSquare, title: "The Narrative Chamber", blurb: "Signal to statement inside a working day.", to: "/narrative" as const, kind: "search" as const },
+  { n: "05", icon: MessageSquare, title: "The Narrative Chamber", blurb: "Signal to statement inside a working day.", to: "/admin/countries/$code/narrative" as const, kind: "params" as const },
   { n: "06", icon: Landmark, title: "The Cabinet Room", blurb: "Consolidated national view, Session Mode, commitments register.", to: "/instrument/cabinet" as const, kind: "search" as const },
 
 ];

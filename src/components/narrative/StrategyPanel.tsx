@@ -84,7 +84,7 @@ export function StrategyPanel({ signalId }: { signalId: string }) {
                 {(seven.talking_points as string[]).map((t, i) => (
                   <li key={i} className="flex gap-2">
                     <span className="font-mono text-[10px] text-ink-500">{String(i + 1).padStart(2, "0")}</span>
-                    <span>{t}</span>
+                    <span><CitedText text={t} citations={citations} /></span>
                   </li>
                 ))}
               </ol>

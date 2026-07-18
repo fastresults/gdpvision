@@ -1,7 +1,7 @@
 // Inline artifact panel: shows the streamed/loaded expansion beneath an answer.
 // Reuses citation popovers from the parent component via passed renderCitations.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Copy, Download, RefreshCw, Wand2, X, Loader2 } from "lucide-react";

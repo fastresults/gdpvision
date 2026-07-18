@@ -18,7 +18,10 @@ export const Route = createFileRoute("/_authenticated/narrative")({
 function NarrativeShell() {
   const { data: bindings } = useSuspenseQuery(bindingsQuery);
   const navigate = useNavigate();
+  const search = useSearch({ strict: false }) as { returnCode?: string };
+  const returnCode = typeof search?.returnCode === "string" ? search.returnCode : null;
   const defaultCode = bindings.find((b) => b.is_default)?.country_code ?? bindings[0]?.country_code ?? "LCA";
+
 
   const nav = [
     { to: "/narrative", label: "Signal" },

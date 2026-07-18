@@ -1,59 +1,118 @@
-# Differentiating Chamber 02 vs Chamber 03
 
-## The problem
+# Chamber 04 — The FDI Transition Studio (Threat → Resilient Strategy)
 
-Today Chamber 02's ministry page ends in a "Scenarios" section with a **New scenario** CTA that hands off to Chamber 03's builder. That makes 02 read as "a lightweight scenario launcher" — a diet version of 03 — instead of a chamber with its own reason to exist. A cabinet-tier user opening 02 and 03 back-to-back sees the same primitives (sectors, KPIs, a scenarios list) and rightly asks why both exist.
+## Value proposition (locked, distinct from other chambers)
 
-## The two value propositions (locked)
+**"A shock hits one sector. What does our FDI strategy need to become?"**
 
-Rewrite the mental model so each chamber owns one job:
+Chamber 04 is a **resilience workbench**: the user names a threat (tariff, hurricane, CBI wind-down, tourism collapse, key-employer exit, commodity price shock, sanctions, treaty change), points it at one or more sectors, and the tool computes the FDI exposure, then interactively builds a **resilient replacement strategy** — reallocating FDI targets across sectors, staging packages over a horizon, and stress-testing the resulting plan against the shock.
 
-- **Chamber 02 — Portfolio Workspaces → "Who owns what, and how is it performing *today*?"**
-  Backward- and present-looking. The permanent record of ministerial accountability: who the minister is, which sectors they own, how those sectors are performing against KPI targets, where delivery is at risk, what evidence backs each claim. Read-heavy, evidence-heavy, no simulation.
+Distinct from siblings:
+- **02** = accountability for what exists now.
+- **03** = free-form policy simulation across any lever.
+- **04** = shock-in → strategy-out. The threat is the input primitive; a resilient, staged FDI reallocation is the output. CBI wind-down is one preset among many, not the framing.
 
-- **Chamber 03 — Scenario Engine → "What happens *if* we change a lever?"**
-  Forward-looking only. Pure hypothesis workspace: pick levers, run a projection, compare, narrate. Never the system of record for a ministry's current state.
+## Product flow (three acts, one chamber)
 
-The dividing line: **actuals + accountability live in 02. Counterfactuals + projections live in 03.** No exceptions.
+Left-to-right pipeline visible at all times as a numbered stepper:
 
-## What changes in Chamber 02
+**Act 1 — Name the threat** → **Act 2 — Rebuild the strategy** → **Act 3 — Stress-test & commit**
 
-Rebuild `countries.$code.portfolio.$ministry.tsx` around a Delivery Dossier, not a scenario launcher:
+### Act 1 — Threat Composer
+- **Threat picker**: preset chips (Tariff, Hurricane / Climate, CBI wind-down, Tourism demand collapse, Anchor employer exit, Commodity shock, Sanctions, Treaty / rules-of-origin change) + "Custom threat" free-text.
+- **Targets**: multi-select sectors from this country's `sectors` table (color-coded, sorted by GDP share).
+- **Shape** three sliders: **Severity** (0–100%), **Horizon** (1–10 yrs), **Onset** (immediate / phased / tail-risk).
+- **AI framing (one call)**: on submit, Lovable AI writes a McKinsey-tone 3-bullet framing — mechanism, first-order FDI exposure, second-order sector spillovers — grounded in the country's corpus (sectors, ministry_profiles, kpis). Citations rendered as chips.
+- Output: a **ThreatBrief** persisted to `fdi_threats` — the working record for Acts 2 & 3.
 
-1. **Minister & mandate header** (keep, tighten). Portrait, name, party, appointed date, contact, plus a new one-line **mandate statement** pulled from `ministry_profiles`.
-2. **Portfolio scorecard strip** — 4 tiles: total GDP share owned, # sectors, # KPIs on/near/off-track (from `country_kpi_points` vs targets), evidence coverage % (share of KPIs with a cited source in the last 24 months). This is the "how is it performing today" answer at a glance.
-3. **Sectors table** (keep) — add an on/near/off-track pill per sector derived from its KPIs.
-4. **KPI performance panel** — replace the current small-multiples strip with a delivery-oriented table: KPI, latest value, target, variance, trend sparkline, last-updated, source chip. Sorted by variance so risk floats to the top.
-5. **Programmes & commitments** — render `ministry_profiles.programmes` and any mandate items already in the corpus, each with citation chips. This is Chamber 02's unique surface; 03 doesn't touch it.
-6. **Evidence rail** — collapsible list of `onboarding_citations` scoped to this ministry, so an admin can audit *why* the dossier says what it says.
-7. **Remove** the "Scenarios (N) / New scenario" block entirely from the ministry page. Replace with a single quiet cross-link at the bottom of the page: *"Model a change to this portfolio → Chamber 03"* that deep-links to `/scenarios/new?ministry=…`. Chamber 02 stops being a scenario surface.
+### Act 2 — Strategy Canvas (the money surface)
+Split-pane canvas, always live:
 
-Chamber 02 index (`portfolio.index.tsx`) becomes a **cabinet-wide accountability grid**: one row per ministry with the same on/near/off-track counts and evidence coverage %, sortable — the Prime Minister's view of delivery across the whole cabinet.
+- **Left rail — Exposure ledger**: for each sector, current GDP share, current FDI stock/flow (from `country_capital_flows` / `exposure_index`), and the AI-computed **exposure delta** the threat inflicts (pp of GDP at risk). Row order: highest exposure first. This is the "what breaks" column.
+- **Center — Reallocation canvas**: a horizontal **Marimekko-style bar** representing 100% of the FDI envelope (current allocation on top, "resilient" allocation below). User drags handles between sectors to reallocate; each drag shows the new sector shares and the shortfall/surplus vs the exposure delta. Under the Marimekko, a **timeline strip** (year 1 → horizon) lets the user stage the reallocation by year (packages appear as blocks the user can slide across time).
+- **Right rail — Resilience actions**: auto-suggested and user-editable packages, each with `{sector, target_pp, staging_year, action_type, sponsor_ministry}`. Action types: `attract_new_fdi`, `expand_existing`, `retain_at_risk`, `substitute_domestic`, `exit_wind_down`. Every action links back to the exposure row it's answering.
+- **AI co-pilot (loop, not one-shot)**: "Suggest a resilient allocation" runs a Lovable AI pass that reads the ThreatBrief + current allocation + sector KPIs + ministry_profiles and returns a proposed reallocation + action set. The user accepts, edits inline, or re-prompts with a constraint ("no reduction in tourism sponsorship", "keep manufacturing under 15%"). Every AI-authored value is flagged with a small "AI" badge and its citations.
 
-## What changes in Chamber 03
+### Act 3 — Stress Test & Commit
+- **Impact strip** (reuse `StatStrip`): Exposure closed (pp), Residual risk (pp), Diversification index change (HHI delta), Time-to-resilience (years), Ministries engaged.
+- **Waterfall**: Baseline FDI exposure → sector-by-sector mitigation contributions → residual. Same visual grammar as Chamber 03's GdpFanChart family so numbers feel native.
+- **Scenario table**: side-by-side vs. "Do nothing" and vs. current plan of record. Delta columns tabular-nums.
+- **Commit**: three exit ramps, chosen explicitly:
+  1. **Save as Draft strategy** (stays in Chamber 04).
+  2. **Promote to Plan of Record** — writes each Action as a `packages` row (existing table), tagged with the source `fdi_threat_id`; visible in Chamber 02 as ministry commitments.
+  3. **Model as Scenario** — deep-links to Chamber 03 with the reallocation pre-seeded.
 
-Mostly reinforcement — make sure 03 doesn't drift back into "system of record" territory:
+## Country-scoped route tree
 
-1. Every scenario view labels itself **Projection** in the header chip; baseline values are labeled **Actual (Chamber 02)** with a link back to the source ministry dossier.
-2. Remove any UI in 03 that lets a user edit ministry composition, KPI targets, or sector weights — those are 02's job. 03 reads them.
-3. Add a "Baseline from" line on every scenario referencing the ministry/portfolio it's projecting against, with a link to Chamber 02.
+Mirror the Chamber 02/03 pattern (params-based, breadcrumbs back to `/onboard`):
 
-## Cross-linking rules
+- `/admin/countries/$code/studio` — layout, `SuperAdminShell wide`, sub-nav: **Threats · Strategies · Board**.
+- `/studio/index.tsx` — **Threats list** + `+ New threat` (empty state guides straight into Act 1).
+- `/studio/threats.new.tsx` — Act 1 composer.
+- `/studio/threats.$id.tsx` — Acts 2 + 3 on one page (the stepper toggles the view; state persists so users can iterate).
+- `/studio/strategies.tsx` — all committed / draft strategies for the country.
+- `/studio/board.tsx` — kanban of promoted packages by status (Draft · Proposed · Approved · Active), grouped by originating threat.
 
-- 02 → 03: single "Model a change" link per ministry, bottom of page.
-- 03 → 02: every scenario shows "Baseline: {Ministry}" linking back.
-- Neither chamber embeds the other's primary workspace.
+`ChambersLauncher` Chamber 04 tile switches from the current `/instrument/studio/packages` search-param link to `/admin/countries/$code/studio` (params) — same pattern as Chambers 01–03. Legacy `/instrument/studio/*` routes stay; they aren't the launcher target anymore.
+
+## Data model
+
+Two new tables (both country-scoped, RLS-gated). Verified `packages`, `country_capital_flows`, `exposure_index`, `sectors`, `ministry_profiles`, `country_kpis` already exist.
+
+- `fdi_threats` — one row per Act 1 submission: `id, country_code, name, threat_type, target_sector_codes text[], severity_pct, horizon_years, onset, brief jsonb (bullets + citations), created_by, created_at, updated_at, visibility, owner_country_code, uploaded_by`.
+- `fdi_strategies` — one row per Act 2 canvas state: `id, fdi_threat_id, country_code, name, allocation jsonb (per-sector current/target/staging), actions jsonb (per-action shape above), metrics jsonb (Act 3 impact strip), status enum(draft, plan_of_record, superseded), promoted_scenario_id uuid null, promoted_at, created_by, created_at, updated_at, visibility, owner_country_code, uploaded_by`.
+
+Both migrations include the mandatory `GRANT` block (see cloud-db rule), `ENABLE ROW LEVEL SECURITY`, and country-scoped policies using `has_country_access(auth.uid(), country_code)` for read/write plus admin-any policies — mirrors existing `packages`, `capital_flow_nodes` policies. Private/public split honored via the shared `enforce_private_ownership` trigger.
+
+Reuse the existing `packages` table for Act 3's "Promote to Plan of Record" — insert one row per action with `country_code, sector_code, name, target_gap_pct, status='proposed', summary` referencing the source `fdi_threat_id`. No schema change to `packages`.
+
+## Server functions (new, in `src/lib/fdi-resilience.functions.ts`)
+
+All authed via `requireSupabaseAuth`.
+
+- `createThreat({countryCode, threatType, targetSectorCodes, severity, horizon, onset, name?})` — inserts `fdi_threats`, runs the AI framing pass (Lovable AI, model default per project convention), grounds against country corpus via existing `country_chunks_search`, returns the row with `brief`.
+- `listThreats({countryCode})` / `getThreat({id})`.
+- `suggestResilientStrategy({threatId, constraints?})` — AI loop: reads threat + current allocation (derived from `country_capital_flows` + `country_sectors`) + KPIs + ministry_profiles, returns proposed `allocation` + `actions` shape. Idempotent; never mutates until `saveStrategy`.
+- `saveStrategy({threatId, name, allocation, actions, status})` — upserts `fdi_strategies`; computes and stores `metrics`.
+- `promoteToPackages({strategyId})` — inserts one `packages` row per action, tagged with the source threat/strategy id in `summary`, sets `fdi_strategies.status='plan_of_record'`.
+- `promoteToScenario({strategyId})` — inserts a `scenarios` row with the reallocation preloaded, returns id for redirect to Chamber 03.
+
+AI orchestration follows the project rule: Lovable AI Gateway via `src/lib/ai-gateway.server.ts`; corpus grounding via `country_chunks_search`; every AI-produced value carries citations rendered by `<PrettyJson>` with the ordered `citations` array (per the project memory rule).
+
+## Components (new, under `src/components/studio/`)
+
+- `ThreatStepper.tsx` — 3-step numbered stepper (Threat · Strategy · Stress test).
+- `ThreatComposer.tsx` — Act 1 form + AI brief renderer.
+- `ExposureLedger.tsx` — sector rows with exposure deltas and sparklines.
+- `ReallocationMarimekko.tsx` — draggable 100%-width bar showing current vs resilient allocation.
+- `StagingTimeline.tsx` — horizontal year-by-year strip with draggable action blocks.
+- `ResilienceActionsRail.tsx` — right-rail action list with inline edit + AI badges.
+- `StressTestPanel.tsx` — StatStrip + waterfall + comparison table.
+- `CommitBar.tsx` — sticky footer with the three exit ramps.
+- `StudioSubnav.tsx`, `ThreatCard.tsx`, `StrategyCard.tsx` for the index views.
+
+Reuse: `StatStrip` (Chamber 03), `EvidenceRail` (Chamber 02), `SectorColor` helper, `PrettyJson`.
+
+## Cross-links (mirror Chamber 02/03 discipline)
+
+- 04 → 02: each Action's sponsor chip links to the ministry Delivery Dossier.
+- 04 → 03: "Model this strategy as a scenario →" on Act 3.
+- 02 → 04: on ministry dossiers with high exposure, one quiet link: "Under-resilient? Open the FDI Transition Studio →".
+- 03 → 04: on scenario detail, if the scenario was promoted from a strategy, "Baseline: {Threat name} in Chamber 04".
 
 ## Technical notes
 
-- Files to edit: `src/routes/_authenticated/admin/countries.$code.portfolio.$ministry.tsx`, `countries.$code.portfolio.index.tsx`, `countries.$code.portfolio.tsx` (nav copy), and the Chamber 03 scenario detail/new/index routes for the labeling/baseline changes.
-- New components: `PortfolioScorecard`, `KpiDeliveryTable`, `ProgrammesList`, `EvidenceRail` under `src/components/country/portfolio/`.
-- Data sources are already present: `ministry_profiles` (mandate, programmes, citations), `country_kpis` + `country_kpi_points` (actuals vs target for on/near/off-track), `onboarding_citations` (evidence rail), `getPortfolio` (composition). No schema changes required.
-- On/near/off-track thresholds: on = variance within ±5% of target, near = ±5–15%, off = >15%. Configurable constant, not per-country.
-- Keep existing routes and URLs; this is a surface rewrite, not a routing change.
+- Files: routes at `src/routes/_authenticated/admin/countries.$code.studio*.tsx`; components at `src/components/studio/`; server fns in `src/lib/fdi-resilience.functions.ts`; two DB migrations for `fdi_threats` + `fdi_strategies` with the required GRANT + RLS blocks.
+- Country resolution via `useChamberCountry` (route param).
+- AI grounding uses existing corpus RAG (`country_chunks_search`); do not build a new retriever.
+- Numeric UI: all pp/% values `tabular-nums`, 1 decimal, right-aligned; JSON payloads render via `<PrettyJson>` with citations.
+- Drag interactions: native HTML5 DnD for Marimekko handles and timeline blocks; no new dep.
+- Auth: all new fns `requireSupabaseAuth`; routes under `_authenticated/`.
+- Do NOT delete legacy `/instrument/studio/*` routes.
 
 ## Out of scope
 
-- No changes to Chambers 01, 04, 05, 06.
-- No new AI research passes; uses corpus data already committed by onboarding.
-- No schema migrations.
+- No changes to Chambers 01/03/05/06 beyond the two small cross-links noted.
+- No new corpus ingest — Chamber 04 reads what onboarding has already committed.
+- No multi-country / regional shocks in this pass (single-country only; regional in a follow-up).
+- No PDF export in this pass (add to Narrative Chamber later).

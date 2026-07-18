@@ -323,7 +323,7 @@ export function SourcesTab({ code }: { code: string }) {
 // KPIs
 // ============================================================
 
-function KpisTab({ code }: { code: string }) {
+export function KpisTab({ code }: { code: string }) {
   const qc = useQueryClient();
   const { data: kpis } = useSuspenseQuery(kpisQuery(code));
   const { data: coverage } = useSuspenseQuery(kpiCoverageQuery(code));

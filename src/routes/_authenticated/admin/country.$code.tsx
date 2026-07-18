@@ -163,6 +163,8 @@ function CountryAdminPage() {
           </p>
         </section>
 
+        <ChambersLauncher code={code} />
+
         <Requests
           requests={requests}
           pending={decideMut.isPending}

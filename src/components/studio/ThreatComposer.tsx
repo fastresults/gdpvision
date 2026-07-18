@@ -110,9 +110,11 @@ export function ThreatComposer({
       </section>
 
       <section>
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Step 2 · Target sectors
-        </p>
+        <ExplainHover copy={EXPLAIN.target_sectors} side="right">
+          <p className="cursor-help font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 underline decoration-dotted decoration-line-200 underline-offset-4">
+            Step 2 · Target sectors
+          </p>
+        </ExplainHover>
         <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-3">
           {sectors.map((s, i) => {
             const on = targets.includes(s.code);

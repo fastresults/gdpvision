@@ -51,6 +51,7 @@ import { Route as AuthenticatedAdminCountriesIndexRouteImport } from './routes/_
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
 import { Route as ApiPublicHooksSourceHealthRouteImport } from './routes/api/public/hooks/source-health'
 import { Route as ApiPublicHooksPressTickRouteImport } from './routes/api/public/hooks/press-tick'
+import { Route as ApiPublicHooksPressDiscoverRouteImport } from './routes/api/public/hooks/press-discover'
 import { Route as ApiPublicHooksNarrativeHarvestRouteImport } from './routes/api/public/hooks/narrative-harvest'
 import { Route as ApiPublicHooksLedgerQaRouteImport } from './routes/api/public/hooks/ledger-qa'
 import { Route as ApiPublicHooksCadenceDailyRouteImport } from './routes/api/public/hooks/cadence-daily'
@@ -330,6 +331,12 @@ const ApiPublicHooksPressTickRoute = ApiPublicHooksPressTickRouteImport.update({
   path: '/api/public/hooks/press-tick',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksPressDiscoverRoute =
+  ApiPublicHooksPressDiscoverRouteImport.update({
+    id: '/api/public/hooks/press-discover',
+    path: '/api/public/hooks/press-discover',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksNarrativeHarvestRoute =
   ApiPublicHooksNarrativeHarvestRouteImport.update({
     id: '/api/public/hooks/narrative-harvest',
@@ -633,6 +640,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/ledger-qa': typeof ApiPublicHooksLedgerQaRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
+  '/api/public/hooks/press-discover': typeof ApiPublicHooksPressDiscoverRoute
   '/api/public/hooks/press-tick': typeof ApiPublicHooksPressTickRoute
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
@@ -713,6 +721,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/ledger-qa': typeof ApiPublicHooksLedgerQaRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
+  '/api/public/hooks/press-discover': typeof ApiPublicHooksPressDiscoverRoute
   '/api/public/hooks/press-tick': typeof ApiPublicHooksPressTickRoute
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
@@ -795,6 +804,7 @@ export interface FileRoutesById {
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/ledger-qa': typeof ApiPublicHooksLedgerQaRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
+  '/api/public/hooks/press-discover': typeof ApiPublicHooksPressDiscoverRoute
   '/api/public/hooks/press-tick': typeof ApiPublicHooksPressTickRoute
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
@@ -881,6 +891,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/ledger-qa'
     | '/api/public/hooks/narrative-harvest'
+    | '/api/public/hooks/press-discover'
     | '/api/public/hooks/press-tick'
     | '/api/public/hooks/source-health'
     | '/kiosk/api/public/presentation-pdf'
@@ -961,6 +972,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/ledger-qa'
     | '/api/public/hooks/narrative-harvest'
+    | '/api/public/hooks/press-discover'
     | '/api/public/hooks/press-tick'
     | '/api/public/hooks/source-health'
     | '/kiosk/api/public/presentation-pdf'
@@ -1042,6 +1054,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/ledger-qa'
     | '/api/public/hooks/narrative-harvest'
+    | '/api/public/hooks/press-discover'
     | '/api/public/hooks/press-tick'
     | '/api/public/hooks/source-health'
     | '/kiosk/api/public/presentation-pdf'
@@ -1079,6 +1092,7 @@ export interface RootRouteChildren {
   ApiPublicHooksCadenceDailyRoute: typeof ApiPublicHooksCadenceDailyRoute
   ApiPublicHooksLedgerQaRoute: typeof ApiPublicHooksLedgerQaRoute
   ApiPublicHooksNarrativeHarvestRoute: typeof ApiPublicHooksNarrativeHarvestRoute
+  ApiPublicHooksPressDiscoverRoute: typeof ApiPublicHooksPressDiscoverRoute
   ApiPublicHooksPressTickRoute: typeof ApiPublicHooksPressTickRoute
   ApiPublicHooksSourceHealthRoute: typeof ApiPublicHooksSourceHealthRoute
 }
@@ -1377,6 +1391,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/press-tick'
       fullPath: '/api/public/hooks/press-tick'
       preLoaderRoute: typeof ApiPublicHooksPressTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/press-discover': {
+      id: '/api/public/hooks/press-discover'
+      path: '/api/public/hooks/press-discover'
+      fullPath: '/api/public/hooks/press-discover'
+      preLoaderRoute: typeof ApiPublicHooksPressDiscoverRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/narrative-harvest': {
@@ -1977,6 +1998,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksCadenceDailyRoute: ApiPublicHooksCadenceDailyRoute,
   ApiPublicHooksLedgerQaRoute: ApiPublicHooksLedgerQaRoute,
   ApiPublicHooksNarrativeHarvestRoute: ApiPublicHooksNarrativeHarvestRoute,
+  ApiPublicHooksPressDiscoverRoute: ApiPublicHooksPressDiscoverRoute,
   ApiPublicHooksPressTickRoute: ApiPublicHooksPressTickRoute,
   ApiPublicHooksSourceHealthRoute: ApiPublicHooksSourceHealthRoute,
 }

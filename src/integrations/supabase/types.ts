@@ -470,8 +470,11 @@ export type Database = {
           draft_state: string
           id: string
           kind: string
+          published_at: string | null
+          published_url: string | null
           released_at: string | null
           scope_key: string
+          signal_id: string | null
           strategy_id: string | null
           updated_at: string
         }
@@ -485,8 +488,11 @@ export type Database = {
           draft_state?: string
           id?: string
           kind: string
+          published_at?: string | null
+          published_url?: string | null
           released_at?: string | null
           scope_key: string
+          signal_id?: string | null
           strategy_id?: string | null
           updated_at?: string
         }
@@ -500,8 +506,11 @@ export type Database = {
           draft_state?: string
           id?: string
           kind?: string
+          published_at?: string | null
+          published_url?: string | null
           released_at?: string | null
           scope_key?: string
+          signal_id?: string | null
           strategy_id?: string | null
           updated_at?: string
         }
@@ -2040,11 +2049,17 @@ export type Database = {
           final_weight: number | null
           harvest_run_id: string | null
           id: string
+          metadata: Json
           proposed_weight: number
+          reach: number | null
+          recommendation: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          scope: string | null
           scope_key: string
           sector_code: string
+          sentiment: number | null
+          severity: number | null
           source_id: string | null
           state: string
           summary: string | null
@@ -2056,11 +2071,17 @@ export type Database = {
           final_weight?: number | null
           harvest_run_id?: string | null
           id?: string
+          metadata?: Json
           proposed_weight?: number
+          reach?: number | null
+          recommendation?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          scope?: string | null
           scope_key: string
           sector_code: string
+          sentiment?: number | null
+          severity?: number | null
           source_id?: string | null
           state?: string
           summary?: string | null
@@ -2072,11 +2093,17 @@ export type Database = {
           final_weight?: number | null
           harvest_run_id?: string | null
           id?: string
+          metadata?: Json
           proposed_weight?: number
+          reach?: number | null
+          recommendation?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          scope?: string | null
           scope_key?: string
           sector_code?: string
+          sentiment?: number | null
+          severity?: number | null
           source_id?: string | null
           state?: string
           summary?: string | null

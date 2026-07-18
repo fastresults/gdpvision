@@ -166,9 +166,9 @@ export const getRoomOverview = createServerFn({ method: "GET" })
       kind: "narrative",
       id: s.id,
       title: s.topic ?? "Untitled signal",
-      priority: s.priority,
+      priority: s.severity != null ? `P${6 - Math.min(5, Math.max(1, s.severity))}` : null,
       meta: "Narrative",
-      hint: "P1/P2 signal awaiting triage",
+      hint: "High-severity signal awaiting triage",
     });
     for (const s of strategies ?? []) sig.push({
       kind: "strategy",
@@ -181,7 +181,7 @@ export const getRoomOverview = createServerFn({ method: "GET" })
     for (const s of scenarios ?? []) sig.push({
       kind: "scenario",
       id: s.id,
-      title: s.name,
+      title: s.title,
       priority: null,
       meta: "Scenario",
       hint: "Recent scenario run — consider promoting",

@@ -2281,8 +2281,9 @@ export const expandLedgerAnswer = createServerFn({ method: "POST" })
       n: c.n,
       kind: (c.kind ?? "citation") as FigureCitation["kind"],
       title: c.title ?? "",
-      url: c.url ?? "",
-      org: c.org ?? "",
+      url: c.url ?? null,
+      org: c.org ?? null,
+      source_id: null,
       excerpt: c.excerpt ?? "",
     }));
 

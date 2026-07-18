@@ -65,11 +65,34 @@ function ScenarioViewer() {
       <header className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            <span className="mr-2 border border-ink-950 px-1.5 py-0.5 text-ink-950">Projection</span>
             {artifact.status} · {artifact.model_version} · {artifact.horizon_years}y
           </p>
           <h2 className="mt-2 font-serif text-3xl text-ink-950">{artifact.title}</h2>
-          {artifact.ministry && (
-            <p className="mt-1 text-sm text-ink-500">Portfolio · {artifact.ministry.name}</p>
+          {artifact.ministry ? (
+            <p className="mt-1 text-sm text-ink-500">
+              Baseline from ·{" "}
+              <Link
+                to="/admin/countries/$code/portfolio/$ministry"
+                params={{ code, ministry: artifact.ministry.slug }}
+                className="underline underline-offset-2 hover:text-ink-950"
+              >
+                {artifact.ministry.name}
+              </Link>{" "}
+              <span className="text-ink-500/70">(Chamber 02)</span>
+            </p>
+          ) : (
+            <p className="mt-1 text-sm text-ink-500">
+              Baseline from ·{" "}
+              <Link
+                to="/admin/countries/$code/portfolio"
+                params={{ code }}
+                className="underline underline-offset-2 hover:text-ink-950"
+              >
+                {code} cabinet
+              </Link>{" "}
+              <span className="text-ink-500/70">(Chamber 02)</span>
+            </p>
           )}
         </div>
         <div className="flex flex-wrap gap-2">

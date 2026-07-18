@@ -1,94 +1,59 @@
-## Honest critique of the current screen
+# Differentiating Chamber 02 vs Chamber 03
 
-Speaking as a senior UI/UX lead: this is **not** acceptable for a ministerial-tier product. It reads like an internal admin tool, not an instrument used by a Prime Minister's economic council. Concrete failures visible in the screenshot:
+## The problem
 
-### Layout & overflow
-1. **Right column overflows the viewport.** The `xl:grid-cols-[320px_360px_1fr]` grid gives the projection canvas the leftover space, but the two serif stat numbers ("+2.00%" / "+2.00%") collide into each other and the fan chart is clipped on the right edge. At 1386px there simply isn't room for three fixed rails + a canvas.
-2. **Header controls (`COMPARE · 0/4`, `+ NEW SCENARIO`) are cropped** on the right — the page has no max-width discipline and no responsive collapse.
-3. **The scenarios rail is 320px of near-empty space** ("0 scenarios · No scenarios yet"). It dominates the composition while contributing nothing.
-4. **Sector Waterfall / Attribution cards are cramped** into a narrow strip with truncated placeholder copy ("No sector movement", "No lever is…").
+Today Chamber 02's ministry page ends in a "Scenarios" section with a **New scenario** CTA that hands off to Chamber 03's builder. That makes 02 read as "a lightweight scenario launcher" — a diet version of 03 — instead of a chamber with its own reason to exist. A cabinet-tier user opening 02 and 03 back-to-back sees the same primitives (sectors, KPIs, a scenarios list) and rightly asks why both exist.
 
-### Hierarchy & typography
-5. **No clear primary action.** "Save as draft" is buried bottom-right and reads the same weight as "Reset". A ministerial tool needs an obvious *Run / Save / Pin* flow.
-6. **Serif stat numbers at that size fight the fan chart.** They're the loudest thing on screen but they're placeholders (+2.00%), which trains the eye to distrust them.
-7. **Portfolio scope value is truncated** mid-word ("Ministry of Agriculture, Land, Fisheries &").
-8. **Everything is uppercase mono micro-caps.** Used everywhere it becomes noise, not hierarchy. Ministers can't scan it.
+## The two value propositions (locked)
 
-### Interaction
-9. **Playbook tooltip is a heavy black block that obscures adjacent chips** — no arrow, no offset, blocks the click target next to it.
-10. **Playbook chips stack one-per-row**, wasting vertical space and hiding the fact they're mutually exclusive.
-11. **No live-run feedback.** Debounced engine runs happen silently — no shimmer, no "recomputing…" state, no timestamp on the projection.
-12. **"No levers configured for ATG yet"** is shown as flat body copy instead of a first-class empty state with a CTA back to onboarding.
-13. **Lever labels render raw slugs** (`tourism_arrivals_growth`) instead of human names — confirmed in code (`{def.slug}` at line 357).
+Rewrite the mental model so each chamber owns one job:
 
-### Product credibility
-14. **No breadcrumb or portfolio context ribbon.** "ATG · CHAMBER 03" as 10px caption is invisible to a non-technical principal.
-15. **No pinned engine snapshot line** ("Live · Engine v1_macro" appears as micro-text at the bottom of the right rail with no ties to the projection).
-16. **Compare rail counter (0/4) has no affordance** — user can't tell what it does.
+- **Chamber 02 — Portfolio Workspaces → "Who owns what, and how is it performing *today*?"**
+  Backward- and present-looking. The permanent record of ministerial accountability: who the minister is, which sectors they own, how those sectors are performing against KPI targets, where delivery is at risk, what evidence backs each claim. Read-heavy, evidence-heavy, no simulation.
 
----
+- **Chamber 03 — Scenario Engine → "What happens *if* we change a lever?"**
+  Forward-looking only. Pure hypothesis workspace: pick levers, run a projection, compare, narrate. Never the system of record for a ministry's current state.
 
-## Plan — Scenario Engine v2 (elegant, ministerial-grade)
+The dividing line: **actuals + accountability live in 02. Counterfactuals + projections live in 03.** No exceptions.
 
-### 1. Re-architect the layout
-- Collapse to **two rails + canvas** at ≤1440px:
-  - Rail A (280px, collapsible): Scenarios list + framing (title, scope, horizon, playbooks, assumptions).
-  - Rail B (canvas, fluid): projection stack — stats strip → fan chart → waterfall/attribution/tornado grid → narrative.
-  - Levers move into a **right slide-over drawer** (420px) triggered by "Adjust levers · N active" pill. Freeing the canvas is the single biggest visual win.
-- Add `max-w-[1440px] mx-auto` container with `min-w-0` on canvas children to stop overflow.
-- Sticky top action bar (breadcrumb ← Portfolio · Ministry chip · Live badge · Compare · Save & Pin · Run) that survives scroll.
+## What changes in Chamber 02
 
-### 2. Rebuild the stats strip
-- Horizontal 4-up KPI strip with **fixed-width tabular-nums**, hairline dividers, small delta-vs-baseline sparkline under each value.
-- Serif numerals sized to the fan chart's headroom (48–56px), never overlapping.
-- Add "Δ vs baseline" chip (green/amber) and P10/P90 range in small type below P50.
-- 4th stat: **Confidence / draft quality** (source coverage %) — signals rigor.
+Rebuild `countries.$code.portfolio.$ministry.tsx` around a Delivery Dossier, not a scenario launcher:
 
-### 3. Empty & loading states worthy of the tier
-- Replace `"No levers configured for ATG yet"` with a proper empty card: icon, one-line explanation, secondary CTA "Configure levers in onboarding →".
-- Add `Shimmer` on the fan chart + stat numerals while `preview.isPending`; timestamp "Recomputed 0.4s ago · Engine v1_macro".
-- Skeleton the sector waterfall and attribution when levers all sit at baseline (before any change).
+1. **Minister & mandate header** (keep, tighten). Portrait, name, party, appointed date, contact, plus a new one-line **mandate statement** pulled from `ministry_profiles`.
+2. **Portfolio scorecard strip** — 4 tiles: total GDP share owned, # sectors, # KPIs on/near/off-track (from `country_kpi_points` vs targets), evidence coverage % (share of KPIs with a cited source in the last 24 months). This is the "how is it performing today" answer at a glance.
+3. **Sectors table** (keep) — add an on/near/off-track pill per sector derived from its KPIs.
+4. **KPI performance panel** — replace the current small-multiples strip with a delivery-oriented table: KPI, latest value, target, variance, trend sparkline, last-updated, source chip. Sorted by variance so risk floats to the top.
+5. **Programmes & commitments** — render `ministry_profiles.programmes` and any mandate items already in the corpus, each with citation chips. This is Chamber 02's unique surface; 03 doesn't touch it.
+6. **Evidence rail** — collapsible list of `onboarding_citations` scoped to this ministry, so an admin can audit *why* the dossier says what it says.
+7. **Remove** the "Scenarios (N) / New scenario" block entirely from the ministry page. Replace with a single quiet cross-link at the bottom of the page: *"Model a change to this portfolio → Chamber 03"* that deep-links to `/scenarios/new?ministry=…`. Chamber 02 stops being a scenario surface.
 
-### 4. Fix labels, tooltips, playbooks
-- Add human `label` to `LeverDef` (fallback to titleized slug) and render label + slug-as-caption; group by sector with a colored rule bar.
-- Playbook chips: 2-column wrap grid, active state = filled ink, hover reveals blurb inline **below** the grid (not as an overlay), never obscuring adjacent chips.
-- Portfolio scope: replace `<select>` with a searchable combobox that shows the full ministry name and a chip for the sector color.
+Chamber 02 index (`portfolio.index.tsx`) becomes a **cabinet-wide accountability grid**: one row per ministry with the same on/near/off-track counts and evidence coverage %, sortable — the Prime Minister's view of delivery across the whole cabinet.
 
-### 5. Primary action clarity
-- Top-right sticky bar owns: **Run** (secondary), **Save draft** (secondary), **Save & Pin for Compare** (primary, filled).
-- Kill duplicate reset/save cluster at the bottom of the levers drawer.
-- "Compare · 0/4" becomes a real slot indicator: 4 empty squares that fill as scenarios are pinned; click opens `/scenarios/compare`.
+## What changes in Chamber 03
 
-### 6. Narrative & citations (ministerial voice)
-- Move the AI executive narrative (already implemented as `NarrativePanel`) directly under the fan chart with a "So-what" callout block, pull-quote treatment, and citation chips linking to `country_sources`.
-- Add a "Print / Export to brief" affordance (PDF/markdown) — this is what a Minister actually walks into a Cabinet meeting with.
+Mostly reinforcement — make sure 03 doesn't drift back into "system of record" territory:
 
-### 7. Typography & tokens
-- Reduce uppercase-mono captions to *only* section eyebrows and metric units. Body copy in Inter/Karla, numbers in tabular-nums, titles in the existing serif.
-- Introduce two new tokens: `--surface-canvas` (paper-0 + subtle vignette) and `--rule-strong` for the stat divider. All existing ink/sector tokens preserved.
+1. Every scenario view labels itself **Projection** in the header chip; baseline values are labeled **Actual (Chamber 02)** with a link back to the source ministry dossier.
+2. Remove any UI in 03 that lets a user edit ministry composition, KPI targets, or sector weights — those are 02's job. 03 reads them.
+3. Add a "Baseline from" line on every scenario referencing the ministry/portfolio it's projecting against, with a link to Chamber 02.
 
-### 8. Files to touch (frontend only — no engine or data changes)
+## Cross-linking rules
 
-```text
-src/routes/_authenticated/admin/countries.$code.scenarios.new.tsx   ← re-layout + sticky bar
-src/routes/_authenticated/admin/countries.$code.scenarios.tsx        ← rail collapse + shared shell
-src/components/scenarios/StatStrip.tsx                    (new)      ← 4-up KPI with sparkline
-src/components/scenarios/LeversDrawer.tsx                 (new)      ← extract from Column B
-src/components/scenarios/PlaybookChips.tsx                           ← inline blurb, 2-col grid
-src/components/scenarios/GdpFanChart.tsx                             ← min-w-0 + responsive width
-src/components/scenarios/EmptyLevers.tsx                  (new)
-src/components/scenarios/ScenarioTopBar.tsx               (new)      ← breadcrumb + primary actions
-src/components/scenarios/CompareSlots.tsx                 (new)      ← 0/4 → visual slots
-src/styles.css                                                       ← 2 new tokens
-```
+- 02 → 03: single "Model a change" link per ministry, bottom of page.
+- 03 → 02: every scenario shows "Baseline: {Ministry}" linking back.
+- Neither chamber embeds the other's primary workspace.
 
-No changes to `scenarios.functions.ts`, engine math, or DB schema.
+## Technical notes
 
-### 9. Verification
-- Playwright pass at 1280×800, 1440×900, 1920×1080: assert no horizontal scroll, stat numerals don't overlap, playbook tooltip doesn't cover siblings, fan chart bounding box fits within canvas.
-- Manual: seed one scenario with fork, adjust two levers, confirm shimmer → recomputed timestamp → pin flows into Compare slot.
+- Files to edit: `src/routes/_authenticated/admin/countries.$code.portfolio.$ministry.tsx`, `countries.$code.portfolio.index.tsx`, `countries.$code.portfolio.tsx` (nav copy), and the Chamber 03 scenario detail/new/index routes for the labeling/baseline changes.
+- New components: `PortfolioScorecard`, `KpiDeliveryTable`, `ProgrammesList`, `EvidenceRail` under `src/components/country/portfolio/`.
+- Data sources are already present: `ministry_profiles` (mandate, programmes, citations), `country_kpis` + `country_kpi_points` (actuals vs target for on/near/off-track), `onboarding_citations` (evidence rail), `getPortfolio` (composition). No schema changes required.
+- On/near/off-track thresholds: on = variance within ±5% of target, near = ±5–15%, off = >15%. Configurable constant, not per-country.
+- Keep existing routes and URLs; this is a surface rewrite, not a routing change.
 
-### Out of scope for this pass
-- Compare page redesign (separate follow-up).
-- New engine math, new lever taxonomy, or narrative model changes.
-- Chamber 01/02 restyle — this plan is scoped to the Scenario Engine builder + list shell.
+## Out of scope
+
+- No changes to Chambers 01, 04, 05, 06.
+- No new AI research passes; uses corpus data already committed by onboarding.
+- No schema migrations.

@@ -27,7 +27,7 @@ function newAction(sector: string): ResilienceAction {
     action_type: "attract_new_fdi",
     label: "New action",
     target_pp: 1,
-    staging_year: 1,
+    staging_year: 0,
     sponsor_ministry_slug: null,
   };
 }

@@ -1,7 +1,9 @@
 import { createFileRoute, Link, Outlet, useParams, useRouter } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Layers, Plus, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
+import { CompareSlots } from "@/components/scenarios/CompareSlots";
+
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { listScenarios } from "@/lib/scenarios.functions";
@@ -96,8 +98,8 @@ function ScenariosLayout() {
       ]}
     >
       <div className="min-h-dvh bg-paper-0 text-ink-950">
-        <header className="flex flex-wrap items-baseline justify-between gap-4 border-b border-line-200 px-8 py-8">
-          <div>
+        <header className="mx-auto flex max-w-[1440px] flex-wrap items-baseline justify-between gap-4 border-b border-line-200 px-8 py-8">
+          <div className="min-w-0">
             <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
               {code} · Chamber 03
             </p>
@@ -106,27 +108,21 @@ function ScenariosLayout() {
               Consequence-free rehearsal. Every lever change re-runs the pinned engine live.
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
               engine v1_macro
             </span>
-            <Link
-              to="/admin/countries/$code/scenarios/compare"
-              params={{ code }}
-              search={{ ids: "" }}
-              className="inline-flex items-center gap-2 border border-line-200 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-700 hover:border-ink-950 hover:text-ink-950"
-            >
-              <Layers size={12} /> Compare · {pinCount}/4
-            </Link>
+            <CompareSlots code={code} count={pinCount} />
             <Link
               to="/admin/countries/$code/scenarios/new"
               params={{ code }}
-              className="inline-flex items-center gap-2 border border-ink-950 bg-ink-950 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700"
+              className="inline-flex items-center gap-2 border border-ink-950 bg-ink-950 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-paper-0 hover:bg-ink-700"
             >
               <Plus size={12} /> New scenario
             </Link>
           </div>
         </header>
+
 
         <div
           className="grid gap-0 border-t border-line-200"

@@ -24,7 +24,8 @@ export function ChambersLauncher({ code }: { code: string }) {
           const linkProps =
             c.kind === "params"
               ? { to: c.to, params: { code } }
-              : { to: c.to, search: { code } };
+              : { to: c.to, search: { code, returnCode: code } };
+
           return (
             <Link
               key={c.n}

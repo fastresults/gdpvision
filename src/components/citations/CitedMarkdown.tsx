@@ -70,6 +70,21 @@ function componentsFor(
         {wrap(children)}
       </blockquote>
     ),
+    hr: () => <hr className="my-4 border-line-200" />,
+    code: ({ children }) => (
+      <code className="rounded-sm bg-paper-100 px-1 py-0.5 font-mono text-[12px] text-ink-950">{children}</code>
+    ),
+    pre: ({ children }) => (
+      <pre className="my-3 overflow-x-auto border border-line-200 bg-paper-50 p-3 font-mono text-[12px] text-ink-950">{children}</pre>
+    ),
+    table: ({ children }) => (
+      <div className="my-3 overflow-x-auto border border-line-200">
+        <table className="w-full border-collapse text-[12px]">{children}</table>
+      </div>
+    ),
+    thead: ({ children }) => <thead>{children}</thead>,
+    tbody: ({ children }) => <tbody>{children}</tbody>,
+    tr: ({ children }) => <tr>{children}</tr>,
     th: ({ children }) => (
       <th className="border-b border-line-200 bg-paper-50 px-2 py-1 text-left font-semibold text-ink-950">
         {wrap(children)}

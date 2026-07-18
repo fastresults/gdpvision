@@ -24,6 +24,7 @@ export function GuidedRail({
   step,
   furthest,
   onStep,
+  countryCode,
   // Step 1
   title,
   onTitle,
@@ -34,8 +35,11 @@ export function GuidedRail({
   onHorizon,
   // Step 2
   init,
-  activePlaybook,
-  onPickPlaybook,
+  activePlaybookIds,
+  onTogglePlaybook,
+  onClearPlaybooks,
+  aiPlays,
+  onRegisterAiPlay,
   // Step 3
   levers,
   locks,
@@ -57,6 +61,7 @@ export function GuidedRail({
   step: number;
   furthest: number;
   onStep: (n: number) => void;
+  countryCode: string;
   title: string;
   onTitle: (v: string) => void;
   ministries: Ministry[];
@@ -65,8 +70,11 @@ export function GuidedRail({
   horizonYears: number;
   onHorizon: (v: number) => void;
   init: EngineRunResult;
-  activePlaybook: string | null;
-  onPickPlaybook: (id: string, levers: Record<string, number>) => void;
+  activePlaybookIds: Set<string>;
+  onTogglePlaybook: (p: Playbook) => void;
+  onClearPlaybooks: () => void;
+  aiPlays: Playbook[];
+  onRegisterAiPlay: (p: Playbook) => void;
   levers: Record<string, number>;
   locks: Record<string, boolean>;
   onLever: (slug: string, value: number) => void;
@@ -83,11 +91,20 @@ export function GuidedRail({
   savePending: boolean;
   saveError: string | null;
 }) {
+  const activePlaybooks = useMemo<Playbook[]>(() => {
+    const byId = new Map<string, Playbook>();
+    for (const p of PLAYBOOKS) byId.set(p.id, p);
+    for (const p of aiPlays) byId.set(p.id, p);
+    return Array.from(activePlaybookIds)
+      .map((id) => byId.get(id))
+      .filter((p): p is Playbook => !!p);
+  }, [activePlaybookIds, aiPlays]);
+
   const canAdvance = useMemo(() => {
     if (step === 1) return title.trim().length > 0;
-    if (step === 2) return activePlaybook !== null;
+    if (step === 2) return activePlaybookIds.size > 0;
     return true;
-  }, [step, title, activePlaybook]);
+  }, [step, title, activePlaybookIds]);
 
   const attributionMap = useMemo(() => {
     const m: Record<string, number> = {};

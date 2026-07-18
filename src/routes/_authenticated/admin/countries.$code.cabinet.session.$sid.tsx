@@ -39,7 +39,7 @@ function SessionMode() {
 
   type RecordPayloadT = RecordPayload;
   const recordMut = useMutation({
-    mutationFn: (v: RecordPayload) => record({ data: v }),
+    mutationFn: (v: RecordPayloadT) => record({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["cabinet"] }),
   });
   const closeMut = useMutation({

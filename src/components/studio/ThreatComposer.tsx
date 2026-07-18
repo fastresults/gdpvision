@@ -152,10 +152,12 @@ export function ThreatComposer({
       </section>
 
       <section className="grid gap-6 md:grid-cols-3">
-        <ShapeControl label="Severity" suffix="%" min={0} max={100} step={5} value={severity} onChange={setSeverity} />
-        <ShapeControl label="Horizon" suffix="yr" min={1} max={10} step={1} value={horizon} onChange={setHorizon} />
+        <ExplainHover copy={EXPLAIN.severity} side="top"><div><ShapeControl label="Severity" suffix="%" min={0} max={100} step={5} value={severity} onChange={setSeverity} /></div></ExplainHover>
+        <ExplainHover copy={EXPLAIN.horizon} side="top"><div><ShapeControl label="Horizon" suffix="yr" min={1} max={10} step={1} value={horizon} onChange={setHorizon} /></div></ExplainHover>
         <div>
-          <span className="block font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Onset</span>
+          <ExplainHover copy={EXPLAIN.onset} side="top">
+            <span className="block cursor-help font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 underline decoration-dotted decoration-line-200 underline-offset-4">Onset</span>
+          </ExplainHover>
           <div className="mt-3 flex gap-0 border border-line-200">
             {(["immediate", "phased", "tail_risk"] as const).map((o) => (
               <button

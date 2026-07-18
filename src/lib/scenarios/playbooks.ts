@@ -10,6 +10,11 @@ export type Playbook = {
   id: string;
   label: string;
   blurb: string;
+  /** true for AI-suggested plays so the UI can badge them */
+  ai?: boolean;
+  /** optional thesis + citations for AI plays */
+  thesis?: string;
+  citations?: Array<{ label: string; kind: string; ref?: string }>;
   build: (defs: LeverDef[]) => Record<string, number>;
 };
 
@@ -88,3 +93,72 @@ export const PLAYBOOKS: Playbook[] = [
     build: (defs) => nudge(defs, () => true, -0.25),
   },
 ];
+
+/** Build a playbook from AI-generated lever moves (direction + magnitude 0..1). */
+export function buildAiPlaybook(
+  id: string,
+  label: string,
+  blurb: string,
+  moves: Array<{ slug: string; direction: "up" | "down"; magnitude: number }>,
+  thesis?: string,
+  citations?: Playbook["citations"],
+): Playbook {
+  return {
+    id,
+    label,
+    blurb,
+    ai: true,
+    thesis,
+    citations,
+    build: (defs) => {
+      const out = defaults(defs);
+      const bySlug = new Map(defs.map((d) => [d.slug, d]));
+      for (const mv of moves) {
+        const d = bySlug.get(mv.slug);
+        if (!d) continue;
+        const base = d.bounds.default ?? (d.bounds.min + d.bounds.max) / 2;
+        const range = d.bounds.max - d.bounds.min;
+        const mag = Math.max(0, Math.min(1, mv.magnitude));
+        const fraction = (mv.direction === "up" ? 1 : -1) * mag;
+        const target = base + fraction * range * 0.5;
+        out[d.slug] = Math.max(d.bounds.min, Math.min(d.bounds.max, target));
+      }
+      return out;
+    },
+  };
+}
+
+/**
+ * Compose multiple playbooks by summing their deltas from default and clamping
+ * to bounds. Returns both the merged lever map and per-lever attribution
+ * (which plays contributed how much).
+ */
+export function composePlaybooks(
+  defs: LeverDef[],
+  playbooks: Playbook[],
+): {
+  levers: Record<string, number>;
+  attribution: Record<string, Array<{ id: string; label: string; delta: number }>>;
+} {
+  const base = defaults(defs);
+  const summed: Record<string, number> = { ...base };
+  const attribution: Record<string, Array<{ id: string; label: string; delta: number }>> = {};
+
+  for (const p of playbooks) {
+    const built = p.build(defs);
+    for (const d of defs) {
+      const delta = (built[d.slug] ?? base[d.slug]) - base[d.slug];
+      if (Math.abs(delta) < 0.0001) continue;
+      summed[d.slug] = (summed[d.slug] ?? base[d.slug]) + delta;
+      (attribution[d.slug] ??= []).push({ id: p.id, label: p.label, delta });
+    }
+  }
+
+  // Clamp
+  for (const d of defs) {
+    if (summed[d.slug] === undefined) continue;
+    summed[d.slug] = Math.max(d.bounds.min, Math.min(d.bounds.max, summed[d.slug]));
+  }
+
+  return { levers: summed, attribution };
+}

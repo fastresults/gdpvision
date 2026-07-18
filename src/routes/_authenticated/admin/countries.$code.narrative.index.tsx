@@ -8,6 +8,7 @@ import { NarrativeJourney } from "@/components/narrative/NarrativeJourney";
 import { RadarHeatStrip } from "@/components/narrative/RadarHeatStrip";
 import { SignalSourcesPanel } from "@/components/narrative/SignalSourcesPanel";
 import { cn } from "@/lib/utils";
+import { countsByPriority, PRIORITY_META, PRIORITY_ORDER } from "@/lib/narrative-priority";
 
 function signalsQuery(code: string) {
   return queryOptions({
@@ -89,6 +90,23 @@ function SignalRadarPage() {
           </div>
 
           <div className="border border-line-200 p-5">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Response priority mix</p>
+            <div className="mt-3 grid grid-cols-5 gap-2">
+              {PRIORITY_ORDER.map((lvl) => {
+                const meta = PRIORITY_META[lvl];
+                const count = countsByPriority(signals)[lvl];
+                return (
+                  <div key={lvl} className={cn("border border-line-200 border-l-4 p-3", meta.borderClass)}>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">{meta.label}</p>
+                    <p className="mt-1 font-serif text-2xl tabular-nums text-ink-950">{count}</p>
+                    <p className="mt-0.5 font-mono text-[9px] uppercase tracking-widest text-ink-500">{meta.caption}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="border border-line-200 p-5">
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">AI recommendation mix</p>
             <div className="mt-3 grid grid-cols-4 gap-3">
               <RecTile label="Lead" value={byRec.lead} tone="ink" />
@@ -97,6 +115,7 @@ function SignalRadarPage() {
               <RecTile label="Monitor" value={byRec.monitor} tone="amber" />
             </div>
           </div>
+
 
           {signals.length === 0 && (
             <div className="border border-dashed border-line-200 bg-paper-100/30 p-8 text-center">

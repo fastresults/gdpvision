@@ -5,7 +5,7 @@ import { Radar } from "lucide-react";
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { listSignals } from "@/lib/narrative-chamber.functions";
 import { AddSignalDialog } from "@/components/narrative/AddSignalDialog";
-import { SignalRow } from "@/components/narrative/SignalRow";
+import { SignalTriageRail } from "@/components/narrative/SignalTriageRail";
 
 function signalsQuery(code: string) {
   return queryOptions({
@@ -70,22 +70,17 @@ function NarrativeLayout() {
             <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
               <Radar size={11} /> Active signals · {signals.length}
             </p>
-            <ul className="mt-2 space-y-1">
-              {signals.length === 0 && (
-                <li className="border border-dashed border-line-200 p-3 text-xs text-ink-500">
+            <div className="mt-2">
+              {signals.length === 0 ? (
+                <div className="border border-dashed border-line-200 p-3 text-xs text-ink-500">
                   No signals yet. Ingest one to begin.
-                </li>
+                </div>
+              ) : (
+                <SignalTriageRail signals={signals} code={code} activeId={params.id} />
               )}
-              {signals.slice(0, 40).map((s) => (
-                <SignalRow key={s.id} signal={s} code={code} active={params.id === s.id} />
-              ))}
-            </ul>
-            {signals.length > 40 && (
-              <p className="mt-2 text-[10px] font-mono uppercase tracking-widest text-ink-500">
-                Showing 40 of {signals.length}
-              </p>
-            )}
+            </div>
           </div>
+
 
           <Link
             to="/admin/countries/$code/onboard"

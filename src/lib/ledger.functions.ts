@@ -1364,7 +1364,9 @@ export const askTheLedger = createServerFn({ method: "POST" })
     }
 
     if (!key) {
-      const citations = [...chunks, ...anchors];
+      const citations = [...chunks, ...anchors].filter(
+        (c) => c.title?.trim() || c.url?.trim() || c.excerpt?.trim(),
+      );
       return {
         grounded: false,
         answer: null,

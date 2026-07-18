@@ -107,10 +107,129 @@ export type Database = {
         }
         Relationships: []
       }
+      cabinet_agenda_items: {
+        Row: {
+          brief_md: string | null
+          classification: string
+          country_code: string
+          created_at: string
+          created_by: string | null
+          dossier: Json
+          id: string
+          motion_kind: string
+          ordinal: number
+          readiness_score: number
+          recommendation: string | null
+          session_id: string
+          sponsor_ministry_id: string | null
+          status: string
+          time_box_min: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          brief_md?: string | null
+          classification?: string
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          dossier?: Json
+          id?: string
+          motion_kind?: string
+          ordinal?: number
+          readiness_score?: number
+          recommendation?: string | null
+          session_id: string
+          sponsor_ministry_id?: string | null
+          status?: string
+          time_box_min?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          brief_md?: string | null
+          classification?: string
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          dossier?: Json
+          id?: string
+          motion_kind?: string
+          ordinal?: number
+          readiness_score?: number
+          recommendation?: string | null
+          session_id?: string
+          sponsor_ministry_id?: string | null
+          status?: string
+          time_box_min?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cabinet_agenda_items_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "cabinet_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cabinet_agenda_items_sponsor_ministry_id_fkey"
+            columns: ["sponsor_ministry_id"]
+            isOneToOne: false
+            referencedRelation: "ministries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cabinet_attendance: {
+        Row: {
+          attendee_name: string
+          country_code: string
+          created_at: string
+          id: string
+          is_chair: boolean
+          present: boolean
+          role: string | null
+          session_id: string
+        }
+        Insert: {
+          attendee_name: string
+          country_code: string
+          created_at?: string
+          id?: string
+          is_chair?: boolean
+          present?: boolean
+          role?: string | null
+          session_id: string
+        }
+        Update: {
+          attendee_name?: string
+          country_code?: string
+          created_at?: string
+          id?: string
+          is_chair?: boolean
+          present?: boolean
+          role?: string | null
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cabinet_attendance_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "cabinet_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cabinet_sessions: {
         Row: {
           agenda: Json
+          chair_name: string | null
+          chair_signed_at: string | null
           classification: string
+          closed_at: string | null
           country_code: string
           created_at: string
           created_by: string | null
@@ -123,7 +242,10 @@ export type Database = {
         }
         Insert: {
           agenda?: Json
+          chair_name?: string | null
+          chair_signed_at?: string | null
           classification?: string
+          closed_at?: string | null
           country_code: string
           created_at?: string
           created_by?: string | null
@@ -136,7 +258,10 @@ export type Database = {
         }
         Update: {
           agenda?: Json
+          chair_name?: string | null
+          chair_signed_at?: string | null
           classification?: string
+          closed_at?: string | null
           country_code?: string
           created_at?: string
           created_by?: string | null
@@ -148,6 +273,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      cabinet_votes: {
+        Row: {
+          abstain_count: number
+          against_count: number
+          agenda_item_id: string
+          country_code: string
+          created_at: string
+          for_count: number
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          abstain_count?: number
+          against_count?: number
+          agenda_item_id: string
+          country_code: string
+          created_at?: string
+          for_count?: number
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          abstain_count?: number
+          against_count?: number
+          agenda_item_id?: string
+          country_code?: string
+          created_at?: string
+          for_count?: number
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cabinet_votes_agenda_item_id_fkey"
+            columns: ["agenda_item_id"]
+            isOneToOne: true
+            referencedRelation: "cabinet_agenda_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cadence_closes: {
         Row: {
@@ -407,6 +573,7 @@ export type Database = {
       }
       commitments: {
         Row: {
+          agenda_item_id: string | null
           country_code: string
           created_at: string
           created_by: string | null
@@ -415,10 +582,13 @@ export type Database = {
           id: string
           ministry_id: string | null
           owner_id: string | null
+          sector_code: string | null
           status: string
+          success_metric: string | null
           title: string
         }
         Insert: {
+          agenda_item_id?: string | null
           country_code: string
           created_at?: string
           created_by?: string | null
@@ -427,10 +597,13 @@ export type Database = {
           id?: string
           ministry_id?: string | null
           owner_id?: string | null
+          sector_code?: string | null
           status?: string
+          success_metric?: string | null
           title: string
         }
         Update: {
+          agenda_item_id?: string | null
           country_code?: string
           created_at?: string
           created_by?: string | null
@@ -439,10 +612,19 @@ export type Database = {
           id?: string
           ministry_id?: string | null
           owner_id?: string | null
+          sector_code?: string | null
           status?: string
+          success_metric?: string | null
           title?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "commitments_agenda_item_id_fkey"
+            columns: ["agenda_item_id"]
+            isOneToOne: false
+            referencedRelation: "cabinet_agenda_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "commitments_decision_id_fkey"
             columns: ["decision_id"]
@@ -1401,36 +1583,55 @@ export type Database = {
       }
       decisions: {
         Row: {
+          agenda_item_id: string | null
           body: string | null
+          classification: string
           country_code: string
+          duration_sec: number | null
           id: string
           mandate_id: string | null
+          motion_kind: string | null
           recorded_at: string
           recorded_by: string | null
           session_id: string
           title: string
         }
         Insert: {
+          agenda_item_id?: string | null
           body?: string | null
+          classification?: string
           country_code: string
+          duration_sec?: number | null
           id?: string
           mandate_id?: string | null
+          motion_kind?: string | null
           recorded_at?: string
           recorded_by?: string | null
           session_id: string
           title: string
         }
         Update: {
+          agenda_item_id?: string | null
           body?: string | null
+          classification?: string
           country_code?: string
+          duration_sec?: number | null
           id?: string
           mandate_id?: string | null
+          motion_kind?: string | null
           recorded_at?: string
           recorded_by?: string | null
           session_id?: string
           title?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "decisions_agenda_item_id_fkey"
+            columns: ["agenda_item_id"]
+            isOneToOne: false
+            referencedRelation: "cabinet_agenda_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "decisions_mandate_id_fkey"
             columns: ["mandate_id"]

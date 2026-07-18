@@ -35,6 +35,8 @@ export function StressTestPanel({
 
   return (
     <div className="space-y-4">
+      <ExplainHover copy={EXPLAIN.stress_metrics} side="bottom">
+        <div>
       <StatStrip
         cells={[
           {

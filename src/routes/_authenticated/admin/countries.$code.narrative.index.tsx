@@ -8,6 +8,7 @@ import { NarrativeJourney } from "@/components/narrative/NarrativeJourney";
 import { RadarHeatStrip } from "@/components/narrative/RadarHeatStrip";
 import { SignalSourcesPanel } from "@/components/narrative/SignalSourcesPanel";
 import { cn } from "@/lib/utils";
+import { countsByPriority, PRIORITY_META, PRIORITY_ORDER } from "@/lib/narrative-priority";
 
 function signalsQuery(code: string) {
   return queryOptions({

@@ -138,7 +138,19 @@ function LibraryPage() {
   );
 
   const rows = listQ.data ?? [];
-  const activeId = selectedId ?? rows[0]?.id ?? null;
+  const activeId = selectedId ?? (listQ.isSuccess ? rows[0]?.id ?? null : null);
+
+  const qc = useQueryClient();
+  const backfillFn = useServerFn(backfillCommsTitles);
+  const backfillM = useMutation({
+    mutationFn: () => backfillFn({ data: { scopeKey: code } }),
+    onSuccess: (r) => {
+      toast.success(`Renamed ${r.updated} draft${r.updated === 1 ? "" : "s"}`);
+      qc.invalidateQueries({ queryKey: ["comms-library", code] });
+      qc.invalidateQueries({ queryKey: ["comms-detail"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   return (
     <div className="space-y-4">

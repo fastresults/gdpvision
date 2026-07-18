@@ -10,6 +10,7 @@ import {
   saveScenario,
   type EngineRunResult,
 } from "@/lib/scenarios.functions";
+import { composePlaybooks, PLAYBOOKS, type Playbook } from "@/lib/scenarios/playbooks";
 import { GdpFanChart } from "@/components/scenarios/GdpFanChart";
 import { SectorWaterfall } from "@/components/scenarios/SectorWaterfall";
 import { AttributionStack } from "@/components/scenarios/AttributionStack";

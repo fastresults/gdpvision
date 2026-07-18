@@ -309,6 +309,7 @@ function Builder() {
           step={step}
           furthest={furthest}
           onStep={jumpToStep}
+          countryCode={code}
           title={title}
           onTitle={setTitle}
           ministries={ministries}
@@ -317,8 +318,11 @@ function Builder() {
           horizonYears={horizonYears}
           onHorizon={updateHorizon}
           init={init}
-          activePlaybook={activePlaybook}
-          onPickPlaybook={applyPlaybook}
+          activePlaybookIds={activePlaybookIds}
+          onTogglePlaybook={togglePlaybook}
+          onClearPlaybooks={clearPlaybooks}
+          aiPlays={aiPlays}
+          onRegisterAiPlay={registerAiPlay}
           levers={levers}
           locks={locks}
           onLever={updateLever}

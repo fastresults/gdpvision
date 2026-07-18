@@ -57,7 +57,7 @@ export function SuperAdminShell({ eyebrow, crumbs, wide, children }: Props) {
         </nav>
       </header>
 
-      <main className="mx-auto max-w-6xl px-8 py-10">
+      <main className={`mx-auto ${wide ? "max-w-[1440px]" : "max-w-6xl"} px-8 py-10`}>
         {(eyebrow || crumbs?.length) && (
           <div className="mb-6 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
             {crumbs?.map((c, i) => (

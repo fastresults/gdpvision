@@ -22,7 +22,7 @@ const NAV = [
   { to: "/admin/audits/log", label: "Audit log" },
 ] as const;
 
-export function SuperAdminShell({ eyebrow, crumbs, children }: Props) {
+export function SuperAdminShell({ eyebrow, crumbs, wide, children }: Props) {
   const navigate = useNavigate();
 
   async function signOut() {

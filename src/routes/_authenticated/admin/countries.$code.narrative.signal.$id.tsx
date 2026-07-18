@@ -8,6 +8,7 @@ import { DossierCard } from "@/components/narrative/DossierCard";
 import { StrategyPanel } from "@/components/narrative/StrategyPanel";
 import { DraftStudio } from "@/components/narrative/DraftStudio";
 import { LineageChevron } from "@/components/narrative/LineageChevron";
+import { PriorityPill } from "@/components/narrative/PriorityPill";
 
 function signalQuery(id: string) {
   return queryOptions({

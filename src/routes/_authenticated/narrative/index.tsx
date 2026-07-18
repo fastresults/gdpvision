@@ -4,6 +4,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { listIntake } from "@/lib/narrative.functions";
 import { listInstanceBindings } from "@/lib/ledger.functions";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
+import { useChamberCountry } from "@/hooks/useChamberCountry";
 
 const bindingsQuery = queryOptions({
   queryKey: ["instance-bindings"],

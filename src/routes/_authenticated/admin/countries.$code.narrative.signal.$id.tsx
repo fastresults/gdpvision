@@ -52,15 +52,19 @@ function SignalWorkspace() {
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <LineageChevron
-          hasSignal
-          hasDossier={!!signal.recommendation}
-          hasStrategy={hasStrategy}
-          hasComms={hasComms}
-          hasPublished={hasPublished}
-        />
+        <div className="flex items-center gap-3">
+          <PriorityPill signal={signal} size="md" />
+          <LineageChevron
+            hasSignal
+            hasDossier={!!signal.recommendation}
+            hasStrategy={hasStrategy}
+            hasComms={hasComms}
+            hasPublished={hasPublished}
+          />
+        </div>
         <DayClock startedAt={signal.created_at} />
       </div>
+
 
       <DossierCard signal={signal} code={signal.scope_key} />
 

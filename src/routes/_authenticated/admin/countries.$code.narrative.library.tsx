@@ -5,13 +5,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { formatDistanceToNow } from "date-fns";
 import {
   Search, Copy, Trash2, ExternalLink, FileText, Star, Tag as TagIcon,
-  Download, MoreHorizontal, Sparkles, Wand2,
+  Download, MoreHorizontal, Sparkles, Wand2, Pencil, Save, X as XIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
   searchComms, getCommsDetail, updateCommsMeta, duplicateComms, deleteComms,
-  listCommsFacets, saveCommsAsTemplate,
+  listCommsFacets, saveCommsAsTemplate, updateCommsBody, backfillCommsTitles,
 } from "@/lib/narrative.functions";
 import { cn } from "@/lib/utils";
 import { CitedMarkdown } from "@/components/citations/CitedMarkdown";

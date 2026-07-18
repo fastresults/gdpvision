@@ -1,6 +1,8 @@
 import type { ResilienceAction } from "@/lib/fdi-resilience.functions";
 import { sectorColor } from "@/components/viz/sector-color";
 import { cn } from "@/lib/utils";
+import { ExplainHover } from "./ExplainHover";
+import { EXPLAIN } from "./explain-copy";
 
 type Sector = { code: string; label: string; hue_token?: string | null };
 
@@ -19,9 +21,11 @@ export function StagingTimeline({
   const years = Array.from({ length: horizon }, (_, i) => i + 1);
   return (
     <div className="border border-line-200 bg-paper-0 p-4">
-      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-        Staging timeline · years 1–{horizon}
-      </p>
+      <ExplainHover copy={EXPLAIN.staging} side="bottom">
+        <p className="cursor-help font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 underline decoration-dotted decoration-line-200 underline-offset-4">
+          Staging timeline · years 1–{horizon}
+        </p>
+      </ExplainHover>
       <div className="mt-3 overflow-x-auto">
         <div
           className="grid gap-px bg-line-200 min-w-[600px]"

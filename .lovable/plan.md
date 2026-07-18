@@ -1,80 +1,68 @@
+## Goal
+Make every meaningful element in Chamber 4 (FDI Transition Studio) self-explanatory. Hovering any labeled surface for ~3.5s opens a plain-language popover that answers: **What is this? Why does it matter? How does it factor into the FDI resilience analysis?**
 
-# Strategy Workbench UI polish (Chamber 04 · threat detail)
+## UX behavior
+- **Trigger:** hover for 3500ms (configurable), or keyboard focus for the same delay. Instant close on mouseleave/blur/Escape.
+- **Touch/mobile:** long-press (600ms) opens the same modal; tap-outside closes.
+- **Never blocks work:** popover is non-modal, positioned via Radix `Popover` (already in the shadcn set), max-width ~360px, McKinsey-tone copy — three short sections: *What*, *Why it matters*, *How it's used*.
+- **Discoverability affordance:** a tiny `?` glyph appears in the corner on hover so users know the element is explainable (not a surprise-only interaction).
+- **Respects motion prefs:** no delay for users with `prefers-reduced-motion` who focus via keyboard — opens on focus immediately.
 
-The screenshot shows the strategy name input clipping mid-word ("CBI v…"), the eyebrow crowding the title, and the header widget competing with the title for width. On a top-tier government surface, the header must scale gracefully, never truncate silently, and read as a document — not a form field.
+## Implementation
 
-## Problems to fix
-
-1. **Title input truncates.** `max-w-xl` + fixed serif 3xl clips long strategy names at ~640 px. There's no ellipsis, no tooltip, no rename affordance — text just disappears.
-2. **Header layout is fragile.** Two-column `flex flex-wrap` lets the "Suggest resilient allocation" button steal width from the title; on narrower widths the title collapses further instead of promoting to a full row.
-3. **Eyebrow is dense.** `THREAT · CBI WIND-DOWN · SEVERITY 50%` reads as one long mono string with no visual grouping (type, severity chip, horizon, onset).
-4. **Rename affordance is invisible.** The title is an `<input>` styled as an `<h1>` — no pencil icon, no hover state, no hint the field is editable. Users either avoid it or click accidentally.
-5. **No overflow guard on the canvas.** Long sector labels and action labels elsewhere on the page inherit the same "silently clip" pattern; the header fix should establish a pattern (`min-w-0` + `ReadMore` fallback) reused across the workbench.
-6. **Stepper + eyebrow + title stack has no rhythm.** All three sit flush against each other with the same gap; the page lacks the "document header" hierarchy this tier expects.
-
-## Fix
-
-### 1. Header rebuild (document-grade)
-
-Replace the current header with a responsive two-row grid that never truncates:
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ THREAT BRIEFING                                             │  eyebrow (uppercase mono, ink-500)
-│                                                             │
-│ Resilient strategy · CBI wind-down            [Suggest ▸]   │  h1 (serif, wraps to 2 lines max)
-│ ─────────────────────────────────────────────               │  subtle underline appears on hover/focus
-│                                                             │
-│ ◆ Policy shock  ● Severity 50%  ⏱ 5y horizon  ▸ Immediate   │  meta chips row
-└─────────────────────────────────────────────────────────────┘
+### 1. Reusable primitive: `<ExplainHover>`
+New file `src/components/studio/ExplainHover.tsx`. Wraps any child, adds the hover timer, renders a Radix Popover. Props:
 ```
+{ id: string; title: string; what: string; why: string; how: string; delayMs?: number; side?: "top"|"right"|"bottom"|"left" }
+```
+- Uses a single shared timer ref to avoid opening while user is just passing through.
+- Cancels if pointer leaves before delay elapses.
+- Adds `aria-describedby` linking child to popover for a11y.
 
-Concretely:
-- Use `grid grid-cols-[minmax(0,1fr)_auto] items-start gap-6` for title + CTA row; add `min-w-0` on the title column so `break-words` works.
-- Title input: remove `max-w-xl`, keep `w-full`, allow wrapping — replace `<input>` with a `contenteditable`-style single-line-that-wraps pattern using a `<TextareaAutosize>` (or a plain `<textarea>` with `rows={1}` + `field-sizing: content` and `resize-none`) so long names wrap to a second line instead of clipping. Add `title={name}` for full-value tooltip on hover as a belt-and-braces measure.
-- Add a subtle Pencil icon that appears on hover/focus of the title, plus a dotted-underline hover state, to make the rename affordance visible.
-- Move "Suggest resilient allocation" into the top-right of the grid (`self-start`) so it never pushes into the title lane; on `< sm`, promote it to a full-width row below the title using `sm:col-start-2` / stacked layout.
+### 2. Central copy registry
+New file `src/components/studio/explain-copy.ts` — one source of truth so ministers get consistent language and we can iterate wording without hunting through JSX. Keyed entries for every element listed below.
 
-### 2. Eyebrow → meta chip row
+### 3. Elements to wrap (Chamber 4 surfaces)
 
-- Keep a single short eyebrow: `Threat briefing` (or `Threat · {name}` when scrolled).
-- Replace the mono run-on line with a discrete chip row rendered under the title:
-  - Threat type chip (colored dot + label from `threat-presets`)
-  - Severity chip with a mini bar (`Severity 50%` + 3px bar)
-  - Horizon chip (`5y horizon`)
-  - Onset chip (`Immediate` / `Phased` — human label, not enum)
-- Chips use `border border-line-200 px-2 py-0.5 font-mono text-[10px]` — same visual family already established, but grouped and legible.
+**Route `countries.$code.studio.index.tsx` (Threat list / Act 1 landing):**
+- "New threat" CTA
+- Each preset chip (Tariff, Climate, CBI wind-down, etc.)
+- Threat card status badges
 
-### 3. Overflow pattern reused across the workbench
+**`ThreatStepper.tsx`:** each of the 3 steps (Compose, Strategy, Stress).
 
-Audit the same-turn siblings for the identical "silently clips" bug and apply the pattern already introduced (`ReadMore` + `min-w-0` + wrapping):
-- `ResilienceActionsRail` action label `<input>` — allow wrap or add `title={a.label}` tooltip.
-- `StagingTimeline` timeline chips — wrap sector/action label with `ReadMore` at `clamp={1}`.
-- `ExposureLedger` (already done last turn — verify no regression after grid changes).
+**`ThreatComposer.tsx`:** threat type, severity slider, horizon, onset, target sectors picker.
 
-### 4. Rhythm + spacing
+**`ThreatBriefCard.tsx`:** the "Threat briefing" section header, each of the 3 bullets (Mechanism / First-order / Second-order), Regenerate button, citation chips.
 
-- Stepper: keep, but add `mb-2` and a hairline `border-b border-line-200/60` below to separate it from the header block.
-- Header block: wrap in a `<header className="space-y-3 pb-6 border-b border-line-200">` so the document feel is explicit, and the following canvas breathes.
-- Increase gap between header and grid from `space-y-6` to `space-y-8` on `lg+`.
+**`ExposureLedger.tsx`:** column headers (Sector, GDP share, At-risk pp, Confidence), and the ledger total row.
 
-### 5. Micro polish
+**Strategy workbench route `countries.$code.studio.threats.$id.tsx`:**
+- Header meta chips (threat type, severity bar, horizon, onset)
+- "Suggest resilient allocation" button
+- Strategy title (rename)
 
-- Focus ring on the title uses `focus-visible:ring-1 focus-visible:ring-ink-950/20` instead of the current border swap (cleaner, no layout shift).
-- CTA button: add `whitespace-nowrap` so "Modelling…" never wraps.
-- Add `aria-label="Rename strategy"` to the title editor.
+**`ReallocationMarimekko.tsx`:** chart title and axis labels; per-sector block hover already shows values, so add one meta ExplainHover on the chart title only.
 
-## Technical notes
+**`ResilienceActionsRail.tsx`:** rail header, each action-category color legend, "Add action" button.
 
-Files touched:
-- `src/routes/_authenticated/admin/countries.$code.studio.threats.$id.tsx` — header JSX rebuild only (no data/behavior changes).
-- `src/components/studio/threat-presets.ts` — add a small helper `onsetLabel(onset)` and `threatTypeChip(type)` returning `{ label, dotColor }` if not already present.
-- `src/components/studio/ResilienceActionsRail.tsx` — add `title={a.label}` fallback + `min-w-0` on the label input's flex parent.
-- `src/components/studio/StagingTimeline.tsx` — wrap chip label with `ReadMore` (already imported pattern).
+**`StagingTimeline.tsx`:** timeline header, each horizon column header (0–2y, 2–5y, 5–10y).
 
-No new dependencies. No server-function changes. No data-shape changes. Purely presentation.
+**`StressTestPanel.tsx`:** each KPI tile label, "resilience score" number, sensitivity bars.
 
-## Out of scope
+**`CommitBar.tsx`:** "Promote to Scenario Engine", "Save as plan of record", "Discard" buttons.
 
-- Overall Chamber 04 flow (Threat Composer, Stress Test panel) — this plan targets the header + overflow issues visible in the attached screenshot.
-- Any color/token changes — the existing paper/ink/line tokens are correct for the gov register.
+### 4. A11y & polish
+- Popover content uses existing McKinsey tokens (`bg-paper-0`, `border-line-200`, serif title, mono eyebrow).
+- Sections rendered as: eyebrow "What" / body, eyebrow "Why it matters" / body, eyebrow "How it's used" / body.
+- Popover closes on route change (unmount safe).
+- No popover on inputs while the user is typing.
+
+### 5. Out of scope
+- No changes to server functions or data model.
+- No new tooltips on Chambers 1–3, 5, 6 (this ticket is Chamber 4 only; the primitive is reusable if you later want to extend).
+- No settings toggle to disable — copy is short enough to be helpful, not noisy.
+
+## Files changed
+- **New:** `src/components/studio/ExplainHover.tsx`, `src/components/studio/explain-copy.ts`
+- **Edited (wrap targets only, no logic change):** the 8 studio components + 2 studio route files listed above.

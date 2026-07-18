@@ -1,6 +1,8 @@
 import type { Allocation, ResilienceAction, StrategyMetrics } from "@/lib/fdi-resilience.functions";
 import { StatStrip } from "@/components/scenarios/StatStrip";
 import { sectorColor } from "@/components/viz/sector-color";
+import { ExplainHover } from "./ExplainHover";
+import { EXPLAIN } from "./explain-copy";
 
 type Sector = { code: string; label: string; hue_token?: string | null };
 
@@ -33,6 +35,8 @@ export function StressTestPanel({
 
   return (
     <div className="space-y-4">
+      <ExplainHover copy={EXPLAIN.stress_metrics} side="bottom">
+        <div>
       <StatStrip
         cells={[
           {
@@ -57,11 +61,15 @@ export function StressTestPanel({
           },
         ]}
       />
+      </div>
+      </ExplainHover>
 
       <div className="border border-line-200 bg-paper-0 p-4">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Exposure → mitigation waterfall
-        </p>
+        <ExplainHover copy={EXPLAIN.waterfall} side="bottom">
+          <p className="cursor-help font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 underline decoration-dotted decoration-line-200 underline-offset-4">
+            Exposure → mitigation waterfall
+          </p>
+        </ExplainHover>
         <ul className="mt-4 space-y-3">
           {contribs.map((c) => {
             const meta = bySector.get(c.sector_code);

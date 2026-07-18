@@ -8,6 +8,8 @@ import { createThreat } from "@/lib/fdi-resilience.functions";
 import { sectorColor } from "@/components/viz/sector-color";
 import { cn } from "@/lib/utils";
 import { THREAT_PRESETS } from "./threat-presets";
+import { ExplainHover } from "./ExplainHover";
+import { EXPLAIN } from "./explain-copy";
 
 type Sector = { code: string; label: string; hue_token?: string | null; share_pct?: number };
 
@@ -63,32 +65,35 @@ export function ThreatComposer({
       className="space-y-8"
     >
       <section>
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Step 1 · Pick a threat
-        </p>
+        <ExplainHover copy={EXPLAIN.pick_threat} side="right">
+          <p className="cursor-help font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 underline decoration-dotted decoration-line-200 underline-offset-4">
+            Step 1 · Pick a threat
+          </p>
+        </ExplainHover>
         <div className="mt-3 flex flex-wrap gap-2">
           {THREAT_PRESETS.map((p) => (
-            <button
-              type="button"
-              key={p.key}
-              onClick={() => setType(p.key)}
-              className={cn(
-                "border px-3 py-2 text-left transition",
-                type === p.key
-                  ? "border-ink-950 bg-ink-950 text-paper-0"
-                  : "border-line-200 text-ink-700 hover:border-ink-950",
-              )}
-            >
-              <span className="block text-sm">{p.label}</span>
-              <span
+            <ExplainHover key={p.key} copy={{ title: p.label, what: p.hint, why: "Presets encode the transmission channel so the AI briefing and stress test use the right model of how this shock propagates.", how: "Pick the closest match; you can refine severity, horizon and onset below." }} side="top">
+              <button
+                type="button"
+                onClick={() => setType(p.key)}
                 className={cn(
-                  "block text-[11px]",
-                  type === p.key ? "text-paper-0/70" : "text-ink-500",
+                  "border px-3 py-2 text-left transition",
+                  type === p.key
+                    ? "border-ink-950 bg-ink-950 text-paper-0"
+                    : "border-line-200 text-ink-700 hover:border-ink-950",
                 )}
               >
-                {p.hint}
-              </span>
-            </button>
+                <span className="block text-sm">{p.label}</span>
+                <span
+                  className={cn(
+                    "block text-[11px]",
+                    type === p.key ? "text-paper-0/70" : "text-ink-500",
+                  )}
+                >
+                  {p.hint}
+                </span>
+              </button>
+            </ExplainHover>
           ))}
         </div>
         <label className="mt-4 block">
@@ -105,9 +110,11 @@ export function ThreatComposer({
       </section>
 
       <section>
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Step 2 · Target sectors
-        </p>
+        <ExplainHover copy={EXPLAIN.target_sectors} side="right">
+          <p className="cursor-help font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 underline decoration-dotted decoration-line-200 underline-offset-4">
+            Step 2 · Target sectors
+          </p>
+        </ExplainHover>
         <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-3">
           {sectors.map((s, i) => {
             const on = targets.includes(s.code);
@@ -145,10 +152,12 @@ export function ThreatComposer({
       </section>
 
       <section className="grid gap-6 md:grid-cols-3">
-        <ShapeControl label="Severity" suffix="%" min={0} max={100} step={5} value={severity} onChange={setSeverity} />
-        <ShapeControl label="Horizon" suffix="yr" min={1} max={10} step={1} value={horizon} onChange={setHorizon} />
+        <ExplainHover copy={EXPLAIN.severity} side="top"><div><ShapeControl label="Severity" suffix="%" min={0} max={100} step={5} value={severity} onChange={setSeverity} /></div></ExplainHover>
+        <ExplainHover copy={EXPLAIN.horizon} side="top"><div><ShapeControl label="Horizon" suffix="yr" min={1} max={10} step={1} value={horizon} onChange={setHorizon} /></div></ExplainHover>
         <div>
-          <span className="block font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Onset</span>
+          <ExplainHover copy={EXPLAIN.onset} side="top">
+            <span className="block cursor-help font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 underline decoration-dotted decoration-line-200 underline-offset-4">Onset</span>
+          </ExplainHover>
           <div className="mt-3 flex gap-0 border border-line-200">
             {(["immediate", "phased", "tail_risk"] as const).map((o) => (
               <button
@@ -172,14 +181,16 @@ export function ThreatComposer({
       ) : null}
 
       <div className="flex items-center justify-end gap-3">
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className="inline-flex items-center gap-2 border border-ink-950 bg-ink-950 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 disabled:opacity-40"
-        >
-          {mut.isPending ? "Framing threat…" : "Frame the threat"}
-          <ArrowRight size={14} />
-        </button>
+        <ExplainHover copy={EXPLAIN.frame_threat} side="top">
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className="inline-flex items-center gap-2 border border-ink-950 bg-ink-950 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 disabled:opacity-40"
+          >
+            {mut.isPending ? "Framing threat…" : "Frame the threat"}
+            <ArrowRight size={14} />
+          </button>
+        </ExplainHover>
       </div>
     </form>
   );

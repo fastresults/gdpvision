@@ -3,6 +3,8 @@ import { Plus, Sparkles, Trash2 } from "lucide-react";
 import type { ActionType, ResilienceAction } from "@/lib/fdi-resilience.functions";
 import { sectorColor } from "@/components/viz/sector-color";
 import { cn } from "@/lib/utils";
+import { ExplainHover } from "./ExplainHover";
+import { EXPLAIN } from "./explain-copy";
 
 type Sector = { code: string; label: string; hue_token?: string | null };
 type Ministry = { slug: string; name: string };
@@ -58,16 +60,20 @@ export function ResilienceActionsRail({
   return (
     <div className="border border-line-200 bg-paper-0">
       <div className="flex items-center justify-between border-b border-line-200 px-4 py-3">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Resilience actions
-        </p>
-        <button
-          type="button"
-          onClick={add}
-          className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950"
-        >
-          <Plus size={12} /> Add
-        </button>
+        <ExplainHover copy={EXPLAIN.actions_rail} side="left">
+          <p className="cursor-help font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 underline decoration-dotted decoration-line-200 underline-offset-4">
+            Resilience actions
+          </p>
+        </ExplainHover>
+        <ExplainHover copy={EXPLAIN.action_add} side="left">
+          <button
+            type="button"
+            onClick={add}
+            className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950"
+          >
+            <Plus size={12} /> Add
+          </button>
+        </ExplainHover>
       </div>
       <ul className="divide-y divide-line-200">
         {actions.length === 0 && (

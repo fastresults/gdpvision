@@ -93,7 +93,7 @@ export const getRoomOverview = createServerFn({ method: "GET" })
           .limit(50),
         supa.from("commitments").select("id,status,due_at").eq("country_code", cc),
         supa.from("decisions").select("id,recorded_at,duration_sec").eq("country_code", cc).order("recorded_at", { ascending: false }).limit(500),
-        supa.from("intake_items").select("id,topic,severity,scope_key,created_at").eq("scope_key", cc).in("severity", ["P1","P2"]).is("story_key", null).order("created_at",{ascending:false}).limit(8),
+        supa.from("intake_items").select("id,topic,severity,scope_key,created_at").eq("scope_key", cc).gte("severity", 4).is("story_key", null).order("created_at",{ascending:false}).limit(8),
         supa.from("fdi_strategies").select("id,name,status,updated_at").eq("country_code", cc).eq("status", "draft").order("updated_at",{ascending:false}).limit(8),
         supa.from("scenarios").select("id,title,status,updated_at").eq("country_code", cc).order("updated_at",{ascending:false}).limit(8),
         supa.from("grade_alerts").select("id,sector_code,previous_grade,new_grade,created_at").eq("country_code", cc).order("created_at",{ascending:false}).limit(8),

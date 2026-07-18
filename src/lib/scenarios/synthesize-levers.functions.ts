@@ -95,7 +95,7 @@ export const synthesizeLevers = createServerFn({ method: "POST" })
           .limit(20),
         supabase
           .from("country_capital_flows")
-          .select("flow_type,label,value_usd_m")
+          .select("node_key,value_usd_m,period")
           .eq("country_code", data.countryCode)
           .limit(20),
         supabase

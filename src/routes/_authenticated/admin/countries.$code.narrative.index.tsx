@@ -115,9 +115,6 @@ function SignalRadarPage() {
     </div>
   );
 }
-    </div>
-  );
-}
 
 function ScopeCard({ label, icon: Icon, count }: { label: string; icon: typeof MapPin; count: number }) {
   return (

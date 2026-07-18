@@ -93,6 +93,9 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/data
       { name: "robots", content: "noindex" },
     ],
   }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    tab: (typeof s.tab === "string" ? s.tab : undefined) as TabKey | undefined,
+  }),
   loader: async ({ context, params }) => {
     const status = await context.queryClient.ensureQueryData(statusQuery(params.code));
     if (!(status as any).country) throw notFound();
@@ -112,9 +115,12 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/data
 
 function DataDashboard() {
   const { code } = Route.useParams();
+  const search = Route.useSearch();
   const { data: status } = useSuspenseQuery(statusQuery(code));
   const country: any = (status as any).country;
-  const [tab, setTab] = useState<TabKey>("sources");
+  const initialTab: TabKey = TABS.some((t) => t.key === search.tab) ? (search.tab as TabKey) : "sources";
+  const [tab, setTab] = useState<TabKey>(initialTab);
+
 
   return (
     <SuperAdminShell

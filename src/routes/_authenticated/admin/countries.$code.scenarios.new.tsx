@@ -438,6 +438,20 @@ function Builder() {
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setAiDrawerOpen(true)}
+              className="group relative inline-flex items-center gap-1.5 overflow-hidden border border-ink-950 bg-ink-950 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-paper-0 shadow-sm hover:bg-ink-700"
+              title="Describe a challenge — AI designs a full scenario grounded in this country's second brain"
+            >
+              <Sparkles size={12} className="text-amber-300" />
+              Ask AI to design this
+            </button>
+            {aiPreviewActive && (
+              <span className="inline-flex items-center gap-1 border border-amber-400 bg-amber-50 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.22em] text-amber-900">
+                <Sparkles size={10} /> AI preview active
+              </span>
+            )}
             <CompareSlots code={code} count={pinCount} />
             {step === 3 && hasLevers && (
               <button
@@ -450,6 +464,36 @@ function Builder() {
             )}
           </div>
         </div>
+
+        {step === 1 && (
+          <div className="mx-6 mt-6 border border-ink-950/20 bg-gradient-to-br from-paper-100/60 to-paper-0 p-5">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 rounded-full border border-ink-950 bg-ink-950 p-1.5">
+                <Sparkles size={14} className="text-amber-300" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
+                  Fastest path — let AI design it
+                </p>
+                <h3 className="mt-1 font-serif text-base text-ink-950">
+                  Describe the challenge · get a Cabinet-ready scenario in one click
+                </h3>
+                <p className="mt-1 text-[12px] leading-relaxed text-ink-700">
+                  "Wind down CBI over 3 years", "Cat-4 hurricane in Q3", "Double stayovers by Y3" —
+                  the recommender reads {code}'s sectors, KPIs, ministry mandate, and live signals
+                  and returns exact lever moves with rationale &amp; citations.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setAiDrawerOpen(true)}
+                  className="mt-3 inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-paper-0 hover:bg-ink-700"
+                >
+                  <Sparkles size={12} className="text-amber-300" /> Design scenario with AI
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="px-6 py-6">
           {/* Step-specific caption */}

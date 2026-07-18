@@ -1,77 +1,64 @@
-# Chamber 03 — Live Lever Workbench
+## Diagnosis
 
-## What the PM sees today
-- ATG has **0 rows in `public.levers`**, confirmed. Step 3 renders the "Synthesize levers with AI" empty-state, so no sliders exist to drag. Step 4 then reports "Top 3 movers · Levers at default · no attribution" — accurately, but it feels like a dead product.
-- Plays in Step 2 are on/off chips only; the consequence of stacking a play is not visualised until the user leaves the step.
-- Even where sliders exist (seeded countries), the engine call is debounced 250ms and routes to the server, so drag feels laggy rather than "cinema-real".
+The UI did not change because the interactive slider system is wired to `public.levers`, but ATG still has **zero committed lever rows**. The AI synthesis work created **two ATG lever drafts with 12 proposals each**, but they remain in `draft` status, so the Scenario Engine loader returns `init.leverDefs.length === 0`. That is why Step 4 says “Levers are at default — no movers,” and why no sliders appear.
 
-## Design principle
-> **Drag → the future bends. Immediately.**
+There is also a second issue: the live preview currently showed a blank body in one viewer, so I will include route resilience in the fix rather than only fixing data flow.
 
-Every input in the chamber must produce a visible reaction on the right-hand canvas within one animation frame. Server calls are for *persistence*, never for *feedback*.
+## What went wrong
 
-## The plan
+1. **Drafts were generated, not activated.** The system asks the admin to review and commit synthesized levers, but the UI does not make that conversion obvious or automatic enough.
+2. **Step 2 still allows “plays” with zero underlying levers.** Play cards can be selected, but they cannot move anything until lever definitions exist.
+3. **Step 3 hides the real problem behind a manual CTA.** It tells users to synthesize, but if drafts already exist, it does not surface them as “ready to commit.”
+4. **The right canvas renders an empty-lever state instead of driving users to the missing action.** The product feels broken even though data exists one layer earlier.
 
-### 1. Kill the empty state — one-click to drivable sliders
-- When Step 2 lands on ATG (or any country with 0 levers), the "Synthesize levers with AI" CTA fires automatically the moment a play is stacked, pre-seeded with the play's thesis as `focus`.
-- Show inline progress ("Composing 12 levers grounded in ATG sectors, KPIs, ministries…"). On commit, jump straight into Step 3 with sliders ready.
-- Manual "Regenerate / add more" affordance stays for stewards.
+## Fix plan
 
-### 2. Client-side engine for real-time preview
-- `runEngine` in `src/lib/engine/v1_macro.ts` is already pure and deterministic. Import it directly on the client and recompute on every `input` event of a slider — no debounce, no network.
-- The server `runScenarioEngine` call becomes a **commit-on-release** operation (mouseup / keyup) that persists the model_version, citations and canonical output. UI still shows the client-side projection during drag; server result reconciles on release.
+### 1. Add a fast “drafts waiting” path
+- Add a server function to list the latest lever drafts for a country.
+- Add a server function to commit the latest usable draft for the current country.
+- If ATG has drafts with proposals, Step 3 should show: “12 AI levers are ready — activate sliders.”
+- One click commits them into `public.levers`, invalidates `engine-init`, seeds defaults, and immediately shows sliders.
 
-### 3. Premium slider (LeverRow v2)
-- Full-width track with:
-  - Tick marks at `min`, `default`, `max` (labels underneath in tabular-nums).
-  - A **baseline dot** at `default` and a **ghost dot** at the pre-drag value.
-  - The active track fills from `default` → current value, colored by sector.
-- Drag interactions: hover reveals a tooltip with unit, rationale, and clickable citations (from `levers.citations`).
-- Right-hand chips (already there) upgraded to **three live chips**: `Δ lever`, `Δ Y1 GDP (pp)`, `Δ Exposure (pp)`.
-- New **per-lever impact meter**: a thin horizontal bar under each row showing this lever's share of total |GDP Δ| — instant "which knob is doing the work".
-- Keyboard: `←/→` nudges 0.5, `Shift+←/→` nudges 5, `0` returns to default, `L` toggles lock.
+### 2. Make zero-lever countries self-heal in the flow
+- In Step 2, when a user selects any play and `init.leverDefs.length === 0`, show an unavoidable guided next action:
+  - “Generate or activate levers before continuing.”
+  - If drafts exist: activate draft.
+  - If no drafts exist: synthesize levers.
+- Disable moving to Step 3 as a “fake interactive” state unless the UI will either synthesize/activate or show a clear progress state.
 
-### 4. Canvas reacts in real time
-- `GdpFanChart`: keep the dashed ghost baseline; add a **tweened P50 line** using `requestAnimationFrame` so the fan visibly "bends" as the user drags.
-- `StatStrip`: values morph via a 120ms tween (no jump-cut). Colour flashes green/red on the changed cell.
-- `SectorWaterfall`: bars grow/shrink live.
-- `AttributionStack`: reorders + resizes live so the "top movers" ranking is visible mid-drag.
-- Add a small **"Live · engine v1_macro" pulse** that flashes on each recompute.
+### 3. Fix Step 3 to always show real sliders when data exists
+- After committing a draft, refetch `engine-init` and initialize `levers` from the newly returned `leverDefs`.
+- Ensure the Step 3 lever list uses `LeverRowV2` immediately after refresh.
+- Keep “Show all N levers,” reset, lock, per-lever impact meter, and live GDP impact chips visible.
 
-### 5. Step 4 becomes interactive too
-Replace the read-only "Top 3 movers" list with **sensitivity mini-sliders**: each of the top 3 attribution movers gets a compact slider inline in the brief. A PM can micro-tweak the assumption *from the summary page* and watch the fan update — no need to go back to Step 3.
+### 4. Make Step 4 impossible to reach with no real levers unless labeled as baseline-only
+- If no committed levers exist, Step 4 should not pretend there are movers.
+- It should show a clear “Activate AI levers to fine-tune this scenario” action.
+- Once levers are committed and dragged, Step 4 sensitivity mini-sliders should appear from the top three attribution movers.
 
-### 6. Multi-play stacking preview in Step 2
-When a play is toggled, briefly overlay the resulting fan curve on the mini-preview under Step 2 (200ms fade) so the *choice* of a play is itself an interactive consequence, not a leap of faith.
+### 5. Harden the blank-screen route failure
+- Add a route-level `errorComponent` for the new scenario route.
+- Add a lightweight fallback around the guided rail/canvas so a failed data call shows a recoverable message instead of a solid white screen.
+- Keep the retry action tied to router/query invalidation.
 
-## Files to touch
+### 6. Validate with the actual ATG workflow
+- Open `/admin/countries/ATG/scenarios/new?ministry=foreign-affairs-trade-barbuda-affairs`.
+- Confirm the page renders text and controls, not a blank body.
+- Activate the existing ATG lever draft.
+- Confirm `Show all 12 levers` and visible slider rows appear.
+- Drag one slider and confirm:
+  - GDP fan chart changes.
+  - Stat strip delta changes.
+  - attribution stack / sector movement updates.
+  - Step 4 top-mover mini-sliders become available.
 
-**New**
-- `src/lib/scenarios/local-engine.ts` — thin wrapper that calls `runEngine` from `v1_macro.ts` on the client with the same shape as the server fn.
-- `src/components/scenarios/LeverRowV2.tsx` — premium slider row (replaces `LeverRow.tsx` usages in `GuidedRail`).
-- `src/components/scenarios/ImpactMeter.tsx` — per-lever contribution bar.
-- `src/components/scenarios/SensitivityMini.tsx` — Step-4 inline sliders.
-- `src/hooks/useTweenedNumber.ts` — 120ms rAF tween for StatStrip cells.
+## Technical scope
 
-**Edited**
-- `src/routes/_authenticated/admin/countries.$code.scenarios.new.tsx` — swap `scheduleRun` for a **live client preview** + `commitOnRelease` server call; wire auto-synthesis after play toggle when levers=0.
-- `src/components/scenarios/GuidedRail.tsx` — use `LeverRowV2`; add sensitivity mini-sliders block to Step 4; add mid-stack preview in Step 2.
-- `src/components/scenarios/GdpFanChart.tsx` — rAF-tween the P50 line; keep ghost dash.
-- `src/components/scenarios/StatStrip.tsx` — tweened numbers + flash-on-change.
-- `src/components/scenarios/AttributionStack.tsx`, `SectorWaterfall.tsx` — accept the client-preview `output` and re-render each frame.
+Files to change:
+- `src/lib/scenarios/synthesize-levers.functions.ts` — add draft listing / activation helper or extend current commit flow.
+- `src/components/scenarios/LeverDraftReview.tsx` — support existing drafts, not only new generation.
+- `src/components/scenarios/GuidedRail.tsx` — replace the passive zero-lever message with activate/generate/retry states.
+- `src/routes/_authenticated/admin/countries.$code.scenarios.new.tsx` — refresh and reseed levers after commit; add route error boundary.
+- Possibly `src/components/scenarios/EmptyLevers.tsx` — make the empty state point to AI activation inside this chamber, not onboarding.
 
-## Data / backend
-- No schema changes. `levers.citations` already exists from the last turn; surfaced in the new tooltip.
-- Server function `runScenarioEngine` unchanged — used only for commit and initial baseline.
-
-## Out of scope (call out explicitly)
-- Cross-country lever sharing.
-- Persisting drag history (undo/redo) — considered but not in this pass; can layer on later.
-- Changing the engine math itself (`v1_macro`).
-
-## Acceptance
-1. Open `/admin/countries/ATG/scenarios/new`, pick any play → levers auto-synthesize and Step 3 opens with 8–14 sliders.
-2. Drag any slider → the fan chart bends within one frame; StatStrip numbers tween; sector waterfall reshapes.
-3. Release the slider → a subtle "committed" pulse fires; server run reconciles.
-4. Step 4 shows three inline mini-sliders bound to the top movers; dragging them updates the fan the same way.
-5. Every slider row shows unit, tick labels, live Δ chips, and an impact-share meter.
+No schema change is needed.

@@ -189,8 +189,8 @@ function StrategyWorkbench() {
     onSuccess: (res) => {
       setPromoted((p) => ({ ...p, scenarioId: res.scenarioId }));
       navigate({
-        to: "/admin/countries/$code/scenarios/$scenarioId",
-        params: { code, scenarioId: res.scenarioId },
+        to: "/admin/countries/$code/scenarios/$id",
+        params: { code, id: res.scenarioId },
       });
     },
   });

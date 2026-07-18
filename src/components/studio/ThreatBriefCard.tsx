@@ -21,9 +21,11 @@ export function ThreatBriefCard({
   if (!hasBrief) {
     return (
       <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
-        <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          <Sparkles size={12} /> Threat briefing
-        </p>
+        <ExplainHover copy={EXPLAIN.briefing} side="right">
+          <p className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            <Sparkles size={12} /> Threat briefing
+          </p>
+        </ExplainHover>
         <h3 className="mt-3 font-serif text-lg text-ink-950">
           No briefing generated yet
         </h3>
@@ -33,15 +35,17 @@ export function ThreatBriefCard({
           appear — grounded in the country's live GDP composition.
         </p>
         {onRegenerate && (
-          <button
-            type="button"
-            onClick={onRegenerate}
-            disabled={regenerating}
-            className="mt-4 inline-flex items-center gap-2 border border-ink-950 bg-ink-950 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-paper-0 hover:opacity-90 disabled:opacity-40"
-          >
-            <Sparkles size={13} />
-            {regenerating ? "Generating…" : "Generate briefing"}
-          </button>
+          <ExplainHover copy={EXPLAIN.regenerate_briefing} side="top">
+            <button
+              type="button"
+              onClick={onRegenerate}
+              disabled={regenerating}
+              className="mt-4 inline-flex items-center gap-2 border border-ink-950 bg-ink-950 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-paper-0 hover:opacity-90 disabled:opacity-40"
+            >
+              <Sparkles size={13} />
+              {regenerating ? "Generating…" : "Generate briefing"}
+            </button>
+          </ExplainHover>
         )}
       </div>
     );

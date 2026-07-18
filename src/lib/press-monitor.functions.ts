@@ -276,7 +276,7 @@ export const coverageFor = createServerFn({ method: "GET" })
       .order("started_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const cov = ((run?.coverage ?? {}) as Record<string, CoverageCell>)[data.countryCode];
+    const cov = ((run?.coverage ?? {}) as unknown as Record<string, CoverageCell>)[data.countryCode];
     return cov ?? { local: 0, regional: 0, international: 0, total: 0 };
   });
 

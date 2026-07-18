@@ -1,5 +1,7 @@
 import { CheckCircle2, GitBranch, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ExplainHover } from "./ExplainHover";
+import { EXPLAIN } from "./explain-copy";
 
 export function CommitBar({
   dirty,

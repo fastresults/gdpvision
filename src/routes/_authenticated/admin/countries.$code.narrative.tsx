@@ -50,7 +50,7 @@ function NarrativeLayout() {
       ]}
     >
       <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
-        <aside className="space-y-4 border-r border-line-200 pr-6">
+        <aside className="min-w-0 space-y-4 border-r border-line-200 pr-6">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
               Narrative Chamber

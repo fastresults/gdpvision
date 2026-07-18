@@ -95,7 +95,7 @@ export function StrategyPanel({ signalId }: { signalId: string }) {
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-rose-700">Risks &amp; blowback</p>
               <ul className="mt-2 space-y-1 text-sm text-ink-800">
                 {(seven.risks as string[]).map((t, i) => (
-                  <li key={i}>• {t}</li>
+                  <li key={i}>• <CitedText text={t} citations={citations} /></li>
                 ))}
               </ul>
             </div>

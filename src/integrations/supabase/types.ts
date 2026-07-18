@@ -223,6 +223,42 @@ export type Database = {
           },
         ]
       }
+      cabinet_brief_cache: {
+        Row: {
+          brief_md: string
+          citations: Json
+          country_code: string
+          generated_at: string
+          generated_by: string | null
+          headline: string | null
+          id: string
+          model: string | null
+          posture: Json
+        }
+        Insert: {
+          brief_md: string
+          citations?: Json
+          country_code: string
+          generated_at?: string
+          generated_by?: string | null
+          headline?: string | null
+          id?: string
+          model?: string | null
+          posture?: Json
+        }
+        Update: {
+          brief_md?: string
+          citations?: Json
+          country_code?: string
+          generated_at?: string
+          generated_by?: string | null
+          headline?: string | null
+          id?: string
+          model?: string | null
+          posture?: Json
+        }
+        Relationships: []
+      }
       cabinet_sessions: {
         Row: {
           agenda: Json

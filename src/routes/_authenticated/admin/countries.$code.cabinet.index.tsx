@@ -10,8 +10,14 @@ import {
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import {
   getRoomOverview, createCabinetSession, addSignalToAgenda, listRegister, updateCommitment,
-  type RoomOverview, type SignalRow, type RegisterRow,
+  type SignalRow, type RegisterRow,
 } from "@/lib/cabinet.functions";
+import { SituationHero } from "@/components/cabinet/SituationHero";
+import { StateOfNationBrief, briefQuery } from "@/components/cabinet/StateOfNationBrief";
+import { SituationBoard } from "@/components/cabinet/SituationBoard";
+import { DecisionQueue, decisionQueueQuery } from "@/components/cabinet/DecisionQueue";
+import { MinistryReadinessMatrix, readinessQuery } from "@/components/cabinet/MinistryReadinessMatrix";
+import { CommitmentsCockpit, cockpitQuery } from "@/components/cabinet/CommitmentsCockpit";
 
 function overviewQuery(code: string) {
   return queryOptions({
@@ -37,6 +43,10 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/cabi
     await Promise.all([
       context.queryClient.ensureQueryData(overviewQuery(params.code)),
       context.queryClient.ensureQueryData(registerQuery(params.code)),
+      context.queryClient.ensureQueryData(briefQuery(params.code)),
+      context.queryClient.ensureQueryData(decisionQueueQuery(params.code)),
+      context.queryClient.ensureQueryData(readinessQuery(params.code)),
+      context.queryClient.ensureQueryData(cockpitQuery(params.code)),
     ]);
   },
   errorComponent: ({ error }) => (
@@ -46,6 +56,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/cabi
   ),
   component: CabinetRoomPage,
 });
+
 
 type TabKey = "room" | "signals" | "register" | "sessions";
 
@@ -116,13 +127,15 @@ function Header({ code }: { code: string }) {
   );
 }
 
-/* ────────── ROOM TAB ────────── */
+/* ────────── ROOM TAB — Prime-Time Situation Room ────────── */
 
 function RoomTab({ code }: { code: string }) {
-  const { data } = useSuspenseQuery(overviewQuery(code));
+  const { data: overview } = useSuspenseQuery(overviewQuery(code));
   const nav = useNavigate();
   const qc = useQueryClient();
   const create = useServerFn(createCabinetSession);
+  const [posture, setPosture] = useState<Record<string, string>>({});
+
   const createMut = useMutation({
     mutationFn: (title: string) => create({ data: {
       countryCode: code,
@@ -137,83 +150,38 @@ function RoomTab({ code }: { code: string }) {
   });
 
   return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <Stat label="Next session" value={data.nextSession ? data.nextSession.title.slice(0, 28) : "None scheduled"}
-          hint={data.nextSession?.scheduled_for ? new Date(data.nextSession.scheduled_for).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "—"}
-          icon={<Calendar size={14} />} />
-        <Stat label="Readiness" value={data.readiness ? `${data.readiness.pct}%` : "—"}
-          hint={data.readiness ? `${data.readiness.ready}/${data.readiness.total} items ready` : "no items yet"}
-          icon={<CheckCircle2 size={14} />} />
-        <Stat label="Overdue commitments" value={String(data.overdueCount)}
-          hint={`${data.commitmentsHeat.in_progress ?? 0} in progress · ${data.commitmentsHeat.delivered ?? 0} delivered`}
-          icon={<AlertTriangle size={14} />} />
-        <Stat label="Median decision time" value={data.medianDecisionMinutes != null ? `${data.medianDecisionMinutes} min` : "—"}
-          hint={`${data.decisionsVelocity.reduce((s,w)=>s+w.count,0)} decisions · 12 weeks`}
-          icon={<Clock size={14} />} />
+    <div className="-mx-6 md:-mx-10">
+      <SituationHero code={code} overview={overview} posture={posture}
+        onSchedule={() => {
+          const t = window.prompt("Session title", `Cabinet — ${new Date().toLocaleDateString()}`);
+          if (t) createMut.mutate(t);
+        }} />
+
+      <div className="mx-auto max-w-7xl space-y-10 px-6 py-8 md:px-10">
+        <Suspense fallback={<div className="h-40 animate-pulse border border-line-200" />}>
+          <StateOfNationBrief code={code} onPosture={setPosture} />
+        </Suspense>
+
+        <Suspense fallback={<div className="h-72 animate-pulse border border-line-200" />}>
+          <SituationBoard code={code} />
+        </Suspense>
+
+        <Suspense fallback={<div className="h-64 animate-pulse border border-line-200" />}>
+          <DecisionQueue code={code} overview={overview} />
+        </Suspense>
+
+        <Suspense fallback={<div className="h-64 animate-pulse border border-line-200" />}>
+          <MinistryReadinessMatrix code={code} />
+        </Suspense>
+
+        <Suspense fallback={<div className="h-64 animate-pulse border border-line-200" />}>
+          <CommitmentsCockpit code={code} />
+        </Suspense>
       </div>
-
-      <section className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr,1fr]">
-        <Panel title="Next session" eyebrow="Agenda in flight">
-          {data.nextSession ? (
-            <div className="space-y-4">
-              <div className="flex items-baseline justify-between gap-4">
-                <div>
-                  <div className="font-serif text-xl">{data.nextSession.title}</div>
-                  <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                    {data.nextSession.classification} · {data.nextSession.agenda_count} agenda items
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <LinkBtn to="/admin/countries/$code/cabinet/agenda/$sid"
-                    params={{ code, sid: data.nextSession.id }} icon={<ChevronRight size={14} />}>
-                    Prepare
-                  </LinkBtn>
-                  <LinkBtn to="/admin/countries/$code/cabinet/session/$sid"
-                    params={{ code, sid: data.nextSession.id }} icon={<Sparkles size={14} />} primary>
-                    Enter Session Mode
-                  </LinkBtn>
-                </div>
-              </div>
-              {data.readiness && <ReadinessBar pct={data.readiness.pct} />}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-sm text-ink-500">No session scheduled. Create one and start pulling signals in.</p>
-              <button onClick={() => {
-                const t = window.prompt("Session title", `Cabinet — ${new Date().toLocaleDateString()}`);
-                if (t) createMut.mutate(t);
-              }}
-                className="inline-flex items-center gap-2 border border-ink-950 bg-ink-950 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-paper-0 hover:opacity-90">
-                <PlusCircle size={14} /> Schedule session
-              </button>
-            </div>
-          )}
-        </Panel>
-
-        <Panel title="Decision velocity" eyebrow="12-week trend">
-          <Sparkbar data={data.decisionsVelocity.map(v => v.count)} />
-          <div className="mt-2 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            <span>{data.decisionsVelocity[0]?.week}</span>
-            <span className="inline-flex items-center gap-1"><TrendingUp size={11} /> {data.decisionsVelocity[data.decisionsVelocity.length-1]?.count ?? 0} this week</span>
-          </div>
-        </Panel>
-      </section>
-
-      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Panel title="Commitments heat" eyebrow="Where things stand">
-          <HeatBar heat={data.commitmentsHeat} />
-        </Panel>
-        <Panel title="Signals awaiting a session" eyebrow="Inbox">
-          <SignalList signals={data.signals.slice(0, 6)} />
-          {data.signals.length > 6 && (
-            <p className="mt-2 text-xs text-ink-500">+ {data.signals.length - 6} more in Signals tab</p>
-          )}
-        </Panel>
-      </section>
     </div>
   );
 }
+
 
 function Stat({ label, value, hint, icon }: { label: string; value: string; hint: string; icon: React.ReactNode }) {
   return (

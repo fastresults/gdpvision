@@ -735,3 +735,424 @@ export const addSignalToAgenda = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { id: inserted.id };
   });
+
+// ─── Decision Queue (ranked, deduped) ────────────────────────────────────────
+
+export type DecisionSourceKind = "narrative" | "grade" | "strategy" | "scenario" | "threat" | "dossier_question";
+
+export interface DecisionCard {
+  key: string;
+  kind: DecisionSourceKind;
+  refId: string;
+  title: string;
+  hint: string;
+  priority: string | null;
+  impact: number; // 0..100
+  confidence: number; // 0..100
+  urgency: number; // 0..100
+  score: number; // composite 0..100
+  sponsorMinistrySlug: string | null;
+  sponsorMinistryName: string | null;
+  sectorCode: string | null;
+  evidence: Array<{ label: string; kind: DecisionSourceKind | "kpi" | "url"; href?: string }>;
+  createdAt: string;
+}
+
+export const getDecisionQueue = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => CountryInput.parse(d))
+  .handler(async ({ data, context }): Promise<DecisionCard[]> => {
+    const cc = data.countryCode;
+    const supa = context.supabase;
+    const now = Date.now();
+    const [signals, alerts, strategies, scenarios, threats, questions, ministries] = await Promise.all([
+      supa.from("intake_items").select("id,topic,severity,scope_key,created_at,sector_code").eq("scope_key", cc).gte("severity", 3).is("story_key", null).order("created_at",{ascending:false}).limit(30),
+      supa.from("grade_alerts").select("id,sector_code,previous_grade,new_grade,created_at").eq("country_code", cc).is("acknowledged_at", null).order("created_at",{ascending:false}).limit(15),
+      supa.from("fdi_strategies").select("id,name,status,updated_at").eq("country_code", cc).eq("status","draft").order("updated_at",{ascending:false}).limit(15),
+      supa.from("scenarios").select("id,title,status,updated_at").eq("country_code", cc).order("updated_at",{ascending:false}).limit(15),
+      supa.from("fdi_threats").select("id,name,severity_pct,horizon_years,onset,target_sector_codes,updated_at").eq("country_code", cc).order("updated_at",{ascending:false}).limit(15),
+      supa.from("dossier_questions").select("id,question,created_at,sector_code,status").eq("scope_key", cc).neq("status","answered").order("created_at",{ascending:false}).limit(15),
+      supa.from("ministries").select("id,slug,name").eq("country_code", cc),
+    ]);
+
+    const mins = ministries.data ?? [];
+    const inferSponsor = (sector: string | null, text: string): { slug: string | null; name: string | null } => {
+      if (sector) {
+        const hit = mins.find((m: { slug: string; name: string }) =>
+          m.slug.toLowerCase().includes(sector.toLowerCase()) ||
+          m.name.toLowerCase().includes(sector.toLowerCase()));
+        if (hit) return { slug: hit.slug, name: hit.name };
+      }
+      const lo = text.toLowerCase();
+      const hit = mins.find((m: { slug: string; name: string }) => lo.includes(m.name.toLowerCase().split(" of ").pop() ?? m.name.toLowerCase()));
+      return hit ? { slug: hit.slug, name: hit.name } : { slug: null, name: null };
+    };
+
+    const recencyScore = (iso: string): number => {
+      const ageDays = Math.max(0, (now - new Date(iso).getTime()) / 86400000);
+      return Math.max(0, Math.round(100 - ageDays * 3)); // decays over ~33 days
+    };
+    const gradeDelta = (from: string, to: string): number => {
+      const rank = (g: string) => ({ A: 1, B: 2, C: 3, D: 4, E: 5 }[g.toUpperCase()] ?? 3);
+      return Math.min(100, Math.max(0, (rank(to) - rank(from)) * 30));
+    };
+
+    const cards: DecisionCard[] = [];
+
+    for (const s of signals.data ?? []) {
+      const sponsor = inferSponsor(s.sector_code ?? null, s.topic ?? "");
+      const impact = Math.min(100, ((s.severity ?? 3) as number) * 20);
+      const urgency = recencyScore(s.created_at);
+      cards.push({
+        key: `narrative-${s.id}`, kind: "narrative", refId: s.id,
+        title: s.topic ?? "Signal",
+        hint: "Narrative signal awaiting cabinet triage",
+        priority: `P${6 - Math.min(5, Math.max(1, (s.severity ?? 3) as number))}`,
+        impact, confidence: 70, urgency,
+        score: Math.round(impact * 0.5 + urgency * 0.3 + 70 * 0.2),
+        sponsorMinistrySlug: sponsor.slug, sponsorMinistryName: sponsor.name,
+        sectorCode: s.sector_code ?? null,
+        evidence: [{ label: "Narrative signal", kind: "narrative" }],
+        createdAt: s.created_at,
+      });
+    }
+    for (const a of alerts.data ?? []) {
+      const sponsor = inferSponsor(a.sector_code ?? null, a.sector_code ?? "");
+      const impact = gradeDelta(a.previous_grade ?? "C", a.new_grade ?? "C");
+      const urgency = recencyScore(a.created_at);
+      cards.push({
+        key: `grade-${a.id}`, kind: "grade", refId: a.id,
+        title: `${a.sector_code ?? "Ledger"} grade ${a.previous_grade}→${a.new_grade}`,
+        hint: "Data confidence dropped — verify or refresh evidence",
+        priority: null,
+        impact, confidence: 85, urgency,
+        score: Math.round(impact * 0.6 + urgency * 0.4),
+        sponsorMinistrySlug: sponsor.slug, sponsorMinistryName: sponsor.name,
+        sectorCode: a.sector_code ?? null,
+        evidence: [{ label: `Grade alert · ${a.sector_code ?? "ledger"}`, kind: "grade" }],
+        createdAt: a.created_at,
+      });
+    }
+    for (const t of threats.data ?? []) {
+      const sectors = (t.target_sector_codes ?? []) as string[];
+      const sector = sectors[0] ?? null;
+      const sponsor = inferSponsor(sector, t.name ?? "");
+      const impact = Math.min(100, Math.round(Number(t.severity_pct ?? 0)));
+      const urgency = t.onset === "immediate" ? 90 : t.onset === "near" ? 65 : 40;
+      cards.push({
+        key: `threat-${t.id}`, kind: "threat", refId: t.id,
+        title: t.name ?? "Threat",
+        hint: `Exposure ${impact}% · onset ${t.onset ?? "n/a"} · ${t.horizon_years ?? "?"}y horizon`,
+        priority: impact >= 60 ? "P1" : impact >= 40 ? "P2" : "P3",
+        impact, confidence: 75, urgency,
+        score: Math.round(impact * 0.6 + urgency * 0.4),
+        sponsorMinistrySlug: sponsor.slug, sponsorMinistryName: sponsor.name,
+        sectorCode: sector,
+        evidence: [{ label: "FDI threat brief", kind: "threat" }],
+        createdAt: t.updated_at,
+      });
+    }
+    for (const s of strategies.data ?? []) {
+      const urgency = recencyScore(s.updated_at);
+      cards.push({
+        key: `strategy-${s.id}`, kind: "strategy", refId: s.id,
+        title: s.name, hint: "Draft strategy pending cabinet approval",
+        priority: "P2", impact: 60, confidence: 65, urgency,
+        score: Math.round(60 * 0.5 + urgency * 0.3 + 65 * 0.2),
+        sponsorMinistrySlug: null, sponsorMinistryName: null, sectorCode: null,
+        evidence: [{ label: "Studio strategy", kind: "strategy" }],
+        createdAt: s.updated_at,
+      });
+    }
+    for (const s of scenarios.data ?? []) {
+      const urgency = recencyScore(s.updated_at);
+      cards.push({
+        key: `scenario-${s.id}`, kind: "scenario", refId: s.id,
+        title: s.title, hint: "Scenario run — consider promoting into policy",
+        priority: "P3", impact: 50, confidence: 60, urgency,
+        score: Math.round(50 * 0.5 + urgency * 0.3 + 60 * 0.2),
+        sponsorMinistrySlug: null, sponsorMinistryName: null, sectorCode: null,
+        evidence: [{ label: "Scenario projection", kind: "scenario" }],
+        createdAt: s.updated_at,
+      });
+    }
+    for (const q of (questions.data ?? []) as Array<{ id: string; question: string; created_at: string; sector_code: string | null }>) {
+      const sponsor = inferSponsor(q.sector_code, q.question);
+      const urgency = recencyScore(q.created_at);
+      cards.push({
+        key: `dossier-${q.id}`, kind: "dossier_question", refId: q.id,
+        title: q.question, hint: "Open dossier question — decision needed",
+        priority: "P4", impact: 35, confidence: 55, urgency,
+        score: Math.round(35 * 0.4 + urgency * 0.4 + 55 * 0.2),
+        sponsorMinistrySlug: sponsor.slug, sponsorMinistryName: sponsor.name,
+        sectorCode: q.sector_code,
+        evidence: [{ label: "Dossier question", kind: "dossier_question" }],
+        createdAt: q.created_at,
+      });
+    }
+
+    return cards.sort((a, b) => b.score - a.score).slice(0, 20);
+  });
+
+// ─── Ministry Readiness Matrix ───────────────────────────────────────────────
+
+export interface MinistryReadinessRow {
+  ministryId: string;
+  slug: string;
+  name: string;
+  minister: string | null;
+  hasProfile: boolean;
+  openCommitments: number;
+  overdueCommitments: number;
+  deliveredCommitments: number;
+  sponsoredAgendaItems: number;
+  readiness: number; // 0..100
+}
+
+export const getMinistryReadiness = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => CountryInput.parse(d))
+  .handler(async ({ data, context }): Promise<MinistryReadinessRow[]> => {
+    const cc = data.countryCode;
+    const supa = context.supabase;
+    const [mins, profiles, commits, agenda] = await Promise.all([
+      supa.from("ministries").select("id,slug,name").eq("country_code", cc).order("sort_order"),
+      supa.from("ministry_profiles").select("ministry_slug,minister,minister_profile").eq("country_code", cc),
+      supa.from("commitments").select("ministry_id,status,due_at").eq("country_code", cc),
+      supa.from("cabinet_agenda_items").select("sponsor_ministry_id").eq("country_code", cc),
+    ]);
+    const now = new Date();
+    const profMap = new Map(((profiles.data ?? []) as Array<{ ministry_slug: string; minister: string | null }>).map((p) => [p.ministry_slug, p]));
+    const rows: MinistryReadinessRow[] = ((mins.data ?? []) as Array<{ id: string; slug: string; name: string }>).map((m) => {
+      const cs = ((commits.data ?? []) as Array<{ ministry_id: string | null; status: string; due_at: string | null }>).filter((c) => c.ministry_id === m.id);
+      const open = cs.filter((c) => !["delivered","cancelled"].includes(c.status)).length;
+      const overdue = cs.filter((c) => c.due_at && new Date(c.due_at) < now && !["delivered","cancelled"].includes(c.status)).length;
+      const delivered = cs.filter((c) => c.status === "delivered").length;
+      const sponsored = ((agenda.data ?? []) as Array<{ sponsor_ministry_id: string | null }>).filter((a) => a.sponsor_ministry_id === m.id).length;
+      const prof = profMap.get(m.slug);
+      let readiness = 0;
+      if (prof?.minister) readiness += 30;
+      if (prof) readiness += 20;
+      if (delivered > 0) readiness += Math.min(20, delivered * 5);
+      if (sponsored > 0) readiness += Math.min(15, sponsored * 5);
+      if (overdue === 0 && open > 0) readiness += 15;
+      if (overdue > 0) readiness = Math.max(0, readiness - overdue * 10);
+      return {
+        ministryId: m.id, slug: m.slug, name: m.name,
+        minister: prof?.minister ?? null,
+        hasProfile: !!prof,
+        openCommitments: open, overdueCommitments: overdue, deliveredCommitments: delivered,
+        sponsoredAgendaItems: sponsored,
+        readiness: Math.max(0, Math.min(100, readiness)),
+      };
+    });
+    return rows.sort((a, b) => a.name.localeCompare(b.name));
+  });
+
+// ─── Commitments Cockpit ─────────────────────────────────────────────────────
+
+export interface CockpitCell { ministryId: string | null; ministryName: string; status: string; count: number }
+export interface CockpitData {
+  cells: CockpitCell[];
+  ageingBuckets: Array<{ bucket: string; count: number }>;
+  breaches: Array<{ id: string; title: string; ministryName: string | null; dueAt: string | null; daysOverdue: number }>;
+  medianCloseDays: number | null;
+  totals: Record<string, number>;
+}
+
+export const getCommitmentsCockpit = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => CountryInput.parse(d))
+  .handler(async ({ data, context }): Promise<CockpitData> => {
+    const cc = data.countryCode;
+    const supa = context.supabase;
+    const [{ data: commits }, { data: mins }] = await Promise.all([
+      supa.from("commitments").select("id,title,status,due_at,ministry_id,created_at").eq("country_code", cc),
+      supa.from("ministries").select("id,name").eq("country_code", cc),
+    ]);
+    const mMap = new Map(((mins ?? []) as Array<{ id: string; name: string }>).map((m) => [m.id, m.name]));
+    const now = new Date();
+    const cellMap = new Map<string, CockpitCell>();
+    const totals: Record<string, number> = { open: 0, in_progress: 0, delivered: 0, blocked: 0, cancelled: 0 };
+    const ageBuckets = { "<30d": 0, "30–90d": 0, "90–180d": 0, ">180d": 0 } as Record<string, number>;
+    const breaches: CockpitData["breaches"] = [];
+    const closedAges: number[] = [];
+
+    for (const c of (commits ?? []) as Array<{ id: string; title: string; status: string; due_at: string | null; ministry_id: string | null; created_at: string }>) {
+      totals[c.status] = (totals[c.status] ?? 0) + 1;
+      const mName = c.ministry_id ? (mMap.get(c.ministry_id) ?? "Unassigned") : "Unassigned";
+      const key = `${c.ministry_id ?? "none"}::${c.status}`;
+      const cell = cellMap.get(key) ?? { ministryId: c.ministry_id, ministryName: mName, status: c.status, count: 0 };
+      cell.count += 1;
+      cellMap.set(key, cell);
+
+      if (["delivered","cancelled"].includes(c.status)) {
+        if (c.created_at && c.due_at) {
+          closedAges.push((new Date(c.due_at).getTime() - new Date(c.created_at).getTime()) / 86400000);
+        }
+      } else {
+        const ageDays = (now.getTime() - new Date(c.created_at).getTime()) / 86400000;
+        if (ageDays < 30) ageBuckets["<30d"] += 1;
+        else if (ageDays < 90) ageBuckets["30–90d"] += 1;
+        else if (ageDays < 180) ageBuckets["90–180d"] += 1;
+        else ageBuckets[">180d"] += 1;
+
+        if (c.due_at && new Date(c.due_at) < now) {
+          const overdue = Math.round((now.getTime() - new Date(c.due_at).getTime()) / 86400000);
+          breaches.push({ id: c.id, title: c.title, ministryName: mName, dueAt: c.due_at, daysOverdue: overdue });
+        }
+      }
+    }
+
+    return {
+      cells: [...cellMap.values()].sort((a, b) => a.ministryName.localeCompare(b.ministryName)),
+      ageingBuckets: Object.entries(ageBuckets).map(([bucket, count]) => ({ bucket, count })),
+      breaches: breaches.sort((a, b) => b.daysOverdue - a.daysOverdue).slice(0, 8),
+      medianCloseDays: closedAges.length ? Math.round(median(closedAges)) : null,
+      totals,
+    };
+  });
+
+// ─── Situation Brief (Gemini, McKinsey pyramid) ──────────────────────────────
+
+export interface SituationBrief {
+  id: string;
+  headline: string;
+  briefMd: string;
+  posture: Record<string, string>;
+  citations: Array<{ n: number; label: string; kind: string; href?: string }>;
+  generatedAt: string;
+  model: string | null;
+}
+
+export const getSituationBrief = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => CountryInput.parse(d))
+  .handler(async ({ data, context }): Promise<SituationBrief | null> => {
+    const { data: row } = await context.supabase
+      .from("cabinet_brief_cache")
+      .select("id,headline,brief_md,posture,citations,generated_at,model")
+      .eq("country_code", data.countryCode)
+      .order("generated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!row) return null;
+    return {
+      id: row.id, headline: row.headline ?? "",
+      briefMd: row.brief_md,
+      posture: (row.posture ?? {}) as Record<string, string>,
+      citations: Array.isArray(row.citations) ? (row.citations as unknown as SituationBrief["citations"]) : [],
+      generatedAt: row.generated_at, model: row.model,
+    };
+  });
+
+export const generateSituationBrief = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => CountryInput.parse(d))
+  .handler(async ({ data, context }): Promise<SituationBrief> => {
+    const cc = data.countryCode;
+    const supa = context.supabase;
+    const [country, kpis, sectors, signals, alerts, threats, commits] = await Promise.all([
+      supa.from("countries").select("code,name").eq("code", cc).maybeSingle(),
+      supa.from("country_kpis").select("kpi_code,label,latest_value,latest_period,target,unit,direction").eq("country_code", cc).limit(30),
+      supa.from("country_sectors").select("sector_code,share_pct,confidence_grade").eq("country_code", cc).order("share_pct",{ascending:false}).limit(8),
+      supa.from("intake_items").select("topic,severity,created_at").eq("scope_key", cc).gte("severity", 3).is("story_key", null).order("created_at",{ascending:false}).limit(6),
+      supa.from("grade_alerts").select("sector_code,previous_grade,new_grade,created_at").eq("country_code", cc).is("acknowledged_at", null).order("created_at",{ascending:false}).limit(5),
+      supa.from("fdi_threats").select("name,severity_pct,onset,horizon_years").eq("country_code", cc).order("severity_pct",{ascending:false}).limit(5),
+      supa.from("commitments").select("title,status,due_at").eq("country_code", cc).in("status", ["open","in_progress","blocked"]).limit(15),
+    ]);
+
+    type Cite = { n: number; label: string; kind: string; href?: string };
+    const citations: Cite[] = [];
+    const cite = (kind: string, label: string, href?: string) => {
+      const n = citations.length + 1;
+      citations.push({ n, label, kind, href });
+      return n;
+    };
+
+    const now = new Date();
+    const overdue = ((commits.data ?? []) as Array<{ status: string; due_at: string | null }>).filter((c) => c.due_at && new Date(c.due_at) < now && !["delivered","cancelled"].includes(c.status)).length;
+
+    const kpiLines = ((kpis.data ?? []) as Array<{ kpi_code: string; label: string; latest_value: number | null; latest_period: string | null; target: number | null; unit: string }>)
+      .slice(0, 8)
+      .map((k) => `[${cite("kpi", `${k.label} ${k.latest_value ?? "—"} ${k.unit} (${k.latest_period ?? "n/a"})`)}] ${k.label}: ${k.latest_value ?? "—"} ${k.unit}${k.target != null ? ` vs target ${k.target}` : ""}`).join("\n");
+    const sectorLines = ((sectors.data ?? []) as Array<{ sector_code: string; share_pct: number; confidence_grade: string }>)
+      .map((s) => `[${cite("sector", `${s.sector_code} share ${s.share_pct}% (grade ${s.confidence_grade})`)}] ${s.sector_code}: ${s.share_pct}% of GDP (grade ${s.confidence_grade})`).join("\n");
+    const signalLines = ((signals.data ?? []) as Array<{ topic: string; severity: number; created_at: string }>)
+      .map((s) => `[${cite("narrative", s.topic)}] P${6 - Math.min(5, s.severity)}: ${s.topic}`).join("\n");
+    const gradeLines = ((alerts.data ?? []) as Array<{ sector_code: string | null; previous_grade: string; new_grade: string }>)
+      .map((a) => `[${cite("grade", `${a.sector_code ?? "ledger"} ${a.previous_grade}→${a.new_grade}`)}] ${a.sector_code ?? "Ledger"} grade ${a.previous_grade}→${a.new_grade}`).join("\n");
+    const threatLines = ((threats.data ?? []) as Array<{ name: string; severity_pct: number; onset: string; horizon_years: number }>)
+      .map((t) => `[${cite("threat", `${t.name} sev ${t.severity_pct}% onset ${t.onset}`)}] ${t.name}: severity ${t.severity_pct}%, onset ${t.onset}, ${t.horizon_years}y`).join("\n");
+
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("Missing LOVABLE_API_KEY");
+    const gateway = createLovableAiGatewayProvider(key);
+    const modelId = "google/gemini-2.5-flash";
+    const prompt = `You are a McKinsey Senior Partner briefing a sovereign cabinet for country ${country.data?.name ?? cc}.
+Write a State-of-the-Nation cabinet brief using the Pyramid Principle. Ground every claim in the evidence below via [N] citation markers. Do not invent numbers.
+
+Return EXACTLY this structure in Markdown, no headings above H3:
+### Headline
+One line, ≤ 18 words, action-oriented.
+
+### Situation
+2–3 sentences on where the country stands now (macro + sector + fiscal).
+
+### Complication
+2 sentences on the specific risks or gaps forcing a decision.
+
+### Question
+One sentence: the decision cabinet must take this week.
+
+### Recommendation
+2–3 sentences with a specific ask, an owner ministry, and a success metric.
+
+Also emit a JSON block on the last line prefixed with 'POSTURE:' containing four postures in the shape {"fiscal":"strong|watch|stressed","external":"strong|watch|stressed","social":"strong|watch|stressed","political":"strong|watch|stressed"}.
+
+EVIDENCE
+Macro KPIs:
+${kpiLines || "(none committed)"}
+
+Sectors:
+${sectorLines || "(none committed)"}
+
+Live signals:
+${signalLines || "(none this week)"}
+
+Grade alerts:
+${gradeLines || "(none)"}
+
+FDI threats:
+${threatLines || "(none)"}
+
+Operational load: ${overdue} overdue commitment(s) out of ${(commits.data ?? []).length} open.`;
+    const { text } = await generateText({ model: gateway(modelId), prompt });
+
+    // Extract posture JSON
+    let posture: Record<string, string> = {};
+    let briefMd = text.trim();
+    const postureMatch = briefMd.match(/POSTURE:\s*(\{[^}]+\})/i);
+    if (postureMatch) {
+      try { posture = JSON.parse(postureMatch[1]); } catch { /* ignore */ }
+      briefMd = briefMd.replace(postureMatch[0], "").trim();
+    }
+    const headlineMatch = briefMd.match(/###\s*Headline\s*\n([^\n]+)/i);
+    const headline = headlineMatch ? headlineMatch[1].trim() : "";
+
+    const { data: inserted, error } = await supa.from("cabinet_brief_cache").insert({
+      country_code: cc,
+      brief_md: briefMd,
+      headline,
+      posture: posture as unknown as Json,
+      citations: citations as unknown as Json,
+      model: modelId,
+      generated_by: context.userId,
+    }).select("id,generated_at").single();
+    if (error) throw new Error(error.message);
+    return {
+      id: inserted.id, headline, briefMd, posture, citations,
+      generatedAt: inserted.generated_at, model: modelId,
+    };
+  });
+

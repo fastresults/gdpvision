@@ -24,6 +24,10 @@ import { CompareSlots } from "@/components/scenarios/CompareSlots";
 import { LeversDrawer } from "@/components/scenarios/LeversDrawer";
 import { GuidedRail } from "@/components/scenarios/GuidedRail";
 import { CoachTip } from "@/components/scenarios/CoachTip";
+import { AiRecommendDrawer } from "@/components/scenarios/AiRecommendDrawer";
+import { buildAiPlaybook } from "@/lib/scenarios/playbooks";
+import type { RecommendedScenario } from "@/lib/scenarios/recommend-scenario.functions";
+import { Sparkles } from "lucide-react";
 import { RouteError } from "@/components/state/RouteState";
 import { writePins, readPins } from "./countries.$code.scenarios";
 
@@ -114,6 +118,46 @@ function Builder() {
   const [ghostPath, setGhostPath] = useState<EngineRunResult["output"]["gdpGrowthPath"] | null>(
     null,
   );
+
+  // AI Recommend drawer
+  const [aiDrawerOpen, setAiDrawerOpen] = useState(false);
+  const [aiPreviewActive, setAiPreviewActive] = useState(false);
+
+  function applyRecommendation(s: RecommendedScenario, mode: "preview" | "apply") {
+    setGhostPath(current.output.gdpGrowthPath);
+    const play = buildAiPlaybook(
+      s.playbook.id,
+      s.playbook.label,
+      s.playbook.blurb,
+      s.playbook.lever_moves,
+      s.playbook.thesis,
+      s.citations,
+    );
+    registerAiPlay(play);
+    // respect locks — keep any locked lever at its current value
+    const next = { ...s.levers };
+    for (const [slug, locked] of Object.entries(locks)) if (locked) next[slug] = levers[slug];
+    setLevers(next);
+    setActivePlaybookIds(new Set([play.id]));
+    if (mode === "apply") {
+      if (s.title) setTitle(s.title);
+      if (s.horizonYears) setHorizonYears(s.horizonYears);
+      setAssumptionsNote(
+        [
+          s.thesis,
+          s.assumptions.length ? `\n\nWhat must be true:\n- ${s.assumptions.join("\n- ")}` : "",
+          s.risks.length ? `\n\nRisks:\n- ${s.risks.join("\n- ")}` : "",
+        ]
+          .join("")
+          .slice(0, 4000),
+      );
+      setAiPreviewActive(false);
+      setStep(3);
+      setFurthest((f) => Math.max(f, 3));
+    } else {
+      setAiPreviewActive(true);
+    }
+  }
 
   useEffect(() => {
     setPinCount(readPins(code).length);
@@ -394,6 +438,20 @@ function Builder() {
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setAiDrawerOpen(true)}
+              className="group relative inline-flex items-center gap-1.5 overflow-hidden border border-ink-950 bg-ink-950 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-paper-0 shadow-sm hover:bg-ink-700"
+              title="Describe a challenge — AI designs a full scenario grounded in this country's second brain"
+            >
+              <Sparkles size={12} className="text-amber-300" />
+              Ask AI to design this
+            </button>
+            {aiPreviewActive && (
+              <span className="inline-flex items-center gap-1 border border-amber-400 bg-amber-50 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.22em] text-amber-900">
+                <Sparkles size={10} /> AI preview active
+              </span>
+            )}
             <CompareSlots code={code} count={pinCount} />
             {step === 3 && hasLevers && (
               <button
@@ -406,6 +464,36 @@ function Builder() {
             )}
           </div>
         </div>
+
+        {step === 1 && (
+          <div className="mx-6 mt-6 border border-ink-950/20 bg-gradient-to-br from-paper-100/60 to-paper-0 p-5">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 rounded-full border border-ink-950 bg-ink-950 p-1.5">
+                <Sparkles size={14} className="text-amber-300" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
+                  Fastest path — let AI design it
+                </p>
+                <h3 className="mt-1 font-serif text-base text-ink-950">
+                  Describe the challenge · get a Cabinet-ready scenario in one click
+                </h3>
+                <p className="mt-1 text-[12px] leading-relaxed text-ink-700">
+                  "Wind down CBI over 3 years", "Cat-4 hurricane in Q3", "Double stayovers by Y3" —
+                  the recommender reads {code}'s sectors, KPIs, ministry mandate, and live signals
+                  and returns exact lever moves with rationale &amp; citations.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setAiDrawerOpen(true)}
+                  className="mt-3 inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-paper-0 hover:bg-ink-700"
+                >
+                  <Sparkles size={12} className="text-amber-300" /> Design scenario with AI
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="px-6 py-6">
           {/* Step-specific caption */}
@@ -585,6 +673,19 @@ function Builder() {
         onToggleLock={toggleLock}
         onReset={resetDefaults}
         activeCount={activeLeverCount}
+      />
+
+      <AiRecommendDrawer
+        open={aiDrawerOpen}
+        onClose={() => setAiDrawerOpen(false)}
+        countryCode={code}
+        ministrySlug={ministrySlug || null}
+        leverDefs={init.leverDefs}
+        horizonYears={horizonYears}
+        disabled={init.leverDefs.length === 0}
+        disabledReason="Activate or synthesize country levers first (Step 2) — then reopen the recommender."
+        onPreview={(s) => applyRecommendation(s, "preview")}
+        onApply={(s) => applyRecommendation(s, "apply")}
       />
     </div>
   );

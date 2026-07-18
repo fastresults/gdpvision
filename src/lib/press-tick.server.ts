@@ -32,7 +32,7 @@ export async function runPressTick(opts: {
 
   const errors: Array<{ scope: string; msg: string }> = [];
   const countryList = new Set<string>();
-  let feedsPolled = 0, itemsFetched = 0, itemsNew = 0, itemsPromoted = 0;
+  let feedsPolled = 0, itemsFetched = 0, itemsNew = 0, itemsPromoted = 0, clustersMerged = 0;
 
   try {
     let feedsQ = supabaseAdmin

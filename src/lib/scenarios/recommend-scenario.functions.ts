@@ -9,7 +9,6 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const LeverDefInput = z.object({
   slug: z.string(),
-  label: z.string().optional(),
   sector_code: z.string(),
   response_fn_ref: z.string(),
   bounds: z.object({

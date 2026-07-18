@@ -11,6 +11,7 @@ import {
   type EngineRunResult,
 } from "@/lib/scenarios.functions";
 import { composePlaybooks, PLAYBOOKS, type Playbook } from "@/lib/scenarios/playbooks";
+import { runLocalEngine } from "@/lib/scenarios/local-engine";
 import { GdpFanChart } from "@/components/scenarios/GdpFanChart";
 import { SectorWaterfall } from "@/components/scenarios/SectorWaterfall";
 import { AttributionStack } from "@/components/scenarios/AttributionStack";
@@ -119,34 +120,27 @@ function Builder() {
     setFurthest(3);
   }, [fork.data]);
 
-  const preview = useMutation({
-    mutationFn: (payload: { levers: Record<string, number>; horizonYears: number }) =>
-      runScenarioEngine({
-        data: { countryCode: code, horizonYears: payload.horizonYears, levers: payload.levers },
-      }),
-    onSuccess: () => setLastRunAt(Date.now()),
-  });
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  function scheduleRun(next: Record<string, number>, hy: number) {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      preview.mutate({ levers: next, horizonYears: hy });
-    }, 250);
-  }
-
-  const current: EngineRunResult = preview.data ?? init;
+  // Real-time preview: the engine is pure and deterministic — compute it on
+  // every state change so the fan chart, stat strip, waterfall and attribution
+  // stack all bend within a single animation frame. Server `runScenarioEngine`
+  // is only used to fetch the initial baseline + leverDefs and to persist on
+  // save; results reconcile exactly because the same math runs both sides.
+  const current: EngineRunResult = useMemo(
+    () => runLocalEngine(init, levers, horizonYears),
+    [init, levers, horizonYears],
+  );
+  useEffect(() => {
+    setLastRunAt(Date.now());
+  }, [current]);
 
   function updateLever(slug: string, value: number) {
     if (locks[slug]) return;
     setGhostPath((prev) => prev ?? current.output.gdpGrowthPath);
     setActivePlaybookIds(new Set()); // manual edits break the composition
-    const next = { ...levers, [slug]: value };
-    setLevers(next);
-    scheduleRun(next, horizonYears);
+    setLevers((prev) => ({ ...prev, [slug]: value }));
   }
   function updateHorizon(v: number) {
     setHorizonYears(v);
-    scheduleRun(levers, v);
   }
 
   function registerAiPlay(p: Playbook) {

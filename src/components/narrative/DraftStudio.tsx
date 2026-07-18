@@ -93,8 +93,15 @@ export function DraftStudio({ signalId }: { signalId: string }) {
 
   const runBatch = useMutation({
     mutationFn: async (channels: ChannelKey[]) => {
-      if (!strategyId) throw new Error("Draft the strategy first (Act 3).");
       if (!channels.length) throw new Error("Select at least one channel.");
+      let sid = strategyId;
+      if (!sid) {
+        setProgress({ done: 0, total: channels.length, current: null, errors: [] });
+        const s = await draftStrategy({ data: { signalId } });
+        sid = s?.id as string | undefined;
+        await qc.invalidateQueries({ queryKey: ["narrative-artifacts", signalId] });
+        if (!sid) throw new Error("Could not draft strategy automatically.");
+      }
       abortRef.current = { cancelled: false };
       const errors: Progress["errors"] = [];
       setProgress({ done: 0, total: channels.length, current: channels[0], errors: [] });

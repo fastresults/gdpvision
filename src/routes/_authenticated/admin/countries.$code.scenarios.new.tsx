@@ -16,6 +16,8 @@ import { GdpFanChart } from "@/components/scenarios/GdpFanChart";
 import { SectorWaterfall } from "@/components/scenarios/SectorWaterfall";
 import { AttributionStack } from "@/components/scenarios/AttributionStack";
 import { StatStrip } from "@/components/scenarios/StatStrip";
+import { CompensationLedger } from "@/components/scenarios/CompensationLedger";
+import { computeCompensation } from "@/lib/scenarios/compensation";
 import { NarrativePanel } from "@/components/scenarios/NarrativePanel";
 import { EmptyLevers } from "@/components/scenarios/EmptyLevers";
 import { CompareSlots } from "@/components/scenarios/CompareSlots";

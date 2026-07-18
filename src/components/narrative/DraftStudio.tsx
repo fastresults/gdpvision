@@ -179,7 +179,7 @@ export function DraftStudio({ signalId }: { signalId: string }) {
           )}
           <button
             onClick={() => runBatch.mutate(selectedList)}
-            disabled={running || !strategyId || selectedList.length === 0}
+            disabled={running || selectedList.length === 0}
             className="inline-flex items-center gap-2 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-paper-0 hover:bg-ink-800 disabled:opacity-50"
           >
             <Sparkles size={12} /> {generateLabel}

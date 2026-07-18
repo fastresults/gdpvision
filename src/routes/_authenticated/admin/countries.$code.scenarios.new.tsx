@@ -339,6 +339,9 @@ function Builder() {
           onSavePin={() => save.mutate({ pin: true })}
           savePending={save.isPending}
           saveError={save.error ? (save.error as Error).message : null}
+          onLeversCommitted={() =>
+            queryClient.invalidateQueries({ queryKey: ["engine-init", code] })
+          }
         />
       </aside>
 

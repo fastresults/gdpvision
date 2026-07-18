@@ -7,6 +7,7 @@ import { MacroStrip } from "./MacroStrip";
 import { GdpTreemap } from "./GdpTreemap";
 import { MinistrySectorHeatmap } from "./MinistrySectorHeatmap";
 import { KpiSmallMultiples } from "./KpiSmallMultiples";
+import { SectorProfilingMatrix } from "./SectorProfilingMatrix";
 import { DebtHorizon } from "./DebtHorizon";
 import { EvidenceRail } from "./EvidenceRail";
 import { SovereignSankey } from "./SovereignSankey";

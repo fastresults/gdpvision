@@ -2796,14 +2796,56 @@ export type Database = {
         }
         Relationships: []
       }
+      lever_drafts: {
+        Row: {
+          citations: Json
+          committed_at: string | null
+          country_code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          payload: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          citations?: Json
+          committed_at?: string | null
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          payload: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          citations?: Json
+          committed_at?: string | null
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          payload?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       levers: {
         Row: {
           bounds: Json
+          citations: Json
           country_code: string
           created_at: string
+          draft_id: string | null
           id: string
           methodology_ref: string | null
           name: string
+          rationale: string | null
           response_fn_ref: string
           sector_code: string
           slug: string
@@ -2812,11 +2854,14 @@ export type Database = {
         }
         Insert: {
           bounds?: Json
+          citations?: Json
           country_code: string
           created_at?: string
+          draft_id?: string | null
           id?: string
           methodology_ref?: string | null
           name: string
+          rationale?: string | null
           response_fn_ref?: string
           sector_code: string
           slug: string
@@ -2825,11 +2870,14 @@ export type Database = {
         }
         Update: {
           bounds?: Json
+          citations?: Json
           country_code?: string
           created_at?: string
+          draft_id?: string | null
           id?: string
           methodology_ref?: string | null
           name?: string
+          rationale?: string | null
           response_fn_ref?: string
           sector_code?: string
           slug?: string
@@ -2843,6 +2891,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "countries"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "levers_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "lever_drafts"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "levers_sector_code_fkey"

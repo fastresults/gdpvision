@@ -1,50 +1,54 @@
-# Step 2 — Smarter Plays: AI-generated + multi-select
 
-Today Step 2 in `src/routes/_authenticated/admin/countries.$code.scenarios.new.tsx` shows five hard-coded playbooks from `src/lib/scenarios/playbooks.ts`. A pick replaces the entire lever map. We'll extend it so ministers can (a) compose multiple plays at once and (b) request AI-generated plays grounded in that country's second-brain (KPIs, sectors, ministries, threats, dossiers).
+## Why Step 3 is empty
 
-## 1. Multi-select composition
+`runScenarioEngine` reads `public.levers` filtered by `country_code`. Today only LCA has rows (2 levers: `cbi-inflows`, `stayover-arrivals`). Every other country — including ATG — returns `[]`, so `leverDefs=[]`, so Step 3, the playbooks, and the fan chart all have nothing to move. There is no seeding path and no AI fallback; levers were expected to be hand-authored during onboarding and never were for the other 21 countries.
 
-- Change the `PlaybookCard` state from single `activeId: string | null` to `activeIds: Set<string>` in `GuidedRail.tsx` / the new-scenario route.
-- Clicking a card toggles it in/out of the active set. `Baseline hold` is exclusive — selecting it clears others; selecting another play deselects baseline.
-- Introduce a deterministic **compose** step in `src/lib/scenarios/playbooks.ts`:
-  - `composePlaybooks(defs, playbooks[])` returns a merged `{slug: value}` map.
-  - Merge rule: start from defaults; for each selected play, compute its delta from default per lever; sum deltas; clamp to `bounds.min/max`. Conflicting directions net out naturally.
-  - Expose per-lever attribution (which plays moved it, by how much) so Step 3's consequence chips can show "Tourism surge +2, Fiscal consolidation −1".
-- Show a compact "Stacked plays" strip above the cards with removable chips and a "Clear" affordance.
-- Persist `selected_playbook_ids: string[]` on the scenario draft (extend `saveScenario` payload's `assumptions` blob — no schema change needed) so reload restores the composition.
+The fix is not to hand-write 22 lever packs. It's to let the second brain propose them.
 
-## 2. AI-generated plays (context-aware)
+## What "intelligence" we already have but aren't using
 
-New server function `suggestPlaybooks` in `src/lib/scenarios/suggest-playbooks.functions.ts` (client-safe path, `requireSupabaseAuth`):
+Per country we already store: `country_sectors` (GDP mix + shares), `country_kpis` (targets, direction, unit), `ministry_profiles` (mandate + minister), `ministry_sectors` (which ministry owns what), `capital_flow_nodes` (inflows/outflows with GDP caps), `exposure_index`, `sector_dossiers` (risks, opportunities, citations), and P1/P2 `intake_items` (live narrative signals). That is exactly the context needed to propose credible, bounded policy levers with a response function and a source trail — the same shape Stage 12 already uses for capital flows.
 
-- **Inputs**: `countryCode`, `ministrySlug?`, `sectorCode?`, current `leverDefs` (slug, bounds, sector_code, response_fn_ref), and the user's optional freeform prompt ("What if we lean into blue economy and cut CBI?").
-- **Context assembly** (server-side, RLS-scoped): pull compact snapshots from the existing corpus —
-  - top KPIs + trend from `country_kpis` / `country_kpi_points`
-  - sector shares from `sector_dossiers`
-  - active existential threats (`src/lib/existential-threats.ts`)
-  - ministry mandates for the current `ministry` search param
-  - recent narrative signals (P1/P2 only) for the country
-- **Model**: Lovable AI Gateway via the shared helper (`google/gemini-3.5-flash` for speed; escalate to `google/gemini-3.1-pro-preview` when the user clicks "Deeper suggestions"). Use `Output.object` with a small, constraint-free schema `{ plays: [{ id, label, blurb, thesis, lever_moves: [{slug, direction: "up"|"down", magnitude: 0..1}] }] }`. Guard with `NoObjectGeneratedError` fallback per the AI SDK rules.
-- **Post-processing**: map `lever_moves` → concrete `{slug: value}` using each lever's bounds (magnitude scales the range from default, same math as `nudge()` in `playbooks.ts`). Drop moves whose `slug` isn't in `leverDefs`.
-- **Grounding**: return `citations[]` (KPI ids, sector codes, signal ids used) so the play card can show a "Why this play" popover.
-- **Caching**: cache by `(countryCode, ministrySlug, sectorCode, leverDefsHash)` in a lightweight `scenario_play_suggestions` table (24h TTL) to avoid re-billing on every visit. Migration includes GRANTs + RLS scoped by `has_country_access`.
+## Plan
 
-## 3. UI additions in Step 2
+### 1. AI Lever Synthesis (server function)
+New `src/lib/scenarios/synthesize-levers.functions.ts` — `synthesizeLevers({ countryCode })`, `requireSupabaseAuth`, admin-only.
 
-- New sub-section **"AI-suggested plays"** below the preset grid:
-  - Loads 3 suggestions on mount (Suspense + `useSuspenseQuery`), with a "Regenerate" button and an optional prompt textarea ("Focus on… / Avoid…").
-  - Each AI card mirrors `PlaybookCard` visual language but marks provenance with a small "AI" chip and a "Why this play" hover (uses `ExplainHover`) rendering the thesis + citations via `CitedMarkdown`.
-  - Selecting an AI play adds it to the same composition set as presets.
-- Empty/failure states: if the gateway 429/402s, show the presets only with a subtle "AI suggestions unavailable — showing presets" note (no crash).
+- Assemble a country context bundle: top 8 sectors by share, KPI targets, ministry→sector mandates, top capital flows, exposure index, top 5 P1/P2 signals, sector dossier risks/opportunities.
+- Call `google/gemini-3.5-flash` via `createLovableAiGatewayProvider`, structured `Output.object`. Ask for 8–14 levers as:
+  `{ slug, name, sector_code, unit, bounds:{min,max,default,step}, response_fn_ref, rationale, citations:[{label,ref}] }`.
+- Constrain `sector_code` to `CANONICAL_SECTORS.slug` and `response_fn_ref` to the known set (`v1_macro.linear_gdp`, `v1_macro.exposure_delta`, plus 1–2 new registered fns if needed) — reject-and-retry on invalid values (same pattern as `commitMinistrySectorMap`).
+- Bounds sanity clamp: `min ≤ default ≤ max`, `step > 0`, `default` within one std-dev of sector share where applicable.
+- Persist a **draft** to a new `lever_drafts` table (country_code, payload jsonb, citations jsonb, status `draft|committed|rejected`, created_by, created_at). Nothing lands in `public.levers` until an admin commits.
 
-## 4. Downstream wiring
+### 2. Commit / edit path
+- `commitLeverDraft({ draftId, edits })` upserts into `public.levers` on `(country_code, slug)`, snapshots citations into a new `lever_citations` jsonb column (mirrors `sector_dossiers.citations` pattern), sets `methodology_ref` to the draft id.
+- Idempotent: re-running synthesis for a country replaces the open draft, never duplicates committed rows.
 
-- `GuidedRail` passes the composed lever map to the existing preview mutation — Step 3 keeps working unchanged.
-- `LeverRow` consequence chips gain a secondary line "from: Tourism surge, Fiscal consolidation" when attribution is present.
-- Save flow stores `assumptions.selected_playbook_ids` and `assumptions.ai_playbooks` (the generated definitions) so the saved scenario is reproducible even if suggestions change later.
+### 3. Step 3 UI — the empty-state fix
+In `src/routes/_authenticated/admin/countries.$code.scenarios.new.tsx` Step 3 body, when `init.leverDefs.length === 0`:
+
+- Replace the silent "Show all 0 levers" with a McKinsey-style empty state card:
+  - Headline: "No levers configured for {Country}."
+  - Sub: "Generate a starting set from the second brain — sectors, ministries, KPIs, capital flows and live signals."
+  - Primary button: **Generate levers with AI** → calls `synthesizeLevers`, opens a review drawer.
+- Review drawer (`LeverDraftReview.tsx`): each proposed lever shows name, sector chip, bounds slider preview, `ExplainHover` with rationale + `<CitedText>` citations, and inline edit (name / bounds / sector). Bulk actions: Accept all, Reject, Regenerate with focus prompt (reuse `AiPlaySuggestions` textarea pattern).
+- On commit → invalidate `["engine-init", code]` → engine re-runs → Step 3 fills with `LeverRow` cards and Step 2 playbooks (Tourism surge, CBI wind-down, etc.) start matching real slugs/sectors.
+
+### 4. Feedback into playbooks
+`PLAYBOOKS` presets match by `sector_code` and slug substrings — once levers exist, the existing presets and the AI play suggester (`suggest-playbooks.functions.ts`) both light up for free. No changes needed there.
+
+### 5. Backfill entry point (optional, separate action)
+Add a one-shot admin action on the Countries Queue row: "Synthesize levers" — same server function, so all 21 empty countries can be seeded on demand without touching onboarding stages.
 
 ## Technical notes
 
-- Files touched: `src/routes/_authenticated/admin/countries.$code.scenarios.new.tsx`, `src/components/scenarios/GuidedRail.tsx`, `src/components/scenarios/PlaybookCard.tsx`, `src/components/scenarios/LeverRow.tsx`, `src/lib/scenarios/playbooks.ts`, `src/lib/scenarios.functions.ts`.
-- New files: `src/lib/scenarios/suggest-playbooks.functions.ts`, `src/lib/scenarios/suggest-playbooks.server.ts` (context assembly + Gemini call), `src/components/scenarios/AiPlaySuggestions.tsx`, one migration for `scenario_play_suggestions`.
-- No changes to Chamber 03 saved-scenario schema beyond the `assumptions` jsonb blob.
+- Tables: `CREATE TABLE public.lever_drafts (...)` + GRANTs (`authenticated` select/insert/update, `service_role` all); `ALTER TABLE public.levers ADD COLUMN citations jsonb`.
+- RLS: `has_country_access(country_code)` reuse for both.
+- AI call reads `process.env.LOVABLE_API_KEY` inside `.handler()`.
+- No changes to `runScenarioEngine`, `v1_macro`, or Step 2 composition logic — this is pure data supply.
+- Response-fn allowlist enforced server-side; unknown refs are dropped with a `needs_review` marker on the draft.
+
+## Out of scope
+- New response functions beyond the existing two (can be added in a follow-up once we see what the AI proposes across countries).
+- Auto-committing without human review — drafts always require an admin click.

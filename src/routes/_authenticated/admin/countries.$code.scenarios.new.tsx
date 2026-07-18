@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
-import { queryOptions, useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 
@@ -65,6 +65,7 @@ function Builder() {
 
   const { data: ministries } = useSuspenseQuery(ministriesQuery(code));
   const { data: init } = useSuspenseQuery(initRunQuery(code));
+  const queryClient = useQueryClient();
 
   const fork = useQuery({
     queryKey: ["scenario-fork", search.fork],
@@ -338,6 +339,9 @@ function Builder() {
           onSavePin={() => save.mutate({ pin: true })}
           savePending={save.isPending}
           saveError={save.error ? (save.error as Error).message : null}
+          onLeversCommitted={() =>
+            queryClient.invalidateQueries({ queryKey: ["engine-init", code] })
+          }
         />
       </aside>
 

@@ -468,17 +468,22 @@ function CommsDetail({ id, code, onDeleted, isTemplateTab }: { id: string; code:
       <div className="border-b border-line-200 p-4 space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <input
-              value={currentTitle}
-              onChange={(e) => setTitleDraft(e.target.value)}
-              onBlur={() => {
-                if (titleDraft !== null && titleDraft !== a.title) {
-                  updateM.mutate({ title: titleDraft });
-                }
-                setTitleDraft(null);
-              }}
-              className="w-full bg-transparent font-serif text-xl text-ink-950 focus:outline-none"
-            />
+            <div className="group flex items-center gap-2">
+              <input
+                value={currentTitle}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onBlur={() => {
+                  if (titleDraft !== null && titleDraft !== a.title) {
+                    updateM.mutate({ title: titleDraft });
+                  }
+                  setTitleDraft(null);
+                }}
+                aria-label="Rename draft"
+                title="Click to rename"
+                className="min-w-0 flex-1 bg-transparent font-serif text-xl text-ink-950 focus:outline-none focus:border-b focus:border-ink-500"
+              />
+              <Pencil size={12} className="text-ink-400 opacity-0 group-hover:opacity-100" aria-hidden />
+            </div>
           </div>
           <div className="flex items-center gap-1.5">
             {isTemplateTab ? (

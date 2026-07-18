@@ -63,6 +63,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/stud
 function StudioLayout() {
   const { code } = Route.useParams();
   const { data: threats } = useSuspenseQuery(threatsQuery(code));
+  const { data: ctx } = useSuspenseQuery(ctxQuery(code));
   return (
     <SuperAdminShell
       wide
@@ -107,20 +108,7 @@ function StudioLayout() {
                 <li className="text-xs text-ink-500">No threats framed yet.</li>
               )}
               {threats.map((t) => (
-                <li key={t.id}>
-                  <Link
-                    to="/admin/countries/$code/studio/threats/$id"
-                    params={{ code, id: t.id }}
-                    activeProps={{ className: "bg-paper-100 text-ink-950" }}
-                    className="block border border-line-200 px-3 py-2 text-sm text-ink-700 hover:border-ink-950"
-                  >
-                    <span className="block truncate">{t.name}</span>
-                    <span className="mt-0.5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
-                      <ShieldCheck size={10} /> {t.threat_type.replace(/_/g, " ")} ·{" "}
-                      {t.severity_pct}%
-                    </span>
-                  </Link>
-                </li>
+                <ThreatRow key={t.id} threat={t} code={code} sectors={ctx.sectors} />
               ))}
             </ul>
           </div>
@@ -128,6 +116,111 @@ function StudioLayout() {
         <section className="min-w-0">
           <Outlet />
         </section>
+      </div>
+    </SuperAdminShell>
+  );
+}
+
+function ThreatRow({
+  threat,
+  code,
+  sectors,
+}: {
+  threat: FdiThreatRow;
+  code: string;
+  sectors: Array<{ code: string; label: string; hue_token?: string | null; share_pct?: number }>;
+}) {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const params = useParams({ strict: false }) as { id?: string };
+  const deleteFn = useServerFn(deleteThreat);
+  const [editOpen, setEditOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const del = useMutation({
+    mutationFn: async () => deleteFn({ data: { id: threat.id } }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["studio-threats", code] });
+      setConfirmOpen(false);
+      if (params.id === threat.id) {
+        navigate({ to: "/admin/countries/$code/studio", params: { code } });
+      }
+    },
+  });
+
+  return (
+    <li className="group relative">
+      <Link
+        to="/admin/countries/$code/studio/threats/$id"
+        params={{ code, id: threat.id }}
+        activeProps={{ className: "bg-paper-100 text-ink-950" }}
+        className="block border border-line-200 px-3 py-2 pr-16 text-sm text-ink-700 hover:border-ink-950"
+      >
+        <span className="block truncate">{threat.name}</span>
+        <span className="mt-0.5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+          <ShieldCheck size={10} /> {threat.threat_type.replace(/_/g, " ")} ·{" "}
+          {threat.severity_pct}%
+        </span>
+      </Link>
+      <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
+        <button
+          type="button"
+          aria-label={`Edit ${threat.name}`}
+          onClick={() => setEditOpen(true)}
+          className="grid h-6 w-6 place-items-center rounded-sm text-ink-500 hover:bg-paper-100 hover:text-ink-950"
+        >
+          <Pencil size={12} strokeWidth={1.5} />
+        </button>
+        <button
+          type="button"
+          aria-label={`Delete ${threat.name}`}
+          onClick={() => setConfirmOpen(true)}
+          className="grid h-6 w-6 place-items-center rounded-sm text-ink-500 hover:bg-rose-50 hover:text-rose-600"
+        >
+          <Trash2 size={12} strokeWidth={1.5} />
+        </button>
+      </div>
+
+      {editOpen && (
+        <ThreatEditorDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          threat={threat}
+          sectors={sectors}
+          countryCode={code}
+        />
+      )}
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this threat?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Removes <span className="font-semibold">{threat.name}</span> and every strategy
+              drafted against it. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {del.error ? (
+            <p className="text-sm text-red-600">{(del.error as Error).message}</p>
+          ) : null}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={del.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                del.mutate();
+              }}
+              disabled={del.isPending}
+              className="bg-rose-600 text-paper-0 hover:bg-rose-700"
+            >
+              {del.isPending ? "Deleting…" : "Delete threat"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </li>
+  );
+}
       </div>
     </SuperAdminShell>
   );

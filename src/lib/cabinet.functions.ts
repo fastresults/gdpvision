@@ -260,7 +260,7 @@ export const getSession = createServerFn({ method: "GET" })
     const enrichedItems = (items ?? []).map((i) => ({
       ...i,
       sponsor_ministry_name: i.sponsor_ministry_id ? mMap.get(i.sponsor_ministry_id) ?? null : null,
-      dossier: Array.isArray(i.dossier) ? (i.dossier as DossierRef[]) : [],
+      dossier: Array.isArray(i.dossier) ? (i.dossier as unknown as DossierRef[]) : [],
     }));
     return { session: s, items: enrichedItems as AgendaItem[], attendance: attendance ?? [], ministries: ministries ?? [] };
   });
@@ -375,7 +375,7 @@ export const generateAgendaBrief = createServerFn({ method: "POST" })
     if (!key) throw new Error("Missing LOVABLE_API_KEY");
     const gateway = createLovableAiGatewayProvider(key);
     const dossierLines = Array.isArray(item.dossier)
-      ? (item.dossier as DossierRef[]).map((d, i) => `[${i+1}] ${d.kind}: ${d.label}${d.href ? " ("+d.href+")" : ""}`).join("\n")
+      ? (item.dossier as unknown as DossierRef[]).map((d, i) => `[${i+1}] ${d.kind}: ${d.label}${d.href ? " ("+d.href+")" : ""}`).join("\n")
       : "(no evidence attached)";
     const prompt = `Draft a McKinsey-grade cabinet brief for ${item.country_code}.
 Topic: ${item.title}
@@ -672,7 +672,7 @@ export const getMinutes = createServerFn({ method: "GET" })
       items: (items ?? []).map((i) => ({
         ...(i as unknown as AgendaItem),
         sponsor_ministry_name: i.sponsor_ministry_id ? mMap.get(i.sponsor_ministry_id) ?? null : null,
-        dossier: Array.isArray(i.dossier) ? (i.dossier as DossierRef[]) : [],
+        dossier: Array.isArray(i.dossier) ? (i.dossier as unknown as DossierRef[]) : [],
         decision: decMap.get(i.id) ? {
           id: decMap.get(i.id)!.id,
           title: decMap.get(i.id)!.title,

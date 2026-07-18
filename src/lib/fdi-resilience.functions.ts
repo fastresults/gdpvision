@@ -400,54 +400,77 @@ const BriefSchema = z.object({
     .max(3),
 });
 
+async function buildThreatBrief(
+  supabase: any,
+  input: {
+    countryCode: string;
+    name: string;
+    threatType: string;
+    targetSectorCodes: string[];
+    severityPct: number;
+    horizonYears: number;
+    onset: string;
+  },
+): Promise<ThreatBrief> {
+  const key = process.env.LOVABLE_API_KEY;
+  if (!key) throw new Error("AI is not configured on this workspace (missing LOVABLE_API_KEY).");
+  const ctxData = await fetchCountryContext(supabase, input.countryCode);
+  const targetSectors = ctxData.sectors.filter((s) =>
+    input.targetSectorCodes.includes(s.sector_code),
+  );
+  const gateway = createLovableAiGatewayProvider(key);
+  const model = "google/gemini-2.5-flash";
+  const prompt = [
+    `Country: ${input.countryCode}. Threat: ${input.name} (${input.threatType}).`,
+    `Severity: ${input.severityPct}%. Horizon: ${input.horizonYears}y. Onset: ${input.onset}.`,
+    `Target sectors (GDP share %): ${targetSectors
+      .map((s) => `${s.sector_code} ${s.share_pct}%`)
+      .join(", ")}.`,
+    `Other sectors on record: ${ctxData.sectors
+      .filter((s) => !input.targetSectorCodes.includes(s.sector_code))
+      .slice(0, 10)
+      .map((s) => `${s.sector_code} ${s.share_pct}%`)
+      .join(", ")}.`,
+    "Write a McKinsey-tone 3-bullet framing of this shock's implications for the country's FDI strategy. Bullet 1 label 'Mechanism' — how the shock transmits. Bullet 2 label 'First-order FDI exposure' — quantified where possible in pp of GDP. Bullet 3 label 'Second-order spillovers' — adjacent sectors and multiplier risks. Concise, sovereign policy register.",
+  ].join(" ");
+  const result = await generateText({
+    model: gateway(model),
+    prompt,
+    experimental_output: Output.object({ schema: BriefSchema }) as any,
+  } as any);
+  const out = (result as any).experimental_output ?? (result as any).output;
+  if (!out?.bullets?.length) {
+    throw new Error("AI returned no briefing content. Try again.");
+  }
+  return {
+    bullets: out.bullets,
+    citations: targetSectors.map((s, i) => ({
+      n: i + 1,
+      title: `${s.sector_code} sector share ${s.share_pct}% (grade ${s.confidence_grade})`,
+      url: null,
+      org: "country_sectors",
+    })),
+    ai_model: model,
+  };
+}
+
 export const createThreat = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => CreateThreatInput.parse(d))
   .handler(async ({ data, context }) => {
-    const ctxData = await fetchCountryContext(context.supabase, data.countryCode);
-    const targetSectors = ctxData.sectors.filter((s) =>
-      data.targetSectorCodes.includes(s.sector_code),
-    );
     let brief: ThreatBrief = { bullets: [], citations: [] };
-    const key = process.env.LOVABLE_API_KEY;
-    if (key) {
-      try {
-        const gateway = createLovableAiGatewayProvider(key);
-        const model = "google/gemini-2.5-flash";
-        const prompt = [
-          `Country: ${data.countryCode}. Threat: ${data.name} (${data.threatType}).`,
-          `Severity: ${data.severityPct}%. Horizon: ${data.horizonYears}y. Onset: ${data.onset}.`,
-          `Target sectors (GDP share %): ${targetSectors
-            .map((s) => `${s.sector_code} ${s.share_pct}%`)
-            .join(", ")}.`,
-          `Other sectors on record: ${ctxData.sectors
-            .filter((s) => !data.targetSectorCodes.includes(s.sector_code))
-            .slice(0, 10)
-            .map((s) => `${s.sector_code} ${s.share_pct}%`)
-            .join(", ")}.`,
-          "Write a McKinsey-tone 3-bullet framing of this shock's implications for the country's FDI strategy. Bullet 1 label 'Mechanism' — how the shock transmits. Bullet 2 label 'First-order FDI exposure' — quantified where possible in pp of GDP. Bullet 3 label 'Second-order spillovers' — adjacent sectors and multiplier risks. Concise, sovereign policy register.",
-        ].join(" ");
-        const result = await generateText({
-          model: gateway(model),
-          prompt,
-          experimental_output: Output.object({ schema: BriefSchema }) as any,
-        } as any);
-        const out = (result as any).experimental_output ?? (result as any).output;
-        if (out?.bullets?.length) {
-          brief = {
-            bullets: out.bullets,
-            citations: targetSectors.map((s, i) => ({
-              n: i + 1,
-              title: `${s.sector_code} sector share ${s.share_pct}% (grade ${s.confidence_grade})`,
-              url: null,
-              org: "country_sectors",
-            })),
-            ai_model: model,
-          };
-        }
-      } catch (err) {
-        console.error("AI brief failed", err);
-      }
+    try {
+      brief = await buildThreatBrief(context.supabase, {
+        countryCode: data.countryCode,
+        name: data.name,
+        threatType: data.threatType,
+        targetSectorCodes: data.targetSectorCodes,
+        severityPct: data.severityPct,
+        horizonYears: data.horizonYears,
+        onset: data.onset,
+      });
+    } catch (err) {
+      console.error("Initial brief failed (non-fatal)", err);
     }
     const { data: row, error } = await context.supabase
       .from("fdi_threats")
@@ -466,6 +489,35 @@ export const createThreat = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
     return { id: row.id };
+  });
+
+export const regenerateThreatBrief = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => IdInput.parse(d))
+  .handler(async ({ data, context }): Promise<ThreatBrief> => {
+    const { data: threat, error } = await context.supabase
+      .from("fdi_threats")
+      .select(
+        "id,country_code,name,threat_type,target_sector_codes,severity_pct,horizon_years,onset",
+      )
+      .eq("id", data.id)
+      .single();
+    if (error) throw new Error(error.message);
+    const brief = await buildThreatBrief(context.supabase, {
+      countryCode: threat.country_code,
+      name: threat.name,
+      threatType: threat.threat_type,
+      targetSectorCodes: (threat.target_sector_codes ?? []) as string[],
+      severityPct: Number(threat.severity_pct),
+      horizonYears: Number(threat.horizon_years),
+      onset: threat.onset,
+    });
+    const { error: uErr } = await context.supabase
+      .from("fdi_threats")
+      .update({ brief: brief as unknown as Json, updated_at: new Date().toISOString() })
+      .eq("id", data.id);
+    if (uErr) throw new Error(uErr.message);
+    return brief;
   });
 
 // ─── Suggest resilient strategy (AI) ─────────────────────────────────────────

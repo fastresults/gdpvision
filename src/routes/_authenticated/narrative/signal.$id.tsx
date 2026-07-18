@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 
 import { generateDossierQuestions, getDossier, updateDossierQuestion } from "@/lib/dossier.functions";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
+import { CitedText } from "@/components/citations/CitedText";
 
 function dossierQuery(id: string) {
   return queryOptions({
@@ -51,7 +52,11 @@ function Dossier() {
           eyebrow={`${d.signal.scope_key} · ${d.signal.sector_code} · ${d.signal.state}`}
           title={d.signal.topic}
         />
-        {d.signal.summary && <p className="mt-4 max-w-3xl text-sm leading-relaxed text-ink-700">{d.signal.summary}</p>}
+        {d.signal.summary && (
+          <p className="mt-4 max-w-3xl text-sm leading-relaxed text-ink-700">
+            <CitedText text={d.signal.summary} citations={d.signal.citations} />
+          </p>
+        )}
         {d.signal.url && (
           <a href={d.signal.url} target="_blank" rel="noopener noreferrer" className="mt-4 inline-block font-mono text-[11px] uppercase tracking-widest text-ink-500 hover:text-ink-950">
             Source ↗

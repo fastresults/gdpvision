@@ -7,6 +7,8 @@ import {
   listArtifactsForSignal,
 } from "@/lib/narrative-chamber.functions";
 import { getStrategy } from "@/lib/narrative.functions";
+import { CitedText } from "@/components/citations/CitedText";
+import type { CitationRef } from "@/components/citations/CitationSup";
 
 export function StrategyPanel({ signalId }: { signalId: string }) {
   const qc = useQueryClient();
@@ -34,6 +36,8 @@ export function StrategyPanel({ signalId }: { signalId: string }) {
   });
 
   const seven = (strat.data?.seven_part ?? {}) as Record<string, string | string[]>;
+  const rawSources = (strat.data?.sources as Array<{ label?: string; ref?: string }> | null) ?? [];
+  const citations: CitationRef[] = rawSources.map((s) => ({ url: s.ref, title: s.label, label: s.label }));
 
   return (
     <section id="strategy" className="border border-line-200 bg-paper-0 p-5">
@@ -68,7 +72,9 @@ export function StrategyPanel({ signalId }: { signalId: string }) {
           {(["situation", "complication", "question", "answer", "grounds", "warrant", "call"] as const).map((k) => (
             <div key={k} className="border border-line-200 p-3">
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">{k}</p>
-              <p className="mt-1 text-sm text-ink-800 whitespace-pre-wrap">{String(seven[k] ?? "—")}</p>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-ink-800">
+                <CitedText text={String(seven[k] ?? "—")} citations={citations} />
+              </p>
             </div>
           ))}
           {Array.isArray(seven.talking_points) && (
@@ -78,7 +84,7 @@ export function StrategyPanel({ signalId }: { signalId: string }) {
                 {(seven.talking_points as string[]).map((t, i) => (
                   <li key={i} className="flex gap-2">
                     <span className="font-mono text-[10px] text-ink-500">{String(i + 1).padStart(2, "0")}</span>
-                    <span>{t}</span>
+                    <span><CitedText text={t} citations={citations} /></span>
                   </li>
                 ))}
               </ol>
@@ -89,7 +95,7 @@ export function StrategyPanel({ signalId }: { signalId: string }) {
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-rose-700">Risks &amp; blowback</p>
               <ul className="mt-2 space-y-1 text-sm text-ink-800">
                 {(seven.risks as string[]).map((t, i) => (
-                  <li key={i}>• {t}</li>
+                  <li key={i}>• <CitedText text={t} citations={citations} /></li>
                 ))}
               </ul>
             </div>

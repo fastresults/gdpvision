@@ -40,6 +40,7 @@ export interface Dossier {
     final_weight: number | null;
     state: string;
     created_at: string;
+    citations: Array<{ url?: string; title?: string; org?: string | null; label?: string }>;
   };
   memory: Array<{ id: string; kind: string; title: string; weight: number | null; created_at: string }>;
   strategies: Array<{ id: string; title: string; status: string; created_at: string }>;
@@ -55,10 +56,24 @@ export const getDossier = createServerFn({ method: "GET" })
     const { supabase } = context;
     const { data: signal, error: sErr } = await supabase
       .from("intake_items")
-      .select("id,scope_key,sector_code,topic,summary,url,proposed_weight,final_weight,state,created_at")
+      .select("id,scope_key,sector_code,topic,summary,url,proposed_weight,final_weight,state,created_at,metadata")
       .eq("id", data.intakeId)
       .single();
     if (sErr) throw new Error(sErr.message);
+    const rawCitations = (signal as { metadata?: { citations?: unknown } })?.metadata?.citations;
+    const signalCitations: Array<{ url?: string; title?: string; org?: string | null; label?: string }> =
+      Array.isArray(rawCitations)
+        ? rawCitations.map((c) =>
+            typeof c === "string"
+              ? { url: c }
+              : {
+                  url: (c as { url?: string; ref?: string })?.url ?? (c as { ref?: string })?.ref,
+                  title: (c as { title?: string; label?: string })?.title ?? (c as { label?: string })?.label,
+                  label: (c as { label?: string })?.label,
+                  org: (c as { org?: string | null })?.org ?? null,
+                },
+          )
+        : [];
 
     // Pull recent Ledger facts scoped to this signal's country+sector.
     const { data: series } = await supabase
@@ -143,7 +158,19 @@ export const getDossier = createServerFn({ method: "GET" })
     }
 
     return {
-      signal,
+      signal: {
+        id: signal.id,
+        scope_key: signal.scope_key,
+        sector_code: signal.sector_code,
+        topic: signal.topic,
+        summary: signal.summary,
+        url: signal.url,
+        proposed_weight: signal.proposed_weight,
+        final_weight: signal.final_weight,
+        state: signal.state,
+        created_at: signal.created_at,
+        citations: signalCitations,
+      },
       memory: memory.map((m) => ({
         id: m.id,
         kind: m.kind as string,

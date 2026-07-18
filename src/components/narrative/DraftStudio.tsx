@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import ReactMarkdown from "react-markdown";
 import { Copy, Send, Sparkles, Square } from "lucide-react";
 
 import {
@@ -10,7 +9,9 @@ import {
   listArtifactsForSignal,
   publishArtifact,
 } from "@/lib/narrative-chamber.functions";
-import { getComms } from "@/lib/narrative.functions";
+import { getComms, getStrategy } from "@/lib/narrative.functions";
+import { CitedMarkdown } from "@/components/citations/CitedMarkdown";
+import type { CitationRef } from "@/components/citations/CitationSup";
 import { cn } from "@/lib/utils";
 
 const CHANNELS = [
@@ -90,6 +91,17 @@ export function DraftStudio({ signalId }: { signalId: string }) {
     queryFn: () => getC({ data: { id: forActive!.id } }),
     enabled: !!forActive?.id,
   });
+
+  const getS = useServerFn(getStrategy);
+  const strategyQ = useQuery({
+    queryKey: ["narrative-strategy", strategyId],
+    queryFn: () => getS({ data: { id: strategyId! } }),
+    enabled: !!strategyId,
+  });
+  const citations: CitationRef[] = useMemo(() => {
+    const raw = (strategyQ.data?.sources as Array<{ label?: string; ref?: string }> | null) ?? [];
+    return raw.map((s) => ({ url: s.ref, title: s.label, label: s.label }));
+  }, [strategyQ.data]);
 
   const runBatch = useMutation({
     mutationFn: async (channels: ChannelKey[]) => {
@@ -296,8 +308,8 @@ export function DraftStudio({ signalId }: { signalId: string }) {
 
       {forActive ? (
         <>
-          <article className="prose prose-sm mt-4 max-w-none border border-line-200 bg-paper-100/30 p-4">
-            <ReactMarkdown>{body || "_empty_"}</ReactMarkdown>
+          <article className="mt-4 border border-line-200 bg-paper-100/30 p-4 text-[13px] leading-relaxed text-ink-800">
+            <CitedMarkdown source={body || "_empty_"} citations={citations} />
           </article>
           <div className="mt-2 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
             <span>{words} words · {body.length} chars</span>

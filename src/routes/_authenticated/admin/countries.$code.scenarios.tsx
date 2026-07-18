@@ -90,7 +90,9 @@ function ScenariosLayout() {
 
   return (
     <SuperAdminShell
+      wide
       eyebrow="Chamber 03 · Scenario Engine"
+
       crumbs={[
         { label: "Countries", to: "/admin/countries" },
         { label: code, to: "/admin/countries/$code/onboard", params: { code } },

@@ -1,6 +1,7 @@
 import type { Allocation } from "@/lib/fdi-resilience.functions";
 import { sectorColor } from "@/components/viz/sector-color";
 import { cn } from "@/lib/utils";
+import { ReadMore } from "./ReadMore";
 
 type Sector = { code: string; label: string; hue_token?: string | null };
 

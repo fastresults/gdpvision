@@ -234,7 +234,11 @@ function StrategyWorkbench() {
         </button>
       </div>
 
-      <ThreatBriefCard brief={threat.brief} />
+      <ThreatBriefCard
+        brief={threat.brief}
+        onRegenerate={() => regenBriefMut.mutate()}
+        regenerating={regenBriefMut.isPending}
+      />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">

@@ -484,13 +484,40 @@ function Builder() {
                 years={current.output.years}
                 path={current.output.gdpGrowthPath}
                 ghostPath={step === 3 && ghostPath ? ghostPath : undefined}
+                baselinePath={step >= 2 ? baselinePath : undefined}
               />
             </div>
+            {step >= 2 && (
+              <div className="mt-3 flex flex-wrap items-center gap-4 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="inline-block h-px w-4 bg-ink-950" /> Levered P50
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span
+                    className="inline-block h-px w-4"
+                    style={{ borderTop: "1px dashed var(--ink-500)" }}
+                  />
+                  Do-nothing baseline
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span
+                    className="inline-block h-2 w-3"
+                    style={{ background: "var(--sector-06)", opacity: 0.35 }}
+                  />
+                  Compensation area
+                </span>
+              </div>
+            )}
             {step === 1 && (
               <p className="mt-2 text-[11px] italic text-ink-500">
                 This is your <strong>do-nothing baseline</strong> over the current horizon —
                 the reference you'll bend from in the next steps.
               </p>
+            )}
+            {step >= 2 && (
+              <div className="mt-4">
+                <CompensationLedger summary={compensation} />
+              </div>
             )}
           </section>
 

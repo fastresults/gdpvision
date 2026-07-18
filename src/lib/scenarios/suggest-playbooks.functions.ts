@@ -98,15 +98,15 @@ export const suggestPlaybooks = createServerFn({ method: "POST" })
     const kpiList = (kpis ?? [])
       .map(
         (k) =>
-          `- ${k.code} ${k.name}: ${k.latest_value ?? "—"}${k.unit ? ` ${k.unit}` : ""} (target ${k.target ?? "—"}, dir ${k.direction ?? "—"})`,
+          `- ${k.kpi_code} ${k.label}: ${k.latest_value ?? "—"}${k.unit ? ` ${k.unit}` : ""} (target ${k.target ?? "—"}, dir ${k.direction ?? "—"})`,
       )
       .join("\n") || "- (no KPIs)";
     const ministryLine = ministry
       ? `Ministry focus: ${ministry.name} — sectors: ${(ministry.ministry_sectors ?? []).map((m) => m.sector_code).join(", ") || "n/a"}`
       : "Ministry focus: cross-portfolio";
     const signalList = (signals ?? [])
-      .map((s) => `- [${s.priority}] ${s.topic}${s.summary ? ` — ${String(s.summary).slice(0, 160)}` : ""}`)
-      .join("\n") || "- (no recent P1/P2 signals)";
+      .map((s) => `- [w${(s.final_weight ?? 0).toFixed?.(1) ?? s.final_weight ?? "?"}] ${s.topic}${s.summary ? ` — ${String(s.summary).slice(0, 160)}` : ""}`)
+      .join("\n") || "- (no recent signals)";
 
     const focusLine = data.focus?.trim()
       ? `Additional user focus: "${data.focus.trim()}"`

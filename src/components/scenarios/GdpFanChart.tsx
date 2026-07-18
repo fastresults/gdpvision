@@ -20,6 +20,7 @@ export function GdpFanChart({
 
   const geometry = useMemo(() => {
     const all = path.flatMap((p) => [p.p10, p.p90, baseline, 0]);
+    if (ghostPath) all.push(...ghostPath.map((p) => p.p50));
     const min = Math.min(...all) - 0.3;
     const max = Math.max(...all) + 0.3;
     const range = max - min || 1;
@@ -42,6 +43,11 @@ export function GdpFanChart({
     const median = path
       .map((p, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(p.p50).toFixed(1)}`)
       .join(" ");
+    const ghost = ghostPath
+      ? ghostPath
+          .map((p, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(p.p50).toFixed(1)}`)
+          .join(" ")
+      : null;
     const ticks: number[] = [];
     const step = range > 6 ? 2 : range > 3 ? 1 : 0.5;
     let t = Math.ceil(min / step) * step;
@@ -49,8 +55,8 @@ export function GdpFanChart({
       ticks.push(Number(t.toFixed(2)));
       t += step;
     }
-    return { x, y, band, median, ticks, baselineY: y(baseline), zeroY: y(0) };
-  }, [path, baseline]);
+    return { x, y, band, median, ghost, ticks, baselineY: y(baseline), zeroY: y(0) };
+  }, [path, baseline, ghostPath]);
 
   const [hover, setHover] = useState<number | null>(null);
 

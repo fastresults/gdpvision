@@ -53,13 +53,16 @@ export async function findCluster(
 
   // Use pg_trgm similarity(). We include story_primary=true so siblings don't
   // become the cluster head.
-  const { data, error } = await supabaseAdmin.rpc("find_story_cluster", {
+  const { data, error } = await (supabaseAdmin.rpc as unknown as (
+    fn: string, args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: unknown }>)("find_story_cluster", {
     _country: countryCode,
     _norm_title: norm,
     _since: since,
   });
-  if (error || !data || (Array.isArray(data) && data.length === 0)) return null;
-  const row = Array.isArray(data) ? data[0] : data;
+  if (error || !data) return null;
+  const rows = Array.isArray(data) ? data : [data];
+  const row = rows[0] as { story_key?: string; primary_id?: string; similarity?: number } | undefined;
   if (!row?.story_key || !row?.primary_id) return null;
   const sim = Number(row.similarity ?? 0);
   if (sim < 0.55) return null;

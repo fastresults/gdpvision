@@ -1,6 +1,6 @@
 // Chamber 05 · shared press-tick harvester (invoked inline by server fn + public route).
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { fetchFeed, classifySignal, pMap, canonicalUrl } from "@/lib/press-monitor.server";
+import { fetchFeed, classifySignal, pMap, canonicalUrl, firecrawlUpgrade } from "@/lib/press-monitor.server";
 
 export type PressTickResult = {
   ok: true;

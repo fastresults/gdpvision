@@ -362,9 +362,12 @@ export function GuidedRail({
               <Row label="Question">{title || "(untitled)"}</Row>
               <Row label="Scope">{ministryName}</Row>
               <Row label="Horizon">{horizonYears} years</Row>
-              <Row label="Starting play">
-                {activePlaybook ?? "—"}
+              <Row label="Starting plays">
+                {activePlaybooks.length === 0
+                  ? "—"
+                  : activePlaybooks.map((p) => p.label).join(" + ")}
               </Row>
+
             </dl>
 
             <div>

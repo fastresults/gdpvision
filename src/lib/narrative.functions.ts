@@ -672,7 +672,12 @@ export const updateCommsMeta = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => MetaUpdate.parse(data))
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    const patch: {
+      updated_at: string;
+      title?: string;
+      tags?: string[];
+      is_template?: boolean;
+    } = { updated_at: new Date().toISOString() };
     if (typeof data.title === "string") patch.title = data.title;
     if (Array.isArray(data.tags)) patch.tags = data.tags;
     if (typeof data.isTemplate === "boolean") patch.is_template = data.isTemplate;

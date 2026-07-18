@@ -20,7 +20,10 @@ export function ChambersLauncher({ code }: { code: string }) {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
         {CHAMBERS.map((c) => {
           const Icon = c.icon;
-          const linkProps = c.withParams ? { to: c.to, params: { code } } : { to: c.to };
+          const linkProps =
+            c.kind === "params"
+              ? { to: c.to, params: { code } }
+              : { to: c.to, search: { code } };
           return (
             <Link
               key={c.n}

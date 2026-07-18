@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Check, Sparkles, X, RotateCcw, Loader2 } from "lucide-react";
 import {
   synthesizeLevers,
   commitLeverDraft,
+  listLeverDrafts,
+  activateLatestLeverDraft,
   type LeverProposal,
 } from "@/lib/scenarios/synthesize-levers.functions";
 import { CANONICAL_SECTORS } from "@/lib/caricom-registry";
@@ -23,6 +25,17 @@ export function LeverDraftReview({
   const [focus, setFocus] = useState("");
   const [note, setNote] = useState<string | null>(null);
 
+  const drafts = useQuery({
+    queryKey: ["lever-drafts", countryCode],
+    queryFn: () => listLeverDrafts({ data: { countryCode, limit: 5 } }),
+    enabled: proposals.length === 0,
+  });
+
+  const readyDraft = useMemo(
+    () => drafts.data?.find((d) => d.status === "draft" && d.proposal_count > 0) ?? null,
+    [drafts.data],
+  );
+
   const synth = useMutation({
     mutationFn: () => synthesizeLevers({ data: { countryCode, focus: focus || undefined } }),
     onSuccess: (r) => {
@@ -38,6 +51,11 @@ export function LeverDraftReview({
       commitLeverDraft({
         data: { draftId: draftId!, selectedSlugs: Array.from(selected) },
       }),
+    onSuccess: onCommitted,
+  });
+
+  const activate = useMutation({
+    mutationFn: () => activateLatestLeverDraft({ data: { countryCode } }),
     onSuccess: onCommitted,
   });
 
@@ -57,48 +75,107 @@ export function LeverDraftReview({
     <div className="space-y-4">
       {proposals.length === 0 && (
         <div className="space-y-3 border border-dashed border-line-200 bg-paper-100/40 p-4">
-          <div className="flex items-start gap-2">
-            <Sparkles size={14} className="mt-0.5 text-ink-950" />
-            <div>
-              <p className="text-sm text-ink-950">Synthesize levers with AI</p>
-              <p className="mt-0.5 text-[11px] leading-relaxed text-ink-500">
-                Gemini reads {countryCode}'s sectors, KPIs, ministries, capital flows and live
-                signals, then proposes 8–14 concrete policy levers with bounds and rationale.
-                Review before committing.
-              </p>
-            </div>
-          </div>
-          <label className="block">
-            <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-ink-500">
-              Focus (optional)
-            </span>
-            <input
-              value={focus}
-              onChange={(e) => setFocus(e.target.value)}
-              placeholder="e.g. fiscal consolidation, blue economy, CBI wind-down"
-              className="mt-1 w-full border border-line-200 bg-paper-0 px-2 py-1.5 text-xs focus:border-ink-950 focus:outline-none"
-            />
-          </label>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => synth.mutate()}
-              disabled={running}
-              className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-paper-0 hover:bg-ink-700 disabled:opacity-50"
-            >
-              {running ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-              {running ? "Synthesizing…" : "Generate levers with AI"}
-            </button>
-            <button
-              type="button"
-              onClick={onDismiss}
-              className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500 hover:text-ink-950"
-            >
-              Cancel
-            </button>
-          </div>
+          {readyDraft ? (
+            <>
+              <div className="flex items-start gap-2">
+                <Sparkles size={14} className="mt-0.5 text-ink-950" />
+                <div>
+                  <p className="text-sm text-ink-950">
+                    {readyDraft.proposal_count} AI levers are ready for {countryCode}
+                  </p>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-ink-500">
+                    A prior synthesis produced bounded, country-grounded levers but they were
+                    never activated. Activate them now and the Scenario Engine will switch from
+                    baseline-only to draggable sliders.
+                  </p>
+                  {readyDraft.sample_names.length > 0 && (
+                    <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
+                      Includes {readyDraft.sample_names.join(" · ")}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => activate.mutate()}
+                  disabled={activate.isPending}
+                  className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-paper-0 hover:bg-ink-700 disabled:opacity-50"
+                >
+                  {activate.isPending ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : (
+                    <Check size={12} />
+                  )}
+                  {activate.isPending ? "Activating…" : "Activate sliders"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => synth.mutate()}
+                  disabled={running || activate.isPending}
+                  className="inline-flex items-center gap-1.5 border border-line-200 bg-paper-0 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-ink-700 hover:border-ink-950 disabled:opacity-50"
+                >
+                  {running ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
+                  Regenerate instead
+                </button>
+              </div>
+              {activate.error && (
+                <p className="text-xs text-red-600">{(activate.error as Error).message}</p>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex items-start gap-2">
+                <Sparkles size={14} className="mt-0.5 text-ink-950" />
+                <div>
+                  <p className="text-sm text-ink-950">Synthesize levers with AI</p>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-ink-500">
+                    Gemini reads {countryCode}'s sectors, KPIs, ministries, capital flows and live
+                    signals, then proposes 8–14 concrete policy levers with bounds and rationale.
+                    Review before committing.
+                  </p>
+                </div>
+              </div>
+              <label className="block">
+                <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-ink-500">
+                  Focus (optional)
+                </span>
+                <input
+                  value={focus}
+                  onChange={(e) => setFocus(e.target.value)}
+                  placeholder="e.g. fiscal consolidation, blue economy, CBI wind-down"
+                  className="mt-1 w-full border border-line-200 bg-paper-0 px-2 py-1.5 text-xs focus:border-ink-950 focus:outline-none"
+                />
+              </label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => synth.mutate()}
+                  disabled={running || drafts.isLoading}
+                  className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-paper-0 hover:bg-ink-700 disabled:opacity-50"
+                >
+                  {running || drafts.isLoading ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : (
+                    <Sparkles size={12} />
+                  )}
+                  {running ? "Synthesizing…" : drafts.isLoading ? "Checking drafts…" : "Generate levers with AI"}
+                </button>
+                <button
+                  type="button"
+                  onClick={onDismiss}
+                  className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500 hover:text-ink-950"
+                >
+                  Cancel
+                </button>
+              </div>
+            </>
+          )}
           {synth.error && (
             <p className="text-xs text-red-600">{(synth.error as Error).message}</p>
+          )}
+          {drafts.error && (
+            <p className="text-xs text-red-600">{(drafts.error as Error).message}</p>
           )}
         </div>
       )}

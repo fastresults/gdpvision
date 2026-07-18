@@ -151,9 +151,16 @@ export function ArtifactPanel({
 
         {result && (
           <>
-            <article className="prose-artifact whitespace-pre-wrap text-[13px] leading-relaxed text-ink-950">
-              {renderCitations(result.body_md, result.citations)}
+            <article className="artifact-body text-[13px] leading-relaxed text-ink-950">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={mdComponents(result.citations, renderCitations)}
+              >
+                {result.body_md}
+              </ReactMarkdown>
             </article>
+
+
 
             {result.citations.length > 0 && (
               <ul className="mt-3 space-y-1 border-t border-line-200 pt-2">

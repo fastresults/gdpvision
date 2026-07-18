@@ -1908,44 +1908,6 @@ function CapitalFlowsWorkbench({ payload, citations }: { payload: any; citations
   );
 }
 
-const DATA_TABS: Array<{ key: string; label: string }> = [
-  { key: "sources", label: "Sources" },
-  { key: "kpis", label: "KPIs" },
-  { key: "dossiers", label: "Sector dossiers" },
-  { key: "ministries", label: "Ministries" },
-  { key: "corpus", label: "Corpus" },
-  { key: "memory", label: "Second brain" },
-  { key: "viz", label: "GDP Visualizations" },
-];
-
-function DataStoresBanner({ code, countryName }: { code: string; countryName: string }) {
-  return (
-    <section className="border border-line-200 bg-paper-0 p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="font-serif text-2xl text-ink-950">{countryName} · Data stores</h2>
-          <p className="mt-1 text-sm text-ink-500">
-            Manage the ingested corpus, KPIs, dossiers, ministries, and second-brain memory that
-            the AI reads when acting for {countryName}.
-          </p>
-        </div>
-      </div>
-      <nav className="mt-4 flex flex-wrap gap-1 border-b border-line-200">
-        {DATA_TABS.map((t) => (
-          <Link
-            key={t.key}
-            to="/admin/countries/$code/data"
-            params={{ code }}
-            search={{ tab: t.key }}
-            className="px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border-b-2 -mb-px border-transparent text-ink-500 hover:text-ink-950 hover:border-ink-950"
-          >
-            {t.label}
-          </Link>
-        ))}
-      </nav>
-    </section>
-  );
-}
 
 
 

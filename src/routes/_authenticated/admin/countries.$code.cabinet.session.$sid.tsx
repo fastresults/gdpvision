@@ -156,18 +156,21 @@ function SlideView({ item, idx, total }: { item: AgendaItem; idx: number; total:
   );
 }
 
-function CapturePanel({ item, code, sid, startedAt, onRecord, saving }: {
+type RecordPayload = {
+  agendaItemId: string; sessionId: string; countryCode: string;
+  decisionTitle: string; decisionBody?: string;
+  motionKind: MotionKind; classification: "public"|"internal"|"restricted"|"secret";
+  durationSec?: number;
+  vote?: { for_count: number; against_count: number; abstain_count: number; notes?: string };
+  commitments: Array<{ title: string; ministryId?: string | null; dueAt?: string; successMetric?: string; sectorCode?: string }>;
+};
+interface CapturePanelProps {
   item: AgendaItem; code: string; sid: string; startedAt: number;
-  onRecord: (v: {
-    agendaItemId: string; sessionId: string; countryCode: string;
-    decisionTitle: string; decisionBody?: string;
-    motionKind: MotionKind; classification: "public"|"internal"|"restricted"|"secret";
-    durationSec?: number;
-    vote?: { for_count: number; against_count: number; abstain_count: number; notes?: string };
-    commitments: Array<{ title: string; ministryId?: string | null; dueAt?: string; successMetric?: string; sectorCode?: string }>;
-  }) => void;
+  onRecord: (v: RecordPayload) => void;
   saving: boolean;
-}) {
+}
+
+function CapturePanel({ item, code, sid, startedAt, onRecord, saving }: CapturePanelProps) {
   const [motion, setMotion] = useState<MotionKind>(item.motion_kind);
   const [decisionTitle, setDecisionTitle] = useState(item.recommendation ?? item.title);
   const [decisionBody, setDecisionBody] = useState("");

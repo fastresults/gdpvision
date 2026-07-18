@@ -87,6 +87,7 @@ import { Route as AuthenticatedAdminCountriesCodeScenariosNewRouteImport } from 
 import { Route as AuthenticatedAdminCountriesCodeScenariosCompareRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios.compare'
 import { Route as AuthenticatedAdminCountriesCodeScenariosIdRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios.$id'
 import { Route as AuthenticatedAdminCountriesCodePortfolioMinistryRouteImport } from './routes/_authenticated/admin/countries.$code.portfolio.$ministry'
+import { Route as AuthenticatedAdminCountriesCodeStudioThreatsIdRouteImport } from './routes/_authenticated/admin/countries.$code.studio.threats.$id'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -541,6 +542,12 @@ const AuthenticatedAdminCountriesCodePortfolioMinistryRoute =
     path: '/$ministry',
     getParentRoute: () => AuthenticatedAdminCountriesCodePortfolioRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeStudioThreatsIdRoute =
+  AuthenticatedAdminCountriesCodeStudioThreatsIdRouteImport.update({
+    id: '/threats/$id',
+    path: '/threats/$id',
+    getParentRoute: () => AuthenticatedAdminCountriesCodeStudioRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -620,6 +627,7 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/portfolio/': typeof AuthenticatedAdminCountriesCodePortfolioIndexRoute
   '/admin/countries/$code/scenarios/': typeof AuthenticatedAdminCountriesCodeScenariosIndexRoute
   '/admin/countries/$code/studio/': typeof AuthenticatedAdminCountriesCodeStudioIndexRoute
+  '/admin/countries/$code/studio/threats/$id': typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -692,6 +700,7 @@ export interface FileRoutesByTo {
   '/admin/countries/$code/portfolio': typeof AuthenticatedAdminCountriesCodePortfolioIndexRoute
   '/admin/countries/$code/scenarios': typeof AuthenticatedAdminCountriesCodeScenariosIndexRoute
   '/admin/countries/$code/studio': typeof AuthenticatedAdminCountriesCodeStudioIndexRoute
+  '/admin/countries/$code/studio/threats/$id': typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -773,6 +782,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/portfolio/': typeof AuthenticatedAdminCountriesCodePortfolioIndexRoute
   '/_authenticated/admin/countries/$code/scenarios/': typeof AuthenticatedAdminCountriesCodeScenariosIndexRoute
   '/_authenticated/admin/countries/$code/studio/': typeof AuthenticatedAdminCountriesCodeStudioIndexRoute
+  '/_authenticated/admin/countries/$code/studio/threats/$id': typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -854,6 +864,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/portfolio/'
     | '/admin/countries/$code/scenarios/'
     | '/admin/countries/$code/studio/'
+    | '/admin/countries/$code/studio/threats/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -926,6 +937,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/portfolio'
     | '/admin/countries/$code/scenarios'
     | '/admin/countries/$code/studio'
+    | '/admin/countries/$code/studio/threats/$id'
   id:
     | '__root__'
     | '/'
@@ -1006,6 +1018,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/countries/$code/portfolio/'
     | '/_authenticated/admin/countries/$code/scenarios/'
     | '/_authenticated/admin/countries/$code/studio/'
+    | '/_authenticated/admin/countries/$code/studio/threats/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1568,6 +1581,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodePortfolioMinistryRouteImport
       parentRoute: typeof AuthenticatedAdminCountriesCodePortfolioRoute
     }
+    '/_authenticated/admin/countries/$code/studio/threats/$id': {
+      id: '/_authenticated/admin/countries/$code/studio/threats/$id'
+      path: '/threats/$id'
+      fullPath: '/admin/countries/$code/studio/threats/$id'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodeStudioRoute
+    }
   }
 }
 
@@ -1615,12 +1635,15 @@ const AuthenticatedAdminCountriesCodeScenariosRouteWithChildren =
 
 interface AuthenticatedAdminCountriesCodeStudioRouteChildren {
   AuthenticatedAdminCountriesCodeStudioIndexRoute: typeof AuthenticatedAdminCountriesCodeStudioIndexRoute
+  AuthenticatedAdminCountriesCodeStudioThreatsIdRoute: typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRoute
 }
 
 const AuthenticatedAdminCountriesCodeStudioRouteChildren: AuthenticatedAdminCountriesCodeStudioRouteChildren =
   {
     AuthenticatedAdminCountriesCodeStudioIndexRoute:
       AuthenticatedAdminCountriesCodeStudioIndexRoute,
+    AuthenticatedAdminCountriesCodeStudioThreatsIdRoute:
+      AuthenticatedAdminCountriesCodeStudioThreatsIdRoute,
   }
 
 const AuthenticatedAdminCountriesCodeStudioRouteWithChildren =

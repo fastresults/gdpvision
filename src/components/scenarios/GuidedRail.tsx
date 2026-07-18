@@ -58,6 +58,7 @@ export function GuidedRail({
   onSavePin,
   savePending,
   saveError,
+  onLeversCommitted,
 }: {
   step: number;
   furthest: number;

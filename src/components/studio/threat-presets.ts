@@ -19,3 +19,30 @@ export const THREAT_PRESETS: Array<{
 export function threatLabel(k: string): string {
   return THREAT_PRESETS.find((p) => p.key === k)?.label ?? k;
 }
+
+const THREAT_HUE: Partial<Record<ThreatType, string>> = {
+  tariff: "#c2410c",
+  climate: "#0369a1",
+  cbi_wind_down: "#7c3aed",
+  tourism_collapse: "#be185d",
+  anchor_exit: "#b91c1c",
+  commodity_shock: "#a16207",
+  sanctions: "#991b1b",
+  treaty_change: "#4338ca",
+  custom: "#4b5563",
+};
+
+export function threatTypeChip(t: string): { label: string; dot: string } {
+  return { label: threatLabel(t), dot: THREAT_HUE[t as ThreatType] ?? "#4b5563" };
+}
+
+export function onsetLabel(o: string): string {
+  const map: Record<string, string> = {
+    immediate: "Immediate onset",
+    "1y": "Onset within 1 year",
+    "2y": "Onset within 2 years",
+    phased: "Phased onset",
+    latent: "Latent risk",
+  };
+  return map[o] ?? o.charAt(0).toUpperCase() + o.slice(1);
+}

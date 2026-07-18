@@ -54,12 +54,14 @@ export function StagingTimeline({
                         className="cursor-move border border-line-200 bg-paper-100/60 p-2 text-xs"
                         title={a.label}
                       >
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-start gap-1.5">
                           <span
-                            className="inline-block h-2 w-2 flex-none"
+                            className="mt-1 inline-block h-2 w-2 flex-none"
                             style={{ background: color }}
                           />
-                          <span className="truncate text-ink-950">{a.label}</span>
+                          <span className="min-w-0 flex-1 break-words text-ink-950 line-clamp-2">
+                            {a.label}
+                          </span>
                         </div>
                         <div className="mt-1 flex items-center justify-between font-mono text-[10px] text-ink-500">
                           <span className="uppercase tracking-[0.15em]">

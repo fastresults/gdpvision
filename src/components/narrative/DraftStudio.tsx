@@ -6,6 +6,7 @@ import { Copy, Send, Sparkles, Square } from "lucide-react";
 
 import {
   generateChannelDraft,
+  generateStrategyDraft,
   listArtifactsForSignal,
   publishArtifact,
 } from "@/lib/narrative-chamber.functions";
@@ -33,6 +34,7 @@ type Progress = {
 export function DraftStudio({ signalId }: { signalId: string }) {
   const qc = useQueryClient();
   const gen = useServerFn(generateChannelDraft);
+  const draftStrategy = useServerFn(generateStrategyDraft);
   const publish = useServerFn(publishArtifact);
   const getC = useServerFn(getComms);
   const [active, setActive] = useState<ChannelKey>("press_release");
@@ -91,8 +93,15 @@ export function DraftStudio({ signalId }: { signalId: string }) {
 
   const runBatch = useMutation({
     mutationFn: async (channels: ChannelKey[]) => {
-      if (!strategyId) throw new Error("Draft the strategy first (Act 3).");
       if (!channels.length) throw new Error("Select at least one channel.");
+      let sid = strategyId;
+      if (!sid) {
+        setProgress({ done: 0, total: channels.length, current: null, errors: [] });
+        const s = await draftStrategy({ data: { signalId } });
+        sid = s?.id as string | undefined;
+        await qc.invalidateQueries({ queryKey: ["narrative-artifacts", signalId] });
+        if (!sid) throw new Error("Could not draft strategy automatically.");
+      }
       abortRef.current = { cancelled: false };
       const errors: Progress["errors"] = [];
       setProgress({ done: 0, total: channels.length, current: channels[0], errors: [] });
@@ -102,7 +111,7 @@ export function DraftStudio({ signalId }: { signalId: string }) {
         const ch = channels[i];
         setProgress((p) => (p ? { ...p, current: ch } : p));
         try {
-          await gen({ data: { strategyId, signalId, channel: ch } });
+          await gen({ data: { strategyId: sid, signalId, channel: ch } });
           if (!firstGenerated) firstGenerated = ch;
           await qc.invalidateQueries({ queryKey: ["narrative-artifacts", signalId] });
         } catch (e) {
@@ -170,7 +179,7 @@ export function DraftStudio({ signalId }: { signalId: string }) {
           )}
           <button
             onClick={() => runBatch.mutate(selectedList)}
-            disabled={running || !strategyId || selectedList.length === 0}
+            disabled={running || selectedList.length === 0}
             className="inline-flex items-center gap-2 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-paper-0 hover:bg-ink-800 disabled:opacity-50"
           >
             <Sparkles size={12} /> {generateLabel}
@@ -282,7 +291,7 @@ export function DraftStudio({ signalId }: { signalId: string }) {
       {runBatch.error && <p className="mt-3 text-sm text-rose-600">{(runBatch.error as Error).message}</p>}
 
       {!strategyId && (
-        <p className="mt-4 text-sm text-ink-500">Draft a strategy statement (Act 3) before generating channel copy.</p>
+        <p className="mt-4 text-sm text-ink-500">No strategy statement yet — Generate will draft one automatically (Act 3), then write your selected channel copy.</p>
       )}
 
       {forActive ? (

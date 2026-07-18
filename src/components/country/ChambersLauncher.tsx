@@ -8,6 +8,7 @@ const CHAMBERS = [
   { n: "04", icon: TrendingUp, title: "The FDI Transition Studio", blurb: "Replacement plan for the CBI wind-down, sector by sector.", to: "/instrument/studio/packages" as const, kind: "search" as const },
   { n: "05", icon: MessageSquare, title: "The Narrative Chamber", blurb: "Signal to statement inside a working day.", to: "/narrative" as const, kind: "search" as const },
   { n: "06", icon: Landmark, title: "The Cabinet Room", blurb: "Consolidated national view, Session Mode, commitments register.", to: "/instrument/cabinet" as const, kind: "search" as const },
+
 ];
 
 export function ChambersLauncher({ code }: { code: string }) {

@@ -1730,13 +1730,17 @@ export function MemoryTab({ code, embedded = false }: { code: string; embedded?:
       {all.length === 0 ? (
         <div className="border border-dashed border-line-200 p-8 text-center text-sm text-ink-500">
           Second brain seed hasn't been committed for this country yet.{" "}
-          <Link
-            to="/admin/countries/$code/onboard"
-            params={{ code }}
-            className="text-ink-950 underline"
-          >
-            Run the seed agent
-          </Link>
+          {embedded ? (
+            <span className="text-ink-950">Run the seed agent from the onboarding stages above.</span>
+          ) : (
+            <Link
+              to="/admin/countries/$code/onboard"
+              params={{ code }}
+              className="text-ink-950 underline"
+            >
+              Run the seed agent
+            </Link>
+          )}
           .
         </div>
       ) : view === "constellation" ? (

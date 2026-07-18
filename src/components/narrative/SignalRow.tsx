@@ -12,22 +12,22 @@ export function SignalRow({ signal, code, active }: { signal: Signal; code: stri
     (signal.sentiment ?? 0) <= -1 ? "text-rose-600" : (signal.sentiment ?? 0) >= 1 ? "text-emerald-700" : "text-ink-500";
 
   return (
-    <li>
+    <li className="min-w-0">
       <Link
         to="/admin/countries/$code/narrative/signal/$id"
         params={{ code, id: signal.id }}
         className={cn(
-          "block border border-line-200 px-3 py-2 text-sm text-ink-700 transition hover:border-ink-950",
+          "block min-w-0 overflow-hidden border border-line-200 px-3 py-2 text-sm text-ink-700 transition hover:border-ink-950",
           active && "border-ink-950 bg-paper-100",
         )}
       >
         <div className="flex items-start justify-between gap-2">
-          <span className="line-clamp-2 min-w-0">{signal.topic}</span>
+          <span className="line-clamp-2 min-w-0 break-words">{signal.topic}</span>
           <RecommendationChip value={signal.recommendation} />
         </div>
-        <div className="mt-1 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
           <span className="flex items-center gap-1"><Icon size={10} /> {signal.scope ?? "—"}</span>
-          <span>{signal.sector_code}</span>
+          {signal.sector_code && <span className="truncate max-w-[8ch]">{signal.sector_code}</span>}
           <span>Sev {signal.severity ?? "—"}</span>
           <span>Reach {signal.reach ?? "—"}</span>
           <span className={sentimentTone}>
@@ -38,3 +38,4 @@ export function SignalRow({ signal, code, active }: { signal: Signal; code: stri
     </li>
   );
 }
+

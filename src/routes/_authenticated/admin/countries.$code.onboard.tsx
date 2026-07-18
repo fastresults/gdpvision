@@ -722,7 +722,7 @@ function OnboardWizard() {
               })}
             </div>
           </div>
-          <div className="flex flex-col gap-2 items-end">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={runAllPending}
@@ -731,41 +731,44 @@ function OnboardWizard() {
             >
               {bulkRunning === "pending" ? "Running…" : "Run all pending"}
             </button>
-            <button
-              type="button"
-              onClick={advanceOne}
-              disabled={bulkRunning !== false || !keyStatus.configured}
-              className="px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 text-ink-950 hover:bg-ink-950 hover:text-paper-0 disabled:opacity-50"
-            >
-              Resume one step
-            </button>
-            <button
-              type="button"
-              onClick={rerunAll}
-              disabled={bulkRunning !== false || !keyStatus.configured}
-              title="Re-run every stage, including those already committed. Existing drafts will be overwritten; committed data stays until you re-commit."
-              className="px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 text-ink-950 hover:bg-ink-950 hover:text-paper-0 disabled:opacity-50"
-            >
-              {bulkRunning === "rerun" ? "Re-running…" : "Rerun all"}
-            </button>
-
-            <Link
-              to="/admin/countries/$code/data"
-              params={{ code }}
-              className="px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-line-200 text-ink-500 hover:text-ink-950"
-            >
-              Manage data stores →
-            </Link>
-
             <Link
               to="/admin/countries/$code/viz"
               params={{ code }}
-              className="px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0 hover:opacity-90"
+              className="px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-line-200 text-ink-500 hover:text-ink-950"
             >
-              GDP Visualizations →
+              GDP Viz →
             </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className="grid h-9 w-9 place-items-center border border-line-200 text-ink-500 hover:text-ink-950 disabled:opacity-50"
+                aria-label="More actions"
+              >
+                <MoreHorizontal size={16} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[220px]">
+                <DropdownMenuItem
+                  onSelect={() => advanceOne()}
+                  disabled={bulkRunning !== false || !keyStatus.configured}
+                >
+                  Resume one step
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => rerunAll()}
+                  disabled={bulkRunning !== false || !keyStatus.configured}
+                >
+                  {bulkRunning === "rerun" ? "Re-running…" : "Rerun all stages"}
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/admin/countries/$code/data" params={{ code }}>
+                    Manage data stores →
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
+
+        <ChambersLauncher code={code} />
 
         {!keyStatus.configured && (
           <div className="rounded border border-red-500/50 bg-red-500/10 p-3 text-xs text-red-700">

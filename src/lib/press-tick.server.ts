@@ -377,6 +377,28 @@ export async function runPressTick(opts: {
     }
   }
 
+  // Gap-fill: sequentially re-tick up to 8 missing countries so a single
+  // slow feed or classify miss doesn't leave a country empty until the next
+  // hourly sweep. Skipped when this run is already a gap-fill or single-country tick.
+  let gapFilled = 0;
+  const gapFillErrors: Array<{ scope: string; msg: string }> = [];
+  if (!filterCountry && windowKey !== "gap-fill" && missing.length > 0) {
+    const targets = missing.slice(0, 8);
+    for (const cc of targets) {
+      try {
+        const sub = await runPressTick({
+          windowKey: "gap-fill",
+          filterCountry: cc,
+          triggeredBy: "auto",
+        });
+        if (sub.items_promoted > 0) gapFilled++;
+      } catch (e) {
+        gapFillErrors.push({ scope: `gap-fill:${cc}`, msg: (e as Error).message });
+      }
+    }
+    if (gapFillErrors.length) errors.push(...gapFillErrors);
+  }
+
   await supabaseAdmin
     .from("narrative_harvest_runs")
     .update({

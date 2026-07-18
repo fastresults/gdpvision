@@ -4,6 +4,8 @@ import { useServerFn } from "@tanstack/react-start";
 
 import { redriveSignal, type SignalRow } from "@/lib/narrative-chamber.functions";
 import { RecommendationChip } from "./RecommendationChip";
+import { CitedText } from "@/components/citations/CitedText";
+import type { CitationRef } from "@/components/citations/CitationSup";
 
 export function DossierCard({ signal, code }: { signal: SignalRow; code: string }) {
   const qc = useQueryClient();

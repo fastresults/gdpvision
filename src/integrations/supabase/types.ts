@@ -2046,6 +2046,7 @@ export type Database = {
       intake_items: {
         Row: {
           created_at: string
+          duplicate_of: string | null
           final_weight: number | null
           harvest_run_id: string | null
           id: string
@@ -2062,12 +2063,15 @@ export type Database = {
           severity: number | null
           source_id: string | null
           state: string
+          story_key: string | null
+          story_primary: boolean
           summary: string | null
           topic: string
           url: string | null
         }
         Insert: {
           created_at?: string
+          duplicate_of?: string | null
           final_weight?: number | null
           harvest_run_id?: string | null
           id?: string
@@ -2084,12 +2088,15 @@ export type Database = {
           severity?: number | null
           source_id?: string | null
           state?: string
+          story_key?: string | null
+          story_primary?: boolean
           summary?: string | null
           topic: string
           url?: string | null
         }
         Update: {
           created_at?: string
+          duplicate_of?: string | null
           final_weight?: number | null
           harvest_run_id?: string | null
           id?: string
@@ -2106,11 +2113,20 @@ export type Database = {
           severity?: number | null
           source_id?: string | null
           state?: string
+          story_key?: string | null
+          story_primary?: boolean
           summary?: string | null
           topic?: string
           url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "intake_items_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "intake_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "intake_items_harvest_run_id_fkey"
             columns: ["harvest_run_id"]
@@ -4314,6 +4330,8 @@ export type Database = {
         Args: { _country_code: string; _rows: Json }
         Returns: number
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       app_role:

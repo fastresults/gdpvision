@@ -36,6 +36,15 @@ const CommitInput = z.object({
     .optional(),
 });
 
+const DraftsInput = z.object({
+  countryCode: z.string().min(3).max(4),
+  limit: z.number().int().min(1).max(10).default(5),
+});
+
+const ActivateLatestInput = z.object({
+  countryCode: z.string().min(3).max(4),
+});
+
 export interface LeverProposal {
   slug: string;
   name: string;
@@ -45,6 +54,17 @@ export interface LeverProposal {
   bounds: { min: number; max: number; default: number };
   rationale: string;
   citations: Array<{ label: string; kind: string; ref?: string }>;
+}
+
+export interface LeverDraftSummary {
+  id: string;
+  country_code: string;
+  status: string;
+  proposal_count: number;
+  created_at: string;
+  committed_at: string | null;
+  note: string | null;
+  sample_names: string[];
 }
 
 function slugify(s: string) {
@@ -303,6 +323,61 @@ export const synthesizeLevers = createServerFn({ method: "POST" })
       };
     },
   );
+
+export const listLeverDrafts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => DraftsInput.parse(data))
+  .handler(async ({ data, context }): Promise<LeverDraftSummary[]> => {
+    const { data: rows, error } = await context.supabase
+      .from("lever_drafts")
+      .select("id,country_code,status,payload,note,created_at,committed_at")
+      .eq("country_code", data.countryCode)
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (error) throw new Error(error.message);
+
+    return (rows ?? []).map((r) => {
+      const payload = r.payload as { proposals?: LeverProposal[] } | null;
+      const proposals = Array.isArray(payload?.proposals) ? payload.proposals : [];
+      return {
+        id: r.id,
+        country_code: r.country_code,
+        status: r.status,
+        proposal_count: proposals.length,
+        created_at: r.created_at,
+        committed_at: r.committed_at ?? null,
+        note: r.note ?? null,
+        sample_names: proposals.slice(0, 3).map((p) => p.name || p.slug),
+      };
+    });
+  });
+
+export const activateLatestLeverDraft = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => ActivateLatestInput.parse(data))
+  .handler(async ({ data, context }): Promise<{ draftId: string; inserted: number }> => {
+    const { data: rows, error } = await context.supabase
+      .from("lever_drafts")
+      .select("id,payload,status")
+      .eq("country_code", data.countryCode)
+      .eq("status", "draft")
+      .order("created_at", { ascending: false })
+      .limit(5);
+    if (error) throw new Error(error.message);
+
+    const chosen = (rows ?? []).find((r) => {
+      const payload = r.payload as { proposals?: LeverProposal[] } | null;
+      return Array.isArray(payload?.proposals) && payload.proposals.length > 0;
+    });
+    if (!chosen) throw new Error("No usable AI lever draft is ready for this country.");
+
+    const payload = chosen.payload as { proposals?: LeverProposal[] };
+    const selectedSlugs = (payload.proposals ?? []).map((p) => p.slug).filter(Boolean);
+    if (selectedSlugs.length === 0) throw new Error("The latest draft has no usable levers.");
+
+    const result = await commitLeverDraft({ data: { draftId: chosen.id, selectedSlugs } });
+    return { draftId: chosen.id, inserted: result.inserted };
+  });
 
 export const commitLeverDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

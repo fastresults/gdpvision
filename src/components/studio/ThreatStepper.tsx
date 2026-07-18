@@ -26,8 +26,6 @@ export function ThreatStepper({
         const isDisabled = disabled?.[s.key];
         return (
           <li key={s.key} className={cn("flex-1", i > 0 && "border-l border-line-200")}>
-        return (
-          <li key={s.key} className={cn("flex-1", i > 0 && "border-l border-line-200")}>
             <ExplainHover copy={EXPLAIN[s.copyKey]} side="bottom">
               <button
                 type="button"

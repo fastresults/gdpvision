@@ -69,9 +69,11 @@ export function ReallocationMarimekko({
   return (
     <div className="border border-line-200 bg-paper-0 p-4">
       <div className="flex items-baseline justify-between">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          FDI envelope reallocation
-        </p>
+        <ExplainHover copy={EXPLAIN.marimekko} side="bottom">
+          <p className="cursor-help font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 underline decoration-dotted decoration-line-200 underline-offset-4">
+            FDI envelope reallocation
+          </p>
+        </ExplainHover>
         <p className="font-mono text-[10px] text-ink-500">drag between sectors →</p>
       </div>
 

@@ -69,10 +69,14 @@ function NarrativeLayout() {
           <AddSignalDialog code={code} />
 
           <div>
-            <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-              <Radar size={11} /> Active signals · {signals.length}
-            </p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                <Radar size={11} /> Active signals · {signals.length}
+              </p>
+              <CoverageBadge />
+            </div>
             <div className="mt-2">
+
               {signals.length === 0 ? (
                 <div className="border border-dashed border-line-200 p-3 text-xs text-ink-500">
                   No signals yet. Ingest one to begin.

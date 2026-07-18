@@ -221,7 +221,3 @@ function ThreatRow({
     </li>
   );
 }
-      </div>
-    </SuperAdminShell>
-  );
-}

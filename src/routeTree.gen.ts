@@ -75,6 +75,7 @@ import { Route as AuthenticatedAdminAuditsLogRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminAuditsKeyingRouteImport } from './routes/_authenticated/admin/audits.keying'
 import { Route as AuthenticatedAdminCountriesCodeVizRouteImport } from './routes/_authenticated/admin/countries.$code.viz'
 import { Route as AuthenticatedAdminCountriesCodeOnboardRouteImport } from './routes/_authenticated/admin/countries.$code.onboard'
+import { Route as AuthenticatedAdminCountriesCodeLedgerRouteImport } from './routes/_authenticated/admin/countries.$code.ledger'
 import { Route as AuthenticatedAdminCountriesCodeDataRouteImport } from './routes/_authenticated/admin/countries.$code.data'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -458,6 +459,12 @@ const AuthenticatedAdminCountriesCodeOnboardRoute =
     path: '/countries/$code/onboard',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeLedgerRoute =
+  AuthenticatedAdminCountriesCodeLedgerRouteImport.update({
+    id: '/countries/$code/ledger',
+    path: '/countries/$code/ledger',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminCountriesCodeDataRoute =
   AuthenticatedAdminCountriesCodeDataRouteImport.update({
     id: '/countries/$code/data',
@@ -530,6 +537,7 @@ export interface FileRoutesByFullPath {
   '/instrument/scenarios/': typeof AuthenticatedInstrumentScenariosIndexRoute
   '/narrative/strategy/': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
+  '/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
   '/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
 }
@@ -594,6 +602,7 @@ export interface FileRoutesByTo {
   '/instrument/scenarios': typeof AuthenticatedInstrumentScenariosIndexRoute
   '/narrative/strategy': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
+  '/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
   '/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
 }
@@ -664,6 +673,7 @@ export interface FileRoutesById {
   '/_authenticated/instrument/scenarios/': typeof AuthenticatedInstrumentScenariosIndexRoute
   '/_authenticated/narrative/strategy/': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/_authenticated/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
+  '/_authenticated/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/_authenticated/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
   '/_authenticated/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
 }
@@ -734,6 +744,7 @@ export interface FileRouteTypes {
     | '/instrument/scenarios/'
     | '/narrative/strategy/'
     | '/admin/countries/$code/data'
+    | '/admin/countries/$code/ledger'
     | '/admin/countries/$code/onboard'
     | '/admin/countries/$code/viz'
   fileRoutesByTo: FileRoutesByTo
@@ -798,6 +809,7 @@ export interface FileRouteTypes {
     | '/instrument/scenarios'
     | '/narrative/strategy'
     | '/admin/countries/$code/data'
+    | '/admin/countries/$code/ledger'
     | '/admin/countries/$code/onboard'
     | '/admin/countries/$code/viz'
   id:
@@ -867,6 +879,7 @@ export interface FileRouteTypes {
     | '/_authenticated/instrument/scenarios/'
     | '/_authenticated/narrative/strategy/'
     | '/_authenticated/admin/countries/$code/data'
+    | '/_authenticated/admin/countries/$code/ledger'
     | '/_authenticated/admin/countries/$code/onboard'
     | '/_authenticated/admin/countries/$code/viz'
   fileRoutesById: FileRoutesById
@@ -1347,6 +1360,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeOnboardRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/countries/$code/ledger': {
+      id: '/_authenticated/admin/countries/$code/ledger'
+      path: '/countries/$code/ledger'
+      fullPath: '/admin/countries/$code/ledger'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeLedgerRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/countries/$code/data': {
       id: '/_authenticated/admin/countries/$code/data'
       path: '/countries/$code/data'
@@ -1369,6 +1389,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminCountryCodeRoute: typeof AuthenticatedAdminCountryCodeRoute
   AuthenticatedAdminCountriesIndexRoute: typeof AuthenticatedAdminCountriesIndexRoute
   AuthenticatedAdminCountriesCodeDataRoute: typeof AuthenticatedAdminCountriesCodeDataRoute
+  AuthenticatedAdminCountriesCodeLedgerRoute: typeof AuthenticatedAdminCountriesCodeLedgerRoute
   AuthenticatedAdminCountriesCodeOnboardRoute: typeof AuthenticatedAdminCountriesCodeOnboardRoute
   AuthenticatedAdminCountriesCodeVizRoute: typeof AuthenticatedAdminCountriesCodeVizRoute
 }
@@ -1388,6 +1409,8 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
       AuthenticatedAdminCountriesIndexRoute,
     AuthenticatedAdminCountriesCodeDataRoute:
       AuthenticatedAdminCountriesCodeDataRoute,
+    AuthenticatedAdminCountriesCodeLedgerRoute:
+      AuthenticatedAdminCountriesCodeLedgerRoute,
     AuthenticatedAdminCountriesCodeOnboardRoute:
       AuthenticatedAdminCountriesCodeOnboardRoute,
     AuthenticatedAdminCountriesCodeVizRoute:

@@ -92,7 +92,9 @@ export function GuidedRail({
   onSavePin: () => void;
   savePending: boolean;
   saveError: string | null;
+  onLeversCommitted?: () => void;
 }) {
+  const [showLeverSynth, setShowLeverSynth] = useState(false);
   const activePlaybooks = useMemo<Playbook[]>(() => {
     const byId = new Map<string, Playbook>();
     for (const p of PLAYBOOKS) byId.set(p.id, p);

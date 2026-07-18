@@ -19,6 +19,7 @@ import {
   listStudioContext,
   promoteStrategyToPackages,
   promoteStrategyToScenario,
+  regenerateThreatBrief,
   saveStrategy,
   suggestResilientStrategy,
   type Allocation,
@@ -109,6 +110,7 @@ function StrategyWorkbench() {
   const saveFn = useServerFn(saveStrategy);
   const promotePackagesFn = useServerFn(promoteStrategyToPackages);
   const promoteScenarioFn = useServerFn(promoteStrategyToScenario);
+  const regenBriefFn = useServerFn(regenerateThreatBrief);
 
   const [name, setName] = useState(
     strategy?.name ?? `Resilient strategy · ${threat.name}`,
@@ -154,6 +156,13 @@ function StrategyWorkbench() {
       setEntries(res.allocation.entries);
       setActions(res.actions);
       setDirty(true);
+    },
+  });
+
+  const regenBriefMut = useMutation({
+    mutationFn: () => regenBriefFn({ data: { id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["studio-threat", id] });
     },
   });
 
@@ -225,7 +234,11 @@ function StrategyWorkbench() {
         </button>
       </div>
 
-      <ThreatBriefCard brief={threat.brief} />
+      <ThreatBriefCard
+        brief={threat.brief}
+        onRegenerate={() => regenBriefMut.mutate()}
+        regenerating={regenBriefMut.isPending}
+      />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">
@@ -274,10 +287,10 @@ function StrategyWorkbench() {
         </div>
       </div>
 
-      {(saveMut.error || promotePackagesMut.error || promoteScenarioMut.error || suggestMut.error) && (
+      {(saveMut.error || promotePackagesMut.error || promoteScenarioMut.error || suggestMut.error || regenBriefMut.error) && (
         <p className="text-sm text-red-600">
-          {(saveMut.error || promotePackagesMut.error || promoteScenarioMut.error || suggestMut.error) instanceof Error
-            ? ((saveMut.error || promotePackagesMut.error || promoteScenarioMut.error || suggestMut.error) as Error).message
+          {(saveMut.error || promotePackagesMut.error || promoteScenarioMut.error || suggestMut.error || regenBriefMut.error) instanceof Error
+            ? ((saveMut.error || promotePackagesMut.error || promoteScenarioMut.error || suggestMut.error || regenBriefMut.error) as Error).message
             : "Something went wrong"}
         </p>
       )}

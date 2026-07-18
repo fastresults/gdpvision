@@ -80,7 +80,7 @@ function SignalRadarPage() {
 
       {tab === "radar" ? (
         <>
-          <RadarHeatStrip code={code} />
+          <RadarHeatStrip code={code} countryName={code} />
 
           <div className="grid grid-cols-3 gap-3">
             <ScopeCard label="Local" icon={MapPin} count={byScope.local} />

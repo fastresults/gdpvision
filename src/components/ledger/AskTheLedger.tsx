@@ -473,25 +473,13 @@ function TurnBlock({
           {turn.answer.citations.length > 0 && (
             <ul className="mt-3 space-y-1">
               {turn.answer.citations.map((c) => (
-                <li key={c.n} className="text-[11px] leading-snug text-ink-500">
-                  <span className="font-mono text-ink-950">[{c.n}]</span>{" "}
-                  {c.url ? (
-                    <a
-                      href={c.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline underline-offset-2 hover:text-ink-950"
-                    >
-                      {c.title}
-                    </a>
-                  ) : (
-                    <span className="text-ink-700">{c.title}</span>
-                  )}
-                  {c.org && <span className="ml-1 text-ink-500/70">· {c.org}</span>}
+                <li key={c.n}>
+                  <CitationRow cite={c} />
                 </li>
               ))}
             </ul>
           )}
+
 
           <div className="mt-3 flex flex-wrap items-center gap-3 font-mono text-[10px] uppercase tracking-widest text-ink-500">
             {turn.answer.answer && (

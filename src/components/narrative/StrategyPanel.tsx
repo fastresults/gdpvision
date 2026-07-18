@@ -7,6 +7,8 @@ import {
   listArtifactsForSignal,
 } from "@/lib/narrative-chamber.functions";
 import { getStrategy } from "@/lib/narrative.functions";
+import { CitedText } from "@/components/citations/CitedText";
+import type { CitationRef } from "@/components/citations/CitationSup";
 
 export function StrategyPanel({ signalId }: { signalId: string }) {
   const qc = useQueryClient();

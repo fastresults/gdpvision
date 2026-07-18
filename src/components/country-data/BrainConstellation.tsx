@@ -1,5 +1,19 @@
 import { useMemo, useState } from "react";
 
+import { CARICOM_OECS_REGISTRY } from "@/lib/caricom-registry";
+
+const COUNTRY_NAME_BY_CODE: Record<string, string> = CARICOM_OECS_REGISTRY.reduce(
+  (acc, n) => {
+    acc[n.code] = n.name;
+    return acc;
+  },
+  {} as Record<string, string>,
+);
+
+function countryName(code: string): string {
+  return COUNTRY_NAME_BY_CODE[code] ?? code;
+}
+
 export type BrainRow = {
   id: string;
   title: string;

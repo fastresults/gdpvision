@@ -1,49 +1,82 @@
-## Goal
-Every `[N]`, `[N][M]`, `[N,M]` marker rendered in the UI becomes a small superscript badge (e.g. ⁵). Hovering it opens a popover showing the actual source (title, org, URL, "Open ↗"). This applies globally — draft channels, strategy fields, dossiers, Ask-the-Ledger artifacts, scenario narratives, and PrettyJson-rendered payloads.
+## What's missing today
 
-## Root cause of current gap
-- `src/components/data/humanize.ts::splitCitations` already strips `[N]` markers but only surfaces them as a plain "refs: 5, 7, 8" line in `PrettyJson`.
-- Markdown bodies in `DraftStudio`, `StrategyPanel`, `ArtifactPanel`, and `NarrativePanel` render `[N]` verbatim into text with no lookup and no hover.
-- Artifacts already carry a `citations: string[]` array (see `narrative-chamber.functions.ts` lines 167/200/255/347 and `narrative.functions.ts:489`); the UI just never binds it to the markers.
+The pieces exist in the database but there is no library surface:
 
-## Plan
+- `comms_artifacts` stores `body`, `channel`, `kind`, `audience`, `draft_state` (draft/review/approved/released), `approvals` (jsonb tier trail), `released_at`, `published_url`, `published_at`, `strategy_id`, `signal_id`.
+- Server fns `listComms`, `getComms`, `saveComms`, `approveComms` already exist in `src/lib/narrative.functions.ts`.
+- `DraftStudio.tsx` reads/writes them but only in the context of one signal. Once the user leaves the signal, drafts are effectively invisible — no cross-signal list, no search, no filters, no history, no export, no reuse.
 
-### 1. New shared primitive
-Add `src/components/citations/CitationSup.tsx`:
-- Props: `n: number`, `citation?: { url?: string; title?: string; org?: string; label?: string }`.
-- Renders a `<sup>` containing a small Radix `HoverCard` trigger styled as `bg-ink-100 text-ink-800 rounded-sm px-[3px] font-mono text-[10px]`. Superscript unicode is not used — a real `<sup>` element keeps accessibility.
-- HoverCard content (openDelay ~150ms): org + title, truncated URL, and an "Open source ↗" link (`target=_blank rel=noopener`). Falls back to "Source N" when metadata is missing.
-- Keyboard: focusable button; Enter/Space opens; Escape closes.
+A diplomat using this daily would ask: "Where is every press release I've drafted this month? Which are awaiting my approval? What did we publish about tourism last quarter? Can I duplicate that PM statement as a template?"
 
-Add `src/components/citations/CitedText.tsx`:
-- Props: `text: string`, `citations: Array<{url,title?,org?}>`, optional `className`.
-- Tokenizes the string with the same regex family as `splitCitations` but preserves the marker positions, emitting `<CitationSup>` for each ref.
-- Also linkifies bare URLs via existing `linkifyParts` so behavior stays consistent.
+## Plan — Chamber 5 Document Management ("Comms Library")
 
-Add `src/components/citations/CitedMarkdown.tsx`:
-- Wraps `ReactMarkdown` + `remark-gfm` and passes a `components` map where `p`, `li`, `td`, `th`, `strong`, `em` recurse over children and route any string child through `CitedText`. This intercepts markers wherever they appear in prose, lists, or tables without pre-processing the markdown string (avoids breaking code blocks).
-- Accepts the same `citations` array. When absent, degrades to plain `ReactMarkdown` (no crash, no dead numbers rendered — markers still show but as plain text; we log a dev warning to help spot missing wiring).
+### 1. New route: `countries.$code.narrative.library.tsx`
 
-### 2. Wire the primitive at every render site
-| File | Change |
-|---|---|
-| `src/components/narrative/DraftStudio.tsx` (line 300) | Replace `<ReactMarkdown>{body}</ReactMarkdown>` with `<CitedMarkdown source={body} citations={draft.citations ?? strategy.citations ?? []} />`. Pull citations from the draft record; server already stores them. |
-| `src/components/narrative/StrategyPanel.tsx` (lines 71, 81, 92) | Replace `{String(seven[k] ?? "—")}` and talking-points / risks list items with `<CitedText text={...} citations={strat.data.citations ?? []} />`. |
-| `src/routes/_authenticated/narrative/signal.$id.tsx` (line 54) | Wrap `d.signal.summary` in `<CitedText text={...} citations={d.signal.citations ?? []} />` (add `citations` to the dossier payload). |
-| `src/components/ledger/ArtifactPanel.tsx` (line 155) | Swap `ReactMarkdown` for `CitedMarkdown`, passing the artifact's `citations`. |
-| `src/components/scenarios/NarrativePanel.tsx` | Same swap; pass `mut.data.citations ?? []`. |
-| `src/components/studio/ReadMore.tsx` | Same swap when a `citations` prop is supplied. |
-| `src/components/data/PrettyJson.tsx` | Update the value renderer at line 179: instead of stripping refs and printing "refs: …", render inline `<CitationSup>` chips using the `citations` array already threaded through `PrettyJson` props (already documented in Core memory). Also remove the trailing "refs:" tail so behavior matches the rest of the app. |
+A dedicated Library tab alongside Signals, reachable from the Narrative Chamber shell. Two-pane layout:
 
-### 3. Data-side confirmations (no schema changes)
-- `citations` already exists on `narrative_strategies`, `narrative_drafts`, `narrative_signals` (via jsonb), and scenario/artifact rows — verified in `narrative-chamber.functions.ts` and `narrative.functions.ts:489`.
-- `getDossier` needs to include `signal.citations` in its select — one-line addition; no migration.
-- Server writers already store `citations` as `string[]` of URLs. `CitationSup` derives a display title lazily from URL host until server enrichment lands; a follow-up (out of scope) can enrich with `{title, org}`.
+- **Left rail — filters + list** (persistent, URL-synced via `validateSearch`):
+  - Search box (full-text over `body`, signal topic, audience) — debounced 250ms.
+  - Status chips: Draft · In review · Approved · Released (color-coded, matches DraftStudio dots).
+  - Channel multiselect (Press release, PM statement, LinkedIn, X, Op-ed, Talking points, Internal memo…).
+  - Audience multiselect (Domestic, Regional, International, Diaspora, Internal).
+  - Date range (Last 7d / 30d / 90d / Custom).
+  - Priority filter inherited from parent signal (P1–P5).
+  - Sort: Updated (default) · Released · Priority · Channel · Signal.
+- **Right pane — detail viewer**:
+  - Renders the selected artifact body via `CitedMarkdown` (respects global citation rule).
+  - Metadata strip: signal title (clickable → returns to signal), channel, audience, draft_state, released_at, published_url, last editor, updated_at.
+  - Actions: Edit (opens DraftStudio in-place drawer), Duplicate as template, Copy body, Download `.md` / `.docx`, Copy public URL, Approve (if in review), Mark released.
+  - Approval trail: renders `approvals` jsonb as a vertical timeline (tier, actor, decision, timestamp, note).
+  - Version history panel: shows past `updated_at` snapshots via a new `comms_artifact_revisions` table (see §3).
 
-### 4. Guardrail
-Add ESLint `no-restricted-syntax` rule forbidding `ReactMarkdown` imported directly under `src/components/**` and `src/routes/**` except from `src/components/citations/CitedMarkdown.tsx`. Enforces global usage the same way `PrettyJson` is enforced today.
+### 2. Server functions (add to `src/lib/narrative.functions.ts`)
 
-### 5. Verification
-- Reload `/admin/countries/ATG/narrative/signal/9797…` and confirm `[5][7][8]` in the food-import section renders as three separate superscript chips with working hover popovers linking to the stored URLs.
-- Check Ask-the-Ledger findings, a scenario narrative, and a PrettyJson block for the same behavior.
-- Run `bun run build` (typecheck + Vite) and `bunx eslint .` — the new rule should pass because every render site was migrated.
+All under `requireSupabaseAuth`, scoped by `scope_key = country_code`:
+
+- `searchComms({ country, q?, states?, channels?, audiences?, from?, to?, sort?, limit?, offset? })` — returns rows joined with signal `topic` and priority. Uses `ilike` on body + topic; add trigram index if not present.
+- `getCommsDetail({ id })` — full row + parent signal + strategy summary + revision list.
+- `duplicateComms({ id, target_signal_id? })` — clones body/channel/audience as a new draft (defaults to same signal; user can retarget).
+- `deleteComms({ id })` — soft-delete via new `deleted_at` column; only when `draft_state ∈ {draft, review}`.
+- `exportComms({ id, format: 'md' | 'docx' })` — returns a signed download; docx built server-side.
+- `listPendingApprovals({ country })` — feeds a badge count on the Library tab and a filter preset.
+
+### 3. Schema additions (single migration)
+
+- `comms_artifacts.deleted_at timestamptz` — soft delete.
+- `comms_artifacts.title text` — human-readable label (auto-derived from signal topic + channel on save if null).
+- `comms_artifacts.tags text[]` — user-applied topical tags (e.g. tourism, energy, CBI).
+- GIN trigram index on `body` and `title` for search.
+- New table `comms_artifact_revisions (id, artifact_id, body, editor_id, edited_at, note)` populated by a trigger on UPDATE of `body`. RLS mirrors parent; GRANTs per platform rules.
+- RLS: extend existing SELECT policy to hide `deleted_at IS NOT NULL` from non-owners; keep admin visibility.
+
+### 4. DraftStudio wiring
+
+- After every save, insert a revision row (handled by trigger — no client change).
+- Add a header row: title (editable inline), tags (chip input), and a "View in Library" link.
+- Existing multi-channel batch flow untouched.
+
+### 5. Chamber 5 shell
+
+- Add "Library" tab next to "Signals" in `countries.$code.narrative.tsx`. Badge shows count of `draft_state='review'` items.
+- Global keyboard shortcut `g l` jumps to Library; `/` focuses search.
+- Sticky status banner reuses the existing pattern.
+
+### 6. Diplomat-grade utilities
+
+- **Templates**: any released artifact can be pinned as a Template (new boolean `is_template`). Templates surface in DraftStudio's channel picker as "Start from template".
+- **Batch export**: on Library, multi-select rows → Download as ZIP of `.docx` files (server fn streams).
+- **Print view**: one-click printable brief combining selected artifacts with government letterhead header (uses country name from CARICOM_OECS_REGISTRY).
+- **Audit-ready trail**: every state transition already lands in `audit_log` via `traceability.functions.ts`; expose it in the detail pane's History tab.
+
+### Technical notes
+
+- All list reads via `ensureQueryData` + `useSuspenseQuery`; filters via `validateSearch` + `loaderDeps` so URLs are shareable.
+- Search performance: trigram GIN on `body` + `title`; cap 200 rows per page with cursor pagination.
+- Docx export uses the bundled `docx` npm package inside the server fn handler.
+- Citations in body render with `CitedMarkdown` using strategy `sources` for the parent signal (already wired).
+- Soft-delete + revision trigger keep the "never lose a diplomatic draft" guarantee.
+
+### Out of scope for this pass
+
+- External CMS publishing integrations (WordPress, X, LinkedIn API) — the `published_url` field remains manual until requested.
+- Multi-language translation of drafts.

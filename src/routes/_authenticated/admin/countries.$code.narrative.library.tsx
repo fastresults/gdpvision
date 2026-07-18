@@ -154,15 +154,28 @@ function LibraryPage() {
 
   return (
     <div className="space-y-4">
-      <header>
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Chamber 05 · Library
-        </p>
-        <h2 className="mt-1 font-serif text-3xl text-ink-950">Comms Library</h2>
-        <p className="mt-1 max-w-2xl text-sm text-ink-700">
-          Track every draft from signal → statement → release. Reuse what worked; audit what shipped.
-        </p>
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            Chamber 05 · Library
+          </p>
+          <h2 className="mt-1 font-serif text-3xl text-ink-950">Comms Library</h2>
+          <p className="mt-1 max-w-2xl text-sm text-ink-700">
+            Track every draft from signal → statement → release. Reuse what worked; audit what shipped.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => backfillM.mutate()}
+          disabled={backfillM.isPending}
+          title="Auto-rename any 'Untitled' drafts using their strategy + channel"
+        >
+          <Wand2 size={12} className="mr-1.5" />
+          {backfillM.isPending ? "Renaming…" : "Fix titles"}
+        </Button>
       </header>
+
 
       <LibraryCoach code={code} />
 

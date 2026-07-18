@@ -32,9 +32,7 @@ export const Route = createFileRoute("/_authenticated/instrument/portfolio/")({
 
 function PortfolioIndex() {
   const { data: bindings } = useSuspenseQuery(bindingsQuery);
-  const defaultCode =
-    bindings.find((b) => b.is_default)?.country_code ?? bindings[0]?.country_code ?? "LCA";
-  const [code] = useState(defaultCode);
+  const code = useChamberCountry(bindings);
   const { data: ministries } = useSuspenseQuery(ministriesQuery(code));
 
   return (

@@ -180,7 +180,7 @@ function DataDashboard() {
 // Sources
 // ============================================================
 
-function SourcesTab({ code }: { code: string }) {
+export function SourcesTab({ code }: { code: string }) {
   const qc = useQueryClient();
   const { data: sources } = useSuspenseQuery(sourcesQuery(code));
   const toggle = useServerFn(toggleSource);

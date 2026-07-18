@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter, useSearch } from "@tanstack/react-router";
 import { queryOptions, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
@@ -22,6 +22,7 @@ import { CompareSlots } from "@/components/scenarios/CompareSlots";
 import { LeversDrawer } from "@/components/scenarios/LeversDrawer";
 import { GuidedRail } from "@/components/scenarios/GuidedRail";
 import { CoachTip } from "@/components/scenarios/CoachTip";
+import { RouteError } from "@/components/state/RouteState";
 import { writePins, readPins } from "./countries.$code.scenarios";
 
 const NewSearch = z.object({
@@ -42,6 +43,22 @@ function initRunQuery(code: string) {
   });
 }
 
+function ScenarioRouteError({ error, reset }: { error: Error; reset: () => void }) {
+  const router = useRouter();
+  return (
+    <div className="px-6 py-16">
+      <RouteError
+        title="Scenario Engine could not load"
+        description={error.message || "The builder hit a recoverable loading issue."}
+        onRetry={() => {
+          reset();
+          void router.invalidate();
+        }}
+      />
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/scenarios/new")({
   head: ({ params }) => ({
     meta: [
@@ -56,6 +73,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/scen
       context.queryClient.ensureQueryData(initRunQuery(params.code)),
     ]);
   },
+  errorComponent: ScenarioRouteError,
   component: Builder,
 });
 
@@ -330,9 +348,12 @@ function Builder() {
           onSavePin={() => save.mutate({ pin: true })}
           savePending={save.isPending}
           saveError={save.error ? (save.error as Error).message : null}
-          onLeversCommitted={() =>
-            queryClient.invalidateQueries({ queryKey: ["engine-init", code] })
-          }
+          onLeversCommitted={() => {
+            setShowAllLevers(true);
+            setStep(3);
+            setFurthest(3);
+            void queryClient.invalidateQueries({ queryKey: ["engine-init", code] });
+          }}
         />
       </aside>
 

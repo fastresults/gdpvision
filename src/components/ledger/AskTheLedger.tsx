@@ -456,12 +456,6 @@ function TurnBlock({
       {turn.error && <p className="mt-2 text-xs text-red-700">{turn.error}</p>}
 
       {turn.answer && (
-        <></>
-      )}
-      {turn.answer && (
-        <></>
-      )}
-      {turn.answer && (
         <>
           {(turn.answer.extended_with_research || (turn.answer.sources_used?.web ?? 0) > 0) && (
             <div className="mt-2 inline-flex items-center gap-1 border border-indigo-200 bg-indigo-50 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-indigo-800">

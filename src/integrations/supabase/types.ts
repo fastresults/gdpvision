@@ -500,6 +500,7 @@ export type Database = {
       comms_artifacts: {
         Row: {
           approvals: Json
+          assigned_reviewers: string[] | null
           audience: string
           body: string
           channel: string
@@ -513,6 +514,7 @@ export type Database = {
           published_at: string | null
           published_url: string | null
           released_at: string | null
+          scheduled_for: string | null
           scope_key: string
           signal_id: string | null
           strategy_id: string | null
@@ -522,6 +524,7 @@ export type Database = {
         }
         Insert: {
           approvals?: Json
+          assigned_reviewers?: string[] | null
           audience: string
           body: string
           channel: string
@@ -535,6 +538,7 @@ export type Database = {
           published_at?: string | null
           published_url?: string | null
           released_at?: string | null
+          scheduled_for?: string | null
           scope_key: string
           signal_id?: string | null
           strategy_id?: string | null
@@ -544,6 +548,7 @@ export type Database = {
         }
         Update: {
           approvals?: Json
+          assigned_reviewers?: string[] | null
           audience?: string
           body?: string
           channel?: string
@@ -557,6 +562,7 @@ export type Database = {
           published_at?: string | null
           published_url?: string | null
           released_at?: string | null
+          scheduled_for?: string | null
           scope_key?: string
           signal_id?: string | null
           strategy_id?: string | null

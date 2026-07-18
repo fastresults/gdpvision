@@ -1,82 +1,111 @@
-## What's missing today
+# Comms Library — Guided Experience Plan
 
-The pieces exist in the database but there is no library surface:
+Today the Library is a raw list + detail view: search, filters, and a document previewer. Diplomats using this daily don't need "another file browser" — they need a **workflow surface** that tells them what needs their attention, walks them through review → approval → release, and makes reuse of past drafts effortless.
 
-- `comms_artifacts` stores `body`, `channel`, `kind`, `audience`, `draft_state` (draft/review/approved/released), `approvals` (jsonb tier trail), `released_at`, `published_url`, `published_at`, `strategy_id`, `signal_id`.
-- Server fns `listComms`, `getComms`, `saveComms`, `approveComms` already exist in `src/lib/narrative.functions.ts`.
-- `DraftStudio.tsx` reads/writes them but only in the context of one signal. Once the user leaves the signal, drafts are effectively invisible — no cross-signal list, no search, no filters, no history, no export, no reuse.
+## What's wrong today
 
-A diplomat using this daily would ask: "Where is every press release I've drafted this month? Which are awaiting my approval? What did we publish about tourism last quarter? Can I duplicate that PM statement as a template?"
+1. Cold open — no orientation, no next-best-action. New drafts, drafts stuck in review, and released items all look the same.
+2. State pills are filters, not a workflow. There is no visible path `draft → review → approved → released`.
+3. Approvals/history exist as tabs but the user is never *prompted* to advance the document.
+4. Search is manual; there are no saved views, no "my drafts", no "stale in review > 3 days".
+5. Templates are just a `★` badge — no way to *start from template*, no gallery, no reuse flow.
+6. Detail view is read-mostly. Duplicate/download/delete are buried; approve/release/schedule don't exist as first-class actions.
+7. No connection back to the originating Signal / Strategy — the diplomat loses the "why" behind each artifact.
 
-## Plan — Chamber 5 Document Management ("Comms Library")
+## Guided experience — the plan
 
-### 1. New route: `countries.$code.narrative.library.tsx`
+### 1. Library home = a dashboard, not a list
 
-A dedicated Library tab alongside Signals, reachable from the Narrative Chamber shell. Two-pane layout:
+Replace the current header strip with a **triage header** showing 4 smart-view cards. Clicking a card applies the underlying filter set to the list below.
 
-- **Left rail — filters + list** (persistent, URL-synced via `validateSearch`):
-  - Search box (full-text over `body`, signal topic, audience) — debounced 250ms.
-  - Status chips: Draft · In review · Approved · Released (color-coded, matches DraftStudio dots).
-  - Channel multiselect (Press release, PM statement, LinkedIn, X, Op-ed, Talking points, Internal memo…).
-  - Audience multiselect (Domestic, Regional, International, Diaspora, Internal).
-  - Date range (Last 7d / 30d / 90d / Custom).
-  - Priority filter inherited from parent signal (P1–P5).
-  - Sort: Updated (default) · Released · Priority · Channel · Signal.
-- **Right pane — detail viewer**:
-  - Renders the selected artifact body via `CitedMarkdown` (respects global citation rule).
-  - Metadata strip: signal title (clickable → returns to signal), channel, audience, draft_state, released_at, published_url, last editor, updated_at.
-  - Actions: Edit (opens DraftStudio in-place drawer), Duplicate as template, Copy body, Download `.md` / `.docx`, Copy public URL, Approve (if in review), Mark released.
-  - Approval trail: renders `approvals` jsonb as a vertical timeline (tier, actor, decision, timestamp, note).
-  - Version history panel: shows past `updated_at` snapshots via a new `comms_artifact_revisions` table (see §3).
+```text
+┌──────────────┬──────────────┬──────────────┬──────────────┐
+│ NEEDS YOU    │ IN REVIEW    │ SCHEDULED    │ RECENTLY     │
+│ 3 drafts     │ 2 · 1 stale  │ 1 today      │ RELEASED (7) │
+│ awaiting     │ >3 days      │              │              │
+│ your action  │              │              │              │
+└──────────────┴──────────────┴──────────────┴──────────────┘
+```
 
-### 2. Server functions (add to `src/lib/narrative.functions.ts`)
+Smart views computed client-side from existing fields: `draft_state`, `updated_at`, `released_at`, `approvals[]`, `scheduled_for` (new, optional).
 
-All under `requireSupabaseAuth`, scoped by `scope_key = country_code`:
+### 2. A visible workflow rail on every artifact
 
-- `searchComms({ country, q?, states?, channels?, audiences?, from?, to?, sort?, limit?, offset? })` — returns rows joined with signal `topic` and priority. Uses `ilike` on body + topic; add trigram index if not present.
-- `getCommsDetail({ id })` — full row + parent signal + strategy summary + revision list.
-- `duplicateComms({ id, target_signal_id? })` — clones body/channel/audience as a new draft (defaults to same signal; user can retarget).
-- `deleteComms({ id })` — soft-delete via new `deleted_at` column; only when `draft_state ∈ {draft, review}`.
-- `exportComms({ id, format: 'md' | 'docx' })` — returns a signed download; docx built server-side.
-- `listPendingApprovals({ country })` — feeds a badge count on the Library tab and a filter preset.
+Replace the flat state pill in the detail header with a 4-step tracker + primary CTA that always tells the user the next action:
 
-### 3. Schema additions (single migration)
+```text
+[Draft] ──► [Review] ──► [Approved] ──► [Released]
+                ▲ you are here
+    ┌────────────────────────────────────────────┐
+    │  Next: request approval from Comms Lead    │
+    │              [ Send for approval ]         │
+    └────────────────────────────────────────────┘
+```
 
-- `comms_artifacts.deleted_at timestamptz` — soft delete.
-- `comms_artifacts.title text` — human-readable label (auto-derived from signal topic + channel on save if null).
-- `comms_artifacts.tags text[]` — user-applied topical tags (e.g. tourism, energy, CBI).
-- GIN trigram index on `body` and `title` for search.
-- New table `comms_artifact_revisions (id, artifact_id, body, editor_id, edited_at, note)` populated by a trigger on UPDATE of `body`. RLS mirrors parent; GRANTs per platform rules.
-- RLS: extend existing SELECT policy to hide `deleted_at IS NOT NULL` from non-owners; keep admin visibility.
+- Primary CTA changes by state: `Send for review` / `Approve` / `Schedule or Release now` / `Archive`.
+- Secondary actions (Duplicate, Download, Delete, Save as template) collapse into an overflow menu.
+- Each transition writes an entry into `approvals[]` (already a jsonb array) with actor, timestamp, note.
 
-### 4. DraftStudio wiring
+### 3. Guided empty & first-time states
 
-- After every save, insert a revision row (handled by trigger — no client change).
-- Add a header row: title (editable inline), tags (chip input), and a "View in Library" link.
-- Existing multi-channel batch flow untouched.
+- Empty library: full-bleed coach card explaining what lands here, with two CTAs — "Draft from a Signal" (deep-link to Chamber 5 radar) and "Browse templates".
+- Empty filter result: shows the *closest matches* (drop one filter at a time) instead of a dead end.
+- First-time visitor (no `localStorage` flag): a 3-step "how the Library works" popover walkthrough — triage cards → workflow rail → templates.
 
-### 5. Chamber 5 shell
+### 4. Templates get a real home
 
-- Add "Library" tab next to "Signals" in `countries.$code.narrative.tsx`. Badge shows count of `draft_state='review'` items.
-- Global keyboard shortcut `g l` jumps to Library; `/` focuses search.
-- Sticky status banner reuses the existing pattern.
+- New "Templates" tab at the top of the Library page (sibling to the default "Drafts" view), showing only `is_template = true`, grouped by channel.
+- Each template card has a **"Use template"** button that duplicates it into a new draft, opens the detail, and pre-fills title/tags — replacing today's manual duplicate-then-edit dance.
+- In the detail view, add a one-click **"Save as template"** on released or approved artifacts.
 
-### 6. Diplomat-grade utilities
+### 5. Context ribbon — the "why"
 
-- **Templates**: any released artifact can be pinned as a Template (new boolean `is_template`). Templates surface in DraftStudio's channel picker as "Start from template".
-- **Batch export**: on Library, multi-select rows → Download as ZIP of `.docx` files (server fn streams).
-- **Print view**: one-click printable brief combining selected artifacts with government letterhead header (uses country name from CARICOM_OECS_REGISTRY).
-- **Audit-ready trail**: every state transition already lands in `audit_log` via `traceability.functions.ts`; expose it in the detail pane's History tab.
+Above the document body, show a compact ribbon:
 
-### Technical notes
+```text
+From signal:  "IMF Article IV — external buffer risk"   [open ↗]
+Strategy:     Position #4 · Reassure investors           [open ↗]
+Channel:      Press release · Audience: Investors
+```
 
-- All list reads via `ensureQueryData` + `useSuspenseQuery`; filters via `validateSearch` + `loaderDeps` so URLs are shareable.
-- Search performance: trigram GIN on `body` + `title`; cap 200 rows per page with cursor pagination.
-- Docx export uses the bundled `docx` npm package inside the server fn handler.
-- Citations in body render with `CitedMarkdown` using strategy `sources` for the parent signal (already wired).
-- Soft-delete + revision trigger keep the "never lose a diplomatic draft" guarantee.
+Wire from the existing `signal_id`, `strategy_id`, `channel`, `audience` fields already returned by `getCommsDetail`. Links deep-link back into Chamber 5 signal/strategy views. Restores the narrative thread that today's viewer strips out.
 
-### Out of scope for this pass
+### 6. Search & saved views
 
-- External CMS publishing integrations (WordPress, X, LinkedIn API) — the `published_url` field remains manual until requested.
-- Multi-language translation of drafts.
+- Add quick-chip presets above search: `Mine`, `This week`, `Awaiting approval`, `Released this month`.
+- Persist last-used filter set in `localStorage` per country so returning users land where they left off.
+- Keyboard: `/` focuses search, `j`/`k` move selection, `Enter` opens, `E` opens approval action. Show a one-line hint in the list header.
+
+### 7. Approvals & schedule as first-class flows
+
+- `Send for approval` opens a lightweight dialog: pick reviewer(s) from country team, optional note. Writes into `approvals[]`, moves state to `review`, banner on the reviewer's Library home surfaces it under "Needs you".
+- `Approve` / `Request changes` dialog with required note; state advances.
+- `Release` dialog offers **Release now** or **Schedule** (`scheduled_for` timestamp). Scheduled items appear in the "Scheduled" triage card and on a small calendar strip.
+
+### 8. History tab becomes a real audit trail
+
+Merge `comms_artifact_revisions` (already exists) with `approvals[]` entries into a single unified timeline: who did what, when, with diff-preview on body changes and a **Restore this version** action.
+
+## Files to touch (technical)
+
+- `src/routes/_authenticated/admin/countries.$code.narrative.library.tsx` — split into: `LibraryPage` (triage header + tabs), `TriageCards`, `TemplatesTab`, `SavedViewsBar`.
+- `src/components/narrative/comms/` (new) — `WorkflowRail.tsx`, `ContextRibbon.tsx`, `ApprovalDialog.tsx`, `ScheduleDialog.tsx`, `UnifiedTimeline.tsx`, `TemplateCard.tsx`, `LibraryCoach.tsx`.
+- `src/lib/narrative.functions.ts` — add `transitionCommsState`, `recordApprovalDecision`, `scheduleComms`, `restoreCommsRevision`, `saveAsTemplate`, `useTemplate`; extend `searchComms` with `smartView` param (`needs_you | in_review | scheduled | recently_released`).
+- Schema (migration): add `scheduled_for timestamptz`, `assigned_reviewers uuid[]` on `comms_artifacts`; index on `(scope_key, draft_state, updated_at)` for smart-view queries. Keep RLS/grants aligned with existing policy.
+- Deep-link helpers to Chamber 5 signal/strategy routes for the Context Ribbon.
+- One-time coach uses `localStorage` key `comms-library-coach-seen-v1`.
+
+## Out of scope
+
+- No changes to Draft Studio generation logic.
+- No changes to press-monitor / signal ingest.
+- No new AI calls in this pass — guided UX first; AI-suggested next-actions can layer on later.
+
+## Rollout
+
+1. Ship schema migration + server function additions.
+2. Ship WorkflowRail + ContextRibbon + overflow menu in detail view (immediate diplomat value).
+3. Ship TriageCards + smart views + saved filter persistence.
+4. Ship Templates tab + Save-as-template + Use-template flow.
+5. Ship UnifiedTimeline + revision restore.
+6. Ship first-run coach + keyboard shortcuts.

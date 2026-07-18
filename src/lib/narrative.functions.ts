@@ -639,15 +639,16 @@ export const getCommsDetail = createServerFn({ method: "GET" })
       }
     }
 
-    let strategySources: unknown[] = [];
+    type SourceRef = { url?: string; title?: string; publisher?: string };
+    let strategySources: SourceRef[] = [];
     if (row.strategy_id) {
       const { data: st } = await context.supabase
         .from("strategy_statements")
-        .select("data")
+        .select("sources")
         .eq("id", row.strategy_id)
         .maybeSingle();
-      const d = (st?.data as Record<string, unknown> | null) ?? {};
-      if (Array.isArray(d.sources)) strategySources = d.sources as unknown[];
+      const src = (st?.sources as unknown) ?? [];
+      if (Array.isArray(src)) strategySources = src as SourceRef[];
     }
 
     const { data: revisions } = await context.supabase

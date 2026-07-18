@@ -34,9 +34,13 @@ export function ExposureLedger({
             <li key={r.sector_code} className="px-4 py-3">
               <div className="flex items-center gap-2">
                 <span className="inline-block h-3 w-3 flex-none" style={{ background: color }} />
-                <span className={cn("min-w-0 truncate text-sm", isTarget ? "text-ink-950" : "text-ink-700")}>
-                  {s?.s.label ?? r.sector_code}
-                </span>
+                <ReadMore
+                  title={s?.s.label ?? r.sector_code}
+                  text={s?.s.label ?? r.sector_code}
+                  clamp={1}
+                  className={cn("min-w-0 flex-1 text-sm", isTarget ? "text-ink-950" : "text-ink-700")}
+                  markdown={false}
+                />
                 {isTarget && (
                   <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-rose-600">
                     target

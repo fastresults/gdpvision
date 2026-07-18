@@ -1,12 +1,19 @@
-// Phase 4 — persistent "Ask the Ledger" right rail.
-// Retrieval-only Q&A grounded in the Second Brain. Refuses ungrounded
-// questions. Every answer offers "Pin to snapshots" (writes figure_snapshots).
+// Ask-the-Ledger: mobile-first, McKinsey-grade Q&A grounded in the Second Brain.
+// Voice input (mic), clear conversation, copy answers, regenerate, pin to snapshots.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { Mic, Square, Send, Trash2, Copy, RefreshCw, Pin, X, MessageSquare } from "lucide-react";
 
-import { askTheLedger, pinFigureSnapshot, type LedgerAnswer } from "@/lib/ledger.functions";
+import {
+  askTheLedger,
+  pinFigureSnapshot,
+  transcribeAudio,
+  type LedgerAnswer,
+} from "@/lib/ledger.functions";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 
 type Turn = {
   id: string;
@@ -14,7 +21,15 @@ type Turn = {
   answer: LedgerAnswer | null;
   error?: string;
   pinnedAt?: string;
+  copied?: boolean;
 };
+
+const SUGGESTIONS = [
+  "What is the largest sector by GDP share?",
+  "Summarize the current fiscal position.",
+  "Which sectors have the highest export concentration?",
+  "What is the most recent unemployment figure?",
+];
 
 export function AskTheLedger({
   countryCode,
@@ -25,25 +40,38 @@ export function AskTheLedger({
   countryName: string;
   sectorCode?: string;
 }) {
-  const [open, setOpen] = useState(true);
+  const isMobile = useIsMobile();
+  const [open, setOpen] = useState(!isMobile);
   const [input, setInput] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const askFn = useServerFn(askTheLedger);
   const pinFn = useServerFn(pinFigureSnapshot);
+  const transcribeFn = useServerFn(transcribeAudio);
+  const recorder = useVoiceRecorder();
 
   const ask = useMutation({
     mutationFn: (payload: { id: string; question: string }) =>
-      askFn({
-        data: { countryCode, question: payload.question, sectorCode },
-      }).then((res) => ({ id: payload.id, res })),
+      askFn({ data: { countryCode, question: payload.question, sectorCode } }).then((res) => ({
+        id: payload.id,
+        res,
+      })),
     onSuccess: ({ id, res }) => {
-      setTurns((prev) => prev.map((t) => (t.id === id ? { ...t, answer: res } : t)));
+      setTurns((prev) => prev.map((t) => (t.id === id ? { ...t, answer: res, error: undefined } : t)));
     },
     onError: (err, vars) => {
       setTurns((prev) =>
         prev.map((t) => (t.id === vars.id ? { ...t, error: (err as Error).message } : t)),
       );
+    },
+  });
+
+  const transcribe = useMutation({
+    mutationFn: (clip: { base64: string; mime: string }) =>
+      transcribeFn({ data: { base64: clip.base64, mime: clip.mime } }),
+    onSuccess: ({ text }) => {
+      if (text) setInput((prev) => (prev ? prev + " " + text : text));
     },
   });
 
@@ -68,16 +96,239 @@ export function AskTheLedger({
     },
   });
 
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    const q = input.trim();
-    if (!q || ask.isPending) return;
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [turns, ask.isPending]);
+
+  useEffect(() => {
+    if (isMobile) setOpen(false);
+  }, [isMobile]);
+
+  function submit(q: string) {
+    const question = q.trim();
+    if (!question || ask.isPending) return;
     const id = `t_${Date.now()}`;
-    setTurns((prev) => [...prev, { id, question: q, answer: null }]);
+    setTurns((prev) => [...prev, { id, question, answer: null }]);
     setInput("");
-    ask.mutate({ id, question: q });
+    ask.mutate({ id, question });
   }
 
+  function regenerate(t: Turn) {
+    const id = `t_${Date.now()}`;
+    setTurns((prev) => [...prev, { id, question: t.question, answer: null }]);
+    ask.mutate({ id, question: t.question });
+  }
+
+  function clearAll() {
+    if (turns.length === 0) return;
+    if (typeof window !== "undefined" && !window.confirm("Clear the conversation?")) return;
+    setTurns([]);
+  }
+
+  async function toggleMic() {
+    if (recorder.state === "recording") {
+      const clip = await recorder.stop();
+      if (clip) transcribe.mutate({ base64: clip.base64, mime: clip.mime });
+    } else {
+      await recorder.start();
+    }
+  }
+
+  async function copyAnswer(t: Turn) {
+    if (!t.answer?.answer) return;
+    const s = t.answer.structured;
+    const parts: string[] = [];
+    if (s) {
+      parts.push(s.direct_answer);
+      if (s.key_evidence.length) parts.push("\nEvidence:\n" + s.key_evidence.map((e) => `• ${e}`).join("\n"));
+      if (s.caveats.length) parts.push("\nCaveats:\n" + s.caveats.map((c) => `• ${c}`).join("\n"));
+    } else {
+      parts.push(t.answer.answer);
+    }
+    if (t.answer.citations.length) {
+      parts.push(
+        "\nSources:\n" +
+          t.answer.citations
+            .map((c) => `[${c.n}] ${c.title}${c.url ? ` — ${c.url}` : ""}${c.org ? ` (${c.org})` : ""}`)
+            .join("\n"),
+      );
+    }
+    try {
+      await navigator.clipboard.writeText(parts.join("\n"));
+      setTurns((prev) => prev.map((x) => (x.id === t.id ? { ...x, copied: true } : x)));
+      setTimeout(() => {
+        setTurns((prev) => prev.map((x) => (x.id === t.id ? { ...x, copied: false } : x)));
+      }, 1600);
+    } catch {
+      // clipboard blocked; silent
+    }
+  }
+
+  const panel = (
+    <div className="flex h-full w-full flex-col bg-paper-0">
+      {/* Header */}
+      <header className="flex items-center justify-between gap-2 border-b border-line-200 px-4 py-3">
+        <div className="min-w-0">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            Second Brain · {countryName}
+            {sectorCode && <span className="ml-2 text-ink-500/70">· {sectorCode}</span>}
+          </p>
+          <p className="mt-0.5 truncate text-sm font-medium text-ink-950">Ask the Ledger</p>
+        </div>
+        <div className="flex items-center gap-1">
+          <IconButton
+            onClick={clearAll}
+            disabled={turns.length === 0}
+            label="Clear conversation"
+          >
+            <Trash2 className="h-4 w-4" />
+          </IconButton>
+          <IconButton onClick={() => setOpen(false)} label="Close">
+            <X className="h-4 w-4" />
+          </IconButton>
+        </div>
+      </header>
+
+      {/* Body */}
+      <div
+        ref={scrollRef}
+        className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4"
+        aria-live="polite"
+      >
+        {turns.length === 0 && (
+          <div className="space-y-3">
+            <p className="text-xs text-ink-500">
+              Grounded in this country's Second Brain only. Answers cite [N] sources and refuse when
+              evidence is missing. For recommendations, use the Scenario Engine.
+            </p>
+            <div className="grid grid-cols-1 gap-2">
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => submit(s)}
+                  className="rounded-none border border-line-200 bg-paper-0 px-3 py-2 text-left text-xs text-ink-700 hover:border-ink-950 hover:text-ink-950"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {turns.map((t) => (
+          <TurnBlock
+            key={t.id}
+            turn={t}
+            onPin={() => pin.mutate(t)}
+            pinPending={pin.isPending}
+            onCopy={() => copyAnswer(t)}
+            onRegenerate={() => regenerate(t)}
+          />
+        ))}
+        {ask.isPending && (
+          <p className="font-mono text-[10px] uppercase tracking-widest text-ink-500">
+            Retrieving from Second Brain…
+          </p>
+        )}
+      </div>
+
+      {/* Composer */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit(input);
+        }}
+        className="border-t border-line-200 p-3"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+      >
+        {recorder.state === "recording" && (
+          <div className="mb-2 flex items-center gap-2 border border-red-200 bg-red-50 px-2 py-1.5">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-red-600" />
+            </span>
+            <div className="h-1.5 flex-1 overflow-hidden bg-red-100">
+              <div
+                className="h-full bg-red-500 transition-[width]"
+                style={{ width: `${Math.round(recorder.level * 100)}%` }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => recorder.cancel()}
+              className="font-mono text-[10px] uppercase tracking-widest text-red-700 hover:text-red-900"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+        {recorder.error && (
+          <p className="mb-2 text-[11px] text-red-700">{recorder.error}</p>
+        )}
+        {transcribe.isPending && (
+          <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-ink-500">
+            Transcribing…
+          </p>
+        )}
+        <div className="flex items-end gap-2">
+          <IconButton
+            onClick={toggleMic}
+            disabled={ask.isPending || transcribe.isPending}
+            label={recorder.state === "recording" ? "Stop recording" : "Record voice"}
+            variant={recorder.state === "recording" ? "danger" : "default"}
+          >
+            {recorder.state === "recording" ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          </IconButton>
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                submit(input);
+              }
+            }}
+            rows={isMobile ? 2 : 2}
+            placeholder="Ask about a figure, sector, or trend…"
+            className="min-h-[3rem] flex-1 resize-none border border-line-200 bg-paper-0 px-3 py-2 text-base text-ink-950 placeholder:text-ink-500 focus:border-ink-950 focus:outline-none md:text-sm"
+          />
+          <button
+            type="submit"
+            disabled={ask.isPending || !input.trim()}
+            className="flex h-11 min-w-[44px] items-center justify-center border border-ink-950 bg-ink-950 px-3 text-paper-0 hover:opacity-90 disabled:opacity-40"
+            aria-label="Send question"
+          >
+            <Send className="h-4 w-4" />
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+
+  // Mobile: floating button + bottom sheet
+  if (isMobile) {
+    return (
+      <>
+        {!open && (
+          <button
+            onClick={() => setOpen(true)}
+            className="fixed bottom-4 right-4 z-40 flex h-14 items-center gap-2 rounded-full border border-ink-950 bg-ink-950 px-5 text-paper-0 shadow-2xl"
+            aria-label="Open Ask the Ledger"
+            style={{ marginBottom: "env(safe-area-inset-bottom)" }}
+          >
+            <MessageSquare className="h-5 w-5" />
+            <span className="text-sm font-medium">Ask the Ledger</span>
+          </button>
+        )}
+        {open && (
+          <div className="fixed inset-0 z-50 flex flex-col bg-paper-0" role="dialog" aria-modal="true">
+            {panel}
+          </div>
+        )}
+      </>
+    );
+  }
+
+  // Desktop: right rail
   return (
     <aside
       className={`fixed right-0 top-1/2 z-40 -translate-y-1/2 transition-transform ${
@@ -93,59 +344,42 @@ export function AskTheLedger({
           <span aria-hidden>{open ? "›" : "‹"}</span>
           <span className="[writing-mode:vertical-rl] rotate-180">Ask the Ledger</span>
         </button>
-        <div className="flex h-[70vh] w-96 flex-col border border-l-0 border-line-200 bg-paper-0 shadow-2xl">
-          <header className="border-b border-line-200 px-4 py-3">
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-              Second Brain · {countryName}
-              {sectorCode && <span className="ml-2 text-ink-500/70">· {sectorCode}</span>}
-            </p>
-            <p className="mt-1 text-sm text-ink-950">Ask the Ledger</p>
-          </header>
-
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
-            {turns.length === 0 && (
-              <p className="text-xs text-ink-500">
-                Grounded in this country's Second Brain only. Answers cite [N] sources and refuse
-                when evidence is missing.
-              </p>
-            )}
-            {turns.map((t) => (
-              <TurnBlock key={t.id} turn={t} onPin={() => pin.mutate(t)} pinPending={pin.isPending} />
-            ))}
-            {ask.isPending && (
-              <p className="font-mono text-[10px] uppercase tracking-widest text-ink-500">
-                Retrieving from Second Brain…
-              </p>
-            )}
-          </div>
-
-          <form onSubmit={submit} className="border-t border-line-200 p-3">
-            <div className="flex items-end gap-2">
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    submit(e as unknown as React.FormEvent);
-                  }
-                }}
-                rows={2}
-                placeholder="Ask about a figure, sector, or trend…"
-                className="min-h-[3rem] flex-1 resize-none border border-line-200 bg-paper-0 px-2 py-1.5 text-sm text-ink-950 placeholder:text-ink-500 focus:border-ink-950 focus:outline-none"
-              />
-              <button
-                type="submit"
-                disabled={ask.isPending || !input.trim()}
-                className="border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-paper-0 hover:opacity-90 disabled:opacity-40"
-              >
-                Ask
-              </button>
-            </div>
-          </form>
+        <div className="flex h-[75vh] w-[26rem] border border-l-0 border-line-200 shadow-2xl">
+          {panel}
         </div>
       </div>
     </aside>
+  );
+}
+
+function IconButton({
+  children,
+  onClick,
+  disabled,
+  label,
+  variant = "default",
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  label: string;
+  variant?: "default" | "danger";
+}) {
+  const cls =
+    variant === "danger"
+      ? "border-red-300 bg-red-50 text-red-700 hover:bg-red-100"
+      : "border-line-200 bg-paper-0 text-ink-700 hover:border-ink-950 hover:text-ink-950";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      className={`flex h-11 min-w-[44px] items-center justify-center border ${cls} disabled:opacity-40`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -153,20 +387,52 @@ function TurnBlock({
   turn,
   onPin,
   pinPending,
+  onCopy,
+  onRegenerate,
 }: {
   turn: Turn;
   onPin: () => void;
   pinPending: boolean;
+  onCopy: () => void;
+  onRegenerate: () => void;
 }) {
+  const s = turn.answer?.structured ?? null;
   return (
     <div className="border-l-2 border-line-200 pl-3">
-      <p className="text-sm text-ink-950">{turn.question}</p>
-      {turn.error && (
-        <p className="mt-2 text-xs text-red-700">{turn.error}</p>
-      )}
+      <p className="text-sm font-medium text-ink-950">{turn.question}</p>
+
+      {turn.error && <p className="mt-2 text-xs text-red-700">{turn.error}</p>}
+
       {turn.answer && (
         <>
-          {turn.answer.grounded && turn.answer.answer ? (
+          {s ? (
+            <div className="mt-2 space-y-3">
+              <p className="whitespace-pre-wrap text-sm text-ink-950">
+                {renderCitations(s.direct_answer, turn.answer.citations)}
+              </p>
+              {s.key_evidence.length > 0 && (
+                <ul className="space-y-1.5 text-[13px] text-ink-700">
+                  {s.key_evidence.map((e, i) => (
+                    <li key={i} className="flex gap-2">
+                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-ink-500" aria-hidden />
+                      <span>{renderCitations(e, turn.answer!.citations)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {s.caveats.length > 0 && (
+                <div className="border-l-2 border-amber-300 bg-amber-50/40 px-2 py-1.5">
+                  <p className="font-mono text-[9px] uppercase tracking-widest text-amber-800">Caveats</p>
+                  <ul className="mt-1 space-y-0.5 text-[12px] text-amber-900">
+                    {s.caveats.map((c, i) => (
+                      <li key={i}>• {c}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <ConfidenceChip level={s.confidence} />
+            </div>
+          ) : turn.answer.grounded && turn.answer.answer ? (
             <p className="mt-2 whitespace-pre-wrap text-sm text-ink-700">
               {renderCitations(turn.answer.answer, turn.answer.citations)}
             </p>
@@ -175,13 +441,19 @@ function TurnBlock({
               {turn.answer.refusal_reason ?? "No grounded evidence."}
             </p>
           )}
+
           {turn.answer.citations.length > 0 && (
             <ul className="mt-3 space-y-1">
               {turn.answer.citations.map((c) => (
                 <li key={c.n} className="text-[11px] leading-snug text-ink-500">
                   <span className="font-mono text-ink-950">[{c.n}]</span>{" "}
                   {c.url ? (
-                    <a href={c.url} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-ink-950">
+                    <a
+                      href={c.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline underline-offset-2 hover:text-ink-950"
+                    >
                       {c.title}
                     </a>
                   ) : (
@@ -192,22 +464,48 @@ function TurnBlock({
               ))}
             </ul>
           )}
-          {turn.answer.grounded && (
-            <button
-              onClick={onPin}
-              disabled={pinPending || !!turn.pinnedAt}
-              className="mt-3 font-mono text-[10px] uppercase tracking-widest text-ink-500 hover:text-ink-950 disabled:opacity-60"
-            >
-              {turn.pinnedAt ? "✓ Pinned" : pinPending ? "Pinning…" : "Pin to snapshots"}
+
+          <div className="mt-3 flex flex-wrap items-center gap-3 font-mono text-[10px] uppercase tracking-widest text-ink-500">
+            {turn.answer.answer && (
+              <button onClick={onCopy} className="inline-flex items-center gap-1 hover:text-ink-950">
+                <Copy className="h-3 w-3" />
+                {turn.copied ? "Copied" : "Copy"}
+              </button>
+            )}
+            <button onClick={onRegenerate} className="inline-flex items-center gap-1 hover:text-ink-950">
+              <RefreshCw className="h-3 w-3" />
+              Regenerate
             </button>
-          )}
+            {turn.answer.grounded && (
+              <button
+                onClick={onPin}
+                disabled={pinPending || !!turn.pinnedAt}
+                className="inline-flex items-center gap-1 hover:text-ink-950 disabled:opacity-60"
+              >
+                <Pin className="h-3 w-3" />
+                {turn.pinnedAt ? "Pinned" : pinPending ? "Pinning…" : "Pin"}
+              </button>
+            )}
+          </div>
         </>
       )}
     </div>
   );
 }
 
-// Very light [N] → superscript-link renderer. Keeps the text otherwise plain.
+function ConfidenceChip({ level }: { level: "high" | "medium" | "low" }) {
+  const styles = {
+    high: "border-emerald-300 bg-emerald-50 text-emerald-800",
+    medium: "border-amber-300 bg-amber-50 text-amber-800",
+    low: "border-red-300 bg-red-50 text-red-800",
+  }[level];
+  return (
+    <span className={`inline-block border px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest ${styles}`}>
+      Confidence · {level}
+    </span>
+  );
+}
+
 function renderCitations(text: string, citations: Array<{ n: number; url: string | null }>) {
   const parts: Array<string | React.ReactNode> = [];
   const re = /\[(\d+)\]/g;

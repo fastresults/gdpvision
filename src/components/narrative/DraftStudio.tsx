@@ -6,6 +6,7 @@ import { Copy, Send, Sparkles, Square } from "lucide-react";
 
 import {
   generateChannelDraft,
+  generateStrategyDraft,
   listArtifactsForSignal,
   publishArtifact,
 } from "@/lib/narrative-chamber.functions";

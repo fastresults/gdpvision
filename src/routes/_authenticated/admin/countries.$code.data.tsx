@@ -180,7 +180,7 @@ function DataDashboard() {
 // Sources
 // ============================================================
 
-function SourcesTab({ code }: { code: string }) {
+export function SourcesTab({ code }: { code: string }) {
   const qc = useQueryClient();
   const { data: sources } = useSuspenseQuery(sourcesQuery(code));
   const toggle = useServerFn(toggleSource);
@@ -323,7 +323,7 @@ function SourcesTab({ code }: { code: string }) {
 // KPIs
 // ============================================================
 
-function KpisTab({ code }: { code: string }) {
+export function KpisTab({ code }: { code: string }) {
   const qc = useQueryClient();
   const { data: kpis } = useSuspenseQuery(kpisQuery(code));
   const { data: coverage } = useSuspenseQuery(kpiCoverageQuery(code));
@@ -780,7 +780,7 @@ function InferenceDrawer({
 // Dossiers
 // ============================================================
 
-function DossiersTab({ code }: { code: string }) {
+export function DossiersTab({ code }: { code: string }) {
   const { data: dossiers } = useSuspenseQuery(dossiersQuery(code));
   const bySector = new Map<string, any[]>();
   for (const d of dossiers as any[]) {
@@ -837,7 +837,7 @@ function DossiersTab({ code }: { code: string }) {
 // Ministries
 // ============================================================
 
-function MinistriesTab({ code }: { code: string }) {
+export function MinistriesTab({ code }: { code: string }) {
   const { data: rows } = useSuspenseQuery(ministriesQuery(code));
   const [editing, setEditing] = useState<any | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -1372,7 +1372,7 @@ function MinisterEditDialog({ row, countryCode, onClose }: { row: any; countryCo
 
 type DrillKey = "sources" | "active" | "documents" | "chunks" | "runs" | null;
 
-function CorpusTab({ code, onGoToSources }: { code: string; onGoToSources: () => void }) {
+export function CorpusTab({ code, onGoToSources }: { code: string; onGoToSources: () => void }) {
   const qc = useQueryClient();
   const { data: stats } = useSuspenseQuery(statsQuery(code));
   const { data: detail } = useSuspenseQuery(corpusDetailQuery(code));
@@ -1671,7 +1671,7 @@ function CorpusDrawer({ drill, detail, onClose }: { drill: Exclude<DrillKey, nul
 // Second brain memory
 // ============================================================
 
-function MemoryTab({ code }: { code: string }) {
+export function MemoryTab({ code }: { code: string }) {
   const qc = useQueryClient();
   const { data: rows } = useSuspenseQuery(memoryQuery(code));
   

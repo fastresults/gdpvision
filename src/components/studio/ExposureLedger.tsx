@@ -21,9 +21,11 @@ export function ExposureLedger({
   return (
     <div className="border border-line-200">
       <div className="flex items-baseline justify-between border-b border-line-200 px-4 py-3">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Exposure ledger
-        </p>
+        <ExplainHover copy={EXPLAIN.exposure_ledger} side="left">
+          <p className="cursor-help font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 underline decoration-dotted decoration-line-200 underline-offset-4">
+            Exposure ledger
+          </p>
+        </ExplainHover>
         <p className="font-mono text-[10px] text-ink-500">what breaks</p>
       </div>
       <ul className="divide-y divide-line-200">

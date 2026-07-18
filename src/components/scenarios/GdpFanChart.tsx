@@ -108,6 +108,16 @@ export function GdpFanChart({
           strokeDasharray="2 3"
           strokeWidth={0.75}
         />
+        {geometry.ghost && (
+          <path
+            d={geometry.ghost}
+            fill="none"
+            stroke="var(--ink-500)"
+            strokeWidth={1}
+            strokeDasharray="3 3"
+            opacity={0.7}
+          />
+        )}
         <path d={geometry.median} fill="none" stroke="var(--ink-950)" strokeWidth={1.5} />
         {hover !== null && (
           <line

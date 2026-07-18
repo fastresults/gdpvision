@@ -361,26 +361,6 @@ export function GuidedRail({
                   })}
               </div>
             )}
-              {init.leverDefs
-                .filter((d) => focusedSlugs.has(d.slug))
-                .map((def) => {
-                  const value = levers[def.slug] ?? def.bounds.default ?? def.bounds.min;
-                  return (
-                    <LeverRow
-                      key={def.slug}
-                      def={def}
-                      value={value}
-                      locked={!!locks[def.slug]}
-                      attribution={current.output.attribution.find(
-                        (a) => a.lever_slug === def.slug,
-                      )}
-                      onChange={(v) => onLever(def.slug, v)}
-                      onToggleLock={() => onToggleLock(def.slug)}
-                      onReset={() => onResetLever(def.slug)}
-                    />
-                  );
-                })}
-            </div>
 
             <div className="flex items-center justify-between">
               <button

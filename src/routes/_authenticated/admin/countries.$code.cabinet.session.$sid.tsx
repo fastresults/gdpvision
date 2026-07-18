@@ -37,7 +37,7 @@ function SessionMode() {
   const record = useServerFn(recordAgendaOutcome);
   const closeFn = useServerFn(closeSession);
 
-  type RecordPayload = Parameters<CapturePanelProps["onRecord"]>[0];
+  type RecordPayloadT = RecordPayload;
   const recordMut = useMutation({
     mutationFn: (v: RecordPayload) => record({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["cabinet"] }),

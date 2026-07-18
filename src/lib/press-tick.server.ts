@@ -155,10 +155,14 @@ export async function runPressTick(opts: {
     await pMap(toClassify, async (it) => {
       try {
         const sectorMenu = await menu(it.country_code);
+        const upgradedMd = upgraded.get(it.id);
+        const rawForClassify = upgradedMd
+          ? [it.title, upgradedMd].filter(Boolean).join("\n\n")
+          : [it.title, it.raw_excerpt].filter(Boolean).join("\n\n");
         const c = await classifySignal({
           countryCode: it.country_code,
           url: it.url,
-          raw: [it.title, it.raw_excerpt].filter(Boolean).join("\n\n"),
+          raw: rawForClassify,
           sectorMenu,
         });
         const { data: sig, error: sigErr } = await supabaseAdmin

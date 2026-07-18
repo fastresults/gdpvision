@@ -125,9 +125,10 @@ function ScenariosLayout() {
 
 
         <div
-          className="grid gap-0 border-t border-line-200"
-          style={{ gridTemplateColumns: collapsed ? "56px 1fr" : "300px 1fr" }}
+          className="mx-auto grid max-w-[1440px] gap-0 border-t border-line-200"
+          style={{ gridTemplateColumns: collapsed ? "56px 1fr" : "280px 1fr" }}
         >
+
           <aside className="sticky top-0 self-start border-r border-line-200 bg-paper-0">
             <div className="flex items-center justify-between px-3 py-3">
               {!collapsed && (

@@ -20,9 +20,13 @@ export const Route = createFileRoute("/auth")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>): { mode?: Mode } => {
+  validateSearch: (search: Record<string, unknown>): { mode?: Mode; blocked?: number } => {
     const m = search.mode;
-    return m === "forgot" || m === "sign-in" ? { mode: m } : {};
+    const blocked = search.blocked === 1 || search.blocked === "1" ? 1 : undefined;
+    return {
+      ...(m === "forgot" || m === "sign-in" ? { mode: m } : {}),
+      ...(blocked ? { blocked } : {}),
+    };
   },
   component: AuthPage,
 });

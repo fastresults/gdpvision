@@ -67,10 +67,11 @@ export function SectorProfilingMatrix({
                     <div className="truncate text-sm font-medium text-ink-950" title={r.label}>
                       {r.label}
                     </div>
-                    <div className="truncate font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
-                      {r.code}
-                      {r.kpi_label && <span className="ml-1 normal-case tracking-normal text-ink-500/80">· {r.kpi_label}</span>}
-                    </div>
+                    {r.kpi_label && (
+                      <div className="truncate text-[11px] text-ink-500/80">
+                        {r.kpi_label}
+                      </div>
+                    )}
                   </div>
                 </div>
 

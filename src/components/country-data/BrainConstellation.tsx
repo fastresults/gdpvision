@@ -542,6 +542,29 @@ export function BrainConstellation({
             ← All countries
           </button>
         )}
+
+        {/* Zoom controls */}
+        <div className="pointer-events-auto absolute bottom-3 right-3 flex items-center gap-1 rounded-full border border-line-200 bg-white/80 px-1 py-0.5 backdrop-blur">
+          <button
+            onClick={zoomOut}
+            disabled={zoom <= MIN_ZOOM}
+            className="flex h-6 w-6 items-center justify-center rounded-full text-ink-500 hover:bg-line-100 hover:text-ink-950 disabled:opacity-40"
+            aria-label="Zoom out"
+          >
+            <Minus size={14} />
+          </button>
+          <span className="w-8 text-center font-mono text-[10px] uppercase tracking-widest text-ink-500">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            onClick={zoomIn}
+            disabled={zoom >= MAX_ZOOM}
+            className="flex h-6 w-6 items-center justify-center rounded-full text-ink-500 hover:bg-line-100 hover:text-ink-950 disabled:opacity-40"
+            aria-label="Zoom in"
+          >
+            <Plus size={14} />
+          </button>
+        </div>
       </div>
     </div>
   );

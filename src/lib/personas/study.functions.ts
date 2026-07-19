@@ -5,6 +5,13 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { buildCountryContextPack, type ContextCitation } from "./context-pack.server";
+import {
+  hasAnyCitableCitation,
+  refsFromTextAndModel,
+  sanitizeCitationMarkersInText,
+  sanitizeJsonCitationMarkers,
+  validCitationsForRefs,
+} from "@/lib/citations/hygiene";
 
 const MODEL = "google/gemini-2.5-pro";
 
@@ -49,14 +56,11 @@ function parseJson<T>(s: string): T | null {
 }
 
 function fullCitationsForRefs(citations: ContextCitation[], refs: unknown): ContextCitation[] {
-  const wanted = Array.isArray(refs)
-    ? refs.map((r) => Number(r)).filter((n) => Number.isFinite(n) && n > 0)
-    : [];
-  return wanted.length ? citations.filter((c) => wanted.includes(c.n)) : citations;
+  return validCitationsForRefs(citations, refs);
 }
 
 function hasUsableCitationMetadata(citations: unknown): boolean {
-  return Array.isArray(citations) && citations.some((c) => !!c && typeof c === "object" && ("label" in c || "url" in c));
+  return hasAnyCitableCitation(citations);
 }
 
 function hydrateCitationField<T extends { citations?: unknown }>(row: T, sourceCitations: ContextCitation[]): T {

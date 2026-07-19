@@ -356,14 +356,16 @@ Rules: exactly 3 pillars in that order; 2-4 bullets each; every claim that isn't
             : [],
           outlook: String(clean.outlook ?? "").slice(0, 800),
         };
-        // Persist cache
+        // Persist cache (permanent — fingerprint tells us when to refresh)
         await supabase.from("sector_dossier_briefs").upsert({
           country_code: countryCode,
           sector_code: sectorCode,
           brief: brief as never,
           citations: validCitations as never,
           generated_at: new Date().toISOString(),
-        }, { onConflict: "country_code,sector_code" });
+          input_fingerprint: currentFp,
+          schema_version: SCHEMA_VERSION,
+        } as never, { onConflict: "country_code,sector_code" });
         return {
           countryCode,
           sectorCode,
@@ -373,6 +375,7 @@ Rules: exactly 3 pillars in that order; 2-4 bullets each; every claim that isn't
           citations: validCitations,
           generated_at: new Date().toISOString(),
           cached: false,
+          stale: false,
           fallback: false,
           ministry,
           kpis: kpiForOutput,

@@ -79,6 +79,8 @@ export function GdpVizStudio({ code }: { code: string }) {
         selected={sector}
         onSelectSector={setSector}
       />
+
+      <SectorDossierDrawer countryCode={code} sectorCode={dossierSector} onClose={() => setDossierSector(null)} />
     </div>
   );
 }

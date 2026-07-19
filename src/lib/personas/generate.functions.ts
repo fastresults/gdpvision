@@ -256,8 +256,13 @@ export const getSegment = createServerFn({ method: "POST" })
       .from("persona_segment_members")
       .select("persona_id, personas(id,name,archetype,summary,attributes)")
       .eq("segment_id", data.id);
-    const personas = (members ?? []).map((m) => (m as { personas: Record<string, unknown> | null }).personas).filter((x): x is Record<string, unknown> => !!x);
-    return { segment: seg, personas };
+    const personas = (members ?? [])
+      .flatMap((m) => {
+        const p = (m as { personas: unknown }).personas;
+        return Array.isArray(p) ? p : p ? [p] : [];
+      })
+      .filter((x): x is Record<string, unknown> => !!x && typeof x === "object");
+    return { segment: seg, personas: personas as unknown[] };
   });
 
 export const deletePersona = createServerFn({ method: "POST" })

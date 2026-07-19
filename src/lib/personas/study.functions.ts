@@ -140,8 +140,11 @@ async function loadStudyWithPersonas(supabase: import("@supabase/supabase-js").S
     .select("persona_id, personas(id,name,archetype,summary,attributes,ocean)")
     .eq("segment_id", study.segment_id);
   const personas = (members ?? [])
-    .map((m) => (m as { personas: Record<string, unknown> | null }).personas)
-    .filter((x): x is Record<string, unknown> & { id: string; name: string } => !!x);
+    .flatMap((m) => {
+      const p = (m as { personas: unknown }).personas;
+      return Array.isArray(p) ? p : p ? [p] : [];
+    })
+    .filter((x): x is Record<string, unknown> & { id: string; name: string } => !!x && typeof x === "object");
   return { study, questions: questions ?? [], personas };
 }
 

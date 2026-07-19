@@ -1,79 +1,58 @@
-import { createFileRoute, Link, Outlet, useNavigate, useSearch } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { listInstanceBindings } from "@/lib/ledger.functions";
-import { Wordmark } from "@/components/marketing/Wordmark";
-import { supabase } from "@/integrations/supabase/client";
+import { getMyCountryStatus } from "@/lib/country-admin.functions";
 
-const bindingsQuery = queryOptions({
-  queryKey: ["instance-bindings"],
-  queryFn: () => listInstanceBindings(),
-});
-
+/**
+ * Ambient `/narrative/*` is retired. Country identity for chamber routes
+ * MUST live in the URL path — never fall back to bindings/defaults, or a
+ * super-admin bouncing between chambers silently cross-contaminates
+ * countries (e.g. KNA → LCA). Every request under `/narrative/*` is
+ * redirected to the country-scoped `/admin/countries/$code/narrative/*`
+ * tree, preserving deep links where an equivalent scoped route exists.
+ */
 export const Route = createFileRoute("/_authenticated/narrative")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(bindingsQuery),
-  component: NarrativeShell,
+  beforeLoad: async ({ location }) => {
+    const search = location.search as { code?: unknown; returnCode?: unknown };
+    const fromQuery = typeof search?.code === "string" ? search.code.toUpperCase() : null;
+    const fromReturn = typeof search?.returnCode === "string" ? search.returnCode.toUpperCase() : null;
+
+    let code: string | null = null;
+    if (fromQuery && /^[A-Z]{2,4}$/.test(fromQuery)) code = fromQuery;
+    else if (fromReturn && /^[A-Z]{2,4}$/.test(fromReturn)) code = fromReturn;
+
+    if (!code) {
+      const bindings = await listInstanceBindings().catch(() => [] as Array<{ country_code: string; is_default?: boolean | null }>);
+      code = bindings.find((b) => b.is_default)?.country_code ?? bindings[0]?.country_code ?? null;
+    }
+
+    if (!code) {
+      const status = await getMyCountryStatus().catch(() => null);
+      if (status?.isGlobalAdmin) throw redirect({ to: "/admin/countries" });
+      throw redirect({ to: "/onboarding/country" });
+    }
+
+    // Preserve deep links into signal detail; everything else lands on the
+    // country-scoped Signal Desk.
+    const signalMatch = location.pathname.match(/^\/narrative\/signal\/([^/]+)\/?$/);
+    if (signalMatch) {
+      throw redirect({
+        to: "/admin/countries/$code/narrative/signal/$id",
+        params: { code, id: signalMatch[1] },
+      });
+    }
+
+    const libraryMatch = /^\/narrative\/(?:comms|library)(?:\/.*)?$/.test(location.pathname);
+    if (libraryMatch) {
+      throw redirect({
+        to: "/admin/countries/$code/narrative/library",
+        params: { code },
+      });
+    }
+
+    throw redirect({
+      to: "/admin/countries/$code/narrative",
+      params: { code },
+    });
+  },
 });
-
-function NarrativeShell() {
-  const { data: bindings } = useSuspenseQuery(bindingsQuery);
-  const navigate = useNavigate();
-  const search = useSearch({ strict: false }) as { returnCode?: string };
-  const returnCode = typeof search?.returnCode === "string" ? search.returnCode : null;
-  const defaultCode = bindings.find((b) => b.is_default)?.country_code ?? bindings[0]?.country_code ?? "LCA";
-
-
-  const nav = [
-    { to: "/narrative", label: "Signal" },
-    { to: "/narrative/brain", label: "Second Brain" },
-    { to: "/narrative/queue", label: "Queue" },
-    { to: "/narrative/ingest", label: "Ingest" },
-    { to: "/narrative/strategy", label: "Strategy" },
-    { to: "/narrative/comms", label: "Comms" },
-    { to: "/narrative/coverage", label: "Coverage" },
-  ] as const;
-
-  async function signOut() {
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
-  }
-
-  return (
-    <div className="min-h-dvh bg-paper-0 text-ink-950">
-      <header className="flex items-center justify-between border-b border-line-200 px-8 py-5">
-        <div className="flex items-center gap-10">
-          <Link to="/narrative"><Wordmark /></Link>
-          <nav className="flex items-center gap-6 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500">
-            {nav.map((n) => (
-              <Link
-                key={n.to}
-                to={n.to}
-                activeOptions={{ exact: n.to === "/narrative" }}
-                activeProps={{ className: "text-ink-950" }}
-                className="hover:text-ink-950"
-              >
-                {n.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-        <div className="flex items-center gap-6 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500">
-          {returnCode && (
-            <Link
-              to="/admin/countries/$code/onboard"
-              params={{ code: returnCode }}
-              className="border border-line-200 px-3 py-1 text-ink-950 hover:border-ink-950"
-            >
-              ← Back to {returnCode} chambers
-            </Link>
-          )}
-          <Link to="/instrument" className="hover:text-ink-950">Instrument</Link>
-          <span data-numeric>{defaultCode}</span>
-          <button onClick={signOut} className="hover:text-ink-950">Sign out</button>
-        </div>
-
-      </header>
-      <Outlet />
-    </div>
-  );
-}

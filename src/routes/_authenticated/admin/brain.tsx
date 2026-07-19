@@ -76,14 +76,35 @@ function BrainSystemPage() {
           <Stat label="Active 24h" value={last24h} accent="amber" />
         </div>
 
-        <BrainConstellation
-          rows={filtered as any}
-          mode="system"
-          centerLabel={focusedName ?? "SYSTEM"}
-          filter={filter}
-          onFilter={setFilter}
-          onSelectCountry={(code) => setFilter({ country: code })}
-        />
+        <ClientOnly
+          fallback={
+            <BrainConstellation
+              rows={filtered as any}
+              mode="system"
+              centerLabel={focusedName ?? "SYSTEM"}
+              filter={filter}
+              onFilter={setFilter}
+              onSelectCountry={(code) => setFilter({ country: code })}
+            />
+          }
+        >
+          <Suspense
+            fallback={
+              <div className="grid aspect-square w-full max-h-[820px] place-items-center border border-line-200 bg-[#05080f] font-mono text-[10px] uppercase tracking-widest text-white/40">
+                Loading constellation…
+              </div>
+            }
+          >
+            <BrainConstellation3D
+              rows={filtered as any}
+              mode="system"
+              centerLabel={focusedName ?? "SYSTEM"}
+              filter={filter}
+              onFilter={setFilter}
+              onSelectCountry={(code) => setFilter({ country: code })}
+            />
+          </Suspense>
+        </ClientOnly>
       </div>
     </SuperAdminShell>
   );

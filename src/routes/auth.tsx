@@ -63,18 +63,6 @@ function AuthPage() {
         if (error) throw error;
         router.invalidate();
         navigate({ to: await postSignInRedirect() });
-      } else if (mode === "sign-up") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/home`,
-            data: { display_name: displayName || email },
-          },
-        });
-        if (error) throw error;
-        router.invalidate();
-        navigate({ to: await postSignInRedirect() });
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,
@@ -89,14 +77,8 @@ function AuthPage() {
     }
   }
 
-  const title = mode === "sign-in" ? "Sign in" : mode === "sign-up" ? "Create account" : "Reset password";
-  const cta = busy
-    ? "Working…"
-    : mode === "sign-in"
-    ? "Sign in"
-    : mode === "sign-up"
-    ? "Create instrument account"
-    : "Send reset link";
+  const title = mode === "sign-in" ? "Sign in" : "Reset password";
+  const cta = busy ? "Working…" : mode === "sign-in" ? "Sign in" : "Send reset link";
 
   return (
     <MarketingShell>

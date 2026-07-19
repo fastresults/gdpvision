@@ -191,9 +191,6 @@ function AuthPage() {
               invitation link.
             </span>
           )}
-          <Link to="/" className="hover:text-ink-950">
-            Back to gdpvision.com
-          </Link>
         </div>
       </div>
     </MarketingShell>

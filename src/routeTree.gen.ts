@@ -16,6 +16,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as KioskIndexRouteImport } from './routes/kiosk.index'
 import { Route as KioskAdminRouteImport } from './routes/kiosk.admin'
+import { Route as AuthInviteRouteImport } from './routes/auth.invite'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as AuthenticatedNarrativeRouteRouteImport } from './routes/_authenticated/narrative/route'
 import { Route as AuthenticatedInstrumentRouteRouteImport } from './routes/_authenticated/instrument/route'
@@ -40,6 +41,7 @@ import { Route as AuthenticatedInstrumentExposureRouteImport } from './routes/_a
 import { Route as AuthenticatedCounselMobileRouteImport } from './routes/_authenticated/counsel/mobile'
 import { Route as AuthenticatedCounselArchiveRouteImport } from './routes/_authenticated/counsel/archive'
 import { Route as AuthenticatedAdminLedgerQaRouteImport } from './routes/_authenticated/admin/ledger-qa'
+import { Route as AuthenticatedAdminInvitationsRouteImport } from './routes/_authenticated/admin/invitations'
 import { Route as AuthenticatedAdminDocumentsRouteImport } from './routes/_authenticated/admin/documents'
 import { Route as AuthenticatedAdminCorpusAuditRouteImport } from './routes/_authenticated/admin/corpus-audit'
 import { Route as AuthenticatedAdminBrainRouteImport } from './routes/_authenticated/admin/brain'
@@ -139,6 +141,11 @@ const KioskAdminRoute = KioskAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => KioskRoute,
+} as any)
+const AuthInviteRoute = AuthInviteRouteImport.update({
+  id: '/invite',
+  path: '/invite',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
   id: '/home',
@@ -276,6 +283,12 @@ const AuthenticatedAdminLedgerQaRoute =
   AuthenticatedAdminLedgerQaRouteImport.update({
     id: '/ledger-qa',
     path: '/ledger-qa',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminInvitationsRoute =
+  AuthenticatedAdminInvitationsRouteImport.update({
+    id: '/invitations',
+    path: '/invitations',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminDocumentsRoute =
@@ -668,19 +681,21 @@ const AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/kiosk': typeof KioskRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
   '/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
   '/home': typeof AuthenticatedHomeRoute
+  '/auth/invite': typeof AuthInviteRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
+  '/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
   '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/counsel/mobile': typeof AuthenticatedCounselMobileRoute
@@ -765,15 +780,17 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/home': typeof AuthenticatedHomeRoute
+  '/auth/invite': typeof AuthInviteRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk': typeof KioskIndexRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
+  '/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
   '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/counsel/mobile': typeof AuthenticatedCounselMobileRoute
@@ -855,19 +872,21 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/kiosk': typeof KioskRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_authenticated/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
   '/_authenticated/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
   '/_authenticated/home': typeof AuthenticatedHomeRoute
+  '/auth/invite': typeof AuthInviteRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
   '/_authenticated/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/_authenticated/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/_authenticated/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
   '/_authenticated/admin/documents': typeof AuthenticatedAdminDocumentsRoute
+  '/_authenticated/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/_authenticated/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
   '/_authenticated/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/_authenticated/counsel/mobile': typeof AuthenticatedCounselMobileRoute
@@ -961,12 +980,14 @@ export interface FileRouteTypes {
     | '/instrument'
     | '/narrative'
     | '/home'
+    | '/auth/invite'
     | '/kiosk/admin'
     | '/kiosk/'
     | '/admin/activity'
     | '/admin/brain'
     | '/admin/corpus-audit'
     | '/admin/documents'
+    | '/admin/invitations'
     | '/admin/ledger-qa'
     | '/counsel/archive'
     | '/counsel/mobile'
@@ -1054,12 +1075,14 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/home'
+    | '/auth/invite'
     | '/kiosk/admin'
     | '/kiosk'
     | '/admin/activity'
     | '/admin/brain'
     | '/admin/corpus-audit'
     | '/admin/documents'
+    | '/admin/invitations'
     | '/admin/ledger-qa'
     | '/counsel/archive'
     | '/counsel/mobile'
@@ -1147,12 +1170,14 @@ export interface FileRouteTypes {
     | '/_authenticated/instrument'
     | '/_authenticated/narrative'
     | '/_authenticated/home'
+    | '/auth/invite'
     | '/kiosk/admin'
     | '/kiosk/'
     | '/_authenticated/admin/activity'
     | '/_authenticated/admin/brain'
     | '/_authenticated/admin/corpus-audit'
     | '/_authenticated/admin/documents'
+    | '/_authenticated/admin/invitations'
     | '/_authenticated/admin/ledger-qa'
     | '/_authenticated/counsel/archive'
     | '/_authenticated/counsel/mobile'
@@ -1239,7 +1264,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  AuthRoute: typeof AuthRoute
+  AuthRoute: typeof AuthRouteWithChildren
   KioskRoute: typeof KioskRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiPublicHooksCadenceDailyRoute: typeof ApiPublicHooksCadenceDailyRoute
@@ -1300,6 +1325,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/kiosk/admin'
       preLoaderRoute: typeof KioskAdminRouteImport
       parentRoute: typeof KioskRoute
+    }
+    '/auth/invite': {
+      id: '/auth/invite'
+      path: '/invite'
+      fullPath: '/auth/invite'
+      preLoaderRoute: typeof AuthInviteRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/_authenticated/home': {
       id: '/_authenticated/home'
@@ -1467,6 +1499,13 @@ declare module '@tanstack/react-router' {
       path: '/ledger-qa'
       fullPath: '/admin/ledger-qa'
       preLoaderRoute: typeof AuthenticatedAdminLedgerQaRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/invitations': {
+      id: '/_authenticated/admin/invitations'
+      path: '/invitations'
+      fullPath: '/admin/invitations'
+      preLoaderRoute: typeof AuthenticatedAdminInvitationsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/documents': {
@@ -2052,6 +2091,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminBrainRoute: typeof AuthenticatedAdminBrainRoute
   AuthenticatedAdminCorpusAuditRoute: typeof AuthenticatedAdminCorpusAuditRoute
   AuthenticatedAdminDocumentsRoute: typeof AuthenticatedAdminDocumentsRoute
+  AuthenticatedAdminInvitationsRoute: typeof AuthenticatedAdminInvitationsRoute
   AuthenticatedAdminLedgerQaRoute: typeof AuthenticatedAdminLedgerQaRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminAuditsKeyingRoute: typeof AuthenticatedAdminAuditsKeyingRoute
@@ -2079,6 +2119,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminBrainRoute: AuthenticatedAdminBrainRoute,
     AuthenticatedAdminCorpusAuditRoute: AuthenticatedAdminCorpusAuditRoute,
     AuthenticatedAdminDocumentsRoute: AuthenticatedAdminDocumentsRoute,
+    AuthenticatedAdminInvitationsRoute: AuthenticatedAdminInvitationsRoute,
     AuthenticatedAdminLedgerQaRoute: AuthenticatedAdminLedgerQaRoute,
     AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
     AuthenticatedAdminAuditsKeyingRoute: AuthenticatedAdminAuditsKeyingRoute,
@@ -2265,6 +2306,16 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface AuthRouteChildren {
+  AuthInviteRoute: typeof AuthInviteRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthInviteRoute: AuthInviteRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 interface KioskRouteChildren {
   KioskAdminRoute: typeof KioskAdminRoute
   KioskIndexRoute: typeof KioskIndexRoute
@@ -2288,7 +2339,7 @@ const KioskRouteWithChildren = KioskRoute._addFileChildren(KioskRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  AuthRoute: AuthRoute,
+  AuthRoute: AuthRouteWithChildren,
   KioskRoute: KioskRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiPublicHooksCadenceDailyRoute: ApiPublicHooksCadenceDailyRoute,

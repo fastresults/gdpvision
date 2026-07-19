@@ -11,7 +11,7 @@ async function postSignInRedirect(): Promise<"/home"> {
   return "/home";
 }
 
-type Mode = "sign-in" | "sign-up" | "forgot";
+type Mode = "sign-in" | "forgot";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -20,9 +20,13 @@ export const Route = createFileRoute("/auth")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>): { mode?: Mode } => {
+  validateSearch: (search: Record<string, unknown>): { mode?: Mode; blocked?: number } => {
     const m = search.mode;
-    return m === "sign-up" || m === "forgot" || m === "sign-in" ? { mode: m } : {};
+    const blocked = search.blocked === 1 || search.blocked === "1" ? 1 : undefined;
+    return {
+      ...(m === "forgot" || m === "sign-in" ? { mode: m } : {}),
+      ...(blocked ? { blocked } : {}),
+    };
   },
   component: AuthPage,
 });
@@ -34,7 +38,7 @@ function AuthPage() {
   const [mode, setMode] = useState<Mode>(search.mode ?? "sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
+  
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -63,18 +67,6 @@ function AuthPage() {
         if (error) throw error;
         router.invalidate();
         navigate({ to: await postSignInRedirect() });
-      } else if (mode === "sign-up") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/home`,
-            data: { display_name: displayName || email },
-          },
-        });
-        if (error) throw error;
-        router.invalidate();
-        navigate({ to: await postSignInRedirect() });
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,
@@ -89,32 +81,20 @@ function AuthPage() {
     }
   }
 
-  const title = mode === "sign-in" ? "Sign in" : mode === "sign-up" ? "Create account" : "Reset password";
-  const cta = busy
-    ? "Working…"
-    : mode === "sign-in"
-    ? "Sign in"
-    : mode === "sign-up"
-    ? "Create instrument account"
-    : "Send reset link";
+  const title = mode === "sign-in" ? "Sign in" : "Reset password";
+  const cta = busy ? "Working…" : mode === "sign-in" ? "Sign in" : "Send reset link";
 
   return (
     <MarketingShell>
       <div className="mx-auto max-w-md px-6 py-24">
         <SectionHeader eyebrow="Instrument access" title={title} />
+        {search.blocked ? (
+          <div className="mt-6 border-l-2 border-signal-negative bg-paper-100 p-4 text-sm text-ink-950">
+            Your account does not have access to GDPVision. Access is by
+            invitation only — please contact your administrator.
+          </div>
+        ) : null}
         <form onSubmit={onSubmit} className="mt-10 space-y-6">
-          {mode === "sign-up" && (
-            <label className="block">
-              <span className="text-xs uppercase tracking-wider text-ink-500">Name</span>
-              <input
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="mt-2 w-full border-b border-line-200 bg-transparent py-2 text-lg focus:border-ink-950 focus:outline-none"
-                placeholder="Adam Anderson"
-              />
-            </label>
-          )}
           <label className="block">
             <span className="text-xs uppercase tracking-wider text-ink-500">Email</span>
             <input
@@ -213,13 +193,9 @@ function AuthPage() {
               Back to sign in
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={() => switchMode(mode === "sign-in" ? "sign-up" : "sign-in")}
-              className="underline underline-offset-4 hover:text-ink-950"
-            >
-              {mode === "sign-in" ? "Create an account" : "I already have an account"}
-            </button>
+            <span className="text-xs text-ink-500">
+              GDPVision is by invitation only. Contact your administrator for access.
+            </span>
           )}
           <Link to="/" className="hover:text-ink-950">
             Back to gdpvision.com

@@ -5,6 +5,13 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { buildCountryContextPack, type ContextCitation } from "./context-pack.server";
+import {
+  hasAnyCitableCitation,
+  refsFromTextAndModel,
+  sanitizeCitationMarkersInText,
+  sanitizeJsonCitationMarkers,
+  validCitationsForRefs,
+} from "@/lib/citations/hygiene";
 
 const GEN_MODEL = "google/gemini-2.5-pro";
 const FAST_MODEL = "google/gemini-2.5-flash";
@@ -53,14 +60,11 @@ function safeParse<T = unknown>(s: string): T | null {
 }
 
 function fullCitationsForRefs(citations: ContextCitation[], refs: unknown): ContextCitation[] {
-  const wanted = Array.isArray(refs)
-    ? refs.map((r) => Number(r)).filter((n) => Number.isFinite(n) && n > 0)
-    : [];
-  return wanted.length ? citations.filter((c) => wanted.includes(c.n)) : citations;
+  return validCitationsForRefs(citations, refs);
 }
 
 function hasUsableCitationMetadata(citations: unknown): boolean {
-  return Array.isArray(citations) && citations.some((c) => !!c && typeof c === "object" && ("label" in c || "url" in c));
+  return hasAnyCitableCitation(citations);
 }
 
 // ── Generate a single persona ─────────────────────────────────────────────
@@ -112,17 +116,21 @@ Return JSON:
       throw new Error("AI returned no usable persona — try Regenerate.");
     }
 
+    const rawSummary = parsed.summary ? String(parsed.summary).slice(0, 2000) : null;
+    const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(rawSummary, parsed.grounding_refs));
+    const summary = rawSummary ? sanitizeCitationMarkersInText(rawSummary, citations) : null;
+
     const { data: row, error } = await supabase
       .from("personas")
       .insert({
         country_code: data.countryCode,
         name: String(parsed.name).slice(0, 120),
         archetype: parsed.archetype ? String(parsed.archetype).slice(0, 120) : null,
-        summary: parsed.summary ? String(parsed.summary).slice(0, 2000) : null,
-        attributes: (parsed.attributes ?? {}) as never,
+        summary,
+        attributes: sanitizeJsonCitationMarkers(parsed.attributes ?? {}, citations) as never,
         ocean: (parsed.ocean ?? {}) as never,
         grounding_refs: ((Array.isArray(parsed.grounding_refs) ? parsed.grounding_refs : []) as never),
-        citations: fullCitationsForRefs(pack.citations, parsed.grounding_refs) as never,
+        citations: citations as never,
         origin: "ai",
         visibility: data.visibility,
         owner_user_id: userId,
@@ -186,21 +194,25 @@ Rules: exactly ${data.size} personas, all distinct, realistic distribution.`,
       .single();
     if (segErr) throw new Error(segErr.message);
 
-    const rows = parsed.personas.slice(0, data.size).map((p) => ({
-      country_code: data.countryCode,
-      name: String(p.name ?? "Unnamed").slice(0, 120),
-      archetype: p.archetype ? String(p.archetype).slice(0, 120) : null,
-      summary: p.summary ? String(p.summary).slice(0, 2000) : null,
-      attributes: (p.attributes ?? {}) as never,
-      ocean: (p.ocean ?? {}) as never,
-      grounding_refs: (Array.isArray(p.grounding_refs) ? p.grounding_refs : []) as never,
-      citations: fullCitationsForRefs(pack.citations, p.grounding_refs) as never,
-      origin: "ai" as const,
-      visibility: data.visibility,
-      owner_user_id: userId,
-      owner_country_code: data.visibility === "private" ? data.countryCode : null,
-      uploaded_by: userId,
-    }));
+    const rows = parsed.personas.slice(0, data.size).map((p) => {
+      const rawSummary = p.summary ? String(p.summary).slice(0, 2000) : null;
+      const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(rawSummary, p.grounding_refs));
+      return {
+        country_code: data.countryCode,
+        name: String(p.name ?? "Unnamed").slice(0, 120),
+        archetype: p.archetype ? String(p.archetype).slice(0, 120) : null,
+        summary: rawSummary ? sanitizeCitationMarkersInText(rawSummary, citations) : null,
+        attributes: sanitizeJsonCitationMarkers(p.attributes ?? {}, citations) as never,
+        ocean: (p.ocean ?? {}) as never,
+        grounding_refs: (Array.isArray(p.grounding_refs) ? p.grounding_refs : []) as never,
+        citations: citations as never,
+        origin: "ai" as const,
+        visibility: data.visibility,
+        owner_user_id: userId,
+        owner_country_code: data.visibility === "private" ? data.countryCode : null,
+        uploaded_by: userId,
+      };
+    });
     const { data: personaRows, error: pErr } = await supabase.from("personas").insert(rows).select("id");
     if (pErr) throw new Error(pErr.message);
 
@@ -230,7 +242,7 @@ export const listPersonas = createServerFn({ method: "POST" })
     const pack = await buildCountryContextPack(context.supabase, data.countryCode);
     return (rows ?? []).map((row) =>
       !hasUsableCitationMetadata(row.citations) && row.summary?.includes("[")
-        ? { ...row, citations: fullCitationsForRefs(pack.citations, row.grounding_refs) }
+        ? { ...row, summary: sanitizeCitationMarkersInText(row.summary ?? "", fullCitationsForRefs(pack.citations, row.grounding_refs)), citations: fullCitationsForRefs(pack.citations, row.grounding_refs) }
         : row,
     );
   });
@@ -261,7 +273,8 @@ export const getPersona = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (row && !hasUsableCitationMetadata(row.citations) && row.summary?.includes("[")) {
       const pack = await buildCountryContextPack(context.supabase, row.country_code, row.summary);
-      return { ...row, citations: fullCitationsForRefs(pack.citations, row.grounding_refs) };
+      const citations = fullCitationsForRefs(pack.citations, row.grounding_refs);
+      return { ...row, summary: row.summary ? sanitizeCitationMarkersInText(row.summary, citations) : row.summary, citations };
     }
     return row;
   });
@@ -295,7 +308,8 @@ export const getSegment = createServerFn({ method: "POST" })
         const citations = pack && !hasUsableCitationMetadata(p.citations) && String(p.summary ?? "").includes("[")
           ? fullCitationsForRefs(pack.citations, p.grounding_refs)
           : p.citations ?? [];
-        return { id: String(p.id ?? ""), name: String(p.name ?? ""), archetype: (p.archetype as string | null) ?? null, summary: (p.summary as string | null) ?? null, citations };
+        const summary = p.summary ? sanitizeCitationMarkersInText(String(p.summary), citations as ContextCitation[]) : null;
+        return { id: String(p.id ?? ""), name: String(p.name ?? ""), archetype: (p.archetype as string | null) ?? null, summary, citations };
       }),
     };
   });

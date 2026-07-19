@@ -1,19 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { CANONICAL_SECTORS } from "@/lib/caricom-registry";
 import { cn } from "@/lib/utils";
+import { BrainMask } from "./BrainMask";
 
 interface SignatureRingProps {
   /** Diameter in px (SVG is square). */
   size?: number;
   /** Skip the assemble animation. Also skipped automatically under prefers-reduced-motion. */
   animate?: boolean;
+  /** Render the masked Second Brain constellation inside the ring's open center. */
+  showBrain?: boolean;
   className?: string;
 }
 
 // The National Signature — an idealized 12-segment ring rendered in the
 // Sector Spectrum (PRD §10.3). Marketing uses the master mark, not a
 // per-nation instance mark.
-export function SignatureRing({ size = 520, animate = true, className }: SignatureRingProps) {
+export function SignatureRing({ size = 520, animate = true, showBrain = true, className }: SignatureRingProps) {
   const [assembled, setAssembled] = useState(false);
   const played = useRef(false);
 

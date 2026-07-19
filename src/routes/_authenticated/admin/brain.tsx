@@ -1,11 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { ClientOnly } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { BrainConstellation, type BrainFilter } from "@/components/country-data/BrainConstellation";
 import { listAllMemory } from "@/lib/country-data/manage.functions";
 import { CARICOM_OECS_REGISTRY } from "@/lib/caricom-registry";
+
+const BrainConstellation3D = lazy(() =>
+  import("@/components/country-data/BrainConstellation3D").then((m) => ({ default: m.BrainConstellation3D })),
+);
 
 const COUNTRY_NAMES: Record<string, string> = CARICOM_OECS_REGISTRY.reduce(
   (acc, n) => {
@@ -71,14 +76,35 @@ function BrainSystemPage() {
           <Stat label="Active 24h" value={last24h} accent="amber" />
         </div>
 
-        <BrainConstellation
-          rows={filtered as any}
-          mode="system"
-          centerLabel={focusedName ?? "SYSTEM"}
-          filter={filter}
-          onFilter={setFilter}
-          onSelectCountry={(code) => setFilter({ country: code })}
-        />
+        <ClientOnly
+          fallback={
+            <BrainConstellation
+              rows={filtered as any}
+              mode="system"
+              centerLabel={focusedName ?? "SYSTEM"}
+              filter={filter}
+              onFilter={setFilter}
+              onSelectCountry={(code) => setFilter({ country: code })}
+            />
+          }
+        >
+          <Suspense
+            fallback={
+              <div className="grid aspect-square w-full max-h-[820px] place-items-center border border-line-200 bg-[#05080f] font-mono text-[10px] uppercase tracking-widest text-white/40">
+                Loading constellation…
+              </div>
+            }
+          >
+            <BrainConstellation3D
+              rows={filtered as any}
+              mode="system"
+              centerLabel={focusedName ?? "SYSTEM"}
+              filter={filter}
+              onFilter={setFilter}
+              onSelectCountry={(code) => setFilter({ country: code })}
+            />
+          </Suspense>
+        </ClientOnly>
       </div>
     </SuperAdminShell>
   );

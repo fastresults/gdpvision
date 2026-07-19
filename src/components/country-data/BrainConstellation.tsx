@@ -14,6 +14,16 @@ function countryName(code: string): string {
   return COUNTRY_NAME_BY_CODE[code] ?? code;
 }
 
+function sectorLabel(code: string): string {
+  if (!code || code === "—") return "Unclassified";
+  return code
+    .replace(/[_-]+/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
 export type BrainRow = {
   id: string;
   title: string;

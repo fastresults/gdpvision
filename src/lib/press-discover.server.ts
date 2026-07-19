@@ -172,3 +172,125 @@ export async function discoverAllCountries() {
   }
   return out;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Feed hygiene · revive dead feeds + top up under-covered countries.
+// A feed is "dead" when active=false with consecutive_failures>=5, or active
+// but failing repeatedly. Re-probe once; on success flip active=true and
+// reset failures. Countries with < MIN_ACTIVE_LOCAL live local feeds get an
+// automatic discovery pass to top up.
+
+const MIN_ACTIVE_LOCAL = 4;
+const REVIVE_COOLDOWN_HOURS = 20;
+
+export async function revivePressFeeds(opts: { countryCode?: string | null } = {}) {
+  const filter = opts.countryCode ?? null;
+  const nowIso = new Date().toISOString();
+  const cutoff = new Date(Date.now() - REVIVE_COOLDOWN_HOURS * 3_600_000).toISOString();
+
+  let q = supabaseAdmin
+    .from("narrative_feeds")
+    .select("id,country_code,endpoint,active,consecutive_failures,last_revive_at")
+    .or("active.eq.false,consecutive_failures.gte.3");
+  if (filter) q = q.eq("country_code", filter);
+  const { data: candidates } = await q;
+
+  const eligible = (candidates ?? []).filter(
+    (r) => !r.last_revive_at || (r.last_revive_at as string) < cutoff,
+  );
+
+  let revived = 0;
+  let checked = 0;
+  for (const row of eligible) {
+    checked++;
+    const ok = await probeRss(row.endpoint as string);
+    const patch: {
+      last_revive_at: string;
+      active?: boolean;
+      consecutive_failures?: number;
+      last_status?: string;
+      last_error?: string | null;
+    } = { last_revive_at: nowIso };
+    if (ok) {
+      patch.active = true;
+      patch.consecutive_failures = 0;
+      patch.last_status = "revived";
+      patch.last_error = null;
+      revived++;
+    }
+    await supabaseAdmin.from("narrative_feeds").update(patch).eq("id", row.id);
+  }
+
+  // Top-up discovery for under-covered countries.
+  let countriesToTopUp: string[] = [];
+  if (filter) {
+    countriesToTopUp = [filter];
+  } else {
+    const { data: cs } = await supabaseAdmin
+      .from("countries").select("code").order("code");
+    for (const c of cs ?? []) {
+      const { count } = await supabaseAdmin
+        .from("narrative_feeds")
+        .select("*", { count: "exact", head: true })
+        .eq("country_code", c.code as string)
+        .eq("active", true)
+        .eq("scope", "local");
+      if ((count ?? 0) < MIN_ACTIVE_LOCAL) countriesToTopUp.push(c.code as string);
+    }
+  }
+
+  const topUps: Array<{ code: string; suggested: number; inserted: number }> = [];
+  const { data: names } = await supabaseAdmin
+    .from("countries").select("code,name")
+    .in("code", countriesToTopUp.length ? countriesToTopUp : ["__none__"]);
+  const nameByCode = new Map((names ?? []).map((r) => [r.code as string, (r.name as string) ?? (r.code as string)]));
+  for (const cc of countriesToTopUp) {
+    try {
+      const r = await discoverForCountry(cc, nameByCode.get(cc) ?? cc);
+      topUps.push({ code: cc, suggested: r.suggested, inserted: r.inserted });
+    } catch (e) {
+      console.error("[press-discover:top-up]", cc, (e as Error).message);
+    }
+  }
+
+  return { checked, revived, top_ups: topUps };
+}
+
+// Reactivate (or insert) a single feed for a URL's host — used by
+// "Report missing story" so the outlet gets picked up on the next tick.
+export async function ensureFeedForUrl(countryCode: string, url: string) {
+  let host = "";
+  try { host = new URL(url).hostname.replace(/^www\./, ""); } catch { return null; }
+  const { data: existing } = await supabaseAdmin
+    .from("narrative_feeds")
+    .select("id,endpoint,active")
+    .eq("country_code", countryCode)
+    .ilike("endpoint", `%${host}%`)
+    .limit(3);
+  if (existing && existing.length > 0) {
+    for (const row of existing) {
+      if (!row.active) {
+        await supabaseAdmin
+          .from("narrative_feeds")
+          .update({ active: true, consecutive_failures: 0, last_revive_at: new Date().toISOString() })
+          .eq("id", row.id);
+      }
+    }
+    return { reactivated: existing.length, inserted: 0, endpoint: existing[0].endpoint as string };
+  }
+  const rss = await resolveFeedFor({ scope: "local", name: host, domain: host });
+  if (!rss) return { reactivated: 0, inserted: 0, endpoint: null };
+  const { error } = await supabaseAdmin.from("narrative_feeds").insert({
+    country_code: countryCode,
+    scope: "local",
+    kind: "rss",
+    endpoint: rss,
+    label: `${host} (auto from missing-story report)`,
+    is_seed: false,
+    is_query: false,
+    tier_hint: "local",
+    discovered_at: new Date().toISOString(),
+    active: true,
+  });
+  return { reactivated: 0, inserted: error ? 0 : 1, endpoint: rss };
+}

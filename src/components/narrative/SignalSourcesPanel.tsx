@@ -1,12 +1,16 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Check, ExternalLink, Loader2, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { Check, ExternalLink, Loader2, Plus, RefreshCw, Sparkles, Trash2, X } from "lucide-react";
 
-import { deleteFeed, listFeeds, suggestFeeds, testFeed, upsertFeed, type FeedRow } from "@/lib/press-monitor.functions";
+import {
+  deleteFeed, listFeeds, suggestFeeds, testFeed, upsertFeed,
+  reviveAndRediscover, reportMissingStory, type FeedRow,
+} from "@/lib/press-monitor.functions";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const SCOPES = ["local", "regional", "international"] as const;
 const KINDS = ["rss", "json", "gdelt", "google_news", "html"] as const;
@@ -47,6 +51,8 @@ export function SignalSourcesPanel({ code, countryName }: { code: string; countr
           </p>
         </div>
         <div className="flex gap-2">
+          <ReportMissingButton code={code} />
+          <RediscoverButton code={code} onDone={invalidate} />
           <SuggestButton code={code} countryName={countryName} onImport={(row) => upsertM.mutate(row)} />
           <AddFeedDialog onSave={(row) => upsertM.mutate(row)} />
         </div>
@@ -263,6 +269,76 @@ function SuggestButton({ code, countryName, onImport }: { code: string; countryN
             });
             setOpen(false);
           }}>Import {picked.size}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function RediscoverButton({ code, onDone }: { code: string; onDone: () => void }) {
+  const revive = useServerFn(reviveAndRediscover);
+  const m = useMutation({
+    mutationFn: () => revive({ data: { countryCode: code } }),
+    onSuccess: (r) => {
+      toast.success(`Revived ${r.revived}/${r.checked}. Top-ups: ${r.top_ups.length}.`);
+      onDone();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <Button size="sm" variant="outline" onClick={() => m.mutate()} disabled={m.isPending}>
+      {m.isPending ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1 h-3.5 w-3.5" />}
+      Rediscover outlets
+    </Button>
+  );
+}
+
+function ReportMissingButton({ code }: { code: string }) {
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState("");
+  const [note, setNote] = useState("");
+  const report = useServerFn(reportMissingStory);
+  const m = useMutation({
+    mutationFn: () => report({ data: { countryCode: code, url, note: note || undefined } }),
+    onSuccess: (r) => {
+      const insertedNote = r.feed?.inserted ? " · added outlet feed" : r.feed?.reactivated ? " · reactivated outlet" : "";
+      toast.success(`Story queued to radar${insertedNote}.`);
+      setOpen(false); setUrl(""); setNote("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline"><Plus className="mr-1 h-3.5 w-3.5" />Report missing story</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Report a story the radar missed</DialogTitle>
+          <DialogDescription>
+            We'll classify it, add it to the signal ledger, and start monitoring the outlet for future stories.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <input
+            className="w-full border border-line-200 bg-paper-50 px-3 py-2 text-sm"
+            placeholder="https://…"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+          />
+          <textarea
+            className="min-h-[80px] w-full border border-line-200 bg-paper-50 px-3 py-2 text-sm"
+            placeholder="Optional note — why this matters, angle, entities involved."
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={() => m.mutate()} disabled={!url || m.isPending}>
+            {m.isPending ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : null}
+            Add to radar
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

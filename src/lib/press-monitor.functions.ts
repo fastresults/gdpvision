@@ -322,4 +322,154 @@ export const latestCronCoverage = createServerFn({ method: "GET" })
     };
   });
 
+// ─── Layer 4 · revive dead feeds + top up under-covered countries ───────────
+// Callable from Signal Sources ("Rediscover outlets"). Country admins only.
+
+export const reviveAndRediscover = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: role } = await context.supabase.rpc("has_country_role", {
+      _user_id: context.userId, _role: "country_admin", _country_code: data.countryCode,
+    });
+    if (!role) throw new Error("Only country admins can rediscover outlets.");
+    const { revivePressFeeds } = await import("@/lib/press-discover.server");
+    return await revivePressFeeds({ countryCode: data.countryCode });
+  });
+
+// ─── Report a story we missed · classify + insert + ensure feed for outlet ──
+
+export const reportMissingStory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ countryCode: z.string(), url: z.string().url(), note: z.string().optional() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: role } = await context.supabase.rpc("has_country_role", {
+      _user_id: context.userId, _role: "country_admin", _country_code: data.countryCode,
+    });
+    if (!role) throw new Error("Only country admins can report missing stories.");
+
+    const { firecrawlUpgrade, classifySignal } = await import("@/lib/press-monitor.server");
+    const { ensureFeedForUrl } = await import("@/lib/press-discover.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const md = (await firecrawlUpgrade(data.url)) ?? data.note ?? "";
+    const { data: secs } = await supabaseAdmin
+      .from("country_sectors").select("sector_code").eq("country_code", data.countryCode);
+    const sectorMenu = (secs ?? []).map((r) => r.sector_code as string);
+
+    const c = await classifySignal({
+      countryCode: data.countryCode, url: data.url,
+      raw: [data.note ?? "", md].filter(Boolean).join("\n\n"),
+      sectorMenu,
+    });
+
+    const topic = (c.topic || data.url).slice(0, 240);
+    const { data: sig, error } = await supabaseAdmin
+      .from("intake_items")
+      .insert({
+        scope_key: data.countryCode,
+        sector_code: c.sector_code || "cross",
+        topic,
+        summary: c.summary,
+        url: data.url,
+        proposed_weight: Math.max(1, Math.min(5, Math.round((c.severity + c.reach) / 2))),
+        scope: c.scope,
+        severity: Math.max(1, Math.min(5, c.severity)),
+        reach: Math.max(1, Math.min(5, c.reach)),
+        sentiment: Math.max(-2, Math.min(2, c.sentiment)),
+        recommendation: c.recommendation,
+        story_primary: true,
+        metadata: {
+          dossier_bullets: c.dossier_bullets, rationale: c.rationale,
+          citations: c.citations ?? [], source: "reported-missing",
+          reporter_id: context.userId, reporter_note: data.note ?? null,
+        },
+      })
+      .select("id").single();
+    if (error) throw new Error(error.message);
+
+    const feedResult = await ensureFeedForUrl(data.countryCode, data.url);
+    return { signal_id: sig.id as string, feed: feedResult };
+  });
+
+// ─── Entity watchlist CRUD ─────────────────────────────────────────────────
+
+export interface WatchlistRow {
+  id: string;
+  country_code: string;
+  entity_name: string;
+  entity_role: string | null;
+  source: string;
+  active: boolean;
+  last_feed_built_at: string | null;
+}
+
+export const listWatchlist = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .handler(async ({ data, context }): Promise<WatchlistRow[]> => {
+    const { data: rows, error } = await context.supabase
+      .from("narrative_entity_watchlist")
+      .select("id,country_code,entity_name,entity_role,source,active,last_feed_built_at")
+      .eq("country_code", data.countryCode)
+      .order("active", { ascending: false })
+      .order("entity_name", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as unknown as WatchlistRow[];
+  });
+
+export const upsertWatchlistEntity = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      countryCode: z.string(),
+      entityName: z.string().min(2).max(200),
+      entityRole: z.string().max(80).optional(),
+      active: z.boolean().optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("narrative_entity_watchlist")
+      .upsert(
+        {
+          country_code: data.countryCode,
+          entity_name: data.entityName.trim(),
+          entity_role: data.entityRole ?? null,
+          source: "manual",
+          active: data.active ?? true,
+        },
+        { onConflict: "country_code,entity_name" },
+      );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteWatchlistEntity = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("narrative_entity_watchlist").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const refreshWatchlistFeeds = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: role } = await context.supabase.rpc("has_country_role", {
+      _user_id: context.userId, _role: "country_admin", _country_code: data.countryCode,
+    });
+    if (!role) throw new Error("Only country admins can rebuild watchlist feeds.");
+    const { seedWatchlistFromCorpus, buildEntityFeedsForCountry } =
+      await import("@/lib/narrative-watchlist.server");
+    const seeded = await seedWatchlistFromCorpus(data.countryCode);
+    const built = await buildEntityFeedsForCountry(data.countryCode);
+    return { seeded: seeded.added, built: built.inserted };
+  });
+
 

@@ -48,10 +48,11 @@ export const prewarmSectorDossiers = createServerFn({ method: "POST" })
 
     for (const sectorCode of sectors) {
       try {
-        // buildSectorDossier handles: return-cached-if-fresh, generate-if-missing.
-        // With { refresh: true } it always regenerates.
-        const res: any = await (buildSectorDossier as any)({
-          data: { countryCode, sectorCode, refresh: !!force },
+        // Reuses the same cache path: returns cached-if-fresh, generates if missing/stale.
+        const res = await buildSectorDossierWithSupabase(supabase, {
+          countryCode,
+          sectorCode,
+          refresh: !!force,
         });
         if (res?.cached) out.cached += 1;
         else out.generated += 1;

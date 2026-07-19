@@ -85,18 +85,6 @@ function AuthPage() {
       <div className="mx-auto max-w-md px-6 py-24">
         <SectionHeader eyebrow="Instrument access" title={title} />
         <form onSubmit={onSubmit} className="mt-10 space-y-6">
-          {mode === "sign-up" && (
-            <label className="block">
-              <span className="text-xs uppercase tracking-wider text-ink-500">Name</span>
-              <input
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="mt-2 w-full border-b border-line-200 bg-transparent py-2 text-lg focus:border-ink-950 focus:outline-none"
-                placeholder="Adam Anderson"
-              />
-            </label>
-          )}
           <label className="block">
             <span className="text-xs uppercase tracking-wider text-ink-500">Email</span>
             <input

@@ -110,3 +110,58 @@ function PersonasLayout() {
     </SuperAdminShell>
   );
 }
+
+type Brief = { what: string; use: string; value: string };
+
+function NavInfo({ label, brief }: { label: string; brief: Brief }) {
+  const body = (
+    <div className="space-y-2.5 text-[13px] leading-snug text-ink-800">
+      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">{label}</p>
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-500">What it is</p>
+        <p>{brief.what}</p>
+      </div>
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-500">When to use</p>
+        <p>{brief.use}</p>
+      </div>
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-500">Why it matters</p>
+        <p>{brief.value}</p>
+      </div>
+    </div>
+  );
+  const trigger = (
+    <button
+      type="button"
+      aria-label={`About ${label}`}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-ink-400 opacity-0 transition hover:text-ink-950 focus:opacity-100 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink-400 group-hover/nav:opacity-100"
+    >
+      <Info size={13} />
+    </button>
+  );
+  return (
+    <>
+      <span className="hidden md:contents">
+        <HoverCard openDelay={120} closeDelay={80}>
+          <HoverCardTrigger asChild>{trigger}</HoverCardTrigger>
+          <HoverCardContent side="right" align="start" className="w-72">
+            {body}
+          </HoverCardContent>
+        </HoverCard>
+      </span>
+      <span className="contents md:hidden">
+        <Popover>
+          <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+          <PopoverContent side="right" align="start" className="w-72">
+            {body}
+          </PopoverContent>
+        </Popover>
+      </span>
+    </>
+  );
+}

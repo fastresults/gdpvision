@@ -34,7 +34,8 @@ export async function buildCountryContextPack(
     { data: ministries },
     { data: signals },
     { data: memories },
-    { data: sources },
+    { data: memorySources },
+    { data: registrySources },
   ] = await Promise.all([
     supabase.from("countries").select("name").eq("code", countryCode).maybeSingle(),
     supabase
@@ -66,17 +67,23 @@ export async function buildCountryContextPack(
       .order("updated_at", { ascending: false })
       .limit(10),
     supabase
+      .from("sources")
+      .select("id,name,url,kind")
+      .eq("country_code", countryCode)
+      .not("url", "is", null)
+      .limit(50),
+    supabase
       .from("country_sources")
       .select("id,title,url,org,kind")
       .eq("country_code", countryCode)
       .not("url", "is", null)
-      .order("weight", { ascending: false, nullsFirst: false })
+      .order("quality_score", { ascending: false, nullsFirst: false })
       .limit(12),
   ]);
 
   const countryName = country?.name ?? countryCode;
   const citations: ContextCitation[] = [];
-  const sourceById = new Map((sources ?? []).map((s) => [String(s.id), s]));
+  const sourceById = new Map((memorySources ?? []).map((s) => [String(s.id), s]));
   let n = 0;
   const cite = (c: Omit<ContextCitation, "n">) => {
     if (!isValidCitationUrl(c.url)) return null;
@@ -110,11 +117,11 @@ export async function buildCountryContextPack(
       kind: "memory",
       ref: m.id,
       url: source?.url ?? undefined,
-      org: source?.org ?? null,
+      org: source?.kind ?? null,
     });
     return `- ${prefix(cn)}(${m.kind}) ${m.title}${m.summary ? ` — ${String(m.summary).slice(0, 160)}` : ""}`;
   });
-  const sourceLines = (sources ?? []).flatMap((s) => {
+  const sourceLines = (registrySources ?? []).flatMap((s) => {
     const cn = cite({ label: s.title ?? s.url, title: s.title ?? s.url, kind: "source", ref: s.id, url: s.url, org: s.org ?? null });
     return cn ? [`- [${cn}] ${s.title ?? s.url}${s.org ? ` · ${s.org}` : ""}`] : [];
   });

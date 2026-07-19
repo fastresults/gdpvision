@@ -54,8 +54,12 @@ export function SectorProfilingMatrix({
           return (
             <li key={r.code}>
               <button
-                onClick={() => onSelect(isSelected ? null : r.code)}
-                className={`grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 py-2.5 text-left transition hover:bg-paper-50/50 md:grid-cols-[minmax(0,2fr)_80px_minmax(140px,1.5fr)_120px_80px_80px] ${
+                onClick={() => {
+                  onSelect(r.code);
+                  onOpenDossier?.(r.code);
+                }}
+                title="Open sector dossier"
+                className={`grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 py-2.5 text-left transition hover:bg-paper-50/50 md:grid-cols-[minmax(0,2fr)_80px_minmax(140px,1.5fr)_120px_80px_80px] ${
                   isSelected ? "bg-paper-50/70" : ""
                 }`}
               >

@@ -127,13 +127,19 @@ export async function runPressTick(opts: {
     // Fair per-country slice: pull the newest N per country from state=new
     // so a burst from one country cannot starve the classification queue.
     const perCountryFetch = 40;
-    type PoolItem = { id: string; country_code: string; url: string | null; title: string; raw_excerpt: string | null };
+    type PoolItem = {
+      id: string; country_code: string; url: string | null; title: string;
+      raw_excerpt: string | null; feed_id: string | null; tier_hint: string | null;
+    };
+    // Build feed_id → tier_hint map from feeds we just polled.
+    const feedTier = new Map<string, string | null>();
+    for (const f of feeds ?? []) feedTier.set(f.id as string, (f as { tier_hint?: string | null }).tier_hint ?? null);
     const perCountryPool = new Map<string, PoolItem[]>();
     const targetCountries = filterCountry ? [filterCountry] : Array.from(universe);
     await pMap(targetCountries, async (cc) => {
       const { data } = await supabaseAdmin
         .from("narrative_feed_items")
-        .select("id,country_code,url,title,raw_excerpt")
+        .select("id,country_code,url,title,raw_excerpt,feed_id")
         .eq("state", "new")
         .eq("country_code", cc)
         .order("fetched_at", { ascending: false })
@@ -144,6 +150,8 @@ export async function runPressTick(opts: {
         url: (r.url as string | null) ?? null,
         title: (r.title as string | null) ?? "",
         raw_excerpt: (r.raw_excerpt as string | null) ?? null,
+        feed_id: (r.feed_id as string | null) ?? null,
+        tier_hint: r.feed_id ? feedTier.get(r.feed_id as string) ?? null : null,
       }));
       if (rows.length) perCountryPool.set(cc, rows);
     }, 8);
@@ -180,15 +188,21 @@ export async function runPressTick(opts: {
       }
     }
 
-    // Layer 3 · Firecrawl upgrade: fetch full-text markdown for the top-8 items
-    // per country in this batch, keyed by first-seen order. Failures fall back to the snippet.
-    const upgradeCapPerCountry = 8;
-    const upgradeSeen = new Map<string, number>();
+    // Layer 3 · Firecrawl upgrade. Reputational/entity lanes get a bigger
+    // per-country budget because the classifier needs full text to reliably
+    // catch lawsuits, sanctions, envoy stories — snippets aren't enough.
+    const upgradeCapDefault = 8;
+    const upgradeCapReputational = 15;
+    const upgradeSeen = new Map<string, { r: number; d: number }>();
+    const isRepLane = (t: string | null) => t === "reputational" || t === "entity" || t === "governance";
     const upgradeTargets = toClassify.filter((it) => {
       if (!it.url) return false;
-      const n = upgradeSeen.get(it.country_code) ?? 0;
-      if (n >= upgradeCapPerCountry) return false;
-      upgradeSeen.set(it.country_code, n + 1);
+      const bucket = upgradeSeen.get(it.country_code) ?? { r: 0, d: 0 };
+      const cap = isRepLane(it.tier_hint) ? upgradeCapReputational : upgradeCapDefault;
+      const used = isRepLane(it.tier_hint) ? bucket.r : bucket.d;
+      if (used >= cap) return false;
+      if (isRepLane(it.tier_hint)) bucket.r++; else bucket.d++;
+      upgradeSeen.set(it.country_code, bucket);
       return true;
     });
     const upgraded = new Map<string, string>();

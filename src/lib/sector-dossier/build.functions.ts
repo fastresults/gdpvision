@@ -416,7 +416,9 @@ Rules: exactly 3 pillars in that order; 2-4 bullets each; every claim that isn't
       kpis: kpiForOutput,
       flows: flowsForOutput,
     };
-  });
+  }
+}
+
 
 async function loadAncillary(supabase: any, countryCode: string, sectorCode: string) {
   const [{ data: kpiRows }, { data: ministryLinks }, { data: flowRows }, { data: flowNodes }] = await Promise.all([

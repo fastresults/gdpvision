@@ -24,6 +24,7 @@ export function GdpVizStudio({ code }: { code: string }) {
   const fetchOverview = useServerFn(getVizOverview);
   const { data: overview } = useSuspenseQuery(overviewQuery(code, fetchOverview as any));
   const [sector, setSector] = useState<string | null>(null);
+  const [dossierSector, setDossierSector] = useState<string | null>(null);
 
   const selectedSector = overview.sectors.find((s) => s.code === sector) ?? null;
 

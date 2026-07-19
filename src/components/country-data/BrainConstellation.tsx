@@ -389,15 +389,23 @@ export function BrainConstellation({
                   strokeOpacity={0.55 + Math.min(0.35, totalWeight / 60)}
                 />
 
-                {/* Travelling dot on the curve when there was recent activity */}
-                {recent > 0 && (
-                  <>
-                    <circle r="3" fill="#f59e0b">
-                      <animateMotion dur={`${3.5 + hash01(seed) * 2}s`} repeatCount="indefinite" path={curvePath(cx, cy, s.x, s.y, 0.22, seed)} />
-                      <animate attributeName="opacity" values="0;1;1;0" dur={`${3.5 + hash01(seed) * 2}s`} repeatCount="indefinite" />
+                {/* Continuous flowing dots along the sector thread */}
+                {(() => {
+                  const path = curvePath(cx, cy, s.x, s.y, 0.22, seed);
+                  const dur = 3.5 + hash01(seed + "d") * 3;
+                  const dotCount = recent > 0 ? 3 : 2;
+                  const color = recent > 0 ? "#f59e0b" : KIND_COLOR[dominantKind] ?? "#6366f1";
+                  return Array.from({ length: dotCount }).map((_, i) => (
+                    <circle key={`flow-${i}`} r={recent > 0 ? 2.6 : 1.8} fill={color} opacity={0.9}>
+                      <animateMotion
+                        dur={`${dur}s`}
+                        repeatCount="indefinite"
+                        path={path}
+                        begin={`${(i * dur) / dotCount}s`}
+                      />
                     </circle>
-                  </>
-                )}
+                  ));
+                })()}
 
                 {/* Memory dots — clustered organically inside the halo, not on rigid arms */}
                 {sectorRows.slice(0, 60).map((r, i) => {

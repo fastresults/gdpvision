@@ -412,3 +412,47 @@ async function loadAncillary(supabase: any, countryCode: string, sectorCode: str
 void hasAnyCitableCitation;
 void sanitizeCitationMarkersInText;
 
+// ─────────────────────────────────────────────────────────────────────
+// Fast context loader — renders the drawer instantly with DB data and a
+// cached AI brief (if present). Heavy AI generation stays in buildSectorDossier.
+// ─────────────────────────────────────────────────────────────────────
+export type SectorDossierContext = {
+  countryCode: string;
+  sectorCode: string;
+  sectorLabel: string;
+  countryName: string;
+  ministry: SectorDossierResult["ministry"];
+  kpis: SectorDossierResult["kpis"];
+  flows: SectorDossierResult["flows"];
+  cachedBrief: SectorBrief | null;
+  cachedCitations: CitableCitation[];
+  cachedAt: string | null;
+};
+
+export const getSectorContext = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string().min(2).max(4), sectorCode: z.string().min(1).max(64) }).parse(d))
+  .handler(async ({ data, context }): Promise<SectorDossierContext> => {
+    const { supabase } = context;
+    const { countryCode, sectorCode } = data;
+    const [{ data: country }, { data: sector }, { data: cached }, bundle] = await Promise.all([
+      supabase.from("countries").select("code,name").eq("code", countryCode).maybeSingle(),
+      supabase.from("sectors").select("code,label").eq("code", sectorCode).maybeSingle(),
+      supabase.from("sector_dossier_briefs").select("brief,citations,generated_at").eq("country_code", countryCode).eq("sector_code", sectorCode).maybeSingle(),
+      loadAncillary(supabase, countryCode, sectorCode),
+    ]);
+    return {
+      countryCode,
+      sectorCode,
+      sectorLabel: sector?.label ?? sectorCode,
+      countryName: country?.name ?? countryCode,
+      ministry: bundle.ministry,
+      kpis: bundle.kpis,
+      flows: bundle.flows,
+      cachedBrief: (cached?.brief as SectorBrief | undefined) ?? null,
+      cachedCitations: (cached?.citations as CitableCitation[] | undefined) ?? [],
+      cachedAt: cached?.generated_at ?? null,
+    };
+  });
+
+

@@ -1,82 +1,51 @@
-## What I found on the current homepage
+## Goal
+Guarantee that (1) every route change scrolls the viewport to the top, and (2) any in-page "subsection" navigation (tab switch, wizard step, drawer/modal open, accordion expand, chamber sub-view) scrolls that component's container to the top.
 
-The homepage is a single-page narrative in `src/components/marketing/MarketingHome.tsx` with these sections:
+## Current state (verified)
+- `src/router.tsx` sets `scrollRestoration: true`. That preserves back/forward scroll positions but does NOT force new navigations to the top when the app uses a custom scroll container (which several chambers do). No `scrollToTopSelectors` is configured.
+- Only three files do ad‑hoc scroll handling today (`AskTheLedger`, `countries.$code.onboard`, `countries.$code.studio.threats.$id`). There is no shared primitive, so behavior is inconsistent across chambers.
 
-1. **Hero** — "Govern with the whole picture" + rotating existential threats (`EXISTENTIAL_THREATS`).
-2. **The moment** — rotating "moment variants" with 3 stat tiles (`MOMENT_VARIANTS`).
-3. **The instrument** — **only 6 chambers listed** (Chamber 07 Persona Lab is missing).
-4. **Sovereignty** — isolated instance, data ownership, MFA/audit, no trackers.
-5. **Provenance** — OPEN Interactive backstory (Caribbean Investment Summit, SKN, SEDE Saint Lucia).
-6. **Cabinet briefing** — CTA form.
+## Plan
 
-Route meta (`src/routes/index.tsx`): title is fine; **description is Caribbean/CBI-specific** and doesn't carry the "world's first" positioning or the head-of-government audience.
+### 1. Global route-change scroll-to-top
+Update `src/router.tsx`:
+- Keep `scrollRestoration: true` (preserves back/forward).
+- Add `scrollToTopSelectors: ['#app-scroll-root', 'main', 'window']` so both the window and any designated inner scroll container reset on forward navigations.
+- Ensure the app shell root element in `src/routes/__root.tsx` (and any authenticated shell wrapper such as `SuperAdminShell` / country admin shell) carries `id="app-scroll-root"` on the scrollable element.
 
-### Gaps against the positioning you described
+Add a small `RouteScrollTop` component mounted once in `__root.tsx` that subscribes to `useRouterState({ select: s => s.location.pathname })` and, on pathname change (not hash/search-only changes), calls `window.scrollTo({ top: 0 })` and resets `#app-scroll-root` — belt-and-suspenders for cases where TanStack's built-in reset doesn't fire (e.g., same-route param changes).
 
-| Positioning claim | Present today? |
-|---|---|
-| "World's first GDP tool" | ❌ Not stated anywhere. |
-| Audience = Presidents, PMs, Cabinets (universal, not just Caribbean) | ⚠️ Only in "Cabinet briefing"; hero copy and meta lean Caribbean/CBI. |
-| Public + private data differentiation as a headline capability | ❌ Not mentioned. Sovereignty section talks isolation, not the public/private corpus model. |
-| **Seven** chambers with distinct outcomes | ❌ Says "Six chambers"; Chamber 07 (Persona Lab) absent. |
-| Unrivaled/unprecedented GDP-elevation impact per chamber | ⚠️ Chambers are described by *what they are*, not by *the GDP outcome they produce*. |
-| SEO meta reflecting all of the above | ❌ Meta title/description are Caribbean/CBI-scoped. |
+### 2. Reusable "scroll section into view on change" primitive
+Create `src/hooks/useScrollToTopOnChange.ts`:
+```
+useScrollToTopOnChange(ref, dep, { behavior: 'smooth' | 'auto' })
+```
+On `dep` change, scrolls `ref.current` into view aligned to the top of the viewport (with a small offset for sticky headers), and also sets `ref.current.scrollTop = 0` when the element is itself scrollable.
 
-## Proposed rewrite
+Create `src/components/layout/ScrollAnchor.tsx`:
+- A tiny wrapper `<ScrollAnchor dep={activeTab}>...children...</ScrollAnchor>` that internally uses the hook. Drop-in for chambers/wizards.
 
-A copy-only + light structural pass on the marketing page. No new design system, no palette change — this is a headline/subhead/body rewrite plus one new chamber tile and one new section.
+### 3. Apply the primitive to known subsection surfaces
+Wire the primitive into the existing subsection switchers so every one behaves the same way:
+- Chamber shells (Chambers 01–07): scroll to top of chamber content when the active sub-tab / view / step changes.
+- Scenario Engine wizard (Chamber 03): scroll to top of the step container on step change.
+- FDI Studio (Chamber 04): scroll to top on Threat / Strategy tab switch.
+- Narrative Chamber (Chamber 05): scroll to top on Signal → Draft transitions and on opening a comms artifact.
+- Cabinet Room (Chamber 06): scroll to top on session/decision selection.
+- Persona Lab (Chamber 07): scroll to top on Persona / Segment / Study switch.
+- Onboarding admin: scroll to top on stage change.
+- Sector Dossier Drawer / any Sheet/Dialog: reset internal scroll to 0 on open and on tab change inside.
 
-### 1. Route meta — reposition for global sovereign audience
-`src/routes/index.tsx`
-- **Title (≤60 chars):** `GDPVision — The world's first GDP-elevation instrument for heads of government.`
-- **Description (≤160 chars):** Rewrite to name the audience (Presidents, Prime Ministers, Cabinets), the world-first claim, and the outcome (elevate GDP by turning public + private data into decisions across seven chambers).
-- Mirror into `og:*` and `twitter:*` (already wired).
+### 4. Respect user intent (accessibility)
+- Honor `prefers-reduced-motion`: use `behavior: 'auto'` when reduced motion is set, otherwise `'smooth'` for in-page subsection scrolls. Route-change scroll is always instant.
+- Do NOT scroll on hash-only navigation — let the browser handle anchor scrolling.
+- Do NOT scroll when navigation is `replace` with only search-param changes that represent filter updates (e.g., queue filters), to avoid yanking the user during typing.
 
-### 2. Hero — global head-of-government framing
-`MarketingHome.tsx` HERO block
-- New H1 (keep the serif treatment): **"The world's first instrument built to elevate national GDP."**
-- New sub-lede (single short paragraph, replaces the rotating body's implicit CBI frame — the rotator stays as evidence): "Purpose-built for Presidents, Prime Ministers and Cabinets. GDPVision converts a nation's public and private data into decisions that measurably lift GDP — across seven chambers of state."
-- Keep the existential-threats rotator underneath as *proof of what the instrument is designed to answer* (light re-label from generic "threat" to "The questions on the Cabinet table").
-- CTA copy: keep "Request a Cabinet briefing"; secondary link becomes "See the seven chambers ↓".
+## Technical notes
+- TanStack Router's `scrollToTopSelectors` accepts CSS selectors and the special string `'window'`. Adding a stable `#app-scroll-root` id on the shell's scroll container is the cleanest fix; if no inner container scrolls, the `window` entry alone handles it.
+- The `RouteScrollTop` component uses `useEffect(() => { ... }, [pathname])` — it triggers after commit, avoiding layout thrash.
+- The hook uses `IntersectionObserver`-free logic: it just reads `ref.current.getBoundingClientRect().top` and calls `window.scrollTo`. Cheap and framework-agnostic.
 
-### 3. New section — "Public data. Private data. One sovereign corpus."
-Inserted between **The moment** and **The instrument**. Three-column layout using the existing `SectionHeader` + panel styling.
-- **Public corpus** — sourced, graded, and citation-backed data every ministry sees.
-- **Private corpus** — Cabinet-only uploads (contracts, memos, MoUs, closes) held under the same provenance discipline, never mixed into the public view.
-- **One decision surface** — every chart, scenario, and dossier reads both, with visibility clearly marked and audited.
-This is the missing "unique differentiation" the current page never states.
-
-### 4. The instrument — seven chambers, framed by GDP outcome
-`CHAMBERS` array in `MarketingHome.tsx`
-- **Add Chamber 07 — Persona Lab** (synthetic market research: test policy, incentive, and narrative resonance against modeled citizen/investor personas before spending real capital).
-- Change section header from "Six chambers…" → **"Seven chambers, each engineered to move GDP."**
-- Rewrite each chamber's `purpose` line so it leads with the **GDP-elevation outcome**, not the mechanism. Examples:
-  - 01 Ledger → "The single source of GDP truth every other decision reads from."
-  - 02 Portfolio Workspaces → "Every minister sees their contribution to GDP — and the levers that raise it."
-  - 03 Scenario Engine → "Rehearse every GDP-moving decision before it costs a cent."
-  - 04 FDI Transition Studio → "Replace fragile revenue with durable GDP through an assembled book of investment packages."
-  - 05 Narrative Chamber → "Protect GDP by getting to a defensible national position inside a working day."
-  - 06 Cabinet Room → "Convert Cabinet time into recorded, tracked commitments that move the GDP dial."
-  - 07 Persona Lab → "Test resonance with citizens and investors before policies, incentives, or narratives ship."
-- Bullets stay factual; light edits only to remove Caribbean-specific defaults where they read as scope limits (keep OECS as an *example*, not the ceiling).
-
-### 5. Sovereignty — add the public/private line
-Add one panel to the existing 4 in `SOVEREIGNTY`:
-- **"Public and private, separated by design"** — visibility is a first-class attribute on every row. Private data never enters the public corpus, and Cabinet uploads are gated by country access with a full audit trail.
-
-### 6. Provenance — keep, sharpen one line
-Keep the section. Reframe the intro lede so the Caribbean track record reads as **proof of delivery**, not the market ceiling: "…the same team now delivering the world's first GDP-elevation instrument for sovereign governments."
-
-## What is intentionally out of scope
-
-- No visual redesign, no palette or font change, no new components beyond one section block and one chamber tile reuse.
-- No claims that require new evidence (I won't invent metrics — the "world's first" line is a positioning claim about the *category*, which matches how you've described it).
-- No changes to `EXISTENTIAL_THREATS` / `MOMENT_VARIANTS` data (they still serve).
-
-## Deliverable
-
-A single edit pass on `src/routes/index.tsx` (meta) and `src/components/marketing/MarketingHome.tsx` (hero, chambers array + count, new public/private section, sovereignty addition, provenance lede), plus adding the Chamber 07 entry. No new files required.
-
-## Question before I build
-
-Do you want me to keep the Caribbean/OECS/SKN/Saint Lucia proof points in **Provenance** (as delivery credibility for a global claim), or de-emphasise them so the page reads fully global?
+## Out of scope
+- No visual/design changes.
+- No changes to business logic, data fetching, or route structure.

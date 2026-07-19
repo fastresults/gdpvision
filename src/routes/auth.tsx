@@ -183,13 +183,9 @@ function AuthPage() {
               Back to sign in
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={() => switchMode(mode === "sign-in" ? "sign-up" : "sign-in")}
-              className="underline underline-offset-4 hover:text-ink-950"
-            >
-              {mode === "sign-in" ? "Create an account" : "I already have an account"}
-            </button>
+            <span className="text-xs text-ink-500">
+              GDPVision is by invitation only. Contact your administrator for access.
+            </span>
           )}
           <Link to="/" className="hover:text-ink-950">
             Back to gdpvision.com

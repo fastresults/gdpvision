@@ -1,5 +1,7 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
-import { Users, Layers, FlaskConical } from "lucide-react";
+import { Users, Layers, FlaskConical, Info } from "lucide-react";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 

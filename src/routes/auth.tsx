@@ -68,7 +68,7 @@ function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/instrument`,
+            emailRedirectTo: `${window.location.origin}/home`,
             data: { display_name: displayName || email },
           },
         });

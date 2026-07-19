@@ -3,9 +3,9 @@ import { MarketingHome } from "@/components/marketing/MarketingHome";
 import ogImage from "@/assets/gdpvision-og.jpg";
 
 const SITE_URL = "https://gdpvision.com";
-const TITLE = "GDPVision — Govern with the whole picture";
+const TITLE = "GDPVision — The world's first GDP-elevation instrument";
 const DESCRIPTION =
-  "The sovereign decision instrument for Caribbean Cabinets: live economic view, scenario rehearsal, and an FDI plan to replace CBI revenue.";
+  "Purpose-built for Presidents, Prime Ministers and Cabinets. Turn public and private national data into decisions that elevate GDP — across seven sovereign chambers.";
 
 export const Route = createFileRoute("/")({
   head: () => {

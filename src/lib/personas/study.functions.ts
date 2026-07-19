@@ -329,7 +329,7 @@ export const getStudy = createServerFn({ method: "POST" })
               ...hydrated,
               answer: sanitizeJsonCitationMarkers(hydrated.answer, citations) as typeof hydrated.answer,
               rationale: hydrated.rationale ? sanitizeCitationMarkersInText(hydrated.rationale, citations) : hydrated.rationale,
-              citations: citations as typeof hydrated.citations,
+              citations: citations as unknown as typeof hydrated.citations,
             };
           })
         : responses ?? [],
@@ -340,7 +340,7 @@ export const getStudy = createServerFn({ method: "POST" })
             return {
               ...hydrated,
               utterance: hydrated.utterance ? sanitizeCitationMarkersInText(hydrated.utterance, citations) : hydrated.utterance,
-              citations: citations as typeof hydrated.citations,
+              citations: citations as unknown as typeof hydrated.citations,
             };
           })
         : transcript ?? [],
@@ -352,7 +352,7 @@ export const getStudy = createServerFn({ method: "POST" })
               ...hydrated,
               summary_md: hydrated.summary_md ? sanitizeCitationMarkersInText(hydrated.summary_md, citations) : hydrated.summary_md,
               themes: sanitizeJsonCitationMarkers(hydrated.themes ?? [], citations) as typeof hydrated.themes,
-              citations: citations as typeof hydrated.citations,
+              citations: citations as unknown as typeof hydrated.citations,
             };
           })()
         : report ?? null,

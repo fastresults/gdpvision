@@ -5,7 +5,7 @@ import { Activity, BookOpen, Database, Landmark, Layers, MessageSquare, Search, 
 
 import { getMyCountryStatus } from "@/lib/country-admin.functions";
 import { listOnboardingCountries } from "@/lib/country-onboarding/agents.functions";
-import { flagUrl } from "@/lib/caricom-registry";
+import { flagUrl, isCaricom, isOecs } from "@/lib/caricom-registry";
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { supabase } from "@/integrations/supabase/client";
 

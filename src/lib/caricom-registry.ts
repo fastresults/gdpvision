@@ -43,6 +43,21 @@ export const CARICOM_OECS_REGISTRY: RegistryNation[] = [
 
 export const REGISTRY_CODES = new Set(CARICOM_OECS_REGISTRY.map((n) => n.code));
 
+// OECS members (full protocol + associates). CARICOM membership is derived
+// from the registry's `tier` field.
+export const OECS_CODES = new Set<string>([
+  "ATG", "DMA", "GRD", "MSR", "KNA", "LCA", "VCT", // full protocol
+  "AIA", "VGB", "MTQ", "GLP",                        // associates
+]);
+
+export function isOecs(iso3: string): boolean {
+  return OECS_CODES.has((iso3 ?? "").toUpperCase());
+}
+export function isCaricom(iso3: string): boolean {
+  const n = CARICOM_OECS_REGISTRY.find((r) => r.code === (iso3 ?? "").toUpperCase());
+  return !!n && (n.tier === "caricom-full" || n.tier === "caricom-associate");
+}
+
 // ISO 3166-1 alpha-3 → alpha-2 for the CARICOM/OECS registry. Used to
 // resolve flag imagery via flagcdn.com.
 export const ISO3_TO_ISO2: Record<string, string> = {

@@ -79,7 +79,8 @@ export function SignatureRing({ size = 520, animate = true, showBrain = true, cl
         height={size}
         role="img"
         aria-label={description}
-        className="block h-full w-full"
+        className="relative block h-full w-full"
+        style={{ zIndex: 1 }}
       >
         {/* Hairline concentric guides */}
         <circle cx={cx} cy={cy} r={outer + 8} fill="none" stroke="var(--line-200)" strokeWidth={0.5} />

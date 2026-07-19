@@ -434,7 +434,14 @@ export const getPersonaChat = createServerFn({ method: "POST" })
       .select("*")
       .eq("chat_id", data.chatId)
       .order("created_at");
-    return messages ?? [];
+    return (messages ?? []).map((message) => {
+      const citations = fullCitationsForRefs(message.citations as unknown as ContextCitation[], message.citations);
+      return {
+        ...message,
+        content: message.content ? sanitizeCitationMarkersInText(message.content, citations) : message.content,
+        citations: citations as never,
+      };
+    });
   });
 
 export const listPersonaChats = createServerFn({ method: "POST" })

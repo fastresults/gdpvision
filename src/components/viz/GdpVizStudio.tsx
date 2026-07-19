@@ -11,6 +11,7 @@ import { SectorProfilingMatrix } from "./SectorProfilingMatrix";
 import { DebtHorizon } from "./DebtHorizon";
 import { EvidenceRail } from "./EvidenceRail";
 import { SovereignSankey } from "./SovereignSankey";
+import { SectorDossierDrawer } from "@/components/sector/SectorDossierDrawer";
 
 const overviewQuery = (code: string, fetchFn: (input: { data: { countryCode: string } }) => Promise<VizOverview>) =>
   queryOptions({

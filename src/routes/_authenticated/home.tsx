@@ -246,6 +246,97 @@ function NoAccessWelcome() {
 
 // ─── SHARED ───────────────────────────────────────────────────────────────────
 
+type MembershipFilter = "all" | "caricom" | "oecs";
+
+function CountriesGrid({ countries }: { countries: any[] }) {
+  const [q, setQ] = useState("");
+  const [filter, setFilter] = useState<MembershipFilter>("all");
+
+  const rows = useMemo(() => {
+    const qq = q.trim().toLowerCase();
+    return countries
+      .filter((c) => {
+        if (filter === "caricom" && !isCaricom(c.code)) return false;
+        if (filter === "oecs" && !isOecs(c.code)) return false;
+        if (!qq) return true;
+        return (
+          c.name.toLowerCase().includes(qq) ||
+          (c.iso3 ?? "").toLowerCase().includes(qq) ||
+          c.code.toLowerCase().includes(qq)
+        );
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [countries, q, filter]);
+
+  const counts = useMemo(
+    () => ({
+      all: countries.length,
+      caricom: countries.filter((c) => isCaricom(c.code)).length,
+      oecs: countries.filter((c) => isOecs(c.code)).length,
+    }),
+    [countries],
+  );
+
+  return (
+    <section>
+      <div className="mb-4 flex items-baseline justify-between">
+        <h2 className="font-serif text-2xl">Countries</h2>
+        <Link to="/admin/countries" className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950">
+          Countries queue →
+        </Link>
+      </div>
+
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[240px]">
+          <Search size={14} strokeWidth={1.5} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-500" />
+          <input
+            type="text"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search name or code…"
+            className="w-full border border-line-200 bg-transparent py-2 pl-9 pr-3 text-sm focus:border-ink-950 focus:outline-none"
+          />
+        </div>
+        {(["all", "caricom", "oecs"] as MembershipFilter[]).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`px-3 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border transition ${
+              filter === f
+                ? "border-ink-950 bg-ink-950 text-paper-0"
+                : "border-line-200 text-ink-500 hover:text-ink-950"
+            }`}
+          >
+            {f === "all" ? "All" : f.toUpperCase()}
+            <span className="ml-1.5 opacity-60" data-numeric>{counts[f]}</span>
+          </button>
+        ))}
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="border border-line-200 px-4 py-12 text-center text-sm text-ink-500">
+          No countries match.
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          {rows.map((c: any) => (
+            <CountryCard
+              key={c.code}
+              code={c.code}
+              name={c.name}
+              gdp={c.gdp_current_usd}
+              gdpYear={c.gdp_year}
+              progress={(c.completed_stages ?? []).length}
+              to="/admin/countries/$code/onboard"
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+
 function CountryCard({
   code,
   name,

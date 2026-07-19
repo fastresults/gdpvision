@@ -4381,6 +4381,8 @@ export type Database = {
           context_hash: string | null
           country_code: string
           generated_at: string
+          input_fingerprint: string | null
+          schema_version: number
           sector_code: string
           updated_at: string
         }
@@ -4390,6 +4392,8 @@ export type Database = {
           context_hash?: string | null
           country_code: string
           generated_at?: string
+          input_fingerprint?: string | null
+          schema_version?: number
           sector_code: string
           updated_at?: string
         }
@@ -4399,6 +4403,8 @@ export type Database = {
           context_hash?: string | null
           country_code?: string
           generated_at?: string
+          input_fingerprint?: string | null
+          schema_version?: number
           sector_code?: string
           updated_at?: string
         }

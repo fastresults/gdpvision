@@ -190,6 +190,21 @@ function OnboardWizard() {
   // (durable-job UI removed — onboarding now runs one stage at a time from this page)
   const qc = useQueryClient();
   const [bulkRunning, setBulkRunning] = useState<false | "pending" | "rerun">(false);
+  const [prewarming, setPrewarming] = useState(false);
+  const prewarm = useServerFn(prewarmSectorDossiers);
+  const runPrewarm = async (force: boolean) => {
+    setPrewarming(true);
+    try {
+      const res: any = await prewarm({ data: { countryCode: code, force } });
+      toast.success(
+        `Sector dossiers ${force ? "regenerated" : "prewarmed"}: ${res?.generated ?? 0} generated, ${res?.cached ?? 0} cached, ${res?.failed ?? 0} failed`,
+      );
+    } catch (e) {
+      toast.error(`Prewarm failed: ${(e as Error)?.message ?? "unknown"}`);
+    } finally {
+      setPrewarming(false);
+    }
+  };
   const [bulkErr, setBulkErr] = useState<string | null>(null);
   const [runErrors, setRunErrors] = useState<Array<{ stage: Stage; message: string }>>([]);
   const [skippedStages, setSkippedStages] = useState<Array<{ stage: Stage; waitingOn: Stage[] }>>([]);

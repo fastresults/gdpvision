@@ -212,7 +212,7 @@ export function MarketingHome() {
                 href="#instrument"
                 className="font-mono text-[12px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950"
               >
-                See the instrument ↓
+                See the seven chambers ↓
               </a>
             </div>
           </div>

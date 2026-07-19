@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Plus, Minus } from "lucide-react";
 
 import { CARICOM_OECS_REGISTRY } from "@/lib/caricom-registry";
 

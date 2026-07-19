@@ -280,6 +280,40 @@ export function MarketingHome() {
       </section>
 
 
+      {/* CORPUS ----------------------------------------------------------- */}
+      <section id="corpus" className="border-b border-line-200">
+        <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
+          <SectionHeader
+            eyebrow="One sovereign corpus"
+            title="Public data. Private data. Held apart, read together."
+            lede="No other GDP instrument governs both. Public evidence is aggregated, graded and cited for every ministry. Private Cabinet uploads sit under the same provenance discipline — visible only to those with authorised country access, never mixed into the public view."
+          />
+          <div className="mt-16 grid gap-8 border-t border-line-200 pt-12 md:grid-cols-3">
+            {[
+              {
+                head: "Public corpus",
+                body: "Deep-researched, sourced, graded and citation-backed data every ministry in the country sees — continuously refreshed by the instrument's own agents.",
+              },
+              {
+                head: "Private corpus",
+                body: "Cabinet-only uploads — contracts, memos, MoUs, closes, briefings — held under the same provenance discipline. Marked private at ingest, never surfaced to the public view.",
+              },
+              {
+                head: "One decision surface",
+                body: "Every chart, scenario, dossier and briefing reads from both. Visibility is a first-class attribute on every row, and every read and write is audited.",
+              },
+            ].map((p) => (
+              <div key={p.head} className="border-t border-line-200 pt-6">
+                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold-500">
+                  {p.head}
+                </div>
+                <p className="mt-4 text-[15px] leading-relaxed text-ink-700">{p.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* INSTRUMENT — CHAMBERS ------------------------------------------- */}
       <section id="instrument" className="border-b border-line-200 bg-paper-100/40">
         <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">

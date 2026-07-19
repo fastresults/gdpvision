@@ -1,89 +1,122 @@
-# Why KNA (and most non-ATG countries) show 0 signals
+# Chamber 07 — Synthetic Persona Lab
 
-I ran the forensics against the live database and cron schedule. Every one of the 22 countries in the second brain is correctly seeded — each has 12 active feeds in `narrative_feeds`. So the *coverage universe* is right. The failure is downstream, in **how the harvester is scheduled and how it distributes work**.
+An AI-first synthetic market research chamber that lets a country admin ask "how would persona/segment X react to policy/asset/question Y?" Grounded in the country's Second Brain (sectors, KPIs, ministries, signals, memory objects, public+private corpus) so every persona and every response cites real country context — not generic LLM output.
 
-Three root causes, in order of blast radius:
+**Top-line override:** every module runs through the AI Gateway with grounded context first. The PRD's static forms, credit economy, marketplace, and hybrid-human-panel bridge are v2 concerns; MVP is AI generation + grounded reasoning + persona-perspective analysis.
 
-## 1. The hourly cron is a stub — it does not harvest anything
+## 1. Scope (MVP → v1)
 
-`pg_cron` has four narrative jobs. Only one runs hourly:
+Ship these five surfaces integrated in the same chamber shell as 01–06:
 
-```text
-narrative-harvest-hourly     15 * * * *   → /api/public/hooks/narrative-harvest
-narrative-press-tick-morning  0 7 * * *   → /api/public/hooks/press-tick
-narrative-press-tick-evening  0 19 * * *  → /api/public/hooks/press-tick
-narrative-press-discover-weekly 0 2 * * 0 → /api/public/hooks/press-discover
-```
+1. **Persona Studio** — AI-generated personas grounded in country context (sectors, ministries, KPIs, signals). Manual attribute overrides available but optional. OCEAN + demographics + psychographics + behavioral traits. Persistent, reusable, versioned.
+2. **Segment Generator** — natural-language prompt ("CBI applicants weighing Antigua vs St Kitts", "ABST-liable SME owners in St John's") → N unique personas with a controllable distribution, all citing country facts.
+3. **Ask Away (1-on-1)** — live chat with a single persona, streaming, with citations back to Second Brain artifacts.
+4. **Study Runner** — three study types over a segment: **Survey** (quant, AI-authored questionnaire + AI-answered), **Focus Group** (AI-moderated multi-persona room with true inter-persona reactions), **Creative Evaluation** (paste text / upload image / URL → per-persona scored reactions).
+5. **Persona-Perspective Analyze** — attach any artifact from the Second Brain (memory object, source doc, ledger row, scenario, narrative brief) and ask "how does this land with persona/segment X?"
 
-The hourly one calls `narrative-harvest.ts`, which is a leftover **skeleton** — it inserts an empty `harvest_runs` row and returns. It never fetches a feed, never classifies, never writes to `intake_items`. The real harvester (`runPressTick`) only runs **twice a day**. If any country's feeds error or produce nothing in a given 12-hour window, that country stays at zero for up to 12 hours — which is exactly what KNA is showing.
+Deferred to v2 (documented, not built): credit economy, hybrid human panel bridge, longitudinal trackers, marketplace, video ingestion, custom fine-tuned models, conjoint/MaxDiff.
 
-## 2. When the real tick does run, it is unfair across countries
+## 2. AI-first grounding contract (non-negotiable)
 
-Inside `runPressTick` (`src/lib/press-tick.server.ts`):
+Every persona generation, question, and answer call assembles a **CountryContextPack** (same helper used by Chamber 03's recommender and Chamber 05 briefs):
 
-```ts
-const { data: newItems } = await supabaseAdmin
-  .from("narrative_feed_items")
-  .select(...)
-  .eq("state", "new")
-  .order("fetched_at", { ascending: false })
-  .limit(500);           // ← global cap, not per-country
-```
+- top sectors + shares, KPIs w/ latest values + targets
+- ministry roster + mandates
+- recent P1/P2 signals (Chamber 05)
+- top matching `memory_objects` + `country_source_chunks` via pgvector (public + admin's private, respecting `visibility` RLS)
+- active scenarios / threats (Chambers 03 + 04) when relevant to the prompt
 
-With 22 countries × 12 feeds, a single tick easily yields >500 new items. The global `LIMIT 500` ordered by `fetched_at DESC` means whichever country's feeds happened to respond fastest fills the classification queue and starves the rest. The database confirms this: in the last 48h, `intake_items` has **149 rows for ATG and 0 for every other country** — because recent runs were manual, ATG-scoped, and the classifier only ever saw ATG items.
+Prompt scaffolding forces: cite `[N]` markers, refuse to invent facts not in the pack, output strict JSON. Renders through `<CitedMarkdown>` so refs open the existing source modal — same pattern as Chambers 04/05.
 
-## 3. Manual "Run now" filters to one country and no gap-fill exists
-
-The UI's Run Now button passes `filterCountry: <code>`, and the hourly stub does nothing. There is no mechanism that says "any country that produced zero signals this window, sweep it again." The `_missing` list is computed and stored on the run row, but nothing acts on it.
-
-# The fix
-
-Four changes, all backend + one small UI safety net. No new tables.
-
-## A. Make the hourly cron actually harvest — for all countries
-
-- **Rewrite** `src/routes/api/public/hooks/narrative-harvest.ts` to call `runPressTick({ windowKey: "hourly", filterCountry: null, triggeredBy: "cron" })`. Same auth pattern as `press-tick.ts` (validate `apikey` header against `SUPABASE_PUBLISHABLE_KEY`).
-- **Reschedule** via `supabase--insert`: unschedule `narrative-harvest-hourly` and replace with a job that hits `/api/public/hooks/press-tick` every hour with `body='{}'`. Keep the 7am/7pm jobs as `window:"morning"` / `"evening"` for the durable run log. Remove the stub route file once no cron references it.
-- Net effect: every country gets a full sweep every 60 minutes instead of every 12 hours.
-
-## B. Fair per-country classification queue
-
-In `runPressTick`, replace the global `LIMIT 500` with a **per-country round-robin** so every country gets a guaranteed slice each tick:
-
-1. Query `narrative_feed_items` where `state='new'`, then in-code group by `country_code` and take up to N (e.g. 25) newest per country before flattening. Guarantees KNA is never starved by a burst from ATG.
-2. Interleave the flattened list by country (round-robin) so classification progress is visible across the map, not sequential.
-3. Keep the existing `perCountryCap = 60` promotion cap as an upper bound.
-
-## C. Automatic gap-fill for coverage misses
-
-At the end of `runPressTick`, after `_missing` is computed:
-
-- For every country in `_missing` (cap 8 per tick to protect the Perplexity budget), enqueue a follow-up single-country tick inline via `runPressTick({ filterCountry: cc, windowKey: "gap-fill", triggeredBy: "auto" })`. Run sequentially with a small delay and swallow errors into the parent run's `errors` array so one bad country never blocks the rest.
-- The coverage badge already surfaces `_missing`; gap-fill will usually close it before the next hourly tick.
-
-## D. UI safety net — never show a bare "0 signals" when data exists
-
-In `src/routes/_authenticated/admin/countries.$code.narrative.tsx` and the Signal Radar card:
-
-- If the last-24h count is 0 for the current country, automatically widen the query to the last 7 days and add a small "Showing last 7 days — no fresh signals in 24h" note plus a one-click **Run now** for that country. This turns the current dead-end screen into an actionable state while the hourly cron catches up.
-
-## E. Operational visibility
-
-- Extend the `CoverageBadge` hover to also show "Last successful sweep per country" (derived from the most recent `narrative_harvest_runs.coverage` row where `coverage[cc].total > 0`). Makes it obvious whether KNA is "cron never touched it" vs "cron ran but produced 0."
-
-# Files touched
+## 3. Data model (new tables, all country-scoped + `visibility` public|private)
 
 ```text
-src/routes/api/public/hooks/narrative-harvest.ts   rewrite → calls runPressTick, or delete after cron migration
-src/lib/press-tick.server.ts                       per-country fair queue + inline gap-fill
-src/components/narrative/CoverageBadge.tsx         add per-country last-good sweep
-src/routes/_authenticated/admin/countries.$code.narrative.tsx  7-day fallback + inline Run Now
-supabase (cron)                                    unschedule stub, add hourly press-tick job
+personas                 id, country_code, name, archetype, attributes(jsonb),
+                         ocean(jsonb), grounding_refs(jsonb), origin('ai'|'manual'),
+                         version, visibility, owner_user_id, created_at
+persona_segments         id, country_code, label, prompt, distribution(jsonb),
+                         size, visibility, owner_user_id
+persona_segment_members  segment_id, persona_id
+studies                  id, country_code, kind('survey'|'focus_group'|'creative'|'interview'),
+                         title, objective, segment_id, status, config(jsonb),
+                         visibility, owner_user_id, created_at
+study_questions          study_id, ord, kind, prompt, options(jsonb)
+study_responses          study_id, persona_id, question_id, answer(jsonb),
+                         rationale, citations(jsonb), model, created_at
+study_transcripts        study_id, ord, persona_id|null (moderator), utterance, citations
+study_reports            study_id, summary_md, themes(jsonb), citations(jsonb)
+persona_chats            id, persona_id, user_id, created_at
+persona_chat_messages    chat_id, role, content, citations(jsonb)
 ```
 
-# Verification after build
+Every table: `GRANT` block for `authenticated` + `service_role`, `RLS ON`, policies via existing `has_country_access(country_code)` helper + `visibility='public' OR owner_user_id = auth.uid()`. Follows the Public/Private framework already in place.
 
-1. Trigger `/api/public/hooks/press-tick` once with empty body, confirm `narrative_harvest_runs.countries_run` contains all 22 codes and `items_promoted > 0` for the majority.
-2. Query `intake_items` in the last 2h grouped by `scope_key` — expect rows for most countries, not just ATG.
-3. Reload `/admin/countries/KNA/narrative` — expect Signal Radar populated (or the 7-day fallback with a Run Now CTA if truly zero).
-4. Confirm hourly `cron.job_run_details` shows successful `press-tick` runs going forward.
+## 4. Server functions (all `createServerFn` + `requireSupabaseAuth`, in `src/lib/personas/`)
+
+- `generatePersona.functions.ts` — Gemini 3.5 Pro, JSON schema, grounded on CountryContextPack.
+- `generateSegment.functions.ts` — same, produces N personas + distribution audit.
+- `askPersona.functions.ts` — streaming chat via AI Gateway (Vercel AI SDK).
+- `authorQuestionnaire.functions.ts` — objective → 10-question survey.
+- `runSurvey.functions.ts` — fan-out per persona, batched, writes `study_responses` with rationale + citations. Long-running → durable stage pattern like Stage 09 (client-driven granular loop, heartbeat, resume).
+- `runFocusGroup.functions.ts` — AI moderator loop: introduce → probe → challenge → summarize. Writes `study_transcripts` with speaker attribution.
+- `evaluateCreative.functions.ts` — text/image/URL asset scored per persona (appeal, clarity, intent + open-ended).
+- `personaPerspectiveAnalyze.functions.ts` — artifact + persona → grounded reaction brief.
+- `synthesizeStudyReport.functions.ts` — themes, sentiment, pull-quotes → `study_reports.summary_md` (rendered via `<CitedMarkdown>`).
+
+All follow existing patterns: strict Zod input validators, structured outputs, 429/402 handling, fair per-persona work distribution, resumable runs.
+
+## 5. UI (in Chamber shell, McKinsey-grade like 03/04/05)
+
+Route tree:
+
+```text
+/admin/countries/$code/personas/
+  index.tsx                  · Persona Studio grid + "Generate personas" hero
+  segments.tsx               · Segments list + prompt composer
+  segments.$id.tsx           · Segment detail (distribution, member personas)
+  personas.$id.tsx           · Persona detail: profile, memory refs, "Ask away" tab
+  studies/index.tsx          · Studies board (survey | focus group | creative)
+  studies/new.tsx            · Guided 3-step wizard (Objective → Segment → Instrument)
+  studies/$id.tsx            · Live run + results (transcripts, dashboards, themes)
+  analyze.tsx                · Attach Second-Brain artifact + persona lens
+```
+
+Components in `src/components/personas/`:
+- `PersonaCard`, `PersonaGrid`, `SegmentComposer`, `DistributionDials`
+- `AskAwayPanel` (streaming, `<CopyButton>`, `<CitedMarkdown>`)
+- `StudyWizard` (reuses `GuidedRail` / `StepProgress` from Chamber 03)
+- `SurveyDashboard` (crosstabs, sentiment; recharts), `FocusGroupTheatre` (speaker-attributed transcript, live-typing), `CreativeScorecard`
+- `PersonaPerspectiveBrief` (McKinsey layout, citations)
+
+Chamber launcher: add tile #7 "Synthetic Persona Lab" to `ChambersLauncher.tsx` with icon + subtitle; matching return-code round-trip so wizards return to `/onboard`.
+
+## 6. Second-Brain integration
+
+- `DataStoresPanel` gets two new tabs: **Personas** and **Studies** (counts, recent, public/private split).
+- `BrainConstellation` gets a `persona` node kind so personas + segments appear alongside sectors/ministries/signals; edges to memory objects they cite.
+- Corpus writers: study reports and persona-perspective briefs are ingested back into `memory_objects` (visibility inherited from the study) so future prompts can cite them — full loop, same as Chambers 05/06.
+- Chamber 03 (Scenarios) and 04 (FDI Studio) get an "Ask a persona" action on any artifact, routing through `personaPerspectiveAnalyze`.
+
+## 7. Cron / automation
+
+None required for MVP. v2 will add scheduled longitudinal waves (`pg_cron` → `/api/public/hooks/persona-wave` on the same pattern as `press-tick`).
+
+## 8. Guardrails
+
+- All numeric/JSON responses render via `<PrettyJson>` (project-wide rule).
+- Every AI-generated persona/answer stores its citations; UI blocks display of any answer with zero grounding refs when `require_grounding` is true (default).
+- Private uploads used to ground a persona flow through the existing `has_country_access` + `visibility` gate — the RLS layer already covers this.
+- Model defaults: `google/gemini-3.5-flash` for generation, `google/gemini-3.1-pro-preview` for reasoning-heavy synthesis and focus-group moderation; user cannot pick model.
+
+## 9. Build sequence
+
+1. **Migration + RLS + grants** for the 9 new tables.
+2. **CountryContextPack helper** extraction (shared with Chambers 03/05).
+3. **Persona + Segment generation** server fns + Persona Studio UI + launcher tile.
+4. **Ask Away** streaming chat.
+5. **Study Wizard + Survey runner + dashboard**.
+6. **Focus Group theatre + Creative Evaluation**.
+7. **Persona-Perspective Analyze** wired into Second Brain artifacts.
+8. **DataStores tabs + BrainConstellation node kind + memory writeback**.
+
+Ready to build on approval.

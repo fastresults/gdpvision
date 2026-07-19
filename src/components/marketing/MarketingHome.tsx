@@ -15,11 +15,11 @@ const CHAMBERS = [
     title: "The National Ledger",
     accentVar: "--sector-01",
     purpose:
-      "The authoritative decomposition of the national economy. Everything else in the instrument reads from it.",
+      "The single source of GDP truth every other decision reads from.",
     bullets: [
-      "12-sector Caribbean ontology with a decade of history and a data-confidence grade on every series.",
-      "The CBI Exposure Index — a single, methodologically-documented number, drillable to source.",
-      "Four-layer sector dossiers: economic, policy, comms, and OECS/regional.",
+      "A 12-sector ontology with a decade of history and a data-confidence grade on every series.",
+      "Exposure indices — single, methodologically-documented numbers, drillable to source.",
+      "Four-layer sector dossiers: economic, policy, comms, and regional.",
     ],
   },
   {
@@ -27,9 +27,9 @@ const CHAMBERS = [
     title: "Portfolio Workspaces",
     accentVar: "--sector-03",
     purpose:
-      "One workspace per ministerial portfolio. Every minister sees their contribution to the economy — and their levers on it.",
+      "Every minister sees their contribution to GDP — and the levers that raise it.",
     bullets: [
-      "Sector position, dependency web, and the portfolio's share of CBI exposure.",
+      "Sector position, dependency web, and the portfolio's share of national exposure.",
       "A shelf of the minister's scenarios, from draft through Cabinet-adopted.",
       "Play-of-the-day cards derived from live lever values.",
     ],
@@ -39,7 +39,7 @@ const CHAMBERS = [
     title: "The Scenario Engine",
     accentVar: "--sector-09",
     purpose:
-      "Consequence-free rehearsal. Move a lever; every downstream metric re-projects in the same animation frame.",
+      "Rehearse every GDP-moving decision before it costs a cent.",
     bullets: [
       "Sovereign Vitals — real GDP, debt-to-GDP, FX retention, primary balance, public confidence — live.",
       "Ripple propagation through the inter-sector dependency web.",
@@ -51,7 +51,7 @@ const CHAMBERS = [
     title: "The FDI Transition Studio",
     accentVar: "--sector-07",
     purpose:
-      "A replacement plan for the CBI wind-down, sector by sector — not a slide deck but an assembled book of work.",
+      "Replace fragile revenue with durable GDP through an assembled book of investment packages.",
     bullets: [
       "The Gap: the revenue and GDP hole under the selected wind-down glide-path, year by year.",
       "Investment package builder with capital-to-GDP conversion and time-to-impact lags.",
@@ -63,7 +63,7 @@ const CHAMBERS = [
     title: "The Narrative Chamber",
     accentVar: "--sector-04",
     purpose:
-      "Signal to statement inside a working day. Every claim grounded in the same Ledger the Finance Ministry answers to.",
+      "Protect GDP by reaching a defensible national position inside a working day.",
     bullets: [
       "Signal Desk, Context Dossiers, and a persistent Second Brain that never starts from a blank page.",
       "Doctorate-grade strategy statements with a message architecture that carries across every channel.",
@@ -75,11 +75,23 @@ const CHAMBERS = [
     title: "The Cabinet Room",
     accentVar: "--sector-10",
     purpose:
-      "The consolidated national view, Cabinet Session Mode on the large display, and the commitments register.",
+      "Convert Cabinet time into recorded, tracked commitments that move the GDP dial.",
     bullets: [
       "Session Mode: agenda of promoted scenarios, full-bleed comparisons, decisions recorded live.",
       "National Scorecard — every ratified KPI, current pace, movement since last session.",
       "Commitments roll-up: what was adopted, who owns it, where it stands.",
+    ],
+  },
+  {
+    index: "07",
+    title: "Persona Lab",
+    accentVar: "--sector-06",
+    purpose:
+      "Test resonance with citizens and investors before policies, incentives, or narratives ship.",
+    bullets: [
+      "Synthetic personas and segments modelled from the sovereign corpus and public evidence.",
+      "Studies that stress-test policy, incentive, and narrative options against real audience logic.",
+      "Every finding cited, exportable, and traceable back to the Ledger.",
     ],
   },
 ];

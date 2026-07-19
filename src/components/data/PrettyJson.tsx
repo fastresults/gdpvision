@@ -10,7 +10,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { humanizeKey, formatNumber, splitCitations, linkifyParts } from "./humanize";
-import { citationForNumber, hasCitableUrl, normalizeCitableCitations } from "@/lib/citations/hygiene";
+import { citationForNumber, hasCitableUrl, normalizeCitableCitations, sanitizeJsonCitationMarkers } from "@/lib/citations/hygiene";
 
 type Json = null | string | number | boolean | Json[] | { [k: string]: Json };
 
@@ -122,7 +122,7 @@ function CitationRef({ refs: rawRefs }: { refs: number[] }) {
   const ctx = useContext(CitationContext);
   const refs = dedupeRefs(rawRefs).filter((n) => !!citationForNumber(ctx?.citations ?? [], n));
   if (refs.length === 0) return null;
-  const label = `[${rawRefs.join(",")}]`;
+  const label = `[${refs.join(",")}]`;
   const hasHover = useHasHover();
 
   if (!ctx || ctx.citations.length === 0) return null;
@@ -336,8 +336,9 @@ export function PrettyJson({
   const [rawOpen, setRawOpen] = useState(false);
   const [modalRefs, setModalRefs] = useState<number[] | null>(null);
   const cleanCitations = normalizeCitableCitations(citations as never) as Citation[];
+  const cleanValue = sanitizeJsonCitationMarkers(value, cleanCitations) as Json;
 
-  if (isEmpty(value)) return <p className="text-sm text-ink-400">No data.</p>;
+  if (isEmpty(cleanValue)) return <p className="text-sm text-ink-400">No data.</p>;
 
   const ctx: CitationCtx = {
     citations: cleanCitations,
@@ -347,20 +348,20 @@ export function PrettyJson({
   return (
     <CitationContext.Provider value={ctx}>
       <div className="space-y-3">
-        <Node value={value} />
+        <Node value={cleanValue} />
         {showRaw && (
           <details className="mt-2" open={rawOpen} onToggle={(e) => setRawOpen((e.target as HTMLDetailsElement).open)}>
             <summary className="cursor-pointer text-[10px] font-mono uppercase tracking-widest text-ink-400 hover:text-ink-700">
               View raw JSON
             </summary>
             <pre className="mt-2 text-[11px] whitespace-pre-wrap max-h-64 overflow-y-auto bg-paper-50 border border-line-200 p-2 rounded-sm">
-              {JSON.stringify(value, null, 2)}
+              {JSON.stringify(cleanValue, null, 2)}
             </pre>
           </details>
         )}
       </div>
       <CitationDialog
-        citations={citations}
+        citations={cleanCitations}
         refs={modalRefs ?? []}
         open={modalRefs !== null}
         onOpenChange={(o) => !o && setModalRefs(null)}

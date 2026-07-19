@@ -3358,6 +3358,45 @@ export type Database = {
           },
         ]
       }
+      narrative_entity_watchlist: {
+        Row: {
+          active: boolean
+          country_code: string
+          created_at: string
+          created_by: string | null
+          entity_name: string
+          entity_role: string | null
+          id: string
+          last_feed_built_at: string | null
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          entity_name: string
+          entity_role?: string | null
+          id?: string
+          last_feed_built_at?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          entity_name?: string
+          entity_role?: string | null
+          id?: string
+          last_feed_built_at?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       narrative_feed_items: {
         Row: {
           country_code: string
@@ -3436,6 +3475,7 @@ export type Database = {
           last_error: string | null
           last_hash: string | null
           last_polled_at: string | null
+          last_revive_at: string | null
           last_status: string | null
           ministry_hint: string | null
           owner_country_code: string | null
@@ -3465,6 +3505,7 @@ export type Database = {
           last_error?: string | null
           last_hash?: string | null
           last_polled_at?: string | null
+          last_revive_at?: string | null
           last_status?: string | null
           ministry_hint?: string | null
           owner_country_code?: string | null
@@ -3494,6 +3535,7 @@ export type Database = {
           last_error?: string | null
           last_hash?: string | null
           last_polled_at?: string | null
+          last_revive_at?: string | null
           last_status?: string | null
           ministry_hint?: string | null
           owner_country_code?: string | null

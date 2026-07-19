@@ -43,6 +43,21 @@ export const CARICOM_OECS_REGISTRY: RegistryNation[] = [
 
 export const REGISTRY_CODES = new Set(CARICOM_OECS_REGISTRY.map((n) => n.code));
 
+// ISO 3166-1 alpha-3 → alpha-2 for the CARICOM/OECS registry. Used to
+// resolve flag imagery via flagcdn.com.
+export const ISO3_TO_ISO2: Record<string, string> = {
+  ATG: "ag", BHS: "bs", BRB: "bb", BLZ: "bz", DMA: "dm", GRD: "gd",
+  GUY: "gy", HTI: "ht", JAM: "jm", MSR: "ms", KNA: "kn", LCA: "lc",
+  VCT: "vc", SUR: "sr", TTO: "tt", AIA: "ai", BMU: "bm", VGB: "vg",
+  CYM: "ky", TCA: "tc", MTQ: "mq", GLP: "gp",
+};
+
+export function flagUrl(iso3: string, size: "w160" | "w320" | "w640" | "w1280" = "w320"): string | null {
+  const iso2 = ISO3_TO_ISO2[(iso3 ?? "").toUpperCase()];
+  if (!iso2) return null;
+  return `https://flagcdn.com/${size}/${iso2}.png`;
+}
+
 // Twelve canonical GDP sectors (PRD Appendix A). Numbering matches
 // --sector-01 … --sector-12 tokens in styles.css.
 export interface CanonicalSector {

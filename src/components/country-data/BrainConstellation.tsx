@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Plus, Minus } from "lucide-react";
 
 import { CARICOM_OECS_REGISTRY } from "@/lib/caricom-registry";
 
@@ -91,10 +92,26 @@ export function BrainConstellation({
   onSelectCountry,
 }: Props) {
   const [hover, setHover] = useState<{ label: string; x: number; y: number } | null>(null);
+  const [zoom, setZoom] = useState(1);
 
   const size = 900;
   const cx = size / 2;
   const cy = size / 2;
+  const MIN_ZOOM = 0.5;
+  const MAX_ZOOM = 3;
+  const ZOOM_STEP = 0.25;
+
+  const zoomIn = () => setZoom((z) => Math.min(MAX_ZOOM, Math.round((z + ZOOM_STEP) * 100) / 100));
+  const zoomOut = () => setZoom((z) => Math.max(MIN_ZOOM, Math.round((z - ZOOM_STEP) * 100) / 100));
+
+  const viewBox = useMemo(() => {
+    if (zoom === 1) return `0 0 ${size} ${size}`;
+    const w = size / zoom;
+    const h = size / zoom;
+    const x = (size - w) / 2;
+    const y = (size - h) / 2;
+    return `${x} ${y} ${w} ${h}`;
+  }, [zoom]);
 
   const grouped = useMemo(() => {
     const byCountry = new Map<string, BrainRow[]>();
@@ -247,7 +264,7 @@ export function BrainConstellation({
         <div className="pointer-events-none absolute -bottom-40 -right-40 h-[560px] w-[560px] rounded-full bg-fuchsia-200/25 blur-3xl" />
         <div className="pointer-events-none absolute top-1/3 right-1/4 h-[380px] w-[380px] rounded-full bg-emerald-200/20 blur-3xl" />
 
-        <svg viewBox={`0 0 ${size} ${size}`} className="relative block w-full h-auto" style={{ maxHeight: "82vh" }}>
+        <svg viewBox={viewBox} className="relative block w-full h-auto" style={{ maxHeight: "82vh" }}>
           <defs>
             <radialGradient id="coreGrad" cx="50%" cy="50%" r="50%">
               <stop offset="0%" stopColor="#1e293b" stopOpacity="1" />
@@ -525,6 +542,29 @@ export function BrainConstellation({
             ← All countries
           </button>
         )}
+
+        {/* Zoom controls */}
+        <div className="pointer-events-auto absolute bottom-3 right-3 flex items-center gap-1 rounded-full border border-line-200 bg-white/80 px-1 py-0.5 backdrop-blur">
+          <button
+            onClick={zoomOut}
+            disabled={zoom <= MIN_ZOOM}
+            className="flex h-6 w-6 items-center justify-center rounded-full text-ink-500 hover:bg-line-100 hover:text-ink-950 disabled:opacity-40"
+            aria-label="Zoom out"
+          >
+            <Minus size={14} />
+          </button>
+          <span className="w-8 text-center font-mono text-[10px] uppercase tracking-widest text-ink-500">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            onClick={zoomIn}
+            disabled={zoom >= MAX_ZOOM}
+            className="flex h-6 w-6 items-center justify-center rounded-full text-ink-500 hover:bg-line-100 hover:text-ink-950 disabled:opacity-40"
+            aria-label="Zoom in"
+          >
+            <Plus size={14} />
+          </button>
+        </div>
       </div>
     </div>
   );

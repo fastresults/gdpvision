@@ -233,13 +233,15 @@ export const runStudy = createServerFn({ method: "POST" })
           const rows = parsed.transcript.map((t, i) => {
             const idx = /^P(\d+)$/.exec(t.speaker)?.[1];
             const persona = idx ? personas[Number(idx) - 1] : null;
+            const rawUtterance = String(t.utterance).slice(0, 3000);
+            const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(rawUtterance, t.citations));
             return {
               study_id: data.studyId,
               ord: i,
               speaker: String(t.speaker).slice(0, 40),
               persona_id: (persona as { id?: string } | null)?.id ?? null,
-              utterance: String(t.utterance).slice(0, 3000),
-              citations: fullCitationsForRefs(pack.citations, t.citations) as never,
+              utterance: sanitizeCitationMarkersInText(rawUtterance, citations),
+              citations: citations as never,
             };
           });
           await supabase.from("study_transcripts").insert(rows);
@@ -268,11 +270,12 @@ export const runStudy = createServerFn({ method: "POST" })
       );
       const parsed = parseJson<{ summary_md?: string; themes?: unknown; citations?: number[] }>(raw);
       if (parsed?.summary_md) {
+        const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(parsed.summary_md, parsed.citations));
         await supabase.from("study_reports").insert({
           study_id: data.studyId,
-          summary_md: parsed.summary_md,
-          themes: (parsed.themes ?? []) as never,
-          citations: fullCitationsForRefs(pack.citations, parsed.citations) as never,
+          summary_md: sanitizeCitationMarkersInText(parsed.summary_md, citations),
+          themes: sanitizeJsonCitationMarkers(parsed.themes ?? [], citations) as never,
+          citations: citations as never,
         });
       }
     } catch (e) {

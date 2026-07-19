@@ -34,7 +34,7 @@ function AuthPage() {
   const [mode, setMode] = useState<Mode>(search.mode ?? "sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
+  
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

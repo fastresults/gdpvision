@@ -243,7 +243,7 @@ export const checkAccessAllowed = createServerFn({ method: "GET" })
     const email = (context.claims as any)?.email as string | undefined;
     const { data, error } = await context.supabase.rpc("access_allowed", {
       _user_id: context.userId,
-      _email: email ?? null,
+      _email: email ?? "",
     });
     if (error) throw new Error(error.message);
     return { allowed: Boolean(data), email: email ?? null };

@@ -88,6 +88,12 @@ function AuthPage() {
     <MarketingShell>
       <div className="mx-auto max-w-md px-6 py-24">
         <SectionHeader eyebrow="Instrument access" title={title} />
+        {search.blocked ? (
+          <div className="mt-6 border-l-2 border-signal-negative bg-paper-100 p-4 text-sm text-ink-950">
+            Your account does not have access to GDPVision. Access is by
+            invitation only — please contact your administrator.
+          </div>
+        ) : null}
         <form onSubmit={onSubmit} className="mt-10 space-y-6">
           <label className="block">
             <span className="text-xs uppercase tracking-wider text-ink-500">Email</span>

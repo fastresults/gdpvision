@@ -185,16 +185,47 @@ export function BrainConstellation({
     return countries.map((code, i) => {
       const angle = (i / countries.length) * Math.PI * 2 - Math.PI / 2 + (hash01(code) - 0.5) * 0.2;
       const r = 360 + (hash01(code + "R") - 0.5) * 40;
+      const rows = grouped.get(code)!;
+      const recent = rows.filter(isRecent).length;
       return {
         code,
         angle,
         x: cx + Math.cos(angle) * r,
         y: cy + Math.sin(angle) * r,
-        count: grouped.get(code)!.length,
+        count: rows.length,
+        recent,
         maxN,
       };
     });
   }, [showCountries, countries, cx, cy, grouped]);
+
+  // Ambient starfield — deterministic twinkling dots behind everything
+  const starfield = useMemo(() => {
+    const stars: { x: number; y: number; r: number; dur: number; delay: number; base: number }[] = [];
+    for (let i = 0; i < 46; i++) {
+      const seed = `star-${i}`;
+      const h1 = hash01(seed);
+      const h2 = hash01(seed + "y");
+      const h3 = hash01(seed + "r");
+      const h4 = hash01(seed + "d");
+      // Push toward edges to avoid overlap with core
+      const px = h1 * size;
+      const py = h2 * size;
+      const dxc = px - cx;
+      const dyc = py - cy;
+      if (Math.hypot(dxc, dyc) < 160) continue;
+      stars.push({
+        x: px,
+        y: py,
+        r: 0.6 + h3 * 1.2,
+        dur: 3 + h4 * 5,
+        delay: h1 * 6,
+        base: 0.08 + h3 * 0.15,
+      });
+    }
+    return stars;
+  }, [cx, cy, size]);
+
 
   const passes = (r: BrainRow) => {
     if (filter.sector && (r.sector_code || "—") !== filter.sector) return false;

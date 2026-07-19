@@ -320,9 +320,42 @@ export const getStudy = createServerFn({ method: "POST" })
     return {
       study,
       questions: questions ?? [],
-      responses: pack ? (responses ?? []).map((r) => hydrateCitationField(r, pack.citations)) : responses ?? [],
-      transcript: pack ? (transcript ?? []).map((t) => hydrateCitationField(t, pack.citations)) : transcript ?? [],
-      report: pack && report ? hydrateCitationField(report, pack.citations) : report ?? null,
+      responses: pack
+        ? (responses ?? []).map((r) => {
+            const hydrated = hydrateCitationField(r, pack.citations) as typeof r & { answer?: unknown; rationale?: string | null; citations?: unknown };
+            const markerText = `${typeof hydrated.answer === "string" ? hydrated.answer : JSON.stringify(hydrated.answer ?? "")} ${hydrated.rationale ?? ""}`;
+            const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(markerText, hydrated.citations));
+            return {
+              ...hydrated,
+              answer: sanitizeJsonCitationMarkers(hydrated.answer, citations),
+              rationale: hydrated.rationale ? sanitizeCitationMarkersInText(hydrated.rationale, citations) : hydrated.rationale,
+              citations,
+            };
+          })
+        : responses ?? [],
+      transcript: pack
+        ? (transcript ?? []).map((t) => {
+            const hydrated = hydrateCitationField(t, pack.citations) as typeof t & { utterance?: string | null; citations?: unknown };
+            const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(hydrated.utterance, hydrated.citations));
+            return {
+              ...hydrated,
+              utterance: hydrated.utterance ? sanitizeCitationMarkersInText(hydrated.utterance, citations) : hydrated.utterance,
+              citations,
+            };
+          })
+        : transcript ?? [],
+      report: pack && report
+        ? (() => {
+            const hydrated = hydrateCitationField(report, pack.citations) as typeof report & { summary_md?: string | null; themes?: unknown; citations?: unknown };
+            const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(hydrated.summary_md, hydrated.citations));
+            return {
+              ...hydrated,
+              summary_md: hydrated.summary_md ? sanitizeCitationMarkersInText(hydrated.summary_md, citations) : hydrated.summary_md,
+              themes: sanitizeJsonCitationMarkers(hydrated.themes ?? [], citations) as never,
+              citations,
+            };
+          })()
+        : report ?? null,
     };
   });
 

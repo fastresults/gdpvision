@@ -274,6 +274,24 @@ function CountryCard({
         ) : (
           <div className="grid h-full w-full place-items-center font-serif text-3xl text-ink-500">{code}</div>
         )}
+        <div className="absolute left-2 top-2 flex gap-1">
+          {isOecs(code) && (
+            <span
+              title="OECS member state"
+              className="rounded-sm bg-ink-950/85 px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase tracking-[0.15em] text-paper-0 backdrop-blur"
+            >
+              OECS
+            </span>
+          )}
+          {isCaricom(code) && (
+            <span
+              title="CARICOM member"
+              className="rounded-sm bg-paper-0/90 px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase tracking-[0.15em] text-ink-950 backdrop-blur"
+            >
+              CARICOM
+            </span>
+          )}
+        </div>
       </div>
       <div className="p-3">
         <div className="font-serif text-base leading-tight text-ink-950">{name}</div>

@@ -5,7 +5,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { buildSectorDossier } from "./build.functions";
+import { buildSectorDossierWithSupabase } from "./build.functions";
 
 export type PrewarmResult = {
   countryCode: string;

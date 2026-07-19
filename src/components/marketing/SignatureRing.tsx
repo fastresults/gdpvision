@@ -107,6 +107,24 @@ export function SignatureRing({ size = 520, animate = true, showBrain = true, cl
           );
         })}
       </svg>
+      </svg>
+      {showBrain ? (
+        <div
+          className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center"
+          style={{
+            opacity: assembled ? 1 : 0,
+            transition: "opacity 800ms ease-out 1200ms",
+            zIndex: 2,
+          }}
+        >
+          <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink-700">
+            The Second Brain
+          </div>
+          <div className="mt-1 font-mono text-[9px] uppercase tracking-[0.24em] text-ink-500">
+            — sovereign corpus —
+          </div>
+        </div>
+      ) : null}
       {/* Screen-reader table equivalent (PRD §13.3 extended to marketing) */}
       <table className="sr-only">
         <caption>National Signature — balanced master mark, 12 sectors</caption>

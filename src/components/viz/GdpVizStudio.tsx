@@ -11,6 +11,7 @@ import { SectorProfilingMatrix } from "./SectorProfilingMatrix";
 import { DebtHorizon } from "./DebtHorizon";
 import { EvidenceRail } from "./EvidenceRail";
 import { SovereignSankey } from "./SovereignSankey";
+import { SectorDossierDrawer } from "@/components/sector/SectorDossierDrawer";
 
 const overviewQuery = (code: string, fetchFn: (input: { data: { countryCode: string } }) => Promise<VizOverview>) =>
   queryOptions({
@@ -23,6 +24,7 @@ export function GdpVizStudio({ code }: { code: string }) {
   const fetchOverview = useServerFn(getVizOverview);
   const { data: overview } = useSuspenseQuery(overviewQuery(code, fetchOverview as any));
   const [sector, setSector] = useState<string | null>(null);
+  const [dossierSector, setDossierSector] = useState<string | null>(null);
 
   const selectedSector = overview.sectors.find((s) => s.code === sector) ?? null;
 
@@ -62,7 +64,7 @@ export function GdpVizStudio({ code }: { code: string }) {
             <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">Profiling matrix</div>
             <h3 className="font-serif text-lg">Sector profiling</h3>
           </div>
-          <SectorProfilingMatrix countryCode={code} sectors={overview.sectors} series={overview.sectorKpiSeries} allKpis={overview.allKpis} selected={sector} onSelect={setSector} />
+          <SectorProfilingMatrix countryCode={code} sectors={overview.sectors} series={overview.sectorKpiSeries} allKpis={overview.allKpis} selected={sector} onSelect={setSector} onOpenDossier={setDossierSector} />
         </div>
       </div>
 
@@ -77,6 +79,8 @@ export function GdpVizStudio({ code }: { code: string }) {
         selected={sector}
         onSelectSector={setSector}
       />
+
+      <SectorDossierDrawer countryCode={code} sectorCode={dossierSector} onClose={() => setDossierSector(null)} />
     </div>
   );
 }

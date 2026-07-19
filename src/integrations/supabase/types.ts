@@ -4374,6 +4374,36 @@ export type Database = {
           },
         ]
       }
+      sector_dossier_briefs: {
+        Row: {
+          brief: Json
+          citations: Json
+          context_hash: string | null
+          country_code: string
+          generated_at: string
+          sector_code: string
+          updated_at: string
+        }
+        Insert: {
+          brief: Json
+          citations?: Json
+          context_hash?: string | null
+          country_code: string
+          generated_at?: string
+          sector_code: string
+          updated_at?: string
+        }
+        Update: {
+          brief?: Json
+          citations?: Json
+          context_hash?: string | null
+          country_code?: string
+          generated_at?: string
+          sector_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sector_dossiers: {
         Row: {
           citations: Json

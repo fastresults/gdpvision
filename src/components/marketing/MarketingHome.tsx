@@ -8,12 +8,20 @@ import { ChamberPanel } from "./ChamberPanel";
 import { SectionHeader } from "./SectionHeader";
 import { BriefingForm } from "./BriefingForm";
 import { Wordmark } from "./Wordmark";
+import ch01 from "@/assets/chambers/chamber-01.jpg.asset.json";
+import ch02 from "@/assets/chambers/chamber-02.jpg.asset.json";
+import ch03 from "@/assets/chambers/chamber-03.jpg.asset.json";
+import ch04 from "@/assets/chambers/chamber-04.jpg.asset.json";
+import ch05 from "@/assets/chambers/chamber-05.jpg.asset.json";
+import ch06 from "@/assets/chambers/chamber-06.jpg.asset.json";
+import ch07 from "@/assets/chambers/chamber-07.jpg.asset.json";
 
 const CHAMBERS = [
   {
     index: "01",
     title: "The National Ledger",
     accentVar: "--sector-01",
+    image: ch01.url,
     purpose:
       "The single source of GDP truth every other decision reads from.",
     bullets: [
@@ -26,6 +34,7 @@ const CHAMBERS = [
     index: "02",
     title: "Portfolio Workspaces",
     accentVar: "--sector-03",
+    image: ch02.url,
     purpose:
       "Every minister sees their contribution to GDP — and the levers that raise it.",
     bullets: [
@@ -38,6 +47,7 @@ const CHAMBERS = [
     index: "03",
     title: "The Scenario Engine",
     accentVar: "--sector-09",
+    image: ch03.url,
     purpose:
       "Rehearse every GDP-moving decision before it costs a cent.",
     bullets: [
@@ -50,6 +60,7 @@ const CHAMBERS = [
     index: "04",
     title: "The FDI Transition Studio",
     accentVar: "--sector-07",
+    image: ch04.url,
     purpose:
       "Replace fragile revenue with durable GDP through an assembled book of investment packages.",
     bullets: [
@@ -62,6 +73,7 @@ const CHAMBERS = [
     index: "05",
     title: "The Narrative Chamber",
     accentVar: "--sector-04",
+    image: ch05.url,
     purpose:
       "Protect GDP by reaching a defensible national position inside a working day.",
     bullets: [
@@ -74,6 +86,7 @@ const CHAMBERS = [
     index: "06",
     title: "The Cabinet Room",
     accentVar: "--sector-10",
+    image: ch06.url,
     purpose:
       "Convert Cabinet time into recorded, tracked commitments that move the GDP dial.",
     bullets: [
@@ -86,6 +99,7 @@ const CHAMBERS = [
     index: "07",
     title: "Persona Lab",
     accentVar: "--sector-06",
+    image: ch07.url,
     purpose:
       "Test resonance with citizens and investors before policies, incentives, or narratives ship.",
     bullets: [

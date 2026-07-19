@@ -566,6 +566,13 @@ export function BrainConstellation({
                   onMouseLeave={() => setHover(null)}
                   className="cursor-pointer"
                 >
+                  {/* Recent-activity pulse ring */}
+                  {recent > 0 && (
+                    <circle cx={s.x} cy={s.y} r={orbR + 4} fill="none" stroke="#f59e0b" strokeWidth="1.2" strokeOpacity="0.7">
+                      <animate attributeName="r" values={`${orbR + 3};${orbR + 16};${orbR + 3}`} dur="2.6s" repeatCount="indefinite" />
+                      <animate attributeName="stroke-opacity" values="0.75;0;0.75" dur="2.6s" repeatCount="indefinite" />
+                    </circle>
+                  )}
                   {verified > 0 && (
                     <circle
                       cx={s.x}
@@ -575,7 +582,14 @@ export function BrainConstellation({
                       stroke="#10b981"
                       strokeOpacity={Math.min(0.85, verified / sectorRows.length)}
                       strokeWidth="1.25"
-                    />
+                    >
+                      <animate
+                        attributeName="stroke-opacity"
+                        values={`${Math.min(0.5, verified / sectorRows.length / 2)};${Math.min(0.9, verified / sectorRows.length)};${Math.min(0.5, verified / sectorRows.length / 2)}`}
+                        dur={`${3.5 + hash01(seed + "vs") * 2}s`}
+                        repeatCount="indefinite"
+                      />
+                    </circle>
                   )}
                   <circle cx={s.x} cy={s.y} r={orbR + 2} fill="#ffffff" />
                   <circle
@@ -585,7 +599,16 @@ export function BrainConstellation({
                     fill="#ffffff"
                     stroke="#0f172a"
                     strokeWidth={filter.sector === s.code ? 2.25 : 1}
-                  />
+                  >
+                    <animate
+                      attributeName="stroke-opacity"
+                      values="0.75;1;0.75"
+                      dur={`${3 + hash01(seed + "ss") * 2}s`}
+                      begin={`${hash01(seed + "sd") * 2}s`}
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+
                   <text
                     x={s.x}
                     y={s.y + 3}

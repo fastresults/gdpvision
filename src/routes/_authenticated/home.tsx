@@ -105,27 +105,8 @@ function SuperAdminWelcome() {
         </div>
       </section>
 
-      <section>
-        <div className="mb-5 flex items-baseline justify-between">
-          <h2 className="font-serif text-2xl">Countries</h2>
-          <Link to="/admin/countries" className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950">
-            Countries queue →
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {countries.map((c: any) => (
-            <CountryCard
-              key={c.code}
-              code={c.code}
-              name={c.name}
-              gdp={c.gdp_current_usd}
-              gdpYear={c.gdp_year}
-              progress={(c.completed_stages ?? []).length}
-              to="/admin/countries/$code/onboard"
-            />
-          ))}
-        </div>
-      </section>
+      <CountriesGrid countries={countries as any[]} />
+
 
       <section>
         <h2 className="mb-5 font-serif text-2xl">Operations</h2>

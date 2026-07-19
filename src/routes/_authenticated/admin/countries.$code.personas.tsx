@@ -24,9 +24,37 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/pers
 function PersonasLayout() {
   const { code } = Route.useParams();
   const nav = [
-    { to: "/admin/countries/$code/personas" as const, label: "Personas", icon: Users, exact: true },
-    { to: "/admin/countries/$code/personas/segments" as const, label: "Segments", icon: Layers },
-    { to: "/admin/countries/$code/personas/studies" as const, label: "Studies", icon: FlaskConical },
+    {
+      to: "/admin/countries/$code/personas" as const,
+      label: "Personas",
+      icon: Users,
+      exact: true,
+      brief: {
+        what: "AI-generated synthetic citizens grounded in this country's second brain — livelihood, sentiment, media diet and more.",
+        use: "Pressure-test a policy, message or product against real-feeling voices before a single dollar or dispatch.",
+        value: "Surfaces objections, hopes and blind spots from constituents you'd otherwise miss in the room.",
+      },
+    },
+    {
+      to: "/admin/countries/$code/personas/segments" as const,
+      label: "Segments",
+      icon: Layers,
+      brief: {
+        what: "Coherent groups of personas sharing geography, livelihood or attitude — your decision-ready audiences.",
+        use: "Targeting a program, tailoring comms, or sizing an intervention across the population.",
+        value: "Converts millions of citizens into a handful of audiences a Cabinet can actually act on.",
+      },
+    },
+    {
+      to: "/admin/countries/$code/personas/studies" as const,
+      label: "Studies",
+      icon: FlaskConical,
+      brief: {
+        what: "Structured surveys and focus groups run against your personas and segments, with cited synthesis.",
+        use: "When you need directional evidence in hours, not weeks — ahead of a launch, vote or press cycle.",
+        value: "De-risks decisions with reproducible, source-grounded signal before committing to field research.",
+      },
+    },
   ];
   return (
     <SuperAdminShell
@@ -52,17 +80,19 @@ function PersonasLayout() {
             </p>
           </div>
           <nav className="flex flex-col">
-            {nav.map(({ to, label, icon: Icon, exact }) => (
-              <Link
-                key={to}
-                to={to}
-                params={{ code }}
-                activeOptions={{ exact }}
-                className="flex items-center gap-2 border-l-2 border-transparent px-3 py-2 text-sm text-ink-700 hover:text-ink-950"
-                activeProps={{ className: "border-ink-950 bg-paper-100 text-ink-950" }}
-              >
-                <Icon size={14} /> {label}
-              </Link>
+            {nav.map(({ to, label, icon: Icon, exact, brief }) => (
+              <div key={to} className="group/nav relative flex items-stretch">
+                <Link
+                  to={to}
+                  params={{ code }}
+                  activeOptions={{ exact }}
+                  className="flex flex-1 items-center gap-2 border-l-2 border-transparent px-3 py-2 pr-9 text-sm text-ink-700 hover:text-ink-950"
+                  activeProps={{ className: "border-ink-950 bg-paper-100 text-ink-950" }}
+                >
+                  <Icon size={14} /> {label}
+                </Link>
+                <NavInfo label={label} brief={brief} />
+              </div>
             ))}
           </nav>
           <Link

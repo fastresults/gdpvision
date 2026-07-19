@@ -441,6 +441,17 @@ export function BrainConstellation({
                   >
                     {s.code.slice(0, 4)}
                   </text>
+                  <text
+                    x={s.x}
+                    y={s.y + orbR + 14}
+                    textAnchor="middle"
+                    fontSize="11"
+                    fill="#0f172a"
+                    fontFamily="ui-sans-serif, system-ui"
+                    fontWeight="500"
+                  >
+                    {sectorLabel(s.code)}
+                  </text>
                 </g>
               </g>
             );

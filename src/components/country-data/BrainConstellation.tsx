@@ -264,7 +264,7 @@ export function BrainConstellation({
         <div className="pointer-events-none absolute -bottom-40 -right-40 h-[560px] w-[560px] rounded-full bg-fuchsia-200/25 blur-3xl" />
         <div className="pointer-events-none absolute top-1/3 right-1/4 h-[380px] w-[380px] rounded-full bg-emerald-200/20 blur-3xl" />
 
-        <svg viewBox={`0 0 ${size} ${size}`} className="relative block w-full h-auto" style={{ maxHeight: "82vh" }}>
+        <svg viewBox={viewBox} className="relative block w-full h-auto" style={{ maxHeight: "82vh" }}>
           <defs>
             <radialGradient id="coreGrad" cx="50%" cy="50%" r="50%">
               <stop offset="0%" stopColor="#1e293b" stopOpacity="1" />

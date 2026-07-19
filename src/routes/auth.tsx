@@ -90,8 +90,16 @@ function AuthPage() {
         <SectionHeader eyebrow="Instrument access" title={title} />
 
         <div className="mt-6 border-l-2 border-gold-500 bg-paper-100 p-4">
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            By invitation only
+          <div className="flex items-center justify-between gap-3">
+            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+              By invitation only
+            </div>
+            <Link
+              to="/"
+              className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 underline underline-offset-4 hover:text-ink-950"
+            >
+              ← Back to gdpvision.com
+            </Link>
           </div>
           <p className="mt-2 text-sm text-ink-950">
             GDPVision is a sovereign instrument reserved for Heads of Government,

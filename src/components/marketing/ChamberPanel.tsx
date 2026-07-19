@@ -2,12 +2,14 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 interface ChamberPanelProps {
-  index: string; // "01" .. "06"
+  index: string; // "01" .. "07"
   title: string;
   purpose: string;
   bullets: string[];
   /** CSS variable name for the leading accent bar hue, e.g. "--sector-03". */
   accentVar: string;
+  /** Optional CDN URL for a real product screenshot rendered as the panel header. */
+  image?: string;
   children?: ReactNode;
   className?: string;
 }
@@ -20,40 +22,57 @@ export function ChamberPanel({
   purpose,
   bullets,
   accentVar,
+  image,
   className,
 }: ChamberPanelProps) {
   return (
     <article
       className={cn(
-        "relative bg-paper-0 pl-6 pr-5 py-6 min-h-[240px]",
+        "relative overflow-hidden bg-paper-0 min-h-[240px]",
         "border-t border-b border-line-200",
         className,
       )}
     >
       <div
         aria-hidden
-        className="absolute left-0 top-0 h-full w-[2px]"
+        className="absolute left-0 top-0 z-10 h-full w-[2px]"
         style={{ background: `var(${accentVar})` }}
       />
-      <div className="flex items-baseline justify-between font-mono text-[11px] uppercase tracking-[0.16em] text-ink-500">
-        <span>Chamber {index}</span>
+      {image ? (
+        <div className="relative aspect-[3/1] w-full overflow-hidden border-b border-line-200 bg-paper-100">
+          <img
+            src={image}
+            alt={`${title} — product view`}
+            loading="lazy"
+            className="h-full w-full object-cover object-top"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-paper-0 via-paper-0/40 to-transparent"
+          />
+        </div>
+      ) : null}
+      <div className="pl-6 pr-5 py-6">
+        <div className="flex items-baseline justify-between font-mono text-[11px] uppercase tracking-[0.16em] text-ink-500">
+          <span>Chamber {index}</span>
+        </div>
+        <h3 className="mt-3 font-serif text-[27px] leading-tight text-ink-950">
+          {title}
+        </h3>
+        <p className="mt-3 text-[15px] leading-relaxed text-ink-700">{purpose}</p>
+        <ul className="mt-5 space-y-2.5 text-[13.5px] leading-relaxed text-ink-700">
+          {bullets.map((b) => (
+            <li key={b} className="flex gap-3">
+              <span
+                aria-hidden
+                className="mt-2 inline-block h-[1px] w-4 flex-none"
+                style={{ background: `var(${accentVar})` }}
+              />
+              <span>{b}</span>
+            </li>
+          ))}
+        </ul>
       </div>
-      <h3 className="mt-3 font-serif text-[27px] leading-tight text-ink-950">
-        {title}
-      </h3>
-      <p className="mt-3 text-[15px] leading-relaxed text-ink-700">{purpose}</p>
-      <ul className="mt-5 space-y-2.5 text-[13.5px] leading-relaxed text-ink-700">
-        {bullets.map((b) => (
-          <li key={b} className="flex gap-3">
-            <span
-              aria-hidden
-              className="mt-2 inline-block h-[1px] w-4 flex-none"
-              style={{ background: `var(${accentVar})` }}
-            />
-            <span>{b}</span>
-          </li>
-        ))}
-      </ul>
     </article>
   );
 }

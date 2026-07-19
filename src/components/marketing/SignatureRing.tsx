@@ -56,6 +56,23 @@ export function SignatureRing({ size = 520, animate = true, showBrain = true, cl
 
   return (
     <div className={cn("relative", className)} style={{ width: size, height: size }}>
+      {showBrain ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute"
+          style={{
+            width: inner * 2 - 20,
+            height: inner * 2 - 20,
+            left: cx - (inner - 10),
+            top: cy - (inner - 10),
+            opacity: assembled ? 1 : 0,
+            transition: "opacity 900ms ease-out 800ms",
+            zIndex: 0,
+          }}
+        >
+          <BrainMask size={inner * 2 - 20} />
+        </div>
+      ) : null}
       <svg
         viewBox={`0 0 ${size} ${size}`}
         width={size}

@@ -619,7 +619,7 @@ function OrbNode({
       {/* Halo sprite */}
       <Billboard>
         <mesh scale={[haloScale, haloScale, 1]}>
-          <planeGeometry args={[1.6, 1.6]} />
+          <planeGeometry args={[1.1, 1.1]} />
           <meshBasicMaterial
             map={haloTex}
             color={color}

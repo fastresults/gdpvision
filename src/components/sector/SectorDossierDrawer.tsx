@@ -124,7 +124,7 @@ export function SectorDossierDrawer({
             briefFetching={briefQuery.isFetching}
             briefFailed={briefQuery.isError}
             briefError={(briefQuery.error as Error | null)?.message}
-            onRegenerate={() => briefQuery.refetch()}
+            onRegenerate={regenerate}
           />
         )}
       </SheetContent>

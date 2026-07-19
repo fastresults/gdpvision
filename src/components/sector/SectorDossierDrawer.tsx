@@ -78,9 +78,13 @@ export function SectorDossierDrawer({
   const briefQuery = useQuery<SectorDossierResult>({
     queryKey: ["sector-dossier", countryCode, sectorCode],
     enabled: !!sectorCode && ctxQuery.isSuccess && !hasCached,
-    queryFn: () => (fetchDossier as any)({ data: { countryCode, sectorCode } }),
-    staleTime: 5 * 60_000,
+    queryFn: () => (fetchDossier as any)({ data: { countryCode, sectorCode, refresh: false } }),
+    staleTime: Infinity,
   });
+  const regenerate = async () => {
+    await (fetchDossier as any)({ data: { countryCode, sectorCode, refresh: true } });
+    await Promise.all([ctxQuery.refetch(), briefQuery.refetch()]);
+  };
 
   const ctx = ctxQuery.data;
   const brief: SectorBrief | null =

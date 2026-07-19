@@ -1,12 +1,16 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Check, ExternalLink, Loader2, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { Check, ExternalLink, Loader2, Plus, RefreshCw, Sparkles, Trash2, X } from "lucide-react";
 
-import { deleteFeed, listFeeds, suggestFeeds, testFeed, upsertFeed, type FeedRow } from "@/lib/press-monitor.functions";
+import {
+  deleteFeed, listFeeds, suggestFeeds, testFeed, upsertFeed,
+  reviveAndRediscover, reportMissingStory, type FeedRow,
+} from "@/lib/press-monitor.functions";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const SCOPES = ["local", "regional", "international"] as const;
 const KINDS = ["rss", "json", "gdelt", "google_news", "html"] as const;

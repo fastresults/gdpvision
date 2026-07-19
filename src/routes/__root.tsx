@@ -4,10 +4,12 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+
 
 import appCss from "../styles.css?url";
 import faviconAsset from "../assets/favicon.png.asset.json";
@@ -145,8 +147,34 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <RouteScrollTop />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
     </QueryClientProvider>
   );
 }
+
+/**
+ * Global rule: any pathname change scrolls the window (and any registered
+ * app scroll container) back to the top. Hash-only navigations are ignored
+ * so anchor links continue to work. Search-only changes are also ignored so
+ * filter/search-param updates don't yank the user.
+ */
+function RouteScrollTop() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const hash = useRouterState({ select: (s) => s.location.hash });
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    if (hash) return; // let the browser handle anchor scrolling
+    if (typeof window === "undefined") return;
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    const el = document.getElementById("app-scroll-root");
+    if (el) el.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname, hash]);
+  return null;
+}
+

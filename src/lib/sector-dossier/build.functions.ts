@@ -14,12 +14,43 @@ import {
 } from "@/lib/citations/hygiene";
 
 const MODEL = "google/gemini-2.5-pro";
+const SCHEMA_VERSION = 1;
 
 const Input = z.object({
   countryCode: z.string().min(2).max(4),
   sectorCode: z.string().min(1).max(64),
   refresh: z.boolean().optional().default(false),
 });
+
+// Cheap deterministic hash of inputs that would meaningfully change the brief.
+async function computeInputFingerprint(
+  supabase: any,
+  countryCode: string,
+  sectorCode: string,
+): Promise<string> {
+  const [kpis, flows, dossiers, minprof] = await Promise.all([
+    supabase.from("country_kpis").select("updated_at").eq("country_code", countryCode),
+    supabase.from("country_capital_flows").select("updated_at").eq("country_code", countryCode),
+    supabase.from("sector_dossiers").select("updated_at").eq("country_code", countryCode).eq("sector_code", sectorCode),
+    supabase.from("ministry_profiles").select("updated_at").eq("country_code", countryCode),
+  ]);
+  const maxOf = (rows: any) => {
+    const arr = (rows?.data ?? []) as Array<{ updated_at?: string | null }>;
+    let max = "";
+    for (const r of arr) {
+      const v = r?.updated_at ?? "";
+      if (v && v > max) max = v;
+    }
+    return max;
+  };
+  return [
+    `v=${SCHEMA_VERSION}`,
+    `kpi=${(kpis.data ?? []).length}:${maxOf(kpis)}`,
+    `flow=${(flows.data ?? []).length}:${maxOf(flows)}`,
+    `dos=${(dossiers.data ?? []).length}:${maxOf(dossiers)}`,
+    `min=${(minprof.data ?? []).length}:${maxOf(minprof)}`,
+  ].join("|");
+}
 
 export type SectorBrief = {
   headline: string;

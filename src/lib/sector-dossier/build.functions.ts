@@ -223,11 +223,11 @@ export async function buildSectorDossierWithSupabase(
 
     // Filter KPIs to sector-relevant (loose match on code/label/category)
     const needle = sectorCode.toLowerCase();
-    const sectorKpis = (kpiRows ?? []).filter((k) => {
+    const sectorKpis = ((kpiRows ?? []) as any[]).filter((k: any) => {
       const s = `${k.kpi_code} ${k.label ?? ""} ${k.category ?? ""}`.toLowerCase();
       return s.includes(needle);
     });
-    const kpiForOutput = sectorKpis.slice(0, 10).map((k) => ({
+    const kpiForOutput = sectorKpis.slice(0, 10).map((k: any) => ({
       kpi_code: k.kpi_code,
       label: k.label ?? k.kpi_code,
       unit: k.unit ?? null,
@@ -235,17 +235,17 @@ export async function buildSectorDossierWithSupabase(
       target: k.target ?? null,
       direction: k.direction ?? null,
     }));
-    const kpiLines = sectorKpis.slice(0, 10).map((k) => {
+    const kpiLines = sectorKpis.slice(0, 10).map((k: any) => {
       const n = cite({ url: k.source_url ?? null, title: k.label ?? k.kpi_code, kind: "kpi" });
       return `- ${prefix(n)}${k.label ?? k.kpi_code}: ${k.latest_value ?? "—"}${k.unit ? ` ${k.unit}` : ""} (target ${k.target ?? "—"}, dir ${k.direction ?? "—"})`;
     });
 
     // Join flow rows with the sector-scoped node registry.
-    const nodeByKey = new Map((flowNodes ?? []).map((n) => [n.node_key, n]));
-    const sectorFlows = (flowRows ?? [])
-      .filter((f) => nodeByKey.has(f.node_key))
-      .map((f) => {
-        const node = nodeByKey.get(f.node_key)!;
+    const nodeByKey = new Map(((flowNodes ?? []) as any[]).map((n: any) => [n.node_key, n as any]));
+    const sectorFlows = ((flowRows ?? []) as any[])
+      .filter((f: any) => nodeByKey.has(f.node_key))
+      .map((f: any) => {
+        const node = nodeByKey.get(f.node_key) as any;
         const firstCitation = Array.isArray(f.citations) ? (f.citations as Array<Record<string, unknown>>)[0] : null;
         const url = firstCitation && typeof firstCitation.url === "string" ? String(firstCitation.url) : null;
         return {
@@ -260,12 +260,12 @@ export async function buildSectorDossierWithSupabase(
       })
       .slice(0, 8);
 
-    const flowLines = sectorFlows.map((f) => {
+    const flowLines = sectorFlows.map((f: any) => {
       const n = cite({ url: f.url, title: f.label, kind: "flow" });
       const mag = f.magnitude_usd ? `$${(f.magnitude_usd / 1_000_000).toFixed(0)}M` : "—";
       return `- ${prefix(n)}${f.direction === "in" ? "IN" : "OUT"} · ${f.label} · ${mag} (${f.period})${f.note ? ` — ${String(f.note).slice(0, 140)}` : ""}`;
     });
-    const flowsForOutput = sectorFlows.slice(0, 5).map((f) => ({
+    const flowsForOutput = sectorFlows.slice(0, 5).map((f: any) => ({
       label: f.label,
       direction: f.direction,
       magnitude_usd: f.magnitude_usd,
@@ -273,13 +273,13 @@ export async function buildSectorDossierWithSupabase(
       url: f.url,
     }));
 
-    const memoryLines = (memories ?? []).map((m) => {
+    const memoryLines = ((memories ?? []) as any[]).map((m: any) => {
       const p = (m.payload ?? {}) as Record<string, unknown>;
       const summary = String(p.summary ?? p.text ?? p.body ?? "").slice(0, 200);
       return `- (${m.kind}) ${m.title}${summary ? ` — ${summary}` : ""}`;
     });
 
-    const dossierLines = (dossierRows ?? []).map((d) => {
+    const dossierLines = ((dossierRows ?? []) as any[]).map((d: any) => {
       const p = (d.payload ?? {}) as Record<string, unknown>;
       const summary = String(p.summary ?? p.narrative ?? p.overview ?? "").slice(0, 500);
       return `- (${d.kind}) ${summary || "(no narrative)"}`;

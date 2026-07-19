@@ -201,13 +201,16 @@ export const runStudy = createServerFn({ method: "POST" })
             .map((a) => {
               const q = questions[a.q_ord];
               if (!q) return null;
+              const rawAnswer = a.answer ?? "";
+              const markerText = `${typeof rawAnswer === "string" ? rawAnswer : JSON.stringify(rawAnswer)} ${a.rationale ?? ""}`;
+              const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(markerText, a.citations));
               return {
                 study_id: data.studyId,
                 persona_id: p.id as string,
                 question_id: q.id as string,
-                answer: (a.answer ?? "") as never,
-                rationale: a.rationale ? String(a.rationale).slice(0, 800) : null,
-                citations: fullCitationsForRefs(pack.citations, a.citations) as never,
+                answer: sanitizeJsonCitationMarkers(rawAnswer, citations) as never,
+                rationale: a.rationale ? sanitizeCitationMarkersInText(String(a.rationale).slice(0, 800), citations) : null,
+                citations: citations as never,
                 model: MODEL,
               };
             })

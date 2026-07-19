@@ -39,6 +39,18 @@ export const Route = createFileRoute("/_authenticated/home")({
 
 function HomePage() {
   const { data: status } = useSuspenseQuery(myStatusQuery);
+  const navigate = useNavigate();
+  useEffect(() => {
+    let cancelled = false;
+    checkAccessAllowed().then(async (res) => {
+      if (cancelled) return;
+      if (!res.allowed) {
+        await supabase.auth.signOut();
+        navigate({ to: "/auth", search: { blocked: 1 } as any });
+      }
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [navigate]);
   return (
     <Shell>
       {status.isGlobalAdmin ? (

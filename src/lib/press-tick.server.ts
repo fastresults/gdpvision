@@ -49,10 +49,21 @@ export async function runPressTick(opts: {
   }
   let feedsPolled = 0, itemsFetched = 0, itemsNew = 0, itemsPromoted = 0, clustersMerged = 0;
 
+  // Pre-step · once per country per ~20h, auto-revive dead feeds + top up.
+  // Skipped for gap-fill sub-runs to keep them cheap.
+  if (windowKey !== "gap-fill") {
+    try {
+      const { revivePressFeeds } = await import("@/lib/press-discover.server");
+      await revivePressFeeds({ countryCode: filterCountry });
+    } catch (e) {
+      errors.push({ scope: "revive", msg: (e as Error).message });
+    }
+  }
+
   try {
     let feedsQ = supabaseAdmin
       .from("narrative_feeds")
-      .select("id,country_code,scope,kind,endpoint,etag,active,consecutive_failures")
+      .select("id,country_code,scope,kind,endpoint,etag,active,consecutive_failures,tier_hint")
       .eq("active", true);
     if (filterCountry) feedsQ = feedsQ.eq("country_code", filterCountry);
     const { data: feeds, error: fErr } = await feedsQ;

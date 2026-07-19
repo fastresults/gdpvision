@@ -358,7 +358,15 @@ export function BrainConstellation({
                   strokeOpacity="0.28"
                   strokeWidth={w}
                   strokeLinecap="round"
-                />
+                >
+                  <animate
+                    attributeName="stroke-opacity"
+                    values="0.18;0.4;0.18"
+                    dur={`${5 + hash01(c.code + "so") * 3}s`}
+                    repeatCount="indefinite"
+                  />
+                </path>
+
                 {Array.from({ length: dotCount }).map((_, i) => (
                   <circle key={i} r={1.6} fill="#6366f1" opacity={0.85}>
                     <animateMotion

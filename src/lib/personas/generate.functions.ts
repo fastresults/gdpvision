@@ -108,11 +108,9 @@ Return JSON:
         name: String(parsed.name).slice(0, 120),
         archetype: parsed.archetype ? String(parsed.archetype).slice(0, 120) : null,
         summary: parsed.summary ? String(parsed.summary).slice(0, 2000) : null,
-        attributes: parsed.attributes ?? {},
-        ocean: parsed.ocean ?? {},
-        grounding_refs: [
-          ...(Array.isArray(parsed.grounding_refs) ? parsed.grounding_refs : []),
-        ],
+        attributes: (parsed.attributes ?? {}) as never,
+        ocean: (parsed.ocean ?? {}) as never,
+        grounding_refs: ((Array.isArray(parsed.grounding_refs) ? parsed.grounding_refs : []) as never),
         origin: "ai",
         visibility: data.visibility,
         owner_user_id: userId,
@@ -165,7 +163,7 @@ Rules: exactly ${data.size} personas, all distinct, realistic distribution.`,
         country_code: data.countryCode,
         label: String(parsed.label ?? data.prompt.slice(0, 60)).slice(0, 120),
         prompt: data.prompt,
-        distribution: parsed.distribution ?? {},
+        distribution: (parsed.distribution ?? {}) as never,
         size: parsed.personas.length,
         visibility: data.visibility,
         owner_user_id: userId,
@@ -181,9 +179,9 @@ Rules: exactly ${data.size} personas, all distinct, realistic distribution.`,
       name: String(p.name ?? "Unnamed").slice(0, 120),
       archetype: p.archetype ? String(p.archetype).slice(0, 120) : null,
       summary: p.summary ? String(p.summary).slice(0, 2000) : null,
-      attributes: p.attributes ?? {},
-      ocean: p.ocean ?? {},
-      grounding_refs: Array.isArray(p.grounding_refs) ? p.grounding_refs : [],
+      attributes: (p.attributes ?? {}) as never,
+      ocean: (p.ocean ?? {}) as never,
+      grounding_refs: (Array.isArray(p.grounding_refs) ? p.grounding_refs : []) as never,
       origin: "ai" as const,
       visibility: data.visibility,
       owner_user_id: userId,
@@ -258,7 +256,8 @@ export const getSegment = createServerFn({ method: "POST" })
       .from("persona_segment_members")
       .select("persona_id, personas(id,name,archetype,summary,attributes)")
       .eq("segment_id", data.id);
-    return { segment: seg, personas: (members ?? []).map((m) => (m as { personas: unknown }).personas).filter(Boolean) };
+    const personas = (members ?? []).map((m) => (m as { personas: Record<string, unknown> | null }).personas).filter((x): x is Record<string, unknown> => !!x);
+    return { segment: seg, personas };
   });
 
 export const deletePersona = createServerFn({ method: "POST" })

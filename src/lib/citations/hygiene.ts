@@ -10,7 +10,6 @@ export type CitableCitation = {
   quote?: string | null;
   domain?: string | null;
   published_at?: string | null;
-  [key: string]: unknown;
 };
 
 const CITATION_RE = /\[([\d\s,]+)\](?:\[([\d\s,]+)\])*/g;

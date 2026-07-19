@@ -220,7 +220,7 @@ export const listPersonas = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("personas")
-      .select("id,name,archetype,summary,visibility,origin,created_at,attributes,citations")
+      .select("id,name,archetype,summary,visibility,origin,created_at,attributes,grounding_refs,citations")
       .eq("country_code", data.countryCode)
       .order("created_at", { ascending: false })
       .limit(200);
@@ -278,7 +278,7 @@ export const getSegment = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     const { data: members } = await context.supabase
       .from("persona_segment_members")
-      .select("persona_id, personas(id,name,archetype,summary,attributes,citations)")
+      .select("persona_id, personas(id,name,archetype,summary,attributes,grounding_refs,citations)")
       .eq("segment_id", data.id);
     const personas = (members ?? [])
       .flatMap((m) => {

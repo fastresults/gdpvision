@@ -416,7 +416,7 @@ export const askPersona = createServerFn({ method: "POST" })
       .insert({
         chat_id: chatId,
         role: "assistant",
-        content: answer,
+        content,
         citations: citations as never,
       })
       .select()

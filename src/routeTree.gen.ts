@@ -16,6 +16,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as KioskIndexRouteImport } from './routes/kiosk.index'
 import { Route as KioskAdminRouteImport } from './routes/kiosk.admin'
+import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as AuthenticatedNarrativeRouteRouteImport } from './routes/_authenticated/narrative/route'
 import { Route as AuthenticatedInstrumentRouteRouteImport } from './routes/_authenticated/instrument/route'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
@@ -138,6 +139,11 @@ const KioskAdminRoute = KioskAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => KioskRoute,
+} as any)
+const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedNarrativeRouteRoute =
   AuthenticatedNarrativeRouteRouteImport.update({
@@ -668,6 +674,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
   '/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
+  '/home': typeof AuthenticatedHomeRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
@@ -760,6 +767,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/home': typeof AuthenticatedHomeRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk': typeof KioskIndexRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
@@ -853,6 +861,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_authenticated/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
   '/_authenticated/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
+  '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/kiosk/': typeof KioskIndexRoute
   '/_authenticated/admin/activity': typeof AuthenticatedAdminActivityRoute
@@ -951,6 +960,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/instrument'
     | '/narrative'
+    | '/home'
     | '/kiosk/admin'
     | '/kiosk/'
     | '/admin/activity'
@@ -1043,6 +1053,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/home'
     | '/kiosk/admin'
     | '/kiosk'
     | '/admin/activity'
@@ -1135,6 +1146,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/instrument'
     | '/_authenticated/narrative'
+    | '/_authenticated/home'
     | '/kiosk/admin'
     | '/kiosk/'
     | '/_authenticated/admin/activity'
@@ -1288,6 +1300,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/kiosk/admin'
       preLoaderRoute: typeof KioskAdminRouteImport
       parentRoute: typeof KioskRoute
+    }
+    '/_authenticated/home': {
+      id: '/_authenticated/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof AuthenticatedHomeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/narrative': {
       id: '/_authenticated/narrative'
@@ -2219,6 +2238,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
   AuthenticatedInstrumentRouteRoute: typeof AuthenticatedInstrumentRouteRouteWithChildren
   AuthenticatedNarrativeRouteRoute: typeof AuthenticatedNarrativeRouteRouteWithChildren
+  AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedCounselArchiveRoute: typeof AuthenticatedCounselArchiveRoute
   AuthenticatedCounselMobileRoute: typeof AuthenticatedCounselMobileRoute
   AuthenticatedOnboardingCountryRoute: typeof AuthenticatedOnboardingCountryRoute
@@ -2233,6 +2253,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedInstrumentRouteRouteWithChildren,
   AuthenticatedNarrativeRouteRoute:
     AuthenticatedNarrativeRouteRouteWithChildren,
+  AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedCounselArchiveRoute: AuthenticatedCounselArchiveRoute,
   AuthenticatedCounselMobileRoute: AuthenticatedCounselMobileRoute,
   AuthenticatedOnboardingCountryRoute: AuthenticatedOnboardingCountryRoute,
@@ -2280,13 +2301,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

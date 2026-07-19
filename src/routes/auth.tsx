@@ -5,15 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { lovable } from "@/integrations/lovable";
-import { getMyCountryStatus } from "@/lib/country-admin.functions";
 
-async function postSignInRedirect(): Promise<"/admin/countries" | "/instrument"> {
-  try {
-    const status = await getMyCountryStatus();
-    return status.isGlobalAdmin ? "/admin/countries" : "/instrument";
-  } catch {
-    return "/instrument";
-  }
+
+async function postSignInRedirect(): Promise<"/home"> {
+  return "/home";
 }
 
 type Mode = "sign-in" | "sign-up" | "forgot";
@@ -73,7 +68,7 @@ function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/instrument`,
+            emailRedirectTo: `${window.location.origin}/home`,
             data: { display_name: displayName || email },
           },
         });

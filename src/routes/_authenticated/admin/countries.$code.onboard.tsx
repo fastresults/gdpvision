@@ -775,6 +775,18 @@ function OnboardWizard() {
                 >
                   {bulkRunning === "rerun" ? "Re-running…" : "Rerun all stages"}
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => runPrewarm(false)}
+                  disabled={prewarming}
+                >
+                  {prewarming ? "Prewarming dossiers…" : "Prewarm sector dossiers"}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => runPrewarm(true)}
+                  disabled={prewarming}
+                >
+                  Regenerate all sector dossiers
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/admin/countries/$code/data" params={{ code }}>
                     Manage data stores →

@@ -466,6 +466,7 @@ export type SectorDossierContext = {
   cachedBrief: SectorBrief | null;
   cachedCitations: CitableCitation[];
   cachedAt: string | null;
+  stale: boolean;
 };
 
 export const getSectorContext = createServerFn({ method: "POST" })
@@ -474,12 +475,16 @@ export const getSectorContext = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<SectorDossierContext> => {
     const { supabase } = context;
     const { countryCode, sectorCode } = data;
-    const [{ data: country }, { data: sector }, { data: cached }, bundle] = await Promise.all([
+    const [{ data: country }, { data: sector }, { data: cached }, bundle, currentFp] = await Promise.all([
       supabase.from("countries").select("code,name").eq("code", countryCode).maybeSingle(),
       supabase.from("sectors").select("code,label").eq("code", sectorCode).maybeSingle(),
-      supabase.from("sector_dossier_briefs").select("brief,citations,generated_at").eq("country_code", countryCode).eq("sector_code", sectorCode).maybeSingle(),
+      supabase.from("sector_dossier_briefs").select("brief,citations,generated_at,input_fingerprint,schema_version").eq("country_code", countryCode).eq("sector_code", sectorCode).maybeSingle(),
       loadAncillary(supabase, countryCode, sectorCode),
+      computeInputFingerprint(supabase, countryCode, sectorCode),
     ]);
+    const storedFp = (cached as any)?.input_fingerprint as string | null | undefined;
+    const storedVer = (cached as any)?.schema_version as number | null | undefined;
+    const stale = !!cached && (!storedFp || storedFp !== currentFp || (storedVer ?? 0) !== SCHEMA_VERSION);
     return {
       countryCode,
       sectorCode,
@@ -491,6 +496,7 @@ export const getSectorContext = createServerFn({ method: "POST" })
       cachedBrief: (cached?.brief as SectorBrief | undefined) ?? null,
       cachedCitations: (cached?.citations as CitableCitation[] | undefined) ?? [],
       cachedAt: cached?.generated_at ?? null,
+      stale,
     };
   });
 

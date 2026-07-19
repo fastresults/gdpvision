@@ -381,7 +381,7 @@ export function MarketingHome() {
           <SectionHeader
             eyebrow="Provenance"
             title="Built by OPEN Interactive — seventeen years in the room, one working prototype already running."
-            lede="OPEN Interactive originated the Caribbean Investment Summit franchise, has delivered national digital infrastructure for the Government of St. Kitts & Nevis, and maintains head-of-government relationships across the OECS."
+            lede="OPEN Interactive originated the Caribbean Investment Summit franchise, delivered national digital infrastructure for the Government of St. Kitts & Nevis, and maintains head-of-government relationships across the OECS — the same team now delivering the world's first GDP-elevation instrument for sovereign governments."
           />
           <div className="mt-16 grid gap-8 md:grid-cols-3">
             {[

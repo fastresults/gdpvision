@@ -1,52 +1,64 @@
 ## Intent
 
-The `SignatureRing` in the hero has ~34% of its diameter as untouched negative space in the middle. Right now that void reads as decorative. We turn it into the *product's own thesis in motion*: a miniature, live-feeling Second Brain constellation orbiting behind the ring — masked precisely to the ring's inner circle so it never bleeds over the sector segments.
+Elevate the masked Second Brain scene inside the hero ring from a static-feeling constellation into a *living cognitive field*: more nodes, richer link geometry, always-visible motion, and clearer visual hierarchy — while staying strictly decorative and respecting `prefers-reduced-motion`.
 
-The effect: the National Signature becomes a **window** into the sovereign corpus. The eye lands on the ring, then discovers movement inside it — nodes pulsing, faint links breathing, a soft center label ("Second Brain"). Signature outside, intelligence inside.
+Scope is `src/components/marketing/BrainMask.tsx` only. Ring, label, and layout stay untouched.
 
-## Design principles (hero-designer POV)
+## What's wrong today
 
-1. **Ring stays sovereign.** Sector segments remain the loudest layer. The inner scene sits behind them at ~55–70% opacity, softly vignetted at its edge so it fades before touching the inner hairline guide.
-2. **Masked, not overlaid.** The constellation is clipped to a circle of radius `inner - 10px` (matches the existing inner concentric guide). Nothing escapes the void.
-3. **Ambient, not busy.** 14–18 nodes max, 3 gentle "thought" arcs, one slow rotation (~90s/turn), heartbeat pulses on ~3 nodes. Respect `prefers-reduced-motion` → static composed frame.
-4. **No auth, no data fetch, no citations.** This is a *marketing lyric*, not the real corpus. Deterministic seeded layout so it looks identical across renders.
-5. **Center label.** Two lines of mono microtype at true center: `THE SECOND BRAIN` / `— sovereign corpus —`. Fades in after the ring assembles.
+- Only 18 nodes, 4 links → reads sparse and static.
+- All motion depends on the 120s outer rotation, which is imperceptible frame-to-frame.
+- Links are dashed hairlines that barely register; no traveling signal.
+- Nodes are same-size dots — no hierarchy between "hubs" and "leaves".
+- No center anchor tying the label to the field.
 
-## Build
+## What the new scene looks like
 
-**New:** `src/components/marketing/BrainMask.tsx`
-- Pure SVG, no data deps. Renders inside its own `<svg>` sized to the ring's inner diameter.
-- Uses `CANONICAL_SECTORS` colors for node hues (ties visually to the ring above).
-- Seeded PRNG places ~16 nodes on 3 concentric orbits. Each node: 2–3px dot, sector-hue fill, `--line-300` hairline halo.
-- 3 curved chord links between random node pairs, stroked at 0.5px `--line-300`, animated `stroke-dashoffset` breathing.
-- 3 selected nodes get a `@keyframes` heartbeat (scale + opacity), staggered.
-- Whole scene wrapped in a `<g>` with a very slow CSS `rotate` (90s linear infinite), disabled under `prefers-reduced-motion`.
-- Radial mask `<radialGradient>` fades the outer 15% of the disk to transparent so the scene dissolves before the ring's inner edge.
+**1. Three-tier node system (~34 nodes)**
+- **Core hubs (4)**: 3.5px, saturated sector hue, thick 8px halo ring, always heartbeat-pulsing on staggered offsets. These read as "ministries".
+- **Mid nodes (12)**: 2.2px, sector-hued, thin halo. 4 of these gain a slower secondary pulse.
+- **Leaf nodes (18)**: 1.2px, low-opacity dots scattered on outer orbits. Read as "memory fragments".
 
-**Edit:** `src/components/marketing/SignatureRing.tsx`
-- Add optional prop `showBrain?: boolean` (default true on hero usage).
-- Insert `<BrainMask size={inner * 2 - 20} />` positioned absolutely at true center, `z-index: 0`, behind the SVG (which stays `z-index: 1` — the segments naturally have transparent centers).
-- Add a centered `<div>` with the two-line mono label (`text-[10px] uppercase tracking-[0.22em] text-ink-500`), fades in via the same `assembled` state (delay ~800ms after last segment).
-- The existing `sr-only` table stays unchanged; add one more `<caption>`-adjacent sentence noting the inner scene is decorative.
+**2. Live link fabric (7 curved chords)**
+- Chords now connect only **hub↔mid** pairs (never leaf↔leaf) — this creates a legible neural topology instead of random noise.
+- Each chord gets a **traveling signal packet**: a 2px sector-hued dot animated along the path via SVG `<animateMotion>` on `<mpath>`, 4–7s duration, staggered starts. This is the single biggest movement upgrade — the eye always catches a packet mid-flight.
+- Chord stroke itself uses a subtle dash-march (stroke-dashoffset animation, 8s) so the line feels alive even between packets.
+- Link opacity breathes 0.25 ↔ 0.65 on a 5s cycle.
 
-**No changes** to `MarketingHome.tsx`, `BrainConstellation.tsx`, routing, or data layer.
+**3. Center anchor**
+- A single "core" node behind the "The Second Brain" label: 5px filled dot with a triple-ring pulsing halo (3 concentric circles expanding and fading on a 4s cycle, staggered 1.3s apart). Reads as the corpus itself breathing.
+- 4 of the 7 chords originate from this center — creating an obvious "everything connects back" hub-and-spoke motif under the label.
 
-## Motion budget
+**4. Orbit rings**
+- Keep the 3 dashed orbit guides but reduce to 0.3px and add a very slow counter-rotation (opposite direction to the scene rotation) so the guides visibly drift relative to the nodes.
 
-- Ring assemble: unchanged (existing staggered opacity, ~720ms total).
-- Brain scene fade-in: 600ms, starts at +400ms after ring completes.
-- Rotation: 90s linear infinite, `will-change: transform`.
-- Heartbeats: 3s ease-in-out, 3 nodes staggered by 900ms.
-- Link breathing: 6s ease-in-out on `stroke-dashoffset`.
-- All motion gated by `prefers-reduced-motion` → static frame.
+**5. Scene rotation**
+- Slow overall rotation from 120s → **80s**, still ambient but now perceptibly moving over a 3–4s dwell.
 
-## Accessibility
+## Motion budget (all pausable via `prefers-reduced-motion`)
 
-- `<BrainMask>` marked `aria-hidden="true"` — it's decorative; the sr-only sector table already describes the signature.
-- Center label is real text, screen-reader visible, contributes semantic meaning ("The Second Brain — sovereign corpus").
+| Layer | Duration | Notes |
+|---|---|---|
+| Scene rotate | 80s linear ∞ | outer group |
+| Orbit counter-rotate | 140s linear ∞ | reverse direction |
+| Core-hub heartbeat (×4) | 3.2s ease ∞ | staggered 800ms |
+| Mid-node secondary pulse (×4) | 4.8s ease ∞ | staggered 1.2s |
+| Chord dash-march (×7) | 8s linear ∞ | staggered 600ms |
+| Chord opacity breathe (×7) | 5s ease ∞ | staggered 700ms |
+| Signal packets (×7) | 4–7s linear ∞ | one per chord, `<animateMotion>` |
+| Center triple-halo (×3 rings) | 4s ease ∞ | staggered 1.3s |
 
-## What this does NOT do
+Total DOM additions: ~40 elements. Still cheap; all CSS/SMIL transforms, no JS ticks.
 
-- Does not fetch, embed, or preview any real country's corpus (auth-gated, wrong audience surface).
-- Does not add interactivity — no hover, no click. Hero must remain a scannable statement, not a toy.
-- Does not touch the authenticated `BrainConstellation` component.
+## Craft & accessibility
+
+- Deterministic seeded layout preserved — same visual identity across renders and SSR.
+- `aria-hidden="true"` retained; sr-only sector table already covers the ring semantics.
+- Center label z-order unchanged: it sits **above** the brain layer, so the pulsing center halo reads *behind* the text without ever competing with it.
+- Radial vignette (70%→100% fade) preserved so nothing clips the ring's inner hairline.
+- Under `prefers-reduced-motion`: all `animation`/`<animateMotion>` disabled, packets rendered at their midpoints as static dots — the field still looks composed, just frozen.
+
+## Files touched
+
+- **Edit** `src/components/marketing/BrainMask.tsx` — expand `buildScene` to produce hubs/mids/leaves + hub-anchored chord graph + per-chord packet paths; add center anchor group; add counter-rotating orbit group; extend `<style>` block.
+- No other files touched. No new imports, no new deps.

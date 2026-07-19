@@ -11,7 +11,7 @@ async function postSignInRedirect(): Promise<"/home"> {
   return "/home";
 }
 
-type Mode = "sign-in" | "sign-up" | "forgot";
+type Mode = "sign-in" | "forgot";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/auth")({
   }),
   validateSearch: (search: Record<string, unknown>): { mode?: Mode } => {
     const m = search.mode;
-    return m === "sign-up" || m === "forgot" || m === "sign-in" ? { mode: m } : {};
+    return m === "forgot" || m === "sign-in" ? { mode: m } : {};
   },
   component: AuthPage,
 });

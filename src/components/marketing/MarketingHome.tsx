@@ -356,6 +356,10 @@ export function MarketingHome() {
                 body: "MFA mandatory for all roles, hardware-key support for Principals and Stewards, immutable audit log for data changes, decisions, and exports.",
               },
               {
+                head: "Public and private, separated by design",
+                body: "Visibility is a first-class attribute on every row. Private Cabinet uploads never enter the public corpus, are gated by country access, and every read and write is audited.",
+              },
+              {
                 head: "No trackers, ever",
                 body: "No third-party analytics or trackers inside government instances. Error telemetry is first-party and instance-consented.",
               },

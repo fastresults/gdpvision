@@ -175,6 +175,16 @@ function DossierBody({
             <CitedMarkdown source={b.headline} citations={refs} className="inline" />
           </p>
         )}
+        {ctx.stale && brief && !briefFetching && (
+          <button
+            onClick={onRegenerate}
+            className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-amber-400/50 bg-amber-500/5 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-amber-800 transition hover:bg-amber-500/10 dark:text-amber-300"
+            title="Underlying data has changed since this brief was written"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Data updated · Refresh
+          </button>
+        )}
         {briefFetching && !brief && (
           <div className="mt-3 flex items-center gap-2 rounded border border-indigo-400/40 bg-indigo-500/5 px-3 py-2 text-xs text-indigo-800 dark:text-indigo-300">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />

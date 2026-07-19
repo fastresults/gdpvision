@@ -1,8 +1,10 @@
 // Dense Sector Profiling Matrix — Sovereign Pulse–style table.
 
+import { FileText } from "lucide-react";
+
 import type { VizOverview } from "@/lib/country-viz/viz.functions";
 import { sectorColor } from "./sector-color";
-import { SectorTrendBars } from "./SectorTrendBars";
+import { SectorSparkstrip } from "./SectorSparkstrip";
 import {
   buildSectorRows,
   momentumChipClass,
@@ -17,6 +19,7 @@ export function SectorProfilingMatrix({
   allKpis,
   selected,
   onSelect,
+  onOpenDossier,
 }: {
   countryCode: string;
   sectors: VizOverview["sectors"];
@@ -24,6 +27,7 @@ export function SectorProfilingMatrix({
   allKpis: VizOverview["allKpis"];
   selected: string | null;
   onSelect: (code: string | null) => void;
+  onOpenDossier?: (code: string) => void;
 }) {
   const rows = buildSectorRows(countryCode, sectors, series, allKpis).sort(
     (a, b) => b.share_pct - a.share_pct,
@@ -86,12 +90,11 @@ export function SectorProfilingMatrix({
                   {r.share_pct.toFixed(1)}%
                 </div>
 
-                {/* Bars — desktop column; on mobile it drops below */}
+                {/* Sparkstrip — analytical line + delta chips */}
                 <div className="col-span-2 h-7 md:col-span-1">
-                  <SectorTrendBars
+                  <SectorSparkstrip
                     buckets={r.buckets}
                     color={color}
-                    height={28}
                     ariaLabel={`${r.label} 24-month trend`}
                   />
                 </div>
@@ -119,9 +122,29 @@ export function SectorProfilingMatrix({
                   ))}
                 </div>
 
-                {/* Confidence */}
-                <div className="hidden text-right font-mono text-sm tabular-nums text-ink-700 md:block">
-                  {r.confidence}
+                {/* Confidence + dossier launcher */}
+                <div className="hidden items-center justify-end gap-2 md:flex">
+                  <span className="font-mono text-sm tabular-nums text-ink-700">{r.confidence}</span>
+                  {onOpenDossier && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenDossier(r.code);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.stopPropagation();
+                          onOpenDossier(r.code);
+                        }
+                      }}
+                      className="rounded border border-line-200 p-1 text-ink-500 transition hover:border-ink-950 hover:text-ink-950"
+                      title="Open McKinsey-style dossier"
+                    >
+                      <FileText className="h-3 w-3" />
+                    </span>
+                  )}
                 </div>
               </button>
             </li>

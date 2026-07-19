@@ -64,7 +64,7 @@ export function GdpVizStudio({ code }: { code: string }) {
             <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">Profiling matrix</div>
             <h3 className="font-serif text-lg">Sector profiling</h3>
           </div>
-          <SectorProfilingMatrix countryCode={code} sectors={overview.sectors} series={overview.sectorKpiSeries} allKpis={overview.allKpis} selected={sector} onSelect={setSector} />
+          <SectorProfilingMatrix countryCode={code} sectors={overview.sectors} series={overview.sectorKpiSeries} allKpis={overview.allKpis} selected={sector} onSelect={setSector} onOpenDossier={setDossierSector} />
         </div>
       </div>
 

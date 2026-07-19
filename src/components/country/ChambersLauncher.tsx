@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Activity, ArrowUpRight, BookOpen, Landmark, Layers, MessageSquare, TrendingUp } from "lucide-react";
+import { Activity, ArrowUpRight, BookOpen, Landmark, Layers, MessageSquare, TrendingUp, Users } from "lucide-react";
 
 const CHAMBERS = [
   { n: "01", icon: BookOpen, title: "The National Ledger", blurb: "Authoritative decomposition of the national economy.", to: "/admin/countries/$code/ledger" as const, kind: "params" as const },
@@ -8,7 +8,7 @@ const CHAMBERS = [
   { n: "04", icon: TrendingUp, title: "The FDI Transition Studio", blurb: "Threat in, resilient FDI strategy out — sector by sector.", to: "/admin/countries/$code/studio" as const, kind: "params" as const },
   { n: "05", icon: MessageSquare, title: "The Narrative Chamber", blurb: "Signal to statement inside a working day.", to: "/admin/countries/$code/narrative" as const, kind: "params" as const },
   { n: "06", icon: Landmark, title: "The Cabinet Room", blurb: "Prep, run, and follow through on cabinet business.", to: "/admin/countries/$code/cabinet" as const, kind: "params" as const },
-
+  { n: "07", icon: Users, title: "Synthetic Persona Lab", blurb: "Simulate publics, applicants, and stakeholders — grounded in the second brain.", to: "/admin/countries/$code/personas" as const, kind: "params" as const },
 ];
 
 export function ChambersLauncher({ code }: { code: string }) {

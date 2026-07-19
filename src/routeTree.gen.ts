@@ -99,6 +99,7 @@ import { Route as AuthenticatedAdminCountriesCodePersonasSegmentsRouteImport } f
 import { Route as AuthenticatedAdminCountriesCodePersonasIdRouteImport } from './routes/_authenticated/admin/countries.$code.personas.$id'
 import { Route as AuthenticatedAdminCountriesCodeNarrativeLibraryRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.library'
 import { Route as AuthenticatedAdminCountriesCodeStudioThreatsIdRouteImport } from './routes/_authenticated/admin/countries.$code.studio.threats.$id'
+import { Route as AuthenticatedAdminCountriesCodePersonasStudiesIdRouteImport } from './routes/_authenticated/admin/countries.$code.personas.studies.$id'
 import { Route as AuthenticatedAdminCountriesCodeNarrativeSignalIdRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.signal.$id'
 import { Route as AuthenticatedAdminCountriesCodeCabinetSessionSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.session.$sid'
 import { Route as AuthenticatedAdminCountriesCodeCabinetMinutesSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.minutes.$sid'
@@ -628,6 +629,12 @@ const AuthenticatedAdminCountriesCodeStudioThreatsIdRoute =
     path: '/threats/$id',
     getParentRoute: () => AuthenticatedAdminCountriesCodeStudioRoute,
   } as any)
+const AuthenticatedAdminCountriesCodePersonasStudiesIdRoute =
+  AuthenticatedAdminCountriesCodePersonasStudiesIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedAdminCountriesCodePersonasStudiesRoute,
+  } as any)
 const AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute =
   AuthenticatedAdminCountriesCodeNarrativeSignalIdRouteImport.update({
     id: '/signal/$id',
@@ -731,7 +738,7 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/narrative/library': typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRoute
   '/admin/countries/$code/personas/$id': typeof AuthenticatedAdminCountriesCodePersonasIdRoute
   '/admin/countries/$code/personas/segments': typeof AuthenticatedAdminCountriesCodePersonasSegmentsRoute
-  '/admin/countries/$code/personas/studies': typeof AuthenticatedAdminCountriesCodePersonasStudiesRoute
+  '/admin/countries/$code/personas/studies': typeof AuthenticatedAdminCountriesCodePersonasStudiesRouteWithChildren
   '/admin/countries/$code/portfolio/$ministry': typeof AuthenticatedAdminCountriesCodePortfolioMinistryRoute
   '/admin/countries/$code/scenarios/$id': typeof AuthenticatedAdminCountriesCodeScenariosIdRoute
   '/admin/countries/$code/scenarios/compare': typeof AuthenticatedAdminCountriesCodeScenariosCompareRoute
@@ -746,6 +753,7 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/cabinet/minutes/$sid': typeof AuthenticatedAdminCountriesCodeCabinetMinutesSidRoute
   '/admin/countries/$code/cabinet/session/$sid': typeof AuthenticatedAdminCountriesCodeCabinetSessionSidRoute
   '/admin/countries/$code/narrative/signal/$id': typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute
+  '/admin/countries/$code/personas/studies/$id': typeof AuthenticatedAdminCountriesCodePersonasStudiesIdRoute
   '/admin/countries/$code/studio/threats/$id': typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRoute
 }
 export interface FileRoutesByTo {
@@ -817,7 +825,7 @@ export interface FileRoutesByTo {
   '/admin/countries/$code/narrative/library': typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRoute
   '/admin/countries/$code/personas/$id': typeof AuthenticatedAdminCountriesCodePersonasIdRoute
   '/admin/countries/$code/personas/segments': typeof AuthenticatedAdminCountriesCodePersonasSegmentsRoute
-  '/admin/countries/$code/personas/studies': typeof AuthenticatedAdminCountriesCodePersonasStudiesRoute
+  '/admin/countries/$code/personas/studies': typeof AuthenticatedAdminCountriesCodePersonasStudiesRouteWithChildren
   '/admin/countries/$code/portfolio/$ministry': typeof AuthenticatedAdminCountriesCodePortfolioMinistryRoute
   '/admin/countries/$code/scenarios/$id': typeof AuthenticatedAdminCountriesCodeScenariosIdRoute
   '/admin/countries/$code/scenarios/compare': typeof AuthenticatedAdminCountriesCodeScenariosCompareRoute
@@ -832,6 +840,7 @@ export interface FileRoutesByTo {
   '/admin/countries/$code/cabinet/minutes/$sid': typeof AuthenticatedAdminCountriesCodeCabinetMinutesSidRoute
   '/admin/countries/$code/cabinet/session/$sid': typeof AuthenticatedAdminCountriesCodeCabinetSessionSidRoute
   '/admin/countries/$code/narrative/signal/$id': typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute
+  '/admin/countries/$code/personas/studies/$id': typeof AuthenticatedAdminCountriesCodePersonasStudiesIdRoute
   '/admin/countries/$code/studio/threats/$id': typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRoute
 }
 export interface FileRoutesById {
@@ -914,7 +923,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/narrative/library': typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRoute
   '/_authenticated/admin/countries/$code/personas/$id': typeof AuthenticatedAdminCountriesCodePersonasIdRoute
   '/_authenticated/admin/countries/$code/personas/segments': typeof AuthenticatedAdminCountriesCodePersonasSegmentsRoute
-  '/_authenticated/admin/countries/$code/personas/studies': typeof AuthenticatedAdminCountriesCodePersonasStudiesRoute
+  '/_authenticated/admin/countries/$code/personas/studies': typeof AuthenticatedAdminCountriesCodePersonasStudiesRouteWithChildren
   '/_authenticated/admin/countries/$code/portfolio/$ministry': typeof AuthenticatedAdminCountriesCodePortfolioMinistryRoute
   '/_authenticated/admin/countries/$code/scenarios/$id': typeof AuthenticatedAdminCountriesCodeScenariosIdRoute
   '/_authenticated/admin/countries/$code/scenarios/compare': typeof AuthenticatedAdminCountriesCodeScenariosCompareRoute
@@ -929,6 +938,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/cabinet/minutes/$sid': typeof AuthenticatedAdminCountriesCodeCabinetMinutesSidRoute
   '/_authenticated/admin/countries/$code/cabinet/session/$sid': typeof AuthenticatedAdminCountriesCodeCabinetSessionSidRoute
   '/_authenticated/admin/countries/$code/narrative/signal/$id': typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute
+  '/_authenticated/admin/countries/$code/personas/studies/$id': typeof AuthenticatedAdminCountriesCodePersonasStudiesIdRoute
   '/_authenticated/admin/countries/$code/studio/threats/$id': typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRoute
 }
 export interface FileRouteTypes {
@@ -1026,6 +1036,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/cabinet/minutes/$sid'
     | '/admin/countries/$code/cabinet/session/$sid'
     | '/admin/countries/$code/narrative/signal/$id'
+    | '/admin/countries/$code/personas/studies/$id'
     | '/admin/countries/$code/studio/threats/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1112,6 +1123,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/cabinet/minutes/$sid'
     | '/admin/countries/$code/cabinet/session/$sid'
     | '/admin/countries/$code/narrative/signal/$id'
+    | '/admin/countries/$code/personas/studies/$id'
     | '/admin/countries/$code/studio/threats/$id'
   id:
     | '__root__'
@@ -1208,6 +1220,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/countries/$code/cabinet/minutes/$sid'
     | '/_authenticated/admin/countries/$code/cabinet/session/$sid'
     | '/_authenticated/admin/countries/$code/narrative/signal/$id'
+    | '/_authenticated/admin/countries/$code/personas/studies/$id'
     | '/_authenticated/admin/countries/$code/studio/threats/$id'
   fileRoutesById: FileRoutesById
 }
@@ -1857,6 +1870,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRouteImport
       parentRoute: typeof AuthenticatedAdminCountriesCodeStudioRoute
     }
+    '/_authenticated/admin/countries/$code/personas/studies/$id': {
+      id: '/_authenticated/admin/countries/$code/personas/studies/$id'
+      path: '/$id'
+      fullPath: '/admin/countries/$code/personas/studies/$id'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasStudiesIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodePersonasStudiesRoute
+    }
     '/_authenticated/admin/countries/$code/narrative/signal/$id': {
       id: '/_authenticated/admin/countries/$code/narrative/signal/$id'
       path: '/signal/$id'
@@ -1909,10 +1929,25 @@ const AuthenticatedAdminCountriesCodeNarrativeRouteWithChildren =
     AuthenticatedAdminCountriesCodeNarrativeRouteChildren,
   )
 
+interface AuthenticatedAdminCountriesCodePersonasStudiesRouteChildren {
+  AuthenticatedAdminCountriesCodePersonasStudiesIdRoute: typeof AuthenticatedAdminCountriesCodePersonasStudiesIdRoute
+}
+
+const AuthenticatedAdminCountriesCodePersonasStudiesRouteChildren: AuthenticatedAdminCountriesCodePersonasStudiesRouteChildren =
+  {
+    AuthenticatedAdminCountriesCodePersonasStudiesIdRoute:
+      AuthenticatedAdminCountriesCodePersonasStudiesIdRoute,
+  }
+
+const AuthenticatedAdminCountriesCodePersonasStudiesRouteWithChildren =
+  AuthenticatedAdminCountriesCodePersonasStudiesRoute._addFileChildren(
+    AuthenticatedAdminCountriesCodePersonasStudiesRouteChildren,
+  )
+
 interface AuthenticatedAdminCountriesCodePersonasRouteChildren {
   AuthenticatedAdminCountriesCodePersonasIdRoute: typeof AuthenticatedAdminCountriesCodePersonasIdRoute
   AuthenticatedAdminCountriesCodePersonasSegmentsRoute: typeof AuthenticatedAdminCountriesCodePersonasSegmentsRoute
-  AuthenticatedAdminCountriesCodePersonasStudiesRoute: typeof AuthenticatedAdminCountriesCodePersonasStudiesRoute
+  AuthenticatedAdminCountriesCodePersonasStudiesRoute: typeof AuthenticatedAdminCountriesCodePersonasStudiesRouteWithChildren
   AuthenticatedAdminCountriesCodePersonasIndexRoute: typeof AuthenticatedAdminCountriesCodePersonasIndexRoute
 }
 
@@ -1923,7 +1958,7 @@ const AuthenticatedAdminCountriesCodePersonasRouteChildren: AuthenticatedAdminCo
     AuthenticatedAdminCountriesCodePersonasSegmentsRoute:
       AuthenticatedAdminCountriesCodePersonasSegmentsRoute,
     AuthenticatedAdminCountriesCodePersonasStudiesRoute:
-      AuthenticatedAdminCountriesCodePersonasStudiesRoute,
+      AuthenticatedAdminCountriesCodePersonasStudiesRouteWithChildren,
     AuthenticatedAdminCountriesCodePersonasIndexRoute:
       AuthenticatedAdminCountriesCodePersonasIndexRoute,
   }

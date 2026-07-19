@@ -143,9 +143,9 @@ Return JSON: { "questions": [ { "prompt": "…", "kind": "open|scale|choice", "o
     const rows = parsed.questions.slice(0, data.count).map((q, i) => ({
       study_id: data.studyId,
       ord: i,
-      prompt: String(q.prompt).slice(0, 800),
+      prompt: sanitizeCitationMarkersInText(String(q.prompt).slice(0, 800), []),
       kind: (["open", "scale", "choice"].includes(q.kind) ? q.kind : "open") as string,
-      options: (q.options ?? []) as never,
+      options: sanitizeJsonCitationMarkers(q.options ?? [], []) as never,
     }));
     const { error } = await supabase.from("study_questions").insert(rows);
     if (error) throw new Error(error.message);

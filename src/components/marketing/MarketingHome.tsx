@@ -146,8 +146,13 @@ export function MarketingHome() {
             </div>
             <div className="mt-6 h-px w-16 bg-gold-500" aria-hidden />
             <h1 className="mt-8 font-serif text-[43px] leading-[1.05] tracking-tight text-ink-950 md:text-[68px]">
-              Govern with the whole picture.
+              The world's first instrument built to elevate national GDP.
             </h1>
+            <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-ink-700 md:text-[17px]">
+              Purpose-built for Presidents, Prime Ministers and Cabinets.
+              GDPVision turns a nation's public and private data into decisions
+              that measurably lift GDP — across seven sovereign chambers of state.
+            </p>
             <div
               aria-live="polite"
               className="mt-8 min-h-[160px] md:min-h-[180px]"
@@ -157,7 +162,7 @@ export function MarketingHome() {
                 className="animate-in fade-in duration-500 motion-reduce:animate-none"
               >
                 <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">
-                  {current.title}
+                  The questions on the Cabinet table · {current.title}
                 </div>
                 <p className="mt-3 max-w-xl text-[17px] leading-relaxed text-ink-700 md:text-[21px]">
                   {current.body}

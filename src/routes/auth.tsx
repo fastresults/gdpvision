@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { lovable } from "@/integrations/lovable";
-import { getMyCountryStatus } from "@/lib/country-admin.functions";
+
 
 async function postSignInRedirect(): Promise<"/home"> {
   return "/home";

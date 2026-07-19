@@ -3903,6 +3903,211 @@ export type Database = {
         }
         Relationships: []
       }
+      persona_chat_messages: {
+        Row: {
+          chat_id: string
+          citations: Json
+          content: string
+          created_at: string
+          id: string
+          role: string
+        }
+        Insert: {
+          chat_id: string
+          citations?: Json
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+        }
+        Update: {
+          chat_id?: string
+          citations?: Json
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "persona_chat_messages_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "persona_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      persona_chats: {
+        Row: {
+          country_code: string
+          created_at: string
+          id: string
+          persona_id: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          id?: string
+          persona_id: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          id?: string
+          persona_id?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "persona_chats_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      persona_segment_members: {
+        Row: {
+          persona_id: string
+          segment_id: string
+        }
+        Insert: {
+          persona_id: string
+          segment_id: string
+        }
+        Update: {
+          persona_id?: string
+          segment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "persona_segment_members_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "persona_segment_members_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "persona_segments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      persona_segments: {
+        Row: {
+          country_code: string
+          created_at: string
+          distribution: Json
+          id: string
+          label: string
+          owner_country_code: string | null
+          owner_user_id: string | null
+          prompt: string
+          size: number
+          updated_at: string
+          uploaded_by: string | null
+          visibility: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          distribution?: Json
+          id?: string
+          label: string
+          owner_country_code?: string | null
+          owner_user_id?: string | null
+          prompt: string
+          size?: number
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          distribution?: Json
+          id?: string
+          label?: string
+          owner_country_code?: string | null
+          owner_user_id?: string | null
+          prompt?: string
+          size?: number
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Relationships: []
+      }
+      personas: {
+        Row: {
+          archetype: string | null
+          attributes: Json
+          country_code: string
+          created_at: string
+          grounding_refs: Json
+          id: string
+          name: string
+          ocean: Json
+          origin: string
+          owner_country_code: string | null
+          owner_user_id: string | null
+          summary: string | null
+          updated_at: string
+          uploaded_by: string | null
+          version: number
+          visibility: string
+        }
+        Insert: {
+          archetype?: string | null
+          attributes?: Json
+          country_code: string
+          created_at?: string
+          grounding_refs?: Json
+          id?: string
+          name: string
+          ocean?: Json
+          origin?: string
+          owner_country_code?: string | null
+          owner_user_id?: string | null
+          summary?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          version?: number
+          visibility?: string
+        }
+        Update: {
+          archetype?: string | null
+          attributes?: Json
+          country_code?: string
+          created_at?: string
+          grounding_refs?: Json
+          id?: string
+          name?: string
+          ocean?: Json
+          origin?: string
+          owner_country_code?: string | null
+          owner_user_id?: string | null
+          summary?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          version?: number
+          visibility?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -4576,6 +4781,247 @@ export type Database = {
           version?: number
         }
         Relationships: []
+      }
+      studies: {
+        Row: {
+          config: Json
+          country_code: string
+          created_at: string
+          id: string
+          kind: string
+          objective: string | null
+          owner_country_code: string | null
+          owner_user_id: string | null
+          segment_id: string | null
+          status: string
+          title: string
+          updated_at: string
+          uploaded_by: string | null
+          visibility: string
+        }
+        Insert: {
+          config?: Json
+          country_code: string
+          created_at?: string
+          id?: string
+          kind: string
+          objective?: string | null
+          owner_country_code?: string | null
+          owner_user_id?: string | null
+          segment_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Update: {
+          config?: Json
+          country_code?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          objective?: string | null
+          owner_country_code?: string | null
+          owner_user_id?: string | null
+          segment_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studies_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "persona_segments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      study_questions: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          options: Json
+          ord: number
+          prompt: string
+          study_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          options?: Json
+          ord: number
+          prompt: string
+          study_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          options?: Json
+          ord?: number
+          prompt?: string
+          study_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_questions_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "studies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      study_reports: {
+        Row: {
+          citations: Json
+          created_at: string
+          id: string
+          study_id: string
+          summary_md: string
+          themes: Json
+          updated_at: string
+        }
+        Insert: {
+          citations?: Json
+          created_at?: string
+          id?: string
+          study_id: string
+          summary_md?: string
+          themes?: Json
+          updated_at?: string
+        }
+        Update: {
+          citations?: Json
+          created_at?: string
+          id?: string
+          study_id?: string
+          summary_md?: string
+          themes?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_reports_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: true
+            referencedRelation: "studies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      study_responses: {
+        Row: {
+          answer: Json
+          citations: Json
+          created_at: string
+          id: string
+          model: string | null
+          persona_id: string
+          question_id: string | null
+          rationale: string | null
+          study_id: string
+        }
+        Insert: {
+          answer?: Json
+          citations?: Json
+          created_at?: string
+          id?: string
+          model?: string | null
+          persona_id: string
+          question_id?: string | null
+          rationale?: string | null
+          study_id: string
+        }
+        Update: {
+          answer?: Json
+          citations?: Json
+          created_at?: string
+          id?: string
+          model?: string | null
+          persona_id?: string
+          question_id?: string | null
+          rationale?: string | null
+          study_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_responses_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "study_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_responses_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "studies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      study_transcripts: {
+        Row: {
+          citations: Json
+          created_at: string
+          id: string
+          ord: number
+          persona_id: string | null
+          speaker: string
+          study_id: string
+          utterance: string
+        }
+        Insert: {
+          citations?: Json
+          created_at?: string
+          id?: string
+          ord: number
+          persona_id?: string | null
+          speaker: string
+          study_id: string
+          utterance: string
+        }
+        Update: {
+          citations?: Json
+          created_at?: string
+          id?: string
+          ord?: number
+          persona_id?: string | null
+          speaker?: string
+          study_id?: string
+          utterance?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_transcripts_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_transcripts_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "studies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

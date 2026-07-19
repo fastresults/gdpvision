@@ -48,6 +48,23 @@ function parseJson<T>(s: string): T | null {
   }
 }
 
+function fullCitationsForRefs(citations: ContextCitation[], refs: unknown): ContextCitation[] {
+  const wanted = Array.isArray(refs)
+    ? refs.map((r) => Number(r)).filter((n) => Number.isFinite(n) && n > 0)
+    : [];
+  return wanted.length ? citations.filter((c) => wanted.includes(c.n)) : citations;
+}
+
+function hasUsableCitationMetadata(citations: unknown): boolean {
+  return Array.isArray(citations) && citations.some((c) => !!c && typeof c === "object" && ("label" in c || "url" in c));
+}
+
+function hydrateCitationField<T extends { citations?: unknown }>(row: T, sourceCitations: ContextCitation[]): T {
+  return hasUsableCitationMetadata(row.citations)
+    ? row
+    : ({ ...row, citations: fullCitationsForRefs(sourceCitations, row.citations) } as T);
+}
+
 function personaBlock(p: { name: string; archetype?: string | null; summary?: string | null; attributes?: unknown; ocean?: unknown }): string {
   return [
     `NAME: ${p.name}`,
@@ -186,7 +203,7 @@ export const runStudy = createServerFn({ method: "POST" })
                 question_id: q.id as string,
                 answer: (a.answer ?? "") as never,
                 rationale: a.rationale ? String(a.rationale).slice(0, 800) : null,
-                citations: (a.citations ?? []) as never,
+                citations: fullCitationsForRefs(pack.citations, a.citations) as never,
                 model: MODEL,
               };
             })
@@ -215,7 +232,7 @@ export const runStudy = createServerFn({ method: "POST" })
               speaker: String(t.speaker).slice(0, 40),
               persona_id: (persona as { id?: string } | null)?.id ?? null,
               utterance: String(t.utterance).slice(0, 3000),
-              citations: (t.citations ?? []) as never,
+              citations: fullCitationsForRefs(pack.citations, t.citations) as never,
             };
           });
           await supabase.from("study_transcripts").insert(rows);
@@ -248,7 +265,7 @@ export const runStudy = createServerFn({ method: "POST" })
           study_id: data.studyId,
           summary_md: parsed.summary_md,
           themes: (parsed.themes ?? []) as never,
-          citations: (parsed.citations ?? []) as never,
+          citations: fullCitationsForRefs(pack.citations, parsed.citations) as never,
         });
       }
     } catch (e) {
@@ -289,12 +306,13 @@ export const getStudy = createServerFn({ method: "POST" })
       supabase.from("study_transcripts").select("*").eq("study_id", data.id).order("ord").limit(500),
       supabase.from("study_reports").select("*").eq("study_id", data.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
+    const pack = study ? await buildCountryContextPack(supabase, study.country_code, study.objective ?? study.title) : null;
     return {
       study,
       questions: questions ?? [],
-      responses: responses ?? [],
-      transcript: transcript ?? [],
-      report: report ?? null,
+      responses: pack ? (responses ?? []).map((r) => hydrateCitationField(r, pack.citations)) : responses ?? [],
+      transcript: pack ? (transcript ?? []).map((t) => hydrateCitationField(t, pack.citations)) : transcript ?? [],
+      report: pack && report ? hydrateCitationField(report, pack.citations) : report ?? null,
     };
   });
 

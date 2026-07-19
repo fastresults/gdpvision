@@ -4055,6 +4055,7 @@ export type Database = {
         Row: {
           archetype: string | null
           attributes: Json
+          citations: Json
           country_code: string
           created_at: string
           grounding_refs: Json
@@ -4073,6 +4074,7 @@ export type Database = {
         Insert: {
           archetype?: string | null
           attributes?: Json
+          citations?: Json
           country_code: string
           created_at?: string
           grounding_refs?: Json
@@ -4091,6 +4093,7 @@ export type Database = {
         Update: {
           archetype?: string | null
           attributes?: Json
+          citations?: Json
           country_code?: string
           created_at?: string
           grounding_refs?: Json

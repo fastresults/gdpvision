@@ -6,11 +6,19 @@ import { CitationSup, type CitationRef } from "./CitationSup";
 const CITATION_RE = /\[([\d\s,]+)\](?:\[([\d\s,]+)\])*/g;
 const URL_RE = /(https?:\/\/[^\s)]+)/g;
 
-function normalizeCitations(input?: CitationRef[] | string[] | null): CitationRef[] {
+export type CitationInput = Array<CitationRef | string | number>;
+
+function normalizeCitations(input?: CitationInput | null): CitationRef[] {
   if (!input) return [];
-  return input.map((c) =>
-    typeof c === "string" ? { url: c } : (c as CitationRef),
-  );
+  return input.map((c) => {
+    if (typeof c === "string") return { url: c };
+    if (typeof c === "number") return { n: c, label: `Source ${c}` };
+    return c as CitationRef;
+  });
+}
+
+function citationFor(citations: CitationRef[], n: number): CitationRef | undefined {
+  return citations.find((c) => c?.n === n) ?? citations[n - 1];
 }
 
 function renderTextWithLinks(text: string, keyBase: string): ReactNode[] {
@@ -47,7 +55,7 @@ export function CitedText({
   className,
 }: {
   text: string;
-  citations?: CitationRef[] | string[] | null;
+  citations?: CitationInput | null;
   className?: string;
 }) {
   const cites = normalizeCitations(citations);
@@ -77,7 +85,7 @@ export function CitedText({
       }
     }
     for (const n of numbers) {
-      out.push(<CitationSup key={`c-${key++}`} n={n} citation={cites[n - 1]} />);
+      out.push(<CitationSup key={`c-${key++}`} n={n} citation={citationFor(cites, n)} />);
     }
     cursor = start + chunk.length;
   }

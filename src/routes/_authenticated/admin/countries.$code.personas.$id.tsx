@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
-import { ArrowLeft, Send, Sparkles } from "lucide-react";
+import { ArrowLeft, Send, User } from "lucide-react";
 import { useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 
+import { CitedMarkdown } from "@/components/citations/CitedMarkdown";
+import { CitedText } from "@/components/citations/CitedText";
+import { PrettyJson } from "@/components/data/PrettyJson";
 import { getPersona } from "@/lib/personas/generate.functions";
 import { askPersona, getPersonaChat, listPersonaChats } from "@/lib/personas/study.functions";
 
@@ -70,28 +71,23 @@ function PersonaDetail() {
           {persona.archetype ?? "Persona"} · {persona.visibility}
         </p>
         <h2 className="mt-1 font-serif text-2xl text-ink-950">{persona.name}</h2>
-        {persona.summary && <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-700">{persona.summary}</p>}
+        {persona.summary && (
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-700">
+            <CitedText text={persona.summary} citations={persona.citations as never} />
+          </p>
+        )}
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
         <div className="space-y-3">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Attributes</p>
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-[12px]">
-            {Object.entries(attrs).map(([k, v]) => (
-              <div key={k} className="min-w-0">
-                <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">{k}</dt>
-                <dd className="text-ink-950">
-                  {Array.isArray(v) ? v.join(", ") : typeof v === "object" ? JSON.stringify(v) : String(v ?? "—")}
-                </dd>
-              </div>
-            ))}
-          </dl>
+          <PrettyJson value={attrs as never} citations={persona.citations as never} showRaw={false} />
         </div>
 
         <div className="flex min-h-[400px] flex-col border border-line-200 bg-paper-0">
           <div className="flex items-center justify-between border-b border-line-200 px-3 py-2">
             <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-              <Sparkles size={11} /> Ask {persona.name.split(" ")[0]}
+              <User size={11} /> Ask {persona.name.split(" ")[0]}
             </p>
             <select
               value={chatId ?? ""}
@@ -122,7 +118,11 @@ function PersonaDetail() {
                     m.role === "user" ? "bg-ink-950 px-3 py-2 text-paper-0" : ""
                   }`}
                 >
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+                  {m.role === "user" ? (
+                    <CitedText text={m.content} />
+                  ) : (
+                    <CitedMarkdown source={m.content} citations={m.citations as never} />
+                  )}
                 </div>
               </div>
             ))}

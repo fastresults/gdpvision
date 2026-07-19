@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { ArrowLeft, Play, Sparkles } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 
+import { CitedMarkdown } from "@/components/citations/CitedMarkdown";
+import { CitedText } from "@/components/citations/CitedText";
+import { PrettyJson } from "@/components/data/PrettyJson";
 import { draftStudyQuestions, getStudy, runStudy } from "@/lib/personas/study.functions";
 
 function studyQuery(id: string) {
@@ -101,7 +102,7 @@ function StudyDetail() {
         <section className="border border-line-200 bg-paper-0 p-4">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Synthesis</p>
           <div className="prose prose-sm mt-2 max-w-none">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{report.summary_md}</ReactMarkdown>
+            <CitedMarkdown source={report.summary_md} citations={report.citations as never} />
           </div>
         </section>
       )}
@@ -113,7 +114,9 @@ function StudyDetail() {
             {transcript.map((t) => (
               <div key={t.id}>
                 <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">{t.speaker}</p>
-                <p className="text-ink-950">{t.utterance}</p>
+                <p className="text-ink-950">
+                  <CitedText text={t.utterance} citations={t.citations as never} />
+                </p>
               </div>
             ))}
           </div>
@@ -135,16 +138,22 @@ function StudyDetail() {
                   <ul className="mt-2 divide-y divide-line-200">
                     {rows.map((r) => {
                       const persona = (r as { personas?: { name?: string; archetype?: string } | null }).personas;
-                      const answerText =
-                        typeof r.answer === "string" ? r.answer : JSON.stringify(r.answer);
                       return (
                         <li key={r.id} className="py-2">
                           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
                             {persona?.name ?? "?"} · {persona?.archetype ?? ""}
                           </p>
-                          <p className="mt-0.5 text-[13px] leading-relaxed text-ink-950">{answerText}</p>
+                          <div className="mt-0.5 text-[13px] leading-relaxed text-ink-950">
+                            {typeof r.answer === "string" ? (
+                              <CitedText text={r.answer} citations={r.citations as never} />
+                            ) : (
+                              <PrettyJson value={r.answer as never} citations={r.citations as never} showRaw={false} />
+                            )}
+                          </div>
                           {r.rationale && (
-                            <p className="mt-1 text-[11px] italic text-ink-500">{r.rationale}</p>
+                            <p className="mt-1 text-[11px] italic text-ink-500">
+                              <CitedText text={r.rationale} citations={r.citations as never} />
+                            </p>
                           )}
                         </li>
                       );

@@ -14,10 +14,15 @@ import { humanizeKey, formatNumber, splitCitations, linkifyParts } from "./human
 type Json = null | string | number | boolean | Json[] | { [k: string]: Json };
 
 export interface Citation {
-  url: string;
+  url?: string | null;
   title?: string | null;
+  label?: string | null;
+  kind?: string | null;
+  ref?: string | null;
   domain?: string | null;
+  org?: string | null;
   quote?: string | null;
+  excerpt?: string | null;
   published_at?: string | null;
 }
 
@@ -97,19 +102,28 @@ function CitationCard({ n, citation }: { n: number; citation?: Citation }) {
           </div>
         )}
       </header>
-      {citation.title && (
-        <a href={citation.url} target="_blank" rel="noreferrer" className="block font-serif text-base text-ink-950 hover:underline">
-          {citation.title}
-        </a>
+      {(citation.title || citation.label) && (
+        citation.url ? (
+          <a href={citation.url} target="_blank" rel="noreferrer" className="block font-serif text-base text-ink-950 hover:underline">
+            {citation.title ?? citation.label}
+          </a>
+        ) : (
+          <p className="block font-serif text-base text-ink-950">{citation.title ?? citation.label}</p>
+        )
       )}
-      {citation.quote && (
+      {(citation.quote || citation.excerpt) && (
         <blockquote className="border-l-2 border-line-200 pl-3 text-sm text-ink-700 italic leading-relaxed">
-          {citation.quote}
+          {citation.quote ?? citation.excerpt}
         </blockquote>
       )}
-      <a href={citation.url} target="_blank" rel="noreferrer" className="block font-mono text-[11px] text-ink-500 hover:text-ink-950 underline break-all">
-        {citation.url}
-      </a>
+      {citation.ref && <p className="font-mono text-[11px] text-ink-500 break-all">{citation.ref}</p>}
+      {citation.url ? (
+        <a href={citation.url} target="_blank" rel="noreferrer" className="block font-mono text-[11px] text-ink-500 hover:text-ink-950 underline break-all">
+          {citation.url}
+        </a>
+      ) : (
+        <p className="font-mono text-[11px] text-ink-400">No public URL on file</p>
+      )}
     </article>
   );
 }
@@ -282,11 +296,13 @@ function Node({ value, depth = 0 }: { value: Json; depth?: number }) {
 }
 
 function domainOf(c: Citation): string {
+  if (c.org) return c.org;
   if (c.domain) return c.domain;
+  if (c.kind) return c.kind;
   try {
-    return new URL(c.url).hostname.replace(/^www\./, "");
+    return new URL(c.url ?? "").hostname.replace(/^www\./, "");
   } catch {
-    return c.url;
+    return c.label ?? c.ref ?? "Source";
   }
 }
 

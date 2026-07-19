@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Sparkles, Trash2, User } from "lucide-react";
 import { useState } from "react";
 
+import { CitedText } from "@/components/citations/CitedText";
 import { deletePersona, generatePersona, listPersonas } from "@/lib/personas/generate.functions";
 
 function personasQuery(code: string) {
@@ -106,7 +107,9 @@ function PersonasIndex() {
                       {p.archetype ?? "—"} · {p.visibility}
                     </p>
                     {p.summary && (
-                      <p className="mt-2 line-clamp-3 text-[12px] leading-relaxed text-ink-700">{p.summary}</p>
+                      <p className="mt-2 line-clamp-3 text-[12px] leading-relaxed text-ink-700">
+                        <CitedText text={p.summary} citations={p.citations as never} />
+                      </p>
                     )}
                   </div>
                   <button

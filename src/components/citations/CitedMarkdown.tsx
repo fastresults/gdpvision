@@ -3,11 +3,11 @@ import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { CitedText } from "./CitedText";
-import type { CitationRef } from "./CitationSup";
+import type { CitationInput } from "./CitedText";
 
 function wrapChildren(
   children: ReactNode,
-  citations?: CitationRef[] | string[] | null,
+  citations?: CitationInput | null,
 ): ReactNode {
   return Children.map(children, (child, i) => {
     if (typeof child === "string") {
@@ -18,7 +18,7 @@ function wrapChildren(
 }
 
 function componentsFor(
-  citations?: CitationRef[] | string[] | null,
+  citations?: CitationInput | null,
 ): Components {
   const wrap = (c: ReactNode) => wrapChildren(c, citations);
   return {
@@ -108,7 +108,7 @@ export function CitedMarkdown({
   className,
 }: {
   source: string;
-  citations?: CitationRef[] | string[] | null;
+  citations?: CitationInput | null;
   className?: string;
 }) {
   return (

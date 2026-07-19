@@ -4,7 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { buildCountryContextPack } from "./context-pack.server";
+import { buildCountryContextPack, type ContextCitation } from "./context-pack.server";
 
 const GEN_MODEL = "google/gemini-2.5-pro";
 const FAST_MODEL = "google/gemini-2.5-flash";
@@ -50,6 +50,17 @@ function safeParse<T = unknown>(s: string): T | null {
     }
     return null;
   }
+}
+
+function fullCitationsForRefs(citations: ContextCitation[], refs: unknown): ContextCitation[] {
+  const wanted = Array.isArray(refs)
+    ? refs.map((r) => Number(r)).filter((n) => Number.isFinite(n) && n > 0)
+    : [];
+  return wanted.length ? citations.filter((c) => wanted.includes(c.n)) : citations;
+}
+
+function hasUsableCitationMetadata(citations: unknown): boolean {
+  return Array.isArray(citations) && citations.some((c) => !!c && typeof c === "object" && ("label" in c || "url" in c));
 }
 
 // ── Generate a single persona ─────────────────────────────────────────────
@@ -111,6 +122,7 @@ Return JSON:
         attributes: (parsed.attributes ?? {}) as never,
         ocean: (parsed.ocean ?? {}) as never,
         grounding_refs: ((Array.isArray(parsed.grounding_refs) ? parsed.grounding_refs : []) as never),
+        citations: fullCitationsForRefs(pack.citations, parsed.grounding_refs) as never,
         origin: "ai",
         visibility: data.visibility,
         owner_user_id: userId,
@@ -182,6 +194,7 @@ Rules: exactly ${data.size} personas, all distinct, realistic distribution.`,
       attributes: (p.attributes ?? {}) as never,
       ocean: (p.ocean ?? {}) as never,
       grounding_refs: (Array.isArray(p.grounding_refs) ? p.grounding_refs : []) as never,
+      citations: fullCitationsForRefs(pack.citations, p.grounding_refs) as never,
       origin: "ai" as const,
       visibility: data.visibility,
       owner_user_id: userId,
@@ -207,12 +220,19 @@ export const listPersonas = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("personas")
-      .select("id,name,archetype,summary,visibility,origin,created_at,attributes")
+      .select("id,name,archetype,summary,visibility,origin,created_at,attributes,grounding_refs,citations")
       .eq("country_code", data.countryCode)
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    const needsHydration = (rows ?? []).some((row) => !hasUsableCitationMetadata(row.citations) && row.summary?.includes("["));
+    if (!needsHydration) return rows ?? [];
+    const pack = await buildCountryContextPack(context.supabase, data.countryCode);
+    return (rows ?? []).map((row) =>
+      !hasUsableCitationMetadata(row.citations) && row.summary?.includes("[")
+        ? { ...row, citations: fullCitationsForRefs(pack.citations, row.grounding_refs) }
+        : row,
+    );
   });
 
 export const listSegments = createServerFn({ method: "POST" })
@@ -239,6 +259,10 @@ export const getPersona = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
+    if (row && !hasUsableCitationMetadata(row.citations) && row.summary?.includes("[")) {
+      const pack = await buildCountryContextPack(context.supabase, row.country_code, row.summary);
+      return { ...row, citations: fullCitationsForRefs(pack.citations, row.grounding_refs) };
+    }
     return row;
   });
 
@@ -254,7 +278,7 @@ export const getSegment = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     const { data: members } = await context.supabase
       .from("persona_segment_members")
-      .select("persona_id, personas(id,name,archetype,summary,attributes)")
+      .select("persona_id, personas(id,name,archetype,summary,attributes,grounding_refs,citations)")
       .eq("segment_id", data.id);
     const personas = (members ?? [])
       .flatMap((m) => {
@@ -262,7 +286,18 @@ export const getSegment = createServerFn({ method: "POST" })
         return Array.isArray(p) ? p : p ? [p] : [];
       })
       .filter((x): x is Record<string, unknown> => !!x && typeof x === "object");
-    return { segment: seg, personas: personas.map((p) => ({ id: String(p.id ?? ""), name: String(p.name ?? ""), archetype: (p.archetype as string | null) ?? null, summary: (p.summary as string | null) ?? null })) };
+    const pack = seg && personas.some((p) => !hasUsableCitationMetadata(p.citations) && String(p.summary ?? "").includes("["))
+      ? await buildCountryContextPack(context.supabase, seg.country_code)
+      : null;
+    return {
+      segment: seg,
+      personas: personas.map((p) => {
+        const citations = pack && !hasUsableCitationMetadata(p.citations) && String(p.summary ?? "").includes("[")
+          ? fullCitationsForRefs(pack.citations, p.grounding_refs)
+          : p.citations ?? [];
+        return { id: String(p.id ?? ""), name: String(p.name ?? ""), archetype: (p.archetype as string | null) ?? null, summary: (p.summary as string | null) ?? null, citations };
+      }),
+    };
   });
 
 export const deletePersona = createServerFn({ method: "POST" })

@@ -45,6 +45,7 @@ import {
   runSourceRegistryAgent,
   runCapitalFlowsAgent,
 } from "@/lib/country-onboarding/corpus.functions";
+import { prewarmSectorDossiers } from "@/lib/sector-dossier/prewarm.functions";
 import { runKpiSeedFlow } from "@/lib/country-onboarding/kpi-seed-flow";
 import { runMinistryDeepDiveFlow } from "@/lib/country-onboarding/ministry-deep-dive-flow";
 import {

@@ -293,19 +293,33 @@ export function BrainConstellation({
           {/* Core halo glow */}
           <circle cx={cx} cy={cy} r={coreR + 180} fill="url(#coreHalo)" />
 
-          {/* Country threads (curved) */}
+          {/* Country threads (curved) with flowing dots */}
           {countryPositions.map((c) => {
             const w = 0.6 + (c.count / c.maxN) * 2.5;
+            const path = curvePath(cx, cy, c.x, c.y, 0.18, c.code + "co");
+            const dur = 4 + hash01(c.code + "dur") * 3; // 4-7s
+            const dotCount = 2 + Math.round((c.count / c.maxN) * 2); // 2-4 dots
             return (
-              <path
-                key={`ct-${c.code}`}
-                d={curvePath(cx, cy, c.x, c.y, 0.18, c.code + "co")}
-                fill="none"
-                stroke="#0f172a"
-                strokeOpacity="0.28"
-                strokeWidth={w}
-                strokeLinecap="round"
-              />
+              <g key={`ct-${c.code}`}>
+                <path
+                  d={path}
+                  fill="none"
+                  stroke="#0f172a"
+                  strokeOpacity="0.28"
+                  strokeWidth={w}
+                  strokeLinecap="round"
+                />
+                {Array.from({ length: dotCount }).map((_, i) => (
+                  <circle key={i} r={1.6} fill="#6366f1" opacity={0.85}>
+                    <animateMotion
+                      dur={`${dur}s`}
+                      repeatCount="indefinite"
+                      path={path}
+                      begin={`${(i * dur) / dotCount}s`}
+                    />
+                  </circle>
+                ))}
+              </g>
             );
           })}
 

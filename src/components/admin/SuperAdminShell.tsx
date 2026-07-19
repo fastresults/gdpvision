@@ -18,6 +18,7 @@ const NAV = [
   { to: "/admin/countries", label: "Countries" },
   { to: "/admin/brain", label: "Second brain" },
   { to: "/admin", label: "Users" },
+  { to: "/admin/invitations", label: "Invitations" },
   { to: "/admin/activity", label: "Activity" },
   { to: "/config", label: "Configuration" },
   { to: "/admin/audits/log", label: "Audit log" },

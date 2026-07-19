@@ -61,16 +61,16 @@ export function SignatureRing({ size = 520, animate = true, showBrain = true, cl
           aria-hidden
           className="pointer-events-none absolute"
           style={{
-            width: inner * 2 - 20,
-            height: inner * 2 - 20,
-            left: cx - (inner - 10),
-            top: cy - (inner - 10),
+            width: (inner * 2 - 20) * 1.2,
+            height: (inner * 2 - 20) * 1.2,
+            left: cx - (inner * 2 - 20) * 0.6,
+            top: cy - (inner * 2 - 20) * 0.6,
             opacity: assembled ? 1 : 0,
             transition: "opacity 900ms ease-out 800ms",
             zIndex: 0,
           }}
         >
-          <BrainMask size={inner * 2 - 20} />
+          <BrainMask size={(inner * 2 - 20) * 1.2} />
         </div>
       ) : null}
       <svg

@@ -41,6 +41,7 @@ import { Route as AuthenticatedInstrumentExposureRouteImport } from './routes/_a
 import { Route as AuthenticatedCounselMobileRouteImport } from './routes/_authenticated/counsel/mobile'
 import { Route as AuthenticatedCounselArchiveRouteImport } from './routes/_authenticated/counsel/archive'
 import { Route as AuthenticatedAdminLedgerQaRouteImport } from './routes/_authenticated/admin/ledger-qa'
+import { Route as AuthenticatedAdminInvitationsRouteImport } from './routes/_authenticated/admin/invitations'
 import { Route as AuthenticatedAdminDocumentsRouteImport } from './routes/_authenticated/admin/documents'
 import { Route as AuthenticatedAdminCorpusAuditRouteImport } from './routes/_authenticated/admin/corpus-audit'
 import { Route as AuthenticatedAdminBrainRouteImport } from './routes/_authenticated/admin/brain'
@@ -282,6 +283,12 @@ const AuthenticatedAdminLedgerQaRoute =
   AuthenticatedAdminLedgerQaRouteImport.update({
     id: '/ledger-qa',
     path: '/ledger-qa',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminInvitationsRoute =
+  AuthenticatedAdminInvitationsRouteImport.update({
+    id: '/invitations',
+    path: '/invitations',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminDocumentsRoute =
@@ -688,6 +695,7 @@ export interface FileRoutesByFullPath {
   '/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
+  '/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
   '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/counsel/mobile': typeof AuthenticatedCounselMobileRoute
@@ -782,6 +790,7 @@ export interface FileRoutesByTo {
   '/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
+  '/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
   '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/counsel/mobile': typeof AuthenticatedCounselMobileRoute
@@ -877,6 +886,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/_authenticated/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
   '/_authenticated/admin/documents': typeof AuthenticatedAdminDocumentsRoute
+  '/_authenticated/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/_authenticated/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
   '/_authenticated/counsel/archive': typeof AuthenticatedCounselArchiveRoute
   '/_authenticated/counsel/mobile': typeof AuthenticatedCounselMobileRoute
@@ -977,6 +987,7 @@ export interface FileRouteTypes {
     | '/admin/brain'
     | '/admin/corpus-audit'
     | '/admin/documents'
+    | '/admin/invitations'
     | '/admin/ledger-qa'
     | '/counsel/archive'
     | '/counsel/mobile'
@@ -1071,6 +1082,7 @@ export interface FileRouteTypes {
     | '/admin/brain'
     | '/admin/corpus-audit'
     | '/admin/documents'
+    | '/admin/invitations'
     | '/admin/ledger-qa'
     | '/counsel/archive'
     | '/counsel/mobile'
@@ -1165,6 +1177,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/brain'
     | '/_authenticated/admin/corpus-audit'
     | '/_authenticated/admin/documents'
+    | '/_authenticated/admin/invitations'
     | '/_authenticated/admin/ledger-qa'
     | '/_authenticated/counsel/archive'
     | '/_authenticated/counsel/mobile'
@@ -1486,6 +1499,13 @@ declare module '@tanstack/react-router' {
       path: '/ledger-qa'
       fullPath: '/admin/ledger-qa'
       preLoaderRoute: typeof AuthenticatedAdminLedgerQaRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/invitations': {
+      id: '/_authenticated/admin/invitations'
+      path: '/invitations'
+      fullPath: '/admin/invitations'
+      preLoaderRoute: typeof AuthenticatedAdminInvitationsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/documents': {
@@ -2071,6 +2091,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminBrainRoute: typeof AuthenticatedAdminBrainRoute
   AuthenticatedAdminCorpusAuditRoute: typeof AuthenticatedAdminCorpusAuditRoute
   AuthenticatedAdminDocumentsRoute: typeof AuthenticatedAdminDocumentsRoute
+  AuthenticatedAdminInvitationsRoute: typeof AuthenticatedAdminInvitationsRoute
   AuthenticatedAdminLedgerQaRoute: typeof AuthenticatedAdminLedgerQaRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminAuditsKeyingRoute: typeof AuthenticatedAdminAuditsKeyingRoute
@@ -2098,6 +2119,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminBrainRoute: AuthenticatedAdminBrainRoute,
     AuthenticatedAdminCorpusAuditRoute: AuthenticatedAdminCorpusAuditRoute,
     AuthenticatedAdminDocumentsRoute: AuthenticatedAdminDocumentsRoute,
+    AuthenticatedAdminInvitationsRoute: AuthenticatedAdminInvitationsRoute,
     AuthenticatedAdminLedgerQaRoute: AuthenticatedAdminLedgerQaRoute,
     AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
     AuthenticatedAdminAuditsKeyingRoute: AuthenticatedAdminAuditsKeyingRoute,

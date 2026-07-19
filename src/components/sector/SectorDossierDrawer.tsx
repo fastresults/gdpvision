@@ -78,9 +78,13 @@ export function SectorDossierDrawer({
   const briefQuery = useQuery<SectorDossierResult>({
     queryKey: ["sector-dossier", countryCode, sectorCode],
     enabled: !!sectorCode && ctxQuery.isSuccess && !hasCached,
-    queryFn: () => (fetchDossier as any)({ data: { countryCode, sectorCode } }),
-    staleTime: 5 * 60_000,
+    queryFn: () => (fetchDossier as any)({ data: { countryCode, sectorCode, refresh: false } }),
+    staleTime: Infinity,
   });
+  const regenerate = async () => {
+    await (fetchDossier as any)({ data: { countryCode, sectorCode, refresh: true } });
+    await Promise.all([ctxQuery.refetch(), briefQuery.refetch()]);
+  };
 
   const ctx = ctxQuery.data;
   const brief: SectorBrief | null =
@@ -120,7 +124,7 @@ export function SectorDossierDrawer({
             briefFetching={briefQuery.isFetching}
             briefFailed={briefQuery.isError}
             briefError={(briefQuery.error as Error | null)?.message}
-            onRegenerate={() => briefQuery.refetch()}
+            onRegenerate={regenerate}
           />
         )}
       </SheetContent>
@@ -170,6 +174,16 @@ function DossierBody({
           <p className="font-serif text-lg italic text-ink-700">
             <CitedMarkdown source={b.headline} citations={refs} className="inline" />
           </p>
+        )}
+        {ctx.stale && brief && !briefFetching && (
+          <button
+            onClick={onRegenerate}
+            className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-amber-400/50 bg-amber-500/5 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-amber-800 transition hover:bg-amber-500/10 dark:text-amber-300"
+            title="Underlying data has changed since this brief was written"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Data updated · Refresh
+          </button>
         )}
         {briefFetching && !brief && (
           <div className="mt-3 flex items-center gap-2 rounded border border-indigo-400/40 bg-indigo-500/5 px-3 py-2 text-xs text-indigo-800 dark:text-indigo-300">

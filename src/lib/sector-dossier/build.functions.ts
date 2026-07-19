@@ -14,12 +14,43 @@ import {
 } from "@/lib/citations/hygiene";
 
 const MODEL = "google/gemini-2.5-pro";
+const SCHEMA_VERSION = 1;
 
 const Input = z.object({
   countryCode: z.string().min(2).max(4),
   sectorCode: z.string().min(1).max(64),
   refresh: z.boolean().optional().default(false),
 });
+
+// Cheap deterministic hash of inputs that would meaningfully change the brief.
+async function computeInputFingerprint(
+  supabase: any,
+  countryCode: string,
+  sectorCode: string,
+): Promise<string> {
+  const [kpis, flows, dossiers, minprof] = await Promise.all([
+    supabase.from("country_kpis").select("updated_at").eq("country_code", countryCode),
+    supabase.from("country_capital_flows").select("updated_at").eq("country_code", countryCode),
+    supabase.from("sector_dossiers").select("updated_at").eq("country_code", countryCode).eq("sector_code", sectorCode),
+    supabase.from("ministry_profiles").select("updated_at").eq("country_code", countryCode),
+  ]);
+  const maxOf = (rows: any) => {
+    const arr = (rows?.data ?? []) as Array<{ updated_at?: string | null }>;
+    let max = "";
+    for (const r of arr) {
+      const v = r?.updated_at ?? "";
+      if (v && v > max) max = v;
+    }
+    return max;
+  };
+  return [
+    `v=${SCHEMA_VERSION}`,
+    `kpi=${(kpis.data ?? []).length}:${maxOf(kpis)}`,
+    `flow=${(flows.data ?? []).length}:${maxOf(flows)}`,
+    `dos=${(dossiers.data ?? []).length}:${maxOf(dossiers)}`,
+    `min=${(minprof.data ?? []).length}:${maxOf(minprof)}`,
+  ].join("|");
+}
 
 export type SectorBrief = {
   headline: string;
@@ -42,6 +73,7 @@ export type SectorDossierResult = {
   citations: CitableCitation[];
   generated_at: string;
   cached: boolean;
+  stale: boolean;
   ministry: { slug: string; name: string; minister: string | null; mandate: string | null } | null;
   kpis: Array<{ kpi_code: string; label: string; unit: string | null; latest: number | null; target: number | null; direction: string | null }>;
   flows: Array<{ label: string; direction: "in" | "out"; magnitude_usd: number | null; note: string | null; url: string | null }>;
@@ -86,7 +118,14 @@ export const buildSectorDossier = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => Input.parse(d))
   .handler(async ({ data, context }): Promise<SectorDossierResult> => {
-    const { supabase } = context;
+    return buildSectorDossierWithSupabase(context.supabase, data);
+  });
+
+export async function buildSectorDossierWithSupabase(
+  supabase: any,
+  data: { countryCode: string; sectorCode: string; refresh?: boolean },
+): Promise<SectorDossierResult> {
+  {
     const { countryCode, sectorCode } = data;
 
     // ── Country + sector meta ─────────────────────────────────────────────
@@ -98,27 +137,30 @@ export const buildSectorDossier = createServerFn({ method: "POST" })
     const countryName = country?.name ?? countryCode;
     const sectorLabel = sector?.label ?? sectorCode;
 
-    // ── Cache check ───────────────────────────────────────────────────────
+    // ── Cache check (permanent; only bypassed on explicit refresh) ───────
+    const currentFp = await computeInputFingerprint(supabase, countryCode, sectorCode);
     if (!data.refresh) {
       const { data: cached } = await supabase
         .from("sector_dossier_briefs")
-        .select("brief,citations,generated_at")
+        .select("brief,citations,generated_at,input_fingerprint,schema_version")
         .eq("country_code", countryCode)
         .eq("sector_code", sectorCode)
         .maybeSingle();
-      const cachedAt = cached?.generated_at ? new Date(cached.generated_at).getTime() : 0;
-      const ttlOk = cached && Date.now() - cachedAt < 24 * 60 * 60 * 1000;
-      if (ttlOk) {
+      if (cached) {
         const bundle = await loadAncillary(supabase, countryCode, sectorCode);
+        const storedFp = (cached as any).input_fingerprint as string | null;
+        const storedVer = (cached as any).schema_version as number | null;
+        const stale = !storedFp || storedFp !== currentFp || (storedVer ?? 0) !== SCHEMA_VERSION;
         return {
           countryCode,
           sectorCode,
           sectorLabel,
           countryName,
-          brief: cached!.brief as SectorBrief,
-          citations: (cached!.citations as CitableCitation[]) ?? [],
-          generated_at: cached!.generated_at,
+          brief: cached.brief as SectorBrief,
+          citations: (cached.citations as CitableCitation[]) ?? [],
+          generated_at: cached.generated_at,
           cached: true,
+          stale,
           fallback: false,
           ...bundle,
         };
@@ -181,11 +223,11 @@ export const buildSectorDossier = createServerFn({ method: "POST" })
 
     // Filter KPIs to sector-relevant (loose match on code/label/category)
     const needle = sectorCode.toLowerCase();
-    const sectorKpis = (kpiRows ?? []).filter((k) => {
+    const sectorKpis = ((kpiRows ?? []) as any[]).filter((k: any) => {
       const s = `${k.kpi_code} ${k.label ?? ""} ${k.category ?? ""}`.toLowerCase();
       return s.includes(needle);
     });
-    const kpiForOutput = sectorKpis.slice(0, 10).map((k) => ({
+    const kpiForOutput = sectorKpis.slice(0, 10).map((k: any) => ({
       kpi_code: k.kpi_code,
       label: k.label ?? k.kpi_code,
       unit: k.unit ?? null,
@@ -193,17 +235,17 @@ export const buildSectorDossier = createServerFn({ method: "POST" })
       target: k.target ?? null,
       direction: k.direction ?? null,
     }));
-    const kpiLines = sectorKpis.slice(0, 10).map((k) => {
+    const kpiLines = sectorKpis.slice(0, 10).map((k: any) => {
       const n = cite({ url: k.source_url ?? null, title: k.label ?? k.kpi_code, kind: "kpi" });
       return `- ${prefix(n)}${k.label ?? k.kpi_code}: ${k.latest_value ?? "—"}${k.unit ? ` ${k.unit}` : ""} (target ${k.target ?? "—"}, dir ${k.direction ?? "—"})`;
     });
 
     // Join flow rows with the sector-scoped node registry.
-    const nodeByKey = new Map((flowNodes ?? []).map((n) => [n.node_key, n]));
-    const sectorFlows = (flowRows ?? [])
-      .filter((f) => nodeByKey.has(f.node_key))
-      .map((f) => {
-        const node = nodeByKey.get(f.node_key)!;
+    const nodeByKey = new Map(((flowNodes ?? []) as any[]).map((n: any) => [n.node_key, n as any]));
+    const sectorFlows = ((flowRows ?? []) as any[])
+      .filter((f: any) => nodeByKey.has(f.node_key))
+      .map((f: any) => {
+        const node = nodeByKey.get(f.node_key) as any;
         const firstCitation = Array.isArray(f.citations) ? (f.citations as Array<Record<string, unknown>>)[0] : null;
         const url = firstCitation && typeof firstCitation.url === "string" ? String(firstCitation.url) : null;
         return {
@@ -218,12 +260,12 @@ export const buildSectorDossier = createServerFn({ method: "POST" })
       })
       .slice(0, 8);
 
-    const flowLines = sectorFlows.map((f) => {
+    const flowLines = sectorFlows.map((f: any) => {
       const n = cite({ url: f.url, title: f.label, kind: "flow" });
       const mag = f.magnitude_usd ? `$${(f.magnitude_usd / 1_000_000).toFixed(0)}M` : "—";
       return `- ${prefix(n)}${f.direction === "in" ? "IN" : "OUT"} · ${f.label} · ${mag} (${f.period})${f.note ? ` — ${String(f.note).slice(0, 140)}` : ""}`;
     });
-    const flowsForOutput = sectorFlows.slice(0, 5).map((f) => ({
+    const flowsForOutput = sectorFlows.slice(0, 5).map((f: any) => ({
       label: f.label,
       direction: f.direction,
       magnitude_usd: f.magnitude_usd,
@@ -231,13 +273,13 @@ export const buildSectorDossier = createServerFn({ method: "POST" })
       url: f.url,
     }));
 
-    const memoryLines = (memories ?? []).map((m) => {
+    const memoryLines = ((memories ?? []) as any[]).map((m: any) => {
       const p = (m.payload ?? {}) as Record<string, unknown>;
       const summary = String(p.summary ?? p.text ?? p.body ?? "").slice(0, 200);
       return `- (${m.kind}) ${m.title}${summary ? ` — ${summary}` : ""}`;
     });
 
-    const dossierLines = (dossierRows ?? []).map((d) => {
+    const dossierLines = ((dossierRows ?? []) as any[]).map((d: any) => {
       const p = (d.payload ?? {}) as Record<string, unknown>;
       const summary = String(p.summary ?? p.narrative ?? p.overview ?? "").slice(0, 500);
       return `- (${d.kind}) ${summary || "(no narrative)"}`;
@@ -321,14 +363,16 @@ Rules: exactly 3 pillars in that order; 2-4 bullets each; every claim that isn't
             : [],
           outlook: String(clean.outlook ?? "").slice(0, 800),
         };
-        // Persist cache
+        // Persist cache (permanent — fingerprint tells us when to refresh)
         await supabase.from("sector_dossier_briefs").upsert({
           country_code: countryCode,
           sector_code: sectorCode,
           brief: brief as never,
           citations: validCitations as never,
           generated_at: new Date().toISOString(),
-        }, { onConflict: "country_code,sector_code" });
+          input_fingerprint: currentFp,
+          schema_version: SCHEMA_VERSION,
+        } as never, { onConflict: "country_code,sector_code" });
         return {
           countryCode,
           sectorCode,
@@ -338,6 +382,7 @@ Rules: exactly 3 pillars in that order; 2-4 bullets each; every claim that isn't
           citations: validCitations,
           generated_at: new Date().toISOString(),
           cached: false,
+          stale: false,
           fallback: false,
           ministry,
           kpis: kpiForOutput,
@@ -365,12 +410,15 @@ Rules: exactly 3 pillars in that order; 2-4 bullets each; every claim that isn't
       citations: [],
       generated_at: new Date().toISOString(),
       cached: false,
+      stale: false,
       fallback: true,
       ministry,
       kpis: kpiForOutput,
       flows: flowsForOutput,
     };
-  });
+  }
+}
+
 
 async function loadAncillary(supabase: any, countryCode: string, sectorCode: string) {
   const [{ data: kpiRows }, { data: ministryLinks }, { data: flowRows }, { data: flowNodes }] = await Promise.all([
@@ -427,6 +475,7 @@ export type SectorDossierContext = {
   cachedBrief: SectorBrief | null;
   cachedCitations: CitableCitation[];
   cachedAt: string | null;
+  stale: boolean;
 };
 
 export const getSectorContext = createServerFn({ method: "POST" })
@@ -435,12 +484,16 @@ export const getSectorContext = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<SectorDossierContext> => {
     const { supabase } = context;
     const { countryCode, sectorCode } = data;
-    const [{ data: country }, { data: sector }, { data: cached }, bundle] = await Promise.all([
+    const [{ data: country }, { data: sector }, { data: cached }, bundle, currentFp] = await Promise.all([
       supabase.from("countries").select("code,name").eq("code", countryCode).maybeSingle(),
       supabase.from("sectors").select("code,label").eq("code", sectorCode).maybeSingle(),
-      supabase.from("sector_dossier_briefs").select("brief,citations,generated_at").eq("country_code", countryCode).eq("sector_code", sectorCode).maybeSingle(),
+      supabase.from("sector_dossier_briefs").select("brief,citations,generated_at,input_fingerprint,schema_version").eq("country_code", countryCode).eq("sector_code", sectorCode).maybeSingle(),
       loadAncillary(supabase, countryCode, sectorCode),
+      computeInputFingerprint(supabase, countryCode, sectorCode),
     ]);
+    const storedFp = (cached as any)?.input_fingerprint as string | null | undefined;
+    const storedVer = (cached as any)?.schema_version as number | null | undefined;
+    const stale = !!cached && (!storedFp || storedFp !== currentFp || (storedVer ?? 0) !== SCHEMA_VERSION);
     return {
       countryCode,
       sectorCode,
@@ -452,6 +505,7 @@ export const getSectorContext = createServerFn({ method: "POST" })
       cachedBrief: (cached?.brief as SectorBrief | undefined) ?? null,
       cachedCitations: (cached?.citations as CitableCitation[] | undefined) ?? [],
       cachedAt: cached?.generated_at ?? null,
+      stale,
     };
   });
 

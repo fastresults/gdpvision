@@ -1,10 +1,10 @@
-import { useEffect, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
 /**
  * Scrolls the referenced element to the top of the viewport whenever `dep` changes.
  * - If the element itself is scrollable, also resets its internal scrollTop to 0.
  * - Honors `prefers-reduced-motion` (forces 'auto' when reduced motion is on).
- * - Skips the initial mount to avoid yanking the page on first render.
+ * - Skips the initial mount by default so first render isn't yanked.
  */
 export function useScrollToTopOnChange(
   ref: RefObject<HTMLElement | null>,
@@ -12,13 +12,15 @@ export function useScrollToTopOnChange(
   opts: { behavior?: ScrollBehavior; offset?: number; skipInitial?: boolean } = {},
 ) {
   const { behavior = "smooth", offset = 0, skipInitial = true } = opts;
+  const first = useRef(true);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    // Skip initial mount when requested.
-    if (skipInitial && (useScrollToTopOnChange as any)._init === undefined) {
-      // no-op sentinel — real skip handled via a per-instance ref below.
+    if (skipInitial && first.current) {
+      first.current = false;
+      return;
     }
+    first.current = false;
+    if (typeof window === "undefined") return;
     const el = ref.current;
     if (!el) return;
 
@@ -30,10 +32,9 @@ export function useScrollToTopOnChange(
       el.scrollTo({ top: 0, behavior: behave });
     }
 
-    // Then scroll the element to the top of the viewport.
+    // Then bring the element's top into view — only if it's currently above the fold.
     const rect = el.getBoundingClientRect();
     const targetY = window.scrollY + rect.top - offset;
-    // Only scroll up — never yank a user down.
     if (targetY < window.scrollY) {
       window.scrollTo({ top: Math.max(0, targetY), behavior: behave });
     }

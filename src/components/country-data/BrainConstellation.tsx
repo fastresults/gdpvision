@@ -458,10 +458,25 @@ export function BrainConstellation({
 
             return (
               <g key={s.code} opacity={isFiltered ? 0.18 : 1}>
-                {/* Soft halo behind the cluster, colored by dominant kind */}
-                <circle cx={s.x} cy={s.y} r={haloR} fill={`url(#halo-${dominantKind})`} />
+                {/* Soft halo behind the cluster, colored by dominant kind — breathes */}
+                <circle cx={s.x} cy={s.y} r={haloR} fill={`url(#halo-${dominantKind})`}>
+                  <animate
+                    attributeName="r"
+                    values={`${haloR - 6};${haloR + 10};${haloR - 6}`}
+                    dur={`${5 + hash01(seed + "hb") * 3}s`}
+                    begin={`${hash01(seed + "hd") * 3}s`}
+                    repeatCount="indefinite"
+                  />
+                  <animate
+                    attributeName="opacity"
+                    values="0.7;1;0.7"
+                    dur={`${5 + hash01(seed + "hb") * 3}s`}
+                    begin={`${hash01(seed + "hd") * 3}s`}
+                    repeatCount="indefinite"
+                  />
+                </circle>
 
-                {/* Curved thread from core to sector */}
+                {/* Curved thread from core to sector — living pulse */}
                 <path
                   d={curvePath(cx, cy, s.x, s.y, 0.22, seed)}
                   fill="none"
@@ -469,7 +484,16 @@ export function BrainConstellation({
                   strokeWidth={0.9 + Math.min(2.6, totalWeight / 26)}
                   strokeLinecap="round"
                   strokeOpacity={0.55 + Math.min(0.35, totalWeight / 60)}
-                />
+                >
+                  <animate
+                    attributeName="stroke-opacity"
+                    values="0.3;0.7;0.3"
+                    dur={`${4 + hash01(seed + "ts") * 3}s`}
+                    begin={`${hash01(seed + "td") * 2}s`}
+                    repeatCount="indefinite"
+                  />
+                </path>
+
 
                 {/* Continuous flowing dots along the sector thread */}
                 {(() => {

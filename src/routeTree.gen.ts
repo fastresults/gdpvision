@@ -94,6 +94,7 @@ import { Route as AuthenticatedAdminCountriesCodeScenariosNewRouteImport } from 
 import { Route as AuthenticatedAdminCountriesCodeScenariosCompareRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios.compare'
 import { Route as AuthenticatedAdminCountriesCodeScenariosIdRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios.$id'
 import { Route as AuthenticatedAdminCountriesCodePortfolioMinistryRouteImport } from './routes/_authenticated/admin/countries.$code.portfolio.$ministry'
+import { Route as AuthenticatedAdminCountriesCodePersonasIdRouteImport } from './routes/_authenticated/admin/countries.$code.personas.$id'
 import { Route as AuthenticatedAdminCountriesCodeNarrativeLibraryRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.library'
 import { Route as AuthenticatedAdminCountriesCodeStudioThreatsIdRouteImport } from './routes/_authenticated/admin/countries.$code.studio.threats.$id'
 import { Route as AuthenticatedAdminCountriesCodeNarrativeSignalIdRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.signal.$id'
@@ -595,6 +596,12 @@ const AuthenticatedAdminCountriesCodePortfolioMinistryRoute =
     path: '/$ministry',
     getParentRoute: () => AuthenticatedAdminCountriesCodePortfolioRoute,
   } as any)
+const AuthenticatedAdminCountriesCodePersonasIdRoute =
+  AuthenticatedAdminCountriesCodePersonasIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedAdminCountriesCodePersonasRoute,
+  } as any)
 const AuthenticatedAdminCountriesCodeNarrativeLibraryRoute =
   AuthenticatedAdminCountriesCodeNarrativeLibraryRouteImport.update({
     id: '/library',
@@ -708,6 +715,7 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/studio': typeof AuthenticatedAdminCountriesCodeStudioRouteWithChildren
   '/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
   '/admin/countries/$code/narrative/library': typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRoute
+  '/admin/countries/$code/personas/$id': typeof AuthenticatedAdminCountriesCodePersonasIdRoute
   '/admin/countries/$code/portfolio/$ministry': typeof AuthenticatedAdminCountriesCodePortfolioMinistryRoute
   '/admin/countries/$code/scenarios/$id': typeof AuthenticatedAdminCountriesCodeScenariosIdRoute
   '/admin/countries/$code/scenarios/compare': typeof AuthenticatedAdminCountriesCodeScenariosCompareRoute
@@ -791,6 +799,7 @@ export interface FileRoutesByTo {
   '/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
   '/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
   '/admin/countries/$code/narrative/library': typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRoute
+  '/admin/countries/$code/personas/$id': typeof AuthenticatedAdminCountriesCodePersonasIdRoute
   '/admin/countries/$code/portfolio/$ministry': typeof AuthenticatedAdminCountriesCodePortfolioMinistryRoute
   '/admin/countries/$code/scenarios/$id': typeof AuthenticatedAdminCountriesCodeScenariosIdRoute
   '/admin/countries/$code/scenarios/compare': typeof AuthenticatedAdminCountriesCodeScenariosCompareRoute
@@ -885,6 +894,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/studio': typeof AuthenticatedAdminCountriesCodeStudioRouteWithChildren
   '/_authenticated/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
   '/_authenticated/admin/countries/$code/narrative/library': typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRoute
+  '/_authenticated/admin/countries/$code/personas/$id': typeof AuthenticatedAdminCountriesCodePersonasIdRoute
   '/_authenticated/admin/countries/$code/portfolio/$ministry': typeof AuthenticatedAdminCountriesCodePortfolioMinistryRoute
   '/_authenticated/admin/countries/$code/scenarios/$id': typeof AuthenticatedAdminCountriesCodeScenariosIdRoute
   '/_authenticated/admin/countries/$code/scenarios/compare': typeof AuthenticatedAdminCountriesCodeScenariosCompareRoute
@@ -979,6 +989,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/studio'
     | '/admin/countries/$code/viz'
     | '/admin/countries/$code/narrative/library'
+    | '/admin/countries/$code/personas/$id'
     | '/admin/countries/$code/portfolio/$ministry'
     | '/admin/countries/$code/scenarios/$id'
     | '/admin/countries/$code/scenarios/compare'
@@ -1062,6 +1073,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/onboard'
     | '/admin/countries/$code/viz'
     | '/admin/countries/$code/narrative/library'
+    | '/admin/countries/$code/personas/$id'
     | '/admin/countries/$code/portfolio/$ministry'
     | '/admin/countries/$code/scenarios/$id'
     | '/admin/countries/$code/scenarios/compare'
@@ -1155,6 +1167,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/countries/$code/studio'
     | '/_authenticated/admin/countries/$code/viz'
     | '/_authenticated/admin/countries/$code/narrative/library'
+    | '/_authenticated/admin/countries/$code/personas/$id'
     | '/_authenticated/admin/countries/$code/portfolio/$ministry'
     | '/_authenticated/admin/countries/$code/scenarios/$id'
     | '/_authenticated/admin/countries/$code/scenarios/compare'
@@ -1783,6 +1796,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodePortfolioMinistryRouteImport
       parentRoute: typeof AuthenticatedAdminCountriesCodePortfolioRoute
     }
+    '/_authenticated/admin/countries/$code/personas/$id': {
+      id: '/_authenticated/admin/countries/$code/personas/$id'
+      path: '/$id'
+      fullPath: '/admin/countries/$code/personas/$id'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodePersonasIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodePersonasRoute
+    }
     '/_authenticated/admin/countries/$code/narrative/library': {
       id: '/_authenticated/admin/countries/$code/narrative/library'
       path: '/library'
@@ -1850,11 +1870,14 @@ const AuthenticatedAdminCountriesCodeNarrativeRouteWithChildren =
   )
 
 interface AuthenticatedAdminCountriesCodePersonasRouteChildren {
+  AuthenticatedAdminCountriesCodePersonasIdRoute: typeof AuthenticatedAdminCountriesCodePersonasIdRoute
   AuthenticatedAdminCountriesCodePersonasIndexRoute: typeof AuthenticatedAdminCountriesCodePersonasIndexRoute
 }
 
 const AuthenticatedAdminCountriesCodePersonasRouteChildren: AuthenticatedAdminCountriesCodePersonasRouteChildren =
   {
+    AuthenticatedAdminCountriesCodePersonasIdRoute:
+      AuthenticatedAdminCountriesCodePersonasIdRoute,
     AuthenticatedAdminCountriesCodePersonasIndexRoute:
       AuthenticatedAdminCountriesCodePersonasIndexRoute,
   }

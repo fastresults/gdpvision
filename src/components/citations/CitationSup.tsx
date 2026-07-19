@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { ExternalLink } from "lucide-react";
+import { hasCitableUrl, hostFromUrl } from "@/lib/citations/hygiene";
 
 export type CitationRef = {
   n?: number;
@@ -17,19 +18,12 @@ export type CitationRef = {
   published_at?: string | null;
 };
 
-function hostOf(url?: string): string | null {
-  if (!url) return null;
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return null;
-  }
-}
-
 export function CitationSup({ n, citation }: { n: number; citation?: CitationRef }) {
   const [open, setOpen] = useState(false);
-  const url = citation?.url;
-  const host = citation?.domain ?? hostOf(url);
+  if (!hasCitableUrl(citation)) return null;
+
+  const url = citation.url;
+  const host = citation.domain ?? hostFromUrl(url);
   const heading = citation?.title || citation?.label || (host ? host : `Source ${n}`);
   const org = citation?.org ?? host ?? undefined;
   const excerpt = citation?.excerpt ?? citation?.quote ?? undefined;
@@ -74,7 +68,7 @@ export function CitationSup({ n, citation }: { n: number; citation?: CitationRef
           )}
           <div className="flex items-center justify-between px-3 py-2">
             <span className="truncate pr-2 font-mono text-[10px] text-ink-500">
-              {url || "No URL on file"}
+              {url}
             </span>
             <button
               type="button"
@@ -124,19 +118,17 @@ export function CitationSup({ n, citation }: { n: number; citation?: CitationRef
               )}
               <div className="sm:col-span-2">
                 <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">URL</dt>
-                <dd className="mt-1 break-all text-ink-950">{url || "No URL on file"}</dd>
+                <dd className="mt-1 break-all text-ink-950">{url}</dd>
               </div>
             </dl>
-            {url && (
-              <a
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 border border-ink-950 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-950 hover:bg-ink-950 hover:text-paper-0"
-              >
-                Open source <ExternalLink size={12} />
-              </a>
-            )}
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 border border-ink-950 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-950 hover:bg-ink-950 hover:text-paper-0"
+            >
+              Open source <ExternalLink size={12} />
+            </a>
           </div>
         </DialogContent>
       </Dialog>

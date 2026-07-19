@@ -10,6 +10,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { humanizeKey, formatNumber, splitCitations, linkifyParts } from "./humanize";
+import { citationForNumber, hasCitableUrl, normalizeCitableCitations, sanitizeJsonCitationMarkers } from "@/lib/citations/hygiene";
 
 type Json = null | string | number | boolean | Json[] | { [k: string]: Json };
 
@@ -82,14 +83,7 @@ function dedupeRefs(refs: number[]): number[] {
 }
 
 function CitationCard({ n, citation }: { n: number; citation?: Citation }) {
-  if (!citation) {
-    return (
-      <div className="border border-line-200 p-3">
-        <div className="font-mono text-[10px] uppercase tracking-widest text-ink-500 mb-1">[{n}]</div>
-        <p className="text-sm text-ink-400">Source unavailable</p>
-      </div>
-    );
-  }
+  if (!hasCitableUrl(citation)) return null;
   return (
     <article className="border border-line-200 p-4 space-y-2">
       <header className="flex items-baseline justify-between gap-3">
@@ -117,26 +111,21 @@ function CitationCard({ n, citation }: { n: number; citation?: Citation }) {
         </blockquote>
       )}
       {citation.ref && <p className="font-mono text-[11px] text-ink-500 break-all">{citation.ref}</p>}
-      {citation.url ? (
-        <a href={citation.url} target="_blank" rel="noreferrer" className="block font-mono text-[11px] text-ink-500 hover:text-ink-950 underline break-all">
-          {citation.url}
-        </a>
-      ) : (
-        <p className="font-mono text-[11px] text-ink-400">No public URL on file</p>
-      )}
+      <a href={citation.url} target="_blank" rel="noreferrer" className="block font-mono text-[11px] text-ink-500 hover:text-ink-950 underline break-all">
+        {citation.url}
+      </a>
     </article>
   );
 }
 
 function CitationRef({ refs: rawRefs }: { refs: number[] }) {
   const ctx = useContext(CitationContext);
-  const refs = dedupeRefs(rawRefs);
-  const label = `[${rawRefs.join(",")}]`;
+  const refs = dedupeRefs(rawRefs).filter((n) => !!citationForNumber(ctx?.citations ?? [], n));
+  if (refs.length === 0) return null;
+  const label = `[${refs.join(",")}]`;
   const hasHover = useHasHover();
 
-  if (!ctx || ctx.citations.length === 0) {
-    return <sup className="ml-1 text-[9px] font-mono text-ink-400 tracking-wider">{label}</sup>;
-  }
+  if (!ctx || ctx.citations.length === 0) return null;
 
   const triggerClasses =
     "ml-0.5 text-[9px] font-mono text-ink-500 tracking-wider align-super hover:text-ink-950 underline decoration-dotted underline-offset-2 cursor-pointer";
@@ -182,7 +171,7 @@ function CitationRef({ refs: rawRefs }: { refs: number[] }) {
         className="w-[420px] max-w-[calc(100vw-24px)] max-h-[60vh] overflow-y-auto p-3 space-y-3"
       >
         {refs.map((n) => (
-          <CitationCard key={n} n={n} citation={ctx.citations[n - 1]} />
+          <CitationCard key={n} n={n} citation={citationForNumber(ctx.citations, n)} />
         ))}
       </HoverCardContent>
     </HoverCard>
@@ -327,7 +316,7 @@ function CitationDialog({
         </DialogHeader>
         <div className="space-y-4 mt-2">
           {refs.map((n) => (
-            <CitationCard key={n} n={n} citation={citations[n - 1]} />
+            <CitationCard key={n} n={n} citation={citationForNumber(citations, n)} />
           ))}
         </div>
       </DialogContent>
@@ -346,31 +335,33 @@ export function PrettyJson({
 }) {
   const [rawOpen, setRawOpen] = useState(false);
   const [modalRefs, setModalRefs] = useState<number[] | null>(null);
+  const cleanCitations = normalizeCitableCitations(citations as never) as Citation[];
+  const cleanValue = sanitizeJsonCitationMarkers(value, cleanCitations) as Json;
 
-  if (isEmpty(value)) return <p className="text-sm text-ink-400">No data.</p>;
+  if (isEmpty(cleanValue)) return <p className="text-sm text-ink-400">No data.</p>;
 
   const ctx: CitationCtx = {
-    citations,
+    citations: cleanCitations,
     open: (refs) => setModalRefs(refs),
   };
 
   return (
     <CitationContext.Provider value={ctx}>
       <div className="space-y-3">
-        <Node value={value} />
+        <Node value={cleanValue} />
         {showRaw && (
           <details className="mt-2" open={rawOpen} onToggle={(e) => setRawOpen((e.target as HTMLDetailsElement).open)}>
             <summary className="cursor-pointer text-[10px] font-mono uppercase tracking-widest text-ink-400 hover:text-ink-700">
               View raw JSON
             </summary>
             <pre className="mt-2 text-[11px] whitespace-pre-wrap max-h-64 overflow-y-auto bg-paper-50 border border-line-200 p-2 rounded-sm">
-              {JSON.stringify(value, null, 2)}
+              {JSON.stringify(cleanValue, null, 2)}
             </pre>
           </details>
         )}
       </div>
       <CitationDialog
-        citations={citations}
+        citations={cleanCitations}
         refs={modalRefs ?? []}
         open={modalRefs !== null}
         onOpenChange={(o) => !o && setModalRefs(null)}

@@ -5,6 +5,13 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { buildCountryContextPack, type ContextCitation } from "./context-pack.server";
+import {
+  hasAnyCitableCitation,
+  refsFromTextAndModel,
+  sanitizeCitationMarkersInText,
+  sanitizeJsonCitationMarkers,
+  validCitationsForRefs,
+} from "@/lib/citations/hygiene";
 
 const MODEL = "google/gemini-2.5-pro";
 
@@ -49,14 +56,11 @@ function parseJson<T>(s: string): T | null {
 }
 
 function fullCitationsForRefs(citations: ContextCitation[], refs: unknown): ContextCitation[] {
-  const wanted = Array.isArray(refs)
-    ? refs.map((r) => Number(r)).filter((n) => Number.isFinite(n) && n > 0)
-    : [];
-  return wanted.length ? citations.filter((c) => wanted.includes(c.n)) : citations;
+  return validCitationsForRefs(citations, refs);
 }
 
 function hasUsableCitationMetadata(citations: unknown): boolean {
-  return Array.isArray(citations) && citations.some((c) => !!c && typeof c === "object" && ("label" in c || "url" in c));
+  return hasAnyCitableCitation(citations);
 }
 
 function hydrateCitationField<T extends { citations?: unknown }>(row: T, sourceCitations: ContextCitation[]): T {
@@ -139,9 +143,9 @@ Return JSON: { "questions": [ { "prompt": "…", "kind": "open|scale|choice", "o
     const rows = parsed.questions.slice(0, data.count).map((q, i) => ({
       study_id: data.studyId,
       ord: i,
-      prompt: String(q.prompt).slice(0, 800),
+      prompt: sanitizeCitationMarkersInText(String(q.prompt).slice(0, 800), []),
       kind: (["open", "scale", "choice"].includes(q.kind) ? q.kind : "open") as string,
-      options: (q.options ?? []) as never,
+      options: sanitizeJsonCitationMarkers(q.options ?? [], []) as never,
     }));
     const { error } = await supabase.from("study_questions").insert(rows);
     if (error) throw new Error(error.message);
@@ -197,13 +201,16 @@ export const runStudy = createServerFn({ method: "POST" })
             .map((a) => {
               const q = questions[a.q_ord];
               if (!q) return null;
+              const rawAnswer = a.answer ?? "";
+              const markerText = `${typeof rawAnswer === "string" ? rawAnswer : JSON.stringify(rawAnswer)} ${a.rationale ?? ""}`;
+              const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(markerText, a.citations));
               return {
                 study_id: data.studyId,
                 persona_id: p.id as string,
                 question_id: q.id as string,
-                answer: (a.answer ?? "") as never,
-                rationale: a.rationale ? String(a.rationale).slice(0, 800) : null,
-                citations: fullCitationsForRefs(pack.citations, a.citations) as never,
+                answer: sanitizeJsonCitationMarkers(rawAnswer, citations) as never,
+                rationale: a.rationale ? sanitizeCitationMarkersInText(String(a.rationale).slice(0, 800), citations) : null,
+                citations: citations as never,
                 model: MODEL,
               };
             })
@@ -226,13 +233,15 @@ export const runStudy = createServerFn({ method: "POST" })
           const rows = parsed.transcript.map((t, i) => {
             const idx = /^P(\d+)$/.exec(t.speaker)?.[1];
             const persona = idx ? personas[Number(idx) - 1] : null;
+            const rawUtterance = String(t.utterance).slice(0, 3000);
+            const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(rawUtterance, t.citations));
             return {
               study_id: data.studyId,
               ord: i,
               speaker: String(t.speaker).slice(0, 40),
               persona_id: (persona as { id?: string } | null)?.id ?? null,
-              utterance: String(t.utterance).slice(0, 3000),
-              citations: fullCitationsForRefs(pack.citations, t.citations) as never,
+              utterance: sanitizeCitationMarkersInText(rawUtterance, citations),
+              citations: citations as never,
             };
           });
           await supabase.from("study_transcripts").insert(rows);
@@ -261,11 +270,12 @@ export const runStudy = createServerFn({ method: "POST" })
       );
       const parsed = parseJson<{ summary_md?: string; themes?: unknown; citations?: number[] }>(raw);
       if (parsed?.summary_md) {
+        const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(parsed.summary_md, parsed.citations));
         await supabase.from("study_reports").insert({
           study_id: data.studyId,
-          summary_md: parsed.summary_md,
-          themes: (parsed.themes ?? []) as never,
-          citations: fullCitationsForRefs(pack.citations, parsed.citations) as never,
+          summary_md: sanitizeCitationMarkersInText(parsed.summary_md, citations),
+          themes: sanitizeJsonCitationMarkers(parsed.themes ?? [], citations) as never,
+          citations: citations as never,
         });
       }
     } catch (e) {
@@ -310,9 +320,42 @@ export const getStudy = createServerFn({ method: "POST" })
     return {
       study,
       questions: questions ?? [],
-      responses: pack ? (responses ?? []).map((r) => hydrateCitationField(r, pack.citations)) : responses ?? [],
-      transcript: pack ? (transcript ?? []).map((t) => hydrateCitationField(t, pack.citations)) : transcript ?? [],
-      report: pack && report ? hydrateCitationField(report, pack.citations) : report ?? null,
+      responses: pack
+        ? (responses ?? []).map((r) => {
+            const hydrated = hydrateCitationField(r, pack.citations) as typeof r & { answer?: unknown; rationale?: string | null; citations?: unknown };
+            const markerText = `${typeof hydrated.answer === "string" ? hydrated.answer : JSON.stringify(hydrated.answer ?? "")} ${hydrated.rationale ?? ""}`;
+            const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(markerText, hydrated.citations));
+            return {
+              ...hydrated,
+              answer: sanitizeJsonCitationMarkers(hydrated.answer, citations) as typeof hydrated.answer,
+              rationale: hydrated.rationale ? sanitizeCitationMarkersInText(hydrated.rationale, citations) : hydrated.rationale,
+              citations: citations as unknown as typeof hydrated.citations,
+            };
+          })
+        : responses ?? [],
+      transcript: pack
+        ? (transcript ?? []).map((t) => {
+            const hydrated = hydrateCitationField(t, pack.citations) as typeof t & { utterance?: string | null; citations?: unknown };
+            const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(hydrated.utterance, hydrated.citations));
+            return {
+              ...hydrated,
+              utterance: hydrated.utterance ? sanitizeCitationMarkersInText(hydrated.utterance, citations) : hydrated.utterance,
+              citations: citations as unknown as typeof hydrated.citations,
+            };
+          })
+        : transcript ?? [],
+      report: pack && report
+        ? (() => {
+            const hydrated = hydrateCitationField(report, pack.citations) as typeof report & { summary_md?: string | null; themes?: unknown; citations?: unknown };
+            const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(hydrated.summary_md, hydrated.citations));
+            return {
+              ...hydrated,
+              summary_md: hydrated.summary_md ? sanitizeCitationMarkersInText(hydrated.summary_md, citations) : hydrated.summary_md,
+              themes: sanitizeJsonCitationMarkers(hydrated.themes ?? [], citations) as typeof hydrated.themes,
+              citations: citations as unknown as typeof hydrated.citations,
+            };
+          })()
+        : report ?? null,
     };
   });
 
@@ -366,13 +409,14 @@ export const askPersona = createServerFn({ method: "POST" })
       0.85,
     );
 
-    const citations: ContextCitation[] = pack.citations.filter((c) => new RegExp(`\\[${c.n}\\]`).test(answer));
+    const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(answer, null));
+    const content = sanitizeCitationMarkersInText(answer, citations);
     const { data: assistantMsg } = await supabase
       .from("persona_chat_messages")
       .insert({
         chat_id: chatId,
         role: "assistant",
-        content: answer,
+        content,
         citations: citations as never,
       })
       .select()
@@ -390,7 +434,14 @@ export const getPersonaChat = createServerFn({ method: "POST" })
       .select("*")
       .eq("chat_id", data.chatId)
       .order("created_at");
-    return messages ?? [];
+    return (messages ?? []).map((message) => {
+      const citations = fullCitationsForRefs(message.citations as unknown as ContextCitation[], message.citations);
+      return {
+        ...message,
+        content: message.content ? sanitizeCitationMarkersInText(message.content, citations) : message.content,
+        citations: citations as never,
+      };
+    });
   });
 
 export const listPersonaChats = createServerFn({ method: "POST" })

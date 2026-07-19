@@ -1,42 +1,43 @@
-## Goal
-Make every visible citation marker on the persona/detail experience render as a superscript, clickable source reference with a clear source modal/popover — not raw `[1, 41]` text.
+## Plan: make uncited citations impossible
 
-## What I verified
-- The persona detail screen currently renders `persona.summary` as plain text, so markers like `[1, 41]` appear raw.
-- The persona chat uses raw `ReactMarkdown`, so assistant replies can also show raw citation markers.
-- The attributes grid renders values directly and even uses raw `JSON.stringify` for objects, bypassing the existing global `PrettyJson` citation-aware renderer.
-- The existing `CitedText`, `CitedMarkdown`, `CitationSup`, and `PrettyJson` utilities already support superscript citations and source hover/modal behavior, but Chamber 07 is not consistently using them.
-- Persona server functions currently return citation packs only at generation/ask time; persisted persona rows do not include a durable citation list for the detail page to resolve source metadata after reload.
+### What I verified
+- The current persona record for Kamal Joseph has `summary` markers like `[24]`, but its persisted `citations` array is empty.
+- Chamber 07’s context pack currently creates citation numbers for internal records such as sector, KPI, ministry, signal, and memory rows even when they do not carry a public URL.
+- The citation UI currently allows those weak/internal citations to render as clickable superscripts and then shows “No URL on file,” which violates the product rule.
 
-## Plan
-1. **Persist citation metadata for personas**
-   - Add a safe citation metadata field for generated personas if one does not already exist in the backend schema.
-   - Store the country context citation pack alongside each generated persona and segment persona.
-   - Keep `grounding_refs` as the compact numeric grounding reference list, but use the stored citation pack for UI resolution.
+### Product rule to enforce
+A citation marker must only appear when it resolves to an actual citable source with a valid public URL. If no source URL exists, the marker must be removed from the prose and no citation chip/modal should render.
 
-2. **Hydrate citation metadata on persona detail load**
-   - Update `getPersona` to return the persona plus its citation list in a UI-safe shape.
-   - Ensure old personas without stored citation metadata still render superscript markers using fallback references where possible, instead of raw bracket text.
+### Implementation steps
+1. **Create a single citation hygiene layer**
+   - Add reusable helpers to validate citation URLs, filter citation arrays to only valid public sources, renumber citations, and strip unsupported `[N]` markers from generated text/markdown.
+   - Treat labels, refs, internal IDs, KPI codes, and memory IDs as context only, not citations.
 
-3. **Replace raw text rendering in the persona detail route**
-   - Render `persona.summary` with `CitedText`.
-   - Render assistant chat messages with `CitedMarkdown`, passing each message’s persisted `citations` array.
-   - Keep user messages plain/uncited.
+2. **Fix Chamber 07 grounding at the source**
+   - Refactor the persona context pack so every cited item comes from a source-backed record: country source URLs, KPI `source_url`, signal `url`, or source-linked corpus data.
+   - Stop numbering ministries, sectors, memory objects, and other internal-only context unless they can be resolved to a public source URL.
+   - Keep internal context available to AI, but mark it as “context only — do not cite.”
 
-4. **Fix attributes rendering and the JSON global rule violation**
-   - Replace the manual attributes grid value rendering with citation-aware, human-readable rendering.
-   - For JSON-shaped attribute values, use `PrettyJson` with citations instead of `JSON.stringify` in JSX.
-   - For arrays/strings containing `[N]`, render via `CitedText` so citations remain superscript and interactive.
+3. **Sanitize AI outputs before saving**
+   - In persona generation, segment generation, study runs, reports, and persona chat, filter citations to URL-backed sources only.
+   - Remove any `[N]` marker from saved summaries, answers, transcripts, rationales, reports, and chat messages if that number does not resolve to a valid source.
+   - Prevent fallback hydration from recreating no-URL citations for legacy rows.
 
-5. **Harden citation click behavior**
-   - Make citation triggers behave consistently as superscript controls across `CitedText`, `CitedMarkdown`, and persona attributes.
-   - Preserve the existing hover source card and modal-style source inspection pattern; no raw markers should remain in the visible UI.
+4. **Harden the global citation renderers**
+   - Update `CitedText`, `CitedMarkdown`, and `PrettyJson` so orphan/invalid citation markers are silently removed instead of producing a dead source popover.
+   - Remove all “No URL on file” citation states from user-facing citation modals. If there is no URL, there is no citation.
 
-6. **Audit nearby Chamber 07 study screens**
-   - Replace raw `ReactMarkdown` in persona study report rendering with `CitedMarkdown` and the report’s citation metadata.
-   - Check study responses/transcripts for displayed citation arrays or markers and route them through the same citation-aware components.
+5. **Backfill visible legacy data**
+   - Add a safe backend cleanup migration/function to sanitize existing Chamber 07 persona, study, transcript, response, report, and chat rows:
+     - keep valid URL-backed citations;
+     - remove dead citation metadata;
+     - strip citation markers that no longer resolve.
+   - This will fix existing records like the Kamal Joseph persona instead of only fixing future generations.
 
-7. **Validate visually and structurally**
-   - Reopen the persona detail route and verify the screenshot case now shows superscript citation markers.
-   - Click/hover at least one citation and confirm the source card/modal shows the source label/title/url.
-   - Verify there are no remaining raw `[N]` markers in visible persona summary/chat/report text, except inside collapsed debug/raw JSON views.
+6. **Verify the exact failure case**
+   - Re-open the current persona route and confirm there are no citation chips that open “No URL on file.”
+   - Confirm valid citations still show as superscript chips and open a modal with a live source link.
+
+### Technical notes
+- Files likely involved: citation components, Chamber 07 persona/study server functions, and the country context pack.
+- Database work is limited to data cleanup/backfill; no new product tables are expected unless the existing schema lacks a safe way to persist sanitized citation metadata.

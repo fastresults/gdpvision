@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 
 import { CitationSup, type CitationRef } from "./CitationSup";
+import { citationForNumber, normalizeCitableCitations, sanitizeCitationMarkersInText } from "@/lib/citations/hygiene";
 
 // Matches [5], [5][7], [5,7,10] (with optional whitespace).
 const CITATION_RE = /\[([\d\s,]+)\](?:\[([\d\s,]+)\])*/g;
@@ -9,16 +10,11 @@ const URL_RE = /(https?:\/\/[^\s)]+)/g;
 export type CitationInput = Array<CitationRef | string | number>;
 
 function normalizeCitations(input?: CitationInput | null): CitationRef[] {
-  if (!input) return [];
-  return input.map((c) => {
-    if (typeof c === "string") return { url: c };
-    if (typeof c === "number") return { n: c, label: `Source ${c}` };
-    return c as CitationRef;
-  });
+  return normalizeCitableCitations(input) as CitationRef[];
 }
 
 function citationFor(citations: CitationRef[], n: number): CitationRef | undefined {
-  return citations.find((c) => c?.n === n) ?? citations[n - 1];
+  return citationForNumber(citations, n) as CitationRef | undefined;
 }
 
 function renderTextWithLinks(text: string, keyBase: string): ReactNode[] {
@@ -59,6 +55,7 @@ export function CitedText({
   className?: string;
 }) {
   const cites = normalizeCitations(citations);
+  const sanitizedText = sanitizeCitationMarkersInText(text, cites);
   const out: ReactNode[] = [];
   let cursor = 0;
   let key = 0;
@@ -66,12 +63,12 @@ export function CitedText({
   // Reset lastIndex explicitly since we use the /g flag.
   const re = new RegExp(CITATION_RE.source, "g");
   let m: RegExpExecArray | null;
-  while ((m = re.exec(text)) !== null) {
+  while ((m = re.exec(sanitizedText)) !== null) {
     const start = m.index;
     if (start > cursor) {
       out.push(
         <Fragment key={`t-${key++}`}>
-          {renderTextWithLinks(text.slice(cursor, start), `t${key}`)}
+          {renderTextWithLinks(sanitizedText.slice(cursor, start), `t${key}`)}
         </Fragment>,
       );
     }
@@ -89,10 +86,10 @@ export function CitedText({
     }
     cursor = start + chunk.length;
   }
-  if (cursor < text.length) {
+  if (cursor < sanitizedText.length) {
     out.push(
       <Fragment key={`t-${key++}`}>
-        {renderTextWithLinks(text.slice(cursor), `tf${key}`)}
+        {renderTextWithLinks(sanitizedText.slice(cursor), `tf${key}`)}
       </Fragment>,
     );
   }

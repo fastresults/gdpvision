@@ -88,12 +88,30 @@ function AuthPage() {
     <MarketingShell>
       <div className="mx-auto max-w-md px-6 py-24">
         <SectionHeader eyebrow="Instrument access" title={title} />
+
+        <div className="mt-6 border-l-2 border-gold-500 bg-paper-100 p-4">
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            By invitation only
+          </div>
+          <p className="mt-2 text-sm text-ink-950">
+            GDPVision is a sovereign instrument reserved for Heads of Government,
+            Cabinet Secretaries, and designated advisors. Accounts are provisioned
+            by administrators — new accounts cannot be self-created.
+          </p>
+          <p className="mt-2 text-xs text-ink-500">
+            If you have received an invitation email, open the link in that
+            message to activate your credentials. All other requests must be
+            routed through your administrator.
+          </p>
+        </div>
+
         {search.blocked ? (
-          <div className="mt-6 border-l-2 border-signal-negative bg-paper-100 p-4 text-sm text-ink-950">
-            Your account does not have access to GDPVision. Access is by
-            invitation only — please contact your administrator.
+          <div className="mt-4 border-l-2 border-signal-negative bg-paper-100 p-4 text-sm text-ink-950">
+            This account is not authorised for GDPVision. Access is invitation
+            only — please contact your administrator.
           </div>
         ) : null}
+
         <form onSubmit={onSubmit} className="mt-10 space-y-6">
           <label className="block">
             <span className="text-xs uppercase tracking-wider text-ink-500">Email</span>
@@ -149,40 +167,7 @@ function AuthPage() {
             {cta}
           </button>
         </form>
-        {mode !== "forgot" && (
-          <div className="mt-6 space-y-4">
-            <div className="flex items-center gap-3 text-[10px] font-mono uppercase tracking-[0.2em] text-ink-500">
-              <span className="h-px flex-1 bg-line-200" />
-              or
-              <span className="h-px flex-1 bg-line-200" />
-            </div>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={async () => {
-                setError(null);
-                setBusy(true);
-                try {
-                  const result = await lovable.auth.signInWithOAuth("google", {
-                    redirect_uri: window.location.origin,
-                  });
-                  if (result.error) throw result.error;
-                  if (result.redirected) return;
-                  router.invalidate();
-                  navigate({ to: await postSignInRedirect() });
-                } catch (err) {
-                  setError(err instanceof Error ? err.message : "Google sign-in failed");
-                } finally {
-                  setBusy(false);
-                }
-              }}
-              className="flex w-full items-center justify-center gap-3 border border-line-200 bg-paper-0 py-3 text-sm text-ink-950 transition-colors hover:bg-paper-100 disabled:opacity-50"
-            >
-              <GoogleGlyph />
-              Continue with Google
-            </button>
-          </div>
-        )}
+
         <div className="mt-8 flex flex-wrap items-center justify-between gap-3 text-sm text-ink-500">
           {mode === "forgot" ? (
             <button
@@ -194,7 +179,8 @@ function AuthPage() {
             </button>
           ) : (
             <span className="text-xs text-ink-500">
-              GDPVision is by invitation only. Contact your administrator for access.
+              Google sign-in is only offered from within your personal
+              invitation link.
             </span>
           )}
           <Link to="/" className="hover:text-ink-950">
@@ -206,13 +192,3 @@ function AuthPage() {
   );
 }
 
-function GoogleGlyph() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-      <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.17-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z"/>
-      <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.92v2.32A9 9 0 0 0 9 18Z"/>
-      <path fill="#FBBC05" d="M3.97 10.72A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.18.29-1.72V4.96H.92A9 9 0 0 0 0 9c0 1.45.35 2.82.92 4.04l3.05-2.32Z"/>
-      <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .92 4.96l3.05 2.32C4.68 5.16 6.66 3.58 9 3.58Z"/>
-    </svg>
-  );
-}

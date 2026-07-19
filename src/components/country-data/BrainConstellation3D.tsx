@@ -582,7 +582,7 @@ function OrbNode({
   });
 
   const opacity = dimmed ? 0.25 : 1;
-  const haloOpacity = dimmed ? 0.15 : focused ? 0.9 : 0.55;
+  const haloOpacity = dimmed ? 0.1 : focused ? 0.85 : 0.4;
 
   return (
     <group ref={group}>

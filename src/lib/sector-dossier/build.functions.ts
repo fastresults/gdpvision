@@ -118,7 +118,14 @@ export const buildSectorDossier = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => Input.parse(d))
   .handler(async ({ data, context }): Promise<SectorDossierResult> => {
-    const { supabase } = context;
+    return buildSectorDossierWithSupabase(context.supabase, data);
+  });
+
+export async function buildSectorDossierWithSupabase(
+  supabase: any,
+  data: { countryCode: string; sectorCode: string; refresh?: boolean },
+): Promise<SectorDossierResult> {
+  {
     const { countryCode, sectorCode } = data;
 
     // ── Country + sector meta ─────────────────────────────────────────────

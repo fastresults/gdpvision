@@ -51,6 +51,8 @@ export function SignalSourcesPanel({ code, countryName }: { code: string; countr
           </p>
         </div>
         <div className="flex gap-2">
+          <ReportMissingButton code={code} />
+          <RediscoverButton code={code} onDone={invalidate} />
           <SuggestButton code={code} countryName={countryName} onImport={(row) => upsertM.mutate(row)} />
           <AddFeedDialog onSave={(row) => upsertM.mutate(row)} />
         </div>

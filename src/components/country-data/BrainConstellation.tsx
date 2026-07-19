@@ -14,6 +14,16 @@ function countryName(code: string): string {
   return COUNTRY_NAME_BY_CODE[code] ?? code;
 }
 
+function sectorLabel(code: string): string {
+  if (!code || code === "—") return "Unclassified";
+  return code
+    .replace(/[_-]+/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
 export type BrainRow = {
   id: string;
   title: string;
@@ -440,6 +450,17 @@ export function BrainConstellation({
                     fontFamily="ui-monospace, monospace"
                   >
                     {s.code.slice(0, 4)}
+                  </text>
+                  <text
+                    x={s.x}
+                    y={s.y + orbR + 14}
+                    textAnchor="middle"
+                    fontSize="11"
+                    fill="#0f172a"
+                    fontFamily="ui-sans-serif, system-ui"
+                    fontWeight="500"
+                  >
+                    {sectorLabel(s.code)}
                   </text>
                 </g>
               </g>

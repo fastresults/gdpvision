@@ -7,13 +7,8 @@ import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { lovable } from "@/integrations/lovable";
 import { getMyCountryStatus } from "@/lib/country-admin.functions";
 
-async function postSignInRedirect(): Promise<"/admin/countries" | "/instrument"> {
-  try {
-    const status = await getMyCountryStatus();
-    return status.isGlobalAdmin ? "/admin/countries" : "/instrument";
-  } catch {
-    return "/instrument";
-  }
+async function postSignInRedirect(): Promise<"/home"> {
+  return "/home";
 }
 
 type Mode = "sign-in" | "sign-up" | "forgot";

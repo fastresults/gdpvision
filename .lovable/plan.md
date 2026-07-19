@@ -1,64 +1,46 @@
-## Intent
+# Root cause
 
-Elevate the masked Second Brain scene inside the hero ring from a static-feeling constellation into a *living cognitive field*: more nodes, richer link geometry, always-visible motion, and clearer visual hierarchy — while staying strictly decorative and respecting `prefers-reduced-motion`.
+We ship **two parallel Narrative Chamber surfaces** and only one of them is country-safe.
 
-Scope is `src/components/marketing/BrainMask.tsx` only. Ring, label, and layout stay untouched.
+1. `/admin/countries/$code/narrative/*` — country is in the URL path, so every link, refresh, and share is unambiguously scoped. This is what `ChambersLauncher` opens for Chamber 05.
+2. `/_authenticated/narrative/*` (files `route.tsx`, `index.tsx`, `queue.tsx`, `signal.$id.tsx`, `strategy.*`, `comms.*`, `brain.tsx`, `coverage.tsx`, `ingest.tsx`, `trace.$id.tsx`) — country is **ambient**. It comes from `useChamberCountry(bindings)` which reads an optional `?code=XXX` query param and otherwise falls back to the first `is_default` binding (or `"LCA"`).
 
-## What's wrong today
+Every internal `<Link>` under `/_authenticated/narrative/*` is written as `to="/narrative/queue"`, `to="/narrative/signal/$id"`, `to="/narrative/comms/$id"` etc. — **none of them re-attach `?code=`**. The header wordmark is `to="/narrative"`. TanStack's `Link` replaces the search object by default, so the moment a user clicks any tab or sub-link inside this shell the `?code=KNA` query is dropped, `useChamberCountry` re-resolves to the default binding, and for a super-admin session with no default binding that resolves to **LCA** (the hard-coded fallback in `useChamberCountry`). That is exactly the screenshot: KNA chambers → click into a narrative sub-nav → shell repaints as `LCA · NARRATIVE / Signal Desk`, header says `LCA`.
 
-- Only 18 nodes, 4 links → reads sparse and static.
-- All motion depends on the 120s outer rotation, which is imperceptible frame-to-frame.
-- Links are dashed hairlines that barely register; no traveling signal.
-- Nodes are same-size dots — no hierarchy between "hubs" and "leaves".
-- No center anchor tying the label to the field.
+Confirmed by reading:
+- `src/hooks/useChamberCountry.ts` — `?code=` → default binding → `"LCA"` fallback.
+- `src/routes/_authenticated/narrative/route.tsx` L23 — same fallback chain for the header pill, no `search` propagation on any `<Link>`.
+- `src/routes/_authenticated/narrative/index.tsx`, `signal.$id.tsx`, `queue.tsx`, `comms.tsx`, `strategy.index.tsx`, `trace.$id.tsx` — all internal `<Link>`s use bare `to="/narrative/..."` with no `search`.
+- `src/components/country/ChambersLauncher.tsx` L17 — Chamber 05 correctly targets `/admin/countries/$code/narrative`, so the user starts on the safe surface; contamination happens the first time they touch a link that jumps into the shared shell.
 
-## What the new scene looks like
+Secondary contributor: the hard-coded `"LCA"` last-resort fallback in `useChamberCountry` silently picks a country instead of failing loudly, so the bug looks like "wrong country" rather than "no country".
 
-**1. Three-tier node system (~34 nodes)**
-- **Core hubs (4)**: 3.5px, saturated sector hue, thick 8px halo ring, always heartbeat-pulsing on staggered offsets. These read as "ministries".
-- **Mid nodes (12)**: 2.2px, sector-hued, thin halo. 4 of these gain a slower secondary pulse.
-- **Leaf nodes (18)**: 1.2px, low-opacity dots scattered on outer orbits. Read as "memory fragments".
+# Fix
 
-**2. Live link fabric (7 curved chords)**
-- Chords now connect only **hub↔mid** pairs (never leaf↔leaf) — this creates a legible neural topology instead of random noise.
-- Each chord gets a **traveling signal packet**: a 2px sector-hued dot animated along the path via SVG `<animateMotion>` on `<mpath>`, 4–7s duration, staggered starts. This is the single biggest movement upgrade — the eye always catches a packet mid-flight.
-- Chord stroke itself uses a subtle dash-march (stroke-dashoffset animation, 8s) so the line feels alive even between packets.
-- Link opacity breathes 0.25 ↔ 0.65 on a 5s cycle.
+**Principle: country identity lives in the URL, or the page refuses to render.** No ambient defaults, no query-param drift.
 
-**3. Center anchor**
-- A single "core" node behind the "The Second Brain" label: 5px filled dot with a triple-ring pulsing halo (3 concentric circles expanding and fading on a 4s cycle, staggered 1.3s apart). Reads as the corpus itself breathing.
-- 4 of the 7 chords originate from this center — creating an obvious "everything connects back" hub-and-spoke motif under the label.
+### 1. Retire the ambient `/narrative/*` surface as a country-scoped destination
 
-**4. Orbit rings**
-- Keep the 3 dashed orbit guides but reduce to 0.3px and add a very slow counter-rotation (opposite direction to the scene rotation) so the guides visibly drift relative to the nodes.
+- Convert `src/routes/_authenticated/narrative/route.tsx` into a **redirector**: in `beforeLoad`, resolve the intended country using the same precedence (`?code` → default binding → first binding), then `throw redirect({ to: "/admin/countries/$code/narrative", params: { code } })`. If no binding exists and no `?code` is given, redirect a super-admin to `/admin/countries` and a country-admin to `/onboarding/country`. Never fall back to a hard-coded ISO.
+- Delete or forward the sub-routes (`index.tsx`, `queue.tsx`, `signal.$id.tsx`, `strategy.index.tsx`, `strategy.new.tsx`, `strategy.$id.tsx`, `comms.tsx`, `comms.new.tsx`, `comms.$id.tsx`, `brain.tsx`, `coverage.tsx`, `ingest.tsx`, `trace.$id.tsx`) — either remove them entirely (preferred, since the country-scoped tree already covers the same UX) or turn each into a `beforeLoad` redirector that maps to its `/admin/countries/$code/narrative/...` equivalent.
+- Remove the header `<span>{defaultCode}</span>` on the shared shell; the country identity should never be presented from an ambient source.
 
-**5. Scene rotation**
-- Slow overall rotation from 120s → **80s**, still ambient but now perceptibly moving over a 3–4s dwell.
+### 2. Harden `useChamberCountry`
 
-## Motion budget (all pausable via `prefers-reduced-motion`)
+- Remove the `"LCA"` last-resort fallback. If URL and bindings both fail, return `null` and callers must `throw redirect(...)` to the country picker.
+- Add an invariant assert during development so any new chamber route that reaches a component with `null` fails loudly instead of silently rendering another country's data.
 
-| Layer | Duration | Notes |
-|---|---|---|
-| Scene rotate | 80s linear ∞ | outer group |
-| Orbit counter-rotate | 140s linear ∞ | reverse direction |
-| Core-hub heartbeat (×4) | 3.2s ease ∞ | staggered 800ms |
-| Mid-node secondary pulse (×4) | 4.8s ease ∞ | staggered 1.2s |
-| Chord dash-march (×7) | 8s linear ∞ | staggered 600ms |
-| Chord opacity breathe (×7) | 5s ease ∞ | staggered 700ms |
-| Signal packets (×7) | 4–7s linear ∞ | one per chord, `<animateMotion>` |
-| Center triple-halo (×3 rings) | 4s ease ∞ | staggered 1.3s |
+### 3. Audit every chamber for the same pattern
 
-Total DOM additions: ~40 elements. Still cheap; all CSS/SMIL transforms, no JS ticks.
+Sweep `src/routes/_authenticated/**` for chamber shells (Ledger, Portfolios, Scenarios, Studio, Cabinet, Exposure, Stewardship, Personas, Sector dossiers) and confirm the country is a **path param**, not a query or an ambient default. Where a shell is currently ambient (like this narrative one), apply the same redirect-to-scoped-route treatment. In `/instrument/*` the same defect exists (`defaultCode` in `instrument/route.tsx`); scope its inner links or gate them behind an explicit country picker.
 
-## Craft & accessibility
+### 4. Regression guard
 
-- Deterministic seeded layout preserved — same visual identity across renders and SSR.
-- `aria-hidden="true"` retained; sr-only sector table already covers the ring semantics.
-- Center label z-order unchanged: it sits **above** the brain layer, so the pulsing center halo reads *behind* the text without ever competing with it.
-- Radial vignette (70%→100% fade) preserved so nothing clips the ring's inner hairline.
-- Under `prefers-reduced-motion`: all `animation`/`<animateMotion>` disabled, packets rendered at their midpoints as static dots — the field still looks composed, just frozen.
+Add a lightweight test / lint rule: any `<Link>` whose `to` starts with `/admin/countries/$code/` or a chamber prefix must also include a `params={{ code }}` prop; any `<Link to="/narrative...`, `/instrument...` etc. inside a country-scoped shell is a build-time error via an ESLint `no-restricted-syntax` rule.
 
-## Files touched
+# Technical notes
 
-- **Edit** `src/components/marketing/BrainMask.tsx` — expand `buildScene` to produce hubs/mids/leaves + hub-anchored chord graph + per-chord packet paths; add center anchor group; add counter-rotating orbit group; extend `<style>` block.
-- No other files touched. No new imports, no new deps.
+- Redirects in loaders/`beforeLoad` should use `throw redirect({ to, params })` (TanStack pattern) — do NOT use `window.location`.
+- Preserve deep-link intent: when redirecting `/narrative/signal/$id` → `/admin/countries/$code/narrative/signal/$id`, forward `params.id` and any search params.
+- `ChambersLauncher` already routes correctly — no change needed there beyond confirming every chamber `to` is a `$code` path route.
+- Keep the migration in one PR so the shared `/narrative/*` surface never exists as an "empty shell" while sub-routes still resolve.

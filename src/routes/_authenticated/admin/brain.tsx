@@ -49,6 +49,7 @@ function BrainSystemPage() {
 
   const filtered = filter.country ? rows.filter((r) => r.scope_key === filter.country) : rows;
   const focusedName = filter.country ? COUNTRY_NAMES[filter.country] ?? filter.country : null;
+  const centerLabel = focusedName ?? "GDPVISION";
 
   return (
     <SuperAdminShell

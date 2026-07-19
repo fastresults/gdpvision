@@ -394,8 +394,32 @@ export function BrainConstellation({
                 className="cursor-pointer"
               >
                 <title>{`${name} (${c.code})`}</title>
+                {/* Breathing halo */}
+                <circle cx={c.x} cy={c.y} r={r + 12} fill="#6366f1" opacity="0.12">
+                  <animate
+                    attributeName="r"
+                    values={`${r + 10};${r + 20};${r + 10}`}
+                    dur={`${3.4 + hash01(c.code + "br") * 1.8}s`}
+                    begin={`${hash01(c.code + "bd") * 2}s`}
+                    repeatCount="indefinite"
+                  />
+                  <animate
+                    attributeName="opacity"
+                    values="0.05;0.22;0.05"
+                    dur={`${3.4 + hash01(c.code + "br") * 1.8}s`}
+                    begin={`${hash01(c.code + "bd") * 2}s`}
+                    repeatCount="indefinite"
+                  />
+                </circle>
+                {c.recent > 0 && (
+                  <circle cx={c.x} cy={c.y} r={r + 6} fill="none" stroke="#f59e0b" strokeWidth="1.2" strokeOpacity="0.6">
+                    <animate attributeName="r" values={`${r + 4};${r + 18};${r + 4}`} dur="2.4s" repeatCount="indefinite" />
+                    <animate attributeName="stroke-opacity" values="0.7;0;0.7" dur="2.4s" repeatCount="indefinite" />
+                  </circle>
+                )}
                 <circle cx={c.x} cy={c.y} r={r + 8} fill="#0f172a" opacity="0.08" />
                 <circle cx={c.x} cy={c.y} r={r} fill="#0f172a" />
+
                 <text x={c.x} y={c.y + 3} textAnchor="middle" fontSize="10" fill="#fafafa" fontFamily="ui-monospace, monospace">
                   {c.code}
                 </text>

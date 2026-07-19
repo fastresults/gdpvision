@@ -637,12 +637,27 @@ export function BrainConstellation({
 
           {/* Core */}
           <g>
+            {/* Outer heartbeat ring */}
             <circle cx={cx} cy={cy} r={coreR + 22} fill="none" stroke="#6366f1" strokeOpacity={0.25 + pulseAmp * 0.35} strokeWidth="1">
               <animate attributeName="r" values={`${coreR + 16};${coreR + 30};${coreR + 16}`} dur="4.5s" repeatCount="indefinite" />
               <animate attributeName="stroke-opacity" values={`${0.1 + pulseAmp * 0.2};${0.3 + pulseAmp * 0.4};${0.1 + pulseAmp * 0.2}`} dur="4.5s" repeatCount="indefinite" />
             </circle>
+            {/* Second offset ring — dual heartbeat */}
+            <circle cx={cx} cy={cy} r={coreR + 12} fill="none" stroke="#818cf8" strokeOpacity="0.35" strokeWidth="1">
+              <animate attributeName="r" values={`${coreR + 10};${coreR + 40};${coreR + 10}`} dur="2.6s" repeatCount="indefinite" />
+              <animate attributeName="stroke-opacity" values="0.5;0;0.5" dur="2.6s" repeatCount="indefinite" />
+            </circle>
+            {/* Third faster inner pulse */}
+            <circle cx={cx} cy={cy} r={coreR + 6} fill="none" stroke="#a5b4fc" strokeOpacity="0.4" strokeWidth="0.8">
+              <animate attributeName="r" values={`${coreR + 4};${coreR + 22};${coreR + 4}`} dur="1.8s" begin="0.9s" repeatCount="indefinite" />
+              <animate attributeName="stroke-opacity" values="0.55;0;0.55" dur="1.8s" begin="0.9s" repeatCount="indefinite" />
+            </circle>
             <circle cx={cx} cy={cy} r={coreR + 8} fill="#0f172a" opacity="0.12" />
-            <circle cx={cx} cy={cy} r={coreR} fill="url(#coreGrad)" />
+            {/* Core disk — subtle breath */}
+            <circle cx={cx} cy={cy} r={coreR} fill="url(#coreGrad)">
+              <animate attributeName="r" values={`${coreR};${coreR + 2.5};${coreR}`} dur="3.2s" repeatCount="indefinite" />
+            </circle>
+
             <text x={cx} y={cy - 4} textAnchor="middle" fontSize="15" fill="#fafafa" fontFamily="ui-monospace, monospace" fontWeight="600">
               {centerLabel}
             </text>

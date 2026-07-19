@@ -285,8 +285,8 @@ export function MarketingHome() {
         <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
           <SectionHeader
             eyebrow="The instrument"
-            title="Six chambers that mirror the working structure of a government."
-            lede="Not a dashboard and not a consulting deliverable. GDPVision is organised as an instrument of state — a live Ledger under six chambers, with the Counsel above them as a voice-first advisor."
+            title="Seven chambers, each engineered to move GDP."
+            lede="Not a dashboard and not a consulting deliverable. GDPVision is organised as an instrument of state — a live Ledger under seven chambers, with the Counsel above them as a voice-first advisor."
           />
           <div className="mt-16 grid gap-x-8 gap-y-6 md:grid-cols-2 lg:grid-cols-3">
             {CHAMBERS.map((c) => (

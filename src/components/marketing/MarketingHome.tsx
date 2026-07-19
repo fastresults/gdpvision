@@ -15,11 +15,11 @@ const CHAMBERS = [
     title: "The National Ledger",
     accentVar: "--sector-01",
     purpose:
-      "The authoritative decomposition of the national economy. Everything else in the instrument reads from it.",
+      "The single source of GDP truth every other decision reads from.",
     bullets: [
-      "12-sector Caribbean ontology with a decade of history and a data-confidence grade on every series.",
-      "The CBI Exposure Index — a single, methodologically-documented number, drillable to source.",
-      "Four-layer sector dossiers: economic, policy, comms, and OECS/regional.",
+      "A 12-sector ontology with a decade of history and a data-confidence grade on every series.",
+      "Exposure indices — single, methodologically-documented numbers, drillable to source.",
+      "Four-layer sector dossiers: economic, policy, comms, and regional.",
     ],
   },
   {
@@ -27,9 +27,9 @@ const CHAMBERS = [
     title: "Portfolio Workspaces",
     accentVar: "--sector-03",
     purpose:
-      "One workspace per ministerial portfolio. Every minister sees their contribution to the economy — and their levers on it.",
+      "Every minister sees their contribution to GDP — and the levers that raise it.",
     bullets: [
-      "Sector position, dependency web, and the portfolio's share of CBI exposure.",
+      "Sector position, dependency web, and the portfolio's share of national exposure.",
       "A shelf of the minister's scenarios, from draft through Cabinet-adopted.",
       "Play-of-the-day cards derived from live lever values.",
     ],
@@ -39,7 +39,7 @@ const CHAMBERS = [
     title: "The Scenario Engine",
     accentVar: "--sector-09",
     purpose:
-      "Consequence-free rehearsal. Move a lever; every downstream metric re-projects in the same animation frame.",
+      "Rehearse every GDP-moving decision before it costs a cent.",
     bullets: [
       "Sovereign Vitals — real GDP, debt-to-GDP, FX retention, primary balance, public confidence — live.",
       "Ripple propagation through the inter-sector dependency web.",
@@ -51,7 +51,7 @@ const CHAMBERS = [
     title: "The FDI Transition Studio",
     accentVar: "--sector-07",
     purpose:
-      "A replacement plan for the CBI wind-down, sector by sector — not a slide deck but an assembled book of work.",
+      "Replace fragile revenue with durable GDP through an assembled book of investment packages.",
     bullets: [
       "The Gap: the revenue and GDP hole under the selected wind-down glide-path, year by year.",
       "Investment package builder with capital-to-GDP conversion and time-to-impact lags.",
@@ -63,7 +63,7 @@ const CHAMBERS = [
     title: "The Narrative Chamber",
     accentVar: "--sector-04",
     purpose:
-      "Signal to statement inside a working day. Every claim grounded in the same Ledger the Finance Ministry answers to.",
+      "Protect GDP by reaching a defensible national position inside a working day.",
     bullets: [
       "Signal Desk, Context Dossiers, and a persistent Second Brain that never starts from a blank page.",
       "Doctorate-grade strategy statements with a message architecture that carries across every channel.",
@@ -75,11 +75,23 @@ const CHAMBERS = [
     title: "The Cabinet Room",
     accentVar: "--sector-10",
     purpose:
-      "The consolidated national view, Cabinet Session Mode on the large display, and the commitments register.",
+      "Convert Cabinet time into recorded, tracked commitments that move the GDP dial.",
     bullets: [
       "Session Mode: agenda of promoted scenarios, full-bleed comparisons, decisions recorded live.",
       "National Scorecard — every ratified KPI, current pace, movement since last session.",
       "Commitments roll-up: what was adopted, who owns it, where it stands.",
+    ],
+  },
+  {
+    index: "07",
+    title: "Persona Lab",
+    accentVar: "--sector-06",
+    purpose:
+      "Test resonance with citizens and investors before policies, incentives, or narratives ship.",
+    bullets: [
+      "Synthetic personas and segments modelled from the sovereign corpus and public evidence.",
+      "Studies that stress-test policy, incentive, and narrative options against real audience logic.",
+      "Every finding cited, exportable, and traceable back to the Ledger.",
     ],
   },
 ];
@@ -134,8 +146,13 @@ export function MarketingHome() {
             </div>
             <div className="mt-6 h-px w-16 bg-gold-500" aria-hidden />
             <h1 className="mt-8 font-serif text-[43px] leading-[1.05] tracking-tight text-ink-950 md:text-[68px]">
-              Govern with the whole picture.
+              The world's first instrument built to elevate national GDP.
             </h1>
+            <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-ink-700 md:text-[17px]">
+              Purpose-built for Presidents, Prime Ministers and Cabinets.
+              GDPVision turns a nation's public and private data into decisions
+              that measurably lift GDP — across seven sovereign chambers of state.
+            </p>
             <div
               aria-live="polite"
               className="mt-8 min-h-[160px] md:min-h-[180px]"
@@ -145,7 +162,7 @@ export function MarketingHome() {
                 className="animate-in fade-in duration-500 motion-reduce:animate-none"
               >
                 <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">
-                  {current.title}
+                  The questions on the Cabinet table · {current.title}
                 </div>
                 <p className="mt-3 max-w-xl text-[17px] leading-relaxed text-ink-700 md:text-[21px]">
                   {current.body}
@@ -195,7 +212,7 @@ export function MarketingHome() {
                 href="#instrument"
                 className="font-mono text-[12px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950"
               >
-                See the instrument ↓
+                See the seven chambers ↓
               </a>
             </div>
           </div>
@@ -263,13 +280,47 @@ export function MarketingHome() {
       </section>
 
 
+      {/* CORPUS ----------------------------------------------------------- */}
+      <section id="corpus" className="border-b border-line-200">
+        <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
+          <SectionHeader
+            eyebrow="One sovereign corpus"
+            title="Public data. Private data. Held apart, read together."
+            lede="No other GDP instrument governs both. Public evidence is aggregated, graded and cited for every ministry. Private Cabinet uploads sit under the same provenance discipline — visible only to those with authorised country access, never mixed into the public view."
+          />
+          <div className="mt-16 grid gap-8 border-t border-line-200 pt-12 md:grid-cols-3">
+            {[
+              {
+                head: "Public corpus",
+                body: "Deep-researched, sourced, graded and citation-backed data every ministry in the country sees — continuously refreshed by the instrument's own agents.",
+              },
+              {
+                head: "Private corpus",
+                body: "Cabinet-only uploads — contracts, memos, MoUs, closes, briefings — held under the same provenance discipline. Marked private at ingest, never surfaced to the public view.",
+              },
+              {
+                head: "One decision surface",
+                body: "Every chart, scenario, dossier and briefing reads from both. Visibility is a first-class attribute on every row, and every read and write is audited.",
+              },
+            ].map((p) => (
+              <div key={p.head} className="border-t border-line-200 pt-6">
+                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold-500">
+                  {p.head}
+                </div>
+                <p className="mt-4 text-[15px] leading-relaxed text-ink-700">{p.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* INSTRUMENT — CHAMBERS ------------------------------------------- */}
       <section id="instrument" className="border-b border-line-200 bg-paper-100/40">
         <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
           <SectionHeader
             eyebrow="The instrument"
-            title="Six chambers that mirror the working structure of a government."
-            lede="Not a dashboard and not a consulting deliverable. GDPVision is organised as an instrument of state — a live Ledger under six chambers, with the Counsel above them as a voice-first advisor."
+            title="Seven chambers, each engineered to move GDP."
+            lede="Not a dashboard and not a consulting deliverable. GDPVision is organised as an instrument of state — a live Ledger under seven chambers, with the Counsel above them as a voice-first advisor."
           />
           <div className="mt-16 grid gap-x-8 gap-y-6 md:grid-cols-2 lg:grid-cols-3">
             {CHAMBERS.map((c) => (
@@ -305,6 +356,10 @@ export function MarketingHome() {
                 body: "MFA mandatory for all roles, hardware-key support for Principals and Stewards, immutable audit log for data changes, decisions, and exports.",
               },
               {
+                head: "Public and private, separated by design",
+                body: "Visibility is a first-class attribute on every row. Private Cabinet uploads never enter the public corpus, are gated by country access, and every read and write is audited.",
+              },
+              {
                 head: "No trackers, ever",
                 body: "No third-party analytics or trackers inside government instances. Error telemetry is first-party and instance-consented.",
               },
@@ -326,7 +381,7 @@ export function MarketingHome() {
           <SectionHeader
             eyebrow="Provenance"
             title="Built by OPEN Interactive — seventeen years in the room, one working prototype already running."
-            lede="OPEN Interactive originated the Caribbean Investment Summit franchise, has delivered national digital infrastructure for the Government of St. Kitts & Nevis, and maintains head-of-government relationships across the OECS."
+            lede="OPEN Interactive originated the Caribbean Investment Summit franchise, delivered national digital infrastructure for the Government of St. Kitts & Nevis, and maintains head-of-government relationships across the OECS — the same team now delivering the world's first GDP-elevation instrument for sovereign governments."
           />
           <div className="mt-16 grid gap-8 md:grid-cols-3">
             {[

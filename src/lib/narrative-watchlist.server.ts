@@ -42,8 +42,9 @@ export async function seedWatchlistFromCorpus(countryCode: string): Promise<{ ad
     .select("minister,minister_profile")
     .eq("country_code", countryCode);
   for (const m of mins ?? []) {
-    const nm = ((m as { minister?: string }).minister ?? null) ??
-      (((m as { minister_profile?: { name?: string } }).minister_profile)?.name ?? null);
+    const scalarName = (m as { minister?: string | null }).minister ?? null;
+    const profileName = ((m as { minister_profile?: { name?: string | null } | null }).minister_profile)?.name ?? null;
+    const nm = scalarName ?? profileName;
     if (nm && nm.length > 2) {
       seeds.push({ entity_name: nm, entity_role: "minister", source: "auto:ministry_profiles" });
     }

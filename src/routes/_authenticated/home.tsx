@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { Activity, BookOpen, Database, Landmark, Layers, MessageSquare, TrendingUp, Users, Users2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Activity, BookOpen, Database, Landmark, Layers, MessageSquare, Search, TrendingUp, Users, Users2 } from "lucide-react";
 
 import { getMyCountryStatus } from "@/lib/country-admin.functions";
 import { listOnboardingCountries } from "@/lib/country-onboarding/agents.functions";

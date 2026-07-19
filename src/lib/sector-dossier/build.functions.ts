@@ -130,27 +130,30 @@ export const buildSectorDossier = createServerFn({ method: "POST" })
     const countryName = country?.name ?? countryCode;
     const sectorLabel = sector?.label ?? sectorCode;
 
-    // ── Cache check ───────────────────────────────────────────────────────
+    // ── Cache check (permanent; only bypassed on explicit refresh) ───────
+    const currentFp = await computeInputFingerprint(supabase, countryCode, sectorCode);
     if (!data.refresh) {
       const { data: cached } = await supabase
         .from("sector_dossier_briefs")
-        .select("brief,citations,generated_at")
+        .select("brief,citations,generated_at,input_fingerprint,schema_version")
         .eq("country_code", countryCode)
         .eq("sector_code", sectorCode)
         .maybeSingle();
-      const cachedAt = cached?.generated_at ? new Date(cached.generated_at).getTime() : 0;
-      const ttlOk = cached && Date.now() - cachedAt < 24 * 60 * 60 * 1000;
-      if (ttlOk) {
+      if (cached) {
         const bundle = await loadAncillary(supabase, countryCode, sectorCode);
+        const storedFp = (cached as any).input_fingerprint as string | null;
+        const storedVer = (cached as any).schema_version as number | null;
+        const stale = !storedFp || storedFp !== currentFp || (storedVer ?? 0) !== SCHEMA_VERSION;
         return {
           countryCode,
           sectorCode,
           sectorLabel,
           countryName,
-          brief: cached!.brief as SectorBrief,
-          citations: (cached!.citations as CitableCitation[]) ?? [],
-          generated_at: cached!.generated_at,
+          brief: cached.brief as SectorBrief,
+          citations: (cached.citations as CitableCitation[]) ?? [],
+          generated_at: cached.generated_at,
           cached: true,
+          stale,
           fallback: false,
           ...bundle,
         };

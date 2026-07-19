@@ -409,7 +409,8 @@ export const askPersona = createServerFn({ method: "POST" })
       0.85,
     );
 
-    const citations: ContextCitation[] = pack.citations.filter((c) => new RegExp(`\\[${c.n}\\]`).test(answer));
+    const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(answer, null));
+    const content = sanitizeCitationMarkersInText(answer, citations);
     const { data: assistantMsg } = await supabase
       .from("persona_chat_messages")
       .insert({

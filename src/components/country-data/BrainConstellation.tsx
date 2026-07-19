@@ -321,8 +321,27 @@ export function BrainConstellation({
             ))}
           </defs>
 
-          {/* Core halo glow */}
-          <circle cx={cx} cy={cy} r={coreR + 180} fill="url(#coreHalo)" />
+          {/* Ambient starfield — deep background twinkle */}
+          <g pointerEvents="none">
+            {starfield.map((st, i) => (
+              <circle key={`star-${i}`} cx={st.x} cy={st.y} r={st.r} fill="#0f172a" opacity={st.base}>
+                <animate
+                  attributeName="opacity"
+                  values={`${st.base};${st.base + 0.35};${st.base}`}
+                  dur={`${st.dur}s`}
+                  begin={`${st.delay}s`}
+                  repeatCount="indefinite"
+                />
+              </circle>
+            ))}
+          </g>
+
+          {/* Core halo glow — slow breath */}
+          <circle cx={cx} cy={cy} r={coreR + 180} fill="url(#coreHalo)">
+            <animate attributeName="r" values={`${coreR + 170};${coreR + 200};${coreR + 170}`} dur="7s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.85;1;0.85" dur="7s" repeatCount="indefinite" />
+          </circle>
+
 
           {/* Country threads (curved) with flowing dots */}
           {countryPositions.map((c) => {

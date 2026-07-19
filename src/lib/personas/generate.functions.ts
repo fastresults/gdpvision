@@ -262,7 +262,7 @@ export const getSegment = createServerFn({ method: "POST" })
         return Array.isArray(p) ? p : p ? [p] : [];
       })
       .filter((x): x is Record<string, unknown> => !!x && typeof x === "object");
-    return { segment: seg, personas: personas as Array<{ id: string; name: string; archetype?: string | null; summary?: string | null; attributes?: unknown }> };
+    return { segment: seg, personas: personas.map((p) => ({ id: String(p.id ?? ""), name: String(p.name ?? ""), archetype: (p.archetype as string | null) ?? null, summary: (p.summary as string | null) ?? null })) };
   });
 
 export const deletePersona = createServerFn({ method: "POST" })

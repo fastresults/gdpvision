@@ -327,9 +327,9 @@ export const getStudy = createServerFn({ method: "POST" })
             const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(markerText, hydrated.citations));
             return {
               ...hydrated,
-              answer: sanitizeJsonCitationMarkers(hydrated.answer, citations),
+              answer: sanitizeJsonCitationMarkers(hydrated.answer, citations) as typeof hydrated.answer,
               rationale: hydrated.rationale ? sanitizeCitationMarkersInText(hydrated.rationale, citations) : hydrated.rationale,
-              citations,
+              citations: citations as typeof hydrated.citations,
             };
           })
         : responses ?? [],
@@ -340,7 +340,7 @@ export const getStudy = createServerFn({ method: "POST" })
             return {
               ...hydrated,
               utterance: hydrated.utterance ? sanitizeCitationMarkersInText(hydrated.utterance, citations) : hydrated.utterance,
-              citations,
+              citations: citations as typeof hydrated.citations,
             };
           })
         : transcript ?? [],
@@ -351,8 +351,8 @@ export const getStudy = createServerFn({ method: "POST" })
             return {
               ...hydrated,
               summary_md: hydrated.summary_md ? sanitizeCitationMarkersInText(hydrated.summary_md, citations) : hydrated.summary_md,
-              themes: sanitizeJsonCitationMarkers(hydrated.themes ?? [], citations) as never,
-              citations,
+              themes: sanitizeJsonCitationMarkers(hydrated.themes ?? [], citations) as typeof hydrated.themes,
+              citations: citations as typeof hydrated.citations,
             };
           })()
         : report ?? null,

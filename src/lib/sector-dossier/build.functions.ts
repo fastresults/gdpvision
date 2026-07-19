@@ -73,6 +73,7 @@ export type SectorDossierResult = {
   citations: CitableCitation[];
   generated_at: string;
   cached: boolean;
+  stale: boolean;
   ministry: { slug: string; name: string; minister: string | null; mandate: string | null } | null;
   kpis: Array<{ kpi_code: string; label: string; unit: string | null; latest: number | null; target: number | null; direction: string | null }>;
   flows: Array<{ label: string; direction: "in" | "out"; magnitude_usd: number | null; note: string | null; url: string | null }>;

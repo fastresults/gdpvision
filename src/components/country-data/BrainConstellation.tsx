@@ -92,10 +92,26 @@ export function BrainConstellation({
   onSelectCountry,
 }: Props) {
   const [hover, setHover] = useState<{ label: string; x: number; y: number } | null>(null);
+  const [zoom, setZoom] = useState(1);
 
   const size = 900;
   const cx = size / 2;
   const cy = size / 2;
+  const MIN_ZOOM = 0.5;
+  const MAX_ZOOM = 3;
+  const ZOOM_STEP = 0.25;
+
+  const zoomIn = () => setZoom((z) => Math.min(MAX_ZOOM, Math.round((z + ZOOM_STEP) * 100) / 100));
+  const zoomOut = () => setZoom((z) => Math.max(MIN_ZOOM, Math.round((z - ZOOM_STEP) * 100) / 100));
+
+  const viewBox = useMemo(() => {
+    if (zoom === 1) return `0 0 ${size} ${size}`;
+    const w = size / zoom;
+    const h = size / zoom;
+    const x = (size - w) / 2;
+    const y = (size - h) / 2;
+    return `${x} ${y} ${w} ${h}`;
+  }, [zoom]);
 
   const grouped = useMemo(() => {
     const byCountry = new Map<string, BrainRow[]>();

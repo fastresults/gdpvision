@@ -82,7 +82,7 @@ function BrainSystemPage() {
             <BrainConstellation
               rows={filtered as any}
               mode="system"
-              centerLabel={focusedName ?? "SYSTEM"}
+              centerLabel={centerLabel}
               filter={filter}
               onFilter={setFilter}
               onSelectCountry={(code) => setFilter({ country: code })}
@@ -99,7 +99,7 @@ function BrainSystemPage() {
             <BrainConstellation3D
               rows={filtered as any}
               mode="system"
-              centerLabel={focusedName ?? "SYSTEM"}
+              centerLabel={centerLabel}
               filter={filter}
               onFilter={setFilter}
               onSelectCountry={(code) => setFilter({ country: code })}

@@ -403,6 +403,7 @@ Rules: exactly 3 pillars in that order; 2-4 bullets each; every claim that isn't
       citations: [],
       generated_at: new Date().toISOString(),
       cached: false,
+      stale: false,
       fallback: true,
       ministry,
       kpis: kpiForOutput,

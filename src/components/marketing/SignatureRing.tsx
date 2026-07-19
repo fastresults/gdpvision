@@ -107,7 +107,6 @@ export function SignatureRing({ size = 520, animate = true, showBrain = true, cl
           );
         })}
       </svg>
-      </svg>
       {showBrain ? (
         <div
           className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center"

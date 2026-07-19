@@ -185,16 +185,47 @@ export function BrainConstellation({
     return countries.map((code, i) => {
       const angle = (i / countries.length) * Math.PI * 2 - Math.PI / 2 + (hash01(code) - 0.5) * 0.2;
       const r = 360 + (hash01(code + "R") - 0.5) * 40;
+      const rows = grouped.get(code)!;
+      const recent = rows.filter(isRecent).length;
       return {
         code,
         angle,
         x: cx + Math.cos(angle) * r,
         y: cy + Math.sin(angle) * r,
-        count: grouped.get(code)!.length,
+        count: rows.length,
+        recent,
         maxN,
       };
     });
   }, [showCountries, countries, cx, cy, grouped]);
+
+  // Ambient starfield — deterministic twinkling dots behind everything
+  const starfield = useMemo(() => {
+    const stars: { x: number; y: number; r: number; dur: number; delay: number; base: number }[] = [];
+    for (let i = 0; i < 46; i++) {
+      const seed = `star-${i}`;
+      const h1 = hash01(seed);
+      const h2 = hash01(seed + "y");
+      const h3 = hash01(seed + "r");
+      const h4 = hash01(seed + "d");
+      // Push toward edges to avoid overlap with core
+      const px = h1 * size;
+      const py = h2 * size;
+      const dxc = px - cx;
+      const dyc = py - cy;
+      if (Math.hypot(dxc, dyc) < 160) continue;
+      stars.push({
+        x: px,
+        y: py,
+        r: 0.6 + h3 * 1.2,
+        dur: 3 + h4 * 5,
+        delay: h1 * 6,
+        base: 0.08 + h3 * 0.15,
+      });
+    }
+    return stars;
+  }, [cx, cy, size]);
+
 
   const passes = (r: BrainRow) => {
     if (filter.sector && (r.sector_code || "—") !== filter.sector) return false;
@@ -290,8 +321,27 @@ export function BrainConstellation({
             ))}
           </defs>
 
-          {/* Core halo glow */}
-          <circle cx={cx} cy={cy} r={coreR + 180} fill="url(#coreHalo)" />
+          {/* Ambient starfield — deep background twinkle */}
+          <g pointerEvents="none">
+            {starfield.map((st, i) => (
+              <circle key={`star-${i}`} cx={st.x} cy={st.y} r={st.r} fill="#0f172a" opacity={st.base}>
+                <animate
+                  attributeName="opacity"
+                  values={`${st.base};${st.base + 0.35};${st.base}`}
+                  dur={`${st.dur}s`}
+                  begin={`${st.delay}s`}
+                  repeatCount="indefinite"
+                />
+              </circle>
+            ))}
+          </g>
+
+          {/* Core halo glow — slow breath */}
+          <circle cx={cx} cy={cy} r={coreR + 180} fill="url(#coreHalo)">
+            <animate attributeName="r" values={`${coreR + 170};${coreR + 200};${coreR + 170}`} dur="7s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.85;1;0.85" dur="7s" repeatCount="indefinite" />
+          </circle>
+
 
           {/* Country threads (curved) with flowing dots */}
           {countryPositions.map((c) => {
@@ -308,7 +358,15 @@ export function BrainConstellation({
                   strokeOpacity="0.28"
                   strokeWidth={w}
                   strokeLinecap="round"
-                />
+                >
+                  <animate
+                    attributeName="stroke-opacity"
+                    values="0.18;0.4;0.18"
+                    dur={`${5 + hash01(c.code + "so") * 3}s`}
+                    repeatCount="indefinite"
+                  />
+                </path>
+
                 {Array.from({ length: dotCount }).map((_, i) => (
                   <circle key={i} r={1.6} fill="#6366f1" opacity={0.85}>
                     <animateMotion
@@ -336,8 +394,32 @@ export function BrainConstellation({
                 className="cursor-pointer"
               >
                 <title>{`${name} (${c.code})`}</title>
+                {/* Breathing halo */}
+                <circle cx={c.x} cy={c.y} r={r + 12} fill="#6366f1" opacity="0.12">
+                  <animate
+                    attributeName="r"
+                    values={`${r + 10};${r + 20};${r + 10}`}
+                    dur={`${3.4 + hash01(c.code + "br") * 1.8}s`}
+                    begin={`${hash01(c.code + "bd") * 2}s`}
+                    repeatCount="indefinite"
+                  />
+                  <animate
+                    attributeName="opacity"
+                    values="0.05;0.22;0.05"
+                    dur={`${3.4 + hash01(c.code + "br") * 1.8}s`}
+                    begin={`${hash01(c.code + "bd") * 2}s`}
+                    repeatCount="indefinite"
+                  />
+                </circle>
+                {c.recent > 0 && (
+                  <circle cx={c.x} cy={c.y} r={r + 6} fill="none" stroke="#f59e0b" strokeWidth="1.2" strokeOpacity="0.6">
+                    <animate attributeName="r" values={`${r + 4};${r + 18};${r + 4}`} dur="2.4s" repeatCount="indefinite" />
+                    <animate attributeName="stroke-opacity" values="0.7;0;0.7" dur="2.4s" repeatCount="indefinite" />
+                  </circle>
+                )}
                 <circle cx={c.x} cy={c.y} r={r + 8} fill="#0f172a" opacity="0.08" />
                 <circle cx={c.x} cy={c.y} r={r} fill="#0f172a" />
+
                 <text x={c.x} y={c.y + 3} textAnchor="middle" fontSize="10" fill="#fafafa" fontFamily="ui-monospace, monospace">
                   {c.code}
                 </text>
@@ -376,10 +458,25 @@ export function BrainConstellation({
 
             return (
               <g key={s.code} opacity={isFiltered ? 0.18 : 1}>
-                {/* Soft halo behind the cluster, colored by dominant kind */}
-                <circle cx={s.x} cy={s.y} r={haloR} fill={`url(#halo-${dominantKind})`} />
+                {/* Soft halo behind the cluster, colored by dominant kind — breathes */}
+                <circle cx={s.x} cy={s.y} r={haloR} fill={`url(#halo-${dominantKind})`}>
+                  <animate
+                    attributeName="r"
+                    values={`${haloR - 6};${haloR + 10};${haloR - 6}`}
+                    dur={`${5 + hash01(seed + "hb") * 3}s`}
+                    begin={`${hash01(seed + "hd") * 3}s`}
+                    repeatCount="indefinite"
+                  />
+                  <animate
+                    attributeName="opacity"
+                    values="0.7;1;0.7"
+                    dur={`${5 + hash01(seed + "hb") * 3}s`}
+                    begin={`${hash01(seed + "hd") * 3}s`}
+                    repeatCount="indefinite"
+                  />
+                </circle>
 
-                {/* Curved thread from core to sector */}
+                {/* Curved thread from core to sector — living pulse */}
                 <path
                   d={curvePath(cx, cy, s.x, s.y, 0.22, seed)}
                   fill="none"
@@ -387,7 +484,16 @@ export function BrainConstellation({
                   strokeWidth={0.9 + Math.min(2.6, totalWeight / 26)}
                   strokeLinecap="round"
                   strokeOpacity={0.55 + Math.min(0.35, totalWeight / 60)}
-                />
+                >
+                  <animate
+                    attributeName="stroke-opacity"
+                    values="0.3;0.7;0.3"
+                    dur={`${4 + hash01(seed + "ts") * 3}s`}
+                    begin={`${hash01(seed + "td") * 2}s`}
+                    repeatCount="indefinite"
+                  />
+                </path>
+
 
                 {/* Continuous flowing dots along the sector thread */}
                 {(() => {
@@ -460,6 +566,13 @@ export function BrainConstellation({
                   onMouseLeave={() => setHover(null)}
                   className="cursor-pointer"
                 >
+                  {/* Recent-activity pulse ring */}
+                  {recent > 0 && (
+                    <circle cx={s.x} cy={s.y} r={orbR + 4} fill="none" stroke="#f59e0b" strokeWidth="1.2" strokeOpacity="0.7">
+                      <animate attributeName="r" values={`${orbR + 3};${orbR + 16};${orbR + 3}`} dur="2.6s" repeatCount="indefinite" />
+                      <animate attributeName="stroke-opacity" values="0.75;0;0.75" dur="2.6s" repeatCount="indefinite" />
+                    </circle>
+                  )}
                   {verified > 0 && (
                     <circle
                       cx={s.x}
@@ -469,7 +582,14 @@ export function BrainConstellation({
                       stroke="#10b981"
                       strokeOpacity={Math.min(0.85, verified / sectorRows.length)}
                       strokeWidth="1.25"
-                    />
+                    >
+                      <animate
+                        attributeName="stroke-opacity"
+                        values={`${Math.min(0.5, verified / sectorRows.length / 2)};${Math.min(0.9, verified / sectorRows.length)};${Math.min(0.5, verified / sectorRows.length / 2)}`}
+                        dur={`${3.5 + hash01(seed + "vs") * 2}s`}
+                        repeatCount="indefinite"
+                      />
+                    </circle>
                   )}
                   <circle cx={s.x} cy={s.y} r={orbR + 2} fill="#ffffff" />
                   <circle
@@ -479,7 +599,16 @@ export function BrainConstellation({
                     fill="#ffffff"
                     stroke="#0f172a"
                     strokeWidth={filter.sector === s.code ? 2.25 : 1}
-                  />
+                  >
+                    <animate
+                      attributeName="stroke-opacity"
+                      values="0.75;1;0.75"
+                      dur={`${3 + hash01(seed + "ss") * 2}s`}
+                      begin={`${hash01(seed + "sd") * 2}s`}
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+
                   <text
                     x={s.x}
                     y={s.y + 3}
@@ -508,12 +637,27 @@ export function BrainConstellation({
 
           {/* Core */}
           <g>
+            {/* Outer heartbeat ring */}
             <circle cx={cx} cy={cy} r={coreR + 22} fill="none" stroke="#6366f1" strokeOpacity={0.25 + pulseAmp * 0.35} strokeWidth="1">
               <animate attributeName="r" values={`${coreR + 16};${coreR + 30};${coreR + 16}`} dur="4.5s" repeatCount="indefinite" />
               <animate attributeName="stroke-opacity" values={`${0.1 + pulseAmp * 0.2};${0.3 + pulseAmp * 0.4};${0.1 + pulseAmp * 0.2}`} dur="4.5s" repeatCount="indefinite" />
             </circle>
+            {/* Second offset ring — dual heartbeat */}
+            <circle cx={cx} cy={cy} r={coreR + 12} fill="none" stroke="#818cf8" strokeOpacity="0.35" strokeWidth="1">
+              <animate attributeName="r" values={`${coreR + 10};${coreR + 40};${coreR + 10}`} dur="2.6s" repeatCount="indefinite" />
+              <animate attributeName="stroke-opacity" values="0.5;0;0.5" dur="2.6s" repeatCount="indefinite" />
+            </circle>
+            {/* Third faster inner pulse */}
+            <circle cx={cx} cy={cy} r={coreR + 6} fill="none" stroke="#a5b4fc" strokeOpacity="0.4" strokeWidth="0.8">
+              <animate attributeName="r" values={`${coreR + 4};${coreR + 22};${coreR + 4}`} dur="1.8s" begin="0.9s" repeatCount="indefinite" />
+              <animate attributeName="stroke-opacity" values="0.55;0;0.55" dur="1.8s" begin="0.9s" repeatCount="indefinite" />
+            </circle>
             <circle cx={cx} cy={cy} r={coreR + 8} fill="#0f172a" opacity="0.12" />
-            <circle cx={cx} cy={cy} r={coreR} fill="url(#coreGrad)" />
+            {/* Core disk — subtle breath */}
+            <circle cx={cx} cy={cy} r={coreR} fill="url(#coreGrad)">
+              <animate attributeName="r" values={`${coreR};${coreR + 2.5};${coreR}`} dur="3.2s" repeatCount="indefinite" />
+            </circle>
+
             <text x={cx} y={cy - 4} textAnchor="middle" fontSize="15" fill="#fafafa" fontFamily="ui-monospace, monospace" fontWeight="600">
               {centerLabel}
             </text>

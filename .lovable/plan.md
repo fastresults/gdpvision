@@ -1,25 +1,44 @@
-## Goal
-Add small, discreet info icons next to each of the three sidebar entries (Personas, Segments, Studies) in the Chamber 07 layout, so novice users get a concise, high-value McKinsey-style explanation of *what it is*, *when to use it*, and *the decision value* — without cluttering the nav.
+# Bring the Second Brain to life
 
-## Where
-Single file: `src/routes/_authenticated/admin/countries.$code.personas.tsx` (the `PersonasLayout` sidebar that already renders the three nav items).
+Right now the constellation only animates the flowing dots along threads — the orbs, core, and background are static, which makes the whole diagram read as a still illustration. I'll layer several subtle, continuous motions so it breathes like a living system without becoming noisy.
 
-## Design
-- Add an `info?: string | { what: string; use: string; value: string }` field to each nav item entry.
-- Render a tiny `Info` icon (lucide, `h-3.5 w-3.5`, `text-muted-foreground/60 hover:text-foreground`) inline at the right edge of each row, only visible on row hover/focus so the nav stays clean.
-- Wrap the icon in shadcn `HoverCard` (desktop hover, keyboard-focusable) + `Popover` fallback for touch — or simply use `HoverCard` which already handles focus. Content width ~280px.
-- Popover content, McKinsey-style, ~50–70 words each with three micro-sections:
-  - **What it is** — one sentence definition.
-  - **When to use** — 1–2 concrete decision moments.
-  - **Why it matters** — the outcome/value it unlocks.
-- Prevent the icon click from triggering nav (stopPropagation, `e.preventDefault` inside HoverCard trigger).
+## Scope
+Single file: `src/components/country-data/BrainConstellation.tsx`. Pure SVG/CSS animation — no data or logic changes.
 
-## Copy (draft)
-- **Personas** — What: AI-generated synthetic citizens grounded in this country's second-brain data. When: pressure-test a policy, message, or product before a single dollar or dispatch. Why: surface objections, hopes and blind spots from voices you'd otherwise miss.
-- **Segments** — What: coherent groups of personas sharing geography, livelihood or attitude. When: targeting a program, tailoring comms, or sizing an intervention. Why: converts millions of citizens into a handful of decision-ready audiences.
-- **Studies** — What: structured surveys and focus groups run against your personas and segments. When: you need directional evidence in hours, not weeks. Why: de-risks Cabinet decisions with cited, reproducible signal before field research.
+## Motion layers to add
 
-## Acceptance
-- Icon is visually quiet (small, muted, appears on row hover/focus).
-- Hover/tap opens a compact card with the three-section brief; clicking the icon does not navigate.
-- Works keyboard-accessible; no layout shift in the sidebar.
+1. **Core "SYSTEM" node — heartbeat**
+   - Soft dual-ring pulse (2 concentric circles) expanding and fading every ~2.5s.
+   - Gentle scale breath (1.00 → 1.04 → 1.00) on the core disk.
+   - Slow rotating conic/gradient halo underneath (20s loop) so the center always feels alive.
+
+2. **Country orbs — breathing + halo**
+   - Each orb gets a slow scale breath (~3–4s) with a randomized phase per country so they don't pulse in unison.
+   - Faint radial glow ring behind each orb that expands/fades on the same offset.
+   - Orbs with recent activity (last 24h) get a brighter amber halo pulse at a faster cadence.
+
+3. **Sector orbs — shimmer**
+   - Subtle opacity shimmer (0.85 → 1 → 0.85) on the stroke, staggered by index.
+   - Recent-activity sectors (already amber) get a stronger pulse ring matching the country pattern.
+
+4. **Threads — living lines**
+   - Very subtle stroke-opacity oscillation on all threads (0.35 → 0.55) so the web feels like it's inhaling.
+   - Keep existing flowing dots; slightly randomize dot speeds per thread for a more organic feel.
+
+5. **Ambient starfield (background)**
+   - 30–40 tiny static-position dots twinkling (opacity 0.1 → 0.4) at random intervals inside the viewbox, behind everything.
+   - Adds depth without competing with data.
+
+6. **Respect user preferences & performance**
+   - Wrap all new animations in a `@media (prefers-reduced-motion: reduce)` guard that disables breath/pulse/shimmer (keeps the diagram fully readable).
+   - All animation is CSS keyframes on SVG attributes/transforms — no JS timers, no re-renders. Zoom control continues to work unchanged.
+
+## Technical notes
+- Add a `<style>` block scoped inside the SVG with keyframes: `pulse-ring`, `breath`, `shimmer`, `twinkle`, `halo-spin`.
+- Use `transform-box: fill-box; transform-origin: center` on animated `<circle>` elements so scale breathes from each orb's own center.
+- Stagger via inline `style={{ animationDelay: `${(i % 7) * 0.35}s` }}` per orb — cheap and deterministic.
+- No new dependencies.
+
+## Out of scope
+- No changes to zoom control, labels, filtering, tooltips, or data flow.
+- No changes to other diagrams or routes.

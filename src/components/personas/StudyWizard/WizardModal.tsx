@@ -136,9 +136,19 @@ export function StudyWizardModal({ open, onClose, countryCode, draftId: initialD
               <div className="flex h-full items-center justify-center text-sm text-ink-500">
                 <Loader2 size={14} className="mr-2 animate-spin" /> Preparing wizard…
               </div>
+            ) : autorun ? (
+              <AutoRunConsole
+                draftId={draftId}
+                countryCode={countryCode}
+                onDone={(studyId) => {
+                  onClose();
+                  navigate({ to: "/admin/countries/$code/personas/studies/$id", params: { code: countryCode, id: studyId } });
+                }}
+                onCancel={() => { setAutorun(false); refreshDraft(); }}
+              />
             ) : (
               <>
-                {step === "brief"   && <StepBrief   draftId={draftId} countryCode={countryCode} draft={draftQ.data!} onNext={() => { setStep("outcome"); refreshDraft(); }} onSaved={refreshDraft} />}
+                {step === "brief"   && <StepBrief   draftId={draftId} countryCode={countryCode} draft={draftQ.data!} onNext={() => { setStep("outcome"); refreshDraft(); }} onSaved={refreshDraft} onAutoRun={() => setAutorun(true)} />}
                 {step === "outcome" && <StepOutcome draftId={draftId} countryCode={countryCode} draft={draftQ.data!} onNext={() => { setStep("cast"); refreshDraft(); }} />}
                 {step === "cast"    && <StepCast    draftId={draftId} countryCode={countryCode} draft={draftQ.data!} onNext={() => { setStep("preview"); refreshDraft(); }} />}
                 {step === "preview" && <StepPreview draft={draftQ.data!} onNext={() => setStep("launch")} onBack={() => setStep("cast")} />}

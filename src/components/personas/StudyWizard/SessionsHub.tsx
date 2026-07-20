@@ -32,7 +32,6 @@ const STEP_TONE: Record<string, string> = {
   launch: "border-indigo-400 bg-indigo-50 text-indigo-800",
   done: "border-emerald-600 bg-emerald-50 text-emerald-800",
 };
-};
 
 function relative(iso: string): string {
   const d = new Date(iso).getTime();

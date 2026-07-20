@@ -1,61 +1,89 @@
-## Forensic diagnosis
 
-Symptom: clicking **Build deliverable blueprint** in Chamber 07 · Step 2 fails / hangs / returns "AI returned no blueprint — try again."
+## What you're looking at
 
-What the evidence shows:
-- The Lovable AI Gateway call succeeds (HTTP 200, ~12.5s, 1349 in / 1831 out tokens on the most recent attempt).
-- The failure is on our side: `safeParse` in `src/lib/personas/wizard.functions.ts` cannot recover a `{ deliverables: [...] }` object from the model's response, or Gemini emits it under a different top-level shape / with markdown fences / with a reasoning preamble large enough that the greedy `\{[\s\S]*\}` regex grabs the wrong braces.
-- There is no retry, no schema enforcement, no model fallback, and no way for the user (or us) to see the raw output. A single bad completion kills the whole step and the mutation surfaces one short red line.
-- The 8-second-plus wait with a single spinner also reads as "broken" to the user even when the call is still in flight.
+The screen labeled **"Studio assets · 4"** is the **Sessions Hub** (`src/components/personas/StudyWizard/SessionsHub.tsx`), rendered on the Persona Lab index route.
 
-Root cause: the step is **one unguarded LLM call with a soft prompt-level JSON contract**. It has no schema, no repair, no fallback, no observability, and no deterministic floor — so any Gemini quirk (fenced output, extra prose, `type: reasoning` chunk, key rename) drops the whole step.
+It is a **draft library**, not a run output. Every time the wizard modal opens it calls `createDraft(...)` in `src/lib/personas/wizard.functions.ts`, which inserts a row into `persona_study_drafts`. The hub then lists those rows with their last-reached step (`01 · BRIEF`, `02 · OUTCOME`, `03 · CAST`, …), age, and counts.
 
-## Fix: a robust, multi-layer blueprint pipeline
+### Why it appeared instead of a generated study
 
-Rebuild `enrichOutcome` as a small pipeline with a guaranteed floor, then wire the UI to show progress and debug detail.
+The current Chamber 07 flow is a **5-step manual wizard** — Brief → Outcome → Cast → Preview → Launch — where each step requires an explicit click:
 
-### 1. Deterministic scaffold floor (server)
+1. `Enrich into Research Scope` (Gemini)
+2. `Build deliverable blueprint` (returns scaffold or AI-enriched blueprint)
+3. `Draft cast` (Perplexity fills persona/segment/instrument gaps)
+4. `Preview`
+5. `Launch` → only here does `commitStudy` persist the real `persona_studies` + personas/segments/instruments and route to the study page.
 
-In `src/lib/personas/wizard.functions.ts`, add `DELIVERABLE_TEMPLATES` — a hand-authored map keyed by the 8 codes in `DELIVERABLE_LIBRARY`, each with McKinsey-grade default `sections`, `evidence_density`, `length_hint`. Build a `scaffoldBlueprint(selectedCodes, tone)` that returns a valid `DeliverableBlueprint` from templates alone. This is the floor: the step can never return "no blueprint" again.
+If you close the modal at any point (or the AI step returns scaffold-only), the draft is saved to `persona_study_drafts` and shows up in the hub — but nothing has been "run." There is currently **no single action that says "take this brief, generate everything, and execute the synthetic analysis."** That is the gap.
 
-### 2. AI enrichment with structured output + repair loop
+The four rows you see are exactly that: three drafts that never reached Launch, plus one recent brief-only draft ("Untitled brief · 14m ago").
 
-Replace the current single `callGateway` call with `enrichBlueprintWithAi(scaffold, scope, extraGuidance, tone)`:
+---
 
-- **Primary attempt** — use the AI SDK (`generateText` + `Output.object`) via the existing `createLovableAiGatewayProvider`, model `google/gemini-2.5-flash`. Pass a strict Zod schema mirroring `DeliverableBlueprint` (no `.min/.max`, all fields required, `.nullable()` for optional). Prompt asks the model to *refine* the scaffold (tighten sections, tune length hint, respect tone, weave in scope + extra guidance), not create from scratch.
-- **Self-repair on parse failure** — catch `NoObjectGeneratedError` (per `ai-sdk-lovable-gateway`), `JSON.parse` `error.text`, and if that also fails, run one repair call: "Your previous response wasn't valid JSON for this schema. Here is what you returned: <raw>. Return the same content, valid JSON only."
-- **Model fallback** — on second failure, retry with `openai/gpt-5.4-mini` (build a second provider with `structuredOutputs: true` so `Output.object` enforces the schema server-side).
-- **Floor merge** — whatever survives (AI or repair or fallback) is *merged into the scaffold*, per-deliverable, preserving any AI-improved `sections/length_hint/evidence_density` and falling back to scaffold values field-by-field. If every AI attempt fails, we still return the scaffold, mark `ai_status: "scaffold_only"`, and store the raw AI output + last error on the draft so the user can retry manually without losing the step.
+## Plan — add an "Auto-run" path (AI-first, end-to-end)
 
-### 3. Persist attempts + observability
+Goal: from a single brief (typed / spoken / uploaded), one click generates the scope, blueprint, cast, commits the study, and kicks off the synthetic analysis — with the 5-step wizard preserved for power users who want to intervene.
 
-Extend the `persona_study_drafts.outcome_blueprint` JSON payload with:
+### 1. New server function: `autoRunStudy` (in `wizard.functions.ts`)
+A single server function that internally chains, with progress checkpoints written to the draft after each phase so the UI can stream status:
+
 ```
-{ tone, deliverables, ai_status: "enriched"|"repaired"|"scaffold_only", ai_model, ai_run_id, ai_raw_excerpt, ai_error }
+phase 1 · enrichBrief     → brief_scope
+phase 2 · enrichOutcome   → outcome_blueprint  (scaffold fallback preserved)
+phase 3 · draftCast       → cast_draft (personas/segments/instruments)
+phase 4 · commitStudy     → persona_studies row + child rows
+phase 5 · runSynthesis    → triggers existing per-instrument synthetic answers
+                            (reuses whatever Chamber 07 "Launch" already runs)
 ```
-Forward the `X-Lovable-AIG-Run-ID` header from the provider (via `withLovableAiGatewayRunIdHeader` / `getLovableAiGatewayRunId`) so we always have a run id to correlate with `ai_gateway_logs`.
 
-### 4. UI: honest progress + debug + never-empty state (`src/components/personas/StudyWizard/WizardModal.tsx`)
+Every phase writes `draft.autorun_status = { phase, state: 'running'|'done'|'failed', message, ts }` so a poll from the client can render a live progress panel. On any phase failure, the draft stays resumable in the wizard at that step — no dead-ends.
 
-- Split the button state into 3 visible phases: `Scaffolding → Enriching with AI → Finalizing`. Drive with a `useState` phase updated by an optimistic timer while the mutation is pending, so the user always sees motion (matches Chamber 07 tone).
-- On success, the right-hand panel always renders (scaffold is never empty). Add a small chip: `AI enriched` / `Repaired` / `Scaffold only — retry`.
-- On `scaffold_only`, show an inline "Retry AI enrichment" button (calls a new `retryOutcomeAi` server fn) and a collapsed `<details>` "Debug" with `ai_model`, `ai_run_id`, first 400 chars of `ai_raw_excerpt`, and `ai_error`. Also surface the run id in the error toast so we can jump straight to gateway logs.
-- Keep the `<PrettyJson>` contract for the debug JSON (per project memory).
+### 2. Corpus-first, deep-research fallback (already the pattern — enforce it explicitly)
+`draftCast` already consults second-brain context and only falls back to Perplexity for gaps. Extend the same pattern to `enrichOutcome`:
+- Pull relevant sector dossiers, ministry profiles, KPIs, and prior studies for the country before calling the model.
+- Only when corpus coverage is thin, add a Perplexity deep-research pass (with `source_url` requirement) to fill missing stakeholder/segment context.
+- Store `sources_used: { corpus: [...], web: [...] }` on the draft for provenance.
 
-### 5. Guard the other wizard steps with the same primitives
+### 3. UI — "Auto-run" primary action on the Brief step
+In `WizardModal.tsx` `StepBrief`, add a second primary button next to `Enrich into Research Scope`:
 
-`enrichBrief` and `draftCast` have the exact same fragility. In this same pass, extract the retry/repair/fallback logic into a shared `callStructured<T>(system, user, schema, { fallbackModel })` helper in `wizard.functions.ts` and use it in all three steps. `draftCast` also gets a deterministic scaffold (personas synthesized from `context-pack` corpus rows) so the wizard can never bottom out.
+```
+[ ✨ Auto-run full study ]     [ Enrich into Research Scope ]  (advanced)
+```
 
-## Files to change
+When clicked:
+- Modal switches to a full-height **Auto-run console** with the 5 phase rows, each showing spinner → check → summary chip (e.g. "8 personas · 3 segments · 2 instruments").
+- On completion, navigate directly to the committed study page — same destination as manual Launch.
+- On failure at any phase, show "Resume in wizard at step X" — which just re-opens the modal at that step (leveraging the existing draft).
 
-- `src/lib/personas/wizard.functions.ts` — add `DELIVERABLE_TEMPLATES`, `scaffoldBlueprint`, `callStructured` helper, rewrite `enrichOutcome`, add `retryOutcomeAi` server fn, extend blueprint payload; apply the same helper to `enrichBrief` and `draftCast`.
-- `src/lib/ai-gateway.server.ts` — accept optional `{ structuredOutputs?: boolean }` so OpenAI fallback enforces the schema (per `ai-sdk-lovable-gateway`).
-- `src/components/personas/StudyWizard/WizardModal.tsx` — phased progress, always-visible scaffold, status chip, retry-AI button, debug `<details>` with `PrettyJson`.
-- No schema/migration changes: everything fits in the existing `outcome_blueprint jsonb`.
+### 4. UI — make the Sessions Hub self-explanatory
+Small copy + affordance changes so it stops looking like "why is this here":
+- Rename header: **"Studio assets · 4"** → **"Saved sessions · 4"** with subhead: *"Drafts you started but haven't launched. Auto-run finishes them end-to-end; opening a row resumes the wizard."*
+- Add a small **status badge** per row: `Draft` / `Ready to launch` / `Auto-running` / `Committed` (derived from `autorun_status` + presence of a linked `persona_studies.id`).
+- Add per-row **"▶ Auto-run"** action that re-enters `autoRunStudy` for existing drafts (starting from whichever phase is incomplete).
 
-## Success criteria
+### 5. Landing entry point
+The `LAUNCH RESEARCH STUDIO` button already opens the wizard on a blank draft. Keep that. Add a companion tile above the hub:
 
-- Clicking **Build deliverable blueprint** never leaves the user with an empty red-lined step — worst case they see the scaffold blueprint with a visible "Retry AI enrichment" affordance.
-- When AI succeeds, sections/length/evidence density reflect the scope and extra guidance (verified end-to-end on GRD with the CBI rebrand example).
-- When AI fails, `ai_run_id` and a raw excerpt are visible in the UI and stored on the draft for forensics.
-- Same robustness pattern is in place for Step 1 (brief) and Step 3 (cast), so the wizard degrades gracefully instead of dead-ending.
+> **New study — auto-run**
+> Paste, dictate, or upload a brief. AI generates the scope, blueprint, cast, and runs the synthetic analysis in one pass.
+
+with a compact `MultimodalInput` inline, and a single **Auto-run** button that internally does: `createDraft` → save `brief_raw` + `uploads` → open modal in Auto-run console mode.
+
+### 6. Data
+- Add `autorun_status jsonb` and `study_id uuid null` columns to `persona_study_drafts` (nullable, backward-compatible). `study_id` links a committed run so the hub can badge "Committed → open study."
+- Migration includes the standard `GRANT` block per project rules.
+
+### Technical notes
+
+- All new AI calls go through the existing Lovable AI Gateway helper (`ai-sdk-lovable-gateway`), reuse the `callStructured` self-repair + fallback path already in `wizard.functions.ts`, and honor scaffold-only degradation so Auto-run never dead-ends.
+- `autoRunStudy` is a single `createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])` chain; phases are `await`ed sequentially inside the handler. No new endpoints, no edge functions.
+- The synthesis phase (persona × instrument answers) reuses whatever the existing manual Launch already invokes — Auto-run just calls it after `commitStudy` resolves.
+- Client polls `getDraft` every 1.5s while `autorun_status.state === 'running'` to render the console; on `done` for phase 5 it navigates to the study page.
+
+### Out of scope for this pass
+- Cross-study comparison / archive filters in the hub.
+- Voice-assistant style back-and-forth clarification (today: single-shot brief → run).
+- Editing the blueprint after Auto-run finishes (still reachable through the manual wizard on the draft).
+

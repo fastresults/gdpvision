@@ -14,37 +14,55 @@ import {
   validCitationsForRefs,
 } from "@/lib/citations/hygiene";
 
-const GEN_MODEL_PRIMARY = "google/gemini-2.5-flash";
-const GEN_MODEL_FALLBACK = "openai/gpt-5.4-mini";
+const GEN_MODEL_PRIMARY = "google/gemini-3.5-flash";
+const GEN_MODEL_FALLBACK = "google/gemini-3.1-flash-lite";
+const GATEWAY_TIMEOUT_MS = 45_000;
 
 type GatewayResult = { content: string; model: string; runId?: string };
 
 async function callGateway(
   system: string,
   user: string,
-  opts: { model?: string; temperature?: number } = {},
+  opts: { model?: string; temperature?: number; timeoutMs?: number } = {},
 ): Promise<GatewayResult> {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) throw new Error("Lovable AI Gateway not configured");
   const model = opts.model ?? GEN_MODEL_PRIMARY;
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: `${system}\n\nRespond with a single valid JSON object only. No prose, no markdown fences.` },
-        { role: "user", content: user },
-      ],
-      temperature: opts.temperature ?? 0.4,
-    }),
-  });
+  const timeoutMs = opts.timeoutMs ?? GATEWAY_TIMEOUT_MS;
+
+  let res: Response;
+  try {
+    res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Lovable-API-Key": apiKey,
+        "X-Lovable-AIG-SDK": "vercel-ai-sdk",
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: `${system}\n\nRespond with a single valid JSON object only. No prose, no markdown fences.` },
+          { role: "user", content: user },
+        ],
+        temperature: opts.temperature ?? 0.4,
+        response_format: { type: "json_object" },
+      }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (e) {
+    const err = e as Error & { name?: string };
+    if (err?.name === "TimeoutError" || err?.name === "AbortError") {
+      throw new Error(`AI Gateway timed out after ${Math.round(timeoutMs / 1000)}s (${model})`);
+    }
+    throw new Error(`AI Gateway network error (${model}): ${err?.message ?? String(e)}`);
+  }
   const runId = res.headers.get("X-Lovable-AIG-Run-ID") ?? undefined;
   if (!res.ok) {
-    const t = await res.text();
+    const t = await res.text().catch(() => "");
     if (res.status === 429) throw new Error("AI rate limit — try again in a moment.");
     if (res.status === 402) throw new Error("AI credits exhausted for this workspace.");
-    throw new Error(`AI Gateway ${res.status}: ${t.slice(0, 300)}`);
+    throw new Error(`AI Gateway ${res.status} (${model}): ${t.slice(0, 300)}`);
   }
   const j = (await res.json()) as {
     choices?: Array<{
@@ -115,8 +133,7 @@ async function callStructured<T>(
 ): Promise<{ value: T; ai_status: "enriched" | "repaired" | "fallback"; ai_model: string; ai_run_id?: string; ai_raw_excerpt: string }> {
   const attempts: Array<{ model: string; temperature?: number }> = [
     { model: GEN_MODEL_PRIMARY, temperature: 0.35 },
-    { model: GEN_MODEL_PRIMARY, temperature: 0.15 }, // self-repair pass (lower temp)
-    { model: GEN_MODEL_FALLBACK, temperature: 0.2 },
+    { model: GEN_MODEL_FALLBACK, temperature: 0.2 }, // fast fallback — no third attempt to preserve Worker budget
   ];
   let lastRaw = "";
   let lastError: unknown;
@@ -125,7 +142,7 @@ async function callStructured<T>(
   for (let i = 0; i < attempts.length; i++) {
     const attempt = attempts[i];
     try {
-      const userMsg = i === 1 && lastRaw
+      const userMsg = i > 0 && lastRaw
         ? `${user}\n\n---\nYour previous response was not valid JSON matching the required shape. You returned:\n${lastRaw.slice(0, 1200)}\n\nReturn the SAME content, but as a single valid JSON object matching the schema above. No prose, no fences.`
         : user;
       const res = await callGateway(system, userMsg, attempt);
@@ -134,7 +151,7 @@ async function callStructured<T>(
       lastRunId = res.runId;
       const parsed = safeParse<unknown>(res.content);
       if (parsed && validate(parsed)) {
-        const status = i === 0 ? "enriched" : i === 1 ? "repaired" : "fallback";
+        const status = i === 0 ? "enriched" : "fallback";
         return { value: parsed, ai_status: status, ai_model: res.model, ai_run_id: res.runId, ai_raw_excerpt: res.content.slice(0, 800) };
       }
     } catch (e) {
@@ -152,26 +169,33 @@ async function callStructured<T>(
   throw err;
 }
 
-async function perplexityDeepResearch(query: string, country: string): Promise<{
+async function perplexityDeepResearch(query: string, country: string, timeoutMs = 30_000): Promise<{
   answer: string;
   citations: string[];
 }> {
   const key = process.env.PERPLEXITY_API_KEY;
   if (!key) return { answer: "", citations: [] };
-  const res = await fetch("https://api.perplexity.ai/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "sonar-reasoning-pro",
-      messages: [
-        { role: "system", content: "You are a McKinsey-grade research analyst. Return a 3-6 sentence factual synthesis grounded in cited web sources. Every claim must be citable." },
-        { role: "user", content: `Country: ${country}\nResearch question: ${query}\n\nSynthesize what is publicly known, with concrete numbers and named stakeholders where possible.` },
-      ],
-      temperature: 0.2,
-    }),
-  });
+  let res: Response;
+  try {
+    res = await fetch("https://api.perplexity.ai/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "sonar-pro",
+        messages: [
+          { role: "system", content: "You are a McKinsey-grade research analyst. Return a 3-6 sentence factual synthesis grounded in cited web sources. Every claim must be citable." },
+          { role: "user", content: `Country: ${country}\nResearch question: ${query}\n\nSynthesize what is publicly known, with concrete numbers and named stakeholders where possible.` },
+        ],
+        temperature: 0.2,
+      }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch {
+    return { answer: "", citations: [] };
+  }
   if (!res.ok) return { answer: "", citations: [] };
-  const j = await res.json();
+  const j = await res.json().catch(() => null);
+  if (!j) return { answer: "", citations: [] };
   const answer: string = j?.choices?.[0]?.message?.content ?? "";
   const citations: string[] = Array.isArray(j?.citations) ? j.citations : [];
   return { answer, citations };
@@ -354,6 +378,15 @@ export const enrichBrief = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => EnrichBriefInput.parse(d))
   .handler(async ({ data, context }) => {
+    // Idempotency: skip if already enriched.
+    const { data: existing } = await context.supabase
+      .from("persona_study_drafts")
+      .select("brief_scope")
+      .eq("id", data.draftId)
+      .maybeSingle();
+    if (existing?.brief_scope) {
+      return { scope: existing.brief_scope as unknown as ResearchScope, alreadyDone: true as const };
+    }
     const pack = await buildCountryContextPack(context.supabase, data.countryCode, data.raw.slice(0, 400));
     const scoped = await callStructured<ResearchScope>(
       "You are a McKinsey engagement partner scoping a sovereign research study. Convert the client's raw brief into a rigorous Research Scope. Return strict JSON only.",
@@ -539,9 +572,14 @@ export const enrichOutcome = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: draft } = await context.supabase
       .from("persona_study_drafts")
-      .select("brief_scope,brief_raw")
+      .select("brief_scope,brief_raw,outcome_blueprint")
       .eq("id", data.draftId)
       .maybeSingle();
+    // Idempotency: skip when we already have an AI-enriched blueprint.
+    const existingBp = draft?.outcome_blueprint as DeliverableBlueprint | null;
+    if (existingBp?.deliverables?.length && existingBp.ai_status && existingBp.ai_status !== "scaffold_only") {
+      return { blueprint: existingBp, alreadyDone: true as const };
+    }
     const picks = DELIVERABLE_LIBRARY.filter((d) => data.selectedCodes.includes(d.code));
     if (picks.length === 0) throw new Error("Select at least one deliverable.");
 
@@ -651,10 +689,14 @@ export const draftCast = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: draft } = await context.supabase
       .from("persona_study_drafts")
-      .select("brief_scope,outcome_blueprint,uploads")
+      .select("brief_scope,outcome_blueprint,uploads,cast_draft")
       .eq("id", data.draftId)
       .maybeSingle();
     if (!draft?.brief_scope) throw new Error("Complete the brief step first.");
+    const existingCast = draft.cast_draft as CastDraft | null;
+    if (existingCast?.personas?.length) {
+      return { cast: existingCast, contextCitations: [], alreadyDone: true as const };
+    }
 
     const scope = draft.brief_scope as ResearchScope;
     const blueprint = (draft.outcome_blueprint as DeliverableBlueprint) ?? { tone: "cabinet", deliverables: [] };
@@ -669,19 +711,27 @@ export const draftCast = createServerFn({ method: "POST" })
     );
 
     const gapProbeRaw = await callGateway(
-      "You are a research director. Given the study scope and available context, list up to 5 concrete evidence gaps that must be closed with fresh open-web research before the cast can be trusted. Return strict JSON.",
+      "You are a research director. Given the study scope and available context, list up to 3 concrete evidence gaps that must be closed with fresh open-web research before the cast can be trusted. Return strict JSON.",
       `SCOPE:\n${JSON.stringify(scope, null, 2)}\n\n${pack.block}\n\n${uploadsText}\n\nReturn: { "gaps": ["specific web-researchable question", ...] }`,
     );
-    const gaps = (safeParse<{ gaps: string[] }>(gapProbeRaw.content)?.gaps ?? []).slice(0, 5);
+    const gaps = (safeParse<{ gaps: string[] }>(gapProbeRaw.content)?.gaps ?? []).slice(0, 3);
 
-    const deepResearch: { question: string; answer: string; citations: string[] }[] = [];
-    if (data.allowDeepResearch) {
-      for (const q of gaps) {
-        try {
-          const dr = await perplexityDeepResearch(q, data.countryCode);
-          if (dr.answer) deepResearch.push({ question: q, ...dr });
-        } catch { /* skip individual failures */ }
-      }
+    // Run gap probes in parallel with per-call timeout + global 90s wall budget.
+    let deepResearch: { question: string; answer: string; citations: string[] }[] = [];
+    let partialDeepResearch = false;
+    if (data.allowDeepResearch && gaps.length) {
+      const wallDeadline = Date.now() + 90_000;
+      const results = await Promise.allSettled(
+        gaps.map(async (q) => {
+          const remaining = Math.max(5_000, wallDeadline - Date.now());
+          const dr = await perplexityDeepResearch(q, data.countryCode, Math.min(30_000, remaining));
+          return dr.answer ? { question: q, ...dr } : null;
+        }),
+      );
+      deepResearch = results
+        .map((r) => (r.status === "fulfilled" ? r.value : null))
+        .filter((v): v is NonNullable<typeof v> => v !== null);
+      partialDeepResearch = deepResearch.length < gaps.length;
     }
 
     const deepBlock = deepResearch.length
@@ -724,7 +774,8 @@ Rules: every persona and segment MUST cite at least one grounding_ref. member_in
         uploads: Array.isArray(draft.uploads) ? (draft.uploads as unknown[]).length : 0,
         deep_research: deepResearch.length,
       },
-    };
+      ...(partialDeepResearch ? { partial: true } : {}),
+    } as CastDraft & { partial?: boolean };
 
     await context.supabase
       .from("persona_study_drafts")
@@ -756,6 +807,9 @@ export const commitStudy = createServerFn({ method: "POST" })
       .eq("id", data.draftId)
       .maybeSingle();
     if (!draft?.cast_draft) throw new Error("Complete the cast step first.");
+    if ((draft as { study_id?: string | null }).study_id) {
+      return { studyId: (draft as { study_id: string }).study_id, personaCount: (draft.cast_draft as CastDraft).personas.length, alreadyDone: true as const };
+    }
 
     const scope = (draft.brief_scope as ResearchScope) ?? { title: draft.title ?? "Untitled study" };
     const cast = draft.cast_draft as CastDraft;

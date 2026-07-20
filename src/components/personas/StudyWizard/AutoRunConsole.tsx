@@ -1,37 +1,37 @@
-// Chamber 07 · Research Studio · Auto-run console — brief → outcome → cast → commit → synthesis.
+// Chamber 07 · Research Studio · Auto-run console (server-driven, poll-based).
+// The client just starts, ticks, and polls. All work — brief → outcome → cast → commit → synthesis —
+// runs server-side under an advisory lock so tab-close / double-click / two-tabs are all safe.
+
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Check, Loader2, Rocket, RotateCcw } from "lucide-react";
 
 import {
-  commitStudy, draftCast, enrichBrief, enrichOutcome, getDraft, saveDraft,
-} from "@/lib/personas/wizard.functions";
-import { draftStudyQuestions, runStudy } from "@/lib/personas/study.functions";
-
-export type AutoRunPhaseId = "brief" | "outcome" | "cast" | "commit" | "synthesis";
+  cancelAutorun,
+  getAutorunStatus,
+  runAutorunTick,
+  startAutorun,
+  type AutoRunPhase,
+  type PhaseLogEntry,
+} from "@/lib/personas/autorun.functions";
 
 type PhaseState = "pending" | "running" | "done" | "failed" | "skipped";
 
 type PhaseRow = {
-  id: AutoRunPhaseId;
+  id: AutoRunPhase;
   label: string;
   detail: string;
   state: PhaseState;
   summary?: string;
   error?: string;
+  durationMs?: number;
 };
 
-const PHASES: Array<{ id: AutoRunPhaseId; label: string; detail: string }> = [
-  { id: "brief",     label: "Enrich the brief",     detail: "Turn the raw brief into a McKinsey Research Scope." },
-  { id: "outcome",   label: "Blueprint deliverables", detail: "Scaffold + AI-refined SCQA memo, stakeholder map, survey, guide, readout." },
-  { id: "cast",      label: "Cast personas & instruments", detail: "Corpus-first with open-web deep research for gaps." },
-  { id: "commit",    label: "Commit to workspace",  detail: "Persist study, personas, segments, instruments, evidence ledger." },
-  { id: "synthesis", label: "Run synthetic analysis", detail: "Draft questions, generate per-persona responses, synthesize themes." },
-];
-
-// Sensible, broad defaults for a one-click Cabinet-grade run.
-const DEFAULT_DELIVERABLES = [
-  "scqa_memo", "stakeholder_map", "segment_matrix",
-  "focus_group_guide", "survey", "exec_readout",
+const PHASES: Array<{ id: AutoRunPhase; label: string; detail: string }> = [
+  { id: "brief",     label: "Enrich the brief",              detail: "Turn the raw brief into a McKinsey Research Scope." },
+  { id: "outcome",   label: "Blueprint deliverables",        detail: "Scaffold + AI-refined SCQA memo, stakeholder map, survey, guide, readout." },
+  { id: "cast",      label: "Cast personas & instruments",   detail: "Corpus-first with open-web deep research for gaps." },
+  { id: "commit",    label: "Commit to workspace",           detail: "Persist study, personas, segments, instruments, evidence ledger." },
+  { id: "synthesis", label: "Run synthetic analysis",        detail: "Draft questions, generate per-persona responses, synthesize themes." },
 ];
 
 type Props = {
@@ -41,165 +41,108 @@ type Props = {
   onCancel: () => void;
 };
 
-export function AutoRunConsole({ draftId, countryCode, onDone, onCancel }: Props) {
+export function AutoRunConsole({ draftId, countryCode: _countryCode, onDone, onCancel }: Props) {
   const [rows, setRows] = useState<PhaseRow[]>(
     PHASES.map((p) => ({ ...p, state: "pending" })),
   );
-  const [running, setRunning] = useState(false);
+  const [status, setStatus] = useState<"queued" | "running" | "done" | "failed" | "canceled">("queued");
+  const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [studyId, setStudyId] = useState<string | null>(null);
   const startedRef = useRef(false);
+  const stopRef = useRef(false);
+  const tickingRef = useRef(false);
 
-  const patchRow = (id: AutoRunPhaseId, patch: Partial<PhaseRow>) =>
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
-
-  async function persistStatus(id: AutoRunPhaseId, state: PhaseState, message?: string) {
-    try {
-      await saveDraft({
-        data: {
-          id: draftId,
-          patch: {
-            autorun_status: { phase: id, state, message: message ?? null, ts: new Date().toISOString() },
-          },
-        },
-      });
-    } catch { /* non-fatal */ }
+  function applyPhaseLog(log: PhaseLogEntry[], activePhase: AutoRunPhase | null) {
+    setRows((prev) =>
+      prev.map((r) => {
+        const entries = log.filter((e) => e.phase === r.id);
+        const last = entries[entries.length - 1];
+        if (r.id === activePhase && (!last || last.state === "failed")) {
+          return { ...r, state: "running", summary: last?.summary, error: undefined, durationMs: last?.duration_ms };
+        }
+        if (!last) return { ...r, state: "pending" };
+        return {
+          ...r,
+          state: last.state,
+          summary: last.summary,
+          error: last.error,
+          durationMs: last.duration_ms,
+        };
+      }),
+    );
   }
 
-  async function runOnce() {
-    if (running) return;
-    setRunning(true);
+  async function pollStatus() {
+    const s = await getAutorunStatus({ data: { draftId } });
+    applyPhaseLog(s.phaseLog, s.status === "running" ? s.nextPhase : null);
+    setStatus(s.status);
+    setStatusMsg(s.message);
+    if (s.studyId) setStudyId(s.studyId);
+    return s;
+  }
 
+  async function tickLoop() {
+    if (tickingRef.current) return;
+    tickingRef.current = true;
     try {
-      const draft = await getDraft({ data: { id: draftId } });
+      // Prime the UI with any prior state.
+      await pollStatus();
 
-      // Phase 1 · brief
-      if (draft.brief_scope) {
-        patchRow("brief", { state: "skipped", summary: "Scope already enriched." });
-      } else {
-        patchRow("brief", { state: "running" });
-        await persistStatus("brief", "running");
-        const raw = (draft.brief_raw ?? "").trim();
-        if (raw.length < 3) throw new Error("Draft has no brief text. Type or upload a brief first.");
-        try {
-          const res = await enrichBrief({ data: { draftId, countryCode, raw: raw.slice(0, 20000) } });
-          patchRow("brief", {
-            state: "done",
-            summary: `${res.scope.title.slice(0, 80)} · ${res.scope.objectives?.length ?? 0} objectives`,
-          });
-          await persistStatus("brief", "done");
-        } catch (e) {
-          patchRow("brief", { state: "failed", error: (e as Error).message });
-          await persistStatus("brief", "failed", (e as Error).message);
-          throw e;
+      while (!stopRef.current) {
+        const res = await runAutorunTick({ data: { draftId } });
+        // Re-sync the UI from persisted phase log.
+        const s = await pollStatus();
+
+        if (res.done || s.done) {
+          if (s.studyId) setTimeout(() => onDone(s.studyId!), 600);
+          break;
         }
-      }
-
-      // Phase 2 · outcome
-      const draft2 = await getDraft({ data: { id: draftId } });
-      const bp = draft2.outcome_blueprint as { deliverables?: unknown[]; ai_status?: string } | null;
-      if (bp?.deliverables?.length && bp.ai_status !== "scaffold_only") {
-        patchRow("outcome", { state: "skipped", summary: `${bp.deliverables.length} deliverables ready.` });
-      } else {
-        patchRow("outcome", { state: "running" });
-        await persistStatus("outcome", "running");
-        try {
-          const res = await enrichOutcome({
-            data: {
-              draftId, countryCode,
-              selectedCodes: DEFAULT_DELIVERABLES,
-              tone: "cabinet",
-            },
-          });
-          const status = res.blueprint.ai_status ?? "enriched";
-          patchRow("outcome", {
-            state: "done",
-            summary: `${res.blueprint.deliverables.length} deliverables · ${status}`,
-          });
-          await persistStatus("outcome", "done", status);
-        } catch (e) {
-          patchRow("outcome", { state: "failed", error: (e as Error).message });
-          await persistStatus("outcome", "failed", (e as Error).message);
-          throw e;
+        if (s.canceled || s.status === "canceled") break;
+        if (res.state === "failed" || s.status === "failed") break;
+        if ((res as { locked?: boolean }).locked) {
+          // Another tick is holding the lock — wait it out.
+          await new Promise((r) => setTimeout(r, 3_000));
+          continue;
         }
+        // Tiny yield so React can paint the intermediate state.
+        await new Promise((r) => setTimeout(r, 150));
       }
+    } catch (e) {
+      setStatusMsg((e as Error).message);
+      setStatus("failed");
+    } finally {
+      tickingRef.current = false;
+    }
+  }
 
-      // Phase 3 · cast
-      const draft3 = await getDraft({ data: { id: draftId } });
-      const cast = draft3.cast_draft as { personas?: unknown[]; segments?: unknown[]; instruments?: unknown[] } | null;
-      if (cast?.personas?.length) {
-        patchRow("cast", {
-          state: "skipped",
-          summary: `${cast.personas.length} personas · ${cast.segments?.length ?? 0} segments · ${cast.instruments?.length ?? 0} instruments`,
-        });
-      } else {
-        patchRow("cast", { state: "running" });
-        await persistStatus("cast", "running");
-        try {
-          const res = await draftCast({
-            data: { draftId, countryCode, personaCount: 8, segmentCount: 4, allowDeepResearch: true },
-          });
-          patchRow("cast", {
-            state: "done",
-            summary: `${res.cast.personas.length} personas · ${res.cast.segments.length} segments · ${res.cast.instruments.length} instruments · ${res.cast.deep_research.length} deep-research passes`,
-          });
-          await persistStatus("cast", "done");
-        } catch (e) {
-          patchRow("cast", { state: "failed", error: (e as Error).message });
-          await persistStatus("cast", "failed", (e as Error).message);
-          throw e;
-        }
-      }
-
-      // Phase 4 · commit
-      const draft4 = await getDraft({ data: { id: draftId } });
-      let committedStudyId: string | null = (draft4 as { study_id?: string | null }).study_id ?? null;
-      if (committedStudyId) {
-        patchRow("commit", { state: "skipped", summary: "Study already committed." });
-      } else {
-        patchRow("commit", { state: "running" });
-        await persistStatus("commit", "running");
-        try {
-          const res = await commitStudy({ data: { draftId, countryCode, visibility: "private" } });
-          committedStudyId = res.studyId;
-          patchRow("commit", { state: "done", summary: `Study committed · ${res.personaCount} personas persisted` });
-          await persistStatus("commit", "done");
-        } catch (e) {
-          patchRow("commit", { state: "failed", error: (e as Error).message });
-          await persistStatus("commit", "failed", (e as Error).message);
-          throw e;
-        }
-      }
-      setStudyId(committedStudyId);
-
-      // Phase 5 · synthesis
-      patchRow("synthesis", { state: "running" });
-      await persistStatus("synthesis", "running");
-      try {
-        await draftStudyQuestions({ data: { studyId: committedStudyId!, count: 8 } });
-        await runStudy({ data: { studyId: committedStudyId! } });
-        patchRow("synthesis", { state: "done", summary: "Questions drafted · responses generated · brief synthesized" });
-        await persistStatus("synthesis", "done");
-      } catch (e) {
-        patchRow("synthesis", { state: "failed", error: (e as Error).message });
-        await persistStatus("synthesis", "failed", (e as Error).message);
-        // Synthesis failure isn't fatal — study exists. Surface but allow open.
-      }
-
-      // Give the user a beat to see the green checks before navigating.
-      setTimeout(() => onDone(committedStudyId!), 800);
-    } catch { /* halted at failing phase — user can retry */ }
-    finally { setRunning(false); }
+  async function start() {
+    stopRef.current = false;
+    await startAutorun({ data: { draftId } });
+    await tickLoop();
   }
 
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
-    void runOnce();
+    void start();
+    return () => { stopRef.current = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const anyFailed = rows.some((r) => r.state === "failed");
+  async function handleRetry() {
+    stopRef.current = false;
+    await tickLoop();
+  }
+
+  async function handleCancel() {
+    stopRef.current = true;
+    try { await cancelAutorun({ data: { draftId } }); } catch { /* noop */ }
+    onCancel();
+  }
+
+  const anyFailed = rows.some((r) => r.state === "failed") || status === "failed";
   const allDoneOrSkipped = rows.every((r) => r.state === "done" || r.state === "skipped");
+  const running = status === "running" || tickingRef.current;
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -211,7 +154,7 @@ export function AutoRunConsole({ draftId, countryCode, onDone, onCancel }: Props
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Auto-run</p>
           <h3 className="font-serif text-xl text-ink-950">Building the full study end-to-end</h3>
           <p className="mt-0.5 text-[12px] text-ink-500">
-            Brief → deliverable blueprint → cast → commit → synthetic analysis. Powered by corpus-first AI with open-web fallback.
+            Server-driven, resumable. Safe to close this tab — progress persists and continues on refresh.
           </p>
         </div>
       </header>
@@ -266,6 +209,11 @@ export function AutoRunConsole({ draftId, countryCode, onDone, onCancel }: Props
                 {r.state === "failed" && (
                   <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-rose-600">Failed</span>
                 )}
+                {typeof r.durationMs === "number" && r.state !== "pending" && r.state !== "running" && (
+                  <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">
+                    {(r.durationMs / 1000).toFixed(1)}s
+                  </span>
+                )}
               </div>
               <p className="mt-0.5 text-[11px] text-ink-500">{r.detail}</p>
               {r.summary && (
@@ -279,10 +227,16 @@ export function AutoRunConsole({ draftId, countryCode, onDone, onCancel }: Props
         ))}
       </ol>
 
+      {statusMsg && (
+        <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+          {statusMsg}
+        </p>
+      )}
+
       <div className="mt-6 flex items-center justify-between gap-3">
         <button
           type="button"
-          onClick={onCancel}
+          onClick={handleCancel}
           className="border border-line-200 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-700 hover:border-ink-950 hover:text-ink-950"
         >
           Close & keep draft
@@ -291,7 +245,7 @@ export function AutoRunConsole({ draftId, countryCode, onDone, onCancel }: Props
           {anyFailed && !running && (
             <button
               type="button"
-              onClick={() => { void runOnce(); }}
+              onClick={() => { void handleRetry(); }}
               className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700"
             >
               <RotateCcw size={12} /> Retry from failed step

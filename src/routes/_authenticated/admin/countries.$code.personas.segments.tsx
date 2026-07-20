@@ -1,10 +1,38 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery, useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowRight, Layers, Sparkles, Trash2, Users, Wand2, RefreshCw, X, Pause, Play } from "lucide-react";
+import {
+  queryOptions,
+  useSuspenseQuery,
+  useQueryClient,
+  useMutation,
+  useQuery,
+} from "@tanstack/react-query";
+import {
+  ArrowRight,
+  Layers,
+  Sparkles,
+  Trash2,
+  Users,
+  Wand2,
+  RefreshCw,
+  X,
+  Pause,
+  Play,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { deleteSegment, generateSegment, listPersonas, listSegments } from "@/lib/personas/generate.functions";
+import {
+  deleteSegment,
+  generateSegment,
+  listPersonas,
+  listSegments,
+} from "@/lib/personas/generate.functions";
 import { composeSegments, type SegmentProposal } from "@/lib/personas/compose-segments.functions";
+import { listStudies } from "@/lib/personas/study.functions";
+import {
+  draftStudiesForSegments,
+  AUTO_STUDIES_LOCK,
+  AUTO_STUDIES_FLAG_KEY,
+} from "@/lib/personas/study-autorun";
 import { StudioStepper } from "@/components/personas/StudioStepper";
 import { clearAutoRun, publishAutoRun } from "@/lib/autorun/beacon";
 
@@ -25,9 +53,22 @@ type AutoState =
   | { kind: "idle" }
   | { kind: "proposing" }
   | { kind: "casting"; index: number; total: number; label: string }
+  | {
+      kind: "drafting_studies";
+      index: number;
+      total: number;
+      label: string;
+      drafted: number;
+      failed: number;
+    }
   | { kind: "advancing"; countdown: number }
   | { kind: "complete" }
-  | { kind: "paused"; reason?: string }
+  | {
+      kind: "paused";
+      reason?: string;
+      drafted?: number;
+      failed?: Array<{ label: string; reason: string }>;
+    }
   | { kind: "error"; message: string };
 
 const AUTORUN_CONSUMED_KEY = (code: string) => `stage02:autorun-consumed:${code}`;
@@ -87,22 +128,32 @@ function SegmentsPage() {
 
   const castOne = useCallback(
     async (p: SegmentProposal) => {
-      await gen.mutateAsync({ prompt: p.prompt, size: p.size, visibility: "public" });
+      const row = await gen.mutateAsync({ prompt: p.prompt, size: p.size, visibility: "public" });
       setProposals((prev) => prev.filter((x) => x.label !== p.label));
+      return row.segment;
     },
     [gen],
   );
 
-  // Master auto-run loop: propose → cast all → advance
+  // Master auto-run loop: propose → cast all → draft studies → advance to Stage 03
   const runAuto = useCallback(async () => {
     cancelRef.current = false;
+    if (AUTO_STUDIES_LOCK.has(code)) {
+      setAuto({ kind: "error", message: "Auto-run is already active for this country." });
+      return;
+    }
+    AUTO_STUDIES_LOCK.add(code);
     try {
       setAuto({ kind: "proposing" });
       const r = await compose.mutateAsync();
-      if (cancelRef.current) return;
+      if (cancelRef.current) {
+        AUTO_STUDIES_LOCK.delete(code);
+        return;
+      }
       if (!r.ok) {
         setComposeError(r.reason);
         setAuto({ kind: "error", message: r.reason });
+        AUTO_STUDIES_LOCK.delete(code);
         return;
       }
       setProposals(r.proposals);
@@ -111,19 +162,96 @@ function SegmentsPage() {
 
       const list = r.proposals;
       for (let i = 0; i < list.length; i++) {
-        if (cancelRef.current) return;
+        if (cancelRef.current) {
+          AUTO_STUDIES_LOCK.delete(code);
+          return;
+        }
         const p = list[i];
         setAuto({ kind: "casting", index: i, total: list.length, label: p.label });
         try {
           await castOne(p);
         } catch (e) {
+          AUTO_STUDIES_LOCK.delete(code);
           cancelAuto(`Casting paused on "${p.label}" — ${(e as Error).message}`);
           return;
         }
       }
-      if (cancelRef.current) return;
+      if (cancelRef.current) {
+        AUTO_STUDIES_LOCK.delete(code);
+        return;
+      }
 
-      // Countdown → advance
+      // Refresh the segment and study lists so we draft studies for every
+      // segment (including any that existed before this run) without duplication.
+      await qc.invalidateQueries({ queryKey: ["persona-segments", code] });
+      await qc.invalidateQueries({ queryKey: ["studies", code] });
+      let freshSegments: Array<{ id: string; label: string }> = [];
+      let freshStudies: Array<{ segment_id?: string | null }> = [];
+      try {
+        freshSegments = (await listSegments({ data: { countryCode: code } })).map((s) => ({
+          id: s.id,
+          label: s.label,
+        }));
+        freshStudies = await listStudies({ data: { countryCode: code } });
+      } catch (e) {
+        AUTO_STUDIES_LOCK.delete(code);
+        setAuto({
+          kind: "error",
+          message: `Could not refresh segments/studies: ${(e as Error).message}`,
+        });
+        return;
+      }
+      if (cancelRef.current) {
+        AUTO_STUDIES_LOCK.delete(code);
+        return;
+      }
+
+      const coveredIds = new Set(
+        freshStudies.map((s) => s.segment_id).filter((v): v is string => !!v),
+      );
+      const targets = freshSegments.filter((s) => !coveredIds.has(s.id));
+
+      if (targets.length > 0) {
+        let lastDrafted = 0;
+        let lastFailed = 0;
+        const result = await draftStudiesForSegments({
+          code,
+          targets,
+          cancelRef,
+          onProgress: ({ index, total, segmentLabel }) => {
+            setAuto({
+              kind: "drafting_studies",
+              index: index - 1,
+              total,
+              label: segmentLabel,
+              drafted: lastDrafted,
+              failed: lastFailed,
+            });
+          },
+          onOneComplete: () => {
+            lastDrafted += 1;
+          },
+        });
+        lastFailed = result.failed.length;
+
+        if (cancelRef.current) {
+          AUTO_STUDIES_LOCK.delete(code);
+          setAuto({
+            kind: "paused",
+            reason: "Study drafting canceled — resume to finish.",
+            drafted: result.drafted,
+            failed: result.failed,
+          });
+          return;
+        }
+      }
+
+      if (cancelRef.current) {
+        AUTO_STUDIES_LOCK.delete(code);
+        return;
+      }
+
+      // Countdown → advance to Stage 03 (review mode)
       let n = 3;
       setAuto({ kind: "advancing", countdown: n });
       await new Promise<void>((resolve) => {
@@ -136,19 +264,25 @@ function SegmentsPage() {
         };
         setTimeout(tick, 1000);
       });
-      if (cancelRef.current) return;
+      if (cancelRef.current) {
+        AUTO_STUDIES_LOCK.delete(code);
+        return;
+      }
 
       try {
         window.localStorage.setItem(AUTORUN_CONSUMED_KEY(code), "1");
+        window.localStorage.setItem(AUTO_STUDIES_FLAG_KEY(code), String(Date.now()));
       } catch {
         /* ignore storage errors */
       }
+      AUTO_STUDIES_LOCK.delete(code);
       setAuto({ kind: "complete" });
-      navigate({ to: "/admin/countries/$code/personas/studies", params: { code }, search: { auto: 1 } });
+      navigate({ to: "/admin/countries/$code/personas/studies", params: { code } });
     } catch (e) {
+      AUTO_STUDIES_LOCK.delete(code);
       setAuto({ kind: "error", message: (e as Error).message });
     }
-  }, [castOne, cancelAuto, code, compose, navigate]);
+  }, [castOne, cancelAuto, code, compose, navigate, qc]);
 
   // Auto-fire on mount when eligible
   useEffect(() => {
@@ -176,25 +310,39 @@ function SegmentsPage() {
     cancelAuto();
     const list = proposals.filter((pp) => !dismissed.has(pp.label));
     for (const p of list) {
-      // eslint-disable-next-line no-await-in-loop
       await castOne(p);
     }
   }
 
   const visibleProposals = proposals.filter((p) => !dismissed.has(p.label));
-  const autoActive = auto.kind === "proposing" || auto.kind === "casting" || auto.kind === "advancing";
+  const autoActive =
+    auto.kind === "proposing" ||
+    auto.kind === "casting" ||
+    auto.kind === "drafting_studies" ||
+    auto.kind === "advancing";
 
   function regenerate() {
     cancelRef.current = true;
     autoStartedRef.current = true;
     try {
       window.localStorage.removeItem(AUTORUN_CONSUMED_KEY(code));
+      window.localStorage.removeItem(AUTO_STUDIES_FLAG_KEY(code));
     } catch {
       /* ignore */
     }
     setProposals([]);
     setDismissed(new Set());
-    void runAuto();
+    setAuto({ kind: "idle" });
+    // Wait for any in-flight run to release the shared lock before restarting.
+    const tryStart = () => {
+      if (AUTO_STUDIES_LOCK.has(code)) {
+        setTimeout(tryStart, 100);
+        return;
+      }
+      cancelRef.current = false;
+      void runAuto();
+    };
+    setTimeout(tryStart, 50);
   }
 
   const consumed =
@@ -212,17 +360,19 @@ function SegmentsPage() {
       ? "AUTO · drafting…"
       : auto.kind === "casting"
         ? `AUTO · casting ${auto.index + 1}/${auto.total}`
-        : auto.kind === "advancing"
-          ? `AUTO · advancing ${auto.countdown}s`
-          : auto.kind === "paused"
-            ? "AUTO · paused"
-            : auto.kind === "error"
-              ? "AUTO · failed"
-              : auto.kind === "complete"
-                ? "AUTO · done"
-                : segments.length > 0 || consumed
-                  ? "AUTO · idle"
-                  : "AUTO · ready";
+        : auto.kind === "drafting_studies"
+          ? `AUTO · drafting studies ${auto.index + 1}/${auto.total}`
+          : auto.kind === "advancing"
+            ? `AUTO · advancing ${auto.countdown}s`
+            : auto.kind === "paused"
+              ? "AUTO · paused"
+              : auto.kind === "error"
+                ? "AUTO · failed"
+                : auto.kind === "complete"
+                  ? "AUTO · done"
+                  : segments.length > 0 || consumed
+                    ? "AUTO · idle"
+                    : "AUTO · ready";
 
   // Publish to the global auto-run beacon so the state is visible even after
   // the user navigates away from this route.
@@ -248,11 +398,21 @@ function SegmentsPage() {
         status: "running",
         href,
       });
+    } else if (auto.kind === "drafting_studies") {
+      publishAutoRun({
+        id,
+        scope: `Chamber 07 · Stage 02 → 03 · ${code}`,
+        title: "Drafting studies for every segment",
+        detail: `Drafting ${auto.index + 1}/${auto.total} — ${auto.label}`,
+        progress: { current: auto.index + 1, total: auto.total },
+        status: "running",
+        href,
+      });
     } else if (auto.kind === "advancing") {
       publishAutoRun({
         id,
-        scope: `Chamber 07 · Stage 02 · ${code}`,
-        title: "Advancing to Rehearse",
+        scope: `Chamber 07 · Stage 02 → 03 · ${code}`,
+        title: "Handing off to Rehearse",
         detail: `Auto-advancing in ${auto.countdown}s…`,
         status: "running",
         href,
@@ -284,7 +444,6 @@ function SegmentsPage() {
       // across navigation while the state machine is active.
     };
   }, [auto, code]);
-
 
   function AutoRunPrimary({ className = "" }: { className?: string }) {
     if (autoActive) {
@@ -322,7 +481,7 @@ function SegmentsPage() {
         title={
           personaCount === 0
             ? "Cast personas in Stage 01 first"
-            : "AI drafts segments, casts each, and advances to Rehearse"
+            : "AI drafts segments, casts each, drafts a study for every segment, and advances to Rehearse"
         }
         className={`inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-40 ${className}`}
       >
@@ -358,7 +517,7 @@ function SegmentsPage() {
             Stage 02 · Group your public
           </p>
           <h2 className="mt-1 font-serif text-2xl text-ink-950">
-            AI proposes the segments. Auto-run casts them.
+            AI proposes the segments, casts them, and drafts studies.
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-ink-500">
             A segment is a coherent audience — the kind of group a Cabinet can actually act on.
@@ -366,12 +525,13 @@ function SegmentsPage() {
             <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-950">
               Start Auto-run
             </span>{" "}
-            and the AI drafts a divergent set grounded in {code}, casts each in sequence, and hands
-            off to Rehearse.
+            and the AI drafts a divergent set grounded in {code}, casts each in sequence, drafts a
+            study for every segment, and hands off to Rehearse for review.
           </p>
           {(segments.length > 0 || consumed) && auto.kind === "idle" && personaCount > 0 && (
             <p className="mt-2 text-[12px] italic text-ink-500">
-              Auto-run already handed off once. Press Start Auto-run to draft a fresh set and cast them.
+              Auto-run already handed off once. Press Start Auto-run to draft a fresh set, cast
+              them, and auto-draft studies for every segment.
             </p>
           )}
         </div>
@@ -379,65 +539,73 @@ function SegmentsPage() {
       </header>
 
       {/* Auto-run banner */}
-      {personaCount > 0 && (autoActive || auto.kind === "paused" || auto.kind === "error" || auto.kind === "complete") && (
-        <div
-          className={`flex flex-col gap-2 border px-3 py-2 sm:flex-row sm:items-center sm:justify-between ${
-            auto.kind === "error"
-              ? "border-rose-500/60 bg-rose-50/60"
-              : auto.kind === "paused"
-                ? "border-amber-500/60 bg-amber-50/60"
-                : auto.kind === "complete"
-                  ? "border-emerald-500/60 bg-emerald-50/60"
-                  : "border-ink-950/60 bg-paper-100"
-          }`}
-        >
-          <p className="flex items-center gap-2 text-[13px] text-ink-950">
-            <Sparkles size={14} className={autoActive ? "animate-pulse text-ink-950" : "text-ink-500"} />
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
-              Auto-run
-            </span>
-            <span>
-              {auto.kind === "proposing" && "Drafting segment proposals from brief + personas…"}
-              {auto.kind === "casting" &&
-                `Casting ${auto.index + 1} of ${auto.total} · “${auto.label}”…`}
-              {auto.kind === "advancing" &&
-                `Ready · advancing to Rehearse in ${auto.countdown}s`}
-              {auto.kind === "complete" && "Handed off to Rehearse."}
-              {auto.kind === "paused" && (auto.reason ?? "Paused — take over below.")}
-              {auto.kind === "error" && `Failed: ${auto.message}`}
-            </span>
-          </p>
-          <div className="flex shrink-0 items-center gap-2">
-            {autoActive && (
-              <button
-                type="button"
-                onClick={() => cancelAuto("Canceled — resume manually below.")}
-                className="inline-flex items-center gap-1.5 border border-line-200 bg-paper-0 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-700 hover:border-ink-950 hover:text-ink-950"
-              >
-                <Pause size={11} /> Cancel Auto-run
-              </button>
-            )}
-            {auto.kind === "advancing" && (
-              <button
-                type="button"
-                onClick={() => cancelAuto("Stayed here — Rehearse is one click away.")}
-                className="inline-flex items-center gap-1.5 border border-line-200 bg-paper-0 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-700 hover:border-ink-950 hover:text-ink-950"
-              >
-                Stay here
-              </button>
-            )}
-            {(auto.kind === "paused" || auto.kind === "error") && (
-              <button
-                type="button"
-                onClick={regenerate}
-                className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-paper-0 hover:bg-ink-700"
-              >
-                <Play size={11} /> Resume Auto-run
-              </button>
-            )}
+      {personaCount > 0 &&
+        (autoActive ||
+          auto.kind === "paused" ||
+          auto.kind === "error" ||
+          auto.kind === "complete") && (
+          <div
+            className={`flex flex-col gap-2 border px-3 py-2 sm:flex-row sm:items-center sm:justify-between ${
+              auto.kind === "error"
+                ? "border-rose-500/60 bg-rose-50/60"
+                : auto.kind === "paused"
+                  ? "border-amber-500/60 bg-amber-50/60"
+                  : auto.kind === "complete"
+                    ? "border-emerald-500/60 bg-emerald-50/60"
+                    : "border-ink-950/60 bg-paper-100"
+            }`}
+          >
+            <p className="flex items-center gap-2 text-[13px] text-ink-950">
+              <Sparkles
+                size={14}
+                className={autoActive ? "animate-pulse text-ink-950" : "text-ink-500"}
+              />
+              <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+                Auto-run
+              </span>
+              <span>
+                {auto.kind === "proposing" && "Drafting segment proposals from brief + personas…"}
+                {auto.kind === "casting" &&
+                  `Casting ${auto.index + 1} of ${auto.total} · “${auto.label}”…`}
+                {auto.kind === "drafting_studies" &&
+                  `Drafting studies ${auto.index + 1} of ${auto.total} · “${auto.label}”…`}
+                {auto.kind === "advancing" && `Ready · advancing to Rehearse in ${auto.countdown}s`}
+                {auto.kind === "complete" && "Handed off to Rehearse with all studies drafted."}
+                {auto.kind === "paused" && (auto.reason ?? "Paused — take over below.")}
+                {auto.kind === "error" && `Failed: ${auto.message}`}
+              </span>
+            </p>
+            <div className="flex shrink-0 items-center gap-2">
+              {autoActive && (
+                <button
+                  type="button"
+                  onClick={() => cancelAuto("Canceled — resume manually below.")}
+                  className="inline-flex items-center gap-1.5 border border-line-200 bg-paper-0 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-700 hover:border-ink-950 hover:text-ink-950"
+                >
+                  <Pause size={11} /> Cancel Auto-run
+                </button>
+              )}
+              {auto.kind === "advancing" && (
+                <button
+                  type="button"
+                  onClick={() => cancelAuto("Stayed here — Rehearse is one click away.")}
+                  className="inline-flex items-center gap-1.5 border border-line-200 bg-paper-0 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-700 hover:border-ink-950 hover:text-ink-950"
+                >
+                  Stay here
+                </button>
+              )}
+              {(auto.kind === "paused" || auto.kind === "error") && (
+                <button
+                  type="button"
+                  onClick={regenerate}
+                  className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-paper-0 hover:bg-ink-700"
+                >
+                  <Play size={11} /> Resume Auto-run
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* AI-first proposals panel */}
       {personaCount > 0 && (
@@ -591,11 +759,16 @@ function SegmentsPage() {
         </summary>
         <div className="border-t border-line-200 p-4">
           <p className="mb-3 text-[12px] leading-snug text-ink-500">
-            The prompt shapes who joins the room. <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-700">Size</span>{" "}
+            The prompt shapes who joins the room.{" "}
+            <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-700">
+              Size
+            </span>{" "}
             controls how divergent the set is — higher size = wider spread of views.
           </p>
           <label className="block">
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Segment prompt</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+              Segment prompt
+            </span>
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
@@ -617,10 +790,20 @@ function SegmentsPage() {
               />
             </label>
             <label className="flex items-center gap-1 text-[11px] text-ink-700">
-              <input type="radio" checked={visibility === "public"} onChange={() => setVisibility("public")} /> Public
+              <input
+                type="radio"
+                checked={visibility === "public"}
+                onChange={() => setVisibility("public")}
+              />{" "}
+              Public
             </label>
             <label className="flex items-center gap-1 text-[11px] text-ink-700">
-              <input type="radio" checked={visibility === "private"} onChange={() => setVisibility("private")} /> Private
+              <input
+                type="radio"
+                checked={visibility === "private"}
+                onChange={() => setVisibility("private")}
+              />{" "}
+              Private
             </label>
             <button
               type="button"
@@ -635,7 +818,9 @@ function SegmentsPage() {
               <Sparkles size={12} /> {gen.isPending ? "Generating…" : "Generate segment"}
             </button>
           </div>
-          {gen.isError && <p className="mt-2 text-[11px] text-rose-600">{(gen.error as Error).message}</p>}
+          {gen.isError && (
+            <p className="mt-2 text-[11px] text-rose-600">{(gen.error as Error).message}</p>
+          )}
         </div>
       </details>
 
@@ -674,7 +859,8 @@ function SegmentsPage() {
                 <div className="min-w-0 flex-1">
                   <p className="font-serif text-base text-ink-950">{s.label}</p>
                   <p className="mt-0.5 text-[11px] text-ink-500">
-                    {s.size} personas · {s.visibility} · {new Date(s.created_at).toLocaleDateString()}
+                    {s.size} personas · {s.visibility} ·{" "}
+                    {new Date(s.created_at).toLocaleDateString()}
                   </p>
                   <p className="mt-1 truncate text-[12px] text-ink-700">{s.prompt}</p>
                 </div>

@@ -1,5 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery, useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useSuspenseQuery,
+  useQueryClient,
+  useMutation,
+  useQuery,
+} from "@tanstack/react-query";
 import {
   ArrowRight,
   Check,
@@ -21,15 +27,14 @@ import { z } from "zod";
 
 import { listSegments } from "@/lib/personas/generate.functions";
 import { createStudy, listStudies } from "@/lib/personas/study.functions";
+import { composeStudy, type ComposeStudyResult } from "@/lib/personas/compose-study.functions";
 import {
-  composeStudy,
-  composeStudyForSegment,
-  type ComposeStudyResult,
-} from "@/lib/personas/compose-study.functions";
+  AUTO_STUDIES_LOCK,
+  AUTO_STUDIES_FLAG_KEY,
+  draftStudiesForSegments,
+} from "@/lib/personas/study-autorun";
 import { StudioStepper } from "@/components/personas/StudioStepper";
 import { clearAutoRun, publishAutoRun } from "@/lib/autorun/beacon";
-
-
 
 const searchSchema = z.object({
   segmentId: z.string().optional(),
@@ -37,7 +42,10 @@ const searchSchema = z.object({
 });
 
 function studiesQuery(code: string) {
-  return queryOptions({ queryKey: ["studies", code], queryFn: () => listStudies({ data: { countryCode: code } }) });
+  return queryOptions({
+    queryKey: ["studies", code],
+    queryFn: () => listStudies({ data: { countryCode: code } }),
+  });
 }
 function segmentsQuery(code: string) {
   return queryOptions({
@@ -45,11 +53,6 @@ function segmentsQuery(code: string) {
     queryFn: () => listSegments({ data: { countryCode: code } }),
   });
 }
-
-// Module-level lock so React StrictMode double-mount, tab re-entry, or
-// racing effect callbacks in the same browser process can never fan out
-// into duplicate auto-run drafts. Keyed by country.
-const AUTO_STUDIES_LOCK = new Set<string>();
 
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/personas/studies")({
   validateSearch: (s) => searchSchema.parse(s),
@@ -186,7 +189,11 @@ function StudiesPage() {
   }, [currentStep]);
 
   const nextLabel =
-    currentStep === 1 ? "Pick a segment" : currentStep === 2 ? "Choose a method" : "Frame the question";
+    currentStep === 1
+      ? "Pick a segment"
+      : currentStep === 2
+        ? "Choose a method"
+        : "Frame the question";
 
   const grouped = useMemo(() => {
     const running = studies.filter((s) => s.status === "running");
@@ -216,14 +223,14 @@ function StudiesPage() {
   const [autoState, setAutoState] = useState<AutoState>({ phase: "idle" });
   const cancelRef = useRef(false);
   const runningRef = useRef(false);
-  const autoFlagKey = `ch07:auto-studies:${code}`;
+  const autoFlagKey = AUTO_STUDIES_FLAG_KEY(code);
 
   const startAutoRun = useCallback(
     async (opts?: { force?: boolean }) => {
       if (runningRef.current) return;
       if (AUTO_STUDIES_LOCK.has(code)) return;
-      const targets = segments.filter(
-        (s) => opts?.force ? !coveredSegmentIds.has(s.id) : !coveredSegmentIds.has(s.id),
+      const targets = segments.filter((s) =>
+        opts?.force ? !coveredSegmentIds.has(s.id) : !coveredSegmentIds.has(s.id),
       );
       if (targets.length === 0) {
         setAutoState({ phase: "complete", drafted: 0, failed: [] });
@@ -234,60 +241,35 @@ function StudiesPage() {
       cancelRef.current = false;
       try {
         window.localStorage.setItem(autoFlagKey, String(Date.now()));
-      } catch {}
-      let drafted = 0;
-      const failed: Array<{ label: string; reason: string }> = [];
-      // Track segments handled in this run to defend against stale
-      // coveredSegmentIds if invalidation hasn't refreshed yet.
-      const handled = new Set<string>();
-      for (let i = 0; i < targets.length; i++) {
-        if (cancelRef.current) {
-          setAutoState({ phase: "cancelled", drafted });
-          runningRef.current = false;
-          AUTO_STUDIES_LOCK.delete(code);
-          return;
-        }
-        const seg = targets[i];
-        if (handled.has(seg.id)) continue;
-        handled.add(seg.id);
-        setAutoState({
-          phase: "running",
-          index: i + 1,
-          total: targets.length,
-          segmentId: seg.id,
-          segmentLabel: seg.label,
-        });
-        try {
-          const proposal = await composeStudyForSegment({
-            data: { countryCode: code, segmentId: seg.id },
-          });
-          if (!proposal.ok) {
-            failed.push({ label: seg.label, reason: proposal.reason });
-            continue;
-          }
-          // createStudy is idempotent per (country, segment) — a second
-          // call for the same segment returns the existing draft rather
-          // than inserting a duplicate.
-          await createStudy({
-            data: {
-              countryCode: code,
-              segmentId: seg.id,
-              kind: proposal.kind,
-              title: proposal.title,
-              objective: proposal.objective,
-            },
-          });
-          drafted += 1;
-          // let the UI paint between items
-          await new Promise((r) => setTimeout(r, 250));
-        } catch (e) {
-          failed.push({ label: seg.label, reason: (e as Error).message });
-          // brief backoff on error (429/timeouts)
-          await new Promise((r) => setTimeout(r, 1500));
-        }
+      } catch {
+        // localStorage unavailable; defensive guard
       }
+
+      let lastDrafted = 0;
+      const result = await draftStudiesForSegments({
+        code,
+        targets: targets.map((s) => ({ id: s.id, label: s.label })),
+        cancelRef,
+        onProgress: ({ index, total, segmentId, segmentLabel }) => {
+          setAutoState({
+            phase: "running",
+            index,
+            total,
+            segmentId,
+            segmentLabel,
+          });
+        },
+        onOneComplete: () => {
+          lastDrafted += 1;
+        },
+      });
+
       await qc.invalidateQueries({ queryKey: ["studies", code] });
-      setAutoState({ phase: "complete", drafted, failed });
+      if (cancelRef.current) {
+        setAutoState({ phase: "cancelled", drafted: lastDrafted });
+      } else {
+        setAutoState({ phase: "complete", drafted: result.drafted, failed: result.failed });
+      }
       runningRef.current = false;
       AUTO_STUDIES_LOCK.delete(code);
     },
@@ -298,9 +280,9 @@ function StudiesPage() {
     cancelRef.current = true;
   };
 
-  // Fire on mount when uncovered > 0 and we haven't auto-run yet this browser,
-  // OR when arriving with ?auto=1 handoff from Stage 02.
-  const autoParam = search.auto === 1 || search.auto === "1" || search.auto === true;
+  // Defensive auto-run: only when there are uncovered segments and the Stage 02
+  // auto-run has not already marked this country as done. Stage 02 now drafts
+  // studies before handing off, so Stage 03 is primarily a review surface.
   const didAttemptRef = useRef(false);
   useEffect(() => {
     if (didAttemptRef.current) return;
@@ -309,12 +291,14 @@ function StudiesPage() {
     let flagged = false;
     try {
       flagged = !!window.localStorage.getItem(autoFlagKey);
-    } catch {}
-    if (autoParam || !flagged) {
+    } catch {
+      // localStorage unavailable; defensive guard
+    }
+    if (!flagged) {
       didAttemptRef.current = true;
       void startAutoRun();
     }
-  }, [uncoveredSegments.length, autoParam, autoFlagKey, autoState.phase, startAutoRun]);
+  }, [uncoveredSegments.length, autoFlagKey, autoState.phase, startAutoRun]);
 
   const rehearseStatus =
     autoState.phase === "running"
@@ -372,7 +356,6 @@ function StudiesPage() {
     }
   }, [autoState, code]);
 
-
   return (
     <div className="space-y-8">
       <StudioStepper code={code} active="rehearse" rehearseStatus={rehearseStatus} />
@@ -383,10 +366,13 @@ function StudiesPage() {
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
               Stage 03 · Rehearse the conversation
             </p>
-            <h2 className="mt-1 font-serif text-2xl text-ink-950">AI drafts a study for every segment</h2>
+            <h2 className="mt-1 font-serif text-2xl text-ink-950">
+              AI drafts a study for every segment
+            </h2>
             <p className="mt-1 max-w-2xl text-sm text-ink-500">
-              Grounded in {code}&rsquo;s brief and personas — the AI picks a method and question for each of your
-              {" "}{segments.length} segment{segments.length === 1 ? "" : "s"}. You review before sending.
+              Grounded in {code}&rsquo;s brief and personas — the AI picks a method and question for
+              each of your {segments.length} segment{segments.length === 1 ? "" : "s"}. You review
+              before sending.
             </p>
           </div>
           <AutoRunCta
@@ -396,7 +382,9 @@ function StudiesPage() {
               didAttemptRef.current = true;
               try {
                 window.localStorage.removeItem(autoFlagKey);
-              } catch {}
+              } catch {
+                // localStorage unavailable; defensive guard
+              }
               void startAutoRun({ force: true });
             }}
             onCancel={cancelAutoRun}
@@ -404,14 +392,6 @@ function StudiesPage() {
         </div>
         <AutoRunBanner state={autoState} onDismiss={() => setAutoState({ phase: "idle" })} />
       </header>
-
-
-
-
-
-
-
-
 
       {segments.length === 0 ? (
         <EmptyStart code={code} />
@@ -443,7 +423,12 @@ function StudiesPage() {
                 <ArrowRight size={12} className="text-ink-500 transition group-open:rotate-90" />
               </summary>
               <div className="space-y-6 border-t border-line-200 p-4">
-                <StepBlock n={1} label="Pick a segment" active={currentStep === 1} done={stepDone[1]}>
+                <StepBlock
+                  n={1}
+                  label="Pick a segment"
+                  active={currentStep === 1}
+                  done={stepDone[1]}
+                >
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {segments.map((s) => {
                       const selected = s.id === segmentId;
@@ -453,7 +438,9 @@ function StudiesPage() {
                           type="button"
                           onClick={() => setSegmentId(s.id)}
                           className={`border p-3 text-left transition ${
-                            selected ? "border-ink-950 bg-paper-100" : "border-line-200 hover:border-ink-950"
+                            selected
+                              ? "border-ink-950 bg-paper-100"
+                              : "border-line-200 hover:border-ink-950"
                           }`}
                         >
                           <div className="flex items-center gap-2">
@@ -489,7 +476,9 @@ function StudiesPage() {
                           onClick={() => setKind(m.id)}
                           disabled={!stepDone[1]}
                           className={`flex flex-col border p-3 text-left transition disabled:opacity-40 ${
-                            selected ? "border-ink-950 bg-paper-100" : "border-line-200 hover:border-ink-950"
+                            selected
+                              ? "border-ink-950 bg-paper-100"
+                              : "border-line-200 hover:border-ink-950"
                           }`}
                         >
                           <div className="flex items-center gap-2">
@@ -562,7 +551,6 @@ function StudiesPage() {
             </details>
           </div>
 
-
           {/* Sticky preview */}
           <aside className="lg:sticky lg:top-4 lg:self-start">
             <div className="border border-line-200 bg-paper-0 p-4">
@@ -584,7 +572,12 @@ function StudiesPage() {
                 {title.trim() || <span className="text-ink-400">Untitled study</span>}
               </p>
               <dl className="mt-3 space-y-2 text-[12px]">
-                <PreviewRow label="Segment" value={chosenSegment ? `${chosenSegment.label} · ${chosenSegment.size} personas` : "—"} />
+                <PreviewRow
+                  label="Segment"
+                  value={
+                    chosenSegment ? `${chosenSegment.label} · ${chosenSegment.size} personas` : "—"
+                  }
+                />
                 <PreviewRow label="Method" value={chosenMethod?.label ?? "—"} />
                 <PreviewRow label="Objective" value={objective.trim() || "—"} />
               </dl>
@@ -601,7 +594,6 @@ function StudiesPage() {
               )}
             </div>
           </aside>
-
         </div>
       )}
 
@@ -662,9 +654,10 @@ function StepBlock({
         active ? "border-ink-950" : locked ? "border-line-200 opacity-70" : "border-line-200"
       }`}
     >
-
       <div className="mb-3 flex items-center gap-2">
-        <span className={`grid h-7 w-7 place-items-center rounded-full border font-mono text-[11px] ${dot}`}>
+        <span
+          className={`grid h-7 w-7 place-items-center rounded-full border font-mono text-[11px] ${dot}`}
+        >
           {n.toString().padStart(2, "0")}
         </span>
         <h3 className="font-serif text-lg text-ink-950">{label}</h3>
@@ -706,7 +699,8 @@ function StudyGroup({
             <div className="min-w-0 flex-1">
               <p className="truncate font-serif text-base text-ink-950">{s.title}</p>
               <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
-                {s.kind.replace("_", " ")} · {s.status} · {new Date(s.created_at).toLocaleDateString()}
+                {s.kind.replace("_", " ")} · {s.status} ·{" "}
+                {new Date(s.created_at).toLocaleDateString()}
               </p>
             </div>
             <ArrowRight
@@ -729,8 +723,8 @@ function EmptyStart({ code }: { code: string }) {
         </span>
         <h3 className="mt-3 font-serif text-xl text-ink-950">Start with a segment</h3>
         <p className="mt-1 text-sm text-ink-500">
-          A study runs against a segment of personas. Draft your first audience in plain English — we&rsquo;ll
-          generate a divergent set grounded in {code}.
+          A study runs against a segment of personas. Draft your first audience in plain English —
+          we&rsquo;ll generate a divergent set grounded in {code}.
         </p>
         <Link
           to="/admin/countries/$code/personas/segments"
@@ -761,9 +755,7 @@ function AiComposerCard({
 }) {
   const isLoading = state === "loading" || !state;
   const method =
-    state && state !== "loading" && state.ok
-      ? METHODS.find((m) => m.id === state.kind)
-      : undefined;
+    state && state !== "loading" && state.ok ? METHODS.find((m) => m.id === state.kind) : undefined;
   return (
     <section className="border border-ink-950 bg-paper-0">
       <header className="flex items-center justify-between gap-2 border-b border-line-200 bg-paper-100 px-4 py-2.5">
@@ -827,7 +819,9 @@ function AiComposerCard({
             </dl>
 
             <div className="border-l-2 border-ink-950 bg-paper-100 p-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Why now</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                Why now
+              </p>
               <p className="mt-1 text-[13px] leading-relaxed text-ink-950">{state.rationale}</p>
               {state.evidence.length > 0 && (
                 <ul className="mt-2 space-y-1 text-[12px] text-ink-700">
@@ -947,13 +941,7 @@ function AutoRunCta({
   );
 }
 
-function AutoRunBanner({
-  state,
-  onDismiss,
-}: {
-  state: AutoRunPhase;
-  onDismiss: () => void;
-}) {
+function AutoRunBanner({ state, onDismiss }: { state: AutoRunPhase; onDismiss: () => void }) {
   if (state.phase === "idle") return null;
   if (state.phase === "running") {
     const pct = Math.round(((state.index - 1) / state.total) * 100);
@@ -969,7 +957,8 @@ function AutoRunBanner({
           <div className="h-1 bg-ink-950 transition-all" style={{ width: `${pct}%` }} />
         </div>
         <p className="mt-2 text-[11px] text-ink-500">
-          AI composes a method and question per segment, then hands you a review queue. Cancel any time — nothing sends without approval.
+          AI composes a method and question per segment, then hands you a review queue. Cancel any
+          time — nothing sends without approval.
         </p>
       </div>
     );
@@ -1013,4 +1002,3 @@ function AutoRunBanner({
     </div>
   );
 }
-

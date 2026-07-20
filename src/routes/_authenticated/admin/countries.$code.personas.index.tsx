@@ -30,6 +30,7 @@ function PersonasIndex() {
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [wizardOpen, setWizardOpen] = useState(false);
   const [resumeDraftId, setResumeDraftId] = useState<string | undefined>(undefined);
+  const [autorun, setAutorun] = useState(false);
 
   const gen = useMutation({
     mutationFn: () => generatePersona({ data: { countryCode: code, brief: brief.trim(), visibility } }),

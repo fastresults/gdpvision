@@ -14,37 +14,55 @@ import {
   validCitationsForRefs,
 } from "@/lib/citations/hygiene";
 
-const GEN_MODEL_PRIMARY = "google/gemini-2.5-flash";
-const GEN_MODEL_FALLBACK = "openai/gpt-5.4-mini";
+const GEN_MODEL_PRIMARY = "google/gemini-3.5-flash";
+const GEN_MODEL_FALLBACK = "google/gemini-3.1-flash-lite";
+const GATEWAY_TIMEOUT_MS = 45_000;
 
 type GatewayResult = { content: string; model: string; runId?: string };
 
 async function callGateway(
   system: string,
   user: string,
-  opts: { model?: string; temperature?: number } = {},
+  opts: { model?: string; temperature?: number; timeoutMs?: number } = {},
 ): Promise<GatewayResult> {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) throw new Error("Lovable AI Gateway not configured");
   const model = opts.model ?? GEN_MODEL_PRIMARY;
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: `${system}\n\nRespond with a single valid JSON object only. No prose, no markdown fences.` },
-        { role: "user", content: user },
-      ],
-      temperature: opts.temperature ?? 0.4,
-    }),
-  });
+  const timeoutMs = opts.timeoutMs ?? GATEWAY_TIMEOUT_MS;
+
+  let res: Response;
+  try {
+    res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Lovable-API-Key": apiKey,
+        "X-Lovable-AIG-SDK": "vercel-ai-sdk",
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: `${system}\n\nRespond with a single valid JSON object only. No prose, no markdown fences.` },
+          { role: "user", content: user },
+        ],
+        temperature: opts.temperature ?? 0.4,
+        response_format: { type: "json_object" },
+      }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (e) {
+    const err = e as Error & { name?: string };
+    if (err?.name === "TimeoutError" || err?.name === "AbortError") {
+      throw new Error(`AI Gateway timed out after ${Math.round(timeoutMs / 1000)}s (${model})`);
+    }
+    throw new Error(`AI Gateway network error (${model}): ${err?.message ?? String(e)}`);
+  }
   const runId = res.headers.get("X-Lovable-AIG-Run-ID") ?? undefined;
   if (!res.ok) {
-    const t = await res.text();
+    const t = await res.text().catch(() => "");
     if (res.status === 429) throw new Error("AI rate limit — try again in a moment.");
     if (res.status === 402) throw new Error("AI credits exhausted for this workspace.");
-    throw new Error(`AI Gateway ${res.status}: ${t.slice(0, 300)}`);
+    throw new Error(`AI Gateway ${res.status} (${model}): ${t.slice(0, 300)}`);
   }
   const j = (await res.json()) as {
     choices?: Array<{

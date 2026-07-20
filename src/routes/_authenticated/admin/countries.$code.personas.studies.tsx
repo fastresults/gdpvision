@@ -949,9 +949,21 @@ function FactCell({
 
 type AutoRunPhase =
   | { phase: "idle" }
-  | { phase: "running"; index: number; total: number; segmentId: string; segmentLabel: string }
-  | { phase: "complete"; drafted: number; failed: Array<{ label: string; reason: string }> }
-  | { phase: "cancelled"; drafted: number };
+  | {
+      phase: "running";
+      index: number;
+      total: number;
+      segmentId: string;
+      segmentLabel: string;
+      step: StudyAutoPhase;
+    }
+  | {
+      phase: "complete";
+      drafted: number;
+      completed: number;
+      failed: Array<{ label: string; reason: string }>;
+    }
+  | { phase: "cancelled"; drafted: number; completed: number };
 
 function AutoRunCta({
   phase,

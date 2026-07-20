@@ -1,46 +1,50 @@
-# Root cause
+# GDPVision — Sovereign Pitch Deck (PPTX)
 
-We ship **two parallel Narrative Chamber surfaces** and only one of them is country-safe.
+A 14-slide, editable PowerPoint deck aimed at Heads of Government (Presidents, Prime Ministers). Content is scraped from the live GDPVision app (public marketing site + product surfaces already in this repo) and shaped into a cabinet-grade narrative.
 
-1. `/admin/countries/$code/narrative/*` — country is in the URL path, so every link, refresh, and share is unambiguously scoped. This is what `ChambersLauncher` opens for Chamber 05.
-2. `/_authenticated/narrative/*` (files `route.tsx`, `index.tsx`, `queue.tsx`, `signal.$id.tsx`, `strategy.*`, `comms.*`, `brain.tsx`, `coverage.tsx`, `ingest.tsx`, `trace.$id.tsx`) — country is **ambient**. It comes from `useChamberCountry(bindings)` which reads an optional `?code=XXX` query param and otherwise falls back to the first `is_default` binding (or `"LCA"`).
+## Source of truth
 
-Every internal `<Link>` under `/_authenticated/narrative/*` is written as `to="/narrative/queue"`, `to="/narrative/signal/$id"`, `to="/narrative/comms/$id"` etc. — **none of them re-attach `?code=`**. The header wordmark is `to="/narrative"`. TanStack's `Link` replaces the search object by default, so the moment a user clicks any tab or sub-link inside this shell the `?code=KNA` query is dropped, `useChamberCountry` re-resolves to the default binding, and for a super-admin session with no default binding that resolves to **LCA** (the hard-coded fallback in `useChamberCountry`). That is exactly the screenshot: KNA chambers → click into a narrative sub-nav → shell repaints as `LCA · NARRATIVE / Signal Desk`, header says `LCA`.
+- Scrape `https://gdpvision.com` (hero, positioning, chamber copy, sovereignty panel) via Firecrawl (`markdown` + `screenshot`).
+- Cross-reference in-repo canonical copy that already drives the marketing site: `src/components/marketing/MarketingHome.tsx`, `ChamberPanel.tsx`, `WhyThisNumber.tsx`, `SectionHeader.tsx`, and the seven chamber launcher descriptions in `src/components/country/ChambersLauncher.tsx`.
+- Reuse existing brand assets: `src/assets/chambers/chamber-01…07.jpg` and `src/assets/gdpvision-og.jpg` for chamber and title visuals.
 
-Confirmed by reading:
-- `src/hooks/useChamberCountry.ts` — `?code=` → default binding → `"LCA"` fallback.
-- `src/routes/_authenticated/narrative/route.tsx` L23 — same fallback chain for the header pill, no `search` propagation on any `<Link>`.
-- `src/routes/_authenticated/narrative/index.tsx`, `signal.$id.tsx`, `queue.tsx`, `comms.tsx`, `strategy.index.tsx`, `trace.$id.tsx` — all internal `<Link>`s use bare `to="/narrative/..."` with no `search`.
-- `src/components/country/ChambersLauncher.tsx` L17 — Chamber 05 correctly targets `/admin/countries/$code/narrative`, so the user starts on the safe surface; contamination happens the first time they touch a link that jumps into the shared shell.
+## Deck outline (14 slides)
 
-Secondary contributor: the hard-coded `"LCA"` last-resort fallback in `useChamberCountry` silently picks a country instead of failing loudly, so the bug looks like "wrong country" rather than "no country".
+1. **Title** — "GDPVision — the world's first GDP-elevation instrument." Wordmark, dark sovereign cover.
+2. **The mandate** — Why heads of government need a purpose-built instrument now (growth, resilience, sovereignty).
+3. **The instrument** — One-line definition + the Second Brain as sovereign corpus (public + private data).
+4. **How it works** — Deep research → corpus → seven chambers → cabinet decisions (single diagram).
+5. **Chamber 01 — National Ledger.** Hero image + 3 outcomes.
+6. **Chamber 02 — Portfolio Workspaces.** Delivery dossier for every ministry.
+7. **Chamber 03 — Scenario Engine.** Sovereign sliders, fan charts, compensation ledger.
+8. **Chamber 04 — FDI Transition Studio.** Threat composer + strategy canvas.
+9. **Chamber 05 — Narrative Chamber.** Signal to statement inside a working day.
+10. **Chamber 06 — The Cabinet Room.** Situation board, decision queue, session mode.
+11. **Chamber 07 — Persona Lab.** Synthetic market research for policy.
+12. **Sovereignty & trust** — Public vs. private data, by-invitation access, evidence-grade citations, RLS.
+13. **What changes in 90 days** — Corpus stood up, chambers live, first cabinet session, first published narrative.
+14. **Close & call to action** — "Elevate your GDP." Contact + `gdpvision.com`.
 
-# Fix
+## Design system
 
-**Principle: country identity lives in the URL, or the page refuses to render.** No ambient defaults, no query-param drift.
+- Palette: **Midnight Executive** — navy `1E2761`, ice blue `CADCFC`, gold accent `C9A24B`, ink `0B0B0F`, paper `F7F5EF`. Dark cover + dark closing; light interior "sandwich".
+- Type: Georgia (headers, serif for sovereign tone) + Calibri (body). Titles 48–54pt, body 24–28pt, chrome 20pt — per the slides-app defaults.
+- Motif: thin gold rule under kickers; chamber cards use the real product screenshots as half-bleed hero images (left), copy on right.
+- 1920×1080, US Letter landscape aspect, 0.5" margins, base64-embedded images so PDF renders identically.
 
-### 1. Retire the ambient `/narrative/*` surface as a country-scoped destination
+## Build steps
 
-- Convert `src/routes/_authenticated/narrative/route.tsx` into a **redirector**: in `beforeLoad`, resolve the intended country using the same precedence (`?code` → default binding → first binding), then `throw redirect({ to: "/admin/countries/$code/narrative", params: { code } })`. If no binding exists and no `?code` is given, redirect a super-admin to `/admin/countries` and a country-admin to `/onboarding/country`. Never fall back to a hard-coded ISO.
-- Delete or forward the sub-routes (`index.tsx`, `queue.tsx`, `signal.$id.tsx`, `strategy.index.tsx`, `strategy.new.tsx`, `strategy.$id.tsx`, `comms.tsx`, `comms.new.tsx`, `comms.$id.tsx`, `brain.tsx`, `coverage.tsx`, `ingest.tsx`, `trace.$id.tsx`) — either remove them entirely (preferred, since the country-scoped tree already covers the same UX) or turn each into a `beforeLoad` redirector that maps to its `/admin/countries/$code/narrative/...` equivalent.
-- Remove the header `<span>{defaultCode}</span>` on the shared shell; the country identity should never be presented from an ambient source.
+1. **Scrape** `https://gdpvision.com` via Firecrawl → save markdown to `/tmp/gdpvision-scrape.md`.
+2. **Assemble copy pack** in `/tmp/deck-content.json` merging scrape + repo canonical strings (so wording matches the live product).
+3. **Generate** `/mnt/documents/gdpvision-pitch.pptx` with `pptxgenjs` following the `skill/pptx` reference (semantic classes, no unicode bullets, dual-width tables if used, ImageRun-style base64 embeds).
+4. **QA** — render to PDF via LibreOffice, `pdftoppm` to JPEGs, inspect every slide for overflow / contrast / placeholder text; iterate until clean.
+5. **Deliver** as a `<presentation-artifact>` (PPTX) so you can download and edit.
 
-### 2. Harden `useChamberCountry`
+## Deliverable
 
-- Remove the `"LCA"` last-resort fallback. If URL and bindings both fail, return `null` and callers must `throw redirect(...)` to the country picker.
-- Add an invariant assert during development so any new chamber route that reaches a component with `null` fails loudly instead of silently rendering another country's data.
+- `/mnt/documents/gdpvision-pitch.pptx` (editable, 14 slides, ~2–3 MB with embedded imagery).
 
-### 3. Audit every chamber for the same pattern
+## Open assumptions (flag if you want changes)
 
-Sweep `src/routes/_authenticated/**` for chamber shells (Ledger, Portfolios, Scenarios, Studio, Cabinet, Exposure, Stewardship, Personas, Sector dossiers) and confirm the country is a **path param**, not a query or an ambient default. Where a shell is currently ambient (like this narrative one), apply the same redirect-to-scoped-route treatment. In `/instrument/*` the same defect exists (`defaultCode` in `instrument/route.tsx`); scope its inner links or gate them behind an explicit country picker.
-
-### 4. Regression guard
-
-Add a lightweight test / lint rule: any `<Link>` whose `to` starts with `/admin/countries/$code/` or a chamber prefix must also include a `params={{ code }}` prop; any `<Link to="/narrative...`, `/instrument...` etc. inside a country-scoped shell is a build-time error via an ESLint `no-restricted-syntax` rule.
-
-# Technical notes
-
-- Redirects in loaders/`beforeLoad` should use `throw redirect({ to, params })` (TanStack pattern) — do NOT use `window.location`.
-- Preserve deep-link intent: when redirecting `/narrative/signal/$id` → `/admin/countries/$code/narrative/signal/$id`, forward `params.id` and any search params.
-- `ChambersLauncher` already routes correctly — no change needed there beyond confirming every chamber `to` is a `$code` path route.
-- Keep the migration in one PR so the shared `/narrative/*` surface never exists as an "empty shell" while sub-routes still resolve.
+- No client logo, no case-study numbers, no pricing slide — say the word and I'll add a "Proof & precedent" and/or "Engagement model" slide (deck grows to 15–16).
+- Cover uses the GDPVision wordmark only; no PM-specific personalization. If you want a country/PM name on the cover, tell me which.

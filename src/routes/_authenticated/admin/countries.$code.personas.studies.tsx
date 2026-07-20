@@ -440,7 +440,7 @@ function StudiesPage() {
               } catch {
                 // localStorage unavailable; defensive guard
               }
-              void startAutoRun({ force: true });
+              void startAutoRun();
             }}
             onCancel={cancelAutoRun}
           />

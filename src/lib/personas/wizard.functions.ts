@@ -714,6 +714,7 @@ export const draftCast = createServerFn({ method: "POST" })
     const gapProbeRaw = await callGateway(
       "You are a research director. Given the study scope and available context, list up to 3 concrete evidence gaps that must be closed with fresh open-web research before the cast can be trusted. Return strict JSON.",
       `SCOPE:\n${JSON.stringify(scope, null, 2)}\n\n${pack.block}\n\n${uploadsText}\n\nReturn: { "gaps": ["specific web-researchable question", ...] }`,
+      { model: GEN_MODEL_FALLBACK, timeoutMs: 60_000 },
     );
     const gaps = (safeParse<{ gaps: string[] }>(gapProbeRaw.content)?.gaps ?? []).slice(0, 3);
 

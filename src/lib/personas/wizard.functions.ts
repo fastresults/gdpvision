@@ -353,7 +353,7 @@ export const enrichBrief = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => EnrichBriefInput.parse(d))
   .handler(async ({ data, context }) => {
     const pack = await buildCountryContextPack(context.supabase, data.countryCode, data.raw.slice(0, 400));
-    const raw = await callGateway(
+    const scoped = await callStructured<ResearchScope>(
       "You are a McKinsey engagement partner scoping a sovereign research study. Convert the client's raw brief into a rigorous Research Scope. Return strict JSON only.",
       `RAW BRIEF (may be typed, transcribed from voice, or extracted from an upload):\n${data.raw}\n\n${pack.block}\n\nReturn JSON:
 {
@@ -367,9 +367,10 @@ export const enrichBrief = createServerFn({ method: "POST" })
   "sensitivities": ["political/reputational risks to handle carefully"],
   "success_criteria": ["what 'done well' looks like, 3-5"]
 }`,
+      (v): v is ResearchScope =>
+        !!v && typeof v === "object" && typeof (v as ResearchScope).title === "string" && (v as ResearchScope).title.length > 0,
     );
-    const parsed = safeParse<ResearchScope>(raw);
-    if (!parsed?.title) throw new Error("AI could not enrich the brief — try again or add detail.");
+    const parsed = scoped.value;
     await context.supabase
       .from("persona_study_drafts")
       .update({

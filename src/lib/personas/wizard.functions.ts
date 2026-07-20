@@ -169,26 +169,33 @@ async function callStructured<T>(
   throw err;
 }
 
-async function perplexityDeepResearch(query: string, country: string): Promise<{
+async function perplexityDeepResearch(query: string, country: string, timeoutMs = 30_000): Promise<{
   answer: string;
   citations: string[];
 }> {
   const key = process.env.PERPLEXITY_API_KEY;
   if (!key) return { answer: "", citations: [] };
-  const res = await fetch("https://api.perplexity.ai/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "sonar-reasoning-pro",
-      messages: [
-        { role: "system", content: "You are a McKinsey-grade research analyst. Return a 3-6 sentence factual synthesis grounded in cited web sources. Every claim must be citable." },
-        { role: "user", content: `Country: ${country}\nResearch question: ${query}\n\nSynthesize what is publicly known, with concrete numbers and named stakeholders where possible.` },
-      ],
-      temperature: 0.2,
-    }),
-  });
+  let res: Response;
+  try {
+    res = await fetch("https://api.perplexity.ai/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "sonar-pro",
+        messages: [
+          { role: "system", content: "You are a McKinsey-grade research analyst. Return a 3-6 sentence factual synthesis grounded in cited web sources. Every claim must be citable." },
+          { role: "user", content: `Country: ${country}\nResearch question: ${query}\n\nSynthesize what is publicly known, with concrete numbers and named stakeholders where possible.` },
+        ],
+        temperature: 0.2,
+      }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch {
+    return { answer: "", citations: [] };
+  }
   if (!res.ok) return { answer: "", citations: [] };
-  const j = await res.json();
+  const j = await res.json().catch(() => null);
+  if (!j) return { answer: "", citations: [] };
   const answer: string = j?.choices?.[0]?.message?.content ?? "";
   const citations: string[] = Array.isArray(j?.citations) ? j.citations : [];
   return { answer, citations };

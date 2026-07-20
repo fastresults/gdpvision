@@ -1,7 +1,8 @@
 // Chamber 07 · Research Studio · Sessions Hub — list / resume / rename / duplicate / delete drafts.
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, FileText, MoreVertical, Pencil, Play, Plus, Trash2, Users } from "lucide-react";
+import { Copy, ExternalLink, FileText, MoreVertical, Pencil, Play, Plus, Trash2, Users, Wand2 } from "lucide-react";
 
 import {
   deleteDraft, duplicateDraft, listDrafts, renameDraft,
@@ -11,6 +12,7 @@ type Props = {
   countryCode: string;
   onResume: (draftId: string) => void;
   onStartNew: () => void;
+  onAutoRun: (draftId: string) => void;
 };
 
 const STEP_LABEL: Record<string, string> = {

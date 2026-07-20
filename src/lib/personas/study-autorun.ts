@@ -5,7 +5,15 @@
 // that the user sees only completed work products — no manual per-study
 // clicks required.
 
-import { createStudy, draftStudyQuestions, runStudy, listStudies, getStudy } from "./study.functions";
+import {
+  createStudy,
+  draftStudyQuestions,
+  runStudy,
+  runStudyResponses,
+  runStudySynthesis,
+  listStudies,
+  getStudy,
+} from "./study.functions";
 import { composeStudyForSegment } from "./compose-study.functions";
 
 export const AUTO_STUDIES_LOCK = new Set<string>();

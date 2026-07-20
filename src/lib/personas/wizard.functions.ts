@@ -485,7 +485,7 @@ export const commitStudy = createServerFn({ method: "POST" })
         archetype: p.archetype ? String(p.archetype).slice(0, 120) : null,
         summary: rawSummary ? sanitizeCitationMarkersInText(rawSummary, citations) : null,
         attributes: sanitizeJsonCitationMarkers(
-          { ...(p.attributes ?? {}), motivations: p.motivations, objections: p.objections, quote: p.quote },
+          { ...((p.attributes ?? {}) as Record<string, Json>), motivations: p.motivations, objections: p.objections, quote: p.quote },
           citations,
         ) as never,
         ocean: {} as never,

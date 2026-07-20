@@ -14,6 +14,7 @@ type Props = {
   params: Record<string, string>;
   disabled?: boolean;
   disabledHint?: string;
+  currentHere?: boolean;
   extra?: ReactNode;
 };
 
@@ -29,12 +30,20 @@ export function JourneyCard({
   params,
   disabled,
   disabledHint,
+  currentHere,
   extra,
 }: Props) {
   const status =
-    count > 0 ? "ready" : disabled ? "locked" : "empty";
+    currentHere ? "here" : count > 0 ? "ready" : disabled ? "locked" : "empty";
   const statusColor =
-    status === "ready" ? "bg-emerald-500" : status === "locked" ? "bg-ink-300" : "bg-amber-500";
+    status === "ready"
+      ? "bg-emerald-500"
+      : status === "here"
+        ? "bg-ink-950"
+        : status === "locked"
+          ? "bg-ink-300"
+          : "bg-amber-500";
+
 
   const inner = (
     <div

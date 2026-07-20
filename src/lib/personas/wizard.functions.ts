@@ -708,7 +708,7 @@ export const draftCast = createServerFn({ method: "POST" })
 }
 Rules: every persona and segment MUST cite at least one grounding_ref. member_indexes reference personas by array index. Instruments must be immediately usable in a real session.`,
     );
-    const parsed = safeParse<Omit<CastDraft, "missing_evidence" | "deep_research" | "evidence_summary">>(castRaw);
+    const parsed = safeParse<Omit<CastDraft, "missing_evidence" | "deep_research" | "evidence_summary">>(castRaw.content);
     if (!parsed?.personas?.length) throw new Error("AI returned no cast — try again.");
 
     const cast: CastDraft = {

@@ -52,8 +52,7 @@ export const parseUpload = createServerFn({ method: "POST" })
 
     // Image → OCR via Gemini vision
     if (kind.startsWith("image/")) {
-      const buf = Buffer.from(await file.arrayBuffer());
-      const base64 = buf.toString("base64");
+      const base64 = Buffer.from(await file.arrayBuffer()).toString("base64");
       const text = await visionExtract(base64, kind);
       return { excerpt: text.slice(0, 8000), kind: "image" as const };
     }
@@ -120,7 +119,7 @@ async function transcribeBuffer(buf: Buffer, mime: string): Promise<string> {
   const ext = extMap[mime.split(";")[0] ?? ""] ?? "webm";
   const form = new FormData();
   form.append("model", "openai/gpt-4o-mini-transcribe");
-  form.append("file", new Blob([buf], { type: mime }), `upload.${ext}`);
+  form.append("file", new Blob([new Uint8Array(buf)], { type: mime }), `upload.${ext}`);
   const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}` },

@@ -55,14 +55,32 @@ function PersonasIndex() {
         </div>
         <button
           type="button"
-          onClick={() => setWizardOpen(true)}
+          onClick={() => { setResumeDraftId(undefined); setWizardOpen(true); }}
           className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700"
         >
           <Wand2 size={12} /> Launch research studio
         </button>
       </header>
 
-      <StudyWizardModal open={wizardOpen} onClose={() => { setWizardOpen(false); qc.invalidateQueries({ queryKey: ["personas", code] }); }} countryCode={code} />
+      <StudyWizardModal
+        key={resumeDraftId ?? "new"}
+        open={wizardOpen}
+        onClose={() => {
+          setWizardOpen(false);
+          setResumeDraftId(undefined);
+          qc.invalidateQueries({ queryKey: ["personas", code] });
+          qc.invalidateQueries({ queryKey: ["study-drafts", code] });
+        }}
+        countryCode={code}
+        draftId={resumeDraftId}
+      />
+
+      <SessionsHub
+        countryCode={code}
+        onResume={(id) => { setResumeDraftId(id); setWizardOpen(true); }}
+        onStartNew={() => { setResumeDraftId(undefined); setWizardOpen(true); }}
+      />
+
 
       <div className="border border-line-200 bg-paper-0 p-4">
         <label className="block">

@@ -179,6 +179,7 @@ function StepBrief({ draftId, countryCode, draft, onNext, onSaved, onAutoRun }: 
 }) {
   const [text, setText] = useState(draft.brief_raw ?? "");
   const [uploads, setUploads] = useState<WizardUpload[]>(Array.isArray(draft.uploads) ? (draft.uploads as WizardUpload[]) : []);
+  const [autoRunHint, setAutoRunHint] = useState<string | null>(null);
   const scope = draft.brief_scope as {
     title?: string; objectives?: string[]; hypotheses?: string[]; decisions?: string[];
     stakeholders?: { name: string; type: string; role: string }[]; timeframe?: string;

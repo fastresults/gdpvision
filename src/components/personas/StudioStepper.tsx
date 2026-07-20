@@ -162,6 +162,11 @@ export function StudioStepper({
                         {autoStatus}
                       </span>
                     )}
+                    {rehearseStatus && s.key === "rehearse" && (
+                      <span className="ml-2 border border-ink-950/40 bg-paper-100 px-1.5 py-0.5 text-[9px] tracking-[0.14em] text-ink-950">
+                        {rehearseStatus}
+                      </span>
+                    )}
                   </span>
                 </span>
               </Link>

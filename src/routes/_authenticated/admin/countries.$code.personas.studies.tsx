@@ -199,6 +199,7 @@ function StudiesPage() {
               active={currentStep === 2}
               done={stepDone[2]}
               locked={!stepDone[1]}
+              sectionRef={step2Ref}
             >
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {METHODS.map((m) => {
@@ -237,12 +238,14 @@ function StudiesPage() {
               active={currentStep === 3}
               done={stepDone[3]}
               locked={!stepDone[2]}
+              sectionRef={step3Ref}
             >
               <label className="block">
                 <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
                   Working title
                 </span>
                 <input
+                  ref={titleInputRef}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   disabled={!stepDone[2]}
@@ -250,6 +253,7 @@ function StudiesPage() {
                   className="mt-1 w-full border border-line-200 bg-paper-0 px-2 py-2 text-sm focus:border-ink-950 focus:outline-none disabled:opacity-40"
                 />
               </label>
+
               <label className="mt-3 block">
                 <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
                   Objective <span className="text-ink-400">(optional but recommended)</span>

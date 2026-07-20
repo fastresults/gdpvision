@@ -143,7 +143,7 @@ function SegmentsPage() {
         /* ignore storage errors */
       }
       setAuto({ kind: "complete" });
-      navigate({ to: "/admin/countries/$code/personas/studies", params: { code } });
+      navigate({ to: "/admin/countries/$code/personas/studies", params: { code }, search: { auto: 1 } });
     } catch (e) {
       setAuto({ kind: "error", message: (e as Error).message });
     }

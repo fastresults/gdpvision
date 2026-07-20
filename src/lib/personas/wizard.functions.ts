@@ -298,7 +298,7 @@ const SaveDraftInput = z.object({
 
 const DRAFT_ALLOWED_KEYS = new Set([
   "title", "step", "brief_raw", "brief_scope", "outcome_raw",
-  "outcome_blueprint", "cast_draft", "uploads",
+  "outcome_blueprint", "cast_draft", "uploads", "autorun_status",
 ]);
 
 export const saveDraft = createServerFn({ method: "POST" })

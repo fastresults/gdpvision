@@ -7,6 +7,7 @@ import { useState } from "react";
 import { CitedText } from "@/components/citations/CitedText";
 import { deletePersona, generatePersona, listPersonas } from "@/lib/personas/generate.functions";
 import { StudyWizardModal } from "@/components/personas/StudyWizard/WizardModal";
+import { SessionsHub } from "@/components/personas/StudyWizard/SessionsHub";
 
 function personasQuery(code: string) {
   return queryOptions({

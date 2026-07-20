@@ -12,10 +12,12 @@ export function StudioStepper({
   code,
   active,
   autoStatus,
+  rehearseStatus,
 }: {
   code: string;
   active?: StageKey;
   autoStatus?: string;
+  rehearseStatus?: string;
 }) {
   const matchRoute = useMatchRoute();
   const personas = useQuery({

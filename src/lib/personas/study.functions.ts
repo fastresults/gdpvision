@@ -394,21 +394,22 @@ export const listStudiesWithReports = createServerFn({ method: "POST" })
     return studies.map((s) => {
       const rep = reportByStudy.get(s.id) ?? null;
       let summary_md: string | null = null;
-      let themes: unknown = null;
-      let citations: unknown = null;
+      let themes: Array<{ label?: string; prevalence?: number; quote?: string }> = [];
+      let citations: ContextCitation[] = [];
       if (rep && pack) {
         const cites = fullCitationsForRefs(pack.citations, refsFromTextAndModel(rep.summary_md, rep.citations));
         summary_md = rep.summary_md ? sanitizeCitationMarkersInText(rep.summary_md, cites) : null;
-        themes = sanitizeJsonCitationMarkers(rep.themes ?? [], cites);
+        const rawThemes = sanitizeJsonCitationMarkers(rep.themes ?? [], cites);
+        themes = Array.isArray(rawThemes) ? (rawThemes as typeof themes) : [];
         citations = cites;
       }
       return {
-        id: s.id,
-        title: s.title,
-        kind: s.kind,
-        status: s.status,
-        created_at: s.created_at,
-        segment_id: s.segment_id,
+        id: s.id as string,
+        title: s.title as string,
+        kind: s.kind as string,
+        status: s.status as string,
+        created_at: s.created_at as string,
+        segment_id: s.segment_id as string | null,
         segment_label: s.segment_id ? segLabelById.get(s.segment_id) ?? null : null,
         persona_count: s.segment_id ? countBySeg.get(s.segment_id) ?? 0 : 0,
         summary_md,

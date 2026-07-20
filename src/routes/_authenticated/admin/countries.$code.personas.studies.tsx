@@ -128,6 +128,27 @@ function StudiesPage() {
     },
   });
 
+  // AI Composer — picks segment + method + framing automatically.
+  const composerQ = useQuery({
+    queryKey: ["study-composer", code, segments.length],
+    queryFn: () => composeStudy({ data: { countryCode: code } }),
+    enabled: segments.length > 0,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+  });
+  const composed: ComposeStudyResult | undefined = composerQ.data;
+  const applyComposed = (c: Extract<ComposeStudyResult, { ok: true }>) => {
+    setSegmentId(c.segmentId);
+    setKind(c.kind === "creative_test" ? "creative_test" : (c.kind as StudyKind));
+    setTitle(c.title);
+    setObjective(c.objective);
+  };
+  const runComposed = () => {
+    if (!composed?.ok) return;
+    applyComposed(composed);
+    // create.mutate uses the state we just set — schedule after paint so state is applied.
+    setTimeout(() => create.mutate({ auto: true }), 0);
+  };
 
   const ready = stepDone[1] && stepDone[2] && stepDone[3];
   const chosenSegment = segments.find((s) => s.id === segmentId);
@@ -136,6 +157,7 @@ function StudiesPage() {
   const step2Ref = useRef<HTMLElement | null>(null);
   const step3Ref = useRef<HTMLElement | null>(null);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const manualDetailsRef = useRef<HTMLDetailsElement | null>(null);
   useEffect(() => {
     if (currentStep === 2 && step2Ref.current) {
       step2Ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -155,6 +177,7 @@ function StudiesPage() {
     return { running, done, drafts };
   }, [studies]);
 
+  const manualDefaultOpen = !composerQ.isLoading && (!composed || !composed.ok);
 
   return (
     <div className="space-y-8">
@@ -162,12 +185,14 @@ function StudiesPage() {
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
           Stage 03 · Rehearse the conversation
         </p>
-        <h2 className="mt-1 font-serif text-2xl text-ink-950">Design a study in three steps</h2>
+        <h2 className="mt-1 font-serif text-2xl text-ink-950">AI composes your next study</h2>
         <p className="mt-1 max-w-2xl text-sm text-ink-500">
-          Pick who you want to hear from, choose how you want to hear from them, then frame the question.
-          Synthesis runs on the next screen.
+          Grounded in {code}&rsquo;s brief, segments, and prior studies — the AI picks the audience, method, and
+          question. Approve to launch, or edit before you do.
         </p>
       </header>
+
+
 
 
       {segments.length === 0 ? (

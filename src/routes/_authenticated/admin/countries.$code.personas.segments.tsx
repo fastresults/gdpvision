@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { deleteSegment, generateSegment, listPersonas, listSegments } from "@/lib/personas/generate.functions";
 import { composeSegments, type SegmentProposal } from "@/lib/personas/compose-segments.functions";
 import { StudioStepper } from "@/components/personas/StudioStepper";
+import { clearAutoRun, publishAutoRun } from "@/lib/autorun/beacon";
 
 function segmentsQuery(code: string) {
   return queryOptions({

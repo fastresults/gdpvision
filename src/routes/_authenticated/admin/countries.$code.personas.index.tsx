@@ -61,6 +61,8 @@ function PersonasIndex() {
 
   return (
     <div className="space-y-6">
+      <StudioStepper code={code} active="cast" />
+
       <header>
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
           Stage 01 · Cast the room

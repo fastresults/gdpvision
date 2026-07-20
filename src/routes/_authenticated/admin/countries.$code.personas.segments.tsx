@@ -31,10 +31,11 @@ function SegmentsPage() {
     mutationFn: () => generateSegment({ data: { countryCode: code, prompt: prompt.trim(), size, visibility } }),
     onSuccess: (row) => {
       setPrompt("");
-      setLastCreated({ id: row.id, label: row.label });
+      setLastCreated({ id: row.segment.id, label: row.segment.label });
       qc.invalidateQueries({ queryKey: ["persona-segments", code] });
       qc.invalidateQueries({ queryKey: ["personas", code] });
     },
+
   });
   const del = useMutation({
     mutationFn: (id: string) => deleteSegment({ data: { id } }),

@@ -25,12 +25,12 @@ async function callGateway(system: string, user: string): Promise<string> {
     body: JSON.stringify({
       model: GEN_MODEL,
       messages: [
-        { role: "system", content: system },
+        { role: "system", content: `${system}\n\nRespond with a single valid JSON object only. No prose, no markdown fences.` },
         { role: "user", content: user },
       ],
-      response_format: { type: "json_object" },
       temperature: 0.4,
     }),
+
   });
   if (!res.ok) {
     const t = await res.text();

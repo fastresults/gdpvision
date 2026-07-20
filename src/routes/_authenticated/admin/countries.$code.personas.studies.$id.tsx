@@ -8,6 +8,7 @@ import { CitedMarkdown } from "@/components/citations/CitedMarkdown";
 import { CitedText } from "@/components/citations/CitedText";
 import { PrettyJson } from "@/components/data/PrettyJson";
 import { draftStudyQuestions, getStudy, runStudy } from "@/lib/personas/study.functions";
+import { StudioStepper } from "@/components/personas/StudioStepper";
 
 function studyQuery(id: string) {
   return queryOptions({ queryKey: ["study", id], queryFn: () => getStudy({ data: { id } }) });
@@ -104,6 +105,8 @@ function StudyDetail() {
 
   return (
     <div className="space-y-6">
+      <StudioStepper code={code} active="rehearse" />
+
       <Link
         to="/admin/countries/$code/personas/studies"
         params={{ code }}

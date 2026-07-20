@@ -11,6 +11,7 @@ import { StudyWizardModal } from "@/components/personas/StudyWizard/WizardModal"
 import { SessionsHub } from "@/components/personas/StudyWizard/SessionsHub";
 import { startAutorun } from "@/lib/personas/autorun.functions";
 import { JourneyCard } from "@/components/personas/JourneyCard";
+import { StudioStepper } from "@/components/personas/StudioStepper";
 
 function personasQuery(code: string) {
   return queryOptions({
@@ -60,6 +61,8 @@ function PersonasIndex() {
 
   return (
     <div className="space-y-6">
+      <StudioStepper code={code} active="cast" />
+
       <header>
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
           Stage 01 · Cast the room

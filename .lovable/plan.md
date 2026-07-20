@@ -1,63 +1,45 @@
-# Stage 03 · Studies — AI-First Auto-Compose
-
 ## Problem
-`/admin/countries/$code/personas/studies` (route file `countries.$code.personas.studies.tsx`) is currently a purely manual 3-step form:
+Chamber 07 has a linear "Studio journey" (Stage 01 Cast → 02 Group → 03 Rehearse), but the UI hard-gates movement:
+- `JourneyCard` on Stage 01 renders Stages 02/03 as `disabled` (no `<Link>`) when prereqs are empty.
+- The sidebar in `countries.$code.personas.tsx` shows a `locked` dot for downstream stages; there is no top-of-page stepper on Stage 02/03 to jump sideways.
+- Study detail (`studies.$id`) has no stepper at all — you can only leave via the crumb.
 
-1. Pick segment
-2. Pick method (survey / focus group / creative test)
-3. Frame title + objective
+Users must be able to move freely between Stage 01 ↔ 02 ↔ 03 (and Study detail) from anywhere, at any time, regardless of whether prior stages have content.
 
-This contradicts the AI-first mandate. Stages 01 (Brief) and 02 (Blueprint) already have "Auto-run", and Chamber 07's Studio Wizard runs Brief → Outcome → Cast → Commit → Synthesis end-to-end. Stage 03, however, forces the operator to hand-pick everything before a study can be created.
+## Approach
+Treat prerequisites as *coaching*, not *gates*. Every stage is always reachable via a persistent, clickable stepper; empty downstream stages render an inline "you need X first" empty state with a one-click link back — but the navigation itself is never blocked.
 
-## Objective
-When the operator lands on Stage 03, an AI Composer picks the highest-value segment, chooses the appropriate method, and drafts a title + objective grounded in the country's brief/blueprint context. The operator sees a **filled-in preview** they can approve, edit, or auto-run into synthesis. Manual mode remains available as a disclosure.
+## Changes
 
-## Design
+1. **New `StudioStepper` component** (`src/components/personas/StudioStepper.tsx`)
+   - Sticky, top-of-content, 3-node stepper: Cast / Group / Rehearse.
+   - Each node is always a `<Link>` (never disabled). Active node uses `activeProps`.
+   - Visual state per node: `complete` (has rows), `active` (current route), `empty` (no rows, not active). No `locked` state.
+   - Small count badge per node ("20 personas", "2 segments", "1 study").
+   - Reads counts via `useQuery` on the same query keys already used by the layout, so it's cheap and reactive.
 
-### Default state = Auto-composed
-- On page open (segments.length ≥ 1), immediately fire `composeStudy` (new server function) which returns `{ segmentId, kind, title, objective, rationale, evidence }`.
-- Preview sidebar renders the composed study with a `AI · composed` chip and a "Why this pick" popover (rationale + 2-3 citations from corpus / brief scope).
-- Primary CTA becomes **"Create & run synthesis"** (one click → create study → navigate to `/studies/$id` with `autoRun=1`).
-- Secondary CTAs: **"Edit before creating"** (unlocks the 3-step form pre-filled) · **"Recompose"** (regenerates with a fresh seed) · **"Manual mode"** (collapses AI card, current form is exposed).
+2. **`countries.$code.personas.tsx` (layout)**
+   - Keep the left rail as narrative context, but drop the "locked" semantics: all three sidebar links become always-clickable; the amber/green dot stays as informational status only.
+   - Remove the `unlocked` prop from `stages[]` and the conditional connector styling that implied gating.
 
-### Manual mode = Opt-in
-- Existing 3-step composer stays intact, but rendered inside a `<details>` block ("Compose manually") that is closed by default when AI compose succeeds.
-- If `composeStudy` fails (no segments, model error, quota), the manual form auto-expands with an inline notice.
+3. **`countries.$code.personas.index.tsx` (Stage 01)**
+   - Replace `disabled` + `disabledHint` on the Stage 02/03 `JourneyCard`s with an always-live link. Cards keep their status chip ("empty" / "ready") but click through unconditionally.
+   - Mount `<StudioStepper>` above the Journey board for consistency across stages.
 
-### Auto-run into synthesis
-- `createStudy` today navigates to `/studies/$id`. When invoked from the AI Composer's primary CTA, we pass a `?auto=1` query param and the study detail page kicks off synthesis automatically (uses existing synth trigger, same pattern used elsewhere).
+4. **`JourneyCard.tsx`**
+   - Deprecate the hard-disabled branch: when `count === 0`, still render the `<Link>` and swap the CTA to a soft "Set up" label with a subtle hint. Keep the `disabled` prop but treat it as visual-only (no `pointer-events-none`, no missing anchor). This preserves callers while unblocking navigation.
 
-## Technical Details
+5. **`countries.$code.personas.segments.tsx` (Stage 02)**
+   - Mount `<StudioStepper>` at the top.
+   - When `personas.length === 0`, show an inline empty-state card ("Cast a public first — segments group personas you already have") with a primary link back to Stage 01. Do not block the page shell.
 
-### New server fn: `src/lib/personas/compose-study.functions.ts`
-- Input: `{ countryCode }`
-- Loads: segments (via `listSegments`), latest brief_scope + outcome_blueprint from most recent `persona_study_drafts` for country, prior studies (to avoid duplication).
-- Calls Lovable AI Gateway (`openai/gpt-5.4-mini`, 45s timeout, JSON mode) with a compact prompt:
-  - "Given these segments, prior studies, and country brief, pick the single segment + one method (`survey`/`focus_group`/`creative_test`) that best advances an open decision. Return `{segment_id, kind, title, objective, rationale, evidence:[{quote,source}]}`."
-- Server validates: `segment_id` exists in country, `kind ∈ METHODS`, title 6–90 chars, objective 20–240 chars. On validation failure → single retry with corrective feedback, then return `{ ok:false, reason }`.
-- Persist last composition on `persona_composer_cache` (optional; skip if scope creep) — for v1, just return fresh.
+6. **`countries.$code.personas.studies.tsx` (Stage 03)**
+   - Mount `<StudioStepper>` at the top.
+   - When `segments.length === 0`, show inline empty-state coach linking back to Stage 02; AI Composer and manual composer are hidden until a segment exists, but the stepper and navigation remain fully live.
 
-### UI changes: `countries.$code.personas.studies.tsx`
-- Add `AiComposerCard` component at top of the composer column (above `StepBlock 1`).
-- New `useQuery(["study-composer", code])` calling `composeStudy` — runs on mount.
-- Wire "Create & run synthesis" to `createStudy` + navigate with `?auto=1`.
-- Wrap existing `StepBlock` chain in `<details>` with summary "Compose manually · pick segment, method, title".
-- When user clicks "Edit before creating", set local state to pre-fill `segmentId`, `kind`, `title`, `objective` from the AI proposal AND open the details block.
+7. **`countries.$code.personas.studies.$id.tsx` (Study detail)**
+   - Mount `<StudioStepper>` at the top with Stage 03 marked active so users can jump back to Cast/Group in one click without hunting through breadcrumbs.
 
-### Study detail auto-run
-- Read `useSearch` for `auto=1` on `personas.studies.$id.tsx`; if present and study is `draft`, trigger existing synthesis mutation once and clear the flag from URL.
-
-### Fallbacks & errors
-- No segments → keep current `EmptyStart` (unchanged).
-- AI failure → show inline "AI composer unavailable — compose manually" and expand manual form.
-- Rate-limit (429) / credits (402) → surface exact message per gateway rules.
-
-## Out of Scope
-- Changing the Studio Wizard (already AI-driven).
-- Rewriting synthesis logic on the study detail page.
-- Segment auto-generation (Stage 02 owns that).
-
-## Files Touched
-- **New**: `src/lib/personas/compose-study.functions.ts`
-- **Edit**: `src/routes/_authenticated/admin/countries.$code.personas.studies.tsx` (add AI card, wrap manual form in `<details>`, wire auto=1 nav)
-- **Edit**: `src/routes/_authenticated/admin/countries.$code.personas.studies.$id.tsx` (respect `?auto=1`)
+## Out of scope
+- No changes to server functions, AI composer logic, autorun orchestration, or data model.
+- No visual redesign beyond adding the stepper and softening gated states.

@@ -18,6 +18,7 @@ import { z } from "zod";
 import { listSegments } from "@/lib/personas/generate.functions";
 import { createStudy, listStudies } from "@/lib/personas/study.functions";
 import { composeStudy, type ComposeStudyResult } from "@/lib/personas/compose-study.functions";
+import { StudioStepper } from "@/components/personas/StudioStepper";
 
 
 
@@ -181,6 +182,8 @@ function StudiesPage() {
 
   return (
     <div className="space-y-8">
+      <StudioStepper code={code} active="rehearse" />
+
       <header>
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
           Stage 03 · Rehearse the conversation

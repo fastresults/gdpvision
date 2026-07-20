@@ -42,6 +42,27 @@ function StudyDetail() {
     byQuestion.set(r.question_id, arr);
   }
 
+  const phase: "drafted" | "questions" | "running" | "synthesized" = report
+    ? "synthesized"
+    : run.isPending
+      ? "running"
+      : questions.length > 0
+        ? "questions"
+        : "drafted";
+  const coach: Record<typeof phase, string> = {
+    drafted: "Start by AI-drafting 8 questions grounded in your objective. You can re-draft any time.",
+    questions: "Review the questions, then run the study — each persona answers in ≈ 30–60 seconds.",
+    running: "Personas are responding. Synthesis appears when the last voice is in.",
+    synthesized: "Read the synthesis below. Re-run with sharper questions if the signal is thin.",
+  };
+  const phases: Array<{ id: typeof phase; label: string }> = [
+    { id: "drafted", label: "Drafted" },
+    { id: "questions", label: "Questions ready" },
+    { id: "running", label: "Running" },
+    { id: "synthesized", label: "Synthesized" },
+  ];
+  const activeIdx = phases.findIndex((p) => p.id === phase);
+
   return (
     <div className="space-y-6">
       <Link
@@ -58,6 +79,42 @@ function StudyDetail() {
         <h2 className="mt-1 font-serif text-2xl text-ink-950">{study.title}</h2>
         {study.objective && <p className="mt-1 max-w-3xl text-sm text-ink-700">{study.objective}</p>}
       </header>
+
+      {/* Phase ribbon */}
+      <div className="border border-line-200 bg-paper-0 p-3">
+        <ol className="flex items-center gap-2 overflow-x-auto">
+          {phases.map((p, i) => {
+            const done = i < activeIdx;
+            const active = i === activeIdx;
+            return (
+              <li key={p.id} className="flex items-center gap-2">
+                <span
+                  className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border font-mono text-[10px] ${
+                    done
+                      ? "border-ink-950 bg-ink-950 text-paper-0"
+                      : active
+                        ? "border-ink-950 bg-paper-0 text-ink-950"
+                        : "border-line-200 bg-paper-0 text-ink-400"
+                  }`}
+                >
+                  {i + 1}
+                </span>
+                <span
+                  className={`whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.16em] ${
+                    active ? "text-ink-950" : done ? "text-ink-700" : "text-ink-400"
+                  }`}
+                >
+                  {p.label}
+                </span>
+                {i < phases.length - 1 && (
+                  <span className={`h-px w-6 ${i < activeIdx ? "bg-ink-950" : "bg-line-200"}`} />
+                )}
+              </li>
+            );
+          })}
+        </ol>
+        <p className="mt-2 text-[12px] leading-snug text-ink-700">{coach[phase]}</p>
+      </div>
 
       <div className="flex flex-wrap gap-2">
         <button
@@ -82,6 +139,7 @@ function StudyDetail() {
           {(draft.error as Error | null)?.message ?? (run.error as Error | null)?.message}
         </p>
       )}
+
 
       {questions.length > 0 && (
         <section>

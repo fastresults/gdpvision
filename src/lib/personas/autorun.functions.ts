@@ -74,7 +74,7 @@ type DraftLockRow = {
   phase_log: PhaseLogEntry[] | null;
 };
 
-async function loadDraft(supabase: ReturnType<typeof require>, id: string) {
+async function loadDraft(supabase: SB, id: string) {
   return supabase
     .from("persona_study_drafts")
     .select("id,country_code,brief_raw,brief_scope,outcome_blueprint,cast_draft,study_id,locked_at,autorun_status,phase_log")
@@ -280,7 +280,7 @@ export const runAutorunTick = createServerFn({ method: "POST" })
   });
 
 async function releaseLock(
-  supabase: ReturnType<typeof require>,
+  supabase: SB,
   draftId: string,
   status: AutorunStatus,
   phaseLog?: PhaseLogEntry[],
@@ -297,7 +297,7 @@ async function releaseLock(
 async function executePhase(
   phase: AutoRunPhase,
   draft: DraftLockRow,
-  _supabase: ReturnType<typeof require>,
+  _supabase: SB,
 ): Promise<{ text: string; skipped?: boolean }> {
   const countryCode = draft.country_code;
   switch (phase) {

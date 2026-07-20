@@ -1,73 +1,62 @@
-Make Stage 02 (Group) auto-run the full pipeline: propose segments, cast them, and then draft studies for every segment before handing off to Stage 03 (Rehearse). Stage 03 becomes a review surface, not the drafting surface.
+## Goal
 
-Current state
-- Stage 02 auto-runs segments and ends with `navigate({ to: "/admin/countries/$code/personas/studies", search: { auto: 1 } })`.
-- Stage 03 auto-runs `composeStudyForSegment` + `createStudy` for each uncovered segment.
-- `createStudy` is idempotent on `(country_code, segment_id)` where `status='draft'`, and `AUTO_STUDIES_LOCK` prevents duplicate runs.
-- The global auto-run beacon is already published from both stages.
+Make the floating **Auto-run in progress** card self-diagnosing: the user always sees whether the run is actually healthy, and if it stalls the beacon quietly repairs and resumes it — no manual clicks.
 
-What will change
+Scope is UI + a small client-side watchdog in the beacon layer. No schema changes, no server-function changes.
 
-1. Extend the Stage 02 auto-run state machine
-   - Add new phases after `advancing`:
-     - `drafting_studies` — running `composeStudyForSegment` + `createStudy` for every segment
-     - `study_complete` — finished drafting
-     - `study_error` — per-item failures collected
-   - Reuse the same loop pattern already in Stage 03: for each segment, call `composeStudyForSegment`, then `createStudy`. Track `handled` set, publish progress, and honor `cancelRef`.
+## What changes in the UI (the attached card)
 
-2. Move the study-drafting helper to a shared, client-safe path
-   - Extract a single `draftStudiesForSegments` function (or keep logic in the route but share the same `composeStudyForSegment` + `createStudy` calls) so both Stage 02 and Stage 03 can use the same loop.
-   - Do not duplicate AI/gateway code; the existing `composeStudyForSegment` server function in `src/lib/personas/compose-study.functions.ts` stays the canonical source.
+Extend `AutoRunEntry` and the `RunRow` in `src/components/autorun/AutoRunBeacon.tsx` with a **health chip** rendered under the title:
 
-3. Stage 03 becomes idempotent review
-   - When Stage 03 mounts and `uncoveredSegments.length === 0` (because Stage 02 already drafted them), it should show the review list, not attempt another run.
-   - Keep the "Start Auto-run" / "Draft missing studies" button available in Stage 03 for any future segments that appear later, but default to idle when everything is already covered.
+- `Healthy` — progress moved within the last ~30s. Small ink dot.
+- `Slow` — no progress for 30–90s. Amber dot, subtitle "Still working…".
+- `Stalled` — no progress for 90s+. Amber ring + subtitle "Stalled — auto-resuming…". A resume attempt kicks off automatically.
+- `Recovering` — after a stall, while the auto-fix tick is in flight. Spinner + "Resuming step N".
+- `Broken` — 2 consecutive resume attempts failed. Rose ring + "Couldn't auto-resume" and a **Retry now** button (manual escape hatch).
 
-4. Update global beacon messaging
-   - While Stage 02 is drafting studies, publish one combined beacon:
-     - `scope: Chamber 07 · Stage 02–03 · ${code}`
-     - `title: Drafting studies for every segment`
-     - `detail: Drafting 3/5 — Coastal tourism operators`
-   - Clear the beacon when Stage 02 completes and navigates to Stage 03, unless there are errors to review.
+Also add, next to `Open →`:
 
-5. UI changes in Stage 02
-   - The auto-run banner must show the new phases:
-     - `Casting segments 2/3`
-     - `Drafting studies 3/5`
-     - `Handing off to Rehearse`
-   - `StudioStepper` `autoStatus` should reflect `AUTO · drafting studies 3/5` during the new phase.
-   - Keep the same `Cancel Auto-run`, `Stay here`, and `Resume` controls.
+- **Resume** button — visible on `stalled`/`broken`. Fires the same resume the watchdog uses.
+- Health is always visible; the existing progress bar and `Open →` link stay.
 
-6. Handoff behavior
-   - After all studies are drafted, wait the same 3-second countdown, then navigate to `/admin/countries/$code/personas/studies` **without** `?auto=1` (or with a different `reviewed=0` flag) so Stage 03 opens in review mode.
-   - If the user cancels during drafting, they stay on Stage 02 with a "Resume Auto-run" CTA that picks up from the next un-drafted segment.
+## What changes underneath
 
-7. Safety / idempotency
-   - Reuse `AUTO_STUDIES_LOCK` keyed by country code so the same browser tab cannot fan out.
-   - Reuse `createStudy` idempotency so re-running or resuming never creates duplicate drafts.
-   - Keep per-item error collection: failed segments are recorded, and the loop continues with the rest; the final banner shows `Drafted 4/5 · 1 needs review`.
+Small additions in `src/lib/autorun/beacon.ts` — no new files:
 
-8. Optional: remove the separate `?auto=1` handoff
-   - The `auto=1` search param becomes unnecessary for the happy path because Stage 02 now drafts studies directly. Keep it as a legacy flag so existing links still work, but Stage 03 will treat it as a "draft missing only" trigger rather than a full re-run.
+- Extend `AutoRunEntry` with:
+  - `lastProgressAt: number` — updated automatically whenever `progress.current` or `detail` changes on a `publishAutoRun` call.
+  - `health: 'healthy' | 'slow' | 'stalled' | 'recovering' | 'broken'` — derived, stored so the UI reads a single field.
+  - `resumeAttempts: number` and `lastResumeAt: number`.
+  - Optional `resume?: () => Promise<void>` — publishers register a resume callback (see below).
+- New helper `registerAutoRunResume(id, fn)` that stores the resume fn on the entry.
+- Watchdog: `useAutoRuns()` runs a `setInterval(1000)` (guarded so only one interval exists) that recomputes `health` and, when an entry crosses into `stalled` and has a `resume` fn and `resumeAttempts < 2`, invokes it, flips health to `recovering`, and bumps `resumeAttempts`. If the next progress tick lands, health returns to `healthy` and `resumeAttempts` resets. If two attempts pass without progress, health becomes `broken`.
 
-Files to touch
-- `src/routes/_authenticated/admin/countries.$code.personas.segments.tsx` — extend state machine and auto-run loop to draft studies.
-- `src/routes/_authenticated/admin/countries.$code.personas.studies.tsx` — adjust mount logic so auto-run is defensive and idempotent; show review UI when all segments are covered.
-- `src/components/personas/StudioStepper.tsx` — already accepts `autoStatus`; ensure it can render the new combined status strings.
-- `src/lib/personas/study.functions.ts` — no change unless new helper needed (already idempotent).
-- `src/lib/autorun/beacon.ts` — no change (already supports progress + status).
+## Wiring the two current publishers to the resume path
 
-Technical details
-- The loop will run client-side sequential `createServerFn` calls, same as today, with a 250ms UI paint delay between items and 1.5s backoff on errors.
-- Use the existing `composeStudyForSegment` and `createStudy` server functions; no new AI model calls needed.
-- `AUTO_STUDIES_LOCK` will be acquired in Stage 02 before the study loop and released on completion/cancel/error.
-- The localStorage flag `stage02:autorun-consumed:${code}` will be set after the entire pipeline (segments + studies) completes, not after segments alone.
+Both are trivial one-line additions — they already have the loop functions we need:
 
-Validation
-- After the change, pressing "Start Auto-run" on Stage 02 should:
-  1. Propose segments.
-  2. Cast each segment.
-  3. Draft a study for each segment.
-  4. Navigate to Stage 03 showing the review list with no new auto-run triggered.
-- Cancelling mid-study should leave a resumeable state on Stage 02.
-- No duplicate drafts should be created on re-run or page refresh.
+- `src/components/personas/StudyWizard/AutoRunConsole.tsx` — after `publishAutoRun(...)` in the existing effect, call `registerAutoRunResume(id, () => tickLoop())`. `tickLoop` is already idempotent and lock-guarded server-side.
+- `src/routes/_authenticated/admin/countries.$code.personas.studies.tsx` — after publishing its beacon entry, register `() => startAutoRun()` (the existing Stage 03 pipeline entry point, which already runs behind `AUTO_STUDIES_LOCK` and calls `completeIncompleteStudies`, so re-entry is safe).
+- Same one-liner in `src/routes/_authenticated/admin/countries.$code.personas.segments.tsx` (Stage 02) pointing at its `runAuto`.
+
+If a publisher doesn't register a resume fn, the beacon still shows health but skips auto-resume and shows the manual **Retry now** button instead.
+
+## Behaviour the user will see on the card in the screenshot
+
+- Normal case: card shows `Healthy` under the title while progress ticks.
+- The current GRD situation (4 running, 6 drafts idle behind a single lock): as soon as any study hasn't moved for 30s the chip flips to `Slow`, then at 90s to `Stalled — auto-resuming…` and the Stage 03 `startAutoRun` fires again. Because that call is idempotent and `completeIncompleteStudies` sweeps every non-synthesized study, the 6 stuck drafts + the 5h-stale runner get picked up automatically on the next tick.
+- If two auto-resumes in a row produce no progress, the card turns rose with "Couldn't auto-resume" and a **Retry now** button — the user is never left wondering whether something broke.
+
+## Out of scope
+
+- No server-side heartbeat or DB timeout column (kept purely client-side per the request — "just add to this UI").
+- No changes to any server functions or migrations.
+- No changes to other chambers' beacons beyond the one-line `registerAutoRunResume` where a natural resume fn already exists.
+
+## Files touched
+
+- `src/lib/autorun/beacon.ts` — extend entry shape, add `registerAutoRunResume`, add watchdog interval.
+- `src/components/autorun/AutoRunBeacon.tsx` — render health chip + Resume button; use new health field.
+- `src/components/personas/StudyWizard/AutoRunConsole.tsx` — register resume.
+- `src/routes/_authenticated/admin/countries.$code.personas.studies.tsx` — register resume.
+- `src/routes/_authenticated/admin/countries.$code.personas.segments.tsx` — register resume.

@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
-import { FlaskConical, Layers, Sparkles, Trash2, User, Users, Wand2 } from "lucide-react";
+import { FlaskConical, Layers, Sparkles, Trash2, User, Users } from "lucide-react";
 import { useState } from "react";
 
 import { CitedText } from "@/components/citations/CitedText";

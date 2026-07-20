@@ -134,6 +134,7 @@ function StudiesPage() {
   const qc = useQueryClient();
   const { data: studies } = useSuspenseQuery(studiesQuery(code));
   const { data: segments } = useSuspenseQuery(segmentsQuery(code));
+  const { data: digest = [] } = useQuery(studiesDigestQuery(code));
 
   const [segmentId, setSegmentId] = useState<string>(search.segmentId ?? "");
   const [kind, setKind] = useState<StudyKind | "">("");

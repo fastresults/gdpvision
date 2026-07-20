@@ -3,7 +3,7 @@
 // runs server-side under an advisory lock so tab-close / double-click / two-tabs are all safe.
 
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Check, Loader2, Rocket, RotateCcw } from "lucide-react";
+import { AlertTriangle, Check, FileText, Loader2, Rocket, RotateCcw } from "lucide-react";
 
 import {
   cancelAutorun,

@@ -740,9 +740,8 @@ export const draftCast = createServerFn({ method: "POST" })
       ? `\nDEEP RESEARCH (open web):\n${deepResearch.map((d, i) => `[D${i + 1}] Q: ${d.question}\nA: ${d.answer}\nSOURCES: ${d.citations.slice(0, 5).join(", ")}`).join("\n\n")}`
       : "";
 
-    const castRaw = await callGateway(
-      "You are the McKinsey partner casting a research study. Produce a diverse, non-consensus cast grounded ONLY in the provided corpus + uploaded + deep-research evidence. Cite [N] context refs. Return strict JSON.",
-      `SCOPE:\n${JSON.stringify(scope, null, 2)}\n\nDELIVERABLE BLUEPRINT:\n${JSON.stringify(blueprint, null, 2)}\n\n${pack.block}\n\n${uploadsText}${deepBlock}\n\nGenerate exactly ${data.personaCount} distinct personas and ${data.segmentCount} segments. Also draft ${blueprint.deliverables.length || 3} instruments matching the blueprint (focus_group, survey, interview_protocol, scorecard as needed).\n\nReturn JSON:
+    const castSystem = "You are the McKinsey partner casting a research study. Produce a diverse, non-consensus cast grounded ONLY in the provided corpus + uploaded + deep-research evidence. Cite [N] context refs. Return strict JSON.";
+    const castUser = `SCOPE:\n${JSON.stringify(scope, null, 2)}\n\nDELIVERABLE BLUEPRINT:\n${JSON.stringify(blueprint, null, 2)}\n\n${pack.block}\n\n${uploadsText}${deepBlock}\n\nGenerate exactly ${data.personaCount} distinct personas and ${data.segmentCount} segments. Also draft ${blueprint.deliverables.length || 3} instruments matching the blueprint (focus_group, survey, interview_protocol, scorecard as needed).\n\nReturn JSON:
 {
   "personas": [
     { "name":"First Last", "archetype":"short label", "summary":"3-4 sentences citing [N]",
@@ -760,8 +759,21 @@ export const draftCast = createServerFn({ method: "POST" })
       "body": { "questions":[{"id":"Q1","text":"…","type":"open|likert|multi"}], "notes":"…" } }
   ]
 }
-Rules: every persona and segment MUST cite at least one grounding_ref. member_indexes reference personas by array index. Instruments must be immediately usable in a real session.`,
-    );
+Rules: every persona and segment MUST cite at least one grounding_ref. member_indexes reference personas by array index. Instruments must be immediately usable in a real session.`;
+
+    // Cast generation is the heaviest call in the wizard. Give it a bigger budget and
+    // fall back to the lite model on timeout/upstream failure to avoid a full 45s abort.
+    let castRaw: GatewayResult;
+    try {
+      castRaw = await callGateway(castSystem, castUser, { model: GEN_MODEL_PRIMARY, timeoutMs: 110_000 });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/timed out|upstream|502|503|504|network/i.test(msg)) {
+        castRaw = await callGateway(castSystem, castUser, { model: GEN_MODEL_FALLBACK, timeoutMs: 90_000 });
+      } else {
+        throw e;
+      }
+    }
     const parsed = safeParse<Omit<CastDraft, "missing_evidence" | "deep_research" | "evidence_summary">>(castRaw.content);
     if (!parsed?.personas?.length) throw new Error("AI returned no cast — try again.");
 

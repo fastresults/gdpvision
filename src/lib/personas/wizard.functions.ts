@@ -309,7 +309,7 @@ type PersonaDraft = {
   name: string;
   archetype: string;
   summary: string;
-  attributes: Record<string, unknown>;
+  attributes: Json;
   motivations: string[];
   objections: string[];
   quote: string;
@@ -319,7 +319,7 @@ type PersonaDraft = {
 type SegmentDraft = {
   label: string;
   size_hint: string;
-  distribution: Record<string, unknown>;
+  distribution: Json;
   member_indexes: number[];
   grounding_refs: number[];
 };
@@ -327,7 +327,7 @@ type SegmentDraft = {
 type InstrumentDraft = {
   kind: string;
   title: string;
-  body: Record<string, unknown>;
+  body: Json;
 };
 
 type CastDraft = {

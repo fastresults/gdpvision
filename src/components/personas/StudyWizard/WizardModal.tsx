@@ -29,9 +29,10 @@ type Props = {
   initialAutorun?: boolean;
 };
 
-export function StudyWizardModal({ open, onClose, countryCode, draftId: initialDraftId }: Props) {
+export function StudyWizardModal({ open, onClose, countryCode, draftId: initialDraftId, initialAutorun }: Props) {
   const [draftId, setDraftId] = useState<string | undefined>(initialDraftId);
   const [step, setStep] = useState<Step>("brief");
+  const [autorun, setAutorun] = useState<boolean>(!!initialAutorun);
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -52,8 +53,8 @@ export function StudyWizardModal({ open, onClose, countryCode, draftId: initialD
   });
 
   useEffect(() => {
-    if (draftQ.data?.step) setStep(draftQ.data.step as Step);
-  }, [draftQ.data?.step]);
+    if (!autorun && draftQ.data?.step) setStep(draftQ.data.step as Step);
+  }, [draftQ.data?.step, autorun]);
 
   const refreshDraft = () => qc.invalidateQueries({ queryKey: ["study-draft", draftId] });
 

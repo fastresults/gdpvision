@@ -120,9 +120,12 @@ export const getAutorunStatus = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!row) throw new Error("Draft not found");
     const draft = row as DraftLockRow;
-    const status = (draft.autorun_status as AutorunStatus | null) ?? {
-      status: "queued", next_phase: null, updated_at: new Date().toISOString(),
-    };
+    // Ignore any legacy autorun_status shape (pre-refactor rows without a `status` key).
+    const rawStatus = draft.autorun_status as (AutorunStatus & Record<string, unknown>) | null;
+    const status: AutorunStatus =
+      rawStatus && typeof rawStatus.status === "string"
+        ? rawStatus
+        : { status: "queued", next_phase: null, updated_at: new Date().toISOString() };
     const nextPhase = deriveNextPhase({
       brief_scope: draft.brief_scope,
       outcome_blueprint: draft.outcome_blueprint,

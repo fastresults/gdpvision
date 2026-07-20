@@ -116,8 +116,18 @@ export function SessionsHub({ countryCode, onResume, onStartNew, onAutoRun }: Pr
             const title = d.title?.trim() || "Untitled brief";
             const isRenaming = renaming?.id === d.id;
             const committed = d.step === "done" && !!d.study_id;
-            const autoStatus = d.autorun_status as { phase?: string; state?: string; message?: string | null } | null;
-            const autoRunning = !!autoStatus && autoStatus.state === "running";
+            // Normalize both current and legacy autorun_status shapes.
+            const rawStatus = d.autorun_status as
+              | ({ status?: string; next_phase?: string | null; last_phase?: string | null; message?: string | null }
+                 & { phase?: string; state?: string })
+              | null;
+            const normalizedStatus = rawStatus?.status ?? (rawStatus?.state as string | undefined) ?? null;
+            const normalizedPhase = rawStatus?.last_phase ?? rawStatus?.next_phase ?? rawStatus?.phase ?? null;
+            const lockedAt = (d as { locked_at?: string | null }).locked_at ?? null;
+            const lockLive = !!lockedAt && (Date.now() - Date.parse(lockedAt)) < 60_000;
+            const displayStatus =
+              normalizedStatus === "running" && !lockLive ? "stalled" : normalizedStatus;
+            const autoRunning = displayStatus === "running";
             return (
               <li key={d.id} className="group relative flex items-start gap-3 px-4 py-3 hover:bg-paper-50">
                 <button
@@ -160,18 +170,22 @@ export function SessionsHub({ countryCode, onResume, onStartNew, onAutoRun }: Pr
                     <span className={`border px-1.5 py-0.5 ${STEP_TONE[d.step] ?? "border-line-200 text-ink-700"}`}>
                       {STEP_LABEL[d.step] ?? d.step}
                     </span>
-                    {autoStatus?.phase && (
+                    {displayStatus && (
                       <span
                         className={`border px-1.5 py-0.5 ${
-                          autoStatus.state === "failed"
+                          displayStatus === "failed"
                             ? "border-rose-500 bg-rose-50 text-rose-700"
-                            : autoStatus.state === "running"
-                              ? "border-ink-950 bg-ink-950 text-paper-0"
-                              : "border-emerald-600 bg-emerald-50 text-emerald-700"
+                            : displayStatus === "stalled"
+                              ? "border-amber-500 bg-amber-50 text-amber-700"
+                              : displayStatus === "running"
+                                ? "border-ink-950 bg-ink-950 text-paper-0"
+                                : displayStatus === "done"
+                                  ? "border-emerald-600 bg-emerald-50 text-emerald-700"
+                                  : "border-line-200 text-ink-700"
                         }`}
-                        title={autoStatus.message ?? undefined}
+                        title={rawStatus?.message ?? undefined}
                       >
-                        Auto · {autoStatus.phase} · {autoStatus.state}
+                        Auto{normalizedPhase ? ` · ${normalizedPhase}` : ""} · {displayStatus}
                       </span>
                     )}
                     <span>{relative(d.updated_at)}</span>

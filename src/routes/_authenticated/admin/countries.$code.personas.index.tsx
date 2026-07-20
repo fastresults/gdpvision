@@ -9,6 +9,7 @@ import { deletePersona, generatePersona, listPersonas, listSegments } from "@/li
 import { listStudies } from "@/lib/personas/study.functions";
 import { StudyWizardModal } from "@/components/personas/StudyWizard/WizardModal";
 import { SessionsHub } from "@/components/personas/StudyWizard/SessionsHub";
+import { startAutorun } from "@/lib/personas/autorun.functions";
 import { JourneyCard } from "@/components/personas/JourneyCard";
 
 function personasQuery(code: string) {
@@ -134,7 +135,12 @@ function PersonasIndex() {
         countryCode={code}
         onResume={(id) => { setAutorun(false); setResumeDraftId(id); setWizardOpen(true); }}
         onStartNew={() => { setAutorun(false); setResumeDraftId(undefined); setWizardOpen(true); }}
-        onAutoRun={(id) => { setResumeDraftId(id); setAutorun(true); setWizardOpen(true); }}
+        onAutoRun={async (id) => {
+          setResumeDraftId(id);
+          setAutorun(true);
+          try { await startAutorun({ data: { draftId: id } }); } catch { /* console will retry */ }
+          setWizardOpen(true);
+        }}
       />
 
       <div>

@@ -26,7 +26,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 
 import { listSegments } from "@/lib/personas/generate.functions";
-import { createStudy, listStudies } from "@/lib/personas/study.functions";
+import { createStudy, listStudies, listStudiesWithReports } from "@/lib/personas/study.functions";
+import { SynthesisDigest } from "@/components/personas/StudyWizard/SynthesisDigest";
 import { composeStudy, type ComposeStudyResult } from "@/lib/personas/compose-study.functions";
 import {
   AUTO_STUDIES_LOCK,

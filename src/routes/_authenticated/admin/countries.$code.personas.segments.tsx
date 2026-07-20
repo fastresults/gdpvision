@@ -224,6 +224,68 @@ function SegmentsPage() {
                   ? "AUTO · idle"
                   : "AUTO · ready";
 
+  // Publish to the global auto-run beacon so the state is visible even after
+  // the user navigates away from this route.
+  useEffect(() => {
+    const id = `stage02:${code}`;
+    const href = `/admin/countries/${code}/personas/segments`;
+    if (auto.kind === "proposing") {
+      publishAutoRun({
+        id,
+        scope: `Chamber 07 · Stage 02 · ${code}`,
+        title: "Drafting segment proposals",
+        detail: "AI is composing candidate segments…",
+        status: "running",
+        href,
+      });
+    } else if (auto.kind === "casting") {
+      publishAutoRun({
+        id,
+        scope: `Chamber 07 · Stage 02 · ${code}`,
+        title: "Casting segments",
+        detail: `Casting ${auto.index + 1}/${auto.total} — ${auto.label}`,
+        progress: { current: auto.index + 1, total: auto.total },
+        status: "running",
+        href,
+      });
+    } else if (auto.kind === "advancing") {
+      publishAutoRun({
+        id,
+        scope: `Chamber 07 · Stage 02 · ${code}`,
+        title: "Advancing to Rehearse",
+        detail: `Auto-advancing in ${auto.countdown}s…`,
+        status: "running",
+        href,
+      });
+    } else if (auto.kind === "paused") {
+      publishAutoRun({
+        id,
+        scope: `Chamber 07 · Stage 02 · ${code}`,
+        title: "Auto-run paused",
+        status: "paused",
+        message: "Resume from the Segments page.",
+        href,
+      });
+    } else if (auto.kind === "error") {
+      publishAutoRun({
+        id,
+        scope: `Chamber 07 · Stage 02 · ${code}`,
+        title: "Auto-run failed",
+        status: "error",
+        message: auto.message,
+        href,
+      });
+    } else {
+      // idle or complete → clear (Stage 03 beacon takes over after handoff)
+      clearAutoRun(id);
+    }
+    return () => {
+      // On unmount, only clear if not still running — allow it to persist
+      // across navigation while the state machine is active.
+    };
+  }, [auto, code]);
+
+
   function AutoRunPrimary({ className = "" }: { className?: string }) {
     if (autoActive) {
       return (

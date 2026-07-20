@@ -115,15 +115,20 @@ export function SessionsHub({ countryCode, onResume, onStartNew, onAutoRun }: Pr
           {drafts.map((d) => {
             const title = d.title?.trim() || "Untitled brief";
             const isRenaming = renaming?.id === d.id;
+            const committed = d.step === "done" && !!d.study_id;
+            const autoStatus = d.autorun_status as { phase?: string; state?: string; message?: string | null } | null;
+            const autoRunning = !!autoStatus && autoStatus.state === "running";
             return (
               <li key={d.id} className="group relative flex items-start gap-3 px-4 py-3 hover:bg-paper-50">
                 <button
                   type="button"
-                  onClick={() => onResume(d.id)}
+                  onClick={() => committed && d.study_id
+                    ? navigate({ to: "/admin/countries/$code/personas/studies/$id", params: { code: countryCode, id: d.study_id } })
+                    : onResume(d.id)}
                   className="grid h-9 w-9 shrink-0 place-items-center border border-line-200 text-ink-950 hover:border-ink-950"
-                  aria-label={`Resume ${title}`}
+                  aria-label={committed ? `Open ${title}` : `Resume ${title}`}
                 >
-                  <Play size={14} />
+                  {committed ? <ExternalLink size={14} /> : <Play size={14} />}
                 </button>
                 <div className="min-w-0 flex-1">
                   {isRenaming ? (

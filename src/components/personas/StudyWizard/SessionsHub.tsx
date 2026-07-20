@@ -157,9 +157,23 @@ export function SessionsHub({ countryCode, onResume, onStartNew, onAutoRun }: Pr
                     </button>
                   )}
                   <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
-                    <span className="border border-line-200 bg-paper-0 px-1.5 py-0.5 text-ink-700">
+                    <span className={`border px-1.5 py-0.5 ${STEP_TONE[d.step] ?? "border-line-200 text-ink-700"}`}>
                       {STEP_LABEL[d.step] ?? d.step}
                     </span>
+                    {autoStatus?.phase && (
+                      <span
+                        className={`border px-1.5 py-0.5 ${
+                          autoStatus.state === "failed"
+                            ? "border-rose-500 bg-rose-50 text-rose-700"
+                            : autoStatus.state === "running"
+                              ? "border-ink-950 bg-ink-950 text-paper-0"
+                              : "border-emerald-600 bg-emerald-50 text-emerald-700"
+                        }`}
+                        title={autoStatus.message ?? undefined}
+                      >
+                        Auto · {autoStatus.phase} · {autoStatus.state}
+                      </span>
+                    )}
                     <span>{relative(d.updated_at)}</span>
                     {d.deliverable_count > 0 && <span>{d.deliverable_count} deliverables</span>}
                     {d.persona_count > 0 && (
@@ -175,6 +189,17 @@ export function SessionsHub({ countryCode, onResume, onStartNew, onAutoRun }: Pr
                     </p>
                   )}
                 </div>
+                {!committed && (
+                  <button
+                    type="button"
+                    onClick={() => onAutoRun(d.id)}
+                    disabled={autoRunning}
+                    className="hidden shrink-0 items-center gap-1 border border-emerald-700 bg-emerald-700 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-paper-0 hover:bg-emerald-800 disabled:opacity-40 md:inline-flex"
+                    title="Run brief → blueprint → cast → commit → synthesis end-to-end"
+                  >
+                    <Wand2 size={11} /> Auto-run
+                  </button>
+                )}
                 <div className="relative shrink-0">
                   <button
                     type="button"

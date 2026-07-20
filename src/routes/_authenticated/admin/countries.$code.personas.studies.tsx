@@ -226,23 +226,38 @@ function StudiesPage() {
 
   type AutoState =
     | { phase: "idle" }
-    | { phase: "running"; index: number; total: number; segmentId: string; segmentLabel: string }
-    | { phase: "complete"; drafted: number; failed: Array<{ label: string; reason: string }> }
-    | { phase: "cancelled"; drafted: number };
+    | {
+        phase: "running";
+        index: number;
+        total: number;
+        segmentId: string;
+        segmentLabel: string;
+        step: StudyAutoPhase;
+      }
+    | {
+        phase: "complete";
+        drafted: number;
+        completed: number;
+        failed: Array<{ label: string; reason: string }>;
+      }
+    | { phase: "cancelled"; drafted: number; completed: number };
   const [autoState, setAutoState] = useState<AutoState>({ phase: "idle" });
   const cancelRef = useRef(false);
   const runningRef = useRef(false);
   const autoFlagKey = AUTO_STUDIES_FLAG_KEY(code);
 
   const startAutoRun = useCallback(
-    async (opts?: { force?: boolean }) => {
+    async () => {
       if (runningRef.current) return;
       if (AUTO_STUDIES_LOCK.has(code)) return;
-      const targets = segments.filter((s) =>
-        opts?.force ? !coveredSegmentIds.has(s.id) : !coveredSegmentIds.has(s.id),
+      const targets = segments.filter((s) => !coveredSegmentIds.has(s.id));
+      // Existing studies that never finished (drafts or stuck-running) also
+      // need to be pushed to synthesis so the user only ever sees completed work.
+      const needsFinish = studies.some(
+        (s) => s.status !== "complete" && s.status !== "synthesized",
       );
-      if (targets.length === 0) {
-        setAutoState({ phase: "complete", drafted: 0, failed: [] });
+      if (targets.length === 0 && !needsFinish) {
+        setAutoState({ phase: "complete", drafted: 0, completed: 0, failed: [] });
         return;
       }
       runningRef.current = true;
@@ -254,49 +269,80 @@ function StudiesPage() {
         // localStorage unavailable; defensive guard
       }
 
-      let lastDrafted = 0;
-      const result = await draftStudiesForSegments({
-        code,
-        targets: targets.map((s) => ({ id: s.id, label: s.label })),
-        cancelRef,
-        onProgress: ({ index, total, segmentId, segmentLabel }) => {
-          setAutoState({
-            phase: "running",
-            index,
-            total,
-            segmentId,
-            segmentLabel,
-          });
-        },
-        onOneComplete: () => {
-          lastDrafted += 1;
-        },
-      });
+      let drafted = 0;
+      let completed = 0;
+      const failed: Array<{ label: string; reason: string }> = [];
+
+      // Phase A — draft + fully run any missing studies.
+      if (targets.length > 0) {
+        const res = await draftStudiesForSegments({
+          code,
+          targets: targets.map((s) => ({ id: s.id, label: s.label })),
+          cancelRef,
+          fullPipeline: true,
+          onProgress: ({ index, total, segmentId, segmentLabel, phase }) => {
+            setAutoState({
+              phase: "running",
+              index,
+              total,
+              segmentId,
+              segmentLabel,
+              step: phase,
+            });
+          },
+        });
+        drafted += res.drafted;
+        completed += res.completed;
+        for (const f of res.failed) failed.push({ label: f.label, reason: f.reason });
+      }
+
+      // Phase B — finish any leftover drafts/running studies (e.g. from prior
+      // sessions or partial pipelines) so nothing is left half-done.
+      if (!cancelRef.current) {
+        const res2 = await completeIncompleteStudies({
+          code,
+          cancelRef,
+          onProgress: ({ index, total, segmentId, segmentLabel, phase }) => {
+            setAutoState({
+              phase: "running",
+              index,
+              total,
+              segmentId,
+              segmentLabel,
+              step: phase,
+            });
+          },
+        });
+        completed += res2.completed;
+        for (const f of res2.failed) failed.push({ label: f.label, reason: f.reason });
+      }
 
       await qc.invalidateQueries({ queryKey: ["studies", code] });
       if (cancelRef.current) {
-        setAutoState({ phase: "cancelled", drafted: lastDrafted });
+        setAutoState({ phase: "cancelled", drafted, completed });
       } else {
-        setAutoState({ phase: "complete", drafted: result.drafted, failed: result.failed });
+        setAutoState({ phase: "complete", drafted, completed, failed });
       }
       runningRef.current = false;
       AUTO_STUDIES_LOCK.delete(code);
     },
-    [segments, coveredSegmentIds, code, qc, autoFlagKey],
+    [segments, studies, coveredSegmentIds, code, qc, autoFlagKey],
   );
 
   const cancelAutoRun = () => {
     cancelRef.current = true;
   };
 
-  // Defensive auto-run: only when there are uncovered segments and the Stage 02
-  // auto-run has not already marked this country as done. Stage 02 now drafts
-  // studies before handing off, so Stage 03 is primarily a review surface.
+  // Defensive auto-run: kick off if anything is missing OR any study isn't
+  // yet fully synthesized. Ensures the user always lands on completed work.
   const didAttemptRef = useRef(false);
   useEffect(() => {
     if (didAttemptRef.current) return;
     if (autoState.phase !== "idle") return;
-    if (uncoveredSegments.length === 0) return;
+    const anyIncomplete = studies.some(
+      (s) => s.status !== "complete" && s.status !== "synthesized",
+    );
+    if (uncoveredSegments.length === 0 && !anyIncomplete) return;
     let flagged = false;
     try {
       flagged = !!window.localStorage.getItem(autoFlagKey);

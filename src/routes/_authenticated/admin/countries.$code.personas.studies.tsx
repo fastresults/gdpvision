@@ -191,20 +191,156 @@ function StudiesPage() {
 
   const manualDefaultOpen = !composerQ.isLoading && (!composed || !composed.ok);
 
+  // ── AI-FIRST AUTO-RUN ───────────────────────────────────────────────────
+  // Drafts a study for every segment that doesn't have one yet.
+  const coveredSegmentIds = useMemo(
+    () => new Set(studies.map((s) => s.segment_id).filter((v): v is string => !!v)),
+    [studies],
+  );
+  const uncoveredSegments = useMemo(
+    () => segments.filter((s) => !coveredSegmentIds.has(s.id)),
+    [segments, coveredSegmentIds],
+  );
+
+  type AutoState =
+    | { phase: "idle" }
+    | { phase: "running"; index: number; total: number; segmentId: string; segmentLabel: string }
+    | { phase: "complete"; drafted: number; failed: Array<{ label: string; reason: string }> }
+    | { phase: "cancelled"; drafted: number };
+  const [autoState, setAutoState] = useState<AutoState>({ phase: "idle" });
+  const cancelRef = useRef(false);
+  const runningRef = useRef(false);
+  const autoFlagKey = `ch07:auto-studies:${code}`;
+
+  const startAutoRun = useCallback(
+    async (opts?: { force?: boolean }) => {
+      if (runningRef.current) return;
+      const targets = segments.filter(
+        (s) => opts?.force ? !coveredSegmentIds.has(s.id) : !coveredSegmentIds.has(s.id),
+      );
+      if (targets.length === 0) {
+        setAutoState({ phase: "complete", drafted: 0, failed: [] });
+        return;
+      }
+      runningRef.current = true;
+      cancelRef.current = false;
+      try {
+        window.localStorage.setItem(autoFlagKey, String(Date.now()));
+      } catch {}
+      let drafted = 0;
+      const failed: Array<{ label: string; reason: string }> = [];
+      for (let i = 0; i < targets.length; i++) {
+        if (cancelRef.current) {
+          setAutoState({ phase: "cancelled", drafted });
+          runningRef.current = false;
+          return;
+        }
+        const seg = targets[i];
+        setAutoState({
+          phase: "running",
+          index: i + 1,
+          total: targets.length,
+          segmentId: seg.id,
+          segmentLabel: seg.label,
+        });
+        try {
+          const proposal = await composeStudyForSegment({
+            data: { countryCode: code, segmentId: seg.id },
+          });
+          if (!proposal.ok) {
+            failed.push({ label: seg.label, reason: proposal.reason });
+            continue;
+          }
+          await createStudy({
+            data: {
+              countryCode: code,
+              segmentId: seg.id,
+              kind: proposal.kind,
+              title: proposal.title,
+              objective: proposal.objective,
+            },
+          });
+          drafted += 1;
+          // let the UI paint between items
+          await new Promise((r) => setTimeout(r, 250));
+        } catch (e) {
+          failed.push({ label: seg.label, reason: (e as Error).message });
+          // brief backoff on error (429/timeouts)
+          await new Promise((r) => setTimeout(r, 1500));
+        }
+      }
+      await qc.invalidateQueries({ queryKey: ["studies", code] });
+      setAutoState({ phase: "complete", drafted, failed });
+      runningRef.current = false;
+    },
+    [segments, coveredSegmentIds, code, qc, autoFlagKey],
+  );
+
+  const cancelAutoRun = () => {
+    cancelRef.current = true;
+  };
+
+  // Fire on mount when uncovered > 0 and we haven't auto-run yet this browser,
+  // OR when arriving with ?auto=1 handoff from Stage 02.
+  const autoParam = search.auto === 1 || search.auto === "1" || search.auto === true;
+  const didAttemptRef = useRef(false);
+  useEffect(() => {
+    if (didAttemptRef.current) return;
+    if (autoState.phase !== "idle") return;
+    if (uncoveredSegments.length === 0) return;
+    let flagged = false;
+    try {
+      flagged = !!window.localStorage.getItem(autoFlagKey);
+    } catch {}
+    if (autoParam || !flagged) {
+      didAttemptRef.current = true;
+      void startAutoRun();
+    }
+  }, [uncoveredSegments.length, autoParam, autoFlagKey, autoState.phase, startAutoRun]);
+
+  const rehearseStatus =
+    autoState.phase === "running"
+      ? `AUTO · drafting ${autoState.index}/${autoState.total}`
+      : autoState.phase === "complete" && autoState.drafted > 0
+        ? `AUTO · ${autoState.drafted} drafted`
+        : undefined;
+
   return (
     <div className="space-y-8">
-      <StudioStepper code={code} active="rehearse" />
+      <StudioStepper code={code} active="rehearse" rehearseStatus={rehearseStatus} />
 
-      <header>
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Stage 03 · Rehearse the conversation
-        </p>
-        <h2 className="mt-1 font-serif text-2xl text-ink-950">AI composes your next study</h2>
-        <p className="mt-1 max-w-2xl text-sm text-ink-500">
-          Grounded in {code}&rsquo;s brief, segments, and prior studies — the AI picks the audience, method, and
-          question. Approve to launch, or edit before you do.
-        </p>
+      <header className="space-y-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+              Stage 03 · Rehearse the conversation
+            </p>
+            <h2 className="mt-1 font-serif text-2xl text-ink-950">AI drafts a study for every segment</h2>
+            <p className="mt-1 max-w-2xl text-sm text-ink-500">
+              Grounded in {code}&rsquo;s brief and personas — the AI picks a method and question for each of your
+              {" "}{segments.length} segment{segments.length === 1 ? "" : "s"}. You review before sending.
+            </p>
+          </div>
+          <AutoRunCta
+            phase={autoState.phase}
+            uncovered={uncoveredSegments.length}
+            onStart={() => {
+              didAttemptRef.current = true;
+              try {
+                window.localStorage.removeItem(autoFlagKey);
+              } catch {}
+              void startAutoRun({ force: true });
+            }}
+            onCancel={cancelAutoRun}
+          />
+        </div>
+        <AutoRunBanner state={autoState} onDismiss={() => setAutoState({ phase: "idle" })} />
       </header>
+
+
+
+
+
 
 
 

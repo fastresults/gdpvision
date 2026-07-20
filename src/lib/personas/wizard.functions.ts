@@ -142,7 +142,7 @@ async function callStructured<T>(
   for (let i = 0; i < attempts.length; i++) {
     const attempt = attempts[i];
     try {
-      const userMsg = i === 1 && lastRaw
+      const userMsg = i > 0 && lastRaw
         ? `${user}\n\n---\nYour previous response was not valid JSON matching the required shape. You returned:\n${lastRaw.slice(0, 1200)}\n\nReturn the SAME content, but as a single valid JSON object matching the schema above. No prose, no fences.`
         : user;
       const res = await callGateway(system, userMsg, attempt);

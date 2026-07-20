@@ -889,7 +889,7 @@ export const commitStudy = createServerFn({ method: "POST" })
       .from("studies")
       .insert({
         country_code: data.countryCode,
-        kind: cast.instruments[0]?.kind ?? "focus_group",
+        kind: mapStudyKind(cast.instruments[0]?.kind),
         title: scope.title.slice(0, 240),
         objective: (scope.objectives ?? []).slice(0, 3).join(" · ").slice(0, 500),
         segment_id: seg.id,

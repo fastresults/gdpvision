@@ -125,13 +125,70 @@ export const listDrafts = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("persona_study_drafts")
-      .select("id,title,step,updated_at,brief_raw")
+      .select("id,title,step,updated_at,created_at,brief_raw,outcome_blueprint,cast_draft,uploads")
       .eq("country_code", data.countryCode)
       .order("updated_at", { ascending: false })
-      .limit(30);
+      .limit(60);
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return (rows ?? []).map((r) => {
+      const bp = r.outcome_blueprint as { deliverables?: unknown[] } | null;
+      const cast = r.cast_draft as { personas?: unknown[]; segments?: unknown[]; instruments?: unknown[] } | null;
+      const uploads = Array.isArray(r.uploads) ? r.uploads : [];
+      return {
+        id: r.id as string,
+        title: r.title as string | null,
+        step: r.step as string,
+        updated_at: r.updated_at as string,
+        created_at: r.created_at as string,
+        brief_raw: r.brief_raw as string | null,
+        deliverable_count: Array.isArray(bp?.deliverables) ? bp!.deliverables!.length : 0,
+        persona_count: Array.isArray(cast?.personas) ? cast!.personas!.length : 0,
+        segment_count: Array.isArray(cast?.segments) ? cast!.segments!.length : 0,
+        instrument_count: Array.isArray(cast?.instruments) ? cast!.instruments!.length : 0,
+        upload_count: uploads.length,
+      };
+    });
   });
+
+const RenameDraftInput = z.object({ id: z.string().uuid(), title: z.string().min(1).max(240) });
+export const renameDraft = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => RenameDraftInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("persona_study_drafts")
+      .update({ title: data.title })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const duplicateDraft = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: src, error: readErr } = await context.supabase
+      .from("persona_study_drafts")
+      .select("*")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!src) throw new Error("Draft not found");
+    const { id: _id, created_at: _c, updated_at: _u, created_by: _cb, ...rest } = src as Record<string, unknown>;
+    const copy = {
+      ...rest,
+      title: `${(src.title as string | null) ?? "Untitled brief"} (copy)`,
+      created_by: context.userId,
+    };
+    const { data: inserted, error: insErr } = await context.supabase
+      .from("persona_study_drafts")
+      .insert(copy as never)
+      .select("id")
+      .single();
+    if (insErr) throw new Error(insErr.message);
+    return { id: inserted.id as string };
+  });
+
 
 export const getDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

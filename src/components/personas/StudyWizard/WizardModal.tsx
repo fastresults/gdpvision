@@ -102,14 +102,29 @@ export function StudyWizardModal({ open, onClose, countryCode, draftId: initialD
                 {draftQ.data?.title ?? "New research study"}
               </h2>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded p-1 text-ink-500 hover:bg-paper-50 hover:text-ink-950"
-              aria-label="Close"
-            >
-              <X size={18} />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (draftId) {
+                    try { await saveDraft({ data: { id: draftId, patch: { step } } }); } catch { /* noop */ }
+                  }
+                  onClose();
+                }}
+                className="hidden sm:inline-flex items-center gap-1 border border-line-200 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-700 hover:border-ink-950 hover:text-ink-950"
+              >
+                Save &amp; close
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded p-1 text-ink-500 hover:bg-paper-50 hover:text-ink-950"
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
           </header>
 
           <div className="flex-1 overflow-y-auto p-5 sm:p-7">

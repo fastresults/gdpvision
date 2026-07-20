@@ -357,6 +357,7 @@ function StepBlock({
   active,
   done,
   locked,
+  sectionRef,
   children,
 }: {
   n: number;
@@ -364,6 +365,7 @@ function StepBlock({
   active: boolean;
   done: boolean;
   locked?: boolean;
+  sectionRef?: React.Ref<HTMLElement>;
   children: React.ReactNode;
 }) {
   const dot = done
@@ -375,10 +377,12 @@ function StepBlock({
         : "border-line-200 bg-paper-0 text-ink-700";
   return (
     <section
-      className={`border p-4 transition ${
+      ref={sectionRef}
+      className={`scroll-mt-4 border p-4 transition ${
         active ? "border-ink-950" : locked ? "border-line-200 opacity-70" : "border-line-200"
       }`}
     >
+
       <div className="mb-3 flex items-center gap-2">
         <span className={`grid h-7 w-7 place-items-center rounded-full border font-mono text-[11px] ${dot}`}>
           {n.toString().padStart(2, "0")}

@@ -210,7 +210,7 @@ export const listDrafts = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("persona_study_drafts")
-      .select("id,title,step,updated_at,created_at,brief_raw,outcome_blueprint,cast_draft,uploads")
+      .select("id,title,step,updated_at,created_at,brief_raw,outcome_blueprint,cast_draft,uploads,autorun_status,study_id")
       .eq("country_code", data.countryCode)
       .order("updated_at", { ascending: false })
       .limit(60);
@@ -231,6 +231,8 @@ export const listDrafts = createServerFn({ method: "POST" })
         segment_count: Array.isArray(cast?.segments) ? cast!.segments!.length : 0,
         instrument_count: Array.isArray(cast?.instruments) ? cast!.instruments!.length : 0,
         upload_count: uploads.length,
+        autorun_status: (r as { autorun_status?: unknown }).autorun_status ?? null,
+        study_id: (r as { study_id?: string | null }).study_id ?? null,
       };
     });
   });

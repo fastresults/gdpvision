@@ -108,7 +108,7 @@ function StudiesPage() {
   const currentStep = !stepDone[1] ? 1 : !stepDone[2] ? 2 : !stepDone[3] ? 3 : 3;
 
   const create = useMutation({
-    mutationFn: () =>
+    mutationFn: (opts: { auto?: boolean }) =>
       createStudy({
         data: {
           countryCode: code,
@@ -117,12 +117,17 @@ function StudiesPage() {
           title: title.trim(),
           objective: objective.trim() || undefined,
         },
-      }),
-    onSuccess: (row) => {
+      }).then((row) => ({ row, auto: !!opts.auto })),
+    onSuccess: ({ row, auto }) => {
       qc.invalidateQueries({ queryKey: ["studies", code] });
-      navigate({ to: "/admin/countries/$code/personas/studies/$id", params: { code, id: row.id } });
+      navigate({
+        to: "/admin/countries/$code/personas/studies/$id",
+        params: { code, id: row.id },
+        search: auto ? { auto: 1 } : undefined,
+      });
     },
   });
+
 
   const ready = stepDone[1] && stepDone[2] && stepDone[3];
   const chosenSegment = segments.find((s) => s.id === segmentId);

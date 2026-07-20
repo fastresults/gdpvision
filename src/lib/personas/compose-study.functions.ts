@@ -10,6 +10,7 @@ const KINDS = ["survey", "focus_group", "creative_test"] as const;
 type Kind = (typeof KINDS)[number];
 
 const ComposeInput = z.object({ countryCode: z.string() });
+const ComposeForSegmentInput = z.object({ countryCode: z.string(), segmentId: z.string() });
 
 export type ComposeStudyResult =
   | {

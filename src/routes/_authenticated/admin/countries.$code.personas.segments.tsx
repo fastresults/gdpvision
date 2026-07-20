@@ -481,11 +481,15 @@ function SegmentsPage() {
       // idle or complete → clear (Stage 03 beacon takes over after handoff)
       clearAutoRun(id);
     }
+    // Register resume so the watchdog can auto-fix a stall.
+    if (auto.kind === "proposing" || auto.kind === "casting" || auto.kind === "drafting_studies") {
+      registerAutoRunResume(id, () => runAuto());
+    }
     return () => {
       // On unmount, only clear if not still running — allow it to persist
       // across navigation while the state machine is active.
     };
-  }, [auto, code]);
+  }, [auto, code, runAuto]);
 
   function AutoRunPrimary({ className = "" }: { className?: string }) {
     if (autoActive) {

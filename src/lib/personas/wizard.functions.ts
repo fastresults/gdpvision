@@ -901,6 +901,9 @@ export const commitStudy = createServerFn({ method: "POST" })
       await supabase.from("study_evidence").insert(evidence as never);
     }
 
-    await supabase.from("persona_study_drafts").delete().eq("id", data.draftId);
+    await supabase
+      .from("persona_study_drafts")
+      .update({ study_id: study.id, step: "done" })
+      .eq("id", data.draftId);
     return { studyId: study.id, segmentId: seg.id, personaCount: personaIds.length };
   });

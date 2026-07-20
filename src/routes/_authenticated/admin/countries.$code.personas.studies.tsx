@@ -45,6 +45,11 @@ function segmentsQuery(code: string) {
   });
 }
 
+// Module-level lock so React StrictMode double-mount, tab re-entry, or
+// racing effect callbacks in the same browser process can never fan out
+// into duplicate auto-run drafts. Keyed by country.
+const AUTO_STUDIES_LOCK = new Set<string>();
+
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/personas/studies")({
   validateSearch: (s) => searchSchema.parse(s),
   loader: async ({ context, params }) => {
@@ -215,6 +220,7 @@ function StudiesPage() {
   const startAutoRun = useCallback(
     async (opts?: { force?: boolean }) => {
       if (runningRef.current) return;
+      if (AUTO_STUDIES_LOCK.has(code)) return;
       const targets = segments.filter(
         (s) => opts?.force ? !coveredSegmentIds.has(s.id) : !coveredSegmentIds.has(s.id),
       );
@@ -223,19 +229,26 @@ function StudiesPage() {
         return;
       }
       runningRef.current = true;
+      AUTO_STUDIES_LOCK.add(code);
       cancelRef.current = false;
       try {
         window.localStorage.setItem(autoFlagKey, String(Date.now()));
       } catch {}
       let drafted = 0;
       const failed: Array<{ label: string; reason: string }> = [];
+      // Track segments handled in this run to defend against stale
+      // coveredSegmentIds if invalidation hasn't refreshed yet.
+      const handled = new Set<string>();
       for (let i = 0; i < targets.length; i++) {
         if (cancelRef.current) {
           setAutoState({ phase: "cancelled", drafted });
           runningRef.current = false;
+          AUTO_STUDIES_LOCK.delete(code);
           return;
         }
         const seg = targets[i];
+        if (handled.has(seg.id)) continue;
+        handled.add(seg.id);
         setAutoState({
           phase: "running",
           index: i + 1,
@@ -251,6 +264,9 @@ function StudiesPage() {
             failed.push({ label: seg.label, reason: proposal.reason });
             continue;
           }
+          // createStudy is idempotent per (country, segment) — a second
+          // call for the same segment returns the existing draft rather
+          // than inserting a duplicate.
           await createStudy({
             data: {
               countryCode: code,
@@ -272,6 +288,7 @@ function StudiesPage() {
       await qc.invalidateQueries({ queryKey: ["studies", code] });
       setAutoState({ phase: "complete", drafted, failed });
       runningRef.current = false;
+      AUTO_STUDIES_LOCK.delete(code);
     },
     [segments, coveredSegmentIds, code, qc, autoFlagKey],
   );

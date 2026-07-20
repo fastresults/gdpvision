@@ -96,6 +96,21 @@ export const createStudy = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => CreateStudyInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+
+    // Idempotency guard: never create a duplicate draft for the same
+    // (country, segment). Enforced at the DB level by a partial unique
+    // index (studies_one_draft_per_segment_idx); this pre-check keeps
+    // the happy path silent for auto-run races (StrictMode double-mount,
+    // tab re-entry, retries).
+    const { data: existing } = await supabase
+      .from("studies")
+      .select("*")
+      .eq("country_code", data.countryCode)
+      .eq("segment_id", data.segmentId)
+      .eq("status", "draft")
+      .maybeSingle();
+    if (existing) return existing;
+
     const { data: row, error } = await supabase
       .from("studies")
       .insert({
@@ -112,7 +127,19 @@ export const createStudy = createServerFn({ method: "POST" })
       })
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      if ((error as { code?: string }).code === "23505") {
+        const { data: raced } = await supabase
+          .from("studies")
+          .select("*")
+          .eq("country_code", data.countryCode)
+          .eq("segment_id", data.segmentId)
+          .eq("status", "draft")
+          .maybeSingle();
+        if (raced) return raced;
+      }
+      throw new Error(error.message);
+    }
     return row;
   });
 

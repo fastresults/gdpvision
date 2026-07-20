@@ -151,7 +151,7 @@ async function callStructured<T>(
       lastRunId = res.runId;
       const parsed = safeParse<unknown>(res.content);
       if (parsed && validate(parsed)) {
-        const status = i === 0 ? "enriched" : i === 1 ? "repaired" : "fallback";
+        const status = i === 0 ? "enriched" : "fallback";
         return { value: parsed, ai_status: status, ai_model: res.model, ai_run_id: res.runId, ai_raw_excerpt: res.content.slice(0, 800) };
       }
     } catch (e) {

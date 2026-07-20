@@ -8,21 +8,32 @@ import {
   Layers,
   Loader2,
   MessageSquare,
+  Pause,
+  Play,
+  RotateCcw,
   Sparkles,
   Target,
   Wand2,
+  X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 
 import { listSegments } from "@/lib/personas/generate.functions";
 import { createStudy, listStudies } from "@/lib/personas/study.functions";
-import { composeStudy, type ComposeStudyResult } from "@/lib/personas/compose-study.functions";
+import {
+  composeStudy,
+  composeStudyForSegment,
+  type ComposeStudyResult,
+} from "@/lib/personas/compose-study.functions";
 import { StudioStepper } from "@/components/personas/StudioStepper";
 
 
 
-const searchSchema = z.object({ segmentId: z.string().optional() });
+const searchSchema = z.object({
+  segmentId: z.string().optional(),
+  auto: z.union([z.literal(1), z.literal("1"), z.boolean()]).optional(),
+});
 
 function studiesQuery(code: string) {
   return queryOptions({ queryKey: ["studies", code], queryFn: () => listStudies({ data: { countryCode: code } }) });

@@ -27,6 +27,7 @@ import {
   type ComposeStudyResult,
 } from "@/lib/personas/compose-study.functions";
 import { StudioStepper } from "@/components/personas/StudioStepper";
+import { clearAutoRun, publishAutoRun } from "@/lib/autorun/beacon";
 
 
 
@@ -321,6 +322,56 @@ function StudiesPage() {
       : autoState.phase === "complete" && autoState.drafted > 0
         ? `AUTO · ${autoState.drafted} drafted`
         : undefined;
+
+  // Publish the auto-run to the global beacon so it stays visible across
+  // navigation.
+  useEffect(() => {
+    const id = `stage03:${code}`;
+    const href = `/admin/countries/${code}/personas/studies`;
+    if (autoState.phase === "running") {
+      publishAutoRun({
+        id,
+        scope: `Chamber 07 · Stage 03 · ${code}`,
+        title: "Drafting studies for every segment",
+        detail: `Drafting ${autoState.index}/${autoState.total} — ${autoState.segmentLabel}`,
+        progress: { current: autoState.index, total: autoState.total },
+        status: "running",
+        href,
+      });
+    } else if (autoState.phase === "complete") {
+      if (autoState.drafted > 0 || autoState.failed.length > 0) {
+        publishAutoRun({
+          id,
+          scope: `Chamber 07 · Stage 03 · ${code}`,
+          title: autoState.failed.length
+            ? `Drafted ${autoState.drafted} — ${autoState.failed.length} need review`
+            : `Drafted ${autoState.drafted} studies`,
+          status: autoState.failed.length ? "error" : "complete",
+          message: autoState.failed[0]?.reason,
+          href,
+        });
+        // Auto-dismiss clean completions after 6s
+        if (!autoState.failed.length) {
+          const t = setTimeout(() => clearAutoRun(id), 6000);
+          return () => clearTimeout(t);
+        }
+      } else {
+        clearAutoRun(id);
+      }
+    } else if (autoState.phase === "cancelled") {
+      publishAutoRun({
+        id,
+        scope: `Chamber 07 · Stage 03 · ${code}`,
+        title: "Auto-run cancelled",
+        status: "paused",
+        message: `Drafted ${autoState.drafted} before cancel.`,
+        href,
+      });
+    } else {
+      clearAutoRun(id);
+    }
+  }, [autoState, code]);
+
 
   return (
     <div className="space-y-8">

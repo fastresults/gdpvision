@@ -119,6 +119,12 @@ export function AutoRunConsole({ draftId, countryCode: _countryCode, briefRaw, o
 
   async function start() {
     stopRef.current = false;
+    // Guard: no point hitting the server if the draft has no brief.
+    if (!briefRaw?.trim()) {
+      setStatus("queued");
+      setStatusMsg("Waiting for brief — add a brief to start auto-run");
+      return;
+    }
     await startAutorun({ data: { draftId } });
     await tickLoop();
   }

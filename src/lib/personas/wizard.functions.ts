@@ -14,24 +14,32 @@ import {
   validCitationsForRefs,
 } from "@/lib/citations/hygiene";
 
-const GEN_MODEL = "google/gemini-2.5-flash";
+const GEN_MODEL_PRIMARY = "google/gemini-2.5-flash";
+const GEN_MODEL_FALLBACK = "openai/gpt-5.4-mini";
 
-async function callGateway(system: string, user: string): Promise<string> {
+type GatewayResult = { content: string; model: string; runId?: string };
+
+async function callGateway(
+  system: string,
+  user: string,
+  opts: { model?: string; temperature?: number } = {},
+): Promise<GatewayResult> {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) throw new Error("Lovable AI Gateway not configured");
+  const model = opts.model ?? GEN_MODEL_PRIMARY;
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
     body: JSON.stringify({
-      model: GEN_MODEL,
+      model,
       messages: [
         { role: "system", content: `${system}\n\nRespond with a single valid JSON object only. No prose, no markdown fences.` },
         { role: "user", content: user },
       ],
-      temperature: 0.4,
+      temperature: opts.temperature ?? 0.4,
     }),
-
   });
+  const runId = res.headers.get("X-Lovable-AIG-Run-ID") ?? undefined;
   if (!res.ok) {
     const t = await res.text();
     if (res.status === 429) throw new Error("AI rate limit — try again in a moment.");
@@ -49,22 +57,99 @@ async function callGateway(system: string, user: string): Promise<string> {
   const content = choice?.message?.content?.trim();
   if (!content) {
     const reason = choice?.error?.message || choice?.finish_reason || "empty response";
-    throw new Error(`AI upstream failure: ${reason}`);
+    throw new Error(`AI upstream failure (${model}): ${reason}`);
   }
-  return content;
+  return { content, model, runId };
 }
 
-
+/**
+ * Robust JSON extractor.
+ * - Strips ```json / ``` fences
+ * - Removes leading reasoning/prose before the first `{`
+ * - Balances braces to find the largest valid top-level object
+ * - Tolerates trailing commentary after the closing brace
+ */
 function safeParse<T = unknown>(s: string): T | null {
-  try {
-    return JSON.parse(s) as T;
-  } catch {
-    const m = s.match(/\{[\s\S]*\}/);
-    if (m) {
-      try { return JSON.parse(m[0]) as T; } catch { /* noop */ }
+  if (!s) return null;
+  const cleaned = s
+    .replace(/^\uFEFF/, "")
+    .replace(/```(?:json|JSON)?\s*/g, "")
+    .replace(/```\s*$/g, "")
+    .trim();
+  try { return JSON.parse(cleaned) as T; } catch { /* try extraction */ }
+
+  const first = cleaned.indexOf("{");
+  if (first < 0) return null;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = first; i < cleaned.length; i++) {
+    const c = cleaned[i];
+    if (escape) { escape = false; continue; }
+    if (c === "\\") { escape = true; continue; }
+    if (c === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (c === "{") depth++;
+    else if (c === "}") {
+      depth--;
+      if (depth === 0) {
+        const slice = cleaned.slice(first, i + 1);
+        try { return JSON.parse(slice) as T; } catch { /* keep scanning */ }
+      }
     }
-    return null;
   }
+  // Last resort — greedy regex
+  const m = cleaned.match(/\{[\s\S]*\}/);
+  if (m) { try { return JSON.parse(m[0]) as T; } catch { /* noop */ } }
+  return null;
+}
+
+/**
+ * Structured AI call with self-repair and model fallback.
+ * Returns parsed JSON + provenance. Throws only when every attempt fails.
+ */
+async function callStructured<T>(
+  system: string,
+  user: string,
+  validate: (v: unknown) => v is T,
+): Promise<{ value: T; ai_status: "enriched" | "repaired" | "fallback"; ai_model: string; ai_run_id?: string; ai_raw_excerpt: string }> {
+  const attempts: Array<{ model: string; temperature?: number }> = [
+    { model: GEN_MODEL_PRIMARY, temperature: 0.35 },
+    { model: GEN_MODEL_PRIMARY, temperature: 0.15 }, // self-repair pass (lower temp)
+    { model: GEN_MODEL_FALLBACK, temperature: 0.2 },
+  ];
+  let lastRaw = "";
+  let lastError: unknown;
+  let lastModel = "";
+  let lastRunId: string | undefined;
+  for (let i = 0; i < attempts.length; i++) {
+    const attempt = attempts[i];
+    try {
+      const userMsg = i === 1 && lastRaw
+        ? `${user}\n\n---\nYour previous response was not valid JSON matching the required shape. You returned:\n${lastRaw.slice(0, 1200)}\n\nReturn the SAME content, but as a single valid JSON object matching the schema above. No prose, no fences.`
+        : user;
+      const res = await callGateway(system, userMsg, attempt);
+      lastRaw = res.content;
+      lastModel = res.model;
+      lastRunId = res.runId;
+      const parsed = safeParse<unknown>(res.content);
+      if (parsed && validate(parsed)) {
+        const status = i === 0 ? "enriched" : i === 1 ? "repaired" : "fallback";
+        return { value: parsed, ai_status: status, ai_model: res.model, ai_run_id: res.runId, ai_raw_excerpt: res.content.slice(0, 800) };
+      }
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  const err = new Error(
+    `AI structured call failed after ${attempts.length} attempts (last model: ${lastModel || "n/a"}${lastRunId ? `, run: ${lastRunId}` : ""}): ${
+      lastError instanceof Error ? lastError.message : "unparseable response"
+    }`,
+  );
+  (err as Error & { raw?: string; runId?: string; model?: string }).raw = lastRaw.slice(0, 800);
+  (err as Error & { raw?: string; runId?: string; model?: string }).runId = lastRunId;
+  (err as Error & { raw?: string; runId?: string; model?: string }).model = lastModel;
+  throw err;
 }
 
 async function perplexityDeepResearch(query: string, country: string): Promise<{

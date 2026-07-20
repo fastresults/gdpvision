@@ -182,6 +182,8 @@ function StudiesPage() {
 
   return (
     <div className="space-y-8">
+      <StudioStepper code={code} active="rehearse" />
+
       <header>
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
           Stage 03 · Rehearse the conversation

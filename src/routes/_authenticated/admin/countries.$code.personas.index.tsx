@@ -11,6 +11,7 @@ import { StudyWizardModal } from "@/components/personas/StudyWizard/WizardModal"
 import { SessionsHub } from "@/components/personas/StudyWizard/SessionsHub";
 import { startAutorun } from "@/lib/personas/autorun.functions";
 import { JourneyCard } from "@/components/personas/JourneyCard";
+import { StudioStepper } from "@/components/personas/StudioStepper";
 
 function personasQuery(code: string) {
   return queryOptions({

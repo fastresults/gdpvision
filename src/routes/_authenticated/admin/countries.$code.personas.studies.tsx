@@ -371,6 +371,7 @@ function StudiesPage() {
         status: "running",
         href,
       });
+      registerAutoRunResume(id, () => startAutoRun());
     } else if (autoState.phase === "complete") {
       if (autoState.completed > 0 || autoState.drafted > 0 || autoState.failed.length > 0) {
         publishAutoRun({

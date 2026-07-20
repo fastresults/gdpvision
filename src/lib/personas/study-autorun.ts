@@ -74,12 +74,31 @@ async function completeStudyEndToEnd(opts: {
     }
   }
 
-  // 2) Run the study end-to-end (responses/transcript + synthesis report).
+  // 2) Run the study in TWO phases so a single worker timeout /
+  //    truncated proxy response cannot poison the whole pipeline.
+  //    Each phase retries once on transient JSON/timeout errors, and
+  //    if the split path fails we fall back to the legacy monolith.
   onProgress?.({ index, total, segmentId, segmentLabel, phase: "running" });
+  const transient = (msg: string) =>
+    /Unexpected end of JSON input|timeout|fetch failed|network|502|504|ECONNRESET/i.test(msg);
+  const runWithRetry = async (fn: () => Promise<unknown>) => {
+    try { await fn(); return; } catch (e) {
+      const msg = (e as Error).message;
+      if (!transient(msg)) throw e;
+      await new Promise((r) => setTimeout(r, 1500));
+      await fn();
+    }
+  };
   try {
-    await runStudy({ data: { studyId } });
+    await runWithRetry(() => runStudyResponses({ data: { studyId } }));
+    await runWithRetry(() => runStudySynthesis({ data: { studyId } }));
   } catch (e) {
-    return { ok: false, reason: (e as Error).message, phase: "running" };
+    // Legacy fallback preserves prior behavior when split RPC isn't reachable.
+    try {
+      await runStudy({ data: { studyId } });
+    } catch (e2) {
+      return { ok: false, reason: (e2 as Error).message || (e as Error).message, phase: "running" };
+    }
   }
   return { ok: true };
 }

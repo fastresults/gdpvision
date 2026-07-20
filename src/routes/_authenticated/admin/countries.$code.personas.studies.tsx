@@ -1,19 +1,24 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { queryOptions, useSuspenseQuery, useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   Check,
   ClipboardList,
   FlaskConical,
   Layers,
+  Loader2,
   MessageSquare,
+  Sparkles,
   Target,
+  Wand2,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 
 import { listSegments } from "@/lib/personas/generate.functions";
 import { createStudy, listStudies } from "@/lib/personas/study.functions";
+import { composeStudy, type ComposeStudyResult } from "@/lib/personas/compose-study.functions";
+
 
 
 const searchSchema = z.object({ segmentId: z.string().optional() });
@@ -103,7 +108,7 @@ function StudiesPage() {
   const currentStep = !stepDone[1] ? 1 : !stepDone[2] ? 2 : !stepDone[3] ? 3 : 3;
 
   const create = useMutation({
-    mutationFn: () =>
+    mutationFn: (opts: { auto?: boolean }) =>
       createStudy({
         data: {
           countryCode: code,
@@ -112,12 +117,38 @@ function StudiesPage() {
           title: title.trim(),
           objective: objective.trim() || undefined,
         },
-      }),
-    onSuccess: (row) => {
+      }).then((row) => ({ row, auto: !!opts.auto })),
+    onSuccess: ({ row, auto }) => {
       qc.invalidateQueries({ queryKey: ["studies", code] });
-      navigate({ to: "/admin/countries/$code/personas/studies/$id", params: { code, id: row.id } });
+      navigate({
+        to: "/admin/countries/$code/personas/studies/$id",
+        params: { code, id: row.id },
+        search: auto ? { auto: 1 } : undefined,
+      });
     },
   });
+
+  // AI Composer — picks segment + method + framing automatically.
+  const composerQ = useQuery({
+    queryKey: ["study-composer", code, segments.length],
+    queryFn: () => composeStudy({ data: { countryCode: code } }),
+    enabled: segments.length > 0,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+  });
+  const composed: ComposeStudyResult | undefined = composerQ.data;
+  const applyComposed = (c: Extract<ComposeStudyResult, { ok: true }>) => {
+    setSegmentId(c.segmentId);
+    setKind(c.kind === "creative_test" ? "creative_test" : (c.kind as StudyKind));
+    setTitle(c.title);
+    setObjective(c.objective);
+  };
+  const runComposed = () => {
+    if (!composed?.ok) return;
+    applyComposed(composed);
+    // create.mutate uses the state we just set — schedule after paint so state is applied.
+    setTimeout(() => create.mutate({ auto: true }), 0);
+  };
 
   const ready = stepDone[1] && stepDone[2] && stepDone[3];
   const chosenSegment = segments.find((s) => s.id === segmentId);
@@ -126,6 +157,7 @@ function StudiesPage() {
   const step2Ref = useRef<HTMLElement | null>(null);
   const step3Ref = useRef<HTMLElement | null>(null);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const manualDetailsRef = useRef<HTMLDetailsElement | null>(null);
   useEffect(() => {
     if (currentStep === 2 && step2Ref.current) {
       step2Ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -145,6 +177,7 @@ function StudiesPage() {
     return { running, done, drafts };
   }, [studies]);
 
+  const manualDefaultOpen = !composerQ.isLoading && (!composed || !composed.ok);
 
   return (
     <div className="space-y-8">
@@ -152,12 +185,14 @@ function StudiesPage() {
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
           Stage 03 · Rehearse the conversation
         </p>
-        <h2 className="mt-1 font-serif text-2xl text-ink-950">Design a study in three steps</h2>
+        <h2 className="mt-1 font-serif text-2xl text-ink-950">AI composes your next study</h2>
         <p className="mt-1 max-w-2xl text-sm text-ink-500">
-          Pick who you want to hear from, choose how you want to hear from them, then frame the question.
-          Synthesis runs on the next screen.
+          Grounded in {code}&rsquo;s brief, segments, and prior studies — the AI picks the audience, method, and
+          question. Approve to launch, or edit before you do.
         </p>
       </header>
+
+
 
 
       {segments.length === 0 ? (
@@ -166,122 +201,149 @@ function StudiesPage() {
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
           {/* Composer */}
           <div className="space-y-6">
-            <StepBlock n={1} label="Pick a segment" active={currentStep === 1} done={stepDone[1]}>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {segments.map((s) => {
-                  const selected = s.id === segmentId;
-                  return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => setSegmentId(s.id)}
-                      className={`border p-3 text-left transition ${
-                        selected ? "border-ink-950 bg-paper-100" : "border-line-200 hover:border-ink-950"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Layers size={13} className="text-ink-500" />
-                        <p className="truncate font-serif text-sm text-ink-950">{s.label}</p>
-                      </div>
-                      <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
-                        {s.size} personas · {s.visibility}
-                      </p>
-                      <p className="mt-1 line-clamp-2 text-[11px] text-ink-700">{s.prompt}</p>
-                    </button>
-                  );
-                })}
-              </div>
-            </StepBlock>
+            <AiComposerCard
+              state={composerQ.isLoading ? "loading" : composed}
+              onApprove={runComposed}
+              onEdit={() => {
+                if (composed?.ok) applyComposed(composed);
+                if (manualDetailsRef.current) manualDetailsRef.current.open = true;
+              }}
+              onRecompose={() => composerQ.refetch()}
+              isCreating={create.isPending}
+              refetching={composerQ.isFetching && !composerQ.isLoading}
+            />
 
-            <StepBlock
-              n={2}
-              label="Choose the method"
-              active={currentStep === 2}
-              done={stepDone[2]}
-              locked={!stepDone[1]}
-              sectionRef={step2Ref}
+            <details
+              ref={manualDetailsRef}
+              open={manualDefaultOpen}
+              className="group border border-line-200 bg-paper-0"
             >
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                {METHODS.map((m) => {
-                  const selected = m.id === kind;
-                  const Icon = m.icon;
-                  return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => setKind(m.id)}
-                      disabled={!stepDone[1]}
-                      className={`flex flex-col border p-3 text-left transition disabled:opacity-40 ${
-                        selected ? "border-ink-950 bg-paper-100" : "border-line-200 hover:border-ink-950"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Icon size={14} className="text-ink-950" />
-                        <p className="font-serif text-sm text-ink-950">{m.label}</p>
-                      </div>
-                      <p className="mt-2 text-[11px] leading-snug text-ink-700">{m.produces}</p>
-                      <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">
-                        {m.duration}
-                      </p>
-                      <p className="mt-1 text-[10px] leading-snug text-ink-500">
-                        Best for: {m.bestFor}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-            </StepBlock>
-
-            <StepBlock
-              n={3}
-              label="Frame the question"
-              active={currentStep === 3}
-              done={stepDone[3]}
-              locked={!stepDone[2]}
-              sectionRef={step3Ref}
-            >
-              <label className="block">
-                <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                  Working title
+              <summary className="flex cursor-pointer items-center justify-between gap-2 px-4 py-3 hover:bg-paper-50">
+                <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-700">
+                  Compose manually · pick segment, method, title
                 </span>
-                <input
-                  ref={titleInputRef}
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  disabled={!stepDone[2]}
-                  placeholder="e.g. CBI wind-down perception test"
-                  className="mt-1 w-full border border-line-200 bg-paper-0 px-2 py-2 text-sm focus:border-ink-950 focus:outline-none disabled:opacity-40"
-                />
-              </label>
+                <ArrowRight size={12} className="text-ink-500 transition group-open:rotate-90" />
+              </summary>
+              <div className="space-y-6 border-t border-line-200 p-4">
+                <StepBlock n={1} label="Pick a segment" active={currentStep === 1} done={stepDone[1]}>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {segments.map((s) => {
+                      const selected = s.id === segmentId;
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => setSegmentId(s.id)}
+                          className={`border p-3 text-left transition ${
+                            selected ? "border-ink-950 bg-paper-100" : "border-line-200 hover:border-ink-950"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Layers size={13} className="text-ink-500" />
+                            <p className="truncate font-serif text-sm text-ink-950">{s.label}</p>
+                          </div>
+                          <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+                            {s.size} personas · {s.visibility}
+                          </p>
+                          <p className="mt-1 line-clamp-2 text-[11px] text-ink-700">{s.prompt}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </StepBlock>
 
-              <label className="mt-3 block">
-                <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                  Objective <span className="text-ink-400">(optional but recommended)</span>
-                </span>
-                <textarea
-                  value={objective}
-                  onChange={(e) => setObjective(e.target.value)}
-                  disabled={!stepDone[2]}
-                  rows={2}
-                  placeholder="What decision does this study inform?"
-                  className="mt-1 w-full border border-line-200 bg-paper-0 px-2 py-2 text-sm focus:border-ink-950 focus:outline-none disabled:opacity-40"
-                />
-              </label>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {OBJECTIVE_EXAMPLES.map((ex) => (
-                  <button
-                    key={ex}
-                    type="button"
-                    onClick={() => setObjective((v) => (v ? `${v}. ${ex}` : ex))}
-                    disabled={!stepDone[2]}
-                    className="border border-line-200 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500 hover:border-ink-950 hover:text-ink-950 disabled:opacity-40"
-                  >
-                    + {ex}
-                  </button>
-                ))}
+                <StepBlock
+                  n={2}
+                  label="Choose the method"
+                  active={currentStep === 2}
+                  done={stepDone[2]}
+                  locked={!stepDone[1]}
+                  sectionRef={step2Ref}
+                >
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    {METHODS.map((m) => {
+                      const selected = m.id === kind;
+                      const Icon = m.icon;
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => setKind(m.id)}
+                          disabled={!stepDone[1]}
+                          className={`flex flex-col border p-3 text-left transition disabled:opacity-40 ${
+                            selected ? "border-ink-950 bg-paper-100" : "border-line-200 hover:border-ink-950"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Icon size={14} className="text-ink-950" />
+                            <p className="font-serif text-sm text-ink-950">{m.label}</p>
+                          </div>
+                          <p className="mt-2 text-[11px] leading-snug text-ink-700">{m.produces}</p>
+                          <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">
+                            {m.duration}
+                          </p>
+                          <p className="mt-1 text-[10px] leading-snug text-ink-500">
+                            Best for: {m.bestFor}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </StepBlock>
+
+                <StepBlock
+                  n={3}
+                  label="Frame the question"
+                  active={currentStep === 3}
+                  done={stepDone[3]}
+                  locked={!stepDone[2]}
+                  sectionRef={step3Ref}
+                >
+                  <label className="block">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                      Working title
+                    </span>
+                    <input
+                      ref={titleInputRef}
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      disabled={!stepDone[2]}
+                      placeholder="e.g. CBI wind-down perception test"
+                      className="mt-1 w-full border border-line-200 bg-paper-0 px-2 py-2 text-sm focus:border-ink-950 focus:outline-none disabled:opacity-40"
+                    />
+                  </label>
+
+                  <label className="mt-3 block">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                      Objective <span className="text-ink-400">(optional but recommended)</span>
+                    </span>
+                    <textarea
+                      value={objective}
+                      onChange={(e) => setObjective(e.target.value)}
+                      disabled={!stepDone[2]}
+                      rows={2}
+                      placeholder="What decision does this study inform?"
+                      className="mt-1 w-full border border-line-200 bg-paper-0 px-2 py-2 text-sm focus:border-ink-950 focus:outline-none disabled:opacity-40"
+                    />
+                  </label>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {OBJECTIVE_EXAMPLES.map((ex) => (
+                      <button
+                        key={ex}
+                        type="button"
+                        onClick={() => setObjective((v) => (v ? `${v}. ${ex}` : ex))}
+                        disabled={!stepDone[2]}
+                        className="border border-line-200 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500 hover:border-ink-950 hover:text-ink-950 disabled:opacity-40"
+                      >
+                        + {ex}
+                      </button>
+                    ))}
+                  </div>
+                </StepBlock>
               </div>
-            </StepBlock>
+            </details>
           </div>
+
 
           {/* Sticky preview */}
           <aside className="lg:sticky lg:top-4 lg:self-start">
@@ -310,7 +372,7 @@ function StudiesPage() {
               </dl>
               <button
                 type="button"
-                onClick={() => create.mutate()}
+                onClick={() => create.mutate({})}
                 disabled={!ready || create.isPending}
                 className="mt-4 inline-flex w-full items-center justify-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-40"
               >
@@ -460,6 +522,161 @@ function EmptyStart({ code }: { code: string }) {
           Draft your first segment <ArrowRight size={12} />
         </Link>
       </div>
+    </div>
+  );
+}
+
+function AiComposerCard({
+  state,
+  onApprove,
+  onEdit,
+  onRecompose,
+  isCreating,
+  refetching,
+}: {
+  state: ComposeStudyResult | "loading" | undefined;
+  onApprove: () => void;
+  onEdit: () => void;
+  onRecompose: () => void;
+  isCreating: boolean;
+  refetching: boolean;
+}) {
+  const isLoading = state === "loading" || !state;
+  const method =
+    state && state !== "loading" && state.ok
+      ? METHODS.find((m) => m.id === state.kind)
+      : undefined;
+  return (
+    <section className="border border-ink-950 bg-paper-0">
+      <header className="flex items-center justify-between gap-2 border-b border-line-200 bg-paper-100 px-4 py-2.5">
+        <div className="flex items-center gap-2">
+          <Sparkles size={14} className="text-ink-950" />
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950">
+            AI proposes your next study
+          </p>
+        </div>
+        {refetching && (
+          <span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+            <Loader2 size={11} className="animate-spin" /> Rethinking
+          </span>
+        )}
+      </header>
+
+      <div className="p-4">
+        {isLoading ? (
+          <div className="flex items-center gap-2 py-6 text-sm text-ink-500">
+            <Loader2 size={14} className="animate-spin" />
+            Grounding in this country&rsquo;s brief, segments, and prior studies…
+          </div>
+        ) : !state.ok ? (
+          <div className="space-y-3">
+            <p className="text-sm text-ink-700">
+              AI couldn&rsquo;t compose a proposal:{" "}
+              <span className="text-rose-600">{state.reason}</span>
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onRecompose}
+                className="inline-flex items-center gap-1.5 border border-ink-950 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950 hover:bg-paper-100"
+              >
+                <Wand2 size={11} /> Try again
+              </button>
+              <button
+                type="button"
+                onClick={onEdit}
+                className="inline-flex items-center gap-1.5 border border-line-200 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-700 hover:border-ink-950"
+              >
+                Compose manually
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <p className="font-serif text-xl leading-tight text-ink-950">{state.title}</p>
+              <p className="mt-1 text-sm text-ink-700">{state.objective}</p>
+            </div>
+
+            <dl className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <FactCell icon={Layers} label="Segment" value={state.segmentLabel} />
+              <FactCell
+                icon={method?.icon ?? MessageSquare}
+                label="Method"
+                value={method?.label ?? state.kind}
+              />
+              <FactCell icon={Target} label="Duration" value={method?.duration ?? "—"} />
+            </dl>
+
+            <div className="border-l-2 border-ink-950 bg-paper-100 p-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Why now</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-ink-950">{state.rationale}</p>
+              {state.evidence.length > 0 && (
+                <ul className="mt-2 space-y-1 text-[12px] text-ink-700">
+                  {state.evidence.slice(0, 3).map((e, i) => (
+                    <li key={i} className="flex gap-2">
+                      <span className="text-ink-400">&ldquo;</span>
+                      <span>
+                        {e.quote}
+                        <span className="ml-1 font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">
+                          · {e.source}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={onApprove}
+                disabled={isCreating}
+                className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-40"
+              >
+                {isCreating ? "Launching…" : "Approve & run synthesis"} <ArrowRight size={12} />
+              </button>
+              <button
+                type="button"
+                onClick={onEdit}
+                className="inline-flex items-center gap-1.5 border border-line-200 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-700 hover:border-ink-950"
+              >
+                Edit before launching
+              </button>
+              <button
+                type="button"
+                onClick={onRecompose}
+                className="inline-flex items-center gap-1.5 border border-line-200 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-700 hover:border-ink-950"
+              >
+                <Wand2 size={11} /> Propose another
+              </button>
+              <span className="ml-auto font-mono text-[9px] uppercase tracking-[0.16em] text-ink-400">
+                {state.model}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function FactCell({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="border border-line-200 bg-paper-0 p-2.5">
+      <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">
+        <Icon size={11} className="text-ink-500" /> {label}
+      </p>
+      <p className="mt-1 font-serif text-sm text-ink-950">{value}</p>
     </div>
   );
 }

@@ -140,11 +140,13 @@ export function StudyWizardModal({ open, onClose, countryCode, draftId: initialD
               <AutoRunConsole
                 draftId={draftId}
                 countryCode={countryCode}
+                briefRaw={(draftQ.data?.brief_raw as string | null) ?? null}
                 onDone={(studyId) => {
                   onClose();
                   navigate({ to: "/admin/countries/$code/personas/studies/$id", params: { code: countryCode, id: studyId } });
                 }}
                 onCancel={() => { setAutorun(false); refreshDraft(); }}
+                onNeedBrief={() => { setAutorun(false); setStep("brief"); refreshDraft(); }}
               />
             ) : (
               <>
@@ -179,6 +181,7 @@ function StepBrief({ draftId, countryCode, draft, onNext, onSaved, onAutoRun }: 
 }) {
   const [text, setText] = useState(draft.brief_raw ?? "");
   const [uploads, setUploads] = useState<WizardUpload[]>(Array.isArray(draft.uploads) ? (draft.uploads as WizardUpload[]) : []);
+  const [autoRunHint, setAutoRunHint] = useState<string | null>(null);
   const scope = draft.brief_scope as {
     title?: string; objectives?: string[]; hypotheses?: string[]; decisions?: string[];
     stakeholders?: { name: string; type: string; role: string }[]; timeframe?: string;
@@ -227,6 +230,15 @@ function StepBrief({ draftId, countryCode, draft, onNext, onSaved, onAutoRun }: 
           <button
             type="button"
             onClick={async () => {
+              setAutoRunHint(null);
+              const combined = [
+                text.trim(),
+                ...uploads.filter((u) => u.excerpt).map((u) => `\n\n[UPLOAD: ${u.name}]\n${u.excerpt}`),
+              ].join("").trim();
+              if (combined.length < 3) {
+                setAutoRunHint("Add a brief or upload a document before auto-run.");
+                return;
+              }
               // Persist any pending brief edits before auto-run kicks off.
               try { await saveDraft({ data: { id: draftId, patch: { brief_raw: text, uploads } } }); } catch { /* ignore */ }
               onAutoRun();
@@ -254,6 +266,9 @@ function StepBrief({ draftId, countryCode, draft, onNext, onSaved, onAutoRun }: 
             >
               Continue <ArrowRight size={12} />
             </button>
+          )}
+          {autoRunHint && (
+            <span className="text-[11px] text-amber-600">{autoRunHint}</span>
           )}
           {enrich.isError && (
             <span className="text-[11px] text-rose-600">{(enrich.error as Error).message}</span>

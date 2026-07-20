@@ -77,7 +77,7 @@ type DraftLockRow = {
 async function loadDraft(supabase: SB, id: string) {
   return supabase
     .from("persona_study_drafts")
-    .select("id,country_code,brief_raw,brief_scope,outcome_blueprint,cast_draft,study_id,locked_at,autorun_status,phase_log")
+    .select("id,country_code,brief_raw,brief_scope,outcome_blueprint,cast_draft,study_id,locked_at,locked_by,autorun_status,phase_log")
     .eq("id", id)
     .maybeSingle();
 }
@@ -90,6 +90,22 @@ export const startAutorun = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => StartInput.parse(d))
   .handler(async ({ data, context }) => {
     const now = new Date().toISOString();
+    // Pre-flight: a queued auto-run cannot do anything without a brief.
+    const { data: draft } = await loadDraft(context.supabase, data.draftId);
+    if (!draft) throw new Error("Draft not found");
+    if (!(draft.brief_raw ?? "").trim()) {
+      const status: AutorunStatus = {
+        status: "queued",
+        next_phase: null,
+        updated_at: now,
+        message: "Waiting for brief — add a brief to start auto-run",
+      };
+      await context.supabase
+        .from("persona_study_drafts")
+        .update({ autorun_status: status as unknown as Json })
+        .eq("id", data.draftId);
+      throw new Error("Draft has no brief text. Add a brief before starting auto-run.");
+    }
     const status: AutorunStatus = {
       status: "queued",
       next_phase: null,
@@ -206,6 +222,20 @@ export const runAutorunTick = createServerFn({ method: "POST" })
       cast_draft: draft.cast_draft,
       study_id: draft.study_id,
     });
+
+    // Fail fast if the draft is empty and the first phase needs a brief.
+    if (nextPhase === "brief" && !(draft.brief_raw ?? "").trim()) {
+      const failedStatus: AutorunStatus = {
+        status: "failed",
+        next_phase: "brief",
+        last_phase: "brief",
+        updated_at: new Date().toISOString(),
+        message: "Draft has no brief text. Add a brief before starting auto-run.",
+      };
+      await releaseLock(supabase, draftId, failedStatus);
+      return { done: false, error: failedStatus.message, phase: "brief", state: "failed" as const, nextPhase: "brief" };
+    }
+
     if (!nextPhase) {
       await releaseLock(supabase, draftId, {
         status: "done", next_phase: null, updated_at: new Date().toISOString(), message: "All phases complete",

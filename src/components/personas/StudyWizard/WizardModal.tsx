@@ -1,8 +1,8 @@
-// Chamber 07 · Research Studio Wizard — modal shell with 5 steps.
+// Chamber 07 · Research Studio Wizard — modal shell with 5 steps + one-click Auto-run.
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { X, ArrowRight, Sparkles, Check, Loader2, FileText, BookOpen, Users, ClipboardList, Rocket } from "lucide-react";
+import { X, ArrowRight, Sparkles, Check, Loader2, FileText, BookOpen, Users, ClipboardList, Rocket, Wand2 } from "lucide-react";
 
 import {
   createDraft, getDraft, saveDraft, enrichBrief, enrichOutcome, retryOutcomeAi,
@@ -10,6 +10,7 @@ import {
 } from "@/lib/personas/wizard.functions";
 import { MultimodalInput, type WizardUpload } from "./MultimodalInput";
 import { PrettyJson } from "@/components/data/PrettyJson";
+import { AutoRunConsole } from "./AutoRunConsole";
 
 type Step = "brief" | "outcome" | "cast" | "preview" | "launch";
 const STEPS: { id: Step; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
@@ -25,6 +26,7 @@ type Props = {
   onClose: () => void;
   countryCode: string;
   draftId?: string;
+  initialAutorun?: boolean;
 };
 
 export function StudyWizardModal({ open, onClose, countryCode, draftId: initialDraftId }: Props) {

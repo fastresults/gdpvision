@@ -37,11 +37,13 @@ const PHASES: Array<{ id: AutoRunPhase; label: string; detail: string }> = [
 type Props = {
   draftId: string;
   countryCode: string;
+  briefRaw: string | null;
   onDone: (studyId: string) => void;
   onCancel: () => void;
+  onNeedBrief: () => void;
 };
 
-export function AutoRunConsole({ draftId, countryCode: _countryCode, onDone, onCancel }: Props) {
+export function AutoRunConsole({ draftId, countryCode: _countryCode, briefRaw, onDone, onCancel, onNeedBrief }: Props) {
   const [rows, setRows] = useState<PhaseRow[]>(
     PHASES.map((p) => ({ ...p, state: "pending" })),
   );

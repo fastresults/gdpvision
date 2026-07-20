@@ -32,9 +32,18 @@ import {
   AUTO_STUDIES_LOCK,
   AUTO_STUDIES_FLAG_KEY,
   draftStudiesForSegments,
+  completeIncompleteStudies,
+  type StudyAutoPhase,
 } from "@/lib/personas/study-autorun";
 import { StudioStepper } from "@/components/personas/StudioStepper";
 import { clearAutoRun, publishAutoRun } from "@/lib/autorun/beacon";
+
+const PHASE_LABEL: Record<StudyAutoPhase, string> = {
+  composing: "composing",
+  creating: "drafting",
+  questioning: "writing questions",
+  running: "running synthesis",
+};
 
 const searchSchema = z.object({
   segmentId: z.string().optional(),
@@ -217,23 +226,38 @@ function StudiesPage() {
 
   type AutoState =
     | { phase: "idle" }
-    | { phase: "running"; index: number; total: number; segmentId: string; segmentLabel: string }
-    | { phase: "complete"; drafted: number; failed: Array<{ label: string; reason: string }> }
-    | { phase: "cancelled"; drafted: number };
+    | {
+        phase: "running";
+        index: number;
+        total: number;
+        segmentId: string;
+        segmentLabel: string;
+        step: StudyAutoPhase;
+      }
+    | {
+        phase: "complete";
+        drafted: number;
+        completed: number;
+        failed: Array<{ label: string; reason: string }>;
+      }
+    | { phase: "cancelled"; drafted: number; completed: number };
   const [autoState, setAutoState] = useState<AutoState>({ phase: "idle" });
   const cancelRef = useRef(false);
   const runningRef = useRef(false);
   const autoFlagKey = AUTO_STUDIES_FLAG_KEY(code);
 
   const startAutoRun = useCallback(
-    async (opts?: { force?: boolean }) => {
+    async () => {
       if (runningRef.current) return;
       if (AUTO_STUDIES_LOCK.has(code)) return;
-      const targets = segments.filter((s) =>
-        opts?.force ? !coveredSegmentIds.has(s.id) : !coveredSegmentIds.has(s.id),
+      const targets = segments.filter((s) => !coveredSegmentIds.has(s.id));
+      // Existing studies that never finished (drafts or stuck-running) also
+      // need to be pushed to synthesis so the user only ever sees completed work.
+      const needsFinish = studies.some(
+        (s) => s.status !== "complete" && s.status !== "synthesized",
       );
-      if (targets.length === 0) {
-        setAutoState({ phase: "complete", drafted: 0, failed: [] });
+      if (targets.length === 0 && !needsFinish) {
+        setAutoState({ phase: "complete", drafted: 0, completed: 0, failed: [] });
         return;
       }
       runningRef.current = true;
@@ -245,49 +269,80 @@ function StudiesPage() {
         // localStorage unavailable; defensive guard
       }
 
-      let lastDrafted = 0;
-      const result = await draftStudiesForSegments({
-        code,
-        targets: targets.map((s) => ({ id: s.id, label: s.label })),
-        cancelRef,
-        onProgress: ({ index, total, segmentId, segmentLabel }) => {
-          setAutoState({
-            phase: "running",
-            index,
-            total,
-            segmentId,
-            segmentLabel,
-          });
-        },
-        onOneComplete: () => {
-          lastDrafted += 1;
-        },
-      });
+      let drafted = 0;
+      let completed = 0;
+      const failed: Array<{ label: string; reason: string }> = [];
+
+      // Phase A — draft + fully run any missing studies.
+      if (targets.length > 0) {
+        const res = await draftStudiesForSegments({
+          code,
+          targets: targets.map((s) => ({ id: s.id, label: s.label })),
+          cancelRef,
+          fullPipeline: true,
+          onProgress: ({ index, total, segmentId, segmentLabel, phase }) => {
+            setAutoState({
+              phase: "running",
+              index,
+              total,
+              segmentId,
+              segmentLabel,
+              step: phase,
+            });
+          },
+        });
+        drafted += res.drafted;
+        completed += res.completed;
+        for (const f of res.failed) failed.push({ label: f.label, reason: f.reason });
+      }
+
+      // Phase B — finish any leftover drafts/running studies (e.g. from prior
+      // sessions or partial pipelines) so nothing is left half-done.
+      if (!cancelRef.current) {
+        const res2 = await completeIncompleteStudies({
+          code,
+          cancelRef,
+          onProgress: ({ index, total, segmentId, segmentLabel, phase }) => {
+            setAutoState({
+              phase: "running",
+              index,
+              total,
+              segmentId,
+              segmentLabel,
+              step: phase,
+            });
+          },
+        });
+        completed += res2.completed;
+        for (const f of res2.failed) failed.push({ label: f.label, reason: f.reason });
+      }
 
       await qc.invalidateQueries({ queryKey: ["studies", code] });
       if (cancelRef.current) {
-        setAutoState({ phase: "cancelled", drafted: lastDrafted });
+        setAutoState({ phase: "cancelled", drafted, completed });
       } else {
-        setAutoState({ phase: "complete", drafted: result.drafted, failed: result.failed });
+        setAutoState({ phase: "complete", drafted, completed, failed });
       }
       runningRef.current = false;
       AUTO_STUDIES_LOCK.delete(code);
     },
-    [segments, coveredSegmentIds, code, qc, autoFlagKey],
+    [segments, studies, coveredSegmentIds, code, qc, autoFlagKey],
   );
 
   const cancelAutoRun = () => {
     cancelRef.current = true;
   };
 
-  // Defensive auto-run: only when there are uncovered segments and the Stage 02
-  // auto-run has not already marked this country as done. Stage 02 now drafts
-  // studies before handing off, so Stage 03 is primarily a review surface.
+  // Defensive auto-run: kick off if anything is missing OR any study isn't
+  // yet fully synthesized. Ensures the user always lands on completed work.
   const didAttemptRef = useRef(false);
   useEffect(() => {
     if (didAttemptRef.current) return;
     if (autoState.phase !== "idle") return;
-    if (uncoveredSegments.length === 0) return;
+    const anyIncomplete = studies.some(
+      (s) => s.status !== "complete" && s.status !== "synthesized",
+    );
+    if (uncoveredSegments.length === 0 && !anyIncomplete) return;
     let flagged = false;
     try {
       flagged = !!window.localStorage.getItem(autoFlagKey);
@@ -302,9 +357,9 @@ function StudiesPage() {
 
   const rehearseStatus =
     autoState.phase === "running"
-      ? `AUTO · drafting ${autoState.index}/${autoState.total}`
-      : autoState.phase === "complete" && autoState.drafted > 0
-        ? `AUTO · ${autoState.drafted} drafted`
+      ? `AUTO · ${PHASE_LABEL[autoState.step]} ${autoState.index}/${autoState.total}`
+      : autoState.phase === "complete" && autoState.completed > 0
+        ? `AUTO · ${autoState.completed} completed`
         : undefined;
 
   // Publish the auto-run to the global beacon so it stays visible across
@@ -316,25 +371,24 @@ function StudiesPage() {
       publishAutoRun({
         id,
         scope: `Chamber 07 · Stage 03 · ${code}`,
-        title: "Drafting studies for every segment",
-        detail: `Drafting ${autoState.index}/${autoState.total} — ${autoState.segmentLabel}`,
+        title: "Finishing every study end-to-end",
+        detail: `${PHASE_LABEL[autoState.step]} ${autoState.index}/${autoState.total} — ${autoState.segmentLabel}`,
         progress: { current: autoState.index, total: autoState.total },
         status: "running",
         href,
       });
     } else if (autoState.phase === "complete") {
-      if (autoState.drafted > 0 || autoState.failed.length > 0) {
+      if (autoState.completed > 0 || autoState.drafted > 0 || autoState.failed.length > 0) {
         publishAutoRun({
           id,
           scope: `Chamber 07 · Stage 03 · ${code}`,
           title: autoState.failed.length
-            ? `Drafted ${autoState.drafted} — ${autoState.failed.length} need review`
-            : `Drafted ${autoState.drafted} studies`,
+            ? `Completed ${autoState.completed} — ${autoState.failed.length} need review`
+            : `Completed ${autoState.completed} studies`,
           status: autoState.failed.length ? "error" : "complete",
           message: autoState.failed[0]?.reason,
           href,
         });
-        // Auto-dismiss clean completions after 6s
         if (!autoState.failed.length) {
           const t = setTimeout(() => clearAutoRun(id), 6000);
           return () => clearTimeout(t);
@@ -348,7 +402,7 @@ function StudiesPage() {
         scope: `Chamber 07 · Stage 03 · ${code}`,
         title: "Auto-run cancelled",
         status: "paused",
-        message: `Drafted ${autoState.drafted} before cancel.`,
+        message: `Completed ${autoState.completed} before cancel.`,
         href,
       });
     } else {
@@ -385,7 +439,7 @@ function StudiesPage() {
               } catch {
                 // localStorage unavailable; defensive guard
               }
-              void startAutoRun({ force: true });
+              void startAutoRun();
             }}
             onCancel={cancelAutoRun}
           />
@@ -895,9 +949,21 @@ function FactCell({
 
 type AutoRunPhase =
   | { phase: "idle" }
-  | { phase: "running"; index: number; total: number; segmentId: string; segmentLabel: string }
-  | { phase: "complete"; drafted: number; failed: Array<{ label: string; reason: string }> }
-  | { phase: "cancelled"; drafted: number };
+  | {
+      phase: "running";
+      index: number;
+      total: number;
+      segmentId: string;
+      segmentLabel: string;
+      step: StudyAutoPhase;
+    }
+  | {
+      phase: "complete";
+      drafted: number;
+      completed: number;
+      failed: Array<{ label: string; reason: string }>;
+    }
+  | { phase: "cancelled"; drafted: number; completed: number };
 
 function AutoRunCta({
   phase,
@@ -950,15 +1016,15 @@ function AutoRunBanner({ state, onDismiss }: { state: AutoRunPhase; onDismiss: (
         <div className="flex items-center gap-2">
           <Loader2 size={13} className="animate-spin text-ink-950" />
           <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950">
-            Drafting {state.index} of {state.total} · {state.segmentLabel}
+            {PHASE_LABEL[state.step]} {state.index} of {state.total} · {state.segmentLabel}
           </p>
         </div>
         <div className="mt-2 h-1 w-full bg-line-200">
           <div className="h-1 bg-ink-950 transition-all" style={{ width: `${pct}%` }} />
         </div>
         <p className="mt-2 text-[11px] text-ink-500">
-          AI composes a method and question per segment, then hands you a review queue. Cancel any
-          time — nothing sends without approval.
+          AI composes, drafts, questions and runs each study through to synthesis. You&rsquo;ll land
+          on completed work — cancel any time.
         </p>
       </div>
     );
@@ -967,7 +1033,7 @@ function AutoRunBanner({ state, onDismiss }: { state: AutoRunPhase; onDismiss: (
     return (
       <div className="flex items-start justify-between gap-3 border-l-2 border-amber-500 bg-amber-50/50 p-3">
         <p className="text-[12px] text-ink-950">
-          Auto-run cancelled — {state.drafted} draft{state.drafted === 1 ? "" : "s"} kept.
+          Auto-run cancelled — {state.completed} completed, {state.drafted} drafted.
         </p>
         <button type="button" onClick={onDismiss} className="text-ink-500 hover:text-ink-950">
           <X size={13} />
@@ -975,16 +1041,16 @@ function AutoRunBanner({ state, onDismiss }: { state: AutoRunPhase; onDismiss: (
       </div>
     );
   }
-  // complete
   return (
     <div className="flex items-start justify-between gap-3 border-l-2 border-emerald-500 bg-emerald-50/40 p-3">
       <div className="min-w-0">
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-emerald-700">
-          Auto-run complete · {state.drafted} drafted
-          {state.failed.length > 0 ? ` · ${state.failed.length} failed` : ""}
+          Auto-run complete · {state.completed} synthesized
+          {state.failed.length > 0 ? ` · ${state.failed.length} need review` : ""}
         </p>
         <p className="mt-1 text-[12px] text-ink-700">
-          Review each draft below — approve to run synthesis, or edit the question first.
+          Every study was drafted, questioned, and run end-to-end. Open a study to read its
+          synthesis.
         </p>
         {state.failed.length > 0 && (
           <ul className="mt-2 space-y-0.5 text-[11px] text-rose-600">

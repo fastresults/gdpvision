@@ -28,6 +28,14 @@ function PersonasIndex() {
   const { code } = Route.useParams();
   const qc = useQueryClient();
   const { data: personas } = useSuspenseQuery(personasQuery(code));
+  const segmentsQ = useQuery({
+    queryKey: ["persona-segments", code],
+    queryFn: () => listSegments({ data: { countryCode: code } }),
+  });
+  const studiesQ = useQuery({
+    queryKey: ["studies", code],
+    queryFn: () => listStudies({ data: { countryCode: code } }),
+  });
   const [brief, setBrief] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -46,24 +54,87 @@ function PersonasIndex() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["personas", code] }),
   });
 
+  const segCount = segmentsQ.data?.length ?? 0;
+  const studyCount = studiesQ.data?.length ?? 0;
+
   return (
     <div className="space-y-6">
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Persona Studio</p>
-          <h2 className="mt-1 font-serif text-2xl text-ink-950">Generate a synthetic persona</h2>
-          <p className="mt-1 text-sm text-ink-500">
-            Grounded in {code}&rsquo;s sectors, KPIs, ministries, and recent signals.
+      <header>
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+          Stage 01 · Cast the room
+        </p>
+        <h2 className="mt-1 font-serif text-2xl text-ink-950">Your synthetic public for {code}</h2>
+        <p className="mt-1 max-w-2xl text-sm text-ink-500">
+          Cast a public, group them into audiences, then rehearse the conversation. Pick a step below —
+          or auto-run the whole study end-to-end.
+        </p>
+      </header>
+
+      {/* Journey board */}
+      <section>
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Studio journey</p>
+        <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
+          <JourneyCard
+            n={1}
+            icon={Users}
+            title="Cast the room"
+            purpose="AI-generated synthetic citizens grounded in this country's second brain."
+            count={personas.length}
+            countLabel={personas.length === 1 ? "persona" : "personas"}
+            cta="Generate personas"
+            to="/admin/countries/$code/personas"
+            params={{ code }}
+          />
+          <JourneyCard
+            n={2}
+            icon={Layers}
+            title="Group your public"
+            purpose="Coherent audiences a Cabinet can actually act on — geography, livelihood, attitude."
+            count={segCount}
+            countLabel={segCount === 1 ? "segment" : "segments"}
+            cta={segCount === 0 ? "Draft your first segment" : "Manage segments"}
+            to="/admin/countries/$code/personas/segments"
+            params={{ code }}
+            disabled={personas.length === 0}
+            disabledHint="Cast personas first"
+          />
+          <JourneyCard
+            n={3}
+            icon={FlaskConical}
+            title="Rehearse"
+            purpose="Surveys, focus groups and creative tests — with cited synthesis in minutes."
+            count={studyCount}
+            countLabel={studyCount === 1 ? "study" : "studies"}
+            cta={studyCount === 0 ? "Design your first study" : "Open studies"}
+            to="/admin/countries/$code/personas/studies"
+            params={{ code }}
+            disabled={segCount === 0}
+            disabledHint="Group a segment first"
+          />
+        </div>
+      </section>
+
+      {/* Auto-run CTA */}
+      <div className="flex flex-col gap-3 border border-ink-950 bg-ink-950 p-4 text-paper-0 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-paper-0/70">
+            One-click path
+          </p>
+          <p className="mt-1 font-serif text-lg leading-tight">
+            Auto-run the full Research Studio
+          </p>
+          <p className="mt-0.5 text-[12px] leading-snug text-paper-0/70">
+            Brief → cast → segment → study → synthesis. AI handles every phase — you review the output.
           </p>
         </div>
         <button
           type="button"
-          onClick={() => { setResumeDraftId(undefined); setWizardOpen(true); }}
-          className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700"
+          onClick={() => { setResumeDraftId(undefined); setAutorun(true); setWizardOpen(true); }}
+          className="inline-flex shrink-0 items-center gap-1.5 border border-paper-0 bg-paper-0 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950 hover:bg-paper-100"
         >
-          <Wand2 size={12} /> Launch research studio
+          <Wand2 size={12} /> Launch Research Studio
         </button>
-      </header>
+      </div>
 
       <StudyWizardModal
         key={`${resumeDraftId ?? "new"}-${autorun ? "auto" : "manual"}`}
@@ -87,12 +158,13 @@ function PersonasIndex() {
         onAutoRun={(id) => { setResumeDraftId(id); setAutorun(true); setWizardOpen(true); }}
       />
 
-
-
-
       <div className="border border-line-200 bg-paper-0 p-4">
-        <label className="block">
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+          Manual · Generate one persona
+        </p>
+        <label className="mt-2 block">
           <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Brief</span>
+
           <textarea
             value={brief}
             onChange={(e) => setBrief(e.target.value)}

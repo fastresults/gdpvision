@@ -807,6 +807,9 @@ export const commitStudy = createServerFn({ method: "POST" })
       .eq("id", data.draftId)
       .maybeSingle();
     if (!draft?.cast_draft) throw new Error("Complete the cast step first.");
+    if ((draft as { study_id?: string | null }).study_id) {
+      return { studyId: (draft as { study_id: string }).study_id, personaCount: (draft.cast_draft as CastDraft).personas.length, alreadyDone: true as const };
+    }
 
     const scope = (draft.brief_scope as ResearchScope) ?? { title: draft.title ?? "Untitled study" };
     const cast = draft.cast_draft as CastDraft;

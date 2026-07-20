@@ -1,45 +1,63 @@
-## What "Queued for auto-run" means
+# Stage 03 · Studies — AI-First Auto-Compose
 
-The current state is **not a stuck runner** — it is a **valid-but-misleading status**. The draft `4f30e381-0498-44bc-a258-1d32ca1c69d0` for GRD has:
+## Problem
+`/admin/countries/$code/personas/studies` (route file `countries.$code.personas.studies.tsx`) is currently a purely manual 3-step form:
 
-- `brief_raw` = empty
-- `brief_scope` = null
-- `autorun_status` = `{ status: "queued", message: "Queued for auto-run" }`
-- `locked_at` = null
-- `phase_log` = empty
+1. Pick segment
+2. Pick method (survey / focus group / creative test)
+3. Frame title + objective
 
-So the auto-run has been queued, but the first phase (`brief`) has not executed. It cannot execute because `runAutorunTick` → `executePhase("brief")` calls `enrichBrief`, which requires `brief_raw` to be non-empty. When it finally runs, it will fail immediately with "Draft has no brief text." The UI still shows the initial queue message, so the user reads this as stuck.
+This contradicts the AI-first mandate. Stages 01 (Brief) and 02 (Blueprint) already have "Auto-run", and Chamber 07's Studio Wizard runs Brief → Outcome → Cast → Commit → Synthesis end-to-end. Stage 03, however, forces the operator to hand-pick everything before a study can be created.
 
-## Root-cause fixes
+## Objective
+When the operator lands on Stage 03, an AI Composer picks the highest-value segment, chooses the appropriate method, and drafts a title + objective grounded in the country's brief/blueprint context. The operator sees a **filled-in preview** they can approve, edit, or auto-run into synthesis. Manual mode remains available as a disclosure.
 
-1. **Pre-flight validation before allowing auto-run**
-   - Block `startAutorun` and the UI "Auto-run" affordance when the draft has no brief text.
-   - Show a contextual message: "Add a brief to auto-run the full study end-to-end."
+## Design
 
-2. **Distinguish queue states in the UI**
-   - "Queued for auto-run" → show when a brief is present and the runner is polling.
-   - "Waiting for brief" → show when auto-run is desired but the draft cannot start.
+### Default state = Auto-composed
+- On page open (segments.length ≥ 1), immediately fire `composeStudy` (new server function) which returns `{ segmentId, kind, title, objective, rationale, evidence }`.
+- Preview sidebar renders the composed study with a `AI · composed` chip and a "Why this pick" popover (rationale + 2-3 citations from corpus / brief scope).
+- Primary CTA becomes **"Create & run synthesis"** (one click → create study → navigate to `/studies/$id` with `autoRun=1`).
+- Secondary CTAs: **"Edit before creating"** (unlocks the 3-step form pre-filled) · **"Recompose"** (regenerates with a fresh seed) · **"Manual mode"** (collapses AI card, current form is exposed).
 
-3. **Fail fast on the first tick**
-   - If `runAutorunTick` finds `brief_raw` empty, set the status to `failed` with a clear message immediately, rather than leaving the draft in `queued`.
+### Manual mode = Opt-in
+- Existing 3-step composer stays intact, but rendered inside a `<details>` block ("Compose manually") that is closed by default when AI compose succeeds.
+- If `composeStudy` fails (no segments, model error, quota), the manual form auto-expands with an inline notice.
 
-4. **SessionsHub card clarity**
-   - If a draft has `autorun_status = queued` but no `brief_raw`, render it as "Waiting for brief" (amber) instead of "Queued for auto-run" (neutral grey).
-   - Disable the auto-run button on empty drafts; keep the "Resume" path open.
+### Auto-run into synthesis
+- `createStudy` today navigates to `/studies/$id`. When invoked from the AI Composer's primary CTA, we pass a `?auto=1` query param and the study detail page kicks off synthesis automatically (uses existing synth trigger, same pattern used elsewhere).
 
-5. **Wizard UX guardrail**
-   - In the Brief step, when the user clicks "Auto-run full study", validate `text.trim()` before setting the modal into auto-run mode. If empty, show an inline error and keep the composer open.
+## Technical Details
 
-## Implementation scope
+### New server fn: `src/lib/personas/compose-study.functions.ts`
+- Input: `{ countryCode }`
+- Loads: segments (via `listSegments`), latest brief_scope + outcome_blueprint from most recent `persona_study_drafts` for country, prior studies (to avoid duplication).
+- Calls Lovable AI Gateway (`openai/gpt-5.4-mini`, 45s timeout, JSON mode) with a compact prompt:
+  - "Given these segments, prior studies, and country brief, pick the single segment + one method (`survey`/`focus_group`/`creative_test`) that best advances an open decision. Return `{segment_id, kind, title, objective, rationale, evidence:[{quote,source}]}`."
+- Server validates: `segment_id` exists in country, `kind ∈ METHODS`, title 6–90 chars, objective 20–240 chars. On validation failure → single retry with corrective feedback, then return `{ ok:false, reason }`.
+- Persist last composition on `persona_composer_cache` (optional; skip if scope creep) — for v1, just return fresh.
 
-| File | Change |
-|------|--------|
-| `src/lib/personas/autorun.functions.ts` | Add `brief_raw` to `loadDraft` select; in `startAutorun` reject empty drafts; in `runAutorunTick` fail fast on empty `brief_raw`. |
-| `src/lib/personas/wizard.functions.ts` | (Minor) ensure `listDrafts` returns `brief_raw` so SessionsHub can validate. |
-| `src/components/personas/StudyWizard/SessionsHub.tsx` | Disable auto-run on empty drafts; rename display status to "Waiting for brief" when queued but empty. |
-| `src/components/personas/StudyWizard/WizardModal.tsx` | Add inline validation on the "Auto-run full study" button; prevent auto-run state if brief is empty. |
-| `src/components/personas/StudyWizard/AutoRunConsole.tsx` | Detect "queued but no brief" and surface "Waiting for brief" with a clear CTA to add the brief. |
+### UI changes: `countries.$code.personas.studies.tsx`
+- Add `AiComposerCard` component at top of the composer column (above `StepBlock 1`).
+- New `useQuery(["study-composer", code])` calling `composeStudy` — runs on mount.
+- Wire "Create & run synthesis" to `createStudy` + navigate with `?auto=1`.
+- Wrap existing `StepBlock` chain in `<details>` with summary "Compose manually · pick segment, method, title".
+- When user clicks "Edit before creating", set local state to pre-fill `segmentId`, `kind`, `title`, `objective` from the AI proposal AND open the details block.
 
-## Outcome
+### Study detail auto-run
+- Read `useSearch` for `auto=1` on `personas.studies.$id.tsx`; if present and study is `draft`, trigger existing synthesis mutation once and clear the flag from URL.
 
-Users will never see an idle "Queued for auto-run" spinner on a blank draft. The system will explicitly ask for a brief first, and the runner will fail fast with a human-readable message instead of hanging.
+### Fallbacks & errors
+- No segments → keep current `EmptyStart` (unchanged).
+- AI failure → show inline "AI composer unavailable — compose manually" and expand manual form.
+- Rate-limit (429) / credits (402) → surface exact message per gateway rules.
+
+## Out of Scope
+- Changing the Studio Wizard (already AI-driven).
+- Rewriting synthesis logic on the study detail page.
+- Segment auto-generation (Stage 02 owns that).
+
+## Files Touched
+- **New**: `src/lib/personas/compose-study.functions.ts`
+- **Edit**: `src/routes/_authenticated/admin/countries.$code.personas.studies.tsx` (add AI card, wrap manual form in `<details>`, wire auto=1 nav)
+- **Edit**: `src/routes/_authenticated/admin/countries.$code.personas.studies.$id.tsx` (respect `?auto=1`)

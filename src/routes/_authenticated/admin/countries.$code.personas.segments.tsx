@@ -23,6 +23,11 @@ function SegmentsPage() {
   const { code } = Route.useParams();
   const qc = useQueryClient();
   const { data: segments } = useSuspenseQuery(segmentsQuery(code));
+  const personasQ = useQuery({
+    queryKey: ["personas", code],
+    queryFn: () => listPersonas({ data: { countryCode: code } }),
+  });
+  const personaCount = personasQ.data?.length ?? 0;
   const [prompt, setPrompt] = useState("");
   const [size, setSize] = useState(8);
   const [visibility, setVisibility] = useState<"public" | "private">("public");
@@ -48,6 +53,25 @@ function SegmentsPage() {
 
   return (
     <div className="space-y-6">
+      <StudioStepper code={code} active="group" />
+      {personaCount === 0 && (
+        <div className="flex flex-col gap-2 border border-amber-500/60 bg-amber-50/60 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[13px] text-ink-950">
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-amber-700">
+              Cast a public first
+            </span>{" "}
+            · Segments group personas that already exist in your studio.
+          </p>
+          <Link
+            to="/admin/countries/$code/personas"
+            params={{ code }}
+            className="inline-flex shrink-0 items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700"
+          >
+            Back to Stage 01 · Cast <ArrowRight size={12} />
+          </Link>
+        </div>
+      )}
+
       <header>
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
           Stage 02 · Group your public

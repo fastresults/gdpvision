@@ -320,7 +320,7 @@ function StudiesPage() {
               </dl>
               <button
                 type="button"
-                onClick={() => create.mutate()}
+                onClick={() => create.mutate({})}
                 disabled={!ready || create.isPending}
                 className="mt-4 inline-flex w-full items-center justify-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-40"
               >

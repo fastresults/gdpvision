@@ -32,9 +32,18 @@ import {
   AUTO_STUDIES_LOCK,
   AUTO_STUDIES_FLAG_KEY,
   draftStudiesForSegments,
+  completeIncompleteStudies,
+  type StudyAutoPhase,
 } from "@/lib/personas/study-autorun";
 import { StudioStepper } from "@/components/personas/StudioStepper";
 import { clearAutoRun, publishAutoRun } from "@/lib/autorun/beacon";
+
+const PHASE_LABEL: Record<StudyAutoPhase, string> = {
+  composing: "composing",
+  creating: "drafting",
+  questioning: "writing questions",
+  running: "running synthesis",
+};
 
 const searchSchema = z.object({
   segmentId: z.string().optional(),

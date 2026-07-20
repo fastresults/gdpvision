@@ -161,6 +161,31 @@ export function AutoRunConsole({ draftId, countryCode: _countryCode, briefRaw, o
         </div>
       </header>
 
+      {!briefRaw?.trim() && status === "queued" && (
+        <div className="mt-6 border border-amber-400 bg-amber-50 p-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-amber-800">Waiting for brief</p>
+          <p className="mt-1 text-[12px] text-ink-800">
+            This auto-run is queued, but the draft has no brief yet. Add a brief first and the runner will take it from there.
+          </p>
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onNeedBrief}
+              className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700"
+            >
+              <FileText size={12} /> Back to brief
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="border border-line-200 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-700 hover:border-ink-950 hover:text-ink-950"
+            >
+              Close & keep draft
+            </button>
+          </div>
+        </div>
+      )}
+
       <ol className="mt-6 space-y-2">
         {rows.map((r, i) => (
           <li

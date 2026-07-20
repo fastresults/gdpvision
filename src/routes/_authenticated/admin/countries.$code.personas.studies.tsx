@@ -403,7 +403,7 @@ function StudiesPage() {
     } else {
       clearAutoRun(id);
     }
-  }, [autoState, code]);
+  }, [autoState, code, startAutoRun]);
 
   return (
     <div className="space-y-8">

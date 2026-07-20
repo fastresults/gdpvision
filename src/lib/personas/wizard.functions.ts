@@ -774,7 +774,8 @@ Rules: every persona and segment MUST cite at least one grounding_ref. member_in
         uploads: Array.isArray(draft.uploads) ? (draft.uploads as unknown[]).length : 0,
         deep_research: deepResearch.length,
       },
-    };
+      ...(partialDeepResearch ? { partial: true } : {}),
+    } as CastDraft & { partial?: boolean };
 
     await context.supabase
       .from("persona_study_drafts")

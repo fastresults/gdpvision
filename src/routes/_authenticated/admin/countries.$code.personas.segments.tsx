@@ -30,6 +30,7 @@ import { composeSegments, type SegmentProposal } from "@/lib/personas/compose-se
 import { listStudies } from "@/lib/personas/study.functions";
 import {
   draftStudiesForSegments,
+  completeIncompleteStudies,
   AUTO_STUDIES_LOCK,
   AUTO_STUDIES_FLAG_KEY,
 } from "@/lib/personas/study-autorun";
@@ -211,6 +212,7 @@ function SegmentsPage() {
       );
       const targets = freshSegments.filter((s) => !coveredIds.has(s.id));
 
+      let draftFailures: Array<{ label: string; reason: string }> = [];
       if (targets.length > 0) {
         let lastDrafted = 0;
         let lastFailed = 0;
@@ -218,6 +220,7 @@ function SegmentsPage() {
           code,
           targets,
           cancelRef,
+          fullPipeline: true,
           onProgress: ({ index, total, segmentLabel }) => {
             setAuto({
               kind: "drafting_studies",
@@ -233,6 +236,7 @@ function SegmentsPage() {
           },
         });
         lastFailed = result.failed.length;
+        draftFailures = result.failed.map((f) => ({ label: f.label, reason: f.reason }));
 
         if (cancelRef.current) {
           AUTO_STUDIES_LOCK.delete(code);
@@ -246,9 +250,40 @@ function SegmentsPage() {
         }
       }
 
+      // Sweep: always finish anything left incomplete (timed-out runStudy,
+      // pre-existing drafts, races). This is what guarantees the user
+      // lands on Stage 03 with fully synthesized work product.
+      const sweep = await completeIncompleteStudies({
+        code,
+        cancelRef,
+        onProgress: ({ index, total, segmentLabel }) => {
+          setAuto({
+            kind: "drafting_studies",
+            index: Math.max(0, index - 1),
+            total,
+            label: segmentLabel,
+            drafted: 0,
+            failed: 0,
+          });
+        },
+      });
+      const sweepFailures = sweep.failed.map((f) => ({ label: f.label, reason: f.reason }));
+      const allFailures = [...draftFailures, ...sweepFailures];
+
       if (cancelRef.current) {
         AUTO_STUDIES_LOCK.delete(code);
         return;
+      }
+
+      // Verify: nothing is still draft/running before we flag as consumed.
+      let unfinished = 0;
+      try {
+        const finalStudies = await listStudies({ data: { countryCode: code } });
+        unfinished = finalStudies.filter(
+          (s) => s.status !== "complete" && s.status !== "synthesized",
+        ).length;
+      } catch {
+        unfinished = 1; // be conservative
       }
 
       // Countdown → advance to Stage 03 (review mode)
@@ -271,7 +306,14 @@ function SegmentsPage() {
 
       try {
         window.localStorage.setItem(AUTORUN_CONSUMED_KEY(code), "1");
-        window.localStorage.setItem(AUTO_STUDIES_FLAG_KEY(code), String(Date.now()));
+        // Only mark studies-autorun as flagged when the pipeline actually
+        // finished everything cleanly. Otherwise Stage 03 must be free to
+        // self-heal on landing.
+        if (allFailures.length === 0 && unfinished === 0) {
+          window.localStorage.setItem(AUTO_STUDIES_FLAG_KEY(code), String(Date.now()));
+        } else {
+          window.localStorage.removeItem(AUTO_STUDIES_FLAG_KEY(code));
+        }
       } catch {
         /* ignore storage errors */
       }

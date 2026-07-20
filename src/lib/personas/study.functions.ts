@@ -37,7 +37,16 @@ async function ai(system: string, user: string, json = true, temperature = 0.7):
     if (res.status === 402) throw new Error("AI credits exhausted.");
     throw new Error(`AI Gateway ${res.status}: ${t.slice(0, 300)}`);
   }
-  const j = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+  // Text-first read so an empty body (aborted upstream, truncated proxy)
+  // resolves to "" rather than throwing "Unexpected end of JSON input".
+  const text = (await res.text()).trim();
+  if (!text) return "";
+  let j: { choices?: Array<{ message?: { content?: string } }> } = {};
+  try {
+    j = JSON.parse(text);
+  } catch {
+    return "";
+  }
   return j.choices?.[0]?.message?.content?.trim() ?? "";
 }
 

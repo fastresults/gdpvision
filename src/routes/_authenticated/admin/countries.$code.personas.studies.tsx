@@ -830,3 +830,119 @@ function FactCell({
     </div>
   );
 }
+
+type AutoRunPhase =
+  | { phase: "idle" }
+  | { phase: "running"; index: number; total: number; segmentId: string; segmentLabel: string }
+  | { phase: "complete"; drafted: number; failed: Array<{ label: string; reason: string }> }
+  | { phase: "cancelled"; drafted: number };
+
+function AutoRunCta({
+  phase,
+  uncovered,
+  onStart,
+  onCancel,
+}: {
+  phase: AutoRunPhase["phase"];
+  uncovered: number;
+  onStart: () => void;
+  onCancel: () => void;
+}) {
+  if (phase === "running") {
+    return (
+      <button
+        type="button"
+        onClick={onCancel}
+        className="inline-flex items-center gap-1.5 border border-ink-950 bg-paper-0 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950 hover:bg-paper-100"
+      >
+        <Pause size={12} /> Cancel Auto-run
+      </button>
+    );
+  }
+  const label =
+    phase === "complete" || phase === "cancelled"
+      ? uncovered > 0
+        ? `Run Auto-run · ${uncovered} left`
+        : "Re-draft all"
+      : uncovered > 0
+        ? `Start Auto-run · ${uncovered} segment${uncovered === 1 ? "" : "s"}`
+        : "Re-draft all";
+  const Icon = phase === "complete" || phase === "cancelled" ? RotateCcw : Play;
+  return (
+    <button
+      type="button"
+      onClick={onStart}
+      className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700"
+    >
+      <Icon size={12} /> {label}
+    </button>
+  );
+}
+
+function AutoRunBanner({
+  state,
+  onDismiss,
+}: {
+  state: AutoRunPhase;
+  onDismiss: () => void;
+}) {
+  if (state.phase === "idle") return null;
+  if (state.phase === "running") {
+    const pct = Math.round(((state.index - 1) / state.total) * 100);
+    return (
+      <div className="border-l-2 border-ink-950 bg-paper-100 p-3">
+        <div className="flex items-center gap-2">
+          <Loader2 size={13} className="animate-spin text-ink-950" />
+          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950">
+            Drafting {state.index} of {state.total} · {state.segmentLabel}
+          </p>
+        </div>
+        <div className="mt-2 h-1 w-full bg-line-200">
+          <div className="h-1 bg-ink-950 transition-all" style={{ width: `${pct}%` }} />
+        </div>
+        <p className="mt-2 text-[11px] text-ink-500">
+          AI composes a method and question per segment, then hands you a review queue. Cancel any time — nothing sends without approval.
+        </p>
+      </div>
+    );
+  }
+  if (state.phase === "cancelled") {
+    return (
+      <div className="flex items-start justify-between gap-3 border-l-2 border-amber-500 bg-amber-50/50 p-3">
+        <p className="text-[12px] text-ink-950">
+          Auto-run cancelled — {state.drafted} draft{state.drafted === 1 ? "" : "s"} kept.
+        </p>
+        <button type="button" onClick={onDismiss} className="text-ink-500 hover:text-ink-950">
+          <X size={13} />
+        </button>
+      </div>
+    );
+  }
+  // complete
+  return (
+    <div className="flex items-start justify-between gap-3 border-l-2 border-emerald-500 bg-emerald-50/40 p-3">
+      <div className="min-w-0">
+        <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-emerald-700">
+          Auto-run complete · {state.drafted} drafted
+          {state.failed.length > 0 ? ` · ${state.failed.length} failed` : ""}
+        </p>
+        <p className="mt-1 text-[12px] text-ink-700">
+          Review each draft below — approve to run synthesis, or edit the question first.
+        </p>
+        {state.failed.length > 0 && (
+          <ul className="mt-2 space-y-0.5 text-[11px] text-rose-600">
+            {state.failed.map((f, i) => (
+              <li key={i}>
+                <span className="font-medium">{f.label}</span> — {f.reason}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <button type="button" onClick={onDismiss} className="text-ink-500 hover:text-ink-950">
+        <X size={13} />
+      </button>
+    </div>
+  );
+}
+

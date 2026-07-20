@@ -21,6 +21,17 @@ const STEP_LABEL: Record<string, string> = {
   cast: "03 · Cast",
   preview: "04 · Preview",
   launch: "05 · Launch",
+  done: "✓ Committed",
+};
+
+const STEP_TONE: Record<string, string> = {
+  brief: "border-line-200 text-ink-700",
+  outcome: "border-amber-400 bg-amber-50 text-amber-800",
+  cast: "border-amber-400 bg-amber-50 text-amber-800",
+  preview: "border-sky-400 bg-sky-50 text-sky-800",
+  launch: "border-indigo-400 bg-indigo-50 text-indigo-800",
+  done: "border-emerald-600 bg-emerald-50 text-emerald-800",
+};
 };
 
 function relative(iso: string): string {

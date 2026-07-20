@@ -10,6 +10,7 @@ const KINDS = ["survey", "focus_group", "creative_test"] as const;
 type Kind = (typeof KINDS)[number];
 
 const ComposeInput = z.object({ countryCode: z.string() });
+const ComposeForSegmentInput = z.object({ countryCode: z.string(), segmentId: z.string() });
 
 export type ComposeStudyResult =
   | {
@@ -190,6 +191,143 @@ Method guidance:
 
       const seg = segments.find((s) => s.id === parsed.segment_id);
       if (!seg) return { ok: false, reason: "AI picked an unknown segment_id." };
+
+      const kind = KINDS.includes(parsed.kind as Kind) ? (parsed.kind as Kind) : null;
+      if (!kind) return { ok: false, reason: "AI picked an invalid method." };
+
+      const title = clampStr(parsed.title, 6, 90);
+      const objective = clampStr(parsed.objective, 20, 240);
+      if (!title) return { ok: false, reason: "AI title missing or too short." };
+      if (!objective) return { ok: false, reason: "AI objective missing or too short." };
+
+      const evidence = (parsed.evidence ?? [])
+        .slice(0, 4)
+        .map((e) => ({
+          quote: String(e?.quote ?? "").slice(0, 220),
+          source: String(e?.source ?? "").slice(0, 60),
+        }))
+        .filter((e) => e.quote.length > 0);
+
+      return {
+        ok: true,
+        segmentId: seg.id,
+        segmentLabel: seg.label,
+        kind,
+        title,
+        objective,
+        rationale: String(parsed.rationale ?? "").slice(0, 400),
+        evidence,
+        model: MODEL,
+      };
+    };
+
+    try {
+      const first = await attempt();
+      if (first.ok) return first;
+      const second = await attempt(first.reason);
+      return second;
+    } catch (e) {
+      return { ok: false, reason: (e as Error).message };
+    }
+  });
+
+// ── Per-segment composer (auto-run driver) ────────────────────────────────
+// Given a specific segmentId, pick method + framing scoped to that audience.
+export const composeStudyForSegment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => ComposeForSegmentInput.parse(d))
+  .handler(async ({ data, context }): Promise<ComposeStudyResult> => {
+    const { supabase } = context;
+    const code = data.countryCode;
+
+    const { data: seg, error: segErr } = await supabase
+      .from("persona_segments")
+      .select("id,label,prompt,size")
+      .eq("id", data.segmentId)
+      .eq("country_code", code)
+      .maybeSingle();
+    if (segErr) throw new Error(segErr.message);
+    if (!seg) return { ok: false, reason: "Segment not found." };
+
+    const { data: draft } = await supabase
+      .from("persona_study_drafts")
+      .select("brief_raw,brief_scope,outcome_blueprint")
+      .eq("country_code", code)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: priorStudies } = await supabase
+      .from("studies")
+      .select("title,kind,objective")
+      .eq("country_code", code)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    const scope = (draft?.brief_scope ?? null) as { title?: string; objectives?: string[] } | null;
+    const blueprint = (draft?.outcome_blueprint ?? null) as {
+      deliverables?: Array<{ label?: string }>;
+    } | null;
+
+    const priorBlock =
+      (priorStudies ?? [])
+        .map((p) => `- [${p.kind}] ${p.title}${p.objective ? ` — ${p.objective.slice(0, 100)}` : ""}`)
+        .join("\n") || "(none)";
+
+    const briefBlock = [
+      scope?.title ? `BRIEF TITLE: ${scope.title}` : "",
+      scope?.objectives?.length ? `OBJECTIVES:\n- ${scope.objectives.slice(0, 5).join("\n- ")}` : "",
+      blueprint?.deliverables?.length
+        ? `DELIVERABLES: ${blueprint.deliverables.map((d) => d?.label).filter(Boolean).slice(0, 6).join(", ")}`
+        : "",
+      draft?.brief_raw ? `BRIEF RAW: ${String(draft.brief_raw).slice(0, 800)}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const system =
+      "You are a McKinsey-grade research director for a sovereign cabinet. " +
+      "For the GIVEN audience segment, choose the single highest-value study to run. " +
+      "Pick one method and frame a decision-oriented title and objective. Return strict JSON.";
+
+    const user = `COUNTRY: ${code}
+
+TARGET SEGMENT (fixed — do not swap):
+id=${seg.id}
+label="${seg.label}"
+size=${seg.size}
+prompt="${(seg.prompt ?? "").slice(0, 240)}"
+
+ACTIVE BRIEF:
+${briefBlock || "(no active brief captured — infer from segment)"}
+
+PRIOR STUDIES (avoid duplicating):
+${priorBlock}
+
+Return JSON with this exact shape:
+{
+  "kind": "survey" | "focus_group" | "creative_test",
+  "title": "6-90 char decision-oriented title tailored to the segment",
+  "objective": "20-240 chars — the decision this informs",
+  "rationale": "1-2 sentences: why this method for this segment now",
+  "evidence": [{"quote": "short evidence from brief/segment", "source": "brief|segment|prior"}]
+}
+
+Method guidance:
+- survey → size sentiment, compare options, benchmark
+- focus_group → hear objections, understand language, explore nuance
+- creative_test → pressure-test a specific message or asset`;
+
+    const attempt = async (extra?: string): Promise<ComposeStudyResult> => {
+      const raw = await callGateway(system, extra ? `${user}\n\nCORRECTION: ${extra}` : user);
+      const parsed = parseJson<{
+        kind?: string;
+        title?: string;
+        objective?: string;
+        rationale?: string;
+        evidence?: Array<{ quote?: string; source?: string }>;
+      }>(raw);
+      if (!parsed) return { ok: false, reason: "AI returned unparseable JSON." };
 
       const kind = KINDS.includes(parsed.kind as Kind) ? (parsed.kind as Kind) : null;
       if (!kind) return { ok: false, reason: "AI picked an invalid method." };

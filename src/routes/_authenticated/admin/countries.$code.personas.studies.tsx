@@ -357,9 +357,9 @@ function StudiesPage() {
 
   const rehearseStatus =
     autoState.phase === "running"
-      ? `AUTO · drafting ${autoState.index}/${autoState.total}`
-      : autoState.phase === "complete" && autoState.drafted > 0
-        ? `AUTO · ${autoState.drafted} drafted`
+      ? `AUTO · ${PHASE_LABEL[autoState.step]} ${autoState.index}/${autoState.total}`
+      : autoState.phase === "complete" && autoState.completed > 0
+        ? `AUTO · ${autoState.completed} completed`
         : undefined;
 
   // Publish the auto-run to the global beacon so it stays visible across
@@ -371,25 +371,24 @@ function StudiesPage() {
       publishAutoRun({
         id,
         scope: `Chamber 07 · Stage 03 · ${code}`,
-        title: "Drafting studies for every segment",
-        detail: `Drafting ${autoState.index}/${autoState.total} — ${autoState.segmentLabel}`,
+        title: "Finishing every study end-to-end",
+        detail: `${PHASE_LABEL[autoState.step]} ${autoState.index}/${autoState.total} — ${autoState.segmentLabel}`,
         progress: { current: autoState.index, total: autoState.total },
         status: "running",
         href,
       });
     } else if (autoState.phase === "complete") {
-      if (autoState.drafted > 0 || autoState.failed.length > 0) {
+      if (autoState.completed > 0 || autoState.drafted > 0 || autoState.failed.length > 0) {
         publishAutoRun({
           id,
           scope: `Chamber 07 · Stage 03 · ${code}`,
           title: autoState.failed.length
-            ? `Drafted ${autoState.drafted} — ${autoState.failed.length} need review`
-            : `Drafted ${autoState.drafted} studies`,
+            ? `Completed ${autoState.completed} — ${autoState.failed.length} need review`
+            : `Completed ${autoState.completed} studies`,
           status: autoState.failed.length ? "error" : "complete",
           message: autoState.failed[0]?.reason,
           href,
         });
-        // Auto-dismiss clean completions after 6s
         if (!autoState.failed.length) {
           const t = setTimeout(() => clearAutoRun(id), 6000);
           return () => clearTimeout(t);
@@ -403,7 +402,7 @@ function StudiesPage() {
         scope: `Chamber 07 · Stage 03 · ${code}`,
         title: "Auto-run cancelled",
         status: "paused",
-        message: `Drafted ${autoState.drafted} before cancel.`,
+        message: `Completed ${autoState.completed} before cancel.`,
         href,
       });
     } else {

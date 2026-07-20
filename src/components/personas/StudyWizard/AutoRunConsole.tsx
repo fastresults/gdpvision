@@ -13,6 +13,7 @@ import {
   type AutoRunPhase,
   type PhaseLogEntry,
 } from "@/lib/personas/autorun.functions";
+import { clearAutoRun, publishAutoRun } from "@/lib/autorun/beacon";
 
 type PhaseState = "pending" | "running" | "done" | "failed" | "skipped";
 
@@ -136,6 +137,42 @@ export function AutoRunConsole({ draftId, countryCode: _countryCode, briefRaw, o
     return () => { stopRef.current = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Publish this wizard auto-run to the global beacon.
+  useEffect(() => {
+    const id = `wizard:${draftId}`;
+    const active = rows.find((r) => r.state === "running");
+    const doneCount = rows.filter((r) => r.state === "done" || r.state === "skipped").length;
+    const total = rows.length;
+    const beaconStatus =
+      status === "failed"
+        ? "error"
+        : status === "canceled"
+          ? "paused"
+          : status === "done"
+            ? "complete"
+            : "running";
+    publishAutoRun({
+      id,
+      scope: "Chamber 07 · Research Studio",
+      title: active ? active.label : status === "done" ? "Study built end-to-end" : "Running research studio",
+      detail: active?.summary ?? statusMsg ?? undefined,
+      progress: { current: doneCount, total },
+      status: beaconStatus,
+      message: status === "failed" ? statusMsg ?? undefined : undefined,
+    });
+    if (status === "done") {
+      const t = setTimeout(() => clearAutoRun(id), 6000);
+      return () => clearTimeout(t);
+    }
+  }, [rows, status, statusMsg, draftId]);
+
+  // Clear beacon when console unmounts (user closed wizard).
+  useEffect(() => {
+    const id = `wizard:${draftId}`;
+    return () => clearAutoRun(id);
+  }, [draftId]);
+
 
   async function handleRetry() {
     stopRef.current = false;

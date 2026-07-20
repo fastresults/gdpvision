@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 import { supabase } from "@/integrations/supabase/client";
+import { AutoRunBeacon } from "@/components/autorun/AutoRunBeacon";
 
 // Integration-managed pattern: SSR off, session read on the client, redirect
 // to /auth when no user. Do not add second-line auth gates on child routes —
@@ -14,5 +15,10 @@ export const Route = createFileRoute("/_authenticated")({
     }
     return { user: data.user };
   },
-  component: () => <Outlet />,
+  component: () => (
+    <>
+      <Outlet />
+      <AutoRunBeacon />
+    </>
+  ),
 });

@@ -1,13 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
-import { Sparkles, Trash2, User, Wand2 } from "lucide-react";
+import { FlaskConical, Layers, Sparkles, Trash2, User, Users, Wand2 } from "lucide-react";
 import { useState } from "react";
 
 import { CitedText } from "@/components/citations/CitedText";
-import { deletePersona, generatePersona, listPersonas } from "@/lib/personas/generate.functions";
+import { deletePersona, generatePersona, listPersonas, listSegments } from "@/lib/personas/generate.functions";
+import { listStudies } from "@/lib/personas/study.functions";
 import { StudyWizardModal } from "@/components/personas/StudyWizard/WizardModal";
 import { SessionsHub } from "@/components/personas/StudyWizard/SessionsHub";
+import { JourneyCard } from "@/components/personas/JourneyCard";
 
 function personasQuery(code: string) {
   return queryOptions({

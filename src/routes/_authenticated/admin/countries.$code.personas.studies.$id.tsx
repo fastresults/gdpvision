@@ -42,13 +42,19 @@ function StudyDetail() {
     byQuestion.set(r.question_id, arr);
   }
 
-  const phase: "drafted" | "questions" | "running" | "synthesized" = report
-    ? "synthesized"
-    : run.isPending
+  const statusPhase: "drafted" | "questions" | "running" | "synthesized" =
+    study.status === "running"
       ? "running"
-      : questions.length > 0
-        ? "questions"
-        : "drafted";
+      : study.status === "synthesized" || study.status === "complete" || report
+        ? "synthesized"
+        : questions.length > 0
+          ? "questions"
+          : "drafted";
+  const phase: "drafted" | "questions" | "running" | "synthesized" = run.isPending
+    ? "running"
+    : draft.isPending && statusPhase === "drafted"
+      ? "drafted"
+      : statusPhase;
   const coach: Record<typeof phase, string> = {
     drafted: "Start by AI-drafting 8 questions grounded in your objective. You can re-draft any time.",
     questions: "Review the questions, then run the study — each persona answers in ≈ 30–60 seconds.",
@@ -62,6 +68,15 @@ function StudyDetail() {
     { id: "synthesized", label: "Synthesized" },
   ];
   const activeIdx = phases.findIndex((p) => p.id === phase);
+
+  const draftIsPrimary = phase === "drafted";
+  const runIsPrimary = phase === "questions";
+  const draftClass = draftIsPrimary
+    ? "border-ink-950 bg-ink-950 text-paper-0 hover:bg-ink-700"
+    : "border-line-200 bg-paper-0 text-ink-950 hover:border-ink-950";
+  const runClass = runIsPrimary
+    ? "border-ink-950 bg-ink-950 text-paper-0 hover:bg-ink-700"
+    : "border-line-200 bg-paper-0 text-ink-950 hover:border-ink-950";
 
   return (
     <div className="space-y-6">
@@ -79,6 +94,46 @@ function StudyDetail() {
         <h2 className="mt-1 font-serif text-2xl text-ink-950">{study.title}</h2>
         {study.objective && <p className="mt-1 max-w-3xl text-sm text-ink-700">{study.objective}</p>}
       </header>
+
+      {/* Primary actions — above the ribbon so the recommended next action leads */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => draft.mutate()}
+          disabled={draft.isPending || run.isPending || phase === "running"}
+          className={`inline-flex items-center gap-1.5 border px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] disabled:opacity-40 ${draftClass}`}
+        >
+          <Sparkles size={12} /> {draft.isPending ? "Drafting…" : questions.length ? "Re-draft questions" : "AI-draft questions"}
+        </button>
+        <button
+          type="button"
+          onClick={() => run.mutate()}
+          disabled={questions.length === 0 || run.isPending || draft.isPending}
+          className={`inline-flex items-center gap-1.5 border px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] disabled:opacity-40 ${runClass}`}
+        >
+          <Play size={12} /> {run.isPending ? "Running study…" : "Run study"}
+        </button>
+        {phase === "running" && (
+          <span className="inline-flex items-center gap-1.5 border border-line-200 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-700">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" /> Personas responding…
+          </span>
+        )}
+        {phase === "synthesized" && (
+          <Link
+            to="/admin/countries/$code/personas/studies"
+            params={{ code }}
+            search={{ segmentId: study.segment_id ?? undefined }}
+            className="ml-auto inline-flex items-center gap-1.5 border border-line-200 bg-paper-0 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950 hover:border-ink-950"
+          >
+            Start a follow-up study <ArrowLeft size={12} className="rotate-180" />
+          </Link>
+        )}
+      </div>
+      {(draft.isError || run.isError) && (
+        <p className="text-[11px] text-rose-600">
+          {(draft.error as Error | null)?.message ?? (run.error as Error | null)?.message}
+        </p>
+      )}
 
       {/* Phase ribbon */}
       <div className="border border-line-200 bg-paper-0 p-3">
@@ -116,29 +171,7 @@ function StudyDetail() {
         <p className="mt-2 text-[12px] leading-snug text-ink-700">{coach[phase]}</p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => draft.mutate()}
-          disabled={draft.isPending || run.isPending}
-          className="inline-flex items-center gap-1.5 border border-line-200 bg-paper-0 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950 hover:border-ink-950 disabled:opacity-40"
-        >
-          <Sparkles size={12} /> {draft.isPending ? "Drafting…" : questions.length ? "Re-draft questions" : "AI-draft questions"}
-        </button>
-        <button
-          type="button"
-          onClick={() => run.mutate()}
-          disabled={questions.length === 0 || run.isPending || draft.isPending}
-          className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-40"
-        >
-          <Play size={12} /> {run.isPending ? "Running study…" : "Run study"}
-        </button>
-      </div>
-      {(draft.isError || run.isError) && (
-        <p className="text-[11px] text-rose-600">
-          {(draft.error as Error | null)?.message ?? (run.error as Error | null)?.message}
-        </p>
-      )}
+
 
 
       {questions.length > 0 && (

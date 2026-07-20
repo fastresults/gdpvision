@@ -142,25 +142,6 @@ function StudiesPage() {
         </p>
       </header>
 
-      {/* How this works strip */}
-      <ol className="grid grid-cols-2 gap-2 border border-line-200 bg-paper-0 p-3 sm:grid-cols-4">
-        {[
-          { n: 1, label: "Pick a segment", icon: Layers },
-          { n: 2, label: "Choose the method", icon: FlaskConical },
-          { n: 3, label: "Frame the question", icon: Target },
-          { n: 4, label: "AI synthesizes", icon: Sparkles },
-        ].map((b) => (
-          <li key={b.n} className="flex items-center gap-2">
-            <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-line-200 font-mono text-[10px] text-ink-950">
-              {b.n}
-            </span>
-            <div className="min-w-0">
-              <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">Beat 0{b.n}</p>
-              <p className="truncate text-[12px] text-ink-950">{b.label}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
 
       {segments.length === 0 ? (
         <EmptyStart code={code} />

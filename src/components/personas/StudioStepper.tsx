@@ -11,9 +11,11 @@ type StageKey = "cast" | "group" | "rehearse";
 export function StudioStepper({
   code,
   active,
+  autoStatus,
 }: {
   code: string;
   active?: StageKey;
+  autoStatus?: string;
 }) {
   const matchRoute = useMatchRoute();
   const personas = useQuery({

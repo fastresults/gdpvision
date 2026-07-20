@@ -20,6 +20,16 @@ const GATEWAY_TIMEOUT_MS = 45_000;
 
 type GatewayResult = { content: string; model: string; runId?: string };
 
+// studies.kind check constraint accepts: survey|focus_group|creative|interview|analyze.
+// Instrument kinds from the cast may be broader (interview_protocol, scorecard, …); map them.
+function mapStudyKind(k: string | undefined | null): string {
+  const v = (k ?? "").toLowerCase();
+  if (v === "survey" || v === "focus_group" || v === "creative" || v === "interview" || v === "analyze") return v;
+  if (v === "interview_protocol") return "interview";
+  if (v === "scorecard") return "analyze";
+  return "focus_group";
+}
+
 async function callGateway(
   system: string,
   user: string,
@@ -889,7 +899,7 @@ export const commitStudy = createServerFn({ method: "POST" })
       .from("studies")
       .insert({
         country_code: data.countryCode,
-        kind: cast.instruments[0]?.kind ?? "focus_group",
+        kind: mapStudyKind(cast.instruments[0]?.kind),
         title: scope.title.slice(0, 240),
         objective: (scope.objectives ?? []).slice(0, 3).join(" · ").slice(0, 500),
         segment_id: seg.id,

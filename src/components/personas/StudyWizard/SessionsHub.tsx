@@ -116,6 +116,7 @@ export function SessionsHub({ countryCode, onResume, onStartNew, onAutoRun }: Pr
             const title = d.title?.trim() || "Untitled brief";
             const isRenaming = renaming?.id === d.id;
             const committed = d.step === "done" && !!d.study_id;
+            const hasBrief = !!((d as { brief_raw?: string | null }).brief_raw ?? "").trim().length;
             // Normalize both current and legacy autorun_status shapes.
             const rawStatus = d.autorun_status as
               | ({ status?: string; next_phase?: string | null; last_phase?: string | null; message?: string | null }
@@ -127,6 +128,9 @@ export function SessionsHub({ countryCode, onResume, onStartNew, onAutoRun }: Pr
             const lockLive = !!lockedAt && (Date.now() - Date.parse(lockedAt)) < 60_000;
             const displayStatus =
               normalizedStatus === "running" && !lockLive ? "stalled" : normalizedStatus;
+            // A queued auto-run on an empty draft is not stuck — it is waiting for input.
+            const autoRunWaitingForBrief = normalizedStatus === "queued" && !hasBrief;
+            const displayStatusLabel = autoRunWaitingForBrief ? "waiting for brief" : displayStatus;
             const autoRunning = displayStatus === "running";
             return (
               <li key={d.id} className="group relative flex items-start gap-3 px-4 py-3 hover:bg-paper-50">
@@ -170,22 +174,24 @@ export function SessionsHub({ countryCode, onResume, onStartNew, onAutoRun }: Pr
                     <span className={`border px-1.5 py-0.5 ${STEP_TONE[d.step] ?? "border-line-200 text-ink-700"}`}>
                       {STEP_LABEL[d.step] ?? d.step}
                     </span>
-                    {displayStatus && (
+                    {displayStatusLabel && (
                       <span
                         className={`border px-1.5 py-0.5 ${
-                          displayStatus === "failed"
+                          displayStatusLabel === "failed"
                             ? "border-rose-500 bg-rose-50 text-rose-700"
-                            : displayStatus === "stalled"
+                            : displayStatusLabel === "stalled" || displayStatusLabel === "waiting for brief"
                               ? "border-amber-500 bg-amber-50 text-amber-700"
-                              : displayStatus === "running"
+                              : displayStatusLabel === "running"
                                 ? "border-ink-950 bg-ink-950 text-paper-0"
-                                : displayStatus === "done"
+                                : displayStatusLabel === "done"
                                   ? "border-emerald-600 bg-emerald-50 text-emerald-700"
                                   : "border-line-200 text-ink-700"
                         }`}
-                        title={rawStatus?.message ?? undefined}
+                        title={autoRunWaitingForBrief ? "Add a brief to start the auto-run." : (rawStatus?.message ?? undefined)}
                       >
-                        Auto{normalizedPhase ? ` · ${normalizedPhase}` : ""} · {displayStatus}
+                        {autoRunWaitingForBrief
+                          ? "Auto · waiting for brief"
+                          : `Auto${normalizedPhase ? ` · ${normalizedPhase}` : ""} · ${displayStatusLabel}`}
                       </span>
                     )}
                     <span>{relative(d.updated_at)}</span>
@@ -207,9 +213,9 @@ export function SessionsHub({ countryCode, onResume, onStartNew, onAutoRun }: Pr
                   <button
                     type="button"
                     onClick={() => onAutoRun(d.id)}
-                    disabled={autoRunning}
+                    disabled={autoRunning || !hasBrief}
                     className="hidden shrink-0 items-center gap-1 border border-emerald-700 bg-emerald-700 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-paper-0 hover:bg-emerald-800 disabled:opacity-40 md:inline-flex"
-                    title="Run brief → blueprint → cast → commit → synthesis end-to-end"
+                    title={hasBrief ? "Run brief → blueprint → cast → commit → synthesis end-to-end" : "Add a brief before auto-run"}
                   >
                     <Wand2 size={11} /> Auto-run
                   </button>

@@ -77,7 +77,7 @@ type DraftLockRow = {
 async function loadDraft(supabase: SB, id: string) {
   return supabase
     .from("persona_study_drafts")
-    .select("id,country_code,brief_raw,brief_scope,outcome_blueprint,cast_draft,study_id,locked_at,autorun_status,phase_log")
+    .select("id,country_code,brief_raw,brief_scope,outcome_blueprint,cast_draft,study_id,locked_at,locked_by,autorun_status,phase_log")
     .eq("id", id)
     .maybeSingle();
 }

@@ -42,7 +42,8 @@ function relative(iso: string): string {
   return `${Math.round(s / 86400)}d ago`;
 }
 
-export function SessionsHub({ countryCode, onResume, onStartNew }: Props) {
+export function SessionsHub({ countryCode, onResume, onStartNew, onAutoRun }: Props) {
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["study-drafts", countryCode],

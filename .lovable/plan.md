@@ -1,37 +1,53 @@
-# Stage 02 · AI-first Segment Composer
 
-## Problem
-Stage 02 currently forces the user to hand-write a segment prompt, pick a size, and click Generate. That breaks the auto-run spirit that Stages 01 (Cast) and 03 (Rehearse) already follow — the user is intervened in the middle of a Cast → Group → Rehearse journey that should flow on its own.
+# Stage 02 · Full auto-run (AI-first, zero-click)
 
-The two existing segments on GRD ("Domestic Grassroots & Community Advocates", "Skeptical Local Public") were created manually; nothing today proposes them.
+## Problem observed
+Stage 02 today is only *half* auto-run: the AI proposes segments on entry, but the user must still click "Accept & cast" or "Accept all", then manually navigate to Stage 03. That breaks the auto-run promise the rest of the studio makes.
 
-## What to build
+## Goal
+When a user lands on Stage 02 with personas cast and no segments yet, the studio should:
+1. compose segments from brief + cast (already happening),
+2. auto-cast them in sequence,
+3. mark the stage complete and gently hand off to Stage 03 — all without a click.
 
-**1. New server fn `composeSegments` in `src/lib/personas/compose-segments.functions.ts`**
-- Mirrors the shape of `compose-study.functions.ts`.
-- Inputs: `countryCode`, optional `count` (default 3).
-- Context pulled server-side: active brief (`persona_study_drafts.brief_raw` / `brief_scope`), existing personas (`listPersonas`), existing segments (to avoid duplicates), country pack.
-- Calls Lovable AI Gateway (`google/gemini-2.5-flash`, JSON mode, 2-try self-correction like compose-study) to propose N segments, each with `{ label, prompt, size (3–20), rationale, evidence[] }`.
-- Validates: label 4–80 chars, prompt 20–400 chars, size clamped, no duplicate labels vs. existing segments.
-- Returns `{ ok, proposals[] } | { ok: false, reason }`. Does NOT write to DB — proposals are staged for one-click accept.
+The manual composer and "Advanced" disclosure stay, but demoted. Users can still stop, dismiss, or regenerate at any time.
 
-**2. New client component `AiSegmentComposer` (in the segments route file, matching `AiComposerCard` pattern)**
-- Auto-fires `composeSegments` on mount when `segments.length === 0` OR when user opens the "Propose more" disclosure.
-- Renders each proposal as a card: label, rationale, evidence chips, size, and two buttons: **Accept & generate personas** (calls existing `generateSegment` with the proposed prompt/size/visibility=public) and **Dismiss**.
-- "Accept all" button runs `generateSegment` sequentially for every proposal, updating the segments list live.
-- Loading, error, and rate-limit states surfaced inline.
+## UX contract
 
-**3. Demote the manual form**
-- The existing "Describe the audience" panel moves into a collapsed `<details>` disclosure labeled "Compose a segment manually", consistent with how Stage 03 handles manual mode.
-- Empty-state coach copy updated to say "AI is drafting segment proposals from your brief and personas…".
+- **Auto-run banner** at top of Stage 02:
+  `Auto · drafting segments → casting → handing off to Rehearse`
+  Shows live phase: *Proposing… → Casting 2 of 3 · "Coastal tourism operators" → Ready · advancing to Rehearse in 3s*.
+- **Cancel Auto-run** button in the banner — pauses the loop, keeps whatever was already cast, and reveals the existing "Accept / Dismiss" per-proposal buttons for manual control.
+- **Auto-advance to Stage 03** once all accepted segments finish casting AND at least one segment exists. Uses a 3-second countdown the user can cancel (`Stay here`).
+- Re-entering Stage 02 with segments already present does *not* re-fire auto-run (idempotent). A `Regenerate` button remains for explicit re-runs.
+- Manual composer stays behind the existing `<details>` disclosure. Nothing removed.
 
-**4. Auto-run linkage (no orchestrator change needed yet)**
-- The Cast → Group hand-off in `SessionsHub` / auto-run console gets a note: once personas exist, Stage 02 auto-proposes segments on visit. Full orchestrator auto-execution of `generateSegment` per proposal is out of scope for this pass — one-click acceptance keeps a human sign-off for grouping, matching the "AI proposes, cabinet ratifies" pattern used in Stage 03's AI Composer.
+## Implementation
 
-## Files touched
-- `src/lib/personas/compose-segments.functions.ts` — new
-- `src/routes/_authenticated/admin/countries.$code.personas.segments.tsx` — mount `AiSegmentComposer`, collapse manual form, refresh empty state
+### `src/routes/_authenticated/admin/countries.$code.personas.segments.tsx`
+- Add an auto-run state machine (client-only, in the page component):
+  `idle → proposing → casting(index) → done → advancing → complete` plus `paused` and `error`.
+- Trigger transitions:
+  - mount + personas>0 + segments=0 + proposals=0 → `proposing` (calls existing `composeSegments`).
+  - `composeSegments` success → auto-start `casting(0)`; sequentially `await gen.mutateAsync(...)` per proposal (reuse existing `acceptProposal` logic, refactored into a shared `castOne(p)` helper).
+  - all cast → `advancing` (3s countdown) → `navigate({ to: "/admin/countries/$code/personas/studies", params: { code } })`.
+- `Cancel Auto-run` sets state to `paused`; existing per-item buttons remain the fallback.
+- `Regenerate` and manual accept both cancel the auto-run loop so user actions win.
+- Persist a per-draft "auto-run consumed" flag in `localStorage` keyed by `code` so refreshing the page after completion does not re-trigger. (No schema change; this is a session convenience only.)
 
-## Out of scope
-- Changing the durable auto-run orchestrator (`autorun.functions.ts`) to fire segment creation without any click. Can be a follow-up once one-click acceptance is validated.
-- Schema changes.
+### `src/components/personas/StudioStepper.tsx`
+- Add an optional `hint` next to the active stage: when Stage 02's auto-run is running, show `Auto-running` chip; when complete, show `Advancing → Rehearse`. Small addition, no structural change.
+
+### Error handling
+- If `composeSegments` returns `{ ok: false }` or throws, state → `error`; show existing error UI and *do not* auto-retry. User can hit `Regenerate` or `Cancel Auto-run` to compose manually.
+- If any single `gen.mutateAsync` throws, state → `paused` with an inline notice `"Casting paused on 'X' — resume or dismiss below"`. Remaining proposals stay visible for manual accept.
+
+## Non-goals
+- No changes to server functions (`composeSegments`, `generateSegment`) — behavior is purely on the Stage 02 route.
+- No change to the auto-run wizard (`autorun.functions.ts`) — that pipeline (brief→outcome→cast→commit→synthesis) already covers segments as part of the `cast` phase's `cast_draft`. This plan is specifically for the *manual studio journey* (Cast/Group/Rehearse pages) which the user is currently on.
+- No new tables, columns, or RLS changes.
+
+## Acceptance
+- Land on `/admin/countries/{code}/personas/segments` with personas cast and no segments → within ~30–60s the page shows N segments cast and auto-navigates to `/personas/studies` after a 3s countdown, no clicks required.
+- Clicking `Cancel Auto-run` at any point leaves the studio in a clean manual state with whatever was already cast.
+- Refreshing the segments page after completion does not re-fire auto-run.

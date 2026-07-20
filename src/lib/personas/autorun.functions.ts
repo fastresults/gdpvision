@@ -222,6 +222,20 @@ export const runAutorunTick = createServerFn({ method: "POST" })
       cast_draft: draft.cast_draft,
       study_id: draft.study_id,
     });
+
+    // Fail fast if the draft is empty and the first phase needs a brief.
+    if (nextPhase === "brief" && !(draft.brief_raw ?? "").trim()) {
+      const failedStatus: AutorunStatus = {
+        status: "failed",
+        next_phase: "brief",
+        last_phase: "brief",
+        updated_at: new Date().toISOString(),
+        message: "Draft has no brief text. Add a brief before starting auto-run.",
+      };
+      await releaseLock(supabase, draftId, failedStatus);
+      return { done: false, error: failedStatus.message, phase: "brief", state: "failed" as const, nextPhase: "brief" };
+    }
+
     if (!nextPhase) {
       await releaseLock(supabase, draftId, {
         status: "done", next_phase: null, updated_at: new Date().toISOString(), message: "All phases complete",

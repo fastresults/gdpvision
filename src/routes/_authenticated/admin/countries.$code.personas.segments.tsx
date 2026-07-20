@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { Layers, Sparkles, Trash2 } from "lucide-react";
+import { ArrowRight, Layers, Sparkles, Trash2, Users } from "lucide-react";
 import { useState } from "react";
 
 import { deleteSegment, generateSegment, listSegments } from "@/lib/personas/generate.functions";
@@ -25,11 +25,13 @@ function SegmentsPage() {
   const [prompt, setPrompt] = useState("");
   const [size, setSize] = useState(8);
   const [visibility, setVisibility] = useState<"public" | "private">("public");
+  const [lastCreated, setLastCreated] = useState<{ id: string; label: string } | null>(null);
 
   const gen = useMutation({
     mutationFn: () => generateSegment({ data: { countryCode: code, prompt: prompt.trim(), size, visibility } }),
-    onSuccess: () => {
+    onSuccess: (row) => {
       setPrompt("");
+      setLastCreated({ id: row.id, label: row.label });
       qc.invalidateQueries({ queryKey: ["persona-segments", code] });
       qc.invalidateQueries({ queryKey: ["personas", code] });
     },
@@ -45,14 +47,42 @@ function SegmentsPage() {
   return (
     <div className="space-y-6">
       <header>
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Segments</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+          Stage 02 · Group your public
+        </p>
         <h2 className="mt-1 font-serif text-2xl text-ink-950">Build a population, in plain English</h2>
-        <p className="mt-1 text-sm text-ink-500">
-          Describe who you want to hear from. We&rsquo;ll generate a divergent set of personas grounded in {code}.
+        <p className="mt-1 max-w-2xl text-sm text-ink-500">
+          A segment is a coherent audience — the kind of group a Cabinet can actually act on. Describe who
+          you want to hear from and we&rsquo;ll draft a divergent set of personas grounded in {code}.
         </p>
       </header>
 
-      <div className="border border-line-200 bg-paper-0 p-4">
+      {segments.length === 0 && !gen.isPending && !lastCreated && (
+        <div className="grid place-items-center border border-dashed border-line-200 bg-paper-0 p-8 text-center">
+          <div className="max-w-md">
+            <span className="mx-auto grid h-12 w-12 place-items-center border border-line-200 text-ink-950">
+              <Users size={20} />
+            </span>
+            <h3 className="mt-3 font-serif text-xl text-ink-950">Draft your first segment</h3>
+            <p className="mt-1 text-sm text-ink-500">
+              Start with a plain-English description below — e.g. &ldquo;small-business owners in tourism, urban
+              and rural, mixed income, aged 30–60.&rdquo;
+            </p>
+          </div>
+        </div>
+      )}
+
+      <section className="border border-line-200 bg-paper-0 p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="grid h-7 w-7 place-items-center rounded-full border border-ink-950 bg-paper-0 font-mono text-[11px] text-ink-950">
+            01
+          </span>
+          <h3 className="font-serif text-lg text-ink-950">Describe the audience</h3>
+        </div>
+        <p className="mb-3 text-[12px] leading-snug text-ink-500">
+          The prompt shapes who joins the room. <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-700">Size</span>{" "}
+          controls how divergent the set is — higher size = wider spread of views.
+        </p>
         <label className="block">
           <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Segment prompt</span>
           <textarea
@@ -63,7 +93,7 @@ function SegmentsPage() {
             className="mt-1 w-full border border-line-200 bg-paper-0 p-2 text-sm focus:border-ink-950 focus:outline-none"
           />
         </label>
-        <div className="mt-2 flex items-center gap-3">
+        <div className="mt-2 flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-1 text-[11px] text-ink-700">
             Size:
             <input
@@ -91,7 +121,26 @@ function SegmentsPage() {
           </button>
         </div>
         {gen.isError && <p className="mt-2 text-[11px] text-rose-600">{(gen.error as Error).message}</p>}
-      </div>
+      </section>
+
+      {lastCreated && (
+        <div className="flex flex-col gap-2 border border-emerald-600 bg-emerald-50/60 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[13px] text-ink-950">
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-emerald-700">
+              Segment ready
+            </span>{" "}
+            · &ldquo;{lastCreated.label}&rdquo; is in your library.
+          </p>
+          <Link
+            to="/admin/countries/$code/personas/studies"
+            params={{ code }}
+            search={{ segmentId: lastCreated.id }}
+            className="inline-flex shrink-0 items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700"
+          >
+            Design a study with this segment <ArrowRight size={12} />
+          </Link>
+        </div>
+      )}
 
       <div>
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">

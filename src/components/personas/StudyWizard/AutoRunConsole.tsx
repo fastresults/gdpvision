@@ -13,7 +13,7 @@ import {
   type AutoRunPhase,
   type PhaseLogEntry,
 } from "@/lib/personas/autorun.functions";
-import { clearAutoRun, publishAutoRun } from "@/lib/autorun/beacon";
+import { clearAutoRun, publishAutoRun, registerAutoRunResume, unregisterAutoRunResume } from "@/lib/autorun/beacon";
 
 type PhaseState = "pending" | "running" | "done" | "failed" | "skipped";
 

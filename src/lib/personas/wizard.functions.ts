@@ -572,9 +572,14 @@ export const enrichOutcome = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: draft } = await context.supabase
       .from("persona_study_drafts")
-      .select("brief_scope,brief_raw")
+      .select("brief_scope,brief_raw,outcome_blueprint")
       .eq("id", data.draftId)
       .maybeSingle();
+    // Idempotency: skip when we already have an AI-enriched blueprint.
+    const existingBp = draft?.outcome_blueprint as DeliverableBlueprint | null;
+    if (existingBp?.deliverables?.length && existingBp.ai_status && existingBp.ai_status !== "scaffold_only") {
+      return { blueprint: existingBp, alreadyDone: true as const };
+    }
     const picks = DELIVERABLE_LIBRARY.filter((d) => data.selectedCodes.includes(d.code));
     if (picks.length === 0) throw new Error("Select at least one deliverable.");
 

@@ -1,53 +1,30 @@
+## The problem
 
-# Stage 02 · Full auto-run (AI-first, zero-click)
+Stage 02 today only fires Auto-run silently on first mount when: personas exist, segments = 0, and the `stage02:autorun-consumed` localStorage flag is unset. Once any of those change (as on Grenada now — 5 segments, flag set), there is **no button anywhere** to start it. The header says "Auto-run casts them" but the only action visible is `PROPOSE`, which drafts proposals without casting or advancing. That is the unintuitive gap you're seeing.
 
-## Problem observed
-Stage 02 today is only *half* auto-run: the AI proposes segments on entry, but the user must still click "Accept & cast" or "Accept all", then manually navigate to Stage 03. That breaks the auto-run promise the rest of the studio makes.
+## What to change (UI-only)
 
-## Goal
-When a user lands on Stage 02 with personas cast and no segments yet, the studio should:
-1. compose segments from brief + cast (already happening),
-2. auto-cast them in sequence,
-3. mark the stage complete and gently hand off to Stage 03 — all without a click.
+1. **Add a primary "Start Auto-run" button** in `countries.$code.personas.segments.tsx`, placed in the page header (right-aligned, next to the H2) so it's the first thing the eye lands on. It calls the existing `runAuto()` and clears the consumed flag. Label shifts with state:
+   - idle / consumed → **`▶ Start Auto-run`** (primary, filled ink-950)
+   - active (proposing/casting/advancing) → **`⏸ Cancel Auto-run`**
+   - paused / error → **`▶ Resume Auto-run`**
+   - complete → **`↻ Run again`** (ghost)
 
-The manual composer and "Advanced" disclosure stay, but demoted. Users can still stop, dismiss, or regenerate at any time.
+2. **Promote the same control into the AI Proposals panel header**, replacing today's ambiguous `PROPOSE` button. `PROPOSE` becomes a secondary "Draft only (no cast)" action under a small overflow, so the primary path is unmistakably Auto-run.
 
-## UX contract
+3. **Persistent status chip in `StudioStepper`** — a small right-aligned pill on the Group step showing `AUTO · idle | running · casting 2/3 | paused | done`, clickable to jump to the banner. This makes Auto-run legible across Cast / Group / Rehearse, addressing the same confusion if it recurs on other stages.
 
-- **Auto-run banner** at top of Stage 02:
-  `Auto · drafting segments → casting → handing off to Rehearse`
-  Shows live phase: *Proposing… → Casting 2 of 3 · "Coastal tourism operators" → Ready · advancing to Rehearse in 3s*.
-- **Cancel Auto-run** button in the banner — pauses the loop, keeps whatever was already cast, and reveals the existing "Accept / Dismiss" per-proposal buttons for manual control.
-- **Auto-advance to Stage 03** once all accepted segments finish casting AND at least one segment exists. Uses a 3-second countdown the user can cancel (`Stay here`).
-- Re-entering Stage 02 with segments already present does *not* re-fire auto-run (idempotent). A `Regenerate` button remains for explicit re-runs.
-- Manual composer stays behind the existing `<details>` disclosure. Nothing removed.
+4. **First-run coach line** under the H2 when segments already exist and the consumed flag is set: *"Auto-run already handed off once. Press Start Auto-run to draft a fresh set and cast them."* Removes the "why is nothing happening?" moment.
 
-## Implementation
+5. **Empty-state copy fix** in the proposals panel: replace *"No proposals pending — Regenerate to have the AI draft a new set."* with *"Press Start Auto-run above to draft and cast segments, or Draft only to preview proposals without casting."*
 
-### `src/routes/_authenticated/admin/countries.$code.personas.segments.tsx`
-- Add an auto-run state machine (client-only, in the page component):
-  `idle → proposing → casting(index) → done → advancing → complete` plus `paused` and `error`.
-- Trigger transitions:
-  - mount + personas>0 + segments=0 + proposals=0 → `proposing` (calls existing `composeSegments`).
-  - `composeSegments` success → auto-start `casting(0)`; sequentially `await gen.mutateAsync(...)` per proposal (reuse existing `acceptProposal` logic, refactored into a shared `castOne(p)` helper).
-  - all cast → `advancing` (3s countdown) → `navigate({ to: "/admin/countries/$code/personas/studies", params: { code } })`.
-- `Cancel Auto-run` sets state to `paused`; existing per-item buttons remain the fallback.
-- `Regenerate` and manual accept both cancel the auto-run loop so user actions win.
-- Persist a per-draft "auto-run consumed" flag in `localStorage` keyed by `code` so refreshing the page after completion does not re-trigger. (No schema change; this is a session convenience only.)
+No changes to `compose-segments.functions.ts`, `runAuto` logic, casting, or the state machine — only surfacing the existing capability.
 
-### `src/components/personas/StudioStepper.tsx`
-- Add an optional `hint` next to the active stage: when Stage 02's auto-run is running, show `Auto-running` chip; when complete, show `Advancing → Rehearse`. Small addition, no structural change.
+## Files touched
 
-### Error handling
-- If `composeSegments` returns `{ ok: false }` or throws, state → `error`; show existing error UI and *do not* auto-retry. User can hit `Regenerate` or `Cancel Auto-run` to compose manually.
-- If any single `gen.mutateAsync` throws, state → `paused` with an inline notice `"Casting paused on 'X' — resume or dismiss below"`. Remaining proposals stay visible for manual accept.
+- `src/routes/_authenticated/admin/countries.$code.personas.segments.tsx` — header CTA, panel header rewire, copy.
+- `src/components/personas/StudioStepper.tsx` — optional `autoStatus` prop + pill rendering; wired from the segments route (and later Stage 01/03 in the same shape).
 
-## Non-goals
-- No changes to server functions (`composeSegments`, `generateSegment`) — behavior is purely on the Stage 02 route.
-- No change to the auto-run wizard (`autorun.functions.ts`) — that pipeline (brief→outcome→cast→commit→synthesis) already covers segments as part of the `cast` phase's `cast_draft`. This plan is specifically for the *manual studio journey* (Cast/Group/Rehearse pages) which the user is currently on.
-- No new tables, columns, or RLS changes.
+## Out of scope
 
-## Acceptance
-- Land on `/admin/countries/{code}/personas/segments` with personas cast and no segments → within ~30–60s the page shows N segments cast and auto-navigates to `/personas/studies` after a 3s countdown, no clicks required.
-- Clicking `Cancel Auto-run` at any point leaves the studio in a clean manual state with whatever was already cast.
-- Refreshing the segments page after completion does not re-fire auto-run.
+Stage 01 and Stage 03 Auto-run controls follow the same pattern but are not in this plan — call them out in a follow-up if you want them harmonized in the same pass.

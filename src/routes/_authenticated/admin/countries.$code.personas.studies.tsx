@@ -1016,15 +1016,15 @@ function AutoRunBanner({ state, onDismiss }: { state: AutoRunPhase; onDismiss: (
         <div className="flex items-center gap-2">
           <Loader2 size={13} className="animate-spin text-ink-950" />
           <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950">
-            Drafting {state.index} of {state.total} · {state.segmentLabel}
+            {PHASE_LABEL[state.step]} {state.index} of {state.total} · {state.segmentLabel}
           </p>
         </div>
         <div className="mt-2 h-1 w-full bg-line-200">
           <div className="h-1 bg-ink-950 transition-all" style={{ width: `${pct}%` }} />
         </div>
         <p className="mt-2 text-[11px] text-ink-500">
-          AI composes a method and question per segment, then hands you a review queue. Cancel any
-          time — nothing sends without approval.
+          AI composes, drafts, questions and runs each study through to synthesis. You&rsquo;ll land
+          on completed work — cancel any time.
         </p>
       </div>
     );
@@ -1033,7 +1033,7 @@ function AutoRunBanner({ state, onDismiss }: { state: AutoRunPhase; onDismiss: (
     return (
       <div className="flex items-start justify-between gap-3 border-l-2 border-amber-500 bg-amber-50/50 p-3">
         <p className="text-[12px] text-ink-950">
-          Auto-run cancelled — {state.drafted} draft{state.drafted === 1 ? "" : "s"} kept.
+          Auto-run cancelled — {state.completed} completed, {state.drafted} drafted.
         </p>
         <button type="button" onClick={onDismiss} className="text-ink-500 hover:text-ink-950">
           <X size={13} />
@@ -1041,16 +1041,16 @@ function AutoRunBanner({ state, onDismiss }: { state: AutoRunPhase; onDismiss: (
       </div>
     );
   }
-  // complete
   return (
     <div className="flex items-start justify-between gap-3 border-l-2 border-emerald-500 bg-emerald-50/40 p-3">
       <div className="min-w-0">
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-emerald-700">
-          Auto-run complete · {state.drafted} drafted
-          {state.failed.length > 0 ? ` · ${state.failed.length} failed` : ""}
+          Auto-run complete · {state.completed} synthesized
+          {state.failed.length > 0 ? ` · ${state.failed.length} need review` : ""}
         </p>
         <p className="mt-1 text-[12px] text-ink-700">
-          Review each draft below — approve to run synthesis, or edit the question first.
+          Every study was drafted, questioned, and run end-to-end. Open a study to read its
+          synthesis.
         </p>
         {state.failed.length > 0 && (
           <ul className="mt-2 space-y-0.5 text-[11px] text-rose-600">

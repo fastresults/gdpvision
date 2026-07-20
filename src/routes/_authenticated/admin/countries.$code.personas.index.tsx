@@ -30,6 +30,7 @@ function PersonasIndex() {
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [wizardOpen, setWizardOpen] = useState(false);
   const [resumeDraftId, setResumeDraftId] = useState<string | undefined>(undefined);
+  const [autorun, setAutorun] = useState(false);
 
   const gen = useMutation({
     mutationFn: () => generatePersona({ data: { countryCode: code, brief: brief.trim(), visibility } }),
@@ -63,23 +64,28 @@ function PersonasIndex() {
       </header>
 
       <StudyWizardModal
-        key={resumeDraftId ?? "new"}
+        key={`${resumeDraftId ?? "new"}-${autorun ? "auto" : "manual"}`}
         open={wizardOpen}
         onClose={() => {
           setWizardOpen(false);
           setResumeDraftId(undefined);
+          setAutorun(false);
           qc.invalidateQueries({ queryKey: ["personas", code] });
           qc.invalidateQueries({ queryKey: ["study-drafts", code] });
         }}
         countryCode={code}
         draftId={resumeDraftId}
+        initialAutorun={autorun}
       />
 
       <SessionsHub
         countryCode={code}
-        onResume={(id) => { setResumeDraftId(id); setWizardOpen(true); }}
-        onStartNew={() => { setResumeDraftId(undefined); setWizardOpen(true); }}
+        onResume={(id) => { setAutorun(false); setResumeDraftId(id); setWizardOpen(true); }}
+        onStartNew={() => { setAutorun(false); setResumeDraftId(undefined); setWizardOpen(true); }}
+        onAutoRun={(id) => { setResumeDraftId(id); setAutorun(true); setWizardOpen(true); }}
       />
+
+
 
 
       <div className="border border-line-200 bg-paper-0 p-4">

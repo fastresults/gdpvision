@@ -1,8 +1,8 @@
-// Chamber 07 · Research Studio Wizard — modal shell with 5 steps.
+// Chamber 07 · Research Studio Wizard — modal shell with 5 steps + one-click Auto-run.
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { X, ArrowRight, Sparkles, Check, Loader2, FileText, BookOpen, Users, ClipboardList, Rocket } from "lucide-react";
+import { X, ArrowRight, Sparkles, Check, Loader2, FileText, BookOpen, Users, ClipboardList, Rocket, Wand2 } from "lucide-react";
 
 import {
   createDraft, getDraft, saveDraft, enrichBrief, enrichOutcome, retryOutcomeAi,
@@ -10,6 +10,7 @@ import {
 } from "@/lib/personas/wizard.functions";
 import { MultimodalInput, type WizardUpload } from "./MultimodalInput";
 import { PrettyJson } from "@/components/data/PrettyJson";
+import { AutoRunConsole } from "./AutoRunConsole";
 
 type Step = "brief" | "outcome" | "cast" | "preview" | "launch";
 const STEPS: { id: Step; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
@@ -25,11 +26,13 @@ type Props = {
   onClose: () => void;
   countryCode: string;
   draftId?: string;
+  initialAutorun?: boolean;
 };
 
-export function StudyWizardModal({ open, onClose, countryCode, draftId: initialDraftId }: Props) {
+export function StudyWizardModal({ open, onClose, countryCode, draftId: initialDraftId, initialAutorun }: Props) {
   const [draftId, setDraftId] = useState<string | undefined>(initialDraftId);
   const [step, setStep] = useState<Step>("brief");
+  const [autorun, setAutorun] = useState<boolean>(!!initialAutorun);
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -50,8 +53,8 @@ export function StudyWizardModal({ open, onClose, countryCode, draftId: initialD
   });
 
   useEffect(() => {
-    if (draftQ.data?.step) setStep(draftQ.data.step as Step);
-  }, [draftQ.data?.step]);
+    if (!autorun && draftQ.data?.step) setStep(draftQ.data.step as Step);
+  }, [draftQ.data?.step, autorun]);
 
   const refreshDraft = () => qc.invalidateQueries({ queryKey: ["study-draft", draftId] });
 
@@ -133,9 +136,19 @@ export function StudyWizardModal({ open, onClose, countryCode, draftId: initialD
               <div className="flex h-full items-center justify-center text-sm text-ink-500">
                 <Loader2 size={14} className="mr-2 animate-spin" /> Preparing wizard…
               </div>
+            ) : autorun ? (
+              <AutoRunConsole
+                draftId={draftId}
+                countryCode={countryCode}
+                onDone={(studyId) => {
+                  onClose();
+                  navigate({ to: "/admin/countries/$code/personas/studies/$id", params: { code: countryCode, id: studyId } });
+                }}
+                onCancel={() => { setAutorun(false); refreshDraft(); }}
+              />
             ) : (
               <>
-                {step === "brief"   && <StepBrief   draftId={draftId} countryCode={countryCode} draft={draftQ.data!} onNext={() => { setStep("outcome"); refreshDraft(); }} onSaved={refreshDraft} />}
+                {step === "brief"   && <StepBrief   draftId={draftId} countryCode={countryCode} draft={draftQ.data!} onNext={() => { setStep("outcome"); refreshDraft(); }} onSaved={refreshDraft} onAutoRun={() => setAutorun(true)} />}
                 {step === "outcome" && <StepOutcome draftId={draftId} countryCode={countryCode} draft={draftQ.data!} onNext={() => { setStep("cast"); refreshDraft(); }} />}
                 {step === "cast"    && <StepCast    draftId={draftId} countryCode={countryCode} draft={draftQ.data!} onNext={() => { setStep("preview"); refreshDraft(); }} />}
                 {step === "preview" && <StepPreview draft={draftQ.data!} onNext={() => setStep("launch")} onBack={() => setStep("cast")} />}
@@ -161,8 +174,8 @@ type DraftShape = {
   cast_draft: unknown; uploads: unknown;
 };
 
-function StepBrief({ draftId, countryCode, draft, onNext, onSaved }: {
-  draftId: string; countryCode: string; draft: DraftShape; onNext: () => void; onSaved: () => void;
+function StepBrief({ draftId, countryCode, draft, onNext, onSaved, onAutoRun }: {
+  draftId: string; countryCode: string; draft: DraftShape; onNext: () => void; onSaved: () => void; onAutoRun: () => void;
 }) {
   const [text, setText] = useState(draft.brief_raw ?? "");
   const [uploads, setUploads] = useState<WizardUpload[]>(Array.isArray(draft.uploads) ? (draft.uploads as WizardUpload[]) : []);
@@ -210,7 +223,20 @@ function StepBrief({ draftId, countryCode, draft, onNext, onSaved }: {
             rows={10}
           />
         </div>
-        <div className="mt-4 flex items-center gap-3">
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={async () => {
+              // Persist any pending brief edits before auto-run kicks off.
+              try { await saveDraft({ data: { id: draftId, patch: { brief_raw: text, uploads } } }); } catch { /* ignore */ }
+              onAutoRun();
+            }}
+            disabled={!text.trim() && uploads.length === 0}
+            className="inline-flex items-center gap-1.5 border border-emerald-700 bg-emerald-700 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-emerald-800 disabled:opacity-40"
+            title="Enrich brief → blueprint deliverables → cast personas → commit → synthesize, in one run."
+          >
+            <Wand2 size={12} /> Auto-run full study
+          </button>
           <button
             type="button"
             onClick={() => enrich.mutate()}

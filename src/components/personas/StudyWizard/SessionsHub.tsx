@@ -1,7 +1,8 @@
 // Chamber 07 · Research Studio · Sessions Hub — list / resume / rename / duplicate / delete drafts.
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, FileText, MoreVertical, Pencil, Play, Plus, Trash2, Users } from "lucide-react";
+import { Copy, ExternalLink, FileText, MoreVertical, Pencil, Play, Plus, Trash2, Users, Wand2 } from "lucide-react";
 
 import {
   deleteDraft, duplicateDraft, listDrafts, renameDraft,
@@ -11,6 +12,7 @@ type Props = {
   countryCode: string;
   onResume: (draftId: string) => void;
   onStartNew: () => void;
+  onAutoRun: (draftId: string) => void;
 };
 
 const STEP_LABEL: Record<string, string> = {
@@ -19,6 +21,16 @@ const STEP_LABEL: Record<string, string> = {
   cast: "03 · Cast",
   preview: "04 · Preview",
   launch: "05 · Launch",
+  done: "✓ Committed",
+};
+
+const STEP_TONE: Record<string, string> = {
+  brief: "border-line-200 text-ink-700",
+  outcome: "border-amber-400 bg-amber-50 text-amber-800",
+  cast: "border-amber-400 bg-amber-50 text-amber-800",
+  preview: "border-sky-400 bg-sky-50 text-sky-800",
+  launch: "border-indigo-400 bg-indigo-50 text-indigo-800",
+  done: "border-emerald-600 bg-emerald-50 text-emerald-800",
 };
 
 function relative(iso: string): string {
@@ -30,7 +42,8 @@ function relative(iso: string): string {
   return `${Math.round(s / 86400)}d ago`;
 }
 
-export function SessionsHub({ countryCode, onResume, onStartNew }: Props) {
+export function SessionsHub({ countryCode, onResume, onStartNew, onAutoRun }: Props) {
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["study-drafts", countryCode],
@@ -102,15 +115,20 @@ export function SessionsHub({ countryCode, onResume, onStartNew }: Props) {
           {drafts.map((d) => {
             const title = d.title?.trim() || "Untitled brief";
             const isRenaming = renaming?.id === d.id;
+            const committed = d.step === "done" && !!d.study_id;
+            const autoStatus = d.autorun_status as { phase?: string; state?: string; message?: string | null } | null;
+            const autoRunning = !!autoStatus && autoStatus.state === "running";
             return (
               <li key={d.id} className="group relative flex items-start gap-3 px-4 py-3 hover:bg-paper-50">
                 <button
                   type="button"
-                  onClick={() => onResume(d.id)}
+                  onClick={() => committed && d.study_id
+                    ? navigate({ to: "/admin/countries/$code/personas/studies/$id", params: { code: countryCode, id: d.study_id } })
+                    : onResume(d.id)}
                   className="grid h-9 w-9 shrink-0 place-items-center border border-line-200 text-ink-950 hover:border-ink-950"
-                  aria-label={`Resume ${title}`}
+                  aria-label={committed ? `Open ${title}` : `Resume ${title}`}
                 >
-                  <Play size={14} />
+                  {committed ? <ExternalLink size={14} /> : <Play size={14} />}
                 </button>
                 <div className="min-w-0 flex-1">
                   {isRenaming ? (
@@ -139,9 +157,23 @@ export function SessionsHub({ countryCode, onResume, onStartNew }: Props) {
                     </button>
                   )}
                   <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
-                    <span className="border border-line-200 bg-paper-0 px-1.5 py-0.5 text-ink-700">
+                    <span className={`border px-1.5 py-0.5 ${STEP_TONE[d.step] ?? "border-line-200 text-ink-700"}`}>
                       {STEP_LABEL[d.step] ?? d.step}
                     </span>
+                    {autoStatus?.phase && (
+                      <span
+                        className={`border px-1.5 py-0.5 ${
+                          autoStatus.state === "failed"
+                            ? "border-rose-500 bg-rose-50 text-rose-700"
+                            : autoStatus.state === "running"
+                              ? "border-ink-950 bg-ink-950 text-paper-0"
+                              : "border-emerald-600 bg-emerald-50 text-emerald-700"
+                        }`}
+                        title={autoStatus.message ?? undefined}
+                      >
+                        Auto · {autoStatus.phase} · {autoStatus.state}
+                      </span>
+                    )}
                     <span>{relative(d.updated_at)}</span>
                     {d.deliverable_count > 0 && <span>{d.deliverable_count} deliverables</span>}
                     {d.persona_count > 0 && (
@@ -157,6 +189,17 @@ export function SessionsHub({ countryCode, onResume, onStartNew }: Props) {
                     </p>
                   )}
                 </div>
+                {!committed && (
+                  <button
+                    type="button"
+                    onClick={() => onAutoRun(d.id)}
+                    disabled={autoRunning}
+                    className="hidden shrink-0 items-center gap-1 border border-emerald-700 bg-emerald-700 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-paper-0 hover:bg-emerald-800 disabled:opacity-40 md:inline-flex"
+                    title="Run brief → blueprint → cast → commit → synthesis end-to-end"
+                  >
+                    <Wand2 size={11} /> Auto-run
+                  </button>
+                )}
                 <div className="relative shrink-0">
                   <button
                     type="button"

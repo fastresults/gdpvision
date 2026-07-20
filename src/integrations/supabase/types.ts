@@ -4151,9 +4151,12 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          locked_at: string | null
+          locked_by: string | null
           outcome_blueprint: Json | null
           outcome_raw: string | null
           owner_country_code: string | null
+          phase_log: Json
           step: string
           study_id: string | null
           title: string | null
@@ -4170,9 +4173,12 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          locked_at?: string | null
+          locked_by?: string | null
           outcome_blueprint?: Json | null
           outcome_raw?: string | null
           owner_country_code?: string | null
+          phase_log?: Json
           step?: string
           study_id?: string | null
           title?: string | null
@@ -4189,9 +4195,12 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          locked_at?: string | null
+          locked_by?: string | null
           outcome_blueprint?: Json | null
           outcome_raw?: string | null
           owner_country_code?: string | null
+          phase_log?: Json
           step?: string
           study_id?: string | null
           title?: string | null

@@ -283,7 +283,10 @@ export const enrichOutcome = createServerFn({ method: "POST" })
 }`,
     );
     const parsed = safeParse<DeliverableBlueprint>(raw);
-    if (!parsed?.deliverables?.length) throw new Error("AI returned no blueprint — try again.");
+    if (!parsed?.deliverables?.length) {
+      throw new Error(`AI returned no blueprint — try again. (raw: ${raw.slice(0, 200)})`);
+    }
+
     await context.supabase
       .from("persona_study_drafts")
       .update({

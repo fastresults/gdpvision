@@ -4143,6 +4143,7 @@ export type Database = {
       }
       persona_study_drafts: {
         Row: {
+          autorun_status: Json | null
           brief_raw: string | null
           brief_scope: Json | null
           cast_draft: Json | null
@@ -4154,12 +4155,14 @@ export type Database = {
           outcome_raw: string | null
           owner_country_code: string | null
           step: string
+          study_id: string | null
           title: string | null
           updated_at: string
           uploads: Json
           visibility: string
         }
         Insert: {
+          autorun_status?: Json | null
           brief_raw?: string | null
           brief_scope?: Json | null
           cast_draft?: Json | null
@@ -4171,12 +4174,14 @@ export type Database = {
           outcome_raw?: string | null
           owner_country_code?: string | null
           step?: string
+          study_id?: string | null
           title?: string | null
           updated_at?: string
           uploads?: Json
           visibility?: string
         }
         Update: {
+          autorun_status?: Json | null
           brief_raw?: string | null
           brief_scope?: Json | null
           cast_draft?: Json | null
@@ -4188,6 +4193,7 @@ export type Database = {
           outcome_raw?: string | null
           owner_country_code?: string | null
           step?: string
+          study_id?: string | null
           title?: string | null
           updated_at?: string
           uploads?: Json

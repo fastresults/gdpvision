@@ -57,6 +57,14 @@ function studiesQuery(code: string) {
     queryFn: () => listStudies({ data: { countryCode: code } }),
   });
 }
+function studiesDigestQuery(code: string) {
+  return queryOptions({
+    queryKey: ["studies-digest", code],
+    queryFn: () => listStudiesWithReports({ data: { countryCode: code } }),
+    // Refresh briskly while auto-run is completing work.
+    refetchInterval: 15_000,
+  });
+}
 function segmentsQuery(code: string) {
   return queryOptions({
     queryKey: ["persona-segments", code],

@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
-import { Sparkles, Trash2, User } from "lucide-react";
+import { Sparkles, Trash2, User, Wand2 } from "lucide-react";
 import { useState } from "react";
 
 import { CitedText } from "@/components/citations/CitedText";
 import { deletePersona, generatePersona, listPersonas } from "@/lib/personas/generate.functions";
+import { StudyWizardModal } from "@/components/personas/StudyWizard/WizardModal";
 
 function personasQuery(code: string) {
   return queryOptions({
@@ -26,6 +27,7 @@ function PersonasIndex() {
   const { data: personas } = useSuspenseQuery(personasQuery(code));
   const [brief, setBrief] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private">("public");
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const gen = useMutation({
     mutationFn: () => generatePersona({ data: { countryCode: code, brief: brief.trim(), visibility } }),
@@ -41,13 +43,24 @@ function PersonasIndex() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Persona Studio</p>
-        <h2 className="mt-1 font-serif text-2xl text-ink-950">Generate a synthetic persona</h2>
-        <p className="mt-1 text-sm text-ink-500">
-          Grounded in {code}&rsquo;s sectors, KPIs, ministries, and recent signals.
-        </p>
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Persona Studio</p>
+          <h2 className="mt-1 font-serif text-2xl text-ink-950">Generate a synthetic persona</h2>
+          <p className="mt-1 text-sm text-ink-500">
+            Grounded in {code}&rsquo;s sectors, KPIs, ministries, and recent signals.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setWizardOpen(true)}
+          className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700"
+        >
+          <Wand2 size={12} /> Launch research studio
+        </button>
       </header>
+
+      <StudyWizardModal open={wizardOpen} onClose={() => { setWizardOpen(false); qc.invalidateQueries({ queryKey: ["personas", code] }); }} countryCode={code} />
 
       <div className="border border-line-200 bg-paper-0 p-4">
         <label className="block">

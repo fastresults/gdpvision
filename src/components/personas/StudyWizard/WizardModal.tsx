@@ -306,18 +306,55 @@ function StepOutcome({ draftId, countryCode, draft, onNext }: {
     (draft.outcome_blueprint as { deliverables?: { code: string }[] } | null)?.deliverables?.map((d) => d.code) ?? [],
   );
   const [uploads, setUploads] = useState<WizardUpload[]>([]);
+  const [phase, setPhase] = useState<"idle" | "scaffolding" | "enriching" | "finalizing">("idle");
+  const qc = useQueryClient();
   const lib = useQuery({ queryKey: ["deliverables"], queryFn: () => listDeliverables() });
   const blueprint = draft.outcome_blueprint as {
+    tone?: string;
     deliverables?: { code: string; label: string; sections: string[]; evidence_density: string; length_hint: string }[];
+    ai_status?: "enriched" | "repaired" | "fallback" | "scaffold_only";
+    ai_model?: string;
+    ai_run_id?: string;
+    ai_raw_excerpt?: string;
+    ai_error?: string;
   } | null;
+
+  const runPhases = () => {
+    setPhase("scaffolding");
+    const t1 = setTimeout(() => setPhase("enriching"), 400);
+    const t2 = setTimeout(() => setPhase("finalizing"), 6000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  };
 
   const enrich = useMutation({
     mutationFn: async () => {
       if (selected.length === 0) throw new Error("Pick at least one deliverable.");
       const combined = [text.trim(), ...uploads.map((u) => `\n[UPLOAD ${u.name}]\n${u.excerpt ?? ""}`)].join("").trim();
-      return enrichOutcome({ data: { draftId, countryCode, raw: combined || undefined, selectedCodes: selected, tone } });
+      const cleanup = runPhases();
+      try {
+        return await enrichOutcome({ data: { draftId, countryCode, raw: combined || undefined, selectedCodes: selected, tone } });
+      } finally {
+        cleanup();
+        setPhase("idle");
+      }
     },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["study-draft", draftId] }),
   });
+
+  const retry = useMutation({
+    mutationFn: async () => {
+      const cleanup = runPhases();
+      try { return await retryOutcomeAi({ data: { draftId } }); }
+      finally { cleanup(); setPhase("idle"); }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["study-draft", draftId] }),
+  });
+
+  const busy = enrich.isPending || retry.isPending;
+  const phaseLabel =
+    phase === "scaffolding" ? "Building scaffold…" :
+    phase === "enriching" ? "Enriching with AI…" :
+    phase === "finalizing" ? "Finalizing…" : "";
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -365,31 +402,53 @@ function StepOutcome({ draftId, countryCode, draft, onNext }: {
           </div>
         </div>
 
-        <div className="mt-4 flex items-center gap-3">
-          <button type="button" onClick={() => enrich.mutate()} disabled={enrich.isPending || selected.length === 0}
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button type="button" onClick={() => enrich.mutate()} disabled={busy || selected.length === 0}
             className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-50">
-            {enrich.isPending ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-            {enrich.isPending ? "Building blueprint…" : blueprint ? "Rebuild blueprint" : "Build deliverable blueprint"}
+            {busy ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+            {busy ? (phaseLabel || "Working…") : blueprint ? "Rebuild blueprint" : "Build deliverable blueprint"}
           </button>
-          {blueprint && (
+          {blueprint?.deliverables?.length ? (
             <button type="button" onClick={onNext}
               className="inline-flex items-center gap-1.5 border border-line-200 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950 hover:border-ink-950">
               Continue <ArrowRight size={12} />
             </button>
+          ) : null}
+          {enrich.isError && (
+            <span className="text-[11px] text-rose-600">{(enrich.error as Error).message}</span>
           )}
-          {enrich.isError && <span className="text-[11px] text-rose-600">{(enrich.error as Error).message}</span>}
         </div>
       </div>
 
       <div className="border-l border-line-200 pl-6">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">AI · Deliverable blueprint</p>
-        {!blueprint ? (
+        <div className="flex items-center justify-between gap-2">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">AI · Deliverable blueprint</p>
+          {blueprint?.ai_status && <StatusChip status={blueprint.ai_status} />}
+        </div>
+        {!blueprint?.deliverables?.length ? (
           <div className="mt-2 border border-dashed border-line-200 p-6 text-[12px] text-ink-500">
             Pick deliverables, then build to see sections, evidence density, and length hints.
           </div>
         ) : (
           <div className="mt-3 space-y-3">
-            {blueprint.deliverables?.map((d) => (
+            {blueprint.ai_status === "scaffold_only" && (
+              <div className="border border-amber-400 bg-amber-50 p-3 text-[12px] text-ink-800">
+                <p className="font-medium text-ink-950">AI enrichment didn't land — showing structural scaffold.</p>
+                <p className="mt-1 text-ink-700">
+                  Sections below come from the deterministic McKinsey template library. Retry to layer AI-tuned sections, evidence density, and length hints for your scope.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => retry.mutate()}
+                  disabled={busy}
+                  className="mt-2 inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-paper-0 hover:bg-ink-700 disabled:opacity-50"
+                >
+                  {retry.isPending ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                  Retry AI enrichment
+                </button>
+              </div>
+            )}
+            {blueprint.deliverables.map((d) => (
               <div key={d.code} className="border border-line-200 bg-paper-50 p-3">
                 <div className="flex items-baseline justify-between">
                   <p className="font-serif text-sm text-ink-950">{d.label}</p>
@@ -402,10 +461,43 @@ function StepOutcome({ draftId, countryCode, draft, onNext }: {
                 </ul>
               </div>
             ))}
+            {(blueprint.ai_error || blueprint.ai_raw_excerpt || blueprint.ai_run_id) && (
+              <details className="border border-line-200 bg-paper-0">
+                <summary className="cursor-pointer px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950">
+                  Debug · AI provenance
+                </summary>
+                <div className="border-t border-line-200 p-3">
+                  <PrettyJson
+                    value={{
+                      status: blueprint.ai_status,
+                      model: blueprint.ai_model,
+                      run_id: blueprint.ai_run_id,
+                      error: blueprint.ai_error,
+                      raw_excerpt: blueprint.ai_raw_excerpt,
+                    }}
+                  />
+                </div>
+              </details>
+            )}
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+function StatusChip({ status }: { status: "enriched" | "repaired" | "fallback" | "scaffold_only" }) {
+  const map = {
+    enriched: { label: "AI enriched", cls: "border-emerald-600 text-emerald-700 bg-emerald-50" },
+    repaired: { label: "AI repaired", cls: "border-sky-600 text-sky-700 bg-sky-50" },
+    fallback: { label: "Fallback model", cls: "border-indigo-600 text-indigo-700 bg-indigo-50" },
+    scaffold_only: { label: "Scaffold only", cls: "border-amber-600 text-amber-700 bg-amber-50" },
+  } as const;
+  const m = map[status];
+  return (
+    <span className={`inline-flex items-center border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.16em] ${m.cls}`}>
+      {m.label}
+    </span>
   );
 }
 

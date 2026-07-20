@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { queryOptions, useSuspenseQuery, useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowRight, Layers, Sparkles, Trash2, Users } from "lucide-react";
 import { useState } from "react";
 

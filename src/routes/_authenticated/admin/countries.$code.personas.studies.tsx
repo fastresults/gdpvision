@@ -26,7 +26,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 
 import { listSegments } from "@/lib/personas/generate.functions";
-import { createStudy, listStudies } from "@/lib/personas/study.functions";
+import { createStudy, listStudies, listStudiesWithReports } from "@/lib/personas/study.functions";
+import { SynthesisDigest } from "@/components/personas/StudyWizard/SynthesisDigest";
 import { composeStudy, type ComposeStudyResult } from "@/lib/personas/compose-study.functions";
 import {
   AUTO_STUDIES_LOCK,
@@ -54,6 +55,14 @@ function studiesQuery(code: string) {
   return queryOptions({
     queryKey: ["studies", code],
     queryFn: () => listStudies({ data: { countryCode: code } }),
+  });
+}
+function studiesDigestQuery(code: string) {
+  return queryOptions({
+    queryKey: ["studies-digest", code],
+    queryFn: () => listStudiesWithReports({ data: { countryCode: code } }),
+    // Refresh briskly while auto-run is completing work.
+    refetchInterval: 15_000,
   });
 }
 function segmentsQuery(code: string) {
@@ -125,6 +134,7 @@ function StudiesPage() {
   const qc = useQueryClient();
   const { data: studies } = useSuspenseQuery(studiesQuery(code));
   const { data: segments } = useSuspenseQuery(segmentsQuery(code));
+  const { data: digest = [] } = useQuery(studiesDigestQuery(code));
 
   const [segmentId, setSegmentId] = useState<string>(search.segmentId ?? "");
   const [kind, setKind] = useState<StudyKind | "">("");
@@ -645,6 +655,9 @@ function StudiesPage() {
           </aside>
         </div>
       )}
+
+      {/* Synthesized work product — always shown when any report exists */}
+      {digest.length > 0 && <SynthesisDigest items={digest} code={code} />}
 
       {/* Grouped library */}
       {studies.length > 0 && (

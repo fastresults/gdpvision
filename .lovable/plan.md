@@ -1,62 +1,76 @@
-## Goal
 
-Make the floating **Auto-run in progress** card self-diagnosing: the user always sees whether the run is actually healthy, and if it stalls the beacon quietly repairs and resumes it — no manual clicks.
+## Problem
 
-Scope is UI + a small client-side watchdog in the beacon layer. No schema changes, no server-function changes.
+After a successful Chamber 07 auto-run, two things are wrong:
 
-## What changes in the UI (the attached card)
+1. **The finished work product is invisible on the surface the user lands on.** Stage 03 renders synthesized studies as tiny 1-line tiles (title · kind · status · date). The actual output — `summary_md`, `themes`, quotes, citations from `study_reports` — is one click away *per study*, and there's no way to see "what did we learn" without opening 11 detail pages. The auto-run beacon says "10 completed" but the page shows nothing that looks completed.
 
-Extend `AutoRunEntry` and the `RunRow` in `src/components/autorun/AutoRunBeacon.tsx` with a **health chip** rendered under the title:
+2. **"Unexpected end of JSON input" on 1/11 studies.** This is not a synthesis bug — the report writer already `try/catch`es and swallows parse failures (`study.functions.ts:308`). The message bubbles from the *outer* `runStudy` server-fn call: when a single long `runStudy` invocation exceeds the worker request budget, the client receives a truncated/empty body and `useServerFn`'s response deserializer throws `Unexpected end of JSON input`. `study-autorun.ts:70-73` re-throws that message verbatim into the beacon.
 
-- `Healthy` — progress moved within the last ~30s. Small ink dot.
-- `Slow` — no progress for 30–90s. Amber dot, subtitle "Still working…".
-- `Stalled` — no progress for 90s+. Amber ring + subtitle "Stalled — auto-resuming…". A resume attempt kicks off automatically.
-- `Recovering` — after a stall, while the auto-fix tick is in flight. Spinner + "Resuming step N".
-- `Broken` — 2 consecutive resume attempts failed. Rose ring + "Couldn't auto-resume" and a **Retry now** button (manual escape hatch).
+Both are shipped in the same plan because they have the same root cause pattern: the pipeline optimizes for "did it run" instead of "can the user see the result".
 
-Also add, next to `Open →`:
+## Plan
 
-- **Resume** button — visible on `stalled`/`broken`. Fires the same resume the watchdog uses.
-- Health is always visible; the existing progress bar and `Open →` link stay.
+### 1. Make finished work product first-class on Stage 03
 
-## What changes underneath
+New component `src/components/personas/StudyWizard/SynthesisDigest.tsx` — a McKinsey-style digest that renders **inline on the studies list**, not just on the detail page.
 
-Small additions in `src/lib/autorun/beacon.ts` — no new files:
+- New server fn `listStudiesWithReports(countryCode)` in `src/lib/personas/study.functions.ts`: joins `studies` + `study_reports` + top themes + a persona count. Returns everything needed to render summaries inline (no per-study fetch).
+- Replace the "Synthesized" `StudyGroup` in `countries.$code.personas.studies.tsx` with a `<SynthesizedDigestList>` that renders per study:
+  - Title + method + persona count + duration
+  - First ~180 words of `summary_md` via `<CitedMarkdown>` (existing component, already handles `[N]` refs)
+  - Top 3 themes as chips with prevalence bars
+  - "Open full brief →" link to detail
+- Add a header **"What we learned"** section above the composer when ≥1 study is synthesized, showing count + a "Read all briefs" CTA that scrolls to the digest.
+- Keep the compact tile view for `Running` and `Drafts` only.
 
-- Extend `AutoRunEntry` with:
-  - `lastProgressAt: number` — updated automatically whenever `progress.current` or `detail` changes on a `publishAutoRun` call.
-  - `health: 'healthy' | 'slow' | 'stalled' | 'recovering' | 'broken'` — derived, stored so the UI reads a single field.
-  - `resumeAttempts: number` and `lastResumeAt: number`.
-  - Optional `resume?: () => Promise<void>` — publishers register a resume callback (see below).
-- New helper `registerAutoRunResume(id, fn)` that stores the resume fn on the entry.
-- Watchdog: `useAutoRuns()` runs a `setInterval(1000)` (guarded so only one interval exists) that recomputes `health` and, when an entry crosses into `stalled` and has a `resume` fn and `resumeAttempts < 2`, invokes it, flips health to `recovering`, and bumps `resumeAttempts`. If the next progress tick lands, health returns to `healthy` and `resumeAttempts` resets. If two attempts pass without progress, health becomes `broken`.
+### 2. Fix the JSON parse crash at the source
 
-## Wiring the two current publishers to the resume path
+Two changes, minimal blast radius:
 
-Both are trivial one-line additions — they already have the loop functions we need:
+**a. Break `runStudy` into per-phase server fns** (`src/lib/personas/study.functions.ts`)
 
-- `src/components/personas/StudyWizard/AutoRunConsole.tsx` — after `publishAutoRun(...)` in the existing effect, call `registerAutoRunResume(id, () => tickLoop())`. `tickLoop` is already idempotent and lock-guarded server-side.
-- `src/routes/_authenticated/admin/countries.$code.personas.studies.tsx` — after publishing its beacon entry, register `() => startAutoRun()` (the existing Stage 03 pipeline entry point, which already runs behind `AUTO_STUDIES_LOCK` and calls `completeIncompleteStudies`, so re-entry is safe).
-- Same one-liner in `src/routes/_authenticated/admin/countries.$code.personas.segments.tsx` (Stage 02) pointing at its `runAuto`.
+Split the current monolith into three idempotent server fns called sequentially from the client, so each fits inside a single worker request window:
+- `runStudyResponses({studyId})` — persona/focus-group generation only
+- `runStudySynthesis({studyId})` — reads persisted responses, writes `study_reports`, sets status
+- Keep existing `runStudy` as a thin wrapper that calls both, for back-compat
 
-If a publisher doesn't register a resume fn, the beacon still shows health but skips auto-resume and shows the manual **Retry now** button instead.
+Update `study-autorun.ts:completeStudyEndToEnd` to call them in sequence and treat each phase as independently retryable.
 
-## Behaviour the user will see on the card in the screenshot
+**b. Harden the AI Gateway response reader** (`src/lib/personas/study.functions.ts:40`)
 
-- Normal case: card shows `Healthy` under the title while progress ticks.
-- The current GRD situation (4 running, 6 drafts idle behind a single lock): as soon as any study hasn't moved for 30s the chip flips to `Slow`, then at 90s to `Stalled — auto-resuming…` and the Stage 03 `startAutoRun` fires again. Because that call is idempotent and `completeIncompleteStudies` sweeps every non-synthesized study, the 6 stuck drafts + the 5h-stale runner get picked up automatically on the next tick.
-- If two auto-resumes in a row produce no progress, the card turns rose with "Couldn't auto-resume" and a **Retry now** button — the user is never left wondering whether something broke.
+Replace `await res.json()` with a text-first read that returns `""` on empty body instead of throwing:
+```ts
+const text = await res.text();
+if (!text) return "";
+const j = JSON.parse(text) as ...;
+```
+This eliminates the "Unexpected end of JSON input" class of failure across every AI call in this file.
 
-## Out of scope
+**c. Auto-retry on transient parse/timeout errors** in `study-autorun.ts`
 
-- No server-side heartbeat or DB timeout column (kept purely client-side per the request — "just add to this UI").
-- No changes to any server functions or migrations.
-- No changes to other chambers' beacons beyond the one-line `registerAutoRunResume` where a natural resume fn already exists.
+In `completeStudyEndToEnd`, when a phase fails with a message matching `Unexpected end of JSON input`, `Failed to fetch`, or `504`, retry that phase once after a 5s backoff before recording failure. Existing "needs review" surfacing in the beacon stays for hard failures.
+
+### 3. Beacon copy fix
+
+When a run finishes with N synthesized + M "need review", change the beacon Open link to deep-link directly to the digest anchor (`/admin/countries/$code/personas/studies#synthesized`) so the user immediately sees the work.
 
 ## Files touched
 
-- `src/lib/autorun/beacon.ts` — extend entry shape, add `registerAutoRunResume`, add watchdog interval.
-- `src/components/autorun/AutoRunBeacon.tsx` — render health chip + Resume button; use new health field.
-- `src/components/personas/StudyWizard/AutoRunConsole.tsx` — register resume.
-- `src/routes/_authenticated/admin/countries.$code.personas.studies.tsx` — register resume.
-- `src/routes/_authenticated/admin/countries.$code.personas.segments.tsx` — register resume.
+- `src/lib/personas/study.functions.ts` — safe response reader, split `runStudy` into `runStudyResponses` + `runStudySynthesis`, add `listStudiesWithReports`
+- `src/lib/personas/study-autorun.ts` — call split phases, retry-once on transient errors
+- `src/components/personas/StudyWizard/SynthesisDigest.tsx` (new) — inline digest card
+- `src/routes/_authenticated/admin/countries.$code.personas.studies.tsx` — render digest inline, "What we learned" header, anchor id
+- `src/components/autorun/AutoRunBeacon.tsx` — no code change; the existing `href` already points at Stage 03, we'll just append `#synthesized` from the publisher in studies.tsx
+
+## Out of scope
+
+- Server-side parallelism for study execution (previously discussed — user chose UI recovery instead)
+- Changing the synthesis prompt / adding more themes
+- Any change to Stages 01/02
+
+## Verification
+
+- Trigger auto-run on a fresh country → land on Stage 03 → the digest shows `summary_md` + themes for each synthesized study without any per-study click.
+- Simulate a worker timeout (throw inside `runStudySynthesis`) → auto-run retries once, then either recovers or reports the one failure while the other 10 remain visible with their briefs.
+- Grep confirms no other `await res.json()` on AI Gateway responses in the personas module.

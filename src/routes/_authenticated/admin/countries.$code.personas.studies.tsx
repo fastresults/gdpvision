@@ -36,7 +36,7 @@ import {
   type StudyAutoPhase,
 } from "@/lib/personas/study-autorun";
 import { StudioStepper } from "@/components/personas/StudioStepper";
-import { clearAutoRun, publishAutoRun } from "@/lib/autorun/beacon";
+import { clearAutoRun, publishAutoRun, registerAutoRunResume } from "@/lib/autorun/beacon";
 
 const PHASE_LABEL: Record<StudyAutoPhase, string> = {
   composing: "composing",
@@ -371,6 +371,7 @@ function StudiesPage() {
         status: "running",
         href,
       });
+      registerAutoRunResume(id, () => startAutoRun());
     } else if (autoState.phase === "complete") {
       if (autoState.completed > 0 || autoState.drafted > 0 || autoState.failed.length > 0) {
         publishAutoRun({
@@ -402,7 +403,7 @@ function StudiesPage() {
     } else {
       clearAutoRun(id);
     }
-  }, [autoState, code]);
+  }, [autoState, code, startAutoRun]);
 
   return (
     <div className="space-y-8">

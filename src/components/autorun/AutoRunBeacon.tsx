@@ -8,9 +8,15 @@
 
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { AlertTriangle, ChevronRight, Loader2, PauseCircle, Sparkles, X } from "lucide-react";
+import { AlertTriangle, ChevronRight, Loader2, PauseCircle, RefreshCw, Sparkles, X } from "lucide-react";
 
-import { useAutoRuns, clearAutoRun, type AutoRunEntry } from "@/lib/autorun/beacon";
+import {
+  useAutoRuns,
+  clearAutoRun,
+  resumeAutoRun,
+  type AutoRunEntry,
+  type AutoRunHealth,
+} from "@/lib/autorun/beacon";
 
 export function AutoRunBeacon() {
   const runs = useAutoRuns();
@@ -143,6 +149,7 @@ function RunRow({ run }: { run: AutoRunEntry }) {
               {run.detail}
             </p>
           )}
+          {run.status === "running" && <HealthChip health={run.health} />}
           {run.message && run.status !== "running" && (
             <p className="mt-0.5 text-[11px] text-rose-600">{run.message}</p>
           )}
@@ -150,7 +157,11 @@ function RunRow({ run }: { run: AutoRunEntry }) {
             <div className="mt-2 h-[3px] w-full overflow-hidden bg-line-200">
               <div
                 className={`h-full transition-[width] duration-500 ${
-                  run.status === "error" ? "bg-rose-500" : "bg-ink-950"
+                  run.status === "error" || run.health === "broken"
+                    ? "bg-rose-500"
+                    : run.health === "stalled" || run.health === "slow"
+                      ? "bg-amber-500"
+                      : "bg-ink-950"
                 }`}
                 style={{ width: `${pct}%` }}
               />
@@ -165,6 +176,16 @@ function RunRow({ run }: { run: AutoRunEntry }) {
                 Open →
               </Link>
             )}
+            {run.status === "running" &&
+              (run.health === "stalled" || run.health === "broken") && (
+                <button
+                  type="button"
+                  onClick={() => void resumeAutoRun(run.id)}
+                  className="inline-flex items-center gap-1 border border-ink-950 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.2em] text-ink-950 hover:bg-ink-950 hover:text-paper-0"
+                >
+                  <RefreshCw size={10} /> {run.health === "broken" ? "Retry now" : "Resume"}
+                </button>
+              )}
             {(run.status === "complete" || run.status === "error" || run.status === "paused") && (
               <button
                 type="button"
@@ -178,5 +199,34 @@ function RunRow({ run }: { run: AutoRunEntry }) {
         </div>
       </div>
     </li>
+  );
+}
+
+function HealthChip({ health }: { health: AutoRunHealth }) {
+  const map: Record<AutoRunHealth, { label: string; dot: string; text: string }> = {
+    healthy: { label: "Healthy", dot: "bg-emerald-500", text: "text-ink-500" },
+    slow: { label: "Still working…", dot: "bg-amber-500", text: "text-amber-700" },
+    stalled: {
+      label: "Stalled — auto-resuming…",
+      dot: "bg-amber-500 animate-pulse",
+      text: "text-amber-700",
+    },
+    recovering: {
+      label: "Resuming…",
+      dot: "bg-ink-950 animate-pulse",
+      text: "text-ink-700",
+    },
+    broken: {
+      label: "Couldn't auto-resume",
+      dot: "bg-rose-500",
+      text: "text-rose-600",
+    },
+  };
+  const cfg = map[health];
+  return (
+    <p className={`mt-1 inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em] ${cfg.text}`}>
+      <span className={`inline-block h-1.5 w-1.5 rounded-full ${cfg.dot}`} aria-hidden="true" />
+      {cfg.label}
+    </p>
   );
 }

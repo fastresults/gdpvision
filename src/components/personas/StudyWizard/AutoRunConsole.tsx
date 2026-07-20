@@ -13,7 +13,7 @@ import {
   type AutoRunPhase,
   type PhaseLogEntry,
 } from "@/lib/personas/autorun.functions";
-import { clearAutoRun, publishAutoRun } from "@/lib/autorun/beacon";
+import { clearAutoRun, publishAutoRun, registerAutoRunResume, unregisterAutoRunResume } from "@/lib/autorun/beacon";
 
 type PhaseState = "pending" | "running" | "done" | "failed" | "skipped";
 
@@ -161,6 +161,10 @@ export function AutoRunConsole({ draftId, countryCode: _countryCode, briefRaw, o
       status: beaconStatus,
       message: status === "failed" ? statusMsg ?? undefined : undefined,
     });
+    registerAutoRunResume(id, () => {
+      stopRef.current = false;
+      return tickLoop();
+    });
     if (status === "done") {
       const t = setTimeout(() => clearAutoRun(id), 6000);
       return () => clearTimeout(t);
@@ -170,7 +174,10 @@ export function AutoRunConsole({ draftId, countryCode: _countryCode, briefRaw, o
   // Clear beacon when console unmounts (user closed wizard).
   useEffect(() => {
     const id = `wizard:${draftId}`;
-    return () => clearAutoRun(id);
+    return () => {
+      unregisterAutoRunResume(id);
+      clearAutoRun(id);
+    };
   }, [draftId]);
 
 

@@ -415,7 +415,121 @@ export type DeliverableBlueprint = {
     evidence_density: "low" | "medium" | "high";
     length_hint: string;
   }[];
+  ai_status?: "enriched" | "repaired" | "fallback" | "scaffold_only";
+  ai_model?: string;
+  ai_run_id?: string;
+  ai_raw_excerpt?: string;
+  ai_error?: string;
 };
+
+// Hand-authored McKinsey-grade scaffolds for every deliverable in the library.
+// This is the deterministic floor: Step 2 can never bottom out on AI failure.
+const DELIVERABLE_TEMPLATES: Record<string, { sections: string[]; evidence_density: "low" | "medium" | "high"; length_hint: string }> = {
+  scqa_memo: {
+    sections: ["Situation (baseline & context)", "Complication (what changed / why now)", "Question (the decision at hand)", "Answer (recommended path + rationale)", "Evidence & citations"],
+    evidence_density: "high",
+    length_hint: "1 page (400–600 words)",
+  },
+  stakeholder_map: {
+    sections: ["Internal stakeholders (name, role, mandate)", "External stakeholders (name, role, leverage)", "Influence × interest matrix", "Coalitions & swing actors", "Engagement priorities & sequencing"],
+    evidence_density: "high",
+    length_hint: "2 pages · 1 matrix + narrative",
+  },
+  focus_group_guide: {
+    sections: ["Warm-up & ground rules (5 min)", "Context probes (10 min)", "Concept reactions (15 min)", "Tension moments & trade-offs (15 min)", "Prioritization exercise (10 min)", "Close & next steps (5 min)"],
+    evidence_density: "medium",
+    length_hint: "60-min moderator guide",
+  },
+  survey: {
+    sections: ["Screener questions", "Awareness & usage (multi-select)", "Attitudinal Likert battery (7-point)", "Trade-off / MaxDiff block", "Open-ended verbatims", "Demographics & segmentation cuts"],
+    evidence_density: "medium",
+    length_hint: "12–15 min, ~25 questions",
+  },
+  interview_protocol: {
+    sections: ["Interviewee context (2 min)", "Opening narrative prompt", "Structured probes (5–7)", "Counterfactual / falsification probes", "Named-example asks", "Close & follow-up commitments"],
+    evidence_density: "high",
+    length_hint: "45-min semi-structured guide",
+  },
+  brand_scorecard: {
+    sections: ["Attribute × audience matrix (rows = attributes, cols = audiences)", "Delta vs original brand intent", "Evidence anchors per cell", "Gap register with severity", "Recommended shifts"],
+    evidence_density: "high",
+    length_hint: "1 matrix + 1 page narrative",
+  },
+  segment_matrix: {
+    sections: ["Segment definitions (size, distribution, drivers)", "Message × segment fit matrix", "Objections & counters per segment", "Channel & tone recommendations", "Test-and-learn plan"],
+    evidence_density: "medium",
+    length_hint: "2 pages · 1 matrix + notes",
+  },
+  exec_readout: {
+    sections: ["Cover · one-line ask", "Situation snapshot", "Complication", "Governing thought (Pyramid principle)", "3 supporting arguments (evidence per arg)", "Options considered", "Recommendation & mandate needed", "Risks & mitigations", "Timeline & owners", "Appendix · evidence & citations"],
+    evidence_density: "high",
+    length_hint: "10-slide cabinet-level deck",
+  },
+};
+
+function scaffoldBlueprint(picks: ReadonlyArray<{ code: string; label: string; desc: string }>, tone: "cabinet" | "investor" | "public"): DeliverableBlueprint {
+  return {
+    tone,
+    deliverables: picks.map((p) => {
+      const tpl = DELIVERABLE_TEMPLATES[p.code] ?? {
+        sections: ["Executive summary", "Method", "Findings", "Recommendations", "Evidence & citations"],
+        evidence_density: "medium" as const,
+        length_hint: "1–2 pages",
+      };
+      return { code: p.code, label: p.label, sections: [...tpl.sections], evidence_density: tpl.evidence_density, length_hint: tpl.length_hint };
+    }),
+  };
+}
+
+function mergeAiIntoScaffold(scaffold: DeliverableBlueprint, ai: DeliverableBlueprint): DeliverableBlueprint {
+  const byCode = new Map(ai.deliverables.map((d) => [d.code, d]));
+  return {
+    tone: ai.tone ?? scaffold.tone,
+    deliverables: scaffold.deliverables.map((s) => {
+      const a = byCode.get(s.code);
+      if (!a) return s;
+      return {
+        code: s.code,
+        label: s.label,
+        sections: Array.isArray(a.sections) && a.sections.length ? a.sections.slice(0, 20).map(String) : s.sections,
+        evidence_density: (["low", "medium", "high"] as const).includes(a.evidence_density) ? a.evidence_density : s.evidence_density,
+        length_hint: typeof a.length_hint === "string" && a.length_hint.length ? a.length_hint : s.length_hint,
+      };
+    }),
+  };
+}
+
+async function enrichBlueprintWithAi(
+  scaffold: DeliverableBlueprint,
+  scope: unknown,
+  extraGuidance: string | undefined,
+  picks: ReadonlyArray<{ code: string; label: string; desc: string }>,
+): Promise<DeliverableBlueprint> {
+  const system =
+    "You are a McKinsey communications director. Refine the provided deliverable SCAFFOLD to fit the study scope, tone, and any user guidance. Keep the same `code` values. Tighten `sections` to be sharp and MECE. Set `evidence_density` (low|medium|high) and `length_hint` realistically. Return strict JSON only.";
+  const user = `SCOPE:\n${JSON.stringify(scope ?? {}, null, 2)}\n\nEXTRA GUIDANCE FROM USER:\n${extraGuidance?.trim() || "(none)"}\n\nSELECTED DELIVERABLES:\n${picks.map((p) => `- ${p.code}: ${p.label} — ${p.desc}`).join("\n")}\n\nSCAFFOLD (refine, don't replace):\n${JSON.stringify(scaffold, null, 2)}\n\nReturn JSON exactly:
+{
+  "tone": "${scaffold.tone}",
+  "deliverables": [
+    { "code": "…", "label": "…", "sections": ["…"], "evidence_density": "low|medium|high", "length_hint": "e.g. 1 page, 12 slides, 40-min guide" }
+  ]
+}`;
+  const validate = (v: unknown): v is DeliverableBlueprint =>
+    !!v && typeof v === "object"
+      && Array.isArray((v as DeliverableBlueprint).deliverables)
+      && (v as DeliverableBlueprint).deliverables.length > 0
+      && (v as DeliverableBlueprint).deliverables.every((d) => typeof d?.code === "string");
+
+  const res = await callStructured<DeliverableBlueprint>(system, user, validate);
+  const merged = mergeAiIntoScaffold(scaffold, res.value);
+  return {
+    ...merged,
+    ai_status: res.ai_status,
+    ai_model: res.ai_model,
+    ai_run_id: res.ai_run_id,
+    ai_raw_excerpt: res.ai_raw_excerpt,
+  };
+}
 
 export const enrichOutcome = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -428,30 +542,61 @@ export const enrichOutcome = createServerFn({ method: "POST" })
       .maybeSingle();
     const picks = DELIVERABLE_LIBRARY.filter((d) => data.selectedCodes.includes(d.code));
     if (picks.length === 0) throw new Error("Select at least one deliverable.");
-    const raw = await callGateway(
-      "You are a McKinsey communications director. For each selected deliverable, define sections, evidence density, and length. Match the requested tone. Return strict JSON.",
-      `SCOPE:\n${JSON.stringify(draft?.brief_scope ?? {}, null, 2)}\n\nEXTRA GUIDANCE FROM USER:\n${data.raw ?? "(none)"}\n\nSELECTED DELIVERABLES:\n${picks.map((p) => `- ${p.code}: ${p.label} — ${p.desc}`).join("\n")}\n\nTone: ${data.tone}\n\nReturn JSON:
-{
-  "tone": "${data.tone}",
-  "deliverables": [
-    { "code": "…", "label": "…", "sections": ["…"], "evidence_density": "low|medium|high", "length_hint": "e.g. 1 page, 12 slides, 40-min guide" }
-  ]
-}`,
-    );
-    const parsed = safeParse<DeliverableBlueprint>(raw);
-    if (!parsed?.deliverables?.length) {
-      throw new Error(`AI returned no blueprint — try again. (raw: ${raw.slice(0, 200)})`);
+
+    const scaffold = scaffoldBlueprint(picks, data.tone);
+    let blueprint: DeliverableBlueprint;
+    try {
+      blueprint = await enrichBlueprintWithAi(scaffold, draft?.brief_scope, data.raw, picks);
+    } catch (e) {
+      const err = e as Error & { raw?: string; runId?: string; model?: string };
+      blueprint = {
+        ...scaffold,
+        ai_status: "scaffold_only",
+        ai_model: err.model,
+        ai_run_id: err.runId,
+        ai_raw_excerpt: err.raw,
+        ai_error: err.message?.slice(0, 400),
+      };
     }
 
     await context.supabase
       .from("persona_study_drafts")
       .update({
         outcome_raw: data.raw ?? null,
-        outcome_blueprint: parsed as unknown as Json,
+        outcome_blueprint: blueprint as unknown as Json,
         step: "cast",
       })
       .eq("id", data.draftId);
-    return { blueprint: parsed };
+    return { blueprint };
+  });
+
+// Retry only the AI enrichment on an existing draft (keeps scaffold as floor).
+const RetryOutcomeInput = z.object({ draftId: z.string().uuid() });
+export const retryOutcomeAi = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => RetryOutcomeInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: draft } = await context.supabase
+      .from("persona_study_drafts")
+      .select("brief_scope,outcome_raw,outcome_blueprint")
+      .eq("id", data.draftId)
+      .maybeSingle();
+    const existing = (draft?.outcome_blueprint as DeliverableBlueprint | null) ?? null;
+    if (!existing?.deliverables?.length) throw new Error("Build the blueprint first.");
+    const picks = DELIVERABLE_LIBRARY.filter((d) => existing.deliverables.some((x) => x.code === d.code));
+    const scaffold = scaffoldBlueprint(picks, existing.tone ?? "cabinet");
+    let blueprint: DeliverableBlueprint;
+    try {
+      blueprint = await enrichBlueprintWithAi(scaffold, draft?.brief_scope, draft?.outcome_raw ?? undefined, picks);
+    } catch (e) {
+      const err = e as Error & { raw?: string; runId?: string; model?: string };
+      blueprint = { ...scaffold, ai_status: "scaffold_only", ai_model: err.model, ai_run_id: err.runId, ai_raw_excerpt: err.raw, ai_error: err.message?.slice(0, 400) };
+    }
+    await context.supabase
+      .from("persona_study_drafts")
+      .update({ outcome_blueprint: blueprint as unknown as Json })
+      .eq("id", data.draftId);
+    return { blueprint };
   });
 
 // ── Step 3: Draft cast (personas + segments + instruments + evidence) ─────

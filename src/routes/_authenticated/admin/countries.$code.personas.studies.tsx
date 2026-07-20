@@ -45,6 +45,11 @@ function segmentsQuery(code: string) {
   });
 }
 
+// Module-level lock so React StrictMode double-mount, tab re-entry, or
+// racing effect callbacks in the same browser process can never fan out
+// into duplicate auto-run drafts. Keyed by country.
+const AUTO_STUDIES_LOCK = new Set<string>();
+
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/personas/studies")({
   validateSearch: (s) => searchSchema.parse(s),
   loader: async ({ context, params }) => {

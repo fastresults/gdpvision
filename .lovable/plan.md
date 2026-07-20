@@ -1,56 +1,73 @@
-## Problem
+Make Stage 02 (Group) auto-run the full pipeline: propose segments, cast them, and then draft studies for every segment before handing off to Stage 03 (Rehearse). Stage 03 becomes a review surface, not the drafting surface.
 
-Stage 02 auto-runs proposing/casting segments, but when the user lands on Stage 03 (Rehearse) with 5 existing segments (Grenada), nothing fires. The user still has to click "Study →" on each row. That violates the AI-first / auto-run mandate — the instrument should draft a study for every uncovered segment automatically, then hand back a review queue.
+Current state
+- Stage 02 auto-runs segments and ends with `navigate({ to: "/admin/countries/$code/personas/studies", search: { auto: 1 } })`.
+- Stage 03 auto-runs `composeStudyForSegment` + `createStudy` for each uncovered segment.
+- `createStudy` is idempotent on `(country_code, segment_id)` where `status='draft'`, and `AUTO_STUDIES_LOCK` prevents duplicate runs.
+- The global auto-run beacon is already published from both stages.
 
-## Goal
+What will change
 
-On entering Stage 03 (or at the tail of Stage 02's auto-run handoff), the Studio must automatically:
-1. Detect segments without a study.
-2. Sequentially compose + launch a draft study for each.
-3. Show live "Studying 2 of 5 · <segment>" progress in the header and on the stepper's Rehearse node.
-4. Stop cleanly at the end with a review list; never block, never require a click to start.
+1. Extend the Stage 02 auto-run state machine
+   - Add new phases after `advancing`:
+     - `drafting_studies` — running `composeStudyForSegment` + `createStudy` for every segment
+     - `study_complete` — finished drafting
+     - `study_error` — per-item failures collected
+   - Reuse the same loop pattern already in Stage 03: for each segment, call `composeStudyForSegment`, then `createStudy`. Track `handled` set, publish progress, and honor `cancelRef`.
 
-## Plan
+2. Move the study-drafting helper to a shared, client-safe path
+   - Extract a single `draftStudiesForSegments` function (or keep logic in the route but share the same `composeStudyForSegment` + `createStudy` calls) so both Stage 02 and Stage 03 can use the same loop.
+   - Do not duplicate AI/gateway code; the existing `composeStudyForSegment` server function in `src/lib/personas/compose-study.functions.ts` stays the canonical source.
 
-### 1. Server — bulk study composer (`src/lib/personas/compose-study.functions.ts`)
-- Add `composeStudiesForUncoveredSegments({ countryCode })`:
-  - Query `persona_segments` for `country_code`.
-  - Left-join / filter against `persona_studies` to find segments with **no study**.
-  - Return an ordered list `[{ segmentId, label, prompt, size }]`.
-- Keep existing single-segment `composeStudy` untouched; reuse it per segment inside the client loop for idempotency and per-item retry.
+3. Stage 03 becomes idempotent review
+   - When Stage 03 mounts and `uncoveredSegments.length === 0` (because Stage 02 already drafted them), it should show the review list, not attempt another run.
+   - Keep the "Start Auto-run" / "Draft missing studies" button available in Stage 03 for any future segments that appear later, but default to idle when everything is already covered.
 
-### 2. Stage 03 route — auto-run state machine (`src/routes/_authenticated/admin/countries.$code.personas.studies.tsx`)
-Mirror the Stage 02 pattern exactly so behavior is consistent:
-- States: `idle → composing → studying(i/n) → complete | cancelled | error`.
-- On mount, if `uncovered.length > 0` AND `localStorage[`ch07:auto-studies:${code}`]` is not set:
-  - Set flag, fetch uncovered, transition to `studying`.
-  - For each segment in sequence: call `composeStudy` → `createStudy` (existing wizard fn) with the AI-proposed framing; mark that segment as done in local state; heartbeat between items so the UI paints.
-- Never re-fire if flag exists; a "↻ Run again" button clears the flag and re-runs only against still-uncovered segments.
-- Provide `⏸ Cancel Auto-run` and `Stay here` escape hatches identical to Stage 02.
+4. Update global beacon messaging
+   - While Stage 02 is drafting studies, publish one combined beacon:
+     - `scope: Chamber 07 · Stage 02–03 · ${code}`
+     - `title: Drafting studies for every segment`
+     - `detail: Drafting 3/5 — Coastal tourism operators`
+   - Clear the beacon when Stage 02 completes and navigates to Stage 03, unless there are errors to review.
 
-### 3. Header CTA + coach line
-- Add a header banner on the Studies page identical in shape to Stage 02:
-  - Primary CTA: `▶ Start Auto-run` (when idle + uncovered > 0) / `⏸ Cancel Auto-run` (while running) / `↻ Run again` (when complete).
-  - Coach line: "AI will draft a study for each segment without one. You review before sending."
-- Row-level: while auto-run is active, show a spinner + `AUTO · drafting…` chip on the segment currently being studied, and a subtle `queued` chip on pending ones.
+5. UI changes in Stage 02
+   - The auto-run banner must show the new phases:
+     - `Casting segments 2/3`
+     - `Drafting studies 3/5`
+     - `Handing off to Rehearse`
+   - `StudioStepper` `autoStatus` should reflect `AUTO · drafting studies 3/5` during the new phase.
+   - Keep the same `Cancel Auto-run`, `Stay here`, and `Resume` controls.
 
-### 4. Stepper status
-- Extend `StudioStepper` `autoStatus` prop to also accept a Rehearse status (`AUTO · drafting 2/5`), and pass it from Stage 03. The Group node keeps its existing chip.
+6. Handoff behavior
+   - After all studies are drafted, wait the same 3-second countdown, then navigate to `/admin/countries/$code/personas/studies` **without** `?auto=1` (or with a different `reviewed=0` flag) so Stage 03 opens in review mode.
+   - If the user cancels during drafting, they stay on Stage 02 with a "Resume Auto-run" CTA that picks up from the next un-drafted segment.
 
-### 5. Handoff from Stage 02
-- When Stage 02's 3-second countdown completes and navigates to `/personas/studies`, Stage 03's mount effect picks up and starts auto-run immediately — one continuous Cast → Group → Rehearse ribbon with no user click.
+7. Safety / idempotency
+   - Reuse `AUTO_STUDIES_LOCK` keyed by country code so the same browser tab cannot fan out.
+   - Reuse `createStudy` idempotency so re-running or resuming never creates duplicate drafts.
+   - Keep per-item error collection: failed segments are recorded, and the loop continues with the rest; the final banner shows `Drafted 4/5 · 1 needs review`.
 
-### 6. Guardrails
-- Per-item try/catch: a failed segment marks `error` on that row and continues; final banner reports `4 drafted · 1 failed — Retry failed`.
-- Rate-limit / 429 from Gateway pauses the loop 8s and retries once before marking failed.
-- Never auto-**send** a study — auto-run stops at "draft ready for review" to preserve human oversight on outreach.
+8. Optional: remove the separate `?auto=1` handoff
+   - The `auto=1` search param becomes unnecessary for the happy path because Stage 02 now drafts studies directly. Keep it as a legacy flag so existing links still work, but Stage 03 will treat it as a "draft missing only" trigger rather than a full re-run.
 
-## Files touched
-- `src/lib/personas/compose-study.functions.ts` — add bulk uncovered-segment composer.
-- `src/routes/_authenticated/admin/countries.$code.personas.studies.tsx` — add auto-run state machine, header CTA, row chips, localStorage guard.
-- `src/components/personas/StudioStepper.tsx` — accept Rehearse `autoStatus`.
-- `src/routes/_authenticated/admin/countries.$code.personas.segments.tsx` — pass through so the auto-nav handoff sets a "start immediately" hint (query param `?auto=1`) that Stage 03 respects even if the localStorage flag was cleared.
+Files to touch
+- `src/routes/_authenticated/admin/countries.$code.personas.segments.tsx` — extend state machine and auto-run loop to draft studies.
+- `src/routes/_authenticated/admin/countries.$code.personas.studies.tsx` — adjust mount logic so auto-run is defensive and idempotent; show review UI when all segments are covered.
+- `src/components/personas/StudioStepper.tsx` — already accepts `autoStatus`; ensure it can render the new combined status strings.
+- `src/lib/personas/study.functions.ts` — no change unless new helper needed (already idempotent).
+- `src/lib/autorun/beacon.ts` — no change (already supports progress + status).
 
-## Out of scope
-- Actually sending studies to real respondents.
-- Changing the underlying study schema or wizard steps.
+Technical details
+- The loop will run client-side sequential `createServerFn` calls, same as today, with a 250ms UI paint delay between items and 1.5s backoff on errors.
+- Use the existing `composeStudyForSegment` and `createStudy` server functions; no new AI model calls needed.
+- `AUTO_STUDIES_LOCK` will be acquired in Stage 02 before the study loop and released on completion/cancel/error.
+- The localStorage flag `stage02:autorun-consumed:${code}` will be set after the entire pipeline (segments + studies) completes, not after segments alone.
+
+Validation
+- After the change, pressing "Start Auto-run" on Stage 02 should:
+  1. Propose segments.
+  2. Cast each segment.
+  3. Draft a study for each segment.
+  4. Navigate to Stage 03 showing the review list with no new auto-run triggered.
+- Cancelling mid-study should leave a resumeable state on Stage 02.
+- No duplicate drafts should be created on re-run or page refresh.

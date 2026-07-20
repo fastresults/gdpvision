@@ -5,10 +5,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X, ArrowRight, Sparkles, Check, Loader2, FileText, BookOpen, Users, ClipboardList, Rocket } from "lucide-react";
 
 import {
-  createDraft, getDraft, saveDraft, enrichBrief, enrichOutcome,
+  createDraft, getDraft, saveDraft, enrichBrief, enrichOutcome, retryOutcomeAi,
   listDeliverables, draftCast, commitStudy,
 } from "@/lib/personas/wizard.functions";
 import { MultimodalInput, type WizardUpload } from "./MultimodalInput";
+import { PrettyJson } from "@/components/data/PrettyJson";
 
 type Step = "brief" | "outcome" | "cast" | "preview" | "launch";
 const STEPS: { id: Step; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [

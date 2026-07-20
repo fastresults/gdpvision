@@ -265,6 +265,9 @@ function StepBrief({ draftId, countryCode, draft, onNext, onSaved, onAutoRun }: 
               Continue <ArrowRight size={12} />
             </button>
           )}
+          {autoRunHint && (
+            <span className="text-[11px] text-amber-600">{autoRunHint}</span>
+          )}
           {enrich.isError && (
             <span className="text-[11px] text-rose-600">{(enrich.error as Error).message}</span>
           )}

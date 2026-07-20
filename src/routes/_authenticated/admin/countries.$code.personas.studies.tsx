@@ -286,9 +286,20 @@ function StudiesPage() {
           {/* Sticky preview */}
           <aside className="lg:sticky lg:top-4 lg:self-start">
             <div className="border border-line-200 bg-paper-0 p-4">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                Study preview
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                  Study preview
+                </p>
+                {!ready ? (
+                  <span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-700">
+                    Next: {nextLabel} <ArrowRight size={10} />
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.16em] text-emerald-600">
+                    <Check size={11} strokeWidth={2.5} /> Ready to create
+                  </span>
+                )}
+              </div>
               <p className="mt-2 font-serif text-lg leading-tight text-ink-950">
                 {title.trim() || <span className="text-ink-400">Untitled study</span>}
               </p>
@@ -305,16 +316,12 @@ function StudiesPage() {
               >
                 {create.isPending ? "Creating…" : "Create this study"} <ArrowRight size={12} />
               </button>
-              {!ready && (
-                <p className="mt-2 text-center text-[10px] text-ink-500">
-                  Complete step {currentStep} to continue
-                </p>
-              )}
               {create.isError && (
                 <p className="mt-2 text-[11px] text-rose-600">{(create.error as Error).message}</p>
               )}
             </div>
           </aside>
+
         </div>
       )}
 

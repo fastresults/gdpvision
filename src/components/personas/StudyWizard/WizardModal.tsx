@@ -223,7 +223,20 @@ function StepBrief({ draftId, countryCode, draft, onNext, onSaved, onAutoRun }: 
             rows={10}
           />
         </div>
-        <div className="mt-4 flex items-center gap-3">
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={async () => {
+              // Persist any pending brief edits before auto-run kicks off.
+              try { await saveDraft({ data: { id: draftId, patch: { brief_raw: text, uploads } } }); } catch { /* ignore */ }
+              onAutoRun();
+            }}
+            disabled={!text.trim() && uploads.length === 0}
+            className="inline-flex items-center gap-1.5 border border-emerald-700 bg-emerald-700 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-emerald-800 disabled:opacity-40"
+            title="Enrich brief → blueprint deliverables → cast personas → commit → synthesize, in one run."
+          >
+            <Wand2 size={12} /> Auto-run full study
+          </button>
           <button
             type="button"
             onClick={() => enrich.mutate()}

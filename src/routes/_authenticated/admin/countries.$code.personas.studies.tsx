@@ -343,17 +343,11 @@ function StudiesPage() {
       (s) => s.status !== "complete" && s.status !== "synthesized",
     );
     if (uncoveredSegments.length === 0 && !anyIncomplete) return;
-    let flagged = false;
-    try {
-      flagged = !!window.localStorage.getItem(autoFlagKey);
-    } catch {
-      // localStorage unavailable; defensive guard
-    }
-    if (!flagged) {
-      didAttemptRef.current = true;
-      void startAutoRun();
-    }
-  }, [uncoveredSegments.length, autoFlagKey, autoState.phase, startAutoRun]);
+    // Always self-heal on landing. AUTO_STUDIES_LOCK prevents double-runs
+    // within the same tab; the flag is informational only.
+    didAttemptRef.current = true;
+    void startAutoRun();
+  }, [uncoveredSegments.length, studies, autoState.phase, startAutoRun]);
 
   const rehearseStatus =
     autoState.phase === "running"

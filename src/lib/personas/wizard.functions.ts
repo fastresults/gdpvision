@@ -378,6 +378,15 @@ export const enrichBrief = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => EnrichBriefInput.parse(d))
   .handler(async ({ data, context }) => {
+    // Idempotency: skip if already enriched.
+    const { data: existing } = await context.supabase
+      .from("persona_study_drafts")
+      .select("brief_scope")
+      .eq("id", data.draftId)
+      .maybeSingle();
+    if (existing?.brief_scope) {
+      return { scope: existing.brief_scope as unknown as ResearchScope, alreadyDone: true as const };
+    }
     const pack = await buildCountryContextPack(context.supabase, data.countryCode, data.raw.slice(0, 400));
     const scoped = await callStructured<ResearchScope>(
       "You are a McKinsey engagement partner scoping a sovereign research study. Convert the client's raw brief into a rigorous Research Scope. Return strict JSON only.",

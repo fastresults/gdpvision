@@ -358,11 +358,14 @@ export const listStudiesWithReports = createServerFn({ method: "POST" })
       .limit(200);
     if (error) throw new Error(error.message);
     const studies = rows ?? [];
-    if (studies.length === 0) return [] as Array<{
+    type Digest = {
       id: string; title: string; kind: string; status: string; created_at: string;
       segment_id: string | null; segment_label: string | null; persona_count: number;
-      summary_md: string | null; themes: unknown; citations: unknown;
-    }>;
+      summary_md: string | null;
+      themes: Array<{ label?: string; prevalence?: number; quote?: string }>;
+      citations: ContextCitation[];
+    };
+    if (studies.length === 0) return [] as Digest[];
 
     const ids = studies.map((s) => s.id);
     const segIds = Array.from(new Set(studies.map((s) => s.segment_id).filter((v): v is string => !!v)));

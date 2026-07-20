@@ -469,12 +469,12 @@ function StepOutcome({ draftId, countryCode, draft, onNext }: {
                 <div className="border-t border-line-200 p-3">
                   <PrettyJson
                     value={{
-                      status: blueprint.ai_status,
-                      model: blueprint.ai_model,
-                      run_id: blueprint.ai_run_id,
-                      error: blueprint.ai_error,
-                      raw_excerpt: blueprint.ai_raw_excerpt,
-                    }}
+                      status: blueprint.ai_status ?? null,
+                      model: blueprint.ai_model ?? null,
+                      run_id: blueprint.ai_run_id ?? null,
+                      error: blueprint.ai_error ?? null,
+                      raw_excerpt: blueprint.ai_raw_excerpt ?? null,
+                    } as never}
                   />
                 </div>
               </details>

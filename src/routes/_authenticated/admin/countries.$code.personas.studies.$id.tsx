@@ -1,6 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { ArrowLeft, Play, Sparkles } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { z } from "zod";
 
 import { CitedMarkdown } from "@/components/citations/CitedMarkdown";
 import { CitedText } from "@/components/citations/CitedText";
@@ -11,7 +13,10 @@ function studyQuery(id: string) {
   return queryOptions({ queryKey: ["study", id], queryFn: () => getStudy({ data: { id } }) });
 }
 
+const searchSchema = z.object({ auto: z.coerce.number().optional() });
+
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/personas/studies/$id")({
+  validateSearch: (s) => searchSchema.parse(s),
   loader: ({ context, params }) => context.queryClient.ensureQueryData(studyQuery(params.id)),
   errorComponent: ({ error }) => <p className="p-6 text-sm text-rose-600">{error.message}</p>,
   component: StudyDetail,
@@ -19,6 +24,8 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/pers
 
 function StudyDetail() {
   const { code, id } = Route.useParams();
+  const search = Route.useSearch();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const { data } = useSuspenseQuery(studyQuery(id));
   const { study, questions, responses, transcript, report } = data;
@@ -32,6 +39,22 @@ function StudyDetail() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["study", id] }),
   });
 
+  // Auto-run: when ?auto=1, draft questions then run the study, once.
+  const autoRanRef = useRef(false);
+  useEffect(() => {
+    if (search.auto !== 1 || autoRanRef.current || !study) return;
+    autoRanRef.current = true;
+    (async () => {
+      try {
+        if (questions.length === 0) await draft.mutateAsync();
+        if (study.status !== "running" && study.status !== "synthesized" && study.status !== "complete") {
+          await run.mutateAsync();
+        }
+      } catch { /* surfaced by mutation error UI */ }
+      navigate({ to: "/admin/countries/$code/personas/studies/$id", params: { code, id }, search: {}, replace: true });
+    })();
+  }, [search.auto, study, questions.length, draft, run, navigate, code, id]);
+
   if (!study) return <p className="p-6 text-sm text-ink-500">Study not found.</p>;
 
   const byQuestion = new Map<string, typeof responses>();
@@ -43,6 +66,7 @@ function StudyDetail() {
   }
 
   const statusPhase: "drafted" | "questions" | "running" | "synthesized" =
+
     study.status === "running"
       ? "running"
       : study.status === "synthesized" || study.status === "complete" || report

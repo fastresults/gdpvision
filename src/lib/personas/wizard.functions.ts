@@ -133,8 +133,7 @@ async function callStructured<T>(
 ): Promise<{ value: T; ai_status: "enriched" | "repaired" | "fallback"; ai_model: string; ai_run_id?: string; ai_raw_excerpt: string }> {
   const attempts: Array<{ model: string; temperature?: number }> = [
     { model: GEN_MODEL_PRIMARY, temperature: 0.35 },
-    { model: GEN_MODEL_PRIMARY, temperature: 0.15 }, // self-repair pass (lower temp)
-    { model: GEN_MODEL_FALLBACK, temperature: 0.2 },
+    { model: GEN_MODEL_FALLBACK, temperature: 0.2 }, // fast fallback — no third attempt to preserve Worker budget
   ];
   let lastRaw = "";
   let lastError: unknown;

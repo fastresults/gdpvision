@@ -8,9 +8,15 @@
 
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { AlertTriangle, ChevronRight, Loader2, PauseCircle, Sparkles, X } from "lucide-react";
+import { AlertTriangle, ChevronRight, Loader2, PauseCircle, RefreshCw, Sparkles, X } from "lucide-react";
 
-import { useAutoRuns, clearAutoRun, type AutoRunEntry } from "@/lib/autorun/beacon";
+import {
+  useAutoRuns,
+  clearAutoRun,
+  resumeAutoRun,
+  type AutoRunEntry,
+  type AutoRunHealth,
+} from "@/lib/autorun/beacon";
 
 export function AutoRunBeacon() {
   const runs = useAutoRuns();

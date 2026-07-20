@@ -689,10 +689,14 @@ export const draftCast = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: draft } = await context.supabase
       .from("persona_study_drafts")
-      .select("brief_scope,outcome_blueprint,uploads")
+      .select("brief_scope,outcome_blueprint,uploads,cast_draft")
       .eq("id", data.draftId)
       .maybeSingle();
     if (!draft?.brief_scope) throw new Error("Complete the brief step first.");
+    const existingCast = draft.cast_draft as CastDraft | null;
+    if (existingCast?.personas?.length) {
+      return { cast: existingCast, contextCitations: [], alreadyDone: true as const };
+    }
 
     const scope = draft.brief_scope as ResearchScope;
     const blueprint = (draft.outcome_blueprint as DeliverableBlueprint) ?? { tone: "cabinet", deliverables: [] };
@@ -707,19 +711,27 @@ export const draftCast = createServerFn({ method: "POST" })
     );
 
     const gapProbeRaw = await callGateway(
-      "You are a research director. Given the study scope and available context, list up to 5 concrete evidence gaps that must be closed with fresh open-web research before the cast can be trusted. Return strict JSON.",
+      "You are a research director. Given the study scope and available context, list up to 3 concrete evidence gaps that must be closed with fresh open-web research before the cast can be trusted. Return strict JSON.",
       `SCOPE:\n${JSON.stringify(scope, null, 2)}\n\n${pack.block}\n\n${uploadsText}\n\nReturn: { "gaps": ["specific web-researchable question", ...] }`,
     );
-    const gaps = (safeParse<{ gaps: string[] }>(gapProbeRaw.content)?.gaps ?? []).slice(0, 5);
+    const gaps = (safeParse<{ gaps: string[] }>(gapProbeRaw.content)?.gaps ?? []).slice(0, 3);
 
-    const deepResearch: { question: string; answer: string; citations: string[] }[] = [];
-    if (data.allowDeepResearch) {
-      for (const q of gaps) {
-        try {
-          const dr = await perplexityDeepResearch(q, data.countryCode);
-          if (dr.answer) deepResearch.push({ question: q, ...dr });
-        } catch { /* skip individual failures */ }
-      }
+    // Run gap probes in parallel with per-call timeout + global 90s wall budget.
+    let deepResearch: { question: string; answer: string; citations: string[] }[] = [];
+    let partialDeepResearch = false;
+    if (data.allowDeepResearch && gaps.length) {
+      const wallDeadline = Date.now() + 90_000;
+      const results = await Promise.allSettled(
+        gaps.map(async (q) => {
+          const remaining = Math.max(5_000, wallDeadline - Date.now());
+          const dr = await perplexityDeepResearch(q, data.countryCode, Math.min(30_000, remaining));
+          return dr.answer ? { question: q, ...dr } : null;
+        }),
+      );
+      deepResearch = results
+        .map((r) => (r.status === "fulfilled" ? r.value : null))
+        .filter((v): v is NonNullable<typeof v> => v !== null);
+      partialDeepResearch = deepResearch.length < gaps.length;
     }
 
     const deepBlock = deepResearch.length

@@ -656,6 +656,9 @@ function StudiesPage() {
         </div>
       )}
 
+      {/* Synthesized work product — always shown when any report exists */}
+      {digest.length > 0 && <SynthesisDigest items={digest} code={code} />}
+
       {/* Grouped library */}
       {studies.length > 0 && (
         <div className="space-y-6">

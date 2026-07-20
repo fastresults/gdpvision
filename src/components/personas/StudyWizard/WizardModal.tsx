@@ -140,11 +140,13 @@ export function StudyWizardModal({ open, onClose, countryCode, draftId: initialD
               <AutoRunConsole
                 draftId={draftId}
                 countryCode={countryCode}
+                briefRaw={(draftQ.data?.brief_raw as string | null) ?? null}
                 onDone={(studyId) => {
                   onClose();
                   navigate({ to: "/admin/countries/$code/personas/studies/$id", params: { code: countryCode, id: studyId } });
                 }}
                 onCancel={() => { setAutorun(false); refreshDraft(); }}
+                onNeedBrief={() => { setAutorun(false); setStep("brief"); refreshDraft(); }}
               />
             ) : (
               <>

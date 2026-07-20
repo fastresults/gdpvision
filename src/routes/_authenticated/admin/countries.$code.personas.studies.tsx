@@ -1,19 +1,24 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { queryOptions, useSuspenseQuery, useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   Check,
   ClipboardList,
   FlaskConical,
   Layers,
+  Loader2,
   MessageSquare,
+  Sparkles,
   Target,
+  Wand2,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 
 import { listSegments } from "@/lib/personas/generate.functions";
 import { createStudy, listStudies } from "@/lib/personas/study.functions";
+import { composeStudy, type ComposeStudyResult } from "@/lib/personas/compose-study.functions";
+
 
 
 const searchSchema = z.object({ segmentId: z.string().optional() });

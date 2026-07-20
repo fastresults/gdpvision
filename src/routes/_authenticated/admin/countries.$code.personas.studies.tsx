@@ -18,6 +18,7 @@ import { z } from "zod";
 import { listSegments } from "@/lib/personas/generate.functions";
 import { createStudy, listStudies } from "@/lib/personas/study.functions";
 import { composeStudy, type ComposeStudyResult } from "@/lib/personas/compose-study.functions";
+import { StudioStepper } from "@/components/personas/StudioStepper";
 
 
 

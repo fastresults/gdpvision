@@ -174,8 +174,8 @@ type DraftShape = {
   cast_draft: unknown; uploads: unknown;
 };
 
-function StepBrief({ draftId, countryCode, draft, onNext, onSaved }: {
-  draftId: string; countryCode: string; draft: DraftShape; onNext: () => void; onSaved: () => void;
+function StepBrief({ draftId, countryCode, draft, onNext, onSaved, onAutoRun }: {
+  draftId: string; countryCode: string; draft: DraftShape; onNext: () => void; onSaved: () => void; onAutoRun: () => void;
 }) {
   const [text, setText] = useState(draft.brief_raw ?? "");
   const [uploads, setUploads] = useState<WizardUpload[]>(Array.isArray(draft.uploads) ? (draft.uploads as WizardUpload[]) : []);

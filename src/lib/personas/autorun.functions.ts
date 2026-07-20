@@ -6,7 +6,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Json } from "@/integrations/supabase/types";
+import type { Json, Database } from "@/integrations/supabase/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+type SB = SupabaseClient<Database>;
 
 import { commitStudy, draftCast, enrichBrief, enrichOutcome } from "./wizard.functions";
 import { draftStudyQuestions, runStudy } from "./study.functions";

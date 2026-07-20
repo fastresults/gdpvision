@@ -4141,6 +4141,60 @@ export type Database = {
         }
         Relationships: []
       }
+      persona_study_drafts: {
+        Row: {
+          brief_raw: string | null
+          brief_scope: Json | null
+          cast_draft: Json | null
+          country_code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          outcome_blueprint: Json | null
+          outcome_raw: string | null
+          owner_country_code: string | null
+          step: string
+          title: string | null
+          updated_at: string
+          uploads: Json
+          visibility: string
+        }
+        Insert: {
+          brief_raw?: string | null
+          brief_scope?: Json | null
+          cast_draft?: Json | null
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          outcome_blueprint?: Json | null
+          outcome_raw?: string | null
+          owner_country_code?: string | null
+          step?: string
+          title?: string | null
+          updated_at?: string
+          uploads?: Json
+          visibility?: string
+        }
+        Update: {
+          brief_raw?: string | null
+          brief_scope?: Json | null
+          cast_draft?: Json | null
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          outcome_blueprint?: Json | null
+          outcome_raw?: string | null
+          owner_country_code?: string | null
+          step?: string
+          title?: string | null
+          updated_at?: string
+          uploads?: Json
+          visibility?: string
+        }
+        Relationships: []
+      }
       personas: {
         Row: {
           archetype: string | null
@@ -4966,6 +5020,128 @@ export type Database = {
             columns: ["segment_id"]
             isOneToOne: false
             referencedRelation: "persona_segments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      study_evidence: {
+        Row: {
+          chunk_id: string | null
+          country_code: string
+          created_at: string
+          document_id: string | null
+          draft_id: string | null
+          id: string
+          origin: string
+          owner_country_code: string | null
+          snippet: string | null
+          source_id: string | null
+          study_id: string | null
+          title: string | null
+          uploaded_by: string | null
+          url: string | null
+          visibility: string
+          weight: number | null
+        }
+        Insert: {
+          chunk_id?: string | null
+          country_code: string
+          created_at?: string
+          document_id?: string | null
+          draft_id?: string | null
+          id?: string
+          origin: string
+          owner_country_code?: string | null
+          snippet?: string | null
+          source_id?: string | null
+          study_id?: string | null
+          title?: string | null
+          uploaded_by?: string | null
+          url?: string | null
+          visibility?: string
+          weight?: number | null
+        }
+        Update: {
+          chunk_id?: string | null
+          country_code?: string
+          created_at?: string
+          document_id?: string | null
+          draft_id?: string | null
+          id?: string
+          origin?: string
+          owner_country_code?: string | null
+          snippet?: string | null
+          source_id?: string | null
+          study_id?: string | null
+          title?: string | null
+          uploaded_by?: string | null
+          url?: string | null
+          visibility?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_evidence_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "persona_study_drafts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_evidence_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "studies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      study_instruments: {
+        Row: {
+          body: Json
+          country_code: string
+          created_at: string
+          id: string
+          kind: string
+          owner_country_code: string | null
+          study_id: string
+          title: string
+          updated_at: string
+          uploaded_by: string | null
+          visibility: string
+        }
+        Insert: {
+          body: Json
+          country_code: string
+          created_at?: string
+          id?: string
+          kind: string
+          owner_country_code?: string | null
+          study_id: string
+          title: string
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Update: {
+          body?: Json
+          country_code?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          owner_country_code?: string | null
+          study_id?: string
+          title?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_instruments_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "studies"
             referencedColumns: ["id"]
           },
         ]

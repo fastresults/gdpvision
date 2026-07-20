@@ -196,9 +196,81 @@ function SegmentsPage() {
     void runAuto();
   }
 
+  const consumed =
+    typeof window !== "undefined" &&
+    (() => {
+      try {
+        return window.localStorage.getItem(AUTORUN_CONSUMED_KEY(code)) === "1";
+      } catch {
+        return false;
+      }
+    })();
+
+  const autoLabel =
+    auto.kind === "proposing"
+      ? "AUTO · drafting…"
+      : auto.kind === "casting"
+        ? `AUTO · casting ${auto.index + 1}/${auto.total}`
+        : auto.kind === "advancing"
+          ? `AUTO · advancing ${auto.countdown}s`
+          : auto.kind === "paused"
+            ? "AUTO · paused"
+            : auto.kind === "error"
+              ? "AUTO · failed"
+              : auto.kind === "complete"
+                ? "AUTO · done"
+                : segments.length > 0 || consumed
+                  ? "AUTO · idle"
+                  : "AUTO · ready";
+
+  function AutoRunPrimary({ className = "" }: { className?: string }) {
+    if (autoActive) {
+      return (
+        <button
+          type="button"
+          onClick={() => cancelAuto("Canceled — resume manually below.")}
+          className={`inline-flex items-center gap-1.5 border border-ink-950 bg-paper-0 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950 hover:bg-paper-100 ${className}`}
+        >
+          <Pause size={12} /> Cancel Auto-run
+        </button>
+      );
+    }
+    if (auto.kind === "paused" || auto.kind === "error") {
+      return (
+        <button
+          type="button"
+          onClick={regenerate}
+          disabled={personaCount === 0}
+          className={`inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-40 ${className}`}
+        >
+          <Play size={12} /> Resume Auto-run
+        </button>
+      );
+    }
+    const label =
+      auto.kind === "complete" || segments.length > 0 || consumed
+        ? "Run Auto-run again"
+        : "Start Auto-run";
+    return (
+      <button
+        type="button"
+        onClick={regenerate}
+        disabled={personaCount === 0 || compose.isPending}
+        title={
+          personaCount === 0
+            ? "Cast personas in Stage 01 first"
+            : "AI drafts segments, casts each, and advances to Rehearse"
+        }
+        className={`inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-40 ${className}`}
+      >
+        <Play size={12} /> {label}
+      </button>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <StudioStepper code={code} active="group" />
+      <StudioStepper code={code} active="group" autoStatus={autoLabel} />
       {personaCount === 0 && (
         <div className="flex flex-col gap-2 border border-amber-500/60 bg-amber-50/60 p-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[13px] text-ink-950">
@@ -217,18 +289,30 @@ function SegmentsPage() {
         </div>
       )}
 
-      <header>
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Stage 02 · Group your public
-        </p>
-        <h2 className="mt-1 font-serif text-2xl text-ink-950">
-          AI proposes the segments. Auto-run casts them.
-        </h2>
-        <p className="mt-1 max-w-2xl text-sm text-ink-500">
-          A segment is a coherent audience — the kind of group a Cabinet can actually act on. From
-          your brief and existing personas, the AI drafts a divergent set grounded in {code}, casts
-          each in sequence, and hands off to Rehearse.
-        </p>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            Stage 02 · Group your public
+          </p>
+          <h2 className="mt-1 font-serif text-2xl text-ink-950">
+            AI proposes the segments. Auto-run casts them.
+          </h2>
+          <p className="mt-1 max-w-2xl text-sm text-ink-500">
+            A segment is a coherent audience — the kind of group a Cabinet can actually act on.
+            Press{" "}
+            <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-950">
+              Start Auto-run
+            </span>{" "}
+            and the AI drafts a divergent set grounded in {code}, casts each in sequence, and hands
+            off to Rehearse.
+          </p>
+          {(segments.length > 0 || consumed) && auto.kind === "idle" && personaCount > 0 && (
+            <p className="mt-2 text-[12px] italic text-ink-500">
+              Auto-run already handed off once. Press Start Auto-run to draft a fresh set and cast them.
+            </p>
+          )}
+        </div>
+        <AutoRunPrimary className="shrink-0" />
       </header>
 
       {/* Auto-run banner */}
@@ -305,19 +389,32 @@ function SegmentsPage() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={regenerate}
+                onClick={() => {
+                  setProposals([]);
+                  setDismissed(new Set());
+                  setComposeError(null);
+                  compose
+                    .mutateAsync()
+                    .then((r) => {
+                      if (r.ok) setProposals(r.proposals);
+                      else setComposeError(r.reason);
+                    })
+                    .catch((e) => setComposeError((e as Error).message));
+                }}
                 disabled={compose.isPending || autoActive}
+                title="Draft proposals without casting or advancing"
                 className="inline-flex items-center gap-1.5 border border-line-200 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-700 hover:border-ink-950 hover:text-ink-950 disabled:opacity-40"
               >
                 <RefreshCw size={11} className={compose.isPending ? "animate-spin" : ""} />
-                {compose.isPending ? "Composing…" : proposals.length ? "Regenerate" : "Propose"}
+                {compose.isPending ? "Drafting…" : "Draft only"}
               </button>
+              <AutoRunPrimary />
               {visibleProposals.length > 1 && !autoActive && (
                 <button
                   type="button"
                   onClick={acceptAll}
                   disabled={gen.isPending}
-                  className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-paper-0 hover:bg-ink-700 disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 border border-ink-950 bg-paper-0 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-950 hover:bg-paper-100 disabled:opacity-40"
                 >
                   <Sparkles size={11} />
                   {gen.isPending ? "Accepting…" : `Accept all (${visibleProposals.length})`}
@@ -338,7 +435,13 @@ function SegmentsPage() {
           )}
           {!compose.isPending && visibleProposals.length === 0 && !composeError && !autoActive && (
             <div className="p-6 text-center text-[12px] text-ink-500">
-              No proposals pending — Regenerate to have the AI draft a new set.
+              Press{" "}
+              <span className="font-mono uppercase tracking-[0.16em] text-ink-950">
+                Start Auto-run
+              </span>{" "}
+              above to draft and cast segments, or{" "}
+              <span className="font-mono uppercase tracking-[0.16em] text-ink-950">Draft only</span>{" "}
+              to preview proposals without casting.
             </div>
           )}
 

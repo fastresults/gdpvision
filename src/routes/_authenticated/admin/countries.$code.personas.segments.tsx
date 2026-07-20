@@ -30,6 +30,7 @@ import { composeSegments, type SegmentProposal } from "@/lib/personas/compose-se
 import { listStudies } from "@/lib/personas/study.functions";
 import {
   draftStudiesForSegments,
+  completeIncompleteStudies,
   AUTO_STUDIES_LOCK,
   AUTO_STUDIES_FLAG_KEY,
 } from "@/lib/personas/study-autorun";

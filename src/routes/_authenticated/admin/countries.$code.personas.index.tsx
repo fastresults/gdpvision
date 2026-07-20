@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
-import { FlaskConical, Layers, Sparkles, Trash2, User, Users, Wand2 } from "lucide-react";
+import { FlaskConical, Layers, Sparkles, Trash2, User, Users } from "lucide-react";
 import { useState } from "react";
 
 import { CitedText } from "@/components/citations/CitedText";
@@ -84,6 +84,7 @@ function PersonasIndex() {
             cta="Generate personas"
             to="/admin/countries/$code/personas"
             params={{ code }}
+            currentHere
           />
           <JourneyCard
             n={2}
@@ -114,28 +115,6 @@ function PersonasIndex() {
         </div>
       </section>
 
-      {/* Auto-run CTA */}
-      <div className="flex flex-col gap-3 border border-ink-950 bg-ink-950 p-4 text-paper-0 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-paper-0/70">
-            One-click path
-          </p>
-          <p className="mt-1 font-serif text-lg leading-tight">
-            Auto-run the full Research Studio
-          </p>
-          <p className="mt-0.5 text-[12px] leading-snug text-paper-0/70">
-            Brief → cast → segment → study → synthesis. AI handles every phase — you review the output.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => { setResumeDraftId(undefined); setAutorun(true); setWizardOpen(true); }}
-          className="inline-flex shrink-0 items-center gap-1.5 border border-paper-0 bg-paper-0 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950 hover:bg-paper-100"
-        >
-          <Wand2 size={12} /> Launch Research Studio
-        </button>
-      </div>
-
       <StudyWizardModal
         key={`${resumeDraftId ?? "new"}-${autorun ? "auto" : "manual"}`}
         open={wizardOpen}
@@ -158,47 +137,13 @@ function PersonasIndex() {
         onAutoRun={(id) => { setResumeDraftId(id); setAutorun(true); setWizardOpen(true); }}
       />
 
-      <div className="border border-line-200 bg-paper-0 p-4">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Manual · Generate one persona
-        </p>
-        <label className="mt-2 block">
-          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Brief</span>
-
-          <textarea
-            value={brief}
-            onChange={(e) => setBrief(e.target.value)}
-            rows={3}
-            placeholder="e.g. A European HNWI considering CBI in the Caribbean"
-            className="mt-1 w-full border border-line-200 bg-paper-0 p-2 text-sm focus:border-ink-950 focus:outline-none"
-          />
-        </label>
-        <div className="mt-2 flex items-center gap-3">
-          <label className="flex items-center gap-1 text-[11px] text-ink-700">
-            <input type="radio" checked={visibility === "public"} onChange={() => setVisibility("public")} /> Public
-          </label>
-          <label className="flex items-center gap-1 text-[11px] text-ink-700">
-            <input type="radio" checked={visibility === "private"} onChange={() => setVisibility("private")} /> Private
-          </label>
-          <button
-            type="button"
-            onClick={() => gen.mutate()}
-            disabled={brief.trim().length < 3 || gen.isPending}
-            className="ml-auto inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-40"
-          >
-            <Sparkles size={12} /> {gen.isPending ? "Generating…" : "Generate persona"}
-          </button>
-        </div>
-        {gen.isError && <p className="mt-2 text-[11px] text-rose-600">{(gen.error as Error).message}</p>}
-      </div>
-
       <div>
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
           Library · {personas.length} personas
         </p>
         {personas.length === 0 ? (
           <div className="mt-2 border border-dashed border-line-200 p-6 text-center text-sm text-ink-500">
-            No personas yet — generate your first one above.
+            No personas yet — launch the Research Studio from the sidebar, or expand the advanced generator below.
           </div>
         ) : (
           <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -241,6 +186,51 @@ function PersonasIndex() {
           </div>
         )}
       </div>
+
+      <details className="group border border-line-200 bg-paper-0">
+        <summary className="flex cursor-pointer items-center justify-between gap-2 px-4 py-3 text-left">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Advanced</p>
+            <p className="mt-0.5 font-serif text-sm text-ink-950">Hand-craft a single persona</p>
+          </div>
+          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500 group-open:hidden">
+            Expand
+          </span>
+          <span className="hidden font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500 group-open:inline">
+            Collapse
+          </span>
+        </summary>
+        <div className="border-t border-line-200 p-4">
+          <label className="block">
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Brief</span>
+            <textarea
+              value={brief}
+              onChange={(e) => setBrief(e.target.value)}
+              rows={3}
+              placeholder="e.g. A European HNWI considering CBI in the Caribbean"
+              className="mt-1 w-full border border-line-200 bg-paper-0 p-2 text-sm focus:border-ink-950 focus:outline-none"
+            />
+          </label>
+          <div className="mt-2 flex items-center gap-3">
+            <label className="flex items-center gap-1 text-[11px] text-ink-700">
+              <input type="radio" checked={visibility === "public"} onChange={() => setVisibility("public")} /> Public
+            </label>
+            <label className="flex items-center gap-1 text-[11px] text-ink-700">
+              <input type="radio" checked={visibility === "private"} onChange={() => setVisibility("private")} /> Private
+            </label>
+            <button
+              type="button"
+              onClick={() => gen.mutate()}
+              disabled={brief.trim().length < 3 || gen.isPending}
+              className="ml-auto inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-40"
+            >
+              <Sparkles size={12} /> {gen.isPending ? "Generating…" : "Generate persona"}
+            </button>
+          </div>
+          {gen.isError && <p className="mt-2 text-[11px] text-rose-600">{(gen.error as Error).message}</p>}
+        </div>
+      </details>
+
     </div>
   );
 }

@@ -2,18 +2,19 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   ArrowRight,
+  Check,
   ClipboardList,
   FlaskConical,
   Layers,
   MessageSquare,
-  Sparkles,
   Target,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 
 import { listSegments } from "@/lib/personas/generate.functions";
 import { createStudy, listStudies } from "@/lib/personas/study.functions";
+
 
 const searchSchema = z.object({ segmentId: z.string().optional() });
 
@@ -122,12 +123,28 @@ function StudiesPage() {
   const chosenSegment = segments.find((s) => s.id === segmentId);
   const chosenMethod = METHODS.find((m) => m.id === kind);
 
+  const step2Ref = useRef<HTMLElement | null>(null);
+  const step3Ref = useRef<HTMLElement | null>(null);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    if (currentStep === 2 && step2Ref.current) {
+      step2Ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (currentStep === 3 && step3Ref.current) {
+      step3Ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      titleInputRef.current?.focus();
+    }
+  }, [currentStep]);
+
+  const nextLabel =
+    currentStep === 1 ? "Pick a segment" : currentStep === 2 ? "Choose a method" : "Frame the question";
+
   const grouped = useMemo(() => {
     const running = studies.filter((s) => s.status === "running");
     const done = studies.filter((s) => s.status === "synthesized" || s.status === "complete");
     const drafts = studies.filter((s) => !running.includes(s) && !done.includes(s));
     return { running, done, drafts };
   }, [studies]);
+
 
   return (
     <div className="space-y-8">
@@ -142,25 +159,6 @@ function StudiesPage() {
         </p>
       </header>
 
-      {/* How this works strip */}
-      <ol className="grid grid-cols-2 gap-2 border border-line-200 bg-paper-0 p-3 sm:grid-cols-4">
-        {[
-          { n: 1, label: "Pick a segment", icon: Layers },
-          { n: 2, label: "Choose the method", icon: FlaskConical },
-          { n: 3, label: "Frame the question", icon: Target },
-          { n: 4, label: "AI synthesizes", icon: Sparkles },
-        ].map((b) => (
-          <li key={b.n} className="flex items-center gap-2">
-            <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-line-200 font-mono text-[10px] text-ink-950">
-              {b.n}
-            </span>
-            <div className="min-w-0">
-              <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">Beat 0{b.n}</p>
-              <p className="truncate text-[12px] text-ink-950">{b.label}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
 
       {segments.length === 0 ? (
         <EmptyStart code={code} />
@@ -201,6 +199,7 @@ function StudiesPage() {
               active={currentStep === 2}
               done={stepDone[2]}
               locked={!stepDone[1]}
+              sectionRef={step2Ref}
             >
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {METHODS.map((m) => {
@@ -239,12 +238,14 @@ function StudiesPage() {
               active={currentStep === 3}
               done={stepDone[3]}
               locked={!stepDone[2]}
+              sectionRef={step3Ref}
             >
               <label className="block">
                 <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
                   Working title
                 </span>
                 <input
+                  ref={titleInputRef}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   disabled={!stepDone[2]}
@@ -252,6 +253,7 @@ function StudiesPage() {
                   className="mt-1 w-full border border-line-200 bg-paper-0 px-2 py-2 text-sm focus:border-ink-950 focus:outline-none disabled:opacity-40"
                 />
               </label>
+
               <label className="mt-3 block">
                 <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
                   Objective <span className="text-ink-400">(optional but recommended)</span>
@@ -284,9 +286,20 @@ function StudiesPage() {
           {/* Sticky preview */}
           <aside className="lg:sticky lg:top-4 lg:self-start">
             <div className="border border-line-200 bg-paper-0 p-4">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                Study preview
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                  Study preview
+                </p>
+                {!ready ? (
+                  <span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-700">
+                    Next: {nextLabel} <ArrowRight size={10} />
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.16em] text-emerald-600">
+                    <Check size={11} strokeWidth={2.5} /> Ready to create
+                  </span>
+                )}
+              </div>
               <p className="mt-2 font-serif text-lg leading-tight text-ink-950">
                 {title.trim() || <span className="text-ink-400">Untitled study</span>}
               </p>
@@ -303,16 +316,12 @@ function StudiesPage() {
               >
                 {create.isPending ? "Creating…" : "Create this study"} <ArrowRight size={12} />
               </button>
-              {!ready && (
-                <p className="mt-2 text-center text-[10px] text-ink-500">
-                  Complete step {currentStep} to continue
-                </p>
-              )}
               {create.isError && (
                 <p className="mt-2 text-[11px] text-rose-600">{(create.error as Error).message}</p>
               )}
             </div>
           </aside>
+
         </div>
       )}
 
@@ -348,6 +357,7 @@ function StepBlock({
   active,
   done,
   locked,
+  sectionRef,
   children,
 }: {
   n: number;
@@ -355,6 +365,7 @@ function StepBlock({
   active: boolean;
   done: boolean;
   locked?: boolean;
+  sectionRef?: React.Ref<HTMLElement>;
   children: React.ReactNode;
 }) {
   const dot = done
@@ -366,10 +377,12 @@ function StepBlock({
         : "border-line-200 bg-paper-0 text-ink-700";
   return (
     <section
-      className={`border p-4 transition ${
+      ref={sectionRef}
+      className={`scroll-mt-4 border p-4 transition ${
         active ? "border-ink-950" : locked ? "border-line-200 opacity-70" : "border-line-200"
       }`}
     >
+
       <div className="mb-3 flex items-center gap-2">
         <span className={`grid h-7 w-7 place-items-center rounded-full border font-mono text-[11px] ${dot}`}>
           {n.toString().padStart(2, "0")}

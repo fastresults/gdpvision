@@ -14,6 +14,7 @@ type Props = {
   params: Record<string, string>;
   disabled?: boolean;
   disabledHint?: string;
+  currentHere?: boolean;
   extra?: ReactNode;
 };
 
@@ -29,12 +30,20 @@ export function JourneyCard({
   params,
   disabled,
   disabledHint,
+  currentHere,
   extra,
 }: Props) {
   const status =
-    count > 0 ? "ready" : disabled ? "locked" : "empty";
+    currentHere ? "here" : count > 0 ? "ready" : disabled ? "locked" : "empty";
   const statusColor =
-    status === "ready" ? "bg-emerald-500" : status === "locked" ? "bg-ink-300" : "bg-amber-500";
+    status === "ready"
+      ? "bg-emerald-500"
+      : status === "here"
+        ? "bg-ink-950"
+        : status === "locked"
+          ? "bg-ink-300"
+          : "bg-amber-500";
+
 
   const inner = (
     <div
@@ -62,7 +71,11 @@ export function JourneyCard({
       </p>
       {extra}
       <div className="mt-auto pt-4">
-        {disabled ? (
+        {currentHere ? (
+          <span className="inline-flex items-center gap-1.5 border border-ink-950 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-950">
+            You are here
+          </span>
+        ) : disabled ? (
           <p className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-400">
             <Lock size={11} /> {disabledHint ?? "Locked"}
           </p>
@@ -75,10 +88,11 @@ export function JourneyCard({
     </div>
   );
 
-  if (disabled) return inner;
+  if (disabled || currentHere) return inner;
   return (
     <Link to={to} params={params} className="block h-full">
       {inner}
     </Link>
   );
 }
+

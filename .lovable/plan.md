@@ -1,89 +1,78 @@
 
-## What you're looking at
+## Problem
 
-The screen labeled **"Studio assets · 4"** is the **Sessions Hub** (`src/components/personas/StudyWizard/SessionsHub.tsx`), rendered on the Persona Lab index route.
+Chamber 07 (Persona Lab) presents three peer tabs — Personas, Segments, Studies — with no visible ordering, prerequisites, or "what do I do next?" cues. On the Studies screen the user lands on a generic form ("Rehearse the conversation") that assumes they already know they need a segment, a study kind, a title, and an objective. For a Head‑of‑Government audience this reads as tooling, not an instrument.
 
-It is a **draft library**, not a run output. Every time the wizard modal opens it calls `createDraft(...)` in `src/lib/personas/wizard.functions.ts`, which inserts a row into `persona_study_drafts`. The hub then lists those rows with their last-reached step (`01 · BRIEF`, `02 · OUTCOME`, `03 · CAST`, …), age, and counts.
+## Design principles
 
-### Why it appeared instead of a generated study
+1. One primary path, always visible. Every screen answers: *where am I, what just happened, what should I do next*.
+2. Guided rail over form. Replace naked forms with numbered stages and inline coaching copy.
+3. Auto‑run is the default; manual is the escape hatch. The Research Studio (auto‑run) should be the front door, not a secondary button.
+4. Never dead‑end. If prerequisites are missing, show a one‑click remedy inline (generate personas, draft a segment).
+5. McKinsey restraint: serif headings, mono eyebrows, generous whitespace, semantic tokens only.
 
-The current Chamber 07 flow is a **5-step manual wizard** — Brief → Outcome → Cast → Preview → Launch — where each step requires an explicit click:
+## Scope of changes (UI/presentation only)
 
-1. `Enrich into Research Scope` (Gemini)
-2. `Build deliverable blueprint` (returns scaffold or AI-enriched blueprint)
-3. `Draft cast` (Perplexity fills persona/segment/instrument gaps)
-4. `Preview`
-5. `Launch` → only here does `commitStudy` persist the real `persona_studies` + personas/segments/instruments and route to the study page.
+### 1. Persona Lab shell — `countries.$code.personas.tsx`
+- Replace the flat 3‑item sidebar with a **numbered guided rail**:
+  `01 Personas → 02 Segments → 03 Studies`, each showing a live count (e.g. "12 personas · ready"), a state dot (empty / draft / ready), and a subtle connector line.
+- Add a persistent top strip: *"Your workflow: build a synthetic public → group them → rehearse the conversation."* One sentence, always visible.
+- Promote **✨ Launch Research Studio** to a full‑width primary CTA at the top of the rail with the sub‑label "AI runs the full study end‑to‑end". Keep manual entry to each stage below it.
 
-If you close the modal at any point (or the AI step returns scaffold-only), the draft is saved to `persona_study_drafts` and shows up in the hub — but nothing has been "run." There is currently **no single action that says "take this brief, generate everything, and execute the synthetic analysis."** That is the gap.
+### 2. New "Studio overview" landing — `personas/index.tsx`
+- When the tab loads, show a **3‑card journey board** above the existing library:
+  - Card 1: *Cast the room* (personas) — count, "Generate more" link.
+  - Card 2: *Group them* (segments) — count, "Draft a segment" link, disabled state if 0 personas with inline remedy.
+  - Card 3: *Rehearse* (studies) — count, "Start a study" link, disabled if 0 segments.
+- Each card carries a one‑line "why this exists" and a next‑step CTA. This becomes the map users return to between actions.
 
-The four rows you see are exactly that: three drafts that never reached Launch, plus one recent brief-only draft ("Untitled brief · 14m ago").
+### 3. Studies page — `countries.$code.personas.studies.tsx` (the attached screen)
+Rebuild as a **3‑step guided composer**, not a form:
 
----
-
-## Plan — add an "Auto-run" path (AI-first, end-to-end)
-
-Goal: from a single brief (typed / spoken / uploaded), one click generates the scope, blueprint, cast, commits the study, and kicks off the synthetic analysis — with the 5-step wizard preserved for power users who want to intervene.
-
-### 1. New server function: `autoRunStudy` (in `wizard.functions.ts`)
-A single server function that internally chains, with progress checkpoints written to the draft after each phase so the UI can stream status:
-
-```
-phase 1 · enrichBrief     → brief_scope
-phase 2 · enrichOutcome   → outcome_blueprint  (scaffold fallback preserved)
-phase 3 · draftCast       → cast_draft (personas/segments/instruments)
-phase 4 · commitStudy     → persona_studies row + child rows
-phase 5 · runSynthesis    → triggers existing per-instrument synthetic answers
-                            (reuses whatever Chamber 07 "Launch" already runs)
-```
-
-Every phase writes `draft.autorun_status = { phase, state: 'running'|'done'|'failed', message, ts }` so a poll from the client can render a live progress panel. On any phase failure, the draft stays resumable in the wizard at that step — no dead-ends.
-
-### 2. Corpus-first, deep-research fallback (already the pattern — enforce it explicitly)
-`draftCast` already consults second-brain context and only falls back to Perplexity for gaps. Extend the same pattern to `enrichOutcome`:
-- Pull relevant sector dossiers, ministry profiles, KPIs, and prior studies for the country before calling the model.
-- Only when corpus coverage is thin, add a Perplexity deep-research pass (with `source_url` requirement) to fill missing stakeholder/segment context.
-- Store `sources_used: { corpus: [...], web: [...] }` on the draft for provenance.
-
-### 3. UI — "Auto-run" primary action on the Brief step
-In `WizardModal.tsx` `StepBrief`, add a second primary button next to `Enrich into Research Scope`:
-
-```
-[ ✨ Auto-run full study ]     [ Enrich into Research Scope ]  (advanced)
+```text
+Step 1  Pick a segment      → radio cards with persona count + short trait line
+Step 2  Choose the method   → Survey / Focus group / Creative test
+                              each card shows: what it produces, time, best for
+Step 3  Frame the question  → title + objective with inline example chips
+                              live "Ready to launch" summary panel on the right
 ```
 
-When clicked:
-- Modal switches to a full-height **Auto-run console** with the 5 phase rows, each showing spinner → check → summary chip (e.g. "8 personas · 3 segments · 2 instruments").
-- On completion, navigate directly to the committed study page — same destination as manual Launch.
-- On failure at any phase, show "Resume in wizard at step X" — which just re-opens the modal at that step (leveraging the existing draft).
+- Left column: numbered stepper with completed/active/locked states.
+- Right column: sticky "Study preview" card that fills in as the user answers (segment name, method, title, objective) and enables **Create study** only when all required inputs pass.
+- Empty‑state (no segments): a single centered "Start here" panel with a "Draft your first segment" primary button and a "Why segments?" explainer — no half‑disabled form.
+- Prepend a "**How this works**" strip: 4‑beat micro‑explainer (Pick → Method → Frame → Synthesize) with icons.
+- Replace the flat "All studies · N" list with a card grid grouped by status (Running / Complete / Draft), each card showing method icon, segment, last activity, and a clear "Open synthesis →" or "Resume".
 
-### 4. UI — make the Sessions Hub self-explanatory
-Small copy + affordance changes so it stops looking like "why is this here":
-- Rename header: **"Studio assets · 4"** → **"Saved sessions · 4"** with subhead: *"Drafts you started but haven't launched. Auto-run finishes them end-to-end; opening a row resumes the wizard."*
-- Add a small **status badge** per row: `Draft` / `Ready to launch` / `Auto-running` / `Committed` (derived from `autorun_status` + presence of a linked `persona_studies.id`).
-- Add per-row **"▶ Auto-run"** action that re-enters `autoRunStudy` for existing drafts (starting from whichever phase is incomplete).
+### 4. Study detail — `countries.$code.personas.studies.$id.tsx`
+- Add a status ribbon at top: *Drafted → Questions ready → Running → Synthesized*, with the current phase highlighted and the next action as the only primary button.
+- Coach copy per phase (one sentence) so a first‑time user knows what "run" will do and how long it takes.
 
-### 5. Landing entry point
-The `LAUNCH RESEARCH STUDIO` button already opens the wizard on a blank draft. Keep that. Add a companion tile above the hub:
+### 5. Segments page — `countries.$code.personas.segments.tsx`
+- Same guided treatment: numbered stepper (Choose personas → Name the segment → Confirm), sticky preview, empty‑state remedy that offers "Generate personas first".
 
-> **New study — auto-run**
-> Paste, dictate, or upload a brief. AI generates the scope, blueprint, cast, and runs the synthetic analysis in one pass.
+### 6. Global microcopy pass
+- Every eyebrow becomes an action verb (e.g. "STEP 02 · GROUP YOUR PUBLIC" rather than "SEGMENTS").
+- Every primary button restates the outcome ("Create this study", "Generate 8 personas", "Draft segment from 12 personas").
+- Add inline "Why am I doing this?" popovers (reuse existing `HoverCard`) on each step header.
 
-with a compact `MultimodalInput` inline, and a single **Auto-run** button that internally does: `createDraft` → save `brief_raw` + `uploads` → open modal in Auto-run console mode.
+## Out of scope
 
-### 6. Data
-- Add `autorun_status jsonb` and `study_id uuid null` columns to `persona_study_drafts` (nullable, backward-compatible). `study_id` links a committed run so the hub can badge "Committed → open study."
-- Migration includes the standard `GRANT` block per project rules.
+- No changes to server functions, DB schema, or AI pipelines.
+- No changes to the Research Studio wizard/auto‑run internals (already landed).
+- No new design tokens; reuse existing `ink/paper/line` palette and serif/mono type.
 
-### Technical notes
+## Files to edit
 
-- All new AI calls go through the existing Lovable AI Gateway helper (`ai-sdk-lovable-gateway`), reuse the `callStructured` self-repair + fallback path already in `wizard.functions.ts`, and honor scaffold-only degradation so Auto-run never dead-ends.
-- `autoRunStudy` is a single `createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])` chain; phases are `await`ed sequentially inside the handler. No new endpoints, no edge functions.
-- The synthesis phase (persona × instrument answers) reuses whatever the existing manual Launch already invokes — Auto-run just calls it after `commitStudy` resolves.
-- Client polls `getDraft` every 1.5s while `autorun_status.state === 'running'` to render the console; on `done` for phase 5 it navigates to the study page.
+- `src/routes/_authenticated/admin/countries.$code/personas.tsx` — numbered guided rail + top strip + promoted CTA.
+- `src/routes/_authenticated/admin/countries.$code.personas.index.tsx` — journey board above library.
+- `src/routes/_authenticated/admin/countries.$code.personas.studies.tsx` — 3‑step composer, sticky preview, grouped list, empty state.
+- `src/routes/_authenticated/admin/countries.$code.personas.studies.$id.tsx` — phase ribbon + coach copy.
+- `src/routes/_authenticated/admin/countries.$code.personas.segments.tsx` — matching guided treatment.
+- New: `src/components/personas/GuidedStepper.tsx`, `src/components/personas/JourneyCard.tsx`, `src/components/personas/StudyPreviewCard.tsx` (small presentational primitives shared across the above).
 
-### Out of scope for this pass
-- Cross-study comparison / archive filters in the hub.
-- Voice-assistant style back-and-forth clarification (today: single-shot brief → run).
-- Editing the blueprint after Auto-run finishes (still reachable through the manual wizard on the draft).
+## Acceptance
 
+- A first‑time user landing on Studies with no segments sees exactly one primary action.
+- Every Studio screen shows: stage number, what this stage produces, and the single next action.
+- Auto‑run remains one click away from every entry point.
+- No functional regressions to existing draft/segment/study data or auto‑run runs.

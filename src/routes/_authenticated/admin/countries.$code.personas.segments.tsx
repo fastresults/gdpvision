@@ -3,7 +3,8 @@ import { queryOptions, useSuspenseQuery, useQueryClient, useMutation } from "@ta
 import { ArrowRight, Layers, Sparkles, Trash2, Users } from "lucide-react";
 import { useState } from "react";
 
-import { deleteSegment, generateSegment, listSegments } from "@/lib/personas/generate.functions";
+import { deleteSegment, generateSegment, listPersonas, listSegments } from "@/lib/personas/generate.functions";
+import { StudioStepper } from "@/components/personas/StudioStepper";
 
 function segmentsQuery(code: string) {
   return queryOptions({

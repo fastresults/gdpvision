@@ -285,12 +285,12 @@ async function releaseLock(
   status: AutorunStatus,
   phaseLog?: PhaseLogEntry[],
 ) {
-  const patch: Record<string, unknown> = {
-    locked_at: null,
-    locked_by: null,
+  const patch = {
+    locked_at: null as string | null,
+    locked_by: null as string | null,
     autorun_status: status as unknown as Json,
+    ...(phaseLog ? { phase_log: phaseLog as unknown as Json } : {}),
   };
-  if (phaseLog) patch.phase_log = phaseLog as unknown as Json;
   await supabase.from("persona_study_drafts").update(patch).eq("id", draftId);
 }
 

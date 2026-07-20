@@ -123,12 +123,28 @@ function StudiesPage() {
   const chosenSegment = segments.find((s) => s.id === segmentId);
   const chosenMethod = METHODS.find((m) => m.id === kind);
 
+  const step2Ref = useRef<HTMLElement | null>(null);
+  const step3Ref = useRef<HTMLElement | null>(null);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    if (currentStep === 2 && step2Ref.current) {
+      step2Ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (currentStep === 3 && step3Ref.current) {
+      step3Ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      titleInputRef.current?.focus();
+    }
+  }, [currentStep]);
+
+  const nextLabel =
+    currentStep === 1 ? "Pick a segment" : currentStep === 2 ? "Choose a method" : "Frame the question";
+
   const grouped = useMemo(() => {
     const running = studies.filter((s) => s.status === "running");
     const done = studies.filter((s) => s.status === "synthesized" || s.status === "complete");
     const drafts = studies.filter((s) => !running.includes(s) && !done.includes(s));
     return { running, done, drafts };
   }, [studies]);
+
 
   return (
     <div className="space-y-8">

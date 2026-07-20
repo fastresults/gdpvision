@@ -105,6 +105,8 @@ function StudyDetail() {
 
   return (
     <div className="space-y-6">
+      <StudioStepper code={code} active="rehearse" />
+
       <Link
         to="/admin/countries/$code/personas/studies"
         params={{ code }}

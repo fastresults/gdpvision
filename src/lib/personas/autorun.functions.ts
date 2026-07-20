@@ -90,6 +90,22 @@ export const startAutorun = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => StartInput.parse(d))
   .handler(async ({ data, context }) => {
     const now = new Date().toISOString();
+    // Pre-flight: a queued auto-run cannot do anything without a brief.
+    const { data: draft } = await loadDraft(context.supabase, data.draftId);
+    if (!draft) throw new Error("Draft not found");
+    if (!(draft.brief_raw ?? "").trim()) {
+      const status: AutorunStatus = {
+        status: "queued",
+        next_phase: null,
+        updated_at: now,
+        message: "Waiting for brief — add a brief to start auto-run",
+      };
+      await context.supabase
+        .from("persona_study_drafts")
+        .update({ autorun_status: status as unknown as Json })
+        .eq("id", data.draftId);
+      throw new Error("Draft has no brief text. Add a brief before starting auto-run.");
+    }
     const status: AutorunStatus = {
       status: "queued",
       next_phase: null,

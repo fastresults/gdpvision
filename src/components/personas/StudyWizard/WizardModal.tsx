@@ -228,6 +228,15 @@ function StepBrief({ draftId, countryCode, draft, onNext, onSaved, onAutoRun }: 
           <button
             type="button"
             onClick={async () => {
+              setAutoRunHint(null);
+              const combined = [
+                text.trim(),
+                ...uploads.filter((u) => u.excerpt).map((u) => `\n\n[UPLOAD: ${u.name}]\n${u.excerpt}`),
+              ].join("").trim();
+              if (combined.length < 3) {
+                setAutoRunHint("Add a brief or upload a document before auto-run.");
+                return;
+              }
               // Persist any pending brief edits before auto-run kicks off.
               try { await saveDraft({ data: { id: draftId, patch: { brief_raw: text, uploads } } }); } catch { /* ignore */ }
               onAutoRun();

@@ -14,7 +14,7 @@ import {
   validCitationsForRefs,
 } from "@/lib/citations/hygiene";
 
-const GEN_MODEL = "google/gemini-2.5-pro";
+const GEN_MODEL = "google/gemini-2.5-flash";
 
 async function callGateway(system: string, user: string): Promise<string> {
   const apiKey = process.env.LOVABLE_API_KEY;
@@ -38,9 +38,22 @@ async function callGateway(system: string, user: string): Promise<string> {
     if (res.status === 402) throw new Error("AI credits exhausted for this workspace.");
     throw new Error(`AI Gateway ${res.status}: ${t.slice(0, 300)}`);
   }
-  const j = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  return j.choices?.[0]?.message?.content?.trim() ?? "{}";
+  const j = (await res.json()) as {
+    choices?: Array<{
+      finish_reason?: string;
+      message?: { content?: string | null };
+      error?: { code?: number; message?: string };
+    }>;
+  };
+  const choice = j.choices?.[0];
+  const content = choice?.message?.content?.trim();
+  if (!content) {
+    const reason = choice?.error?.message || choice?.finish_reason || "empty response";
+    throw new Error(`AI upstream failure: ${reason}`);
+  }
+  return content;
 }
+
 
 function safeParse<T = unknown>(s: string): T | null {
   try {

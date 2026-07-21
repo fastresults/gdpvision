@@ -1128,16 +1128,16 @@ export const getStudy = createServerFn({ method: "POST" })
         : transcript ?? [],
       report: pack && report
         ? (() => {
-            const hydrated = hydrateCitationField(report, pack.citations) as typeof report & { summary_md?: string | null; themes?: unknown; citations?: unknown; context?: unknown };
+            const hydrated = hydrateCitationField(report, pack.citations);
             const cleaned = stripBrandedByline(hydrated.summary_md ?? "");
             const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(cleaned, hydrated.citations));
             const existingContext = hydrated.context && typeof hydrated.context === "object" ? hydrated.context as Record<string, Json | undefined> : {};
             return {
               ...hydrated,
               summary_md: cleaned ? sanitizeCitationMarkersInText(cleaned, citations) : hydrated.summary_md,
-              themes: sanitizeJsonCitationMarkers(hydrated.themes ?? [], citations) as typeof hydrated.themes,
-              citations: citations as unknown as typeof hydrated.citations,
-              context: methodology ? ({ ...existingContext, methodology } as Json) : hydrated.context,
+              themes: toJson(sanitizeJsonCitationMarkers(hydrated.themes ?? [], citations)),
+              citations: toJson(citations),
+              context: methodology ? ({ ...existingContext, methodology } as Json) : ((hydrated.context ?? null) as Json),
             };
           })()
         : report ?? null,

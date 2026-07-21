@@ -1,12 +1,12 @@
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Check, FlaskConical, Layers, Users } from "lucide-react";
+import { Check, FileText, FlaskConical, Layers, Lock, Users } from "lucide-react";
 
 import { listPersonas, listSegments } from "@/lib/personas/generate.functions";
 import { listStudies } from "@/lib/personas/study.functions";
 import { cn } from "@/lib/utils";
 
-type StageKey = "cast" | "group" | "rehearse";
+type StageKey = "brief" | "cast" | "group" | "rehearse";
 
 export function StudioStepper({
   code,
@@ -14,12 +14,14 @@ export function StudioStepper({
   activeProjectId,
   autoStatus,
   rehearseStatus,
+  briefCommitted = true,
 }: {
   code: string;
   active?: StageKey;
   activeProjectId?: string;
   autoStatus?: string;
   rehearseStatus?: string;
+  briefCommitted?: boolean;
 }) {
   const matchRoute = useMatchRoute();
   const personas = useQuery({

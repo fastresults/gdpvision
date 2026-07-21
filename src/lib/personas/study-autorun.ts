@@ -42,18 +42,19 @@ export interface StudyDraftProgress {
 
 async function completeStudyEndToEnd(opts: {
   studyId: string;
+  projectId: string;
   segmentLabel: string;
   index: number;
   total: number;
   onProgress?: (p: StudyDraftProgress) => void;
   segmentId: string;
 }): Promise<{ ok: true } | { ok: false; reason: string; phase: StudyAutoPhase }> {
-  const { studyId, segmentLabel, index, total, onProgress, segmentId } = opts;
+  const { studyId, projectId, segmentLabel, index, total, onProgress, segmentId } = opts;
 
   // Check current state so we don't repeat expensive work.
   let existing: Awaited<ReturnType<typeof getStudy>> | null = null;
   try {
-    existing = await getStudy({ data: { id: studyId } });
+    existing = await getStudy({ data: { id: studyId, projectId } });
   } catch {
     existing = null;
   }
@@ -182,6 +183,7 @@ export async function draftStudiesForSegments({
     if (fullPipeline && studyId && !cancelRef.current) {
       const res = await completeStudyEndToEnd({
         studyId,
+        projectId,
         segmentLabel: seg.label,
         segmentId: seg.id,
         index: i + 1,
@@ -231,6 +233,7 @@ export async function completeIncompleteStudies({
     const s = targets[i];
     const res = await completeStudyEndToEnd({
       studyId: s.id,
+      projectId,
       segmentLabel: s.title,
       segmentId: s.segment_id ?? "",
       index: i + 1,

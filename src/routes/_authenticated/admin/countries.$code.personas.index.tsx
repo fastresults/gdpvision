@@ -48,12 +48,12 @@ function PersonasIndex() {
     mutationFn: () => generatePersona({ data: { countryCode: code, brief: brief.trim(), visibility } }),
     onSuccess: () => {
       setBrief("");
-      qc.invalidateQueries({ queryKey: ["personas", code] });
+      qc.invalidateQueries({ queryKey: ["personas", code, activeProjectId] });
     },
   });
   const del = useMutation({
     mutationFn: (id: string) => deletePersona({ data: { id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["personas", code] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["personas", code, activeProjectId] }),
   });
 
   const segCount = (projectsQ.data ?? []).reduce((sum, p) => sum + p.segments_total, 0);

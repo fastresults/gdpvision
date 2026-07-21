@@ -12,6 +12,8 @@ import { startAutorun } from "@/lib/personas/autorun.functions";
 import { JourneyCard } from "@/components/personas/JourneyCard";
 import { StudioStepper } from "@/components/personas/StudioStepper";
 import { ProgramsIndex } from "@/components/personas/StudyWizard/ProgramsIndex";
+import { ProgramBriefIntake } from "@/components/personas/StudyWizard/ProgramBriefIntake";
+import { useProgramBriefGate } from "@/hooks/useProgramBriefGate";
 import { listProjects } from "@/lib/personas/projects.functions";
 
 function personasQuery(code: string, projectId?: string) {

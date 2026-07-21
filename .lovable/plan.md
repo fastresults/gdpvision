@@ -1,45 +1,47 @@
-## Problem
 
-The Chamber 07 landing (`/admin/countries/$code/personas`) hides the multi-project reality of the studio. There is no index of past synthesized reports and no obvious way to start a new one. The `ProjectSwitcher` (a compact dropdown) only appears deep inside Stage 03 (`/personas/studies`), so from the Stage 01 landing an admin has no signal that "projects" even exist, how many reports have been produced, or how to launch another program.
+## What I confirmed
 
-## Goal
+- The server function ran fine: three "test" projects for GRD were inserted at 01:33, 01:41, and 01:45 UTC (matching the reported failed attempt).
+- Manually loading `/admin/countries/GRD/personas/studies?project=<id>` in preview renders the Studies page correctly — the target route exists and accepts the search shape.
+- Reproducing the flow via a scripted click in preview also succeeded (URL and page both landed on Studies).
+- The user's 404 (session replay + "Go home" click) means the router matched the **root** `notFoundComponent` — i.e. the URL that was pushed did not match any route, so the failure is in the `navigate({...})` call inside `ProgramsIndex`, not in the destination route.
 
-Turn the Chamber 07 landing into a clear **Research Programs index** — a first-class list of every project (past + in-flight), each row showing the finished synthesis status, with a prominent **New research program** action.
+## Diagnosis (unconfirmed, high confidence)
 
-## Changes (frontend only)
+`ProgramsIndex.onSuccess` fires:
 
-### 1. New component: `src/components/personas/StudyWizard/ProgramsIndex.tsx`
+```ts
+navigate({
+  to: "/admin/countries/$code/personas/studies",
+  params: { code },
+  search: { project: row?.id },
+});
+```
 
-A McKinsey-grade index card, rendered above the Studio Journey on the personas landing.
+Three fragile things happen at the same time:
 
-Contents:
-- Header row: "Research programs" · count · primary CTA **New program** (opens inline title form; reuses `createProject` from `projects.functions.ts`).
-- Table/list of every project from `listProjects`:
-  - Title (link → Stage 03 with `?project=<id>`)
-  - Status chip: **Synthesized** (has_program_memo), **In progress** (studies_total > studies_done), **Draft** (0 studies), **Archived**
-  - `studies_done / studies_total` studies · `segments_total` segments
-  - Updated timestamp (relative)
-  - Row actions: **Open report** (→ Stage 03, scrolls to `ProgramSynthesisCard`), **Continue** (→ Stage 03), overflow → Rename / Archive (uses existing `renameProject`, `archiveProject`)
-- Empty state: single centered CTA "Start your first research program" with the same inline title form.
+1. `qc.invalidateQueries` refetches `persona-projects`, unmounting the empty-state form and re-rendering the row list — during that render cycle the `code` closure is the one captured when the mutation started.
+2. `row?.id` — if the server-fn payload ever comes back wrapped (`{ data: row }`), `row?.id` is `undefined` and we push `?project=undefined`. Not a 404 by itself, but a symptom worth removing.
+3. `navigate` uses the URL-form path (`/admin/...`). `ProjectSwitcher` (which works) uses the **route-id form** (`/_authenticated/...`). If `code` is ever falsy on this render, the URL-form call pushes `/admin/countries//personas/studies` → root 404, exactly what the user saw. The route-id form fails validation instead of silently 404-ing.
 
-### 2. Update `src/routes/_authenticated/admin/countries.$code.personas.index.tsx`
+## Fix
 
-- Mount `<ProgramsIndex code={code} />` immediately below `StudioStepper` and above the existing header/Studio Journey.
-- Keep the existing Journey board, personas library, and advanced generator untouched (they operate on the currently active/most-recent program).
-- Journey cards' counts (segments, studies) continue to reflect the country-wide totals as today; the Programs index is the surface for per-program reports.
+Small, defensive changes only in `src/components/personas/StudyWizard/ProgramsIndex.tsx`:
 
-### 3. Small polish
+1. **Assert `code` before navigate.** If missing, keep the form open and surface an inline error instead of pushing a broken URL.
+2. **Normalize the mutation result.** Accept both `row` and `{ data: row }` shapes; require a non-empty `id`; on missing id, refetch `persona-projects`, pick the freshest project for `code`, and use that id.
+3. **Await the invalidation** (`await qc.invalidateQueries(...)`) so the projects list is authoritative before we leave the page.
+4. **Switch `to` to the route-id form** used by the working `ProjectSwitcher`: `"/_authenticated/admin/countries/$code/personas/studies"`. This gives TanStack a typed match; a bad `code` throws instead of falling through to root 404.
+5. **Log the failure once.** Wrap the navigate in try/catch and `console.error("[programs] navigate failed", { code, id, err })` so a repeat is diagnosable from the console log tool without more guessing.
+6. **Same treatment for the two `<Link>`s** in `ProgramRow` (Continue / Open report) — move them to the route-id `to` form for consistency.
 
-- On the Stage 03 page, keep the existing `ProjectSwitcher` but add a subtle "← All programs" link back to `/personas` so navigation between the index and a specific program is a single click.
-- Ensure `New program` in `ProgramsIndex` navigates the user directly into Stage 03 with `?project=<new-id>` (matching `ProjectSwitcher`'s existing behavior) so auto-run picks it up.
+## Verification
+
+- Click **New program → Create** in preview and confirm the URL becomes `/admin/countries/GRD/personas/studies?project=<uuid>` and the Studies page renders (not the 404).
+- Retry with the form open and empty `code` (simulated) — expect an inline error, not a bounce.
+- Confirm existing rows' Continue / Open report links still work.
 
 ## Out of scope
 
-- No schema changes; `persona_projects` + `study_program_reports` already back this.
-- No changes to synthesis logic, auto-run, or report content.
-- No changes to Stages 02/03 workflows beyond the "All programs" back-link.
-
-## Acceptance
-
-- From the Chamber 07 landing, an admin sees every past program with a Synthesized/In-progress badge and can open the finished report in one click.
-- A **New program** CTA is visible on the landing (both when programs exist and in the empty state) and creating one drops the admin straight into Stage 03 for that program.
+- No server-function, schema, or RLS changes — DB writes are already succeeding.
+- No changes to `ProjectSwitcher` (already uses the safe pattern) or to the Studies route itself.

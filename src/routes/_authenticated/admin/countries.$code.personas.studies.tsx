@@ -558,6 +558,25 @@ function StudiesPage() {
     );
   }
 
+  if (briefGate.needsIntake) {
+    return (
+      <div className="space-y-6">
+        <StudioStepper code={code} active="rehearse" activeProjectId={activeProjectId} briefCommitted={false} />
+        <div className="flex items-center justify-between gap-3">
+          <Link
+            to="/admin/countries/$code/personas"
+            params={{ code }}
+            search={{ project: activeProjectId }}
+            className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
+          >
+            ← All programs
+          </Link>
+        </div>
+        <ProgramBriefIntake code={code} projectId={activeProjectId} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <StudioStepper

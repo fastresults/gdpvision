@@ -207,8 +207,11 @@ function StudiesPage() {
   const currentStep = !stepDone[1] ? 1 : !stepDone[2] ? 2 : !stepDone[3] ? 3 : 3;
 
   const create = useMutation({
-    mutationFn: (opts: { auto?: boolean }) =>
-      createStudy({
+    mutationFn: (opts: { auto?: boolean }) => {
+      if (!activeProjectId) {
+        throw new Error("Select or create a research program before creating a study.");
+      }
+      return createStudy({
         data: {
           countryCode: code,
           projectId: activeProjectId,
@@ -217,7 +220,8 @@ function StudiesPage() {
           title: title.trim(),
           objective: objective.trim() || undefined,
         },
-      }).then((row) => ({ row, auto: !!opts.auto })),
+      }).then((row) => ({ row, auto: !!opts.auto }));
+    },
     onSuccess: ({ row, auto }) => {
       qc.invalidateQueries({ queryKey: ["studies", code] });
       navigate({
@@ -777,7 +781,7 @@ function StudiesPage() {
                     <button
                       type="button"
                       onClick={() => create.mutate({})}
-                      disabled={!ready || create.isPending}
+                      disabled={!ready || !activeProjectId || create.isPending}
                       className="mt-4 inline-flex w-full items-center justify-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-40"
                     >
                       {create.isPending ? "Creating…" : "Create this study"} <ArrowRight size={12} />

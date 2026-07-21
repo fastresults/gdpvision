@@ -634,6 +634,25 @@ function SegmentsPage() {
     );
   }
 
+  if (briefGate.needsIntake) {
+    return (
+      <div className="space-y-6">
+        <StudioStepper code={code} active="group" activeProjectId={activeProjectId} briefCommitted={false} />
+        <div>
+          <Link
+            to="/admin/countries/$code/personas"
+            params={{ code }}
+            search={{ project: activeProjectId }}
+            className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
+          >
+            ← All programs
+          </Link>
+        </div>
+        <ProgramBriefIntake code={code} projectId={activeProjectId} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <StudioStepper
@@ -641,6 +660,7 @@ function SegmentsPage() {
         active="group"
         activeProjectId={activeProjectId}
         autoStatus={autoLabel}
+        briefCommitted
       />
       <ProjectSwitcher
         code={code}

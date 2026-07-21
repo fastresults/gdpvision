@@ -25,6 +25,7 @@ import { Route as AuthenticatedNarrativeIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedInstrumentIndexRouteImport } from './routes/_authenticated/instrument/index'
 import { Route as AuthenticatedCounselIndexRouteImport } from './routes/_authenticated/counsel/index'
 import { Route as AuthenticatedConfigIndexRouteImport } from './routes/_authenticated/config/index'
+import { Route as AuthenticatedConciergeIndexRouteImport } from './routes/_authenticated/concierge.index'
 import { Route as AuthenticatedCodexIndexRouteImport } from './routes/_authenticated/codex/index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as KioskApiUploadPresentationRouteImport } from './routes/kiosk.api.upload-presentation'
@@ -193,6 +194,12 @@ const AuthenticatedConfigIndexRoute =
   AuthenticatedConfigIndexRouteImport.update({
     id: '/config/',
     path: '/config/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedConciergeIndexRoute =
+  AuthenticatedConciergeIndexRouteImport.update({
+    id: '/concierge/',
+    path: '/concierge/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedCodexIndexRoute = AuthenticatedCodexIndexRouteImport.update({
@@ -727,6 +734,7 @@ export interface FileRoutesByFullPath {
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/codex/': typeof AuthenticatedCodexIndexRoute
+  '/concierge/': typeof AuthenticatedConciergeIndexRoute
   '/config/': typeof AuthenticatedConfigIndexRoute
   '/counsel/': typeof AuthenticatedCounselIndexRoute
   '/instrument/': typeof AuthenticatedInstrumentIndexRoute
@@ -824,6 +832,7 @@ export interface FileRoutesByTo {
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/codex': typeof AuthenticatedCodexIndexRoute
+  '/concierge': typeof AuthenticatedConciergeIndexRoute
   '/config': typeof AuthenticatedConfigIndexRoute
   '/counsel': typeof AuthenticatedCounselIndexRoute
   '/instrument': typeof AuthenticatedInstrumentIndexRoute
@@ -922,6 +931,7 @@ export interface FileRoutesById {
   '/kiosk/api/upload-presentation': typeof KioskApiUploadPresentationRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/codex/': typeof AuthenticatedCodexIndexRoute
+  '/_authenticated/concierge/': typeof AuthenticatedConciergeIndexRoute
   '/_authenticated/config/': typeof AuthenticatedConfigIndexRoute
   '/_authenticated/counsel/': typeof AuthenticatedCounselIndexRoute
   '/_authenticated/instrument/': typeof AuthenticatedInstrumentIndexRoute
@@ -1025,6 +1035,7 @@ export interface FileRouteTypes {
     | '/kiosk/api/upload-presentation'
     | '/admin/'
     | '/codex/'
+    | '/concierge/'
     | '/config/'
     | '/counsel/'
     | '/instrument/'
@@ -1122,6 +1133,7 @@ export interface FileRouteTypes {
     | '/kiosk/api/upload-presentation'
     | '/admin'
     | '/codex'
+    | '/concierge'
     | '/config'
     | '/counsel'
     | '/instrument'
@@ -1219,6 +1231,7 @@ export interface FileRouteTypes {
     | '/kiosk/api/upload-presentation'
     | '/_authenticated/admin/'
     | '/_authenticated/codex/'
+    | '/_authenticated/concierge/'
     | '/_authenticated/config/'
     | '/_authenticated/counsel/'
     | '/_authenticated/instrument/'
@@ -1413,6 +1426,13 @@ declare module '@tanstack/react-router' {
       path: '/config'
       fullPath: '/config/'
       preLoaderRoute: typeof AuthenticatedConfigIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/concierge/': {
+      id: '/_authenticated/concierge/'
+      path: '/concierge'
+      fullPath: '/concierge/'
+      preLoaderRoute: typeof AuthenticatedConciergeIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/codex/': {
@@ -2328,6 +2348,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCounselMobileRoute: typeof AuthenticatedCounselMobileRoute
   AuthenticatedOnboardingCountryRoute: typeof AuthenticatedOnboardingCountryRoute
   AuthenticatedCodexIndexRoute: typeof AuthenticatedCodexIndexRoute
+  AuthenticatedConciergeIndexRoute: typeof AuthenticatedConciergeIndexRoute
   AuthenticatedConfigIndexRoute: typeof AuthenticatedConfigIndexRoute
   AuthenticatedCounselIndexRoute: typeof AuthenticatedCounselIndexRoute
 }
@@ -2344,6 +2365,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCounselMobileRoute: AuthenticatedCounselMobileRoute,
   AuthenticatedOnboardingCountryRoute: AuthenticatedOnboardingCountryRoute,
   AuthenticatedCodexIndexRoute: AuthenticatedCodexIndexRoute,
+  AuthenticatedConciergeIndexRoute: AuthenticatedConciergeIndexRoute,
   AuthenticatedConfigIndexRoute: AuthenticatedConfigIndexRoute,
   AuthenticatedCounselIndexRoute: AuthenticatedCounselIndexRoute,
 }

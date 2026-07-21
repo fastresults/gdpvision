@@ -406,7 +406,7 @@ export function programReportToMarkdown(input: ProgramExportInput): { filename: 
   }
 
   // Methodology — Cast
-  const segs = meth.segments ?? [];
+  const segs = effectiveMeth.segments ?? [];
   if (segs.length > 0) {
     const totalPersonas = segs.reduce((n, s) => n + (s.personas?.length ?? 0), 0);
     parts.push(`\n## Cast — ${totalPersonas} personas across ${segs.length} segments\n`);

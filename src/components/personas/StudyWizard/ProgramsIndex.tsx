@@ -316,7 +316,7 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
             </Link>
           ) : (
             <Link
-              to="/admin/countries/$code/personas/studies"
+              to="/admin/countries/$code/personas"
               params={{ code }}
               search={{ project: p.id, open: 1 }}
               className="inline-flex items-center gap-1 border border-ink-950 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950 hover:bg-ink-950 hover:text-paper-0"

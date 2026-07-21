@@ -334,8 +334,7 @@ function StudiesPage() {
   const runningRef = useRef(false);
   const autoFlagKey = activeProjectId ? AUTO_STUDIES_FLAG_KEY(code, activeProjectId) : "";
 
-  const startAutoRun = useCallback(
-    async () => {
+  const startAutoRun = useCallback(async () => {
       if (runningRef.current) return;
       const projectId = activeProjectId;
       if (!projectId) {
@@ -449,7 +448,7 @@ function StudiesPage() {
       }
       runningRef.current = false;
       AUTO_STUDIES_LOCK.delete(lockKey);
-    },
+  },
     [segments, studies, coveredSegmentIds, code, activeProjectId, qc, programSynthFn],
   );
 

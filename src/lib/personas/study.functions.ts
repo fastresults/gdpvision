@@ -611,7 +611,10 @@ export const synthesizeStudyProgram = createServerFn({ method: "POST" })
         brief_snapshot: briefSnapshot as never,
         studies_snapshot: studiesSnapshot as never,
         summary_md: sanitizeCitationMarkersInText(cleaned, citations),
-        sections: sanitizeJsonCitationMarkers(parsed.sections ?? {}, citations) as never,
+        sections: {
+          ...(sanitizeJsonCitationMarkers(parsed.sections ?? {}, citations) as Record<string, unknown>),
+          methodology,
+        } as never,
         citations: citations as never,
         model: MODEL,
       };

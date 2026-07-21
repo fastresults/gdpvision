@@ -327,6 +327,59 @@ type ProgramMethodology = {
   }>;
 };
 
+function reconstructSegmentsFromStudies(studyReports: StudyExportInput[]): ProgramMethodology["segments"] {
+  const bySegment = new Map<string, { id: string; label: string; prompt?: string | null; personas: Map<string, { id: string; name?: string | null; archetype?: string | null; summary?: string | null; ocean?: Record<string, number | undefined> | null }>; used_by_studies: Array<{ id: string; title?: string; kind?: string }> }>();
+  studyReports.forEach((sr, idx) => {
+    const ctx = (sr.report?.context ?? {}) as { methodology?: StudyMethodology };
+    const m = ctx.methodology ?? {};
+    const segId = m.segment?.id ?? sr.study?.segment_id ?? `study-${idx}`;
+    const entry = bySegment.get(segId) ?? {
+      id: segId,
+      label: m.segment?.label ?? "Segment",
+      prompt: m.segment?.prompt ?? null,
+      personas: new Map(),
+      used_by_studies: [],
+    };
+    (m.personas ?? []).forEach((p) => {
+      if (!p.id) return;
+      if (!entry.personas.has(p.id)) {
+        entry.personas.set(p.id, { id: p.id, name: p.name, archetype: p.archetype, summary: p.summary, ocean: p.ocean });
+      }
+    });
+    entry.used_by_studies.push({ id: (sr.study as { id?: string })?.id ?? `study-${idx}`, title: sr.study?.title ?? undefined, kind: sr.study?.kind ?? undefined });
+    bySegment.set(segId, entry);
+  });
+  return Array.from(bySegment.values()).map((e) => ({
+    id: e.id,
+    label: e.label,
+    prompt: e.prompt,
+    persona_count: e.personas.size,
+    personas: Array.from(e.personas.values()),
+    used_by_studies: e.used_by_studies,
+  }));
+}
+
+function reconstructStudiesFromReports(studyReports: StudyExportInput[]): ProgramMethodology["studies"] {
+  return studyReports.map((sr, idx) => {
+    const ctx = (sr.report?.context ?? {}) as { methodology?: StudyMethodology };
+    const m = ctx.methodology ?? {};
+    return {
+      id: (sr.study as { id?: string })?.id ?? `study-${idx}`,
+      title: sr.study?.title ?? "Untitled study",
+      kind: sr.study?.kind ?? "study",
+      objective: sr.study?.objective ?? null,
+      segment_label: m.segment?.label ?? null,
+      persona_count: m.personas?.length ?? 0,
+      questions: (sr.questions ?? []).map((q, i) => ({
+        ord: typeof q.ord === "number" ? q.ord : i,
+        prompt: q.prompt ?? "",
+        kind: q.kind ?? "open",
+        options: q.options,
+      })),
+    };
+  });
+}
+
 export type ProgramExportInput = {
   countryCode: string;
   projectId?: string;

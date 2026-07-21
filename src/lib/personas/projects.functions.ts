@@ -36,17 +36,17 @@ export const listProjects = createServerFn({ method: "POST" })
     }>;
 
     const ids = list.map((p) => p.id as string);
-    const [{ data: studies }, { data: memos }, { count: countrySegments }] = await Promise.all([
+    const [{ data: studies }, { data: memos }, { data: segments }] = await Promise.all([
       supabase.from("studies").select("id,status,project_id").in("project_id", ids),
       supabase.from("study_program_reports").select("id,project_id,updated_at").in("project_id", ids),
       supabase
         .from("persona_segments")
-        .select("id", { count: "exact", head: true })
-        .eq("country_code", data.countryCode),
+        .select("id,project_id")
+        .in("project_id", ids),
     ]);
 
-    const perProject = new Map<string, { total: number; done: number; memo: boolean }>();
-    for (const p of list) perProject.set(p.id as string, { total: 0, done: 0, memo: false });
+    const perProject = new Map<string, { total: number; done: number; memo: boolean; segments: number }>();
+    for (const p of list) perProject.set(p.id as string, { total: 0, done: 0, memo: false, segments: 0 });
     for (const s of studies ?? []) {
       const b = perProject.get(s.project_id as string);
       if (!b) continue;
@@ -57,10 +57,13 @@ export const listProjects = createServerFn({ method: "POST" })
       const b = perProject.get(m.project_id as string);
       if (b) b.memo = true;
     }
+    for (const segment of segments ?? []) {
+      const b = perProject.get(segment.project_id as string);
+      if (b) b.segments += 1;
+    }
 
-    const countrySegs = countrySegments ?? 0;
     return list.map((p) => {
-      const b = perProject.get(p.id as string) ?? { total: 0, done: 0, memo: false };
+      const b = perProject.get(p.id as string) ?? { total: 0, done: 0, memo: false, segments: 0 };
       return {
         id: p.id as string,
         title: p.title as string,
@@ -71,7 +74,7 @@ export const listProjects = createServerFn({ method: "POST" })
         updated_at: p.updated_at as string,
         studies_total: b.total,
         studies_done: b.done,
-        segments_total: countrySegs,
+        segments_total: b.segments,
         has_program_memo: b.memo,
       };
     });
@@ -151,8 +154,7 @@ export const archiveProject = createServerFn({ method: "POST" })
   });
 
 // Permanently delete a project and all dependent research artifacts
-// (studies, program reports, drafts). Segments/personas are country-scoped
-// and shared across projects, so they are intentionally NOT deleted here.
+// (segments, studies, program reports, drafts).
 export const deleteProject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
@@ -180,6 +182,16 @@ export const deleteProject = createServerFn({ method: "POST" })
     }
     await supabase.from("persona_study_drafts").delete().eq("project_id", pid);
     await supabase.from("studies").delete().eq("project_id", pid);
+
+    const { data: segments } = await supabase
+      .from("persona_segments")
+      .select("id")
+      .eq("project_id", pid);
+    const segmentIds = (segments ?? []).map((s) => s.id as string);
+    if (segmentIds.length > 0) {
+      await supabase.from("persona_segment_members").delete().in("segment_id", segmentIds);
+      await supabase.from("persona_segments").delete().in("id", segmentIds);
+    }
 
     const { error } = await supabase
       .from("persona_projects")

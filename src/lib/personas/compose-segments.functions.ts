@@ -9,6 +9,7 @@ const MODEL = "google/gemini-2.5-flash";
 
 const ComposeInput = z.object({
   countryCode: z.string().min(3).max(4),
+  projectId: z.string().min(1),
   count: z.number().int().min(2).max(6).default(3),
 });
 
@@ -86,12 +87,23 @@ export const composeSegments = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<ComposeSegmentsResult> => {
     const { supabase } = context;
     const code = data.countryCode;
+    const projectId = data.projectId;
 
-    // Existing segments — avoid duplicates
+    const { data: project, error: projectErr } = await supabase
+      .from("persona_projects")
+      .select("id")
+      .eq("id", projectId)
+      .eq("country_code", code)
+      .maybeSingle();
+    if (projectErr) throw new Error(projectErr.message);
+    if (!project) return { ok: false, reason: "Research program not found for this country." };
+
+    // Existing segments — avoid duplicates inside this program only.
     const { data: existingSegs } = await supabase
       .from("persona_segments")
       .select("label,prompt")
       .eq("country_code", code)
+      .eq("project_id", projectId)
       .order("created_at", { ascending: false })
       .limit(24);
 
@@ -100,6 +112,7 @@ export const composeSegments = createServerFn({ method: "POST" })
       .from("persona_study_drafts")
       .select("brief_raw,brief_scope,outcome_blueprint")
       .eq("country_code", code)
+      .eq("project_id", projectId)
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle();

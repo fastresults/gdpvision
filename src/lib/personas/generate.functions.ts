@@ -146,6 +146,7 @@ Return JSON:
 // ── Generate a segment (N distinct personas) ──────────────────────────────
 const GenSegmentInput = z.object({
   countryCode: z.string().min(3).max(4),
+  projectId: z.string().min(1),
   prompt: z.string().min(3).max(500),
   size: z.number().int().min(3).max(20).default(8),
   visibility: z.enum(["public", "private"]).default("public"),
@@ -156,6 +157,15 @@ export const generateSegment = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => GenSegmentInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { data: project, error: projectErr } = await supabase
+      .from("persona_projects")
+      .select("id")
+      .eq("id", data.projectId)
+      .eq("country_code", data.countryCode)
+      .maybeSingle();
+    if (projectErr) throw new Error(projectErr.message);
+    if (!project) throw new Error("Research program not found for this country.");
+
     const pack = await buildCountryContextPack(supabase, data.countryCode, data.prompt);
 
     const raw = await callGateway(
@@ -181,6 +191,7 @@ Rules: exactly ${data.size} personas, all distinct, realistic distribution.`,
       .from("persona_segments")
       .insert({
         country_code: data.countryCode,
+        project_id: data.projectId,
         label: String(parsed.label ?? data.prompt.slice(0, 60)).slice(0, 120),
         prompt: data.prompt,
         distribution: (parsed.distribution ?? {}) as never,
@@ -189,7 +200,7 @@ Rules: exactly ${data.size} personas, all distinct, realistic distribution.`,
         owner_user_id: userId,
         owner_country_code: data.visibility === "private" ? data.countryCode : null,
         uploaded_by: userId,
-      })
+      } as never)
       .select()
       .single();
     if (segErr) throw new Error(segErr.message);
@@ -249,12 +260,13 @@ export const listPersonas = createServerFn({ method: "POST" })
 
 export const listSegments = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string(), projectId: z.string().min(1) }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("persona_segments")
-      .select("id,label,prompt,size,visibility,created_at")
+      .select("id,project_id,label,prompt,size,visibility,created_at")
       .eq("country_code", data.countryCode)
+      .eq("project_id", data.projectId)
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);

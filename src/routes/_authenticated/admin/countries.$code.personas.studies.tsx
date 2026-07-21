@@ -427,7 +427,7 @@ function StudiesPage() {
       replace: true,
     });
     void startAutoRun();
-  }, [autoIntent, uncoveredSegments.length, studies, autoState.phase, startAutoRun, navigate, code]);
+  }, [autoIntent, activeProjectId, uncoveredSegments.length, studies, autoState.phase, startAutoRun, navigate, code]);
 
   const rehearseStatus =
     autoState.phase === "running"

@@ -335,119 +335,119 @@ function StudiesPage() {
   const autoFlagKey = activeProjectId ? AUTO_STUDIES_FLAG_KEY(code, activeProjectId) : "";
 
   const startAutoRun = useCallback(async () => {
-      if (runningRef.current) return;
-      const projectId = activeProjectId;
-      if (!projectId) {
-        setAutoState({
-          phase: "complete",
-          drafted: 0,
-          completed: 0,
-          failed: [
-            {
-              label: "Research project",
-              reason: "Select or create a program before starting auto-run.",
-            },
-          ],
-        });
-        return;
-      }
-      const lockKey = `${code}:${projectId}`;
-      if (AUTO_STUDIES_LOCK.has(lockKey)) return;
-      const targets = segments.filter((s) => !coveredSegmentIds.has(s.id));
-      // Existing studies that never finished (drafts or stuck-running) also
-      // need to be pushed to synthesis so the user only ever sees completed work.
-      const needsFinish = studies.some(
-        (s) =>
-          !s.is_synthesized &&
-          !s.has_report &&
-          s.status !== "completed" &&
-          s.status !== "complete" &&
-          s.status !== "synthesized",
-      );
-      if (targets.length === 0 && !needsFinish) {
-        setAutoState({ phase: "complete", drafted: 0, completed: 0, failed: [] });
-        return;
-      }
-      runningRef.current = true;
-      AUTO_STUDIES_LOCK.add(lockKey);
-      cancelRef.current = false;
+    if (runningRef.current) return;
+    const projectId = activeProjectId;
+    if (!projectId) {
+      setAutoState({
+        phase: "complete",
+        drafted: 0,
+        completed: 0,
+        failed: [
+          {
+            label: "Research project",
+            reason: "Select or create a program before starting auto-run.",
+          },
+        ],
+      });
+      return;
+    }
+    const lockKey = `${code}:${projectId}`;
+    if (AUTO_STUDIES_LOCK.has(lockKey)) return;
+    const targets = segments.filter((s) => !coveredSegmentIds.has(s.id));
+    // Existing studies that never finished (drafts or stuck-running) also
+    // need to be pushed to synthesis so the user only ever sees completed work.
+    const needsFinish = studies.some(
+      (s) =>
+        !s.is_synthesized &&
+        !s.has_report &&
+        s.status !== "completed" &&
+        s.status !== "complete" &&
+        s.status !== "synthesized",
+    );
+    if (targets.length === 0 && !needsFinish) {
+      setAutoState({ phase: "complete", drafted: 0, completed: 0, failed: [] });
+      return;
+    }
+    runningRef.current = true;
+    AUTO_STUDIES_LOCK.add(lockKey);
+    cancelRef.current = false;
+    try {
+      window.localStorage.setItem(AUTO_STUDIES_FLAG_KEY(code, projectId), String(Date.now()));
+    } catch {
+      // localStorage unavailable; defensive guard
+    }
+
+    let drafted = 0;
+    let completed = 0;
+    const failed: Array<{ label: string; reason: string }> = [];
+
+    // Phase A — draft + fully run any missing studies.
+    if (targets.length > 0) {
+      const res = await draftStudiesForSegments({
+        code,
+        projectId,
+        targets: targets.map((s) => ({ id: s.id, label: s.label })),
+        cancelRef,
+        fullPipeline: true,
+        onProgress: ({ index, total, segmentId, segmentLabel, phase }) => {
+          setAutoState({
+            phase: "running",
+            index,
+            total,
+            segmentId,
+            segmentLabel,
+            step: phase,
+          });
+        },
+      });
+      drafted += res.drafted;
+      completed += res.completed;
+      for (const f of res.failed) failed.push({ label: f.label, reason: f.reason });
+    }
+
+    // Phase B — finish any leftover drafts/running studies (e.g. from prior
+    // sessions or partial pipelines) so nothing is left half-done.
+    if (!cancelRef.current) {
+      const res2 = await completeIncompleteStudies({
+        code,
+        projectId,
+        cancelRef,
+        onProgress: ({ index, total, segmentId, segmentLabel, phase }) => {
+          setAutoState({
+            phase: "running",
+            index,
+            total,
+            segmentId,
+            segmentLabel,
+            step: phase,
+          });
+        },
+      });
+      completed += res2.completed;
+      for (const f of res2.failed) failed.push({ label: f.label, reason: f.reason });
+    }
+
+    // Phase C — consolidate portfolio memo once at least one study exists.
+    if (!cancelRef.current) {
       try {
-        window.localStorage.setItem(AUTO_STUDIES_FLAG_KEY(code, projectId), String(Date.now()));
-      } catch {
-        // localStorage unavailable; defensive guard
+        await programSynthFn({ data: { countryCode: code, projectId } });
+        await qc.invalidateQueries({ queryKey: ["study-program-report", code, projectId] });
+      } catch (e) {
+        // Non-fatal — the per-study memos are still saved.
+        console.warn("[program synth]", (e as Error).message);
       }
+    }
 
-      let drafted = 0;
-      let completed = 0;
-      const failed: Array<{ label: string; reason: string }> = [];
-
-      // Phase A — draft + fully run any missing studies.
-      if (targets.length > 0) {
-        const res = await draftStudiesForSegments({
-          code,
-          projectId,
-          targets: targets.map((s) => ({ id: s.id, label: s.label })),
-          cancelRef,
-          fullPipeline: true,
-          onProgress: ({ index, total, segmentId, segmentLabel, phase }) => {
-            setAutoState({
-              phase: "running",
-              index,
-              total,
-              segmentId,
-              segmentLabel,
-              step: phase,
-            });
-          },
-        });
-        drafted += res.drafted;
-        completed += res.completed;
-        for (const f of res.failed) failed.push({ label: f.label, reason: f.reason });
-      }
-
-      // Phase B — finish any leftover drafts/running studies (e.g. from prior
-      // sessions or partial pipelines) so nothing is left half-done.
-      if (!cancelRef.current) {
-        const res2 = await completeIncompleteStudies({
-          code,
-          projectId,
-          cancelRef,
-          onProgress: ({ index, total, segmentId, segmentLabel, phase }) => {
-            setAutoState({
-              phase: "running",
-              index,
-              total,
-              segmentId,
-              segmentLabel,
-              step: phase,
-            });
-          },
-        });
-        completed += res2.completed;
-        for (const f of res2.failed) failed.push({ label: f.label, reason: f.reason });
-      }
-
-      // Phase C — consolidate portfolio memo once at least one study exists.
-      if (!cancelRef.current) {
-        try {
-          await programSynthFn({ data: { countryCode: code, projectId } });
-          await qc.invalidateQueries({ queryKey: ["study-program-report", code, projectId] });
-        } catch (e) {
-          // Non-fatal — the per-study memos are still saved.
-          console.warn("[program synth]", (e as Error).message);
-        }
-      }
-
-      await qc.invalidateQueries({ queryKey: ["studies", code, projectId] });
-      await qc.invalidateQueries({ queryKey: ["studies-digest", code, projectId] });
-      await qc.invalidateQueries({ queryKey: ["persona-projects", code] });
-      if (cancelRef.current) {
-        setAutoState({ phase: "cancelled", drafted, completed });
-      } else {
-        setAutoState({ phase: "complete", drafted, completed, failed });
-      }
-      runningRef.current = false;
-      AUTO_STUDIES_LOCK.delete(lockKey);
+    await qc.invalidateQueries({ queryKey: ["studies", code, projectId] });
+    await qc.invalidateQueries({ queryKey: ["studies-digest", code, projectId] });
+    await qc.invalidateQueries({ queryKey: ["persona-projects", code] });
+    if (cancelRef.current) {
+      setAutoState({ phase: "cancelled", drafted, completed });
+    } else {
+      setAutoState({ phase: "complete", drafted, completed, failed });
+    }
+    runningRef.current = false;
+    AUTO_STUDIES_LOCK.delete(lockKey);
   },
     [segments, studies, coveredSegmentIds, code, activeProjectId, qc, programSynthFn],
   );

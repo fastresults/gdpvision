@@ -697,10 +697,11 @@ export const getStudy = createServerFn({ method: "POST" })
       report: pack && report
         ? (() => {
             const hydrated = hydrateCitationField(report, pack.citations) as typeof report & { summary_md?: string | null; themes?: unknown; citations?: unknown };
-            const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(hydrated.summary_md, hydrated.citations));
+            const cleaned = stripBrandedByline(hydrated.summary_md ?? "");
+            const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(cleaned, hydrated.citations));
             return {
               ...hydrated,
-              summary_md: hydrated.summary_md ? sanitizeCitationMarkersInText(hydrated.summary_md, citations) : hydrated.summary_md,
+              summary_md: cleaned ? sanitizeCitationMarkersInText(cleaned, citations) : hydrated.summary_md,
               themes: sanitizeJsonCitationMarkers(hydrated.themes ?? [], citations) as typeof hydrated.themes,
               citations: citations as unknown as typeof hydrated.citations,
             };

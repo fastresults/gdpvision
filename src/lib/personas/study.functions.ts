@@ -695,7 +695,7 @@ export const getStudyProgramReport = createServerFn({ method: "POST" })
 // Builds the methodology dossier from live DB state. Used both when persisting
 // a fresh program memo and when reading an older memo that lacks the field.
 async function buildProgramMethodology(
-  supabase: never,
+  supabase: import("@supabase/supabase-js").SupabaseClient,
   countryCode: string,
   projectId: string | null,
 ) {

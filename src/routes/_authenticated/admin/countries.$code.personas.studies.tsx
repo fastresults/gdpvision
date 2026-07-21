@@ -55,6 +55,10 @@ const searchSchema = z.object({
   segmentId: z.string().optional(),
   auto: z.union([z.literal(1), z.literal("1"), z.boolean()]).optional(),
   project: z.string().optional(),
+  // Explicit "open a program" intent. Only when this is present do we honor
+  // `?project=` on landing — otherwise the URL is stripped and the admin is
+  // sent back to the Programs Index so the last project never auto-opens.
+  open: z.union([z.literal(1), z.literal("1"), z.boolean()]).optional(),
 });
 
 export function studiesQuery(code: string, projectId?: string) {

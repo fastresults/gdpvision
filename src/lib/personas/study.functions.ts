@@ -467,8 +467,8 @@ export const synthesizeStudyProgram = createServerFn({ method: "POST" })
     if (ids.length === 0) throw new Error("No studies to consolidate.");
 
     // persona_segments has no project_id column — scope only through the
-    // studies we already loaded (studySegIds).
-    const allSegIds = studySegIds;
+    // studies we already loaded.
+    const allSegIds = Array.from(new Set(list.map((s) => s.segment_id).filter((v): v is string => !!v)));
 
     const [{ data: reports }, { data: segRows }, { data: members }, { data: allQuestions }] = await Promise.all([
       supabase.from("study_reports").select("study_id,summary_md,themes,citations,context").in("study_id", ids),

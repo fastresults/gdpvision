@@ -1091,6 +1091,7 @@ export const getStudy = createServerFn({ method: "POST" })
       supabase.from("study_reports").select("*").eq("study_id", data.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
     const pack = study ? await buildCountryContextPack(supabase, study.country_code, study.objective ?? study.title) : null;
+    const methodology = study ? await buildStudyMethodology(supabase, study, questions ?? []) : null;
     return {
       study,
       questions: questions ?? [],
@@ -1120,19 +1121,95 @@ export const getStudy = createServerFn({ method: "POST" })
         : transcript ?? [],
       report: pack && report
         ? (() => {
-            const hydrated = hydrateCitationField(report, pack.citations) as typeof report & { summary_md?: string | null; themes?: unknown; citations?: unknown };
+            const hydrated = hydrateCitationField(report, pack.citations) as typeof report & { summary_md?: string | null; themes?: unknown; citations?: unknown; context?: unknown };
             const cleaned = stripBrandedByline(hydrated.summary_md ?? "");
             const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(cleaned, hydrated.citations));
+            const existingContext = hydrated.context && typeof hydrated.context === "object" ? hydrated.context as Record<string, unknown> : {};
             return {
               ...hydrated,
               summary_md: cleaned ? sanitizeCitationMarkersInText(cleaned, citations) : hydrated.summary_md,
               themes: sanitizeJsonCitationMarkers(hydrated.themes ?? [], citations) as typeof hydrated.themes,
               citations: citations as unknown as typeof hydrated.citations,
+              context: methodology ? { ...existingContext, methodology } : hydrated.context,
             };
           })()
         : report ?? null,
+      methodology,
     };
   });
+
+async function buildStudyMethodology(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  study: Record<string, unknown>,
+  questions: Array<Record<string, unknown>>,
+) {
+  const [{ data: segment }, { data: members }] = await Promise.all([
+    study.segment_id
+      ? supabase.from("persona_segments").select("id,label,prompt").eq("id", study.segment_id as string).maybeSingle()
+      : Promise.resolve({ data: null as { id: string; label: string; prompt: string | null } | null }),
+    study.segment_id
+      ? supabase
+          .from("persona_segment_members")
+          .select("segment_id,personas(id,name,archetype,summary,attributes,ocean)")
+          .eq("segment_id", study.segment_id as string)
+      : Promise.resolve({ data: [] as Array<{ segment_id: string; personas: unknown }> }),
+  ]);
+  const brief = await loadCountryBrief(supabase, study.country_code as string, study.project_id as string | null);
+  const personas = (members ?? [])
+    .flatMap((m) => {
+      const p = (m as { personas: unknown }).personas;
+      return Array.isArray(p) ? p : p ? [p] : [];
+    })
+    .filter((p): p is Record<string, unknown> & { id: string; name: string } => !!p && typeof p === "object")
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      archetype: (p.archetype as string | null | undefined) ?? null,
+      summary: (p.summary as string | null | undefined) ?? null,
+      attributes: p.attributes ?? null,
+      ocean: p.ocean ?? null,
+    }));
+
+  return {
+    report_frame: {
+      country_code: study.country_code as string,
+      project_id: (study.project_id as string | null) ?? null,
+      title: study.title as string,
+      objective: (study.objective as string | null) ?? null,
+      decision_question: brief.scope?.title ?? study.objective ?? study.title,
+    },
+    brief: {
+      title: brief.scope?.title ?? null,
+      objectives: brief.scope?.objectives ?? [],
+      raw_excerpt: brief.briefRaw ? brief.briefRaw.slice(0, 1200) : null,
+    },
+    workflow: {
+      cast: "Synthetic personas were generated from the committed brief and country corpus to represent materially different stakeholder voices.",
+      group: "Personas were organized into a segment with a shared decision context, lived experience, and policy exposure.",
+      rehearse: "The study instrument was run against the cast so each persona could respond in character before synthesis.",
+    },
+    segment: segment
+      ? { id: segment.id, label: segment.label, prompt: segment.prompt ?? null, persona_count: personas.length }
+      : null,
+    personas,
+    instrument: {
+      kind: study.kind as string,
+      title: study.title as string,
+      objective: (study.objective as string | null) ?? null,
+      questions: questions.map((q) => ({
+        ord: q.ord as number,
+        prompt: String(q.prompt ?? ""),
+        kind: String(q.kind ?? "open"),
+        options: q.options ?? [],
+      })),
+    },
+    limitations: [
+      "Synthetic research is directional and should be treated as a fast empirical rehearsal, not a replacement for fieldwork.",
+      "Findings are strongest where persona responses converge with cited country-context evidence.",
+    ],
+    generated_at: new Date().toISOString(),
+  };
+}
 
 // ── Persona chat (Ask this persona) ───────────────────────────────────────
 export const askPersona = createServerFn({ method: "POST" })

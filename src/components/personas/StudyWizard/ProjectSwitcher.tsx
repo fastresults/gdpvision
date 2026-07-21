@@ -53,7 +53,7 @@ export function ProjectSwitcher({
       navigate({
         to: routeId,
         params: { code },
-        search: (s) => ({ ...(s as object), project: row?.id }),
+        search: (s: Record<string, unknown>) => ({ ...s, project: row?.id }),
       });
     },
   });
@@ -62,7 +62,7 @@ export function ProjectSwitcher({
     navigate({
       to: routeId,
       params: { code },
-      search: (s) => ({ ...(s as object), project: id }),
+      search: (s: Record<string, unknown>) => ({ ...s, project: id }),
     });
     setOpen(false);
   };

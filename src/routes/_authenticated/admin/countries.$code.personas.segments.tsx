@@ -80,6 +80,7 @@ function SegmentsPage() {
   const qc = useQueryClient();
   const search = useSearch({ strict: false }) as { auto?: unknown; project?: string };
   const autoIntent = search.auto === 1 || search.auto === "1" || search.auto === true;
+  const activeProjectId = typeof search.project === "string" && search.project.length > 0 ? search.project : undefined;
   const { data: segments } = useSuspenseQuery(segmentsQuery(code));
   const personasQ = useQuery({
     queryKey: ["personas", code],
@@ -195,7 +196,7 @@ function SegmentsPage() {
           id: s.id,
           label: s.label,
         }));
-        freshStudies = await listStudies({ data: { countryCode: code } });
+        freshStudies = await listStudies({ data: { countryCode: code, projectId: activeProjectId } });
       } catch (e) {
         AUTO_STUDIES_LOCK.delete(code);
         setAuto({
@@ -220,6 +221,7 @@ function SegmentsPage() {
         let lastFailed = 0;
         const result = await draftStudiesForSegments({
           code,
+          projectId: activeProjectId,
           targets,
           cancelRef,
           fullPipeline: true,
@@ -257,6 +259,7 @@ function SegmentsPage() {
       // lands on Stage 03 with fully synthesized work product.
       const sweep = await completeIncompleteStudies({
         code,
+        projectId: activeProjectId,
         cancelRef,
         onProgress: ({ index, total, segmentLabel }) => {
           setAuto({
@@ -280,7 +283,7 @@ function SegmentsPage() {
       // Verify: nothing is still draft/running before we flag as consumed.
       let unfinished = 0;
       try {
-        const finalStudies = await listStudies({ data: { countryCode: code } });
+        const finalStudies = await listStudies({ data: { countryCode: code, projectId: activeProjectId } });
         unfinished = finalStudies.filter(
           (s) => s.status !== "complete" && s.status !== "synthesized",
         ).length;
@@ -321,12 +324,16 @@ function SegmentsPage() {
       }
       AUTO_STUDIES_LOCK.delete(code);
       setAuto({ kind: "complete" });
-      navigate({ to: "/admin/countries/$code/personas/studies", params: { code } });
+      navigate({
+        to: "/admin/countries/$code/personas/studies",
+        params: { code },
+        search: activeProjectId ? { project: activeProjectId, open: 1 } : {},
+      });
     } catch (e) {
       AUTO_STUDIES_LOCK.delete(code);
       setAuto({ kind: "error", message: (e as Error).message });
     }
-  }, [castOne, cancelAuto, code, compose, navigate, qc]);
+  }, [activeProjectId, castOne, cancelAuto, code, compose, navigate, qc]);
 
   // Intent-driven auto-fire. Just landing on this page (project switcher,
   // refresh, saved link) never starts work. Auto-run only fires when the URL

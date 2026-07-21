@@ -4,7 +4,7 @@
 // one. The active project id is carried in the `?project=` URL search param.
 
 import { useMutation, useQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ChevronDown, FolderPlus, Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
@@ -33,7 +33,6 @@ export function ProjectSwitcher({
 }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const search = useSearch({ strict: false }) as Record<string, unknown>;
   const q = useQuery(projectsQuery(code));
   const projects = q.data ?? [];
   const active = projects.find((p) => p.id === activeProjectId) ?? null;
@@ -157,9 +156,6 @@ export function ProjectSwitcher({
           )}
         </details>
       </div>
-
-      {/* Silences unused warning while keeping the search-param API stable for future filters. */}
-      <span className="hidden">{JSON.stringify(search).slice(0, 0)}</span>
     </div>
   );
 }

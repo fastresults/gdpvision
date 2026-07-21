@@ -149,3 +149,42 @@ export const archiveProject = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// Permanently delete a project and all dependent research artifacts
+// (studies, program reports, drafts). Segments/personas are country-scoped
+// and shared across projects, so they are intentionally NOT deleted here.
+export const deleteProject = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ projectId: z.string() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const pid = data.projectId;
+
+    // Best-effort cascade in case FKs aren't set to CASCADE.
+    await supabase.from("study_program_reports").delete().eq("project_id", pid);
+    const { data: studies } = await supabase
+      .from("studies")
+      .select("id")
+      .eq("project_id", pid);
+    const studyIds = (studies ?? []).map((s) => s.id as string);
+    if (studyIds.length > 0) {
+      await supabase.from("study_evidence").delete().in("study_id", studyIds);
+      await supabase.from("study_responses").delete().in("study_id", studyIds);
+      await supabase.from("study_transcripts").delete().in("study_id", studyIds);
+      await supabase.from("study_questions").delete().in("study_id", studyIds);
+      await supabase.from("study_instruments").delete().in("study_id", studyIds);
+      await supabase.from("study_reports").delete().in("study_id", studyIds);
+      await supabase.from("persona_study_drafts").delete().in("study_id", studyIds);
+    }
+    await supabase.from("persona_study_drafts").delete().eq("project_id", pid);
+    await supabase.from("studies").delete().eq("project_id", pid);
+
+    const { error } = await supabase
+      .from("persona_projects")
+      .delete()
+      .eq("id", pid);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

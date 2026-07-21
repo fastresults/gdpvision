@@ -64,6 +64,53 @@ function parseJson<T>(s: string): T | null {
   }
 }
 
+// Strip any "FROM: McKinsey & Company" (and variants) that a model may
+// have injected, along with an optional TO/RE header block that mimics it.
+// Applied to every summary emitted or read back from `study_reports` /
+// `study_program_reports` so the user-visible surface never leaks a
+// third-party byline.
+export function stripBrandedByline(input: string | null | undefined): string {
+  if (!input) return "";
+  let s = String(input);
+  // Full "FROM:" lines mentioning McKinsey/BCG/Bain/Deloitte/etc.
+  s = s.replace(/^[ \t>*_#-]*from\s*[:—-].*?(mckinsey|bcg|bain|deloitte|kpmg|pwc|accenture|goldman)[^\n]*\n?/gim, "");
+  // Bare "MCKINSEY & COMPANY" letterhead lines.
+  s = s.replace(/^[ \t>*_#-]*(mckinsey\s*&\s*company|bcg|bain\s*&\s*company)[^\n]*\n?/gim, "");
+  return s.trim();
+}
+
+// Latest active brief for a country (from persona_study_drafts). Used to
+// ground per-study memos and the program-level portfolio synthesis.
+export async function loadCountryBrief(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  countryCode: string,
+): Promise<{
+  briefRaw: string | null;
+  scope: { title?: string; objectives?: string[] } | null;
+  blueprint: unknown | null;
+  block: string;
+}> {
+  const { data: draft } = await supabase
+    .from("persona_study_drafts")
+    .select("brief_raw,brief_scope,outcome_blueprint,updated_at")
+    .eq("country_code", countryCode)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const scope = (draft?.brief_scope ?? null) as { title?: string; objectives?: string[] } | null;
+  const blueprint = draft?.outcome_blueprint ?? null;
+  const briefRaw = (draft?.brief_raw as string | null) ?? null;
+  const block = [
+    scope?.title ? `BRIEF TITLE: ${scope.title}` : "",
+    Array.isArray(scope?.objectives) && scope!.objectives!.length
+      ? `BRIEF OBJECTIVES:\n- ${scope!.objectives!.slice(0, 8).map((s) => String(s).slice(0, 200)).join("\n- ")}`
+      : "",
+    blueprint ? `OUTCOME BLUEPRINT: ${JSON.stringify(blueprint).slice(0, 900)}` : "",
+    briefRaw ? `BRIEF RAW: ${briefRaw.slice(0, 1500)}` : "",
+  ].filter(Boolean).join("\n");
+  return { briefRaw, scope, blueprint, block };
+}
+
 function fullCitationsForRefs(citations: ContextCitation[], refs: unknown): ContextCitation[] {
   return validCitationsForRefs(citations, refs);
 }

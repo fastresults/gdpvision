@@ -160,6 +160,7 @@ function StudiesPage() {
       createStudy({
         data: {
           countryCode: code,
+            projectId: activeProjectId,
           segmentId,
           kind: kind as StudyKind,
           title: title.trim(),
@@ -225,8 +226,10 @@ function StudiesPage() {
         : "Frame the question";
 
   const grouped = useMemo(() => {
-    const running = studies.filter((s) => s.status === "running");
-    const done = studies.filter((s) => s.status === "synthesized" || s.status === "complete");
+    const isDone = (s: (typeof studies)[number]) =>
+      !!s.is_synthesized || !!s.has_report || s.status === "synthesized" || s.status === "complete" || s.status === "completed";
+    const running = studies.filter((s) => !isDone(s) && s.status === "running");
+    const done = studies.filter(isDone);
     const drafts = studies.filter((s) => !running.includes(s) && !done.includes(s));
     return { running, done, drafts };
   }, [studies]);
@@ -274,7 +277,7 @@ function StudiesPage() {
       // Existing studies that never finished (drafts or stuck-running) also
       // need to be pushed to synthesis so the user only ever sees completed work.
       const needsFinish = studies.some(
-        (s) => s.status !== "complete" && s.status !== "synthesized",
+        (s) => !s.is_synthesized && !s.has_report && s.status !== "completed" && s.status !== "complete" && s.status !== "synthesized",
       );
       if (targets.length === 0 && !needsFinish) {
         setAutoState({ phase: "complete", drafted: 0, completed: 0, failed: [] });
@@ -297,6 +300,7 @@ function StudiesPage() {
       if (targets.length > 0) {
         const res = await draftStudiesForSegments({
           code,
+          projectId: activeProjectId,
           targets: targets.map((s) => ({ id: s.id, label: s.label })),
           cancelRef,
           fullPipeline: true,
@@ -321,6 +325,7 @@ function StudiesPage() {
       if (!cancelRef.current) {
         const res2 = await completeIncompleteStudies({
           code,
+          projectId: activeProjectId,
           cancelRef,
           onProgress: ({ index, total, segmentId, segmentLabel, phase }) => {
             setAutoState({
@@ -340,7 +345,7 @@ function StudiesPage() {
       // Phase C — consolidate portfolio memo once at least one study exists.
       if (!cancelRef.current) {
         try {
-          await programSynthFn({ data: { countryCode: code } });
+          await programSynthFn({ data: { countryCode: code, projectId: activeProjectId } });
           await qc.invalidateQueries({ queryKey: ["study-program-report", code] });
         } catch (e) {
           // Non-fatal — the per-study memos are still saved.
@@ -358,7 +363,7 @@ function StudiesPage() {
       runningRef.current = false;
       AUTO_STUDIES_LOCK.delete(code);
     },
-    [segments, studies, coveredSegmentIds, code, qc, autoFlagKey, programSynthFn],
+    [segments, studies, coveredSegmentIds, code, activeProjectId, qc, autoFlagKey, programSynthFn],
   );
 
   const cancelAutoRun = () => {
@@ -372,7 +377,7 @@ function StudiesPage() {
     if (didAttemptRef.current) return;
     if (autoState.phase !== "idle") return;
     const anyIncomplete = studies.some(
-      (s) => s.status !== "complete" && s.status !== "synthesized",
+      (s) => !s.is_synthesized && !s.has_report && s.status !== "completed" && s.status !== "complete" && s.status !== "synthesized",
     );
     if (uncoveredSegments.length === 0 && !anyIncomplete) return;
     // Always self-heal on landing. AUTO_STUDIES_LOCK prevents double-runs
@@ -711,7 +716,7 @@ function StudiesPage() {
 
       {/* Synthesized work product — always shown when any report exists */}
       {(digest.length > 0 || studies.length > 0) && (
-        <ProgramSynthesisCard code={code} synthesizedCount={digest.filter((d) => d.summary_md).length} />
+        <ProgramSynthesisCard code={code} projectId={activeProjectId} synthesizedCount={digest.filter((d) => d.summary_md).length} />
       )}
       {digest.length > 0 && <SynthesisDigest items={digest} code={code} />}
 
@@ -817,7 +822,7 @@ function StudyGroup({
             <div className="min-w-0 flex-1">
               <p className="truncate font-serif text-base text-ink-950">{s.title}</p>
               <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
-                {s.kind.replace("_", " ")} · {s.status} ·{" "}
+                {s.kind.replace("_", " ")} · {s.is_synthesized || s.has_report ? "synthesized" : s.status} ·{" "}
                 {new Date(s.created_at).toLocaleDateString()}
               </p>
             </div>

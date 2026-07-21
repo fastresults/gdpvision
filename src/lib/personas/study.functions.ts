@@ -140,6 +140,7 @@ function personaBlock(p: { name: string; archetype?: string | null; summary?: st
 // ── Create study shell ────────────────────────────────────────────────────
 const CreateStudyInput = z.object({
   countryCode: z.string(),
+  projectId: z.string().optional(),
   segmentId: z.string(),
   kind: z.enum(["survey", "focus_group", "creative_test"]),
   title: z.string().min(3).max(160),
@@ -152,25 +153,28 @@ export const createStudy = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => CreateStudyInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const projectId = data.projectId ?? (await resolveDefaultProjectId(supabase, data.countryCode));
 
     // Idempotency guard: never create a duplicate draft for the same
     // (country, segment). Enforced at the DB level by a partial unique
     // index (studies_one_draft_per_segment_idx); this pre-check keeps
     // the happy path silent for auto-run races (StrictMode double-mount,
     // tab re-entry, retries).
-    const { data: existing } = await supabase
+    let existingQ = supabase
       .from("studies")
       .select("*")
       .eq("country_code", data.countryCode)
       .eq("segment_id", data.segmentId)
-      .eq("status", "draft")
-      .maybeSingle();
+      .eq("status", "draft");
+    if (projectId) existingQ = existingQ.eq("project_id", projectId);
+    const { data: existing } = await existingQ.maybeSingle();
     if (existing) return existing;
 
     const { data: row, error } = await supabase
       .from("studies")
       .insert({
         country_code: data.countryCode,
+        project_id: projectId,
         segment_id: data.segmentId,
         kind: data.kind,
         title: data.title,
@@ -185,13 +189,14 @@ export const createStudy = createServerFn({ method: "POST" })
       .single();
     if (error) {
       if ((error as { code?: string }).code === "23505") {
-        const { data: raced } = await supabase
+        let racedQ = supabase
           .from("studies")
           .select("*")
           .eq("country_code", data.countryCode)
           .eq("segment_id", data.segmentId)
-          .eq("status", "draft")
-          .maybeSingle();
+          .eq("status", "draft");
+        if (projectId) racedQ = racedQ.eq("project_id", projectId);
+        const { data: raced } = await racedQ.maybeSingle();
         if (raced) return raced;
       }
       throw new Error(error.message);
@@ -390,7 +395,7 @@ export const runStudySynthesis = createServerFn({ method: "POST" })
         { study_id: data.studyId, summary_md: "", themes: [] as never, citations: [] as never, context: contextPayload as never },
         { onConflict: "study_id" },
       );
-      await supabase.from("studies").update({ status: "complete" }).eq("id", data.studyId);
+      await supabase.from("studies").update({ status: "completed" }).eq("id", data.studyId);
       return { ok: true, empty: true };
     }
 
@@ -425,7 +430,7 @@ export const runStudySynthesis = createServerFn({ method: "POST" })
         { onConflict: "study_id" },
       );
     }
-    await supabase.from("studies").update({ status: "complete" }).eq("id", data.studyId);
+    await supabase.from("studies").update({ status: "completed" }).eq("id", data.studyId);
     return { ok: true };
   });
 
@@ -721,12 +726,14 @@ export const listStudies = createServerFn({ method: "POST" })
     // but never had its status flipped (worker timeout, tab close, retry) is
     // reconciled to `complete` so the UI counters stop drifting.
     try {
-      const { data: stuck } = await supabase
+      let stuckQuery = supabase
         .from("studies")
         .select("id")
         .eq("country_code", data.countryCode)
-        .neq("status", "complete")
+        .neq("status", "completed")
         .limit(500);
+      if (data.projectId) stuckQuery = stuckQuery.eq("project_id", data.projectId);
+      const { data: stuck } = await stuckQuery;
       const stuckIds = (stuck ?? []).map((r) => r.id as string);
       if (stuckIds.length > 0) {
         const { data: reps } = await supabase
@@ -737,7 +744,7 @@ export const listStudies = createServerFn({ method: "POST" })
           .filter((r) => (r.summary_md ?? "").trim().length > 0)
           .map((r) => r.study_id as string);
         if (doneIds.length > 0) {
-          await supabase.from("studies").update({ status: "complete" }).in("id", doneIds);
+          await supabase.from("studies").update({ status: "completed" }).in("id", doneIds);
         }
       }
     } catch {
@@ -753,7 +760,35 @@ export const listStudies = createServerFn({ method: "POST" })
     if (data.projectId) q = q.eq("project_id", data.projectId);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    const studies = rows ?? [];
+    if (studies.length === 0) return [];
+
+    const ids = studies.map((s) => s.id as string);
+    const { data: reports } = await supabase
+      .from("study_reports")
+      .select("study_id,summary_md")
+      .in("study_id", ids);
+    const reportByStudy = new Map<string, { hasReport: boolean; chars: number }>();
+    for (const r of reports ?? []) {
+      const summary = String(r.summary_md ?? "").trim();
+      if (summary.length > 0) {
+        reportByStudy.set(r.study_id as string, { hasReport: true, chars: summary.length });
+      }
+    }
+
+    return studies.map((s) => {
+      const report = reportByStudy.get(s.id as string);
+      const hasReport = !!report?.hasReport;
+      const rawStatus = s.status as string;
+      return {
+        ...s,
+        raw_status: rawStatus,
+        status: hasReport ? "completed" : rawStatus,
+        is_synthesized: hasReport || rawStatus === "completed" || rawStatus === "complete" || rawStatus === "synthesized",
+        has_report: hasReport,
+        report_summary_chars: report?.chars ?? 0,
+      };
+    });
   });
 
 export const getStudy = createServerFn({ method: "POST" })

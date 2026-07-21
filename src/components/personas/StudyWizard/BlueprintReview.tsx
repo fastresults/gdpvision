@@ -24,10 +24,12 @@ import {
   composeBlueprint,
   getBlueprint,
   saveBlueprint,
+  suggestBriefAdditions,
   type Blueprint,
   type StudyKind,
 } from "@/lib/personas/blueprint.functions";
 import { generateSegment, listSegments } from "@/lib/personas/generate.functions";
+import { saveProjectBrief, getProjectBrief } from "@/lib/personas/project-brief.functions";
 
 const KIND_LABEL: Record<StudyKind, string> = {
   survey: "Survey",

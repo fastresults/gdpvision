@@ -58,8 +58,9 @@ export const listProjects = createServerFn({ method: "POST" })
       if (b) b.memo = true;
     }
 
+    const countrySegs = countrySegments ?? 0;
     return list.map((p) => {
-      const b = perProject.get(p.id as string) ?? { total: 0, done: 0, segments: 0, memo: false };
+      const b = perProject.get(p.id as string) ?? { total: 0, done: 0, memo: false };
       return {
         id: p.id as string,
         title: p.title as string,
@@ -70,7 +71,7 @@ export const listProjects = createServerFn({ method: "POST" })
         updated_at: p.updated_at as string,
         studies_total: b.total,
         studies_done: b.done,
-        segments_total: b.segments,
+        segments_total: countrySegs,
         has_program_memo: b.memo,
       };
     });

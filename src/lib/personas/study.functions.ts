@@ -466,16 +466,9 @@ export const synthesizeStudyProgram = createServerFn({ method: "POST" })
     const ids = list.map((s) => s.id as string);
     if (ids.length === 0) throw new Error("No studies to consolidate.");
 
-    // Collect all segments this project touches (via studies) plus any project-owned
-    // segments so the Group stage is fully represented in the methodology dossier.
-    const studySegIds = Array.from(new Set(list.map((s) => s.segment_id).filter((v): v is string => !!v)));
-    let segScopeQ = supabase
-      .from("persona_segments")
-      .select("id")
-      .eq("country_code", data.countryCode);
-    if (projectId) segScopeQ = segScopeQ.eq("project_id", projectId);
-    const { data: projectSegs } = await segScopeQ;
-    const allSegIds = Array.from(new Set([...studySegIds, ...((projectSegs ?? []).map((s) => s.id as string))]));
+    // persona_segments has no project_id column — scope only through the
+    // studies we already loaded (studySegIds).
+    const allSegIds = studySegIds;
 
     const [{ data: reports }, { data: segRows }, { data: members }, { data: allQuestions }] = await Promise.all([
       supabase.from("study_reports").select("study_id,summary_md,themes,citations,context").in("study_id", ids),

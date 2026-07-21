@@ -226,15 +226,14 @@ export const commitProjectBrief = createServerFn({ method: "POST" })
 // not been committed yet, so the AI never fires without knowing what to do.
 
 export async function assertProgramBriefCommitted(
-  supabase: { from: (t: string) => { select: (c: string) => { eq: (col: string, v: string) => { maybeSingle: () => Promise<{ data: { brief_committed_at: string | null } | null; error: { message: string } | null }> } } } },
+  supabase: unknown,
   projectId: string | null | undefined,
 ): Promise<void> {
-  if (!projectId) return; // ad-hoc (non-program) work is allowed.
-  const { data, error } = await supabase
-    .from("persona_projects")
-    .select("brief_committed_at")
-    .eq("id", projectId)
-    .maybeSingle();
+  if (!projectId) return;
+  const client = supabase as { from: (t: string) => unknown };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const q = (client.from("persona_projects") as any).select("brief_committed_at").eq("id", projectId).maybeSingle();
+  const { data, error } = (await q) as { data: { brief_committed_at: string | null } | null; error: { message: string } | null };
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Research program not found");
   if (!data.brief_committed_at) {

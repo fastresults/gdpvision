@@ -15,6 +15,7 @@ import {
   getStudy,
 } from "./study.functions";
 import { composeStudyForSegment } from "./compose-study.functions";
+import type { StudyExportInput } from "./report-export";
 
 export const AUTO_STUDIES_LOCK = new Set<string>();
 export const AUTO_STUDIES_FLAG_KEY = (code: string, projectId: string) => `ch07:auto-studies:${code}:${projectId}`;
@@ -52,9 +53,9 @@ async function completeStudyEndToEnd(opts: {
   const { studyId, projectId, segmentLabel, index, total, onProgress, segmentId } = opts;
 
   // Check current state so we don't repeat expensive work.
-  let existing: Awaited<ReturnType<typeof getStudy>> | null = null;
+  let existing: (StudyExportInput & { study?: (StudyExportInput["study"] & { status?: string | null }) | null }) | null = null;
   try {
-    existing = await getStudy({ data: { id: studyId, projectId } });
+    existing = await getStudy({ data: { id: studyId, projectId } }) as typeof existing;
   } catch {
     existing = null;
   }

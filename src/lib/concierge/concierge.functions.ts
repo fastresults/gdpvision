@@ -353,7 +353,9 @@ export const markDeliverableRead = createServerFn({ method: "POST" })
     z.object({ id: z.string().uuid(), acted: z.boolean().default(false) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = { read_at: new Date().toISOString() };
+    const patch: { read_at: string; acted_at?: string } = {
+      read_at: new Date().toISOString(),
+    };
     if (data.acted) patch.acted_at = new Date().toISOString();
     const { error } = await context.supabase
       .from("service_request_deliverables")
@@ -363,4 +365,3 @@ export const markDeliverableRead = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-export interface ChamberId2 { id: ChamberId }

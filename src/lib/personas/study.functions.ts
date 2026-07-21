@@ -465,48 +465,128 @@ export const synthesizeStudyProgram = createServerFn({ method: "POST" })
     const list = studies ?? [];
     const ids = list.map((s) => s.id as string);
     if (ids.length === 0) throw new Error("No studies to consolidate.");
-    const [{ data: reports }, { data: segments }] = await Promise.all([
+
+    // Collect all segments this project touches (via studies) plus any project-owned
+    // segments so the Group stage is fully represented in the methodology dossier.
+    const studySegIds = Array.from(new Set(list.map((s) => s.segment_id).filter((v): v is string => !!v)));
+    let segScopeQ = supabase
+      .from("persona_segments")
+      .select("id")
+      .eq("country_code", data.countryCode);
+    if (projectId) segScopeQ = segScopeQ.eq("project_id", projectId);
+    const { data: projectSegs } = await segScopeQ;
+    const allSegIds = Array.from(new Set([...studySegIds, ...((projectSegs ?? []).map((s) => s.id as string))]));
+
+    const [{ data: reports }, { data: segRows }, { data: members }, { data: allQuestions }] = await Promise.all([
       supabase.from("study_reports").select("study_id,summary_md,themes,citations,context").in("study_id", ids),
-      supabase
-        .from("persona_segments")
-        .select("id,label")
-        .in(
-          "id",
-          Array.from(new Set(list.map((s) => s.segment_id).filter((v): v is string => !!v))),
-        ),
+      allSegIds.length
+        ? supabase.from("persona_segments").select("id,label,prompt,size").in("id", allSegIds)
+        : Promise.resolve({ data: [] as Array<{ id: string; label: string; prompt: string | null; size: number | null }> }),
+      allSegIds.length
+        ? supabase
+            .from("persona_segment_members")
+            .select("segment_id,persona_id,personas(id,name,archetype,summary,attributes,ocean)")
+            .in("segment_id", allSegIds)
+        : Promise.resolve({ data: [] as Array<{ segment_id: string; persona_id: string; personas: unknown }> }),
+      supabase.from("study_questions").select("study_id,ord,prompt,kind,options").in("study_id", ids).order("ord"),
     ]);
+
+    const segById = new Map<string, { id: string; label: string; prompt: string | null; size: number | null }>();
+    for (const s of segRows ?? []) segById.set(s.id, { id: s.id, label: s.label, prompt: s.prompt, size: s.size });
     const segLabel = new Map<string, string>();
-    for (const s of segments ?? []) segLabel.set(s.id, s.label);
+    for (const [id, s] of segById) segLabel.set(id, s.label);
+
+    type PersonaLite = { id: string; name: string; archetype: string | null; summary: string | null; attributes: unknown; ocean: unknown };
+    const personasBySeg = new Map<string, PersonaLite[]>();
+    for (const m of members ?? []) {
+      const p = (m as { personas: PersonaLite | null }).personas;
+      if (!p) continue;
+      const arr = personasBySeg.get(m.segment_id) ?? [];
+      arr.push(p);
+      personasBySeg.set(m.segment_id, arr);
+    }
+
+    type QuestionRow = { ord: number; prompt: string; kind: string; options: unknown };
+    const questionsByStudy = new Map<string, QuestionRow[]>();
+    for (const q of allQuestions ?? []) {
+      const arr = questionsByStudy.get(q.study_id) ?? [];
+      arr.push({ ord: q.ord as number, prompt: q.prompt as string, kind: q.kind as string, options: q.options });
+      questionsByStudy.set(q.study_id, arr);
+    }
+
     const repByStudy = new Map<string, { summary_md: string; themes: unknown; context: unknown; citations: unknown }>();
     for (const r of reports ?? []) repByStudy.set(r.study_id, { summary_md: r.summary_md ?? "", themes: r.themes, context: r.context, citations: r.citations });
 
     const brief = await loadCountryBrief(supabase, data.countryCode);
     const pack = await buildCountryContextPack(supabase, data.countryCode, brief.scope?.title ?? null);
 
+    // Methodology snapshot — full & verbatim; feeds both the UI dossier and (a
+    // trimmed slice of) the AI prompt so the memo can justify design choices.
+    const methodology = {
+      brief: {
+        title: brief.scope?.title ?? null,
+        objectives: brief.scope?.objectives ?? [],
+        raw_excerpt: brief.briefRaw ? brief.briefRaw.slice(0, 1200) : null,
+      },
+      segments: (segRows ?? []).map((s) => ({
+        id: s.id,
+        label: s.label,
+        prompt: s.prompt,
+        persona_count: (personasBySeg.get(s.id) ?? []).length,
+        personas: (personasBySeg.get(s.id) ?? []).map((p) => ({
+          id: p.id, name: p.name, archetype: p.archetype, summary: p.summary,
+          ocean: p.ocean, attributes: p.attributes,
+        })),
+        used_by_studies: list
+          .filter((st) => st.segment_id === s.id)
+          .map((st) => ({ id: st.id, title: st.title, kind: st.kind })),
+      })),
+      studies: list.map((s) => ({
+        id: s.id, title: s.title, kind: s.kind, objective: s.objective ?? null,
+        segment_id: s.segment_id ?? null,
+        segment_label: s.segment_id ? segLabel.get(s.segment_id as string) ?? null : null,
+        persona_count: s.segment_id ? (personasBySeg.get(s.segment_id as string) ?? []).length : 0,
+        questions: questionsByStudy.get(s.id as string) ?? [],
+        has_report: repByStudy.has(s.id as string),
+      })),
+    };
+
     const perStudy = list
       .map((s) => {
         const rep = repByStudy.get(s.id as string);
         if (!rep || !rep.summary_md) return null;
-        const ctx = (rep.context ?? {}) as { questions?: Array<{ prompt: string }>; segment?: { label?: string; persona_count?: number } };
+        const qs = questionsByStudy.get(s.id as string) ?? [];
+        const segName = s.segment_id ? segLabel.get(s.segment_id as string) : null;
+        const nPersonas = s.segment_id ? (personasBySeg.get(s.segment_id as string) ?? []).length : 0;
         return [
           `## ${s.title} (${s.kind})`,
-          ctx.segment ? `Segment: ${ctx.segment.label ?? segLabel.get((s.segment_id as string) ?? "") ?? "—"} · ${ctx.segment.persona_count ?? 0} personas` : "",
+          `Segment: ${segName ?? "—"} · ${nPersonas} personas`,
           `Objective: ${s.objective ?? "(none)"}`,
-          `Questions: ${(ctx.questions ?? []).slice(0, 5).map((q) => `"${q.prompt}"`).join(" · ") || "(n/a)"}`,
-          `Memo:\n${stripBrandedByline(rep.summary_md).slice(0, 2200)}`,
-        ]
-          .filter(Boolean)
-          .join("\n");
+          `Questions asked (${qs.length}):\n${qs.map((q) => `  Q${q.ord + 1} [${q.kind}] ${q.prompt}`).join("\n") || "(none)"}`,
+          `Memo:\n${stripBrandedByline(rep.summary_md).slice(0, 2000)}`,
+        ].join("\n");
       })
       .filter((v): v is string => !!v)
       .join("\n\n---\n\n")
-      .slice(0, 14000);
+      .slice(0, 16000);
 
     if (!perStudy.trim()) throw new Error("No synthesized studies yet — run studies before consolidating.");
 
+    const segmentDigest = methodology.segments
+      .map((s) => `- ${s.label} (${s.persona_count} personas): ${(s.prompt ?? "").slice(0, 200)}`)
+      .join("\n") || "(no segments)";
+    const castDigest = methodology.segments
+      .map((s) => {
+        const roster = s.personas.slice(0, 10)
+          .map((p) => `  · ${p.name} — ${p.archetype ?? "—"}${p.summary ? `: ${String(p.summary).slice(0, 140)}` : ""}`)
+          .join("\n");
+        return `${s.label}:\n${roster || "  (no personas)"}`;
+      })
+      .join("\n\n");
+
     const raw = await ai(
-      "You are a senior partner writing the portfolio-level consolidation memo across every study run for this sovereign owner. Ground in the ORIGINAL BRIEF; be explicit about what the studies did and did not answer. NEVER emit letterhead / firm names. Cite [N] against the CITATION RULE.",
-      `ORIGINAL BRIEF:\n${brief.block || "(no active brief captured)"}\n\nSTUDIES CONSOLIDATED (${list.length}):\n${perStudy}\n\nCOUNTRY CONTEXT:\n${pack.block}\n\nReturn JSON with this shape:\n{\n  "summary_md": "markdown ~600–900 words. Sections in this order: ## TO / RE, ## What we asked, ## What we heard (portfolio-wide), ## Brand & ethos read, ## Sovereign recommendations, ## Sequencing & owners, ## Risks & unanswered questions.",\n  "sections": {\n    "portfolio_scope": { "studies_run": ${list.length}, "brief_link": "one sentence: how the studies answered the brief" },\n    "cross_cutting_themes": [ { "label":"…", "evidence_ids":[study titles], "quote":"…" } ],\n    "recommendations": [ { "move":"…", "why":"…", "owner":"…", "horizon":"0-90d|3-12m|12-36m" } ],\n    "unanswered": ["…"]\n  },\n  "citations": [N,...]\n}`,
+      "You are a senior partner writing the portfolio-level consolidation memo across every study run for this sovereign owner. Ground in the ORIGINAL BRIEF; be explicit about what the studies did and did not answer, and justify the research design (why these segments, why these methods, why these questions). NEVER emit letterhead / firm names. Cite [N] against the CITATION RULE.",
+      `ORIGINAL BRIEF:\n${brief.block || "(no active brief captured)"}\n\nGROUPS (segments used):\n${segmentDigest}\n\nCAST (synthetic personas, grouped by segment):\n${castDigest}\n\nSTUDIES CONSOLIDATED (${list.length}) — includes verbatim question set per study:\n${perStudy}\n\nCOUNTRY CONTEXT:\n${pack.block}\n\nReturn JSON with this shape:\n{\n  "summary_md": "markdown ~900–1200 words. Sections in this exact order and with these H2 headings:\\n## TO / RE\\n## What we asked (restate the brief in one paragraph)\\n## Methodology & design rationale (why THESE segments, why THESE methods per study, why THESE questions; how the cast covers the brief; what sampling limits remain)\\n## What we heard (portfolio-wide themes with evidence)\\n## Brand & ethos read\\n## Sovereign recommendations\\n## Sequencing & owners\\n## Risks & unanswered questions",\n  "sections": {\n    "portfolio_scope": { "studies_run": ${list.length}, "brief_link": "one sentence: how the studies answered the brief" },\n    "design_rationale": { "why_segments": "…", "why_methods": "…", "coverage_gaps": "…" },\n    "cross_cutting_themes": [ { "label":"…", "evidence_ids":[study titles], "quote":"…" } ],\n    "recommendations": [ { "move":"…", "why":"…", "owner":"…", "horizon":"0-90d|3-12m|12-36m" } ],\n    "unanswered": ["…"]\n  },\n  "citations": [N,...]\n}`,
     );
     const parsed = parseJson<{ summary_md?: string; sections?: unknown; citations?: number[] }>(raw);
     if (!parsed?.summary_md) throw new Error("Program synthesis returned no memo.");

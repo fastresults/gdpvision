@@ -37,6 +37,7 @@ import {
   type StudyAutoPhase,
 } from "@/lib/personas/study-autorun";
 import { StudioStepper } from "@/components/personas/StudioStepper";
+import { StudioStatusRail } from "@/components/personas/StudyWizard/StudioStatusRail";
 import { clearAutoRun, publishAutoRun, registerAutoRunResume } from "@/lib/autorun/beacon";
 
 const PHASE_LABEL: Record<StudyAutoPhase, string> = {

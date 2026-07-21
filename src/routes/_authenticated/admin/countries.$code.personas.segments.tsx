@@ -654,6 +654,22 @@ function SegmentsPage() {
     );
   }
 
+  // Brief committed but AI Blueprint not yet approved — the Blueprint page
+  // is the single guided cockpit. Bounce there so segments/studies are only
+  // ever cast from an approved plan.
+  if (briefGate.needsBlueprint) {
+    return (
+      <Navigate
+        to="/admin/countries/$code/personas/blueprint"
+        params={{ code }}
+        search={{ project: activeProjectId, open: 1 }}
+        replace
+      />
+    );
+  }
+
+
+
   return (
     <div className="space-y-6">
       <StudioStepper

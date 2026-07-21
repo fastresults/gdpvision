@@ -644,7 +644,7 @@ export const synthesizeStudyProgram = createServerFn({ method: "POST" })
           payload: {
             project_id: projectId,
             summary_md: sanitizeCitationMarkersInText(cleaned, citations),
-            sections: parsed.sections ?? {},
+            sections: { ...(parsed.sections ?? {}), methodology },
             studies: studiesSnapshot,
             citations,
           } as never,

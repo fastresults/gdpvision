@@ -138,9 +138,10 @@ function StudiesPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { data: studies } = useSuspenseQuery(studiesQuery(code));
+  const activeProjectId = search.project;
+  const { data: studies } = useSuspenseQuery(studiesQuery(code, activeProjectId));
   const { data: segments } = useSuspenseQuery(segmentsQuery(code));
-  const { data: digest = [] } = useQuery(studiesDigestQuery(code));
+  const { data: digest = [] } = useQuery(studiesDigestQuery(code, activeProjectId));
 
   const [segmentId, setSegmentId] = useState<string>(search.segmentId ?? "");
   const [kind, setKind] = useState<StudyKind | "">("");

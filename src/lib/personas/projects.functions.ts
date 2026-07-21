@@ -36,33 +36,22 @@ export const listProjects = createServerFn({ method: "POST" })
     }>;
 
     const ids = list.map((p) => p.id as string);
-    const [{ data: studies }, { data: drafts }, { data: memos }] = await Promise.all([
+    const [{ data: studies }, { data: memos }, { count: countrySegments }] = await Promise.all([
       supabase.from("studies").select("id,status,project_id").in("project_id", ids),
-      supabase.from("persona_study_drafts").select("id,project_id").in("project_id", ids),
       supabase.from("study_program_reports").select("id,project_id,updated_at").in("project_id", ids),
+      supabase
+        .from("persona_segments")
+        .select("id", { count: "exact", head: true })
+        .eq("country_code", data.countryCode),
     ]);
 
-    // Segments live under drafts; count via the drafts we just fetched.
-    const draftIds = (drafts ?? []).map((d) => d.id as string);
-    const { data: segs } = draftIds.length
-      ? await supabase.from("persona_segments").select("id,draft_id").in("draft_id", draftIds)
-      : { data: [] as Array<{ id: string; draft_id: string }> };
-    const draftToProject = new Map<string, string>();
-    for (const d of drafts ?? []) draftToProject.set(d.id as string, d.project_id as string);
-
-    const perProject = new Map<string, { total: number; done: number; segments: number; memo: boolean }>();
-    for (const p of list) perProject.set(p.id as string, { total: 0, done: 0, segments: 0, memo: false });
+    const perProject = new Map<string, { total: number; done: number; memo: boolean }>();
+    for (const p of list) perProject.set(p.id as string, { total: 0, done: 0, memo: false });
     for (const s of studies ?? []) {
       const b = perProject.get(s.project_id as string);
       if (!b) continue;
       b.total += 1;
       if (s.status === "complete" || s.status === "synthesized") b.done += 1;
-    }
-    for (const seg of segs ?? []) {
-      const pid = draftToProject.get(seg.draft_id as string);
-      if (!pid) continue;
-      const b = perProject.get(pid);
-      if (b) b.segments += 1;
     }
     for (const m of memos ?? []) {
       const b = perProject.get(m.project_id as string);

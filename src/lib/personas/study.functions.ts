@@ -140,6 +140,7 @@ function personaBlock(p: { name: string; archetype?: string | null; summary?: st
 // ── Create study shell ────────────────────────────────────────────────────
 const CreateStudyInput = z.object({
   countryCode: z.string(),
+  projectId: z.string().optional(),
   segmentId: z.string(),
   kind: z.enum(["survey", "focus_group", "creative_test"]),
   title: z.string().min(3).max(160),
@@ -152,25 +153,28 @@ export const createStudy = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => CreateStudyInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const projectId = data.projectId ?? (await resolveDefaultProjectId(supabase, data.countryCode));
 
     // Idempotency guard: never create a duplicate draft for the same
     // (country, segment). Enforced at the DB level by a partial unique
     // index (studies_one_draft_per_segment_idx); this pre-check keeps
     // the happy path silent for auto-run races (StrictMode double-mount,
     // tab re-entry, retries).
-    const { data: existing } = await supabase
+    let existingQ = supabase
       .from("studies")
       .select("*")
       .eq("country_code", data.countryCode)
       .eq("segment_id", data.segmentId)
-      .eq("status", "draft")
-      .maybeSingle();
+      .eq("status", "draft");
+    if (projectId) existingQ = existingQ.eq("project_id", projectId);
+    const { data: existing } = await existingQ.maybeSingle();
     if (existing) return existing;
 
     const { data: row, error } = await supabase
       .from("studies")
       .insert({
         country_code: data.countryCode,
+        project_id: projectId,
         segment_id: data.segmentId,
         kind: data.kind,
         title: data.title,
@@ -185,13 +189,14 @@ export const createStudy = createServerFn({ method: "POST" })
       .single();
     if (error) {
       if ((error as { code?: string }).code === "23505") {
-        const { data: raced } = await supabase
+        let racedQ = supabase
           .from("studies")
           .select("*")
           .eq("country_code", data.countryCode)
           .eq("segment_id", data.segmentId)
-          .eq("status", "draft")
-          .maybeSingle();
+          .eq("status", "draft");
+        if (projectId) racedQ = racedQ.eq("project_id", projectId);
+        const { data: raced } = await racedQ.maybeSingle();
         if (raced) return raced;
       }
       throw new Error(error.message);

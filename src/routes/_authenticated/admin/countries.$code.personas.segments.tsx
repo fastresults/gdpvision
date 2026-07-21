@@ -78,6 +78,8 @@ function SegmentsPage() {
   const { code } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const search = useSearch({ strict: false }) as { auto?: unknown; project?: string };
+  const autoIntent = search.auto === 1 || search.auto === "1" || search.auto === true;
   const { data: segments } = useSuspenseQuery(segmentsQuery(code));
   const personasQ = useQuery({
     queryKey: ["personas", code],

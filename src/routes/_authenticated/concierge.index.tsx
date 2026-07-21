@@ -185,7 +185,7 @@ function Lane({ lane, items }: { lane: ChamberId; items: Array<Record<string, un
                 className="group block border border-line-200 bg-card p-4 transition hover:border-ink-950 hover:shadow-sm"
               >
                 <p className="line-clamp-3 font-serif text-base leading-snug text-ink-950">
-                  {card.question || (r.minister_summary as string) || "Untitled request"}
+                  {question || (r.minister_summary as string) || "Untitled request"}
                 </p>
                 <div className="mt-3 flex items-center justify-between text-[11px] text-ink-500">
                   <span className="flex items-center gap-1.5">

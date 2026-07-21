@@ -68,6 +68,8 @@ const searchSchema = z.object({
   open: z.union([z.literal(1), z.literal("1"), z.boolean()]).optional(),
 });
 
+const PROJECT_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function studiesQuery(code: string, projectId?: string) {
   return queryOptions({
     queryKey: ["studies", code, projectId ?? "all"],
@@ -144,52 +146,39 @@ function StudiesPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  // Session-scoped "explicitly opened" set — only projects the admin opened
-  // in THIS tab load are eligible to render the working surface. This kills
-  // the failure mode where a stale `?project=` in the URL (from a prior
-  // session, browser history, or a link) auto-reopens the last program.
-  const openedRef = useRef<Set<string>>(new Set());
-  // On mount / when search changes: if `?open=1` is present, mark this
-  // project as explicitly opened and strip `open` from the URL. If a
-  // `?project=` is present without ever having been explicitly opened this
-  // session, drop it and send the admin back to the Programs Index.
+  // Direct links / refreshes with a valid project id must open that program;
+  // stale auto-run intent is handled separately and never runs without an
+  // explicit `auto=1` handoff.
   useEffect(() => {
-    if (search.open && search.project) {
-      openedRef.current.add(search.project);
+    if (search.open) {
       navigate({
         to: "/admin/countries/$code/personas/studies",
         params: { code },
         search: (s: Record<string, unknown>) => ({ ...s, open: undefined }),
         replace: true,
       });
-      return;
     }
-    if (search.project && !openedRef.current.has(search.project)) {
-      navigate({
-        to: "/admin/countries/$code/personas/studies",
-        params: { code },
-        search: {},
-        replace: true,
-      });
-    }
-  }, [search.open, search.project, code, navigate]);
+  }, [search.open, code, navigate]);
   const activeProjectId =
-    search.project && openedRef.current.has(search.project) ? search.project : undefined;
+    typeof search.project === "string" && PROJECT_ID_RE.test(search.project) ? search.project : undefined;
   // Studies + digest are strictly project-scoped. Without an active project
   // we render only the Programs Index (no working surface, no prior-project
   // content) — so gate the reads on `activeProjectId`.
-  const { data: studies = [] } = useQuery({
+  const studiesQ = useQuery({
     ...studiesQuery(code, activeProjectId),
     enabled: !!activeProjectId,
   });
-  const { data: segments = [] } = useQuery({
+  const studies = studiesQ.data ?? [];
+  const segmentsQ = useQuery({
     ...projectSegmentsQuery(code, activeProjectId ?? "none"),
     enabled: !!activeProjectId,
   });
-  const { data: digest = [] } = useQuery({
+  const segments = segmentsQ.data ?? [];
+  const digestQ = useQuery({
     ...studiesDigestQuery(code, activeProjectId),
     enabled: !!activeProjectId,
   });
+  const digest = digestQ.data ?? [];
   const briefGate = useProgramBriefGate(activeProjectId);
 
 
@@ -356,6 +345,20 @@ function StudiesPage() {
       });
       return;
     }
+    if (!briefGate.blueprintCommitted) {
+      setAutoState({
+        phase: "complete",
+        drafted: 0,
+        completed: 0,
+        failed: [
+          {
+            label: "Research blueprint",
+            reason: "Approve the AI blueprint before running studies.",
+          },
+        ],
+      });
+      return;
+    }
     const lockKey = `${code}:${projectId}`;
     if (AUTO_STUDIES_LOCK.has(lockKey)) return;
     const targets = segments.filter((s) => !coveredSegmentIds.has(s.id));
@@ -453,28 +456,28 @@ function StudiesPage() {
     }
     runningRef.current = false;
     AUTO_STUDIES_LOCK.delete(lockKey);
-  }, [segments, studies, coveredSegmentIds, code, activeProjectId, qc, programSynthFn]);
+  }, [segments, studies, coveredSegmentIds, code, activeProjectId, briefGate.blueprintCommitted, qc, programSynthFn]);
 
   const cancelAutoRun = () => {
     cancelRef.current = true;
   };
 
-  // Landing on this page must NEVER start synthesis from URL/search state.
-  // Prior versions accepted `?auto=1`; that allowed stale browser/search state
-  // from an old program to start work inside the next program. If such a flag
-  // arrives from history or an old link, strip it and remain idle. The only
-  // valid start path is the visible Start Auto-run button below.
   const didAttemptRef = useRef(false);
   const autoIntent = !!search.auto;
   useEffect(() => {
     if (!autoIntent) return;
+    if (!activeProjectId || studiesQ.isLoading || segmentsQ.isLoading) return;
+    if (briefGate.loading || briefGate.needsIntake || briefGate.needsBlueprint || !briefGate.blueprintCommitted) return;
+    if (didAttemptRef.current) return;
+    didAttemptRef.current = true;
     navigate({
       to: "/admin/countries/$code/personas/studies",
       params: { code },
       search: (s: Record<string, unknown>) => ({ ...s, auto: undefined }),
       replace: true,
     });
-  }, [autoIntent, navigate, code]);
+    void startAutoRun();
+  }, [autoIntent, activeProjectId, studiesQ.isLoading, segmentsQ.isLoading, briefGate.loading, briefGate.needsIntake, briefGate.needsBlueprint, briefGate.blueprintCommitted, navigate, code, startAutoRun]);
 
   const rehearseStatus =
     autoState.phase === "running"
@@ -559,6 +562,17 @@ function StudiesPage() {
           </Link>
         </div>
         <ProgramsIndex code={code} />
+      </div>
+    );
+  }
+
+  if (briefGate.loading) {
+    return (
+      <div className="space-y-6">
+        <StudioStepper code={code} active="rehearse" activeProjectId={activeProjectId} />
+        <div className="border border-line-200 bg-paper-50 p-6 text-sm text-ink-500">
+          Loading research program…
+        </div>
       </div>
     );
   }

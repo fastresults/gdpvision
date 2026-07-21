@@ -150,7 +150,7 @@ export function BlueprintReview({ code, projectId }: { code: string; projectId: 
       navigate({
         to: "/admin/countries/$code/personas/studies",
         params: { code },
-        search: { project: projectId, open: 1 },
+        search: { project: projectId, open: 1, auto: 1 },
       });
     } catch (e) {
       setError((e as Error).message);

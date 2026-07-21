@@ -149,6 +149,15 @@ function StudiesPage() {
   const [title, setTitle] = useState("");
   const [objective, setObjective] = useState("");
 
+  // Reset the wizard's local composition state whenever the active project
+  // changes so the prior project's segment/method/title never carries over.
+  useEffect(() => {
+    setSegmentId(search.segmentId ?? "");
+    setKind("");
+    setTitle("");
+    setObjective("");
+  }, [activeProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const stepDone = useMemo(
     () => ({ 1: !!segmentId, 2: !!kind, 3: title.trim().length >= 3 }),
     [segmentId, kind, title],

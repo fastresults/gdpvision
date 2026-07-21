@@ -112,6 +112,7 @@ function SegmentsPage() {
   }, [search.open, search.project, code, navigate]);
   const activeProjectId =
     search.project && openedRef.current.has(search.project) ? search.project : undefined;
+  const briefGate = useProgramBriefGate(activeProjectId);
   const { data: segments = [] } = useQuery({
     ...segmentsQuery(code, activeProjectId ?? "none"),
     enabled: !!activeProjectId,

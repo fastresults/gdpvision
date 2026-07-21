@@ -442,15 +442,21 @@ export const runStudy = createServerFn({ method: "POST" })
 // ── Program-level (portfolio) synthesis across every completed study ─────
 export const synthesizeStudyProgram = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string(), projectId: z.string().optional() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const { data: studies } = await supabase
+    // Resolve the active project — either the one supplied or the country's
+    // default. Multi-project support keys memos by project_id.
+    const projectId = data.projectId ?? (await resolveDefaultProjectId(supabase, data.countryCode));
+
+    let studyQ = supabase
       .from("studies")
-      .select("id,title,kind,status,objective,segment_id,created_at")
+      .select("id,title,kind,status,objective,segment_id,created_at,project_id")
       .eq("country_code", data.countryCode)
       .order("created_at", { ascending: false })
       .limit(80);
+    if (projectId) studyQ = studyQ.eq("project_id", projectId);
+    const { data: studies } = await studyQ;
     const list = studies ?? [];
     const ids = list.map((s) => s.id as string);
     if (ids.length === 0) throw new Error("No studies to consolidate.");
@@ -513,33 +519,90 @@ export const synthesizeStudyProgram = createServerFn({ method: "POST" })
       has_report: repByStudy.has(s.id as string),
     }));
 
-    await supabase.from("study_program_reports").upsert(
-      {
+    // Upsert keyed by project (each project owns one program memo).
+    // Fall back to a plain insert when no project (shouldn't happen post-backfill).
+    if (projectId) {
+      const { data: existing } = await supabase
+        .from("study_program_reports")
+        .select("id")
+        .eq("project_id", projectId)
+        .maybeSingle();
+      const payload = {
         country_code: data.countryCode,
+        project_id: projectId,
         brief_snapshot: briefSnapshot as never,
         studies_snapshot: studiesSnapshot as never,
         summary_md: sanitizeCitationMarkersInText(cleaned, citations),
         sections: sanitizeJsonCitationMarkers(parsed.sections ?? {}, citations) as never,
         citations: citations as never,
         model: MODEL,
-      },
-      { onConflict: "country_code" },
-    );
-    return { ok: true, studies: list.length, synthesized: repByStudy.size };
+      };
+      if (existing?.id) {
+        await supabase.from("study_program_reports").update(payload).eq("id", existing.id);
+      } else {
+        await supabase.from("study_program_reports").insert(payload);
+      }
+    }
+
+    // Second-brain memory: upsert one memory_object per program memo so the
+    // consolidated finding shows up in the country's Brain constellation.
+    try {
+      const project = projectId
+        ? (await supabase.from("persona_projects").select("title,slug").eq("id", projectId).maybeSingle()).data
+        : null;
+      const memKey = `research_program:${projectId ?? data.countryCode}`;
+      await supabase.from("memory_objects").upsert(
+        {
+          country_code: data.countryCode,
+          kind: "research_program",
+          key: memKey,
+          title: project?.title ? `Research memo — ${project.title}` : "Research program memo",
+          body: sanitizeCitationMarkersInText(cleaned, citations),
+          payload: { project_id: projectId, sections: parsed.sections ?? {}, studies: studiesSnapshot } as never,
+          citations: citations as never,
+        } as never,
+        { onConflict: "country_code,kind,key" },
+      );
+    } catch {
+      // memory_objects schema may differ per environment; best-effort only.
+    }
+
+    return { ok: true, projectId, studies: list.length, synthesized: repByStudy.size };
   });
 
 export const getStudyProgramReport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string(), projectId: z.string().optional() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { data: row } = await context.supabase
+    const { supabase } = context;
+    const projectId = data.projectId ?? (await resolveDefaultProjectId(supabase, data.countryCode));
+    let q = supabase
       .from("study_program_reports")
       .select("*")
       .eq("country_code", data.countryCode)
-      .maybeSingle();
+      .order("updated_at", { ascending: false })
+      .limit(1);
+    if (projectId) q = q.eq("project_id", projectId);
+    const { data: rows } = await q;
+    const row = (rows ?? [])[0];
     if (!row) return null;
     return { ...row, summary_md: stripBrandedByline(row.summary_md) };
   });
+
+// Resolve the country's "default" project id (created by the multi-project
+// migration). Returns null only if no project has been backfilled yet.
+async function resolveDefaultProjectId(
+  supabase: { from: (t: string) => { select: (c: string) => { eq: (k: string, v: string) => { eq: (k: string, v: string) => { maybeSingle: () => Promise<{ data: { id: string } | null }> } } } } },
+  countryCode: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("persona_projects")
+    .select("id")
+    .eq("country_code", countryCode)
+    .eq("slug", "default")
+    .maybeSingle();
+  return data?.id ?? null;
+}
 
 
 // ── Digest for the Stage-03 studies list ─────────────────────────────────

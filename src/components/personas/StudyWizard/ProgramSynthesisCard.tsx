@@ -188,7 +188,11 @@ export function ProgramSynthesisCard({
     onSuccess: () => qc.invalidateQueries({ queryKey: ["study-program-report", code] }),
   });
 
-  const report = q.data;
+  const report = q.data as null | {
+    summary_md?: string | null;
+    citations?: unknown;
+    sections?: ProgramSections;
+  };
   const sections = (report?.sections ?? {}) as ProgramSections;
   const methodology = sections.methodology;
   const canGenerate = synthesizedCount >= 1;
@@ -243,11 +247,11 @@ export function ProgramSynthesisCard({
                 {methodology.brief.title && <p className="mt-1 font-serif text-sm text-ink-950">{methodology.brief.title}</p>}
                 {Array.isArray(methodology.brief.objectives) && methodology.brief.objectives.length > 0 && (
                   <ul className="mt-1 list-disc pl-4 text-[12px] text-ink-800">
-                    {methodology.brief.objectives.map((o, i) => <li key={i}>{o}</li>)}
+                    {methodology.brief.objectives.map((o, i) => <li key={i}>{String(o)}</li>)}
                   </ul>
                 )}
                 {methodology.brief.raw_excerpt && (
-                  <p className="mt-1 text-[11px] italic leading-snug text-ink-600">{methodology.brief.raw_excerpt}</p>
+                  <p className="mt-1 text-[11px] italic leading-snug text-ink-600">{String(methodology.brief.raw_excerpt)}</p>
                 )}
               </div>
             )}

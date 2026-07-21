@@ -171,8 +171,8 @@ export const createStudy = createServerFn({ method: "POST" })
     if (!segment) throw new Error("That segment belongs to another research program. Re-select a segment in this program.");
 
     // Idempotency guard: never create a duplicate draft for the same
-    // (country, segment). Enforced at the DB level by a partial unique
-    // index (studies_one_draft_per_segment_idx); this pre-check keeps
+    // (country, project, segment). Enforced at the DB level by a partial
+    // unique index; this pre-check keeps
     // the happy path silent for auto-run races (StrictMode double-mount,
     // tab re-entry, retries).
     let existingQ = supabase

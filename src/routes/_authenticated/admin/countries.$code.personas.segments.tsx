@@ -338,7 +338,7 @@ function SegmentsPage() {
       try {
         const finalStudies = await listStudies({ data: { countryCode: code, projectId } });
         unfinished = finalStudies.filter(
-          (s) => s.status !== "complete" && s.status !== "synthesized",
+          (s) => s.status !== "completed" && s.status !== "complete" && s.status !== "synthesized",
         ).length;
       } catch {
         unfinished = 1; // be conservative

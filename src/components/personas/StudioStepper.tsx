@@ -175,6 +175,7 @@ export function StudioStepper({
                 activeOptions={{ exact: s.exact }}
                 disabled={locked}
                 aria-disabled={locked}
+                title={locked ? (!briefCommitted ? "Commit the program brief to unlock" : "Approve the AI blueprint to unlock") : undefined}
                 onClick={(e) => { if (locked) e.preventDefault(); }}
                 className={cn(
                   "group flex items-start gap-3 border-l-2 py-1 pl-3 transition-colors",

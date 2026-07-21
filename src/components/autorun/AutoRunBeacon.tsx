@@ -8,12 +8,14 @@
 
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { AlertTriangle, ChevronRight, Loader2, PauseCircle, RefreshCw, Sparkles, X } from "lucide-react";
+import { AlertTriangle, ChevronRight, Loader2, PauseCircle, RefreshCw, Sparkles, Square, X } from "lucide-react";
 
 import {
   useAutoRuns,
   clearAutoRun,
   resumeAutoRun,
+  abortAutoRun,
+  abortAllAutoRuns,
   type AutoRunEntry,
   type AutoRunHealth,
 } from "@/lib/autorun/beacon";
@@ -86,6 +88,22 @@ export function AutoRunBeacon() {
               className={`shrink-0 text-ink-500 transition-transform ${collapsed ? "" : "rotate-90"}`}
             />
           </button>
+
+          {hasActive && (
+            <div className="flex items-center justify-between gap-2 border-b border-line-200 bg-rose-50 px-3 py-2">
+              <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-rose-700">
+                Hard stop
+              </span>
+              <button
+                type="button"
+                onClick={() => void abortAllAutoRuns()}
+                className="inline-flex items-center gap-1 border border-rose-600 bg-rose-600 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-paper-0 hover:bg-rose-700"
+                title="Immediately stop every active auto-run"
+              >
+                <Square size={11} className="fill-current" /> Stop all
+              </button>
+            </div>
+          )}
 
           {!collapsed && (
             <ul className="max-h-[60vh] divide-y divide-line-200 overflow-auto">
@@ -186,6 +204,16 @@ function RunRow({ run }: { run: AutoRunEntry }) {
                   <RefreshCw size={10} /> {run.health === "broken" ? "Retry now" : "Resume"}
                 </button>
               )}
+            {run.status === "running" && (
+              <button
+                type="button"
+                onClick={() => void abortAutoRun(run.id)}
+                className="ml-auto inline-flex items-center gap-1 border border-rose-600 bg-rose-600 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.2em] text-paper-0 hover:bg-rose-700"
+                title="Hard-stop this auto-run"
+              >
+                <Square size={10} className="fill-current" /> Stop
+              </button>
+            )}
             {(run.status === "complete" || run.status === "error" || run.status === "paused") && (
               <button
                 type="button"

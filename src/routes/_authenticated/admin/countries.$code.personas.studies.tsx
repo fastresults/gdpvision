@@ -40,7 +40,7 @@ import {
 import { StudioStepper } from "@/components/personas/StudioStepper";
 import { StudioStatusRail } from "@/components/personas/StudyWizard/StudioStatusRail";
 import { ProjectSwitcher } from "@/components/personas/StudyWizard/ProjectSwitcher";
-import { clearAutoRun, publishAutoRun, registerAutoRunResume } from "@/lib/autorun/beacon";
+import { clearAutoRun, publishAutoRun, registerAutoRunAbort, registerAutoRunResume, unregisterAutoRunAbort } from "@/lib/autorun/beacon";
 import { useServerFn } from "@tanstack/react-start";
 
 const PHASE_LABEL: Record<StudyAutoPhase, string> = {
@@ -409,6 +409,11 @@ function StudiesPage() {
         href,
       });
       registerAutoRunResume(id, () => startAutoRun());
+      registerAutoRunAbort(id, () => {
+        cancelRef.current = true;
+        // Release the module-level lock so nothing blocks a manual retry.
+        AUTO_STUDIES_LOCK.delete(code);
+      });
     } else if (autoState.phase === "complete") {
       if (autoState.completed > 0 || autoState.drafted > 0 || autoState.failed.length > 0) {
         publishAutoRun({
@@ -438,6 +443,7 @@ function StudiesPage() {
         href,
       });
     } else {
+      unregisterAutoRunAbort(id);
       clearAutoRun(id);
     }
   }, [autoState, code, startAutoRun]);

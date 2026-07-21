@@ -402,6 +402,7 @@ function StudiesPage() {
   useEffect(() => {
     if (didAttemptRef.current) return;
     if (!autoIntent) return;
+    if (!activeProjectId) return; // never auto-run without a project scope
     if (autoState.phase !== "idle") return;
     const anyIncomplete = studies.some(
       (s) => !s.is_synthesized && !s.has_report && s.status !== "completed" && s.status !== "complete" && s.status !== "synthesized",

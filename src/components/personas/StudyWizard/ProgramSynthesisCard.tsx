@@ -185,10 +185,12 @@ export function ProgramSynthesisCard({
   const qc = useQueryClient();
   const q = useQuery(programReportQuery(code, projectId));
   const runFn = useServerFn(synthesizeStudyProgram);
+  const getStudyFn = useServerFn(getStudy);
   const run = useMutation({
     mutationFn: () => runFn({ data: { countryCode: code, projectId } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["study-program-report", code] }),
   });
+  const [downloading, setDownloading] = useState(false);
 
   const report = q.data as null | {
     summary_md?: string | null;
@@ -198,6 +200,33 @@ export function ProgramSynthesisCard({
   const sections = (report?.sections ?? {}) as ProgramSections;
   const methodology = sections.methodology;
   const canGenerate = synthesizedCount >= 1;
+
+  async function handleDownload() {
+    if (!report) return;
+    setDownloading(true);
+    try {
+      const studyIds = (methodology?.studies ?? []).map((s) => s.id).filter(Boolean);
+      const studyReports: StudyExportInput[] = [];
+      for (const id of studyIds) {
+        try {
+          const full = await getStudyFn({ data: { id, projectId } });
+          studyReports.push(full as unknown as StudyExportInput);
+        } catch {
+          // Skip unreadable studies rather than failing the whole export.
+        }
+      }
+      const { filename, body } = programReportToMarkdown({
+        countryCode: code,
+        projectId,
+        report: report as never,
+        studyReports,
+      });
+      downloadMarkdown(filename, body);
+    } finally {
+      setDownloading(false);
+    }
+  }
+
 
   return (
     <section id="program-synthesis" className="border border-ink-950 bg-paper-0">

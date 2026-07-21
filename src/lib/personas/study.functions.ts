@@ -556,11 +556,15 @@ export const listStudiesWithReports = createServerFn({ method: "POST" })
       .limit(200);
     if (error) throw new Error(error.message);
     const studies = rows ?? [];
+    type Recommendation = { move?: string; why?: string; owner?: string };
+    type Question = { ord?: number; prompt?: string; kind?: string };
     type Digest = {
-      id: string; title: string; kind: string; status: string; created_at: string;
-      segment_id: string | null; segment_label: string | null; persona_count: number;
+      id: string; title: string; kind: string; status: string; objective: string | null; created_at: string;
+      segment_id: string | null; segment_label: string | null; segment_prompt: string | null; persona_count: number;
       summary_md: string | null;
       themes: Array<{ label?: string; prevalence?: number; quote?: string }>;
+      recommendations: Recommendation[];
+      questions: Question[];
       citations: ContextCitation[];
     };
     if (studies.length === 0) return [] as Digest[];
@@ -569,22 +573,22 @@ export const listStudiesWithReports = createServerFn({ method: "POST" })
     const segIds = Array.from(new Set(studies.map((s) => s.segment_id).filter((v): v is string => !!v)));
 
     const [{ data: reports }, { data: segments }, { data: members }] = await Promise.all([
-      supabase.from("study_reports").select("study_id,summary_md,themes,citations,created_at").in("study_id", ids),
+      supabase.from("study_reports").select("study_id,summary_md,themes,citations,context,created_at").in("study_id", ids),
       segIds.length
-        ? supabase.from("persona_segments").select("id,label").in("id", segIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; label: string }> }),
+        ? supabase.from("persona_segments").select("id,label,prompt").in("id", segIds)
+        : Promise.resolve({ data: [] as Array<{ id: string; label: string; prompt: string | null }> }),
       segIds.length
         ? supabase.from("persona_segment_members").select("segment_id,persona_id").in("segment_id", segIds)
         : Promise.resolve({ data: [] as Array<{ segment_id: string; persona_id: string }> }),
     ]);
 
-    const reportByStudy = new Map<string, { summary_md: string | null; themes: unknown; citations: unknown }>();
+    const reportByStudy = new Map<string, { summary_md: string | null; themes: unknown; citations: unknown; context: unknown }>();
     for (const r of reports ?? []) {
       const existing = reportByStudy.get(r.study_id);
-      if (!existing) reportByStudy.set(r.study_id, { summary_md: r.summary_md, themes: r.themes, citations: r.citations });
+      if (!existing) reportByStudy.set(r.study_id, { summary_md: r.summary_md, themes: r.themes, citations: r.citations, context: r.context });
     }
-    const segLabelById = new Map<string, string>();
-    for (const s of segments ?? []) segLabelById.set(s.id, s.label);
+    const segById = new Map<string, { label: string; prompt: string | null }>();
+    for (const s of segments ?? []) segById.set(s.id, { label: s.label, prompt: s.prompt });
     const countBySeg = new Map<string, number>();
     for (const m of members ?? []) countBySeg.set(m.segment_id, (countBySeg.get(m.segment_id) ?? 0) + 1);
 
@@ -597,28 +601,40 @@ export const listStudiesWithReports = createServerFn({ method: "POST" })
       let summary_md: string | null = null;
       let themes: Array<{ label?: string; prevalence?: number; quote?: string }> = [];
       let citations: ContextCitation[] = [];
+      let recommendations: Recommendation[] = [];
+      let questions: Question[] = [];
       if (rep && pack) {
-        const cites = fullCitationsForRefs(pack.citations, refsFromTextAndModel(rep.summary_md, rep.citations));
-        summary_md = rep.summary_md ? sanitizeCitationMarkersInText(rep.summary_md, cites) : null;
+        const rawSummary = stripBrandedByline(rep.summary_md ?? "");
+        const cites = fullCitationsForRefs(pack.citations, refsFromTextAndModel(rawSummary, rep.citations));
+        summary_md = rawSummary ? sanitizeCitationMarkersInText(rawSummary, cites) : null;
         const rawThemes = sanitizeJsonCitationMarkers(rep.themes ?? [], cites);
         themes = Array.isArray(rawThemes) ? (rawThemes as typeof themes) : [];
         citations = cites;
+        const ctx = (rep.context ?? {}) as { recommendations?: unknown; questions?: unknown };
+        recommendations = Array.isArray(ctx.recommendations) ? (ctx.recommendations as Recommendation[]) : [];
+        questions = Array.isArray(ctx.questions) ? (ctx.questions as Question[]) : [];
       }
+      const seg = s.segment_id ? segById.get(s.segment_id) : null;
       return {
         id: s.id as string,
         title: s.title as string,
         kind: s.kind as string,
         status: s.status as string,
+        objective: (s.objective as string | null) ?? null,
         created_at: s.created_at as string,
         segment_id: s.segment_id as string | null,
-        segment_label: s.segment_id ? segLabelById.get(s.segment_id) ?? null : null,
+        segment_label: seg?.label ?? null,
+        segment_prompt: seg?.prompt ?? null,
         persona_count: s.segment_id ? countBySeg.get(s.segment_id) ?? 0 : 0,
         summary_md,
         themes,
+        recommendations,
+        questions,
         citations,
       };
     });
   });
+
 
 export const listStudies = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

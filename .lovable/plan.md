@@ -1,47 +1,51 @@
+## Problem
 
-## What I confirmed
+Selecting a project from the switcher dropdown navigates to Chamber 07's Studies (Stage 03) route — and that route auto-starts a full synthesis pipeline on landing whenever any study is incomplete. Same pattern on Segments (Stage 02): it auto-fires on mount when the state looks "eligible." So merely *opening* a project is indistinguishable from *saying go*.
 
-- The server function ran fine: three "test" projects for GRD were inserted at 01:33, 01:41, and 01:45 UTC (matching the reported failed attempt).
-- Manually loading `/admin/countries/GRD/personas/studies?project=<id>` in preview renders the Studies page correctly — the target route exists and accepts the search shape.
-- Reproducing the flow via a scripted click in preview also succeeded (URL and page both landed on Studies).
-- The user's 404 (session replay + "Go home" click) means the router matched the **root** `notFoundComponent` — i.e. the URL that was pushed did not match any route, so the failure is in the `navigate({...})` call inside `ProgramsIndex`, not in the destination route.
+Root cause (verified in code):
 
-## Diagnosis (unconfirmed, high confidence)
+- `src/routes/_authenticated/admin/countries.$code.personas.studies.tsx` ~L373–387: a mount `useEffect` calls `startAutoRun()` whenever anything is incomplete, gated only by a per-mount ref.
+- `src/routes/_authenticated/admin/countries.$code.personas.segments.tsx` ~L329–344: a mount `useEffect` calls `runAuto()` whenever there are personas and no segments yet, gated only by a `localStorage` "consumed" flag.
 
-`ProgramsIndex.onSuccess` fires:
+Neither gate checks user intent. Switching projects remounts the route → auto-run fires again.
 
-```ts
-navigate({
-  to: "/admin/countries/$code/personas/studies",
-  params: { code },
-  search: { project: row?.id },
-});
-```
+## Fix — require explicit intent to auto-run
 
-Three fragile things happen at the same time:
+Treat auto-run as a user action, not a side effect of navigation. Loading a project should only *load and display* its current state.
 
-1. `qc.invalidateQueries` refetches `persona-projects`, unmounting the empty-state form and re-rendering the row list — during that render cycle the `code` closure is the one captured when the mutation started.
-2. `row?.id` — if the server-fn payload ever comes back wrapped (`{ data: row }`), `row?.id` is `undefined` and we push `?project=undefined`. Not a 404 by itself, but a symptom worth removing.
-3. `navigate` uses the URL-form path (`/admin/...`). `ProjectSwitcher` (which works) uses the **route-id form** (`/_authenticated/...`). If `code` is ever falsy on this render, the URL-form call pushes `/admin/countries//personas/studies` → root 404, exactly what the user saw. The route-id form fails validation instead of silently 404-ing.
+### Stage 03 (Studies) — `countries.$code.personas.studies.tsx`
 
-## Fix
+- Remove the "defensive auto-run on landing" `useEffect` (L373–387). Landing never starts work.
+- Only auto-start when the route is entered with an explicit intent signal:
+  - the existing `?auto=1` search param (already used by "Create study" and by the Stage 02 handoff), OR
+  - a one-shot intent key written to `sessionStorage` by an explicit CTA (e.g. `stage03:intent:<code>:<projectId>`), consumed on mount.
+- After consuming the intent, strip `?auto=1` from the URL so a browser refresh or re-navigation does not re-trigger.
+- Render a clear resume state when incomplete work exists but no intent was given: an inline banner "N studies incomplete" with a primary "Resume auto-run" button that sets the intent and calls `startAutoRun()`. The existing Stop control stays.
 
-Small, defensive changes only in `src/components/personas/StudyWizard/ProgramsIndex.tsx`:
+### Stage 02 (Segments) — `countries.$code.personas.segments.tsx`
 
-1. **Assert `code` before navigate.** If missing, keep the form open and surface an inline error instead of pushing a broken URL.
-2. **Normalize the mutation result.** Accept both `row` and `{ data: row }` shapes; require a non-empty `id`; on missing id, refetch `persona-projects`, pick the freshest project for `code`, and use that id.
-3. **Await the invalidation** (`await qc.invalidateQueries(...)`) so the projects list is authoritative before we leave the page.
-4. **Switch `to` to the route-id form** used by the working `ProjectSwitcher`: `"/_authenticated/admin/countries/$code/personas/studies"`. This gives TanStack a typed match; a bad `code` throws instead of falling through to root 404.
-5. **Log the failure once.** Wrap the navigate in try/catch and `console.error("[programs] navigate failed", { code, id, err })` so a repeat is diagnosable from the console log tool without more guessing.
-6. **Same treatment for the two `<Link>`s** in `ProgramRow` (Continue / Open report) — move them to the route-id `to` form for consistency.
+- Remove the mount auto-fire (L329–344).
+- Same intent model: only run when `?auto=1` is present or a one-shot `sessionStorage` intent was set by an explicit CTA (the existing "Start auto-run" button, and the Stage 02 handoff from a "New program" creation).
+- Keep the existing manual CTAs ("Start auto-run", "Accept all", "Regenerate") — those already represent explicit intent and continue to work unchanged.
 
-## Verification
+### Project switcher — `src/components/personas/StudyWizard/ProjectSwitcher.tsx`
 
-- Click **New program → Create** in preview and confirm the URL becomes `/admin/countries/GRD/personas/studies?project=<uuid>` and the Studies page renders (not the 404).
-- Retry with the form open and empty `code` (simulated) — expect an inline error, not a bounce.
-- Confirm existing rows' Continue / Open report links still work.
+- When the user picks a project from the dropdown, navigate to the target route **without** `?auto=1` and **without** writing the intent key. Loading a project is a read-only action.
+- "New program" (creation flow) is the one place that should still set intent so a freshly created project runs end-to-end — keep that path as-is.
 
-## Out of scope
+### Beacon interaction
 
-- No server-function, schema, or RLS changes — DB writes are already succeeding.
-- No changes to `ProjectSwitcher` (already uses the safe pattern) or to the Studies route itself.
+- If a run is already active for the country/project (beacon shows running), do not start a second one on landing even if intent is present — the beacon's existing dedupe already covers this; just confirm the intent-consumer respects it.
+
+## What stays the same
+
+- All auto-run engines (`study-autorun.ts`, `compose-segments`, synthesis phases) are unchanged.
+- The global beacon, Stop-all, and Resume controls are unchanged.
+- Backfill jobs and other admin flows are untouched.
+
+## Acceptance
+
+- Switching between existing projects via the dropdown never starts synthesis, casting, or drafting — the page renders current state only.
+- The only ways auto-run starts are: clicking a visible CTA ("Start auto-run", "Resume auto-run", "New program"), or arriving via a link that carries `?auto=1` from one of those CTAs.
+- Refreshing a Studies/Segments page never restarts auto-run.
+- Incomplete-work states show a clear inline "Resume auto-run" button instead of silently starting.

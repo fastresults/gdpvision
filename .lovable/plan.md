@@ -1,51 +1,38 @@
-## Problem
+## The problem
 
-Selecting a project from the switcher dropdown navigates to Chamber 07's Studies (Stage 03) route — and that route auto-starts a full synthesis pipeline on landing whenever any study is incomplete. Same pattern on Segments (Stage 02): it auto-fires on mount when the state looks "eligible." So merely *opening* a project is indistinguishable from *saying go*.
+When landing on Chamber 07 (or switching from another project), the screen still fills with content from a prior project — its "AI proposes your next study" card, its Latest Synthesis, its Progress bar — even though the URL has no project selected or a different project is chosen.
 
 Root cause (verified in code):
+- `src/routes/_authenticated/admin/countries.$code.personas.studies.tsx` reads `?project=` and, when it's missing, passes `projectId: undefined` to server functions.
+- The server functions in `src/lib/personas/study.functions.ts` (`listStudies`, `listStudiesWithReports`, `synthesizeStudyProgram`, `getStudyProgramReport`) fall back to `resolveDefaultProjectId(...)` whenever `projectId` is missing — silently picking the most recent project and returning its studies/reports.
+- Result: the Chamber 07 "Studies" landing renders whichever project was last used, and the AI composer, right rail, and synthesis card all speak from that ghost project.
 
-- `src/routes/_authenticated/admin/countries.$code.personas.studies.tsx` ~L373–387: a mount `useEffect` calls `startAutoRun()` whenever anything is incomplete, gated only by a per-mount ref.
-- `src/routes/_authenticated/admin/countries.$code.personas.segments.tsx` ~L329–344: a mount `useEffect` calls `runAuto()` whenever there are personas and no segments yet, gated only by a `localStorage` "consumed" flag.
+## The fix — a clean "no project selected" landing
 
-Neither gate checks user intent. Switching projects remounts the route → auto-run fires again.
+**1. Make project selection explicit at the Chamber 07 entry point.**
+- `personas.index.tsx` (Chamber 07 hub): the "Studies" tile navigates to `/…/personas/studies` with NO `project` param. That's fine — the studies route will then show the Programs Index only.
+- `personas.studies.tsx`: when `search.project` is missing, render ONLY the Programs Index card (list of existing programs + "New Program" CTA + "Back to country"). Do NOT render: header stage strip's studies count for a specific project, "AI proposes your next study", the Auto-run banner, the Studio Status rail, the Latest Synthesis card, the wizard steps, or the ProgramSynthesis card. Nothing project-scoped appears until the user clicks a program (or creates one).
+- Clicking a program in the index sets `?project=<id>` and the working surface mounts fresh.
 
-## Fix — require explicit intent to auto-run
+**2. Remove the silent default-project fallback on the server.**
+- Update `listStudies`, `listStudiesWithReports`, `getStudyProgramReport`, and `synthesizeStudyProgram` in `src/lib/personas/study.functions.ts` so that when `projectId` is not supplied, they return an empty result (`{ studies: [], reports: [] }` etc.) instead of calling `resolveDefaultProjectId`. This closes the leak at the source so no future caller can accidentally show cross-project data.
+- Keep `resolveDefaultProjectId` available for the specific places that legitimately need it (e.g. auto-run entry points that create a "default" program on first use), but never invoke it inside read-list handlers.
 
-Treat auto-run as a user action, not a side effect of navigation. Loading a project should only *load and display* its current state.
+**3. Reset transient UI state on project change / clear.**
+- The `useEffect` reset already added on project change stays. Extend it so that when `activeProjectId` becomes `undefined` (user hits "All programs"), the composer query, wizard fields, and auto-run beacon state for the previous project are cleared from the cache (`qc.removeQueries({ queryKey: ['study-composer', code] })`, same for `['studies', code]`, `['studies-digest', code]`).
 
-### Stage 03 (Studies) — `countries.$code.personas.studies.tsx`
+**4. Header stage strip.**
+- The top strip (91 personas · 11 segments · 19 studies) is country-wide and stays. But the "0/1 STUDIES · 11 SEGMENTS" project sub-header only renders when a project is actually selected.
 
-- Remove the "defensive auto-run on landing" `useEffect` (L373–387). Landing never starts work.
-- Only auto-start when the route is entered with an explicit intent signal:
-  - the existing `?auto=1` search param (already used by "Create study" and by the Stage 02 handoff), OR
-  - a one-shot intent key written to `sessionStorage` by an explicit CTA (e.g. `stage03:intent:<code>:<projectId>`), consumed on mount.
-- After consuming the intent, strip `?auto=1` from the URL so a browser refresh or re-navigation does not re-trigger.
-- Render a clear resume state when incomplete work exists but no intent was given: an inline banner "N studies incomplete" with a primary "Resume auto-run" button that sets the intent and calls `startAutoRun()`. The existing Stop control stays.
+## Files to change
 
-### Stage 02 (Segments) — `countries.$code.personas.segments.tsx`
-
-- Remove the mount auto-fire (L329–344).
-- Same intent model: only run when `?auto=1` is present or a one-shot `sessionStorage` intent was set by an explicit CTA (the existing "Start auto-run" button, and the Stage 02 handoff from a "New program" creation).
-- Keep the existing manual CTAs ("Start auto-run", "Accept all", "Regenerate") — those already represent explicit intent and continue to work unchanged.
-
-### Project switcher — `src/components/personas/StudyWizard/ProjectSwitcher.tsx`
-
-- When the user picks a project from the dropdown, navigate to the target route **without** `?auto=1` and **without** writing the intent key. Loading a project is a read-only action.
-- "New program" (creation flow) is the one place that should still set intent so a freshly created project runs end-to-end — keep that path as-is.
-
-### Beacon interaction
-
-- If a run is already active for the country/project (beacon shows running), do not start a second one on landing even if intent is present — the beacon's existing dedupe already covers this; just confirm the intent-consumer respects it.
-
-## What stays the same
-
-- All auto-run engines (`study-autorun.ts`, `compose-segments`, synthesis phases) are unchanged.
-- The global beacon, Stop-all, and Resume controls are unchanged.
-- Backfill jobs and other admin flows are untouched.
+- `src/routes/_authenticated/admin/countries.$code.personas.studies.tsx` — gate the entire working surface behind `activeProjectId`; render Programs Index as the sole content when none is selected; clear caches when the project param clears.
+- `src/lib/personas/study.functions.ts` — drop `resolveDefaultProjectId` fallback in `listStudies`, `listStudiesWithReports`, `getStudyProgramReport`, `synthesizeStudyProgram`; return empty payloads when `projectId` is absent.
+- `src/components/personas/StudyWizard/ProjectSwitcher.tsx` — verify "All programs" / clear-selection navigates to `/…/personas/studies` with no `project` param and does not preserve the previous one.
 
 ## Acceptance
 
-- Switching between existing projects via the dropdown never starts synthesis, casting, or drafting — the page renders current state only.
-- The only ways auto-run starts are: clicking a visible CTA ("Start auto-run", "Resume auto-run", "New program"), or arriving via a link that carries `?auto=1` from one of those CTAs.
-- Refreshing a Studies/Segments page never restarts auto-run.
-- Incomplete-work states show a clear inline "Resume auto-run" button instead of silently starting.
+- Landing on `/admin/countries/GRD/personas/studies` (no `?project=`) shows only the Programs Index and "New Program" CTA. No prior study titles, no synthesis text, no composer card anywhere on screen.
+- Selecting a program from the index navigates with `?project=<id>` and the studies surface mounts with ONLY that project's data.
+- Creating a new program routes to `?project=<newId>` with the working surface empty until studies are drafted for that program.
+- Switching from Project A → "All programs" → Project B never shows Project A content on Project B's screen or on the index.

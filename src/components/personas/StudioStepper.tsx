@@ -136,7 +136,8 @@ export function StudioStepper({
       <ol className="grid grid-cols-4 gap-2">
         {nodes.map((s) => {
           const Icon = s.icon;
-          const complete = s.count > 0;
+          const complete = s.complete ?? s.count > 0;
+          const locked = s.locked;
           return (
             <li key={s.key}>
               <Link
@@ -144,8 +145,12 @@ export function StudioStepper({
                 params={{ code }}
                 search={activeProjectId ? { project: activeProjectId, open: 1 } : undefined}
                 activeOptions={{ exact: s.exact }}
+                disabled={locked}
+                aria-disabled={locked}
+                onClick={(e) => { if (locked) e.preventDefault(); }}
                 className={cn(
                   "group flex items-start gap-3 border-l-2 py-1 pl-3 transition-colors",
+                  locked && "opacity-40 cursor-not-allowed pointer-events-none",
                   s.isActive
                     ? "border-ink-950"
                     : complete
@@ -163,7 +168,9 @@ export function StudioStepper({
                         : "border-line-200 text-ink-500",
                   )}
                 >
-                  {complete && !s.isActive ? (
+                  {locked ? (
+                    <Lock size={11} />
+                  ) : complete && !s.isActive ? (
                     <Check size={12} strokeWidth={3} />
                   ) : (
                     s.n.toString().padStart(2, "0")

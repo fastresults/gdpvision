@@ -142,7 +142,7 @@ export async function draftStudiesForSegments({
     let studyId: string | null = null;
     try {
       const proposal = await composeStudyForSegment({
-        data: { countryCode: code, segmentId: seg.id },
+        data: { countryCode: code, segmentId: seg.id, projectId },
       });
       if (!proposal.ok) {
         failed.push({ label: seg.label, reason: proposal.reason, phase: "composing" });

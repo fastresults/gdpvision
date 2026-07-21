@@ -423,43 +423,22 @@ function StudiesPage() {
     cancelRef.current = true;
   };
 
-  // Intent-driven auto-run. Landing on this page (e.g. via the project
-  // switcher, browser refresh, or a saved link) NEVER starts synthesis on its
-  // own. Auto-run only fires when the user carries an explicit intent — either
-  // `?auto=1` in the URL (set by the "Start" CTA, "New program" creation, or
-  // the Stage 02 → Stage 03 handoff) — and the URL is immediately cleaned so
-  // a refresh cannot re-trigger it.
+  // Landing on this page must NEVER start synthesis from URL/search state.
+  // Prior versions accepted `?auto=1`; that allowed stale browser/search state
+  // from an old program to start work inside the next program. If such a flag
+  // arrives from history or an old link, strip it and remain idle. The only
+  // valid start path is the visible Start Auto-run button below.
   const didAttemptRef = useRef(false);
   const autoIntent = !!search.auto;
   useEffect(() => {
-    if (didAttemptRef.current) return;
     if (!autoIntent) return;
-    if (!activeProjectId) return; // never auto-run without a project scope
-    if (autoState.phase !== "idle") return;
-    const anyIncomplete = studies.some(
-      (s) => !s.is_synthesized && !s.has_report && s.status !== "completed" && s.status !== "complete" && s.status !== "synthesized",
-    );
-    if (uncoveredSegments.length === 0 && !anyIncomplete) {
-      // Nothing to do — strip the intent flag and stay idle.
-      navigate({
-        to: "/admin/countries/$code/personas/studies",
-        params: { code },
-        search: (s: Record<string, unknown>) => ({ ...s, auto: undefined }),
-        replace: true,
-      });
-      return;
-    }
-    didAttemptRef.current = true;
-    // Strip the intent from the URL BEFORE starting so a refresh mid-run
-    // does not queue a second run on top of the first.
     navigate({
       to: "/admin/countries/$code/personas/studies",
       params: { code },
       search: (s: Record<string, unknown>) => ({ ...s, auto: undefined }),
       replace: true,
     });
-    void startAutoRun();
-  }, [autoIntent, activeProjectId, uncoveredSegments.length, studies, autoState.phase, startAutoRun, navigate, code]);
+  }, [autoIntent, navigate, code]);
 
   const rehearseStatus =
     autoState.phase === "running"

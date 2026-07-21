@@ -50,11 +50,16 @@ export function ProjectSwitcher({
       setNewTitle("");
       setOpen(false);
       if (detailsRef.current) detailsRef.current.open = false;
-      // Newly created program → carry `auto=1` so the auto-run pipeline kicks off.
+      if (!row?.id) {
+        console.error("[project-switcher] create returned no project id", { row });
+        return;
+      }
+      // Newly created program → open a clean workspace only. Do not carry
+      // prior search state or auto-run intent from the current project.
       navigate({
         to: routeId,
         params: { code },
-        search: (s: Record<string, unknown>) => ({ ...s, project: row?.id, open: 1, auto: 1 }),
+        search: { project: row.id, open: 1 },
       });
     },
   });
@@ -64,7 +69,7 @@ export function ProjectSwitcher({
     navigate({
       to: routeId,
       params: { code },
-      search: (s: Record<string, unknown>) => ({ ...s, project: id, open: 1, auto: undefined }),
+      search: { project: id, open: 1 },
     });
     setOpen(false);
   };

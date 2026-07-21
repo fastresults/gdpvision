@@ -10,7 +10,11 @@ const KINDS = ["survey", "focus_group", "creative_test"] as const;
 type Kind = (typeof KINDS)[number];
 
 const ComposeInput = z.object({ countryCode: z.string(), projectId: z.string().optional() });
-const ComposeForSegmentInput = z.object({ countryCode: z.string(), segmentId: z.string() });
+const ComposeForSegmentInput = z.object({
+  countryCode: z.string(),
+  segmentId: z.string(),
+  projectId: z.string().optional(),
+});
 
 export type ComposeStudyResult =
   | {
@@ -88,6 +92,7 @@ export const composeStudy = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<ComposeStudyResult> => {
     const { supabase } = context;
     const code = data.countryCode;
+    const projectId = data.projectId;
     const projectId = data.projectId;
 
     // 1. Load segments
@@ -254,20 +259,23 @@ export const composeStudyForSegment = createServerFn({ method: "POST" })
     if (segErr) throw new Error(segErr.message);
     if (!seg) return { ok: false, reason: "Segment not found." };
 
-    const { data: draft } = await supabase
+    let draftQ = supabase
       .from("persona_study_drafts")
       .select("brief_raw,brief_scope,outcome_blueprint")
       .eq("country_code", code)
       .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+    if (projectId) draftQ = draftQ.eq("project_id", projectId);
+    const { data: draft } = await draftQ.maybeSingle();
 
-    const { data: priorStudies } = await supabase
+    let priorQ = supabase
       .from("studies")
       .select("title,kind,objective")
       .eq("country_code", code)
       .order("created_at", { ascending: false })
       .limit(10);
+    if (projectId) priorQ = priorQ.eq("project_id", projectId);
+    const { data: priorStudies } = await priorQ;
 
     const scope = (draft?.brief_scope ?? null) as { title?: string; objectives?: string[] } | null;
     const blueprint = (draft?.outcome_blueprint ?? null) as {

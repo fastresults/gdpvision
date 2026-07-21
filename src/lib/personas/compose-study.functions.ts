@@ -93,7 +93,6 @@ export const composeStudy = createServerFn({ method: "POST" })
     const { supabase } = context;
     const code = data.countryCode;
     const projectId = data.projectId;
-    const projectId = data.projectId;
 
     // 1. Load segments
     const { data: segments, error: segErr } = await supabase
@@ -249,6 +248,7 @@ export const composeStudyForSegment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<ComposeStudyResult> => {
     const { supabase } = context;
     const code = data.countryCode;
+    const projectId = data.projectId;
 
     const { data: seg, error: segErr } = await supabase
       .from("persona_segments")

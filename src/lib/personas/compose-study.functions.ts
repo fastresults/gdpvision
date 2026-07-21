@@ -9,7 +9,7 @@ const MODEL = "google/gemini-2.5-flash";
 const KINDS = ["survey", "focus_group", "creative_test"] as const;
 type Kind = (typeof KINDS)[number];
 
-const ComposeInput = z.object({ countryCode: z.string() });
+const ComposeInput = z.object({ countryCode: z.string(), projectId: z.string().optional() });
 const ComposeForSegmentInput = z.object({ countryCode: z.string(), segmentId: z.string() });
 
 export type ComposeStudyResult =

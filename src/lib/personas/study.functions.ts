@@ -344,12 +344,20 @@ export const runStudySynthesis = createServerFn({ method: "POST" })
     const { data: study } = await supabase.from("studies").select("*").eq("id", data.studyId).maybeSingle();
     if (!study) throw new Error("Study not found");
 
-    const [{ data: responses }, { data: transcript }] = await Promise.all([
+    const [{ data: responses }, { data: transcript }, { data: questions }, { data: segment }, { count: personaCount }] = await Promise.all([
       supabase.from("study_responses").select("*, personas(name,archetype)").eq("study_id", data.studyId).limit(500),
       supabase.from("study_transcripts").select("*").eq("study_id", data.studyId).order("ord").limit(500),
+      supabase.from("study_questions").select("ord,prompt,kind,options").eq("study_id", data.studyId).order("ord"),
+      study.segment_id
+        ? supabase.from("persona_segments").select("id,label,prompt").eq("id", study.segment_id).maybeSingle()
+        : Promise.resolve({ data: null as { id: string; label: string; prompt: string | null } | null }),
+      study.segment_id
+        ? supabase.from("persona_segment_members").select("persona_id", { count: "exact", head: true }).eq("segment_id", study.segment_id)
+        : Promise.resolve({ count: 0 }),
     ]);
 
     const pack = await buildCountryContextPack(supabase, study.country_code, study.objective ?? study.title);
+    const brief = await loadCountryBrief(supabase, study.country_code);
     const dataBlock = study.kind === "focus_group"
       ? (transcript ?? []).map((t) => `${t.speaker}: ${t.utterance}`).join("\n").slice(0, 8000)
       : (responses ?? []).map((r) => {
@@ -357,25 +365,65 @@ export const runStudySynthesis = createServerFn({ method: "POST" })
           return `[${persona?.name ?? "?"} · ${persona?.archetype ?? ""}] ${JSON.stringify(r.answer).slice(0, 400)}${r.rationale ? ` — ${r.rationale}` : ""}`;
         }).join("\n").slice(0, 8000);
 
+    const questionList = (questions ?? []).map((q) => ({
+      ord: q.ord as number,
+      prompt: String(q.prompt),
+      kind: String(q.kind),
+      options: Array.isArray(q.options) ? (q.options as unknown[]) : [],
+    }));
+    const contextPayload = {
+      instrument: {
+        kind: study.kind as string,
+        title: study.title as string,
+        objective: (study.objective as string | null) ?? null,
+      },
+      questions: questionList,
+      segment: segment
+        ? { id: segment.id, label: segment.label, prompt: segment.prompt ?? null, persona_count: personaCount ?? 0 }
+        : null,
+      brief: { title: brief.scope?.title ?? null, objectives: brief.scope?.objectives ?? [] },
+      generated_at: new Date().toISOString(),
+    };
+
     if (!dataBlock.trim()) {
-      // Nothing to synthesize; mark complete anyway so we don't loop.
+      await supabase.from("study_reports").upsert(
+        { study_id: data.studyId, summary_md: "", themes: [] as never, citations: [] as never, context: contextPayload as never },
+        { onConflict: "study_id" },
+      );
       await supabase.from("studies").update({ status: "complete" }).eq("id", data.studyId);
       return { ok: true, empty: true };
     }
 
+    const qBlock = questionList.map((q) => `Q${q.ord + 1} [${q.kind}] ${q.prompt}`).join("\n");
+    const memoHeader = [
+      "MEMO STRUCTURE — return exactly these markdown sections in this order:",
+      "## TO / RE",
+      "## Scope link — how this study answers the brief",
+      "## Instrument context — method, N personas, what was asked",
+      "## Segment truths — what this segment actually said (2–4 bullets, cite [N])",
+      "## Brand ethos read — signals about brand/positioning",
+      "## Recommendations — 3 decision-ready moves for the sovereign owner",
+      "## Risks & watch-outs — dissenting voices, thin evidence",
+    ].join("\n");
     const raw = await ai(
-      "You are a McKinsey partner. Synthesize this market-research output into a decision-ready brief. Cite [N] refs.",
-      `STUDY: ${study.title} (${study.kind})\nOBJECTIVE: ${study.objective ?? "(none)"}\n${pack.block}\n\nDATA:\n${dataBlock}\n\nReturn JSON: { "summary_md": "markdown, ~250 words, use ## headings and bullets", "themes": [ { "label":"…", "prevalence": 0.0-1.0, "quote":"…" } ], "citations": [N,...] }`,
+      "You are a senior partner writing a decision-ready synthesis memo for a Head of Government. Ground every claim in the DATA and CONTEXT. Cite [N] refs against the CITATION RULE. NEVER emit letterhead like 'FROM: McKinsey & Company' or firm names — the reader knows the source. Prose is crisp, active voice, no filler.",
+      `${memoHeader}\n\nBRIEF:\n${brief.block || "(no active brief captured)"}\n\nSTUDY:\n- title: ${study.title}\n- method: ${study.kind}\n- objective: ${study.objective ?? "(none)"}\n- segment: ${segment?.label ?? "(none)"} · ${personaCount ?? 0} personas\n\nQUESTIONS ASKED:\n${qBlock}\n\nCOUNTRY CONTEXT:\n${pack.block}\n\nDATA:\n${dataBlock}\n\nReturn JSON: { "summary_md": "markdown memo, ~350–500 words, follow the sections above, no letterhead", "themes": [ { "label":"…", "prevalence": 0.0-1.0, "quote":"…" } ], "recommendations": [ { "move":"…", "why":"…", "owner":"…" } ], "citations": [N,...] }`,
     );
-    const parsed = parseJson<{ summary_md?: string; themes?: unknown; citations?: number[] }>(raw);
+    const parsed = parseJson<{ summary_md?: string; themes?: unknown; recommendations?: unknown; citations?: number[] }>(raw);
     if (parsed?.summary_md) {
-      const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(parsed.summary_md, parsed.citations));
-      await supabase.from("study_reports").insert({
-        study_id: data.studyId,
-        summary_md: sanitizeCitationMarkersInText(parsed.summary_md, citations),
-        themes: sanitizeJsonCitationMarkers(parsed.themes ?? [], citations) as never,
-        citations: citations as never,
-      });
+      const cleaned = stripBrandedByline(parsed.summary_md);
+      const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(cleaned, parsed.citations));
+      const ctxWithRecs = { ...contextPayload, recommendations: parsed.recommendations ?? [] };
+      await supabase.from("study_reports").upsert(
+        {
+          study_id: data.studyId,
+          summary_md: sanitizeCitationMarkersInText(cleaned, citations),
+          themes: sanitizeJsonCitationMarkers(parsed.themes ?? [], citations) as never,
+          citations: citations as never,
+          context: ctxWithRecs as never,
+        },
+        { onConflict: "study_id" },
+      );
     }
     await supabase.from("studies").update({ status: "complete" }).eq("id", data.studyId);
     return { ok: true };
@@ -390,6 +438,109 @@ export const runStudy = createServerFn({ method: "POST" })
     await runStudySynthesis({ data: { studyId: data.studyId } });
     return { ok: true };
   });
+
+// ── Program-level (portfolio) synthesis across every completed study ─────
+export const synthesizeStudyProgram = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: studies } = await supabase
+      .from("studies")
+      .select("id,title,kind,status,objective,segment_id,created_at")
+      .eq("country_code", data.countryCode)
+      .order("created_at", { ascending: false })
+      .limit(80);
+    const list = studies ?? [];
+    const ids = list.map((s) => s.id as string);
+    if (ids.length === 0) throw new Error("No studies to consolidate.");
+    const [{ data: reports }, { data: segments }] = await Promise.all([
+      supabase.from("study_reports").select("study_id,summary_md,themes,citations,context").in("study_id", ids),
+      supabase
+        .from("persona_segments")
+        .select("id,label")
+        .in(
+          "id",
+          Array.from(new Set(list.map((s) => s.segment_id).filter((v): v is string => !!v))),
+        ),
+    ]);
+    const segLabel = new Map<string, string>();
+    for (const s of segments ?? []) segLabel.set(s.id, s.label);
+    const repByStudy = new Map<string, { summary_md: string; themes: unknown; context: unknown; citations: unknown }>();
+    for (const r of reports ?? []) repByStudy.set(r.study_id, { summary_md: r.summary_md ?? "", themes: r.themes, context: r.context, citations: r.citations });
+
+    const brief = await loadCountryBrief(supabase, data.countryCode);
+    const pack = await buildCountryContextPack(supabase, data.countryCode, brief.scope?.title ?? null);
+
+    const perStudy = list
+      .map((s) => {
+        const rep = repByStudy.get(s.id as string);
+        if (!rep || !rep.summary_md) return null;
+        const ctx = (rep.context ?? {}) as { questions?: Array<{ prompt: string }>; segment?: { label?: string; persona_count?: number } };
+        return [
+          `## ${s.title} (${s.kind})`,
+          ctx.segment ? `Segment: ${ctx.segment.label ?? segLabel.get((s.segment_id as string) ?? "") ?? "—"} · ${ctx.segment.persona_count ?? 0} personas` : "",
+          `Objective: ${s.objective ?? "(none)"}`,
+          `Questions: ${(ctx.questions ?? []).slice(0, 5).map((q) => `"${q.prompt}"`).join(" · ") || "(n/a)"}`,
+          `Memo:\n${stripBrandedByline(rep.summary_md).slice(0, 2200)}`,
+        ]
+          .filter(Boolean)
+          .join("\n");
+      })
+      .filter((v): v is string => !!v)
+      .join("\n\n---\n\n")
+      .slice(0, 14000);
+
+    if (!perStudy.trim()) throw new Error("No synthesized studies yet — run studies before consolidating.");
+
+    const raw = await ai(
+      "You are a senior partner writing the portfolio-level consolidation memo across every study run for this sovereign owner. Ground in the ORIGINAL BRIEF; be explicit about what the studies did and did not answer. NEVER emit letterhead / firm names. Cite [N] against the CITATION RULE.",
+      `ORIGINAL BRIEF:\n${brief.block || "(no active brief captured)"}\n\nSTUDIES CONSOLIDATED (${list.length}):\n${perStudy}\n\nCOUNTRY CONTEXT:\n${pack.block}\n\nReturn JSON with this shape:\n{\n  "summary_md": "markdown ~600–900 words. Sections in this order: ## TO / RE, ## What we asked, ## What we heard (portfolio-wide), ## Brand & ethos read, ## Sovereign recommendations, ## Sequencing & owners, ## Risks & unanswered questions.",\n  "sections": {\n    "portfolio_scope": { "studies_run": ${list.length}, "brief_link": "one sentence: how the studies answered the brief" },\n    "cross_cutting_themes": [ { "label":"…", "evidence_ids":[study titles], "quote":"…" } ],\n    "recommendations": [ { "move":"…", "why":"…", "owner":"…", "horizon":"0-90d|3-12m|12-36m" } ],\n    "unanswered": ["…"]\n  },\n  "citations": [N,...]\n}`,
+    );
+    const parsed = parseJson<{ summary_md?: string; sections?: unknown; citations?: number[] }>(raw);
+    if (!parsed?.summary_md) throw new Error("Program synthesis returned no memo.");
+    const cleaned = stripBrandedByline(parsed.summary_md);
+    const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(cleaned, parsed.citations));
+
+    const briefSnapshot = {
+      title: brief.scope?.title ?? null,
+      objectives: brief.scope?.objectives ?? [],
+      raw_excerpt: brief.briefRaw ? brief.briefRaw.slice(0, 800) : null,
+    };
+    const studiesSnapshot = list.map((s) => ({
+      id: s.id, title: s.title, kind: s.kind, status: s.status,
+      segment_label: (s.segment_id ? segLabel.get(s.segment_id as string) : null) ?? null,
+      has_report: repByStudy.has(s.id as string),
+    }));
+
+    await supabase.from("study_program_reports").upsert(
+      {
+        country_code: data.countryCode,
+        brief_snapshot: briefSnapshot as never,
+        studies_snapshot: studiesSnapshot as never,
+        summary_md: sanitizeCitationMarkersInText(cleaned, citations),
+        sections: sanitizeJsonCitationMarkers(parsed.sections ?? {}, citations) as never,
+        citations: citations as never,
+        model: MODEL,
+      },
+      { onConflict: "country_code" },
+    );
+    return { ok: true, studies: list.length, synthesized: repByStudy.size };
+  });
+
+export const getStudyProgramReport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: row } = await context.supabase
+      .from("study_program_reports")
+      .select("*")
+      .eq("country_code", data.countryCode)
+      .maybeSingle();
+    if (!row) return null;
+    return { ...row, summary_md: stripBrandedByline(row.summary_md) };
+  });
+
 
 // ── Digest for the Stage-03 studies list ─────────────────────────────────
 export const listStudiesWithReports = createServerFn({ method: "POST" })

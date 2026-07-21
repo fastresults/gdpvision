@@ -36,7 +36,7 @@ export function ProjectSwitcher({
   const search = useSearch({ strict: false }) as Record<string, unknown>;
   const q = useQuery(projectsQuery(code));
   const projects = q.data ?? [];
-  const active = projects.find((p) => p.id === activeProjectId) ?? projects[0] ?? null;
+  const active = projects.find((p) => p.id === activeProjectId) ?? null;
 
   const [open, setOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");

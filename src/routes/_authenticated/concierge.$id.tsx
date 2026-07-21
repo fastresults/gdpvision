@@ -58,10 +58,13 @@ function RequestReader() {
   if (!data.request) return <div className="p-12">Request not found.</div>;
 
   const req = data.request as Record<string, unknown>;
-  const card = (req.request_card as {
-    question?: string; why_it_matters?: string; deliverable_shape?: string;
-    built_on?: string[]; when_needed?: string;
-  } | null) ?? {};
+  const card = {
+    question: (req.question as string | null) ?? "",
+    why_it_matters: (req.why_it_matters as string | null) ?? "",
+    deliverable_shape: (req.deliverable_shape as string | null) ?? "",
+    built_on: ((req.built_on as string[] | null) ?? []) as string[],
+    when_needed: (req.when_needed as string | null) ?? "",
+  };
   const chamber = (req.internal_chamber as ChamberId | null) ?? null;
   const lex = chamber ? LEXICON[chamber] : null;
   const status = (req.status as string) ?? "new";

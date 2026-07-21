@@ -35,18 +35,20 @@ import {
   AUTO_STUDIES_FLAG_KEY,
 } from "@/lib/personas/study-autorun";
 import { StudioStepper } from "@/components/personas/StudioStepper";
+import { ProjectSwitcher } from "@/components/personas/StudyWizard/ProjectSwitcher";
+import { ProgramsIndex } from "@/components/personas/StudyWizard/ProgramsIndex";
 import { clearAutoRun, publishAutoRun, registerAutoRunAbort, registerAutoRunResume, unregisterAutoRunAbort } from "@/lib/autorun/beacon";
 
-function segmentsQuery(code: string) {
+function segmentsQuery(code: string, projectId: string) {
   return queryOptions({
-    queryKey: ["persona-segments", code],
-    queryFn: () => listSegments({ data: { countryCode: code } }),
+    queryKey: ["persona-segments", code, projectId],
+    queryFn: () => listSegments({ data: { countryCode: code, projectId } }),
   });
 }
 
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/personas/segments")({
-  loader: ({ context, params }) => context.queryClient.ensureQueryData(segmentsQuery(params.code)),
   errorComponent: ({ error }) => <p className="p-6 text-sm text-rose-600">{error.message}</p>,
+  notFoundComponent: () => <p className="p-6 text-sm text-ink-500">Segments not found.</p>,
   component: SegmentsPage,
 });
 
@@ -72,16 +74,40 @@ type AutoState =
     }
   | { kind: "error"; message: string };
 
-const AUTORUN_CONSUMED_KEY = (code: string) => `stage02:autorun-consumed:${code}`;
+const AUTORUN_CONSUMED_KEY = (code: string, projectId: string) => `stage02:autorun-consumed:${code}:${projectId}`;
 
 function SegmentsPage() {
   const { code } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const search = useSearch({ strict: false }) as { auto?: unknown; project?: string };
+  const openedRef = useRef<Set<string>>(new Set());
+  const search = useSearch({ strict: false }) as { auto?: unknown; project?: string; open?: unknown };
   const autoIntent = search.auto === 1 || search.auto === "1" || search.auto === true;
-  const activeProjectId = typeof search.project === "string" && search.project.length > 0 ? search.project : undefined;
-  const { data: segments } = useSuspenseQuery(segmentsQuery(code));
+  useEffect(() => {
+    if (search.open && search.project) {
+      openedRef.current.add(search.project);
+      navigate({
+        to: "/admin/countries/$code/personas/segments",
+        params: { code },
+        search: (s: Record<string, unknown>) => ({ ...s, open: undefined }),
+        replace: true,
+      });
+      return;
+    }
+    if (search.project && !openedRef.current.has(search.project)) {
+      navigate({
+        to: "/admin/countries/$code/personas/segments",
+        params: { code },
+        search: {},
+        replace: true,
+      });
+    }
+  }, [search.open, search.project, code, navigate]);
+  const activeProjectId = search.project && openedRef.current.has(search.project) ? search.project : undefined;
+  const { data: segments = [] } = useQuery({
+    ...segmentsQuery(code, activeProjectId ?? "none"),
+    enabled: !!activeProjectId,
+  });
   const personasQ = useQuery({
     queryKey: ["personas", code],
     queryFn: () => listPersonas({ data: { countryCode: code } }),
@@ -104,15 +130,21 @@ function SegmentsPage() {
   const autoStartedRef = useRef(false);
 
   const compose = useMutation({
-    mutationFn: () => composeSegments({ data: { countryCode: code, count: 3 } }),
+    mutationFn: () => {
+      if (!activeProjectId) return Promise.resolve({ ok: false as const, reason: "Select or create a research program first." });
+      return composeSegments({ data: { countryCode: code, projectId: activeProjectId, count: 3 } });
+    },
   });
 
   const gen = useMutation({
     mutationFn: (input: { prompt: string; size: number; visibility: "public" | "private" }) =>
-      generateSegment({ data: { countryCode: code, ...input } }),
+      activeProjectId
+        ? generateSegment({ data: { countryCode: code, projectId: activeProjectId, ...input } })
+        : Promise.reject(new Error("Select or create a research program before generating segments.")),
     onSuccess: (row) => {
       setLastCreated({ id: row.segment.id, label: row.segment.label });
-      qc.invalidateQueries({ queryKey: ["persona-segments", code] });
+      qc.invalidateQueries({ queryKey: ["persona-segments", code, activeProjectId] });
+      qc.invalidateQueries({ queryKey: ["persona-projects", code] });
       qc.invalidateQueries({ queryKey: ["personas", code] });
     },
   });
@@ -120,7 +152,8 @@ function SegmentsPage() {
   const del = useMutation({
     mutationFn: (id: string) => deleteSegment({ data: { id } }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["persona-segments", code] });
+      qc.invalidateQueries({ queryKey: ["persona-segments", code, activeProjectId] });
+      qc.invalidateQueries({ queryKey: ["persona-projects", code] });
       qc.invalidateQueries({ queryKey: ["personas", code] });
     },
   });
@@ -132,11 +165,12 @@ function SegmentsPage() {
 
   const castOne = useCallback(
     async (p: SegmentProposal) => {
+      if (!activeProjectId) throw new Error("Select or create a research program first.");
       const row = await gen.mutateAsync({ prompt: p.prompt, size: p.size, visibility: "public" });
       setProposals((prev) => prev.filter((x) => x.label !== p.label));
       return row.segment;
     },
-    [gen],
+    [activeProjectId, gen],
   );
 
   // Master auto-run loop: propose → cast all → draft studies → advance to Stage 03
@@ -147,22 +181,23 @@ function SegmentsPage() {
       setAuto({ kind: "error", message: "Select or create a research program before starting auto-run." });
       return;
     }
-    if (AUTO_STUDIES_LOCK.has(code)) {
+    const lockKey = `${code}:${projectId}`;
+    if (AUTO_STUDIES_LOCK.has(lockKey)) {
       setAuto({ kind: "error", message: "Auto-run is already active for this country." });
       return;
     }
-    AUTO_STUDIES_LOCK.add(code);
+    AUTO_STUDIES_LOCK.add(lockKey);
     try {
       setAuto({ kind: "proposing" });
       const r = await compose.mutateAsync();
       if (cancelRef.current) {
-        AUTO_STUDIES_LOCK.delete(code);
+        AUTO_STUDIES_LOCK.delete(lockKey);
         return;
       }
       if (!r.ok) {
         setComposeError(r.reason);
         setAuto({ kind: "error", message: r.reason });
-        AUTO_STUDIES_LOCK.delete(code);
+        AUTO_STUDIES_LOCK.delete(lockKey);
         return;
       }
       setProposals(r.proposals);
@@ -172,7 +207,7 @@ function SegmentsPage() {
       const list = r.proposals;
       for (let i = 0; i < list.length; i++) {
         if (cancelRef.current) {
-          AUTO_STUDIES_LOCK.delete(code);
+          AUTO_STUDIES_LOCK.delete(lockKey);
           return;
         }
         const p = list[i];
@@ -180,30 +215,30 @@ function SegmentsPage() {
         try {
           await castOne(p);
         } catch (e) {
-          AUTO_STUDIES_LOCK.delete(code);
+          AUTO_STUDIES_LOCK.delete(lockKey);
           cancelAuto(`Casting paused on "${p.label}" — ${(e as Error).message}`);
           return;
         }
       }
       if (cancelRef.current) {
-        AUTO_STUDIES_LOCK.delete(code);
+        AUTO_STUDIES_LOCK.delete(lockKey);
         return;
       }
 
       // Refresh the segment and study lists so we draft studies for every
       // segment (including any that existed before this run) without duplication.
-      await qc.invalidateQueries({ queryKey: ["persona-segments", code] });
-      await qc.invalidateQueries({ queryKey: ["studies", code] });
+      await qc.invalidateQueries({ queryKey: ["persona-segments", code, projectId] });
+      await qc.invalidateQueries({ queryKey: ["studies", code, projectId] });
       let freshSegments: Array<{ id: string; label: string }> = [];
       let freshStudies: Array<{ segment_id?: string | null }> = [];
       try {
-        freshSegments = (await listSegments({ data: { countryCode: code } })).map((s) => ({
+        freshSegments = (await listSegments({ data: { countryCode: code, projectId } })).map((s) => ({
           id: s.id,
           label: s.label,
         }));
         freshStudies = await listStudies({ data: { countryCode: code, projectId } });
       } catch (e) {
-        AUTO_STUDIES_LOCK.delete(code);
+        AUTO_STUDIES_LOCK.delete(lockKey);
         setAuto({
           kind: "error",
           message: `Could not refresh segments/studies: ${(e as Error).message}`,
@@ -211,7 +246,7 @@ function SegmentsPage() {
         return;
       }
       if (cancelRef.current) {
-        AUTO_STUDIES_LOCK.delete(code);
+        AUTO_STUDIES_LOCK.delete(lockKey);
         return;
       }
 
@@ -248,7 +283,7 @@ function SegmentsPage() {
         draftFailures = result.failed.map((f) => ({ label: f.label, reason: f.reason }));
 
         if (cancelRef.current) {
-          AUTO_STUDIES_LOCK.delete(code);
+          AUTO_STUDIES_LOCK.delete(lockKey);
           setAuto({
             kind: "paused",
             reason: "Study drafting canceled — resume to finish.",
@@ -281,7 +316,7 @@ function SegmentsPage() {
       const allFailures = [...draftFailures, ...sweepFailures];
 
       if (cancelRef.current) {
-        AUTO_STUDIES_LOCK.delete(code);
+        AUTO_STUDIES_LOCK.delete(lockKey);
         return;
       }
 
@@ -310,24 +345,24 @@ function SegmentsPage() {
         setTimeout(tick, 1000);
       });
       if (cancelRef.current) {
-        AUTO_STUDIES_LOCK.delete(code);
+        AUTO_STUDIES_LOCK.delete(lockKey);
         return;
       }
 
       try {
-        window.localStorage.setItem(AUTORUN_CONSUMED_KEY(code), "1");
+        window.localStorage.setItem(AUTORUN_CONSUMED_KEY(code, projectId), "1");
         // Only mark studies-autorun as flagged when the pipeline actually
         // finished everything cleanly. Otherwise Stage 03 must be free to
         // self-heal on landing.
         if (allFailures.length === 0 && unfinished === 0) {
-          window.localStorage.setItem(AUTO_STUDIES_FLAG_KEY(code), String(Date.now()));
+          window.localStorage.setItem(AUTO_STUDIES_FLAG_KEY(code, projectId), String(Date.now()));
         } else {
-          window.localStorage.removeItem(AUTO_STUDIES_FLAG_KEY(code));
+          window.localStorage.removeItem(AUTO_STUDIES_FLAG_KEY(code, projectId));
         }
       } catch {
         /* ignore storage errors */
       }
-      AUTO_STUDIES_LOCK.delete(code);
+      AUTO_STUDIES_LOCK.delete(lockKey);
       setAuto({ kind: "complete" });
       navigate({
         to: "/admin/countries/$code/personas/studies",
@@ -335,7 +370,7 @@ function SegmentsPage() {
         search: { project: projectId, open: 1 },
       });
     } catch (e) {
-      AUTO_STUDIES_LOCK.delete(code);
+      if (projectId) AUTO_STUDIES_LOCK.delete(`${code}:${projectId}`);
       setAuto({ kind: "error", message: (e as Error).message });
     }
   }, [activeProjectId, castOne, cancelAuto, code, compose, navigate, qc]);
@@ -378,8 +413,10 @@ function SegmentsPage() {
     cancelRef.current = true;
     autoStartedRef.current = true;
     try {
-      window.localStorage.removeItem(AUTORUN_CONSUMED_KEY(code));
-      window.localStorage.removeItem(AUTO_STUDIES_FLAG_KEY(code));
+      if (activeProjectId) {
+        window.localStorage.removeItem(AUTORUN_CONSUMED_KEY(code, activeProjectId));
+        window.localStorage.removeItem(AUTO_STUDIES_FLAG_KEY(code, activeProjectId));
+      }
     } catch {
       /* ignore */
     }
@@ -388,7 +425,8 @@ function SegmentsPage() {
     setAuto({ kind: "idle" });
     // Wait for any in-flight run to release the shared lock before restarting.
     const tryStart = () => {
-      if (AUTO_STUDIES_LOCK.has(code)) {
+      const lockKey = activeProjectId ? `${code}:${activeProjectId}` : code;
+      if (AUTO_STUDIES_LOCK.has(lockKey)) {
         setTimeout(tryStart, 100);
         return;
       }
@@ -402,7 +440,7 @@ function SegmentsPage() {
     typeof window !== "undefined" &&
     (() => {
       try {
-        return window.localStorage.getItem(AUTORUN_CONSUMED_KEY(code)) === "1";
+        return !!activeProjectId && window.localStorage.getItem(AUTORUN_CONSUMED_KEY(code, activeProjectId)) === "1";
       } catch {
         return false;
       }
@@ -505,7 +543,7 @@ function SegmentsPage() {
       // On unmount, only clear if not still running — allow it to persist
       // across navigation while the state machine is active.
     };
-  }, [auto, code, runAuto, cancelAuto]);
+  }, [auto, code, activeProjectId, runAuto, cancelAuto]);
 
   function AutoRunPrimary({ className = "" }: { className?: string }) {
     if (autoActive) {

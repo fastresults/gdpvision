@@ -5,14 +5,14 @@ import { FlaskConical, Layers, Sparkles, Trash2, User, Users } from "lucide-reac
 import { useState } from "react";
 
 import { CitedText } from "@/components/citations/CitedText";
-import { deletePersona, generatePersona, listPersonas, listSegments } from "@/lib/personas/generate.functions";
-import { listStudies } from "@/lib/personas/study.functions";
+import { deletePersona, generatePersona, listPersonas } from "@/lib/personas/generate.functions";
 import { StudyWizardModal } from "@/components/personas/StudyWizard/WizardModal";
 import { SessionsHub } from "@/components/personas/StudyWizard/SessionsHub";
 import { startAutorun } from "@/lib/personas/autorun.functions";
 import { JourneyCard } from "@/components/personas/JourneyCard";
 import { StudioStepper } from "@/components/personas/StudioStepper";
 import { ProgramsIndex } from "@/components/personas/StudyWizard/ProgramsIndex";
+import { listProjects } from "@/lib/personas/projects.functions";
 
 function personasQuery(code: string) {
   return queryOptions({
@@ -31,13 +31,9 @@ function PersonasIndex() {
   const { code } = Route.useParams();
   const qc = useQueryClient();
   const { data: personas } = useSuspenseQuery(personasQuery(code));
-  const segmentsQ = useQuery({
-    queryKey: ["persona-segments", code],
-    queryFn: () => listSegments({ data: { countryCode: code } }),
-  });
-  const studiesQ = useQuery({
-    queryKey: ["studies", code],
-    queryFn: () => listStudies({ data: { countryCode: code } }),
+  const projectsQ = useQuery({
+    queryKey: ["persona-projects", code],
+    queryFn: () => listProjects({ data: { countryCode: code } }),
   });
   const [brief, setBrief] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private">("public");
@@ -57,8 +53,8 @@ function PersonasIndex() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["personas", code] }),
   });
 
-  const segCount = segmentsQ.data?.length ?? 0;
-  const studyCount = studiesQ.data?.length ?? 0;
+  const segCount = (projectsQ.data ?? []).reduce((sum, p) => sum + p.segments_total, 0);
+  const studyCount = (projectsQ.data ?? []).reduce((sum, p) => sum + p.studies_total, 0);
 
   return (
     <div className="space-y-6">

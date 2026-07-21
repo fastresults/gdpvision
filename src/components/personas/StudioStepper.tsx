@@ -11,11 +11,13 @@ type StageKey = "cast" | "group" | "rehearse";
 export function StudioStepper({
   code,
   active,
+  activeProjectId,
   autoStatus,
   rehearseStatus,
 }: {
   code: string;
   active?: StageKey;
+  activeProjectId?: string;
   autoStatus?: string;
   rehearseStatus?: string;
 }) {
@@ -25,12 +27,14 @@ export function StudioStepper({
     queryFn: () => listPersonas({ data: { countryCode: code } }),
   });
   const segments = useQuery({
-    queryKey: ["persona-segments", code],
-    queryFn: () => listSegments({ data: { countryCode: code } }),
+    queryKey: ["persona-segments", code, activeProjectId ?? "none"],
+    queryFn: () => activeProjectId ? listSegments({ data: { countryCode: code, projectId: activeProjectId } }) : Promise.resolve([]),
+    enabled: !!activeProjectId,
   });
   const studies = useQuery({
-    queryKey: ["studies", code],
-    queryFn: () => listStudies({ data: { countryCode: code } }),
+    queryKey: ["studies", code, activeProjectId ?? "none"],
+    queryFn: () => activeProjectId ? listStudies({ data: { countryCode: code, projectId: activeProjectId } }) : Promise.resolve([]),
+    enabled: !!activeProjectId,
   });
 
   const onIndex = !!matchRoute({

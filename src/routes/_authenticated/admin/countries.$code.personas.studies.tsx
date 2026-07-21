@@ -77,20 +77,22 @@ export function studiesDigestQuery(code: string, projectId?: string) {
 }
 export function segmentsQuery(code: string) {
   return queryOptions({
-    queryKey: ["persona-segments", code],
-    queryFn: () => listSegments({ data: { countryCode: code } }),
+    queryKey: ["persona-segments", code, "none"],
+    queryFn: () => Promise.resolve([]),
+  });
+}
+
+export function projectSegmentsQuery(code: string, projectId: string) {
+  return queryOptions({
+    queryKey: ["persona-segments", code, projectId],
+    queryFn: () => listSegments({ data: { countryCode: code, projectId } }),
   });
 }
 
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/personas/studies")({
   validateSearch: (s) => searchSchema.parse(s),
-  loader: async ({ context, params }) => {
-    // Only segments are safe to preload without a project — studies are
-    // strictly project-scoped and never fetched at the country level from
-    // this route (that would leak prior-project content into the UI).
-    await context.queryClient.ensureQueryData(segmentsQuery(params.code));
-  },
   errorComponent: ({ error }) => <p className="p-6 text-sm text-rose-600">{error.message}</p>,
+  notFoundComponent: () => <p className="p-6 text-sm text-ink-500">Studies not found.</p>,
   component: StudiesPage,
 });
 
@@ -180,7 +182,10 @@ function StudiesPage() {
     ...studiesQuery(code, activeProjectId),
     enabled: !!activeProjectId,
   });
-  const { data: segments } = useSuspenseQuery(segmentsQuery(code));
+  const { data: segments = [] } = useQuery({
+    ...projectSegmentsQuery(code, activeProjectId ?? "none"),
+    enabled: !!activeProjectId,
+  });
   const { data: digest = [] } = useQuery({
     ...studiesDigestQuery(code, activeProjectId),
     enabled: !!activeProjectId,
@@ -227,7 +232,7 @@ function StudiesPage() {
       navigate({
         to: "/admin/countries/$code/personas/studies/$id",
         params: { code, id: row.id },
-        search: { project: activeProjectId, auto: auto ? 1 : undefined },
+        search: { project: activeProjectId, open: 1 },
       });
     },
   });
@@ -325,17 +330,18 @@ function StudiesPage() {
   const [autoState, setAutoState] = useState<AutoState>({ phase: "idle" });
   const cancelRef = useRef(false);
   const runningRef = useRef(false);
-  const autoFlagKey = AUTO_STUDIES_FLAG_KEY(code);
+  const autoFlagKey = activeProjectId ? AUTO_STUDIES_FLAG_KEY(code, activeProjectId) : "";
 
   const startAutoRun = useCallback(
     async () => {
       if (runningRef.current) return;
-      if (AUTO_STUDIES_LOCK.has(code)) return;
       const projectId = activeProjectId;
       if (!projectId) {
         setAutoState({ phase: "complete", drafted: 0, completed: 0, failed: [{ label: "Research project", reason: "Select or create a program before starting auto-run." }] });
         return;
       }
+      const lockKey = `${code}:${projectId}`;
+      if (AUTO_STUDIES_LOCK.has(lockKey)) return;
       const targets = segments.filter((s) => !coveredSegmentIds.has(s.id));
       // Existing studies that never finished (drafts or stuck-running) also
       // need to be pushed to synthesis so the user only ever sees completed work.
@@ -347,10 +353,10 @@ function StudiesPage() {
         return;
       }
       runningRef.current = true;
-      AUTO_STUDIES_LOCK.add(code);
+      AUTO_STUDIES_LOCK.add(lockKey);
       cancelRef.current = false;
       try {
-        window.localStorage.setItem(autoFlagKey, String(Date.now()));
+          window.localStorage.setItem(AUTO_STUDIES_FLAG_KEY(code, projectId), String(Date.now()));
       } catch {
         // localStorage unavailable; defensive guard
       }
@@ -424,9 +430,9 @@ function StudiesPage() {
         setAutoState({ phase: "complete", drafted, completed, failed });
       }
       runningRef.current = false;
-      AUTO_STUDIES_LOCK.delete(code);
+      AUTO_STUDIES_LOCK.delete(lockKey);
     },
-    [segments, studies, coveredSegmentIds, code, activeProjectId, qc, autoFlagKey, programSynthFn],
+    [segments, studies, coveredSegmentIds, code, activeProjectId, qc, programSynthFn],
   );
 
   const cancelAutoRun = () => {
@@ -460,8 +466,10 @@ function StudiesPage() {
   // Publish the auto-run to the global beacon so it stays visible across
   // navigation.
   useEffect(() => {
-    const id = `stage03:${code}`;
-    const href = `/admin/countries/${code}/personas/studies`;
+    const id = activeProjectId ? `stage03:${code}:${activeProjectId}` : `stage03:${code}:none`;
+    const href = activeProjectId
+      ? `/admin/countries/${code}/personas/studies?project=${activeProjectId}&open=1`
+      : `/admin/countries/${code}/personas/studies`;
     if (autoState.phase === "running") {
       publishAutoRun({
         id,
@@ -476,7 +484,7 @@ function StudiesPage() {
       registerAutoRunAbort(id, () => {
         cancelRef.current = true;
         // Release the module-level lock so nothing blocks a manual retry.
-        AUTO_STUDIES_LOCK.delete(code);
+        if (activeProjectId) AUTO_STUDIES_LOCK.delete(`${code}:${activeProjectId}`);
       });
     } else if (autoState.phase === "complete") {
       if (autoState.completed > 0 || autoState.drafted > 0 || autoState.failed.length > 0) {
@@ -510,7 +518,7 @@ function StudiesPage() {
       unregisterAutoRunAbort(id);
       clearAutoRun(id);
     }
-  }, [autoState, code, startAutoRun]);
+  }, [autoState, code, activeProjectId, startAutoRun]);
 
   // ─── Programs-index gate ──────────────────────────────────────────────
   // When no project is selected, render ONLY the Programs Index — no
@@ -537,7 +545,7 @@ function StudiesPage() {
 
   return (
     <div className="space-y-8">
-      <StudioStepper code={code} active="rehearse" rehearseStatus={rehearseStatus} />
+      <StudioStepper code={code} active="rehearse" activeProjectId={activeProjectId} rehearseStatus={rehearseStatus} />
 
 
       <div className="flex items-center justify-between gap-3">
@@ -1077,7 +1085,7 @@ function AiComposerCard({
                 disabled={isCreating}
                 className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-40"
               >
-                {isCreating ? "Launching…" : "Approve & run synthesis"} <ArrowRight size={12} />
+                {isCreating ? "Creating…" : "Approve & create draft"} <ArrowRight size={12} />
               </button>
               <button
                 type="button"

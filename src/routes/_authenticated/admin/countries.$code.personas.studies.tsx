@@ -699,6 +699,9 @@ function StudiesPage() {
       )}
 
       {/* Synthesized work product — always shown when any report exists */}
+      {(digest.length > 0 || studies.length > 0) && (
+        <ProgramSynthesisCard code={code} synthesizedCount={digest.filter((d) => d.summary_md).length} />
+      )}
       {digest.length > 0 && <SynthesisDigest items={digest} code={code} />}
 
       {/* Grouped library */}

@@ -683,10 +683,12 @@ export const getStudyProgramReport = createServerFn({ method: "POST" })
     const existingSections = (row.sections ?? {}) as Record<string, unknown>;
     const mergedSections = { ...existingSections, methodology };
 
+    // Round-trip through JSON so the RPC serializer sees only plain JSON values.
+    const mergedSectionsJson = JSON.parse(JSON.stringify(mergedSections)) as Record<string, unknown>;
     return {
       ...row,
       summary_md: stripBrandedByline(row.summary_md),
-      sections: mergedSections,
+      sections: mergedSectionsJson as never,
     };
   });
 

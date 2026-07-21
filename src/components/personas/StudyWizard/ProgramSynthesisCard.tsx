@@ -188,7 +188,11 @@ export function ProgramSynthesisCard({
     onSuccess: () => qc.invalidateQueries({ queryKey: ["study-program-report", code] }),
   });
 
-  const report = q.data;
+  const report = q.data as null | {
+    summary_md?: string | null;
+    citations?: unknown;
+    sections?: ProgramSections;
+  };
   const sections = (report?.sections ?? {}) as ProgramSections;
   const methodology = sections.methodology;
   const canGenerate = synthesizedCount >= 1;

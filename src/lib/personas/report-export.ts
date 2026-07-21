@@ -12,6 +12,34 @@ type Citation = {
   excerpt?: string | null;
 };
 
+export type StudyMethodology = {
+  report_frame?: {
+    country_code?: string | null;
+    project_id?: string | null;
+    title?: string | null;
+    objective?: string | null;
+    decision_question?: string | null;
+  };
+  brief?: { title?: string | null; objectives?: string[]; raw_excerpt?: string | null };
+  workflow?: { cast?: string; group?: string; rehearse?: string };
+  segment?: { id?: string; label?: string | null; prompt?: string | null; persona_count?: number } | null;
+  personas?: Array<{
+    id?: string;
+    name?: string | null;
+    archetype?: string | null;
+    summary?: string | null;
+    attributes?: unknown;
+    ocean?: Record<string, number | undefined> | null;
+  }>;
+  instrument?: {
+    kind?: string | null;
+    title?: string | null;
+    objective?: string | null;
+    questions?: Array<{ ord?: number; prompt?: string | null; kind?: string | null; options?: unknown }>;
+  };
+  limitations?: string[];
+};
+
 function toCitations(v: unknown): Citation[] {
   if (!Array.isArray(v)) return [];
   return (v as unknown[])
@@ -52,6 +80,30 @@ function sourcesBlock(citations: Citation[]): string {
   return `\n\n---\n\n## Sources\n\n${lines.join("\n")}\n`;
 }
 
+function oceanLine(ocean: Record<string, number | undefined> | null | undefined): string {
+  if (!ocean) return "";
+  return Object.entries(ocean)
+    .filter(([, v]) => typeof v === "number")
+    .map(([k, v]) => `${k[0].toUpperCase()}·${Math.round((v as number) * 100) / 100}`)
+    .join(" · ");
+}
+
+function methodologyFromReport(report: { context?: unknown } | null | undefined): StudyMethodology | null {
+  const ctx = report?.context;
+  if (!ctx || typeof ctx !== "object") return null;
+  const m = (ctx as { methodology?: unknown }).methodology;
+  return m && typeof m === "object" ? (m as StudyMethodology) : null;
+}
+
+function recommendationsFromReport(report: { recommendations?: unknown; context?: unknown } | null | undefined): Array<Record<string, unknown>> {
+  if (Array.isArray(report?.recommendations)) return report.recommendations as Array<Record<string, unknown>>;
+  const ctx = report?.context;
+  if (ctx && typeof ctx === "object" && Array.isArray((ctx as { recommendations?: unknown }).recommendations)) {
+    return (ctx as { recommendations: Array<Record<string, unknown>> }).recommendations;
+  }
+  return [];
+}
+
 // ── Individual study ─────────────────────────────────────────────────────
 export type StudyExportInput = {
   study: {
@@ -79,6 +131,7 @@ export type StudyExportInput = {
     themes?: unknown;
     recommendations?: unknown;
     citations?: unknown;
+    context?: unknown;
   } | null;
 };
 
@@ -101,19 +154,65 @@ export function studyReportToMarkdown(input: StudyExportInput): { filename: stri
   parts.push("---\n");
 
   parts.push(`# ${title}`);
-  if (s.objective) parts.push(`\n> **Objective.** ${esc(s.objective)}`);
+  const methodology = methodologyFromReport(input.report) ?? {};
+
+  // Report frame
+  parts.push(`\n## Report frame\n`);
+  parts.push(`- **What this report is about:** ${esc(methodology.report_frame?.title ?? title)}`);
+  parts.push(`- **Country:** ${esc(methodology.report_frame?.country_code ?? s.country_code ?? "—")}`);
+  parts.push(`- **Method:** ${esc(methodology.instrument?.kind ?? s.kind ?? "—")}`);
+  parts.push(`- **Status:** ${esc(s.status ?? "—")}`);
+  const decisionQuestion = methodology.report_frame?.decision_question ?? s.objective ?? title;
+  parts.push(`- **Decision question:** ${esc(decisionQuestion)}`);
+  if (s.objective) parts.push(`- **Study objective:** ${esc(s.objective)}`);
+
+  // Original brief / scope
+  if (methodology.brief) {
+    parts.push(`\n## Original brief / scope\n`);
+    if (methodology.brief.title) parts.push(`**${esc(methodology.brief.title)}**\n`);
+    if (Array.isArray(methodology.brief.objectives) && methodology.brief.objectives.length > 0) {
+      parts.push(`Objectives:`);
+      methodology.brief.objectives.forEach((o) => parts.push(`- ${esc(o)}`));
+    }
+    if (methodology.brief.raw_excerpt) parts.push(`\n> ${esc(methodology.brief.raw_excerpt).replace(/\n/g, "\n> ")}`);
+  }
 
   // Methodology
   parts.push(`\n## Methodology\n`);
-  parts.push(`- **Method:** ${s.kind ?? "—"}`);
-  parts.push(`- **Status:** ${s.status ?? "—"}`);
+  parts.push(`- **Cast:** ${esc(methodology.workflow?.cast ?? "Synthetic personas represent distinct stakeholder voices grounded in the committed brief and country context.")}`);
+  parts.push(`- **Group:** ${esc(methodology.workflow?.group ?? "Personas are organized into the segment whose shared context is being tested.")}`);
+  parts.push(`- **Rehearse:** ${esc(methodology.workflow?.rehearse ?? "The instrument is run against the cast before the synthesis is written.")}`);
+  if (methodology.segment) {
+    parts.push(`- **Segment tested:** ${esc(methodology.segment.label ?? "—")} · ${methodology.segment.persona_count ?? methodology.personas?.length ?? 0} personas`);
+    if (methodology.segment.prompt) parts.push(`- **Segment definition:** ${esc(methodology.segment.prompt)}`);
+  }
   parts.push(`- **Questions:** ${input.questions.length}`);
   parts.push(`- **Responses:** ${input.responses.length}`);
   parts.push(`- **Transcript turns:** ${input.transcript.length}`);
+  (methodology.limitations ?? []).forEach((l) => parts.push(`- **Limit:** ${esc(l)}`));
+
+  const personas = methodology.personas ?? [];
+  if (personas.length > 0) {
+    parts.push(`\n## Cast — ${personas.length} personas\n`);
+    personas.forEach((p) => {
+      parts.push(`- **${esc(p.name ?? "?")}** — ${esc(p.archetype ?? "—")}`);
+      if (p.summary) parts.push(`  ${esc(p.summary).replace(/\n/g, "\n  ")}`);
+      const chips = oceanLine(p.ocean);
+      if (chips) parts.push(`  \`${chips}\``);
+      if (p.attributes) parts.push(`  ${fence(p.attributes).replace(/\n/g, "\n  ")}`);
+    });
+  }
+
+  if (methodology.segment) {
+    parts.push(`\n## Groups / segments\n`);
+    parts.push(`### ${esc(methodology.segment.label ?? "Segment")}`);
+    parts.push(esc(methodology.segment.prompt ?? "(no descriptor)"));
+    parts.push(`\n_${methodology.segment.persona_count ?? personas.length} personas used in this study_`);
+  }
 
   // Questions
   if (input.questions.length > 0) {
-    parts.push(`\n## Questions asked (${input.questions.length})\n`);
+    parts.push(`\n## Rehearse / instrument — questions asked (${input.questions.length})\n`);
     input.questions.forEach((q, i) => {
       const n = (typeof q.ord === "number" ? q.ord : i) + 1;
       parts.push(`${n}. **[${q.kind ?? "open"}]** ${esc(q.prompt)}`);
@@ -125,7 +224,7 @@ export function studyReportToMarkdown(input: StudyExportInput): { filename: stri
 
   // Synthesis
   if (input.report?.summary_md) {
-    parts.push(`\n## Synthesis\n\n${esc(input.report.summary_md)}`);
+    parts.push(`\n## Main conclusions\n\n${esc(input.report.summary_md)}`);
   }
 
   // Themes
@@ -141,7 +240,7 @@ export function studyReportToMarkdown(input: StudyExportInput): { filename: stri
   }
 
   // Recommendations
-  const recs = Array.isArray(input.report?.recommendations) ? (input.report!.recommendations as Array<Record<string, unknown>>) : [];
+  const recs = recommendationsFromReport(input.report);
   if (recs.length > 0) {
     parts.push(`\n## Recommendations (${recs.length})\n`);
     recs.forEach((r, i) => {
@@ -156,7 +255,7 @@ export function studyReportToMarkdown(input: StudyExportInput): { filename: stri
 
   // Transcript
   if (input.transcript.length > 0) {
-    parts.push(`\n## Transcript (${input.transcript.length} turns)\n`);
+    parts.push(`\n## Evidence appendix — transcript (${input.transcript.length} turns)\n`);
     input.transcript.forEach((t) => {
       parts.push(`**${esc(t.speaker || "?")}**\n\n${esc(t.utterance)}\n`);
     });
@@ -171,7 +270,7 @@ export function studyReportToMarkdown(input: StudyExportInput): { filename: stri
       arr.push(r);
       byQ.set(k, arr);
     }
-    parts.push(`\n## Responses (${input.responses.length})\n`);
+    parts.push(`\n## Evidence appendix — responses (${input.responses.length})\n`);
     input.questions.forEach((q, i) => {
       const rows = byQ.get(q.id) ?? [];
       if (rows.length === 0) return;
@@ -262,6 +361,12 @@ export function programReportToMarkdown(input: ProgramExportInput): { filename: 
 
   parts.push(`# Program synthesis — ${input.countryCode}`);
 
+  parts.push(`\n## Report frame\n`);
+  parts.push(`- **What this report is about:** Program-level synthesis of the Chamber 07 synthetic market research run.`);
+  parts.push(`- **Country:** ${esc(input.countryCode)}`);
+  if (input.projectId) parts.push(`- **Project:** ${esc(input.projectId)}`);
+  parts.push(`- **Decision question:** ${esc(meth.brief?.title ?? sections.portfolio_scope?.brief_link ?? "Synthesize the research program into actionable sovereign conclusions.")}`);
+
   if (sections.portfolio_scope) {
     parts.push(`\n## Portfolio scope\n`);
     parts.push(`- **Studies consolidated:** ${sections.portfolio_scope.studies_run ?? 0}`);
@@ -279,7 +384,7 @@ export function programReportToMarkdown(input: ProgramExportInput): { filename: 
   }
 
   if (input.report.summary_md) {
-    parts.push(`\n## Consolidated summary\n\n${esc(input.report.summary_md)}`);
+    parts.push(`\n## Main conclusions\n\n${esc(input.report.summary_md)}`);
   }
 
   // Methodology — Cast
@@ -336,7 +441,10 @@ export function programReportToMarkdown(input: ProgramExportInput): { filename: 
   }
 
   if (sections.design_rationale) {
-    parts.push(`\n## Design rationale\n`);
+    parts.push(`\n## Methodology & design rationale\n`);
+    parts.push(`- **Cast:** The workflow created synthetic personas grounded in the committed brief and country corpus.`);
+    parts.push(`- **Group:** Personas were organized into segments that represent distinct stakeholder contexts.`);
+    parts.push(`- **Rehearse:** Studies were run against those personas through surveys, focus groups, or creative tests before synthesis.`);
     if (sections.design_rationale.why_segments) parts.push(`- **Segments:** ${esc(sections.design_rationale.why_segments)}`);
     if (sections.design_rationale.why_methods) parts.push(`- **Methods:** ${esc(sections.design_rationale.why_methods)}`);
     if (sections.design_rationale.coverage_gaps) parts.push(`- **Gaps:** ${esc(sections.design_rationale.coverage_gaps)}`);

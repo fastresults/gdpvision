@@ -1,55 +1,113 @@
-## What's broken
+## Plan: make every Persona Lab report complete by default
 
-On `/blueprint` for Project Destiny the AI returns **"Program brief is too short to design a research plan."** even though the brief was committed. Commit already enforces ≥40 chars *combined* (typed + upload excerpts) plus a valid `brief_scope`. But `composeBlueprint` reads **only** `brief_raw` and rejects anything under 20 chars — it ignores the upload excerpts and the enriched `brief_scope` that the intake already produced. So any brief that leans on an uploaded RFP / dictation snippet with a short typed intro dead-ends here with no recovery path.
+### Confirmed current state
+- The active KNA project (`Project Destiny`) has completed per-study memos, but no saved program-level report yet.
+- The per-study memo text already contains some scope and instrument context, but the individual Markdown export does not deterministically include the full cast, segment/group framing, methodology narrative, and report conclusions as required.
+- The program-level UI/export has a methodology dossier path, but it must become a non-optional global contract rather than a best-effort section.
 
-The fix must be AI-first: the Blueprint should assemble every piece of context it already has (typed brief, upload excerpts, enriched scope, country + program metadata, and — when still thin — the country's second-brain corpus) and only *then* ask the model to draft segments and studies. The UI should never leave the admin stranded at "too short" with only a Generate button.
+### Global reporting rule to implement
+Every Chamber 07 report — individual study and full program synthesis — must include, in this order:
 
-## Plan
+1. **Report frame**
+   - What this report is about
+   - Country, project, decision context, study/program objective
+   - What question it is intended to help answer
 
-### 1. `composeBlueprint` — assemble the full brief, not just `brief_raw`
+2. **Original brief / scope**
+   - The committed research brief
+   - AI-enriched objectives
+   - Any uploaded/source material excerpts that shaped the study
 
-`src/lib/personas/blueprint.functions.ts`
+3. **Methodology**
+   - What the empirical workflow did
+   - How Cast, Group, and Rehearse work in this run
+   - Why these segments, personas, methods, and instruments were selected
+   - Known limits and what remains unanswered
 
-- Select `brief_raw`, `brief_uploads`, `brief_scope` (in addition to what's already read).
-- Build a `combinedBrief` = trimmed `brief_raw` + each `uploads[i].excerpt` (labeled) + a compact serialization of `brief_scope` (objectives, hypotheses, decisions, stakeholders, timeframe, geography, sensitivities, success_criteria).
-- Replace the current `brief.length < 20` guard with `combinedBrief.length < 40` (matches commit's own floor). This alone fixes Project Destiny.
-- Pass `combinedBrief` (capped ~12k chars) to the model as the `COMMITTED BRIEF` block, and include a `RESEARCH SCOPE` block rendered from `brief_scope` so the model reasons off the structured version, not just prose.
+4. **Cast**
+   - All personas used in the report
+   - Persona name, archetype, segment, summary, relevant traits
+   - No hidden roster; collapsed UI sections are fully expanded in Markdown export
 
-### 2. AI-first auto-augment when the brief is still thin
+5. **Groups / segments**
+   - Segment names, prompts, rationale, persona counts
+   - Which studies each segment was used in
 
-Same file, before calling the model:
+6. **Rehearse / instruments**
+   - Each study run
+   - Method type: survey, focus group, creative test
+   - Objective, segment, persona count
+   - Full question set and response/transcript basis
 
-- If `combinedBrief.length < 400` OR `brief_scope` is missing key fields, call a **context pack** helper that pulls country-level signals already in the corpus:
-  - country name + iso, active ministries, priority sectors, recent narrative signals, top KPIs. Reuse existing helpers where possible (`src/lib/personas/context-pack.server.ts`, `country-onboarding` accessors).
-- Append this as a `COUNTRY CONTEXT` block in the prompt so the model can still design a defensible plan even from a terse brief, rather than refusing.
-- Never throw "too short" from Blueprint — if the combined signal is still genuinely unusable, return a structured `needs_more_brief` result (see step 3) instead of erroring.
+7. **Main conclusions**
+   - Synthesized findings written as decision-ready conclusions
+   - Cross-cutting themes and evidence
 
-### 3. Structured "assist me" response instead of hard error
+8. **Recommendations**
+   - Recommended moves
+   - Why each matters
+   - Owner, timing, horizon, risks
 
-- On the rare case where even country context can't ground a plan, `composeBlueprint` returns `{ status: "needs_more_brief", suggestions: string[], missing: string[] }` where `suggestions` are AI-drafted questions the admin should answer (e.g. "Which decision must this inform by when?", "Which 2-3 audiences do you already suspect matter?"). No thrown error.
-- `BlueprintReview.tsx` renders that state as an AI-assisted callout with:
-  - the AI's specific missing-signal questions,
-  - a one-click **"Draft brief additions with AI"** button that calls a new small server fn `suggestBriefAdditions` (reuses country context) and appends the suggestions to `brief_raw` via existing `saveProjectBrief`,
-  - a **"Back to Brief"** link that reopens `ProgramBriefIntake` with those questions pre-loaded as guided prompts.
+9. **Evidence appendix**
+   - Questions, responses, transcripts, themes, raw structured sections
+   - Sources and citations
 
-### 4. UI: replace the red "too short" toast on `/blueprint`
+### Implementation approach
 
-`src/components/personas/StudyWizard/BlueprintReview.tsx`
+#### 1. Create one canonical report dossier builder
+- Add a server-safe/shared helper that assembles a deterministic `ResearchReportDossier` from existing project, brief, segments, personas, studies, questions, responses, transcripts, study reports, and program reports.
+- Use this same dossier for:
+  - individual study detail pages
+  - program synthesis card
+  - individual Markdown downloads
+  - program Markdown downloads
+  - any future report surfaces
 
-- Remove the raw-error rendering path for the "too short" message; route that condition through the new `needs_more_brief` UI from step 3.
-- Keep Generate / Regenerate for all other cases. Add an inline note under the Generate button when auto-augmentation ran: "Blueprint drafted from brief + country corpus."
+This prevents the system from producing a thin report in one place and a complete report somewhere else.
 
-### 5. Verify
+#### 2. Strengthen individual study synthesis
+- Update `runStudySynthesis` so the AI memo receives a complete deterministic methodology block:
+  - original brief
+  - segment label/prompt
+  - full persona roster for that segment
+  - question set
+  - response/transcript evidence
+- Require the returned memo to include the report frame, methodology, cast/group/rehearse explanation, conclusions, recommendations, and limitations.
+- Persist a `context` snapshot with the persona roster and methodology so old data can still export consistently.
 
-1. Load `/blueprint?project=<destiny>` → clicking **Generate Blueprint** now produces segments + studies (no "too short" error).
-2. Create a new program, commit a deliberately terse 45-char brief with no uploads → Blueprint still generates using country context, and shows the "drafted from brief + country corpus" note.
-3. Create a program with an essentially empty brief (edge case) → Blueprint returns `needs_more_brief`, the UI shows AI-suggested questions and the "Draft brief additions with AI" button; clicking it appends suggestions and re-runs Generate cleanly.
-4. Existing programs with rich briefs behave identically to today.
+#### 3. Strengthen program synthesis
+- Update `synthesizeStudyProgram` so the program memo is explicitly anchored in:
+  - brief
+  - blueprint/design rationale
+  - all segments
+  - all personas
+  - all studies/questions
+  - all study memos
+- Persist the methodology dossier inside `study_program_reports.sections.methodology` every time.
+- Keep the existing live fallback that rebuilds methodology for older reports, but make the report body itself follow the required structure.
 
-### Files to touch
+#### 4. Upgrade Markdown exports
+- Refactor `studyReportToMarkdown` and `programReportToMarkdown` so exports are not just the AI memo plus appendices.
+- Each export will start with the deterministic report frame and methodology, then cast/groups/rehearse, then conclusions/recommendations, then full expanded evidence appendices.
+- Ensure all accordion/collapsed UI data is included in Markdown.
 
-- `src/lib/personas/blueprint.functions.ts` — combined brief, auto-augment, `needs_more_brief` return shape, new `suggestBriefAdditions` fn.
-- `src/components/personas/StudyWizard/BlueprintReview.tsx` — render `needs_more_brief`, wire the assist buttons, drop the raw "too short" surface.
-- (Read-only reuse) `src/lib/personas/context-pack.server.ts` and country accessors already in the tree — no schema changes.
+#### 5. Upgrade UI report presentation
+- On individual study detail pages, show the report frame and methodology dossier before the synthesis body.
+- On program synthesis, make “Original brief,” “Methodology,” “Cast,” “Groups,” and “Instruments” first-class report sections, not secondary optional details.
+- Add a clear “Main conclusions & recommendations” section so the decision output is not buried.
 
-No DB migrations. No changes to Cast / Group / Rehearse. Blueprint remains the single guided cockpit; it just stops refusing to help.
+#### 6. Backfill current and older reports safely
+- For reports already saved before this contract, render/export the missing methodology from live project data.
+- For the current KNA project, once the remaining running/draft studies are complete, regenerate the program synthesis so the saved report body follows the new contract.
+- Do not require a database schema change unless existing JSON fields are insufficient; the current `context` and `sections` JSON fields appear sufficient.
+
+### Validation
+- Verify the current KNA project report page shows:
+  - report frame
+  - original brief
+  - cast/personas
+  - groups/segments
+  - rehearse/instruments/questions
+  - conclusions and recommendations
+- Download both an individual study Markdown report and a program Markdown report and confirm every collapsed/accordion section is expanded in the file.
+- Confirm older reports still render methodology through the live fallback even if their stored memo predates the new contract.

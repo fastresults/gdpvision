@@ -1,9 +1,11 @@
 // Chamber 07 · Studies (survey, focus group, creative test) + persona chat.
 
 import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Database, Json } from "@/integrations/supabase/types";
 import { buildCountryContextPack, type ContextCitation } from "./context-pack.server";
 import {
   hasAnyCitableCitation,
@@ -14,6 +16,11 @@ import {
 } from "@/lib/citations/hygiene";
 
 const MODEL = "google/gemini-2.5-pro";
+type AppSupabaseClient = SupabaseClient<Database>;
+
+function toJson(value: unknown): Json {
+  return JSON.parse(JSON.stringify(value ?? null)) as Json;
+}
 
 async function ai(system: string, user: string, json = true, temperature = 0.7): Promise<string> {
   const apiKey = process.env.LOVABLE_API_KEY;
@@ -379,7 +386,7 @@ export const runStudySynthesis = createServerFn({ method: "POST" })
     const { assertProgramBriefCommitted } = await import("./project-brief.functions");
     if (study.project_id) await assertProgramBriefCommitted(supabase, study.project_id as string);
 
-    const [{ data: responses }, { data: transcript }, { data: questions }, { data: segment }, { count: personaCount }] = await Promise.all([
+    const [{ data: responses }, { data: transcript }, { data: questions }, { data: segment }, { count: personaCount }, { data: members }] = await Promise.all([
       supabase.from("study_responses").select("*, personas(name,archetype)").eq("study_id", data.studyId).limit(500),
       supabase.from("study_transcripts").select("*").eq("study_id", data.studyId).order("ord").limit(500),
       supabase.from("study_questions").select("ord,prompt,kind,options").eq("study_id", data.studyId).order("ord"),
@@ -389,6 +396,12 @@ export const runStudySynthesis = createServerFn({ method: "POST" })
       study.segment_id
         ? supabase.from("persona_segment_members").select("persona_id", { count: "exact", head: true }).eq("segment_id", study.segment_id)
         : Promise.resolve({ count: 0 }),
+      study.segment_id
+        ? supabase
+            .from("persona_segment_members")
+            .select("segment_id,personas(id,name,archetype,summary,attributes,ocean)")
+            .eq("segment_id", study.segment_id)
+        : Promise.resolve({ data: [] as Array<{ segment_id: string; personas: unknown }> }),
     ]);
 
     const pack = await buildCountryContextPack(supabase, study.country_code, study.objective ?? study.title);
@@ -406,6 +419,54 @@ export const runStudySynthesis = createServerFn({ method: "POST" })
       kind: String(q.kind),
       options: Array.isArray(q.options) ? (q.options as unknown[]) : [],
     }));
+    const personaRoster = (members ?? [])
+      .flatMap((m) => {
+        const p = (m as { personas: unknown }).personas;
+        return Array.isArray(p) ? p : p ? [p] : [];
+      })
+      .filter((p): p is Record<string, unknown> & { id: string; name: string } => !!p && typeof p === "object")
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        archetype: (p.archetype as string | null | undefined) ?? null,
+        summary: (p.summary as string | null | undefined) ?? null,
+        attributes: p.attributes ?? null,
+        ocean: p.ocean ?? null,
+      }));
+    const methodology = {
+      report_frame: {
+        country_code: study.country_code as string,
+        project_id: (study.project_id as string | null) ?? null,
+        title: study.title as string,
+        objective: (study.objective as string | null) ?? null,
+        decision_question: brief.scope?.title ?? study.objective ?? study.title,
+      },
+      brief: {
+        title: brief.scope?.title ?? null,
+        objectives: brief.scope?.objectives ?? [],
+        raw_excerpt: brief.briefRaw ? brief.briefRaw.slice(0, 1200) : null,
+      },
+      workflow: {
+        cast: "Synthetic personas were generated from the committed brief and country corpus to represent materially different stakeholder voices.",
+        group: "Personas were organized into a segment with a shared decision context, lived experience, and policy exposure.",
+        rehearse: "The study instrument was run against the cast so each persona could respond in character before synthesis.",
+      },
+      segment: segment
+        ? { id: segment.id, label: segment.label, prompt: segment.prompt ?? null, persona_count: personaRoster.length || personaCount || 0 }
+        : null,
+      personas: personaRoster,
+      instrument: {
+        kind: study.kind as string,
+        title: study.title as string,
+        objective: (study.objective as string | null) ?? null,
+        questions: questionList,
+      },
+      limitations: [
+        "Synthetic research is directional and should be treated as a fast empirical rehearsal, not a replacement for fieldwork.",
+        "Findings are strongest where persona responses converge with cited country-context evidence.",
+      ],
+      generated_at: new Date().toISOString(),
+    };
     const contextPayload = {
       instrument: {
         kind: study.kind as string,
@@ -417,6 +478,7 @@ export const runStudySynthesis = createServerFn({ method: "POST" })
         ? { id: segment.id, label: segment.label, prompt: segment.prompt ?? null, persona_count: personaCount ?? 0 }
         : null,
       brief: { title: brief.scope?.title ?? null, objectives: brief.scope?.objectives ?? [] },
+      methodology,
       generated_at: new Date().toISOString(),
     };
 
@@ -433,16 +495,22 @@ export const runStudySynthesis = createServerFn({ method: "POST" })
     const memoHeader = [
       "MEMO STRUCTURE — return exactly these markdown sections in this order:",
       "## TO / RE",
-      "## Scope link — how this study answers the brief",
-      "## Instrument context — method, N personas, what was asked",
-      "## Segment truths — what this segment actually said (2–4 bullets, cite [N])",
-      "## Brand ethos read — signals about brand/positioning",
-      "## Recommendations — 3 decision-ready moves for the sovereign owner",
-      "## Risks & watch-outs — dissenting voices, thin evidence",
+      "## Report frame — what this report is about",
+      "## Original brief / scope — what decision this answers",
+      "## Methodology — Cast, Group, Rehearse",
+      "## Cast — who the personas are",
+      "## Groups — which segment was tested",
+      "## Rehearse — method, questions, and evidence base",
+      "## Main conclusions — what we learned",
+      "## Recommendations — decision-ready moves for the sovereign owner",
+      "## Risks & unanswered questions — limits, dissent, and follow-up",
     ].join("\n");
+    const rosterBlock = personaRoster
+      .map((p, i) => `${i + 1}. ${p.name} — ${p.archetype ?? "—"}${p.summary ? `: ${String(p.summary).slice(0, 220)}` : ""}`)
+      .join("\n") || "(no personas captured)";
     const raw = await ai(
-      "You are a senior partner writing a decision-ready synthesis memo for a Head of Government. Ground every claim in the DATA and CONTEXT. Cite [N] refs against the CITATION RULE. NEVER emit letterhead like 'FROM: McKinsey & Company' or firm names — the reader knows the source. Prose is crisp, active voice, no filler.",
-      `${memoHeader}\n\nBRIEF:\n${brief.block || "(no active brief captured)"}\n\nSTUDY:\n- title: ${study.title}\n- method: ${study.kind}\n- objective: ${study.objective ?? "(none)"}\n- segment: ${segment?.label ?? "(none)"} · ${personaCount ?? 0} personas\n\nQUESTIONS ASKED:\n${qBlock}\n\nCOUNTRY CONTEXT:\n${pack.block}\n\nDATA:\n${dataBlock}\n\nReturn JSON: { "summary_md": "markdown memo, ~350–500 words, follow the sections above, no letterhead", "themes": [ { "label":"…", "prevalence": 0.0-1.0, "quote":"…" } ], "recommendations": [ { "move":"…", "why":"…", "owner":"…" } ], "citations": [N,...] }`,
+      "You are a senior partner writing a decision-ready empirical research report for a Head of Government. Ground every claim in the DATA and CONTEXT. Cite [N] refs against the CITATION RULE. NEVER emit letterhead like 'FROM: McKinsey & Company' or firm names. Prose is crisp, active voice, no filler. Do not skip methodology, cast, groups, or rehearse sections.",
+      `${memoHeader}\n\nBRIEF:\n${brief.block || "(no active brief captured)"}\n\nSTUDY:\n- title: ${study.title}\n- method: ${study.kind}\n- objective: ${study.objective ?? "(none)"}\n- segment: ${segment?.label ?? "(none)"} · ${personaRoster.length || personaCount || 0} personas\n\nCAST / PERSONAS:\n${rosterBlock}\n\nQUESTIONS ASKED:\n${qBlock}\n\nCOUNTRY CONTEXT:\n${pack.block}\n\nDATA:\n${dataBlock}\n\nReturn JSON: { "summary_md": "markdown report, ~700–1000 words, follow every section above in order, no letterhead", "themes": [ { "label":"…", "prevalence": 0.0-1.0, "quote":"…" } ], "recommendations": [ { "move":"…", "why":"…", "owner":"…", "horizon":"0-90d|3-12m|12-36m" } ], "citations": [N,...] }`,
     );
     const parsed = parseJson<{ summary_md?: string; themes?: unknown; recommendations?: unknown; citations?: number[] }>(raw);
     if (parsed?.summary_md) {
@@ -1030,6 +1098,7 @@ export const getStudy = createServerFn({ method: "POST" })
       supabase.from("study_reports").select("*").eq("study_id", data.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
     const pack = study ? await buildCountryContextPack(supabase, study.country_code, study.objective ?? study.title) : null;
+    const methodology = study ? await buildStudyMethodology(supabase, study, questions ?? []) : null;
     return {
       study,
       questions: questions ?? [],
@@ -1059,19 +1128,94 @@ export const getStudy = createServerFn({ method: "POST" })
         : transcript ?? [],
       report: pack && report
         ? (() => {
-            const hydrated = hydrateCitationField(report, pack.citations) as typeof report & { summary_md?: string | null; themes?: unknown; citations?: unknown };
+            const hydrated = hydrateCitationField(report, pack.citations);
             const cleaned = stripBrandedByline(hydrated.summary_md ?? "");
             const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(cleaned, hydrated.citations));
+            const existingContext = hydrated.context && typeof hydrated.context === "object" ? hydrated.context as Record<string, Json | undefined> : {};
             return {
               ...hydrated,
               summary_md: cleaned ? sanitizeCitationMarkersInText(cleaned, citations) : hydrated.summary_md,
-              themes: sanitizeJsonCitationMarkers(hydrated.themes ?? [], citations) as typeof hydrated.themes,
-              citations: citations as unknown as typeof hydrated.citations,
+              themes: toJson(sanitizeJsonCitationMarkers(hydrated.themes ?? [], citations)),
+              citations: toJson(citations),
+              context: methodology ? ({ ...existingContext, methodology } as Json) : ((hydrated.context ?? null) as Json),
             };
           })()
         : report ?? null,
     };
   });
+
+async function buildStudyMethodology(
+  supabase: AppSupabaseClient,
+  study: { country_code: string; project_id: string | null; title: string; objective: string | null; kind: string; segment_id: string | null },
+  questions: Array<{ ord?: number | null; prompt?: string | null; kind?: string | null; options?: Json | null }>,
+): Promise<Json> {
+  const [{ data: segment }, { data: members }] = await Promise.all([
+    study.segment_id
+      ? supabase.from("persona_segments").select("id,label,prompt").eq("id", study.segment_id).maybeSingle()
+      : Promise.resolve({ data: null as { id: string; label: string; prompt: string | null } | null }),
+    study.segment_id
+      ? supabase
+          .from("persona_segment_members")
+          .select("segment_id,personas(id,name,archetype,summary,attributes,ocean)")
+          .eq("segment_id", study.segment_id)
+      : Promise.resolve({ data: [] as Array<{ segment_id: string; personas: unknown }> }),
+  ]);
+  const brief = await loadCountryBrief(supabase, study.country_code, study.project_id);
+  const personas = (members ?? [])
+    .flatMap((m) => {
+      const p = (m as { personas: unknown }).personas;
+      return Array.isArray(p) ? p : p ? [p] : [];
+    })
+    .filter((p): p is Record<string, unknown> & { id: string; name: string } => !!p && typeof p === "object")
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      archetype: (p.archetype as string | null | undefined) ?? null,
+      summary: (p.summary as string | null | undefined) ?? null,
+      attributes: p.attributes ?? null,
+      ocean: p.ocean ?? null,
+    }));
+
+  return toJson({
+    report_frame: {
+      country_code: study.country_code,
+      project_id: study.project_id ?? null,
+      title: study.title,
+      objective: study.objective ?? null,
+      decision_question: String(brief.scope?.title ?? study.objective ?? study.title),
+    },
+    brief: {
+      title: brief.scope?.title ?? null,
+      objectives: brief.scope?.objectives ?? [],
+      raw_excerpt: brief.briefRaw ? brief.briefRaw.slice(0, 1200) : null,
+    },
+    workflow: {
+      cast: "Synthetic personas were generated from the committed brief and country corpus to represent materially different stakeholder voices.",
+      group: "Personas were organized into a segment with a shared decision context, lived experience, and policy exposure.",
+      rehearse: "The study instrument was run against the cast so each persona could respond in character before synthesis.",
+    },
+    segment: segment
+      ? { id: segment.id, label: segment.label, prompt: segment.prompt ?? null, persona_count: personas.length }
+      : null,
+    personas,
+    instrument: {
+      kind: study.kind,
+      title: study.title,
+      objective: study.objective ?? null,
+      questions: questions.map((q) => ({
+        ord: typeof q.ord === "number" ? q.ord : 0,
+        prompt: String(q.prompt ?? ""),
+        kind: String(q.kind ?? "open"),
+        options: q.options ?? [],
+      })),
+    },
+    limitations: [
+      "Synthetic research is directional and should be treated as a fast empirical rehearsal, not a replacement for fieldwork.",
+      "Findings are strongest where persona responses converge with cited country-context evidence.",
+    ],
+    generated_at: new Date().toISOString(),
+  });
+}
 
 // ── Persona chat (Ask this persona) ───────────────────────────────────────
 export const askPersona = createServerFn({ method: "POST" })

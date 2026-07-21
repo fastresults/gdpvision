@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate, useNavigate, useSearch } from "@tanstack/react-router";
 import { queryOptions, useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,

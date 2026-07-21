@@ -154,19 +154,68 @@ export const composeBlueprint = createServerFn({ method: "POST" })
     const { supabase } = context;
     const { data: row, error } = await supabase
       .from("persona_projects")
-      .select("id,title,country_code,brief_raw,brief_scope,brief_committed_at")
+      .select("id,title,country_code,brief_raw,brief_scope,brief_uploads,brief_committed_at")
       .eq("id", data.projectId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!row) throw new Error("Research program not found");
     if (!row.brief_committed_at) throw new Error("Commit the program brief before generating the blueprint.");
-    const brief = String(row.brief_raw ?? "").trim();
-    if (brief.length < 20) throw new Error("Program brief is too short to design a research plan.");
+
+    // ── Assemble the FULL brief (raw + upload excerpts + enriched scope) ──
+    const raw = String(row.brief_raw ?? "").trim();
+    const uploads = Array.isArray(row.brief_uploads)
+      ? (row.brief_uploads as Array<{ name?: string; mime?: string; excerpt?: string }>)
+      : [];
+    const uploadBlock = uploads
+      .filter((u) => u.excerpt && u.excerpt.trim().length > 0)
+      .map((u) => `\n\n[UPLOAD: ${u.name ?? "document"} (${u.mime ?? "text"})]\n${u.excerpt}`)
+      .join("");
+    const scope = row.brief_scope as Record<string, unknown> | null;
+    const scopeBlock = scope
+      ? `\n\nRESEARCH SCOPE (AI-enriched):\n${JSON.stringify(scope, null, 2)}`
+      : "";
+    const combinedBrief = `${raw}${uploadBlock}${scopeBlock}`.trim().slice(0, 12_000);
+
+    // ── Auto-augment with country context when the brief is thin ──
+    let countryBlock = "";
+    let augmented = false;
+    if (combinedBrief.length < 400 || !scope) {
+      try {
+        const { buildCountryContextPack } = await import("./context-pack.server");
+        const pack = await buildCountryContextPack(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          supabase as unknown as any,
+          row.country_code as string,
+          raw.slice(0, 400) || String(row.title ?? ""),
+        );
+        if (pack?.block) {
+          countryBlock = `\n\nCOUNTRY CONTEXT (from second brain):\n${pack.block}`;
+          augmented = true;
+        }
+      } catch {
+        // Country context is best-effort; do not fail the blueprint if it errors.
+      }
+    }
+
+    // ── If we truly have nothing, return a structured assist payload ──
+    if (combinedBrief.length < 40 && !countryBlock) {
+      return {
+        status: "needs_more_brief" as const,
+        missing: ["A clear decision, audience hint, or uploaded source material."],
+        suggestions: [
+          "What decision must this research inform, and by when?",
+          "Which 2-3 audiences do you already suspect matter most?",
+          "What do you believe today that this study could confirm or falsify?",
+          "Which geographies, sectors, or channels are in scope?",
+        ],
+      };
+    }
 
     const system =
       "You are a McKinsey-grade sovereign research director. Given a country and a committed program brief, "
       + "design the full research plan: WHO to hear from (segments, with a recommended persona count 4-12 each) "
       + "and WHAT studies to run (survey / focus_group / creative_test), so that the plan is decision-useful for a Cabinet. "
+      + "When the brief is terse, ground yourself in the COUNTRY CONTEXT block (sectors, KPIs, ministries, signals) to propose a defensible plan — never refuse. "
       + "Segments must be coherent populations a Cabinet can act on. Each study must target one named segment and answer a clear objective. "
       + "Return strict JSON only.";
 
@@ -174,7 +223,7 @@ export const composeBlueprint = createServerFn({ method: "POST" })
 PROGRAM: ${row.title}
 
 COMMITTED BRIEF:
-${brief.slice(0, 6000)}
+${combinedBrief || "(brief is terse — rely on COUNTRY CONTEXT below)"}${countryBlock}
 
 Return JSON of this exact shape:
 {
@@ -198,7 +247,7 @@ Return JSON of this exact shape:
   ]
 }
 Rules:
-- 3-6 segments; do NOT invent audiences the brief does not warrant.
+- 3-6 segments; do NOT invent audiences the brief or country context do not warrant.
 - 1-2 studies per segment; total 4-12 studies.
 - Study kinds: survey for scale/attitude/tracking; focus_group for exploration; creative_test for messaging/creative.
 - Every study.segment_label MUST exactly match one segments[].label.`;
@@ -207,8 +256,8 @@ Rules:
     try { content = await callGateway(system, user, MODEL_PRIMARY); }
     catch { content = await callGateway(system, user, MODEL_FALLBACK); }
 
-    const raw = safeJson<unknown>(content);
-    const blueprint = coerceBlueprint(raw);
+    const rawJson = safeJson<unknown>(content);
+    const blueprint = coerceBlueprint(rawJson);
     if (!blueprint) throw new Error("AI returned an unusable blueprint — try Regenerate.");
 
     // Rebind orphan study.segment_label to nearest segment label.
@@ -230,7 +279,51 @@ Rules:
       .eq("id", data.projectId);
     if (upErr) throw new Error(upErr.message);
 
-    return { blueprint, generatedAt: new Date().toISOString() };
+    return { status: "ok" as const, blueprint, generatedAt: new Date().toISOString(), augmented };
+  });
+
+// ── AI-assisted brief additions (used by the Blueprint "assist me" UI) ────
+export const suggestBriefAdditions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ projectId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("persona_projects")
+      .select("id,title,country_code,brief_raw")
+      .eq("id", data.projectId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("Research program not found");
+
+    let countryBlock = "";
+    try {
+      const { buildCountryContextPack } = await import("./context-pack.server");
+      const pack = await buildCountryContextPack(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        context.supabase as unknown as any,
+        row.country_code as string,
+        String(row.title ?? ""),
+      );
+      if (pack?.block) countryBlock = `\n\nCOUNTRY CONTEXT:\n${pack.block}`;
+    } catch { /* best effort */ }
+
+    const system =
+      "You are a McKinsey engagement partner helping a sovereign client sharpen a research brief. "
+      + "Draft a concise 6-10 sentence brief-addition the admin can accept as-is. "
+      + "Anchor on the country context when the raw brief is terse. Prose only, no JSON.";
+    const user = `PROGRAM: ${row.title}
+COUNTRY: ${row.country_code}
+RAW BRIEF SO FAR:
+${(row.brief_raw ?? "").toString().slice(0, 2000) || "(empty)"}${countryBlock}
+
+Write a brief-addition that names: the decision, the audiences, the hypotheses, the timeframe, and the success criteria. Keep it specific to this country and program.`;
+
+    let content = "";
+    try { content = await callGateway(system, user, MODEL_PRIMARY); }
+    catch { content = await callGateway(system, user, MODEL_FALLBACK); }
+    // Model may still wrap in JSON despite instructions — strip if so.
+    const text = content.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/i, "").trim();
+    return { text };
   });
 
 // ── Save edits ────────────────────────────────────────────────────────────

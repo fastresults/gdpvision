@@ -24,10 +24,12 @@ import {
   composeBlueprint,
   getBlueprint,
   saveBlueprint,
+  suggestBriefAdditions,
   type Blueprint,
   type StudyKind,
 } from "@/lib/personas/blueprint.functions";
 import { generateSegment, listSegments } from "@/lib/personas/generate.functions";
+import { saveProjectBrief, getProjectBrief } from "@/lib/personas/project-brief.functions";
 
 const KIND_LABEL: Record<StudyKind, string> = {
   survey: "Survey",
@@ -57,11 +59,33 @@ export function BlueprintReview({ code, projectId }: { code: string; projectId: 
     if (q.data?.proposal) setDraft(q.data.proposal);
   }, [q.data?.proposal]);
 
+  const [assist, setAssist] = useState<{ suggestions: string[]; missing: string[] } | null>(null);
+  const [augmented, setAugmented] = useState(false);
+
   const compose = useMutation({
     mutationFn: async () => composeBlueprint({ data: { projectId } }),
     onSuccess: (r) => {
+      if (r.status === "needs_more_brief") {
+        setAssist({ suggestions: r.suggestions, missing: r.missing });
+        setAugmented(false);
+        return;
+      }
+      setAssist(null);
+      setAugmented(!!r.augmented);
       setDraft(r.blueprint);
       qc.invalidateQueries({ queryKey: ["program-blueprint", projectId] });
+    },
+    onError: (e) => setError((e as Error).message),
+  });
+
+  const draftAdditions = useMutation({
+    mutationFn: async () => suggestBriefAdditions({ data: { projectId } }),
+    onSuccess: async (r) => {
+      const current = await getProjectBrief({ data: { projectId } }).catch(() => null);
+      const merged = `${current?.brief_raw ?? ""}\n\n${r.text}`.trim();
+      await saveProjectBrief({ data: { projectId, brief_raw: merged } });
+      setAssist(null);
+      compose.mutate();
     },
     onError: (e) => setError((e as Error).message),
   });
@@ -195,11 +219,59 @@ export function BlueprintReview({ code, projectId }: { code: string; projectId: 
         </div>
       </header>
 
-      {error && (
+      {error && !/too short/i.test(error) && (
         <div className="flex items-start gap-2 border border-rose-300 bg-rose-50 p-3 text-[12px] text-rose-700">
           <AlertTriangle size={13} className="mt-0.5" />
           <span>{error}</span>
         </div>
+      )}
+
+      {assist && (
+        <div className="space-y-3 border border-ink-950 bg-paper-0 p-4">
+          <div className="flex items-center gap-2">
+            <Sparkles size={13} className="text-ink-950" />
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950">
+              AI needs a little more to work with
+            </p>
+          </div>
+          <p className="text-[13px] leading-relaxed text-ink-700">
+            Your brief is very short. Either answer the prompts below and re-generate, or let the AI
+            draft a starting brief-addition grounded in this country's context.
+          </p>
+          <ul className="list-disc space-y-1 pl-5 text-[13px] text-ink-800">
+            {assist.suggestions.map((s) => <li key={s}>{s}</li>)}
+          </ul>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => draftAdditions.mutate()}
+              disabled={draftAdditions.isPending || compose.isPending}
+              className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-40"
+            >
+              {draftAdditions.isPending ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+              Draft brief additions with AI
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                navigate({
+                  to: "/admin/countries/$code/personas",
+                  params: { code },
+                  search: { project: projectId, open: 1 },
+                })
+              }
+              className="inline-flex items-center gap-1.5 border border-ink-950 bg-paper-0 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950 hover:bg-paper-100"
+            >
+              Back to brief
+            </button>
+          </div>
+        </div>
+      )}
+
+      {augmented && draft && (
+        <p className="border border-line-200 bg-paper-50 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+          Blueprint drafted from brief + country corpus
+        </p>
       )}
 
       {running && progress && (

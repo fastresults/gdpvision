@@ -1,64 +1,55 @@
 ## What's broken
 
-For **Project Destiny (KNA)** the workspace shows `0/0 studies · 0 segments` and the Rehearse page renders the old "Start with a segment" empty state. There's no visible AI recommendation on Cast / Group / Rehearse — because those three routes still render their own manual wizards, and the AI Blueprint page (`/blueprint`) is a separate stop that this project never reached (or was skipped past via the stepper).
+On `/blueprint` for Project Destiny the AI returns **"Program brief is too short to design a research plan."** even though the brief was committed. Commit already enforces ≥40 chars *combined* (typed + upload excerpts) plus a valid `brief_scope`. But `composeBlueprint` reads **only** `brief_raw` and rejects anything under 20 chars — it ignores the upload excerpts and the enriched `brief_scope` that the intake already produced. So any brief that leans on an uploaded RFP / dictation snippet with a short typed intro dead-ends here with no recovery path.
 
-Result: the admin lands on Rehearse with nothing to do and no path back to the AI recommendations.
+The fix must be AI-first: the Blueprint should assemble every piece of context it already has (typed brief, upload excerpts, enriched scope, country + program metadata, and — when still thin — the country's second-brain corpus) and only *then* ask the model to draft segments and studies. The UI should never leave the admin stranded at "too short" with only a Generate button.
 
-## Root cause
+## Plan
 
-1. `useProgramBriefGate` exposes `blueprintCommitted`, but the three downstream routes (`index.tsx` / `segments.tsx` / `studies.tsx`) don't gate on it. They fall through to their legacy manual UIs when segments/studies are empty.
-2. `StudioStepper` still ships all 5 stages; Cast/Group/Rehearse are click-through even when blueprint isn't committed — the disabled styling is not being applied for this project (the "locked" tiles are visually there but the intake link on Rehearse was still reachable via direct URL / prior nav).
-3. `ProgramsIndex` "Continue" on a project without a committed blueprint should hard-route to `/blueprint`, not to studies.
+### 1. `composeBlueprint` — assemble the full brief, not just `brief_raw`
 
-## Plan — force the AI Blueprint to be the single guided cockpit
+`src/lib/personas/blueprint.functions.ts`
 
-### 1. Route-level gate for Cast / Group / Rehearse
+- Select `brief_raw`, `brief_uploads`, `brief_scope` (in addition to what's already read).
+- Build a `combinedBrief` = trimmed `brief_raw` + each `uploads[i].excerpt` (labeled) + a compact serialization of `brief_scope` (objectives, hypotheses, decisions, stakeholders, timeframe, geography, sensitivities, success_criteria).
+- Replace the current `brief.length < 20` guard with `combinedBrief.length < 40` (matches commit's own floor). This alone fixes Project Destiny.
+- Pass `combinedBrief` (capped ~12k chars) to the model as the `COMMITTED BRIEF` block, and include a `RESEARCH SCOPE` block rendered from `brief_scope` so the model reasons off the structured version, not just prose.
 
-In all three route components — `countries.$code.personas.index.tsx`, `…segments.tsx`, `…studies.tsx` — after resolving `activeProjectId` and `briefGate`, add:
+### 2. AI-first auto-augment when the brief is still thin
 
-```
-if (activeProjectId && briefGate.committed && !briefGate.blueprintCommitted) {
-  return <Navigate to="/admin/countries/$code/personas/blueprint"
-                   params={{ code }}
-                   search={{ project: activeProjectId, open: 1 }} replace />;
-}
-```
+Same file, before calling the model:
 
-So the moment a program has a brief but no approved blueprint, every downstream page bounces to Blueprint. No more empty "Start with a segment" screens.
+- If `combinedBrief.length < 400` OR `brief_scope` is missing key fields, call a **context pack** helper that pulls country-level signals already in the corpus:
+  - country name + iso, active ministries, priority sectors, recent narrative signals, top KPIs. Reuse existing helpers where possible (`src/lib/personas/context-pack.server.ts`, `country-onboarding` accessors).
+- Append this as a `COUNTRY CONTEXT` block in the prompt so the model can still design a defensible plan even from a terse brief, rather than refusing.
+- Never throw "too short" from Blueprint — if the combined signal is still genuinely unusable, return a structured `needs_more_brief` result (see step 3) instead of erroring.
 
-### 2. Programs Index "Continue" routing
+### 3. Structured "assist me" response instead of hard error
 
-In `ProgramsIndex.tsx`, when a row has `brief_committed_at` but no `blueprint_committed_at`, the primary CTA and row-click both link to `/blueprint` (not `/studies`). Row label: `NEEDS BLUEPRINT`.
+- On the rare case where even country context can't ground a plan, `composeBlueprint` returns `{ status: "needs_more_brief", suggestions: string[], missing: string[] }` where `suggestions` are AI-drafted questions the admin should answer (e.g. "Which decision must this inform by when?", "Which 2-3 audiences do you already suspect matter?"). No thrown error.
+- `BlueprintReview.tsx` renders that state as an AI-assisted callout with:
+  - the AI's specific missing-signal questions,
+  - a one-click **"Draft brief additions with AI"** button that calls a new small server fn `suggestBriefAdditions` (reuses country context) and appends the suggestions to `brief_raw` via existing `saveProjectBrief`,
+  - a **"Back to Brief"** link that reopens `ProgramBriefIntake` with those questions pre-loaded as guided prompts.
 
-### 3. Stepper: hard-lock downstream tiles
+### 4. UI: replace the red "too short" toast on `/blueprint`
 
-Already partially done. Confirm `StudioStepper` renders Cast/Group/Rehearse with `locked=true` when `!blueprintCommitted` and that the onClick preventDefault is honored. Add a short "Approve the blueprint to unlock" tooltip via `title=` on locked tiles so the admin understands why they can't click.
+`src/components/personas/StudyWizard/BlueprintReview.tsx`
 
-### 4. Auto-open Blueprint after Brief commit (verify)
+- Remove the raw-error rendering path for the "too short" message; route that condition through the new `needs_more_brief` UI from step 3.
+- Keep Generate / Regenerate for all other cases. Add an inline note under the Generate button when auto-augmentation ran: "Blueprint drafted from brief + country corpus."
 
-`ProgramBriefIntake` already navigates to `/blueprint` on commit — leave as is, just confirm nothing intercepts.
+### 5. Verify
 
-### 5. Empty-state fallback (belt-and-braces)
-
-Inside the studies route's `activeProjectId && segments.length === 0` branch, replace the current "Start with a segment" card with a clear callout:
-- Icon + headline: "Your research plan isn't approved yet."
-- Body: "The AI drafts your segments and studies from the brief. Review and approve to populate this workspace."
-- Primary button → `/blueprint?project=…&open=1`.
-
-Mirror the same callout on `index.tsx` (Cast) and `segments.tsx` (Group).
+1. Load `/blueprint?project=<destiny>` → clicking **Generate Blueprint** now produces segments + studies (no "too short" error).
+2. Create a new program, commit a deliberately terse 45-char brief with no uploads → Blueprint still generates using country context, and shows the "drafted from brief + country corpus" note.
+3. Create a program with an essentially empty brief (edge case) → Blueprint returns `needs_more_brief`, the UI shows AI-suggested questions and the "Draft brief additions with AI" button; clicking it appends suggestions and re-runs Generate cleanly.
+4. Existing programs with rich briefs behave identically to today.
 
 ### Files to touch
 
-- `src/routes/_authenticated/admin/countries.$code.personas.index.tsx`
-- `src/routes/_authenticated/admin/countries.$code.personas.segments.tsx`
-- `src/routes/_authenticated/admin/countries.$code.personas.studies.tsx`
-- `src/components/personas/StudyWizard/ProgramsIndex.tsx`
-- `src/components/personas/StudioStepper.tsx` (tooltip only)
+- `src/lib/personas/blueprint.functions.ts` — combined brief, auto-augment, `needs_more_brief` return shape, new `suggestBriefAdditions` fn.
+- `src/components/personas/StudyWizard/BlueprintReview.tsx` — render `needs_more_brief`, wire the assist buttons, drop the raw "too short" surface.
+- (Read-only reuse) `src/lib/personas/context-pack.server.ts` and country accessors already in the tree — no schema changes.
 
-No DB / server-fn changes. No behavior change for programs that already have committed blueprints — their Cast/Group/Rehearse UIs remain untouched.
-
-### Verify
-
-1. Open Project Destiny → land on `/studies` → auto-redirect to `/blueprint`. Confirm.
-2. Generate blueprint → Approve & run → segments cast → auto-navigate to `/studies` populated.
-3. Existing legacy program (blueprint pre-committed) still opens Cast/Group/Rehearse directly.
+No DB migrations. No changes to Cast / Group / Rehearse. Blueprint remains the single guided cockpit; it just stops refusing to help.

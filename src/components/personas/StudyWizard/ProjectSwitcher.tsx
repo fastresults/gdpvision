@@ -54,7 +54,7 @@ export function ProjectSwitcher({
       navigate({
         to: routeId,
         params: { code },
-        search: (s: Record<string, unknown>) => ({ ...s, project: row?.id, auto: 1 }),
+        search: (s: Record<string, unknown>) => ({ ...s, project: row?.id, open: 1, auto: 1 }),
       });
     },
   });

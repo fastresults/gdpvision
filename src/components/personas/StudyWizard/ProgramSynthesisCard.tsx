@@ -5,11 +5,12 @@
 
 import { useMutation, useQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { BookOpenCheck, Loader2, RefreshCw, Sparkles, Users, Layers, ClipboardList } from "lucide-react";
+import { BookOpenCheck, Download, Loader2, RefreshCw, Sparkles, Users, Layers, ClipboardList } from "lucide-react";
 import { useState } from "react";
 
 import { CitedMarkdown } from "@/components/citations/CitedMarkdown";
 import { getStudyProgramReport, synthesizeStudyProgram } from "@/lib/personas/study.functions";
+import { downloadMarkdown, programReportToMarkdown } from "@/lib/personas/report-export";
 
 type OceanScores = { openness?: number; conscientiousness?: number; extraversion?: number; agreeableness?: number; neuroticism?: number };
 type PersonaLite = { id: string; name: string; archetype?: string | null; summary?: string | null; ocean?: OceanScores | null; attributes?: unknown };
@@ -224,6 +225,22 @@ export function ProgramSynthesisCard({
           ) : (
             <><Sparkles size={11} /> Consolidate now</>
           )}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (!report) return;
+            const { filename, body } = programReportToMarkdown({
+              countryCode: code,
+              projectId,
+              report: report as never,
+            });
+            downloadMarkdown(filename, body);
+          }}
+          disabled={!report}
+          className="inline-flex items-center gap-1.5 border border-line-200 bg-paper-0 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950 hover:border-ink-950 disabled:opacity-40"
+        >
+          <Download size={11} /> Download .md
         </button>
       </header>
 

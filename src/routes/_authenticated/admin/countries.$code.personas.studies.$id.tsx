@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { ArrowLeft, Play, Sparkles } from "lucide-react";
+import { ArrowLeft, Download, Play, Sparkles } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { z } from "zod";
 
@@ -8,6 +8,7 @@ import { CitedMarkdown } from "@/components/citations/CitedMarkdown";
 import { CitedText } from "@/components/citations/CitedText";
 import { PrettyJson } from "@/components/data/PrettyJson";
 import { draftStudyQuestions, getStudy, runStudy } from "@/lib/personas/study.functions";
+import { downloadMarkdown, studyReportToMarkdown } from "@/lib/personas/report-export";
 import { StudioStepper } from "@/components/personas/StudioStepper";
 
 function studyQuery(id: string, projectId?: string) {
@@ -143,6 +144,23 @@ function StudyDetail() {
           className={`inline-flex items-center gap-1.5 border px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] disabled:opacity-40 ${runClass}`}
         >
           <Play size={12} /> {run.isPending ? "Running study…" : "Run study"}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const { filename, body } = studyReportToMarkdown({
+              study: study as never,
+              questions: questions as never,
+              responses: responses as never,
+              transcript: transcript as never,
+              report: report as never,
+            });
+            downloadMarkdown(filename, body);
+          }}
+          disabled={!study}
+          className="inline-flex items-center gap-1.5 border border-line-200 bg-paper-0 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950 hover:border-ink-950 disabled:opacity-40"
+        >
+          <Download size={12} /> Download .md
         </button>
         {phase === "running" && (
           <span className="inline-flex items-center gap-1.5 border border-line-200 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-700">

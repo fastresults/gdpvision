@@ -1,68 +1,47 @@
-## Mission restatement
+# Full-Report Markdown Export (Chamber 07)
 
-You are saying: Chamber 07 must behave like a program-scoped research workspace, not a country-wide dumping ground.
+Every report in Persona Lab — each individual **Study** and the **Program Synthesis** memo — gets an "Export as Markdown" action that emits a single `.md` file containing **every section fully expanded**, including data that is collapsed behind accordions/toggles in the UI (Questions Asked list, per-question response rows, transcript, themes, recommendations, methodology cast/groups/instruments, brief, unanswered, citations).
 
-When an admin enters the Persona Lab / Studies screen for a country, they should not immediately see counts or content from a prior research program. They should see an index of programs and choose one, or create a new program. A newly created program must show zero inherited cast, segment, or study state until the admin explicitly starts work inside that program.
+## What ships
 
-## What I verified
+### 1. Study report export
+On `admin/countries/$code/personas/studies/$id`, add a **Download .md** button next to Run study. It downloads `{country}-{study-title}-{date}.md` with these sections, in order, always expanded:
 
-- The top stage bar is still showing `91 personas` because `StudioStepper` calls `listPersonas({ countryCode })` without a `projectId`.
-- `listPersonas` currently queries every persona for the country, not personas attached to the active program.
-- The database confirms Grenada has `91` total personas, and all `91` are reachable through the old `CBI Brand Checkup` program's segments.
-- The newer `test` program has `0` personas reachable through its own segments, `0` segments, but `1` study.
-- That means the screenshot is not just a visual bug: the UI still has a country-scoped Stage 01 count and is presenting prior-program cast data as if it belongs to the current/blank workspace.
+1. Frontmatter (title, country, kind, status, segment, N personas, created_at, project)
+2. Objective
+3. Methodology block (segment label + segment prompt, persona count)
+4. **Questions asked** — full ordered list with kind (currently collapsed behind "Questions asked (N)" accordion in `SynthesisDigest`)
+5. Synthesis memo (`report.summary_md`, citation markers preserved)
+6. Themes (label, prevalence %, quote) — all, not sliced
+7. Recommendations (move, why, owner, horizon) — all, not sliced
+8. Transcript (focus groups) — every turn with speaker + utterance
+9. Responses (surveys/creative tests) — grouped by question, every persona's answer + rationale (serialized from JSON when needed)
+10. Sources — numbered citation list with title / url / org / excerpt
 
-## Exact problem
+### 2. Program synthesis export
+On the Program Synthesis card, add a **Download .md** button next to Regenerate. It downloads `{country}-program-synthesis-{date}.md` with:
 
-The system is partially program-scoped and partially country-scoped:
+1. Frontmatter (country, project, studies consolidated, generated_at)
+2. Portfolio scope + brief link
+3. Original brief (title, objectives, raw excerpt)
+4. Consolidated summary (`summary_md`)
+5. Methodology dossier fully expanded: Cast (segments), Groups, Instruments (studies) — no truncation
+6. Design rationale (why_segments, why_methods, coverage_gaps)
+7. Recommendations — all (not `.slice(0,6)`)
+8. Unanswered — all (not `.slice(0,6)`)
+9. Sources — numbered citation list
 
-```text
-Program index        -> program-scoped
-Segments             -> mostly program-scoped
-Studies              -> mostly program-scoped
-Stage 01 personas    -> still country-scoped
-Stage status bar     -> mixes current program state with all-country persona state
-```
+## Technical
 
-So even after the prior fix, the app can still show legacy data because personas were never fully assigned to a `project_id`; they are linked indirectly through `persona_segment_members`, while the Stage 01 fetch ignores that relationship.
+- New file `src/lib/personas/report-export.ts` — pure formatters (`studyReportToMarkdown`, `programReportToMarkdown`) taking the shapes already returned by `getStudy` and `getStudyProgramReport`. No DB reads, no server round-trip needed since the data is already loaded in the page.
+- Sanitize citation markers using the existing `citations/hygiene` helpers so `[N]` stays valid; append a **Sources** section built from the same `citations` array.
+- Convert JSON answers (creative_test payloads, structured survey answers) to fenced ```json blocks so nothing renders as `[object Object]`.
+- Escape pipe chars in table cells; wrap long quotes as blockquotes.
+- Download via a small `downloadMarkdown(filename, body)` util (Blob + object URL), mirroring the pattern already used in `ArtifactPanel.tsx`.
+- Buttons: reuse the existing mono-uppercase pill style; label `Download .md` with `Download` icon from `lucide-react`.
+- No schema changes, no server functions, no new dependencies.
 
-## Plan
+## Out of scope
 
-1. **Make persona reads program-aware**
-   - Update the persona listing server function to accept an optional `projectId`.
-   - When `projectId` is present, return only personas connected to segments in that program through `persona_segment_members`.
-   - When no `projectId` is present, only use country-wide personas on truly country-wide surfaces, not inside a selected/blank program workspace.
-
-2. **Fix the StudioStepper counts**
-   - Pass `activeProjectId` into the persona query.
-   - If no program is explicitly open, show `0 personas`, `0 segments`, and `0 studies`, or render the stage bar in a neutral “select a program” state.
-   - Do not mark Cast/Group/Rehearse complete based on old country-level data.
-
-3. **Fix the Segments screen count leak**
-   - Update the Segments route where it currently calls `listPersonas({ countryCode })`.
-   - That count should come from the active program only.
-   - If there is no active program, it should stay at zero and show the Programs Index only.
-
-4. **Clean up invalid/incomplete program state**
-   - The `test` program currently has one study attached to a segment from the old program, but no program-owned segments/personas.
-   - Add a guard so creating or running a study can only use a segment whose `project_id` matches the active program.
-   - Add a one-time data correction to either move that stray study to the correct original program or remove it from the new `test` program, depending on safest ownership.
-
-5. **Prevent future cross-program contamination**
-   - Add server-side validation in `createStudy`, auto-run study drafting, and any segment/study composition helper:
-     - if `projectId` is provided, the selected `segmentId` must belong to that same project.
-     - fail closed with a clear message instead of creating mixed-program records.
-
-6. **Verify the actual admin flow**
-   - Open `/admin/countries/GRD/personas/studies` without a project and confirm it shows only the Programs Index and no old counts.
-   - Create a new program and confirm the stage bar starts blank.
-   - Open `CBI Brand Checkup` and confirm its 91 personas / 11 segments / 11 studies appear only there.
-   - Confirm selecting or creating a study cannot attach an old segment to a new program.
-
-## Success criteria
-
-- A first-time entry into Chamber 07 never shows old program data.
-- A new program is visibly empty until work is started inside that program.
-- Stage counts are scoped to the selected program.
-- Old programs still retain their own historical cast/segments/studies.
-- No new study can be created against a segment from another program.
+- PDF / DOCX export (Markdown only, per request).
+- Other chambers' reports (Cabinet, Ledger, FDI) — those already have their own document pipeline in `documents.functions.ts`; only Chamber 07 currently lacks an export.

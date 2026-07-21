@@ -441,6 +441,12 @@ function StudiesPage() {
     <div className="space-y-8">
       <StudioStepper code={code} active="rehearse" rehearseStatus={rehearseStatus} />
 
+      <ProjectSwitcher
+        code={code}
+        activeProjectId={activeProjectId}
+        routeId="/_authenticated/admin/countries/$code/personas/studies"
+      />
+
       <header className="space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>

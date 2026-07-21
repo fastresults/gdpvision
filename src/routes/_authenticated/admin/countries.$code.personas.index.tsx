@@ -14,10 +14,10 @@ import { StudioStepper } from "@/components/personas/StudioStepper";
 import { ProgramsIndex } from "@/components/personas/StudyWizard/ProgramsIndex";
 import { listProjects } from "@/lib/personas/projects.functions";
 
-function personasQuery(code: string) {
+function personasQuery(code: string, projectId?: string) {
   return queryOptions({
-    queryKey: ["personas", code],
-    queryFn: () => listPersonas({ data: { countryCode: code } }),
+    queryKey: ["personas", code, projectId ?? "all"],
+    queryFn: () => listPersonas({ data: { countryCode: code, projectId } }),
   });
 }
 
@@ -30,7 +30,8 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/pers
 function PersonasIndex() {
   const { code } = Route.useParams();
   const qc = useQueryClient();
-  const { data: personas } = useSuspenseQuery(personasQuery(code));
+  const { data: rawPersonas } = useSuspenseQuery(personasQuery(code));
+  const personas = Array.isArray(rawPersonas) ? rawPersonas : [];
   const projectsQ = useQuery({
     queryKey: ["persona-projects", code],
     queryFn: () => listProjects({ data: { countryCode: code } }),

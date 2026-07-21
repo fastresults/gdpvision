@@ -119,7 +119,7 @@ function SegmentsPage() {
     queryFn: () => activeProjectId ? listPersonas({ data: { countryCode: code, projectId: activeProjectId } }) : Promise.resolve([]),
     enabled: !!activeProjectId,
   });
-  const personaCount = personasQ.data?.length ?? 0;
+  const personaCount = Array.isArray(personasQ.data) ? personasQ.data.length : 0;
 
   const [prompt, setPrompt] = useState("");
   const [size, setSize] = useState(8);

@@ -12,9 +12,23 @@ import {
   sanitizeJsonCitationMarkers,
   validCitationsForRefs,
 } from "@/lib/citations/hygiene";
+import type { Json } from "@/integrations/supabase/types";
 
 const GEN_MODEL = "google/gemini-2.5-pro";
 const FAST_MODEL = "google/gemini-2.5-flash";
+
+type PersonaListRow = {
+  id: string;
+  name: string;
+  archetype: string | null;
+  summary: string | null;
+  visibility: string;
+  origin: string;
+  created_at: string;
+  attributes: Json;
+  grounding_refs: Json;
+  citations: Json;
+};
 
 async function callGateway(system: string, user: string, model = GEN_MODEL): Promise<string> {
   const apiKey = process.env.LOVABLE_API_KEY;
@@ -243,18 +257,7 @@ export const listPersonas = createServerFn({ method: "POST" })
     z.object({ countryCode: z.string(), projectId: z.string().optional() }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    let rows: Array<{
-      id: string;
-      name: string;
-      archetype: string | null;
-      summary: string | null;
-      visibility: string;
-      origin: string;
-      created_at: string;
-      attributes: unknown;
-      grounding_refs: unknown;
-      citations: unknown;
-    }> = [];
+    let rows: PersonaListRow[] = [];
 
     if (data.projectId) {
       const { data: segments, error: segErr } = await context.supabase
@@ -282,7 +285,7 @@ export const listPersonas = createServerFn({ method: "POST" })
           const p = (m as { personas: unknown }).personas;
           return Array.isArray(p) ? p : p ? [p] : [];
         })
-        .filter((p): p is (typeof rows)[number] & { country_code?: string } => {
+        .filter((p): p is PersonaListRow & { country_code?: string } => {
           if (!p || typeof p !== "object") return false;
           const id = String((p as { id?: unknown }).id ?? "");
           const country = String((p as { country_code?: unknown }).country_code ?? "");
@@ -290,6 +293,7 @@ export const listPersonas = createServerFn({ method: "POST" })
           seen.add(id);
           return true;
         })
+        .map(({ country_code: _countryCode, ...p }) => p)
         .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
         .slice(0, 200);
     } else {

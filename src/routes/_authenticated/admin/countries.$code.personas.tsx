@@ -43,9 +43,9 @@ function PersonasLayout() {
     enabled: !!activeProjectId,
   });
 
-  const pCount = personas.data?.length ?? 0;
-  const sCount = segments.data?.length ?? 0;
-  const stCount = studies.data?.length ?? 0;
+  const pCount = Array.isArray(personas.data) ? personas.data.length : 0;
+  const sCount = Array.isArray(segments.data) ? segments.data.length : 0;
+  const stCount = Array.isArray(studies.data) ? studies.data.length : 0;
 
   const stages = [
     {

@@ -204,6 +204,16 @@ function RunRow({ run }: { run: AutoRunEntry }) {
                   <RefreshCw size={10} /> {run.health === "broken" ? "Retry now" : "Resume"}
                 </button>
               )}
+            {run.status === "running" && (
+              <button
+                type="button"
+                onClick={() => void abortAutoRun(run.id)}
+                className="ml-auto inline-flex items-center gap-1 border border-rose-600 bg-rose-600 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.2em] text-paper-0 hover:bg-rose-700"
+                title="Hard-stop this auto-run"
+              >
+                <Square size={10} className="fill-current" /> Stop
+              </button>
+            )}
             {(run.status === "complete" || run.status === "error" || run.status === "paused") && (
               <button
                 type="button"

@@ -5161,6 +5161,45 @@ export type Database = {
           },
         ]
       }
+      study_program_reports: {
+        Row: {
+          brief_snapshot: Json
+          citations: Json
+          country_code: string
+          created_at: string
+          id: string
+          model: string | null
+          sections: Json
+          studies_snapshot: Json
+          summary_md: string
+          updated_at: string
+        }
+        Insert: {
+          brief_snapshot?: Json
+          citations?: Json
+          country_code: string
+          created_at?: string
+          id?: string
+          model?: string | null
+          sections?: Json
+          studies_snapshot?: Json
+          summary_md?: string
+          updated_at?: string
+        }
+        Update: {
+          brief_snapshot?: Json
+          citations?: Json
+          country_code?: string
+          created_at?: string
+          id?: string
+          model?: string | null
+          sections?: Json
+          studies_snapshot?: Json
+          summary_md?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       study_questions: {
         Row: {
           created_at: string
@@ -5202,6 +5241,7 @@ export type Database = {
       study_reports: {
         Row: {
           citations: Json
+          context: Json
           created_at: string
           id: string
           study_id: string
@@ -5211,6 +5251,7 @@ export type Database = {
         }
         Insert: {
           citations?: Json
+          context?: Json
           created_at?: string
           id?: string
           study_id: string
@@ -5220,6 +5261,7 @@ export type Database = {
         }
         Update: {
           citations?: Json
+          context?: Json
           created_at?: string
           id?: string
           study_id?: string

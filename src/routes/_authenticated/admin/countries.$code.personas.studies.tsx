@@ -26,8 +26,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 
 import { listSegments } from "@/lib/personas/generate.functions";
-import { createStudy, listStudies, listStudiesWithReports } from "@/lib/personas/study.functions";
+import { createStudy, listStudies, listStudiesWithReports, synthesizeStudyProgram } from "@/lib/personas/study.functions";
 import { SynthesisDigest } from "@/components/personas/StudyWizard/SynthesisDigest";
+import { ProgramSynthesisCard } from "@/components/personas/StudyWizard/ProgramSynthesisCard";
 import { composeStudy, type ComposeStudyResult } from "@/lib/personas/compose-study.functions";
 import {
   AUTO_STUDIES_LOCK,
@@ -39,6 +40,7 @@ import {
 import { StudioStepper } from "@/components/personas/StudioStepper";
 import { StudioStatusRail } from "@/components/personas/StudyWizard/StudioStatusRail";
 import { clearAutoRun, publishAutoRun, registerAutoRunResume } from "@/lib/autorun/beacon";
+import { useServerFn } from "@tanstack/react-start";
 
 const PHASE_LABEL: Record<StudyAutoPhase, string> = {
   composing: "composing",
@@ -191,6 +193,8 @@ function StudiesPage() {
     setTimeout(() => create.mutate({ auto: true }), 0);
   };
 
+  const programSynthFn = useServerFn(synthesizeStudyProgram);
+
   const ready = stepDone[1] && stepDone[2] && stepDone[3];
   const chosenSegment = segments.find((s) => s.id === segmentId);
   const chosenMethod = METHODS.find((m) => m.id === kind);
@@ -328,7 +332,19 @@ function StudiesPage() {
         for (const f of res2.failed) failed.push({ label: f.label, reason: f.reason });
       }
 
+      // Phase C — consolidate portfolio memo once at least one study exists.
+      if (!cancelRef.current) {
+        try {
+          await programSynthFn({ data: { countryCode: code } });
+          await qc.invalidateQueries({ queryKey: ["study-program-report", code] });
+        } catch (e) {
+          // Non-fatal — the per-study memos are still saved.
+          console.warn("[program synth]", (e as Error).message);
+        }
+      }
+
       await qc.invalidateQueries({ queryKey: ["studies", code] });
+      await qc.invalidateQueries({ queryKey: ["studies-digest", code] });
       if (cancelRef.current) {
         setAutoState({ phase: "cancelled", drafted, completed });
       } else {
@@ -337,7 +353,7 @@ function StudiesPage() {
       runningRef.current = false;
       AUTO_STUDIES_LOCK.delete(code);
     },
-    [segments, studies, coveredSegmentIds, code, qc, autoFlagKey],
+    [segments, studies, coveredSegmentIds, code, qc, autoFlagKey, programSynthFn],
   );
 
   const cancelAutoRun = () => {
@@ -683,6 +699,9 @@ function StudiesPage() {
       )}
 
       {/* Synthesized work product — always shown when any report exists */}
+      {(digest.length > 0 || studies.length > 0) && (
+        <ProgramSynthesisCard code={code} synthesizedCount={digest.filter((d) => d.summary_md).length} />
+      )}
       {digest.length > 0 && <SynthesisDigest items={digest} code={code} />}
 
       {/* Grouped library */}

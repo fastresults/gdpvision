@@ -27,7 +27,7 @@ export function useProgramBriefGate(projectId: string | undefined) {
     loading: !!projectId && (briefQ.isLoading || (committed && blueprintQ.isLoading)),
     committed,
     needsIntake: !!projectId && !briefQ.isLoading && !committed,
-    needsBlueprint: !!projectId && committed && !blueprintCommitted,
+    needsBlueprint: !!projectId && committed && !blueprintQ.isLoading && !blueprintCommitted,
     blueprintCommitted,
     brief: briefQ.data,
     blueprint: blueprintQ.data,

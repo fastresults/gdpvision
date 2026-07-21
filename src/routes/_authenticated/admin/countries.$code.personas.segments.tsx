@@ -79,11 +79,12 @@ type AutoState =
 const AUTORUN_CONSUMED_KEY = (code: string, projectId: string) =>
   `stage02:autorun-consumed:${code}:${projectId}`;
 
+const PROJECT_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function SegmentsPage() {
   const { code } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const openedRef = useRef<Set<string>>(new Set());
   const search = useSearch({ strict: false }) as {
     auto?: unknown;
     project?: string;
@@ -91,27 +92,17 @@ function SegmentsPage() {
   };
   const autoIntent = search.auto === 1 || search.auto === "1" || search.auto === true;
   useEffect(() => {
-    if (search.open && search.project) {
-      openedRef.current.add(search.project);
+    if (search.open) {
       navigate({
         to: "/admin/countries/$code/personas/segments",
         params: { code },
         search: (s: Record<string, unknown>) => ({ ...s, open: undefined }),
         replace: true,
       });
-      return;
     }
-    if (search.project && !openedRef.current.has(search.project)) {
-      navigate({
-        to: "/admin/countries/$code/personas/segments",
-        params: { code },
-        search: {},
-        replace: true,
-      });
-    }
-  }, [search.open, search.project, code, navigate]);
+  }, [search.open, code, navigate]);
   const activeProjectId =
-    search.project && openedRef.current.has(search.project) ? search.project : undefined;
+    typeof search.project === "string" && PROJECT_ID_RE.test(search.project) ? search.project : undefined;
   const briefGate = useProgramBriefGate(activeProjectId);
   const { data: segments = [] } = useQuery({
     ...segmentsQuery(code, activeProjectId ?? "none"),
@@ -631,6 +622,17 @@ function SegmentsPage() {
           </Link>
         </div>
         <ProgramsIndex code={code} />
+      </div>
+    );
+  }
+
+  if (briefGate.loading) {
+    return (
+      <div className="space-y-6">
+        <StudioStepper code={code} active="group" activeProjectId={activeProjectId} />
+        <div className="border border-line-200 bg-paper-50 p-6 text-sm text-ink-500">
+          Loading research program…
+        </div>
       </div>
     );
   }

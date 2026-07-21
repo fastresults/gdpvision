@@ -227,6 +227,8 @@ export const draftStudyQuestions = createServerFn({ method: "POST" })
     const { supabase } = context;
     const { data: study } = await supabase.from("studies").select("*").eq("id", data.studyId).maybeSingle();
     if (!study) throw new Error("Study not found");
+    const { assertProgramBriefCommitted } = await import("./project-brief.functions");
+    if (study.project_id) await assertProgramBriefCommitted(supabase, study.project_id as string);
 
     const pack = await buildCountryContextPack(supabase, study.country_code, study.objective ?? study.title);
 
@@ -289,6 +291,8 @@ export const runStudyResponses = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase } = context;
     const { study, questions, personas } = await loadStudyWithPersonas(supabase, data.studyId);
+    const { assertProgramBriefCommitted } = await import("./project-brief.functions");
+    if (study.project_id) await assertProgramBriefCommitted(supabase, study.project_id as string);
     if (!questions.length) throw new Error("No questions — draft them first.");
     if (!personas.length) throw new Error("Segment has no personas.");
 
@@ -372,6 +376,8 @@ export const runStudySynthesis = createServerFn({ method: "POST" })
     const { supabase } = context;
     const { data: study } = await supabase.from("studies").select("*").eq("id", data.studyId).maybeSingle();
     if (!study) throw new Error("Study not found");
+    const { assertProgramBriefCommitted } = await import("./project-brief.functions");
+    if (study.project_id) await assertProgramBriefCommitted(supabase, study.project_id as string);
 
     const [{ data: responses }, { data: transcript }, { data: questions }, { data: segment }, { count: personaCount }] = await Promise.all([
       supabase.from("study_responses").select("*, personas(name,archetype)").eq("study_id", data.studyId).limit(500),

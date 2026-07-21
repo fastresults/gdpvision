@@ -617,15 +617,19 @@ async function resolveDefaultProjectId(
 // ── Digest for the Stage-03 studies list ─────────────────────────────────
 export const listStudiesWithReports = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ countryCode: z.string(), projectId: z.string().optional() }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const { data: rows, error } = await supabase
+    let q = supabase
       .from("studies")
-      .select("id,title,kind,status,objective,created_at,segment_id,visibility")
+      .select("id,title,kind,status,objective,created_at,segment_id,visibility,project_id")
       .eq("country_code", data.countryCode)
       .order("created_at", { ascending: false })
       .limit(200);
+    if (data.projectId) q = q.eq("project_id", data.projectId);
+    const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     const studies = rows ?? [];
     type Recommendation = { move?: string; why?: string; owner?: string };

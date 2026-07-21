@@ -83,10 +83,10 @@ export function ProgramsIndex({ code }: { code: string }) {
       }
       try {
         await navigate({
-          to: "/admin/countries/$code/personas/studies",
+          to: "/admin/countries/$code/personas",
           params: { code },
-          // Creating a program opens a clean workspace only. It must never
-          // inherit a prior project, and it must never start processing.
+          // Creating a program lands on the mandatory Brief intake — no
+          // downstream work is allowed until the brief is committed.
           search: { project: projectId, open: 1 },
         });
       } catch (err) {

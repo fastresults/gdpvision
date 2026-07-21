@@ -38,11 +38,13 @@ export type AutoRunEntry = {
 };
 
 type ResumeFn = () => void | Promise<void>;
+type AbortFn = () => void | Promise<void>;
 
 type State = Map<string, AutoRunEntry>;
 
 let state: State = new Map();
 const resumers = new Map<string, ResumeFn>();
+const aborters = new Map<string, AbortFn>();
 const listeners = new Set<() => void>();
 
 const SLOW_MS = 30_000;

@@ -50,19 +50,21 @@ export function ProjectSwitcher({
       setNewTitle("");
       setOpen(false);
       if (detailsRef.current) detailsRef.current.open = false;
+      // Newly created program → carry `auto=1` so the auto-run pipeline kicks off.
       navigate({
         to: routeId,
         params: { code },
-        search: (s: Record<string, unknown>) => ({ ...s, project: row?.id }),
+        search: (s: Record<string, unknown>) => ({ ...s, project: row?.id, auto: 1 }),
       });
     },
   });
 
   const setActive = (id: string) => {
+    // Switching projects is a read-only action — never carry `auto` intent.
     navigate({
       to: routeId,
       params: { code },
-      search: (s: Record<string, unknown>) => ({ ...s, project: id }),
+      search: (s: Record<string, unknown>) => ({ ...s, project: id, auto: undefined }),
     });
     setOpen(false);
   };

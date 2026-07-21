@@ -330,7 +330,19 @@ function StudiesPage() {
         for (const f of res2.failed) failed.push({ label: f.label, reason: f.reason });
       }
 
+      // Phase C — consolidate portfolio memo once at least one study exists.
+      if (!cancelRef.current) {
+        try {
+          await programSynthFn({ data: { countryCode: code } });
+          await qc.invalidateQueries({ queryKey: ["study-program-report", code] });
+        } catch (e) {
+          // Non-fatal — the per-study memos are still saved.
+          console.warn("[program synth]", (e as Error).message);
+        }
+      }
+
       await qc.invalidateQueries({ queryKey: ["studies", code] });
+      await qc.invalidateQueries({ queryKey: ["studies-digest", code] });
       if (cancelRef.current) {
         setAutoState({ phase: "cancelled", drafted, completed });
       } else {
@@ -339,7 +351,7 @@ function StudiesPage() {
       runningRef.current = false;
       AUTO_STUDIES_LOCK.delete(code);
     },
-    [segments, studies, coveredSegmentIds, code, qc, autoFlagKey],
+    [segments, studies, coveredSegmentIds, code, qc, autoFlagKey, programSynthFn],
   );
 
   const cancelAutoRun = () => {

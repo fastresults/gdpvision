@@ -1,92 +1,64 @@
-# AI-First Program Setup — Brief → Blueprint
+## What's broken
 
-## Problem
+For **Project Destiny (KNA)** the workspace shows `0/0 studies · 0 segments` and the Rehearse page renders the old "Start with a segment" empty state. There's no visible AI recommendation on Cast / Group / Rehearse — because those three routes still render their own manual wizards, and the AI Blueprint page (`/blueprint`) is a separate stop that this project never reached (or was skipped past via the stepper).
 
-Today, after committing the brief the admin still has to manually walk Stage 02 (Segments), Stage 03 (Studies), and set persona counts before anything runs. That contradicts the AI-first promise: the brief already has enough context for the model to propose the entire research design.
+Result: the admin lands on Rehearse with nothing to do and no path back to the AI recommendations.
 
-## Target flow (3 screens instead of 4+ stages)
+## Root cause
 
-```text
-1. BRIEF INTAKE         2. AI BLUEPRINT (auto)         3. REHEARSE / RUN
-   ─────────────           ──────────────────             ───────────────
-   Type / dictate /   →    Segments (proposed)      →    Auto-run all
-   upload sources          Personas/segment (proposed)   studies, watch
-   → Commit                Studies (proposed)            live progress
-                           → Approve or Refine
+1. `useProgramBriefGate` exposes `blueprintCommitted`, but the three downstream routes (`index.tsx` / `segments.tsx` / `studies.tsx`) don't gate on it. They fall through to their legacy manual UIs when segments/studies are empty.
+2. `StudioStepper` still ships all 5 stages; Cast/Group/Rehearse are click-through even when blueprint isn't committed — the disabled styling is not being applied for this project (the "locked" tiles are visually there but the intake link on Rehearse was still reachable via direct URL / prior nav).
+3. `ProgramsIndex` "Continue" on a project without a committed blueprint should hard-route to `/blueprint`, not to studies.
+
+## Plan — force the AI Blueprint to be the single guided cockpit
+
+### 1. Route-level gate for Cast / Group / Rehearse
+
+In all three route components — `countries.$code.personas.index.tsx`, `…segments.tsx`, `…studies.tsx` — after resolving `activeProjectId` and `briefGate`, add:
+
 ```
-
-The user's only mandatory intervention is (a) capturing the brief and (b) approving the blueprint. Everything else is a refinement, not a step.
-
-## What changes
-
-### 1. New server fn `composeBlueprint` (`src/lib/personas/blueprint.functions.ts`)
-Runs immediately after `commitProjectBrief`. One AI call (Lovable AI Gateway, `google/gemini-2.5-pro`, `response_format: json_object`) returns a full research blueprint from `brief_scope` + `brief_raw`:
-
-```json
-{
-  "segments": [
-    { "name": "…", "rationale": "…", "recommended_personas": 8, "priority": "primary|secondary" }
-  ],
-  "studies": [
-    { "title": "…", "method": "qual|quant|mixed", "segment_names": ["…"], "objectives": ["…"], "instruments": ["interview_guide","survey"] }
-  ],
-  "notes": "assumptions / trade-offs"
+if (activeProjectId && briefGate.committed && !briefGate.blueprintCommitted) {
+  return <Navigate to="/admin/countries/$code/personas/blueprint"
+                   params={{ code }}
+                   search={{ project: activeProjectId, open: 1 }} replace />;
 }
 ```
 
-Guardrails: 3–8 segments, 2–6 studies, persona counts clamped 4–12. Persists the raw proposal as `persona_projects.blueprint_proposal` (jsonb) + `blueprint_generated_at`.
+So the moment a program has a brief but no approved blueprint, every downstream page bounces to Blueprint. No more empty "Start with a segment" screens.
 
-### 2. New `approveBlueprint` server fn
-Takes the (possibly edited) blueprint and fans it out atomically:
-- Creates `persona_segments` rows scoped to `project_id` (reusing existing `generateSegment` internals, but batched).
-- Writes `recommended_personas` onto each segment (`persona_segments.persona_target_count int`).
-- Creates `studies` rows via `createStudy` (already project-scoped), pre-linked to their segments.
-- Flips `persona_projects.blueprint_committed_at`.
-- Enqueues auto-run for persona generation → study composition → rehearse — reuses the existing autorun pipeline, no new engine.
+### 2. Programs Index "Continue" routing
 
-### 3. New screen: `BlueprintReview.tsx` (`src/components/personas/StudyWizard/`)
-Renders the proposal as an editable canvas — not a form wall:
-- Segment cards with inline rename, priority toggle, slider for persona count, "remove", "add".
-- Study cards with inline title/method/segment picker, "remove", "add".
-- Two primary actions: **Approve & Run** (default) and **Refine with AI** (free-text delta → re-runs `composeBlueprint` with the delta as extra instruction).
-- Header shows the source brief scope inline so the user sees what the AI heard.
+In `ProgramsIndex.tsx`, when a row has `brief_committed_at` but no `blueprint_committed_at`, the primary CTA and row-click both link to `/blueprint` (not `/studies`). Row label: `NEEDS BLUEPRINT`.
 
-### 4. Router / stepper collapse
-- `ProgramBriefIntake` on commit → navigate directly to `personas/blueprint` (new route) instead of `personas/index` (Cast).
-- Old `Stage 02 · Segments` and `Stage 03 · Studies` routes stay reachable as "Refine" deep-links but are removed from the primary stepper.
-- `StudioStepper` reduces to three chips: **Brief · Blueprint · Rehearse**. The old cast/group/rehearse split becomes internal phases of Rehearse's autorun console.
-- `ProgramsIndex` "Continue" button routes to the earliest incomplete of {brief, blueprint, rehearse}.
+### 3. Stepper: hard-lock downstream tiles
 
-### 5. Auto-kickoff after approval
-`approveBlueprint` publishes the autorun beacon so `AutoRunConsole` starts immediately without a second click. If the run stalls, the console's existing self-heal/resume path handles it — no new plumbing.
+Already partially done. Confirm `StudioStepper` renders Cast/Group/Rehearse with `locked=true` when `!blueprintCommitted` and that the onClick preventDefault is honored. Add a short "Approve the blueprint to unlock" tooltip via `title=` on locked tiles so the admin understands why they can't click.
 
-### 6. Schema additions (single migration)
-- `persona_projects.blueprint_proposal jsonb`
-- `persona_projects.blueprint_generated_at timestamptz`
-- `persona_projects.blueprint_committed_at timestamptz`
-- `persona_segments.persona_target_count int` (default 8, check 1–20)
+### 4. Auto-open Blueprint after Brief commit (verify)
 
-RLS unchanged (inherits project scoping). No GRANT changes needed (existing tables).
+`ProgramBriefIntake` already navigates to `/blueprint` on commit — leave as is, just confirm nothing intercepts.
 
-### 7. Backwards compatibility
-- Existing programs without a blueprint (all current ones) treat the blueprint as satisfied when they already have ≥1 segment AND ≥1 study — the stepper skips straight to Rehearse. No forced replays.
-- The old `composeSegments` / `composeStudy` fns stay; `composeBlueprint` calls into `composeSegments`-style prompt logic once instead of twice, then hands off to `approveBlueprint` for persistence.
+### 5. Empty-state fallback (belt-and-braces)
 
-## Files touched
+Inside the studies route's `activeProjectId && segments.length === 0` branch, replace the current "Start with a segment" card with a clear callout:
+- Icon + headline: "Your research plan isn't approved yet."
+- Body: "The AI drafts your segments and studies from the brief. Review and approve to populate this workspace."
+- Primary button → `/blueprint?project=…&open=1`.
 
-- **New**: `src/lib/personas/blueprint.functions.ts`, `src/components/personas/StudyWizard/BlueprintReview.tsx`, `src/routes/_authenticated/admin/countries.$code.personas.blueprint.tsx`, one migration.
-- **Edit**: `ProgramBriefIntake.tsx` (redirect target on commit), `StudioStepper.tsx` (collapse to 3 chips), `ProgramsIndex.tsx` ("Continue" routing), `src/hooks/useProgramBriefGate.ts` (add `blueprintCommitted`), `study-autorun.ts` (accept pre-linked segment/study ids from blueprint, skip re-composition when present).
-- **Unchanged**: `compose-segments.functions.ts`, `compose-study.functions.ts`, `autorun.functions.ts`, `generate.functions.ts` — reused as building blocks.
+Mirror the same callout on `index.tsx` (Cast) and `segments.tsx` (Group).
 
-## Out of scope
+### Files to touch
 
-- Chamber 01–06 workflows.
-- The public marketing site.
-- Rewriting the autorun engine — this plan feeds it, not replaces it.
+- `src/routes/_authenticated/admin/countries.$code.personas.index.tsx`
+- `src/routes/_authenticated/admin/countries.$code.personas.segments.tsx`
+- `src/routes/_authenticated/admin/countries.$code.personas.studies.tsx`
+- `src/components/personas/StudyWizard/ProgramsIndex.tsx`
+- `src/components/personas/StudioStepper.tsx` (tooltip only)
 
-## Success criteria
+No DB / server-fn changes. No behavior change for programs that already have committed blueprints — their Cast/Group/Rehearse UIs remain untouched.
 
-1. From a fresh program, admin captures the brief once and sees a fully populated blueprint (segments + persona counts + studies) with zero extra clicks.
-2. "Approve & Run" moves straight to the live Rehearse console.
-3. Any pane can be refined via inline edits or a free-text "Refine with AI" delta.
-4. No existing in-flight program is broken (compat rule above).
+### Verify
+
+1. Open Project Destiny → land on `/studies` → auto-redirect to `/blueprint`. Confirm.
+2. Generate blueprint → Approve & run → segments cast → auto-navigate to `/studies` populated.
+3. Existing legacy program (blueprint pre-committed) still opens Cast/Group/Rehearse directly.

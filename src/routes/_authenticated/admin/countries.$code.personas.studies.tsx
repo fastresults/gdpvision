@@ -198,9 +198,11 @@ function StudiesPage() {
 
   // AI Composer — picks segment + method + framing automatically.
   const composerQ = useQuery({
-    queryKey: ["study-composer", code, activeProjectId ?? "default", segments.length],
+    queryKey: ["study-composer", code, activeProjectId ?? "none", segments.length],
     queryFn: () => composeStudy({ data: { countryCode: code, projectId: activeProjectId } }),
-    enabled: segments.length > 0,
+    // Never compose without a project — proposals must be scoped to a
+    // program so nothing leaks from a prior one.
+    enabled: !!activeProjectId && segments.length > 0,
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
   });

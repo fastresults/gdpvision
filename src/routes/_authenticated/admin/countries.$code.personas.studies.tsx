@@ -39,6 +39,7 @@ import {
 } from "@/lib/personas/study-autorun";
 import { StudioStepper } from "@/components/personas/StudioStepper";
 import { StudioStatusRail } from "@/components/personas/StudyWizard/StudioStatusRail";
+import { ProjectSwitcher } from "@/components/personas/StudyWizard/ProjectSwitcher";
 import { clearAutoRun, publishAutoRun, registerAutoRunResume } from "@/lib/autorun/beacon";
 import { useServerFn } from "@tanstack/react-start";
 
@@ -52,19 +53,22 @@ const PHASE_LABEL: Record<StudyAutoPhase, string> = {
 const searchSchema = z.object({
   segmentId: z.string().optional(),
   auto: z.union([z.literal(1), z.literal("1"), z.boolean()]).optional(),
+  project: z.string().optional(),
 });
 
-function studiesQuery(code: string) {
+function studiesQuery(code: string, projectId?: string) {
   return queryOptions({
-    queryKey: ["studies", code],
-    queryFn: () => listStudies({ data: { countryCode: code } }),
+    queryKey: ["studies", code, projectId ?? "all"],
+    queryFn: () => listStudies({ data: { countryCode: code, projectId } }),
+    // Match the digest cadence so the status rail counters cannot lag behind
+    // the "Auto-run complete" banner (which reads from the digest).
+    refetchInterval: 15_000,
   });
 }
-function studiesDigestQuery(code: string) {
+function studiesDigestQuery(code: string, projectId?: string) {
   return queryOptions({
-    queryKey: ["studies-digest", code],
-    queryFn: () => listStudiesWithReports({ data: { countryCode: code } }),
-    // Refresh briskly while auto-run is completing work.
+    queryKey: ["studies-digest", code, projectId ?? "all"],
+    queryFn: () => listStudiesWithReports({ data: { countryCode: code, projectId } }),
     refetchInterval: 15_000,
   });
 }
@@ -135,9 +139,10 @@ function StudiesPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { data: studies } = useSuspenseQuery(studiesQuery(code));
+  const activeProjectId = search.project;
+  const { data: studies } = useSuspenseQuery(studiesQuery(code, activeProjectId));
   const { data: segments } = useSuspenseQuery(segmentsQuery(code));
-  const { data: digest = [] } = useQuery(studiesDigestQuery(code));
+  const { data: digest = [] } = useQuery(studiesDigestQuery(code, activeProjectId));
 
   const [segmentId, setSegmentId] = useState<string>(search.segmentId ?? "");
   const [kind, setKind] = useState<StudyKind | "">("");
@@ -435,6 +440,12 @@ function StudiesPage() {
   return (
     <div className="space-y-8">
       <StudioStepper code={code} active="rehearse" rehearseStatus={rehearseStatus} />
+
+      <ProjectSwitcher
+        code={code}
+        activeProjectId={activeProjectId}
+        routeId="/_authenticated/admin/countries/$code/personas/studies"
+      />
 
       <header className="space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-3">

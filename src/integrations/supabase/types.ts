@@ -4066,6 +4066,48 @@ export type Database = {
           },
         ]
       }
+      persona_projects: {
+        Row: {
+          country_code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          owner_country_code: string | null
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+          uploaded_by: string | null
+          visibility: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          owner_country_code?: string | null
+          slug: string
+          status?: string
+          title: string
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          owner_country_code?: string | null
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Relationships: []
+      }
       persona_segment_members: {
         Row: {
           persona_id: string
@@ -4157,6 +4199,7 @@ export type Database = {
           outcome_raw: string | null
           owner_country_code: string | null
           phase_log: Json
+          project_id: string | null
           step: string
           study_id: string | null
           title: string | null
@@ -4179,6 +4222,7 @@ export type Database = {
           outcome_raw?: string | null
           owner_country_code?: string | null
           phase_log?: Json
+          project_id?: string | null
           step?: string
           study_id?: string | null
           title?: string | null
@@ -4201,6 +4245,7 @@ export type Database = {
           outcome_raw?: string | null
           owner_country_code?: string | null
           phase_log?: Json
+          project_id?: string | null
           step?: string
           study_id?: string | null
           title?: string | null
@@ -4208,7 +4253,15 @@ export type Database = {
           uploads?: Json
           visibility?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "persona_study_drafts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "persona_projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       personas: {
         Row: {
@@ -4990,6 +5043,7 @@ export type Database = {
           objective: string | null
           owner_country_code: string | null
           owner_user_id: string | null
+          project_id: string | null
           segment_id: string | null
           status: string
           title: string
@@ -5006,6 +5060,7 @@ export type Database = {
           objective?: string | null
           owner_country_code?: string | null
           owner_user_id?: string | null
+          project_id?: string | null
           segment_id?: string | null
           status?: string
           title: string
@@ -5022,6 +5077,7 @@ export type Database = {
           objective?: string | null
           owner_country_code?: string | null
           owner_user_id?: string | null
+          project_id?: string | null
           segment_id?: string | null
           status?: string
           title?: string
@@ -5030,6 +5086,13 @@ export type Database = {
           visibility?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "studies_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "persona_projects"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "studies_segment_id_fkey"
             columns: ["segment_id"]
@@ -5169,6 +5232,7 @@ export type Database = {
           created_at: string
           id: string
           model: string | null
+          project_id: string | null
           sections: Json
           studies_snapshot: Json
           summary_md: string
@@ -5181,6 +5245,7 @@ export type Database = {
           created_at?: string
           id?: string
           model?: string | null
+          project_id?: string | null
           sections?: Json
           studies_snapshot?: Json
           summary_md?: string
@@ -5193,12 +5258,21 @@ export type Database = {
           created_at?: string
           id?: string
           model?: string | null
+          project_id?: string | null
           sections?: Json
           studies_snapshot?: Json
           summary_md?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "study_program_reports_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "persona_projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       study_questions: {
         Row: {

@@ -4837,6 +4837,273 @@ export type Database = {
           },
         ]
       }
+      service_request_deliverables: {
+        Row: {
+          acted_at: string | null
+          attachments: Json
+          authored_by: string | null
+          chamber: Database["public"]["Enums"]["service_request_chamber"] | null
+          chamber_ref_id: string | null
+          chamber_ref_kind: string | null
+          citations: Json
+          created_at: string
+          delivered_at: string | null
+          id: string
+          internal_body_md: string | null
+          minister_body_md: string | null
+          read_at: string | null
+          request_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          acted_at?: string | null
+          attachments?: Json
+          authored_by?: string | null
+          chamber?:
+            | Database["public"]["Enums"]["service_request_chamber"]
+            | null
+          chamber_ref_id?: string | null
+          chamber_ref_kind?: string | null
+          citations?: Json
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          internal_body_md?: string | null
+          minister_body_md?: string | null
+          read_at?: string | null
+          request_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          acted_at?: string | null
+          attachments?: Json
+          authored_by?: string | null
+          chamber?:
+            | Database["public"]["Enums"]["service_request_chamber"]
+            | null
+          chamber_ref_id?: string | null
+          chamber_ref_kind?: string | null
+          citations?: Json
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          internal_body_md?: string | null
+          minister_body_md?: string | null
+          read_at?: string | null
+          request_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_request_deliverables_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_request_drafts: {
+        Row: {
+          attachments: Json
+          chamber_confidence: number | null
+          channel: Database["public"]["Enums"]["service_request_channel"] | null
+          country_code: string
+          created_at: string
+          id: string
+          internal_chamber:
+            | Database["public"]["Enums"]["service_request_chamber"]
+            | null
+          minister_summary: string | null
+          raw_text: string | null
+          request_card: Json
+          step: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attachments?: Json
+          chamber_confidence?: number | null
+          channel?:
+            | Database["public"]["Enums"]["service_request_channel"]
+            | null
+          country_code: string
+          created_at?: string
+          id?: string
+          internal_chamber?:
+            | Database["public"]["Enums"]["service_request_chamber"]
+            | null
+          minister_summary?: string | null
+          raw_text?: string | null
+          request_card?: Json
+          step?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attachments?: Json
+          chamber_confidence?: number | null
+          channel?:
+            | Database["public"]["Enums"]["service_request_channel"]
+            | null
+          country_code?: string
+          created_at?: string
+          id?: string
+          internal_chamber?:
+            | Database["public"]["Enums"]["service_request_chamber"]
+            | null
+          minister_summary?: string | null
+          raw_text?: string | null
+          request_card?: Json
+          step?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      service_request_events: {
+        Row: {
+          actor_id: string | null
+          actor_kind: string
+          created_at: string
+          event_type: string
+          id: string
+          internal_note: string | null
+          minister_summary: string | null
+          payload: Json
+          request_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_kind?: string
+          created_at?: string
+          event_type: string
+          id?: string
+          internal_note?: string | null
+          minister_summary?: string | null
+          payload?: Json
+          request_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          actor_kind?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          internal_note?: string | null
+          minister_summary?: string | null
+          payload?: Json
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_request_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_requests: {
+        Row: {
+          accepted_at: string | null
+          assigned_to: string | null
+          attachments: Json
+          built_on: Json
+          chamber_confidence: number | null
+          country_code: string
+          created_at: string
+          deliverable_shape: string | null
+          delivered_at: string | null
+          expected_by: string | null
+          id: string
+          internal_chamber:
+            | Database["public"]["Enums"]["service_request_chamber"]
+            | null
+          internal_notes: string | null
+          minister_summary: string | null
+          question: string
+          raw_intake: string | null
+          requester_id: string
+          requester_name: string | null
+          requester_title: string | null
+          status: Database["public"]["Enums"]["service_request_status"]
+          submitted_at: string
+          submitted_channel:
+            | Database["public"]["Enums"]["service_request_channel"]
+            | null
+          updated_at: string
+          when_needed: string | null
+          why_it_matters: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          assigned_to?: string | null
+          attachments?: Json
+          built_on?: Json
+          chamber_confidence?: number | null
+          country_code: string
+          created_at?: string
+          deliverable_shape?: string | null
+          delivered_at?: string | null
+          expected_by?: string | null
+          id?: string
+          internal_chamber?:
+            | Database["public"]["Enums"]["service_request_chamber"]
+            | null
+          internal_notes?: string | null
+          minister_summary?: string | null
+          question: string
+          raw_intake?: string | null
+          requester_id: string
+          requester_name?: string | null
+          requester_title?: string | null
+          status?: Database["public"]["Enums"]["service_request_status"]
+          submitted_at?: string
+          submitted_channel?:
+            | Database["public"]["Enums"]["service_request_channel"]
+            | null
+          updated_at?: string
+          when_needed?: string | null
+          why_it_matters?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          assigned_to?: string | null
+          attachments?: Json
+          built_on?: Json
+          chamber_confidence?: number | null
+          country_code?: string
+          created_at?: string
+          deliverable_shape?: string | null
+          delivered_at?: string | null
+          expected_by?: string | null
+          id?: string
+          internal_chamber?:
+            | Database["public"]["Enums"]["service_request_chamber"]
+            | null
+          internal_notes?: string | null
+          minister_summary?: string | null
+          question?: string
+          raw_intake?: string | null
+          requester_id?: string
+          requester_name?: string | null
+          requester_title?: string | null
+          status?: Database["public"]["Enums"]["service_request_status"]
+          submitted_at?: string
+          submitted_channel?:
+            | Database["public"]["Enums"]["service_request_channel"]
+            | null
+          updated_at?: string
+          when_needed?: string | null
+          why_it_matters?: string | null
+        }
+        Relationships: []
+      }
       source_candidates: {
         Row: {
           approved_at: string | null
@@ -5619,6 +5886,26 @@ export type Database = {
         | "data_steward"
         | "country_admin"
       scenario_status: "draft" | "shared" | "adopted" | "archived"
+      service_request_chamber:
+        | "ledger"
+        | "portfolio"
+        | "scenario"
+        | "fdi"
+        | "narrative"
+        | "cabinet"
+        | "persona"
+      service_request_channel: "typed" | "pasted" | "voice"
+      service_request_status:
+        | "draft"
+        | "new"
+        | "triaged"
+        | "in_progress"
+        | "review"
+        | "ready"
+        | "delivered"
+        | "accepted"
+        | "revising"
+        | "closed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5758,6 +6045,28 @@ export const Constants = {
         "country_admin",
       ],
       scenario_status: ["draft", "shared", "adopted", "archived"],
+      service_request_chamber: [
+        "ledger",
+        "portfolio",
+        "scenario",
+        "fdi",
+        "narrative",
+        "cabinet",
+        "persona",
+      ],
+      service_request_channel: ["typed", "pasted", "voice"],
+      service_request_status: [
+        "draft",
+        "new",
+        "triaged",
+        "in_progress",
+        "review",
+        "ready",
+        "delivered",
+        "accepted",
+        "revising",
+        "closed",
+      ],
     },
   },
 } as const

@@ -638,14 +638,44 @@ export const listStudiesWithReports = createServerFn({ method: "POST" })
 
 export const listStudies = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .inputValidator((d: unknown) => z.object({ countryCode: z.string(), projectId: z.string().optional() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
+    const { supabase } = context;
+    // Self-heal: any study that already produced a non-empty synthesis report
+    // but never had its status flipped (worker timeout, tab close, retry) is
+    // reconciled to `complete` so the UI counters stop drifting.
+    try {
+      const { data: stuck } = await supabase
+        .from("studies")
+        .select("id")
+        .eq("country_code", data.countryCode)
+        .neq("status", "complete")
+        .limit(500);
+      const stuckIds = (stuck ?? []).map((r) => r.id as string);
+      if (stuckIds.length > 0) {
+        const { data: reps } = await supabase
+          .from("study_reports")
+          .select("study_id,summary_md")
+          .in("study_id", stuckIds);
+        const doneIds = (reps ?? [])
+          .filter((r) => (r.summary_md ?? "").trim().length > 0)
+          .map((r) => r.study_id as string);
+        if (doneIds.length > 0) {
+          await supabase.from("studies").update({ status: "complete" }).in("id", doneIds);
+        }
+      }
+    } catch {
+      // reconciliation is best-effort; never block the list read
+    }
+
+    let q = supabase
       .from("studies")
-      .select("id,title,kind,status,objective,created_at,segment_id,visibility")
+      .select("id,title,kind,status,objective,created_at,segment_id,visibility,project_id")
       .eq("country_code", data.countryCode)
       .order("created_at", { ascending: false })
       .limit(200);
+    if (data.projectId) q = q.eq("project_id", data.projectId);
+    const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     return rows ?? [];
   });

@@ -337,8 +337,8 @@ function reconstructSegmentsFromStudies(studyReports: StudyExportInput[]): Progr
       id: segId,
       label: m.segment?.label ?? "Segment",
       prompt: m.segment?.prompt ?? null,
-      personas: new Map(),
-      used_by_studies: [],
+      personas: new Map<string, { id: string; name?: string | null; archetype?: string | null; summary?: string | null; ocean?: Record<string, number | undefined> | null }>(),
+      used_by_studies: [] as Array<{ id: string; title?: string; kind?: string }>,
     };
     (m.personas ?? []).forEach((p) => {
       if (!p.id) return;

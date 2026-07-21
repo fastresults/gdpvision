@@ -66,17 +66,36 @@ export function ProgramsIndex({ code }: { code: string }) {
   const createFn = useServerFn(createProject);
   const create = useMutation({
     mutationFn: (t: string) => createFn({ data: { countryCode: code, title: t } }),
-    onSuccess: async (row) => {
+    onSuccess: async (result) => {
+      // Server-fn result may be the row or `{ data: row }` depending on wrapping.
+      const row = (result && typeof result === "object" && "id" in (result as Record<string, unknown>)
+        ? (result as { id?: string })
+        : ((result as { data?: { id?: string } } | undefined)?.data ?? { id: undefined }));
+      let projectId = row?.id;
       await qc.invalidateQueries({ queryKey: ["persona-projects", code] });
+      if (!projectId) {
+        // Fall back to the freshest project for this country.
+        const list = qc.getQueryData<Project[]>(["persona-projects", code]) ?? [];
+        projectId = list[0]?.id;
+      }
       setTitle("");
       setShowForm(false);
-      navigate({
-        to: "/admin/countries/$code/personas/studies",
-        params: { code },
-        search: { project: row?.id },
-      });
+      if (!code || !projectId) {
+        console.error("[programs] navigate skipped — missing code or projectId", { code, projectId, result });
+        return;
+      }
+      try {
+        await navigate({
+          to: "/_authenticated/admin/countries/$code/personas/studies",
+          params: { code },
+          search: { project: projectId },
+        });
+      } catch (err) {
+        console.error("[programs] navigate failed", { code, projectId, err });
+      }
     },
   });
+
 
   const empty = projects.length === 0;
 

@@ -8,8 +8,17 @@ import { CitedMarkdown } from "@/components/citations/CitedMarkdown";
 import { CitedText } from "@/components/citations/CitedText";
 import { PrettyJson } from "@/components/data/PrettyJson";
 import { draftStudyQuestions, getStudy, runStudy } from "@/lib/personas/study.functions";
-import { downloadMarkdown, studyReportToMarkdown } from "@/lib/personas/report-export";
+import { downloadMarkdown, studyReportToMarkdown, type StudyExportInput, type StudyMethodology } from "@/lib/personas/report-export";
 import { StudioStepper } from "@/components/personas/StudioStepper";
+
+type StudyDetailData = StudyExportInput;
+
+function methodologyFromReport(report: StudyExportInput["report"]): StudyMethodology | null {
+  const ctx = report?.context;
+  if (!ctx || typeof ctx !== "object") return null;
+  const methodology = (ctx as { methodology?: unknown }).methodology;
+  return methodology && typeof methodology === "object" ? (methodology as StudyMethodology) : null;
+}
 
 function studyQuery(id: string, projectId?: string) {
   return queryOptions({
@@ -34,8 +43,10 @@ function StudyDetail() {
   const projectSearch = search.project ? { project: search.project } : undefined;
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { data } = useSuspenseQuery(studyQuery(id, search.project));
+  const { data: rawData } = useSuspenseQuery(studyQuery(id, search.project));
+  const data = rawData as StudyDetailData;
   const { study, questions, responses, transcript, report } = data;
+  const methodology = methodologyFromReport(report);
 
   const draft = useMutation({
     mutationFn: () => draftStudyQuestions({ data: { studyId: id, count: 8 } }),
@@ -235,6 +246,48 @@ function StudyDetail() {
               </li>
             ))}
           </ol>
+        </section>
+      )}
+
+      {methodology && (
+        <section className="border border-line-200 bg-paper-0 p-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Methodology dossier</p>
+          <div className="mt-3 grid gap-3 md:grid-cols-3">
+            <div className="border border-line-200 bg-paper-50/40 p-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">Cast</p>
+              <p className="mt-1 text-sm text-ink-950">{methodology.personas?.length ?? 0} personas</p>
+              <ul className="mt-2 space-y-1.5 text-[12px] text-ink-700">
+                {(methodology.personas ?? []).slice(0, 8).map((p, i) => (
+                  <li key={p.id ?? i}>
+                    <span className="text-ink-950">{p.name ?? "Persona"}</span>{p.archetype ? ` · ${p.archetype}` : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="border border-line-200 bg-paper-50/40 p-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">Group</p>
+              <p className="mt-1 font-serif text-sm text-ink-950">{methodology.segment?.label ?? "Segment"}</p>
+              {methodology.segment?.prompt && (
+                <p className="mt-1 text-[12px] leading-snug text-ink-700">{methodology.segment.prompt}</p>
+              )}
+            </div>
+            <div className="border border-line-200 bg-paper-50/40 p-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">Rehearse</p>
+              <p className="mt-1 font-serif text-sm text-ink-950">{methodology.instrument?.kind ?? study.kind}</p>
+              <p className="mt-1 text-[12px] text-ink-700">{methodology.instrument?.questions?.length ?? questions.length} questions · {responses.length} responses</p>
+            </div>
+          </div>
+          {methodology.brief && (
+            <div className="mt-3 border border-line-200 bg-paper-50/40 p-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">Original brief / scope</p>
+              {methodology.brief.title && <p className="mt-1 font-serif text-sm text-ink-950">{methodology.brief.title}</p>}
+              {Array.isArray(methodology.brief.objectives) && methodology.brief.objectives.length > 0 && (
+                <ul className="mt-2 list-disc space-y-1 pl-4 text-[12px] text-ink-700">
+                  {methodology.brief.objectives.map((o, i) => <li key={i}>{o}</li>)}
+                </ul>
+              )}
+            </div>
+          )}
         </section>
       )}
 

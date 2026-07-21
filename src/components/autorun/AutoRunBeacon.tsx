@@ -8,12 +8,14 @@
 
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { AlertTriangle, ChevronRight, Loader2, PauseCircle, RefreshCw, Sparkles, X } from "lucide-react";
+import { AlertTriangle, ChevronRight, Loader2, PauseCircle, RefreshCw, Sparkles, Square, X } from "lucide-react";
 
 import {
   useAutoRuns,
   clearAutoRun,
   resumeAutoRun,
+  abortAutoRun,
+  abortAllAutoRuns,
   type AutoRunEntry,
   type AutoRunHealth,
 } from "@/lib/autorun/beacon";

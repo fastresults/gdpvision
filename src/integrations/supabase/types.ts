@@ -4068,6 +4068,9 @@ export type Database = {
       }
       persona_projects: {
         Row: {
+          blueprint_committed_at: string | null
+          blueprint_generated_at: string | null
+          blueprint_proposal: Json | null
           brief_committed_at: string | null
           brief_raw: string | null
           brief_scope: Json | null
@@ -4085,6 +4088,9 @@ export type Database = {
           visibility: string
         }
         Insert: {
+          blueprint_committed_at?: string | null
+          blueprint_generated_at?: string | null
+          blueprint_proposal?: Json | null
           brief_committed_at?: string | null
           brief_raw?: string | null
           brief_scope?: Json | null
@@ -4102,6 +4108,9 @@ export type Database = {
           visibility?: string
         }
         Update: {
+          blueprint_committed_at?: string | null
+          blueprint_generated_at?: string | null
+          blueprint_proposal?: Json | null
           brief_committed_at?: string | null
           brief_raw?: string | null
           brief_scope?: Json | null

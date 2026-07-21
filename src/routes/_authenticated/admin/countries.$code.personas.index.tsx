@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate, useSearch } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
 import { FlaskConical, Layers, Sparkles, Trash2, User, Users } from "lucide-react";
@@ -66,7 +66,7 @@ function PersonasIndex() {
   if (activeProjectId && briefGate.needsIntake) {
     return (
       <div className="space-y-6">
-        <StudioStepper code={code} active="brief" activeProjectId={activeProjectId} briefCommitted={false} />
+        <StudioStepper code={code} active="brief" activeProjectId={activeProjectId} briefCommitted={false} blueprintCommitted={false} />
         <div>
           <Link
             to="/admin/countries/$code/personas"
@@ -76,14 +76,41 @@ function PersonasIndex() {
             ← All programs
           </Link>
         </div>
-        <ProgramBriefIntake code={code} projectId={activeProjectId} />
+        <ProgramBriefIntake
+          code={code}
+          projectId={activeProjectId}
+          onCommitted={() => {
+            // Brief captured → hand off to the AI Blueprint stage.
+            void qc.invalidateQueries({ queryKey: ["program-blueprint", activeProjectId] });
+            window.location.assign(
+              `/admin/countries/${code}/personas/blueprint?project=${activeProjectId}`,
+            );
+          }}
+        />
       </div>
+    );
+  }
+
+  // Brief committed but blueprint still pending — redirect to Blueprint.
+  if (activeProjectId && briefGate.needsBlueprint) {
+    return (
+      <Navigate
+        to="/admin/countries/$code/personas/blueprint"
+        params={{ code }}
+        search={{ project: activeProjectId, open: 1 }}
+      />
     );
   }
 
   return (
     <div className="space-y-6">
-      <StudioStepper code={code} active="cast" activeProjectId={activeProjectId} briefCommitted={briefGate.committed || !activeProjectId} />
+      <StudioStepper
+        code={code}
+        active="cast"
+        activeProjectId={activeProjectId}
+        briefCommitted={briefGate.committed || !activeProjectId}
+        blueprintCommitted={briefGate.blueprintCommitted || !activeProjectId}
+      />
 
       <ProgramsIndex code={code} />
 

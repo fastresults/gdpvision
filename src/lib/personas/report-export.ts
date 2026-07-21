@@ -243,7 +243,9 @@ export type ProgramExportInput = {
     };
     created_at?: string | null;
   };
+  studyReports?: StudyExportInput[];
 };
+
 
 export function programReportToMarkdown(input: ProgramExportInput): { filename: string; body: string } {
   const sections = input.report.sections ?? {};

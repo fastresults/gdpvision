@@ -35,7 +35,7 @@ import {
   AUTO_STUDIES_FLAG_KEY,
 } from "@/lib/personas/study-autorun";
 import { StudioStepper } from "@/components/personas/StudioStepper";
-import { clearAutoRun, publishAutoRun, registerAutoRunResume } from "@/lib/autorun/beacon";
+import { clearAutoRun, publishAutoRun, registerAutoRunAbort, registerAutoRunResume, unregisterAutoRunAbort } from "@/lib/autorun/beacon";
 
 function segmentsQuery(code: string) {
   return queryOptions({

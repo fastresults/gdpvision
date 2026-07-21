@@ -4147,6 +4147,7 @@ export type Database = {
           label: string
           owner_country_code: string | null
           owner_user_id: string | null
+          project_id: string | null
           prompt: string
           size: number
           updated_at: string
@@ -4161,6 +4162,7 @@ export type Database = {
           label: string
           owner_country_code?: string | null
           owner_user_id?: string | null
+          project_id?: string | null
           prompt: string
           size?: number
           updated_at?: string
@@ -4175,13 +4177,22 @@ export type Database = {
           label?: string
           owner_country_code?: string | null
           owner_user_id?: string | null
+          project_id?: string | null
           prompt?: string
           size?: number
           updated_at?: string
           uploaded_by?: string | null
           visibility?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "persona_segments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "persona_projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       persona_study_drafts: {
         Row: {

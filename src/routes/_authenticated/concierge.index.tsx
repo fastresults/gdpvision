@@ -173,7 +173,7 @@ function Lane({ lane, items }: { lane: ChamberId; items: Array<Record<string, un
       <ul className="mt-3 space-y-3">
         {items.map((r) => {
           const id = r.id as string;
-          const card = (r.request_card as { question?: string } | null) ?? {};
+          const question = (r.question as string | null) ?? "";
           const submittedAt = r.submitted_at as string | null;
           const status = (r.status as string) ?? "new";
           const delivered = status === "delivered" || status === "accepted";

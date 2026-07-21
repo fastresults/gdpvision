@@ -459,7 +459,7 @@ function StudiesPage() {
       <ProjectSwitcher
         code={code}
         activeProjectId={activeProjectId}
-        routeId="/_authenticated/admin/countries/$code/personas/studies"
+        routeId="/admin/countries/$code/personas/studies"
       />
 
       <header className="space-y-3">

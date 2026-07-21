@@ -27,9 +27,9 @@ export function ProjectSwitcher({
   code: string;
   activeProjectId?: string;
   routeId:
-    | "/_authenticated/admin/countries/$code/personas/studies"
-    | "/_authenticated/admin/countries/$code/personas/segments"
-    | "/_authenticated/admin/countries/$code/personas/scope";
+    | "/admin/countries/$code/personas/studies"
+    | "/admin/countries/$code/personas/segments"
+    | "/admin/countries/$code/personas/scope";
 }) {
   const qc = useQueryClient();
   const navigate = useNavigate();

@@ -446,6 +446,16 @@ function StudiesPage() {
     <div className="space-y-8">
       <StudioStepper code={code} active="rehearse" rehearseStatus={rehearseStatus} />
 
+      <div className="flex items-center justify-between gap-3">
+        <Link
+          to="/admin/countries/$code/personas"
+          params={{ code }}
+          className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
+        >
+          ← All programs
+        </Link>
+      </div>
+
       <ProjectSwitcher
         code={code}
         activeProjectId={activeProjectId}

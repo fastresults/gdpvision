@@ -141,9 +141,18 @@ function StudiesPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const activeProjectId = search.project;
-  const { data: studies } = useSuspenseQuery(studiesQuery(code, activeProjectId));
+  // Studies + digest are strictly project-scoped. Without an active project
+  // we render only the Programs Index (no working surface, no prior-project
+  // content) — so gate the reads on `activeProjectId`.
+  const { data: studies = [] } = useQuery({
+    ...studiesQuery(code, activeProjectId),
+    enabled: !!activeProjectId,
+  });
   const { data: segments } = useSuspenseQuery(segmentsQuery(code));
-  const { data: digest = [] } = useQuery(studiesDigestQuery(code, activeProjectId));
+  const { data: digest = [] } = useQuery({
+    ...studiesDigestQuery(code, activeProjectId),
+    enabled: !!activeProjectId,
+  });
 
   const [segmentId, setSegmentId] = useState<string>(search.segmentId ?? "");
   const [kind, setKind] = useState<StudyKind | "">("");

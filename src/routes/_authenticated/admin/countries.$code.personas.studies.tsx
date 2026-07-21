@@ -190,6 +190,9 @@ function StudiesPage() {
     ...studiesDigestQuery(code, activeProjectId),
     enabled: !!activeProjectId,
   });
+  const briefGate = useProgramBriefGate(activeProjectId);
+
+
 
   const [segmentId, setSegmentId] = useState<string>(search.segmentId ?? "");
   const [kind, setKind] = useState<StudyKind | "">("");

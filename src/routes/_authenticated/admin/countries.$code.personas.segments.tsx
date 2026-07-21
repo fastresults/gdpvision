@@ -142,6 +142,11 @@ function SegmentsPage() {
   // Master auto-run loop: propose → cast all → draft studies → advance to Stage 03
   const runAuto = useCallback(async () => {
     cancelRef.current = false;
+    const projectId = activeProjectId;
+    if (!projectId) {
+      setAuto({ kind: "error", message: "Select or create a research program before starting auto-run." });
+      return;
+    }
     if (AUTO_STUDIES_LOCK.has(code)) {
       setAuto({ kind: "error", message: "Auto-run is already active for this country." });
       return;
@@ -196,7 +201,7 @@ function SegmentsPage() {
           id: s.id,
           label: s.label,
         }));
-        freshStudies = await listStudies({ data: { countryCode: code, projectId: activeProjectId } });
+        freshStudies = await listStudies({ data: { countryCode: code, projectId } });
       } catch (e) {
         AUTO_STUDIES_LOCK.delete(code);
         setAuto({
@@ -221,7 +226,7 @@ function SegmentsPage() {
         let lastFailed = 0;
         const result = await draftStudiesForSegments({
           code,
-          projectId: activeProjectId,
+          projectId,
           targets,
           cancelRef,
           fullPipeline: true,
@@ -259,7 +264,7 @@ function SegmentsPage() {
       // lands on Stage 03 with fully synthesized work product.
       const sweep = await completeIncompleteStudies({
         code,
-        projectId: activeProjectId,
+        projectId,
         cancelRef,
         onProgress: ({ index, total, segmentLabel }) => {
           setAuto({
@@ -283,7 +288,7 @@ function SegmentsPage() {
       // Verify: nothing is still draft/running before we flag as consumed.
       let unfinished = 0;
       try {
-        const finalStudies = await listStudies({ data: { countryCode: code, projectId: activeProjectId } });
+        const finalStudies = await listStudies({ data: { countryCode: code, projectId } });
         unfinished = finalStudies.filter(
           (s) => s.status !== "complete" && s.status !== "synthesized",
         ).length;
@@ -327,7 +332,7 @@ function SegmentsPage() {
       navigate({
         to: "/admin/countries/$code/personas/studies",
         params: { code },
-        search: activeProjectId ? { project: activeProjectId, open: 1 } : {},
+        search: { project: projectId, open: 1 },
       });
     } catch (e) {
       AUTO_STUDIES_LOCK.delete(code);

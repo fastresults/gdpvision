@@ -113,13 +113,17 @@ export async function draftStudiesForSegments({
   fullPipeline = true,
 }: {
   code: string;
-  projectId?: string;
+  projectId: string;
   targets: StudyDraftTarget[];
   cancelRef: { current: boolean };
   onProgress?: (p: StudyDraftProgress) => void;
   onOneComplete?: () => void;
   fullPipeline?: boolean;
 }): Promise<StudyDraftResult> {
+  if (!projectId) {
+    throw new Error("Auto-run requires an explicit research project.");
+  }
+
   const failed: StudyDraftResult["failed"] = [];
   let drafted = 0;
   let completed = 0;
@@ -205,10 +209,14 @@ export async function completeIncompleteStudies({
   onProgress,
 }: {
   code: string;
-  projectId?: string;
+  projectId: string;
   cancelRef: { current: boolean };
   onProgress?: (p: StudyDraftProgress) => void;
 }): Promise<StudyDraftResult> {
+  if (!projectId) {
+    throw new Error("Auto-run requires an explicit research project.");
+  }
+
   const failed: StudyDraftResult["failed"] = [];
   let completed = 0;
 

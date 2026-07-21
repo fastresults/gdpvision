@@ -326,6 +326,11 @@ function StudiesPage() {
     async () => {
       if (runningRef.current) return;
       if (AUTO_STUDIES_LOCK.has(code)) return;
+      const projectId = activeProjectId;
+      if (!projectId) {
+        setAutoState({ phase: "complete", drafted: 0, completed: 0, failed: [{ label: "Research project", reason: "Select or create a program before starting auto-run." }] });
+        return;
+      }
       const targets = segments.filter((s) => !coveredSegmentIds.has(s.id));
       // Existing studies that never finished (drafts or stuck-running) also
       // need to be pushed to synthesis so the user only ever sees completed work.
@@ -353,7 +358,7 @@ function StudiesPage() {
       if (targets.length > 0) {
         const res = await draftStudiesForSegments({
           code,
-          projectId: activeProjectId,
+          projectId,
           targets: targets.map((s) => ({ id: s.id, label: s.label })),
           cancelRef,
           fullPipeline: true,
@@ -378,7 +383,7 @@ function StudiesPage() {
       if (!cancelRef.current) {
         const res2 = await completeIncompleteStudies({
           code,
-          projectId: activeProjectId,
+          projectId,
           cancelRef,
           onProgress: ({ index, total, segmentId, segmentLabel, phase }) => {
             setAutoState({
@@ -398,7 +403,7 @@ function StudiesPage() {
       // Phase C — consolidate portfolio memo once at least one study exists.
       if (!cancelRef.current) {
         try {
-          await programSynthFn({ data: { countryCode: code, projectId: activeProjectId } });
+          await programSynthFn({ data: { countryCode: code, projectId } });
           await qc.invalidateQueries({ queryKey: ["study-program-report", code] });
         } catch (e) {
           // Non-fatal — the per-study memos are still saved.

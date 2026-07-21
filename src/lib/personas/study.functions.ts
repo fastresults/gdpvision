@@ -546,25 +546,33 @@ export const synthesizeStudyProgram = createServerFn({ method: "POST" })
 
     // Second-brain memory: upsert one memory_object per program memo so the
     // consolidated finding shows up in the country's Brain constellation.
+    // Deduped by the memory_objects_dedup_idx on (scope_key, sector_code, kind, normalized-title).
     try {
       const project = projectId
         ? (await supabase.from("persona_projects").select("title,slug").eq("id", projectId).maybeSingle()).data
         : null;
-      const memKey = `research_program:${projectId ?? data.countryCode}`;
+      const memTitle = project?.title
+        ? `Research program memo — ${project.title}`
+        : "Research program memo";
       await supabase.from("memory_objects").upsert(
         {
-          country_code: data.countryCode,
+          scope_key: data.countryCode,
+          sector_code: "ALL",
           kind: "research_program",
-          key: memKey,
-          title: project?.title ? `Research memo — ${project.title}` : "Research program memo",
-          body: sanitizeCitationMarkersInText(cleaned, citations),
-          payload: { project_id: projectId, sections: parsed.sections ?? {}, studies: studiesSnapshot } as never,
-          citations: citations as never,
+          title: memTitle,
+          payload: {
+            project_id: projectId,
+            summary_md: sanitizeCitationMarkersInText(cleaned, citations),
+            sections: parsed.sections ?? {},
+            studies: studiesSnapshot,
+            citations,
+          } as never,
+          weight: 4,
         } as never,
-        { onConflict: "country_code,kind,key" },
+        { onConflict: "scope_key,sector_code,kind,title" },
       );
     } catch {
-      // memory_objects schema may differ per environment; best-effort only.
+      // memory upsert is best-effort; program memo already persisted above.
     }
 
     return { ok: true, projectId, studies: list.length, synthesized: repByStudy.size };

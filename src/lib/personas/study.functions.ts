@@ -592,15 +592,16 @@ export const getStudyProgramReport = createServerFn({ method: "POST" })
 // Resolve the country's "default" project id (created by the multi-project
 // migration). Returns null only if no project has been backfilled yet.
 async function resolveDefaultProjectId(
-  supabase: { from: (t: string) => { select: (c: string) => { eq: (k: string, v: string) => { eq: (k: string, v: string) => { maybeSingle: () => Promise<{ data: { id: string } | null }> } } } } },
+  supabase: { from: (t: string) => unknown },
   countryCode: string,
 ): Promise<string | null> {
-  const { data } = await supabase
-    .from("persona_projects")
+  const q = (supabase.from("persona_projects") as unknown as {
+    select: (c: string) => { eq: (k: string, v: string) => { eq: (k: string, v: string) => { maybeSingle: () => Promise<{ data: { id: string } | null }> } } };
+  })
     .select("id")
     .eq("country_code", countryCode)
-    .eq("slug", "default")
-    .maybeSingle();
+    .eq("slug", "default");
+  const { data } = await q.maybeSingle();
   return data?.id ?? null;
 }
 

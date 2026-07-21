@@ -105,6 +105,7 @@ async function completeStudyEndToEnd(opts: {
 
 export async function draftStudiesForSegments({
   code,
+  projectId,
   targets,
   cancelRef,
   onProgress,
@@ -112,6 +113,7 @@ export async function draftStudiesForSegments({
   fullPipeline = true,
 }: {
   code: string;
+  projectId?: string;
   targets: StudyDraftTarget[];
   cancelRef: { current: boolean };
   onProgress?: (p: StudyDraftProgress) => void;
@@ -157,6 +159,7 @@ export async function draftStudiesForSegments({
       const row = await createStudy({
         data: {
           countryCode: code,
+          projectId,
           segmentId: seg.id,
           kind: proposal.kind,
           title: proposal.title,
@@ -197,20 +200,22 @@ export async function draftStudiesForSegments({
 // every study is question-drafted, run, and synthesized without manual clicks.
 export async function completeIncompleteStudies({
   code,
+  projectId,
   cancelRef,
   onProgress,
 }: {
   code: string;
+  projectId?: string;
   cancelRef: { current: boolean };
   onProgress?: (p: StudyDraftProgress) => void;
 }): Promise<StudyDraftResult> {
   const failed: StudyDraftResult["failed"] = [];
   let completed = 0;
 
-  const all = await listStudies({ data: { countryCode: code } });
+  const all = await listStudies({ data: { countryCode: code, projectId } });
   // Anything not yet synthesized/complete needs finishing.
   const targets = all.filter(
-    (s) => s.status !== "complete" && s.status !== "synthesized",
+    (s) => !s.is_synthesized && s.status !== "complete" && s.status !== "synthesized",
   );
   const total = targets.length;
   for (let i = 0; i < targets.length; i++) {

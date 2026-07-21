@@ -157,7 +157,7 @@ function StudiesPage() {
       navigate({
         to: "/admin/countries/$code/personas/studies",
         params: { code },
-        search: (s) => ({ ...s, open: undefined }),
+        search: (s: Record<string, unknown>) => ({ ...s, open: undefined }),
         replace: true,
       });
       return;

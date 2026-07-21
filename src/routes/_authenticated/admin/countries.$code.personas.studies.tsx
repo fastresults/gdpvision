@@ -334,7 +334,8 @@ function StudiesPage() {
   const runningRef = useRef(false);
   const autoFlagKey = activeProjectId ? AUTO_STUDIES_FLAG_KEY(code, activeProjectId) : "";
 
-  const startAutoRun = useCallback(async () => {
+  const startAutoRun = useCallback(
+    async () => {
       if (runningRef.current) return;
       const projectId = activeProjectId;
       if (!projectId) {
@@ -343,7 +344,10 @@ function StudiesPage() {
           drafted: 0,
           completed: 0,
           failed: [
-            { label: "Research project", reason: "Select or create a program before starting auto-run." },
+            {
+              label: "Research project",
+              reason: "Select or create a program before starting auto-run.",
+            },
           ],
         });
         return;
@@ -354,7 +358,12 @@ function StudiesPage() {
       // Existing studies that never finished (drafts or stuck-running) also
       // need to be pushed to synthesis so the user only ever sees completed work.
       const needsFinish = studies.some(
-        (s) => !s.is_synthesized && !s.has_report && s.status !== "completed" && s.status !== "complete" && s.status !== "synthesized",
+        (s) =>
+          !s.is_synthesized &&
+          !s.has_report &&
+          s.status !== "completed" &&
+          s.status !== "complete" &&
+          s.status !== "synthesized",
       );
       if (targets.length === 0 && !needsFinish) {
         setAutoState({ phase: "complete", drafted: 0, completed: 0, failed: [] });
@@ -364,7 +373,7 @@ function StudiesPage() {
       AUTO_STUDIES_LOCK.add(lockKey);
       cancelRef.current = false;
       try {
-          window.localStorage.setItem(AUTO_STUDIES_FLAG_KEY(code, projectId), String(Date.now()));
+        window.localStorage.setItem(AUTO_STUDIES_FLAG_KEY(code, projectId), String(Date.now()));
       } catch {
         // localStorage unavailable; defensive guard
       }

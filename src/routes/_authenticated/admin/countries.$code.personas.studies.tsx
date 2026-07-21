@@ -409,6 +409,11 @@ function StudiesPage() {
         href,
       });
       registerAutoRunResume(id, () => startAutoRun());
+      registerAutoRunAbort(id, () => {
+        cancelRef.current = true;
+        // Release the module-level lock so nothing blocks a manual retry.
+        AUTO_STUDIES_LOCK.delete(code);
+      });
     } else if (autoState.phase === "complete") {
       if (autoState.completed > 0 || autoState.drafted > 0 || autoState.failed.length > 0) {
         publishAutoRun({

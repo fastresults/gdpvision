@@ -59,11 +59,33 @@ export function BlueprintReview({ code, projectId }: { code: string; projectId: 
     if (q.data?.proposal) setDraft(q.data.proposal);
   }, [q.data?.proposal]);
 
+  const [assist, setAssist] = useState<{ suggestions: string[]; missing: string[] } | null>(null);
+  const [augmented, setAugmented] = useState(false);
+
   const compose = useMutation({
     mutationFn: async () => composeBlueprint({ data: { projectId } }),
     onSuccess: (r) => {
+      if (r.status === "needs_more_brief") {
+        setAssist({ suggestions: r.suggestions, missing: r.missing });
+        setAugmented(false);
+        return;
+      }
+      setAssist(null);
+      setAugmented(!!r.augmented);
       setDraft(r.blueprint);
       qc.invalidateQueries({ queryKey: ["program-blueprint", projectId] });
+    },
+    onError: (e) => setError((e as Error).message),
+  });
+
+  const draftAdditions = useMutation({
+    mutationFn: async () => suggestBriefAdditions({ data: { projectId } }),
+    onSuccess: async (r) => {
+      const current = await getProjectBrief({ data: { projectId } }).catch(() => null);
+      const merged = `${current?.brief_raw ?? ""}\n\n${r.text}`.trim();
+      await saveProjectBrief({ data: { projectId, brief_raw: merged } });
+      setAssist(null);
+      compose.mutate();
     },
     onError: (e) => setError((e as Error).message),
   });

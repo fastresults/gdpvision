@@ -297,12 +297,35 @@ export function ProgramSynthesisCard({
               </div>
             )}
 
+            {methodology && (
+              <div className="border border-line-200 bg-paper-50/40 p-3">
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">Methodology — Cast · Group · Rehearse</p>
+                <div className="mt-2 grid gap-2 md:grid-cols-3">
+                  <div className="border border-line-200 bg-paper-0 p-2">
+                    <p className="font-serif text-[13px] text-ink-950">Cast</p>
+                    <p className="text-[11px] text-ink-700">{(methodology.segments ?? []).reduce((n, s) => n + (s.personas?.length ?? 0), 0)} personas across {(methodology.segments ?? []).length} segments</p>
+                  </div>
+                  <div className="border border-line-200 bg-paper-0 p-2">
+                    <p className="font-serif text-[13px] text-ink-950">Group</p>
+                    <p className="text-[11px] text-ink-700">Segments define the stakeholder lenses used to test the brief.</p>
+                  </div>
+                  <div className="border border-line-200 bg-paper-0 p-2">
+                    <p className="font-serif text-[13px] text-ink-950">Rehearse</p>
+                    <p className="text-[11px] text-ink-700">{methodology.studies?.length ?? 0} studies · {(methodology.studies ?? []).reduce((n, s) => n + (s.questions?.length ?? 0), 0)} questions</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {report.summary_md && (
-              <CitedMarkdown
-                className="prose prose-sm max-w-none text-ink-800 [&_h2]:mt-4 [&_h2]:font-serif [&_h2]:text-sm [&_h2]:uppercase [&_h2]:tracking-[0.12em] [&_h2]:text-ink-500 [&_p]:my-2"
-                source={report.summary_md}
-                citations={(report.citations ?? []) as never}
-              />
+              <section className="space-y-2">
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">Main conclusions</p>
+                <CitedMarkdown
+                  className="prose prose-sm max-w-none text-ink-800 [&_h2]:mt-4 [&_h2]:font-serif [&_h2]:text-sm [&_h2]:uppercase [&_h2]:tracking-[0.12em] [&_h2]:text-ink-500 [&_p]:my-2"
+                  source={report.summary_md}
+                  citations={(report.citations ?? []) as never}
+                />
+              </section>
             )}
 
             {methodology?.segments && methodology.segments.length > 0 && (

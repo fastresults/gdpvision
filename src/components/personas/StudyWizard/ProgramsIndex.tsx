@@ -90,7 +90,7 @@ export function ProgramsIndex({ code }: { code: string }) {
         await navigate({
           to: "/admin/countries/$code/personas/studies",
           params: { code },
-          search: { project: projectId },
+          search: { project: projectId, open: 1, auto: 1 },
         });
       } catch (err) {
         console.error("[programs] navigate failed", { code, projectId, err });

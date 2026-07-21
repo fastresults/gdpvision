@@ -40,6 +40,8 @@ import { StudioStepper } from "@/components/personas/StudioStepper";
 import { StudioStatusRail } from "@/components/personas/StudyWizard/StudioStatusRail";
 import { ProjectSwitcher } from "@/components/personas/StudyWizard/ProjectSwitcher";
 import { ProgramsIndex } from "@/components/personas/StudyWizard/ProgramsIndex";
+import { ProgramBriefIntake } from "@/components/personas/StudyWizard/ProgramBriefIntake";
+import { useProgramBriefGate } from "@/hooks/useProgramBriefGate";
 import {
   clearAutoRun,
   publishAutoRun,

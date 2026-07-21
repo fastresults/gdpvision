@@ -132,7 +132,7 @@ function StudyDetail() {
       </Link>
       <header className="border-b border-line-200 pb-4">
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          {study.kind.replace("_", " ")} · {study.status}
+          {(study.kind ?? "study").replace("_", " ")} · {study.status ?? "draft"}
         </p>
         <h2 className="mt-1 font-serif text-2xl text-ink-950">{study.title}</h2>
         {study.objective && <p className="mt-1 max-w-3xl text-sm text-ink-700">{study.objective}</p>}
@@ -273,7 +273,7 @@ function StudyDetail() {
             </div>
             <div className="border border-line-200 bg-paper-50/40 p-3">
               <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">Rehearse</p>
-              <p className="mt-1 font-serif text-sm text-ink-950">{methodology.instrument?.kind ?? study.kind}</p>
+              <p className="mt-1 font-serif text-sm text-ink-950">{methodology.instrument?.kind ?? study.kind ?? "study"}</p>
               <p className="mt-1 text-[12px] text-ink-700">{methodology.instrument?.questions?.length ?? questions.length} questions · {responses.length} responses</p>
             </div>
           </div>
@@ -295,7 +295,7 @@ function StudyDetail() {
         <section className="border border-line-200 bg-paper-0 p-4">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Synthesis</p>
           <div className="prose prose-sm mt-2 max-w-none">
-            <CitedMarkdown source={report.summary_md} citations={report.citations as never} />
+            <CitedMarkdown source={report.summary_md ?? ""} citations={report.citations as never} />
           </div>
         </section>
       )}
@@ -308,7 +308,7 @@ function StudyDetail() {
               <div key={t.id}>
                 <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">{t.speaker}</p>
                 <p className="text-ink-950">
-                  <CitedText text={t.utterance} citations={t.citations as never} />
+                  <CitedText text={t.utterance ?? ""} citations={t.citations as never} />
                 </p>
               </div>
             ))}

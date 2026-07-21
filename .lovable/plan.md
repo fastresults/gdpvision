@@ -1,95 +1,68 @@
-## Goal
-Make every Chamber 07 research program a true clean slate. Creating or selecting a program must only load that program. It must not inherit CBI Brand Checkup’s 11 segments, studies, drafts, reports, or auto-run state, and it must never begin processing until the admin explicitly presses Start Auto-run.
+## Mission restatement
 
-## Confirmed current-state findings
-- `persona_projects` exists and studies/reports are project-scoped.
-- `persona_segments` is not project-scoped: it has no `project_id` column.
-- The GRD database currently has 2 programs:
-  - `CBI Brand Checkup` / default: 11 studies, 11 completed.
-  - `test`: 1 study.
-- GRD has exactly 11 `persona_segments`, all stored only at the country level. Because `listSegments` filters by `country_code` only, every program sees the same 11 segments.
-- `listProjects` also reports `segments_total` as the total country segment count, so the Programs Index displays 11 segments for every project even when the project is new.
-- Stage 02 still composes and generates segments without a `projectId`, then refreshes all country segments and drafts studies against all 11 country segments.
+You are saying: Chamber 07 must behave like a program-scoped research workspace, not a country-wide dumping ground.
 
-## Root cause
-The previous fixes only scoped the studies/report layer. The Group layer was left country-scoped. A new project can be clean at the studies level but still inherits every segment from the previous/default project because segments and segment membership were never connected to `persona_projects`.
+When an admin enters the Persona Lab / Studies screen for a country, they should not immediately see counts or content from a prior research program. They should see an index of programs and choose one, or create a new program. A newly created program must show zero inherited cast, segment, or study state until the admin explicitly starts work inside that program.
 
-## Implementation plan
+## What I verified
 
-### 1. Add project scoping to segments
-Create a database migration that:
-- Adds `project_id` to `persona_segments`, referencing `persona_projects`.
-- Adds an index for fast project-scoped segment reads.
-- Backfills existing GRD/default-era segments to the correct default project for their country.
-- Keeps existing RLS intact, since access is still country-governed.
+- The top stage bar is still showing `91 personas` because `StudioStepper` calls `listPersonas({ countryCode })` without a `projectId`.
+- `listPersonas` currently queries every persona for the country, not personas attached to the active program.
+- The database confirms Grenada has `91` total personas, and all `91` are reachable through the old `CBI Brand Checkup` program's segments.
+- The newer `test` program has `0` personas reachable through its own segments, `0` segments, but `1` study.
+- That means the screenshot is not just a visual bug: the UI still has a country-scoped Stage 01 count and is presenting prior-program cast data as if it belongs to the current/blank workspace.
 
-Technical note: this is an `ALTER TABLE`, not a new table, so no new table grants are required.
+## Exact problem
 
-### 2. Make segment server functions project-aware
-Update `src/lib/personas/generate.functions.ts`:
-- `generateSegment` must require `projectId` and insert it into `persona_segments.project_id`.
-- `listSegments` must accept `projectId` and return only that program’s segments.
-- `deleteSegment` stays segment-id based, but the UI will only show scoped segment IDs.
-- Do not fall back to “all country segments” in project workflows.
-
-### 3. Make the segment composer project-aware
-Update `src/lib/personas/compose-segments.functions.ts`:
-- Require `projectId`.
-- Existing-segment duplicate checks must only look at the active program’s segments.
-- The active brief/draft lookup must filter by `project_id` so a new program does not inherit the prior program’s brief.
-
-### 4. Repair Stage 02 end-to-end
-Update `src/routes/_authenticated/admin/countries.$code.personas.segments.tsx`:
-- `segmentsQuery(code, projectId)` must include `projectId` in the query key and server call.
-- If no project is selected, show the Research Programs index / clean selection state rather than a country-wide segment list.
-- Pass `projectId` into `composeSegments` and `generateSegment`.
-- After casting, refresh only the active project’s segments.
-- Draft studies only for the active project’s segments.
-- Remove any remaining localStorage keys that are country-only; make them project-specific or eliminate them so old runs cannot mark a new project as consumed.
-- Keep URL `auto` stripping: a URL flag must never start Stage 02.
-
-### 5. Repair Stage 03 assumptions about segments
-Update `src/routes/_authenticated/admin/countries.$code.personas.studies.tsx`:
-- `segmentsQuery(code, projectId)` must return only active-project segments.
-- Empty new projects should show zero segments and zero studies until the admin starts or creates work.
-- Manual study creation should only offer segments from the active project.
-- The program synthesis card should not render old project summaries when the new project has no report.
-
-### 6. Fix project index counts
-Update `src/lib/personas/projects.functions.ts`:
-- Count segments per project using `persona_segments.project_id`, not country-wide count.
-- Existing default program should show 11 segments.
-- A new program should show 0 segments until it creates its own.
-
-### 7. Stop every accidental auto-run route
-Complete a full search and patch for all automatic execution triggers:
-- No `?auto=1` route may start work.
-- Creating a project must navigate to a clean workspace only.
-- Selecting/continuing a project must navigate to a read-only workspace only.
-- AI composer approval may create a draft only; it must not run the study unless the admin explicitly clicks a run/start control.
-- Global beacon resume must only resume the active project and must not use country-only state.
-
-### 8. Verify against the exact failure case
-After implementation:
-- Create a new GRD program by pressing Enter in the name field.
-- Confirm the workspace opens with 0 segments, 0 studies, no prior report, and no auto-run beacon.
-- Confirm Programs Index shows the prior `CBI Brand Checkup` with 11 segments and the new program with 0.
-- Select CBI Brand Checkup, then select the new program again; confirm no bleed-through.
-- Confirm pressing Start Auto-run is the only action that starts Stage 02/03 processing.
-
-## Expected result
-A research program becomes a sealed workspace:
+The system is partially program-scoped and partially country-scoped:
 
 ```text
-Program A
-  segments A
-  studies A
-  report A
-
-Program B
-  segments B
-  studies B
-  report B
+Program index        -> program-scoped
+Segments             -> mostly program-scoped
+Studies              -> mostly program-scoped
+Stage 01 personas    -> still country-scoped
+Stage status bar     -> mixes current program state with all-country persona state
 ```
 
-No program can inherit another program’s segments, studies, briefs, synthesis reports, or auto-run state.
+So even after the prior fix, the app can still show legacy data because personas were never fully assigned to a `project_id`; they are linked indirectly through `persona_segment_members`, while the Stage 01 fetch ignores that relationship.
+
+## Plan
+
+1. **Make persona reads program-aware**
+   - Update the persona listing server function to accept an optional `projectId`.
+   - When `projectId` is present, return only personas connected to segments in that program through `persona_segment_members`.
+   - When no `projectId` is present, only use country-wide personas on truly country-wide surfaces, not inside a selected/blank program workspace.
+
+2. **Fix the StudioStepper counts**
+   - Pass `activeProjectId` into the persona query.
+   - If no program is explicitly open, show `0 personas`, `0 segments`, and `0 studies`, or render the stage bar in a neutral “select a program” state.
+   - Do not mark Cast/Group/Rehearse complete based on old country-level data.
+
+3. **Fix the Segments screen count leak**
+   - Update the Segments route where it currently calls `listPersonas({ countryCode })`.
+   - That count should come from the active program only.
+   - If there is no active program, it should stay at zero and show the Programs Index only.
+
+4. **Clean up invalid/incomplete program state**
+   - The `test` program currently has one study attached to a segment from the old program, but no program-owned segments/personas.
+   - Add a guard so creating or running a study can only use a segment whose `project_id` matches the active program.
+   - Add a one-time data correction to either move that stray study to the correct original program or remove it from the new `test` program, depending on safest ownership.
+
+5. **Prevent future cross-program contamination**
+   - Add server-side validation in `createStudy`, auto-run study drafting, and any segment/study composition helper:
+     - if `projectId` is provided, the selected `segmentId` must belong to that same project.
+     - fail closed with a clear message instead of creating mixed-program records.
+
+6. **Verify the actual admin flow**
+   - Open `/admin/countries/GRD/personas/studies` without a project and confirm it shows only the Programs Index and no old counts.
+   - Create a new program and confirm the stage bar starts blank.
+   - Open `CBI Brand Checkup` and confirm its 91 personas / 11 segments / 11 studies appear only there.
+   - Confirm selecting or creating a study cannot attach an old segment to a new program.
+
+## Success criteria
+
+- A first-time entry into Chamber 07 never shows old program data.
+- A new program is visibly empty until work is started inside that program.
+- Stage counts are scoped to the selected program.
+- Old programs still retain their own historical cast/segments/studies.
+- No new study can be created against a segment from another program.

@@ -97,6 +97,8 @@ export const composeSegments = createServerFn({ method: "POST" })
       .maybeSingle();
     if (projectErr) throw new Error(projectErr.message);
     if (!project) return { ok: false, reason: "Research program not found for this country." };
+    const { assertProgramBriefCommitted } = await import("./project-brief.functions");
+    await assertProgramBriefCommitted(supabase, projectId);
 
     // Existing segments — avoid duplicates inside this program only.
     const { data: existingSegs } = await supabase

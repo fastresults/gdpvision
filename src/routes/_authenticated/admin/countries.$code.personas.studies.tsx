@@ -40,6 +40,7 @@ import {
 import { StudioStepper } from "@/components/personas/StudioStepper";
 import { StudioStatusRail } from "@/components/personas/StudyWizard/StudioStatusRail";
 import { ProjectSwitcher } from "@/components/personas/StudyWizard/ProjectSwitcher";
+import { ProgramsIndex } from "@/components/personas/StudyWizard/ProgramsIndex";
 import { clearAutoRun, publishAutoRun, registerAutoRunAbort, registerAutoRunResume, unregisterAutoRunAbort } from "@/lib/autorun/beacon";
 import { useServerFn } from "@tanstack/react-start";
 

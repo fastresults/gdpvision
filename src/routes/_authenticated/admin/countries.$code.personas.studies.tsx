@@ -448,9 +448,7 @@ function StudiesPage() {
     }
     runningRef.current = false;
     AUTO_STUDIES_LOCK.delete(lockKey);
-  },
-    [segments, studies, coveredSegmentIds, code, activeProjectId, qc, programSynthFn],
-  );
+  }, [segments, studies, coveredSegmentIds, code, activeProjectId, qc, programSynthFn]);
 
   const cancelAutoRun = () => {
     cancelRef.current = true;
@@ -649,130 +647,134 @@ function StudiesPage() {
               </summary>
               <div className="grid gap-6 border-t border-line-200 p-4 md:grid-cols-[1fr_280px]">
                 <div className="space-y-6">
-                <StepBlock
-                  n={1}
-                  label="Pick a segment"
-                  active={currentStep === 1}
-                  done={stepDone[1]}
-                >
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {segments.map((s) => {
-                      const selected = s.id === segmentId;
-                      return (
-                        <button
-                          key={s.id}
-                          type="button"
-                          onClick={() => setSegmentId(s.id)}
-                          className={`border p-3 text-left transition ${
-                            selected
-                              ? "border-ink-950 bg-paper-100"
-                              : "border-line-200 hover:border-ink-950"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Layers size={13} className="text-ink-500" />
-                            <p className="truncate font-serif text-sm text-ink-950">{s.label}</p>
-                          </div>
-                          <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
-                            {s.size} personas · {s.visibility}
-                          </p>
-                          <p className="mt-1 line-clamp-2 text-[11px] text-ink-700">{s.prompt}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </StepBlock>
+                  <StepBlock
+                    n={1}
+                    label="Pick a segment"
+                    active={currentStep === 1}
+                    done={stepDone[1]}
+                  >
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {segments.map((s) => {
+                        const selected = s.id === segmentId;
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => setSegmentId(s.id)}
+                            className={`border p-3 text-left transition ${
+                              selected
+                                ? "border-ink-950 bg-paper-100"
+                                : "border-line-200 hover:border-ink-950"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Layers size={13} className="text-ink-500" />
+                              <p className="truncate font-serif text-sm text-ink-950">{s.label}</p>
+                            </div>
+                            <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+                              {s.size} personas · {s.visibility}
+                            </p>
+                            <p className="mt-1 line-clamp-2 text-[11px] text-ink-700">
+                              {s.prompt}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </StepBlock>
 
-                <StepBlock
-                  n={2}
-                  label="Choose the method"
-                  active={currentStep === 2}
-                  done={stepDone[2]}
-                  locked={!stepDone[1]}
-                  sectionRef={step2Ref}
-                >
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                    {METHODS.map((m) => {
-                      const selected = m.id === kind;
-                      const Icon = m.icon;
-                      return (
-                        <button
-                          key={m.id}
-                          type="button"
-                          onClick={() => setKind(m.id)}
-                          disabled={!stepDone[1]}
-                          className={`flex flex-col border p-3 text-left transition disabled:opacity-40 ${
-                            selected
-                              ? "border-ink-950 bg-paper-100"
-                              : "border-line-200 hover:border-ink-950"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Icon size={14} className="text-ink-950" />
-                            <p className="font-serif text-sm text-ink-950">{m.label}</p>
-                          </div>
-                          <p className="mt-2 text-[11px] leading-snug text-ink-700">{m.produces}</p>
-                          <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">
-                            {m.duration}
-                          </p>
-                          <p className="mt-1 text-[10px] leading-snug text-ink-500">
-                            Best for: {m.bestFor}
-                          </p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </StepBlock>
+                  <StepBlock
+                    n={2}
+                    label="Choose the method"
+                    active={currentStep === 2}
+                    done={stepDone[2]}
+                    locked={!stepDone[1]}
+                    sectionRef={step2Ref}
+                  >
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      {METHODS.map((m) => {
+                        const selected = m.id === kind;
+                        const Icon = m.icon;
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setKind(m.id)}
+                            disabled={!stepDone[1]}
+                            className={`flex flex-col border p-3 text-left transition disabled:opacity-40 ${
+                              selected
+                                ? "border-ink-950 bg-paper-100"
+                                : "border-line-200 hover:border-ink-950"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Icon size={14} className="text-ink-950" />
+                              <p className="font-serif text-sm text-ink-950">{m.label}</p>
+                            </div>
+                            <p className="mt-2 text-[11px] leading-snug text-ink-700">
+                              {m.produces}
+                            </p>
+                            <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">
+                              {m.duration}
+                            </p>
+                            <p className="mt-1 text-[10px] leading-snug text-ink-500">
+                              Best for: {m.bestFor}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </StepBlock>
 
-                <StepBlock
-                  n={3}
-                  label="Frame the question"
-                  active={currentStep === 3}
-                  done={stepDone[3]}
-                  locked={!stepDone[2]}
-                  sectionRef={step3Ref}
-                >
-                  <label className="block">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                      Working title
-                    </span>
-                    <input
-                      ref={titleInputRef}
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      disabled={!stepDone[2]}
-                      placeholder="e.g. CBI wind-down perception test"
-                      className="mt-1 w-full border border-line-200 bg-paper-0 px-2 py-2 text-sm focus:border-ink-950 focus:outline-none disabled:opacity-40"
-                    />
-                  </label>
-
-                  <label className="mt-3 block">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                      Objective <span className="text-ink-400">(optional but recommended)</span>
-                    </span>
-                    <textarea
-                      value={objective}
-                      onChange={(e) => setObjective(e.target.value)}
-                      disabled={!stepDone[2]}
-                      rows={2}
-                      placeholder="What decision does this study inform?"
-                      className="mt-1 w-full border border-line-200 bg-paper-0 px-2 py-2 text-sm focus:border-ink-950 focus:outline-none disabled:opacity-40"
-                    />
-                  </label>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {OBJECTIVE_EXAMPLES.map((ex) => (
-                      <button
-                        key={ex}
-                        type="button"
-                        onClick={() => setObjective((v) => (v ? `${v}. ${ex}` : ex))}
+                  <StepBlock
+                    n={3}
+                    label="Frame the question"
+                    active={currentStep === 3}
+                    done={stepDone[3]}
+                    locked={!stepDone[2]}
+                    sectionRef={step3Ref}
+                  >
+                    <label className="block">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                        Working title
+                      </span>
+                      <input
+                        ref={titleInputRef}
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
                         disabled={!stepDone[2]}
-                        className="border border-line-200 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500 hover:border-ink-950 hover:text-ink-950 disabled:opacity-40"
-                      >
-                        + {ex}
-                      </button>
-                    ))}
-                  </div>
-                </StepBlock>
+                        placeholder="e.g. CBI wind-down perception test"
+                        className="mt-1 w-full border border-line-200 bg-paper-0 px-2 py-2 text-sm focus:border-ink-950 focus:outline-none disabled:opacity-40"
+                      />
+                    </label>
+
+                    <label className="mt-3 block">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                        Objective <span className="text-ink-400">(optional but recommended)</span>
+                      </span>
+                      <textarea
+                        value={objective}
+                        onChange={(e) => setObjective(e.target.value)}
+                        disabled={!stepDone[2]}
+                        rows={2}
+                        placeholder="What decision does this study inform?"
+                        className="mt-1 w-full border border-line-200 bg-paper-0 px-2 py-2 text-sm focus:border-ink-950 focus:outline-none disabled:opacity-40"
+                      />
+                    </label>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {OBJECTIVE_EXAMPLES.map((ex) => (
+                        <button
+                          key={ex}
+                          type="button"
+                          onClick={() => setObjective((v) => (v ? `${v}. ${ex}` : ex))}
+                          disabled={!stepDone[2]}
+                          className="border border-line-200 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500 hover:border-ink-950 hover:text-ink-950 disabled:opacity-40"
+                        >
+                          + {ex}
+                        </button>
+                      ))}
+                    </div>
+                  </StepBlock>
                 </div>
 
                 {/* Manual preview — only visible when this disclosure is open */}

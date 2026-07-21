@@ -247,11 +247,11 @@ export function ProgramSynthesisCard({
                 {methodology.brief.title && <p className="mt-1 font-serif text-sm text-ink-950">{methodology.brief.title}</p>}
                 {Array.isArray(methodology.brief.objectives) && methodology.brief.objectives.length > 0 && (
                   <ul className="mt-1 list-disc pl-4 text-[12px] text-ink-800">
-                    {methodology.brief.objectives.map((o, i) => <li key={i}>{o}</li>)}
+                    {methodology.brief.objectives.map((o, i) => <li key={i}>{String(o)}</li>)}
                   </ul>
                 )}
                 {methodology.brief.raw_excerpt && (
-                  <p className="mt-1 text-[11px] italic leading-snug text-ink-600">{methodology.brief.raw_excerpt}</p>
+                  <p className="mt-1 text-[11px] italic leading-snug text-ink-600">{String(methodology.brief.raw_excerpt)}</p>
                 )}
               </div>
             )}

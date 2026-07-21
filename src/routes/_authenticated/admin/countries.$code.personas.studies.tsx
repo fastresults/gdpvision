@@ -149,6 +149,15 @@ function StudiesPage() {
   const [title, setTitle] = useState("");
   const [objective, setObjective] = useState("");
 
+  // Reset the wizard's local composition state whenever the active project
+  // changes so the prior project's segment/method/title never carries over.
+  useEffect(() => {
+    setSegmentId(search.segmentId ?? "");
+    setKind("");
+    setTitle("");
+    setObjective("");
+  }, [activeProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const stepDone = useMemo(
     () => ({ 1: !!segmentId, 2: !!kind, 3: title.trim().length >= 3 }),
     [segmentId, kind, title],
@@ -179,8 +188,8 @@ function StudiesPage() {
 
   // AI Composer — picks segment + method + framing automatically.
   const composerQ = useQuery({
-    queryKey: ["study-composer", code, segments.length],
-    queryFn: () => composeStudy({ data: { countryCode: code } }),
+    queryKey: ["study-composer", code, activeProjectId ?? "default", segments.length],
+    queryFn: () => composeStudy({ data: { countryCode: code, projectId: activeProjectId } }),
     enabled: segments.length > 0,
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,

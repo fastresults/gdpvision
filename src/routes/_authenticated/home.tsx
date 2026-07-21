@@ -173,6 +173,31 @@ function CountryAdminWelcome({ code, name }: { code: string; name: string }) {
       </section>
 
       <section>
+        <Link
+          to="/concierge"
+          className="group relative block overflow-hidden border border-ink-950 bg-ink-950 p-8 text-paper-50 transition hover:opacity-95"
+        >
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-paper-50/60">
+                The Concierge · By invitation
+              </p>
+              <h2 className="mt-3 font-serif text-3xl leading-tight">
+                Would you rather ask our team to handle it?
+              </h2>
+              <p className="mt-2 max-w-xl text-sm text-paper-50/80">
+                Send a written request in your own words. Our office will do the work and bring it back to you,
+                organised by lane.
+              </p>
+            </div>
+            <span className="border border-paper-50/60 px-5 py-2.5 text-xs uppercase tracking-[0.25em] group-hover:bg-paper-50 group-hover:text-ink-950">
+              Open the Concierge →
+            </span>
+          </div>
+        </Link>
+      </section>
+
+      <section>
         <div className="mb-5 flex items-baseline justify-between">
           <h2 className="font-serif text-2xl">Enter a chamber</h2>
           <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">

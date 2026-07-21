@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import {
   queryOptions,
   useSuspenseQuery,
@@ -78,6 +78,8 @@ function SegmentsPage() {
   const { code } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const search = useSearch({ strict: false }) as { auto?: unknown; project?: string };
+  const autoIntent = search.auto === 1 || search.auto === "1" || search.auto === true;
   const { data: segments } = useSuspenseQuery(segmentsQuery(code));
   const personasQ = useQuery({
     queryKey: ["personas", code],
@@ -326,22 +328,26 @@ function SegmentsPage() {
     }
   }, [castOne, cancelAuto, code, compose, navigate, qc]);
 
-  // Auto-fire on mount when eligible
+  // Intent-driven auto-fire. Just landing on this page (project switcher,
+  // refresh, saved link) never starts work. Auto-run only fires when the URL
+  // carries an explicit `?auto=1` intent set by the "Start auto-run" CTA or
+  // by "New program" creation. The intent is stripped from the URL before
+  // starting so refreshing mid-run cannot queue a second run.
   useEffect(() => {
     if (autoStartedRef.current) return;
+    if (!autoIntent) return;
     if (personasQ.isLoading) return;
     if (personaCount === 0) return;
     if (segments.length > 0) return;
-    let consumed = false;
-    try {
-      consumed = window.localStorage.getItem(AUTORUN_CONSUMED_KEY(code)) === "1";
-    } catch {
-      /* ignore */
-    }
-    if (consumed) return;
     autoStartedRef.current = true;
+    navigate({
+      to: "/admin/countries/$code/personas/segments",
+      params: { code },
+      search: (s: Record<string, unknown>) => ({ ...s, auto: undefined }),
+      replace: true,
+    });
     void runAuto();
-  }, [code, personaCount, personasQ.isLoading, segments.length, runAuto]);
+  }, [autoIntent, code, personaCount, personasQ.isLoading, segments.length, runAuto, navigate]);
 
   async function acceptProposal(p: SegmentProposal) {
     cancelAuto(); // user takes over

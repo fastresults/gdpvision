@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { ArrowLeft, Play, Sparkles } from "lucide-react";
+import { ArrowLeft, Download, Play, Sparkles } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { z } from "zod";
 
@@ -8,6 +8,7 @@ import { CitedMarkdown } from "@/components/citations/CitedMarkdown";
 import { CitedText } from "@/components/citations/CitedText";
 import { PrettyJson } from "@/components/data/PrettyJson";
 import { draftStudyQuestions, getStudy, runStudy } from "@/lib/personas/study.functions";
+import { downloadMarkdown, studyReportToMarkdown } from "@/lib/personas/report-export";
 import { StudioStepper } from "@/components/personas/StudioStepper";
 
 function studyQuery(id: string, projectId?: string) {

@@ -9,7 +9,7 @@ import { BookOpenCheck, Download, Loader2, RefreshCw, Sparkles, Users, Layers, C
 import { useState } from "react";
 
 import { CitedMarkdown } from "@/components/citations/CitedMarkdown";
-import { getStudy, getStudyProgramReport, synthesizeStudyProgram } from "@/lib/personas/study.functions";
+import { getStudy, getStudyProgramReport, listStudies, synthesizeStudyProgram } from "@/lib/personas/study.functions";
 import { downloadMarkdown, programReportToMarkdown, type StudyExportInput } from "@/lib/personas/report-export";
 
 

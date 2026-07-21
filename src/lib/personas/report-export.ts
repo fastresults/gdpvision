@@ -243,7 +243,9 @@ export type ProgramExportInput = {
     };
     created_at?: string | null;
   };
+  studyReports?: StudyExportInput[];
 };
+
 
 export function programReportToMarkdown(input: ProgramExportInput): { filename: string; body: string } {
   const sections = input.report.sections ?? {};
@@ -359,12 +361,24 @@ export function programReportToMarkdown(input: ProgramExportInput): { filename: 
     unans.forEach((u) => parts.push(`- ${esc(u)}`));
   }
 
+  const studyReports = input.studyReports ?? [];
+  if (studyReports.length > 0) {
+    parts.push(`\n\n---\n\n# Per-study reports (${studyReports.length})\n`);
+    studyReports.forEach((sr, i) => {
+      const { body } = studyReportToMarkdown(sr);
+      // Strip the leading YAML frontmatter from each embedded study.
+      const stripped = body.replace(/^---[\s\S]*?---\n+/, "");
+      parts.push(`\n\n---\n\n## Study ${i + 1} of ${studyReports.length}\n\n${stripped}`);
+    });
+  }
+
   parts.push(sourcesBlock(toCitations(input.report.citations)));
 
   const date = new Date().toISOString().slice(0, 10);
   const filename = `${input.countryCode.toLowerCase()}-program-synthesis-${date}.md`;
   return { filename, body: parts.join("\n") };
 }
+
 
 // ── Browser download helper ──────────────────────────────────────────────
 export function downloadMarkdown(filename: string, body: string): void {

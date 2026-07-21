@@ -223,7 +223,7 @@ function StudiesPage() {
       navigate({
         to: "/admin/countries/$code/personas/studies/$id",
         params: { code, id: row.id },
-        search: auto ? { auto: 1 } : undefined,
+        search: { project: activeProjectId, auto: auto ? 1 : undefined },
       });
     },
   });

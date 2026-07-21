@@ -14,7 +14,7 @@ function studyQuery(id: string) {
   return queryOptions({ queryKey: ["study", id], queryFn: () => getStudy({ data: { id } }) });
 }
 
-const searchSchema = z.object({ auto: z.coerce.number().optional() });
+const searchSchema = z.object({ auto: z.coerce.number().optional(), project: z.string().optional() });
 
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/personas/studies/$id")({
   validateSearch: (s) => searchSchema.parse(s),
@@ -26,6 +26,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/pers
 function StudyDetail() {
   const { code, id } = Route.useParams();
   const search = Route.useSearch();
+  const projectSearch = search.project ? { project: search.project } : undefined;
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data } = useSuspenseQuery(studyQuery(id));
@@ -52,7 +53,12 @@ function StudyDetail() {
           await run.mutateAsync();
         }
       } catch { /* surfaced by mutation error UI */ }
-      navigate({ to: "/admin/countries/$code/personas/studies/$id", params: { code, id }, search: {}, replace: true });
+      navigate({
+        to: "/admin/countries/$code/personas/studies/$id",
+        params: { code, id },
+        search: projectSearch ?? {},
+        replace: true,
+      });
     })();
   }, [search.auto, study, questions.length, draft, run, navigate, code, id]);
 
@@ -110,6 +116,7 @@ function StudyDetail() {
       <Link
         to="/admin/countries/$code/personas/studies"
         params={{ code }}
+        search={projectSearch}
         className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
       >
         <ArrowLeft size={12} /> All studies
@@ -149,7 +156,7 @@ function StudyDetail() {
           <Link
             to="/admin/countries/$code/personas/studies"
             params={{ code }}
-            search={{ segmentId: study.segment_id ?? undefined }}
+              search={{ segmentId: study.segment_id ?? undefined, project: search.project }}
             className="ml-auto inline-flex items-center gap-1.5 border border-line-200 bg-paper-0 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-950 hover:border-ink-950"
           >
             Start a follow-up study <ArrowLeft size={12} className="rotate-180" />

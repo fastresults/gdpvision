@@ -675,8 +675,120 @@ export const getStudyProgramReport = createServerFn({ method: "POST" })
     const { data: rows } = await q;
     const row = (rows ?? [])[0];
     if (!row) return null;
-    return { ...row, summary_md: stripBrandedByline(row.summary_md) };
+
+    // Always attach a fresh methodology snapshot so pre-existing reports (saved
+    // before the methodology column existed) still render Cast / Groups /
+    // Instruments in the UI without requiring a Regenerate.
+    const methodology = await buildProgramMethodology(supabase, data.countryCode, projectId);
+    const existingSections = (row.sections ?? {}) as Record<string, unknown>;
+    const mergedSections = { ...existingSections, methodology };
+
+    return {
+      ...row,
+      summary_md: stripBrandedByline(row.summary_md),
+      sections: mergedSections,
+    };
   });
+
+// Builds the methodology dossier from live DB state. Used both when persisting
+// a fresh program memo and when reading an older memo that lacks the field.
+async function buildProgramMethodology(
+  supabase: { from: (t: string) => unknown },
+  countryCode: string,
+  projectId: string | null,
+) {
+  const sb = supabase as unknown as {
+    from: (t: string) => {
+      select: (c: string) => {
+        eq: (k: string, v: string) => {
+          eq?: (k: string, v: string) => { order: (c: string, o: unknown) => { limit: (n: number) => Promise<{ data: unknown[] | null }> } };
+          order: (c: string, o: unknown) => { limit: (n: number) => Promise<{ data: unknown[] | null }> };
+        };
+        in: (k: string, v: string[]) => Promise<{ data: unknown[] | null }> & {
+          order?: (c: string) => Promise<{ data: unknown[] | null }>;
+        };
+      };
+    };
+  };
+
+  let studyQ = (sb.from("studies").select("id,title,kind,objective,segment_id") as unknown as {
+    eq: (k: string, v: string) => { eq?: (k: string, v: string) => { order: (c: string, o: unknown) => { limit: (n: number) => Promise<{ data: unknown[] | null }> } }; order: (c: string, o: unknown) => { limit: (n: number) => Promise<{ data: unknown[] | null }> } };
+  }).eq("country_code", countryCode);
+  if (projectId && studyQ.eq) studyQ = studyQ.eq("project_id", projectId) as never;
+  const { data: rawStudies } = await (studyQ as { order: (c: string, o: unknown) => { limit: (n: number) => Promise<{ data: unknown[] | null }> } })
+    .order("created_at", { ascending: false }).limit(200);
+  type StudyRow = { id: string; title: string; kind: string; objective: string | null; segment_id: string | null };
+  const studies = (rawStudies ?? []) as StudyRow[];
+  const studyIds = studies.map((s) => s.id);
+  const segIds = Array.from(new Set(studies.map((s) => s.segment_id).filter((v): v is string => !!v)));
+
+  const [segRes, memRes, qRes, repRes] = await Promise.all([
+    segIds.length
+      ? (supabase.from("persona_segments") as unknown as { select: (c: string) => { in: (k: string, v: string[]) => Promise<{ data: unknown[] | null }> } })
+          .select("id,label,prompt,size").in("id", segIds)
+      : Promise.resolve({ data: [] }),
+    segIds.length
+      ? (supabase.from("persona_segment_members") as unknown as { select: (c: string) => { in: (k: string, v: string[]) => Promise<{ data: unknown[] | null }> } })
+          .select("segment_id,personas(id,name,archetype,summary,attributes,ocean)").in("segment_id", segIds)
+      : Promise.resolve({ data: [] }),
+    studyIds.length
+      ? (supabase.from("study_questions") as unknown as { select: (c: string) => { in: (k: string, v: string[]) => { order: (c: string) => Promise<{ data: unknown[] | null }> } } })
+          .select("study_id,ord,prompt,kind,options").in("study_id", studyIds).order("ord")
+      : Promise.resolve({ data: [] }),
+    studyIds.length
+      ? (supabase.from("study_reports") as unknown as { select: (c: string) => { in: (k: string, v: string[]) => Promise<{ data: unknown[] | null }> } })
+          .select("study_id").in("study_id", studyIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  type Seg = { id: string; label: string; prompt: string | null; size: number | null };
+  const segs = (segRes.data ?? []) as Seg[];
+  const segLabel = new Map(segs.map((s) => [s.id, s.label]));
+  type PersonaLite = { id: string; name: string; archetype: string | null; summary: string | null; attributes: unknown; ocean: unknown };
+  const bySeg = new Map<string, PersonaLite[]>();
+  for (const m of (memRes.data ?? []) as Array<{ segment_id: string; personas: PersonaLite | null }>) {
+    if (!m.personas) continue;
+    const arr = bySeg.get(m.segment_id) ?? [];
+    arr.push(m.personas);
+    bySeg.set(m.segment_id, arr);
+  }
+  type QRow = { study_id: string; ord: number; prompt: string; kind: string; options: unknown };
+  const qByStudy = new Map<string, Array<{ ord: number; prompt: string; kind: string; options: unknown }>>();
+  for (const q of (qRes.data ?? []) as QRow[]) {
+    const arr = qByStudy.get(q.study_id) ?? [];
+    arr.push({ ord: q.ord, prompt: q.prompt, kind: q.kind, options: q.options });
+    qByStudy.set(q.study_id, arr);
+  }
+  const withReport = new Set(((repRes.data ?? []) as Array<{ study_id: string }>).map((r) => r.study_id));
+
+  const brief = await loadCountryBrief(supabase, countryCode);
+  return {
+    brief: {
+      title: brief.scope?.title ?? null,
+      objectives: brief.scope?.objectives ?? [],
+      raw_excerpt: brief.briefRaw ? brief.briefRaw.slice(0, 1200) : null,
+    },
+    segments: segs.map((s) => ({
+      id: s.id, label: s.label, prompt: s.prompt,
+      persona_count: (bySeg.get(s.id) ?? []).length,
+      personas: (bySeg.get(s.id) ?? []).map((p) => ({
+        id: p.id, name: p.name, archetype: p.archetype, summary: p.summary,
+        ocean: p.ocean, attributes: p.attributes,
+      })),
+      used_by_studies: studies
+        .filter((st) => st.segment_id === s.id)
+        .map((st) => ({ id: st.id, title: st.title, kind: st.kind })),
+    })),
+    studies: studies.map((s) => ({
+      id: s.id, title: s.title, kind: s.kind, objective: s.objective ?? null,
+      segment_id: s.segment_id ?? null,
+      segment_label: s.segment_id ? segLabel.get(s.segment_id) ?? null : null,
+      persona_count: s.segment_id ? (bySeg.get(s.segment_id) ?? []).length : 0,
+      questions: qByStudy.get(s.id) ?? [],
+      has_report: withReport.has(s.id),
+    })),
+  };
+}
 
 // Resolve the country's "default" project id (created by the multi-project
 // migration). Returns null only if no project has been backfilled yet.

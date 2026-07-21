@@ -71,7 +71,22 @@ export function StudioStepper({
     isActive: boolean;
     to: "/admin/countries/$code/personas" | "/admin/countries/$code/personas/segments" | "/admin/countries/$code/personas/studies";
     exact: boolean;
+    locked?: boolean;
+    complete?: boolean;
   }> = [
+    {
+      key: "brief",
+      n: 0,
+      label: "Brief",
+      sub: "Intake",
+      count: briefCommitted ? 1 : 0,
+      countLabel: briefCommitted ? "committed" : "required",
+      icon: FileText,
+      isActive: active === "brief",
+      to: "/admin/countries/$code/personas",
+      exact: true,
+      complete: briefCommitted,
+    },
     {
       key: "cast",
       n: 1,
@@ -83,6 +98,7 @@ export function StudioStepper({
       isActive: active === "cast" || (active === undefined && onIndex),
       to: "/admin/countries/$code/personas",
       exact: true,
+      locked: !briefCommitted,
     },
     {
       key: "group",
@@ -95,6 +111,7 @@ export function StudioStepper({
       isActive: active === "group" || (active === undefined && onSegments),
       to: "/admin/countries/$code/personas/segments",
       exact: false,
+      locked: !briefCommitted,
     },
     {
       key: "rehearse",
@@ -107,6 +124,7 @@ export function StudioStepper({
       isActive: active === "rehearse" || (active === undefined && onStudies),
       to: "/admin/countries/$code/personas/studies",
       exact: false,
+      locked: !briefCommitted,
     },
   ];
 
@@ -115,7 +133,7 @@ export function StudioStepper({
       aria-label="Studio stages"
       className="sticky top-0 z-20 -mx-6 border-b border-line-200 bg-paper-0/95 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-paper-0/80"
     >
-      <ol className="grid grid-cols-3 gap-2">
+      <ol className="grid grid-cols-4 gap-2">
         {nodes.map((s) => {
           const Icon = s.icon;
           const complete = s.count > 0;

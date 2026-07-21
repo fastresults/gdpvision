@@ -193,6 +193,8 @@ function StudiesPage() {
     setTimeout(() => create.mutate({ auto: true }), 0);
   };
 
+  const programSynthFn = useServerFn(synthesizeStudyProgram);
+
   const ready = stepDone[1] && stepDone[2] && stepDone[3];
   const chosenSegment = segments.find((s) => s.id === segmentId);
   const chosenMethod = METHODS.find((m) => m.id === kind);

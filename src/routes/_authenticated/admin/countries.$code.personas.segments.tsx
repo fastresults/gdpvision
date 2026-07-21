@@ -80,6 +80,7 @@ function SegmentsPage() {
   const qc = useQueryClient();
   const search = useSearch({ strict: false }) as { auto?: unknown; project?: string };
   const autoIntent = search.auto === 1 || search.auto === "1" || search.auto === true;
+  const activeProjectId = typeof search.project === "string" && search.project.length > 0 ? search.project : undefined;
   const { data: segments } = useSuspenseQuery(segmentsQuery(code));
   const personasQ = useQuery({
     queryKey: ["personas", code],
@@ -141,6 +142,11 @@ function SegmentsPage() {
   // Master auto-run loop: propose → cast all → draft studies → advance to Stage 03
   const runAuto = useCallback(async () => {
     cancelRef.current = false;
+    const projectId = activeProjectId;
+    if (!projectId) {
+      setAuto({ kind: "error", message: "Select or create a research program before starting auto-run." });
+      return;
+    }
     if (AUTO_STUDIES_LOCK.has(code)) {
       setAuto({ kind: "error", message: "Auto-run is already active for this country." });
       return;
@@ -195,7 +201,7 @@ function SegmentsPage() {
           id: s.id,
           label: s.label,
         }));
-        freshStudies = await listStudies({ data: { countryCode: code } });
+        freshStudies = await listStudies({ data: { countryCode: code, projectId } });
       } catch (e) {
         AUTO_STUDIES_LOCK.delete(code);
         setAuto({
@@ -220,6 +226,7 @@ function SegmentsPage() {
         let lastFailed = 0;
         const result = await draftStudiesForSegments({
           code,
+          projectId,
           targets,
           cancelRef,
           fullPipeline: true,
@@ -257,6 +264,7 @@ function SegmentsPage() {
       // lands on Stage 03 with fully synthesized work product.
       const sweep = await completeIncompleteStudies({
         code,
+        projectId,
         cancelRef,
         onProgress: ({ index, total, segmentLabel }) => {
           setAuto({
@@ -280,7 +288,7 @@ function SegmentsPage() {
       // Verify: nothing is still draft/running before we flag as consumed.
       let unfinished = 0;
       try {
-        const finalStudies = await listStudies({ data: { countryCode: code } });
+        const finalStudies = await listStudies({ data: { countryCode: code, projectId } });
         unfinished = finalStudies.filter(
           (s) => s.status !== "complete" && s.status !== "synthesized",
         ).length;
@@ -321,33 +329,30 @@ function SegmentsPage() {
       }
       AUTO_STUDIES_LOCK.delete(code);
       setAuto({ kind: "complete" });
-      navigate({ to: "/admin/countries/$code/personas/studies", params: { code } });
+      navigate({
+        to: "/admin/countries/$code/personas/studies",
+        params: { code },
+        search: { project: projectId, open: 1 },
+      });
     } catch (e) {
       AUTO_STUDIES_LOCK.delete(code);
       setAuto({ kind: "error", message: (e as Error).message });
     }
-  }, [castOne, cancelAuto, code, compose, navigate, qc]);
+  }, [activeProjectId, castOne, cancelAuto, code, compose, navigate, qc]);
 
-  // Intent-driven auto-fire. Just landing on this page (project switcher,
-  // refresh, saved link) never starts work. Auto-run only fires when the URL
-  // carries an explicit `?auto=1` intent set by the "Start auto-run" CTA or
-  // by "New program" creation. The intent is stripped from the URL before
-  // starting so refreshing mid-run cannot queue a second run.
+  // Landing on this page must NEVER start work from URL/search state. Prior
+  // versions accepted `?auto=1`, which let stale browser state from an old
+  // program restart processing in a new workspace. Strip it and remain idle;
+  // the only valid start path is the visible Start Auto-run button.
   useEffect(() => {
-    if (autoStartedRef.current) return;
     if (!autoIntent) return;
-    if (personasQ.isLoading) return;
-    if (personaCount === 0) return;
-    if (segments.length > 0) return;
-    autoStartedRef.current = true;
     navigate({
       to: "/admin/countries/$code/personas/segments",
       params: { code },
       search: (s: Record<string, unknown>) => ({ ...s, auto: undefined }),
       replace: true,
     });
-    void runAuto();
-  }, [autoIntent, code, personaCount, personasQ.isLoading, segments.length, runAuto, navigate]);
+  }, [autoIntent, code, navigate]);
 
   async function acceptProposal(p: SegmentProposal) {
     cancelAuto(); // user takes over

@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useSearch } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Users, Layers, FlaskConical, Wand2 } from "lucide-react";
 
@@ -24,6 +24,8 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/pers
 
 function PersonasLayout() {
   const { code } = Route.useParams();
+  const search = useSearch({ strict: false }) as { project?: string };
+  const activeProjectId = typeof search.project === "string" && search.project.length > 0 ? search.project : undefined;
 
   const personas = useQuery({
     queryKey: ["personas", code],
@@ -34,8 +36,9 @@ function PersonasLayout() {
     queryFn: () => listSegments({ data: { countryCode: code } }),
   });
   const studies = useQuery({
-    queryKey: ["studies", code],
-    queryFn: () => listStudies({ data: { countryCode: code } }),
+    queryKey: ["studies", code, activeProjectId ?? "none"],
+    queryFn: () => listStudies({ data: { countryCode: code, projectId: activeProjectId } }),
+    enabled: !!activeProjectId,
   });
 
   const pCount = personas.data?.length ?? 0;

@@ -73,13 +73,8 @@ export function ProgramsIndex({ code }: { code: string }) {
       const row = (result && typeof result === "object" && "id" in (result as Record<string, unknown>)
         ? (result as { id?: string })
         : ((result as { data?: { id?: string } } | undefined)?.data ?? { id: undefined }));
-      let projectId = row?.id;
+      const projectId = row?.id;
       await qc.invalidateQueries({ queryKey: ["persona-projects", code] });
-      if (!projectId) {
-        // Fall back to the freshest project for this country.
-        const list = qc.getQueryData<Project[]>(["persona-projects", code]) ?? [];
-        projectId = list[0]?.id;
-      }
       setTitle("");
       setShowForm(false);
       if (!code || !projectId) {
@@ -90,7 +85,9 @@ export function ProgramsIndex({ code }: { code: string }) {
         await navigate({
           to: "/admin/countries/$code/personas/studies",
           params: { code },
-          search: { project: projectId, open: 1, auto: 1 },
+          // Creating a program opens a clean workspace only. It must never
+          // inherit a prior project, and it must never start processing.
+          search: { project: projectId, open: 1 },
         });
       } catch (err) {
         console.error("[programs] navigate failed", { code, projectId, err });
@@ -136,7 +133,7 @@ export function ProgramsIndex({ code }: { code: string }) {
           {empty && (
             <p className="mb-2 max-w-xl text-sm text-ink-700">
               A research program bundles segments, studies, and one consolidated synthesis memo.
-              Give it a name and the studio will auto-run end-to-end.
+                Give it a name to open a clean workspace; processing starts only when you press Start Auto-run.
             </p>
           )}
           <div className="flex flex-wrap items-center gap-2">

@@ -207,23 +207,27 @@ function StudiesPage() {
   const currentStep = !stepDone[1] ? 1 : !stepDone[2] ? 2 : !stepDone[3] ? 3 : 3;
 
   const create = useMutation({
-    mutationFn: (opts: { auto?: boolean }) =>
-      createStudy({
+    mutationFn: (opts: { auto?: boolean }) => {
+      if (!activeProjectId) {
+        throw new Error("Select or create a research program before creating a study.");
+      }
+      return createStudy({
         data: {
           countryCode: code,
-            projectId: activeProjectId,
+          projectId: activeProjectId,
           segmentId,
           kind: kind as StudyKind,
           title: title.trim(),
           objective: objective.trim() || undefined,
         },
-      }).then((row) => ({ row, auto: !!opts.auto })),
+      }).then((row) => ({ row, auto: !!opts.auto }));
+    },
     onSuccess: ({ row, auto }) => {
       qc.invalidateQueries({ queryKey: ["studies", code] });
       navigate({
         to: "/admin/countries/$code/personas/studies/$id",
         params: { code, id: row.id },
-        search: auto ? { auto: 1 } : undefined,
+        search: { project: activeProjectId, auto: auto ? 1 : undefined },
       });
     },
   });
@@ -249,7 +253,8 @@ function StudiesPage() {
     if (!composed?.ok) return;
     applyComposed(composed);
     // create.mutate uses the state we just set — schedule after paint so state is applied.
-    setTimeout(() => create.mutate({ auto: true }), 0);
+    // Approval creates the study only; execution starts from the explicit full auto-run control.
+    setTimeout(() => create.mutate({}), 0);
   };
 
   const programSynthFn = useServerFn(synthesizeStudyProgram);
@@ -326,6 +331,11 @@ function StudiesPage() {
     async () => {
       if (runningRef.current) return;
       if (AUTO_STUDIES_LOCK.has(code)) return;
+      const projectId = activeProjectId;
+      if (!projectId) {
+        setAutoState({ phase: "complete", drafted: 0, completed: 0, failed: [{ label: "Research project", reason: "Select or create a program before starting auto-run." }] });
+        return;
+      }
       const targets = segments.filter((s) => !coveredSegmentIds.has(s.id));
       // Existing studies that never finished (drafts or stuck-running) also
       // need to be pushed to synthesis so the user only ever sees completed work.
@@ -353,7 +363,7 @@ function StudiesPage() {
       if (targets.length > 0) {
         const res = await draftStudiesForSegments({
           code,
-          projectId: activeProjectId,
+          projectId,
           targets: targets.map((s) => ({ id: s.id, label: s.label })),
           cancelRef,
           fullPipeline: true,
@@ -378,7 +388,7 @@ function StudiesPage() {
       if (!cancelRef.current) {
         const res2 = await completeIncompleteStudies({
           code,
-          projectId: activeProjectId,
+          projectId,
           cancelRef,
           onProgress: ({ index, total, segmentId, segmentLabel, phase }) => {
             setAutoState({
@@ -398,7 +408,7 @@ function StudiesPage() {
       // Phase C — consolidate portfolio memo once at least one study exists.
       if (!cancelRef.current) {
         try {
-          await programSynthFn({ data: { countryCode: code, projectId: activeProjectId } });
+          await programSynthFn({ data: { countryCode: code, projectId } });
           await qc.invalidateQueries({ queryKey: ["study-program-report", code] });
         } catch (e) {
           // Non-fatal — the per-study memos are still saved.
@@ -423,43 +433,22 @@ function StudiesPage() {
     cancelRef.current = true;
   };
 
-  // Intent-driven auto-run. Landing on this page (e.g. via the project
-  // switcher, browser refresh, or a saved link) NEVER starts synthesis on its
-  // own. Auto-run only fires when the user carries an explicit intent — either
-  // `?auto=1` in the URL (set by the "Start" CTA, "New program" creation, or
-  // the Stage 02 → Stage 03 handoff) — and the URL is immediately cleaned so
-  // a refresh cannot re-trigger it.
+  // Landing on this page must NEVER start synthesis from URL/search state.
+  // Prior versions accepted `?auto=1`; that allowed stale browser/search state
+  // from an old program to start work inside the next program. If such a flag
+  // arrives from history or an old link, strip it and remain idle. The only
+  // valid start path is the visible Start Auto-run button below.
   const didAttemptRef = useRef(false);
   const autoIntent = !!search.auto;
   useEffect(() => {
-    if (didAttemptRef.current) return;
     if (!autoIntent) return;
-    if (!activeProjectId) return; // never auto-run without a project scope
-    if (autoState.phase !== "idle") return;
-    const anyIncomplete = studies.some(
-      (s) => !s.is_synthesized && !s.has_report && s.status !== "completed" && s.status !== "complete" && s.status !== "synthesized",
-    );
-    if (uncoveredSegments.length === 0 && !anyIncomplete) {
-      // Nothing to do — strip the intent flag and stay idle.
-      navigate({
-        to: "/admin/countries/$code/personas/studies",
-        params: { code },
-        search: (s: Record<string, unknown>) => ({ ...s, auto: undefined }),
-        replace: true,
-      });
-      return;
-    }
-    didAttemptRef.current = true;
-    // Strip the intent from the URL BEFORE starting so a refresh mid-run
-    // does not queue a second run on top of the first.
     navigate({
       to: "/admin/countries/$code/personas/studies",
       params: { code },
       search: (s: Record<string, unknown>) => ({ ...s, auto: undefined }),
       replace: true,
     });
-    void startAutoRun();
-  }, [autoIntent, activeProjectId, uncoveredSegments.length, studies, autoState.phase, startAutoRun, navigate, code]);
+  }, [autoIntent, navigate, code]);
 
   const rehearseStatus =
     autoState.phase === "running"
@@ -792,7 +781,7 @@ function StudiesPage() {
                     <button
                       type="button"
                       onClick={() => create.mutate({})}
-                      disabled={!ready || create.isPending}
+                      disabled={!ready || !activeProjectId || create.isPending}
                       className="mt-4 inline-flex w-full items-center justify-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-40"
                     >
                       {create.isPending ? "Creating…" : "Create this study"} <ArrowRight size={12} />
@@ -843,9 +832,9 @@ function StudiesPage() {
               Your studies · {studies.length}
             </p>
           </div>
-          <StudyGroup title="Running" studies={grouped.running} code={code} />
-          <StudyGroup title="Synthesized" studies={grouped.done} code={code} />
-          <StudyGroup title="Drafts" studies={grouped.drafts} code={code} />
+          <StudyGroup title="Running" studies={grouped.running} code={code} projectId={activeProjectId} />
+          <StudyGroup title="Synthesized" studies={grouped.done} code={code} projectId={activeProjectId} />
+          <StudyGroup title="Drafts" studies={grouped.drafts} code={code} projectId={activeProjectId} />
         </div>
       )}
     </div>
@@ -914,10 +903,12 @@ function StudyGroup({
   title,
   studies,
   code,
+  projectId,
 }: {
   title: string;
   studies: Awaited<ReturnType<typeof listStudies>>;
   code: string;
+  projectId?: string;
 }) {
   if (studies.length === 0) return null;
   return (
@@ -931,6 +922,7 @@ function StudyGroup({
             key={s.id}
             to="/admin/countries/$code/personas/studies/$id"
             params={{ code, id: s.id }}
+            search={projectId ? { project: projectId } : undefined}
             className="group flex items-start gap-3 border border-line-200 bg-paper-0 p-3 hover:border-ink-950"
           >
             <FlaskConical size={16} className="mt-0.5 text-ink-500" />

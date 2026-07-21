@@ -12,7 +12,7 @@ type Citation = {
   excerpt?: string | null;
 };
 
-type StudyMethodology = {
+export type StudyMethodology = {
   report_frame?: {
     country_code?: string | null;
     project_id?: string | null;

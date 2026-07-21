@@ -211,7 +211,7 @@ function StudiesPage() {
       createStudy({
         data: {
           countryCode: code,
-            projectId: activeProjectId,
+          projectId: activeProjectId,
           segmentId,
           kind: kind as StudyKind,
           title: title.trim(),
@@ -827,9 +827,9 @@ function StudiesPage() {
               Your studies · {studies.length}
             </p>
           </div>
-          <StudyGroup title="Running" studies={grouped.running} code={code} />
-          <StudyGroup title="Synthesized" studies={grouped.done} code={code} />
-          <StudyGroup title="Drafts" studies={grouped.drafts} code={code} />
+          <StudyGroup title="Running" studies={grouped.running} code={code} projectId={activeProjectId} />
+          <StudyGroup title="Synthesized" studies={grouped.done} code={code} projectId={activeProjectId} />
+          <StudyGroup title="Drafts" studies={grouped.drafts} code={code} projectId={activeProjectId} />
         </div>
       )}
     </div>
@@ -898,10 +898,12 @@ function StudyGroup({
   title,
   studies,
   code,
+  projectId,
 }: {
   title: string;
   studies: Awaited<ReturnType<typeof listStudies>>;
   code: string;
+  projectId?: string;
 }) {
   if (studies.length === 0) return null;
   return (
@@ -915,6 +917,7 @@ function StudyGroup({
             key={s.id}
             to="/admin/countries/$code/personas/studies/$id"
             params={{ code, id: s.id }}
+            search={projectId ? { project: projectId } : undefined}
             className="group flex items-start gap-3 border border-line-200 bg-paper-0 p-3 hover:border-ink-950"
           >
             <FlaskConical size={16} className="mt-0.5 text-ink-500" />

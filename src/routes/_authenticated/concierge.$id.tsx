@@ -11,8 +11,8 @@ export const Route = createFileRoute("/_authenticated/concierge/$id")({
   },
   head: ({ loaderData }) => {
     const q =
-      (loaderData?.request?.request_card as { question?: string } | null)?.question ??
-      loaderData?.request?.minister_summary ??
+      (loaderData?.request as { question?: string } | null)?.question ??
+      (loaderData?.request as { minister_summary?: string } | null)?.minister_summary ??
       "Request";
     return {
       meta: [

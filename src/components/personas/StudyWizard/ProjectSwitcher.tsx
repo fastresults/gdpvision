@@ -36,7 +36,7 @@ export function ProjectSwitcher({
   const search = useSearch({ strict: false }) as Record<string, unknown>;
   const q = useQuery(projectsQuery(code));
   const projects = q.data ?? [];
-  const active = projects.find((p) => p.id === activeProjectId) ?? projects[0] ?? null;
+  const active = projects.find((p) => p.id === activeProjectId) ?? null;
 
   const [open, setOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
@@ -54,7 +54,7 @@ export function ProjectSwitcher({
       navigate({
         to: routeId,
         params: { code },
-        search: (s: Record<string, unknown>) => ({ ...s, project: row?.id, auto: 1 }),
+        search: (s: Record<string, unknown>) => ({ ...s, project: row?.id, open: 1, auto: 1 }),
       });
     },
   });
@@ -64,7 +64,7 @@ export function ProjectSwitcher({
     navigate({
       to: routeId,
       params: { code },
-      search: (s: Record<string, unknown>) => ({ ...s, project: id, auto: undefined }),
+      search: (s: Record<string, unknown>) => ({ ...s, project: id, open: 1, auto: undefined }),
     });
     setOpen(false);
   };

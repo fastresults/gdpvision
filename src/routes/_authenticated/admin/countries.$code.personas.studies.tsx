@@ -55,6 +55,10 @@ const searchSchema = z.object({
   segmentId: z.string().optional(),
   auto: z.union([z.literal(1), z.literal("1"), z.boolean()]).optional(),
   project: z.string().optional(),
+  // Explicit "open a program" intent. Only when this is present do we honor
+  // `?project=` on landing — otherwise the URL is stripped and the admin is
+  // sent back to the Programs Index so the last project never auto-opens.
+  open: z.union([z.literal(1), z.literal("1"), z.boolean()]).optional(),
 });
 
 export function studiesQuery(code: string, projectId?: string) {
@@ -138,7 +142,37 @@ function StudiesPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const activeProjectId = search.project;
+  // Session-scoped "explicitly opened" set — only projects the admin opened
+  // in THIS tab load are eligible to render the working surface. This kills
+  // the failure mode where a stale `?project=` in the URL (from a prior
+  // session, browser history, or a link) auto-reopens the last program.
+  const openedRef = useRef<Set<string>>(new Set());
+  // On mount / when search changes: if `?open=1` is present, mark this
+  // project as explicitly opened and strip `open` from the URL. If a
+  // `?project=` is present without ever having been explicitly opened this
+  // session, drop it and send the admin back to the Programs Index.
+  useEffect(() => {
+    if (search.open && search.project) {
+      openedRef.current.add(search.project);
+      navigate({
+        to: "/admin/countries/$code/personas/studies",
+        params: { code },
+        search: (s: Record<string, unknown>) => ({ ...s, open: undefined }),
+        replace: true,
+      });
+      return;
+    }
+    if (search.project && !openedRef.current.has(search.project)) {
+      navigate({
+        to: "/admin/countries/$code/personas/studies",
+        params: { code },
+        search: { },
+        replace: true,
+      });
+    }
+  }, [search.open, search.project, code, navigate]);
+  const activeProjectId =
+    search.project && openedRef.current.has(search.project) ? search.project : undefined;
   // Studies + digest are strictly project-scoped. Without an active project
   // we render only the Programs Index (no working surface, no prior-project
   // content) — so gate the reads on `activeProjectId`.

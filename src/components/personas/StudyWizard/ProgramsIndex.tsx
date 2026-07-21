@@ -90,7 +90,7 @@ export function ProgramsIndex({ code }: { code: string }) {
         await navigate({
           to: "/admin/countries/$code/personas/studies",
           params: { code },
-          search: { project: projectId },
+          search: { project: projectId, open: 1, auto: 1 },
         });
       } catch (err) {
         console.error("[programs] navigate failed", { code, projectId, err });
@@ -270,7 +270,7 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
               <Link
                 to="/admin/countries/$code/personas/studies"
                 params={{ code }}
-                search={{ project: p.id }}
+                search={{ project: p.id, open: 1 }}
                 className="font-serif text-base text-ink-950 hover:underline"
               >
                 {p.title}
@@ -312,7 +312,7 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
             <Link
               to="/admin/countries/$code/personas/studies"
               params={{ code }}
-              search={{ project: p.id }}
+              search={{ project: p.id, open: 1 }}
               className="inline-flex items-center gap-1 border border-emerald-600 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-emerald-700 hover:bg-emerald-600 hover:text-paper-0"
             >
               Open report <ArrowUpRight size={11} />
@@ -321,7 +321,7 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
             <Link
               to="/admin/countries/$code/personas/studies"
               params={{ code }}
-              search={{ project: p.id }}
+              search={{ project: p.id, open: 1 }}
               className="inline-flex items-center gap-1 border border-ink-950 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950 hover:bg-ink-950 hover:text-paper-0"
             >
               <PlayCircle size={11} /> Continue

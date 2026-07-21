@@ -1,9 +1,11 @@
 // Chamber 07 · Studies (survey, focus group, creative test) + persona chat.
 
 import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Database, Json } from "@/integrations/supabase/types";
 import { buildCountryContextPack, type ContextCitation } from "./context-pack.server";
 import {
   hasAnyCitableCitation,
@@ -14,6 +16,11 @@ import {
 } from "@/lib/citations/hygiene";
 
 const MODEL = "google/gemini-2.5-pro";
+type AppSupabaseClient = SupabaseClient<Database>;
+
+function toJson(value: unknown): Json {
+  return JSON.parse(JSON.stringify(value ?? null)) as Json;
+}
 
 async function ai(system: string, user: string, json = true, temperature = 0.7): Promise<string> {
   const apiKey = process.env.LOVABLE_API_KEY;
@@ -1124,37 +1131,36 @@ export const getStudy = createServerFn({ method: "POST" })
             const hydrated = hydrateCitationField(report, pack.citations) as typeof report & { summary_md?: string | null; themes?: unknown; citations?: unknown; context?: unknown };
             const cleaned = stripBrandedByline(hydrated.summary_md ?? "");
             const citations = fullCitationsForRefs(pack.citations, refsFromTextAndModel(cleaned, hydrated.citations));
-            const existingContext = hydrated.context && typeof hydrated.context === "object" ? hydrated.context as Record<string, unknown> : {};
+            const existingContext = hydrated.context && typeof hydrated.context === "object" ? hydrated.context as Record<string, Json | undefined> : {};
             return {
               ...hydrated,
               summary_md: cleaned ? sanitizeCitationMarkersInText(cleaned, citations) : hydrated.summary_md,
               themes: sanitizeJsonCitationMarkers(hydrated.themes ?? [], citations) as typeof hydrated.themes,
               citations: citations as unknown as typeof hydrated.citations,
-              context: methodology ? { ...existingContext, methodology } : hydrated.context,
+              context: methodology ? ({ ...existingContext, methodology } as Json) : hydrated.context,
             };
           })()
         : report ?? null,
-      methodology,
     };
   });
 
 async function buildStudyMethodology(
-  supabase: import("@supabase/supabase-js").SupabaseClient,
-  study: Record<string, unknown>,
-  questions: Array<Record<string, unknown>>,
-) {
+  supabase: AppSupabaseClient,
+  study: { country_code: string; project_id: string | null; title: string; objective: string | null; kind: string; segment_id: string | null },
+  questions: Array<{ ord?: number | null; prompt?: string | null; kind?: string | null; options?: Json | null }>,
+): Promise<Json> {
   const [{ data: segment }, { data: members }] = await Promise.all([
     study.segment_id
-      ? supabase.from("persona_segments").select("id,label,prompt").eq("id", study.segment_id as string).maybeSingle()
+      ? supabase.from("persona_segments").select("id,label,prompt").eq("id", study.segment_id).maybeSingle()
       : Promise.resolve({ data: null as { id: string; label: string; prompt: string | null } | null }),
     study.segment_id
       ? supabase
           .from("persona_segment_members")
           .select("segment_id,personas(id,name,archetype,summary,attributes,ocean)")
-          .eq("segment_id", study.segment_id as string)
+          .eq("segment_id", study.segment_id)
       : Promise.resolve({ data: [] as Array<{ segment_id: string; personas: unknown }> }),
   ]);
-  const brief = await loadCountryBrief(supabase, study.country_code as string, study.project_id as string | null);
+  const brief = await loadCountryBrief(supabase, study.country_code, study.project_id);
   const personas = (members ?? [])
     .flatMap((m) => {
       const p = (m as { personas: unknown }).personas;
@@ -1170,13 +1176,13 @@ async function buildStudyMethodology(
       ocean: p.ocean ?? null,
     }));
 
-  return {
+  return toJson({
     report_frame: {
-      country_code: study.country_code as string,
-      project_id: (study.project_id as string | null) ?? null,
-      title: study.title as string,
-      objective: (study.objective as string | null) ?? null,
-      decision_question: brief.scope?.title ?? study.objective ?? study.title,
+      country_code: study.country_code,
+      project_id: study.project_id ?? null,
+      title: study.title,
+      objective: study.objective ?? null,
+      decision_question: String(brief.scope?.title ?? study.objective ?? study.title),
     },
     brief: {
       title: brief.scope?.title ?? null,
@@ -1193,11 +1199,11 @@ async function buildStudyMethodology(
       : null,
     personas,
     instrument: {
-      kind: study.kind as string,
-      title: study.title as string,
-      objective: (study.objective as string | null) ?? null,
+      kind: study.kind,
+      title: study.title,
+      objective: study.objective ?? null,
       questions: questions.map((q) => ({
-        ord: q.ord as number,
+        ord: typeof q.ord === "number" ? q.ord : 0,
         prompt: String(q.prompt ?? ""),
         kind: String(q.kind ?? "open"),
         options: q.options ?? [],
@@ -1208,7 +1214,7 @@ async function buildStudyMethodology(
       "Findings are strongest where persona responses converge with cited country-context evidence.",
     ],
     generated_at: new Date().toISOString(),
-  };
+  });
 }
 
 // ── Persona chat (Ask this persona) ───────────────────────────────────────

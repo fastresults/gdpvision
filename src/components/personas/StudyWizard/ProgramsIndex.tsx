@@ -15,12 +15,14 @@ import {
   Pencil,
   PlayCircle,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 import { useRef, useState } from "react";
 
 import {
   archiveProject,
   createProject,
+  deleteProject,
   listProjects,
   renameProject,
 } from "@/lib/personas/projects.functions";
@@ -212,6 +214,7 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
 
   const renameFn = useServerFn(renameProject);
   const archiveFn = useServerFn(archiveProject);
+  const deleteFn = useServerFn(deleteProject);
   const rename = useMutation({
     mutationFn: (t: string) => renameFn({ data: { projectId: p.id, title: t } }),
     onSuccess: async () => {
@@ -221,6 +224,10 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
   });
   const archive = useMutation({
     mutationFn: (archived: boolean) => archiveFn({ data: { projectId: p.id, archived } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["persona-projects", code] }),
+  });
+  const remove = useMutation({
+    mutationFn: () => deleteFn({ data: { projectId: p.id } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["persona-projects", code] }),
   });
 
@@ -351,11 +358,34 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
                 >
                   <Archive size={11} /> {p.status === "archived" ? "Unarchive" : "Archive"}
                 </button>
+                <button
+                  type="button"
+                  disabled={remove.isPending}
+                  onClick={() => {
+                    const msg = `Permanently delete "${p.title}"?\n\nThis removes the program and all of its studies, instruments, transcripts, and synthesis reports. Segments and personas (shared at the country level) are kept.\n\nThis cannot be undone.`;
+                    if (typeof window !== "undefined" && !window.confirm(msg)) return;
+                    remove.mutate();
+                    setMenuOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 border-t border-line-200 px-3 py-2 text-left font-mono text-[10px] uppercase tracking-[0.18em] text-rose-700 hover:bg-rose-50 disabled:opacity-40"
+                >
+                  {remove.isPending ? (
+                    <Loader2 size={11} className="animate-spin" />
+                  ) : (
+                    <Trash2 size={11} />
+                  )}{" "}
+                  Delete permanently
+                </button>
               </div>
             )}
           </div>
         </div>
       </div>
+      {remove.isError && (
+        <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-rose-600">
+          Delete failed: {(remove.error as Error).message}
+        </p>
+      )}
     </li>
   );
 }

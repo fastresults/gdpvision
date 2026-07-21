@@ -17,26 +17,28 @@ type ProgramSections = {
   unanswered?: string[];
 };
 
-export function programReportQuery(code: string) {
+export function programReportQuery(code: string, projectId?: string) {
   return queryOptions({
-    queryKey: ["study-program-report", code],
-    queryFn: () => getStudyProgramReport({ data: { countryCode: code } }),
+    queryKey: ["study-program-report", code, projectId ?? "default"],
+    queryFn: () => getStudyProgramReport({ data: { countryCode: code, projectId } }),
     refetchInterval: 20_000,
   });
 }
 
 export function ProgramSynthesisCard({
   code,
+  projectId,
   synthesizedCount,
 }: {
   code: string;
+  projectId?: string;
   synthesizedCount: number;
 }) {
   const qc = useQueryClient();
-  const q = useQuery(programReportQuery(code));
+  const q = useQuery(programReportQuery(code, projectId));
   const runFn = useServerFn(synthesizeStudyProgram);
   const run = useMutation({
-    mutationFn: () => runFn({ data: { countryCode: code } }),
+    mutationFn: () => runFn({ data: { countryCode: code, projectId } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["study-program-report", code] }),
   });
 

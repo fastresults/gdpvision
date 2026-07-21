@@ -582,6 +582,22 @@ function StudiesPage() {
     );
   }
 
+  // Brief committed but AI Blueprint not yet approved — force the admin to
+  // the Blueprint cockpit. Segments/studies must never appear before an
+  // approved research plan has been cast.
+  if (briefGate.needsBlueprint) {
+    return (
+      <Navigate
+        to="/admin/countries/$code/personas/blueprint"
+        params={{ code }}
+        search={{ project: activeProjectId, open: 1 }}
+        replace
+      />
+    );
+  }
+
+
+
   return (
     <div className="space-y-8">
       <StudioStepper

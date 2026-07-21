@@ -1,12 +1,12 @@
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Check, FileText, FlaskConical, Layers, Lock, Users } from "lucide-react";
+import { Check, FileText, FlaskConical, Layers, Lock, Sparkles, Users } from "lucide-react";
 
 import { listPersonas, listSegments } from "@/lib/personas/generate.functions";
 import { listStudies } from "@/lib/personas/study.functions";
 import { cn } from "@/lib/utils";
 
-type StageKey = "brief" | "cast" | "group" | "rehearse";
+type StageKey = "brief" | "blueprint" | "cast" | "group" | "rehearse";
 
 export function StudioStepper({
   code,
@@ -15,6 +15,7 @@ export function StudioStepper({
   autoStatus,
   rehearseStatus,
   briefCommitted = true,
+  blueprintCommitted = true,
 }: {
   code: string;
   active?: StageKey;
@@ -22,6 +23,7 @@ export function StudioStepper({
   autoStatus?: string;
   rehearseStatus?: string;
   briefCommitted?: boolean;
+  blueprintCommitted?: boolean;
 }) {
   const matchRoute = useMatchRoute();
   const personas = useQuery({
@@ -60,6 +62,14 @@ export function StudioStepper({
   const sCount = Array.isArray(segments.data) ? segments.data.length : 0;
   const stCount = Array.isArray(studies.data) ? studies.data.length : 0;
 
+  const onBlueprint = !!matchRoute({
+    to: "/admin/countries/$code/personas/blueprint",
+    params: { code },
+    fuzzy: false,
+  });
+
+  const downstreamLocked = !briefCommitted || !blueprintCommitted;
+
   const nodes: Array<{
     key: StageKey;
     n: number;
@@ -69,7 +79,11 @@ export function StudioStepper({
     countLabel: string;
     icon: typeof Users;
     isActive: boolean;
-    to: "/admin/countries/$code/personas" | "/admin/countries/$code/personas/segments" | "/admin/countries/$code/personas/studies";
+    to:
+      | "/admin/countries/$code/personas"
+      | "/admin/countries/$code/personas/blueprint"
+      | "/admin/countries/$code/personas/segments"
+      | "/admin/countries/$code/personas/studies";
     exact: boolean;
     locked?: boolean;
     complete?: boolean;
@@ -88,8 +102,22 @@ export function StudioStepper({
       complete: briefCommitted,
     },
     {
-      key: "cast",
+      key: "blueprint",
       n: 1,
+      label: "Blueprint",
+      sub: "AI Plan",
+      count: blueprintCommitted ? 1 : 0,
+      countLabel: blueprintCommitted ? "approved" : "pending",
+      icon: Sparkles,
+      isActive: active === "blueprint" || (active === undefined && onBlueprint),
+      to: "/admin/countries/$code/personas/blueprint",
+      exact: false,
+      locked: !briefCommitted,
+      complete: blueprintCommitted,
+    },
+    {
+      key: "cast",
+      n: 2,
       label: "Cast",
       sub: "Personas",
       count: pCount,
@@ -98,11 +126,11 @@ export function StudioStepper({
       isActive: active === "cast" || (active === undefined && onIndex),
       to: "/admin/countries/$code/personas",
       exact: true,
-      locked: !briefCommitted,
+      locked: downstreamLocked,
     },
     {
       key: "group",
-      n: 2,
+      n: 3,
       label: "Group",
       sub: "Segments",
       count: sCount,
@@ -111,11 +139,11 @@ export function StudioStepper({
       isActive: active === "group" || (active === undefined && onSegments),
       to: "/admin/countries/$code/personas/segments",
       exact: false,
-      locked: !briefCommitted,
+      locked: downstreamLocked,
     },
     {
       key: "rehearse",
-      n: 3,
+      n: 4,
       label: "Rehearse",
       sub: "Studies",
       count: stCount,
@@ -124,7 +152,7 @@ export function StudioStepper({
       isActive: active === "rehearse" || (active === undefined && onStudies),
       to: "/admin/countries/$code/personas/studies",
       exact: false,
-      locked: !briefCommitted,
+      locked: downstreamLocked,
     },
   ];
 
@@ -133,7 +161,7 @@ export function StudioStepper({
       aria-label="Studio stages"
       className="sticky top-0 z-20 -mx-6 border-b border-line-200 bg-paper-0/95 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-paper-0/80"
     >
-      <ol className="grid grid-cols-4 gap-2">
+      <ol className="grid grid-cols-5 gap-2">
         {nodes.map((s) => {
           const Icon = s.icon;
           const complete = s.complete ?? s.count > 0;

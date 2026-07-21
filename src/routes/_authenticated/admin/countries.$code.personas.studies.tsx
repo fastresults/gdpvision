@@ -40,7 +40,7 @@ import {
 import { StudioStepper } from "@/components/personas/StudioStepper";
 import { StudioStatusRail } from "@/components/personas/StudyWizard/StudioStatusRail";
 import { ProjectSwitcher } from "@/components/personas/StudyWizard/ProjectSwitcher";
-import { clearAutoRun, publishAutoRun, registerAutoRunResume } from "@/lib/autorun/beacon";
+import { clearAutoRun, publishAutoRun, registerAutoRunAbort, registerAutoRunResume, unregisterAutoRunAbort } from "@/lib/autorun/beacon";
 import { useServerFn } from "@tanstack/react-start";
 
 const PHASE_LABEL: Record<StudyAutoPhase, string> = {

@@ -15,12 +15,14 @@ import {
   Pencil,
   PlayCircle,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 import { useRef, useState } from "react";
 
 import {
   archiveProject,
   createProject,
+  deleteProject,
   listProjects,
   renameProject,
 } from "@/lib/personas/projects.functions";

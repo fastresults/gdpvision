@@ -58,6 +58,9 @@ function studiesQuery(code: string) {
   return queryOptions({
     queryKey: ["studies", code],
     queryFn: () => listStudies({ data: { countryCode: code } }),
+    // Match the digest cadence so the status rail counters cannot lag behind
+    // the "Auto-run complete" banner (which reads from the digest).
+    refetchInterval: 15_000,
   });
 }
 function studiesDigestQuery(code: string) {

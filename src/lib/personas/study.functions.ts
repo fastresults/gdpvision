@@ -721,12 +721,14 @@ export const listStudies = createServerFn({ method: "POST" })
     // but never had its status flipped (worker timeout, tab close, retry) is
     // reconciled to `complete` so the UI counters stop drifting.
     try {
-      const { data: stuck } = await supabase
+      let stuckQuery = supabase
         .from("studies")
         .select("id")
         .eq("country_code", data.countryCode)
         .neq("status", "complete")
         .limit(500);
+      if (data.projectId) stuckQuery = stuckQuery.eq("project_id", data.projectId);
+      const { data: stuck } = await stuckQuery;
       const stuckIds = (stuck ?? []).map((r) => r.id as string);
       if (stuckIds.length > 0) {
         const { data: reps } = await supabase
@@ -753,7 +755,35 @@ export const listStudies = createServerFn({ method: "POST" })
     if (data.projectId) q = q.eq("project_id", data.projectId);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    const studies = rows ?? [];
+    if (studies.length === 0) return [];
+
+    const ids = studies.map((s) => s.id as string);
+    const { data: reports } = await supabase
+      .from("study_reports")
+      .select("study_id,summary_md")
+      .in("study_id", ids);
+    const reportByStudy = new Map<string, { hasReport: boolean; chars: number }>();
+    for (const r of reports ?? []) {
+      const summary = String(r.summary_md ?? "").trim();
+      if (summary.length > 0) {
+        reportByStudy.set(r.study_id as string, { hasReport: true, chars: summary.length });
+      }
+    }
+
+    return studies.map((s) => {
+      const report = reportByStudy.get(s.id as string);
+      const hasReport = !!report?.hasReport;
+      const rawStatus = s.status as string;
+      return {
+        ...s,
+        raw_status: rawStatus,
+        status: hasReport ? "complete" : rawStatus,
+        is_synthesized: hasReport || rawStatus === "complete" || rawStatus === "synthesized",
+        has_report: hasReport,
+        report_summary_chars: report?.chars ?? 0,
+      };
+    });
   });
 
 export const getStudy = createServerFn({ method: "POST" })

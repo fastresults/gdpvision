@@ -214,6 +214,7 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
 
   const renameFn = useServerFn(renameProject);
   const archiveFn = useServerFn(archiveProject);
+  const deleteFn = useServerFn(deleteProject);
   const rename = useMutation({
     mutationFn: (t: string) => renameFn({ data: { projectId: p.id, title: t } }),
     onSuccess: async () => {
@@ -223,6 +224,10 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
   });
   const archive = useMutation({
     mutationFn: (archived: boolean) => archiveFn({ data: { projectId: p.id, archived } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["persona-projects", code] }),
+  });
+  const remove = useMutation({
+    mutationFn: () => deleteFn({ data: { projectId: p.id } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["persona-projects", code] }),
   });
 

@@ -266,10 +266,16 @@ export const updateRequestStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => updateStatusSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = { status: data.status };
+    const patch: {
+      status: typeof data.status;
+      expected_by?: string;
+      delivered_at?: string;
+      accepted_at?: string;
+    } = { status: data.status };
     if (data.expected_by) patch.expected_by = data.expected_by;
     if (data.status === "delivered") patch.delivered_at = new Date().toISOString();
     if (data.status === "accepted") patch.accepted_at = new Date().toISOString();
+
 
     const { error } = await context.supabase
       .from("service_requests")

@@ -95,6 +95,15 @@ function methodologyFromReport(report: { context?: unknown } | null | undefined)
   return m && typeof m === "object" ? (m as StudyMethodology) : null;
 }
 
+function recommendationsFromReport(report: { recommendations?: unknown; context?: unknown } | null | undefined): Array<Record<string, unknown>> {
+  if (Array.isArray(report?.recommendations)) return report.recommendations as Array<Record<string, unknown>>;
+  const ctx = report?.context;
+  if (ctx && typeof ctx === "object" && Array.isArray((ctx as { recommendations?: unknown }).recommendations)) {
+    return (ctx as { recommendations: Array<Record<string, unknown>> }).recommendations;
+  }
+  return [];
+}
+
 // ── Individual study ─────────────────────────────────────────────────────
 export type StudyExportInput = {
   study: {
@@ -231,7 +240,7 @@ export function studyReportToMarkdown(input: StudyExportInput): { filename: stri
   }
 
   // Recommendations
-  const recs = Array.isArray(input.report?.recommendations) ? (input.report!.recommendations as Array<Record<string, unknown>>) : [];
+  const recs = recommendationsFromReport(input.report);
   if (recs.length > 0) {
     parts.push(`\n## Recommendations (${recs.length})\n`);
     recs.forEach((r, i) => {

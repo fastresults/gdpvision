@@ -443,6 +443,7 @@ function StudiesPage() {
         href,
       });
     } else {
+      unregisterAutoRunAbort(id);
       clearAutoRun(id);
     }
   }, [autoState, code, startAutoRun]);

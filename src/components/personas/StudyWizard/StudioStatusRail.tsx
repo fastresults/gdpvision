@@ -9,6 +9,9 @@ type Study = {
   id: string;
   title: string;
   status?: string | null;
+  raw_status?: string | null;
+  is_synthesized?: boolean | null;
+  has_report?: boolean | null;
   updated_at?: string | null;
 };
 type Segment = { id: string };
@@ -42,22 +45,25 @@ export function StudioStatusRail({
   onResume,
   resumeDisabled,
 }: Props) {
-  const done = studies.filter((s) => s.status === "synthesized" || s.status === "complete");
-  const running = studies.filter((s) => s.status === "running");
+  const isDone = (s: Study) =>
+    !!s.is_synthesized || !!s.has_report || s.status === "synthesized" || s.status === "complete";
+  const done = studies.filter(isDone);
+  const running = studies.filter((s) => !isDone(s) && s.status === "running");
   const drafts = studies.filter(
-    (s) => s.status !== "synthesized" && s.status !== "complete" && s.status !== "running",
+    (s) => !isDone(s) && s.status !== "running",
   );
   const incomplete = drafts.length + running.length;
   const total = studies.length;
   const pct = total > 0 ? Math.round((done.length / total) * 100) : 0;
+  const syncing = done.length === total && studies.some((s) => s.raw_status === "running" || s.raw_status === "draft");
 
   const health =
     autoPhase === "running"
       ? { label: "Auto-run in progress", tone: "running" as const }
-      : incomplete > 0
-        ? { label: "Incomplete studies", tone: "warn" as const }
-        : total > 0
-          ? { label: "All studies synthesized", tone: "ok" as const }
+      : total > 0 && done.length === total
+        ? { label: "All studies synthesized", tone: "ok" as const }
+        : incomplete > 0
+          ? { label: "Incomplete studies", tone: "warn" as const }
           : { label: "Awaiting first study", tone: "idle" as const };
 
   const latest = digest[0];
@@ -76,6 +82,11 @@ export function StudioStatusRail({
         {autoDetail && (
           <p className="mt-1 truncate text-[11px] text-ink-700" title={autoDetail}>
             {autoDetail}
+          </p>
+        )}
+        {syncing && autoPhase !== "running" && (
+          <p className="mt-1 text-[11px] text-emerald-700">
+            Reports are complete; status rows are syncing.
           </p>
         )}
         {total > 0 && (
@@ -150,6 +161,14 @@ export function StudioStatusRail({
               ? `Resume ${incomplete} incomplete`
               : "Nothing to resume"}
         </button>
+        {done.length > 0 && (
+          <a
+            href="#synthesized"
+            className="inline-flex w-full items-center justify-center gap-1.5 border border-emerald-600 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-emerald-700 hover:bg-emerald-600 hover:text-paper-0"
+          >
+            <CheckCircle2 size={11} /> Open completed synthesis
+          </a>
+        )}
         <Link
           to="/admin/countries/$code/data"
           params={{ code }}

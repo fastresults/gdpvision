@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import {
   queryOptions,
-  useSuspenseQuery,
   useQueryClient,
   useMutation,
   useQuery,
@@ -468,8 +467,10 @@ function SegmentsPage() {
   // Publish to the global auto-run beacon so the state is visible even after
   // the user navigates away from this route.
   useEffect(() => {
-    const id = `stage02:${code}`;
-    const href = `/admin/countries/${code}/personas/segments`;
+    const id = activeProjectId ? `stage02:${code}:${activeProjectId}` : `stage02:${code}:none`;
+    const href = activeProjectId
+      ? `/admin/countries/${code}/personas/segments?project=${activeProjectId}&open=1`
+      : `/admin/countries/${code}/personas/segments`;
     if (auto.kind === "proposing") {
       publishAutoRun({
         id,
@@ -536,7 +537,7 @@ function SegmentsPage() {
       registerAutoRunResume(id, () => runAuto());
       registerAutoRunAbort(id, () => {
         cancelAuto("Stopped by user.");
-        AUTO_STUDIES_LOCK.delete(code);
+        if (activeProjectId) AUTO_STUDIES_LOCK.delete(`${code}:${activeProjectId}`);
       });
     }
     return () => {
@@ -590,9 +591,32 @@ function SegmentsPage() {
     );
   }
 
+  if (!activeProjectId) {
+    return (
+      <div className="space-y-6">
+        <StudioStepper code={code} active="group" />
+        <div className="flex items-center justify-between gap-3">
+          <Link
+            to="/admin/countries/$code/personas"
+            params={{ code }}
+            className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
+          >
+            ← Chamber 07 hub
+          </Link>
+        </div>
+        <ProgramsIndex code={code} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <StudioStepper code={code} active="group" autoStatus={autoLabel} />
+      <StudioStepper code={code} active="group" activeProjectId={activeProjectId} autoStatus={autoLabel} />
+      <ProjectSwitcher
+        code={code}
+        activeProjectId={activeProjectId}
+        routeId="/admin/countries/$code/personas/segments"
+      />
       {personaCount === 0 && (
         <div className="flex flex-col gap-2 border border-amber-500/60 bg-amber-50/60 p-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[13px] text-ink-950">
@@ -935,7 +959,7 @@ function SegmentsPage() {
           <Link
             to="/admin/countries/$code/personas/studies"
             params={{ code }}
-            search={{ segmentId: lastCreated.id }}
+            search={{ project: activeProjectId, open: 1, segmentId: lastCreated.id }}
             className="inline-flex shrink-0 items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700"
           >
             Design a study with this segment <ArrowRight size={12} />
@@ -967,7 +991,7 @@ function SegmentsPage() {
                 <Link
                   to="/admin/countries/$code/personas/studies"
                   params={{ code }}
-                  search={{ segmentId: s.id }}
+                  search={{ project: activeProjectId, open: 1, segmentId: s.id }}
                   className="border border-line-200 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-700 hover:border-ink-950 hover:text-ink-950"
                 >
                   Study →

@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   queryOptions,
-  useSuspenseQuery,
   useQueryClient,
   useMutation,
   useQuery,
@@ -75,13 +74,6 @@ export function studiesDigestQuery(code: string, projectId?: string) {
     refetchInterval: 15_000,
   });
 }
-export function segmentsQuery(code: string) {
-  return queryOptions({
-    queryKey: ["persona-segments", code, "none"],
-    queryFn: () => Promise.resolve([]),
-  });
-}
-
 export function projectSegmentsQuery(code: string, projectId: string) {
   return queryOptions({
     queryKey: ["persona-segments", code, projectId],
@@ -415,15 +407,16 @@ function StudiesPage() {
       if (!cancelRef.current) {
         try {
           await programSynthFn({ data: { countryCode: code, projectId } });
-          await qc.invalidateQueries({ queryKey: ["study-program-report", code] });
+          await qc.invalidateQueries({ queryKey: ["study-program-report", code, projectId] });
         } catch (e) {
           // Non-fatal — the per-study memos are still saved.
           console.warn("[program synth]", (e as Error).message);
         }
       }
 
-      await qc.invalidateQueries({ queryKey: ["studies", code] });
-      await qc.invalidateQueries({ queryKey: ["studies-digest", code] });
+      await qc.invalidateQueries({ queryKey: ["studies", code, projectId] });
+      await qc.invalidateQueries({ queryKey: ["studies-digest", code, projectId] });
+      await qc.invalidateQueries({ queryKey: ["persona-projects", code] });
       if (cancelRef.current) {
         setAutoState({ phase: "cancelled", drafted, completed });
       } else {

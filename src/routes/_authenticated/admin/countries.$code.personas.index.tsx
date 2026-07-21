@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
 import { FlaskConical, Layers, Sparkles, Trash2, User, Users } from "lucide-react";
@@ -17,7 +17,7 @@ import { listProjects } from "@/lib/personas/projects.functions";
 function personasQuery(code: string, projectId?: string) {
   return queryOptions({
     queryKey: ["personas", code, projectId ?? "all"],
-    queryFn: () => listPersonas({ data: { countryCode: code, projectId } }),
+    queryFn: () => projectId ? listPersonas({ data: { countryCode: code, projectId } }) : Promise.resolve([]),
   });
 }
 
@@ -29,8 +29,10 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/pers
 
 function PersonasIndex() {
   const { code } = Route.useParams();
+  const search = useSearch({ strict: false }) as { project?: string };
+  const activeProjectId = typeof search.project === "string" && search.project.length > 0 ? search.project : undefined;
   const qc = useQueryClient();
-  const { data: rawPersonas } = useSuspenseQuery(personasQuery(code));
+  const { data: rawPersonas } = useSuspenseQuery(personasQuery(code, activeProjectId));
   const personas = Array.isArray(rawPersonas) ? rawPersonas : [];
   const projectsQ = useQuery({
     queryKey: ["persona-projects", code],
@@ -59,7 +61,7 @@ function PersonasIndex() {
 
   return (
     <div className="space-y-6">
-      <StudioStepper code={code} active="cast" />
+      <StudioStepper code={code} active="cast" activeProjectId={activeProjectId} />
 
       <ProgramsIndex code={code} />
 
@@ -128,7 +130,7 @@ function PersonasIndex() {
           setWizardOpen(false);
           setResumeDraftId(undefined);
           setAutorun(false);
-          qc.invalidateQueries({ queryKey: ["personas", code] });
+          qc.invalidateQueries({ queryKey: ["personas", code, activeProjectId] });
           qc.invalidateQueries({ queryKey: ["study-drafts", code] });
         }}
         countryCode={code}

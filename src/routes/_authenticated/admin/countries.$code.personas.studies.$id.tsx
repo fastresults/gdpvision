@@ -10,15 +10,19 @@ import { PrettyJson } from "@/components/data/PrettyJson";
 import { draftStudyQuestions, getStudy, runStudy } from "@/lib/personas/study.functions";
 import { StudioStepper } from "@/components/personas/StudioStepper";
 
-function studyQuery(id: string) {
-  return queryOptions({ queryKey: ["study", id], queryFn: () => getStudy({ data: { id } }) });
+function studyQuery(id: string, projectId?: string) {
+  return queryOptions({
+    queryKey: ["study", id, projectId ?? "any"],
+    queryFn: () => getStudy({ data: { id, projectId } }),
+  });
 }
 
 const searchSchema = z.object({ auto: z.coerce.number().optional(), project: z.string().optional() });
 
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/personas/studies/$id")({
   validateSearch: (s) => searchSchema.parse(s),
-  loader: ({ context, params }) => context.queryClient.ensureQueryData(studyQuery(params.id)),
+  loaderDeps: ({ search: { project } }) => ({ project }),
+  loader: ({ context, params, deps }) => context.queryClient.ensureQueryData(studyQuery(params.id, deps.project)),
   errorComponent: ({ error }) => <p className="p-6 text-sm text-rose-600">{error.message}</p>,
   component: StudyDetail,
 });
@@ -29,7 +33,7 @@ function StudyDetail() {
   const projectSearch = search.project ? { project: search.project } : undefined;
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { data } = useSuspenseQuery(studyQuery(id));
+  const { data } = useSuspenseQuery(studyQuery(id, search.project));
   const { study, questions, responses, transcript, report } = data;
 
   const draft = useMutation({

@@ -84,19 +84,21 @@ export function stripBrandedByline(input: string | null | undefined): string {
 export async function loadCountryBrief(
   supabase: import("@supabase/supabase-js").SupabaseClient,
   countryCode: string,
+  projectId?: string | null,
 ): Promise<{
   briefRaw: string | null;
   scope: { title?: string; objectives?: string[] } | null;
   blueprint: unknown | null;
   block: string;
 }> {
-  const { data: draft } = await supabase
+  let draftQ = supabase
     .from("persona_study_drafts")
     .select("brief_raw,brief_scope,outcome_blueprint,updated_at")
     .eq("country_code", countryCode)
     .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+  if (projectId) draftQ = draftQ.eq("project_id", projectId);
+  const { data: draft } = await draftQ.maybeSingle();
   const scope = (draft?.brief_scope ?? null) as { title?: string; objectives?: string[] } | null;
   const blueprint = draft?.outcome_blueprint ?? null;
   const briefRaw = (draft?.brief_raw as string | null) ?? null;
@@ -154,6 +156,17 @@ export const createStudy = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const projectId = data.projectId ?? (await resolveDefaultProjectId(supabase, data.countryCode));
+    if (!projectId) throw new Error("Select or create a research program before creating a study.");
+
+    const { data: segment, error: segmentErr } = await supabase
+      .from("persona_segments")
+      .select("id,country_code,project_id")
+      .eq("id", data.segmentId)
+      .eq("country_code", data.countryCode)
+      .eq("project_id", projectId)
+      .maybeSingle();
+    if (segmentErr) throw new Error(segmentErr.message);
+    if (!segment) throw new Error("That segment belongs to another research program. Re-select a segment in this program.");
 
     // Idempotency guard: never create a duplicate draft for the same
     // (country, segment). Enforced at the DB level by a partial unique
@@ -243,6 +256,15 @@ Return JSON: { "questions": [ { "prompt": "…", "kind": "open|scale|choice", "o
 async function loadStudyWithPersonas(supabase: import("@supabase/supabase-js").SupabaseClient, studyId: string) {
   const { data: study } = await supabase.from("studies").select("*").eq("id", studyId).maybeSingle();
   if (!study) throw new Error("Study not found");
+  if (study.segment_id && study.project_id) {
+    const { data: segment } = await supabase
+      .from("persona_segments")
+      .select("id")
+      .eq("id", study.segment_id)
+      .eq("project_id", study.project_id)
+      .maybeSingle();
+    if (!segment) throw new Error("Study segment is outside this research program.");
+  }
   const { data: questions } = await supabase.from("study_questions").select("*").eq("study_id", studyId).order("ord");
   const { data: members } = await supabase
     .from("persona_segment_members")
@@ -362,7 +384,7 @@ export const runStudySynthesis = createServerFn({ method: "POST" })
     ]);
 
     const pack = await buildCountryContextPack(supabase, study.country_code, study.objective ?? study.title);
-    const brief = await loadCountryBrief(supabase, study.country_code);
+    const brief = await loadCountryBrief(supabase, study.country_code, study.project_id as string | null);
     const dataBlock = study.kind === "focus_group"
       ? (transcript ?? []).map((t) => `${t.speaker}: ${t.utterance}`).join("\n").slice(0, 8000)
       : (responses ?? []).map((r) => {
@@ -510,7 +532,7 @@ export const synthesizeStudyProgram = createServerFn({ method: "POST" })
     const repByStudy = new Map<string, { summary_md: string; themes: unknown; context: unknown; citations: unknown }>();
     for (const r of reports ?? []) repByStudy.set(r.study_id, { summary_md: r.summary_md ?? "", themes: r.themes, context: r.context, citations: r.citations });
 
-    const brief = await loadCountryBrief(supabase, data.countryCode);
+    const brief = await loadCountryBrief(supabase, data.countryCode, projectId);
     const pack = await buildCountryContextPack(supabase, data.countryCode, brief.scope?.title ?? null);
 
     // Methodology snapshot — full & verbatim; feeds both the UI dossier and (a
@@ -763,7 +785,7 @@ async function buildProgramMethodology(
   }
   const withReport = new Set(((repRes.data ?? []) as Array<{ study_id: string }>).map((r) => r.study_id));
 
-  const brief = await loadCountryBrief(supabase, countryCode);
+  const brief = await loadCountryBrief(supabase, countryCode, projectId);
   return {
     brief: {
       title: brief.scope?.title ?? null,
@@ -983,11 +1005,13 @@ export const listStudies = createServerFn({ method: "POST" })
 
 export const getStudy = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .inputValidator((d: unknown) => z.object({ id: z.string(), projectId: z.string().optional() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
+    let studyQ = supabase.from("studies").select("*").eq("id", data.id);
+    if (data.projectId) studyQ = studyQ.eq("project_id", data.projectId);
     const [{ data: study }, { data: questions }, { data: responses }, { data: transcript }, { data: report }] = await Promise.all([
-      supabase.from("studies").select("*").eq("id", data.id).maybeSingle(),
+      studyQ.maybeSingle(),
       supabase.from("study_questions").select("*").eq("study_id", data.id).order("ord"),
       supabase
         .from("study_responses")

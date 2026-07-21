@@ -186,6 +186,7 @@ export function ProgramSynthesisCard({
   const q = useQuery(programReportQuery(code, projectId));
   const runFn = useServerFn(synthesizeStudyProgram);
   const getStudyFn = useServerFn(getStudy);
+  const listStudiesFn = useServerFn(listStudies);
   const run = useMutation({
     mutationFn: () => runFn({ data: { countryCode: code, projectId } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["study-program-report", code] }),
@@ -205,9 +206,22 @@ export function ProgramSynthesisCard({
     if (!report) return;
     setDownloading(true);
     try {
-      const studyIds = (methodology?.studies ?? []).map((s) => s.id).filter(Boolean);
+      // Global export contract: the .md MUST always contain the consolidated
+      // memo PLUS every synthesized study in the program (cast, groups,
+      // instruments, transcripts, responses, recommendations). We enumerate
+      // studies directly from the DB — not just methodology.studies — so a
+      // stale program report can never silently drop a synthesized study.
+      const [fromMethodology, allStudies] = await Promise.all([
+        Promise.resolve((methodology?.studies ?? []).map((s) => s.id).filter(Boolean) as string[]),
+        listStudiesFn({ data: { countryCode: code, projectId } }).catch(() => [] as Array<{ id: string; is_synthesized?: boolean }>),
+      ]);
+      const synthesizedIds = (allStudies ?? [])
+        .filter((s) => s.is_synthesized)
+        .map((s) => s.id);
+      const orderedIds = Array.from(new Set([...fromMethodology, ...synthesizedIds]));
+
       const studyReports: StudyExportInput[] = [];
-      for (const id of studyIds) {
+      for (const id of orderedIds) {
         try {
           const full = await getStudyFn({ data: { id, projectId } });
           studyReports.push(full as unknown as StudyExportInput);

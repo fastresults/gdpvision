@@ -9,8 +9,9 @@ import { BookOpenCheck, Download, Loader2, RefreshCw, Sparkles, Users, Layers, C
 import { useState } from "react";
 
 import { CitedMarkdown } from "@/components/citations/CitedMarkdown";
-import { getStudyProgramReport, synthesizeStudyProgram } from "@/lib/personas/study.functions";
-import { downloadMarkdown, programReportToMarkdown } from "@/lib/personas/report-export";
+import { getStudy, getStudyProgramReport, synthesizeStudyProgram } from "@/lib/personas/study.functions";
+import { downloadMarkdown, programReportToMarkdown, type StudyExportInput } from "@/lib/personas/report-export";
+
 
 type OceanScores = { openness?: number; conscientiousness?: number; extraversion?: number; agreeableness?: number; neuroticism?: number };
 type PersonaLite = { id: string; name: string; archetype?: string | null; summary?: string | null; ocean?: OceanScores | null; attributes?: unknown };

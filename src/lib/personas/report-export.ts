@@ -440,7 +440,7 @@ export function programReportToMarkdown(input: ProgramExportInput): { filename: 
   }
 
   // Methodology — Instruments
-  const studies = meth.studies ?? [];
+  const studies = effectiveMeth.studies ?? [];
   if (studies.length > 0) {
     const totalQ = studies.reduce((n, s) => n + (s.questions?.length ?? 0), 0);
     parts.push(`\n## Instruments — ${studies.length} studies · ${totalQ} questions\n`);

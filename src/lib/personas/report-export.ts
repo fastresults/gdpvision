@@ -349,6 +349,24 @@ export type ProgramExportInput = {
 export function programReportToMarkdown(input: ProgramExportInput): { filename: string; body: string } {
   const sections = input.report.sections ?? {};
   const meth = sections.methodology ?? {};
+  const studyReportsIn = input.studyReports ?? [];
+
+  // ── Global export contract (Chamber 07) ───────────────────────────────
+  // Every downloaded program .md MUST include: Consolidated memo, Cast,
+  // Groups, Instruments, and every synthesized study — no exceptions. If
+  // the consolidated methodology is thin, we reconstruct Cast / Groups /
+  // Instruments from the embedded per-study reports so those sections
+  // always render.
+  const fallbackMeth: ProgramMethodology = {
+    brief: meth.brief,
+    segments: (meth.segments && meth.segments.length > 0)
+      ? meth.segments
+      : reconstructSegmentsFromStudies(studyReportsIn),
+    studies: (meth.studies && meth.studies.length > 0)
+      ? meth.studies
+      : reconstructStudiesFromReports(studyReportsIn),
+  };
+  const effectiveMeth = fallbackMeth;
   const parts: string[] = [];
 
   parts.push("---");

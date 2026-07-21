@@ -26,8 +26,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 
 import { listSegments } from "@/lib/personas/generate.functions";
-import { createStudy, listStudies, listStudiesWithReports } from "@/lib/personas/study.functions";
+import { createStudy, listStudies, listStudiesWithReports, synthesizeStudyProgram } from "@/lib/personas/study.functions";
 import { SynthesisDigest } from "@/components/personas/StudyWizard/SynthesisDigest";
+import { ProgramSynthesisCard } from "@/components/personas/StudyWizard/ProgramSynthesisCard";
 import { composeStudy, type ComposeStudyResult } from "@/lib/personas/compose-study.functions";
 import {
   AUTO_STUDIES_LOCK,
@@ -39,6 +40,7 @@ import {
 import { StudioStepper } from "@/components/personas/StudioStepper";
 import { StudioStatusRail } from "@/components/personas/StudyWizard/StudioStatusRail";
 import { clearAutoRun, publishAutoRun, registerAutoRunResume } from "@/lib/autorun/beacon";
+import { useServerFn } from "@tanstack/react-start";
 
 const PHASE_LABEL: Record<StudyAutoPhase, string> = {
   composing: "composing",

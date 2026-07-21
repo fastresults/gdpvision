@@ -28,8 +28,9 @@ function PersonasLayout() {
   const activeProjectId = typeof search.project === "string" && search.project.length > 0 ? search.project : undefined;
 
   const personas = useQuery({
-    queryKey: ["personas", code],
-    queryFn: () => listPersonas({ data: { countryCode: code } }),
+    queryKey: ["personas", code, activeProjectId ?? "none"],
+    queryFn: () => activeProjectId ? listPersonas({ data: { countryCode: code, projectId: activeProjectId } }) : Promise.resolve([]),
+    enabled: !!activeProjectId,
   });
   const segments = useQuery({
     queryKey: ["persona-segments", code, activeProjectId ?? "none"],
@@ -42,9 +43,9 @@ function PersonasLayout() {
     enabled: !!activeProjectId,
   });
 
-  const pCount = personas.data?.length ?? 0;
-  const sCount = segments.data?.length ?? 0;
-  const stCount = studies.data?.length ?? 0;
+  const pCount = Array.isArray(personas.data) ? personas.data.length : 0;
+  const sCount = Array.isArray(segments.data) ? segments.data.length : 0;
+  const stCount = Array.isArray(studies.data) ? studies.data.length : 0;
 
   const stages = [
     {

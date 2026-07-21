@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
 import { FlaskConical, Layers, Sparkles, Trash2, User, Users } from "lucide-react";
@@ -14,10 +14,10 @@ import { StudioStepper } from "@/components/personas/StudioStepper";
 import { ProgramsIndex } from "@/components/personas/StudyWizard/ProgramsIndex";
 import { listProjects } from "@/lib/personas/projects.functions";
 
-function personasQuery(code: string) {
+function personasQuery(code: string, projectId?: string) {
   return queryOptions({
-    queryKey: ["personas", code],
-    queryFn: () => listPersonas({ data: { countryCode: code } }),
+    queryKey: ["personas", code, projectId ?? "all"],
+    queryFn: () => projectId ? listPersonas({ data: { countryCode: code, projectId } }) : Promise.resolve([]),
   });
 }
 
@@ -29,8 +29,11 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/pers
 
 function PersonasIndex() {
   const { code } = Route.useParams();
+  const search = useSearch({ strict: false }) as { project?: string };
+  const activeProjectId = typeof search.project === "string" && search.project.length > 0 ? search.project : undefined;
   const qc = useQueryClient();
-  const { data: personas } = useSuspenseQuery(personasQuery(code));
+  const { data: rawPersonas } = useSuspenseQuery(personasQuery(code, activeProjectId));
+  const personas = Array.isArray(rawPersonas) ? rawPersonas : [];
   const projectsQ = useQuery({
     queryKey: ["persona-projects", code],
     queryFn: () => listProjects({ data: { countryCode: code } }),
@@ -45,12 +48,12 @@ function PersonasIndex() {
     mutationFn: () => generatePersona({ data: { countryCode: code, brief: brief.trim(), visibility } }),
     onSuccess: () => {
       setBrief("");
-      qc.invalidateQueries({ queryKey: ["personas", code] });
+      qc.invalidateQueries({ queryKey: ["personas", code, activeProjectId] });
     },
   });
   const del = useMutation({
     mutationFn: (id: string) => deletePersona({ data: { id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["personas", code] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["personas", code, activeProjectId] }),
   });
 
   const segCount = (projectsQ.data ?? []).reduce((sum, p) => sum + p.segments_total, 0);
@@ -58,7 +61,7 @@ function PersonasIndex() {
 
   return (
     <div className="space-y-6">
-      <StudioStepper code={code} active="cast" />
+      <StudioStepper code={code} active="cast" activeProjectId={activeProjectId} />
 
       <ProgramsIndex code={code} />
 
@@ -127,7 +130,7 @@ function PersonasIndex() {
           setWizardOpen(false);
           setResumeDraftId(undefined);
           setAutorun(false);
-          qc.invalidateQueries({ queryKey: ["personas", code] });
+          qc.invalidateQueries({ queryKey: ["personas", code, activeProjectId] });
           qc.invalidateQueries({ queryKey: ["study-drafts", code] });
         }}
         countryCode={code}

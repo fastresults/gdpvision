@@ -12,9 +12,23 @@ import {
   sanitizeJsonCitationMarkers,
   validCitationsForRefs,
 } from "@/lib/citations/hygiene";
+import type { Json } from "@/integrations/supabase/types";
 
 const GEN_MODEL = "google/gemini-2.5-pro";
 const FAST_MODEL = "google/gemini-2.5-flash";
+
+type PersonaListRow = {
+  id: string;
+  name: string;
+  archetype: string | null;
+  summary: string | null;
+  visibility: string;
+  origin: string;
+  created_at: string;
+  attributes: Json;
+  grounding_refs: Json;
+  citations: Json;
+};
 
 async function callGateway(system: string, user: string, model = GEN_MODEL): Promise<string> {
   const apiKey = process.env.LOVABLE_API_KEY;
@@ -239,19 +253,63 @@ Rules: exactly ${data.size} personas, all distinct, realistic distribution.`,
 // ── List personas / segments ──────────────────────────────────────────────
 export const listPersonas = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ countryCode: z.string() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ countryCode: z.string(), projectId: z.string().optional() }).parse(d),
+  )
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
-      .from("personas")
-      .select("id,name,archetype,summary,visibility,origin,created_at,attributes,grounding_refs,citations")
-      .eq("country_code", data.countryCode)
-      .order("created_at", { ascending: false })
-      .limit(200);
-    if (error) throw new Error(error.message);
-    const needsHydration = (rows ?? []).some((row) => !hasUsableCitationMetadata(row.citations) && row.summary?.includes("["));
-    if (!needsHydration) return rows ?? [];
+    let rows: PersonaListRow[] = [];
+
+    if (data.projectId) {
+      const { data: segments, error: segErr } = await context.supabase
+        .from("persona_segments")
+        .select("id")
+        .eq("country_code", data.countryCode)
+        .eq("project_id", data.projectId)
+        .limit(500);
+      if (segErr) throw new Error(segErr.message);
+      const segmentIds = (segments ?? []).map((s) => s.id as string);
+      if (segmentIds.length === 0) return [];
+
+      const { data: members, error: memberErr } = await context.supabase
+        .from("persona_segment_members")
+        .select(
+          "segment_id, personas(id,name,archetype,summary,visibility,origin,created_at,attributes,grounding_refs,citations,country_code)",
+        )
+        .in("segment_id", segmentIds)
+        .limit(500);
+      if (memberErr) throw new Error(memberErr.message);
+
+      const seen = new Set<string>();
+      rows = (members ?? [])
+        .flatMap((m) => {
+          const p = (m as { personas: unknown }).personas;
+          return Array.isArray(p) ? p : p ? [p] : [];
+        })
+        .filter((p): p is PersonaListRow & { country_code?: string } => {
+          if (!p || typeof p !== "object") return false;
+          const id = String((p as { id?: unknown }).id ?? "");
+          const country = String((p as { country_code?: unknown }).country_code ?? "");
+          if (!id || seen.has(id) || country !== data.countryCode) return false;
+          seen.add(id);
+          return true;
+        })
+        .map(({ country_code: _countryCode, ...p }) => p)
+        .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+        .slice(0, 200);
+    } else {
+      const { data: countryRows, error } = await context.supabase
+        .from("personas")
+        .select("id,name,archetype,summary,visibility,origin,created_at,attributes,grounding_refs,citations")
+        .eq("country_code", data.countryCode)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw new Error(error.message);
+      rows = countryRows ?? [];
+    }
+    const needsHydration = rows.some((row) => !hasUsableCitationMetadata(row.citations) && row.summary?.includes("["));
+    if (!needsHydration) return rows;
     const pack = await buildCountryContextPack(context.supabase, data.countryCode);
-    return (rows ?? []).map((row) =>
+    return rows.map((row) =>
       !hasUsableCitationMetadata(row.citations) && row.summary?.includes("[")
         ? { ...row, summary: sanitizeCitationMarkersInText(row.summary ?? "", fullCitationsForRefs(pack.citations, row.grounding_refs)), citations: fullCitationsForRefs(pack.citations, row.grounding_refs) }
         : row,

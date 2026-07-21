@@ -89,6 +89,22 @@ export function AutoRunBeacon() {
             />
           </button>
 
+          {hasActive && (
+            <div className="flex items-center justify-between gap-2 border-b border-line-200 bg-rose-50 px-3 py-2">
+              <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-rose-700">
+                Hard stop
+              </span>
+              <button
+                type="button"
+                onClick={() => void abortAllAutoRuns()}
+                className="inline-flex items-center gap-1 border border-rose-600 bg-rose-600 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-paper-0 hover:bg-rose-700"
+                title="Immediately stop every active auto-run"
+              >
+                <Square size={11} className="fill-current" /> Stop all
+              </button>
+            </div>
+          )}
+
           {!collapsed && (
             <ul className="max-h-[60vh] divide-y divide-line-200 overflow-auto">
               {runs.map((r) => (

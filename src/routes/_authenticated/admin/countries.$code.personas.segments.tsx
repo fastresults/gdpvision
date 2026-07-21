@@ -479,17 +479,22 @@ function SegmentsPage() {
       });
     } else {
       // idle or complete → clear (Stage 03 beacon takes over after handoff)
+      unregisterAutoRunAbort(id);
       clearAutoRun(id);
     }
     // Register resume so the watchdog can auto-fix a stall.
     if (auto.kind === "proposing" || auto.kind === "casting" || auto.kind === "drafting_studies") {
       registerAutoRunResume(id, () => runAuto());
+      registerAutoRunAbort(id, () => {
+        cancelAuto("Stopped by user.");
+        AUTO_STUDIES_LOCK.delete(code);
+      });
     }
     return () => {
       // On unmount, only clear if not still running — allow it to persist
       // across navigation while the state machine is active.
     };
-  }, [auto, code, runAuto]);
+  }, [auto, code, runAuto, cancelAuto]);
 
   function AutoRunPrimary({ className = "" }: { className?: string }) {
     if (autoActive) {

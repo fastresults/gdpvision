@@ -5,16 +5,44 @@
 
 import { useMutation, useQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { BookOpenCheck, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { BookOpenCheck, Loader2, RefreshCw, Sparkles, Users, Layers, ClipboardList } from "lucide-react";
+import { useState } from "react";
 
 import { CitedMarkdown } from "@/components/citations/CitedMarkdown";
 import { getStudyProgramReport, synthesizeStudyProgram } from "@/lib/personas/study.functions";
 
+type OceanScores = { openness?: number; conscientiousness?: number; extraversion?: number; agreeableness?: number; neuroticism?: number };
+type PersonaLite = { id: string; name: string; archetype?: string | null; summary?: string | null; ocean?: OceanScores | null; attributes?: unknown };
+type SegmentEntry = {
+  id: string;
+  label: string;
+  prompt?: string | null;
+  persona_count?: number;
+  personas?: PersonaLite[];
+  used_by_studies?: Array<{ id: string; title: string; kind: string }>;
+};
+type StudyEntry = {
+  id: string;
+  title: string;
+  kind: string;
+  objective?: string | null;
+  segment_label?: string | null;
+  persona_count?: number;
+  questions?: Array<{ ord: number; prompt: string; kind: string; options?: unknown }>;
+};
+type Methodology = {
+  brief?: { title?: string | null; objectives?: string[]; raw_excerpt?: string | null };
+  segments?: SegmentEntry[];
+  studies?: StudyEntry[];
+};
+
 type ProgramSections = {
   portfolio_scope?: { studies_run?: number; brief_link?: string };
+  design_rationale?: { why_segments?: string; why_methods?: string; coverage_gaps?: string };
   cross_cutting_themes?: Array<{ label?: string; evidence_ids?: string[]; quote?: string }>;
   recommendations?: Array<{ move?: string; why?: string; owner?: string; horizon?: string }>;
   unanswered?: string[];
+  methodology?: Methodology;
 };
 
 export function programReportQuery(code: string, projectId?: string) {
@@ -23,6 +51,124 @@ export function programReportQuery(code: string, projectId?: string) {
     queryFn: () => getStudyProgramReport({ data: { countryCode: code, projectId } }),
     refetchInterval: 20_000,
   });
+}
+
+function OceanChips({ ocean }: { ocean?: OceanScores | null }) {
+  if (!ocean) return null;
+  const items: Array<[string, number | undefined]> = [
+    ["O", ocean.openness], ["C", ocean.conscientiousness], ["E", ocean.extraversion],
+    ["A", ocean.agreeableness], ["N", ocean.neuroticism],
+  ];
+  return (
+    <div className="mt-1 flex flex-wrap gap-1">
+      {items.filter(([, v]) => typeof v === "number").map(([k, v]) => (
+        <span key={k} className="border border-line-200 px-1 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-ink-500">
+          {k}·{Math.round((v as number) * 100) / 100}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function CastSection({ segments }: { segments: SegmentEntry[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const total = segments.reduce((n, s) => n + (s.personas?.length ?? 0), 0);
+  return (
+    <details open={expanded} onToggle={(e) => setExpanded((e.target as HTMLDetailsElement).open)} className="border border-line-200 bg-paper-50/40">
+      <summary className="flex cursor-pointer items-center gap-2 px-4 py-3">
+        <Users size={13} className="text-ink-700" />
+        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">Cast · {total} personas across {segments.length} segments</span>
+      </summary>
+      <div className="grid gap-4 border-t border-line-200 p-4 md:grid-cols-2">
+        {segments.map((s) => (
+          <div key={s.id} className="border border-line-200 bg-paper-0 p-3">
+            <p className="font-serif text-sm text-ink-950">{s.label}</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">{s.personas?.length ?? 0} personas</p>
+            <ul className="mt-2 space-y-2">
+              {(s.personas ?? []).map((p) => (
+                <li key={p.id} className="border-l-2 border-line-200 pl-2">
+                  <p className="text-[12px] font-medium text-ink-900">{p.name} <span className="text-ink-500">· {p.archetype ?? "—"}</span></p>
+                  {p.summary && <p className="text-[11px] leading-snug text-ink-700">{p.summary}</p>}
+                  <OceanChips ocean={p.ocean ?? null} />
+                </li>
+              ))}
+              {(!s.personas || s.personas.length === 0) && <li className="text-[11px] text-ink-500">(no personas cast)</li>}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function GroupsSection({ segments }: { segments: SegmentEntry[] }) {
+  return (
+    <details className="border border-line-200 bg-paper-50/40">
+      <summary className="flex cursor-pointer items-center gap-2 px-4 py-3">
+        <Layers size={13} className="text-ink-700" />
+        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">Groups · {segments.length} segments</span>
+      </summary>
+      <div className="grid gap-3 border-t border-line-200 p-4 md:grid-cols-2">
+        {segments.map((s) => (
+          <div key={s.id} className="border border-line-200 bg-paper-0 p-3">
+            <p className="font-serif text-sm text-ink-950">{s.label}</p>
+            <p className="mt-1 text-[11px] leading-snug text-ink-700">{s.prompt ?? "(no descriptor)"}</p>
+            <div className="mt-2 flex flex-wrap gap-1 font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">
+              <span className="border border-line-200 px-1.5 py-0.5">{s.personas?.length ?? 0} personas</span>
+              {(s.used_by_studies ?? []).map((st) => (
+                <span key={st.id} className="border border-line-200 px-1.5 py-0.5">{st.kind} · {st.title}</span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function InstrumentsSection({ studies }: { studies: StudyEntry[] }) {
+  return (
+    <details className="border border-line-200 bg-paper-50/40">
+      <summary className="flex cursor-pointer items-center gap-2 px-4 py-3">
+        <ClipboardList size={13} className="text-ink-700" />
+        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
+          Instruments · {studies.length} studies · {studies.reduce((n, s) => n + (s.questions?.length ?? 0), 0)} questions
+        </span>
+      </summary>
+      <div className="space-y-3 border-t border-line-200 p-4">
+        {studies.map((s) => (
+          <details key={s.id} className="border border-line-200 bg-paper-0">
+            <summary className="flex cursor-pointer flex-wrap items-center gap-2 px-3 py-2">
+              <span className="border border-ink-950 bg-ink-950 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-paper-0">
+                {s.kind}
+              </span>
+              <span className="font-serif text-[13px] text-ink-950">{s.title}</span>
+              <span className="font-mono text-[10px] text-ink-500">
+                · {s.segment_label ?? "—"} · {s.persona_count ?? 0} personas · {s.questions?.length ?? 0} questions
+              </span>
+            </summary>
+            <div className="border-t border-line-200 p-3">
+              {s.objective && <p className="mb-2 text-[12px] italic text-ink-700">Objective: {s.objective}</p>}
+              <ol className="space-y-1.5">
+                {(s.questions ?? []).map((q) => (
+                  <li key={q.ord} className="text-[12px] text-ink-800">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">Q{q.ord + 1} · {q.kind}</span>
+                    <p className="mt-0.5">{q.prompt}</p>
+                    {Array.isArray(q.options) && (q.options as unknown[]).length > 0 && (
+                      <p className="mt-0.5 font-mono text-[10px] text-ink-500">
+                        Options: {(q.options as unknown[]).map((o) => String(o)).join(" · ")}
+                      </p>
+                    )}
+                  </li>
+                ))}
+                {(!s.questions || s.questions.length === 0) && <li className="text-[11px] text-ink-500">(no questions recorded)</li>}
+              </ol>
+            </div>
+          </details>
+        ))}
+      </div>
+    </details>
+  );
 }
 
 export function ProgramSynthesisCard({
@@ -44,6 +190,7 @@ export function ProgramSynthesisCard({
 
   const report = q.data;
   const sections = (report?.sections ?? {}) as ProgramSections;
+  const methodology = sections.methodology;
   const canGenerate = synthesizedCount >= 1;
 
   return (
@@ -89,13 +236,45 @@ export function ProgramSynthesisCard({
 
       {report && (
         <div className="grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_260px]">
-          <div className="min-w-0">
+          <div className="min-w-0 space-y-4">
+            {methodology?.brief && (
+              <div className="border border-line-200 bg-paper-50/40 p-3">
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">Original brief</p>
+                {methodology.brief.title && <p className="mt-1 font-serif text-sm text-ink-950">{methodology.brief.title}</p>}
+                {Array.isArray(methodology.brief.objectives) && methodology.brief.objectives.length > 0 && (
+                  <ul className="mt-1 list-disc pl-4 text-[12px] text-ink-800">
+                    {methodology.brief.objectives.map((o, i) => <li key={i}>{o}</li>)}
+                  </ul>
+                )}
+                {methodology.brief.raw_excerpt && (
+                  <p className="mt-1 text-[11px] italic leading-snug text-ink-600">{methodology.brief.raw_excerpt}</p>
+                )}
+              </div>
+            )}
+
             {report.summary_md && (
               <CitedMarkdown
                 className="prose prose-sm max-w-none text-ink-800 [&_h2]:mt-4 [&_h2]:font-serif [&_h2]:text-sm [&_h2]:uppercase [&_h2]:tracking-[0.12em] [&_h2]:text-ink-500 [&_p]:my-2"
                 source={report.summary_md}
                 citations={(report.citations ?? []) as never}
               />
+            )}
+
+            {methodology?.segments && methodology.segments.length > 0 && (
+              <CastSection segments={methodology.segments} />
+            )}
+            {methodology?.segments && methodology.segments.length > 0 && (
+              <GroupsSection segments={methodology.segments} />
+            )}
+            {methodology?.studies && methodology.studies.length > 0 && (
+              <InstrumentsSection studies={methodology.studies} />
+            )}
+
+            {!methodology && (
+              <p className="border border-dashed border-line-200 p-3 text-[11px] text-ink-500">
+                Methodology dossier (cast · groups · instruments) will appear here after the next
+                Regenerate — earlier memos were saved before this section existed.
+              </p>
             )}
           </div>
 
@@ -111,6 +290,21 @@ export function ProgramSynthesisCard({
                 <p className="mt-1 font-mono text-[10px] text-ink-500">
                   {sections.portfolio_scope.studies_run ?? 0} studies consolidated
                 </p>
+              </div>
+            )}
+
+            {sections.design_rationale && (
+              <div className="border border-line-200 px-3 py-2">
+                <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">Design rationale</p>
+                {sections.design_rationale.why_segments && (
+                  <p className="mt-1 text-[11px] text-ink-700"><span className="font-mono uppercase tracking-[0.14em] text-ink-500">Segments:</span> {sections.design_rationale.why_segments}</p>
+                )}
+                {sections.design_rationale.why_methods && (
+                  <p className="mt-1 text-[11px] text-ink-700"><span className="font-mono uppercase tracking-[0.14em] text-ink-500">Methods:</span> {sections.design_rationale.why_methods}</p>
+                )}
+                {sections.design_rationale.coverage_gaps && (
+                  <p className="mt-1 text-[11px] text-ink-700"><span className="font-mono uppercase tracking-[0.14em] text-ink-500">Gaps:</span> {sections.design_rationale.coverage_gaps}</p>
+                )}
               </div>
             )}
 

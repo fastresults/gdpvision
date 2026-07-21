@@ -1,51 +1,58 @@
-## What is actually happening
+## Goal
 
-This is not because the drafts failed to synthesize. The backend shows, for GRD:
+Turn the portfolio memo in Chamber 07 Stage 03 into a full methodology-rich report: cast (personas + descriptions), groups (segments + rationale), instruments (every question per study), and an expanded "why this design" narrative — alongside the existing synthesis.
 
-- 11 total studies
-- 11 studies have completed synthesis reports with non-empty summaries
-- 0 studies are marked `complete`
-- 11 studies are still marked `running`
+## Current gap
 
-So the finished work product exists, but the status rail is reading stale `studies.status` values instead of treating the presence of a completed `study_reports` row as the source of truth.
+`synthesizeStudyProgram` only feeds the AI the first 5 question prompts per study and a segment label. The rendered `ProgramSynthesisCard` shows only the AI markdown + a small recommendations rail. There is:
+- No cast roster (personas, archetypes, OCEAN, descriptions).
+- No segment gallery (label, prompt, size, why chosen).
+- No complete instruments list (all questions, kinds, options, per study).
+- No methodology narrative (why survey vs. focus group, sample sizing rationale, coverage vs. brief).
 
-## Root cause
+## Plan
 
-The synthesis step wrote all 11 reports successfully, but the final status update that should flip each study from `running` to `complete` did not persist for those rows. The UI then showed contradictory truth sources:
+### 1. Server: enrich the program report payload
+File: `src/lib/personas/study.functions.ts` (`synthesizeStudyProgram`)
 
-- The digest / completed work product reads `study_reports`, so it knows the work exists.
-- The right-side status rail reads only `studies.status`, so it incorrectly says `0/11 synthesized` and `11 running`.
+- Pull, in one batch scoped to the active project:
+  - All `persona_segments` for the country/project (id, label, prompt, size, created_at).
+  - All `persona_segment_members` → `personas` (id, name, archetype, summary, attributes, ocean, segment_id) so we can render the full cast grouped by segment.
+  - All `study_questions` for every study in scope (study_id, ord, prompt, kind, options).
+  - `persona_study_drafts` active brief (already loaded via `loadCountryBrief`) — keep the raw scope excerpt.
+- Build a `methodology_snapshot` object stored on `study_program_reports` (extend `studies_snapshot`/add fields via `sections.methodology`) containing:
+  - `brief`: title, objectives, raw excerpt.
+  - `segments[]`: { id, label, prompt, persona_count, personas: [{id, name, archetype, summary, ocean, attributes}] }.
+  - `studies[]`: { id, title, kind, objective, segment_id, segment_label, persona_count, questions: [{ord, prompt, kind, options}] }.
+- Extend the AI prompt with an explicit "## Methodology & design rationale" section requirement: why each method was chosen, why segment coverage is adequate, sampling logic, coverage-vs-brief matrix. Keep the existing sections; raise memo target to ~900–1200 words.
+- Persist the enriched snapshot into `study_program_reports.sections.methodology` (no schema migration needed — `sections` is jsonb). Also store on `memory_objects` payload so Second Brain reflects it.
 
-## Plan to fix this permanently
+### 2. Client: methodology dossier UI
+File: `src/components/personas/StudyWizard/ProgramSynthesisCard.tsx`
 
-1. **Make completed reports the canonical UI signal**
-   - Update the status rail and Stage 03 grouping logic so a study counts as synthesized when a non-empty report exists, even if `studies.status` is stale.
-   - The UI should never again show `0 synthesized` when 11 reports exist.
+Add three new collapsible sections below the memo, before the right rail, all rendered from `sections.methodology`:
 
-2. **Return report presence with study rows**
-   - Extend the study list response so every study includes whether it has a completed report.
-   - Use this derived field consistently for counts, progress bars, complete banners, and grouping.
+1. **Cast** — grid of persona cards grouped by segment: name · archetype · 2-line summary · OCEAN chips.
+2. **Groups (segments)** — segment cards: label, prompt, persona count, which studies used it.
+3. **Instruments** — per-study accordion: kind badge, objective, "N personas · M questions", full ordered question list with kind tag and options for choice/scale.
 
-3. **Strengthen server-side self-healing**
-   - Keep the existing reconciliation, but make it project-aware and ensure the returned rows reflect the reconciled status immediately.
-   - If a row has a report, the server should either persist `complete` or return it as synthesized for that read.
+Also surface a "Methodology & design rationale" heading inside the CitedMarkdown when present.
 
-4. **Remove ambiguous “running” language when reports exist**
-   - If all reports exist but some status rows are stale, show a recovery state such as “Reports complete · status syncing” only briefly, not “Incomplete studies.”
-   - Prefer “All studies synthesized” once the completed reports are present.
+Keep the current right-rail (scope link, recommendations, unanswered) unchanged.
 
-5. **Add a visible work-product entry point**
-   - Ensure the completed synthesis digest and consolidated program report are visible above the study library.
-   - Add a clear CTA like “Open completed synthesis” so the user does not have to infer where the work product is.
+### 3. Regeneration UX
 
-6. **Verify against GRD data**
-   - After implementation, verify the GRD Stage 03 page shows `11/11 synthesized`, `0 running`, and exposes the completed reports.
-   - Confirm the database still contains 11 non-empty reports and the UI reflects that exact count.
+- No changes to the existing "Regenerate" button; it already re-runs `synthesizeStudyProgram`, which now embeds full methodology.
+- After deploy, user clicks Regenerate once per country/project to hydrate `sections.methodology` for existing reports.
+
+## Out of scope
+
+- No schema migration (leveraging existing jsonb `sections`).
+- No changes to per-study `runStudySynthesis`; the per-study `SynthesisDigest` already shows instrument + questions.
+- No changes to auto-run orchestration.
 
 ## Technical notes
 
-- Files to update:
-  - `src/lib/personas/study.functions.ts`
-  - `src/routes/_authenticated/admin/countries.$code.personas.studies.tsx`
-  - `src/components/personas/StudyWizard/StudioStatusRail.tsx`
-- The safest fix is to derive `is_synthesized = status in ('complete','synthesized') OR report_summary_chars > 0` and use that everywhere the UI computes completion.
+- Payload size: cap personas to ~12 per segment in the AI prompt (keep all in the stored snapshot for UI).
+- Keep questions verbatim; do not truncate in the stored snapshot (UI truncates for display).
+- Preserve `stripBrandedByline` + citation sanitizers on any new markdown.

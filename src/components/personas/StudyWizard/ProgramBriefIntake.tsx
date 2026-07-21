@@ -189,7 +189,7 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
             </button>
           </div>
           <div className="mt-3">
-            <PrettyJson value={scope as unknown} />
+            <PrettyJson value={scope as never} />
           </div>
         </section>
       )}

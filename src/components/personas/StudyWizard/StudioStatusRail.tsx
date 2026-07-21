@@ -46,7 +46,7 @@ export function StudioStatusRail({
   resumeDisabled,
 }: Props) {
   const isDone = (s: Study) =>
-    !!s.is_synthesized || !!s.has_report || s.status === "synthesized" || s.status === "complete";
+    !!s.is_synthesized || !!s.has_report || s.status === "synthesized" || s.status === "complete" || s.status === "completed";
   const done = studies.filter(isDone);
   const running = studies.filter((s) => !isDone(s) && s.status === "running");
   const drafts = studies.filter(

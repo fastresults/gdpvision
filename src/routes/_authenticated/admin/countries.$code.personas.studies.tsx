@@ -227,7 +227,7 @@ function StudiesPage() {
 
   const grouped = useMemo(() => {
     const isDone = (s: (typeof studies)[number]) =>
-      !!s.is_synthesized || !!s.has_report || s.status === "synthesized" || s.status === "complete";
+      !!s.is_synthesized || !!s.has_report || s.status === "synthesized" || s.status === "complete" || s.status === "completed";
     const running = studies.filter((s) => !isDone(s) && s.status === "running");
     const done = studies.filter(isDone);
     const drafts = studies.filter((s) => !running.includes(s) && !done.includes(s));
@@ -277,7 +277,7 @@ function StudiesPage() {
       // Existing studies that never finished (drafts or stuck-running) also
       // need to be pushed to synthesis so the user only ever sees completed work.
       const needsFinish = studies.some(
-        (s) => !s.is_synthesized && !s.has_report && s.status !== "complete" && s.status !== "synthesized",
+        (s) => !s.is_synthesized && !s.has_report && s.status !== "completed" && s.status !== "complete" && s.status !== "synthesized",
       );
       if (targets.length === 0 && !needsFinish) {
         setAutoState({ phase: "complete", drafted: 0, completed: 0, failed: [] });
@@ -377,7 +377,7 @@ function StudiesPage() {
     if (didAttemptRef.current) return;
     if (autoState.phase !== "idle") return;
     const anyIncomplete = studies.some(
-      (s) => !s.is_synthesized && !s.has_report && s.status !== "complete" && s.status !== "synthesized",
+      (s) => !s.is_synthesized && !s.has_report && s.status !== "completed" && s.status !== "complete" && s.status !== "synthesized",
     );
     if (uncoveredSegments.length === 0 && !anyIncomplete) return;
     // Always self-heal on landing. AUTO_STUDIES_LOCK prevents double-runs

@@ -395,7 +395,7 @@ export const runStudySynthesis = createServerFn({ method: "POST" })
         { study_id: data.studyId, summary_md: "", themes: [] as never, citations: [] as never, context: contextPayload as never },
         { onConflict: "study_id" },
       );
-      await supabase.from("studies").update({ status: "complete" }).eq("id", data.studyId);
+      await supabase.from("studies").update({ status: "completed" }).eq("id", data.studyId);
       return { ok: true, empty: true };
     }
 
@@ -430,7 +430,7 @@ export const runStudySynthesis = createServerFn({ method: "POST" })
         { onConflict: "study_id" },
       );
     }
-    await supabase.from("studies").update({ status: "complete" }).eq("id", data.studyId);
+    await supabase.from("studies").update({ status: "completed" }).eq("id", data.studyId);
     return { ok: true };
   });
 
@@ -730,7 +730,7 @@ export const listStudies = createServerFn({ method: "POST" })
         .from("studies")
         .select("id")
         .eq("country_code", data.countryCode)
-        .neq("status", "complete")
+        .neq("status", "completed")
         .limit(500);
       if (data.projectId) stuckQuery = stuckQuery.eq("project_id", data.projectId);
       const { data: stuck } = await stuckQuery;
@@ -744,7 +744,7 @@ export const listStudies = createServerFn({ method: "POST" })
           .filter((r) => (r.summary_md ?? "").trim().length > 0)
           .map((r) => r.study_id as string);
         if (doneIds.length > 0) {
-          await supabase.from("studies").update({ status: "complete" }).in("id", doneIds);
+          await supabase.from("studies").update({ status: "completed" }).in("id", doneIds);
         }
       }
     } catch {
@@ -783,8 +783,8 @@ export const listStudies = createServerFn({ method: "POST" })
       return {
         ...s,
         raw_status: rawStatus,
-        status: hasReport ? "complete" : rawStatus,
-        is_synthesized: hasReport || rawStatus === "complete" || rawStatus === "synthesized",
+        status: hasReport ? "completed" : rawStatus,
+        is_synthesized: hasReport || rawStatus === "completed" || rawStatus === "complete" || rawStatus === "synthesized",
         has_report: hasReport,
         report_summary_chars: report?.chars ?? 0,
       };

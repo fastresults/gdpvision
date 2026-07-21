@@ -62,7 +62,7 @@ async function completeStudyEndToEnd(opts: {
   const hasReport = !!existing?.report;
 
   // If the study is already fully synthesized/complete, skip.
-  if (hasReport || status === "complete" || status === "synthesized") return { ok: true };
+  if (hasReport || status === "completed" || status === "complete" || status === "synthesized") return { ok: true };
 
   // 1) Draft questions (idempotent — replaces existing).
   if (!hasQuestions) {
@@ -215,7 +215,7 @@ export async function completeIncompleteStudies({
   const all = await listStudies({ data: { countryCode: code, projectId } });
   // Anything not yet synthesized/complete needs finishing.
   const targets = all.filter(
-    (s) => !s.is_synthesized && s.status !== "complete" && s.status !== "synthesized",
+    (s) => !s.is_synthesized && s.status !== "completed" && s.status !== "complete" && s.status !== "synthesized",
   );
   const total = targets.length;
   for (let i = 0; i < targets.length; i++) {

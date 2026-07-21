@@ -51,7 +51,7 @@ export const listProjects = createServerFn({ method: "POST" })
       const b = perProject.get(s.project_id as string);
       if (!b) continue;
       b.total += 1;
-      if (s.status === "complete" || s.status === "synthesized") b.done += 1;
+      if (s.status === "completed" || s.status === "complete" || s.status === "synthesized") b.done += 1;
     }
     for (const m of memos ?? []) {
       const b = perProject.get(m.project_id as string);

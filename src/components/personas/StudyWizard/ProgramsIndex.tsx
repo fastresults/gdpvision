@@ -260,7 +260,7 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
               />
             ) : (
               <Link
-                to="/_authenticated/admin/countries/$code/personas/studies"
+                to="/admin/countries/$code/personas/studies"
                 params={{ code }}
                 search={{ project: p.id }}
                 className="font-serif text-base text-ink-950 hover:underline"
@@ -302,7 +302,7 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
         <div className="flex items-center gap-2">
           {p.has_program_memo ? (
             <Link
-              to="/_authenticated/admin/countries/$code/personas/studies"
+              to="/admin/countries/$code/personas/studies"
               params={{ code }}
               search={{ project: p.id }}
               className="inline-flex items-center gap-1 border border-emerald-600 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-emerald-700 hover:bg-emerald-600 hover:text-paper-0"
@@ -311,7 +311,7 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
             </Link>
           ) : (
             <Link
-              to="/_authenticated/admin/countries/$code/personas/studies"
+              to="/admin/countries/$code/personas/studies"
               params={{ code }}
               search={{ project: p.id }}
               className="inline-flex items-center gap-1 border border-ink-950 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950 hover:bg-ink-950 hover:text-paper-0"

@@ -40,6 +40,7 @@ import {
 import { StudioStepper } from "@/components/personas/StudioStepper";
 import { StudioStatusRail } from "@/components/personas/StudyWizard/StudioStatusRail";
 import { ProjectSwitcher } from "@/components/personas/StudyWizard/ProjectSwitcher";
+import { ProgramsIndex } from "@/components/personas/StudyWizard/ProgramsIndex";
 import { clearAutoRun, publishAutoRun, registerAutoRunAbort, registerAutoRunResume, unregisterAutoRunAbort } from "@/lib/autorun/beacon";
 import { useServerFn } from "@tanstack/react-start";
 
@@ -82,10 +83,10 @@ function segmentsQuery(code: string) {
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/personas/studies")({
   validateSearch: (s) => searchSchema.parse(s),
   loader: async ({ context, params }) => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(studiesQuery(params.code)),
-      context.queryClient.ensureQueryData(segmentsQuery(params.code)),
-    ]);
+    // Only segments are safe to preload without a project — studies are
+    // strictly project-scoped and never fetched at the country level from
+    // this route (that would leak prior-project content into the UI).
+    await context.queryClient.ensureQueryData(segmentsQuery(params.code));
   },
   errorComponent: ({ error }) => <p className="p-6 text-sm text-rose-600">{error.message}</p>,
   component: StudiesPage,
@@ -140,9 +141,18 @@ function StudiesPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const activeProjectId = search.project;
-  const { data: studies } = useSuspenseQuery(studiesQuery(code, activeProjectId));
+  // Studies + digest are strictly project-scoped. Without an active project
+  // we render only the Programs Index (no working surface, no prior-project
+  // content) — so gate the reads on `activeProjectId`.
+  const { data: studies = [] } = useQuery({
+    ...studiesQuery(code, activeProjectId),
+    enabled: !!activeProjectId,
+  });
   const { data: segments } = useSuspenseQuery(segmentsQuery(code));
-  const { data: digest = [] } = useQuery(studiesDigestQuery(code, activeProjectId));
+  const { data: digest = [] } = useQuery({
+    ...studiesDigestQuery(code, activeProjectId),
+    enabled: !!activeProjectId,
+  });
 
   const [segmentId, setSegmentId] = useState<string>(search.segmentId ?? "");
   const [kind, setKind] = useState<StudyKind | "">("");
@@ -188,9 +198,11 @@ function StudiesPage() {
 
   // AI Composer — picks segment + method + framing automatically.
   const composerQ = useQuery({
-    queryKey: ["study-composer", code, activeProjectId ?? "default", segments.length],
+    queryKey: ["study-composer", code, activeProjectId ?? "none", segments.length],
     queryFn: () => composeStudy({ data: { countryCode: code, projectId: activeProjectId } }),
-    enabled: segments.length > 0,
+    // Never compose without a project — proposals must be scoped to a
+    // program so nothing leaks from a prior one.
+    enabled: !!activeProjectId && segments.length > 0,
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
   });
@@ -390,6 +402,7 @@ function StudiesPage() {
   useEffect(() => {
     if (didAttemptRef.current) return;
     if (!autoIntent) return;
+    if (!activeProjectId) return; // never auto-run without a project scope
     if (autoState.phase !== "idle") return;
     const anyIncomplete = studies.some(
       (s) => !s.is_synthesized && !s.has_report && s.status !== "completed" && s.status !== "complete" && s.status !== "synthesized",
@@ -414,7 +427,7 @@ function StudiesPage() {
       replace: true,
     });
     void startAutoRun();
-  }, [autoIntent, uncoveredSegments.length, studies, autoState.phase, startAutoRun, navigate, code]);
+  }, [autoIntent, activeProjectId, uncoveredSegments.length, studies, autoState.phase, startAutoRun, navigate, code]);
 
   const rehearseStatus =
     autoState.phase === "running"
@@ -478,9 +491,33 @@ function StudiesPage() {
     }
   }, [autoState, code, startAutoRun]);
 
+  // ─── Programs-index gate ──────────────────────────────────────────────
+  // When no project is selected, render ONLY the Programs Index — no
+  // composer, no auto-run controls, no prior-project studies or reports.
+  // The admin must explicitly open a program (or create a new one) before
+  // any working surface appears.
+  if (!activeProjectId) {
+    return (
+      <div className="space-y-8">
+        <StudioStepper code={code} active="rehearse" />
+        <div className="flex items-center justify-between gap-3">
+          <Link
+            to="/admin/countries/$code/personas"
+            params={{ code }}
+            className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
+          >
+            ← Chamber 07 hub
+          </Link>
+        </div>
+        <ProgramsIndex code={code} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <StudioStepper code={code} active="rehearse" rehearseStatus={rehearseStatus} />
+
 
       <div className="flex items-center justify-between gap-3">
         <Link

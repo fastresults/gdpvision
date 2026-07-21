@@ -37,6 +37,7 @@ import {
   type StudyAutoPhase,
 } from "@/lib/personas/study-autorun";
 import { StudioStepper } from "@/components/personas/StudioStepper";
+import { StudioStatusRail } from "@/components/personas/StudyWizard/StudioStatusRail";
 import { clearAutoRun, publishAutoRun, registerAutoRunResume } from "@/lib/autorun/beacon";
 
 const PHASE_LABEL: Record<StudyAutoPhase, string> = {
@@ -481,7 +482,8 @@ function StudiesPage() {
                 </span>
                 <ArrowRight size={12} className="text-ink-500 transition group-open:rotate-90" />
               </summary>
-              <div className="space-y-6 border-t border-line-200 p-4">
+              <div className="grid gap-6 border-t border-line-200 p-4 md:grid-cols-[1fr_280px]">
+                <div className="space-y-6">
                 <StepBlock
                   n={1}
                   label="Pick a segment"
@@ -606,53 +608,77 @@ function StudiesPage() {
                     ))}
                   </div>
                 </StepBlock>
+                </div>
+
+                {/* Manual preview — only visible when this disclosure is open */}
+                <aside className="md:sticky md:top-4 md:self-start">
+                  <div className="border border-line-200 bg-paper-0 p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                        Study preview
+                      </p>
+                      {!ready ? (
+                        <span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-700">
+                          Next: {nextLabel} <ArrowRight size={10} />
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.16em] text-emerald-600">
+                          <Check size={11} strokeWidth={2.5} /> Ready to create
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-2 font-serif text-lg leading-tight text-ink-950">
+                      {title.trim() || <span className="text-ink-400">Untitled study</span>}
+                    </p>
+                    <dl className="mt-3 space-y-2 text-[12px]">
+                      <PreviewRow
+                        label="Segment"
+                        value={
+                          chosenSegment
+                            ? `${chosenSegment.label} · ${chosenSegment.size} personas`
+                            : "—"
+                        }
+                      />
+                      <PreviewRow label="Method" value={chosenMethod?.label ?? "—"} />
+                      <PreviewRow label="Objective" value={objective.trim() || "—"} />
+                    </dl>
+                    <button
+                      type="button"
+                      onClick={() => create.mutate({})}
+                      disabled={!ready || create.isPending}
+                      className="mt-4 inline-flex w-full items-center justify-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-40"
+                    >
+                      {create.isPending ? "Creating…" : "Create this study"} <ArrowRight size={12} />
+                    </button>
+                    {create.isError && (
+                      <p className="mt-2 text-[11px] text-rose-600">
+                        {(create.error as Error).message}
+                      </p>
+                    )}
+                  </div>
+                </aside>
               </div>
             </details>
           </div>
 
-          {/* Sticky preview */}
-          <aside className="lg:sticky lg:top-4 lg:self-start">
-            <div className="border border-line-200 bg-paper-0 p-4">
-              <div className="flex items-center justify-between gap-2">
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                  Study preview
-                </p>
-                {!ready ? (
-                  <span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-700">
-                    Next: {nextLabel} <ArrowRight size={10} />
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.16em] text-emerald-600">
-                    <Check size={11} strokeWidth={2.5} /> Ready to create
-                  </span>
-                )}
-              </div>
-              <p className="mt-2 font-serif text-lg leading-tight text-ink-950">
-                {title.trim() || <span className="text-ink-400">Untitled study</span>}
-              </p>
-              <dl className="mt-3 space-y-2 text-[12px]">
-                <PreviewRow
-                  label="Segment"
-                  value={
-                    chosenSegment ? `${chosenSegment.label} · ${chosenSegment.size} personas` : "—"
-                  }
-                />
-                <PreviewRow label="Method" value={chosenMethod?.label ?? "—"} />
-                <PreviewRow label="Objective" value={objective.trim() || "—"} />
-              </dl>
-              <button
-                type="button"
-                onClick={() => create.mutate({})}
-                disabled={!ready || create.isPending}
-                className="mt-4 inline-flex w-full items-center justify-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-40"
-              >
-                {create.isPending ? "Creating…" : "Create this study"} <ArrowRight size={12} />
-              </button>
-              {create.isError && (
-                <p className="mt-2 text-[11px] text-rose-600">{(create.error as Error).message}</p>
-              )}
-            </div>
-          </aside>
+          {/* Live status rail */}
+          <StudioStatusRail
+            code={code}
+            studies={studies}
+            segments={segments}
+            digest={digest}
+            autoPhase={autoState.phase}
+            autoDetail={
+              autoState.phase === "running"
+                ? `${PHASE_LABEL[autoState.step]} ${autoState.index}/${autoState.total} · ${autoState.segmentLabel}`
+                : undefined
+            }
+            onResume={() => {
+              didAttemptRef.current = true;
+              void startAutoRun();
+            }}
+            resumeDisabled={autoState.phase === "running"}
+          />
         </div>
       )}
 

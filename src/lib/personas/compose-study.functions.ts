@@ -88,6 +88,7 @@ export const composeStudy = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<ComposeStudyResult> => {
     const { supabase } = context;
     const code = data.countryCode;
+    const projectId = data.projectId;
 
     // 1. Load segments
     const { data: segments, error: segErr } = await supabase
@@ -101,22 +102,26 @@ export const composeStudy = createServerFn({ method: "POST" })
       return { ok: false, reason: "No segments yet — create one first." };
     }
 
-    // 2. Load recent brief/blueprint context (most recent draft with content)
-    const { data: draft } = await supabase
+    // 2. Load recent brief/blueprint context — scoped to the active project
+    // when provided so proposals never leak from another program.
+    let draftQ = supabase
       .from("persona_study_drafts")
       .select("brief_raw,brief_scope,outcome_blueprint")
       .eq("country_code", code)
       .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+    if (projectId) draftQ = draftQ.eq("project_id", projectId);
+    const { data: draft } = await draftQ.maybeSingle();
 
-    // 3. Load recent studies to avoid duplication
-    const { data: priorStudies } = await supabase
+    // 3. Load recent studies to avoid duplication — scoped to project.
+    let priorQ = supabase
       .from("studies")
       .select("title,kind,objective,segment_id")
       .eq("country_code", code)
       .order("created_at", { ascending: false })
       .limit(10);
+    if (projectId) priorQ = priorQ.eq("project_id", projectId);
+    const { data: priorStudies } = await priorQ;
 
     const scope = (draft?.brief_scope ?? null) as { title?: string; objectives?: string[] } | null;
     const blueprint = (draft?.outcome_blueprint ?? null) as {

@@ -85,6 +85,7 @@ export function publishAutoRun(
 
 export function clearAutoRun(id: string) {
   resumers.delete(id);
+  aborters.delete(id);
   if (!state.has(id)) return;
   state.delete(id);
   emit();
@@ -96,6 +97,53 @@ export function registerAutoRunResume(id: string, fn: ResumeFn) {
 
 export function unregisterAutoRunResume(id: string) {
   resumers.delete(id);
+}
+
+export function registerAutoRunAbort(id: string, fn: AbortFn) {
+  aborters.set(id, fn);
+}
+
+export function unregisterAutoRunAbort(id: string) {
+  aborters.delete(id);
+}
+
+// Hard-stop an in-flight run. Invokes the registered abort callback (which
+// should flip the caller's cancel flag / release locks), marks the beacon
+// entry as paused with a "Stopped by user" message, and after a short grace
+// window fully clears it. Safe to call even if no abort callback is
+// registered — the entry will still be marked stopped and cleared.
+export async function abortAutoRun(id: string) {
+  const fn = aborters.get(id);
+  const entry = state.get(id);
+  if (entry) {
+    state.set(id, {
+      ...entry,
+      status: "paused",
+      health: "healthy",
+      message: "Stopped by user.",
+      detail: "Stopping…",
+      lastProgressAt: Date.now(),
+    });
+    emit();
+  }
+  if (fn) {
+    try { await fn(); } catch { /* ignore */ }
+  }
+  aborters.delete(id);
+  resumers.delete(id);
+  // Give the async chain a moment to unwind, then clear the entry.
+  setTimeout(() => {
+    const cur = state.get(id);
+    if (cur && cur.status !== "running") {
+      state.delete(id);
+      emit();
+    }
+  }, 1500);
+}
+
+export async function abortAllAutoRuns() {
+  const ids = Array.from(state.keys());
+  await Promise.all(ids.map((id) => abortAutoRun(id)));
 }
 
 export async function resumeAutoRun(id: string) {

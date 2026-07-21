@@ -1,58 +1,45 @@
+## Problem
+
+The Chamber 07 landing (`/admin/countries/$code/personas`) hides the multi-project reality of the studio. There is no index of past synthesized reports and no obvious way to start a new one. The `ProjectSwitcher` (a compact dropdown) only appears deep inside Stage 03 (`/personas/studies`), so from the Stage 01 landing an admin has no signal that "projects" even exist, how many reports have been produced, or how to launch another program.
+
 ## Goal
 
-Turn the portfolio memo in Chamber 07 Stage 03 into a full methodology-rich report: cast (personas + descriptions), groups (segments + rationale), instruments (every question per study), and an expanded "why this design" narrative — alongside the existing synthesis.
+Turn the Chamber 07 landing into a clear **Research Programs index** — a first-class list of every project (past + in-flight), each row showing the finished synthesis status, with a prominent **New research program** action.
 
-## Current gap
+## Changes (frontend only)
 
-`synthesizeStudyProgram` only feeds the AI the first 5 question prompts per study and a segment label. The rendered `ProgramSynthesisCard` shows only the AI markdown + a small recommendations rail. There is:
-- No cast roster (personas, archetypes, OCEAN, descriptions).
-- No segment gallery (label, prompt, size, why chosen).
-- No complete instruments list (all questions, kinds, options, per study).
-- No methodology narrative (why survey vs. focus group, sample sizing rationale, coverage vs. brief).
+### 1. New component: `src/components/personas/StudyWizard/ProgramsIndex.tsx`
 
-## Plan
+A McKinsey-grade index card, rendered above the Studio Journey on the personas landing.
 
-### 1. Server: enrich the program report payload
-File: `src/lib/personas/study.functions.ts` (`synthesizeStudyProgram`)
+Contents:
+- Header row: "Research programs" · count · primary CTA **New program** (opens inline title form; reuses `createProject` from `projects.functions.ts`).
+- Table/list of every project from `listProjects`:
+  - Title (link → Stage 03 with `?project=<id>`)
+  - Status chip: **Synthesized** (has_program_memo), **In progress** (studies_total > studies_done), **Draft** (0 studies), **Archived**
+  - `studies_done / studies_total` studies · `segments_total` segments
+  - Updated timestamp (relative)
+  - Row actions: **Open report** (→ Stage 03, scrolls to `ProgramSynthesisCard`), **Continue** (→ Stage 03), overflow → Rename / Archive (uses existing `renameProject`, `archiveProject`)
+- Empty state: single centered CTA "Start your first research program" with the same inline title form.
 
-- Pull, in one batch scoped to the active project:
-  - All `persona_segments` for the country/project (id, label, prompt, size, created_at).
-  - All `persona_segment_members` → `personas` (id, name, archetype, summary, attributes, ocean, segment_id) so we can render the full cast grouped by segment.
-  - All `study_questions` for every study in scope (study_id, ord, prompt, kind, options).
-  - `persona_study_drafts` active brief (already loaded via `loadCountryBrief`) — keep the raw scope excerpt.
-- Build a `methodology_snapshot` object stored on `study_program_reports` (extend `studies_snapshot`/add fields via `sections.methodology`) containing:
-  - `brief`: title, objectives, raw excerpt.
-  - `segments[]`: { id, label, prompt, persona_count, personas: [{id, name, archetype, summary, ocean, attributes}] }.
-  - `studies[]`: { id, title, kind, objective, segment_id, segment_label, persona_count, questions: [{ord, prompt, kind, options}] }.
-- Extend the AI prompt with an explicit "## Methodology & design rationale" section requirement: why each method was chosen, why segment coverage is adequate, sampling logic, coverage-vs-brief matrix. Keep the existing sections; raise memo target to ~900–1200 words.
-- Persist the enriched snapshot into `study_program_reports.sections.methodology` (no schema migration needed — `sections` is jsonb). Also store on `memory_objects` payload so Second Brain reflects it.
+### 2. Update `src/routes/_authenticated/admin/countries.$code.personas.index.tsx`
 
-### 2. Client: methodology dossier UI
-File: `src/components/personas/StudyWizard/ProgramSynthesisCard.tsx`
+- Mount `<ProgramsIndex code={code} />` immediately below `StudioStepper` and above the existing header/Studio Journey.
+- Keep the existing Journey board, personas library, and advanced generator untouched (they operate on the currently active/most-recent program).
+- Journey cards' counts (segments, studies) continue to reflect the country-wide totals as today; the Programs index is the surface for per-program reports.
 
-Add three new collapsible sections below the memo, before the right rail, all rendered from `sections.methodology`:
+### 3. Small polish
 
-1. **Cast** — grid of persona cards grouped by segment: name · archetype · 2-line summary · OCEAN chips.
-2. **Groups (segments)** — segment cards: label, prompt, persona count, which studies used it.
-3. **Instruments** — per-study accordion: kind badge, objective, "N personas · M questions", full ordered question list with kind tag and options for choice/scale.
-
-Also surface a "Methodology & design rationale" heading inside the CitedMarkdown when present.
-
-Keep the current right-rail (scope link, recommendations, unanswered) unchanged.
-
-### 3. Regeneration UX
-
-- No changes to the existing "Regenerate" button; it already re-runs `synthesizeStudyProgram`, which now embeds full methodology.
-- After deploy, user clicks Regenerate once per country/project to hydrate `sections.methodology` for existing reports.
+- On the Stage 03 page, keep the existing `ProjectSwitcher` but add a subtle "← All programs" link back to `/personas` so navigation between the index and a specific program is a single click.
+- Ensure `New program` in `ProgramsIndex` navigates the user directly into Stage 03 with `?project=<new-id>` (matching `ProjectSwitcher`'s existing behavior) so auto-run picks it up.
 
 ## Out of scope
 
-- No schema migration (leveraging existing jsonb `sections`).
-- No changes to per-study `runStudySynthesis`; the per-study `SynthesisDigest` already shows instrument + questions.
-- No changes to auto-run orchestration.
+- No schema changes; `persona_projects` + `study_program_reports` already back this.
+- No changes to synthesis logic, auto-run, or report content.
+- No changes to Stages 02/03 workflows beyond the "All programs" back-link.
 
-## Technical notes
+## Acceptance
 
-- Payload size: cap personas to ~12 per segment in the AI prompt (keep all in the stored snapshot for UI).
-- Keep questions verbatim; do not truncate in the stored snapshot (UI truncates for display).
-- Preserve `stripBrandedByline` + citation sanitizers on any new markdown.
+- From the Chamber 07 landing, an admin sees every past program with a Synthesized/In-progress badge and can open the finished report in one click.
+- A **New program** CTA is visible on the landing (both when programs exist and in the empty state) and creating one drops the admin straight into Stage 03 for that program.

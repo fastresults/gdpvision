@@ -1,12 +1,12 @@
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Check, FlaskConical, Layers, Users } from "lucide-react";
+import { Check, FileText, FlaskConical, Layers, Lock, Users } from "lucide-react";
 
 import { listPersonas, listSegments } from "@/lib/personas/generate.functions";
 import { listStudies } from "@/lib/personas/study.functions";
 import { cn } from "@/lib/utils";
 
-type StageKey = "cast" | "group" | "rehearse";
+type StageKey = "brief" | "cast" | "group" | "rehearse";
 
 export function StudioStepper({
   code,
@@ -14,12 +14,14 @@ export function StudioStepper({
   activeProjectId,
   autoStatus,
   rehearseStatus,
+  briefCommitted = true,
 }: {
   code: string;
   active?: StageKey;
   activeProjectId?: string;
   autoStatus?: string;
   rehearseStatus?: string;
+  briefCommitted?: boolean;
 }) {
   const matchRoute = useMatchRoute();
   const personas = useQuery({
@@ -69,7 +71,22 @@ export function StudioStepper({
     isActive: boolean;
     to: "/admin/countries/$code/personas" | "/admin/countries/$code/personas/segments" | "/admin/countries/$code/personas/studies";
     exact: boolean;
+    locked?: boolean;
+    complete?: boolean;
   }> = [
+    {
+      key: "brief",
+      n: 0,
+      label: "Brief",
+      sub: "Intake",
+      count: briefCommitted ? 1 : 0,
+      countLabel: briefCommitted ? "committed" : "required",
+      icon: FileText,
+      isActive: active === "brief",
+      to: "/admin/countries/$code/personas",
+      exact: true,
+      complete: briefCommitted,
+    },
     {
       key: "cast",
       n: 1,
@@ -81,6 +98,7 @@ export function StudioStepper({
       isActive: active === "cast" || (active === undefined && onIndex),
       to: "/admin/countries/$code/personas",
       exact: true,
+      locked: !briefCommitted,
     },
     {
       key: "group",
@@ -93,6 +111,7 @@ export function StudioStepper({
       isActive: active === "group" || (active === undefined && onSegments),
       to: "/admin/countries/$code/personas/segments",
       exact: false,
+      locked: !briefCommitted,
     },
     {
       key: "rehearse",
@@ -105,6 +124,7 @@ export function StudioStepper({
       isActive: active === "rehearse" || (active === undefined && onStudies),
       to: "/admin/countries/$code/personas/studies",
       exact: false,
+      locked: !briefCommitted,
     },
   ];
 
@@ -113,10 +133,11 @@ export function StudioStepper({
       aria-label="Studio stages"
       className="sticky top-0 z-20 -mx-6 border-b border-line-200 bg-paper-0/95 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-paper-0/80"
     >
-      <ol className="grid grid-cols-3 gap-2">
+      <ol className="grid grid-cols-4 gap-2">
         {nodes.map((s) => {
           const Icon = s.icon;
-          const complete = s.count > 0;
+          const complete = s.complete ?? s.count > 0;
+          const locked = s.locked;
           return (
             <li key={s.key}>
               <Link
@@ -124,8 +145,12 @@ export function StudioStepper({
                 params={{ code }}
                 search={activeProjectId ? { project: activeProjectId, open: 1 } : undefined}
                 activeOptions={{ exact: s.exact }}
+                disabled={locked}
+                aria-disabled={locked}
+                onClick={(e) => { if (locked) e.preventDefault(); }}
                 className={cn(
                   "group flex items-start gap-3 border-l-2 py-1 pl-3 transition-colors",
+                  locked && "opacity-40 cursor-not-allowed pointer-events-none",
                   s.isActive
                     ? "border-ink-950"
                     : complete
@@ -143,7 +168,9 @@ export function StudioStepper({
                         : "border-line-200 text-ink-500",
                   )}
                 >
-                  {complete && !s.isActive ? (
+                  {locked ? (
+                    <Lock size={11} />
+                  ) : complete && !s.isActive ? (
                     <Check size={12} strokeWidth={3} />
                   ) : (
                     s.n.toString().padStart(2, "0")

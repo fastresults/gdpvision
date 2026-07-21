@@ -179,6 +179,8 @@ export const generateSegment = createServerFn({ method: "POST" })
       .maybeSingle();
     if (projectErr) throw new Error(projectErr.message);
     if (!project) throw new Error("Research program not found for this country.");
+    const { assertProgramBriefCommitted } = await import("./project-brief.functions");
+    await assertProgramBriefCommitted(supabase, data.projectId);
 
     const pack = await buildCountryContextPack(supabase, data.countryCode, data.prompt);
 

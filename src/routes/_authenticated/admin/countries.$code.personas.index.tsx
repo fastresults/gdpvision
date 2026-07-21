@@ -12,6 +12,8 @@ import { startAutorun } from "@/lib/personas/autorun.functions";
 import { JourneyCard } from "@/components/personas/JourneyCard";
 import { StudioStepper } from "@/components/personas/StudioStepper";
 import { ProgramsIndex } from "@/components/personas/StudyWizard/ProgramsIndex";
+import { ProgramBriefIntake } from "@/components/personas/StudyWizard/ProgramBriefIntake";
+import { useProgramBriefGate } from "@/hooks/useProgramBriefGate";
 import { listProjects } from "@/lib/personas/projects.functions";
 
 function personasQuery(code: string, projectId?: string) {
@@ -59,9 +61,29 @@ function PersonasIndex() {
   const segCount = (projectsQ.data ?? []).reduce((sum, p) => sum + p.segments_total, 0);
   const studyCount = (projectsQ.data ?? []).reduce((sum, p) => sum + p.studies_total, 0);
 
+  const briefGate = useProgramBriefGate(activeProjectId);
+
+  if (activeProjectId && briefGate.needsIntake) {
+    return (
+      <div className="space-y-6">
+        <StudioStepper code={code} active="brief" activeProjectId={activeProjectId} briefCommitted={false} />
+        <div>
+          <Link
+            to="/admin/countries/$code/personas"
+            params={{ code }}
+            className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
+          >
+            ← All programs
+          </Link>
+        </div>
+        <ProgramBriefIntake code={code} projectId={activeProjectId} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <StudioStepper code={code} active="cast" activeProjectId={activeProjectId} />
+      <StudioStepper code={code} active="cast" activeProjectId={activeProjectId} briefCommitted={briefGate.committed || !activeProjectId} />
 
       <ProgramsIndex code={code} />
 

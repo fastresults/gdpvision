@@ -157,6 +157,8 @@ export const createStudy = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const projectId = data.projectId ?? (await resolveDefaultProjectId(supabase, data.countryCode));
     if (!projectId) throw new Error("Select or create a research program before creating a study.");
+    const { assertProgramBriefCommitted } = await import("./project-brief.functions");
+    await assertProgramBriefCommitted(supabase, projectId);
 
     const { data: segment, error: segmentErr } = await supabase
       .from("persona_segments")

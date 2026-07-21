@@ -93,6 +93,9 @@ export const composeStudy = createServerFn({ method: "POST" })
     const { supabase } = context;
     const code = data.countryCode;
     const projectId = data.projectId;
+    const { assertProgramBriefCommitted } = await import("./project-brief.functions");
+    await assertProgramBriefCommitted(supabase, projectId);
+
 
     // 1. Load segments
     const { data: segments, error: segErr } = await supabase

@@ -4068,6 +4068,10 @@ export type Database = {
       }
       persona_projects: {
         Row: {
+          brief_committed_at: string | null
+          brief_raw: string | null
+          brief_scope: Json | null
+          brief_uploads: Json
           country_code: string
           created_at: string
           created_by: string | null
@@ -4081,6 +4085,10 @@ export type Database = {
           visibility: string
         }
         Insert: {
+          brief_committed_at?: string | null
+          brief_raw?: string | null
+          brief_scope?: Json | null
+          brief_uploads?: Json
           country_code: string
           created_at?: string
           created_by?: string | null
@@ -4094,6 +4102,10 @@ export type Database = {
           visibility?: string
         }
         Update: {
+          brief_committed_at?: string | null
+          brief_raw?: string | null
+          brief_scope?: Json | null
+          brief_uploads?: Json
           country_code?: string
           created_at?: string
           created_by?: string | null

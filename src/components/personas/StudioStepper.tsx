@@ -23,8 +23,9 @@ export function StudioStepper({
 }) {
   const matchRoute = useMatchRoute();
   const personas = useQuery({
-    queryKey: ["personas", code],
-    queryFn: () => listPersonas({ data: { countryCode: code } }),
+    queryKey: ["personas", code, activeProjectId ?? "none"],
+    queryFn: () => activeProjectId ? listPersonas({ data: { countryCode: code, projectId: activeProjectId } }) : Promise.resolve([]),
+    enabled: !!activeProjectId,
   });
   const segments = useQuery({
     queryKey: ["persona-segments", code, activeProjectId ?? "none"],
@@ -121,6 +122,7 @@ export function StudioStepper({
               <Link
                 to={s.to}
                 params={{ code }}
+                search={activeProjectId ? { project: activeProjectId, open: 1 } : undefined}
                 activeOptions={{ exact: s.exact }}
                 className={cn(
                   "group flex items-start gap-3 border-l-2 py-1 pl-3 transition-colors",

@@ -115,8 +115,9 @@ function SegmentsPage() {
     enabled: !!activeProjectId,
   });
   const personasQ = useQuery({
-    queryKey: ["personas", code],
-    queryFn: () => listPersonas({ data: { countryCode: code } }),
+    queryKey: ["personas", code, activeProjectId ?? "none"],
+    queryFn: () => activeProjectId ? listPersonas({ data: { countryCode: code, projectId: activeProjectId } }) : Promise.resolve([]),
+    enabled: !!activeProjectId,
   });
   const personaCount = personasQ.data?.length ?? 0;
 
@@ -158,7 +159,7 @@ function SegmentsPage() {
       setLastCreated({ id: row.segment.id, label: row.segment.label });
       qc.invalidateQueries({ queryKey: ["persona-segments", code, activeProjectId] });
       qc.invalidateQueries({ queryKey: ["persona-projects", code] });
-      qc.invalidateQueries({ queryKey: ["personas", code] });
+      qc.invalidateQueries({ queryKey: ["personas", code, activeProjectId] });
     },
   });
 
@@ -167,7 +168,7 @@ function SegmentsPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["persona-segments", code, activeProjectId] });
       qc.invalidateQueries({ queryKey: ["persona-projects", code] });
-      qc.invalidateQueries({ queryKey: ["personas", code] });
+      qc.invalidateQueries({ queryKey: ["personas", code, activeProjectId] });
     },
   });
 

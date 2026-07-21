@@ -104,7 +104,7 @@ function StudyDetail() {
 
   return (
     <div className="space-y-6">
-      <StudioStepper code={code} active="rehearse" />
+      <StudioStepper code={code} active="rehearse" activeProjectId={search.project} />
 
       <Link
         to="/admin/countries/$code/personas/studies"

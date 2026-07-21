@@ -28,8 +28,9 @@ function PersonasLayout() {
   const activeProjectId = typeof search.project === "string" && search.project.length > 0 ? search.project : undefined;
 
   const personas = useQuery({
-    queryKey: ["personas", code],
-    queryFn: () => listPersonas({ data: { countryCode: code } }),
+    queryKey: ["personas", code, activeProjectId ?? "none"],
+    queryFn: () => activeProjectId ? listPersonas({ data: { countryCode: code, projectId: activeProjectId } }) : Promise.resolve([]),
+    enabled: !!activeProjectId,
   });
   const segments = useQuery({
     queryKey: ["persona-segments", code, activeProjectId ?? "none"],

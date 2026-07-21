@@ -57,23 +57,21 @@ const searchSchema = z.object({
   project: z.string().optional(),
 });
 
-function studiesQuery(code: string, projectId?: string) {
+export function studiesQuery(code: string, projectId?: string) {
   return queryOptions({
     queryKey: ["studies", code, projectId ?? "all"],
     queryFn: () => listStudies({ data: { countryCode: code, projectId } }),
-    // Match the digest cadence so the status rail counters cannot lag behind
-    // the "Auto-run complete" banner (which reads from the digest).
     refetchInterval: 15_000,
   });
 }
-function studiesDigestQuery(code: string, projectId?: string) {
+export function studiesDigestQuery(code: string, projectId?: string) {
   return queryOptions({
     queryKey: ["studies-digest", code, projectId ?? "all"],
     queryFn: () => listStudiesWithReports({ data: { countryCode: code, projectId } }),
     refetchInterval: 15_000,
   });
 }
-function segmentsQuery(code: string) {
+export function segmentsQuery(code: string) {
   return queryOptions({
     queryKey: ["persona-segments", code],
     queryFn: () => listSegments({ data: { countryCode: code } }),

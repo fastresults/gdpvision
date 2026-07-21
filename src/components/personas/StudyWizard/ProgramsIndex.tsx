@@ -86,13 +86,14 @@ export function ProgramsIndex({ code }: { code: string }) {
       }
       try {
         await navigate({
-          to: "/_authenticated/admin/countries/$code/personas/studies",
+          to: "/admin/countries/$code/personas/studies",
           params: { code },
           search: { project: projectId },
         });
       } catch (err) {
         console.error("[programs] navigate failed", { code, projectId, err });
       }
+
     },
   });
 

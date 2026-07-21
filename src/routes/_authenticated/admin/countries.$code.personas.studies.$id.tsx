@@ -41,26 +41,19 @@ function StudyDetail() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["study", id] }),
   });
 
-  // Auto-run: when ?auto=1, draft questions then run the study, once.
+  // Landing on detail must never start work from a stale URL flag. Strip any
+  // legacy `?auto=1` and leave execution to the visible Run study button.
   const autoRanRef = useRef(false);
   useEffect(() => {
-    if (search.auto !== 1 || autoRanRef.current || !study) return;
+    if (search.auto !== 1 || autoRanRef.current) return;
     autoRanRef.current = true;
-    (async () => {
-      try {
-        if (questions.length === 0) await draft.mutateAsync();
-        if (study.status !== "running" && study.status !== "synthesized" && study.status !== "complete") {
-          await run.mutateAsync();
-        }
-      } catch { /* surfaced by mutation error UI */ }
-      navigate({
-        to: "/admin/countries/$code/personas/studies/$id",
-        params: { code, id },
-        search: projectSearch ?? {},
-        replace: true,
-      });
-    })();
-  }, [search.auto, study, questions.length, draft, run, navigate, code, id]);
+    navigate({
+      to: "/admin/countries/$code/personas/studies/$id",
+      params: { code, id },
+      search: projectSearch ?? {},
+      replace: true,
+    });
+  }, [search.auto, navigate, code, id, projectSearch]);
 
   if (!study) return <p className="p-6 text-sm text-ink-500">Study not found.</p>;
 

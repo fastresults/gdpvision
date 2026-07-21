@@ -249,7 +249,8 @@ function StudiesPage() {
     if (!composed?.ok) return;
     applyComposed(composed);
     // create.mutate uses the state we just set — schedule after paint so state is applied.
-    setTimeout(() => create.mutate({ auto: true }), 0);
+    // Approval creates the study only; execution starts from the explicit full auto-run control.
+    setTimeout(() => create.mutate({}), 0);
   };
 
   const programSynthFn = useServerFn(synthesizeStudyProgram);

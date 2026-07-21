@@ -258,20 +258,14 @@ export function ProgramSynthesisCard({
         </button>
         <button
           type="button"
-          onClick={() => {
-            if (!report) return;
-            const { filename, body } = programReportToMarkdown({
-              countryCode: code,
-              projectId,
-              report: report as never,
-            });
-            downloadMarkdown(filename, body);
-          }}
-          disabled={!report}
+          onClick={handleDownload}
+          disabled={!report || downloading}
           className="inline-flex items-center gap-1.5 border border-line-200 bg-paper-0 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950 hover:border-ink-950 disabled:opacity-40"
         >
-          <Download size={11} /> Download .md
+          {downloading ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />}
+          {downloading ? " Bundling studies…" : " Download .md"}
         </button>
+
       </header>
 
       {!canGenerate && !report && (

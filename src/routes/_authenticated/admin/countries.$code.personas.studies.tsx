@@ -674,9 +674,7 @@ function StudiesPage() {
                             <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
                               {s.size} personas · {s.visibility}
                             </p>
-                            <p className="mt-1 line-clamp-2 text-[11px] text-ink-700">
-                              {s.prompt}
-                            </p>
+                            <p className="mt-1 line-clamp-2 text-[11px] text-ink-700">{s.prompt}</p>
                           </button>
                         );
                       })}
@@ -815,7 +813,8 @@ function StudiesPage() {
                       disabled={!ready || !activeProjectId || create.isPending}
                       className="mt-4 inline-flex w-full items-center justify-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-40"
                     >
-                      {create.isPending ? "Creating…" : "Create this study"} <ArrowRight size={12} />
+                      {create.isPending ? "Creating…" : "Create this study"}{" "}
+                      <ArrowRight size={12} />
                     </button>
                     {create.isError && (
                       <p className="mt-2 text-[11px] text-rose-600">
@@ -851,7 +850,11 @@ function StudiesPage() {
 
       {/* Synthesized work product — always shown when any report exists */}
       {(digest.length > 0 || studies.length > 0) && (
-        <ProgramSynthesisCard code={code} projectId={activeProjectId} synthesizedCount={digest.filter((d) => d.summary_md).length} />
+        <ProgramSynthesisCard
+          code={code}
+          projectId={activeProjectId}
+          synthesizedCount={digest.filter((d) => d.summary_md).length}
+        />
       )}
       {digest.length > 0 && <SynthesisDigest items={digest} code={code} />}
 
@@ -863,9 +866,24 @@ function StudiesPage() {
               Your studies · {studies.length}
             </p>
           </div>
-          <StudyGroup title="Running" studies={grouped.running} code={code} projectId={activeProjectId} />
-          <StudyGroup title="Synthesized" studies={grouped.done} code={code} projectId={activeProjectId} />
-          <StudyGroup title="Drafts" studies={grouped.drafts} code={code} projectId={activeProjectId} />
+          <StudyGroup
+            title="Running"
+            studies={grouped.running}
+            code={code}
+            projectId={activeProjectId}
+          />
+          <StudyGroup
+            title="Synthesized"
+            studies={grouped.done}
+            code={code}
+            projectId={activeProjectId}
+          />
+          <StudyGroup
+            title="Drafts"
+            studies={grouped.drafts}
+            code={code}
+            projectId={activeProjectId}
+          />
         </div>
       )}
     </div>
@@ -960,7 +978,8 @@ function StudyGroup({
             <div className="min-w-0 flex-1">
               <p className="truncate font-serif text-base text-ink-950">{s.title}</p>
               <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
-                {s.kind.replace("_", " ")} · {s.is_synthesized || s.has_report ? "synthesized" : s.status} ·{" "}
+                {s.kind.replace("_", " ")} ·{" "}
+                {s.is_synthesized || s.has_report ? "synthesized" : s.status} ·{" "}
                 {new Date(s.created_at).toLocaleDateString()}
               </p>
             </div>

@@ -1,10 +1,5 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
-import {
-  queryOptions,
-  useQueryClient,
-  useMutation,
-  useQuery,
-} from "@tanstack/react-query";
+import { queryOptions, useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   Layers,
@@ -36,7 +31,13 @@ import {
 import { StudioStepper } from "@/components/personas/StudioStepper";
 import { ProjectSwitcher } from "@/components/personas/StudyWizard/ProjectSwitcher";
 import { ProgramsIndex } from "@/components/personas/StudyWizard/ProgramsIndex";
-import { clearAutoRun, publishAutoRun, registerAutoRunAbort, registerAutoRunResume, unregisterAutoRunAbort } from "@/lib/autorun/beacon";
+import {
+  clearAutoRun,
+  publishAutoRun,
+  registerAutoRunAbort,
+  registerAutoRunResume,
+  unregisterAutoRunAbort,
+} from "@/lib/autorun/beacon";
 
 function segmentsQuery(code: string, projectId: string) {
   return queryOptions({
@@ -73,14 +74,19 @@ type AutoState =
     }
   | { kind: "error"; message: string };
 
-const AUTORUN_CONSUMED_KEY = (code: string, projectId: string) => `stage02:autorun-consumed:${code}:${projectId}`;
+const AUTORUN_CONSUMED_KEY = (code: string, projectId: string) =>
+  `stage02:autorun-consumed:${code}:${projectId}`;
 
 function SegmentsPage() {
   const { code } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const openedRef = useRef<Set<string>>(new Set());
-  const search = useSearch({ strict: false }) as { auto?: unknown; project?: string; open?: unknown };
+  const search = useSearch({ strict: false }) as {
+    auto?: unknown;
+    project?: string;
+    open?: unknown;
+  };
   const autoIntent = search.auto === 1 || search.auto === "1" || search.auto === true;
   useEffect(() => {
     if (search.open && search.project) {
@@ -102,7 +108,8 @@ function SegmentsPage() {
       });
     }
   }, [search.open, search.project, code, navigate]);
-  const activeProjectId = search.project && openedRef.current.has(search.project) ? search.project : undefined;
+  const activeProjectId =
+    search.project && openedRef.current.has(search.project) ? search.project : undefined;
   const { data: segments = [] } = useQuery({
     ...segmentsQuery(code, activeProjectId ?? "none"),
     enabled: !!activeProjectId,
@@ -130,7 +137,12 @@ function SegmentsPage() {
 
   const compose = useMutation({
     mutationFn: () => {
-      if (!activeProjectId) return Promise.resolve({ ok: false as const, reason: "Select or create a research program first." });
+      if (!activeProjectId) {
+        return Promise.resolve({
+          ok: false as const,
+          reason: "Select or create a research program first.",
+        });
+      }
       return composeSegments({ data: { countryCode: code, projectId: activeProjectId, count: 3 } });
     },
   });
@@ -139,7 +151,9 @@ function SegmentsPage() {
     mutationFn: (input: { prompt: string; size: number; visibility: "public" | "private" }) =>
       activeProjectId
         ? generateSegment({ data: { countryCode: code, projectId: activeProjectId, ...input } })
-        : Promise.reject(new Error("Select or create a research program before generating segments.")),
+        : Promise.reject(
+            new Error("Select or create a research program before generating segments."),
+          ),
     onSuccess: (row) => {
       setLastCreated({ id: row.segment.id, label: row.segment.label });
       qc.invalidateQueries({ queryKey: ["persona-segments", code, activeProjectId] });
@@ -177,7 +191,10 @@ function SegmentsPage() {
     cancelRef.current = false;
     const projectId = activeProjectId;
     if (!projectId) {
-      setAuto({ kind: "error", message: "Select or create a research program before starting auto-run." });
+      setAuto({
+        kind: "error",
+        message: "Select or create a research program before starting auto-run.",
+      });
       return;
     }
     const lockKey = `${code}:${projectId}`;
@@ -231,10 +248,12 @@ function SegmentsPage() {
       let freshSegments: Array<{ id: string; label: string }> = [];
       let freshStudies: Array<{ segment_id?: string | null }> = [];
       try {
-        freshSegments = (await listSegments({ data: { countryCode: code, projectId } })).map((s) => ({
-          id: s.id,
-          label: s.label,
-        }));
+        freshSegments = (await listSegments({ data: { countryCode: code, projectId } })).map(
+          (s) => ({
+            id: s.id,
+            label: s.label,
+          }),
+        );
         freshStudies = await listStudies({ data: { countryCode: code, projectId } });
       } catch (e) {
         AUTO_STUDIES_LOCK.delete(lockKey);
@@ -439,7 +458,10 @@ function SegmentsPage() {
     typeof window !== "undefined" &&
     (() => {
       try {
-        return !!activeProjectId && window.localStorage.getItem(AUTORUN_CONSUMED_KEY(code, activeProjectId)) === "1";
+        return (
+          !!activeProjectId &&
+          window.localStorage.getItem(AUTORUN_CONSUMED_KEY(code, activeProjectId)) === "1"
+        );
       } catch {
         return false;
       }
@@ -611,7 +633,12 @@ function SegmentsPage() {
 
   return (
     <div className="space-y-6">
-      <StudioStepper code={code} active="group" activeProjectId={activeProjectId} autoStatus={autoLabel} />
+      <StudioStepper
+        code={code}
+        active="group"
+        activeProjectId={activeProjectId}
+        autoStatus={autoLabel}
+      />
       <ProjectSwitcher
         code={code}
         activeProjectId={activeProjectId}

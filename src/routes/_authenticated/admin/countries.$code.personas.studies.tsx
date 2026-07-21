@@ -1,10 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import {
-  queryOptions,
-  useQueryClient,
-  useMutation,
-  useQuery,
-} from "@tanstack/react-query";
+import { queryOptions, useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   Check,
@@ -25,7 +20,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 
 import { listSegments } from "@/lib/personas/generate.functions";
-import { createStudy, listStudies, listStudiesWithReports, synthesizeStudyProgram } from "@/lib/personas/study.functions";
+import {
+  createStudy,
+  listStudies,
+  listStudiesWithReports,
+  synthesizeStudyProgram,
+} from "@/lib/personas/study.functions";
 import { SynthesisDigest } from "@/components/personas/StudyWizard/SynthesisDigest";
 import { ProgramSynthesisCard } from "@/components/personas/StudyWizard/ProgramSynthesisCard";
 import { composeStudy, type ComposeStudyResult } from "@/lib/personas/compose-study.functions";
@@ -40,7 +40,13 @@ import { StudioStepper } from "@/components/personas/StudioStepper";
 import { StudioStatusRail } from "@/components/personas/StudyWizard/StudioStatusRail";
 import { ProjectSwitcher } from "@/components/personas/StudyWizard/ProjectSwitcher";
 import { ProgramsIndex } from "@/components/personas/StudyWizard/ProgramsIndex";
-import { clearAutoRun, publishAutoRun, registerAutoRunAbort, registerAutoRunResume, unregisterAutoRunAbort } from "@/lib/autorun/beacon";
+import {
+  clearAutoRun,
+  publishAutoRun,
+  registerAutoRunAbort,
+  registerAutoRunResume,
+  unregisterAutoRunAbort,
+} from "@/lib/autorun/beacon";
 import { useServerFn } from "@tanstack/react-start";
 
 const PHASE_LABEL: Record<StudyAutoPhase, string> = {
@@ -160,7 +166,7 @@ function StudiesPage() {
       navigate({
         to: "/admin/countries/$code/personas/studies",
         params: { code },
-        search: { },
+        search: {},
         replace: true,
       });
     }
@@ -282,7 +288,11 @@ function StudiesPage() {
 
   const grouped = useMemo(() => {
     const isDone = (s: (typeof studies)[number]) =>
-      !!s.is_synthesized || !!s.has_report || s.status === "synthesized" || s.status === "complete" || s.status === "completed";
+      !!s.is_synthesized ||
+      !!s.has_report ||
+      s.status === "synthesized" ||
+      s.status === "complete" ||
+      s.status === "completed";
     const running = studies.filter((s) => !isDone(s) && s.status === "running");
     const done = studies.filter(isDone);
     const drafts = studies.filter((s) => !running.includes(s) && !done.includes(s));
@@ -324,12 +334,18 @@ function StudiesPage() {
   const runningRef = useRef(false);
   const autoFlagKey = activeProjectId ? AUTO_STUDIES_FLAG_KEY(code, activeProjectId) : "";
 
-  const startAutoRun = useCallback(
-    async () => {
+  const startAutoRun = useCallback(async () => {
       if (runningRef.current) return;
       const projectId = activeProjectId;
       if (!projectId) {
-        setAutoState({ phase: "complete", drafted: 0, completed: 0, failed: [{ label: "Research project", reason: "Select or create a program before starting auto-run." }] });
+        setAutoState({
+          phase: "complete",
+          drafted: 0,
+          completed: 0,
+          failed: [
+            { label: "Research project", reason: "Select or create a program before starting auto-run." },
+          ],
+        });
         return;
       }
       const lockKey = `${code}:${projectId}`;
@@ -538,8 +554,12 @@ function StudiesPage() {
 
   return (
     <div className="space-y-8">
-      <StudioStepper code={code} active="rehearse" activeProjectId={activeProjectId} rehearseStatus={rehearseStatus} />
-
+      <StudioStepper
+        code={code}
+        active="rehearse"
+        activeProjectId={activeProjectId}
+        rehearseStatus={rehearseStatus}
+      />
 
       <div className="flex items-center justify-between gap-3">
         <Link

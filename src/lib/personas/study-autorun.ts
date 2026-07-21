@@ -17,7 +17,7 @@ import {
 import { composeStudyForSegment } from "./compose-study.functions";
 
 export const AUTO_STUDIES_LOCK = new Set<string>();
-export const AUTO_STUDIES_FLAG_KEY = (code: string) => `ch07:auto-studies:${code}`;
+export const AUTO_STUDIES_FLAG_KEY = (code: string, projectId: string) => `ch07:auto-studies:${code}:${projectId}`;
 
 export type StudyAutoPhase = "composing" | "creating" | "questioning" | "running";
 

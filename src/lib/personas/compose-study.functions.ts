@@ -9,11 +9,11 @@ const MODEL = "google/gemini-2.5-flash";
 const KINDS = ["survey", "focus_group", "creative_test"] as const;
 type Kind = (typeof KINDS)[number];
 
-const ComposeInput = z.object({ countryCode: z.string(), projectId: z.string().optional() });
+const ComposeInput = z.object({ countryCode: z.string(), projectId: z.string().min(1) });
 const ComposeForSegmentInput = z.object({
   countryCode: z.string(),
   segmentId: z.string(),
-  projectId: z.string().optional(),
+  projectId: z.string().min(1),
 });
 
 export type ComposeStudyResult =
@@ -99,6 +99,7 @@ export const composeStudy = createServerFn({ method: "POST" })
       .from("persona_segments")
       .select("id,label,prompt,size,visibility")
       .eq("country_code", code)
+      .eq("project_id", projectId)
       .order("created_at", { ascending: false })
       .limit(24);
     if (segErr) throw new Error(segErr.message);
@@ -114,7 +115,7 @@ export const composeStudy = createServerFn({ method: "POST" })
       .eq("country_code", code)
       .order("updated_at", { ascending: false })
       .limit(1);
-    if (projectId) draftQ = draftQ.eq("project_id", projectId);
+    draftQ = draftQ.eq("project_id", projectId);
     const { data: draft } = await draftQ.maybeSingle();
 
     // 3. Load recent studies to avoid duplication — scoped to project.
@@ -124,7 +125,7 @@ export const composeStudy = createServerFn({ method: "POST" })
       .eq("country_code", code)
       .order("created_at", { ascending: false })
       .limit(10);
-    if (projectId) priorQ = priorQ.eq("project_id", projectId);
+    priorQ = priorQ.eq("project_id", projectId);
     const { data: priorStudies } = await priorQ;
 
     const scope = (draft?.brief_scope ?? null) as { title?: string; objectives?: string[] } | null;
@@ -255,6 +256,7 @@ export const composeStudyForSegment = createServerFn({ method: "POST" })
       .select("id,label,prompt,size")
       .eq("id", data.segmentId)
       .eq("country_code", code)
+      .eq("project_id", projectId)
       .maybeSingle();
     if (segErr) throw new Error(segErr.message);
     if (!seg) return { ok: false, reason: "Segment not found." };
@@ -265,7 +267,7 @@ export const composeStudyForSegment = createServerFn({ method: "POST" })
       .eq("country_code", code)
       .order("updated_at", { ascending: false })
       .limit(1);
-    if (projectId) draftQ = draftQ.eq("project_id", projectId);
+    draftQ = draftQ.eq("project_id", projectId);
     const { data: draft } = await draftQ.maybeSingle();
 
     let priorQ = supabase
@@ -274,7 +276,7 @@ export const composeStudyForSegment = createServerFn({ method: "POST" })
       .eq("country_code", code)
       .order("created_at", { ascending: false })
       .limit(10);
-    if (projectId) priorQ = priorQ.eq("project_id", projectId);
+    priorQ = priorQ.eq("project_id", projectId);
     const { data: priorStudies } = await priorQ;
 
     const scope = (draft?.brief_scope ?? null) as { title?: string; objectives?: string[] } | null;

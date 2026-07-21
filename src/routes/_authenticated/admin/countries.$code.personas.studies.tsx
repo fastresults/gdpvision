@@ -1,11 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import {
-  queryOptions,
-  useSuspenseQuery,
-  useQueryClient,
-  useMutation,
-  useQuery,
-} from "@tanstack/react-query";
+import { queryOptions, useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   Check,
@@ -26,7 +20,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 
 import { listSegments } from "@/lib/personas/generate.functions";
-import { createStudy, listStudies, listStudiesWithReports, synthesizeStudyProgram } from "@/lib/personas/study.functions";
+import {
+  createStudy,
+  listStudies,
+  listStudiesWithReports,
+  synthesizeStudyProgram,
+} from "@/lib/personas/study.functions";
 import { SynthesisDigest } from "@/components/personas/StudyWizard/SynthesisDigest";
 import { ProgramSynthesisCard } from "@/components/personas/StudyWizard/ProgramSynthesisCard";
 import { composeStudy, type ComposeStudyResult } from "@/lib/personas/compose-study.functions";
@@ -41,7 +40,13 @@ import { StudioStepper } from "@/components/personas/StudioStepper";
 import { StudioStatusRail } from "@/components/personas/StudyWizard/StudioStatusRail";
 import { ProjectSwitcher } from "@/components/personas/StudyWizard/ProjectSwitcher";
 import { ProgramsIndex } from "@/components/personas/StudyWizard/ProgramsIndex";
-import { clearAutoRun, publishAutoRun, registerAutoRunAbort, registerAutoRunResume, unregisterAutoRunAbort } from "@/lib/autorun/beacon";
+import {
+  clearAutoRun,
+  publishAutoRun,
+  registerAutoRunAbort,
+  registerAutoRunResume,
+  unregisterAutoRunAbort,
+} from "@/lib/autorun/beacon";
 import { useServerFn } from "@tanstack/react-start";
 
 const PHASE_LABEL: Record<StudyAutoPhase, string> = {
@@ -75,22 +80,17 @@ export function studiesDigestQuery(code: string, projectId?: string) {
     refetchInterval: 15_000,
   });
 }
-export function segmentsQuery(code: string) {
+export function projectSegmentsQuery(code: string, projectId: string) {
   return queryOptions({
-    queryKey: ["persona-segments", code],
-    queryFn: () => listSegments({ data: { countryCode: code } }),
+    queryKey: ["persona-segments", code, projectId],
+    queryFn: () => listSegments({ data: { countryCode: code, projectId } }),
   });
 }
 
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/personas/studies")({
   validateSearch: (s) => searchSchema.parse(s),
-  loader: async ({ context, params }) => {
-    // Only segments are safe to preload without a project — studies are
-    // strictly project-scoped and never fetched at the country level from
-    // this route (that would leak prior-project content into the UI).
-    await context.queryClient.ensureQueryData(segmentsQuery(params.code));
-  },
   errorComponent: ({ error }) => <p className="p-6 text-sm text-rose-600">{error.message}</p>,
+  notFoundComponent: () => <p className="p-6 text-sm text-ink-500">Studies not found.</p>,
   component: StudiesPage,
 });
 
@@ -166,7 +166,7 @@ function StudiesPage() {
       navigate({
         to: "/admin/countries/$code/personas/studies",
         params: { code },
-        search: { },
+        search: {},
         replace: true,
       });
     }
@@ -180,7 +180,10 @@ function StudiesPage() {
     ...studiesQuery(code, activeProjectId),
     enabled: !!activeProjectId,
   });
-  const { data: segments } = useSuspenseQuery(segmentsQuery(code));
+  const { data: segments = [] } = useQuery({
+    ...projectSegmentsQuery(code, activeProjectId ?? "none"),
+    enabled: !!activeProjectId,
+  });
   const { data: digest = [] } = useQuery({
     ...studiesDigestQuery(code, activeProjectId),
     enabled: !!activeProjectId,
@@ -227,7 +230,7 @@ function StudiesPage() {
       navigate({
         to: "/admin/countries/$code/personas/studies/$id",
         params: { code, id: row.id },
-        search: { project: activeProjectId, auto: auto ? 1 : undefined },
+        search: { project: activeProjectId, open: 1 },
       });
     },
   });
@@ -285,7 +288,11 @@ function StudiesPage() {
 
   const grouped = useMemo(() => {
     const isDone = (s: (typeof studies)[number]) =>
-      !!s.is_synthesized || !!s.has_report || s.status === "synthesized" || s.status === "complete" || s.status === "completed";
+      !!s.is_synthesized ||
+      !!s.has_report ||
+      s.status === "synthesized" ||
+      s.status === "complete" ||
+      s.status === "completed";
     const running = studies.filter((s) => !isDone(s) && s.status === "running");
     const done = studies.filter(isDone);
     const drafts = studies.filter((s) => !running.includes(s) && !done.includes(s));
@@ -325,109 +332,123 @@ function StudiesPage() {
   const [autoState, setAutoState] = useState<AutoState>({ phase: "idle" });
   const cancelRef = useRef(false);
   const runningRef = useRef(false);
-  const autoFlagKey = AUTO_STUDIES_FLAG_KEY(code);
+  const autoFlagKey = activeProjectId ? AUTO_STUDIES_FLAG_KEY(code, activeProjectId) : "";
 
-  const startAutoRun = useCallback(
-    async () => {
-      if (runningRef.current) return;
-      if (AUTO_STUDIES_LOCK.has(code)) return;
-      const projectId = activeProjectId;
-      if (!projectId) {
-        setAutoState({ phase: "complete", drafted: 0, completed: 0, failed: [{ label: "Research project", reason: "Select or create a program before starting auto-run." }] });
-        return;
-      }
-      const targets = segments.filter((s) => !coveredSegmentIds.has(s.id));
-      // Existing studies that never finished (drafts or stuck-running) also
-      // need to be pushed to synthesis so the user only ever sees completed work.
-      const needsFinish = studies.some(
-        (s) => !s.is_synthesized && !s.has_report && s.status !== "completed" && s.status !== "complete" && s.status !== "synthesized",
-      );
-      if (targets.length === 0 && !needsFinish) {
-        setAutoState({ phase: "complete", drafted: 0, completed: 0, failed: [] });
-        return;
-      }
-      runningRef.current = true;
-      AUTO_STUDIES_LOCK.add(code);
-      cancelRef.current = false;
+  const startAutoRun = useCallback(async () => {
+    if (runningRef.current) return;
+    const projectId = activeProjectId;
+    if (!projectId) {
+      setAutoState({
+        phase: "complete",
+        drafted: 0,
+        completed: 0,
+        failed: [
+          {
+            label: "Research project",
+            reason: "Select or create a program before starting auto-run.",
+          },
+        ],
+      });
+      return;
+    }
+    const lockKey = `${code}:${projectId}`;
+    if (AUTO_STUDIES_LOCK.has(lockKey)) return;
+    const targets = segments.filter((s) => !coveredSegmentIds.has(s.id));
+    // Existing studies that never finished (drafts or stuck-running) also
+    // need to be pushed to synthesis so the user only ever sees completed work.
+    const needsFinish = studies.some(
+      (s) =>
+        !s.is_synthesized &&
+        !s.has_report &&
+        s.status !== "completed" &&
+        s.status !== "complete" &&
+        s.status !== "synthesized",
+    );
+    if (targets.length === 0 && !needsFinish) {
+      setAutoState({ phase: "complete", drafted: 0, completed: 0, failed: [] });
+      return;
+    }
+    runningRef.current = true;
+    AUTO_STUDIES_LOCK.add(lockKey);
+    cancelRef.current = false;
+    try {
+      window.localStorage.setItem(AUTO_STUDIES_FLAG_KEY(code, projectId), String(Date.now()));
+    } catch {
+      // localStorage unavailable; defensive guard
+    }
+
+    let drafted = 0;
+    let completed = 0;
+    const failed: Array<{ label: string; reason: string }> = [];
+
+    // Phase A — draft + fully run any missing studies.
+    if (targets.length > 0) {
+      const res = await draftStudiesForSegments({
+        code,
+        projectId,
+        targets: targets.map((s) => ({ id: s.id, label: s.label })),
+        cancelRef,
+        fullPipeline: true,
+        onProgress: ({ index, total, segmentId, segmentLabel, phase }) => {
+          setAutoState({
+            phase: "running",
+            index,
+            total,
+            segmentId,
+            segmentLabel,
+            step: phase,
+          });
+        },
+      });
+      drafted += res.drafted;
+      completed += res.completed;
+      for (const f of res.failed) failed.push({ label: f.label, reason: f.reason });
+    }
+
+    // Phase B — finish any leftover drafts/running studies (e.g. from prior
+    // sessions or partial pipelines) so nothing is left half-done.
+    if (!cancelRef.current) {
+      const res2 = await completeIncompleteStudies({
+        code,
+        projectId,
+        cancelRef,
+        onProgress: ({ index, total, segmentId, segmentLabel, phase }) => {
+          setAutoState({
+            phase: "running",
+            index,
+            total,
+            segmentId,
+            segmentLabel,
+            step: phase,
+          });
+        },
+      });
+      completed += res2.completed;
+      for (const f of res2.failed) failed.push({ label: f.label, reason: f.reason });
+    }
+
+    // Phase C — consolidate portfolio memo once at least one study exists.
+    if (!cancelRef.current) {
       try {
-        window.localStorage.setItem(autoFlagKey, String(Date.now()));
-      } catch {
-        // localStorage unavailable; defensive guard
+        await programSynthFn({ data: { countryCode: code, projectId } });
+        await qc.invalidateQueries({ queryKey: ["study-program-report", code, projectId] });
+      } catch (e) {
+        // Non-fatal — the per-study memos are still saved.
+        console.warn("[program synth]", (e as Error).message);
       }
+    }
 
-      let drafted = 0;
-      let completed = 0;
-      const failed: Array<{ label: string; reason: string }> = [];
-
-      // Phase A — draft + fully run any missing studies.
-      if (targets.length > 0) {
-        const res = await draftStudiesForSegments({
-          code,
-          projectId,
-          targets: targets.map((s) => ({ id: s.id, label: s.label })),
-          cancelRef,
-          fullPipeline: true,
-          onProgress: ({ index, total, segmentId, segmentLabel, phase }) => {
-            setAutoState({
-              phase: "running",
-              index,
-              total,
-              segmentId,
-              segmentLabel,
-              step: phase,
-            });
-          },
-        });
-        drafted += res.drafted;
-        completed += res.completed;
-        for (const f of res.failed) failed.push({ label: f.label, reason: f.reason });
-      }
-
-      // Phase B — finish any leftover drafts/running studies (e.g. from prior
-      // sessions or partial pipelines) so nothing is left half-done.
-      if (!cancelRef.current) {
-        const res2 = await completeIncompleteStudies({
-          code,
-          projectId,
-          cancelRef,
-          onProgress: ({ index, total, segmentId, segmentLabel, phase }) => {
-            setAutoState({
-              phase: "running",
-              index,
-              total,
-              segmentId,
-              segmentLabel,
-              step: phase,
-            });
-          },
-        });
-        completed += res2.completed;
-        for (const f of res2.failed) failed.push({ label: f.label, reason: f.reason });
-      }
-
-      // Phase C — consolidate portfolio memo once at least one study exists.
-      if (!cancelRef.current) {
-        try {
-          await programSynthFn({ data: { countryCode: code, projectId } });
-          await qc.invalidateQueries({ queryKey: ["study-program-report", code] });
-        } catch (e) {
-          // Non-fatal — the per-study memos are still saved.
-          console.warn("[program synth]", (e as Error).message);
-        }
-      }
-
-      await qc.invalidateQueries({ queryKey: ["studies", code] });
-      await qc.invalidateQueries({ queryKey: ["studies-digest", code] });
-      if (cancelRef.current) {
-        setAutoState({ phase: "cancelled", drafted, completed });
-      } else {
-        setAutoState({ phase: "complete", drafted, completed, failed });
-      }
-      runningRef.current = false;
-      AUTO_STUDIES_LOCK.delete(code);
-    },
-    [segments, studies, coveredSegmentIds, code, activeProjectId, qc, autoFlagKey, programSynthFn],
-  );
+    await qc.invalidateQueries({ queryKey: ["studies", code, projectId] });
+    await qc.invalidateQueries({ queryKey: ["studies-digest", code, projectId] });
+    await qc.invalidateQueries({ queryKey: ["persona-projects", code] });
+    if (cancelRef.current) {
+      setAutoState({ phase: "cancelled", drafted, completed });
+    } else {
+      setAutoState({ phase: "complete", drafted, completed, failed });
+    }
+    runningRef.current = false;
+    AUTO_STUDIES_LOCK.delete(lockKey);
+  }, [segments, studies, coveredSegmentIds, code, activeProjectId, qc, programSynthFn]);
 
   const cancelAutoRun = () => {
     cancelRef.current = true;
@@ -460,8 +481,10 @@ function StudiesPage() {
   // Publish the auto-run to the global beacon so it stays visible across
   // navigation.
   useEffect(() => {
-    const id = `stage03:${code}`;
-    const href = `/admin/countries/${code}/personas/studies`;
+    const id = activeProjectId ? `stage03:${code}:${activeProjectId}` : `stage03:${code}:none`;
+    const href = activeProjectId
+      ? `/admin/countries/${code}/personas/studies?project=${activeProjectId}&open=1`
+      : `/admin/countries/${code}/personas/studies`;
     if (autoState.phase === "running") {
       publishAutoRun({
         id,
@@ -476,7 +499,7 @@ function StudiesPage() {
       registerAutoRunAbort(id, () => {
         cancelRef.current = true;
         // Release the module-level lock so nothing blocks a manual retry.
-        AUTO_STUDIES_LOCK.delete(code);
+        if (activeProjectId) AUTO_STUDIES_LOCK.delete(`${code}:${activeProjectId}`);
       });
     } else if (autoState.phase === "complete") {
       if (autoState.completed > 0 || autoState.drafted > 0 || autoState.failed.length > 0) {
@@ -510,7 +533,7 @@ function StudiesPage() {
       unregisterAutoRunAbort(id);
       clearAutoRun(id);
     }
-  }, [autoState, code, startAutoRun]);
+  }, [autoState, code, activeProjectId, startAutoRun]);
 
   // ─── Programs-index gate ──────────────────────────────────────────────
   // When no project is selected, render ONLY the Programs Index — no
@@ -537,8 +560,12 @@ function StudiesPage() {
 
   return (
     <div className="space-y-8">
-      <StudioStepper code={code} active="rehearse" rehearseStatus={rehearseStatus} />
-
+      <StudioStepper
+        code={code}
+        active="rehearse"
+        activeProjectId={activeProjectId}
+        rehearseStatus={rehearseStatus}
+      />
 
       <div className="flex items-center justify-between gap-3">
         <Link
@@ -620,130 +647,132 @@ function StudiesPage() {
               </summary>
               <div className="grid gap-6 border-t border-line-200 p-4 md:grid-cols-[1fr_280px]">
                 <div className="space-y-6">
-                <StepBlock
-                  n={1}
-                  label="Pick a segment"
-                  active={currentStep === 1}
-                  done={stepDone[1]}
-                >
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {segments.map((s) => {
-                      const selected = s.id === segmentId;
-                      return (
-                        <button
-                          key={s.id}
-                          type="button"
-                          onClick={() => setSegmentId(s.id)}
-                          className={`border p-3 text-left transition ${
-                            selected
-                              ? "border-ink-950 bg-paper-100"
-                              : "border-line-200 hover:border-ink-950"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Layers size={13} className="text-ink-500" />
-                            <p className="truncate font-serif text-sm text-ink-950">{s.label}</p>
-                          </div>
-                          <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
-                            {s.size} personas · {s.visibility}
-                          </p>
-                          <p className="mt-1 line-clamp-2 text-[11px] text-ink-700">{s.prompt}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </StepBlock>
+                  <StepBlock
+                    n={1}
+                    label="Pick a segment"
+                    active={currentStep === 1}
+                    done={stepDone[1]}
+                  >
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {segments.map((s) => {
+                        const selected = s.id === segmentId;
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => setSegmentId(s.id)}
+                            className={`border p-3 text-left transition ${
+                              selected
+                                ? "border-ink-950 bg-paper-100"
+                                : "border-line-200 hover:border-ink-950"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Layers size={13} className="text-ink-500" />
+                              <p className="truncate font-serif text-sm text-ink-950">{s.label}</p>
+                            </div>
+                            <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+                              {s.size} personas · {s.visibility}
+                            </p>
+                            <p className="mt-1 line-clamp-2 text-[11px] text-ink-700">{s.prompt}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </StepBlock>
 
-                <StepBlock
-                  n={2}
-                  label="Choose the method"
-                  active={currentStep === 2}
-                  done={stepDone[2]}
-                  locked={!stepDone[1]}
-                  sectionRef={step2Ref}
-                >
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                    {METHODS.map((m) => {
-                      const selected = m.id === kind;
-                      const Icon = m.icon;
-                      return (
-                        <button
-                          key={m.id}
-                          type="button"
-                          onClick={() => setKind(m.id)}
-                          disabled={!stepDone[1]}
-                          className={`flex flex-col border p-3 text-left transition disabled:opacity-40 ${
-                            selected
-                              ? "border-ink-950 bg-paper-100"
-                              : "border-line-200 hover:border-ink-950"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Icon size={14} className="text-ink-950" />
-                            <p className="font-serif text-sm text-ink-950">{m.label}</p>
-                          </div>
-                          <p className="mt-2 text-[11px] leading-snug text-ink-700">{m.produces}</p>
-                          <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">
-                            {m.duration}
-                          </p>
-                          <p className="mt-1 text-[10px] leading-snug text-ink-500">
-                            Best for: {m.bestFor}
-                          </p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </StepBlock>
+                  <StepBlock
+                    n={2}
+                    label="Choose the method"
+                    active={currentStep === 2}
+                    done={stepDone[2]}
+                    locked={!stepDone[1]}
+                    sectionRef={step2Ref}
+                  >
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      {METHODS.map((m) => {
+                        const selected = m.id === kind;
+                        const Icon = m.icon;
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setKind(m.id)}
+                            disabled={!stepDone[1]}
+                            className={`flex flex-col border p-3 text-left transition disabled:opacity-40 ${
+                              selected
+                                ? "border-ink-950 bg-paper-100"
+                                : "border-line-200 hover:border-ink-950"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Icon size={14} className="text-ink-950" />
+                              <p className="font-serif text-sm text-ink-950">{m.label}</p>
+                            </div>
+                            <p className="mt-2 text-[11px] leading-snug text-ink-700">
+                              {m.produces}
+                            </p>
+                            <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">
+                              {m.duration}
+                            </p>
+                            <p className="mt-1 text-[10px] leading-snug text-ink-500">
+                              Best for: {m.bestFor}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </StepBlock>
 
-                <StepBlock
-                  n={3}
-                  label="Frame the question"
-                  active={currentStep === 3}
-                  done={stepDone[3]}
-                  locked={!stepDone[2]}
-                  sectionRef={step3Ref}
-                >
-                  <label className="block">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                      Working title
-                    </span>
-                    <input
-                      ref={titleInputRef}
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      disabled={!stepDone[2]}
-                      placeholder="e.g. CBI wind-down perception test"
-                      className="mt-1 w-full border border-line-200 bg-paper-0 px-2 py-2 text-sm focus:border-ink-950 focus:outline-none disabled:opacity-40"
-                    />
-                  </label>
-
-                  <label className="mt-3 block">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                      Objective <span className="text-ink-400">(optional but recommended)</span>
-                    </span>
-                    <textarea
-                      value={objective}
-                      onChange={(e) => setObjective(e.target.value)}
-                      disabled={!stepDone[2]}
-                      rows={2}
-                      placeholder="What decision does this study inform?"
-                      className="mt-1 w-full border border-line-200 bg-paper-0 px-2 py-2 text-sm focus:border-ink-950 focus:outline-none disabled:opacity-40"
-                    />
-                  </label>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {OBJECTIVE_EXAMPLES.map((ex) => (
-                      <button
-                        key={ex}
-                        type="button"
-                        onClick={() => setObjective((v) => (v ? `${v}. ${ex}` : ex))}
+                  <StepBlock
+                    n={3}
+                    label="Frame the question"
+                    active={currentStep === 3}
+                    done={stepDone[3]}
+                    locked={!stepDone[2]}
+                    sectionRef={step3Ref}
+                  >
+                    <label className="block">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                        Working title
+                      </span>
+                      <input
+                        ref={titleInputRef}
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
                         disabled={!stepDone[2]}
-                        className="border border-line-200 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500 hover:border-ink-950 hover:text-ink-950 disabled:opacity-40"
-                      >
-                        + {ex}
-                      </button>
-                    ))}
-                  </div>
-                </StepBlock>
+                        placeholder="e.g. CBI wind-down perception test"
+                        className="mt-1 w-full border border-line-200 bg-paper-0 px-2 py-2 text-sm focus:border-ink-950 focus:outline-none disabled:opacity-40"
+                      />
+                    </label>
+
+                    <label className="mt-3 block">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                        Objective <span className="text-ink-400">(optional but recommended)</span>
+                      </span>
+                      <textarea
+                        value={objective}
+                        onChange={(e) => setObjective(e.target.value)}
+                        disabled={!stepDone[2]}
+                        rows={2}
+                        placeholder="What decision does this study inform?"
+                        className="mt-1 w-full border border-line-200 bg-paper-0 px-2 py-2 text-sm focus:border-ink-950 focus:outline-none disabled:opacity-40"
+                      />
+                    </label>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {OBJECTIVE_EXAMPLES.map((ex) => (
+                        <button
+                          key={ex}
+                          type="button"
+                          onClick={() => setObjective((v) => (v ? `${v}. ${ex}` : ex))}
+                          disabled={!stepDone[2]}
+                          className="border border-line-200 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500 hover:border-ink-950 hover:text-ink-950 disabled:opacity-40"
+                        >
+                          + {ex}
+                        </button>
+                      ))}
+                    </div>
+                  </StepBlock>
                 </div>
 
                 {/* Manual preview — only visible when this disclosure is open */}
@@ -784,7 +813,8 @@ function StudiesPage() {
                       disabled={!ready || !activeProjectId || create.isPending}
                       className="mt-4 inline-flex w-full items-center justify-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-40"
                     >
-                      {create.isPending ? "Creating…" : "Create this study"} <ArrowRight size={12} />
+                      {create.isPending ? "Creating…" : "Create this study"}{" "}
+                      <ArrowRight size={12} />
                     </button>
                     {create.isError && (
                       <p className="mt-2 text-[11px] text-rose-600">
@@ -820,7 +850,11 @@ function StudiesPage() {
 
       {/* Synthesized work product — always shown when any report exists */}
       {(digest.length > 0 || studies.length > 0) && (
-        <ProgramSynthesisCard code={code} projectId={activeProjectId} synthesizedCount={digest.filter((d) => d.summary_md).length} />
+        <ProgramSynthesisCard
+          code={code}
+          projectId={activeProjectId}
+          synthesizedCount={digest.filter((d) => d.summary_md).length}
+        />
       )}
       {digest.length > 0 && <SynthesisDigest items={digest} code={code} />}
 
@@ -832,9 +866,24 @@ function StudiesPage() {
               Your studies · {studies.length}
             </p>
           </div>
-          <StudyGroup title="Running" studies={grouped.running} code={code} projectId={activeProjectId} />
-          <StudyGroup title="Synthesized" studies={grouped.done} code={code} projectId={activeProjectId} />
-          <StudyGroup title="Drafts" studies={grouped.drafts} code={code} projectId={activeProjectId} />
+          <StudyGroup
+            title="Running"
+            studies={grouped.running}
+            code={code}
+            projectId={activeProjectId}
+          />
+          <StudyGroup
+            title="Synthesized"
+            studies={grouped.done}
+            code={code}
+            projectId={activeProjectId}
+          />
+          <StudyGroup
+            title="Drafts"
+            studies={grouped.drafts}
+            code={code}
+            projectId={activeProjectId}
+          />
         </div>
       )}
     </div>
@@ -929,7 +978,8 @@ function StudyGroup({
             <div className="min-w-0 flex-1">
               <p className="truncate font-serif text-base text-ink-950">{s.title}</p>
               <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
-                {s.kind.replace("_", " ")} · {s.is_synthesized || s.has_report ? "synthesized" : s.status} ·{" "}
+                {s.kind.replace("_", " ")} ·{" "}
+                {s.is_synthesized || s.has_report ? "synthesized" : s.status} ·{" "}
                 {new Date(s.created_at).toLocaleDateString()}
               </p>
             </div>
@@ -1077,7 +1127,7 @@ function AiComposerCard({
                 disabled={isCreating}
                 className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-40"
               >
-                {isCreating ? "Launching…" : "Approve & run synthesis"} <ArrowRight size={12} />
+                {isCreating ? "Creating…" : "Approve & create draft"} <ArrowRight size={12} />
               </button>
               <button
                 type="button"

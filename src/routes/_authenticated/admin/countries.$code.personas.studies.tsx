@@ -490,9 +490,33 @@ function StudiesPage() {
     }
   }, [autoState, code, startAutoRun]);
 
+  // ─── Programs-index gate ──────────────────────────────────────────────
+  // When no project is selected, render ONLY the Programs Index — no
+  // composer, no auto-run controls, no prior-project studies or reports.
+  // The admin must explicitly open a program (or create a new one) before
+  // any working surface appears.
+  if (!activeProjectId) {
+    return (
+      <div className="space-y-8">
+        <StudioStepper code={code} active="rehearse" />
+        <div className="flex items-center justify-between gap-3">
+          <Link
+            to="/admin/countries/$code/personas"
+            params={{ code }}
+            className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
+          >
+            ← Chamber 07 hub
+          </Link>
+        </div>
+        <ProgramsIndex code={code} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <StudioStepper code={code} active="rehearse" rehearseStatus={rehearseStatus} />
+
 
       <div className="flex items-center justify-between gap-3">
         <Link

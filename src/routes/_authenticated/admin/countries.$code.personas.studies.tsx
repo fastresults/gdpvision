@@ -83,10 +83,10 @@ function segmentsQuery(code: string) {
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/personas/studies")({
   validateSearch: (s) => searchSchema.parse(s),
   loader: async ({ context, params }) => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(studiesQuery(params.code)),
-      context.queryClient.ensureQueryData(segmentsQuery(params.code)),
-    ]);
+    // Only segments are safe to preload without a project — studies are
+    // strictly project-scoped and never fetched at the country level from
+    // this route (that would leak prior-project content into the UI).
+    await context.queryClient.ensureQueryData(segmentsQuery(params.code));
   },
   errorComponent: ({ error }) => <p className="p-6 text-sm text-rose-600">{error.message}</p>,
   component: StudiesPage,

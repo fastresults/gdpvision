@@ -103,12 +103,10 @@ export const getConsoleStudy = createServerFn({ method: "POST" })
         question: reqById[w.request_id]?.question ?? "",
       })),
       ministries,
-      cabinet_next: (cabinetRes.data ?? [])[0]
-        ? {
-            id: cabinetRes.data![0].id,
-            title: cabinetRes.data![0].title ?? null,
-            scheduled_for: cabinetRes.data![0].scheduled_for,
-          }
-        : null,
+      cabinet_next: (() => {
+        const row = (cabinetRes.data ?? [])[0];
+        if (!row || !row.scheduled_for) return null;
+        return { id: row.id, title: row.title ?? null, scheduled_for: row.scheduled_for };
+      })(),
     };
   });

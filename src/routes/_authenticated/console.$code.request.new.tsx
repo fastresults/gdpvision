@@ -155,20 +155,76 @@ function RequestWizard() {
 
       {step === 1 && (
         <section>
-          <h1 className="font-serif text-4xl leading-tight text-ink-950">
+          <h1 className="font-serif text-3xl leading-tight text-ink-950 sm:text-4xl">
             What's on your mind?
           </h1>
           <p className="mt-3 text-ink-500">
-            Say it in your own words. A sentence is enough. A paragraph is fine too.
+            Say it, type it, or drop in a document. A sentence is enough.
           </p>
           <textarea
             autoFocus
             value={text}
             onChange={(e) => setText(e.target.value)}
-            rows={8}
+            rows={6}
             placeholder="e.g. I'm weighing a change to cruise passenger tax next fiscal year. I want to see what it does to revenue and to tourism-sector jobs before I take it to cabinet."
-            className="mt-6 w-full border border-line-200 bg-paper-0 p-5 font-serif text-lg text-ink-950 placeholder:text-ink-500/60 focus:border-ink-950 focus:outline-none"
+            className="mt-6 w-full border border-line-200 bg-paper-0 p-4 font-serif text-base text-ink-950 placeholder:text-ink-500/60 focus:border-ink-950 focus:outline-none sm:p-5 sm:text-lg"
           />
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <VoiceMicButton
+              onTranscript={(t) => setText((prev) => (prev ? `${prev.trim()} ${t}` : t))}
+              label="Speak"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploads.capacity <= 0}
+              className="inline-flex min-h-[44px] items-center gap-2 border border-ink-950 bg-paper-0 px-4 text-xs font-mono uppercase tracking-[0.18em] text-ink-950 hover:bg-ink-950 hover:text-paper-50 disabled:opacity-40"
+            >
+              <Paperclip size={14} /> Attach
+            </button>
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              disabled={uploads.capacity <= 0}
+              className="inline-flex min-h-[44px] items-center gap-2 border border-line-200 bg-paper-0 px-4 text-xs font-mono uppercase tracking-[0.18em] text-ink-950 hover:border-ink-950 disabled:opacity-40 sm:hidden"
+            >
+              📷 Photo
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.heic,.mp3,.wav,.m4a"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.length) void uploads.add(e.target.files);
+                e.target.value = "";
+              }}
+            />
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.length) void uploads.add(e.target.files);
+                e.target.value = "";
+              }}
+            />
+            <span className="ml-1 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+              Up to {uploads.capacity} more · 20MB each
+            </span>
+          </div>
+
+          {uploads.files.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {uploads.files.map((u) => (
+                <AttachmentChip key={u.id} upload={u} onRemove={uploads.remove} />
+              ))}
+            </div>
+          )}
         </section>
       )}
 

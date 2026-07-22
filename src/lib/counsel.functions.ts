@@ -481,6 +481,111 @@ export const askCounselDeepResearch = createServerFn({ method: "POST" })
     };
   });
 
+// ---------------------------------------------------------------------------
+// Expound Mode — take an existing counsel answer and expand it into a
+// long-form ministerial memo. Reuses the parent answer's citations (both
+// corpus + research sources) so we don't retrieve again; the emphasis is
+// on depth, structure, and executive framing.
+// ---------------------------------------------------------------------------
+const ExpoundInput = z.object({
+  scopeKey: z.string().min(3).max(16),
+  parentAnswerId: z.string().uuid(),
+});
+
+export interface CounselExpound {
+  id: string;
+  parent_answer_id: string;
+  memo: string;
+  created_at: string;
+}
+
+export const expoundCounsel = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => ExpoundInput.parse(data))
+  .handler(async ({ data, context }): Promise<CounselExpound> => {
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("Expound unavailable — missing gateway credentials.");
+
+    const { data: parent, error: parentErr } = await context.supabase
+      .from("counsel_answers")
+      .select("id,question,spoken_block,written_block,citations,research_sources,scope_key")
+      .eq("id", data.parentAnswerId)
+      .eq("scope_key", data.scopeKey)
+      .maybeSingle();
+    if (parentErr) throw new Error(parentErr.message);
+    if (!parent) throw new Error("Parent answer not found.");
+
+    const citations = ((parent.citations as unknown) as CounselCitation[] | null) ?? [];
+    const research = ((parent.research_sources as unknown) as CounselResearchSource[] | null) ?? [];
+
+    const citationLines = citations.map(
+      (c, i) => `[C${i + 1}] (${c.kind}·${c.sector_code}·w${c.weight}) ${c.title}`,
+    );
+    const researchLines = research.map((r, i) => `[R${i + 1}] ${r.title} — ${r.url}`);
+
+    const system =
+      "You are Counsel, a sovereign policy advisor writing an EXPOUND-MODE memo.\n" +
+      "Expand the prior answer into a structured briefing a Prime Minister could read in 3–5 minutes.\n" +
+      "Format as clean markdown with these sections (omit any that would be empty):\n" +
+      "  ## Situation\n  ## What we know\n  ## Underlying drivers\n  ## Risks & unknowns\n  ## Options on the table\n  ## Recommended next step\n" +
+      "Use numbered citation markers [C#] for Second Brain items and [R#] for open-web research sources.\n" +
+      "Do not invent figures, do not add citations that are not in the CORPUS or RESEARCH lists.\n" +
+      "Prefer plain, executive language over jargon.";
+
+    const contextBlock =
+      `PRIOR SPOKEN ANSWER:\n${parent.spoken_block ?? ""}\n\n` +
+      (parent.written_block ? `PRIOR WRITTEN DETAIL:\n${parent.written_block}\n\n` : "") +
+      (citationLines.length ? `CORPUS (Second Brain):\n${citationLines.join("\n")}\n\n` : "") +
+      (researchLines.length ? `RESEARCH (open-web):\n${researchLines.join("\n")}\n\n` : "");
+
+    const gateway = createLovableAiGatewayProvider(key);
+    let text: string;
+    try {
+      const result = await generateText({
+        model: gateway("openai/gpt-5.5"),
+        system,
+        prompt: `${contextBlock}QUESTION (scope=${data.scopeKey}): ${parent.question}\n\nWrite the memo now.`,
+      });
+      text = result.text;
+    } catch (err) {
+      const status = (err as { statusCode?: number }).statusCode;
+      if (status === 429) throw new Error("Counsel rate limit — try again in a moment.");
+      if (status === 402) throw new Error("Counsel credits exhausted — top up in workspace billing.");
+      throw err;
+    }
+
+    const memo = text.trim();
+    const hash = createHash("sha256").update(memo).digest("hex");
+
+    const { data: row, error: insErr } = await context.supabase
+      .from("counsel_answers")
+      .insert({
+        scope_key: data.scopeKey,
+        user_id: context.userId,
+        question: parent.question,
+        spoken_block: memo.slice(0, 400),
+        written_block: memo,
+        citations: citations as unknown as Json,
+        research_sources: research as unknown as Json,
+        tags: ["expound"] as unknown as Json,
+        scenario_snapshot: null,
+        content_hash: hash,
+        evidence_state: "sufficient",
+        parent_answer_id: parent.id,
+      } as never)
+      .select("id,created_at")
+      .single();
+    if (insErr) throw new Error(insErr.message);
+
+    return {
+      id: row.id,
+      parent_answer_id: parent.id,
+      memo,
+      created_at: row.created_at as string,
+    };
+  });
+
+
 
 export const listCounselArchive = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

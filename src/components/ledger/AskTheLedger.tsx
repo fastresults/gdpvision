@@ -328,23 +328,31 @@ export function AskTheLedger({
     </div>
   );
 
-  // Mobile: floating button + bottom sheet
+  // Mobile: floating button + bottom sheet.
+  // Reserve room at the bottom for the Console's persistent tab bar
+  // (~64px + iOS safe-area) so Study / Ask / Send stay reachable.
+  const MOBILE_BOTTOM_GAP = "calc(64px + env(safe-area-inset-bottom))";
   if (isMobile) {
     return (
       <>
         {!open && (
           <button
             onClick={() => setOpen(true)}
-            className="fixed bottom-4 right-4 z-40 flex h-14 items-center gap-2 rounded-full border border-ink-950 bg-ink-950 px-5 text-paper-0 shadow-2xl"
+            className="fixed right-4 z-40 flex h-14 items-center gap-2 rounded-full border border-ink-950 bg-ink-950 px-5 text-paper-0 shadow-2xl"
             aria-label="Open Ask the Ledger"
-            style={{ marginBottom: "env(safe-area-inset-bottom)" }}
+            style={{ bottom: `calc(1rem + ${MOBILE_BOTTOM_GAP})` }}
           >
             <MessageSquare className="h-5 w-5" />
             <span className="text-sm font-medium">Ask the Ledger</span>
           </button>
         )}
         {open && (
-          <div className="fixed inset-0 z-50 flex flex-col bg-paper-0" role="dialog" aria-modal="true">
+          <div
+            className="fixed inset-x-0 top-0 z-40 flex flex-col bg-paper-0"
+            role="dialog"
+            aria-modal="true"
+            style={{ bottom: MOBILE_BOTTOM_GAP }}
+          >
             {panel}
           </div>
         )}

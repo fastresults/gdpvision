@@ -2,16 +2,19 @@
 // language. Reuses the existing submitRequest server fn but exposes NO
 // chamber terminology on the requester surface.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
-import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2, Paperclip } from "lucide-react";
 
 import { getConsoleStudy } from "@/lib/console/console.functions";
 import { submitRequest } from "@/lib/concierge/concierge.functions";
 import { LANE_ORDER, LEXICON, type ChamberId } from "@/lib/concierge/minister-lexicon";
 import { DEFAULT_TURNAROUND } from "@/lib/concierge/elapsed";
+import { VoiceMicButton } from "@/components/console/VoiceMicButton";
+import { AttachmentChip } from "@/components/console/AttachmentChip";
+import { useConsoleUploads } from "@/hooks/useConsoleUploads";
 
 const searchSchema = z.object({ seed: z.string().optional() });
 

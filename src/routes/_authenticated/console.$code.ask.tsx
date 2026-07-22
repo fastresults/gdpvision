@@ -100,13 +100,13 @@ function AskPage() {
   ];
 
   return (
-    <div className="flex min-h-[calc(100vh-8rem)] flex-col">
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4">
+    <div className="flex min-h-[calc(100dvh-8rem)] flex-col">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 sm:gap-4">
         <div className="min-w-0">
           <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-ink-500">
             Ask the Second Brain
           </p>
-          <h1 className="mt-2 font-serif text-3xl leading-tight text-ink-950 sm:text-4xl">
+          <h1 className="mt-2 font-serif text-2xl leading-tight text-ink-950 sm:text-4xl">
             Quick, cited answers.
           </h1>
         </div>
@@ -116,7 +116,7 @@ function AskPage() {
             onClick={() => {
               if (confirm("Clear this conversation?")) clear();
             }}
-            className="shrink-0 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
+            className="inline-flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
           >
             <RefreshCcw size={12} /> New
           </button>

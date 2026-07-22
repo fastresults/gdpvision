@@ -29,12 +29,23 @@ export interface CounselCitation {
   weight: number;
 }
 
+export interface CounselResearchSource {
+  url: string;
+  title: string;
+  publisher?: string;
+}
+
 export interface CounselAnswer {
   id: string;
   spoken_block: string;
   written_block: string;
   citations: CounselCitation[];
   scenario_snapshot: { model_version: string; horizon_years: number; gdp_p50_year1?: number } | null;
+  evidence_state: "sufficient" | "insufficient";
+  evidence_reason?: string;
+  research_sources: CounselResearchSource[];
+  parent_answer_id?: string | null;
+  used_deep_research: boolean;
 }
 
 function tokenize(s: string) {

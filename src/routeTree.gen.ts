@@ -18,6 +18,7 @@ import { Route as KioskIndexRouteImport } from './routes/kiosk.index'
 import { Route as KioskAdminRouteImport } from './routes/kiosk.admin'
 import { Route as AuthInviteRouteImport } from './routes/auth.invite'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
+import { Route as AuthenticatedConsoleRouteImport } from './routes/_authenticated/console'
 import { Route as AuthenticatedNarrativeRouteRouteImport } from './routes/_authenticated/narrative/route'
 import { Route as AuthenticatedInstrumentRouteRouteImport } from './routes/_authenticated/instrument/route'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
@@ -155,6 +156,11 @@ const AuthInviteRoute = AuthInviteRouteImport.update({
 const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
   id: '/home',
   path: '/home',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedConsoleRoute = AuthenticatedConsoleRouteImport.update({
+  id: '/console',
+  path: '/console',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedNarrativeRouteRoute =
@@ -722,6 +728,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
   '/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
+  '/console': typeof AuthenticatedConsoleRoute
   '/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
   '/kiosk/admin': typeof KioskAdminRoute
@@ -822,6 +829,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/console': typeof AuthenticatedConsoleRoute
   '/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
   '/kiosk/admin': typeof KioskAdminRoute
@@ -923,6 +931,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_authenticated/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
   '/_authenticated/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
+  '/_authenticated/console': typeof AuthenticatedConsoleRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
   '/kiosk/admin': typeof KioskAdminRoute
@@ -1029,6 +1038,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/instrument'
     | '/narrative'
+    | '/console'
     | '/home'
     | '/auth/invite'
     | '/kiosk/admin'
@@ -1129,6 +1139,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/console'
     | '/home'
     | '/auth/invite'
     | '/kiosk/admin'
@@ -1229,6 +1240,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/instrument'
     | '/_authenticated/narrative'
+    | '/_authenticated/console'
     | '/_authenticated/home'
     | '/auth/invite'
     | '/kiosk/admin'
@@ -1403,6 +1415,13 @@ declare module '@tanstack/react-router' {
       path: '/home'
       fullPath: '/home'
       preLoaderRoute: typeof AuthenticatedHomeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/console': {
+      id: '/_authenticated/console'
+      path: '/console'
+      fullPath: '/console'
+      preLoaderRoute: typeof AuthenticatedConsoleRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/narrative': {
@@ -2382,6 +2401,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
   AuthenticatedInstrumentRouteRoute: typeof AuthenticatedInstrumentRouteRouteWithChildren
   AuthenticatedNarrativeRouteRoute: typeof AuthenticatedNarrativeRouteRouteWithChildren
+  AuthenticatedConsoleRoute: typeof AuthenticatedConsoleRoute
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedConciergeIdRoute: typeof AuthenticatedConciergeIdRoute
   AuthenticatedConciergeNewRoute: typeof AuthenticatedConciergeNewRoute
@@ -2401,6 +2421,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedInstrumentRouteRouteWithChildren,
   AuthenticatedNarrativeRouteRoute:
     AuthenticatedNarrativeRouteRouteWithChildren,
+  AuthenticatedConsoleRoute: AuthenticatedConsoleRoute,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedConciergeIdRoute: AuthenticatedConciergeIdRoute,
   AuthenticatedConciergeNewRoute: AuthenticatedConciergeNewRoute,

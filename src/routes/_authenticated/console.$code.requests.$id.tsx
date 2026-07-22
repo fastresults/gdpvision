@@ -68,14 +68,19 @@ function RequestReader() {
         {STATUS_LABEL[status]?.minister ?? "Received"}
       </p>
 
-      {/* Progress rail */}
-      <ol className="mt-10 grid gap-3 border border-line-200 bg-paper-0 p-6 sm:grid-cols-6">
+      {/* Progress rail — snap strip on mobile, 6-col grid on ≥sm */}
+      <ol className="mt-8 hstrip border border-line-200 bg-paper-0 p-4 sm:mt-10 sm:grid sm:grid-cols-6 sm:gap-3 sm:p-6">
         {STEP_ORDER.map((s, i) => {
           const done = i < currentIdx;
           const active = i === currentIdx;
           const Icon = done ? CheckCircle2 : active ? Clock : Circle;
           return (
-            <li key={s} className="flex items-center gap-2">
+            <li
+              key={s}
+              className={`inline-flex min-w-max items-center gap-2 rounded-full border px-3 py-2 sm:min-w-0 sm:rounded-none sm:border-0 sm:px-0 sm:py-0 ${
+                active ? "border-ink-950 bg-ink-950/5 sm:bg-transparent" : "border-line-200 sm:border-transparent"
+              }`}
+            >
               <Icon size={14} className={done ? "text-gold-500" : active ? "text-ink-950" : "text-ink-500/50"} />
               <span className={`font-mono text-[10px] uppercase tracking-[0.2em] ${active ? "text-ink-950" : "text-ink-500"}`}>
                 {STATUS_LABEL[s]?.minister ?? s}

@@ -520,11 +520,11 @@ function TurnBlock({
               label={showWritten ? "Hide detail" : "Read more"}
             />
           )}
-          {turn.citations.length > 0 && (
+          {(turn.citations.length > 0 || (turn.deepResearch?.sources?.length ?? 0) > 0) && (
             <ToolbarButton
               onClick={() => setShowSources((v) => !v)}
               active={showSources}
-              label={`Sources · ${turn.citations.length}`}
+              label={`Sources · ${turn.citations.length + (turn.deepResearch?.sources?.length ?? 0)}`}
             />
           )}
           <ToolbarButton

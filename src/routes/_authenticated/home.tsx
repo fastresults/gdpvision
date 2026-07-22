@@ -182,7 +182,7 @@ function SuperAdminWelcome() {
               }}
               className="group flex items-center gap-4 border border-line-200 bg-card p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-ink-950 hover:shadow-md"
             >
-              <img src={flagUrl(c.code, "w80") ?? undefined} alt="" className="h-10 w-14 border border-line-200 object-cover" />
+              <img src={flagUrl(c.code, "w160") ?? undefined} alt="" className="h-10 w-14 border border-line-200 object-cover" />
               <div>
                 <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">View as · {c.code}</div>
                 <div className="font-serif text-base text-ink-950">{c.name}</div>

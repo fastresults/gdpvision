@@ -46,29 +46,37 @@ function ConsoleLayout() {
   const countryName = status.bindings.find((b) => b.country_code === code)?.name ?? null;
   const flag = code ? flagUrl(code, "w160") : null;
 
-  const tabs = code
-    ? ([
+  type Tab = {
+    to: "/console/$code" | "/console/$code/ask" | "/console/$code/request/new";
+    label: string;
+    icon: typeof Home;
+    isActive: boolean;
+    primary?: boolean;
+  };
+  const tabs: Tab[] = code
+    ? [
         {
-          to: "/console/$code" as const,
+          to: "/console/$code",
           label: "Study",
           icon: Home,
           isActive: pathname === `/console/${code}` || pathname.startsWith(`/console/${code}/requests`),
         },
         {
-          to: "/console/$code/ask" as const,
+          to: "/console/$code/ask",
           label: "Ask",
           icon: MessageCircle,
           isActive: pathname.startsWith(`/console/${code}/ask`),
         },
         {
-          to: "/console/$code/request/new" as const,
+          to: "/console/$code/request/new",
           label: "Send",
           icon: Send,
           isActive: pathname.startsWith(`/console/${code}/request`),
           primary: true,
         },
-      ] as const)
+      ]
     : [];
+
 
   return (
     <div className="flex min-h-dvh flex-col bg-paper-50 text-ink-950">

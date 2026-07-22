@@ -1,11 +1,24 @@
-// Ask — chat with the country's Second Brain. Uses askCounsel; threads are
-// persisted per country in localStorage. Auto-runs the first question when
-// arriving from the Study composer via ?q=.
+// Ask — chat with the country's Second Brain. A round "Ask" button owns the
+// primary action; each answer has a control panel (copy, expand into a
+// request, remove, toggle written detail & sources). Thread controls live in
+// a compact dropdown in the header.
 
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
-import { ArrowRight, ArrowUpRight, Loader2, RefreshCcw, Sparkles } from "lucide-react";
+import {
+  ArrowUpRight,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  Loader2,
+  MoreHorizontal,
+  RefreshCcw,
+  Sparkles,
+  Trash2,
+  X,
+  Mic,
+} from "lucide-react";
 
 import { askCounsel, type CounselAnswer } from "@/lib/counsel.functions";
 import { VoiceMicButton } from "@/components/console/VoiceMicButton";
@@ -28,23 +41,34 @@ function AskPage() {
   const { code } = Route.useParams();
   const { q } = Route.useSearch();
   const navigate = useNavigate();
-  const { turns, append, clear } = useCountryAskThread(code);
+  const { turns, append, clear, remove } = useCountryAskThread(code);
 
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const consumedSeedRef = useRef<string | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [turns.length, busy]);
 
+  useEffect(() => {
+    if (composerOpen) {
+      // Focus after animation frame so the sheet is mounted.
+      requestAnimationFrame(() => composerRef.current?.focus());
+    }
+  }, [composerOpen]);
+
   async function send(question: string) {
     const q0 = question.trim();
     if (!q0 || busy) return;
     setBusy(true);
     setError(null);
+    setComposerOpen(false);
     const startedAt = new Date().toISOString();
     try {
       const res: CounselAnswer = await askCounsel({
@@ -71,7 +95,6 @@ function AskPage() {
   useEffect(() => {
     if (!q || consumedSeedRef.current === q) return;
     consumedSeedRef.current = q;
-    // Clear the search param so a page refresh doesn't re-ask.
     navigate({
       to: "/console/$code/ask",
       params: { code },
@@ -100,8 +123,9 @@ function AskPage() {
   ];
 
   return (
-    <div className="flex min-h-[calc(100dvh-8rem)] flex-col">
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 sm:gap-4">
+    <div className="relative flex min-h-[calc(100dvh-8rem)] flex-col pb-40 sm:pb-32">
+      {/* Header */}
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:gap-4">
         <div className="min-w-0">
           <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-ink-500">
             Ask the Second Brain
@@ -109,27 +133,67 @@ function AskPage() {
           <h1 className="mt-2 font-serif text-2xl leading-tight text-ink-950 sm:text-4xl">
             Quick, cited answers.
           </h1>
+          <p className="mt-2 max-w-lg text-sm text-ink-500 sm:text-base">
+            {turns.length === 0
+              ? "Tap Ask below to begin. Every answer is grounded in this country's Second Brain."
+              : `${turns.length} answer${turns.length === 1 ? "" : "s"} in this conversation.`}
+          </p>
         </div>
+
+        {/* Thread menu */}
         {turns.length > 0 && (
-          <button
-            type="button"
-            onClick={() => {
-              if (confirm("Clear this conversation?")) clear();
-            }}
-            className="inline-flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
-          >
-            <RefreshCcw size={12} /> New
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="Conversation menu"
+              className="inline-flex h-10 w-10 items-center justify-center border border-line-200 bg-paper-0 text-ink-950 hover:border-ink-950"
+            >
+              <MoreHorizontal size={16} />
+            </button>
+            {menuOpen && (
+              <div
+                className="absolute right-0 top-12 z-40 w-56 border border-line-200 bg-paper-0 shadow-lg"
+                onMouseLeave={() => setMenuOpen(false)}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm("Clear this conversation?")) clear();
+                    setMenuOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 border-b border-line-200 px-3 py-3 text-left text-sm text-ink-950 hover:bg-paper-50"
+                >
+                  <RefreshCcw size={14} /> New conversation
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const text = turns
+                      .map(
+                        (t) =>
+                          `Q: ${t.question}\n\n${t.spoken}\n\n${t.written || ""}`.trim(),
+                      )
+                      .join("\n\n---\n\n");
+                    void navigator.clipboard.writeText(text);
+                    setMenuOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-3 text-left text-sm text-ink-950 hover:bg-paper-50"
+                >
+                  <Copy size={14} /> Copy conversation
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </header>
 
-      {/* Conversation */}
-      <div className="mt-8 flex-1 space-y-8 pb-40">
+      {/* Body */}
+      <div className="mt-8 flex-1 space-y-6">
         {showEmpty && (
-          <div className="space-y-6">
-            <p className="max-w-lg text-ink-500">
-              Ask anything grounded in this country's Second Brain — indicators,
-              ministries, sectors, recent decisions. Answers come with sources you can open.
+          <div className="space-y-5">
+            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+              Or start with one of these
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
               {canned.map((c) => (
@@ -149,7 +213,13 @@ function AskPage() {
         )}
 
         {turns.map((t) => (
-          <TurnBlock key={t.id} turn={t} onSend={convertToSend} />
+          <TurnBlock
+            key={t.id}
+            turn={t}
+            onSend={convertToSend}
+            onRemove={() => remove(t.id)}
+            onAskAgain={(q) => send(q)}
+          />
         ))}
 
         {busy && (
@@ -173,53 +243,125 @@ function AskPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Composer pinned to bottom */}
-      <div
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-line-200 bg-paper-50/95 backdrop-blur"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      >
-        <div className="mx-auto max-w-6xl px-3 py-2.5 sm:px-6 sm:py-3">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  void send(input);
-                }
-              }}
-              rows={1}
-              placeholder="Follow up — or ask something new"
-              className="min-h-[48px] w-full resize-none border border-line-200 bg-paper-0 p-3 font-serif text-base text-ink-950 placeholder:text-ink-500/60 focus:border-ink-950 focus:outline-none"
-              disabled={busy}
-            />
-            <div className="flex shrink-0 items-center gap-2">
-              <VoiceMicButton
-                onTranscript={(t) => setInput((prev) => (prev ? `${prev.trim()} ${t}` : t))}
-                label=""
+      {/* Round Ask button (FAB) */}
+      {!composerOpen && (
+        <button
+          type="button"
+          onClick={() => setComposerOpen(true)}
+          disabled={busy}
+          aria-label="Ask a question"
+          className="group fixed bottom-6 left-1/2 z-30 flex h-20 w-20 -translate-x-1/2 items-center justify-center rounded-full bg-ink-950 text-paper-50 shadow-2xl transition-transform hover:scale-105 active:scale-95 disabled:opacity-60 sm:h-24 sm:w-24"
+          style={{ marginBottom: "env(safe-area-inset-bottom)" }}
+        >
+          <span className="absolute inset-0 rounded-full ring-1 ring-ink-950/20 transition-transform group-hover:scale-110" />
+          <span className="absolute inset-2 rounded-full border border-paper-50/20" />
+          <div className="relative flex flex-col items-center gap-0.5">
+            <Sparkles size={22} className="sm:hidden" />
+            <Sparkles size={26} className="hidden sm:block" />
+            <span className="font-mono text-[9px] uppercase tracking-[0.2em]">Ask</span>
+          </div>
+        </button>
+      )}
+
+      {/* Composer sheet */}
+      {composerOpen && (
+        <>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={() => setComposerOpen(false)}
+            className="fixed inset-0 z-30 bg-ink-950/30 backdrop-blur-sm"
+          />
+          <div
+            className="fixed inset-x-0 bottom-0 z-40 border-t border-line-200 bg-paper-0 shadow-2xl"
+            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+          >
+            <div className="mx-auto max-w-3xl px-4 pb-4 pt-4 sm:px-6 sm:pt-6">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-ink-500">
+                  Ask the Second Brain
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setComposerOpen(false)}
+                  aria-label="Close composer"
+                  className="inline-flex h-9 w-9 items-center justify-center text-ink-500 hover:text-ink-950"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <textarea
+                ref={composerRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    void send(input);
+                  }
+                }}
+                rows={3}
+                placeholder="Ask anything — an indicator, ministry, sector, or recent decision."
+                className="min-h-[6rem] w-full resize-none border border-line-200 bg-paper-50 p-3 font-serif text-base leading-relaxed text-ink-950 placeholder:text-ink-500/60 focus:border-ink-950 focus:outline-none sm:min-h-[8rem] sm:p-4 sm:text-lg"
+                disabled={busy}
               />
-              <button
-                type="button"
-                onClick={() => void send(input)}
-                disabled={busy || input.trim().length < 2}
-                aria-label="Ask"
-                className="btn-primary inline-flex min-h-[48px] min-w-[48px] items-center justify-center gap-2 px-4 text-sm uppercase tracking-[0.15em] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <ArrowRight size={14} />
-              </button>
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <VoiceMicButton
+                  onTranscript={(t) => setInput((prev) => (prev ? `${prev.trim()} ${t}` : t))}
+                  label="Speak"
+                />
+                <button
+                  type="button"
+                  onClick={() => void send(input)}
+                  disabled={busy || input.trim().length < 2}
+                  className="btn-primary inline-flex min-h-[52px] flex-1 items-center justify-center gap-2 px-6 text-sm uppercase tracking-[0.15em] disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
+                >
+                  {busy ? <Loader2 size={14} className="animate-spin" /> : <Mic size={14} />}
+                  Ask now
+                </button>
+              </div>
+              <p className="mt-3 hidden font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 sm:block">
+                Enter to send · Shift+Enter for a new line
+              </p>
             </div>
           </div>
-          <p className="mt-2 hidden font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 sm:block">
-            Enter to send · Shift+Enter for a new line
-          </p>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }
 
-function TurnBlock({ turn, onSend }: { turn: AskTurn; onSend: (q: string) => void }) {
+function TurnBlock({
+  turn,
+  onSend,
+  onRemove,
+  onAskAgain,
+}: {
+  turn: AskTurn;
+  onSend: (q: string) => void;
+  onRemove: () => void;
+  onAskAgain: (q: string) => void;
+}) {
+  const [showWritten, setShowWritten] = useState(false);
+  const [showSources, setShowSources] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  function copyAnswer() {
+    const parts = [turn.spoken];
+    if (turn.written) parts.push("\n" + turn.written);
+    if (turn.citations.length) {
+      parts.push(
+        "\nSources:\n" +
+          turn.citations
+            .map((c, i) => `[${i + 1}] ${c.title} — ${c.kind} · ${c.sector_code}`)
+            .join("\n"),
+      );
+    }
+    void navigator.clipboard.writeText(parts.join("\n"));
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  }
+
   return (
     <article className="space-y-3">
       {/* User */}
@@ -231,17 +373,17 @@ function TurnBlock({ turn, onSend }: { turn: AskTurn; onSend: (q: string) => voi
 
       {/* Assistant */}
       <div className="border border-line-200 bg-paper-0">
-        <div className="border-b border-line-200 px-5 py-4">
+        <div className="px-4 py-4 sm:px-5">
           <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
-            Second Brain — spoken
+            Second Brain
           </p>
-          <p className="mt-2 whitespace-pre-wrap font-serif text-lg leading-relaxed text-ink-950">
+          <p className="mt-2 whitespace-pre-wrap font-serif text-base leading-relaxed text-ink-950 sm:text-lg">
             {turn.spoken || "No spoken summary."}
           </p>
         </div>
 
-        {turn.written && (
-          <div className="px-5 py-4">
+        {turn.written && showWritten && (
+          <div className="border-t border-line-200 bg-paper-50 px-4 py-4 sm:px-5">
             <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
               Written detail
             </p>
@@ -251,12 +393,12 @@ function TurnBlock({ turn, onSend }: { turn: AskTurn; onSend: (q: string) => voi
           </div>
         )}
 
-        {turn.citations.length > 0 && (
-          <div className="border-t border-line-200 px-5 py-4">
+        {turn.citations.length > 0 && showSources && (
+          <div className="border-t border-line-200 px-4 py-4 sm:px-5">
             <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
               Sources
             </p>
-            <ol className="mt-2 space-y-1 text-sm text-ink-500">
+            <ol className="mt-2 space-y-1.5 text-sm text-ink-500">
               {turn.citations.map((c, i) => (
                 <li key={c.id} className="leading-snug">
                   <span className="mr-1 font-mono text-[10px] text-ink-500">[{i + 1}]</span>
@@ -270,7 +412,49 @@ function TurnBlock({ turn, onSend }: { turn: AskTurn; onSend: (q: string) => voi
           </div>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line-200 px-5 py-3">
+        {/* Control panel */}
+        <div className="flex flex-wrap items-center gap-1 border-t border-line-200 bg-paper-50 px-2 py-2">
+          {turn.written && (
+            <ToolbarButton
+              onClick={() => setShowWritten((v) => !v)}
+              active={showWritten}
+              icon={showWritten ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              label={showWritten ? "Hide detail" : "Read more"}
+            />
+          )}
+          {turn.citations.length > 0 && (
+            <ToolbarButton
+              onClick={() => setShowSources((v) => !v)}
+              active={showSources}
+              label={`Sources · ${turn.citations.length}`}
+            />
+          )}
+          <ToolbarButton
+            onClick={copyAnswer}
+            icon={<Copy size={12} />}
+            label={copied ? "Copied" : "Copy"}
+          />
+          <ToolbarButton
+            onClick={() => onAskAgain(turn.question)}
+            icon={<RefreshCcw size={12} />}
+            label="Ask again"
+          />
+          <div className="ml-auto flex items-center gap-1">
+            <ToolbarButton
+              onClick={() => onSend(turn.question)}
+              icon={<ArrowUpRight size={12} />}
+              label="Send to team"
+              accent
+            />
+            <ToolbarButton
+              onClick={onRemove}
+              icon={<Trash2 size={12} />}
+              aria-label="Remove answer"
+            />
+          </div>
+        </div>
+
+        <div className="px-4 py-2 sm:px-5">
           <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
             {new Date(turn.createdAt).toLocaleString("en-GB", {
               day: "numeric",
@@ -279,16 +463,38 @@ function TurnBlock({ turn, onSend }: { turn: AskTurn; onSend: (q: string) => voi
               minute: "2-digit",
             })}
           </span>
-          <button
-            type="button"
-            onClick={() => onSend(turn.question)}
-            className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950 hover:text-gold-500"
-          >
-            <Sparkles size={12} /> This needs more than an answer — send it to the team{" "}
-            <ArrowUpRight size={12} />
-          </button>
         </div>
       </div>
     </article>
+  );
+}
+
+function ToolbarButton({
+  onClick,
+  label,
+  icon,
+  active,
+  accent,
+  "aria-label": ariaLabel,
+}: {
+  onClick: () => void;
+  label?: string;
+  icon?: React.ReactNode;
+  active?: boolean;
+  accent?: boolean;
+  "aria-label"?: string;
+}) {
+  const base =
+    "inline-flex min-h-[36px] items-center gap-1.5 px-2.5 font-mono text-[10px] uppercase tracking-[0.15em] transition-colors";
+  const tone = accent
+    ? "text-ink-950 hover:bg-ink-950 hover:text-paper-0"
+    : active
+      ? "bg-ink-950 text-paper-0"
+      : "text-ink-500 hover:bg-paper-0 hover:text-ink-950";
+  return (
+    <button type="button" onClick={onClick} className={`${base} ${tone}`} aria-label={ariaLabel}>
+      {icon}
+      {label}
+    </button>
   );
 }

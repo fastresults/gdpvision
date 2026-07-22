@@ -14,6 +14,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import faviconAsset from "../assets/favicon.png.asset.json";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { ViewAsBanner } from "../lib/impersonation";
 
 
 function NotFoundComponent() {
@@ -148,6 +149,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <RouteScrollTop />
+      <ViewAsBanner />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
     </QueryClientProvider>

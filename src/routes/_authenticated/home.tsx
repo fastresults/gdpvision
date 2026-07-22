@@ -9,6 +9,7 @@ import { flagUrl, isCaricom, isOecs } from "@/lib/caricom-registry";
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { supabase } from "@/integrations/supabase/client";
 import { checkAccessAllowed } from "@/lib/invitations.functions";
+import { useImpersonation } from "@/lib/impersonation";
 
 const myStatusQuery = queryOptions({
   queryKey: ["my-country-status"],
@@ -40,6 +41,7 @@ export const Route = createFileRoute("/_authenticated/home")({
 function HomePage() {
   const { data: status } = useSuspenseQuery(myStatusQuery);
   const navigate = useNavigate();
+  const { state: viewAs } = useImpersonation();
   useEffect(() => {
     let cancelled = false;
     checkAccessAllowed().then(async (res) => {
@@ -51,6 +53,17 @@ function HomePage() {
     }).catch(() => {});
     return () => { cancelled = true; };
   }, [navigate]);
+
+  // Super admin has activated "View as country user" mode → render the
+  // country-admin welcome for the impersonated country.
+  if (status.isGlobalAdmin && viewAs) {
+    return (
+      <Shell>
+        <CountryAdminWelcome code={viewAs.country_code} name={countryName(viewAs.country_code)} />
+      </Shell>
+    );
+  }
+
   return (
     <Shell>
       {status.isGlobalAdmin ? (
@@ -64,6 +77,22 @@ function HomePage() {
       )}
     </Shell>
   );
+}
+
+function countryName(code: string): string {
+  const map: Record<string, string> = {
+    ATG: "Antigua and Barbuda",
+    LCA: "Saint Lucia",
+    KNA: "Saint Kitts and Nevis",
+    BRB: "Barbados",
+    TTO: "Trinidad and Tobago",
+    JAM: "Jamaica",
+    GUY: "Guyana",
+    DMA: "Dominica",
+    GRD: "Grenada",
+    VCT: "Saint Vincent and the Grenadines",
+  };
+  return map[code.toUpperCase()] ?? code.toUpperCase();
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
@@ -90,6 +119,8 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 function SuperAdminWelcome() {
   const { data: countries } = useSuspenseQuery(allCountriesQuery);
+  const { enter: enterViewAs } = useImpersonation();
+  const navigate = useNavigate();
   const total = countries.length;
   const complete = countries.filter((c: any) => (c.completed_stages ?? []).length === 12).length;
 
@@ -128,6 +159,36 @@ function SuperAdminWelcome() {
           <QuickAction icon={Users2} title="Users" blurb="Manage country admins and access." to="/admin" />
           <QuickAction icon={Activity} title="Activity" blurb="Recent onboarding and system runs." to="/admin/activity" />
           <QuickAction icon={BookOpen} title="Audit log" blurb="Every commit, source, and decision." to="/admin/audits/log" />
+        </div>
+      </section>
+
+      <section>
+        <h2 className="mb-2 font-serif text-2xl">Testing · View as country user</h2>
+        <p className="mb-5 max-w-2xl text-sm text-ink-500">
+          Preview the app exactly as an authorised country user would see it. Server permissions are unchanged;
+          this only changes what your browser renders. Exit any time from the amber banner at the top.
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            { code: "ATG", name: "Antigua and Barbuda" },
+            { code: "LCA", name: "Saint Lucia" },
+            { code: "KNA", name: "Saint Kitts and Nevis" },
+          ].map((c) => (
+            <button
+              key={c.code}
+              onClick={() => {
+                enterViewAs(c.code);
+                navigate({ to: "/home" });
+              }}
+              className="group flex items-center gap-4 border border-line-200 bg-card p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-ink-950 hover:shadow-md"
+            >
+              <img src={flagUrl(c.code, "w160") ?? undefined} alt="" className="h-10 w-14 border border-line-200 object-cover" />
+              <div>
+                <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">View as · {c.code}</div>
+                <div className="font-serif text-base text-ink-950">{c.name}</div>
+              </div>
+            </button>
+          ))}
         </div>
       </section>
     </div>

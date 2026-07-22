@@ -421,6 +421,7 @@ function TurnBlock({
   onAskAgain,
   onDeepResearch,
   onSkipDeepResearch,
+  onExpound,
 }: {
   turn: AskTurn;
   onSend: (q: string) => void;
@@ -428,9 +429,11 @@ function TurnBlock({
   onAskAgain: (q: string) => void;
   onDeepResearch: () => void;
   onSkipDeepResearch: () => void;
+  onExpound: () => void;
 }) {
   const [showWritten, setShowWritten] = useState(false);
-  const [showSources, setShowSources] = useState(false);
+  const [showMemo, setShowMemo] = useState(false);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
   function copyAnswer() {

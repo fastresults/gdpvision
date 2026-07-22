@@ -43,19 +43,19 @@ function RequestsList() {
   });
 
   return (
-    <div>
-      <div className="mb-6 grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4">
-        <h1 className="font-serif text-4xl text-ink-950">Requests</h1>
+    <div className="pb-24 sm:pb-0">
+      <div className="mb-6 flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-baseline sm:gap-4">
+        <h1 className="font-serif text-3xl text-ink-950 sm:text-4xl">Requests</h1>
         <Link
           to="/console/$code/request/new"
           params={{ code }}
-          className="btn-primary px-5 py-2.5 text-xs uppercase tracking-[0.15em]"
+          className="btn-primary hidden px-5 py-2.5 text-xs uppercase tracking-[0.15em] sm:inline-flex"
         >
           Start a request
         </Link>
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className="mb-6 hstrip sm:flex-wrap">
         {(
           [
             ["all", `All (${rows.length})`],
@@ -68,14 +68,15 @@ function RequestsList() {
             onClick={() => setFilter(k)}
             className={
               filter === k
-                ? "card-choice-active px-4 py-2 text-xs uppercase tracking-[0.15em]"
-                : "card-choice px-4 py-2 text-xs uppercase tracking-[0.15em]"
+                ? "card-choice-active inline-flex items-center px-4 text-xs uppercase tracking-[0.15em]"
+                : "card-choice inline-flex items-center px-4 text-xs uppercase tracking-[0.15em]"
             }
           >
             {label}
           </button>
         ))}
       </div>
+
 
       {filtered.length === 0 ? (
         <p className="border border-dashed border-line-200 p-10 text-center text-sm text-ink-500">

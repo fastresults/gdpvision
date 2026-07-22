@@ -464,8 +464,9 @@ function TurnBlock({
             </p>
             {turn.deepResearch?.status === "done" && turn.deepResearch.ranAt && (
               <span className="inline-flex items-center gap-1 border border-line-200 bg-paper-50 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.2em] text-ink-500">
-                <Sparkles size={10} /> Deep research
+                Deep research
               </span>
+
             )}
           </div>
           <p className="mt-2 whitespace-pre-wrap font-serif text-base leading-relaxed text-ink-950 sm:text-lg">

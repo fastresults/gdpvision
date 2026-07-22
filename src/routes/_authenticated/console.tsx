@@ -82,27 +82,33 @@ function ConsoleLayout() {
         </div>
       )}
 
-      <header className="border-b border-line-200 bg-paper-0/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link to="/console/$code" params={{ code: code ?? "" }} className="flex items-center gap-3">
+      <header className="sticky top-0 z-20 border-b border-line-200 bg-paper-0/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
+          <Link
+            to="/console/$code"
+            params={{ code: code ?? "" }}
+            className="flex min-w-0 items-center gap-3"
+          >
             <Wordmark className="text-ink-950" />
             {flag && (
               <>
-                <span className="text-line-200">·</span>
-                <img src={flag} alt="" className="h-4 w-6 rounded-sm object-cover" />
-                <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+                <span className="hidden text-line-200 sm:inline">·</span>
+                <img src={flag} alt="" className="hidden h-4 w-6 shrink-0 rounded-sm object-cover sm:block" />
+                <span className="hidden truncate font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500 sm:inline">
                   {countryName ?? code}
                 </span>
               </>
             )}
           </Link>
-          <nav className="flex items-center gap-2 text-sm">
+
+          {/* Desktop nav */}
+          <nav className="hidden items-center gap-2 text-sm md:flex">
             {nav.map((item) => {
               const isActive = item.exact
                 ? pathname === `/console/${code}`
                 : pathname.startsWith(item.to.replace("$code", code ?? ""));
               const cls = item.primary
-                ? "btn-primary px-4 py-2 text-sm"
+                ? "btn-primary inline-flex items-center gap-1.5 px-4 py-2 text-sm"
                 : `px-3 py-2 ${isActive ? "text-ink-950 underline underline-offset-4" : "text-ink-500 hover:text-ink-950"}`;
               return (
                 <Link key={item.to} to={item.to} params={{ code: code ?? "" }} className={cls}>
@@ -117,10 +123,60 @@ function ConsoleLayout() {
               Sign out
             </button>
           </nav>
+
+          {/* Mobile hamburger */}
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            className="inline-flex h-11 w-11 items-center justify-center border border-line-200 bg-paper-0 text-ink-950 md:hidden"
+          >
+            {menuOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
         </div>
+
+        {/* Mobile drawer */}
+        {menuOpen && (
+          <div className="border-t border-line-200 bg-paper-0 md:hidden">
+            <nav className="mx-auto flex max-w-6xl flex-col px-4 py-2">
+              {flag && (
+                <div className="flex items-center gap-2 border-b border-line-200 py-3">
+                  <img src={flag} alt="" className="h-4 w-6 rounded-sm object-cover" />
+                  <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+                    {countryName ?? code}
+                  </span>
+                </div>
+              )}
+              {nav.map((item) => {
+                const isActive = item.exact
+                  ? pathname === `/console/${code}`
+                  : pathname.startsWith(item.to.replace("$code", code ?? ""));
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    params={{ code: code ?? "" }}
+                    onClick={() => setMenuOpen(false)}
+                    className={`min-h-[44px] border-b border-line-200 py-3 font-serif text-base ${
+                      isActive ? "text-ink-950" : "text-ink-500"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+              <button
+                onClick={signOut}
+                className="min-h-[44px] py-3 text-left text-xs uppercase tracking-[0.15em] text-ink-500"
+              >
+                Sign out
+              </button>
+            </nav>
+          </div>
+        )}
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-10">
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
         <Outlet />
       </main>
 

@@ -111,8 +111,9 @@ export function AskTheLedger({
   }, [turns, ask.isPending]);
 
   useEffect(() => {
-    if (isMobile) setOpen(false);
-  }, [isMobile]);
+    if (isMobile && !defaultOpen) setOpen(false);
+  }, [isMobile, defaultOpen]);
+
 
   function submit(q: string) {
     const question = q.trim();

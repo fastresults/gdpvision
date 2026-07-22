@@ -114,13 +114,16 @@
   --ink-400: #6b81a0;
   --ink-300: #9daec2;
   --paper-0: #fcfcfa;
+  --paper-50: #f7f7f2;
   --paper-100: #f4f4ef;
   --line-100: #eeefe8;
   --line-200: #e3e4dd;
+  --ink-hover: #1e3350;
 
   /* Sovereign accent */
   --gold-500: #b98a2f;
   --gold-300: #d9b866;
+  --gold-hover: #a37826;
 
   /* Semantic */
   --signal-positive: #2e7d5b;

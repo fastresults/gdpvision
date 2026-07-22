@@ -292,6 +292,3 @@ function TurnBlock({ turn, onSend }: { turn: AskTurn; onSend: (q: string) => voi
     </article>
   );
 }
-
-// Keep import used even when tree-shaking is aggressive
-void Link;

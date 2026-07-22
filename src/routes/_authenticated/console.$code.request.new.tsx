@@ -172,7 +172,7 @@ function RequestWizard() {
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <VoiceMicButton
-              onTranscript={(t) => setText((prev) => (prev ? `${prev.trim()} ${t}` : t))}
+              onTranscript={(t) => setText((prev: string) => (prev ? `${prev.trim()} ${t}` : t))}
               label="Speak"
             />
             <button

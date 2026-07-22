@@ -1,16 +1,15 @@
-// Country Console layout — country-user chrome. Never mentions chambers.
+// Country Console layout — country-user chrome. Minimal: header + content +
+// a persistent 3-rail bottom tab bar. No hamburger, no drawer.
 
-import { useState } from "react";
 import { createFileRoute, Link, Outlet, useParams, useRouterState } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { Menu, X } from "lucide-react";
+import { Home, MessageCircle, Send } from "lucide-react";
 
 import { getMyCountryStatus } from "@/lib/country-admin.functions";
 import { flagUrl } from "@/lib/caricom-registry";
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { CountryChip } from "@/components/console/CountryChip";
 import { useImpersonation } from "@/lib/impersonation";
-import { supabase } from "@/integrations/supabase/client";
 
 const statusQuery = queryOptions({
   queryKey: ["my-country-status"],
@@ -36,9 +35,7 @@ function ConsoleLayout() {
   const params = useParams({ strict: false }) as { code?: string };
   const { state: viewAs } = useImpersonation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const [menuOpen, setMenuOpen] = useState(false);
 
-  // Resolve which country this session is scoped to.
   const code =
     params.code ??
     viewAs?.country_code ??
@@ -47,26 +44,42 @@ function ConsoleLayout() {
     null;
 
   const countryName = status.bindings.find((b) => b.country_code === code)?.name ?? null;
-
   const flag = code ? flagUrl(code, "w160") : null;
 
-  const nav = code
+  type Tab = {
+    to: "/console/$code" | "/console/$code/ask" | "/console/$code/request/new";
+    label: string;
+    icon: typeof Home;
+    isActive: boolean;
+    primary?: boolean;
+  };
+  const tabs: Tab[] = code
     ? [
-        { to: "/console/$code" as const, label: "Study", exact: true },
-        { to: "/console/$code/ask" as const, label: "Ask" },
-        { to: "/console/$code/requests" as const, label: "Requests" },
-        { to: "/console/$code/request/new" as const, label: "Start a request", primary: true },
+        {
+          to: "/console/$code",
+          label: "Study",
+          icon: Home,
+          isActive: pathname === `/console/${code}` || pathname.startsWith(`/console/${code}/requests`),
+        },
+        {
+          to: "/console/$code/ask",
+          label: "Ask",
+          icon: MessageCircle,
+          isActive: pathname.startsWith(`/console/${code}/ask`),
+        },
+        {
+          to: "/console/$code/request/new",
+          label: "Send",
+          icon: Send,
+          isActive: pathname.startsWith(`/console/${code}/request`),
+          primary: true,
+        },
       ]
     : [];
 
-  async function signOut() {
-    await supabase.auth.signOut();
-    window.location.href = "/auth";
-  }
 
   return (
     <div className="flex min-h-dvh flex-col bg-paper-50 text-ink-950">
-
       <header className="sticky top-0 z-20 border-b border-line-200 bg-paper-0/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
           <Link
@@ -77,87 +90,57 @@ function ConsoleLayout() {
             <Wordmark className="text-ink-950" />
             {code && <CountryChip flagUrl={flag} code={code} name={countryName} className="ml-1" />}
           </Link>
-
-          {/* Desktop nav */}
-          <nav className="hidden items-center gap-2 text-sm md:flex">
-            {nav.map((item) => {
-              const isActive = item.exact
-                ? pathname === `/console/${code}`
-                : pathname.startsWith(item.to.replace("$code", code ?? ""));
-              const cls = item.primary
-                ? "btn-primary inline-flex items-center gap-1.5 px-4 py-2 text-sm"
-                : `px-3 py-2 ${isActive ? "text-ink-950 underline underline-offset-4" : "text-ink-500 hover:text-ink-950"}`;
-              return (
-                <Link key={item.to} to={item.to} params={{ code: code ?? "" }} className={cls}>
-                  {item.label}
-                </Link>
-              );
-            })}
-            <button
-              onClick={signOut}
-              className="ml-2 px-3 py-2 text-xs uppercase tracking-[0.15em] text-ink-500 hover:text-ink-950"
-            >
-              Sign out
-            </button>
-          </nav>
-
-          {/* Mobile hamburger */}
-          <button
-            type="button"
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-label={menuOpen ? "Close menu" : "Open menu"}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center border border-line-200 bg-paper-0 text-ink-950 md:hidden"
-          >
-            {menuOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
         </div>
-
-        {/* Mobile drawer */}
-        {menuOpen && (
-          <div className="border-t border-line-200 bg-paper-0 md:hidden">
-            <nav className="mx-auto flex max-w-6xl flex-col px-4 py-2">
-              {countryName && (
-                <div className="border-b border-line-200 py-3">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Country</p>
-                  <p className="mt-1 font-serif text-base text-ink-950">{countryName}</p>
-                </div>
-              )}
-              {nav.map((item) => {
-                const isActive = item.exact
-                  ? pathname === `/console/${code}`
-                  : pathname.startsWith(item.to.replace("$code", code ?? ""));
-                return (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    params={{ code: code ?? "" }}
-                    onClick={() => setMenuOpen(false)}
-                    className={`min-h-[44px] border-b border-line-200 py-3 font-serif text-base ${
-                      isActive ? "text-ink-950" : "text-ink-500"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-              <button
-                onClick={signOut}
-                className="min-h-[44px] py-3 text-left text-xs uppercase tracking-[0.15em] text-ink-500"
-              >
-                Sign out
-              </button>
-            </nav>
-          </div>
-        )}
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-10">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-28 sm:px-6 sm:py-10 sm:pb-28">
         <Outlet />
       </main>
 
-      <footer className="border-t border-line-200 px-4 py-6 text-center font-mono text-[9px] uppercase tracking-[0.22em] leading-relaxed text-ink-500 sm:text-[10px] sm:tracking-[0.25em]">
-        A GDPVision instrument · operated by Open Interactive
-      </footer>
+      {/* Persistent bottom tab bar — 3 rails, no menus */}
+      {code && (
+        <nav
+          aria-label="Primary"
+          className="fixed inset-x-0 bottom-0 z-30 border-t border-line-200 bg-paper-0/95 backdrop-blur"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          <div className="mx-auto grid max-w-6xl grid-cols-3">
+            {tabs.map((t) => {
+              const Icon = t.icon;
+              const base =
+                "flex min-h-[64px] flex-col items-center justify-center gap-1 px-2 py-2 text-[10px] font-mono uppercase tracking-[0.18em] transition-colors";
+              if (t.primary) {
+                return (
+                  <Link
+                    key={t.to}
+                    to={t.to}
+                    params={{ code }}
+                    className={`${base} btn-primary rounded-none border-0`}
+                  >
+                    <Icon size={18} strokeWidth={2} />
+                    <span>{t.label}</span>
+                  </Link>
+                );
+              }
+              return (
+                <Link
+                  key={t.to}
+                  to={t.to}
+                  params={{ code }}
+                  className={`${base} ${
+                    t.isActive
+                      ? "text-ink-950 border-t-2 border-ink-950 -mt-px"
+                      : "text-ink-500 hover:text-ink-950"
+                  }`}
+                >
+                  <Icon size={18} strokeWidth={1.75} />
+                  <span>{t.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      )}
     </div>
   );
 }

@@ -1,7 +1,9 @@
 // Country Console layout — country-user chrome. Never mentions chambers.
 
+import { useState } from "react";
 import { createFileRoute, Link, Outlet, useParams, useRouterState } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { Menu, X } from "lucide-react";
 
 import { getMyCountryStatus } from "@/lib/country-admin.functions";
 import { flagUrl } from "@/lib/caricom-registry";

@@ -238,10 +238,10 @@ function StudyPage() {
                       <Link
                         to="/console/$code/requests/$id"
                         params={{ code, id: r.id }}
-                        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-6 px-5 py-4 hover:bg-paper-50"
+                        className="flex flex-col gap-2 px-5 py-4 hover:bg-paper-50 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-6"
                       >
                         <div className="min-w-0">
-                          <p className="truncate font-serif text-base text-ink-950">{r.question}</p>
+                          <p className="font-serif text-base leading-snug text-ink-950 sm:truncate">{r.question}</p>
                           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
                             {r.ministry && <span>{r.ministry}</span>}
                             <span>{STATUS_LABEL[r.status]?.minister ?? "Received"}</span>

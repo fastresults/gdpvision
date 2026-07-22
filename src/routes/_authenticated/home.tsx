@@ -5,7 +5,7 @@ import { Activity, BookOpen, Database, Landmark, Layers, MessageSquare, Search, 
 
 import { getMyCountryStatus } from "@/lib/country-admin.functions";
 import { listOnboardingCountries } from "@/lib/country-onboarding/agents.functions";
-import { flagUrl, isCaricom, isOecs, CARICOM_REGISTRY } from "@/lib/caricom-registry";
+import { flagUrl, isCaricom, isOecs } from "@/lib/caricom-registry";
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { supabase } from "@/integrations/supabase/client";
 import { checkAccessAllowed } from "@/lib/invitations.functions";
@@ -41,6 +41,7 @@ export const Route = createFileRoute("/_authenticated/home")({
 function HomePage() {
   const { data: status } = useSuspenseQuery(myStatusQuery);
   const navigate = useNavigate();
+  const { state: viewAs } = useImpersonation();
   useEffect(() => {
     let cancelled = false;
     checkAccessAllowed().then(async (res) => {
@@ -52,6 +53,17 @@ function HomePage() {
     }).catch(() => {});
     return () => { cancelled = true; };
   }, [navigate]);
+
+  // Super admin has activated "View as country user" mode → render the
+  // country-admin welcome for the impersonated country.
+  if (status.isGlobalAdmin && viewAs) {
+    return (
+      <Shell>
+        <CountryAdminWelcome code={viewAs.country_code} name={countryName(viewAs.country_code)} />
+      </Shell>
+    );
+  }
+
   return (
     <Shell>
       {status.isGlobalAdmin ? (
@@ -65,6 +77,22 @@ function HomePage() {
       )}
     </Shell>
   );
+}
+
+function countryName(code: string): string {
+  const map: Record<string, string> = {
+    ATG: "Antigua and Barbuda",
+    LCA: "Saint Lucia",
+    KNA: "Saint Kitts and Nevis",
+    BRB: "Barbados",
+    TTO: "Trinidad and Tobago",
+    JAM: "Jamaica",
+    GUY: "Guyana",
+    DMA: "Dominica",
+    GRD: "Grenada",
+    VCT: "Saint Vincent and the Grenadines",
+  };
+  return map[code.toUpperCase()] ?? code.toUpperCase();
 }
 
 function Shell({ children }: { children: React.ReactNode }) {

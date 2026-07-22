@@ -35,6 +35,7 @@ function ConsoleLayout() {
   const params = useParams({ strict: false }) as { code?: string };
   const { state: viewAs, exit } = useImpersonation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Resolve which country this session is scoped to.
   const code =
@@ -51,6 +52,7 @@ function ConsoleLayout() {
   const nav = code
     ? [
         { to: "/console/$code" as const, label: "Study", exact: true },
+        { to: "/console/$code/ask" as const, label: "Ask" },
         { to: "/console/$code/requests" as const, label: "Requests" },
         { to: "/console/$code/request/new" as const, label: "Start a request", primary: true },
       ]

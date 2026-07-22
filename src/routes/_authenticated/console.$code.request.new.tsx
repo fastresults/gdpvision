@@ -378,9 +378,6 @@ function RequestWizard() {
           )}
         </div>
       </div>
-          </button>
-        )}
-      </div>
     </div>
   );
 }

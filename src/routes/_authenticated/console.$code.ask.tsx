@@ -31,6 +31,7 @@ import {
   type CounselAnswer,
 } from "@/lib/counsel.functions";
 import { VoiceMicButton } from "@/components/console/VoiceMicButton";
+import { CARICOM_OECS_REGISTRY, flagUrl } from "@/lib/caricom-registry";
 import {
   Sheet,
   SheetContent,
@@ -86,6 +87,10 @@ function AskPage() {
   const { q } = Route.useSearch();
   const navigate = useNavigate();
   const { turns, append, update, clear, remove } = useCountryAskThread(code);
+
+  const country = CARICOM_OECS_REGISTRY.find((r) => r.code === code.toUpperCase());
+  const countryName = country?.name ?? code.toUpperCase();
+  const flag = flagUrl(code, "w160");
 
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -286,9 +291,26 @@ function AskPage() {
       {/* Body */}
       <div className="flex-1 space-y-6">
         {turns.length === 0 && !busy && (
-          <div className="flex flex-col items-center justify-center gap-2 py-24 text-center">
+          <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
+            <div className="flex items-center gap-3">
+              {flag && (
+                <img
+                  src={flag}
+                  alt={`Flag of ${countryName}`}
+                  className="h-10 w-auto rounded shadow-sm"
+                />
+              )}
+              <div className="text-left">
+                <p className="font-serif text-xl font-medium text-ink-950">
+                  {countryName}
+                </p>
+                <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+                  Second Brain
+                </p>
+              </div>
+            </div>
             <p className="max-w-[20rem] text-sm leading-relaxed text-ink-500">
-              Ask a question about this country to get a quick, cited answer from your Second Brain.
+              Ask a question about this country to get a quick, cited answer.
             </p>
           </div>
         )}

@@ -291,23 +291,22 @@ function AskPage() {
       {/* Body */}
       <div className="flex-1 space-y-6">
         {turns.length === 0 && !busy && (
-          <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
+            <div className="relative h-64 w-64 sm:h-80 sm:w-80">
+              <BrainMask size={320} />
               {flag && (
                 <img
                   src={flag}
                   alt={`Flag of ${countryName}`}
-                  className="h-10 w-auto rounded shadow-sm"
+                  className="absolute left-1/2 top-1/2 h-8 w-auto -translate-x-1/2 -translate-y-1/2 rounded shadow-md ring-1 ring-line-200"
                 />
               )}
-              <div className="text-left">
-                <p className="font-serif text-xl font-medium text-ink-950">
-                  {countryName}
-                </p>
-                <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
-                  Second Brain
-                </p>
-              </div>
+            </div>
+            <div>
+              <p className="font-serif text-xl font-medium text-ink-950">{countryName}</p>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+                Second Brain
+              </p>
             </div>
             <p className="max-w-[20rem] text-sm leading-relaxed text-ink-500">
               Ask a question about this country to get a quick, cited answer.

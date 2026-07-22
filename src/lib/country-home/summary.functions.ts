@@ -55,8 +55,8 @@ export const getCountryHomeSummary = createServerFn({ method: "GET" })
         .eq("country_code", cc),
       context.supabase
         .from("country_source_documents")
-        .select("id", { count: "exact", head: true })
-        .eq("country_code", cc),
+        .select("id, country_sources!inner(country_code)", { count: "exact", head: true })
+        .eq("country_sources.country_code", cc),
       context.supabase
         .from("ministries")
         .select("id", { count: "exact", head: true })
@@ -67,10 +67,10 @@ export const getCountryHomeSummary = createServerFn({ method: "GET" })
         .is("read_at", null),
       context.supabase
         .from("cabinet_sessions")
-        .select("scheduled_at")
+        .select("scheduled_for")
         .eq("country_code", cc)
-        .gt("scheduled_at", new Date().toISOString())
-        .order("scheduled_at", { ascending: true })
+        .gt("scheduled_for", new Date().toISOString())
+        .order("scheduled_for", { ascending: true })
         .limit(1)
         .maybeSingle(),
     ]);
@@ -88,7 +88,7 @@ export const getCountryHomeSummary = createServerFn({ method: "GET" })
       corpus_documents: docsRes.count ?? 0,
       ministries: ministriesRes.count ?? 0,
       pending_deliverables: deliverablesRes.count ?? 0,
-      next_cabinet_at: cabinetRes.data?.scheduled_at ?? null,
+      next_cabinet_at: (cabinetRes.data as any)?.scheduled_for ?? null,
       last_commit_at: country?.updated_at ?? null,
     };
   });

@@ -287,6 +287,7 @@
   border: 1px solid var(--line-200);
   background-color: var(--paper-0);
   color: var(--ink-950);
+  min-height: 2.75rem;
   transition:
     background-color var(--dur-fast) var(--ease-instrument),
     color var(--dur-fast) var(--ease-instrument),
@@ -300,11 +301,59 @@
   border: 1px solid var(--ink-950);
   background-color: var(--ink-950);
   color: var(--paper-0);
+  min-height: 2.75rem;
   &:hover {
     background-color: var(--ink-hover);
     border-color: var(--ink-hover);
   }
 }
+
+/* Mobile-first console utilities. Every /console/* route uses these. */
+@utility mobile-container {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+@media (min-width: 640px) {
+  .mobile-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@utility hstrip {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 0.25rem;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.hstrip::-webkit-scrollbar {
+  display: none;
+}
+.hstrip > * {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+@media (min-width: 640px) {
+  .hstrip {
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
+    overflow: visible;
+  }
+}
+
+@utility safe-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 6rem);
+}
+
 
 @keyframes gdpv-segment-draw {
   from {

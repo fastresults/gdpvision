@@ -197,99 +197,12 @@ function SuperAdminWelcome() {
 
 // ─── COUNTRY ADMIN (single) ───────────────────────────────────────────────────
 
-const CHAMBERS = [
-  { n: "01", icon: BookOpen, title: "The National Ledger", blurb: "Authoritative decomposition of the national economy.", to: "/admin/countries/$code/ledger" as const },
-  { n: "02", icon: Layers, title: "Portfolio Workspaces", blurb: "One workspace per ministerial portfolio.", to: "/admin/countries/$code/portfolio" as const },
-  { n: "03", icon: Activity, title: "The Scenario Engine", blurb: "Consequence-free rehearsal across every downstream metric.", to: "/admin/countries/$code/scenarios" as const },
-  { n: "04", icon: TrendingUp, title: "The FDI Transition Studio", blurb: "Threat in, resilient FDI strategy out.", to: "/admin/countries/$code/studio" as const },
-  { n: "05", icon: MessageSquare, title: "The Narrative Chamber", blurb: "Signal to statement inside a working day.", to: "/admin/countries/$code/narrative" as const },
-  { n: "06", icon: Landmark, title: "The Cabinet Room", blurb: "Prep, run, and follow through on cabinet business.", to: "/admin/countries/$code/cabinet" as const },
-  { n: "07", icon: Users, title: "Synthetic Persona Lab", blurb: "Simulate publics, applicants, and stakeholders.", to: "/admin/countries/$code/personas" as const },
-];
-
 function CountryAdminWelcome({ code, name }: { code: string; name: string }) {
-  const flag = flagUrl(code, "w640");
   return (
-    <div className="space-y-16">
-      <section className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,420px)_1fr] lg:items-center">
-        <div className="relative aspect-[3/2] w-full overflow-hidden border border-line-200 bg-paper-100 shadow-md">
-          {flag ? (
-            <img src={flag} alt={`Flag of ${name}`} loading="eager" className="h-full w-full object-cover" />
-          ) : (
-            <div className="grid h-full w-full place-items-center font-serif text-6xl text-ink-500">{code}</div>
-          )}
-        </div>
-        <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-ink-500">
-            {name} · Sovereign instrument
-          </p>
-          <h1 className="mt-4 font-serif text-5xl leading-tight text-ink-950">
-            Welcome to the {name} instrument.
-          </h1>
-          <p className="mt-5 max-w-2xl text-lg text-ink-500">
-            Your live economic picture, your scenario room, your cabinet dossier — all grounded in verified
-            sources. Choose a chamber below to begin.
-          </p>
-        </div>
-      </section>
-
-      <section>
-        <Link
-          to="/concierge"
-          className="group relative block overflow-hidden border border-ink-950 bg-ink-950 p-8 text-paper-50 transition hover:opacity-95"
-        >
-          <div className="flex flex-wrap items-end justify-between gap-6">
-            <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-paper-50/60">
-                The Concierge · By invitation
-              </p>
-              <h2 className="mt-3 font-serif text-3xl leading-tight">
-                Would you rather ask our team to handle it?
-              </h2>
-              <p className="mt-2 max-w-xl text-sm text-paper-50/80">
-                Send a written request in your own words. Our office will do the work and bring it back to you,
-                organised by lane.
-              </p>
-            </div>
-            <span className="border border-paper-50/60 px-5 py-2.5 text-xs uppercase tracking-[0.25em] group-hover:bg-paper-50 group-hover:text-ink-950">
-              Open the Concierge →
-            </span>
-          </div>
-        </Link>
-      </section>
-
-      <section>
-        <div className="mb-5 flex items-baseline justify-between">
-          <h2 className="font-serif text-2xl">Enter a chamber</h2>
-          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            Seven workspaces · one country
-          </span>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {CHAMBERS.map((c) => {
-            const Icon = c.icon;
-            return (
-              <Link
-                key={c.n}
-                to={c.to}
-                params={{ code }}
-                className="group block border border-line-200 bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-ink-950 hover:shadow-md"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="grid h-9 w-9 place-items-center border border-line-200">
-                    <Icon size={18} strokeWidth={1.5} />
-                  </span>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                    Chamber {c.n}
-                  </span>
-                </div>
-                <h3 className="mt-4 font-serif text-lg">{c.title}</h3>
-                <p className="mt-1 text-sm text-ink-500">{c.blurb}</p>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
+    <div className="space-y-20">
+      <CountryMasthead code={code} name={name} />
+      <ConciergeInvitationCard />
+      <ChambersLauncher code={code} />
     </div>
   );
 }

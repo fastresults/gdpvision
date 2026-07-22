@@ -1,139 +1,119 @@
-# Mobile-first Console — bulletproof overhaul
+# Deep Research fallback for the Country Ask flow
 
-Scope is strictly the country-user surface at `/console/*` and its shared components. Agency-side chambers are untouched.
+## Problem
 
-## Audit — concrete failures at 393×852 (verified in the source)
+When a user asks a question in `/console/:code/ask` (e.g. "What's driving inflation this quarter?") and the Second Brain has no matching corpus items, `askCounsel` returns an honest but dead-end answer: "evidence is missing." There is no way for the user to escalate that question to open-web deep research and get an actual, grounded answer.
 
-1. **Wizard stepper overflows the viewport.** `console.$code.request.new.tsx` renders four uppercase labels ("What you need · Which ministry · What form · When") with 6-px numbered discs and 24-px connector rules on one horizontal row. On 393-px width the row runs off-screen and either wraps ugly or causes horizontal scroll — the very first thing a minister sees.
-2. **Masthead type is oversized on phones.** `console.$code.index.tsx` uses `font-serif text-5xl` (48 px) for "Good day, …". Combined with `space-y-14` (56 px) rhythm between sections the page reads as a desktop layout squeezed into a phone.
-3. **Composer textarea is a 144-px wall on mobile.** `StudyComposer` forces `minHeight: 9rem` + `rows={4}` regardless of viewport, pushing the primary action below the fold on iPhone SE / 393-px devices.
-4. **Requests list header collides at 393 px.** `text-4xl` title + primary "Start a request" button in a two-column grid — button text truncates against the heading.
-5. **Filter chips don't respect tap-target contract.** `card-choice px-4 py-2 text-xs` = ~32 px tall (< 44 px). Fails the button contract for touch.
-6. **Country identity is hidden on mobile.** In `console.tsx` the flag + country name are `hidden sm:inline`; on phones the user cannot see which country the session is scoped to — dangerous for super-admin view-as.
-7. **Attention band cards waste vertical space on mobile.** `p-5` + `text-3xl` counters + two lines of supporting copy each, stacked three-tall = ~360 px before the composer.
-8. **Request detail progress rail is a 6-row list on mobile.** `sm:grid-cols-6` collapses to one column below 640 px, producing a tall repetitive rail instead of a compact horizontal step indicator.
-9. **Ask page composer** uses `rows={1}` textarea that grows unpredictably and the "Enter to send" hint is hidden on mobile — no discoverable way to send by keyboard.
-10. **Bottom-fixed bars on wizard and Ask can double with the OS home indicator** — safe-area padding is set, but the Ask composer's `pb-40` spacer above still leaves a dead zone on short screens.
-11. **`min-h-screen` without `min-h-dvh`** on the shell — on iOS Safari the URL bar chrome eats 60 px and the footer clips.
-12. **Hero decorative blur** in StudyComposer (`-right-16 -top-16 h-64 w-64 blur-3xl`) is fine because the parent has `overflow-hidden`, but wizard step sections have no such guard — the outcome grid at 393 px risks touching viewport edges.
+## Goal
 
-## Design principles
+After any answer that Counsel judges "insufficient evidence", show a clear in-line prompt:
 
-- **Mobile is the default breakpoint.** Every screen must be complete and usable at 393×852 before any `sm:` / `md:` overrides. Desktop is `sm:`/`md:` progressive enhancement, not the other way around.
-- **44×44 tap targets everywhere.** No exceptions on the country surface.
-- **Vertical rhythm halves on mobile.** `space-y-14` → `space-y-8 sm:space-y-14`. `text-5xl` → `text-3xl sm:text-5xl`.
-- **Bottom of screen is sacred.** Sticky action bars own the bottom; content pads for them via `pb-[calc(env(safe-area-inset-bottom)+96px)]`.
-- **No horizontal scroll, ever.** Any horizontal list becomes a snap-scroll strip with `overflow-x-auto snap-x` and visible fade edges — never overflow into layout.
-- **`min-h-dvh`** on the shell so iOS Safari URL-bar collapse doesn't reveal a broken footer.
+> The Second Brain doesn't have enough on this yet. Would you like me to run open-web deep research and combine it with what we do know?
 
-## Fix plan
+One tap runs a **Deep Research** pass, writes the findings back into the corpus (so the next question benefits), and returns a fresh answer that blends corpus + deep-research citations.
 
-### 1. Shell — `console.tsx`
+## Backend
 
-- Swap `min-h-screen` → `min-h-dvh`.
-- Replace the mobile-hidden flag/name block with a **compact country chip** always visible on mobile: `[flag] [ISO]` (44-px tap area) placed to the right of the Wordmark.
-- Hamburger drawer becomes a full-height sheet with safe-area top padding and an explicit "Signed in as {name}" row.
-- Footer text drops to `text-[9px]` and wraps to two lines on phones.
+### 1. Insufficiency signal on `CounselAnswer`
 
-### 2. Study index — `console.$code.index.tsx`
+In `src/lib/counsel.functions.ts`:
 
-- **Masthead**: date eyebrow stays; heading becomes `text-3xl sm:text-5xl`, `leading-tight`, `space-y-8 sm:space-y-14` between all sections.
-- **Attention band**: on mobile becomes a **snap-scroll strip** of 3 compact cards (`min-w-[75%] snap-start`) with the counter on the left and the label + one-line context on the right — 96 px tall instead of 360 px stacked. Promotes to `sm:grid sm:grid-cols-3` at ≥640 px unchanged.
-- **StudyComposer**: mobile textarea shrinks to `rows={3}` and `minHeight: 6.5rem`; primary Continue/Ask button becomes full-width on mobile (`w-full sm:w-auto`) so the CTA stays above the fold.
-- **In-flight lanes**: keep list rows but replace the right-side elapsed chip with a two-line stack under the title on mobile (`flex-col sm:flex-row`) so long questions don't truncate to 20 chars.
-- **Ministries + Cabinet**: keep single-column mobile, but each card gets `min-h-24` and a "See all" link when >3 items instead of `slice(0, 6)`.
+- Add `evidence_state: "sufficient" | "insufficient"` and `evidence_reason?: string` to `CounselAnswer`.
+- Compute `insufficient` when any of:
+  - `scored.length < 2` (fewer than 2 corpus hits), OR
+  - top corpus score < a small threshold (no keyword overlap), OR
+  - the model's SPOKEN/WRITTEN output contains an "insufficient evidence" marker we ask it to emit.
+- Update the system prompt to require a machine-readable header line:
+  `EVIDENCE: sufficient` or `EVIDENCE: insufficient — <one-line reason>`
+  parsed alongside SPOKEN/WRITTEN.
+- Persist `evidence_state` on `counsel_answers` (new nullable column via migration + GRANTs; existing rows treated as `sufficient`).
 
-### 3. Request wizard — `console.$code.request.new.tsx`
+### 2. New server fn: `askCounselDeepResearch`
 
-- **New `<WizardStepper />` component**, mobile-first:
-  - Mobile: shows `Step {n} of 4 · {label}` on one line + a 4-dot progress row underneath (dots = 8 px, spacing 6 px). No horizontal overflow possible.
-  - `sm:` and up: the full labelled row we have today.
-- **Sticky bottom bar**: `Back` becomes `Cancel` on step 1 and always shows the current step number; primary CTA becomes full-width on mobile with the label on top and the icon on the right.
-- **Step 1 textarea**: `rows={5}` on mobile, `p-4 text-base` (not `text-lg`) so the "Speak / Attach / Photo" row stays visible above the sticky bar. `Photo` chip promoted so it renders on all screens (currently `sm:hidden`, correct — keeps mobile-only path).
-- **Step 3 outcome cards**: single column on mobile with tighter `p-4`, chamber turnaround shown as a right-aligned mono chip inline.
-- Add `overflow-x-hidden` guard on the wizard root.
+Same input as `askCounsel` plus `parentAnswerId?: string`. Behavior:
 
-### 4. Requests list — `console.$code.requests.index.tsx`
+1. Rate-limit + budget check (separate, tighter caps than askCounsel — deep research is expensive; read from `instance_config.counsel.deep_limits`, defaults perUser/hour=6, perScope/day=40).
+2. Force `corpusRead` down the external waterfall via a `forceExternal: true` flag (extend `corpusRead` to accept it, or call `searchMemory` directly and always `upsertMemoryObjects`). This runs the existing Perplexity → Gemini repair → inference pipeline scoped to the country + optional sector, with the user's question as the search brief.
+3. Re-read `memory_objects` after write-back so the composed answer cites the newly ingested rows.
+4. Regenerate the answer with a system prompt that (a) labels citations by origin — `[C#]` corpus vs `[R#]` fresh research — and (b) states clearly that this response used open-web deep research on `<date>`.
+5. Return a `CounselAnswer` with `evidence_state: "sufficient"` (or `"insufficient"` again if the waterfall found nothing usable), `research_sources: Array<{url, title, publisher}>`, and `parent_answer_id`.
+6. Persist to `counsel_answers` with `tags` including `deep_research` and a link column `parent_answer_id` (nullable FK, new migration).
 
-- Header restructures: title on its own row on mobile, `Start a request` becomes a **sticky bottom FAB** (`fixed bottom-4 right-4 sm:static`) at ≥640 px it returns to inline top-right.
-- Filter chips become `min-h-11` `overflow-x-auto snap-x` strip on mobile with visible active state; on desktop they wrap as today.
-- List rows: on mobile the elapsed-time chip drops below the meta line (`flex-col`), so long questions get full row width.
+### 3. Corpus gateway tweak
 
-### 5. Ask thread — `console.$code.ask.tsx`
+Add an optional `forceExternal?: boolean` to `corpusRead` that skips the "isEmpty" check and always calls `search` + `writeBack`. Keeps the existing waterfall + write-back semantics — no new research code path.
 
-- Composer textarea: `min-h-[52px]` autosize up to 40vh; Enter-to-send hint shows on both mobile and desktop but shorter on mobile ("Enter to send").
-- Content region padding: `pb-[calc(env(safe-area-inset-bottom)+128px)]` replaces `pb-40` so the last turn is never behind the composer.
-- Empty-state canned prompts: single column mobile with `min-h-16`.
-- Turn cards: user bubble `max-w-[92%]` on mobile (currently 85 % = tight with padding), assistant "spoken" block `text-base sm:text-lg` so 393-px screens don't scroll horizontally on long sentences.
-- "Send it to the team" CTA becomes its own full-width button below the source list on mobile — currently a wrapped inline flex that clips.
+## Frontend
 
-### 6. Request detail — `console.$code.requests.$id.tsx`
+### 4. `AskTurn` shape
 
-- Progress rail: on mobile becomes a **single horizontal snap-scroll strip** of six pill-shaped chips with the active one bold. On `sm:` and up, keeps the 6-column grid.
-- Deliverable list rows: icon shrinks to `h-7 w-7`, title `text-base`, actions become full-width buttons under the summary on mobile.
-- Back link becomes a 44-px chip.
+In `src/hooks/useCountryAskThread.ts` extend `AskTurn`:
 
-### 7. Global contract updates in `src/styles.css`
-
-- New `@utility mobile-container { @apply px-4 sm:px-6; }` used by every console route root so we stop scattering padding.
-- New `@utility hstrip { @apply -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:overflow-visible; }` for attention band + filter chips + progress rail.
-- Extend `card-choice` / `card-choice-active` and every filter chip usage with `min-h-11` baked in so this class of bug can't recur.
-- Add `@utility safe-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 96px); }` for scrollable regions above fixed bars.
-- Update `mem://design/button-contract` with a mobile addendum: "Every tap target ≥44 px; sticky bars must add `safe-bottom` to their scroll parent."
-
-### 8. Verification (mandatory before we call it done)
-
-Playwright script under `/tmp/browser/console-mobile/` at viewport **393×852** signed in as super-admin with impersonation → ATG, screenshotting:
-
-- `/console/ATG` (top + scrolled to lanes + scrolled to delivered)
-- `/console/ATG/ask` (empty + after one turn)
-- `/console/ATG/request/new` (step 1 idle + step 1 with dictation focused + step 3 outcomes + step 4 review)
-- `/console/ATG/requests` (all + in-flight filter active)
-- `/console/ATG/requests/{id}` (progress rail visible + deliverables)
-
-Each screenshot is inspected with `code--view`; the plan is complete only when there is zero horizontal scroll, every CTA is above the fold or on a visible sticky bar, and every tappable element measures ≥44 px.
-
-## Files touched
-
-- `src/routes/_authenticated/console.tsx`
-- `src/routes/_authenticated/console.$code.index.tsx`
-- `src/routes/_authenticated/console.$code.request.new.tsx`
-- `src/routes/_authenticated/console.$code.requests.index.tsx`
-- `src/routes/_authenticated/console.$code.requests.$id.tsx`
-- `src/routes/_authenticated/console.$code.ask.tsx`
-- `src/components/console/StudyComposer.tsx`
-- **New** `src/components/console/WizardStepper.tsx`
-- **New** `src/components/console/CountryChip.tsx`
-- `src/styles.css` (utilities: `mobile-container`, `hstrip`, `safe-bottom`; strengthen `card-choice` tap target)
-- `mem://design/button-contract` + `mem://index.md` addendum
-
-## Non-goals
-
-- No backend/server-function changes.
-- No changes to `/admin`, chambers, marketing routes, or auth flows.
-- No new dependencies.
-
-## ASCII sketch — mobile Study index
-
-```text
-┌───────────────────────────┐
-│ GDPVISION · [🇦🇬 ATG]  ☰ │  sticky header, 56 px
-├───────────────────────────┤
-│ WEDS · 22 JULY 2026       │
-│ Good day, Antigua…        │  text-3xl
-├───────────────────────────┤
-│ ← [Ready 2] [Flight 5] →  │  snap-x strip, 96 px
-├───────────────────────────┤
-│ ┌ Ask ┃ Send ────────────┐│
-│ │ What do you need?      ││  rows=3
-│ │ [_______________]      ││
-│ │ [🎤]        [Ask →]    ││  full-width CTA
-│ └────────────────────────┘│
-├───────────────────────────┤
-│ In flight                 │
-│ • Cruise tax brief …      │
-│   MoF · In flight 2d 4h   │  meta stacks
-├───────────────────────────┤
-│ … footer …                │
-└───────────────────────────┘
+```ts
+evidenceState?: "sufficient" | "insufficient";
+evidenceReason?: string;
+deepResearch?: {
+  status: "idle" | "running" | "done" | "error";
+  sources?: Array<{ url: string; title: string; publisher?: string }>;
+  spoken?: string;
+  written?: string;
+  citations?: CounselCitation[];
+  ranAt?: string;
+  error?: string;
+};
 ```
+
+Add an `update(id, patch)` helper alongside `append` / `remove` / `clear`.
+
+### 5. Ask route UI (`src/routes/_authenticated/console.$code.ask.tsx`)
+
+For any turn where `evidenceState === "insufficient"` **and** `deepResearch?.status !== "done"`:
+
+- Render an **Insufficient Evidence Panel** immediately under the spoken block, styled as a warm advisory card (using the design tokens; no ad-hoc colors — `bg-paper-50`, `border-line-200`, `text-ink-800`):
+  - Headline: "The Second Brain doesn't have enough on this yet."
+  - One-line reason from `evidenceReason` when present.
+  - Primary CTA `btn-primary`: **"Run deep research"** (48px tap target, sparkle icon, spinner + "Researching the open web…" while running — expect 15–40s).
+  - Secondary `btn-ghost`: **"Skip — keep this answer"** (dismisses the panel by setting `deepResearch.status = "done"` with no results).
+  - Small helper text: "Uses open-web sources, writes findings back to your Second Brain, then re-answers."
+
+While running:
+- Disable the CTA, show a shimmer line ("Scanning ministries, statistics offices, IMF/WB, reputable press…").
+- Long-poll safe: request runs via `useServerFn(askCounselDeepResearch)`; on error, show inline retry with the provider message (`Counsel rate limit`, `credits exhausted`, `Perplexity timeout`, etc.).
+
+On success:
+- Replace the original spoken/written blocks with the new deep-research answer **in-place**, and mark the turn with a small "Deep research · <relative time>" pill under the question.
+- Show a "Sources" accordion listing the fresh research URLs (title · publisher · link) plus the original corpus citations, clearly grouped as **Second Brain** vs **Open-web research**.
+
+### 6. Empty state polish
+
+Under the FAB empty state, add one-liner: "If we don't have it, tap Deep Research on any answer and I'll go find it." No new components.
+
+## Rate limits, telemetry, safety
+
+- Reuse existing `counsel_answers` rate-limit machinery; new tighter caps in `instance_config` key `counsel.deep_limits`.
+- Every deep-research run emits `tags: ["deep_research"]` in `counsel_answers` for audit.
+- All new writes to `memory_objects` inherit `visibility = 'public'` (public corpus contract) via the existing `upsertMemoryObjects` writers.
+- No client-side secrets, no new connectors — reuses the corpus gateway + existing Perplexity/Gemini path.
+
+## Migration
+
+```
+alter table public.counsel_answers
+  add column if not exists evidence_state text,
+  add column if not exists parent_answer_id uuid references public.counsel_answers(id) on delete set null;
+```
+Keep GRANTs unchanged (table already granted). No RLS changes.
+
+## Out of scope
+
+- Voice-triggered deep research (uses same CTA).
+- Cross-country deep research (still scoped by `scopeKey`).
+- Changing the general `/counsel/*` routes — only the Country Console Ask flow gets the CTA in this pass; the same server fn is reusable when we wire the older counsel routes later.
+
+## Acceptance
+
+1. Ask "What's driving inflation this quarter?" on a country with no inflation corpus rows → answer renders + Insufficient Evidence panel appears.
+2. Tap **Run deep research** → spinner ≤ 40s → answer is replaced, sources accordion shows fresh URLs.
+3. Ask the same question again → Second Brain now has rows, so no panel is shown; citations reference the newly ingested items.
+4. Rate limit exceeded → clear inline error, no double-charged run.
+5. `evidence_state` visible in `counsel_answers` for both original and deep-research rows; `parent_answer_id` links them.

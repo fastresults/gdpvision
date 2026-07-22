@@ -8,6 +8,7 @@ import { Menu, X } from "lucide-react";
 import { getMyCountryStatus } from "@/lib/country-admin.functions";
 import { flagUrl } from "@/lib/caricom-registry";
 import { Wordmark } from "@/components/marketing/Wordmark";
+import { CountryChip } from "@/components/console/CountryChip";
 import { useImpersonation } from "@/lib/impersonation";
 import { supabase } from "@/integrations/supabase/client";
 

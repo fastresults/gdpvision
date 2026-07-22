@@ -225,6 +225,21 @@ export const askCounsel = createServerFn({ method: "POST" })
       weight: s.m.weight,
     }));
 
+    // Insufficiency heuristic: fewer than 2 corpus hits, or the model explicitly
+    // said it had no evidence. This is the signal the UI uses to offer deep research.
+    const topScore = scored[0]?.score ?? 0;
+    const insufficientPatterns = /(insufficient evidence|no evidence|not enough (?:evidence|data|information)|second brain (?:has no|does not have|doesn't have|has insufficient))/i;
+    const modelSaysInsufficient = insufficientPatterns.test(spoken) || insufficientPatterns.test(written);
+    const isInsufficient = citations.length < 2 || topScore < 2 || modelSaysInsufficient;
+    const evidenceState: "sufficient" | "insufficient" = isInsufficient ? "insufficient" : "sufficient";
+    const evidenceReason = isInsufficient
+      ? citations.length === 0
+        ? "The Second Brain has no matching items for this question yet."
+        : citations.length < 2
+        ? "Only limited corpus items match this question."
+        : "The corpus doesn't clearly answer this question."
+      : undefined;
+
     const hash = createHash("sha256")
       .update(JSON.stringify({ q: data.question, spoken, written, citations, scenarioSnap }))
       .digest("hex");
@@ -241,7 +256,9 @@ export const askCounsel = createServerFn({ method: "POST" })
         tags: (data.sectorHint ? [data.sectorHint] : []) as unknown as Json,
         scenario_snapshot: (scenarioSnap ?? null) as unknown as Json,
         content_hash: hash,
-      })
+        evidence_state: evidenceState,
+        evidence_reason: evidenceReason ?? null,
+      } as never)
       .select("id")
       .single();
     if (insErr) throw new Error(insErr.message);
@@ -252,6 +269,11 @@ export const askCounsel = createServerFn({ method: "POST" })
       written_block: written,
       citations,
       scenario_snapshot: scenarioSnap,
+      evidence_state: evidenceState,
+      evidence_reason: evidenceReason,
+      research_sources: [],
+      parent_answer_id: null,
+      used_deep_research: false,
     };
   });
 

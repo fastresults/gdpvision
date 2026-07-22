@@ -43,19 +43,19 @@ function RequestsList() {
   });
 
   return (
-    <div>
-      <div className="mb-6 grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4">
-        <h1 className="font-serif text-4xl text-ink-950">Requests</h1>
+    <div className="pb-24 sm:pb-0">
+      <div className="mb-6 flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-baseline sm:gap-4">
+        <h1 className="font-serif text-3xl text-ink-950 sm:text-4xl">Requests</h1>
         <Link
           to="/console/$code/request/new"
           params={{ code }}
-          className="btn-primary px-5 py-2.5 text-xs uppercase tracking-[0.15em]"
+          className="btn-primary hidden px-5 py-2.5 text-xs uppercase tracking-[0.15em] sm:inline-flex"
         >
           Start a request
         </Link>
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className="mb-6 hstrip sm:flex-wrap">
         {(
           [
             ["all", `All (${rows.length})`],
@@ -68,14 +68,15 @@ function RequestsList() {
             onClick={() => setFilter(k)}
             className={
               filter === k
-                ? "card-choice-active px-4 py-2 text-xs uppercase tracking-[0.15em]"
-                : "card-choice px-4 py-2 text-xs uppercase tracking-[0.15em]"
+                ? "card-choice-active inline-flex items-center px-4 text-xs uppercase tracking-[0.15em]"
+                : "card-choice inline-flex items-center px-4 text-xs uppercase tracking-[0.15em]"
             }
           >
             {label}
           </button>
         ))}
       </div>
+
 
       {filtered.length === 0 ? (
         <p className="border border-dashed border-line-200 p-10 text-center text-sm text-ink-500">
@@ -111,10 +112,10 @@ function RequestsList() {
                 <Link
                   to="/console/$code/requests/$id"
                   params={{ code, id: r.id as string }}
-                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-6 p-5 hover:bg-paper-50"
+                  className="flex flex-col gap-2 p-4 hover:bg-paper-50 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-6 sm:p-5"
                 >
                   <div className="min-w-0">
-                    <p className="truncate font-serif text-lg text-ink-950">{question}</p>
+                    <p className="font-serif text-base leading-snug text-ink-950 sm:truncate sm:text-lg">{question}</p>
                     <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
                       <span>{typeLabel}</span>
                       <span>·</span>
@@ -122,7 +123,7 @@ function RequestsList() {
                     </p>
                   </div>
                   <span
-                    className={`shrink-0 font-mono text-[10px] uppercase tracking-[0.18em] ${timeColor}`}
+                    className={`font-mono text-[10px] uppercase tracking-[0.18em] sm:shrink-0 ${timeColor}`}
                   >
                     {timeChip}
                   </span>
@@ -132,6 +133,16 @@ function RequestsList() {
           })}
         </ul>
       )}
+
+      {/* Mobile FAB */}
+      <Link
+        to="/console/$code/request/new"
+        params={{ code }}
+        className="btn-primary fixed bottom-4 right-4 z-30 inline-flex min-h-[52px] items-center gap-2 px-5 text-xs uppercase tracking-[0.15em] shadow-xl sm:hidden"
+        style={{ marginBottom: "env(safe-area-inset-bottom)" }}
+      >
+        + Start a request
+      </Link>
     </div>
   );
 }

@@ -14,6 +14,7 @@ import { LANE_ORDER, LEXICON, type ChamberId } from "@/lib/concierge/minister-le
 import { DEFAULT_TURNAROUND } from "@/lib/concierge/elapsed";
 import { VoiceMicButton } from "@/components/console/VoiceMicButton";
 import { AttachmentChip } from "@/components/console/AttachmentChip";
+import { WizardStepper } from "@/components/console/WizardStepper";
 import { useConsoleUploads } from "@/hooks/useConsoleUploads";
 
 const searchSchema = z.object({ seed: z.string().optional() });
@@ -126,32 +127,12 @@ function RequestWizard() {
         : null;
 
   return (
-    <div className="mx-auto max-w-3xl">
-      {/* Stepper */}
-      <ol className="mb-10 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
-        {["What you need", "Which ministry", "What form", "When"].map((label, i) => {
-          const n = i + 1;
-          const active = step === n;
-          const done = step > n;
-          return (
-            <li key={label} className="flex items-center gap-2">
-              <span
-                className={`grid h-6 w-6 place-items-center rounded-full border ${
-                  active
-                    ? "border-ink-950 bg-ink-950 text-paper-50"
-                    : done
-                      ? "border-gold-500 bg-gold-500 text-paper-50"
-                      : "border-line-200 text-ink-500"
-                }`}
-              >
-                {done ? <Check size={12} /> : n}
-              </span>
-              <span className={active ? "text-ink-950" : ""}>{label}</span>
-              {n < 4 && <span className="mx-2 h-px w-6 bg-line-200" />}
-            </li>
-          );
-        })}
-      </ol>
+    <div className="mx-auto max-w-3xl overflow-x-hidden safe-bottom">
+      <WizardStepper
+        labels={["What you need", "Which ministry", "What form", "When"]}
+        current={step}
+      />
+
 
       {step === 1 && (
         <section>
@@ -346,23 +327,23 @@ function RequestWizard() {
       )}
 
       {/* Sticky bottom bar on mobile, inline on desktop */}
-      <div className="h-24 sm:h-0" aria-hidden />
+      <div className="h-28 sm:h-0" aria-hidden />
       <div
         className="fixed inset-x-0 bottom-0 z-30 border-t border-line-200 bg-paper-50/95 backdrop-blur sm:static sm:mt-10 sm:border-t sm:bg-transparent sm:pt-6 sm:backdrop-blur-none"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3 sm:px-0 sm:py-0">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3 sm:px-0 sm:py-0">
           <button
             onClick={() => (step > 1 ? setStep(step - 1) : navigate({ to: "/console/$code", params: { code } }))}
-            className="inline-flex min-h-[44px] items-center gap-2 text-sm text-ink-500 hover:text-ink-950"
+            className="inline-flex min-h-[48px] shrink-0 items-center gap-2 px-2 text-sm text-ink-500 hover:text-ink-950"
           >
-            <ArrowLeft size={14} /> {step === 1 ? "Back" : "Back"}
+            <ArrowLeft size={14} /> {step === 1 ? "Cancel" : "Back"}
           </button>
           {step < 4 ? (
             <button
               disabled={!canNext}
               onClick={() => setStep(step + 1)}
-              className="btn-primary inline-flex min-h-[44px] items-center gap-2 px-5 text-sm uppercase tracking-[0.15em] disabled:cursor-not-allowed disabled:opacity-40 sm:px-6 sm:py-3"
+              className="btn-primary inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 px-5 text-sm uppercase tracking-[0.15em] disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none sm:px-6 sm:py-3"
             >
               Continue <ArrowRight size={14} />
             </button>
@@ -370,7 +351,7 @@ function RequestWizard() {
             <button
               disabled={submitting || !outcome || !ministry}
               onClick={handleSubmit}
-              className="btn-primary inline-flex min-h-[44px] items-center gap-2 px-5 text-sm uppercase tracking-[0.15em] disabled:cursor-not-allowed disabled:opacity-40 sm:px-6 sm:py-3"
+              className="btn-primary inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 px-5 text-sm uppercase tracking-[0.15em] disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none sm:px-6 sm:py-3"
             >
               {submitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
               Send to our team

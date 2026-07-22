@@ -100,13 +100,13 @@ function AskPage() {
   ];
 
   return (
-    <div className="flex min-h-[calc(100vh-8rem)] flex-col">
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4">
+    <div className="flex min-h-[calc(100dvh-8rem)] flex-col">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 sm:gap-4">
         <div className="min-w-0">
           <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-ink-500">
             Ask the Second Brain
           </p>
-          <h1 className="mt-2 font-serif text-3xl leading-tight text-ink-950 sm:text-4xl">
+          <h1 className="mt-2 font-serif text-2xl leading-tight text-ink-950 sm:text-4xl">
             Quick, cited answers.
           </h1>
         </div>
@@ -116,7 +116,7 @@ function AskPage() {
             onClick={() => {
               if (confirm("Clear this conversation?")) clear();
             }}
-            className="shrink-0 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
+            className="inline-flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
           >
             <RefreshCcw size={12} /> New
           </button>
@@ -178,7 +178,7 @@ function AskPage() {
         className="fixed inset-x-0 bottom-0 z-30 border-t border-line-200 bg-paper-50/95 backdrop-blur"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6">
+        <div className="mx-auto max-w-6xl px-3 py-2.5 sm:px-6 sm:py-3">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
             <textarea
               value={input}
@@ -191,7 +191,7 @@ function AskPage() {
               }}
               rows={1}
               placeholder="Follow up — or ask something new"
-              className="min-h-[44px] w-full resize-none border border-line-200 bg-paper-0 p-3 font-serif text-base text-ink-950 placeholder:text-ink-500/60 focus:border-ink-950 focus:outline-none"
+              className="min-h-[48px] w-full resize-none border border-line-200 bg-paper-0 p-3 font-serif text-base text-ink-950 placeholder:text-ink-500/60 focus:border-ink-950 focus:outline-none"
               disabled={busy}
             />
             <div className="flex shrink-0 items-center gap-2">
@@ -204,7 +204,7 @@ function AskPage() {
                 onClick={() => void send(input)}
                 disabled={busy || input.trim().length < 2}
                 aria-label="Ask"
-                className="btn-primary inline-flex min-h-[44px] items-center gap-2 px-4 text-sm uppercase tracking-[0.15em] disabled:cursor-not-allowed disabled:opacity-40"
+                className="btn-primary inline-flex min-h-[48px] min-w-[48px] items-center justify-center gap-2 px-4 text-sm uppercase tracking-[0.15em] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <ArrowRight size={14} />
               </button>

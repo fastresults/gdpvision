@@ -135,40 +135,20 @@ function StudyPage() {
         </div>
       </section>
 
-      {/* Ask panel */}
-      <section className="relative overflow-hidden border border-ink-950 bg-paper-0">
-        <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-gold-500/10 blur-3xl" />
-        <div className="relative grid gap-8 p-10 md:grid-cols-[1fr_auto] md:items-end">
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-ink-500">
-              Start something
-            </p>
-            <h2 className="mt-3 font-serif text-3xl leading-tight text-ink-950">
-              What do you need today?
-            </h2>
-            <p className="mt-3 max-w-lg text-ink-500">
-              Say it in your own words — an economic brief, a decision to weigh, remarks to draft,
-              a study of what people think. Our team will handle it and bring it back to you.
-            </p>
-          </div>
-          <div className="flex flex-col items-start gap-3 md:items-end">
-            <Link
-              to="/console/$code/request/new"
-              params={{ code }}
-              className="btn-primary px-6 py-3 text-sm uppercase tracking-[0.15em]"
-            >
-              <Sparkles size={16} /> Start a request
-            </Link>
-            <Link
-              to="/console/$code/requests"
-              params={{ code }}
-              className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
-            >
-              See everything in flight →
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* Composer — Ask the Second Brain or Send a request */}
+      <StudyComposer
+        code={code}
+        turnaround={data.rolling_turnaround_label}
+      />
+      <div className="-mt-8 flex justify-end">
+        <Link
+          to="/console/$code/requests"
+          params={{ code }}
+          className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
+        >
+          See everything in flight →
+        </Link>
+      </div>
 
       {/* Waiting for you */}
       {data.waiting.length > 0 && (

@@ -597,3 +597,59 @@ function ToolbarButton({
     </button>
   );
 }
+
+function InsufficientEvidencePanel({
+  reason,
+  status,
+  error,
+  onRun,
+  onSkip,
+}: {
+  reason?: string;
+  status: "idle" | "running" | "done" | "error" | "skipped";
+  error?: string;
+  onRun: () => void;
+  onSkip: () => void;
+}) {
+  const running = status === "running";
+  return (
+    <div className="border-t border-line-200 bg-paper-50 px-4 py-4 sm:px-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="max-w-xl">
+          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+            Evidence gap
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-ink-950">
+            {reason ?? "The Second Brain doesn't have enough evidence to answer this confidently."}
+          </p>
+          <p className="mt-1 text-xs text-ink-500">
+            Run deep research to search the open web, capture sources into the Second Brain, and regenerate a grounded answer.
+          </p>
+          {status === "error" && error && (
+            <p className="mt-2 text-xs text-signal-red">Research failed: {error}</p>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+          <button
+            type="button"
+            onClick={onRun}
+            disabled={running}
+            className="btn-primary inline-flex min-h-[40px] items-center gap-2 px-4 text-[11px] font-mono uppercase tracking-[0.18em] disabled:opacity-60"
+          >
+            {running ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+            {running ? "Researching…" : status === "error" ? "Retry deep research" : "Run deep research"}
+          </button>
+          {!running && (
+            <button
+              type="button"
+              onClick={onSkip}
+              className="btn-ghost inline-flex min-h-[40px] items-center px-3 text-[11px] font-mono uppercase tracking-[0.18em]"
+            >
+              Not now
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -42,6 +42,34 @@ import { useCountryAskThread, type AskTurn } from "@/hooks/useCountryAskThread";
 
 const searchSchema = z.object({ q: z.string().optional() });
 
+function textSignalsEvidenceGap(spoken?: string, written?: string): boolean {
+  const combined = `${spoken ?? ""}\n${written ?? ""}`.toLowerCase();
+  return (
+    /(?:insufficient|limited|thin|missing|not enough|no|lacks?)\s+(?:evidence|data|information|context|items)/i.test(
+      combined,
+    ) ||
+    /(?:we|i)\s+(?:do not|don't|cannot|can't)\s+(?:have|say|determine|identify|attribute)/i.test(
+      combined,
+    ) ||
+    /cannot\s+be\s+determined/i.test(combined) ||
+    /no\s+(?:current|quarterly|recent)\s+(?:price|cpi|inflation|data|figures|breakdown)/i.test(
+      combined,
+    ) ||
+    /evidence\s+missing/i.test(combined) ||
+    /provided\s+context\s+does\s+not\s+include/i.test(combined) ||
+    /context\s+does\s+not\s+provide/i.test(combined) ||
+    /second\s+brain\s+(?:has\s+no|does\s+not\s+have|doesn't\s+have|has\s+insufficient)/i.test(
+      combined,
+    )
+  );
+}
+
+function shouldRunDeepResearch(turn: AskTurn): boolean {
+  const status = turn.deepResearch?.status ?? "idle";
+  const evidenceGap = turn.evidenceState === "insufficient" || textSignalsEvidenceGap(turn.spoken, turn.written);
+  return evidenceGap && status === "idle";
+}
+
 export const Route = createFileRoute("/_authenticated/console/$code/ask")({
   head: () => ({
     meta: [
@@ -89,6 +117,8 @@ function AskPage() {
       const res: CounselAnswer = await askCounsel({
         data: { scopeKey: code, question: q0 },
       });
+      const answerNeedsResearch =
+        res.evidence_state === "insufficient" || textSignalsEvidenceGap(res.spoken_block, res.written_block);
       const turn: AskTurn = {
         id: res.id,
         question: q0,
@@ -96,14 +126,16 @@ function AskPage() {
         written: res.written_block,
         citations: res.citations,
         createdAt: startedAt,
-        evidenceState: res.evidence_state,
-        evidenceReason: res.evidence_reason,
+        evidenceState: answerNeedsResearch ? "insufficient" : res.evidence_state,
+        evidenceReason: answerNeedsResearch
+          ? (res.evidence_reason ?? "The answer indicates the Second Brain lacks direct evidence for this question.")
+          : res.evidence_reason,
         deepResearch: { status: "idle" },
       };
       append(turn);
       setInput("");
       // Auto-trigger deep research when the Second Brain lacks evidence.
-      if (res.evidence_state === "insufficient") {
+      if (answerNeedsResearch) {
         void runDeepResearch(turn);
       }
     } catch (e) {
@@ -189,6 +221,13 @@ function AskPage() {
     void send(q);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
+
+  useEffect(() => {
+    const turn = turns.find(shouldRunDeepResearch);
+    if (!turn) return;
+    void runDeepResearch(turn);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turns]);
 
   function convertToSend(question: string) {
     navigate({
@@ -502,7 +541,7 @@ function TurnBlock({
         </div>
 
         {/* Insufficient evidence CTA */}
-        {turn.evidenceState === "insufficient" &&
+        {(turn.evidenceState === "insufficient" || textSignalsEvidenceGap(turn.spoken, turn.written)) &&
           turn.deepResearch?.status !== "done" &&
           turn.deepResearch?.status !== "skipped" && (
             <InsufficientEvidencePanel

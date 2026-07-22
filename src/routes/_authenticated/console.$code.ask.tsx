@@ -301,6 +301,7 @@ function AskPage() {
             onAskAgain={(q) => send(q)}
             onDeepResearch={() => runDeepResearch(t)}
             onSkipDeepResearch={() => skipDeepResearch(t)}
+            onExpound={() => runExpound(t)}
           />
         ))}
 

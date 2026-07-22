@@ -1,7 +1,7 @@
 // Press-to-record mic button. Encapsulates useVoiceRecorder + transcribeAudio
 // and calls back with the transcript so any composer can append it.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, Mic, Square } from "lucide-react";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { transcribeAudio } from "@/lib/personas/transcribe.functions";
@@ -16,12 +16,24 @@ export function VoiceMicButton({ onTranscript, className, label = "Voice" }: Pro
   const rec = useVoiceRecorder();
   const [busy, setBusy] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const startedAt = useRef<number | null>(null);
   const recording = rec.state === "recording";
 
-  // Simple timer for the live label
-  if (recording) {
-    // eslint-disable-next-line react-hooks/rules-of-hooks -- intentional: only when recording
-  }
+  // Live elapsed timer while recording.
+  useEffect(() => {
+    if (!recording) {
+      startedAt.current = null;
+      setElapsed(0);
+      return;
+    }
+    startedAt.current = Date.now();
+    const iv = window.setInterval(() => {
+      if (startedAt.current) {
+        setElapsed(Math.floor((Date.now() - startedAt.current) / 1000));
+      }
+    }, 500);
+    return () => window.clearInterval(iv);
+  }, [recording]);
 
   async function toggle() {
     if (busy) return;
@@ -36,32 +48,17 @@ export function VoiceMicButton({ onTranscript, className, label = "Voice" }: Pro
         const t = text.trim();
         if (t) onTranscript(t);
       } catch {
-        // Surfaced by the recorder's error state; keep button interactive.
+        // Silent — recorder error state can surface separately.
       } finally {
         setBusy(false);
-        setElapsed(0);
       }
     } else {
-      setElapsed(0);
       await rec.start();
-      const started = Date.now();
-      const iv = window.setInterval(() => {
-        setElapsed(Math.floor((Date.now() - started) / 1000));
-      }, 500);
-      // Clean up when recorder state flips back
-      const stopper = window.setInterval(() => {
-        if (rec.state !== "recording") {
-          window.clearInterval(iv);
-          window.clearInterval(stopper);
-        }
-      }, 400);
     }
   }
 
   const timeStr =
-    recording && elapsed > 0
-      ? ` · 0:${elapsed.toString().padStart(2, "0")}`
-      : "";
+    recording && elapsed > 0 ? ` · 0:${elapsed.toString().padStart(2, "0")}` : "";
 
   const base =
     "inline-flex min-h-[44px] items-center justify-center gap-2 border px-4 text-xs font-mono uppercase tracking-[0.18em] transition";
@@ -89,7 +86,8 @@ export function VoiceMicButton({ onTranscript, className, label = "Voice" }: Pro
         </>
       ) : (
         <>
-          <Mic size={14} /> {label}
+          <Mic size={14} />
+          {label ? ` ${label}` : ""}
         </>
       )}
     </button>

@@ -2,16 +2,19 @@
 // language. Reuses the existing submitRequest server fn but exposes NO
 // chamber terminology on the requester surface.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
-import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2, Paperclip } from "lucide-react";
 
 import { getConsoleStudy } from "@/lib/console/console.functions";
 import { submitRequest } from "@/lib/concierge/concierge.functions";
 import { LANE_ORDER, LEXICON, type ChamberId } from "@/lib/concierge/minister-lexicon";
 import { DEFAULT_TURNAROUND } from "@/lib/concierge/elapsed";
+import { VoiceMicButton } from "@/components/console/VoiceMicButton";
+import { AttachmentChip } from "@/components/console/AttachmentChip";
+import { useConsoleUploads } from "@/hooks/useConsoleUploads";
 
 const searchSchema = z.object({ seed: z.string().optional() });
 
@@ -62,9 +65,12 @@ function RequestWizard() {
   const [when, setWhen] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const uploads = useConsoleUploads(code);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
 
   const canNext =
-    (step === 1 && text.trim().length > 6) ||
+    (step === 1 && (text.trim().length > 6 || uploads.anyReadable) && uploads.ready) ||
     (step === 2 && !!ministry) ||
     (step === 3 && !!outcome) ||
     step === 4;
@@ -75,6 +81,15 @@ function RequestWizard() {
     setError(null);
     try {
       const chamber: ChamberId = outcome.chamber === "other" ? "ledger" : outcome.chamber;
+      const attachments = uploads.files
+        .filter((f) => f.status === "ready" && f.path)
+        .map((f) => ({
+          path: f.path!,
+          name: f.name,
+          size: f.size,
+          content_type: f.mime,
+          summary: f.excerpt?.slice(0, 600),
+        }));
       const row = await submitRequest({
         data: {
           country_code: code,
@@ -90,7 +105,7 @@ function RequestWizard() {
           },
           internal_chamber: chamber,
           chamber_confidence: outcome.chamber === "other" ? 0.3 : 0.8,
-          attachments: [],
+          attachments,
         },
       });
       navigate({ to: "/console/$code/requests/$id", params: { code, id: row.id } });
@@ -140,20 +155,76 @@ function RequestWizard() {
 
       {step === 1 && (
         <section>
-          <h1 className="font-serif text-4xl leading-tight text-ink-950">
+          <h1 className="font-serif text-3xl leading-tight text-ink-950 sm:text-4xl">
             What's on your mind?
           </h1>
           <p className="mt-3 text-ink-500">
-            Say it in your own words. A sentence is enough. A paragraph is fine too.
+            Say it, type it, or drop in a document. A sentence is enough.
           </p>
           <textarea
             autoFocus
             value={text}
             onChange={(e) => setText(e.target.value)}
-            rows={8}
+            rows={6}
             placeholder="e.g. I'm weighing a change to cruise passenger tax next fiscal year. I want to see what it does to revenue and to tourism-sector jobs before I take it to cabinet."
-            className="mt-6 w-full border border-line-200 bg-paper-0 p-5 font-serif text-lg text-ink-950 placeholder:text-ink-500/60 focus:border-ink-950 focus:outline-none"
+            className="mt-6 w-full border border-line-200 bg-paper-0 p-4 font-serif text-base text-ink-950 placeholder:text-ink-500/60 focus:border-ink-950 focus:outline-none sm:p-5 sm:text-lg"
           />
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <VoiceMicButton
+              onTranscript={(t) => setText((prev: string) => (prev ? `${prev.trim()} ${t}` : t))}
+              label="Speak"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploads.capacity <= 0}
+              className="inline-flex min-h-[44px] items-center gap-2 border border-ink-950 bg-paper-0 px-4 text-xs font-mono uppercase tracking-[0.18em] text-ink-950 hover:bg-ink-950 hover:text-paper-50 disabled:opacity-40"
+            >
+              <Paperclip size={14} /> Attach
+            </button>
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              disabled={uploads.capacity <= 0}
+              className="inline-flex min-h-[44px] items-center gap-2 border border-line-200 bg-paper-0 px-4 text-xs font-mono uppercase tracking-[0.18em] text-ink-950 hover:border-ink-950 disabled:opacity-40 sm:hidden"
+            >
+              📷 Photo
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.heic,.mp3,.wav,.m4a"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.length) void uploads.add(e.target.files);
+                e.target.value = "";
+              }}
+            />
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.length) void uploads.add(e.target.files);
+                e.target.value = "";
+              }}
+            />
+            <span className="ml-1 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+              Up to {uploads.capacity} more · 20MB each
+            </span>
+          </div>
+
+          {uploads.files.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {uploads.files.map((u) => (
+                <AttachmentChip key={u.id} upload={u} onRemove={uploads.remove} />
+              ))}
+            </div>
+          )}
         </section>
       )}
 
@@ -274,31 +345,38 @@ function RequestWizard() {
         </section>
       )}
 
-      <div className="mt-10 flex items-center justify-between border-t border-line-200 pt-6">
-        <button
-          onClick={() => (step > 1 ? setStep(step - 1) : navigate({ to: "/console/$code", params: { code } }))}
-          className="inline-flex items-center gap-2 text-sm text-ink-500 hover:text-ink-950"
-        >
-          <ArrowLeft size={14} /> {step === 1 ? "Back to study" : "Back"}
-        </button>
-        {step < 4 ? (
+      {/* Sticky bottom bar on mobile, inline on desktop */}
+      <div className="h-24 sm:h-0" aria-hidden />
+      <div
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-line-200 bg-paper-50/95 backdrop-blur sm:static sm:mt-10 sm:border-t sm:bg-transparent sm:pt-6 sm:backdrop-blur-none"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3 sm:px-0 sm:py-0">
           <button
-            disabled={!canNext}
-            onClick={() => setStep(step + 1)}
-            className="btn-primary px-6 py-3 text-sm uppercase tracking-[0.15em]"
+            onClick={() => (step > 1 ? setStep(step - 1) : navigate({ to: "/console/$code", params: { code } }))}
+            className="inline-flex min-h-[44px] items-center gap-2 text-sm text-ink-500 hover:text-ink-950"
           >
-            Continue <ArrowRight size={14} />
+            <ArrowLeft size={14} /> {step === 1 ? "Back" : "Back"}
           </button>
-        ) : (
-          <button
-            disabled={submitting || !outcome || !ministry}
-            onClick={handleSubmit}
-            className="btn-primary px-6 py-3 text-sm uppercase tracking-[0.15em]"
-          >
-            {submitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-            Send to our team
-          </button>
-        )}
+          {step < 4 ? (
+            <button
+              disabled={!canNext}
+              onClick={() => setStep(step + 1)}
+              className="btn-primary inline-flex min-h-[44px] items-center gap-2 px-5 text-sm uppercase tracking-[0.15em] disabled:cursor-not-allowed disabled:opacity-40 sm:px-6 sm:py-3"
+            >
+              Continue <ArrowRight size={14} />
+            </button>
+          ) : (
+            <button
+              disabled={submitting || !outcome || !ministry}
+              onClick={handleSubmit}
+              className="btn-primary inline-flex min-h-[44px] items-center gap-2 px-5 text-sm uppercase tracking-[0.15em] disabled:cursor-not-allowed disabled:opacity-40 sm:px-6 sm:py-3"
+            >
+              {submitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+              Send to our team
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,98 +1,97 @@
-## Goal
+# Multimodal, mobile-first Console with dual action: Ask & Send
 
-Level up the Country Console into a genuinely AI-first, plain-language surface for ministers. Three moves:
+Bifurcate the Country Console into two clear, equally visible actions that a minister can use just as easily on a phone as on a desktop:
 
-1. Rename every internal "chamber" into a plain-language **Request type** the minister actually recognises.
-2. Track and surface **time-in-flight** (days + hours) from submission to delivery, on every request and on the dashboard.
-3. Turn the Study page into a real **dashboard** with attention, in-flight, and delivered lanes — organised by ministry and by request type, in the minister's words.
+- **Ask** — a chat with your country's Second Brain for a quick, cited answer.
+- **Send** — a task-based request to our team, with voice, drop-zone attachments, and camera capture.
 
-Nothing on the agency side changes semantically; the seven internal disciplines still exist behind the scenes.
+Both share one composer with a single mode toggle at the top, so it always feels like one place to think out loud — the toggle decides where that thought goes.
 
-## 1. Plain-language request types (the "seven features")
+## The unified composer (Study hero)
 
-Rewrite `src/lib/concierge/minister-lexicon.ts` so each internal chamber maps to a single, obvious minister-facing label. This label is the ONLY thing the minister ever sees.
+Replace the current black "Start a request" slab on `/console/$code` with a two-mode composer card that dominates the top of the Study:
 
-| Internal (agency) | Minister-facing label | One-liner |
-| --- | --- | --- |
-| ledger | **Economic brief** | "Where the economy stands right now." |
-| scenario | **Decision brief** | "Model a decision I'm weighing and recommend." |
-| fdi | **Sector deep-dive** | "A full look at one sector." |
-| narrative | **Press & strategic comms** | "Draft a statement, remarks, or op-ed." |
-| cabinet | **Cabinet paper** | "A short paper for the next cabinet session." |
-| persona | **Research study** | "Study what people think about an issue." |
-| portfolio | **Programme review** | "Review or coordinate across ministries." |
+```
+┌───────────────────────────────────────────────────────────┐
+│  [ ● Ask ]   [ Send ]                     usually 1–2 days│
+│                                                           │
+│  What do you want to know?                                │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │  Textarea — grows with content                      │  │
+│  └─────────────────────────────────────────────────────┘  │
+│  [ 🎤 Voice ]  [ 📎 Attach ]  [ 📷 Photo ]  →  [ Ask ]    │
+└───────────────────────────────────────────────────────────┘
+```
 
-Also add: `Something else` (free-form → agency triages to the right internal team).
+- **Segmented control** at the top with two pills: "Ask" (default) and "Send". State lives in the route so `?mode=send` and `?mode=ask` are shareable and back-button-friendly.
+- Placeholder, primary button label, and hint text swap by mode. In Ask mode the hint reads "Your Second Brain answers in seconds"; in Send mode it reads "Our team returns a full brief".
+- The composer itself (textarea + Voice + Attach + Photo) is shared — the same input goes into either flow.
+- Attach and Photo only appear in Send mode (research chat doesn't need drop-zone artifacts).
+- Voice-to-text is available in both modes — you can dictate a quick question as easily as a full brief.
 
-Wire this into:
-- Wizard Step 2 (`console.$code.request.new.tsx`) — the picker becomes 7 clearly-labelled cards + "Something else", each with one example.
-- Dashboard lane headers, request-list chips, and request-reader subtitle.
-- `MINISTER_VOICE_SYSTEM` and `BANNED_TERMS` — extend banned list with "lane", "internal team names", and any older chamber terminology.
+## Ask mode — chat with the Second Brain
 
-## 2. Time-in-flight tracking (days + hours, always visible)
+Ask mode calls the existing `askCounsel` server fn (scoped to the current country) which already does retrieval + writeback against the country corpus. From the composer:
 
-Data already exists: `service_requests.submitted_at`, `delivered_at`, `accepted_at`. No schema change needed.
+- **First send** navigates to `/console/$code/ask` and streams the answer in a conversation view.
+- The Ask page is a threaded chat: user bubble, then an assistant answer split into a plain-language "spoken" summary at the top and a cited "written" block below. Citation chips are tappable and open the source in a bottom sheet.
+- A "Follow up" composer stays fixed at the bottom (with the same voice mic). Threads live client-side per country in localStorage — no schema changes; the underlying `counsel_answers` table already logs each Q&A server-side.
+- A "This needs more than an answer" link at the bottom of each response converts the current question into a Send-mode draft prefilled in the wizard.
+- Empty state on `/console/$code/ask` shows 4 recent questions asked in this country plus 4 canned prompts drawn from the ministries on file ("What's driving inflation this quarter?", "How is tourism tracking vs target?", etc.).
 
-Add a shared util `src/lib/concierge/elapsed.ts`:
-- `elapsedLabel(from, to?)` → returns `"2d 4h"`, `"6h 12m"`, or `"just now"`.
-- `elapsedTone(status, from)` → `fresh | steady | overdue` based on days elapsed and status (overdue after 3 working days without delivery).
-- `turnaroundLabel(submitted, delivered)` → for closed requests: `"delivered in 1d 8h"`.
+## Send mode — the request wizard, now multimodal
 
-Surface it in:
-- **Request list row**: a right-aligned time chip. In-flight → `"In flight · 1d 6h"`. Delivered → `"Delivered in 2d 3h"`. Closed → `"Closed · 4d ago"`.
-- **Request reader header**: a small timeline strip `Sent Mon 9:12 → With our team 2h later → Ready in 1d 8h`.
-- **Dashboard**: each lane shows an "average turnaround" pill computed from the last 10 delivered requests.
+Ties into the wizard already in the plan. Step 1 becomes the shared composer above; steps 2–4 (Which ministry / What form / When) remain as-is but get the mobile pass below.
 
-Overdue tone uses `--signal-caution`; delivered uses `--signal-positive`. No new colour tokens.
+- **Voice dictation** — press-to-record with live level meter, transcript appended to the textarea. Uses existing `useVoiceRecorder` + `transcribeAudio` (Lovable AI Gateway `openai/gpt-4o-mini-transcribe`).
+- **Attach documents** — drop zone on desktop; large "Attach" and "Photo" tap targets on mobile with `capture="environment"` for the camera. Uses existing `signUploadUrl` + `parseUpload` against the `study-artifacts` bucket. Accepts PDF, DOC/DOCX, TXT/MD, images (JPG/PNG/HEIC), audio memos (m4a/mp3/wav). Cap: 20 MB, 5 files per request.
+- **Attachment chips** show per-file status (Uploading → Reading → Ready → Failed) with remove. Parsed excerpts get folded into `raw_text` so intent is grounded when the agency picks it up; storage paths flow through `submitRequest.attachments`.
+- Send in Step 4 waits for all attachments to be Ready (or removed).
 
-## 3. The Study — a real minister dashboard
+## Mobile-first pass across both surfaces
 
-Rework `console.$code.index.tsx` into three attention layers, top to bottom:
+- One-column layout throughout. Stepper collapses to `1 / 4 · What you need` with a thin progress bar on small screens.
+- Sticky bottom action bar (Back / Continue or Send), safe-area-aware.
+- 44 px minimum tap targets on all buttons, cards, chips; larger `card-choice` padding on mobile.
+- Ministry & Outcome grids: 1 col mobile, 2 tablet, 2–3 desktop.
+- Textarea: `field-sizing: content` + `min-h-[9rem]` mobile — grows with content, doesn't dominate viewport.
+- Voice / Attach / Photo render as a 3-wide row on mobile; drop zone (drag-and-drop) only shows from `md` up (drop zones make no sense on touch).
+- Headings drop from `text-4xl/5xl` to `text-3xl` on mobile.
+- Console shell (`console.tsx`) gets a hamburger drawer on mobile with Study / Requests / Ask / Sign out. "Start" pill stays visible as an icon-only control.
+- Ask chat: input pinned to bottom with `env(safe-area-inset-bottom)`; message list uses `overscroll-contain` and virtualizes only if a thread exceeds 40 turns.
 
-**A. Attention band (top, sticky at scroll)**
-- "Ready for you" count → jumps to filtered list.
-- "In flight" count with oldest age (e.g. `3 in flight · oldest 2d 6h`).
-- "Overdue" count if any (only shown when >0, in caution tone).
+## Files to change / add
 
-**B. In-flight lanes (middle)**
-- Grouped by **request type** (the 7 plain-language labels), not chamber IDs.
-- Each lane: header with type name, one-liner, average turnaround pill, and the requests in that lane as compact cards showing title, ministry, elapsed chip, current minister-facing status.
-- Empty lanes collapse into a single "Start an economic brief / decision brief / …" row of prompts.
+New:
+- `src/components/console/RequestComposer.tsx` — the two-mode composer card (Ask/Send segmented control, textarea, voice, attach, photo, submit).
+- `src/components/console/AttachmentChip.tsx` — per-file status pill.
+- `src/components/console/CitationChip.tsx` + `CitationSheet.tsx` — tappable citation and mobile bottom sheet.
+- `src/hooks/useConsoleUploads.ts` — signed URL → PUT to storage → `parseUpload`, tracks status per file.
+- `src/hooks/useCountryAskThread.ts` — localStorage-backed per-country ask thread (id, messages, updatedAt).
+- `src/routes/_authenticated/console.$code.ask.tsx` — the Ask conversation page.
 
-**C. Delivered library (bottom)**
-- Last 20 delivered/accepted items, grouped by ministry (matches how ministers actually recall past work). Each row shows turnaround label so ministers see we're fast.
+Modified:
+- `src/routes/_authenticated/console.$code.index.tsx` — replace the black CTA with `<RequestComposer />` at the top; mobile layout pass on masthead, attention band, lanes, ministries.
+- `src/routes/_authenticated/console.$code.request.new.tsx` — Step 1 uses `<RequestComposer mode="send" />`; wizard shell restructured for mobile (compact stepper, sticky footer); on submit, include `attachments` + parsed excerpts in `raw_text`.
+- `src/routes/_authenticated/console.tsx` — mobile nav (hamburger drawer + safe-area header), Ask/Study/Requests links.
+- `src/routes/_authenticated/console.$code.requests.index.tsx` — mobile-friendly two-line rows, wrapping filter chips.
 
-Hero action ("Start a request") stays; add a second secondary action "See everything in flight" that deep-links to the requests list pre-filtered to in-flight.
+No schema changes, no new secrets, no new tables. Reuses:
+- `askCounsel` (`src/lib/counsel.functions.ts`) — country corpus RAG with citations and rate limits.
+- `transcribeAudio` (`src/lib/personas/transcribe.functions.ts`) — mic → text.
+- `signUploadUrl` / `parseUpload` (`src/lib/personas/parse-upload.functions.ts`) — direct-to-storage upload + AI-based text extraction (text/PDF/DOCX/image OCR/audio transcript).
+- `submitRequest` (`src/lib/concierge/concierge.functions.ts`) — already accepts `attachments`.
 
-## 4. AI-first refinements in the wizard
+## Behaviour details
 
-Small but meaningful:
-- Step 1 stays free-text. After the minister types, an AI classify call (already present in `concierge-ai.functions.ts`) returns a suggested **plain-language request type + one-line rewrite of the ask**. The wizard pre-selects that type in Step 2 with a "We think this is a … · change" affordance — never forces it.
-- Step 3 "what form" defaults to the shape implied by the type but stays user-editable.
-- Step 4 "when" now shows an expected-response estimate in plain language ("Our team usually returns an economic brief in 1–2 working days") pulled from the lane's rolling average, or a sensible default per type when we have no history.
-- Confirmation screen restates the whole request in the minister's own words + expected return window in days & hours.
+- Mode toggle preserves what's in the textarea when you switch — the same thought can flip from a question to a task without retyping.
+- Voice dictation: tap → red pulsing "Stop · 0:12" with live meter → transcript appends to the textarea on stop; "Transcribed" toast on success. Mic denied → chip becomes "Mic blocked — tap for help"; typing/attaching still work.
+- Uploads run in parallel. Attachments that parse to > 400 chars get collapsed under "Show extracted text".
+- Ask mode enforces server-side rate limit already coded in `askCounsel` (per-user per-hour, per-scope per-day); errors surface as an inline toast.
+- All existing minister-lexicon scrubbing on `raw_text` / `minister_summary` continues to run in `submitRequest`; assistant answers in Ask mode remain in the country's own language and never surface chamber vocabulary.
 
-## 5. Agency-side (internal) — kept out of the minister's view
+## Out of scope
 
-No visible change for the minister, but on the agency console:
-- Show both the plain-language label AND the internal discipline (e.g. `Decision brief · scenario`), so agency staff still route correctly.
-- Add elapsed + overdue badges to the agency queue too, using the same util.
-- All agency-authored fields destined for the minister keep running through `enforceMinisterLexicon` — extend the scrubber for any new banned terms introduced here.
-
-## Files touched
-
-- `src/lib/concierge/minister-lexicon.ts` — new labels, banned-term additions, examples per type.
-- `src/lib/concierge/elapsed.ts` — NEW time util.
-- `src/routes/_authenticated/console.$code.index.tsx` — Attention band + type-grouped lanes + delivered library.
-- `src/routes/_authenticated/console.$code.request.new.tsx` — new type cards, AI pre-selection, expected-return copy.
-- `src/routes/_authenticated/console.$code.requests.index.tsx` — elapsed chip on each row + in-flight filter.
-- `src/routes/_authenticated/console.$code.requests.$id.tsx` — timeline strip.
-- `src/lib/console/console.functions.ts` — return average-turnaround per type + attention counters.
-- Agency console pages — add elapsed badge (read-only surface change).
-
-## Guardrails carried through
-
-- Ministers still never see chamber names or internal system vocabulary.
-- All time values are computed on the server and returned as ISO strings; formatting happens once in `elapsed.ts`.
-- Uses the existing `btn-*` / `card-choice` utilities per the Button Contract — no new inline colour combos.
-- No schema migration required; all fields already exist on `service_requests`.
+- Streaming/live transcript during recording (kept simple; can be added later on the SSE branch of the STT endpoint).
+- Multi-speaker meeting capture (ElevenLabs territory) — not needed here.
+- Server-side thread persistence for Ask — localStorage per country is enough for v1; the `counsel_answers` table already keeps a per-user audit log.

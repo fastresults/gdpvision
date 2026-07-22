@@ -81,6 +81,15 @@ function RequestWizard() {
     setError(null);
     try {
       const chamber: ChamberId = outcome.chamber === "other" ? "ledger" : outcome.chamber;
+      const attachments = uploads.files
+        .filter((f) => f.status === "ready" && f.path)
+        .map((f) => ({
+          path: f.path!,
+          name: f.name,
+          size: f.size,
+          content_type: f.mime,
+          summary: f.excerpt?.slice(0, 600),
+        }));
       const row = await submitRequest({
         data: {
           country_code: code,
@@ -96,7 +105,7 @@ function RequestWizard() {
           },
           internal_chamber: chamber,
           chamber_confidence: outcome.chamber === "other" ? 0.3 : 0.8,
-          attachments: [],
+          attachments,
         },
       });
       navigate({ to: "/console/$code/requests/$id", params: { code, id: row.id } });

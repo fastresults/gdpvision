@@ -61,13 +61,13 @@ function ConsoleLayout() {
 
   return (
     <div className="min-h-screen bg-paper-50 text-ink-950">
-      {viewAs?.code && (
+      {viewAs?.country_code && (
         <div className="border-b border-line-200 bg-ink-950 text-paper-50">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-2 text-xs uppercase tracking-[0.2em]">
-            <span>Testing · viewing as country user for {viewAs.name ?? viewAs.code}</span>
+            <span>Testing · viewing as country user for {viewAs.country_code}</span>
             <button
               onClick={() => {
-                clear();
+                exit();
                 window.location.href = "/home";
               }}
               className="border border-paper-50/30 px-3 py-1 text-[10px] hover:bg-paper-50 hover:text-ink-950"

@@ -13,6 +13,7 @@ import {
   Copy,
   Loader2,
   MoreHorizontal,
+  Search,
   RefreshCcw,
   Sparkles,
   Trash2,

@@ -16,7 +16,7 @@ import {
   MoreHorizontal,
   Search,
   RefreshCcw,
-  Sparkles,
+
   Trash2,
   X,
   Mic,

@@ -293,13 +293,13 @@ function AskPage() {
       <div className="flex-1 space-y-6">
         {turns.length === 0 && !busy && (
           <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
-            <div className="relative h-64 w-64 sm:h-80 sm:w-80">
-              <BrainMask size={320} />
+            <div className="relative h-[32rem] w-[32rem] sm:h-[40rem] sm:w-[40rem]">
+              <BrainMask size={640} />
               {flag && (
                 <img
                   src={flag}
                   alt={`Flag of ${countryName}`}
-                  className="absolute left-1/2 top-1/2 h-8 w-auto -translate-x-1/2 -translate-y-1/2 rounded shadow-md ring-1 ring-line-200"
+                  className="absolute left-1/2 top-1/2 h-16 w-auto -translate-x-1/2 -translate-y-1/2 rounded shadow-md ring-1 ring-line-200"
                 />
               )}
             </div>

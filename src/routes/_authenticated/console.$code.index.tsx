@@ -138,7 +138,7 @@ function StudyPage() {
       {/* Composer — Ask the Second Brain or Send a request */}
       <StudyComposer
         code={code}
-        turnaround={data.rolling_turnaround_label}
+        turnaround={data.lanes[0]?.turnaroundLabel}
       />
       <div className="-mt-8 flex justify-end">
         <Link

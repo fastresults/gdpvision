@@ -63,10 +63,10 @@ function StudyPage() {
   const emptyLanes = data.lanes.filter((l) => l.in_flight.length === 0);
 
   return (
-    <div className="space-y-14">
+    <div className="space-y-8 sm:space-y-14">
       {/* Masthead */}
       <section>
-        <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-ink-500">
+        <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500 sm:text-[11px]">
           {new Date().toLocaleDateString("en-GB", {
             weekday: "long",
             day: "numeric",
@@ -74,64 +74,79 @@ function StudyPage() {
             year: "numeric",
           })}
         </p>
-        <h1 className="mt-3 font-serif text-5xl leading-tight text-ink-950">
+        <h1 className="mt-3 font-serif text-3xl leading-tight text-ink-950 sm:text-5xl">
           Good day{data.country.name ? `, ${data.country.name}` : ""}.
         </h1>
       </section>
 
-      {/* Attention band */}
-      <section className="grid gap-3 sm:grid-cols-3">
+      {/* Attention band — snap strip on mobile, 3-col grid on ≥sm */}
+      <section className="hstrip sm:grid sm:grid-cols-3 sm:gap-3">
         <Link
           to="/console/$code/requests"
           params={{ code }}
-          className="group border border-line-200 bg-paper-0 p-5 hover:border-ink-950"
+          className="group flex min-w-[75%] items-start gap-4 border border-line-200 bg-paper-0 p-4 hover:border-ink-950 sm:min-w-0 sm:block sm:p-5"
         >
-          <div className="flex items-center gap-2 text-[var(--gold-500)]">
-            <Inbox size={14} />
-            <span className="font-mono text-[10px] uppercase tracking-[0.25em]">Ready for you</span>
+          <div className="sm:hidden">
+            <p className="font-serif text-3xl text-ink-950">{data.attention.ready_for_you}</p>
           </div>
-          <p className="mt-2 font-serif text-3xl text-ink-950">{data.attention.ready_for_you}</p>
-          <p className="mt-1 text-sm text-ink-500">
-            {data.attention.ready_for_you === 0 ? "Nothing waiting." : "Delivered and awaiting your read."}
-          </p>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 text-[var(--gold-500)]">
+              <Inbox size={14} />
+              <span className="font-mono text-[10px] uppercase tracking-[0.25em]">Ready for you</span>
+            </div>
+            <p className="mt-2 hidden font-serif text-3xl text-ink-950 sm:block">{data.attention.ready_for_you}</p>
+            <p className="mt-1 text-sm text-ink-500">
+              {data.attention.ready_for_you === 0 ? "Nothing waiting." : "Delivered and awaiting your read."}
+            </p>
+          </div>
         </Link>
         <Link
           to="/console/$code/requests"
           params={{ code }}
-          className="group border border-line-200 bg-paper-0 p-5 hover:border-ink-950"
+          className="group flex min-w-[75%] items-start gap-4 border border-line-200 bg-paper-0 p-4 hover:border-ink-950 sm:min-w-0 sm:block sm:p-5"
         >
-          <div className="flex items-center gap-2 text-ink-950">
-            <Clock size={14} />
-            <span className="font-mono text-[10px] uppercase tracking-[0.25em]">In flight</span>
+          <div className="sm:hidden">
+            <p className="font-serif text-3xl text-ink-950">{data.attention.in_flight}</p>
           </div>
-          <p className="mt-2 font-serif text-3xl text-ink-950">{data.attention.in_flight}</p>
-          <p className="mt-1 text-sm text-ink-500">
-            {data.attention.oldest_in_flight_at
-              ? `Oldest ${elapsedLabel(data.attention.oldest_in_flight_at)}.`
-              : "Nothing in progress."}
-          </p>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 text-ink-950">
+              <Clock size={14} />
+              <span className="font-mono text-[10px] uppercase tracking-[0.25em]">In flight</span>
+            </div>
+            <p className="mt-2 hidden font-serif text-3xl text-ink-950 sm:block">{data.attention.in_flight}</p>
+            <p className="mt-1 text-sm text-ink-500">
+              {data.attention.oldest_in_flight_at
+                ? `Oldest ${elapsedLabel(data.attention.oldest_in_flight_at)}.`
+                : "Nothing in progress."}
+            </p>
+          </div>
         </Link>
         <div
-          className={`border p-5 ${
+          className={`flex min-w-[75%] items-start gap-4 border p-4 sm:min-w-0 sm:block sm:p-5 ${
             data.attention.overdue > 0
               ? "border-[var(--signal-caution)] bg-paper-0"
               : "border-line-200 bg-paper-0"
           }`}
         >
-          <div
-            className={`flex items-center gap-2 ${
-              data.attention.overdue > 0 ? "text-[var(--signal-caution)]" : "text-ink-500"
-            }`}
-          >
-            <AlertTriangle size={14} />
-            <span className="font-mono text-[10px] uppercase tracking-[0.25em]">Overdue</span>
+          <div className="sm:hidden">
+            <p className="font-serif text-3xl text-ink-950">{data.attention.overdue}</p>
           </div>
-          <p className="mt-2 font-serif text-3xl text-ink-950">{data.attention.overdue}</p>
-          <p className="mt-1 text-sm text-ink-500">
-            {data.attention.overdue > 0
-              ? "Older than three days. Our team has been flagged."
-              : "Every request is within window."}
-          </p>
+          <div className="min-w-0 flex-1">
+            <div
+              className={`flex items-center gap-2 ${
+                data.attention.overdue > 0 ? "text-[var(--signal-caution)]" : "text-ink-500"
+              }`}
+            >
+              <AlertTriangle size={14} />
+              <span className="font-mono text-[10px] uppercase tracking-[0.25em]">Overdue</span>
+            </div>
+            <p className="mt-2 hidden font-serif text-3xl text-ink-950 sm:block">{data.attention.overdue}</p>
+            <p className="mt-1 text-sm text-ink-500">
+              {data.attention.overdue > 0
+                ? "Older than three days. Our team has been flagged."
+                : "Every request is within window."}
+            </p>
+          </div>
         </div>
       </section>
 
@@ -140,7 +155,7 @@ function StudyPage() {
         code={code}
         turnaround={data.lanes[0]?.turnaroundLabel}
       />
-      <div className="-mt-8 flex justify-end">
+      <div className="-mt-4 flex justify-end sm:-mt-8">
         <Link
           to="/console/$code/requests"
           params={{ code }}
@@ -149,6 +164,7 @@ function StudyPage() {
           See everything in flight →
         </Link>
       </div>
+
 
       {/* Waiting for you */}
       {data.waiting.length > 0 && (

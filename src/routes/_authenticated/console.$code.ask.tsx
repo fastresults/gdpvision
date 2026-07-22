@@ -31,6 +31,7 @@ import {
   type CounselAnswer,
 } from "@/lib/counsel.functions";
 import { VoiceMicButton } from "@/components/console/VoiceMicButton";
+import { CARICOM_OECS_REGISTRY, flagUrl } from "@/lib/caricom-registry";
 import {
   Sheet,
   SheetContent,

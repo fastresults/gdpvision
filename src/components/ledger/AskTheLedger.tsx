@@ -42,13 +42,16 @@ export function AskTheLedger({
   countryCode,
   countryName,
   sectorCode,
+  defaultOpen,
 }: {
   countryCode: string;
   countryName: string;
   sectorCode?: string;
+  defaultOpen?: boolean;
 }) {
   const isMobile = useIsMobile();
-  const [open, setOpen] = useState(!isMobile);
+  const [open, setOpen] = useState(defaultOpen ?? !isMobile);
+
   const [input, setInput] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const scrollRef = useRef<HTMLDivElement | null>(null);

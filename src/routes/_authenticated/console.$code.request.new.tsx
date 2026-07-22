@@ -327,23 +327,23 @@ function RequestWizard() {
       )}
 
       {/* Sticky bottom bar on mobile, inline on desktop */}
-      <div className="h-24 sm:h-0" aria-hidden />
+      <div className="h-28 sm:h-0" aria-hidden />
       <div
         className="fixed inset-x-0 bottom-0 z-30 border-t border-line-200 bg-paper-50/95 backdrop-blur sm:static sm:mt-10 sm:border-t sm:bg-transparent sm:pt-6 sm:backdrop-blur-none"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3 sm:px-0 sm:py-0">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3 sm:px-0 sm:py-0">
           <button
             onClick={() => (step > 1 ? setStep(step - 1) : navigate({ to: "/console/$code", params: { code } }))}
-            className="inline-flex min-h-[44px] items-center gap-2 text-sm text-ink-500 hover:text-ink-950"
+            className="inline-flex min-h-[48px] shrink-0 items-center gap-2 px-2 text-sm text-ink-500 hover:text-ink-950"
           >
-            <ArrowLeft size={14} /> {step === 1 ? "Back" : "Back"}
+            <ArrowLeft size={14} /> {step === 1 ? "Cancel" : "Back"}
           </button>
           {step < 4 ? (
             <button
               disabled={!canNext}
               onClick={() => setStep(step + 1)}
-              className="btn-primary inline-flex min-h-[44px] items-center gap-2 px-5 text-sm uppercase tracking-[0.15em] disabled:cursor-not-allowed disabled:opacity-40 sm:px-6 sm:py-3"
+              className="btn-primary inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 px-5 text-sm uppercase tracking-[0.15em] disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none sm:px-6 sm:py-3"
             >
               Continue <ArrowRight size={14} />
             </button>
@@ -351,7 +351,7 @@ function RequestWizard() {
             <button
               disabled={submitting || !outcome || !ministry}
               onClick={handleSubmit}
-              className="btn-primary inline-flex min-h-[44px] items-center gap-2 px-5 text-sm uppercase tracking-[0.15em] disabled:cursor-not-allowed disabled:opacity-40 sm:px-6 sm:py-3"
+              className="btn-primary inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 px-5 text-sm uppercase tracking-[0.15em] disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none sm:px-6 sm:py-3"
             >
               {submitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
               Send to our team

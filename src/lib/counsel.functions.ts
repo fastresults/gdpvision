@@ -277,6 +277,211 @@ export const askCounsel = createServerFn({ method: "POST" })
     };
   });
 
+// ---------------------------------------------------------------------------
+// Deep Research fallback — when the Second Brain has no evidence, the user
+// can escalate to an open-web pass. Runs the memory searcher unconditionally,
+// writes findings back into the corpus, and regenerates a grounded answer
+// that blends the newly ingested rows.
+// ---------------------------------------------------------------------------
+const DeepResearchInput = z.object({
+  scopeKey: z.string().min(3).max(16),
+  question: z.string().min(1).max(2000),
+  sectorHint: z.string().optional(),
+  parentAnswerId: z.string().uuid().optional(),
+});
+
+export const askCounselDeepResearch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => DeepResearchInput.parse(data))
+  .handler(async ({ data, context }): Promise<CounselAnswer> => {
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("Deep research unavailable — missing gateway credentials.");
+
+    // Tighter caps than askCounsel; deep research is expensive.
+    const { data: cfgRow } = await context.supabase
+      .from("instance_config")
+      .select("value_json")
+      .eq("key", "counsel.deep_limits")
+      .maybeSingle();
+    const limits = ((cfgRow?.value_json as { perUserPerHour?: number; perScopePerDay?: number } | null) ?? {});
+    const perUserPerHour = limits.perUserPerHour ?? 6;
+    const perScopePerDay = limits.perScopePerDay ?? 40;
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const [{ count: userCount }, { count: scopeCount }] = await Promise.all([
+      context.supabase
+        .from("counsel_answers")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", context.userId)
+        .contains("tags", ["deep_research"] as unknown as Json)
+        .gte("created_at", hourAgo),
+      context.supabase
+        .from("counsel_answers")
+        .select("id", { count: "exact", head: true })
+        .eq("scope_key", data.scopeKey)
+        .contains("tags", ["deep_research"] as unknown as Json)
+        .gte("created_at", dayAgo),
+    ]);
+    if ((userCount ?? 0) >= perUserPerHour) {
+      throw new Error(`Deep research rate limit — max ${perUserPerHour} runs per hour per user.`);
+    }
+    if ((scopeCount ?? 0) >= perScopePerDay) {
+      throw new Error(`Deep research budget — scope ${data.scopeKey} exceeded ${perScopePerDay} runs today.`);
+    }
+
+    // Force the external waterfall by disabling the corpus-hit shortcut and
+    // the cooldown check with forceRefresh: true.
+    const memoryGateway = await corpusRead<{ rows: MemoryObjectInput[] }>({
+      scope: { countryCode: data.scopeKey, sector: data.sectorHint },
+      domain: "memory",
+      key: `deep:${data.sectorHint ?? "cross"}:${data.question.slice(0, 80)}`,
+      read: async () => ({ rows: [] }),
+      isEmpty: () => true,
+      search: async (ctx) => {
+        const r = await searchMemory({
+          countryCode: ctx.countryCode,
+          sector: ctx.sector,
+          question: data.question,
+        });
+        if (!r) return null;
+        return { data: { rows: r.data.rows }, citations: r.citations, tier: r.tier, notes: r.notes };
+      },
+      writeBack: async (result) => {
+        if (result.rows.length) await upsertMemoryObjects(result.rows);
+      },
+      budget: { maxMs: 45_000, forceRefresh: true },
+      actor: context.userId,
+    });
+
+    const researchCitations = (memoryGateway.citations ?? []).map((c) => ({
+      url: c.url,
+      title: c.title ?? c.url,
+    })) as CounselResearchSource[];
+
+    // Re-read memory after write-back so the answer can cite fresh rows.
+    const { data: suppressions } = await context.supabase
+      .from("source_suppressions")
+      .select("source_id")
+      .eq("scope_key", data.scopeKey)
+      .eq("active", true);
+    const suppressedIds = new Set((suppressions ?? []).map((s) => s.source_id));
+    let readQ = context.supabase
+      .from("memory_objects")
+      .select("id,title,kind,sector_code,weight,payload,source_id")
+      .in("scope_key", [data.scopeKey, "REGIONAL"])
+      .order("weight", { ascending: false })
+      .limit(80);
+    if (data.sectorHint) readQ = readQ.eq("sector_code", data.sectorHint);
+    const { data: memoryRaw } = await readQ;
+    const memory = (memoryRaw ?? []).filter((m) => !m.source_id || !suppressedIds.has(m.source_id));
+
+    const tokens = Array.from(new Set(data.question.toLowerCase().match(/[a-z0-9]{3,}/g) ?? []));
+    const scored = memory
+      .map((m) => {
+        const hay = `${m.title} ${JSON.stringify(m.payload ?? {})}`.toLowerCase();
+        const overlap = tokens.reduce((s, t) => s + (hay.includes(t) ? 1 : 0), 0);
+        return { m, score: overlap * 2 + m.weight };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8);
+
+    const citationLines = scored.map(
+      (s, i) => `[C${i + 1}] (${s.m.kind}·${s.m.sector_code}·w${s.m.weight}) ${s.m.title}`,
+    );
+    const researchLines = researchCitations.map((r, i) => `[R${i + 1}] ${r.title} — ${r.url}`);
+
+    const system =
+      "You are Counsel, a sovereign policy advisor. This answer used OPEN-WEB DEEP RESEARCH.\n" +
+      "Return two labeled blocks:\n" +
+      "SPOKEN: 2–3 sentences a Prime Minister could say aloud. Note openly that this draws on fresh open-web research.\n" +
+      "WRITTEN: bullet list with numbered citations. Use [C#] for Second Brain items and [R#] for open-web research sources.\n" +
+      "Rules: cite only items in CORPUS and RESEARCH; do not invent figures.";
+    const contextBlock =
+      (citationLines.length ? `CORPUS (Second Brain):\n${citationLines.join("\n")}` : "CORPUS: (still empty)") +
+      "\n\n" +
+      (researchLines.length ? `RESEARCH (open-web, fetched now):\n${researchLines.join("\n")}` : "RESEARCH: (no sources retrieved)");
+
+    const gateway = createLovableAiGatewayProvider(key);
+    let text: string;
+    try {
+      const result = await generateText({
+        model: gateway("openai/gpt-5.5"),
+        system,
+        prompt: `${contextBlock}\n\nQUESTION (scope=${data.scopeKey}, run=deep-research): ${data.question}`,
+      });
+      text = result.text;
+    } catch (err) {
+      const status = (err as { statusCode?: number }).statusCode;
+      if (status === 429) throw new Error("Counsel rate limit — try again in a moment.");
+      if (status === 402) throw new Error("Counsel credits exhausted — top up in workspace billing.");
+      throw err;
+    }
+
+    const spokenMatch = text.match(/SPOKEN:\s*([\s\S]*?)(?:\n\s*WRITTEN:|$)/i);
+    const writtenMatch = text.match(/WRITTEN:\s*([\s\S]*)$/i);
+    const spoken = (spokenMatch?.[1] ?? text).trim();
+    const written = (writtenMatch?.[1] ?? "").trim();
+
+    const citations: CounselCitation[] = scored.map((s) => ({
+      id: s.m.id,
+      title: s.m.title,
+      kind: s.m.kind,
+      sector_code: s.m.sector_code,
+      weight: s.m.weight,
+    }));
+
+    const evidenceState: "sufficient" | "insufficient" =
+      citations.length + researchCitations.length >= 2 ? "sufficient" : "insufficient";
+    const evidenceReason =
+      evidenceState === "insufficient"
+        ? "Even after open-web research, evidence remains thin. Consider sending this to the team as a formal request."
+        : undefined;
+
+    const hash = createHash("sha256")
+      .update(JSON.stringify({ q: data.question, spoken, written, citations, researchCitations }))
+      .digest("hex");
+
+    const tags = [
+      ...(data.sectorHint ? [data.sectorHint] : []),
+      "deep_research",
+    ];
+
+    const { data: row, error: insErr } = await context.supabase
+      .from("counsel_answers")
+      .insert({
+        scope_key: data.scopeKey,
+        user_id: context.userId,
+        question: data.question,
+        spoken_block: spoken,
+        written_block: written,
+        citations: citations as unknown as Json,
+        tags: tags as unknown as Json,
+        scenario_snapshot: null,
+        content_hash: hash,
+        evidence_state: evidenceState,
+        evidence_reason: evidenceReason ?? null,
+        parent_answer_id: data.parentAnswerId ?? null,
+        research_sources: researchCitations as unknown as Json,
+      } as never)
+      .select("id")
+      .single();
+    if (insErr) throw new Error(insErr.message);
+
+    return {
+      id: row.id,
+      spoken_block: spoken,
+      written_block: written,
+      citations,
+      scenario_snapshot: null,
+      evidence_state: evidenceState,
+      evidence_reason: evidenceReason,
+      research_sources: researchCitations,
+      parent_answer_id: data.parentAnswerId ?? null,
+      used_deep_research: true,
+    };
+  });
+
+
 export const listCounselArchive = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ scopeKey: z.string().min(3).max(16) }).parse(data))

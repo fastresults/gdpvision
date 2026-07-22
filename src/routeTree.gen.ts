@@ -55,6 +55,7 @@ import { Route as AuthenticatedNarrativeStrategyIndexRouteImport } from './route
 import { Route as AuthenticatedInstrumentScenariosIndexRouteImport } from './routes/_authenticated/instrument/scenarios.index'
 import { Route as AuthenticatedInstrumentPortfolioIndexRouteImport } from './routes/_authenticated/instrument/portfolio.index'
 import { Route as AuthenticatedInstrumentCabinetIndexRouteImport } from './routes/_authenticated/instrument/cabinet.index'
+import { Route as AuthenticatedConsoleCodeIndexRouteImport } from './routes/_authenticated/console.$code.index'
 import { Route as AuthenticatedAdminCountriesIndexRouteImport } from './routes/_authenticated/admin/countries.index'
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
 import { Route as ApiPublicHooksSourceHealthRouteImport } from './routes/api/public/hooks/source-health'
@@ -372,6 +373,12 @@ const AuthenticatedInstrumentCabinetIndexRoute =
     id: '/cabinet/',
     path: '/cabinet/',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
+  } as any)
+const AuthenticatedConsoleCodeIndexRoute =
+  AuthenticatedConsoleCodeIndexRouteImport.update({
+    id: '/$code/',
+    path: '/$code/',
+    getParentRoute: () => AuthenticatedConsoleRoute,
   } as any)
 const AuthenticatedAdminCountriesIndexRoute =
   AuthenticatedAdminCountriesIndexRouteImport.update({
@@ -728,7 +735,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
   '/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
-  '/console': typeof AuthenticatedConsoleRoute
+  '/console': typeof AuthenticatedConsoleRouteWithChildren
   '/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
   '/kiosk/admin': typeof KioskAdminRoute
@@ -790,6 +797,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/admin/countries/': typeof AuthenticatedAdminCountriesIndexRoute
+  '/console/$code/': typeof AuthenticatedConsoleCodeIndexRoute
   '/instrument/cabinet/': typeof AuthenticatedInstrumentCabinetIndexRoute
   '/instrument/portfolio/': typeof AuthenticatedInstrumentPortfolioIndexRoute
   '/instrument/scenarios/': typeof AuthenticatedInstrumentScenariosIndexRoute
@@ -829,7 +837,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
-  '/console': typeof AuthenticatedConsoleRoute
+  '/console': typeof AuthenticatedConsoleRouteWithChildren
   '/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
   '/kiosk/admin': typeof KioskAdminRoute
@@ -891,6 +899,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/admin/countries': typeof AuthenticatedAdminCountriesIndexRoute
+  '/console/$code': typeof AuthenticatedConsoleCodeIndexRoute
   '/instrument/cabinet': typeof AuthenticatedInstrumentCabinetIndexRoute
   '/instrument/portfolio': typeof AuthenticatedInstrumentPortfolioIndexRoute
   '/instrument/scenarios': typeof AuthenticatedInstrumentScenariosIndexRoute
@@ -931,7 +940,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_authenticated/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
   '/_authenticated/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
-  '/_authenticated/console': typeof AuthenticatedConsoleRoute
+  '/_authenticated/console': typeof AuthenticatedConsoleRouteWithChildren
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
   '/kiosk/admin': typeof KioskAdminRoute
@@ -993,6 +1002,7 @@ export interface FileRoutesById {
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/_authenticated/admin/countries/': typeof AuthenticatedAdminCountriesIndexRoute
+  '/_authenticated/console/$code/': typeof AuthenticatedConsoleCodeIndexRoute
   '/_authenticated/instrument/cabinet/': typeof AuthenticatedInstrumentCabinetIndexRoute
   '/_authenticated/instrument/portfolio/': typeof AuthenticatedInstrumentPortfolioIndexRoute
   '/_authenticated/instrument/scenarios/': typeof AuthenticatedInstrumentScenariosIndexRoute
@@ -1100,6 +1110,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/source-health'
     | '/kiosk/api/public/presentation-pdf'
     | '/admin/countries/'
+    | '/console/$code/'
     | '/instrument/cabinet/'
     | '/instrument/portfolio/'
     | '/instrument/scenarios/'
@@ -1201,6 +1212,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/source-health'
     | '/kiosk/api/public/presentation-pdf'
     | '/admin/countries'
+    | '/console/$code'
     | '/instrument/cabinet'
     | '/instrument/portfolio'
     | '/instrument/scenarios'
@@ -1302,6 +1314,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/source-health'
     | '/kiosk/api/public/presentation-pdf'
     | '/_authenticated/admin/countries/'
+    | '/_authenticated/console/$code/'
     | '/_authenticated/instrument/cabinet/'
     | '/_authenticated/instrument/portfolio/'
     | '/_authenticated/instrument/scenarios/'
@@ -1675,6 +1688,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/instrument/cabinet/'
       preLoaderRoute: typeof AuthenticatedInstrumentCabinetIndexRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
+    '/_authenticated/console/$code/': {
+      id: '/_authenticated/console/$code/'
+      path: '/$code'
+      fullPath: '/console/$code/'
+      preLoaderRoute: typeof AuthenticatedConsoleCodeIndexRouteImport
+      parentRoute: typeof AuthenticatedConsoleRoute
     }
     '/_authenticated/admin/countries/': {
       id: '/_authenticated/admin/countries/'
@@ -2397,11 +2417,22 @@ const AuthenticatedNarrativeRouteRouteWithChildren =
     AuthenticatedNarrativeRouteRouteChildren,
   )
 
+interface AuthenticatedConsoleRouteChildren {
+  AuthenticatedConsoleCodeIndexRoute: typeof AuthenticatedConsoleCodeIndexRoute
+}
+
+const AuthenticatedConsoleRouteChildren: AuthenticatedConsoleRouteChildren = {
+  AuthenticatedConsoleCodeIndexRoute: AuthenticatedConsoleCodeIndexRoute,
+}
+
+const AuthenticatedConsoleRouteWithChildren =
+  AuthenticatedConsoleRoute._addFileChildren(AuthenticatedConsoleRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
   AuthenticatedInstrumentRouteRoute: typeof AuthenticatedInstrumentRouteRouteWithChildren
   AuthenticatedNarrativeRouteRoute: typeof AuthenticatedNarrativeRouteRouteWithChildren
-  AuthenticatedConsoleRoute: typeof AuthenticatedConsoleRoute
+  AuthenticatedConsoleRoute: typeof AuthenticatedConsoleRouteWithChildren
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedConciergeIdRoute: typeof AuthenticatedConciergeIdRoute
   AuthenticatedConciergeNewRoute: typeof AuthenticatedConciergeNewRoute
@@ -2421,7 +2452,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedInstrumentRouteRouteWithChildren,
   AuthenticatedNarrativeRouteRoute:
     AuthenticatedNarrativeRouteRouteWithChildren,
-  AuthenticatedConsoleRoute: AuthenticatedConsoleRoute,
+  AuthenticatedConsoleRoute: AuthenticatedConsoleRouteWithChildren,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedConciergeIdRoute: AuthenticatedConciergeIdRoute,
   AuthenticatedConciergeNewRoute: AuthenticatedConciergeNewRoute,

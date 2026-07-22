@@ -330,24 +330,36 @@ function AskPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Round Ask button (FAB) */}
+      {/* Persistent bottom input bar (mobile-first) */}
       {!composerOpen && (
-        <button
-          type="button"
-          onClick={() => setComposerOpen(true)}
-          disabled={busy}
-          aria-label="Ask a question"
-          className="group fixed bottom-6 left-1/2 z-30 flex h-20 w-20 -translate-x-1/2 items-center justify-center rounded-full bg-ink-950 text-paper-50 shadow-2xl transition-transform hover:scale-105 active:scale-95 disabled:opacity-60 sm:h-24 sm:w-24"
-          style={{ marginBottom: "env(safe-area-inset-bottom)" }}
+        <div
+          className="fixed inset-x-0 bottom-0 z-30 border-t border-line-200 bg-paper-0/95 backdrop-blur-md"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
-          <span className="absolute inset-0 rounded-full ring-1 ring-ink-950/20 transition-transform group-hover:scale-110" />
-          <span className="absolute inset-2 rounded-full border border-paper-50/20" />
-          <div className="relative flex flex-col items-center gap-0.5">
-            <Sparkles size={22} className="sm:hidden" />
-            <Sparkles size={26} className="hidden sm:block" />
-            <span className="font-mono text-[9px] uppercase tracking-[0.2em]">Ask</span>
+          <div className="mx-auto flex max-w-3xl items-center gap-2 px-4 py-3 sm:px-6">
+            <button
+              type="button"
+              onClick={() => setComposerOpen(true)}
+              disabled={busy}
+              aria-label="Ask a question"
+              className="flex flex-1 items-center gap-3 rounded-full border border-line-200 bg-paper-50 px-4 py-3 text-left text-ink-500 shadow-sm transition-colors hover:border-ink-950 hover:text-ink-950 disabled:opacity-60"
+            >
+              <Sparkles size={16} className="shrink-0 text-ink-950" />
+              <span className="truncate font-serif text-[15px]">
+                Ask anything — indicator, ministry, sector…
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setComposerOpen(true)}
+              disabled={busy}
+              aria-label="Open composer"
+              className="btn-primary inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full p-0"
+            >
+              <Mic size={18} />
+            </button>
           </div>
-        </button>
+        </div>
       )}
 
       {/* Composer sheet */}

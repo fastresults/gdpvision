@@ -88,6 +88,10 @@ function AskPage() {
   const navigate = useNavigate();
   const { turns, append, update, clear, remove } = useCountryAskThread(code);
 
+  const country = CARICOM_OECS_REGISTRY.find((r) => r.code === code.toUpperCase());
+  const countryName = country?.name ?? code.toUpperCase();
+  const flag = flagUrl(code, "w160");
+
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -313,13 +313,13 @@ export const askCounselDeepResearch = createServerFn({ method: "POST" })
         .from("counsel_answers")
         .select("id", { count: "exact", head: true })
         .eq("user_id", context.userId)
-        .contains("tags", ["deep_research"] as unknown as Json)
+        .contains("tags", ["deep_research"])
         .gte("created_at", hourAgo),
       context.supabase
         .from("counsel_answers")
         .select("id", { count: "exact", head: true })
         .eq("scope_key", data.scopeKey)
-        .contains("tags", ["deep_research"] as unknown as Json)
+        .contains("tags", ["deep_research"])
         .gte("created_at", dayAgo),
     ]);
     if ((userCount ?? 0) >= perUserPerHour) {

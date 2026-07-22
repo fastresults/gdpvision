@@ -436,6 +436,11 @@ function TurnBlock({
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Auto-expand the memo the first time expound completes.
+  useEffect(() => {
+    if (turn.expound?.status === "done" && turn.expound.memo) setShowMemo(true);
+  }, [turn.expound?.status, turn.expound?.memo]);
+
   function copyAnswer() {
     const parts = [turn.spoken];
     if (turn.written) parts.push("\n" + turn.written);

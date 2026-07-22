@@ -65,22 +65,6 @@ function ConsoleLayout() {
 
   return (
     <div className="min-h-screen bg-paper-50 text-ink-950">
-      {viewAs?.country_code && (
-        <div className="border-b border-line-200 bg-ink-950 text-paper-50">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-2 text-xs uppercase tracking-[0.2em]">
-            <span>Testing · viewing as country user for {viewAs.country_code}</span>
-            <button
-              onClick={() => {
-                exit();
-                window.location.href = "/home";
-              }}
-              className="border border-paper-50/30 px-3 py-1 text-[10px] hover:bg-paper-50 hover:text-ink-950"
-            >
-              Exit view-as
-            </button>
-          </div>
-        </div>
-      )}
 
       <header className="sticky top-0 z-20 border-b border-line-200 bg-paper-0/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">

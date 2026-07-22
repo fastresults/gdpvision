@@ -14,6 +14,7 @@ import { LANE_ORDER, LEXICON, type ChamberId } from "@/lib/concierge/minister-le
 import { DEFAULT_TURNAROUND } from "@/lib/concierge/elapsed";
 import { VoiceMicButton } from "@/components/console/VoiceMicButton";
 import { AttachmentChip } from "@/components/console/AttachmentChip";
+import { WizardStepper } from "@/components/console/WizardStepper";
 import { useConsoleUploads } from "@/hooks/useConsoleUploads";
 
 const searchSchema = z.object({ seed: z.string().optional() });

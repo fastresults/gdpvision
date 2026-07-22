@@ -1,82 +1,118 @@
-## What's wrong (honest critique of the current screen)
 
-Looking at the ATG view-as capture, this is the country user's very first impression of the instrument and it currently fails on five counts:
+# Country Console — a front layer, not a chamber launcher
 
-1. **Dead hero.** A raw flag rectangle floats beside a heading with a huge empty gutter between them. No framing, no country data, no sense of place. It looks like a stock template, not a national instrument.
-2. **The Concierge slab is a black void.** A full-width `bg-ink-950` band is 95% empty. Copy hugs the left edge, the CTA hugs the right, and the middle is a wasteland. It reads as "something is broken" more than "premium invitation".
-3. **No signal, no numbers.** For a "sovereign decision instrument", the landing screen shows zero data — no GDP, no fiscal snapshot, no last-updated stamp, no active chambers indicator. An executive lands here and learns nothing about their country.
-4. **Weak hierarchy.** Section titles ("Enter a chamber") are the same weight and rhythm as body copy. Nothing pulls the eye. Everything is muted blue-gray on cream — beautiful in a mood board, invisible in a working screen.
-5. **Chamber grid (below the fold) is a uniform card set** without any visual differentiation between chambers, no state (populated / empty), no last-used breadcrumb, no primacy for the National Ledger which should anchor the day.
+## The mistake I made
 
-The type ramp (Fraunces + IBM Plex) and the paper/ink palette are strong. The composition is not using them.
+I put the seven chambers directly on the country user's home page. The chambers are the **agency's** production floor. Country users (Ministers, Permanent Secretaries, Chiefs of Staff) should never see them, never click into them, and never be asked to understand what "The Narrative Chamber" or "The FDI Transition Studio" is.
 
-## Redesign plan — one screen, three moves
+The country user's mental model is simple: **"I have a problem in my ministry. I need something done. Send it to the team."** Everything else is our problem.
 
-### Move 1 — Replace the hero with a "State of the Nation" masthead
+## The two audiences, cleanly separated
 
-Restructure the top section as an editorial masthead, inspired by a printed Cabinet brief:
-
-```
-┌───────────────────────────────────┬────────────────────────────────┐
-│ ANTIGUA AND BARBUDA · TUE 22 JUL  │  GDP (2024)    2.11 B USD     │
-│                                   │  YoY           +5.4%           │
-│ Welcome, Prime Minister.          │  Fiscal        Balanced        │
-│                                   │  Corpus        342 sources     │
-│ Your instrument is current as of  │  Chambers      7 / 7 live      │
-│ 09:42 today. Four items need      │                                │
-│ your eye.                         │  ─── last committed 09:42 ──── │
-└───────────────────────────────────┴────────────────────────────────┘
+```text
+COUNTRY USER (Minister / PS / staff)          AGENCY USER (Open Interactive)
+─────────────────────────────────────         ──────────────────────────────
+/console                                       /home  → seven chambers
+  • Ask for something (AI wizard)              • Chamber 01 National Ledger
+  • My requests (in progress / done)           • Chamber 02 Portfolio
+  • My deliverables (finished work)            • Chamber 03 Scenario Engine
+  • My ministries                              • …
+  • My briefings / cabinet packet              • Concierge queue (inbound)
+                                               • Fulfills using chambers
+NEVER sees chambers.                           NEVER shown to country users.
 ```
 
-- Flag becomes a small heraldic mark (~64px) beside the country name in the eyebrow, not a giant photo block.
-- Behind the masthead, a subtle full-bleed watercolor wash tinted with the flag's dominant color (via `color-mix` against paper-0). Adds gravitas without shouting.
-- Right rail is a live "brief strip" pulling from `country_kpis` / `country_source_documents` counts. Every number is tabular-nums, hairline-ruled between rows. Reads like a Cabinet briefing note.
-- Below the masthead, a single-line "attention band": tiny row of chips showing pending items ("2 Concierge deliverables ready · 1 new Signal · Cabinet meets Thursday") that deep-link into the relevant chamber.
+Routing rule enforced at the root: on sign-in we look at the user's roles.
+- Global admin (`admin`, no country) → `/home` (existing agency view with chambers).
+- Country-scoped role (any role tied to a `country_code`) → `/console/$code`. They cannot reach `/admin/countries/**` even by typing the URL: the `_authenticated` gate now checks role scope and redirects country users back to `/console/$code`.
+- Super-admin using "View as country user" impersonation → `/console/$code` rendered under the same country-user shell (same restrictions, banner still visible).
 
-### Move 2 — Concierge tile becomes an "invitation card", not a slab
+## The Country Console — what the user actually sees
 
-Kill the full-width `ink-950` band. Replace with a bordered, framed card that behaves like a folded correspondence:
+One route tree, one shell, one vocabulary. No chamber names anywhere in copy or URLs.
 
-- Uses paper-0 background with a thin ink-950 border and a heavy ink-950 seal/rule at the top.
-- Left column: an italic Fraunces line ("Would you rather have us handle it?") followed by 2 lines of quiet body copy.
-- Right column: a stacked mini-list of the requester's last two Concierge threads (or, if none, three example asks scoped to their country in italic pale ink).
-- CTA is a filled ink-950 pill *inside* the card, not a ghost outline pushed to the edge.
-- The card sits at ~7/12 width, aligned with the masthead's left column — leaves right-side breathing room and stops looking like a broken banner.
+**`/console/$code` — The Study (home)**
 
-### Move 3 — Chambers become a "sovereign switchboard", not a card grid
+A calm, editorial dashboard organized around *the user*, not our systems.
 
-Keep seven tiles but restructure them:
+1. **Masthead** — country name, flag mark, today's date. One-line status: "3 requests in progress · 2 deliverables waiting for you".
+2. **"What do you need?" panel** — the single primary action. A large "Start a request" button that opens the AI wizard. Underneath it, three natural-language starter chips generated from the country's recent activity and ministries (e.g. *"Brief the Minister of Tourism on the cruise-tax proposal"*, *"Rehearse the FY26 VAT change before cabinet"*, *"Draft a public statement on the port incident"*). The chips are just seeded prompts — they still enter the same wizard.
+3. **Waiting for you** — deliverables the agency has returned but the user hasn't opened. Each shows: what was asked, which ministry it belongs to, one-line summary, "Open" button. This is the payoff loop.
+4. **In flight** — requests currently being worked on by the agency. Status in human terms: *Received · In research · In review · Ready soon · Delivered*. No chamber names, no stage numbers. ETA if we have one.
+5. **My ministries** — the ministries this user is attached to (from `user_roles` / ministry assignment). Each is a card: minister name, portfolio, "3 open items". Clicking a ministry filters the console, it does NOT open a chamber.
+6. **Cabinet & briefings** — a light strip that surfaces the next cabinet session and any prepared briefing packs *for this user*. Read-only rendering of already-produced artifacts; no "enter the Cabinet Room" link.
 
-- **Chamber 01 (National Ledger) gets 2× width** at the top — it is the daily anchor. Preview strip inside it renders a single sparkline of GDP momentum from the second brain.
-- Remaining six chambers arrange 2×3 below in a hairline grid (border-only, no shadows), each tile:
-  - Numeric monogram (large Fraunces "02", "03"…) as the visual anchor, not the lucide icon.
-  - Chamber title in Fraunces, one-line blurb in Plex Sans.
-  - Bottom-strip meta: "Last used 3 days ago · 12 active items" (populated from real per-chamber counters when available, hidden otherwise — never fake).
-  - Hover reveals a thin ink-950 rule underneath the title and a right-arrow, replacing the current "lift + border" hover which feels e-commerce.
-- Icons move to a small mono-monochrome mark in the top-right corner of each tile (12px) — support, not headline.
-- Add a single-row footer under the switchboard: `Signed in as [name] · Country binding: ATG · Instrument version 1.4 · Last corpus sync 08:12`. Anchors the screen in a working-instrument feel.
+Nothing on this page ever navigates into `/admin/countries/$code/ledger|scenarios|narrative|cabinet|portfolio|studio|personas`. Those URLs are agency-only.
 
-## Styling contract (locked, applied everywhere)
+**`/console/$code/request/new` — Ask for something (AI-first wizard)**
 
-- Palette stays paper/ink; add one accent: **ink-950 with a hairline gold-500 rule** used sparingly (masthead ruler, ledger tile top-border, active-chamber marker). No new colors introduced.
-- Type ramp:
-  - Masthead headline: Fraunces 500 · 56/60 · tracking-tight.
-  - Section labels: IBM Plex Mono 500 · 10 · uppercase · tracking-[0.25em].
-  - Numeric block: tabular-nums, IBM Plex Mono for units, Fraunces for the number itself.
-- Rhythm: everything sits on an 8px baseline, section gaps at 96px, card padding at 32px. No arbitrary spacings.
-- Motion: on load, the brief-strip numbers count up from 0 in 400ms (framer-motion, existing dep). Masthead ruler draws left-to-right in 600ms. Nothing else animates.
-- Empty state contract: any tile whose data isn't in the corpus yet renders a hairline "— not yet on record" placeholder in mono, never a fake number.
+The Concierge wizard, re-scoped and re-written entirely in minister language. Four short acts:
 
-## Files touched
+1. **What's on your mind?** — free-form textarea, voice-in, or attach a document/photo. AI listens.
+2. **Which ministry does this belong to?** — AI proposes one from the text; user confirms or picks from their ministries.
+3. **What outcome do you want?** — AI offers 2-3 concrete outcomes in plain English ("A cabinet-ready brief", "A public statement", "A short rehearsal of what happens if we do this", "A comparison of options"). User picks one; can add a sentence.
+4. **When do you need it, and who else should see it?** — deadline chip, optional cc.
 
-- `src/routes/_authenticated/home.tsx` — replace `CountryAdminWelcome` body with masthead + concierge card + switchboard composition.
-- `src/components/country/ChambersLauncher.tsx` — restructure to feature-01 + 2×3 grid, drop screenshot backgrounds, add per-chamber meta strip.
-- new: `src/components/country/CountryMasthead.tsx` — masthead + brief strip + attention band.
-- new: `src/components/country/ConciergeInvitationCard.tsx` — the reworked concierge tile.
-- new: `src/lib/country-home/summary.functions.ts` — one server fn that returns `{ gdp, yoy, fiscal_state, corpus_count, chambers_live, last_commit_at, attention_items[] }` for the masthead. Backed by existing tables (`country_kpis`, `country_source_documents`, `service_request_deliverables`, `narrative_feed_items`, `cabinet_sessions`).
+Submit produces a `service_request` row, drops the user back to `/console/$code` with the new request now showing in **In flight**. No chamber vocabulary anywhere; the mapping to chambers happens on the agency side.
 
-## Out of scope
+**`/console/$code/requests` and `/console/$code/requests/$id`**
 
-- No new palette, no new fonts, no marketing copy rewrite beyond the masthead lead line.
-- Chamber internals are untouched — this is landing-screen only.
-- Super-admin welcome and multi-country picker views stay as-is.
+List and detail for the user's requests + their deliverables. Detail view shows: original ask, current status in plain English, timeline of updates from the agency, and any returned deliverables (rendered — PDF viewer, formatted brief, chart). One button: **"Ask a follow-up"** (opens the wizard pre-filled).
+
+## What changes in code
+
+**New routes (country-facing shell)**
+
+- `src/routes/_authenticated/console.tsx` — layout with country-user chrome (masthead nav: *Study · Requests · Ministries · Account*). Renders `<Outlet />`. No chamber references.
+- `src/routes/_authenticated/console.$code.index.tsx` — The Study (dashboard described above).
+- `src/routes/_authenticated/console.$code.request.new.tsx` — the AI wizard (adapted from `concierge.new.tsx` with minister-lexicon copy and the 4-act flow above).
+- `src/routes/_authenticated/console.$code.requests.index.tsx` — request list.
+- `src/routes/_authenticated/console.$code.requests.$id.tsx` — request detail + deliverables.
+- `src/routes/_authenticated/console.$code.ministries.tsx` — ministry list filter.
+
+**New components (`src/components/console/`)**
+
+- `ConsoleShell.tsx`, `StudyMasthead.tsx`, `AskPanel.tsx` (big primary CTA + AI-generated starter chips), `WaitingForYou.tsx`, `InFlightList.tsx`, `MinistryCards.tsx`, `BriefingStrip.tsx`, `RequestTimeline.tsx`, `DeliverableViewer.tsx`.
+
+**Routing / gate changes**
+
+- `src/routes/_authenticated/route.tsx` (or a small `beforeLoad` helper): after auth, resolve the user's role scope.
+  - `admin` global → allow `/home` and `/admin/**`.
+  - country-scoped user → redirect any hit on `/home`, `/admin/**`, or `/admin/countries/**` to `/console/$code`. Also redirects the raw chamber URLs (`/admin/countries/$code/ledger` etc.).
+- `src/routes/_authenticated/home.tsx`: revert `CountryAdminWelcome` — it no longer renders `ChambersLauncher` or `ConciergeInvitationCard`. If a country user somehow lands here, redirect. Keep the super-admin multi-country and single-country agency views intact for global admins only.
+- Super-admin impersonation continues to work: when `viewAs.code` is set, `/console/$code` is what the super admin sees, exactly as a country user would. The `ViewAsBanner` stays.
+
+**Data**
+
+The `service_requests`, `service_request_events`, `service_request_deliverables`, `service_request_drafts` tables already exist and are the correct backbone — I keep them. I add:
+- `service_requests.ministry_id` (nullable) — the ministry the user routed the request to. Migration adds the column + FK + index; agency-side triage can still remap.
+- `service_requests.outcome_kind` (text) — the plain-English outcome the user chose ("brief", "statement", "rehearsal", "comparison", "other"). Purely descriptive; the agency still decides which chambers to run.
+
+RLS: country users see only their own requests and their country's deliverables; agency admins see the full queue. Grants included in the same migration per project rules.
+
+**Copy / vocabulary lock**
+
+I extend `minister-lexicon.ts` into a hard boundary: any string rendered under `/console/**` is checked against a banned list at review time (chamber names, "ledger", "scenario engine", "narrative chamber", "persona lab", "FDI studio", "cabinet room", stage numbers). The lexicon file becomes the single source of truth for how the agency's internal capabilities are described to country users.
+
+**What I delete or move**
+
+- `src/components/country/ChambersLauncher.tsx`, `ConciergeInvitationCard.tsx`, `CountryMasthead.tsx` — no longer used by country users. Kept only if the agency's country-detail admin view (`/admin/countries/$code`) uses them; otherwise removed.
+- Any `<Link to="/admin/countries/$code/...">` referenced from a country-user surface is deleted.
+
+## Acceptance — how we know it's fixed
+
+1. Sign in as a country user for ATG (or as super-admin with "View as country user" on ATG). Land on `/console/ATG`. No chamber names, no chamber links, no `/admin/**` URLs visible in the DOM.
+2. Type `/admin/countries/ATG/ledger` in the address bar as that same user → redirected to `/console/ATG`.
+3. Click **Start a request** → 4-step wizard, no jargon; submitting creates a `service_requests` row and shows it in **In flight**.
+4. Sign in as global admin → `/home` still shows the agency view with all seven chambers, the Concierge queue, and the fulfillment console — untouched.
+5. Grep the `/console/**` route tree for the strings *chamber*, *ledger*, *scenario*, *narrative*, *persona lab*, *FDI*, *cabinet room* — zero hits outside comments.
+
+## Order of work
+
+1. Migration: add `ministry_id`, `outcome_kind` to `service_requests`; verify RLS + grants.
+2. Console shell + `/console/$code` Study page reading real data (requests, deliverables, ministries).
+3. AI-first wizard at `/console/$code/request/new` (port `concierge.new.tsx` logic, replace copy, add ministry step, drop chamber terminology).
+4. Request list + detail + deliverable viewer.
+5. Auth-gate redirect rules; retire chamber launcher from country home.
+6. Lexicon guard + copy pass.
+7. Manual walk-through of the acceptance list above.

@@ -66,12 +66,15 @@
   --color-ink-500: var(--ink-500);
   --color-ink-400: var(--ink-400);
   --color-ink-300: var(--ink-300);
+  --color-ink-hover: var(--ink-hover);
   --color-paper-0: var(--paper-0);
+  --color-paper-50: var(--paper-50);
   --color-paper-100: var(--paper-100);
   --color-line-100: var(--line-100);
   --color-line-200: var(--line-200);
   --color-gold-500: var(--gold-500);
   --color-gold-300: var(--gold-300);
+  --color-gold-hover: var(--gold-hover);
   --color-signal-positive: var(--signal-positive);
   --color-signal-negative: var(--signal-negative);
   --color-signal-caution: var(--signal-caution);

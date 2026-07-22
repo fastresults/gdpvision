@@ -1,97 +1,139 @@
-# Multimodal, mobile-first Console with dual action: Ask & Send
+# Mobile-first Console — bulletproof overhaul
 
-Bifurcate the Country Console into two clear, equally visible actions that a minister can use just as easily on a phone as on a desktop:
+Scope is strictly the country-user surface at `/console/*` and its shared components. Agency-side chambers are untouched.
 
-- **Ask** — a chat with your country's Second Brain for a quick, cited answer.
-- **Send** — a task-based request to our team, with voice, drop-zone attachments, and camera capture.
+## Audit — concrete failures at 393×852 (verified in the source)
 
-Both share one composer with a single mode toggle at the top, so it always feels like one place to think out loud — the toggle decides where that thought goes.
+1. **Wizard stepper overflows the viewport.** `console.$code.request.new.tsx` renders four uppercase labels ("What you need · Which ministry · What form · When") with 6-px numbered discs and 24-px connector rules on one horizontal row. On 393-px width the row runs off-screen and either wraps ugly or causes horizontal scroll — the very first thing a minister sees.
+2. **Masthead type is oversized on phones.** `console.$code.index.tsx` uses `font-serif text-5xl` (48 px) for "Good day, …". Combined with `space-y-14` (56 px) rhythm between sections the page reads as a desktop layout squeezed into a phone.
+3. **Composer textarea is a 144-px wall on mobile.** `StudyComposer` forces `minHeight: 9rem` + `rows={4}` regardless of viewport, pushing the primary action below the fold on iPhone SE / 393-px devices.
+4. **Requests list header collides at 393 px.** `text-4xl` title + primary "Start a request" button in a two-column grid — button text truncates against the heading.
+5. **Filter chips don't respect tap-target contract.** `card-choice px-4 py-2 text-xs` = ~32 px tall (< 44 px). Fails the button contract for touch.
+6. **Country identity is hidden on mobile.** In `console.tsx` the flag + country name are `hidden sm:inline`; on phones the user cannot see which country the session is scoped to — dangerous for super-admin view-as.
+7. **Attention band cards waste vertical space on mobile.** `p-5` + `text-3xl` counters + two lines of supporting copy each, stacked three-tall = ~360 px before the composer.
+8. **Request detail progress rail is a 6-row list on mobile.** `sm:grid-cols-6` collapses to one column below 640 px, producing a tall repetitive rail instead of a compact horizontal step indicator.
+9. **Ask page composer** uses `rows={1}` textarea that grows unpredictably and the "Enter to send" hint is hidden on mobile — no discoverable way to send by keyboard.
+10. **Bottom-fixed bars on wizard and Ask can double with the OS home indicator** — safe-area padding is set, but the Ask composer's `pb-40` spacer above still leaves a dead zone on short screens.
+11. **`min-h-screen` without `min-h-dvh`** on the shell — on iOS Safari the URL bar chrome eats 60 px and the footer clips.
+12. **Hero decorative blur** in StudyComposer (`-right-16 -top-16 h-64 w-64 blur-3xl`) is fine because the parent has `overflow-hidden`, but wizard step sections have no such guard — the outcome grid at 393 px risks touching viewport edges.
 
-## The unified composer (Study hero)
+## Design principles
 
-Replace the current black "Start a request" slab on `/console/$code` with a two-mode composer card that dominates the top of the Study:
+- **Mobile is the default breakpoint.** Every screen must be complete and usable at 393×852 before any `sm:` / `md:` overrides. Desktop is `sm:`/`md:` progressive enhancement, not the other way around.
+- **44×44 tap targets everywhere.** No exceptions on the country surface.
+- **Vertical rhythm halves on mobile.** `space-y-14` → `space-y-8 sm:space-y-14`. `text-5xl` → `text-3xl sm:text-5xl`.
+- **Bottom of screen is sacred.** Sticky action bars own the bottom; content pads for them via `pb-[calc(env(safe-area-inset-bottom)+96px)]`.
+- **No horizontal scroll, ever.** Any horizontal list becomes a snap-scroll strip with `overflow-x-auto snap-x` and visible fade edges — never overflow into layout.
+- **`min-h-dvh`** on the shell so iOS Safari URL-bar collapse doesn't reveal a broken footer.
 
+## Fix plan
+
+### 1. Shell — `console.tsx`
+
+- Swap `min-h-screen` → `min-h-dvh`.
+- Replace the mobile-hidden flag/name block with a **compact country chip** always visible on mobile: `[flag] [ISO]` (44-px tap area) placed to the right of the Wordmark.
+- Hamburger drawer becomes a full-height sheet with safe-area top padding and an explicit "Signed in as {name}" row.
+- Footer text drops to `text-[9px]` and wraps to two lines on phones.
+
+### 2. Study index — `console.$code.index.tsx`
+
+- **Masthead**: date eyebrow stays; heading becomes `text-3xl sm:text-5xl`, `leading-tight`, `space-y-8 sm:space-y-14` between all sections.
+- **Attention band**: on mobile becomes a **snap-scroll strip** of 3 compact cards (`min-w-[75%] snap-start`) with the counter on the left and the label + one-line context on the right — 96 px tall instead of 360 px stacked. Promotes to `sm:grid sm:grid-cols-3` at ≥640 px unchanged.
+- **StudyComposer**: mobile textarea shrinks to `rows={3}` and `minHeight: 6.5rem`; primary Continue/Ask button becomes full-width on mobile (`w-full sm:w-auto`) so the CTA stays above the fold.
+- **In-flight lanes**: keep list rows but replace the right-side elapsed chip with a two-line stack under the title on mobile (`flex-col sm:flex-row`) so long questions don't truncate to 20 chars.
+- **Ministries + Cabinet**: keep single-column mobile, but each card gets `min-h-24` and a "See all" link when >3 items instead of `slice(0, 6)`.
+
+### 3. Request wizard — `console.$code.request.new.tsx`
+
+- **New `<WizardStepper />` component**, mobile-first:
+  - Mobile: shows `Step {n} of 4 · {label}` on one line + a 4-dot progress row underneath (dots = 8 px, spacing 6 px). No horizontal overflow possible.
+  - `sm:` and up: the full labelled row we have today.
+- **Sticky bottom bar**: `Back` becomes `Cancel` on step 1 and always shows the current step number; primary CTA becomes full-width on mobile with the label on top and the icon on the right.
+- **Step 1 textarea**: `rows={5}` on mobile, `p-4 text-base` (not `text-lg`) so the "Speak / Attach / Photo" row stays visible above the sticky bar. `Photo` chip promoted so it renders on all screens (currently `sm:hidden`, correct — keeps mobile-only path).
+- **Step 3 outcome cards**: single column on mobile with tighter `p-4`, chamber turnaround shown as a right-aligned mono chip inline.
+- Add `overflow-x-hidden` guard on the wizard root.
+
+### 4. Requests list — `console.$code.requests.index.tsx`
+
+- Header restructures: title on its own row on mobile, `Start a request` becomes a **sticky bottom FAB** (`fixed bottom-4 right-4 sm:static`) at ≥640 px it returns to inline top-right.
+- Filter chips become `min-h-11` `overflow-x-auto snap-x` strip on mobile with visible active state; on desktop they wrap as today.
+- List rows: on mobile the elapsed-time chip drops below the meta line (`flex-col`), so long questions get full row width.
+
+### 5. Ask thread — `console.$code.ask.tsx`
+
+- Composer textarea: `min-h-[52px]` autosize up to 40vh; Enter-to-send hint shows on both mobile and desktop but shorter on mobile ("Enter to send").
+- Content region padding: `pb-[calc(env(safe-area-inset-bottom)+128px)]` replaces `pb-40` so the last turn is never behind the composer.
+- Empty-state canned prompts: single column mobile with `min-h-16`.
+- Turn cards: user bubble `max-w-[92%]` on mobile (currently 85 % = tight with padding), assistant "spoken" block `text-base sm:text-lg` so 393-px screens don't scroll horizontally on long sentences.
+- "Send it to the team" CTA becomes its own full-width button below the source list on mobile — currently a wrapped inline flex that clips.
+
+### 6. Request detail — `console.$code.requests.$id.tsx`
+
+- Progress rail: on mobile becomes a **single horizontal snap-scroll strip** of six pill-shaped chips with the active one bold. On `sm:` and up, keeps the 6-column grid.
+- Deliverable list rows: icon shrinks to `h-7 w-7`, title `text-base`, actions become full-width buttons under the summary on mobile.
+- Back link becomes a 44-px chip.
+
+### 7. Global contract updates in `src/styles.css`
+
+- New `@utility mobile-container { @apply px-4 sm:px-6; }` used by every console route root so we stop scattering padding.
+- New `@utility hstrip { @apply -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:overflow-visible; }` for attention band + filter chips + progress rail.
+- Extend `card-choice` / `card-choice-active` and every filter chip usage with `min-h-11` baked in so this class of bug can't recur.
+- Add `@utility safe-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 96px); }` for scrollable regions above fixed bars.
+- Update `mem://design/button-contract` with a mobile addendum: "Every tap target ≥44 px; sticky bars must add `safe-bottom` to their scroll parent."
+
+### 8. Verification (mandatory before we call it done)
+
+Playwright script under `/tmp/browser/console-mobile/` at viewport **393×852** signed in as super-admin with impersonation → ATG, screenshotting:
+
+- `/console/ATG` (top + scrolled to lanes + scrolled to delivered)
+- `/console/ATG/ask` (empty + after one turn)
+- `/console/ATG/request/new` (step 1 idle + step 1 with dictation focused + step 3 outcomes + step 4 review)
+- `/console/ATG/requests` (all + in-flight filter active)
+- `/console/ATG/requests/{id}` (progress rail visible + deliverables)
+
+Each screenshot is inspected with `code--view`; the plan is complete only when there is zero horizontal scroll, every CTA is above the fold or on a visible sticky bar, and every tappable element measures ≥44 px.
+
+## Files touched
+
+- `src/routes/_authenticated/console.tsx`
+- `src/routes/_authenticated/console.$code.index.tsx`
+- `src/routes/_authenticated/console.$code.request.new.tsx`
+- `src/routes/_authenticated/console.$code.requests.index.tsx`
+- `src/routes/_authenticated/console.$code.requests.$id.tsx`
+- `src/routes/_authenticated/console.$code.ask.tsx`
+- `src/components/console/StudyComposer.tsx`
+- **New** `src/components/console/WizardStepper.tsx`
+- **New** `src/components/console/CountryChip.tsx`
+- `src/styles.css` (utilities: `mobile-container`, `hstrip`, `safe-bottom`; strengthen `card-choice` tap target)
+- `mem://design/button-contract` + `mem://index.md` addendum
+
+## Non-goals
+
+- No backend/server-function changes.
+- No changes to `/admin`, chambers, marketing routes, or auth flows.
+- No new dependencies.
+
+## ASCII sketch — mobile Study index
+
+```text
+┌───────────────────────────┐
+│ GDPVISION · [🇦🇬 ATG]  ☰ │  sticky header, 56 px
+├───────────────────────────┤
+│ WEDS · 22 JULY 2026       │
+│ Good day, Antigua…        │  text-3xl
+├───────────────────────────┤
+│ ← [Ready 2] [Flight 5] →  │  snap-x strip, 96 px
+├───────────────────────────┤
+│ ┌ Ask ┃ Send ────────────┐│
+│ │ What do you need?      ││  rows=3
+│ │ [_______________]      ││
+│ │ [🎤]        [Ask →]    ││  full-width CTA
+│ └────────────────────────┘│
+├───────────────────────────┤
+│ In flight                 │
+│ • Cruise tax brief …      │
+│   MoF · In flight 2d 4h   │  meta stacks
+├───────────────────────────┤
+│ … footer …                │
+└───────────────────────────┘
 ```
-┌───────────────────────────────────────────────────────────┐
-│  [ ● Ask ]   [ Send ]                     usually 1–2 days│
-│                                                           │
-│  What do you want to know?                                │
-│  ┌─────────────────────────────────────────────────────┐  │
-│  │  Textarea — grows with content                      │  │
-│  └─────────────────────────────────────────────────────┘  │
-│  [ 🎤 Voice ]  [ 📎 Attach ]  [ 📷 Photo ]  →  [ Ask ]    │
-└───────────────────────────────────────────────────────────┘
-```
-
-- **Segmented control** at the top with two pills: "Ask" (default) and "Send". State lives in the route so `?mode=send` and `?mode=ask` are shareable and back-button-friendly.
-- Placeholder, primary button label, and hint text swap by mode. In Ask mode the hint reads "Your Second Brain answers in seconds"; in Send mode it reads "Our team returns a full brief".
-- The composer itself (textarea + Voice + Attach + Photo) is shared — the same input goes into either flow.
-- Attach and Photo only appear in Send mode (research chat doesn't need drop-zone artifacts).
-- Voice-to-text is available in both modes — you can dictate a quick question as easily as a full brief.
-
-## Ask mode — chat with the Second Brain
-
-Ask mode calls the existing `askCounsel` server fn (scoped to the current country) which already does retrieval + writeback against the country corpus. From the composer:
-
-- **First send** navigates to `/console/$code/ask` and streams the answer in a conversation view.
-- The Ask page is a threaded chat: user bubble, then an assistant answer split into a plain-language "spoken" summary at the top and a cited "written" block below. Citation chips are tappable and open the source in a bottom sheet.
-- A "Follow up" composer stays fixed at the bottom (with the same voice mic). Threads live client-side per country in localStorage — no schema changes; the underlying `counsel_answers` table already logs each Q&A server-side.
-- A "This needs more than an answer" link at the bottom of each response converts the current question into a Send-mode draft prefilled in the wizard.
-- Empty state on `/console/$code/ask` shows 4 recent questions asked in this country plus 4 canned prompts drawn from the ministries on file ("What's driving inflation this quarter?", "How is tourism tracking vs target?", etc.).
-
-## Send mode — the request wizard, now multimodal
-
-Ties into the wizard already in the plan. Step 1 becomes the shared composer above; steps 2–4 (Which ministry / What form / When) remain as-is but get the mobile pass below.
-
-- **Voice dictation** — press-to-record with live level meter, transcript appended to the textarea. Uses existing `useVoiceRecorder` + `transcribeAudio` (Lovable AI Gateway `openai/gpt-4o-mini-transcribe`).
-- **Attach documents** — drop zone on desktop; large "Attach" and "Photo" tap targets on mobile with `capture="environment"` for the camera. Uses existing `signUploadUrl` + `parseUpload` against the `study-artifacts` bucket. Accepts PDF, DOC/DOCX, TXT/MD, images (JPG/PNG/HEIC), audio memos (m4a/mp3/wav). Cap: 20 MB, 5 files per request.
-- **Attachment chips** show per-file status (Uploading → Reading → Ready → Failed) with remove. Parsed excerpts get folded into `raw_text` so intent is grounded when the agency picks it up; storage paths flow through `submitRequest.attachments`.
-- Send in Step 4 waits for all attachments to be Ready (or removed).
-
-## Mobile-first pass across both surfaces
-
-- One-column layout throughout. Stepper collapses to `1 / 4 · What you need` with a thin progress bar on small screens.
-- Sticky bottom action bar (Back / Continue or Send), safe-area-aware.
-- 44 px minimum tap targets on all buttons, cards, chips; larger `card-choice` padding on mobile.
-- Ministry & Outcome grids: 1 col mobile, 2 tablet, 2–3 desktop.
-- Textarea: `field-sizing: content` + `min-h-[9rem]` mobile — grows with content, doesn't dominate viewport.
-- Voice / Attach / Photo render as a 3-wide row on mobile; drop zone (drag-and-drop) only shows from `md` up (drop zones make no sense on touch).
-- Headings drop from `text-4xl/5xl` to `text-3xl` on mobile.
-- Console shell (`console.tsx`) gets a hamburger drawer on mobile with Study / Requests / Ask / Sign out. "Start" pill stays visible as an icon-only control.
-- Ask chat: input pinned to bottom with `env(safe-area-inset-bottom)`; message list uses `overscroll-contain` and virtualizes only if a thread exceeds 40 turns.
-
-## Files to change / add
-
-New:
-- `src/components/console/RequestComposer.tsx` — the two-mode composer card (Ask/Send segmented control, textarea, voice, attach, photo, submit).
-- `src/components/console/AttachmentChip.tsx` — per-file status pill.
-- `src/components/console/CitationChip.tsx` + `CitationSheet.tsx` — tappable citation and mobile bottom sheet.
-- `src/hooks/useConsoleUploads.ts` — signed URL → PUT to storage → `parseUpload`, tracks status per file.
-- `src/hooks/useCountryAskThread.ts` — localStorage-backed per-country ask thread (id, messages, updatedAt).
-- `src/routes/_authenticated/console.$code.ask.tsx` — the Ask conversation page.
-
-Modified:
-- `src/routes/_authenticated/console.$code.index.tsx` — replace the black CTA with `<RequestComposer />` at the top; mobile layout pass on masthead, attention band, lanes, ministries.
-- `src/routes/_authenticated/console.$code.request.new.tsx` — Step 1 uses `<RequestComposer mode="send" />`; wizard shell restructured for mobile (compact stepper, sticky footer); on submit, include `attachments` + parsed excerpts in `raw_text`.
-- `src/routes/_authenticated/console.tsx` — mobile nav (hamburger drawer + safe-area header), Ask/Study/Requests links.
-- `src/routes/_authenticated/console.$code.requests.index.tsx` — mobile-friendly two-line rows, wrapping filter chips.
-
-No schema changes, no new secrets, no new tables. Reuses:
-- `askCounsel` (`src/lib/counsel.functions.ts`) — country corpus RAG with citations and rate limits.
-- `transcribeAudio` (`src/lib/personas/transcribe.functions.ts`) — mic → text.
-- `signUploadUrl` / `parseUpload` (`src/lib/personas/parse-upload.functions.ts`) — direct-to-storage upload + AI-based text extraction (text/PDF/DOCX/image OCR/audio transcript).
-- `submitRequest` (`src/lib/concierge/concierge.functions.ts`) — already accepts `attachments`.
-
-## Behaviour details
-
-- Mode toggle preserves what's in the textarea when you switch — the same thought can flip from a question to a task without retyping.
-- Voice dictation: tap → red pulsing "Stop · 0:12" with live meter → transcript appends to the textarea on stop; "Transcribed" toast on success. Mic denied → chip becomes "Mic blocked — tap for help"; typing/attaching still work.
-- Uploads run in parallel. Attachments that parse to > 400 chars get collapsed under "Show extracted text".
-- Ask mode enforces server-side rate limit already coded in `askCounsel` (per-user per-hour, per-scope per-day); errors surface as an inline toast.
-- All existing minister-lexicon scrubbing on `raw_text` / `minister_summary` continues to run in `submitRequest`; assistant answers in Ask mode remain in the country's own language and never surface chamber vocabulary.
-
-## Out of scope
-
-- Streaming/live transcript during recording (kept simple; can be added later on the SSE branch of the STT endpoint).
-- Multi-speaker meeting capture (ElevenLabs territory) — not needed here.
-- Server-side thread persistence for Ask — localStorage per country is enough for v1; the `counsel_answers` table already keeps a per-user audit log.

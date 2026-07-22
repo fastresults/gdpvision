@@ -20,7 +20,7 @@ import {
   Mic,
 } from "lucide-react";
 
-import { askCounsel, type CounselAnswer } from "@/lib/counsel.functions";
+import { askCounsel, askCounselDeepResearch, type CounselAnswer } from "@/lib/counsel.functions";
 import { VoiceMicButton } from "@/components/console/VoiceMicButton";
 import { useCountryAskThread, type AskTurn } from "@/hooks/useCountryAskThread";
 

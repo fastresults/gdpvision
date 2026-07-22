@@ -3,11 +3,12 @@
 
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { ArrowUpRight, CalendarDays, Clock, FileText, Inbox, Sparkles, AlertTriangle } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Clock, FileText, Inbox, AlertTriangle } from "lucide-react";
 
 import { getConsoleStudy, type ConsoleRequest } from "@/lib/console/console.functions";
 import { STATUS_LABEL } from "@/lib/concierge/minister-lexicon";
 import { elapsedLabel, elapsedTone, turnaroundLabel } from "@/lib/concierge/elapsed";
+import { StudyComposer } from "@/components/console/StudyComposer";
 
 const studyQuery = (code: string) =>
   queryOptions({

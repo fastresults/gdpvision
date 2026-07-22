@@ -292,7 +292,7 @@ function AskPage() {
       {/* Body */}
       <div className="flex-1 space-y-6">
         {turns.length === 0 && !busy && (
-          <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
+          <div className="flex min-h-[80vh] flex-col items-center gap-4 pt-8 text-center">
             <div className="relative h-[32rem] w-[32rem] sm:h-[40rem] sm:w-[40rem]">
               <BrainMask size={640} />
               {flag && (
@@ -303,17 +303,12 @@ function AskPage() {
                 />
               )}
             </div>
-            <div>
-              <p className="font-serif text-xl font-medium text-ink-950">{countryName}</p>
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
-                Second Brain
-              </p>
-            </div>
-            <p className="max-w-[20rem] text-sm leading-relaxed text-ink-500">
+            <p className="mt-auto max-w-[20rem] text-sm leading-relaxed text-ink-500">
               Ask a question about this country to get a quick, cited answer.
             </p>
           </div>
         )}
+
 
         {turns.map((t) => (
           <TurnBlock

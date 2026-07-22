@@ -285,6 +285,14 @@ function AskPage() {
 
       {/* Body */}
       <div className="flex-1 space-y-6">
+        {turns.length === 0 && !busy && (
+          <div className="flex flex-col items-center justify-center gap-2 py-24 text-center">
+            <p className="max-w-[20rem] text-sm leading-relaxed text-ink-500">
+              Ask a question about this country to get a quick, cited answer from your Second Brain.
+            </p>
+          </div>
+        )}
+
         {turns.map((t) => (
           <TurnBlock
             key={t.id}

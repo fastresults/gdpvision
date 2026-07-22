@@ -127,32 +127,12 @@ function RequestWizard() {
         : null;
 
   return (
-    <div className="mx-auto max-w-3xl">
-      {/* Stepper */}
-      <ol className="mb-10 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
-        {["What you need", "Which ministry", "What form", "When"].map((label, i) => {
-          const n = i + 1;
-          const active = step === n;
-          const done = step > n;
-          return (
-            <li key={label} className="flex items-center gap-2">
-              <span
-                className={`grid h-6 w-6 place-items-center rounded-full border ${
-                  active
-                    ? "border-ink-950 bg-ink-950 text-paper-50"
-                    : done
-                      ? "border-gold-500 bg-gold-500 text-paper-50"
-                      : "border-line-200 text-ink-500"
-                }`}
-              >
-                {done ? <Check size={12} /> : n}
-              </span>
-              <span className={active ? "text-ink-950" : ""}>{label}</span>
-              {n < 4 && <span className="mx-2 h-px w-6 bg-line-200" />}
-            </li>
-          );
-        })}
-      </ol>
+    <div className="mx-auto max-w-3xl overflow-x-hidden safe-bottom">
+      <WizardStepper
+        labels={["What you need", "Which ministry", "What form", "When"]}
+        current={step}
+      />
+
 
       {step === 1 && (
         <section>

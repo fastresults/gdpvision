@@ -148,6 +148,29 @@ function AskPage() {
     });
   }
 
+  async function runExpound(turn: AskTurn) {
+    if (turn.expound?.status === "running") return;
+    update(turn.id, {
+      expound: { ...(turn.expound ?? { status: "idle" }), status: "running", error: undefined },
+    });
+    try {
+      const res = await expoundCounsel({
+        data: { scopeKey: code, parentAnswerId: turn.id },
+      });
+      update(turn.id, {
+        expound: { status: "done", memo: res.memo, ranAt: res.created_at },
+      });
+    } catch (e) {
+      update(turn.id, {
+        expound: {
+          ...(turn.expound ?? { status: "idle" }),
+          status: "error",
+          error: (e as Error).message,
+        },
+      });
+    }
+  }
+
   // Auto-run first question when arriving with ?q=…
   useEffect(() => {
     if (!q || consumedSeedRef.current === q) return;

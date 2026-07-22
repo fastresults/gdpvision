@@ -52,6 +52,29 @@ function tokenize(s: string) {
   return Array.from(new Set(s.toLowerCase().match(/[a-z0-9]{3,}/g) ?? []));
 }
 
+function textSignalsEvidenceGap(spoken: string, written: string): boolean {
+  const combined = `${spoken}\n${written}`.toLowerCase();
+  return (
+    /(?:insufficient|limited|thin|missing|not enough|no|lacks?)\s+(?:evidence|data|information|context|items)/i.test(
+      combined,
+    ) ||
+    /(?:we|i)\s+(?:do not|don't|cannot|can't)\s+(?:have|say|determine|identify|attribute)/i.test(
+      combined,
+    ) ||
+    /cannot\s+be\s+determined/i.test(combined) ||
+    /no\s+(?:current|quarterly|recent)\s+(?:price|cpi|inflation|data|figures|breakdown)/i.test(
+      combined,
+    ) ||
+    /evidence\s+missing/i.test(combined) ||
+    /before\s+(?:naming|identifying|attributing|saying)/i.test(combined) ||
+    /provided\s+context\s+does\s+not\s+include/i.test(combined) ||
+    /context\s+does\s+not\s+provide/i.test(combined) ||
+    /second\s+brain\s+(?:has\s+no|does\s+not\s+have|doesn't\s+have|has\s+insufficient)/i.test(
+      combined,
+    )
+  );
+}
+
 export const askCounsel = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => AskInput.parse(data))
@@ -188,6 +211,7 @@ export const askCounsel = createServerFn({ method: "POST" })
       "You are Counsel, a sovereign policy advisor. Answer in two labeled blocks:\n" +
       "SPOKEN: 2–3 sentences a Prime Minister could say aloud, no jargon, no hedging.\n" +
       "WRITTEN: bullet list with numbered citations [n] pointing to the CONTEXT items provided.\n" +
+      "EVIDENCE_STATE: exactly sufficient or insufficient. Mark insufficient whenever CONTEXT does not directly answer the question, even if adjacent sources exist.\n" +
       "Rules: cite only items in CONTEXT; if evidence is missing, say so plainly and do not invent figures.";
     const contextBlock = citationLines.length
       ? `CONTEXT:\n${citationLines.join("\n")}`
@@ -213,7 +237,8 @@ export const askCounsel = createServerFn({ method: "POST" })
     }
 
     const spokenMatch = text.match(/SPOKEN:\s*([\s\S]*?)(?:\n\s*WRITTEN:|$)/i);
-    const writtenMatch = text.match(/WRITTEN:\s*([\s\S]*)$/i);
+    const writtenMatch = text.match(/WRITTEN:\s*([\s\S]*?)(?:\n\s*EVIDENCE_STATE:|$)/i);
+    const stateMatch = text.match(/EVIDENCE_STATE:\s*(sufficient|insufficient)/i);
     const spoken = (spokenMatch?.[1] ?? text).trim();
     const written = (writtenMatch?.[1] ?? "").trim();
 
@@ -228,8 +253,7 @@ export const askCounsel = createServerFn({ method: "POST" })
     // Insufficiency heuristic: fewer than 2 corpus hits, or the model explicitly
     // said it had no evidence. This is the signal the UI uses to offer deep research.
     const topScore = scored[0]?.score ?? 0;
-    const insufficientPatterns = /(insufficient evidence|no evidence|not enough (?:evidence|data|information)|second brain (?:has no|does not have|doesn't have|has insufficient))/i;
-    const modelSaysInsufficient = insufficientPatterns.test(spoken) || insufficientPatterns.test(written);
+    const modelSaysInsufficient = stateMatch?.[1]?.toLowerCase() === "insufficient" || textSignalsEvidenceGap(spoken, written);
     const isInsufficient = citations.length < 2 || topScore < 2 || modelSaysInsufficient;
     const evidenceState: "sufficient" | "insufficient" = isInsufficient ? "insufficient" : "sufficient";
     const evidenceReason = isInsufficient
@@ -239,6 +263,15 @@ export const askCounsel = createServerFn({ method: "POST" })
         ? "Only limited corpus items match this question."
         : "The corpus doesn't clearly answer this question."
       : undefined;
+
+    if (isInsufficient) {
+      console.info("[counsel] evidence_gap", {
+        scopeKey: data.scopeKey,
+        citations: citations.length,
+        topScore,
+        modelSaysInsufficient,
+      });
+    }
 
     const hash = createHash("sha256")
       .update(JSON.stringify({ q: data.question, spoken, written, citations, scenarioSnap }))
@@ -296,6 +329,10 @@ export const askCounselDeepResearch = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<CounselAnswer> => {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("Deep research unavailable — missing gateway credentials.");
+    console.info("[counsel] deep_research_start", {
+      scopeKey: data.scopeKey,
+      hasParent: Boolean(data.parentAnswerId),
+    });
 
     // Tighter caps than askCounsel; deep research is expensive.
     const { data: cfgRow } = await context.supabase
@@ -336,7 +373,7 @@ export const askCounselDeepResearch = createServerFn({ method: "POST" })
       domain: "memory",
       key: `deep:${data.sectorHint ?? "cross"}:${data.question.slice(0, 80)}`,
       read: async () => ({ rows: [] }),
-      isEmpty: () => true,
+      isEmpty: (result) => !result || result.rows.length === 0,
       search: async (ctx) => {
         const r = await searchMemory({
           countryCode: ctx.countryCode,
@@ -357,6 +394,12 @@ export const askCounselDeepResearch = createServerFn({ method: "POST" })
       url: c.url,
       title: c.title ?? c.url,
     })) as CounselResearchSource[];
+    console.info("[counsel] deep_research_sources", {
+      scopeKey: data.scopeKey,
+      sourceCount: researchCitations.length,
+      outcome: memoryGateway.outcome,
+      tier: memoryGateway.tier,
+    });
 
     // Re-read memory after write-back so the answer can cite fresh rows.
     const { data: suppressions } = await context.supabase
@@ -436,6 +479,12 @@ export const askCounselDeepResearch = createServerFn({ method: "POST" })
       evidenceState === "insufficient"
         ? "Even after open-web research, evidence remains thin. Consider sending this to the team as a formal request."
         : undefined;
+    console.info("[counsel] deep_research_done", {
+      scopeKey: data.scopeKey,
+      evidenceState,
+      corpusCitations: citations.length,
+      researchSources: researchCitations.length,
+    });
 
     const hash = createHash("sha256")
       .update(JSON.stringify({ q: data.question, spoken, written, citations, researchCitations }))

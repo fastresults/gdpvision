@@ -8,6 +8,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import {
   ArrowUpRight,
+  BookOpen,
   ChevronDown,
   ChevronUp,
   Copy,
@@ -19,10 +20,24 @@ import {
   Trash2,
   X,
   Mic,
+  FileText,
+  ExternalLink,
 } from "lucide-react";
 
-import { askCounsel, askCounselDeepResearch, type CounselAnswer } from "@/lib/counsel.functions";
+import {
+  askCounsel,
+  askCounselDeepResearch,
+  expoundCounsel,
+  type CounselAnswer,
+} from "@/lib/counsel.functions";
 import { VoiceMicButton } from "@/components/console/VoiceMicButton";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { useCountryAskThread, type AskTurn } from "@/hooks/useCountryAskThread";
 
 const searchSchema = z.object({ q: z.string().optional() });
@@ -131,6 +146,29 @@ function AskPage() {
     update(turn.id, {
       deepResearch: { ...(turn.deepResearch ?? { status: "idle" }), status: "skipped" },
     });
+  }
+
+  async function runExpound(turn: AskTurn) {
+    if (turn.expound?.status === "running") return;
+    update(turn.id, {
+      expound: { ...(turn.expound ?? { status: "idle" }), status: "running", error: undefined },
+    });
+    try {
+      const res = await expoundCounsel({
+        data: { scopeKey: code, parentAnswerId: turn.id },
+      });
+      update(turn.id, {
+        expound: { status: "done", memo: res.memo, ranAt: res.created_at },
+      });
+    } catch (e) {
+      update(turn.id, {
+        expound: {
+          ...(turn.expound ?? { status: "idle" }),
+          status: "error",
+          error: (e as Error).message,
+        },
+      });
+    }
   }
 
   // Auto-run first question when arriving with ?q=…
@@ -263,6 +301,7 @@ function AskPage() {
             onAskAgain={(q) => send(q)}
             onDeepResearch={() => runDeepResearch(t)}
             onSkipDeepResearch={() => skipDeepResearch(t)}
+            onExpound={() => runExpound(t)}
           />
         ))}
 
@@ -382,6 +421,7 @@ function TurnBlock({
   onAskAgain,
   onDeepResearch,
   onSkipDeepResearch,
+  onExpound,
 }: {
   turn: AskTurn;
   onSend: (q: string) => void;
@@ -389,10 +429,17 @@ function TurnBlock({
   onAskAgain: (q: string) => void;
   onDeepResearch: () => void;
   onSkipDeepResearch: () => void;
+  onExpound: () => void;
 }) {
   const [showWritten, setShowWritten] = useState(false);
-  const [showSources, setShowSources] = useState(false);
+  const [showMemo, setShowMemo] = useState(false);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Auto-expand the memo the first time expound completes.
+  useEffect(() => {
+    if (turn.expound?.status === "done" && turn.expound.memo) setShowMemo(true);
+  }, [turn.expound?.status, turn.expound?.memo]);
 
   function copyAnswer() {
     const parts = [turn.spoken];
@@ -461,53 +508,35 @@ function TurnBlock({
           </div>
         )}
 
-        {showSources && (turn.citations.length > 0 || (turn.deepResearch?.sources?.length ?? 0) > 0) && (
-          <div className="border-t border-line-200 px-4 py-4 sm:px-5 space-y-4">
-            {turn.citations.length > 0 && (
-              <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
-                  Second Brain
-                </p>
-                <ol className="mt-2 space-y-1.5 text-sm text-ink-500">
-                  {turn.citations.map((c, i) => (
-                    <li key={c.id} className="leading-snug">
-                      <span className="mr-1 font-mono text-[10px] text-ink-500">[C{i + 1}]</span>
-                      <span className="text-ink-950">{c.title}</span>
-                      <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.15em]">
-                        {c.kind} · {c.sector_code}
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            )}
-            {(turn.deepResearch?.sources?.length ?? 0) > 0 && (
-              <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
-                  Open-web research
-                </p>
-                <ol className="mt-2 space-y-1.5 text-sm text-ink-500">
-                  {turn.deepResearch!.sources!.map((s, i) => (
-                    <li key={`${s.url}-${i}`} className="leading-snug">
-                      <span className="mr-1 font-mono text-[10px] text-ink-500">[R{i + 1}]</span>
-                      <a
-                        href={s.url}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="text-ink-950 underline decoration-line-200 hover:decoration-ink-950"
-                      >
-                        {s.title}
-                      </a>
-                      {s.publisher && (
-                        <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.15em]">
-                          {s.publisher}
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            )}
+        {/* Expound memo panel */}
+        {turn.expound?.status === "done" && turn.expound.memo && showMemo && (
+          <div className="border-t border-line-200 bg-paper-50 px-4 py-5 sm:px-5">
+            <div className="flex items-center justify-between">
+              <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+                Expound memo
+              </p>
+              <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-ink-500">
+                {turn.expound.ranAt
+                  ? new Date(turn.expound.ranAt).toLocaleString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : ""}
+              </span>
+            </div>
+            <div className="prose prose-sm mt-3 max-w-none whitespace-pre-wrap font-serif text-[15px] leading-relaxed text-ink-950">
+              {turn.expound.memo}
+            </div>
+          </div>
+        )}
+
+        {turn.expound?.status === "error" && (
+          <div className="border-t border-line-200 bg-paper-50 px-4 py-3 sm:px-5">
+            <p className="text-xs text-signal-red">
+              Expound failed: {turn.expound.error}
+            </p>
           </div>
         )}
 
@@ -523,9 +552,35 @@ function TurnBlock({
           )}
           {(turn.citations.length > 0 || (turn.deepResearch?.sources?.length ?? 0) > 0) && (
             <ToolbarButton
-              onClick={() => setShowSources((v) => !v)}
-              active={showSources}
+              onClick={() => setSourcesOpen(true)}
+              icon={<BookOpen size={12} />}
               label={`Sources · ${turn.citations.length + (turn.deepResearch?.sources?.length ?? 0)}`}
+            />
+          )}
+          {turn.expound?.status === "done" ? (
+            <ToolbarButton
+              onClick={() => setShowMemo((v) => !v)}
+              active={showMemo}
+              icon={<FileText size={12} />}
+              label={showMemo ? "Hide memo" : "Show memo"}
+            />
+          ) : (
+            <ToolbarButton
+              onClick={onExpound}
+              icon={
+                turn.expound?.status === "running" ? (
+                  <Loader2 size={12} className="animate-spin" />
+                ) : (
+                  <FileText size={12} />
+                )
+              }
+              label={
+                turn.expound?.status === "running"
+                  ? "Expounding…"
+                  : turn.expound?.status === "error"
+                    ? "Retry expound"
+                    : "Expound"
+              }
             />
           )}
           <ToolbarButton
@@ -564,6 +619,11 @@ function TurnBlock({
           </span>
         </div>
       </div>
+      <SourcesDrawer
+        open={sourcesOpen}
+        onOpenChange={setSourcesOpen}
+        turn={turn}
+      />
     </article>
   );
 }
@@ -651,5 +711,130 @@ function InsufficientEvidencePanel({
         </div>
       </div>
     </div>
+  );
+}
+
+function SourcesDrawer({
+  open,
+  onOpenChange,
+  turn,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  turn: AskTurn;
+}) {
+  const corpus = turn.citations;
+  const research = turn.deepResearch?.sources ?? [];
+  const total = corpus.length + research.length;
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        className="w-full max-w-md bg-paper-0 border-l border-line-200 p-0 flex flex-col"
+      >
+        <SheetHeader className="border-b border-line-200 px-5 py-4 space-y-1 text-left">
+          <SheetTitle className="font-serif text-lg text-ink-950">Sources</SheetTitle>
+          <SheetDescription className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            {total} reference{total === 1 ? "" : "s"} for this answer
+          </SheetDescription>
+        </SheetHeader>
+        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
+          <section>
+            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+              Question
+            </p>
+            <p className="mt-2 whitespace-pre-wrap font-serif text-sm text-ink-950">
+              {turn.question}
+            </p>
+          </section>
+
+          {corpus.length > 0 && (
+            <section>
+              <div className="flex items-baseline justify-between">
+                <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+                  Second Brain
+                </p>
+                <span className="font-mono text-[10px] text-ink-500">{corpus.length}</span>
+              </div>
+              <ol className="mt-3 space-y-3">
+                {corpus.map((c, i) => (
+                  <li
+                    key={c.id}
+                    className="border border-line-200 bg-paper-50 px-3 py-2.5"
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="mt-0.5 font-mono text-[10px] text-ink-500">
+                        [C{i + 1}]
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-serif text-sm leading-snug text-ink-950">
+                          {c.title}
+                        </p>
+                        <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
+                          {c.kind} · {c.sector_code} · w{c.weight}
+                        </p>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+
+          {research.length > 0 && (
+            <section>
+              <div className="flex items-baseline justify-between">
+                <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+                  Open-web research
+                </p>
+                <span className="font-mono text-[10px] text-ink-500">{research.length}</span>
+              </div>
+              <ol className="mt-3 space-y-3">
+                {research.map((s, i) => (
+                  <li
+                    key={`${s.url}-${i}`}
+                    className="border border-line-200 bg-paper-50 px-3 py-2.5"
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="mt-0.5 font-mono text-[10px] text-ink-500">
+                        [R{i + 1}]
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <a
+                          href={s.url}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="group inline-flex items-baseline gap-1.5 font-serif text-sm leading-snug text-ink-950 underline decoration-line-200 decoration-1 underline-offset-2 hover:decoration-ink-950"
+                        >
+                          <span className="min-w-0 break-words">{s.title}</span>
+                          <ExternalLink
+                            size={11}
+                            className="shrink-0 translate-y-[1px] text-ink-500 group-hover:text-ink-950"
+                          />
+                        </a>
+                        {s.publisher && (
+                          <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
+                            {s.publisher}
+                          </p>
+                        )}
+                        <p className="mt-1 break-all font-mono text-[10px] text-ink-500">
+                          {s.url}
+                        </p>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+
+          {total === 0 && (
+            <p className="font-serif text-sm text-ink-500">
+              No sources are attached to this answer yet. Run deep research to add open-web references.
+            </p>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

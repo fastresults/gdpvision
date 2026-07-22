@@ -460,22 +460,53 @@ function TurnBlock({
           </div>
         )}
 
-        {turn.citations.length > 0 && showSources && (
-          <div className="border-t border-line-200 px-4 py-4 sm:px-5">
-            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
-              Sources
-            </p>
-            <ol className="mt-2 space-y-1.5 text-sm text-ink-500">
-              {turn.citations.map((c, i) => (
-                <li key={c.id} className="leading-snug">
-                  <span className="mr-1 font-mono text-[10px] text-ink-500">[{i + 1}]</span>
-                  <span className="text-ink-950">{c.title}</span>
-                  <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.15em]">
-                    {c.kind} · {c.sector_code}
-                  </span>
-                </li>
-              ))}
-            </ol>
+        {showSources && (turn.citations.length > 0 || (turn.deepResearch?.sources?.length ?? 0) > 0) && (
+          <div className="border-t border-line-200 px-4 py-4 sm:px-5 space-y-4">
+            {turn.citations.length > 0 && (
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+                  Second Brain
+                </p>
+                <ol className="mt-2 space-y-1.5 text-sm text-ink-500">
+                  {turn.citations.map((c, i) => (
+                    <li key={c.id} className="leading-snug">
+                      <span className="mr-1 font-mono text-[10px] text-ink-500">[C{i + 1}]</span>
+                      <span className="text-ink-950">{c.title}</span>
+                      <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.15em]">
+                        {c.kind} · {c.sector_code}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+            {(turn.deepResearch?.sources?.length ?? 0) > 0 && (
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+                  Open-web research
+                </p>
+                <ol className="mt-2 space-y-1.5 text-sm text-ink-500">
+                  {turn.deepResearch!.sources!.map((s, i) => (
+                    <li key={`${s.url}-${i}`} className="leading-snug">
+                      <span className="mr-1 font-mono text-[10px] text-ink-500">[R{i + 1}]</span>
+                      <a
+                        href={s.url}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="text-ink-950 underline decoration-line-200 hover:decoration-ink-950"
+                      >
+                        {s.title}
+                      </a>
+                      {s.publisher && (
+                        <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.15em]">
+                          {s.publisher}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
           </div>
         )}
 

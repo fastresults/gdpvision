@@ -15,6 +15,13 @@ export interface AskDeepResearch {
   error?: string;
 }
 
+export interface AskExpound {
+  status: "idle" | "running" | "done" | "error";
+  memo?: string;
+  ranAt?: string;
+  error?: string;
+}
+
 export interface AskTurn {
   id: string;
   question: string;
@@ -26,6 +33,7 @@ export interface AskTurn {
   evidenceState?: "sufficient" | "insufficient";
   evidenceReason?: string;
   deepResearch?: AskDeepResearch;
+  expound?: AskExpound;
 }
 
 function storageKey(countryCode: string) {

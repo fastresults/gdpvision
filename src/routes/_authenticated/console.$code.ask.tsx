@@ -503,53 +503,35 @@ function TurnBlock({
           </div>
         )}
 
-        {showSources && (turn.citations.length > 0 || (turn.deepResearch?.sources?.length ?? 0) > 0) && (
-          <div className="border-t border-line-200 px-4 py-4 sm:px-5 space-y-4">
-            {turn.citations.length > 0 && (
-              <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
-                  Second Brain
-                </p>
-                <ol className="mt-2 space-y-1.5 text-sm text-ink-500">
-                  {turn.citations.map((c, i) => (
-                    <li key={c.id} className="leading-snug">
-                      <span className="mr-1 font-mono text-[10px] text-ink-500">[C{i + 1}]</span>
-                      <span className="text-ink-950">{c.title}</span>
-                      <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.15em]">
-                        {c.kind} · {c.sector_code}
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            )}
-            {(turn.deepResearch?.sources?.length ?? 0) > 0 && (
-              <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
-                  Open-web research
-                </p>
-                <ol className="mt-2 space-y-1.5 text-sm text-ink-500">
-                  {turn.deepResearch!.sources!.map((s, i) => (
-                    <li key={`${s.url}-${i}`} className="leading-snug">
-                      <span className="mr-1 font-mono text-[10px] text-ink-500">[R{i + 1}]</span>
-                      <a
-                        href={s.url}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="text-ink-950 underline decoration-line-200 hover:decoration-ink-950"
-                      >
-                        {s.title}
-                      </a>
-                      {s.publisher && (
-                        <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.15em]">
-                          {s.publisher}
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            )}
+        {/* Expound memo panel */}
+        {turn.expound?.status === "done" && turn.expound.memo && showMemo && (
+          <div className="border-t border-line-200 bg-paper-50 px-4 py-5 sm:px-5">
+            <div className="flex items-center justify-between">
+              <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+                Expound memo
+              </p>
+              <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-ink-500">
+                {turn.expound.ranAt
+                  ? new Date(turn.expound.ranAt).toLocaleString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : ""}
+              </span>
+            </div>
+            <div className="prose prose-sm mt-3 max-w-none whitespace-pre-wrap font-serif text-[15px] leading-relaxed text-ink-950">
+              {turn.expound.memo}
+            </div>
+          </div>
+        )}
+
+        {turn.expound?.status === "error" && (
+          <div className="border-t border-line-200 bg-paper-50 px-4 py-3 sm:px-5">
+            <p className="text-xs text-signal-red">
+              Expound failed: {turn.expound.error}
+            </p>
           </div>
         )}
 

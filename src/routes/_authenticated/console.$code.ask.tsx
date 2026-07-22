@@ -98,10 +98,14 @@ function AskPage() {
         createdAt: startedAt,
         evidenceState: res.evidence_state,
         evidenceReason: res.evidence_reason,
-        deepResearch: { status: "idle" },
+        deepResearch: { status: res.evidence_state === "insufficient" ? "running" : "idle" },
       };
       append(turn);
       setInput("");
+      // Auto-trigger deep research when the Second Brain lacks evidence.
+      if (res.evidence_state === "insufficient") {
+        void runDeepResearch(turn);
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {

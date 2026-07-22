@@ -713,3 +713,128 @@ function InsufficientEvidencePanel({
     </div>
   );
 }
+
+function SourcesDrawer({
+  open,
+  onOpenChange,
+  turn,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  turn: AskTurn;
+}) {
+  const corpus = turn.citations;
+  const research = turn.deepResearch?.sources ?? [];
+  const total = corpus.length + research.length;
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        className="w-full max-w-md bg-paper-0 border-l border-line-200 p-0 flex flex-col"
+      >
+        <SheetHeader className="border-b border-line-200 px-5 py-4 space-y-1 text-left">
+          <SheetTitle className="font-serif text-lg text-ink-950">Sources</SheetTitle>
+          <SheetDescription className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            {total} reference{total === 1 ? "" : "s"} for this answer
+          </SheetDescription>
+        </SheetHeader>
+        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
+          <section>
+            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+              Question
+            </p>
+            <p className="mt-2 whitespace-pre-wrap font-serif text-sm text-ink-950">
+              {turn.question}
+            </p>
+          </section>
+
+          {corpus.length > 0 && (
+            <section>
+              <div className="flex items-baseline justify-between">
+                <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+                  Second Brain
+                </p>
+                <span className="font-mono text-[10px] text-ink-500">{corpus.length}</span>
+              </div>
+              <ol className="mt-3 space-y-3">
+                {corpus.map((c, i) => (
+                  <li
+                    key={c.id}
+                    className="border border-line-200 bg-paper-50 px-3 py-2.5"
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="mt-0.5 font-mono text-[10px] text-ink-500">
+                        [C{i + 1}]
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-serif text-sm leading-snug text-ink-950">
+                          {c.title}
+                        </p>
+                        <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
+                          {c.kind} · {c.sector_code} · w{c.weight}
+                        </p>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+
+          {research.length > 0 && (
+            <section>
+              <div className="flex items-baseline justify-between">
+                <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+                  Open-web research
+                </p>
+                <span className="font-mono text-[10px] text-ink-500">{research.length}</span>
+              </div>
+              <ol className="mt-3 space-y-3">
+                {research.map((s, i) => (
+                  <li
+                    key={`${s.url}-${i}`}
+                    className="border border-line-200 bg-paper-50 px-3 py-2.5"
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="mt-0.5 font-mono text-[10px] text-ink-500">
+                        [R{i + 1}]
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <a
+                          href={s.url}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="group inline-flex items-baseline gap-1.5 font-serif text-sm leading-snug text-ink-950 underline decoration-line-200 decoration-1 underline-offset-2 hover:decoration-ink-950"
+                        >
+                          <span className="min-w-0 break-words">{s.title}</span>
+                          <ExternalLink
+                            size={11}
+                            className="shrink-0 translate-y-[1px] text-ink-500 group-hover:text-ink-950"
+                          />
+                        </a>
+                        {s.publisher && (
+                          <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
+                            {s.publisher}
+                          </p>
+                        )}
+                        <p className="mt-1 break-all font-mono text-[10px] text-ink-500">
+                          {s.url}
+                        </p>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+
+          {total === 0 && (
+            <p className="font-serif text-sm text-ink-500">
+              No sources are attached to this answer yet. Run deep research to add open-web references.
+            </p>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}

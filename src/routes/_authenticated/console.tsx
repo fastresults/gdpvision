@@ -33,7 +33,7 @@ export const Route = createFileRoute("/_authenticated/console")({
 function ConsoleLayout() {
   const { data: status } = useSuspenseQuery(statusQuery);
   const params = useParams({ strict: false }) as { code?: string };
-  const { state: viewAs, exit } = useImpersonation();
+  const { state: viewAs } = useImpersonation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [menuOpen, setMenuOpen] = useState(false);
 

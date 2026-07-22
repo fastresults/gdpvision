@@ -379,11 +379,15 @@ function TurnBlock({
   onSend,
   onRemove,
   onAskAgain,
+  onDeepResearch,
+  onSkipDeepResearch,
 }: {
   turn: AskTurn;
   onSend: (q: string) => void;
   onRemove: () => void;
   onAskAgain: (q: string) => void;
+  onDeepResearch: () => void;
+  onSkipDeepResearch: () => void;
 }) {
   const [showWritten, setShowWritten] = useState(false);
   const [showSources, setShowSources] = useState(false);

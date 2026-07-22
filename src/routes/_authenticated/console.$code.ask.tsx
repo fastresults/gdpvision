@@ -237,105 +237,54 @@ function AskPage() {
     });
   }
 
-  const showEmpty = turns.length === 0 && !busy;
-
-  const canned = [
-    "What's driving inflation this quarter?",
-    "How is tourism tracking versus target?",
-    "Which sectors are showing the strongest growth signal?",
-    "Summarise our latest fiscal position in plain language.",
-  ];
-
   return (
     <div className="relative flex min-h-[calc(100dvh-8rem)] flex-col pb-40 sm:pb-32">
-      {/* Header */}
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:gap-4">
-        <div className="min-w-0">
-          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-ink-500">
-            Ask the Second Brain
-          </p>
-          <h1 className="mt-2 font-serif text-2xl leading-tight text-ink-950 sm:text-4xl">
-            Quick, cited answers.
-          </h1>
-          <p className="mt-2 max-w-lg text-sm text-ink-500 sm:text-base">
-            {turns.length === 0
-              ? "Tap Ask below to begin. Every answer is grounded in this country's Second Brain."
-              : `${turns.length} answer${turns.length === 1 ? "" : "s"} in this conversation.`}
-          </p>
-        </div>
-
-        {/* Thread menu */}
-        {turns.length > 0 && (
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setMenuOpen((v) => !v)}
-              aria-label="Conversation menu"
-              className="inline-flex h-10 w-10 items-center justify-center border border-line-200 bg-paper-0 text-ink-950 hover:border-ink-950"
+      {/* Floating thread menu — only when there are turns */}
+      {turns.length > 0 && (
+        <div className="absolute right-0 top-0 z-10">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label="Conversation menu"
+            className="inline-flex h-9 w-9 items-center justify-center text-ink-500 hover:text-ink-950"
+          >
+            <MoreHorizontal size={16} />
+          </button>
+          {menuOpen && (
+            <div
+              className="absolute right-0 top-10 w-56 border border-line-200 bg-paper-0 shadow-lg"
+              onMouseLeave={() => setMenuOpen(false)}
             >
-              <MoreHorizontal size={16} />
-            </button>
-            {menuOpen && (
-              <div
-                className="absolute right-0 top-12 z-40 w-56 border border-line-200 bg-paper-0 shadow-lg"
-                onMouseLeave={() => setMenuOpen(false)}
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm("Clear this conversation?")) clear();
+                  setMenuOpen(false);
+                }}
+                className="flex w-full items-center gap-2 border-b border-line-200 px-3 py-3 text-left text-sm text-ink-950 hover:bg-paper-50"
               >
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (confirm("Clear this conversation?")) clear();
-                    setMenuOpen(false);
-                  }}
-                  className="flex w-full items-center gap-2 border-b border-line-200 px-3 py-3 text-left text-sm text-ink-950 hover:bg-paper-50"
-                >
-                  <RefreshCcw size={14} /> New conversation
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const text = turns
-                      .map(
-                        (t) =>
-                          `Q: ${t.question}\n\n${t.spoken}\n\n${t.written || ""}`.trim(),
-                      )
-                      .join("\n\n---\n\n");
-                    void navigator.clipboard.writeText(text);
-                    setMenuOpen(false);
-                  }}
-                  className="flex w-full items-center gap-2 px-3 py-3 text-left text-sm text-ink-950 hover:bg-paper-50"
-                >
-                  <Copy size={14} /> Copy conversation
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </header>
+                <RefreshCcw size={14} /> New conversation
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const text = turns
+                    .map((t) => `Q: ${t.question}\n\n${t.spoken}\n\n${t.written || ""}`.trim())
+                    .join("\n\n---\n\n");
+                  void navigator.clipboard.writeText(text);
+                  setMenuOpen(false);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-3 text-left text-sm text-ink-950 hover:bg-paper-50"
+              >
+                <Copy size={14} /> Copy conversation
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Body */}
-      <div className="mt-8 flex-1 space-y-6">
-        {showEmpty && (
-          <div className="space-y-5">
-            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
-              Or start with one of these
-            </p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {canned.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => send(c)}
-                  className="card-choice group p-4 text-left"
-                >
-                  <p className="font-serif text-base text-ink-950">{c}</p>
-                  <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 group-hover:text-ink-950">
-                    Tap to ask →
-                  </p>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
+      <div className="flex-1 space-y-6">
         {turns.map((t) => (
           <TurnBlock
             key={t.id}
@@ -350,14 +299,9 @@ function AskPage() {
         ))}
 
         {busy && (
-          <div className="border border-line-200 bg-paper-0 p-5">
-            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
-              Second Brain is reading…
-            </p>
-            <div className="mt-2 flex items-center gap-2 text-ink-500">
-              <Loader2 size={14} className="animate-spin" />
-              <span className="text-sm">Searching the corpus, drafting a cited answer.</span>
-            </div>
+          <div className="flex items-center gap-2 text-ink-500">
+            <Loader2 size={14} className="animate-spin" />
+            <span className="text-sm">Thinking…</span>
           </div>
         )}
 
@@ -370,37 +314,26 @@ function AskPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Persistent bottom input bar (mobile-first) */}
+      {/* Persistent bottom input bar */}
       {!composerOpen && (
         <div
-          className="fixed inset-x-0 bottom-0 z-30 border-t border-line-200 bg-paper-0/95 backdrop-blur-md"
+          className="fixed inset-x-0 bottom-16 z-30 border-t border-line-200 bg-paper-0/95 backdrop-blur-md"
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
-          <div className="mx-auto flex max-w-3xl items-center gap-2 px-4 py-3 sm:px-6">
+          <div className="mx-auto max-w-3xl px-4 py-3 sm:px-6">
             <button
               type="button"
               onClick={() => setComposerOpen(true)}
               disabled={busy}
               aria-label="Ask a question"
-              className="flex flex-1 items-center gap-3 rounded-full border border-line-200 bg-paper-50 px-4 py-3 text-left text-ink-500 shadow-sm transition-colors hover:border-ink-950 hover:text-ink-950 disabled:opacity-60"
+              className="flex w-full items-center rounded-full border border-line-200 bg-paper-50 px-5 py-3 text-left text-ink-500 transition-colors hover:border-ink-950 hover:text-ink-950 disabled:opacity-60"
             >
-              <Sparkles size={16} className="shrink-0 text-ink-950" />
-              <span className="truncate font-serif text-[15px]">
-                Ask anything — indicator, ministry, sector…
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setComposerOpen(true)}
-              disabled={busy}
-              aria-label="Open composer"
-              className="btn-primary inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full p-0"
-            >
-              <Mic size={18} />
+              <span className="truncate font-serif text-[15px]">Message</span>
             </button>
           </div>
         </div>
       )}
+
 
       {/* Composer sheet */}
       {composerOpen && (

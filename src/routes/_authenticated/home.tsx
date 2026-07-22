@@ -57,14 +57,16 @@ function HomePage() {
     return () => { cancelled = true; };
   }, [navigate]);
 
-  // Super admin has activated "View as country user" mode → render the
-  // country-admin welcome for the impersonated country.
+  // Super admin has activated "View as country user" → send them into the
+  // Country Console. Country users never see any agency-side chambers.
   if (status.isGlobalAdmin && viewAs) {
-    return (
-      <Shell>
-        <CountryAdminWelcome code={viewAs.country_code} name={countryName(viewAs.country_code)} />
-      </Shell>
-    );
+    return <Navigate to="/console/$code" params={{ code: viewAs.country_code }} replace />;
+  }
+
+  // Real country users (no global admin role) are routed to the Console.
+  if (!status.isGlobalAdmin && status.bindings.length >= 1) {
+    const target = status.bindings.find((b) => b.is_default)?.country_code ?? status.bindings[0].country_code;
+    return <Navigate to="/console/$code" params={{ code: target }} replace />;
   }
 
   return (

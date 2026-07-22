@@ -40,6 +40,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { useCountryAskThread, type AskTurn } from "@/hooks/useCountryAskThread";
+import { BrainMask } from "@/components/marketing/BrainMask";
 
 const searchSchema = z.object({ q: z.string().optional() });
 

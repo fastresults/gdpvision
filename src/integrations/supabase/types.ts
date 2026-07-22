@@ -845,8 +845,12 @@ export type Database = {
           citations: Json
           content_hash: string
           created_at: string
+          evidence_reason: string | null
+          evidence_state: string | null
           id: string
+          parent_answer_id: string | null
           question: string
+          research_sources: Json
           scenario_snapshot: Json | null
           scope_key: string
           spoken_block: string | null
@@ -858,8 +862,12 @@ export type Database = {
           citations?: Json
           content_hash: string
           created_at?: string
+          evidence_reason?: string | null
+          evidence_state?: string | null
           id?: string
+          parent_answer_id?: string | null
           question: string
+          research_sources?: Json
           scenario_snapshot?: Json | null
           scope_key: string
           spoken_block?: string | null
@@ -871,8 +879,12 @@ export type Database = {
           citations?: Json
           content_hash?: string
           created_at?: string
+          evidence_reason?: string | null
+          evidence_state?: string | null
           id?: string
+          parent_answer_id?: string | null
           question?: string
+          research_sources?: Json
           scenario_snapshot?: Json | null
           scope_key?: string
           spoken_block?: string | null
@@ -880,7 +892,15 @@ export type Database = {
           user_id?: string
           written_block?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "counsel_answers_parent_answer_id_fkey"
+            columns: ["parent_answer_id"]
+            isOneToOne: false
+            referencedRelation: "counsel_answers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       countries: {
         Row: {

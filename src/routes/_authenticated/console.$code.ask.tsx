@@ -13,6 +13,7 @@ import {
   Copy,
   Loader2,
   MoreHorizontal,
+  Search,
   RefreshCcw,
   Sparkles,
   Trash2,
@@ -20,7 +21,7 @@ import {
   Mic,
 } from "lucide-react";
 
-import { askCounsel, type CounselAnswer } from "@/lib/counsel.functions";
+import { askCounsel, askCounselDeepResearch, type CounselAnswer } from "@/lib/counsel.functions";
 import { VoiceMicButton } from "@/components/console/VoiceMicButton";
 import { useCountryAskThread, type AskTurn } from "@/hooks/useCountryAskThread";
 
@@ -41,7 +42,7 @@ function AskPage() {
   const { code } = Route.useParams();
   const { q } = Route.useSearch();
   const navigate = useNavigate();
-  const { turns, append, clear, remove } = useCountryAskThread(code);
+  const { turns, append, update, clear, remove } = useCountryAskThread(code);
 
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -58,7 +59,6 @@ function AskPage() {
 
   useEffect(() => {
     if (composerOpen) {
-      // Focus after animation frame so the sheet is mounted.
       requestAnimationFrame(() => composerRef.current?.focus());
     }
   }, [composerOpen]);
@@ -81,6 +81,9 @@ function AskPage() {
         written: res.written_block,
         citations: res.citations,
         createdAt: startedAt,
+        evidenceState: res.evidence_state,
+        evidenceReason: res.evidence_reason,
+        deepResearch: { status: "idle" },
       };
       append(turn);
       setInput("");
@@ -89,6 +92,45 @@ function AskPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function runDeepResearch(turn: AskTurn) {
+    if (turn.deepResearch?.status === "running") return;
+    update(turn.id, { deepResearch: { ...(turn.deepResearch ?? { status: "idle" }), status: "running", error: undefined } });
+    try {
+      const res: CounselAnswer = await askCounselDeepResearch({
+        data: { scopeKey: code, question: turn.question, parentAnswerId: turn.id },
+      });
+      update(turn.id, {
+        spoken: res.spoken_block,
+        written: res.written_block,
+        citations: res.citations,
+        evidenceState: res.evidence_state,
+        evidenceReason: res.evidence_reason,
+        deepResearch: {
+          status: "done",
+          sources: res.research_sources,
+          spoken: res.spoken_block,
+          written: res.written_block,
+          citations: res.citations,
+          ranAt: new Date().toISOString(),
+        },
+      });
+    } catch (e) {
+      update(turn.id, {
+        deepResearch: {
+          ...(turn.deepResearch ?? { status: "idle" }),
+          status: "error",
+          error: (e as Error).message,
+        },
+      });
+    }
+  }
+
+  function skipDeepResearch(turn: AskTurn) {
+    update(turn.id, {
+      deepResearch: { ...(turn.deepResearch ?? { status: "idle" }), status: "skipped" },
+    });
   }
 
   // Auto-run first question when arriving with ?q=…
@@ -219,6 +261,8 @@ function AskPage() {
             onSend={convertToSend}
             onRemove={() => remove(t.id)}
             onAskAgain={(q) => send(q)}
+            onDeepResearch={() => runDeepResearch(t)}
+            onSkipDeepResearch={() => skipDeepResearch(t)}
           />
         ))}
 
@@ -336,11 +380,15 @@ function TurnBlock({
   onSend,
   onRemove,
   onAskAgain,
+  onDeepResearch,
+  onSkipDeepResearch,
 }: {
   turn: AskTurn;
   onSend: (q: string) => void;
   onRemove: () => void;
   onAskAgain: (q: string) => void;
+  onDeepResearch: () => void;
+  onSkipDeepResearch: () => void;
 }) {
   const [showWritten, setShowWritten] = useState(false);
   const [showSources, setShowSources] = useState(false);
@@ -374,13 +422,33 @@ function TurnBlock({
       {/* Assistant */}
       <div className="border border-line-200 bg-paper-0">
         <div className="px-4 py-4 sm:px-5">
-          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
-            Second Brain
-          </p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+              Second Brain
+            </p>
+            {turn.deepResearch?.status === "done" && turn.deepResearch.ranAt && (
+              <span className="inline-flex items-center gap-1 border border-line-200 bg-paper-50 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.2em] text-ink-500">
+                <Sparkles size={10} /> Deep research
+              </span>
+            )}
+          </div>
           <p className="mt-2 whitespace-pre-wrap font-serif text-base leading-relaxed text-ink-950 sm:text-lg">
             {turn.spoken || "No spoken summary."}
           </p>
         </div>
+
+        {/* Insufficient evidence CTA */}
+        {turn.evidenceState === "insufficient" &&
+          turn.deepResearch?.status !== "done" &&
+          turn.deepResearch?.status !== "skipped" && (
+            <InsufficientEvidencePanel
+              reason={turn.evidenceReason}
+              status={turn.deepResearch?.status ?? "idle"}
+              error={turn.deepResearch?.error}
+              onRun={onDeepResearch}
+              onSkip={onSkipDeepResearch}
+            />
+          )}
 
         {turn.written && showWritten && (
           <div className="border-t border-line-200 bg-paper-50 px-4 py-4 sm:px-5">
@@ -393,22 +461,53 @@ function TurnBlock({
           </div>
         )}
 
-        {turn.citations.length > 0 && showSources && (
-          <div className="border-t border-line-200 px-4 py-4 sm:px-5">
-            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
-              Sources
-            </p>
-            <ol className="mt-2 space-y-1.5 text-sm text-ink-500">
-              {turn.citations.map((c, i) => (
-                <li key={c.id} className="leading-snug">
-                  <span className="mr-1 font-mono text-[10px] text-ink-500">[{i + 1}]</span>
-                  <span className="text-ink-950">{c.title}</span>
-                  <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.15em]">
-                    {c.kind} · {c.sector_code}
-                  </span>
-                </li>
-              ))}
-            </ol>
+        {showSources && (turn.citations.length > 0 || (turn.deepResearch?.sources?.length ?? 0) > 0) && (
+          <div className="border-t border-line-200 px-4 py-4 sm:px-5 space-y-4">
+            {turn.citations.length > 0 && (
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+                  Second Brain
+                </p>
+                <ol className="mt-2 space-y-1.5 text-sm text-ink-500">
+                  {turn.citations.map((c, i) => (
+                    <li key={c.id} className="leading-snug">
+                      <span className="mr-1 font-mono text-[10px] text-ink-500">[C{i + 1}]</span>
+                      <span className="text-ink-950">{c.title}</span>
+                      <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.15em]">
+                        {c.kind} · {c.sector_code}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+            {(turn.deepResearch?.sources?.length ?? 0) > 0 && (
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+                  Open-web research
+                </p>
+                <ol className="mt-2 space-y-1.5 text-sm text-ink-500">
+                  {turn.deepResearch!.sources!.map((s, i) => (
+                    <li key={`${s.url}-${i}`} className="leading-snug">
+                      <span className="mr-1 font-mono text-[10px] text-ink-500">[R{i + 1}]</span>
+                      <a
+                        href={s.url}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="text-ink-950 underline decoration-line-200 hover:decoration-ink-950"
+                      >
+                        {s.title}
+                      </a>
+                      {s.publisher && (
+                        <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.15em]">
+                          {s.publisher}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
           </div>
         )}
 
@@ -422,11 +521,11 @@ function TurnBlock({
               label={showWritten ? "Hide detail" : "Read more"}
             />
           )}
-          {turn.citations.length > 0 && (
+          {(turn.citations.length > 0 || (turn.deepResearch?.sources?.length ?? 0) > 0) && (
             <ToolbarButton
               onClick={() => setShowSources((v) => !v)}
               active={showSources}
-              label={`Sources · ${turn.citations.length}`}
+              label={`Sources · ${turn.citations.length + (turn.deepResearch?.sources?.length ?? 0)}`}
             />
           )}
           <ToolbarButton
@@ -496,5 +595,61 @@ function ToolbarButton({
       {icon}
       {label}
     </button>
+  );
+}
+
+function InsufficientEvidencePanel({
+  reason,
+  status,
+  error,
+  onRun,
+  onSkip,
+}: {
+  reason?: string;
+  status: "idle" | "running" | "done" | "error" | "skipped";
+  error?: string;
+  onRun: () => void;
+  onSkip: () => void;
+}) {
+  const running = status === "running";
+  return (
+    <div className="border-t border-line-200 bg-paper-50 px-4 py-4 sm:px-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="max-w-xl">
+          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+            Evidence gap
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-ink-950">
+            {reason ?? "The Second Brain doesn't have enough evidence to answer this confidently."}
+          </p>
+          <p className="mt-1 text-xs text-ink-500">
+            Run deep research to search the open web, capture sources into the Second Brain, and regenerate a grounded answer.
+          </p>
+          {status === "error" && error && (
+            <p className="mt-2 text-xs text-signal-red">Research failed: {error}</p>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+          <button
+            type="button"
+            onClick={onRun}
+            disabled={running}
+            className="btn-primary inline-flex min-h-[40px] items-center gap-2 px-4 text-[11px] font-mono uppercase tracking-[0.18em] disabled:opacity-60"
+          >
+            {running ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+            {running ? "Researching…" : status === "error" ? "Retry deep research" : "Run deep research"}
+          </button>
+          {!running && (
+            <button
+              type="button"
+              onClick={onSkip}
+              className="btn-ghost inline-flex min-h-[40px] items-center px-3 text-[11px] font-mono uppercase tracking-[0.18em]"
+            >
+              Not now
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

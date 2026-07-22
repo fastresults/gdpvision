@@ -3,7 +3,17 @@
 // visible conversation on the client.
 
 import { useCallback, useEffect, useState } from "react";
-import type { CounselCitation } from "@/lib/counsel.functions";
+import type { CounselCitation, CounselResearchSource } from "@/lib/counsel.functions";
+
+export interface AskDeepResearch {
+  status: "idle" | "running" | "done" | "error" | "skipped";
+  sources?: CounselResearchSource[];
+  spoken?: string;
+  written?: string;
+  citations?: CounselCitation[];
+  ranAt?: string;
+  error?: string;
+}
 
 export interface AskTurn {
   id: string;
@@ -13,6 +23,9 @@ export interface AskTurn {
   citations: CounselCitation[];
   createdAt: string;
   error?: string;
+  evidenceState?: "sufficient" | "insufficient";
+  evidenceReason?: string;
+  deepResearch?: AskDeepResearch;
 }
 
 function storageKey(countryCode: string) {
@@ -39,12 +52,10 @@ function readTurns(countryCode: string): AskTurn[] {
 export function useCountryAskThread(countryCode: string) {
   const [turns, setTurns] = useState<AskTurn[]>(() => readTurns(countryCode));
 
-  // Re-read when the country changes (e.g. impersonation switch).
   useEffect(() => {
     setTurns(readTurns(countryCode));
   }, [countryCode]);
 
-  // Persist on change.
   useEffect(() => {
     if (!isBrowser()) return;
     try {
@@ -58,11 +69,15 @@ export function useCountryAskThread(countryCode: string) {
     setTurns((prev) => [...prev, turn]);
   }, []);
 
+  const update = useCallback((id: string, patch: Partial<AskTurn>) => {
+    setTurns((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+  }, []);
+
   const clear = useCallback(() => setTurns([]), []);
 
   const remove = useCallback((id: string) => {
     setTurns((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  return { turns, append, clear, remove };
+  return { turns, append, update, clear, remove };
 }

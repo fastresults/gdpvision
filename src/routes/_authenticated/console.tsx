@@ -31,22 +31,20 @@ export const Route = createFileRoute("/_authenticated/console")({
 function ConsoleLayout() {
   const { data: status } = useSuspenseQuery(statusQuery);
   const params = useParams({ strict: false }) as { code?: string };
-  const { state: viewAs, clear } = useImpersonation();
+  const { state: viewAs, exit } = useImpersonation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   // Resolve which country this session is scoped to.
   const code =
     params.code ??
-    viewAs?.code ??
+    viewAs?.country_code ??
     status.bindings.find((b) => b.is_default)?.country_code ??
     status.bindings[0]?.country_code ??
     null;
 
-  const countryName =
-    status.bindings.find((b) => b.country_code === code)?.name ??
-    (viewAs?.code === code ? (viewAs?.name ?? null) : null);
+  const countryName = status.bindings.find((b) => b.country_code === code)?.name ?? null;
 
-  const flag = code ? flagUrl(code, "w80") : null;
+  const flag = code ? flagUrl(code, "w160") : null;
 
   const nav = code
     ? [

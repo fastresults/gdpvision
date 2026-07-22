@@ -60,5 +60,9 @@ export function useCountryAskThread(countryCode: string) {
 
   const clear = useCallback(() => setTurns([]), []);
 
-  return { turns, append, clear };
+  const remove = useCallback((id: string) => {
+    setTurns((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  return { turns, append, clear, remove };
 }

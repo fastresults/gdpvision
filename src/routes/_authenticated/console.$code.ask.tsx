@@ -547,9 +547,35 @@ function TurnBlock({
           )}
           {(turn.citations.length > 0 || (turn.deepResearch?.sources?.length ?? 0) > 0) && (
             <ToolbarButton
-              onClick={() => setShowSources((v) => !v)}
-              active={showSources}
+              onClick={() => setSourcesOpen(true)}
+              icon={<BookOpen size={12} />}
               label={`Sources · ${turn.citations.length + (turn.deepResearch?.sources?.length ?? 0)}`}
+            />
+          )}
+          {turn.expound?.status === "done" ? (
+            <ToolbarButton
+              onClick={() => setShowMemo((v) => !v)}
+              active={showMemo}
+              icon={<FileText size={12} />}
+              label={showMemo ? "Hide memo" : "Show memo"}
+            />
+          ) : (
+            <ToolbarButton
+              onClick={onExpound}
+              icon={
+                turn.expound?.status === "running" ? (
+                  <Loader2 size={12} className="animate-spin" />
+                ) : (
+                  <FileText size={12} />
+                )
+              }
+              label={
+                turn.expound?.status === "running"
+                  ? "Expounding…"
+                  : turn.expound?.status === "error"
+                    ? "Retry expound"
+                    : "Expound"
+              }
             />
           )}
           <ToolbarButton

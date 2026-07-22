@@ -41,7 +41,7 @@ function AskPage() {
   const { code } = Route.useParams();
   const { q } = Route.useSearch();
   const navigate = useNavigate();
-  const { turns, append, clear, remove } = useCountryAskThread(code);
+  const { turns, append, update, clear, remove } = useCountryAskThread(code);
 
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -58,7 +58,6 @@ function AskPage() {
 
   useEffect(() => {
     if (composerOpen) {
-      // Focus after animation frame so the sheet is mounted.
       requestAnimationFrame(() => composerRef.current?.focus());
     }
   }, [composerOpen]);
@@ -81,6 +80,9 @@ function AskPage() {
         written: res.written_block,
         citations: res.citations,
         createdAt: startedAt,
+        evidenceState: res.evidence_state,
+        evidenceReason: res.evidence_reason,
+        deepResearch: { status: "idle" },
       };
       append(turn);
       setInput("");
@@ -89,6 +91,45 @@ function AskPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function runDeepResearch(turn: AskTurn) {
+    if (turn.deepResearch?.status === "running") return;
+    update(turn.id, { deepResearch: { ...(turn.deepResearch ?? { status: "idle" }), status: "running", error: undefined } });
+    try {
+      const res: CounselAnswer = await askCounselDeepResearch({
+        data: { scopeKey: code, question: turn.question, parentAnswerId: turn.id },
+      });
+      update(turn.id, {
+        spoken: res.spoken_block,
+        written: res.written_block,
+        citations: res.citations,
+        evidenceState: res.evidence_state,
+        evidenceReason: res.evidence_reason,
+        deepResearch: {
+          status: "done",
+          sources: res.research_sources,
+          spoken: res.spoken_block,
+          written: res.written_block,
+          citations: res.citations,
+          ranAt: new Date().toISOString(),
+        },
+      });
+    } catch (e) {
+      update(turn.id, {
+        deepResearch: {
+          ...(turn.deepResearch ?? { status: "idle" }),
+          status: "error",
+          error: (e as Error).message,
+        },
+      });
+    }
+  }
+
+  function skipDeepResearch(turn: AskTurn) {
+    update(turn.id, {
+      deepResearch: { ...(turn.deepResearch ?? { status: "idle" }), status: "skipped" },
+    });
   }
 
   // Auto-run first question when arriving with ?q=…

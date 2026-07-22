@@ -1,74 +1,98 @@
-## Root cause — invisible button labels
+## Goal
 
-Buttons like "Start a request" render as black slabs with no visible text because `text-paper-50` is used **78 times across the codebase but never defined**. The design tokens only define `paper-0` and `paper-100` (see `src/styles.css` lines 69–70). Tailwind v4 silently drops the unknown class, the `<button>` inherits `color: var(--ink-950)` from the body, and the label becomes black text on the black `bg-ink-950` fill.
+Level up the Country Console into a genuinely AI-first, plain-language surface for ministers. Three moves:
 
-The same 78 files also use `bg-paper-50` and `hover:bg-paper-50` — both no-ops today, so hover states do nothing.
+1. Rename every internal "chamber" into a plain-language **Request type** the minister actually recognises.
+2. Track and surface **time-in-flight** (days + hours) from submission to delivery, on every request and on the dashboard.
+3. Turn the Study page into a real **dashboard** with attention, in-flight, and delivered lanes — organised by ministry and by request type, in the minister's words.
 
-The `hover:opacity-90` on primary buttons is a second, smaller issue: 90% of black is still black, so the hover state is visually imperceptible.
+Nothing on the agency side changes semantically; the seven internal disciplines still exist behind the scenes.
 
-## The fix — one contract, enforced
+## 1. Plain-language request types (the "seven features")
 
-### 1. Close the token gap in `src/styles.css`
+Rewrite `src/lib/concierge/minister-lexicon.ts` so each internal chamber maps to a single, obvious minister-facing label. This label is the ONLY thing the minister ever sees.
 
-Add the missing token so every existing class resolves correctly, and add a small palette of interaction tokens buttons need:
+| Internal (agency) | Minister-facing label | One-liner |
+| --- | --- | --- |
+| ledger | **Economic brief** | "Where the economy stands right now." |
+| scenario | **Decision brief** | "Model a decision I'm weighing and recommend." |
+| fdi | **Sector deep-dive** | "A full look at one sector." |
+| narrative | **Press & strategic comms** | "Draft a statement, remarks, or op-ed." |
+| cabinet | **Cabinet paper** | "A short paper for the next cabinet session." |
+| persona | **Research study** | "Study what people think about an issue." |
+| portfolio | **Programme review** | "Review or coordinate across ministries." |
 
-```
---paper-50: #f7f7f2;             /* between paper-0 and paper-100 */
---ink-hover: #1e3350;            /* one step off ink-950 for hover */
---gold-hover: #a37826;           /* one step off gold-500 for hover */
-```
+Also add: `Something else` (free-form → agency triages to the right internal team).
 
-Register them in `@theme inline` as `--color-paper-50`, `--color-ink-hover`, `--color-gold-hover`. This alone makes every `text-paper-50` / `bg-paper-50` / `hover:bg-paper-50` in the tree resolve without touching component code.
+Wire this into:
+- Wizard Step 2 (`console.$code.request.new.tsx`) — the picker becomes 7 clearly-labelled cards + "Something else", each with one example.
+- Dashboard lane headers, request-list chips, and request-reader subtitle.
+- `MINISTER_VOICE_SYSTEM` and `BANNED_TERMS` — extend banned list with "lane", "internal team names", and any older chamber terminology.
 
-### 2. Canonical button utilities (the global contract)
+## 2. Time-in-flight tracking (days + hours, always visible)
 
-Add three `@utility` classes in `src/styles.css`. Every clickable primary/secondary/ghost surface in the app must use one of these — never re-invent `bg-ink-950 text-paper-50 hover:opacity-90` inline again:
+Data already exists: `service_requests.submitted_at`, `delivered_at`, `accepted_at`. No schema change needed.
 
-```
-@utility btn-primary    /* bg-ink-950, text-paper-0, hover:bg-ink-hover, focus ring gold */
-@utility btn-secondary  /* bg-paper-0, text-ink-950, border line-200, hover:bg-paper-50 */
-@utility btn-ghost      /* transparent, text-ink-500, hover:text-ink-950 hover:bg-paper-50 */
-@utility btn-accent     /* bg-gold-500, text-paper-0, hover:bg-gold-hover */
-```
+Add a shared util `src/lib/concierge/elapsed.ts`:
+- `elapsedLabel(from, to?)` → returns `"2d 4h"`, `"6h 12m"`, or `"just now"`.
+- `elapsedTone(status, from)` → `fresh | steady | overdue` based on days elapsed and status (overdue after 3 working days without delivery).
+- `turnaroundLabel(submitted, delivered)` → for closed requests: `"delivered in 1d 8h"`.
 
-Each utility owns text color, background, border, hover, focus-visible, and disabled state. Buttons stop carrying those concerns inline.
+Surface it in:
+- **Request list row**: a right-aligned time chip. In-flight → `"In flight · 1d 6h"`. Delivered → `"Delivered in 2d 3h"`. Closed → `"Closed · 4d ago"`.
+- **Request reader header**: a small timeline strip `Sent Mon 9:12 → With our team 2h later → Ready in 1d 8h`.
+- **Dashboard**: each lane shows an "average turnaround" pill computed from the last 10 delivered requests.
 
-### 3. Enforce via lint
+Overdue tone uses `--signal-caution`; delivered uses `--signal-positive`. No new colour tokens.
 
-Add ESLint rules (`no-restricted-syntax` on JSX className strings, similar to the existing `PrettyJson` guard):
-- Ban raw `text-white`, `bg-black`, `text-black`, `bg-white` in components.
-- Ban the anti-pattern `hover:opacity-` on any element that also has `bg-ink-` or `bg-gold-` (real hover uses a color, not opacity).
-- Warn on inline `bg-ink-950 text-paper-` combos on `<button>`/`<a>` — those must use `btn-primary`.
+## 3. The Study — a real minister dashboard
 
-Also add a one-time `bunx tsgo --noEmit`-adjacent check script `scripts/check-tokens.ts` that greps for Tailwind color classes referencing tokens not present in `@theme inline` (e.g. catches the next `paper-50`-style typo before it ships).
+Rework `console.$code.index.tsx` into three attention layers, top to bottom:
 
-### 4. Save as project memory
+**A. Attention band (top, sticky at scroll)**
+- "Ready for you" count → jumps to filtered list.
+- "In flight" count with oldest age (e.g. `3 in flight · oldest 2d 6h`).
+- "Overdue" count if any (only shown when >0, in caution tone).
 
-Write two `mem://` entries so I stop re-introducing this:
-- `mem://design/button-contract` — every button uses `btn-primary` / `btn-secondary` / `btn-ghost` / `btn-accent`; never `bg-ink-* text-paper-* hover:opacity-*` inline.
-- Update `mem://index.md` **Core** with a one-liner: "Buttons use `btn-*` utilities from styles.css; never inline `bg-ink-* text-paper-* hover:opacity-*`. Only tokens declared in `@theme inline` exist (paper-0/50/100, ink-300..950, gold-500, gold-hover, ink-hover, signal-*, sector-01..12)."
+**B. In-flight lanes (middle)**
+- Grouped by **request type** (the 7 plain-language labels), not chamber IDs.
+- Each lane: header with type name, one-liner, average turnaround pill, and the requests in that lane as compact cards showing title, ministry, elapsed chip, current minister-facing status.
+- Empty lanes collapse into a single "Start an economic brief / decision brief / …" row of prompts.
 
-### 5. Migrate the current offenders
+**C. Delivered library (bottom)**
+- Last 20 delivered/accepted items, grouped by ministry (matches how ministers actually recall past work). Each row shows turnaround label so ministers see we're fast.
 
-Replace inline button styling in the files the screenshot exposed:
-- `src/routes/_authenticated/console.tsx` (nav "Start a request", "Exit" button, "Sign out")
-- `src/routes/_authenticated/console.$code.index.tsx` (hero "Start a request", starting-prompt chips)
-- `src/routes/_authenticated/console.$code.request.new.tsx` (Continue / Send / outcome + ministry cards / stepper active state / timing chips)
-- `src/routes/_authenticated/console.$code.requests.index.tsx` (top "Start a request")
+Hero action ("Start a request") stays; add a second secondary action "See everything in flight" that deep-links to the requests list pre-filtered to in-flight.
 
-Selected cards (outcome/ministry/timing) still use `bg-ink-950 text-paper-0` inline because they're not buttons semantically — but now `text-paper-0` (a real token) instead of the phantom `text-paper-50`.
+## 4. AI-first refinements in the wizard
 
-### 6. Verify
+Small but meaningful:
+- Step 1 stays free-text. After the minister types, an AI classify call (already present in `concierge-ai.functions.ts`) returns a suggested **plain-language request type + one-line rewrite of the ask**. The wizard pre-selects that type in Step 2 with a "We think this is a … · change" affordance — never forces it.
+- Step 3 "what form" defaults to the shape implied by the type but stays user-editable.
+- Step 4 "when" now shows an expected-response estimate in plain language ("Our team usually returns an economic brief in 1–2 working days") pulled from the lane's rolling average, or a sensible default per type when we have no history.
+- Confirmation screen restates the whole request in the minister's own words + expected return window in days & hours.
 
-Run `tsgo --noEmit`, then a Playwright element-screenshot of the console hero button and the wizard's Continue button to confirm the label is visible and the hover state actually changes color.
+## 5. Agency-side (internal) — kept out of the minister's view
 
-## What this rules out going forward
+No visible change for the minister, but on the agency console:
+- Show both the plain-language label AND the internal discipline (e.g. `Decision brief · scenario`), so agency staff still route correctly.
+- Add elapsed + overdue badges to the agency queue too, using the same util.
+- All agency-authored fields destined for the minister keep running through `enforceMinisterLexicon` — extend the scrubber for any new banned terms introduced here.
 
-- Silent invisible text from typo'd color tokens (script + lint catch it).
-- Black-on-black or white-on-white buttons (banned literal utilities).
-- Imperceptible hover on dark buttons (`hover:opacity-*` on tinted backgrounds is banned; hover uses a real color).
-- Divergent button styling across chambers/console/marketing — one utility, one look.
+## Files touched
 
-## Scope note
+- `src/lib/concierge/minister-lexicon.ts` — new labels, banned-term additions, examples per type.
+- `src/lib/concierge/elapsed.ts` — NEW time util.
+- `src/routes/_authenticated/console.$code.index.tsx` — Attention band + type-grouped lanes + delivered library.
+- `src/routes/_authenticated/console.$code.request.new.tsx` — new type cards, AI pre-selection, expected-return copy.
+- `src/routes/_authenticated/console.$code.requests.index.tsx` — elapsed chip on each row + in-flight filter.
+- `src/routes/_authenticated/console.$code.requests.$id.tsx` — timeline strip.
+- `src/lib/console/console.functions.ts` — return average-turnaround per type + attention counters.
+- Agency console pages — add elapsed badge (read-only surface change).
 
-This is a styling/tokens contract change only. No behavior, routing, data, or copy changes.
+## Guardrails carried through
+
+- Ministers still never see chamber names or internal system vocabulary.
+- All time values are computed on the server and returned as ISO strings; formatting happens once in `elapsed.ts`.
+- Uses the existing `btn-*` / `card-choice` utilities per the Button Contract — no new inline colour combos.
+- No schema migration required; all fields already exist on `service_requests`.

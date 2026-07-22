@@ -8,6 +8,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import {
   ArrowUpRight,
+  BookOpen,
   ChevronDown,
   ChevronUp,
   Copy,
@@ -19,10 +20,24 @@ import {
   Trash2,
   X,
   Mic,
+  FileText,
+  ExternalLink,
 } from "lucide-react";
 
-import { askCounsel, askCounselDeepResearch, type CounselAnswer } from "@/lib/counsel.functions";
+import {
+  askCounsel,
+  askCounselDeepResearch,
+  expoundCounsel,
+  type CounselAnswer,
+} from "@/lib/counsel.functions";
 import { VoiceMicButton } from "@/components/console/VoiceMicButton";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { useCountryAskThread, type AskTurn } from "@/hooks/useCountryAskThread";
 
 const searchSchema = z.object({ q: z.string().optional() });

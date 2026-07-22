@@ -292,9 +292,9 @@ function AskPage() {
       {/* Body */}
       <div className="flex-1 space-y-6">
         {turns.length === 0 && !busy && (
-          <div className="flex min-h-[80vh] flex-col items-center gap-4 pt-8 text-center">
-            <div className="relative h-[32rem] w-[32rem] sm:h-[40rem] sm:w-[40rem]">
-              <BrainMask size={640} />
+          <div className="flex flex-col items-center gap-6 pt-4 text-center">
+            <div className="relative h-[24rem] w-[24rem] sm:h-[32rem] sm:w-[32rem]">
+              <BrainMask size={512} />
               {flag && (
                 <img
                   src={flag}
@@ -303,7 +303,7 @@ function AskPage() {
                 />
               )}
             </div>
-            <p className="mt-auto max-w-[20rem] text-sm leading-relaxed text-ink-500">
+            <p className="max-w-[20rem] text-sm leading-relaxed text-ink-500">
               Ask a question about this country to get a quick, cited answer.
             </p>
           </div>

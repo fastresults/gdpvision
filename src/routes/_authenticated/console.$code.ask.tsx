@@ -260,6 +260,8 @@ function AskPage() {
             onSend={convertToSend}
             onRemove={() => remove(t.id)}
             onAskAgain={(q) => send(q)}
+            onDeepResearch={() => runDeepResearch(t)}
+            onSkipDeepResearch={() => skipDeepResearch(t)}
           />
         ))}
 

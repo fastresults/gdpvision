@@ -1,11 +1,13 @@
-// The Study — country user's home. Everything they need, no chambers.
+// The Study — country user's dashboard. Plain-language lanes, elapsed-time
+// tracking on every card, no chamber vocabulary anywhere.
 
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { ArrowUpRight, CalendarDays, FileText, Inbox, Sparkles } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Clock, FileText, Inbox, Sparkles, AlertTriangle } from "lucide-react";
 
-import { getConsoleStudy } from "@/lib/console/console.functions";
+import { getConsoleStudy, type ConsoleRequest } from "@/lib/console/console.functions";
 import { STATUS_LABEL } from "@/lib/concierge/minister-lexicon";
+import { elapsedLabel, elapsedTone, turnaroundLabel } from "@/lib/concierge/elapsed";
 
 const studyQuery = (code: string) =>
   queryOptions({
@@ -28,19 +30,39 @@ export const Route = createFileRoute("/_authenticated/console/$code/")({
   component: StudyPage,
 });
 
+function ElapsedChip({ r }: { r: ConsoleRequest }) {
+  const done = ["delivered", "accepted", "closed"].includes(r.status);
+  if (done) {
+    const t = turnaroundLabel(r.submitted_at, r.delivered_at ?? r.accepted_at);
+    return (
+      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--signal-positive)]">
+        {t ?? `Closed · ${elapsedLabel(r.submitted_at)} ago`}
+      </span>
+    );
+  }
+  const tone = elapsedTone(r.status, r.submitted_at);
+  const color =
+    tone === "overdue"
+      ? "text-[var(--signal-caution)]"
+      : tone === "steady"
+        ? "text-ink-950"
+        : "text-ink-500";
+  return (
+    <span className={`font-mono text-[10px] uppercase tracking-[0.18em] ${color}`}>
+      In flight · {elapsedLabel(r.submitted_at)}
+    </span>
+  );
+}
+
 function StudyPage() {
   const { code } = Route.useParams();
   const { data } = useSuspenseQuery(studyQuery(code));
 
-  const inFlight = data.requests.filter(
-    (r) => !["delivered", "accepted", "closed"].includes(r.status),
-  );
-  const done = data.requests.filter((r) =>
-    ["delivered", "accepted", "closed"].includes(r.status),
-  );
+  const activeLanes = data.lanes.filter((l) => l.in_flight.length > 0);
+  const emptyLanes = data.lanes.filter((l) => l.in_flight.length === 0);
 
   return (
-    <div className="space-y-16">
+    <div className="space-y-14">
       {/* Masthead */}
       <section>
         <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-ink-500">
@@ -54,16 +76,62 @@ function StudyPage() {
         <h1 className="mt-3 font-serif text-5xl leading-tight text-ink-950">
           Good day{data.country.name ? `, ${data.country.name}` : ""}.
         </h1>
-        <p className="mt-4 max-w-2xl text-lg text-ink-500">
-          {inFlight.length === 0 && data.waiting.length === 0
-            ? "Nothing on your desk right now. When you have a question or need something drafted, our team is on call."
-            : (() => {
-                const parts: string[] = [];
-                if (inFlight.length) parts.push(`${inFlight.length} request${inFlight.length === 1 ? "" : "s"} in progress`);
-                if (data.waiting.length) parts.push(`${data.waiting.length} waiting for you`);
-                return parts.join(" · ");
-              })()}
-        </p>
+      </section>
+
+      {/* Attention band */}
+      <section className="grid gap-3 sm:grid-cols-3">
+        <Link
+          to="/console/$code/requests"
+          params={{ code }}
+          className="group border border-line-200 bg-paper-0 p-5 hover:border-ink-950"
+        >
+          <div className="flex items-center gap-2 text-[var(--gold-500)]">
+            <Inbox size={14} />
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em]">Ready for you</span>
+          </div>
+          <p className="mt-2 font-serif text-3xl text-ink-950">{data.attention.ready_for_you}</p>
+          <p className="mt-1 text-sm text-ink-500">
+            {data.attention.ready_for_you === 0 ? "Nothing waiting." : "Delivered and awaiting your read."}
+          </p>
+        </Link>
+        <Link
+          to="/console/$code/requests"
+          params={{ code }}
+          className="group border border-line-200 bg-paper-0 p-5 hover:border-ink-950"
+        >
+          <div className="flex items-center gap-2 text-ink-950">
+            <Clock size={14} />
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em]">In flight</span>
+          </div>
+          <p className="mt-2 font-serif text-3xl text-ink-950">{data.attention.in_flight}</p>
+          <p className="mt-1 text-sm text-ink-500">
+            {data.attention.oldest_in_flight_at
+              ? `Oldest ${elapsedLabel(data.attention.oldest_in_flight_at)}.`
+              : "Nothing in progress."}
+          </p>
+        </Link>
+        <div
+          className={`border p-5 ${
+            data.attention.overdue > 0
+              ? "border-[var(--signal-caution)] bg-paper-0"
+              : "border-line-200 bg-paper-0"
+          }`}
+        >
+          <div
+            className={`flex items-center gap-2 ${
+              data.attention.overdue > 0 ? "text-[var(--signal-caution)]" : "text-ink-500"
+            }`}
+          >
+            <AlertTriangle size={14} />
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em]">Overdue</span>
+          </div>
+          <p className="mt-2 font-serif text-3xl text-ink-950">{data.attention.overdue}</p>
+          <p className="mt-1 text-sm text-ink-500">
+            {data.attention.overdue > 0
+              ? "Older than three days. Our team has been flagged."
+              : "Every request is within window."}
+          </p>
+        </div>
       </section>
 
       {/* Ask panel */}
@@ -78,38 +146,27 @@ function StudyPage() {
               What do you need today?
             </h2>
             <p className="mt-3 max-w-lg text-ink-500">
-              Describe it in your own words — an ask, a decision you're weighing, remarks you need
-              drafted. Our team will handle it and bring it back to you.
+              Say it in your own words — an economic brief, a decision to weigh, remarks to draft,
+              a study of what people think. Our team will handle it and bring it back to you.
             </p>
           </div>
-          <Link
-            to="/console/$code/request/new"
-            params={{ code }}
-            className="btn-primary px-6 py-3 text-sm uppercase tracking-[0.15em]"
-          >
-            <Sparkles size={16} /> Start a request
-          </Link>
+          <div className="flex flex-col items-start gap-3 md:items-end">
+            <Link
+              to="/console/$code/request/new"
+              params={{ code }}
+              className="btn-primary px-6 py-3 text-sm uppercase tracking-[0.15em]"
+            >
+              <Sparkles size={16} /> Start a request
+            </Link>
+            <Link
+              to="/console/$code/requests"
+              params={{ code }}
+              className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
+            >
+              See everything in flight →
+            </Link>
+          </div>
         </div>
-        {data.ministries.length > 0 && (
-          <div className="border-t border-line-200 bg-paper-50 px-10 py-4">
-            <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-              Starting prompts
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {data.ministries.slice(0, 4).map((m) => (
-                <Link
-                  key={m.id}
-                  to="/console/$code/request/new"
-                  params={{ code }}
-                  search={{ seed: `A brief on where ${m.name} stands right now` } as never}
-                  className="rounded-full border border-line-200 bg-paper-0 px-4 py-2 text-xs text-ink-500 hover:border-ink-950 hover:text-ink-950"
-                >
-                  A brief on {m.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
       </section>
 
       {/* Waiting for you */}
@@ -148,7 +205,7 @@ function StudyPage() {
         </section>
       )}
 
-      {/* In flight */}
+      {/* In-flight lanes by request type */}
       <section>
         <div className="mb-4 flex items-baseline justify-between">
           <h2 className="font-serif text-2xl text-ink-950">In flight</h2>
@@ -160,37 +217,73 @@ function StudyPage() {
             All requests →
           </Link>
         </div>
-        {inFlight.length === 0 ? (
+
+        {activeLanes.length === 0 ? (
           <p className="border border-dashed border-line-200 p-8 text-center text-sm text-ink-500">
             Nothing in progress. Start a request whenever you're ready.
           </p>
         ) : (
-          <ul className="divide-y divide-line-200 border border-line-200 bg-paper-0">
-            {inFlight.slice(0, 6).map((r) => {
-              const label = STATUS_LABEL[r.status]?.minister ?? "Received";
-              return (
-                <li key={r.id}>
-                  <Link
-                    to="/console/$code/requests/$id"
-                    params={{ code, id: r.id }}
-                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-6 p-5 hover:bg-paper-50"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-serif text-base text-ink-950">{r.question}</p>
-                      <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                        Sent {new Date(r.submitted_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <span className="shrink-0 border border-line-200 px-3 py-1 text-[11px] uppercase tracking-[0.15em] text-ink-500">
-                      {label}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          <div className="space-y-6">
+            {activeLanes.map((lane) => (
+              <div key={lane.chamber} className="border border-line-200 bg-paper-0">
+                <header className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 border-b border-line-200 px-5 py-4">
+                  <div className="min-w-0">
+                    <h3 className="font-serif text-xl text-ink-950">{lane.label}</h3>
+                    <p className="mt-0.5 text-sm text-ink-500">{lane.oneLiner}</p>
+                  </div>
+                  <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                    {lane.turnaroundLabel}
+                  </span>
+                </header>
+                <ul className="divide-y divide-line-200">
+                  {lane.in_flight.map((r) => (
+                    <li key={r.id}>
+                      <Link
+                        to="/console/$code/requests/$id"
+                        params={{ code, id: r.id }}
+                        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-6 px-5 py-4 hover:bg-paper-50"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-serif text-base text-ink-950">{r.question}</p>
+                          <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+                            {r.ministry && <span>{r.ministry}</span>}
+                            <span>{STATUS_LABEL[r.status]?.minister ?? "Received"}</span>
+                          </p>
+                        </div>
+                        <ElapsedChip r={r} />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         )}
       </section>
+
+      {/* Empty lanes → prompts */}
+      {emptyLanes.length > 0 && (
+        <section>
+          <h2 className="mb-4 font-serif text-2xl text-ink-950">Start something new</h2>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {emptyLanes.map((lane) => (
+              <Link
+                key={lane.chamber}
+                to="/console/$code/request/new"
+                params={{ code }}
+                search={{ seed: `A ${lane.label.toLowerCase()} on ` } as never}
+                className="group border border-line-200 bg-paper-0 p-4 hover:border-ink-950"
+              >
+                <p className="font-serif text-base text-ink-950">{lane.label}</p>
+                <p className="mt-1 text-sm text-ink-500">{lane.oneLiner}</p>
+                <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 group-hover:text-ink-950">
+                  {lane.turnaroundLabel} →
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Ministries + Cabinet */}
       <section className="grid gap-8 md:grid-cols-2">
@@ -244,11 +337,12 @@ function StudyPage() {
         </div>
       </section>
 
-      {done.length > 0 && (
+      {/* Recently delivered */}
+      {data.delivered_recent.length > 0 && (
         <section>
           <h2 className="mb-4 font-serif text-2xl text-ink-950">Recently delivered</h2>
           <ul className="grid gap-3 md:grid-cols-2">
-            {done.slice(0, 4).map((r) => (
+            {data.delivered_recent.slice(0, 6).map((r) => (
               <li key={r.id}>
                 <Link
                   to="/console/$code/requests/$id"
@@ -258,11 +352,15 @@ function StudyPage() {
                   <div className="flex items-center gap-2 text-ink-500">
                     <FileText size={14} />
                     <span className="font-mono text-[10px] uppercase tracking-[0.2em]">
-                      {STATUS_LABEL[r.status]?.minister ?? r.status}
+                      {r.minister_label}
                     </span>
                   </div>
                   <p className="mt-2 line-clamp-2 font-serif text-base text-ink-950">
                     {r.question}
+                  </p>
+                  <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--signal-positive)]">
+                    {turnaroundLabel(r.submitted_at, r.delivered_at ?? r.accepted_at) ??
+                      `Closed · ${elapsedLabel(r.submitted_at)} ago`}
                   </p>
                 </Link>
               </li>

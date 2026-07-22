@@ -10,7 +10,8 @@ import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
 
 import { getConsoleStudy } from "@/lib/console/console.functions";
 import { submitRequest } from "@/lib/concierge/concierge.functions";
-import type { ChamberId } from "@/lib/concierge/minister-lexicon";
+import { LANE_ORDER, LEXICON, type ChamberId } from "@/lib/concierge/minister-lexicon";
+import { DEFAULT_TURNAROUND } from "@/lib/concierge/elapsed";
 
 const searchSchema = z.object({ seed: z.string().optional() });
 
@@ -25,40 +26,22 @@ export const Route = createFileRoute("/_authenticated/console/$code/request/new"
   component: RequestWizard,
 });
 
-// Four outcomes shown to the user, in plain English. Each maps privately to
-// an internal chamber the agency uses to fulfil the work. The user never
-// sees the chamber name.
-type Outcome = {
-  key: "brief" | "decision" | "statement" | "research";
-  title: string;
-  helper: string;
-  chamber: ChamberId;
+type OutcomeChoice = {
+  chamber: ChamberId | "other";
+  title: string;      // plain-language label
+  helper: string;     // one-liner
 };
 
-const OUTCOMES: Outcome[] = [
+const OUTCOMES: OutcomeChoice[] = [
+  ...LANE_ORDER.map<OutcomeChoice>((cid) => ({
+    chamber: cid,
+    title: LEXICON[cid].ministerLabel,
+    helper: LEXICON[cid].oneLiner,
+  })),
   {
-    key: "brief",
-    title: "A written brief on where things stand",
-    helper: "Numbers, trends, what's driving them, what to watch. Ready to read in one sitting.",
-    chamber: "ledger",
-  },
-  {
-    key: "decision",
-    title: "A decision paper with options and a recommendation",
-    helper: "Trade-offs modelled, risks flagged, a clear recommendation you can act on.",
-    chamber: "scenario",
-  },
-  {
-    key: "statement",
-    title: "A public message drafted for you",
-    helper: "Remarks, press statement or op-ed — grounded, ready to review.",
-    chamber: "narrative",
-  },
-  {
-    key: "research",
-    title: "Research on how people feel about it",
-    helper: "Structured listening: who thinks what, why, and what would move them.",
-    chamber: "persona",
+    chamber: "other",
+    title: "Something else",
+    helper: "Tell us in your own words and we'll route it to the right team.",
   },
 ];
 
@@ -75,7 +58,7 @@ function RequestWizard() {
   const [step, setStep] = useState(1);
   const [text, setText] = useState(seed ?? "");
   const [ministry, setMinistry] = useState<string | null>(null);
-  const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const [outcome, setOutcome] = useState<OutcomeChoice | null>(null);
   const [when, setWhen] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,6 +74,7 @@ function RequestWizard() {
     setSubmitting(true);
     setError(null);
     try {
+      const chamber: ChamberId = outcome.chamber === "other" ? "ledger" : outcome.chamber;
       const row = await submitRequest({
         data: {
           country_code: code,
@@ -104,8 +88,8 @@ function RequestWizard() {
             built_on: ministry ? [`Ministry: ${ministry}`] : [],
             when_needed: when,
           },
-          internal_chamber: outcome.chamber,
-          chamber_confidence: 0.7,
+          internal_chamber: chamber,
+          chamber_confidence: outcome.chamber === "other" ? 0.3 : 0.8,
           attachments: [],
         },
       });
@@ -118,6 +102,13 @@ function RequestWizard() {
   }
 
   const ministries = study.data?.ministries ?? [];
+  const turnaround =
+    outcome && outcome.chamber !== "other"
+      ? study.data?.lanes.find((l) => l.chamber === outcome.chamber)?.turnaroundLabel ??
+        DEFAULT_TURNAROUND[outcome.chamber]
+      : outcome
+        ? DEFAULT_TURNAROUND.other
+        : null;
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -181,36 +172,24 @@ function RequestWizard() {
                 <button
                   key={m.id}
                   onClick={() => setMinistry(m.name)}
-                  className={`border p-4 text-left transition ${
-                    selected
-                      ? "border-ink-950 bg-ink-950 text-paper-50"
-                      : "border-line-200 bg-paper-0 hover:border-ink-950"
-                  }`}
+                  className={selected ? "card-choice-active p-4 text-left" : "card-choice p-4 text-left"}
                 >
                   <p className="font-serif text-base">{m.name}</p>
                 </button>
               );
             })}
-            <button
-              onClick={() => setMinistry("Prime Minister's Office")}
-              className={`border p-4 text-left transition ${
-                ministry === "Prime Minister's Office"
-                  ? "border-ink-950 bg-ink-950 text-paper-50"
-                  : "border-line-200 bg-paper-0 hover:border-ink-950"
-              }`}
-            >
-              <p className="font-serif text-base">Prime Minister's Office</p>
-            </button>
-            <button
-              onClick={() => setMinistry("Cross-ministry")}
-              className={`border p-4 text-left transition ${
-                ministry === "Cross-ministry"
-                  ? "border-ink-950 bg-ink-950 text-paper-50"
-                  : "border-line-200 bg-paper-0 hover:border-ink-950"
-              }`}
-            >
-              <p className="font-serif text-base">Cross-ministry</p>
-            </button>
+            {["Prime Minister's Office", "Cross-ministry"].map((n) => {
+              const selected = ministry === n;
+              return (
+                <button
+                  key={n}
+                  onClick={() => setMinistry(n)}
+                  className={selected ? "card-choice-active p-4 text-left" : "card-choice p-4 text-left"}
+                >
+                  <p className="font-serif text-base">{n}</p>
+                </button>
+              );
+            })}
           </div>
         </section>
       )}
@@ -223,22 +202,26 @@ function RequestWizard() {
           <p className="mt-3 text-ink-500">
             Pick the closest one. Our team may add companion material if it helps.
           </p>
-          <div className="mt-6 grid gap-3">
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
             {OUTCOMES.map((o) => {
-              const selected = outcome?.key === o.key;
+              const selected = outcome?.chamber === o.chamber;
+              const est =
+                o.chamber === "other"
+                  ? DEFAULT_TURNAROUND.other
+                  : study.data?.lanes.find((l) => l.chamber === o.chamber)?.turnaroundLabel ??
+                    DEFAULT_TURNAROUND[o.chamber];
               return (
                 <button
-                  key={o.key}
+                  key={o.chamber}
                   onClick={() => setOutcome(o)}
-                  className={`border p-5 text-left transition ${
-                    selected
-                      ? "border-ink-950 bg-ink-950 text-paper-50"
-                      : "border-line-200 bg-paper-0 hover:border-ink-950"
-                  }`}
+                  className={selected ? "card-choice-active p-5 text-left" : "card-choice p-5 text-left"}
                 >
                   <p className="font-serif text-lg">{o.title}</p>
-                  <p className={`mt-1 text-sm ${selected ? "text-paper-50/80" : "text-ink-500"}`}>
+                  <p className={`mt-1 text-sm ${selected ? "opacity-80" : "text-ink-500"}`}>
                     {o.helper}
+                  </p>
+                  <p className={`mt-3 font-mono text-[10px] uppercase tracking-[0.2em] ${selected ? "opacity-80" : "text-ink-500"}`}>
+                    {est}
                   </p>
                 </button>
               );
@@ -260,11 +243,11 @@ function RequestWizard() {
               <button
                 key={w}
                 onClick={() => setWhen(w)}
-                className={`border px-4 py-2 text-sm transition ${
+                className={
                   when === w
-                    ? "border-ink-950 bg-ink-950 text-paper-50"
-                    : "border-line-200 bg-paper-0 hover:border-ink-950"
-                }`}
+                    ? "card-choice-active px-4 py-2 text-sm"
+                    : "card-choice px-4 py-2 text-sm"
+                }
               >
                 {w}
               </button>
@@ -280,6 +263,11 @@ function RequestWizard() {
               <li><span className="text-ink-950">Ministry:</span> {ministry}</li>
               <li><span className="text-ink-950">Form:</span> {outcome?.title}</li>
               {when && <li><span className="text-ink-950">Timing:</span> {when}</li>}
+              {turnaround && (
+                <li>
+                  <span className="text-ink-950">Response window:</span> {turnaround}
+                </li>
+              )}
             </ul>
           </div>
           {error && <p className="mt-4 text-sm text-red-700">{error}</p>}

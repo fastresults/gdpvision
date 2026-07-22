@@ -84,6 +84,8 @@ import { Route as AuthenticatedInstrumentCabinetDecisionsRouteImport } from './r
 import { Route as AuthenticatedAdminCountryCodeRouteImport } from './routes/_authenticated/admin/country.$code'
 import { Route as AuthenticatedAdminAuditsLogRouteImport } from './routes/_authenticated/admin/audits.log'
 import { Route as AuthenticatedAdminAuditsKeyingRouteImport } from './routes/_authenticated/admin/audits.keying'
+import { Route as AuthenticatedConsoleCodeRequestsIndexRouteImport } from './routes/_authenticated/console.$code.requests.index'
+import { Route as AuthenticatedConsoleCodeRequestsIdRouteImport } from './routes/_authenticated/console.$code.requests.$id'
 import { Route as AuthenticatedConsoleCodeRequestNewRouteImport } from './routes/_authenticated/console.$code.request.new'
 import { Route as AuthenticatedAdminCountriesCodeVizRouteImport } from './routes/_authenticated/admin/countries.$code.viz'
 import { Route as AuthenticatedAdminCountriesCodeStudioRouteImport } from './routes/_authenticated/admin/countries.$code.studio'
@@ -547,6 +549,18 @@ const AuthenticatedAdminAuditsKeyingRoute =
     path: '/audits/keying',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedConsoleCodeRequestsIndexRoute =
+  AuthenticatedConsoleCodeRequestsIndexRouteImport.update({
+    id: '/$code/requests/',
+    path: '/$code/requests/',
+    getParentRoute: () => AuthenticatedConsoleRoute,
+  } as any)
+const AuthenticatedConsoleCodeRequestsIdRoute =
+  AuthenticatedConsoleCodeRequestsIdRouteImport.update({
+    id: '/$code/requests/$id',
+    path: '/$code/requests/$id',
+    getParentRoute: () => AuthenticatedConsoleRoute,
+  } as any)
 const AuthenticatedConsoleCodeRequestNewRoute =
   AuthenticatedConsoleCodeRequestNewRouteImport.update({
     id: '/$code/request/new',
@@ -819,6 +833,8 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/studio': typeof AuthenticatedAdminCountriesCodeStudioRouteWithChildren
   '/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
   '/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
+  '/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
+  '/console/$code/requests/': typeof AuthenticatedConsoleCodeRequestsIndexRoute
   '/admin/countries/$code/narrative/library': typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRoute
   '/admin/countries/$code/personas/$id': typeof AuthenticatedAdminCountriesCodePersonasIdRoute
   '/admin/countries/$code/personas/blueprint': typeof AuthenticatedAdminCountriesCodePersonasBlueprintRoute
@@ -917,6 +933,8 @@ export interface FileRoutesByTo {
   '/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
   '/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
   '/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
+  '/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
+  '/console/$code/requests': typeof AuthenticatedConsoleCodeRequestsIndexRoute
   '/admin/countries/$code/narrative/library': typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRoute
   '/admin/countries/$code/personas/$id': typeof AuthenticatedAdminCountriesCodePersonasIdRoute
   '/admin/countries/$code/personas/blueprint': typeof AuthenticatedAdminCountriesCodePersonasBlueprintRoute
@@ -1026,6 +1044,8 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/studio': typeof AuthenticatedAdminCountriesCodeStudioRouteWithChildren
   '/_authenticated/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
   '/_authenticated/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
+  '/_authenticated/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
+  '/_authenticated/console/$code/requests/': typeof AuthenticatedConsoleCodeRequestsIndexRoute
   '/_authenticated/admin/countries/$code/narrative/library': typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRoute
   '/_authenticated/admin/countries/$code/personas/$id': typeof AuthenticatedAdminCountriesCodePersonasIdRoute
   '/_authenticated/admin/countries/$code/personas/blueprint': typeof AuthenticatedAdminCountriesCodePersonasBlueprintRoute
@@ -1135,6 +1155,8 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/studio'
     | '/admin/countries/$code/viz'
     | '/console/$code/request/new'
+    | '/console/$code/requests/$id'
+    | '/console/$code/requests/'
     | '/admin/countries/$code/narrative/library'
     | '/admin/countries/$code/personas/$id'
     | '/admin/countries/$code/personas/blueprint'
@@ -1233,6 +1255,8 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/onboard'
     | '/admin/countries/$code/viz'
     | '/console/$code/request/new'
+    | '/console/$code/requests/$id'
+    | '/console/$code/requests'
     | '/admin/countries/$code/narrative/library'
     | '/admin/countries/$code/personas/$id'
     | '/admin/countries/$code/personas/blueprint'
@@ -1341,6 +1365,8 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/countries/$code/studio'
     | '/_authenticated/admin/countries/$code/viz'
     | '/_authenticated/console/$code/request/new'
+    | '/_authenticated/console/$code/requests/$id'
+    | '/_authenticated/console/$code/requests/'
     | '/_authenticated/admin/countries/$code/narrative/library'
     | '/_authenticated/admin/countries/$code/personas/$id'
     | '/_authenticated/admin/countries/$code/personas/blueprint'
@@ -1905,6 +1931,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAuditsKeyingRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/console/$code/requests/': {
+      id: '/_authenticated/console/$code/requests/'
+      path: '/$code/requests'
+      fullPath: '/console/$code/requests/'
+      preLoaderRoute: typeof AuthenticatedConsoleCodeRequestsIndexRouteImport
+      parentRoute: typeof AuthenticatedConsoleRoute
+    }
+    '/_authenticated/console/$code/requests/$id': {
+      id: '/_authenticated/console/$code/requests/$id'
+      path: '/$code/requests/$id'
+      fullPath: '/console/$code/requests/$id'
+      preLoaderRoute: typeof AuthenticatedConsoleCodeRequestsIdRouteImport
+      parentRoute: typeof AuthenticatedConsoleRoute
+    }
     '/_authenticated/console/$code/request/new': {
       id: '/_authenticated/console/$code/request/new'
       path: '/$code/request/new'
@@ -2440,12 +2480,18 @@ const AuthenticatedNarrativeRouteRouteWithChildren =
 interface AuthenticatedConsoleRouteChildren {
   AuthenticatedConsoleCodeIndexRoute: typeof AuthenticatedConsoleCodeIndexRoute
   AuthenticatedConsoleCodeRequestNewRoute: typeof AuthenticatedConsoleCodeRequestNewRoute
+  AuthenticatedConsoleCodeRequestsIdRoute: typeof AuthenticatedConsoleCodeRequestsIdRoute
+  AuthenticatedConsoleCodeRequestsIndexRoute: typeof AuthenticatedConsoleCodeRequestsIndexRoute
 }
 
 const AuthenticatedConsoleRouteChildren: AuthenticatedConsoleRouteChildren = {
   AuthenticatedConsoleCodeIndexRoute: AuthenticatedConsoleCodeIndexRoute,
   AuthenticatedConsoleCodeRequestNewRoute:
     AuthenticatedConsoleCodeRequestNewRoute,
+  AuthenticatedConsoleCodeRequestsIdRoute:
+    AuthenticatedConsoleCodeRequestsIdRoute,
+  AuthenticatedConsoleCodeRequestsIndexRoute:
+    AuthenticatedConsoleCodeRequestsIndexRoute,
 }
 
 const AuthenticatedConsoleRouteWithChildren =

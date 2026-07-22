@@ -85,7 +85,7 @@ function StudyPage() {
           <Link
             to="/console/$code/request/new"
             params={{ code }}
-            className="inline-flex items-center gap-2 border border-ink-950 bg-ink-950 px-6 py-3 text-sm font-medium uppercase tracking-[0.15em] text-paper-50 hover:opacity-90"
+            className="btn-primary px-6 py-3 text-sm uppercase tracking-[0.15em]"
           >
             <Sparkles size={16} /> Start a request
           </Link>

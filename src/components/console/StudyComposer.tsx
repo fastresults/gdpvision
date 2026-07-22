@@ -106,12 +106,11 @@ export function StudyComposer({
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={placeholder}
-          rows={4}
-          className="mt-5 w-full resize-y border border-line-200 bg-paper-50 p-4 font-serif text-base leading-relaxed text-ink-950 placeholder:text-ink-500/60 focus:border-ink-950 focus:outline-none sm:text-lg"
-          style={{ minHeight: "9rem" }}
+          rows={3}
+          className="mt-5 min-h-[6.5rem] w-full resize-y border border-line-200 bg-paper-50 p-3 font-serif text-base leading-relaxed text-ink-950 placeholder:text-ink-500/60 focus:border-ink-950 focus:outline-none sm:min-h-[9rem] sm:p-4 sm:text-lg"
         />
 
-        <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+        <div className="mt-4 flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
           <div className="min-w-0">
             <VoiceMicButton onTranscript={appendTranscript} />
           </div>
@@ -119,7 +118,7 @@ export function StudyComposer({
             type="button"
             onClick={submit}
             disabled={!canSubmit}
-            className="btn-primary inline-flex min-h-[44px] items-center gap-2 px-5 text-sm uppercase tracking-[0.15em] disabled:cursor-not-allowed disabled:opacity-40"
+            className="btn-primary inline-flex min-h-[48px] w-full items-center justify-center gap-2 px-5 text-sm uppercase tracking-[0.15em] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
           >
             {mode === "ask" ? "Ask" : "Continue"} <ArrowRight size={14} />
           </button>

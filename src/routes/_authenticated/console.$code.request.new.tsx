@@ -65,9 +65,12 @@ function RequestWizard() {
   const [when, setWhen] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const uploads = useConsoleUploads(code);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
 
   const canNext =
-    (step === 1 && text.trim().length > 6) ||
+    (step === 1 && (text.trim().length > 6 || uploads.anyReadable) && uploads.ready) ||
     (step === 2 && !!ministry) ||
     (step === 3 && !!outcome) ||
     step === 4;

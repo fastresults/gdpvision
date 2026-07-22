@@ -36,7 +36,7 @@ function RequestsList() {
         <Link
           to="/console/$code/request/new"
           params={{ code }}
-          className="inline-flex items-center gap-2 border border-ink-950 bg-ink-950 px-5 py-2.5 text-xs font-medium uppercase tracking-[0.15em] text-paper-50 hover:opacity-90"
+          className="btn-primary px-5 py-2.5 text-xs uppercase tracking-[0.15em]"
         >
           Start a request
         </Link>

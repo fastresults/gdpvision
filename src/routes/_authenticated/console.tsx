@@ -98,7 +98,7 @@ function ConsoleLayout() {
                 ? pathname === `/console/${code}`
                 : pathname.startsWith(item.to.replace("$code", code ?? ""));
               const cls = item.primary
-                ? "border border-ink-950 bg-ink-950 px-4 py-2 text-paper-50 hover:opacity-90"
+                ? "btn-primary px-4 py-2 text-sm"
                 : `px-3 py-2 ${isActive ? "text-ink-950 underline underline-offset-4" : "text-ink-500 hover:text-ink-950"}`;
               return (
                 <Link key={item.to} to={item.to} params={{ code: code ?? "" }} className={cls}>

@@ -297,7 +297,7 @@ function RequestWizard() {
           <button
             disabled={!canNext}
             onClick={() => setStep(step + 1)}
-            className="inline-flex items-center gap-2 border border-ink-950 bg-ink-950 px-6 py-3 text-sm font-medium uppercase tracking-[0.15em] text-paper-50 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="btn-primary px-6 py-3 text-sm uppercase tracking-[0.15em]"
           >
             Continue <ArrowRight size={14} />
           </button>
@@ -305,7 +305,7 @@ function RequestWizard() {
           <button
             disabled={submitting || !outcome || !ministry}
             onClick={handleSubmit}
-            className="inline-flex items-center gap-2 border border-ink-950 bg-ink-950 px-6 py-3 text-sm font-medium uppercase tracking-[0.15em] text-paper-50 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="btn-primary px-6 py-3 text-sm uppercase tracking-[0.15em]"
           >
             {submitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
             Send to our team

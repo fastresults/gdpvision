@@ -66,12 +66,15 @@
   --color-ink-500: var(--ink-500);
   --color-ink-400: var(--ink-400);
   --color-ink-300: var(--ink-300);
+  --color-ink-hover: var(--ink-hover);
   --color-paper-0: var(--paper-0);
+  --color-paper-50: var(--paper-50);
   --color-paper-100: var(--paper-100);
   --color-line-100: var(--line-100);
   --color-line-200: var(--line-200);
   --color-gold-500: var(--gold-500);
   --color-gold-300: var(--gold-300);
+  --color-gold-hover: var(--gold-hover);
   --color-signal-positive: var(--signal-positive);
   --color-signal-negative: var(--signal-negative);
   --color-signal-caution: var(--signal-caution);
@@ -111,13 +114,16 @@
   --ink-400: #6b81a0;
   --ink-300: #9daec2;
   --paper-0: #fcfcfa;
+  --paper-50: #f7f7f2;
   --paper-100: #f4f4ef;
   --line-100: #eeefe8;
   --line-200: #e3e4dd;
+  --ink-hover: #1e3350;
 
   /* Sovereign accent */
   --gold-500: #b98a2f;
   --gold-300: #d9b866;
+  --gold-hover: #a37826;
 
   /* Semantic */
   --signal-positive: #2e7d5b;
@@ -193,6 +199,111 @@
   border-color: var(--line-200);
   border-style: solid;
   border-width: 1px;
+}
+
+/*
+ * GLOBAL BUTTON CONTRACT.
+ * Every clickable primary/secondary/ghost/accent surface MUST use one of
+ * these utilities. Never re-invent `bg-ink-950 text-paper-* hover:opacity-*`
+ * inline — that pattern produced invisible labels and dead hover states.
+ * Each utility owns: color, background, border, hover, focus-visible, and
+ * disabled state. Size/padding/typography stay with the caller.
+ */
+
+@utility btn-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid transparent;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  transition:
+    background-color var(--dur-fast) var(--ease-instrument),
+    color var(--dur-fast) var(--ease-instrument),
+    border-color var(--dur-fast) var(--ease-instrument);
+  cursor: pointer;
+  user-select: none;
+  &:focus-visible {
+    outline: 2px solid var(--gold-500);
+    outline-offset: 2px;
+  }
+  &:disabled,
+  &[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+}
+
+@utility btn-primary {
+  @apply btn-base;
+  background-color: var(--ink-950);
+  color: var(--paper-0);
+  border-color: var(--ink-950);
+  &:hover:not(:disabled):not([aria-disabled="true"]) {
+    background-color: var(--ink-hover);
+    border-color: var(--ink-hover);
+  }
+}
+
+@utility btn-secondary {
+  @apply btn-base;
+  background-color: var(--paper-0);
+  color: var(--ink-950);
+  border-color: var(--line-200);
+  &:hover:not(:disabled):not([aria-disabled="true"]) {
+    background-color: var(--paper-50);
+    border-color: var(--ink-950);
+  }
+}
+
+@utility btn-ghost {
+  @apply btn-base;
+  background-color: transparent;
+  color: var(--ink-500);
+  border-color: transparent;
+  &:hover:not(:disabled):not([aria-disabled="true"]) {
+    background-color: var(--paper-50);
+    color: var(--ink-950);
+  }
+}
+
+@utility btn-accent {
+  @apply btn-base;
+  background-color: var(--gold-500);
+  color: var(--paper-0);
+  border-color: var(--gold-500);
+  &:hover:not(:disabled):not([aria-disabled="true"]) {
+    background-color: var(--gold-hover);
+    border-color: var(--gold-hover);
+  }
+}
+
+/*
+ * Selectable "card as button" pattern for wizards. Toggles between a
+ * paper card and an inverse ink card; both states have a real hover.
+ */
+@utility card-choice {
+  border: 1px solid var(--line-200);
+  background-color: var(--paper-0);
+  color: var(--ink-950);
+  transition:
+    background-color var(--dur-fast) var(--ease-instrument),
+    color var(--dur-fast) var(--ease-instrument),
+    border-color var(--dur-fast) var(--ease-instrument);
+  &:hover {
+    border-color: var(--ink-950);
+  }
+}
+
+@utility card-choice-active {
+  border: 1px solid var(--ink-950);
+  background-color: var(--ink-950);
+  color: var(--paper-0);
+  &:hover {
+    background-color: var(--ink-hover);
+    border-color: var(--ink-hover);
+  }
 }
 
 @keyframes gdpv-segment-draw {

@@ -619,6 +619,11 @@ function TurnBlock({
           </span>
         </div>
       </div>
+      <SourcesDrawer
+        open={sourcesOpen}
+        onOpenChange={setSourcesOpen}
+        turn={turn}
+      />
     </article>
   );
 }

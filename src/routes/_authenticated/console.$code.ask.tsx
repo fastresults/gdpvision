@@ -3,7 +3,7 @@
 // arriving from the Study composer via ?q=.
 
 import { useEffect, useRef, useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { ArrowRight, ArrowUpRight, Loader2, RefreshCcw, Sparkles } from "lucide-react";
 

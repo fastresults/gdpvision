@@ -54,15 +54,25 @@ function tokenize(s: string) {
 
 function textSignalsEvidenceGap(spoken: string, written: string): boolean {
   const combined = `${spoken}\n${written}`.toLowerCase();
-  return /(?:insufficient|limited|thin|missing|not enough|no|lacks?)\s+(?:evidence|data|information|context|items)/i.test(combined)
-    || /(?:we|i)\s+(?:do not|don't|cannot|can't)\s+(?:have|say|determine|identify|attribute)/i.test(combined)
-    || /cannot\s+be\s+determined/i.test(combined)
-    || /no\s+(?:current|quarterly|recent)\s+(?:price|cpi|inflation|data|figures|breakdown)/i.test(combined)
-    || /evidence\s+missing/i.test(combined)
-    || /before\s+(?:naming|identifying|attributing|saying)/i.test(combined)
-    || /provided\s+context\s+does\s+not\s+include/i.test(combined)
-    || /context\s+does\s+not\s+provide/i.test(combined)
-    || /second\s+brain\s+(?:has\s+no|does\s+not\s+have|doesn't\s+have|has\s+insufficient)/i.test(combined);
+  return (
+    /(?:insufficient|limited|thin|missing|not enough|no|lacks?)\s+(?:evidence|data|information|context|items)/i.test(
+      combined,
+    ) ||
+    /(?:we|i)\s+(?:do not|don't|cannot|can't)\s+(?:have|say|determine|identify|attribute)/i.test(
+      combined,
+    ) ||
+    /cannot\s+be\s+determined/i.test(combined) ||
+    /no\s+(?:current|quarterly|recent)\s+(?:price|cpi|inflation|data|figures|breakdown)/i.test(
+      combined,
+    ) ||
+    /evidence\s+missing/i.test(combined) ||
+    /before\s+(?:naming|identifying|attributing|saying)/i.test(combined) ||
+    /provided\s+context\s+does\s+not\s+include/i.test(combined) ||
+    /context\s+does\s+not\s+provide/i.test(combined) ||
+    /second\s+brain\s+(?:has\s+no|does\s+not\s+have|doesn't\s+have|has\s+insufficient)/i.test(
+      combined,
+    )
+  );
 }
 
 export const askCounsel = createServerFn({ method: "POST" })
@@ -363,7 +373,7 @@ export const askCounselDeepResearch = createServerFn({ method: "POST" })
       domain: "memory",
       key: `deep:${data.sectorHint ?? "cross"}:${data.question.slice(0, 80)}`,
       read: async () => ({ rows: [] }),
-      isEmpty: () => true,
+      isEmpty: (result) => !result || result.rows.length === 0,
       search: async (ctx) => {
         const r = await searchMemory({
           countryCode: ctx.countryCode,

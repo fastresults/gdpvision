@@ -16,10 +16,12 @@ export type Lane = ChamberId;
 
 export interface ChamberEntry {
   id: ChamberId;
-  laneLabel: string;             // dashboard lane header
+  ministerLabel: string;         // the ONLY name a minister ever sees
+  laneLabel: string;             // dashboard lane header (same as ministerLabel)
   requestShape: string;          // "A written brief …" — used in Step 2 cards
   requestShapeShort: string;     // 2–4 words for chips
   description: string;           // one line, minister-language
+  oneLiner: string;              // ultra-short helper on the wizard type cards
   examples: string[];            // example asks (minister voice)
   laneAccent: string;            // tailwind-safe color token class
 }
@@ -27,9 +29,11 @@ export interface ChamberEntry {
 export const LEXICON: Record<ChamberId, ChamberEntry> = {
   ledger: {
     id: "ledger",
-    laneLabel: "The economy",
+    ministerLabel: "Economic brief",
+    laneLabel: "Economic briefs",
     requestShape: "A written economic brief",
     requestShapeShort: "Economic brief",
+    oneLiner: "Where the economy stands right now.",
     description:
       "A short written brief on where the economy stands — the numbers that matter and what they say.",
     examples: [
@@ -41,9 +45,11 @@ export const LEXICON: Record<ChamberId, ChamberEntry> = {
   },
   scenario: {
     id: "scenario",
-    laneLabel: "Decisions & scenarios",
+    ministerLabel: "Decision brief",
+    laneLabel: "Decision briefs",
     requestShape: "A decision brief with modelled scenarios",
     requestShapeShort: "Decision brief",
+    oneLiner: "Model a decision I'm weighing and recommend.",
     description:
       "Our team will model the trade-offs of the decision you are weighing and return a short written brief with the numbers and a recommendation.",
     examples: [
@@ -55,9 +61,11 @@ export const LEXICON: Record<ChamberId, ChamberEntry> = {
   },
   fdi: {
     id: "fdi",
-    laneLabel: "Sectors",
+    ministerLabel: "Sector deep-dive",
+    laneLabel: "Sector deep-dives",
     requestShape: "A sector deep-dive",
     requestShapeShort: "Sector deep-dive",
+    oneLiner: "A full look at one sector.",
     description:
       "A deep look at one sector — what it earns, who leads it, where the pressure and the openings sit.",
     examples: [
@@ -69,9 +77,11 @@ export const LEXICON: Record<ChamberId, ChamberEntry> = {
   },
   narrative: {
     id: "narrative",
-    laneLabel: "Public messages",
+    ministerLabel: "Press & strategic comms",
+    laneLabel: "Press & comms",
     requestShape: "A public statement or briefing",
     requestShapeShort: "Public message",
+    oneLiner: "Draft a statement, remarks or op-ed.",
     description:
       "A drafted public statement, press remarks or op-ed — grounded in the numbers, ready to review.",
     examples: [
@@ -83,9 +93,11 @@ export const LEXICON: Record<ChamberId, ChamberEntry> = {
   },
   cabinet: {
     id: "cabinet",
-    laneLabel: "Cabinet & governance",
+    ministerLabel: "Cabinet paper",
+    laneLabel: "Cabinet papers",
     requestShape: "A cabinet briefing",
-    requestShapeShort: "Cabinet briefing",
+    requestShapeShort: "Cabinet paper",
+    oneLiner: "A short paper for the next cabinet session.",
     description:
       "A short paper for cabinet — one issue, the options, the risks, the recommendation.",
     examples: [
@@ -97,9 +109,11 @@ export const LEXICON: Record<ChamberId, ChamberEntry> = {
   },
   persona: {
     id: "persona",
-    laneLabel: "Population & audience research",
+    ministerLabel: "Research study",
+    laneLabel: "Research studies",
     requestShape: "Population research",
-    requestShapeShort: "Population research",
+    requestShapeShort: "Research study",
+    oneLiner: "Study what people think about an issue.",
     description:
       "Structured research on how citizens think about an issue — segments, listening, findings, recommendations.",
     examples: [
@@ -111,11 +125,13 @@ export const LEXICON: Record<ChamberId, ChamberEntry> = {
   },
   portfolio: {
     id: "portfolio",
-    laneLabel: "Portfolio work",
-    requestShape: "Portfolio work",
-    requestShapeShort: "Portfolio",
+    ministerLabel: "Programme review",
+    laneLabel: "Programme reviews",
+    requestShape: "A programme or portfolio review",
+    requestShapeShort: "Programme review",
+    oneLiner: "Review or coordinate across ministries.",
     description:
-      "Cross-ministry portfolio work — programme reviews, coordination briefs, delivery scorecards.",
+      "Cross-ministry programme work — reviews, coordination briefs, delivery scorecards.",
     examples: [
       "A delivery scorecard across ministries this quarter.",
       "A coordination brief for the coastal resilience programme.",
@@ -138,6 +154,10 @@ export const LANE_ORDER: ChamberId[] = [
 export function laneFor(id: string | null | undefined): ChamberEntry | null {
   if (!id) return null;
   return LEXICON[id as ChamberId] ?? null;
+}
+
+export function ministerLabelFor(id: string | null | undefined): string {
+  return laneFor(id)?.ministerLabel ?? "Request";
 }
 
 // Minister-facing status labels (kept separate from internal enum values).

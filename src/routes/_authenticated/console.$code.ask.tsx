@@ -98,7 +98,7 @@ function AskPage() {
         createdAt: startedAt,
         evidenceState: res.evidence_state,
         evidenceReason: res.evidence_reason,
-        deepResearch: { status: res.evidence_state === "insufficient" ? "running" : "idle" },
+        deepResearch: { status: "idle" },
       };
       append(turn);
       setInput("");
@@ -115,7 +115,8 @@ function AskPage() {
 
   async function runDeepResearch(turn: AskTurn) {
     if (turn.deepResearch?.status === "running") return;
-    update(turn.id, { deepResearch: { ...(turn.deepResearch ?? { status: "idle" }), status: "running", error: undefined } });
+    const nextDeepResearch = { ...(turn.deepResearch ?? { status: "idle" as const }), status: "running" as const, error: undefined };
+    update(turn.id, { deepResearch: nextDeepResearch });
     try {
       const res: CounselAnswer = await askCounselDeepResearch({
         data: { scopeKey: code, question: turn.question, parentAnswerId: turn.id },
@@ -138,7 +139,7 @@ function AskPage() {
     } catch (e) {
       update(turn.id, {
         deepResearch: {
-          ...(turn.deepResearch ?? { status: "idle" }),
+          ...nextDeepResearch,
           status: "error",
           error: (e as Error).message,
         },
@@ -699,7 +700,7 @@ function InsufficientEvidencePanel({
             {reason ?? "The Second Brain doesn't have enough evidence to answer this confidently."}
           </p>
           <p className="mt-1 text-xs text-ink-500">
-            Run deep research to search the open web, capture sources into the Second Brain, and regenerate a grounded answer.
+            Deep research starts automatically: open web search, source capture into the Second Brain, then a regenerated grounded answer.
           </p>
           {status === "error" && error && (
             <p className="mt-2 text-xs text-signal-red">Research failed: {error}</p>
@@ -713,9 +714,9 @@ function InsufficientEvidencePanel({
             className="btn-primary inline-flex min-h-[40px] items-center gap-2 px-4 text-[11px] font-mono uppercase tracking-[0.18em] disabled:opacity-60"
           >
             {running ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-            {running ? "Researching…" : status === "error" ? "Retry deep research" : "Run deep research"}
+            {running ? "Researching…" : status === "error" ? "Retry deep research" : "Run deep research now"}
           </button>
-          {!running && (
+          {!running && status === "error" && (
             <button
               type="button"
               onClick={onSkip}

@@ -52,6 +52,19 @@ function tokenize(s: string) {
   return Array.from(new Set(s.toLowerCase().match(/[a-z0-9]{3,}/g) ?? []));
 }
 
+function textSignalsEvidenceGap(spoken: string, written: string): boolean {
+  const combined = `${spoken}\n${written}`.toLowerCase();
+  return /(?:insufficient|limited|thin|missing|not enough|no|lacks?)\s+(?:evidence|data|information|context|items)/i.test(combined)
+    || /(?:we|i)\s+(?:do not|don't|cannot|can't)\s+(?:have|say|determine|identify|attribute)/i.test(combined)
+    || /cannot\s+be\s+determined/i.test(combined)
+    || /no\s+(?:current|quarterly|recent)\s+(?:price|cpi|inflation|data|figures|breakdown)/i.test(combined)
+    || /evidence\s+missing/i.test(combined)
+    || /before\s+(?:naming|identifying|attributing|saying)/i.test(combined)
+    || /provided\s+context\s+does\s+not\s+include/i.test(combined)
+    || /context\s+does\s+not\s+provide/i.test(combined)
+    || /second\s+brain\s+(?:has\s+no|does\s+not\s+have|doesn't\s+have|has\s+insufficient)/i.test(combined);
+}
+
 export const askCounsel = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => AskInput.parse(data))
@@ -228,8 +241,7 @@ export const askCounsel = createServerFn({ method: "POST" })
     // Insufficiency heuristic: fewer than 2 corpus hits, or the model explicitly
     // said it had no evidence. This is the signal the UI uses to offer deep research.
     const topScore = scored[0]?.score ?? 0;
-    const insufficientPatterns = /(insufficient evidence|no evidence|not enough (?:evidence|data|information)|second brain (?:has no|does not have|doesn't have|has insufficient))/i;
-    const modelSaysInsufficient = insufficientPatterns.test(spoken) || insufficientPatterns.test(written);
+    const modelSaysInsufficient = textSignalsEvidenceGap(spoken, written);
     const isInsufficient = citations.length < 2 || topScore < 2 || modelSaysInsufficient;
     const evidenceState: "sufficient" | "insufficient" = isInsufficient ? "insufficient" : "sufficient";
     const evidenceReason = isInsufficient

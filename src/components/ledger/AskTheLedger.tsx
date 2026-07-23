@@ -2,10 +2,13 @@
 // Voice input (mic), clear conversation, copy answers, regenerate, pin to snapshots.
 
 import { useEffect, useRef, useState } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Mic, Square, Send, Trash2, Copy, RefreshCw, Pin, X, MessageSquare } from "lucide-react";
+import { Mic, Square, Send, Trash2, Copy, RefreshCw, Pin, X, MessageSquare, ExternalLink } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+import { CitationSup, type CitationRef as CitationRefShape } from "@/components/citations/CitationSup";
+
 
 import {
   askTheLedger,
@@ -55,6 +58,25 @@ export function AskTheLedger({
   const [input, setInput] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [keyboardInset, setKeyboardInset] = useState(0);
+
+  useEffect(() => {
+    if (!isMobile || typeof window === "undefined") return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setKeyboardInset(inset);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, [isMobile]);
+
 
   const askFn = useServerFn(askTheLedger);
   const pinFn = useServerFn(pinFigureSnapshot);
@@ -349,13 +371,12 @@ export function AskTheLedger({
         {open && (
           <div
             className="fixed inset-x-0 top-0 z-40 flex flex-col bg-paper-0"
-            role="dialog"
-            aria-modal="true"
-            style={{ bottom: MOBILE_BOTTOM_GAP }}
+            style={{ bottom: `calc(${MOBILE_BOTTOM_GAP} + ${keyboardInset}px)` }}
           >
             {panel}
           </div>
         )}
+
       </>
     );
   }
@@ -639,105 +660,96 @@ function renderCitations(text: string, citations: FigureCitation[]) {
   return parts;
 }
 
-function kindLabel(kind: FigureCitation["kind"]): string {
-  switch (kind) {
-    case "chunk":
-      return "Corpus";
-    case "memory":
-      return "Country Context";
-    case "web":
-      return "Web Research";
-    case "citation":
-      return "Citation";
-    default:
-      return "Source";
-  }
-}
 
-function CitationCard({ cite }: { cite: FigureCitation }) {
-  return (
-    <div className="w-80 space-y-2 p-1">
-      <div className="flex items-center justify-between gap-2">
-        <span className="inline-block border border-line-200 bg-paper-50 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-ink-700">
-          {kindLabel(cite.kind)}
-        </span>
-        {cite.org && (
-          <span className="truncate font-mono text-[9px] uppercase tracking-widest text-ink-500">
-            {cite.org}
-          </span>
-        )}
-      </div>
-      <p className="text-sm font-medium leading-snug text-ink-950">
-        {cite.title || "Untitled source"}
-      </p>
-      {cite.excerpt && (
-        <p className="line-clamp-6 whitespace-pre-wrap text-[12px] leading-relaxed text-ink-700">
-          {cite.excerpt}
-        </p>
-      )}
-      {cite.url && (
-        <a
-          href={cite.url}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-ink-950 underline underline-offset-2 hover:text-ink-700"
-        >
-          Open source ↗
-        </a>
-      )}
-    </div>
-  );
+function toCitationRef(cite: FigureCitation): CitationRefShape {
+  return {
+    n: cite.n,
+    url: cite.url ?? undefined,
+    title: cite.title,
+    org: cite.org,
+    kind: cite.kind,
+    excerpt: cite.excerpt,
+  };
 }
 
 function CitationRef({ cite }: { cite: FigureCitation }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          onMouseEnter={() => setOpen(true)}
-          onMouseLeave={() => setOpen(false)}
-          onFocus={() => setOpen(true)}
-          onBlur={() => setOpen(false)}
-          aria-label={`Source ${cite.n}: ${cite.title || "untitled"}`}
-          className="mx-0.5 inline align-super font-mono text-[10px] text-ink-950 underline underline-offset-2 hover:text-ink-700 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink-950"
-        >
-          [{cite.n}]
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        side="top"
-        align="center"
-        className="w-auto p-3"
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
-      >
-        <CitationCard cite={cite} />
-      </PopoverContent>
-    </Popover>
-  );
+  return <CitationSup n={cite.n} citation={toCitationRef(cite)} />;
 }
 
 function CitationRow({ cite }: { cite: FigureCitation }) {
+  const [open, setOpen] = useState(false);
+  const url = cite.url ?? undefined;
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="block w-full cursor-pointer text-left text-[11px] leading-snug text-ink-500 hover:text-ink-950"
-        >
-          <span className="font-mono text-ink-950">[{cite.n}]</span>{" "}
-          <span className="underline underline-offset-2">
-            {cite.title || cite.url || "Untitled source"}
-          </span>
-          {cite.org && <span className="ml-1 text-ink-500/70">· {cite.org}</span>}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent side="top" align="start" className="w-auto p-3">
-        <CitationCard cite={cite} />
-      </PopoverContent>
-    </Popover>
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="block w-full cursor-pointer text-left text-[11px] leading-snug text-ink-500 hover:text-ink-950"
+      >
+        <span className="font-mono text-ink-950">[{cite.n}]</span>{" "}
+        <span className="underline underline-offset-2">
+          {cite.title || url || "Untitled source"}
+        </span>
+        {cite.org && <span className="ml-1 text-ink-500/70">· {cite.org}</span>}
+      </button>
+      <CitationDetailsDialog
+        open={open}
+        onOpenChange={setOpen}
+        cite={cite}
+      />
+    </>
   );
 }
+
+function CitationDetailsDialog({
+  open,
+  onOpenChange,
+  cite,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  cite: FigureCitation;
+}) {
+  const url = cite.url ?? undefined;
+  const heading = cite.title || cite.org || url || `Source ${cite.n}`;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto rounded-none border border-line-200 bg-paper-0 text-ink-950">
+        <DialogHeader>
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
+            Source [{cite.n}]{cite.org ? ` · ${cite.org}` : ""}
+          </p>
+          <DialogTitle className="font-serif text-xl leading-tight text-ink-950">
+            {heading}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 text-sm leading-relaxed text-ink-700">
+          {cite.excerpt && (
+            <blockquote className="border-l-2 border-line-200 pl-3 italic">
+              "{cite.excerpt}"
+            </blockquote>
+          )}
+          {url && (
+            <div className="border border-line-200 bg-paper-50 p-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">URL</p>
+              <p className="mt-1 break-all text-ink-950">{url}</p>
+            </div>
+          )}
+          {url && (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 border border-ink-950 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-950 hover:bg-ink-950 hover:text-paper-0"
+            >
+              Open source <ExternalLink size={12} />
+            </a>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 

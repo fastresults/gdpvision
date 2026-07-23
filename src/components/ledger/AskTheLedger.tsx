@@ -4,7 +4,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Mic, Square, Send, Trash2, Copy, RefreshCw, Pin, X, MessageSquare } from "lucide-react";
+import { Mic, Square, Send, Trash2, Copy, RefreshCw, Pin, X, MessageSquare, ExternalLink } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 import { CitationSup, type CitationRef as CitationRefShape } from "@/components/citations/CitationSup";
 
 

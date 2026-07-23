@@ -642,55 +642,6 @@ function renderCitations(text: string, citations: FigureCitation[]) {
   return parts;
 }
 
-function kindLabel(kind: FigureCitation["kind"]): string {
-  switch (kind) {
-    case "chunk":
-      return "Corpus";
-    case "memory":
-      return "Country Context";
-    case "web":
-      return "Web Research";
-    case "citation":
-      return "Citation";
-    default:
-      return "Source";
-  }
-}
-
-function CitationCard({ cite }: { cite: FigureCitation }) {
-  return (
-    <div className="w-80 space-y-2 p-1">
-      <div className="flex items-center justify-between gap-2">
-        <span className="inline-block border border-line-200 bg-paper-50 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-ink-700">
-          {kindLabel(cite.kind)}
-        </span>
-        {cite.org && (
-          <span className="truncate font-mono text-[9px] uppercase tracking-widest text-ink-500">
-            {cite.org}
-          </span>
-        )}
-      </div>
-      <p className="text-sm font-medium leading-snug text-ink-950">
-        {cite.title || "Untitled source"}
-      </p>
-      {cite.excerpt && (
-        <p className="line-clamp-6 whitespace-pre-wrap text-[12px] leading-relaxed text-ink-700">
-          {cite.excerpt}
-        </p>
-      )}
-      {cite.url && (
-        <a
-          href={cite.url}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-ink-950 underline underline-offset-2 hover:text-ink-700"
-        >
-          Open source ↗
-        </a>
-      )}
-    </div>
-  );
-}
 
 function toCitationRef(cite: FigureCitation): CitationRefShape {
   return {

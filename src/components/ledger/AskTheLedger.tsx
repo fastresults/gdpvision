@@ -690,55 +690,67 @@ function CitationCard({ cite }: { cite: FigureCitation }) {
   );
 }
 
+function toCitationRef(cite: FigureCitation): CitationRefShape {
+  return {
+    n: cite.n,
+    url: cite.url ?? undefined,
+    title: cite.title,
+    org: cite.org,
+    kind: cite.kind,
+    excerpt: cite.excerpt,
+  };
+}
+
 function CitationRef({ cite }: { cite: FigureCitation }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          onMouseEnter={() => setOpen(true)}
-          onMouseLeave={() => setOpen(false)}
-          onFocus={() => setOpen(true)}
-          onBlur={() => setOpen(false)}
-          aria-label={`Source ${cite.n}: ${cite.title || "untitled"}`}
-          className="mx-0.5 inline align-super font-mono text-[10px] text-ink-950 underline underline-offset-2 hover:text-ink-700 focus:outline-none focus-visible:ring-1 focus-visible:ring-ink-950"
-        >
-          [{cite.n}]
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        side="top"
-        align="center"
-        className="w-auto p-3"
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
-      >
-        <CitationCard cite={cite} />
-      </PopoverContent>
-    </Popover>
-  );
+  return <CitationSup n={cite.n} citation={toCitationRef(cite)} />;
 }
 
 function CitationRow({ cite }: { cite: FigureCitation }) {
+  const [open, setOpen] = useState(false);
+  const url = cite.url ?? undefined;
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="block w-full cursor-pointer text-left text-[11px] leading-snug text-ink-500 hover:text-ink-950"
-        >
-          <span className="font-mono text-ink-950">[{cite.n}]</span>{" "}
-          <span className="underline underline-offset-2">
-            {cite.title || cite.url || "Untitled source"}
-          </span>
-          {cite.org && <span className="ml-1 text-ink-500/70">· {cite.org}</span>}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent side="top" align="start" className="w-auto p-3">
-        <CitationCard cite={cite} />
-      </PopoverContent>
-    </Popover>
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="block w-full cursor-pointer text-left text-[11px] leading-snug text-ink-500 hover:text-ink-950"
+      >
+        <span className="font-mono text-ink-950">[{cite.n}]</span>{" "}
+        <span className="underline underline-offset-2">
+          {cite.title || url || "Untitled source"}
+        </span>
+        {cite.org && <span className="ml-1 text-ink-500/70">· {cite.org}</span>}
+      </button>
+      <CitationDetailsDialog
+        open={open}
+        onOpenChange={setOpen}
+        cite={cite}
+      />
+    </>
   );
 }
+
+function CitationDetailsDialog({
+  open,
+  onOpenChange,
+  cite,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  cite: FigureCitation;
+}) {
+  // Reuse the same visual as CitationSup's Dialog by rendering CitationSup with a
+  // hidden trigger controlled externally would be over-engineered; render a light
+  // dialog inline that matches CitationSup styling.
+  if (!open) return null;
+  return (
+    <CitationSupDialogPortal
+      n={cite.n}
+      cite={toCitationRef(cite)}
+      open={open}
+      onOpenChange={onOpenChange}
+    />
+  );
+}
+
 

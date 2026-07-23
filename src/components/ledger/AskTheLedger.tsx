@@ -741,18 +741,46 @@ function CitationDetailsDialog({
   onOpenChange: (v: boolean) => void;
   cite: FigureCitation;
 }) {
-  // Reuse the same visual as CitationSup's Dialog by rendering CitationSup with a
-  // hidden trigger controlled externally would be over-engineered; render a light
-  // dialog inline that matches CitationSup styling.
-  if (!open) return null;
+  const url = cite.url ?? undefined;
+  const heading = cite.title || cite.org || url || `Source ${cite.n}`;
   return (
-    <CitationSupDialogPortal
-      n={cite.n}
-      cite={toCitationRef(cite)}
-      open={open}
-      onOpenChange={onOpenChange}
-    />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto rounded-none border border-line-200 bg-paper-0 text-ink-950">
+        <DialogHeader>
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
+            Source [{cite.n}]{cite.org ? ` · ${cite.org}` : ""}
+          </p>
+          <DialogTitle className="font-serif text-xl leading-tight text-ink-950">
+            {heading}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 text-sm leading-relaxed text-ink-700">
+          {cite.excerpt && (
+            <blockquote className="border-l-2 border-line-200 pl-3 italic">
+              "{cite.excerpt}"
+            </blockquote>
+          )}
+          {url && (
+            <div className="border border-line-200 bg-paper-50 p-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">URL</p>
+              <p className="mt-1 break-all text-ink-950">{url}</p>
+            </div>
+          )}
+          {url && (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 border border-ink-950 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-950 hover:bg-ink-950 hover:text-paper-0"
+            >
+              Open source <ExternalLink size={12} />
+            </a>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
+
 
 

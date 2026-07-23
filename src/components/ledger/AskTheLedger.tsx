@@ -2,10 +2,11 @@
 // Voice input (mic), clear conversation, copy answers, regenerate, pin to snapshots.
 
 import { useEffect, useRef, useState } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Mic, Square, Send, Trash2, Copy, RefreshCw, Pin, X, MessageSquare } from "lucide-react";
+import { CitationSup, type CitationRef as CitationRefShape } from "@/components/citations/CitationSup";
+
 
 import {
   askTheLedger,

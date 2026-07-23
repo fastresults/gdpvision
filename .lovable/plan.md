@@ -1,40 +1,34 @@
-## Goal
+# Fix: Ask citations and re-asking broken on mobile after an answer
 
-Replace the current mobile Ask surface at `/console/:code/ask` with the Chamber 01 chat experience (`AskTheLedger`), so ministers get the same tray-style Q&A, voice input, citations, expand actions, and grounded answers they see in Chamber 01 — front UI and back workflow identical.
+## Root causes (verified in `src/components/ledger/AskTheLedger.tsx` and `src/components/citations/CitationSup.tsx`)
 
-## Why
+1. **Citations open on hover only.** The inline `[N]` chip is `CitationRef` (lines 692–720), which drives Radix `Popover` open state from `onMouseEnter`/`onMouseLeave`/`onFocus`/`onBlur`. On touch devices these events fire as a synthetic pair on tap and immediately close the popover — the card flashes and disappears, and there is no "Details" affordance to open the full modal. `CitationRow` in the sources list (lines 722–741) is a Popover trigger too, with no dialog path. The nicer `CitationSup` component (which has a proper `onClick` → `Dialog` modal) is not used here.
 
-`console.$code.ask.tsx` uses the `useCountryAskThread` / `askCounsel` + deep-research fallback pipeline. Chamber 01 uses `AskTheLedger` → `askTheLedger` server fn, which is the flow the user prefers (better answers, cleaner tray, voice, pin, expand). We standardize the Console Ask on that component and workflow.
+2. **Composer unreachable after a long answer on mobile.** The mobile panel is `fixed inset-x-0 top-0 z-40` with `bottom: calc(64px + env(safe-area-inset-bottom))` (line 351). Once results, citation list, ExpandActions and (optionally) ArtifactPanel render, the body scroller grows, but the real killer is the iOS keyboard: fixed panels do not shrink with `visualViewport`, so tapping the textarea slides the composer under the keyboard, and any tap outside the textarea (like a citation chip) is intercepted by the keyboard region rather than the trigger.
 
-## Scope
-
-Change is UI + wiring only. No changes to `askTheLedger`, ledger functions, or Chamber 01.
+3. **Nested `role="dialog" aria-modal="true"` on the mobile panel** (line 351) plus a Radix `Dialog` opened from within it can cause Radix's focus/inert handling to fight our custom modal wrapper, occasionally freezing pointer events on the panel after close.
 
 ## Changes
 
-1. **`src/routes/_authenticated/console.$code.ask.tsx`** — rewrite as a thin mobile-first host:
-   - Keep the empty-state hero (BrainMask constellation + flag + instruction line below it, above the composer — as it is now).
-   - Remove the current `useCountryAskThread`, deep-research/expound/sources UI, canned-question grid, and custom composer sheet.
-   - Render `<AskTheLedger countryCode={code} countryName={countryName} />` as the chat surface. Its built-in mobile behavior (bottom tray, mic, send, clear, copy, regenerate, pin, expand) becomes the Ask experience.
-   - Preserve country resolution from `CARICOM_OECS_REGISTRY` and the existing route/head metadata.
-   - Keep the bottom tab bar (Study / Ask / Send) intact; ensure `AskTheLedger`'s tray sits above `safe-bottom`.
+### A. Tap-first citations (primary fix)
+- Replace inline `CitationRef` and `CitationRow` inside `AskTheLedger.tsx` with the shared `CitationSup` / a new `CitationSourceRow` that both open the existing `Dialog` in `src/components/citations/CitationSup.tsx` on click. Keep hover preview on desktop via `HoverCard` (already inside `CitationSup`), but the click always opens the modal — works identically on touch.
+- Update `renderCitations()` (line 621) to render `<CitationSup n={n} citation={mapToCitationRef(cite)} />`. Map `FigureCitation` → `CitationRef` (n, url, title, org, kind, excerpt, published_at).
+- Rewrite the sources list at lines 535–543 to use a row component that renders `CitationSup` (or a button that opens the same `Dialog`) so tapping a source in the list opens the details modal instead of a hover-only popover.
 
-2. **Mobile polish inside the Console context only** (in the route wrapper, not in `AskTheLedger`):
-   - Auto-open the tray when the user taps into Ask, so no extra click is needed (pass an initial-open affordance via a small wrapper, or open programmatically after mount on mobile).
-   - Add bottom padding equal to tab-bar height so the tray's input clears the Study/Ask/Send bar.
+### B. Mobile panel: keep composer reachable
+- Remove `role="dialog" aria-modal="true"` from the mobile panel wrapper (line 351). It is a page-level surface, not a modal, and it interferes with Radix Dialog. Keep the fixed positioning and z-index.
+- Track `window.visualViewport` height in a small effect and set the panel's `bottom` to `max(tabBarGap, window.innerHeight - visualViewport.height + tabBarGap)` so the composer rides above the iOS keyboard.
+- Add `scroll-padding-bottom` to the scroll container equal to composer height so the last message is never hidden behind the composer.
 
-3. **Cleanup**
-   - Remove now-unused imports and helpers in `console.$code.ask.tsx` (deep-research panel, expound panel, sources drawer, canned suggestions).
-   - Leave `useCountryAskThread`, `askCounsel`, `expoundCounsel`, `askCounselDeepResearch` in place — still used elsewhere; just no longer wired to this route.
+### C. Small hardening
+- In the citation modal path, stop the tap from bubbling into the underlying `AskTheLedger` panel (add `onPointerDownOutside`/`onInteractOutside` no-op only if we see the panel absorbing focus in QA — otherwise leave default).
+- Keep `defaultOpen` behavior for `/console/:code/ask` unchanged.
 
-## Out of scope
-
-- No changes to `AskTheLedger` internals or Chamber 01.
-- No backend/server-function changes.
-- Desktop Chamber 01 usage unchanged.
+## Files touched
+- `src/components/ledger/AskTheLedger.tsx` — swap `CitationRef`/`CitationRow` for click-to-modal citations; remove `role/aria-modal` on the mobile wrapper; add visualViewport-aware bottom offset.
+- (No changes needed in `CitationSup.tsx`; reuse as-is.)
 
 ## Verification
-
-- On `/console/ATG/ask` (393×852): empty state shows constellation + flag + instruction; tapping the tray input opens the Chamber 01 composer; asking a question streams a grounded answer with citations, mic works, expand/pin/copy work; tray sits above the bottom tab bar with no overlap.
-- Chamber 01 (`/instrument`) still renders and behaves as before.
-- Typecheck/build clean.
+- On the `/console/ATG/ask` mobile viewport (393×852), ask a question, wait for citations, tap `[1]` → the source **Dialog** opens, "Open source" link works, closing the dialog returns focus to the panel.
+- After the answer renders, tap the composer → keyboard opens, composer stays visible, typing and Send work; tap another citation while keyboard is open → dialog opens above keyboard.
+- Desktop right-rail unchanged: hover still previews, click opens the modal.

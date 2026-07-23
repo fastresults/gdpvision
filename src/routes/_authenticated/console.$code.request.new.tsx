@@ -329,8 +329,8 @@ function RequestWizard() {
       {/* Sticky bottom bar on mobile, inline on desktop */}
       <div className="h-28 sm:h-0" aria-hidden />
       <div
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-line-200 bg-paper-50/95 backdrop-blur sm:static sm:mt-10 sm:border-t sm:bg-transparent sm:pt-6 sm:backdrop-blur-none"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        className="fixed inset-x-0 z-40 border-t border-line-200 bg-paper-50/95 backdrop-blur sm:static sm:mt-10 sm:border-t sm:bg-transparent sm:pt-6 sm:backdrop-blur-none"
+        style={{ bottom: "calc(env(safe-area-inset-bottom) + 64px)" }}
       >
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3 sm:px-0 sm:py-0">
           <button

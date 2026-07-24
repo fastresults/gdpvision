@@ -530,7 +530,7 @@ async function processRun(runId: string) {
           parties_upserted: partiesUpserted,
           ruling_flagged: rulingFlagged,
           manifesto_ingested: manifestoIngested,
-          details,
+          details: details as any,
           finished_at: new Date().toISOString(),
         })
         .eq("run_id", runId)

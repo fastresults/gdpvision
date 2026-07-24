@@ -1,7 +1,17 @@
 import { useCallback, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Upload, Link2, Type as TypeIcon, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import {
+  Upload,
+  Link2,
+  Type as TypeIcon,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  Mic,
+  Square,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -9,6 +19,8 @@ import {
   signOppositionUpload,
 } from "@/lib/narrative/opposition-intake.functions";
 import { analyzeOppositionItem } from "@/lib/narrative/opposition-plan.functions";
+import { transcribeAudio } from "@/lib/personas/transcribe.functions";
+import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 
 function inferKind(mime: string): "meme" | "screenshot" | "story" | "post" {
   if (mime.startsWith("image/")) return mime.includes("gif") ? "meme" : "screenshot";
@@ -68,19 +80,23 @@ export function OppositionIntakeDropZone({ code, onIntakeCreated }: { code: stri
   const [url, setUrl] = useState("");
   const [text, setText] = useState("");
   const [channel, setChannel] = useState("");
+  const [brief, setBrief] = useState("");
+  const [transcribing, setTranscribing] = useState(false);
   const [status, setStatus] = useState<string>("");
   const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
 
   const signUpload = useServerFn(signOppositionUpload);
   const createItem = useServerFn(createOppositionItem);
   const analyze = useServerFn(analyzeOppositionItem);
+  const transcribe = useServerFn(transcribeAudio);
+  const recorder = useVoiceRecorder();
 
   const updateQueueItem = useCallback((id: string, patch: Partial<UploadQueueItem>) => {
     setUploadQueue((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   }, []);
 
   const processFile = useCallback(
-    async (file: File, queueId: string) => {
+    async (file: File, queueId: string, submitterContext: string | undefined) => {
       setStatus(`Uploading ${file.name}…`);
       updateQueueItem(queueId, { stage: "uploading" });
       const signed = await signUpload({ data: { countryCode: code, filename: file.name } });
@@ -100,6 +116,7 @@ export function OppositionIntakeDropZone({ code, onIntakeCreated }: { code: stri
           storagePath: signed.path,
           mimeType: file.type || "application/octet-stream",
           submittedChannel: channel || undefined,
+          submitterContext,
         },
       });
       await qc.invalidateQueries({ queryKey: ["opposition-items", code] });
@@ -110,18 +127,26 @@ export function OppositionIntakeDropZone({ code, onIntakeCreated }: { code: stri
       updateQueueItem(queueId, { stage: "complete" });
       return id;
     },
-    [code, channel, signUpload, createItem, analyze, qc, updateQueueItem],
+    [code, channel, signUpload, createItem, analyze, qc, updateQueueItem, onIntakeCreated],
   );
 
   const m = useMutation({
-    mutationFn: async ({ files, queueIds }: { files: File[]; queueIds: string[] }) => {
+    mutationFn: async ({
+      files,
+      queueIds,
+      submitterContext,
+    }: {
+      files: File[];
+      queueIds: string[];
+      submitterContext: string | undefined;
+    }) => {
       const ids: string[] = [];
       for (let i = 0; i < files.length; i += 1) {
         const file = files[i];
         const queueId = queueIds[i];
         if (!file || !queueId) continue;
         try {
-          ids.push(await processFile(file, queueId));
+          ids.push(await processFile(file, queueId, submitterContext));
         } catch (error) {
           const message = error instanceof Error ? error.message : "Upload failed";
           updateQueueItem(queueId, { stage: "failed", message });
@@ -160,19 +185,24 @@ export function OppositionIntakeDropZone({ code, onIntakeCreated }: { code: stri
       const acceptedFiles = files.filter(isSupportedFile);
       const acceptedIds = nextItems.filter((item) => item.stage === "received").map((item) => item.id);
       const rejectedCount = files.length - acceptedFiles.length;
+      const submitterContext = brief.trim() || undefined;
 
       if (acceptedFiles.length) {
         const label = acceptedFiles.length === 1 ? "Image received" : `${acceptedFiles.length} files received`;
         setStatus(label);
-        toast(label, { description: "Upload and analysis have started." });
-        m.mutate({ files: acceptedFiles, queueIds: acceptedIds });
+        toast(label, {
+          description: submitterContext
+            ? "Brief attached · analysis started."
+            : "Upload and analysis have started. Add a brief above to sharpen the response.",
+        });
+        m.mutate({ files: acceptedFiles, queueIds: acceptedIds, submitterContext });
       }
 
       if (rejectedCount > 0) {
         toast.error(`${rejectedCount} file${rejectedCount === 1 ? "" : "s"} not supported`);
       }
     },
-    [m],
+    [m, brief],
   );
 
   const submitUrl = useMutation({
@@ -185,6 +215,7 @@ export function OppositionIntakeDropZone({ code, onIntakeCreated }: { code: stri
           title: url,
           sourceUrl: url,
           submittedChannel: channel || undefined,
+          submitterContext: brief.trim() || undefined,
         },
       });
       setStatus("Analyzing link…");
@@ -210,6 +241,7 @@ export function OppositionIntakeDropZone({ code, onIntakeCreated }: { code: stri
           title: text.slice(0, 80),
           rawText: text,
           submittedChannel: channel || undefined,
+          submitterContext: brief.trim() || undefined,
         },
       });
       setStatus("Analyzing text…");
@@ -227,8 +259,93 @@ export function OppositionIntakeDropZone({ code, onIntakeCreated }: { code: stri
 
   const busy = m.isPending || submitUrl.isPending || submitText.isPending;
 
+  const handleMicPress = useCallback(async () => {
+    if (recorder.state === "recording") {
+      const clip = await recorder.stop();
+      if (!clip) return;
+      setTranscribing(true);
+      try {
+        const { text: transcript } = await transcribe({
+          data: { base64: clip.base64, mimeType: clip.mime },
+        });
+        if (transcript?.trim()) {
+          setBrief((prev) => (prev.trim() ? `${prev.trim()}\n${transcript.trim()}` : transcript.trim()));
+          toast.success("Brief transcribed");
+        } else {
+          toast.error("Nothing transcribed — try again.");
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Transcription failed");
+      } finally {
+        setTranscribing(false);
+      }
+    } else {
+      await recorder.start();
+    }
+  }, [recorder, transcribe]);
+
+  const recording = recorder.state === "recording";
+
   return (
     <div className="space-y-5">
+      {/* ─── Brief · shared context for the batch ─────────────────────────── */}
+      <div className="border border-line-200 bg-paper-0 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+              Step 1 · Brief the analyst
+            </h3>
+            <p className="mt-1 text-sm text-ink-700">
+              Say or type who is depicted, when this was captured, and what makes it hostile.
+              Example: <em>“Meme shows former PM Douglas next to a burning barrel — circulating on WhatsApp since Monday, mocking the fuel-subsidy pause.”</em>
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={handleMicPress}
+              disabled={transcribing || busy}
+              aria-pressed={recording}
+              className={recording ? "btn-primary" : "btn-secondary"}
+              title={recording ? "Stop recording" : "Record voice brief"}
+            >
+              {recording ? <Square size={14} /> : <Mic size={14} />}
+              <span className="ml-1">
+                {recording ? "Stop" : transcribing ? "Transcribing…" : "Record"}
+              </span>
+            </button>
+            {brief && (
+              <button
+                type="button"
+                onClick={() => setBrief("")}
+                disabled={busy || transcribing}
+                className="btn-ghost"
+                title="Clear brief"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+        <textarea
+          value={brief}
+          onChange={(e) => setBrief(e.target.value)}
+          rows={3}
+          placeholder="Who / what / when / why it matters. This context is passed to the OCR, motivation, and counter-campaign passes."
+          className="mt-3 w-full resize-y border border-line-200 px-3 py-2 text-sm focus:border-ink-950 focus:outline-none"
+        />
+        {recording && (
+          <div className="mt-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+            <span className="inline-block h-2 w-2 rounded-full bg-signal-negative animate-pulse" />
+            Recording · {Math.round(recorder.level * 100)}% level · press Stop when done
+          </div>
+        )}
+        {recorder.error && (
+          <p className="mt-2 text-xs text-signal-negative">{recorder.error}</p>
+        )}
+      </div>
+
+      {/* ─── Drop zone · Step 2 ─────────────────────────────────────────── */}
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -246,10 +363,13 @@ export function OppositionIntakeDropZone({ code, onIntakeCreated }: { code: stri
         }`}
       >
         <Upload size={22} className={dragActive ? "text-ink-950" : "text-ink-500"} />
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Step 2 · Drop the artefact</p>
         <p className="text-sm text-ink-700">
           {dragActive
             ? "Release to receive these files."
-            : "Drop opposition memes, screenshots, PDFs, or forwarded stories here."}
+            : brief.trim()
+              ? "Brief attached — drop memes, screenshots, PDFs, or forwarded stories."
+              : "Drop opposition memes, screenshots, PDFs, or forwarded stories here."}
         </p>
         <button
           type="button"

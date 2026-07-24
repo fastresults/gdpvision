@@ -295,9 +295,9 @@ export function OppositionIntakeDropZone({ code }: { code: string }) {
                 </div>
                 <div className="flex shrink-0 items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
                   {item.stage === "complete" ? (
-                    <CheckCircle2 size={14} className="text-signal-green" />
+                    <CheckCircle2 size={14} className="text-signal-positive" />
                   ) : item.stage === "failed" ? (
-                    <AlertCircle size={14} className="text-signal-red" />
+                    <AlertCircle size={14} className="text-signal-negative" />
                   ) : (
                     <Loader2 size={14} className="animate-spin" />
                   )}

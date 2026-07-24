@@ -332,10 +332,14 @@ export async function generatePlan(opts: {
   rulingPartyLine?: string;
   manifestoPledges?: string;
   recentToneSamples?: string;
+  submitterContext?: string;
 }): Promise<ResponsePlan> {
   const user = [
     `Country: ${opts.countryCode}`,
     "",
+    opts.submitterContext
+      ? `Submitter brief from the comms team (authoritative context — treat as ground truth on who/what/when/where is depicted):\n${opts.submitterContext.slice(0, 3000)}\n`
+      : "",
     "Opposition motivation:",
     opts.motivationSummary,
     "",
@@ -349,7 +353,8 @@ export async function generatePlan(opts: {
     opts.manifestoPledges ? `Manifesto pledges to anchor to:\n${opts.manifestoPledges.slice(0, 2000)}` : "",
     opts.recentToneSamples ? `Recent published tone samples:\n${opts.recentToneSamples.slice(0, 1500)}` : "",
     "",
-    "Task: Draft a counter-campaign response plan. Return strict JSON per schema.",
+    "Task: Draft a counter-campaign response plan tailored to the submitter's brief. Return strict JSON per schema.",
+
     "- posture: ignore | clarify | counter | escalate. Pick the smallest response that neutralises the threat.",
     "- objective: one crisp sentence.",
     "- key_messages: 3-5 audience-tailored talking points, each grounded in the ruling party's own record and pledges.",

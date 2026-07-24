@@ -4115,6 +4115,155 @@ export type Database = {
         }
         Relationships: []
       }
+      opposition_items: {
+        Row: {
+          amplification: Json
+          citations: Json
+          confidence_grade: string | null
+          country_code: string
+          created_at: string
+          id: string
+          kind: string
+          mime_type: string | null
+          motivation_summary: string | null
+          origin_summary: string | null
+          owner_country_code: string | null
+          raw_text: string | null
+          sentiment: number | null
+          severity: number | null
+          source_url: string | null
+          status: string
+          status_error: string | null
+          storage_path: string | null
+          submitted_by: string | null
+          submitted_channel: string | null
+          themes: Json
+          title: string | null
+          updated_at: string
+          uploaded_by: string | null
+          visibility: string
+        }
+        Insert: {
+          amplification?: Json
+          citations?: Json
+          confidence_grade?: string | null
+          country_code: string
+          created_at?: string
+          id?: string
+          kind: string
+          mime_type?: string | null
+          motivation_summary?: string | null
+          origin_summary?: string | null
+          owner_country_code?: string | null
+          raw_text?: string | null
+          sentiment?: number | null
+          severity?: number | null
+          source_url?: string | null
+          status?: string
+          status_error?: string | null
+          storage_path?: string | null
+          submitted_by?: string | null
+          submitted_channel?: string | null
+          themes?: Json
+          title?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Update: {
+          amplification?: Json
+          citations?: Json
+          confidence_grade?: string | null
+          country_code?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          motivation_summary?: string | null
+          origin_summary?: string | null
+          owner_country_code?: string | null
+          raw_text?: string | null
+          sentiment?: number | null
+          severity?: number | null
+          source_url?: string | null
+          status?: string
+          status_error?: string | null
+          storage_path?: string | null
+          submitted_by?: string | null
+          submitted_channel?: string | null
+          themes?: Json
+          title?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Relationships: []
+      }
+      opposition_response_plans: {
+        Row: {
+          audience_segments: Json
+          channel_plan: Json
+          citations: Json
+          confidence_grade: string | null
+          country_code: string
+          created_at: string
+          id: string
+          item_id: string
+          key_messages: Json
+          linked_artifact_ids: string[]
+          objective: string | null
+          posture: string | null
+          risks: Json
+          sequenced_actions: Json
+          success_metrics: Json
+          updated_at: string
+        }
+        Insert: {
+          audience_segments?: Json
+          channel_plan?: Json
+          citations?: Json
+          confidence_grade?: string | null
+          country_code: string
+          created_at?: string
+          id?: string
+          item_id: string
+          key_messages?: Json
+          linked_artifact_ids?: string[]
+          objective?: string | null
+          posture?: string | null
+          risks?: Json
+          sequenced_actions?: Json
+          success_metrics?: Json
+          updated_at?: string
+        }
+        Update: {
+          audience_segments?: Json
+          channel_plan?: Json
+          citations?: Json
+          confidence_grade?: string | null
+          country_code?: string
+          created_at?: string
+          id?: string
+          item_id?: string
+          key_messages?: Json
+          linked_artifact_ids?: string[]
+          objective?: string | null
+          posture?: string | null
+          risks?: Json
+          sequenced_actions?: Json
+          success_metrics?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opposition_response_plans_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: true
+            referencedRelation: "opposition_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       packages: {
         Row: {
           country_code: string

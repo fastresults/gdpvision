@@ -1,11 +1,13 @@
-import { createFileRoute, Link, Outlet, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useParams, useRouterState } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { Radar, FolderOpen } from "lucide-react";
+import { Radar, FolderOpen, ShieldAlert } from "lucide-react";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { listSignals } from "@/lib/narrative-chamber.functions";
+import { listOppositionItems } from "@/lib/narrative/opposition-intake.functions";
 import { AddSignalDialog } from "@/components/narrative/AddSignalDialog";
 import { SignalTriageRail } from "@/components/narrative/SignalTriageRail";
+import { OppositionRail } from "@/components/narrative/opposition/OppositionRail";
 import { CoverageBadge } from "@/components/narrative/CoverageBadge";
 
 
@@ -13,6 +15,13 @@ function signalsQuery(code: string) {
   return queryOptions({
     queryKey: ["narrative-signals", code],
     queryFn: () => listSignals({ data: { countryCode: code } }),
+  });
+}
+
+function oppositionQuery(code: string) {
+  return queryOptions({
+    queryKey: ["opposition-items", code],
+    queryFn: () => listOppositionItems({ data: { countryCode: code } }),
   });
 }
 
@@ -24,7 +33,10 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/narr
     ],
   }),
   loader: async ({ context, params }) => {
-    await context.queryClient.ensureQueryData(signalsQuery(params.code));
+    await Promise.all([
+      context.queryClient.ensureQueryData(signalsQuery(params.code)),
+      context.queryClient.ensureQueryData(oppositionQuery(params.code)),
+    ]);
   },
   errorComponent: ({ error }) => (
     <div className="min-h-dvh grid place-items-center bg-paper-0 p-8">
@@ -40,7 +52,10 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/narr
 function NarrativeLayout() {
   const { code } = Route.useParams();
   const { data: signals } = useSuspenseQuery(signalsQuery(code));
+  const { data: oppositionItems } = useSuspenseQuery(oppositionQuery(code));
   const params = useParams({ strict: false }) as { id?: string };
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const mode: "opposition" | "signals" = pathname.includes("/narrative/opposition") ? "opposition" : "signals";
 
   return (
     <SuperAdminShell
@@ -84,26 +99,58 @@ function NarrativeLayout() {
             Every draft, review, approval and released statement lives here.
           </p>
 
-          <AddSignalDialog code={code} />
-
-          <div>
-            <div className="flex items-center justify-between gap-2">
-              <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                <Radar size={11} /> Active signals · {signals.length}
-              </p>
-              <CoverageBadge />
-            </div>
-            <div className="mt-2">
-
-              {signals.length === 0 ? (
-                <div className="border border-dashed border-line-200 p-3 text-xs text-ink-500">
-                  No signals yet. Ingest one to begin.
-                </div>
-              ) : (
-                <SignalTriageRail signals={signals} code={code} activeId={params.id} />
-              )}
-            </div>
+          <div className="inline-flex w-full border border-line-200">
+            <Link
+              to="/admin/countries/$code/narrative"
+              params={{ code }}
+              className={`flex-1 px-2 py-1.5 text-center font-mono text-[10px] uppercase tracking-[0.18em] ${
+                mode === "signals" ? "bg-ink-950 text-paper-0" : "text-ink-500 hover:text-ink-950"
+              }`}
+            >
+              Signals · {signals.length}
+            </Link>
+            <Link
+              to="/admin/countries/$code/narrative/opposition"
+              params={{ code }}
+              className={`flex-1 px-2 py-1.5 text-center font-mono text-[10px] uppercase tracking-[0.18em] ${
+                mode === "opposition" ? "bg-ink-950 text-paper-0" : "text-ink-500 hover:text-ink-950"
+              }`}
+            >
+              Opposition · {oppositionItems.length}
+            </Link>
           </div>
+
+          {mode === "signals" ? (
+            <>
+              <AddSignalDialog code={code} />
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                    <Radar size={11} /> Active signals · {signals.length}
+                  </p>
+                  <CoverageBadge />
+                </div>
+                <div className="mt-2">
+                  {signals.length === 0 ? (
+                    <div className="border border-dashed border-line-200 p-3 text-xs text-ink-500">
+                      No signals yet. Ingest one to begin.
+                    </div>
+                  ) : (
+                    <SignalTriageRail signals={signals} code={code} activeId={params.id} />
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div>
+              <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                <ShieldAlert size={11} /> Opposition intake · {oppositionItems.length}
+              </p>
+              <div className="mt-2">
+                <OppositionRail items={oppositionItems} code={code} activeId={params.id} />
+              </div>
+            </div>
+          )}
 
 
 

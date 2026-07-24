@@ -61,7 +61,7 @@ function stageLabel(stage: UploadStage) {
   }
 }
 
-export function OppositionIntakeDropZone({ code }: { code: string }) {
+export function OppositionIntakeDropZone({ code, onIntakeCreated }: { code: string; onIntakeCreated?: (id: string) => void }) {
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -103,6 +103,7 @@ export function OppositionIntakeDropZone({ code }: { code: string }) {
         },
       });
       await qc.invalidateQueries({ queryKey: ["opposition-items", code] });
+      onIntakeCreated?.(id);
       setStatus(`Analyzing ${file.name}…`);
       updateQueueItem(queueId, { stage: "analyzing" });
       await analyze({ data: { id } }).catch(() => null);

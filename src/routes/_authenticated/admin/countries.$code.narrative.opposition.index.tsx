@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import type { ReactElement } from "react";
 import { Image as ImageIcon, Link2, FileText, Loader2, CheckCircle2, AlertTriangle, PlayCircle, ArrowRight } from "lucide-react";
 
 import { listOppositionItems, type OppositionItem } from "@/lib/narrative/opposition-intake.functions";
@@ -186,7 +187,7 @@ function OppositionIndex() {
 }
 
 function StatusPill({ status }: { status: string }) {
-  const map: Record<string, { label: string; className: string; icon?: JSX.Element }> = {
+  const map: Record<string, { label: string; className: string; icon?: ReactElement }> = {
     queued: { label: "Queued", className: "border-line-200 text-ink-500", icon: <Loader2 size={9} className="animate-spin" /> },
     analyzing: { label: "Analyzing", className: "border-ink-950 text-ink-950", icon: <Loader2 size={9} className="animate-spin" /> },
     analyzed: { label: "Ready", className: "border-ink-950 text-ink-950", icon: <CheckCircle2 size={9} /> },

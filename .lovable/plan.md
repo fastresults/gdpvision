@@ -1,83 +1,106 @@
 
 ## Goal
 
-Add a **separate, admin-triggered routine** that runs across all 22 countries and, for each one, performs deep AI + open-web research to capture:
+Add an **Opposition Intel** surface to Chamber 05 (Narrative Chamber) where a country's comms department can drop opposition memes, screenshots, links or forwarded stories. The system then runs AI analysis to summarize (a) the underlying **motivation / message**, (b) the likely **origin & amplification pattern**, and (c) a recommended **counter-campaign response** — all grounded in the country's Second Brain and stored as first-class narrative artefacts.
 
-1. The full set of **political parties** currently active in the country.
-2. A **flag on which party (or coalition) is in power**.
-3. The **ruling party's manifesto** (latest election platform / programme of government), ingested into the country's Second Brain corpus.
+The feature must slot elegantly into the already-dense Narrative Chamber sidebar without adding visual noise.
 
-It reuses the proven minister-backfill pattern (persistent job rows, per-country child runs, browser-driven retry loop, admin gating) so it is idempotent, resumable, and never blocks the request thread.
+## UX integration (keep sidebar calm)
 
-## User-facing behaviour
+Chamber 05's left rail today holds: hero copy → Comms Library → Add Signal → Active Signals list → back link. Rather than adding a fourth button, introduce a **compact segmented control** directly under the "Signal to statement." hero:
 
-- New admin card on `/admin/countries` next to the existing "Backfill ministers" control: **"Backfill political parties & manifestos"** with Start / Resume / View progress actions.
-- Progress rail shows attempted / succeeded / failed per country, plus a live counter of parties captured and manifestos ingested.
-- Per-country page (`/admin/countries/$code/data`) gets a **Parties** panel: list of parties (name, abbreviation, leader, ideology, seats, ruling flag) and a **Manifesto** card linking to the corpus source + chunks.
+```text
+[ Signals ] [ Opposition ]
+```
+
+- Default = Signals (current behaviour, no change).
+- Selecting **Opposition** swaps the rail body: Add Signal + Active Signals list are replaced by an **Opposition tray** (drop-zone + threat list). Comms Library link stays visible in both modes — it's cross-cutting.
+- The right-hand `<Outlet />` routes as normal. Opposition items open in the same detail column via a new route.
+
+This preserves single-column density on mobile and keeps the sidebar footprint identical.
+
+## Routes
+
+- `/_authenticated/admin/countries/$code/narrative/opposition` — index (drop-zone + list).
+- `/_authenticated/admin/countries/$code/narrative/opposition/$id` — detail (analysis + response plan).
+
+Both nested under the existing `narrative` layout so the rail persists.
+
+## Drop-zone intake
+
+Single component `OppositionIntakeDropZone`:
+- Accepts: images (jpg/png/webp/gif), pdfs, plain text pastes, and URLs. Multi-file, drag-and-drop + click-to-upload + paste-from-clipboard.
+- Files upload to a new **private** storage bucket `opposition-intel` (path `${country_code}/${uuid}/…`).
+- URLs and pasted text create text-only items (no upload).
+- Each drop creates one `opposition_items` row per file/url with `status='queued'` and immediately kicks off analysis via `analyzeOppositionItem` server fn.
 
 ## Data model (one migration)
 
-New public tables — same GRANT + RLS shape as `ministry_profiles`:
+New public tables, same GRANT + RLS shape as `narrative_feeds` / `comms_artifacts`:
 
-- `country_parties`
-  - `id uuid pk`, `country_code text`, `name text`, `abbreviation text`, `leader_name text`, `leader_role text`, `ideology text`, `founded_year int`, `seats_current int`, `seats_total int`, `vote_share_pct numeric`, `is_ruling boolean default false`, `coalition_role text` (`lead` | `partner` | `opposition` | `minor`), `last_election_date date`, `source_urls jsonb`, `confidence_grade char(1)`, `visibility text default 'public'`, `owner_country_code text`, `uploaded_by uuid`, `updated_at`, `created_at`
-  - Unique `(country_code, lower(name))`; partial unique on `(country_code) where is_ruling and coalition_role = 'lead'` to guarantee exactly one lead ruling party.
-- `country_manifestos`
-  - `id uuid pk`, `country_code text`, `party_id uuid fk`, `election_cycle text` (e.g. `2024`), `title text`, `summary text`, `themes jsonb`, `pledges jsonb` (array of `{theme, pledge, sector_code?, kpi_hint?}`), `source_url text`, `source_document_id uuid fk country_source_documents`, `citations jsonb`, `confidence_grade char(1)`, `visibility text default 'public'`, timestamps.
-  - Unique `(country_code, party_id, election_cycle)`.
-- `party_backfill_runs` + `party_backfill_country_runs` — mirror the two minister-backfill tables (status, counters, error, heartbeat_at).
+- `opposition_items`
+  - `id uuid pk`, `country_code text`, `kind text` (`meme` | `story` | `post` | `screenshot` | `link` | `text`), `title text`, `source_url text`, `storage_path text` (nullable), `mime_type text`, `raw_text text`, `submitted_by uuid`, `submitted_channel text` (freeform: "WhatsApp", "X", "TikTok"…), `status text` (`queued` | `analyzing` | `analyzed` | `failed`), `motivation_summary text`, `origin_summary text`, `amplification jsonb` (platforms, reach hints, first-seen), `themes jsonb`, `severity int`, `sentiment int`, `confidence_grade char(1)`, `citations jsonb`, `visibility text default 'private'`, `owner_country_code text`, `uploaded_by uuid`, timestamps.
+  - Unique `(country_code, coalesce(storage_path, source_url, md5(raw_text)))` to dedupe re-drops.
+- `opposition_response_plans`
+  - `id uuid pk`, `item_id uuid fk`, `country_code text`, `posture text` (`ignore` | `clarify` | `counter` | `escalate`), `objective text`, `key_messages jsonb`, `audience_segments jsonb`, `channel_plan jsonb` (array of `{channel, cadence, artifact_kind}`), `sequenced_actions jsonb` (Day 0 / +1 / +3 / +7), `risks jsonb`, `success_metrics jsonb`, `linked_artifact_ids uuid[]`, `citations jsonb`, `confidence_grade char(1)`, timestamps.
+  - Unique `(item_id)` — one canonical plan per item; regenerate replaces via `on conflict update`.
 
-RLS: admins full access; country members read where `visibility = 'public'` or `has_country_access(auth.uid(), country_code)`. Same private-ownership trigger as other corpus tables.
+Standard `enforce_private_ownership` trigger reused. RLS: admins full access; country members read/write where `has_country_access(auth.uid(), country_code)` — opposition intel is always country-private, never global.
 
-## Research pipeline (server-only)
+New storage bucket `opposition-intel` (private).
 
-`src/lib/country-onboarding/party-research.server.ts` — same 3-tier fallback shape as `minister-research.server.ts`.
+## Analysis pipeline (server-only)
 
-Per country, three passes, each Perplexity `sonar-reasoning-pro` with domain allowlist seeded from `country-context.server` (national gov TLD, electoral commission, parliament, IFES, IPU, Wikipedia, official party sites):
+`src/lib/narrative/opposition-analysis.server.ts` — mirrors the shape of existing narrative research.
 
-1. **Parties pass** — enumerate active parties with abbreviation, leader, ideology, seat count, last election result. Structured JSON schema; reject rows without ≥1 https source_url.
-2. **Ruling-party pass** — identify the sitting government (single party or coalition), set `is_ruling` + `coalition_role`, cross-check against the ministers already captured in `ministries.minister_profile` (the ruling PM's party must match the flagged lead). Mismatch downgrades confidence to `C` and logs a `grade_alerts` row.
-3. **Manifesto pass** — for the ruling lead party, locate the most recent published manifesto / programme of government. Fetch the URL through `fetchCitationText`; if a real document is retrievable, upload to `country-sources` storage bucket, register in `country_sources` (dedup via `upsertCountrySource`), create a `country_source_documents` row, and chunk it into `country_source_chunks` with embeddings so it becomes queryable from Counsel / Ask.
+Per item, three passes, gated by evidence:
 
-Each pass writes `onboarding_citations` and updates `party_backfill_country_runs.attempted/succeeded/failed`.
+1. **Extract pass** — if image, run OCR via Lovable AI multimodal chat (Gemini image-in) to pull embedded text + describe visuals; if pdf, extract text; if url, `fetchCitationText`; if raw text, pass through. Produces `raw_text`.
+2. **Motivation pass** — Lovable AI (`sonar-reasoning-pro` via gateway) analyses raw_text + Second Brain context (`country_chunks_search` on top themes) to produce `{motivation_summary, themes[], sentiment, severity, confidence_grade, citations}`.
+3. **Origin pass** — separate Perplexity call with domain hints (opposition party sites from `country_parties`, known regional aggregators, X/TikTok/FB search) to fill `origin_summary` and `amplification` (`{first_seen_platform, likely_originator, spread_pattern, similar_recent_posts[]}`). Cross-references `country_parties.is_ruling=false` rows so opposition-party attribution is grounded.
 
-## Orchestrator + trigger
+On success updates `opposition_items` and moves `status → 'analyzed'`.
 
-`src/lib/country-onboarding/party-backfill.functions.ts` mirrors `minister-backfill.functions.ts`:
+## Response-plan generation
 
-- `startPartyBackfill()` — admin-gated, creates a `party_backfill_runs` row + one `party_backfill_country_runs` per country in `country_authorized_domains` scope (default: all 22).
-- `stepPartyBackfill({ runId, batch: 1 })` — picks the next `pending`/`stale` country, runs the 3-pass pipeline, upserts `country_parties` + `country_manifestos`, writes memory objects (`kind='position'`, title = "Ruling party posture — {party}") into `memory_objects` so the party programme is discoverable by the Second Brain.
-- Heartbeat-based stale detection (10 min) so a dropped browser resumes cleanly.
-- `resumePartyBackfill()` and `cancelPartyBackfill()`.
+`generateOppositionResponsePlan({ itemId })` — separate server fn, admin-triggered from the detail view (also auto-runs once after Origin pass when `severity >= 3`).
 
-Client hook: same browser-driven loop already used for minister backfill — `useServerFn(stepPartyBackfill)` in a `while (run.status === 'running')` with abort on unmount.
+Prompt combines: item analysis + country's ruling-party manifesto (`country_manifestos`) + active `strategy_statements` + recent released `comms_artifacts` for tone. Structured JSON output matches `opposition_response_plans` columns.
 
-## Admin UI
+The generated plan includes a one-click **"Draft this into Comms Library"** action per `channel_plan[]` row — creates a `comms_artifacts` draft prefilled with the recommended key messages and links back via `linked_artifact_ids`.
 
-- `/admin/countries` — new "Political parties & manifestos" card: **Start**, **Resume last run**, **View progress**. Progress reuses the existing `BackfillProgressPanel` component (generalized to accept a config for label + row shape) so we don't fork the UI.
-- `/admin/countries/$code/data` — new **Parties** tab: table of parties with ruling flag; drawer per party showing leader, ideology, sources; **Manifesto** panel with themes + pledges accordion and a link that opens the ingested source in `SourceDetailSheet`.
+## Detail view
+
+`opposition/$id` layout:
+- Header: thumbnail (if image), submitted-by, channel, date, severity/sentiment stat strip.
+- **Motivation** card (PrettyJson-safe rendering of themes; CitedText for narrative).
+- **Origin & amplification** card with platform badges.
+- **Recommended response** panel (posture chip, key messages, Day 0/+1/+3/+7 timeline, channel plan table).
+- Actions: Regenerate analysis · Regenerate plan · Draft into Comms Library · Archive.
+
+All AI outputs render through `<PrettyJson>` where structured, and `<CitedText>` where prose — respecting the global citation-marker contract.
 
 ## Second Brain integration
 
-- Manifesto content becomes `country_source_chunks` so `country_chunks_search` returns it in Counsel answers.
-- One `memory_objects` row per ruling party (`scope_key='national'`, `kind='position'`, verified=true) summarising the manifesto's headline commitments — same seeding pattern as `onboarding.functions.ts::seedCountryPack`.
-- Citations flow through the standard `[N]` marker system so PrettyJson renders them clickable.
+- Every analyzed item writes a `memory_objects` row (`kind='threat'`, `scope_key=country_code`, `visibility='private'`, verified=false) so Counsel/Ask can surface "we saw this narrative last week" when relevant.
+- Response plans do **not** auto-publish — they seed drafts in `comms_artifacts` under the existing draft_state flow so approvals + Ledger re-verification still gate release.
 
-## Technical details
+## Files
 
-- New file layout:
-  - `supabase/migrations/<ts>_political_parties_manifestos.sql`
-  - `src/lib/country-onboarding/party-research.server.ts`
-  - `src/lib/country-onboarding/party-backfill.functions.ts`
-  - `src/components/admin/PartyBackfillPanel.tsx`
-  - `src/components/country-data/PartiesPanel.tsx`, `ManifestoPanel.tsx`
-- All server fns use `requireSupabaseAuth` + admin role check; `supabaseAdmin` only inside handler bodies (never top-level import in `.functions.ts`).
-- Idempotency: every upsert keyed on the unique indexes above; re-running a completed country updates fields in place, never duplicates.
-- Trigger surface is admin-only; no cron. A future `/api/public/hooks/party-refresh` route can be added later for scheduled refresh but is out of scope for this plan.
-- Zero changes to the seven chambers' UX; this is a corpus-enrichment routine.
+- `supabase/migrations/<ts>_opposition_intel.sql` — tables, RLS, GRANTs, private trigger, storage bucket (via tool call).
+- `src/lib/narrative/opposition-intake.functions.ts` — `createOppositionItem`, `listOppositionItems`, `getOppositionItem`, `archiveOppositionItem`.
+- `src/lib/narrative/opposition-analysis.server.ts` — 3-pass pipeline + `generateOppositionResponsePlan` helper.
+- `src/lib/narrative/opposition-plan.functions.ts` — `analyzeOppositionItem`, `generateOppositionResponsePlan` server fns (admin + country-member gated).
+- `src/components/narrative/opposition/OppositionIntakeDropZone.tsx`
+- `src/components/narrative/opposition/OppositionRail.tsx` (list rail for the sidebar)
+- `src/components/narrative/opposition/OppositionDetail.tsx`
+- `src/routes/_authenticated/admin/countries.$code.narrative.opposition.tsx` (index)
+- `src/routes/_authenticated/admin/countries.$code.narrative.opposition.$id.tsx`
+- Edit `src/routes/_authenticated/admin/countries.$code.narrative.tsx` — add the Signals/Opposition segmented toggle and swap the rail body accordingly.
 
 ## Out of scope
 
-- Historical election archives beyond the latest cycle.
-- Opposition manifestos (captured as party rows only; no full-text ingest).
-- Automated re-run after each election — will be a follow-up trigger once this pipeline stabilises.
+- Public-facing (non-admin) opposition intake.
+- Automated social-media scraping / real-time listening — this is inbound-only for now.
+- Auto-publishing counter-campaigns — always routes through Comms Library approvals.
+- Historical opposition archive analytics — will be a follow-up once volume justifies it.

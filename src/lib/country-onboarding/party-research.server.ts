@@ -255,7 +255,7 @@ export async function rulingPass(params: {
     });
     const parsed = parseSonarJson<{ election_cycle?: string | null; ruling?: any[] }>(res.content) ?? {};
     const ruling: RulingRecord[] = ((parsed.ruling ?? []) as any[])
-      .map((r) => ({
+      .map((r): RulingRecord => ({
         party_name: String(r?.party_name ?? "").trim(),
         coalition_role: r?.coalition_role === "partner" ? "partner" : "lead",
       }))

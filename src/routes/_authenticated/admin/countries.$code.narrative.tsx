@@ -99,26 +99,58 @@ function NarrativeLayout() {
             Every draft, review, approval and released statement lives here.
           </p>
 
-          <AddSignalDialog code={code} />
-
-          <div>
-            <div className="flex items-center justify-between gap-2">
-              <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                <Radar size={11} /> Active signals · {signals.length}
-              </p>
-              <CoverageBadge />
-            </div>
-            <div className="mt-2">
-
-              {signals.length === 0 ? (
-                <div className="border border-dashed border-line-200 p-3 text-xs text-ink-500">
-                  No signals yet. Ingest one to begin.
-                </div>
-              ) : (
-                <SignalTriageRail signals={signals} code={code} activeId={params.id} />
-              )}
-            </div>
+          <div className="inline-flex w-full border border-line-200">
+            <Link
+              to="/admin/countries/$code/narrative"
+              params={{ code }}
+              className={`flex-1 px-2 py-1.5 text-center font-mono text-[10px] uppercase tracking-[0.18em] ${
+                mode === "signals" ? "bg-ink-950 text-paper-0" : "text-ink-500 hover:text-ink-950"
+              }`}
+            >
+              Signals · {signals.length}
+            </Link>
+            <Link
+              to="/admin/countries/$code/narrative/opposition"
+              params={{ code }}
+              className={`flex-1 px-2 py-1.5 text-center font-mono text-[10px] uppercase tracking-[0.18em] ${
+                mode === "opposition" ? "bg-ink-950 text-paper-0" : "text-ink-500 hover:text-ink-950"
+              }`}
+            >
+              Opposition · {oppositionItems.length}
+            </Link>
           </div>
+
+          {mode === "signals" ? (
+            <>
+              <AddSignalDialog code={code} />
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                    <Radar size={11} /> Active signals · {signals.length}
+                  </p>
+                  <CoverageBadge />
+                </div>
+                <div className="mt-2">
+                  {signals.length === 0 ? (
+                    <div className="border border-dashed border-line-200 p-3 text-xs text-ink-500">
+                      No signals yet. Ingest one to begin.
+                    </div>
+                  ) : (
+                    <SignalTriageRail signals={signals} code={code} activeId={params.id} />
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div>
+              <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                <ShieldAlert size={11} /> Opposition intake · {oppositionItems.length}
+              </p>
+              <div className="mt-2">
+                <OppositionRail items={oppositionItems} code={code} activeId={params.id} />
+              </div>
+            </div>
+          )}
 
 
 

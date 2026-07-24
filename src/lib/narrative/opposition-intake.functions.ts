@@ -19,6 +19,8 @@ export interface OppositionItem {
   mime_type: string | null;
   raw_text: string | null;
   submitted_channel: string | null;
+  submitter_context: string | null;
+
   status: OppositionStatus;
   status_error: string | null;
   motivation_summary: string | null;

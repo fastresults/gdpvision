@@ -33,7 +33,10 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/narr
     ],
   }),
   loader: async ({ context, params }) => {
-    await context.queryClient.ensureQueryData(signalsQuery(params.code));
+    await Promise.all([
+      context.queryClient.ensureQueryData(signalsQuery(params.code)),
+      context.queryClient.ensureQueryData(oppositionQuery(params.code)),
+    ]);
   },
   errorComponent: ({ error }) => (
     <div className="min-h-dvh grid place-items-center bg-paper-0 p-8">

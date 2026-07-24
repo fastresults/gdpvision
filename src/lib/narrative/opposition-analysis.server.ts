@@ -213,6 +213,7 @@ export async function analyzeOrigin(opts: {
   rawText: string;
   motivationSummary: string;
   oppositionPartyNames: string[];
+  submitterContext?: string;
 }): Promise<OriginAnalysis> {
   const partyHints = opts.oppositionPartyNames.length
     ? `Known opposition parties in-country: ${opts.oppositionPartyNames.join("; ")}.`
@@ -221,6 +222,9 @@ export async function analyzeOrigin(opts: {
     `Country: ${opts.countryCode}`,
     partyHints,
     "",
+    opts.submitterContext
+      ? `Submitter brief (authoritative on who/what/when depicted):\n${opts.submitterContext.slice(0, 2000)}\n`
+      : "",
     "Motivation summary of the content:",
     opts.motivationSummary,
     "",
@@ -235,6 +239,7 @@ export async function analyzeOrigin(opts: {
     "- amplification.similar_recent_posts: up to 5 URLs showing the same framing in the last 30 days.",
     "- amplification.platforms: list of platforms where this narrative is currently active.",
   ].filter(Boolean).join("\n");
+
 
   const res = await callSonar({
     model: "sonar-reasoning-pro",

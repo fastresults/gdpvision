@@ -1,40 +1,55 @@
-## Plan: Make Opposition image drops visibly acknowledge and track uploads
+## Opposition Intel — guided intake → counter-campaign flow
 
-### What the logs show
-- Image upload is reaching the backend successfully: signed upload URL is created, storage `PUT` succeeds, intake row is created, and analysis begins/finishes.
-- The actual UX gap is frontend feedback: dropping images does not give the user a clear enough visual confirmation that files were accepted and are being processed.
+The intake screen ends after upload. The response plan exists (`generateOppositionResponsePlan`) but is only reachable by clicking a row in the sidebar rail and finding a "Draft response" button in the detail header. Make the counter-campaign the visible product, not a hidden second click.
 
-### Changes to make
-1. **Strengthen drop-state feedback**
-   - When files are dragged over the dropzone, make the zone visibly change state.
-   - When files are dropped, immediately show a clear “Received X file(s)” message before upload begins.
+### 1. Turn upload into a 4-step guided flow on the intake page
+Replace the "drop then nothing" layout with a numbered wizard rail at the top of `/admin/countries/$code/narrative/opposition`:
 
-2. **Add a visible upload queue**
-   - Show each dropped file with filename, detected type, and current stage:
-     - Received
-     - Uploading
-     - Registering
-     - Analyzing
-     - Complete
-     - Failed
-   - Keep completed rows visible long enough that the user sees the result instead of the status disappearing instantly.
+```text
+1. Capture  →  2. Analyze  →  3. Counter-campaign  →  4. Publish
+   (drop)      (auto)         (McKinsey plan)         (send to Comms Library)
+```
 
-3. **Use toast feedback for key moments**
-   - On drop: “Image received” / “Files received”.
-   - On successful ingest: “Opposition intake created”.
-   - On failure: show the actual upload/register/analyze error.
+- Steps light up automatically as the newest intake advances (`received` → `uploading`/`registering` → `analyzing` → `analyzed` → `plan ready`).
+- Each step shows what happens next in plain language, so the user always knows what to expect.
 
-4. **Harden file acceptance UX**
-   - Validate dropped files against the supported types before upload.
-   - Surface an immediate message for unsupported files instead of silently doing nothing.
-   - Align the file input accept list with the copy if videos are intended; otherwise keep copy limited to images/PDF/text.
+### 2. Auto-generate the counter-campaign — don't wait for a click
+- The moment analysis finishes (`status === "analyzed"`), the intake dropzone auto-calls `generateOppositionResponsePlan` for the most recent intake and shows an inline "Drafting counter-campaign…" state.
+- A prominent primary CTA (`Generate counter-campaign`) is also always visible for manual re-runs and for older intakes.
+- Failure surfaces a clear retry button; no silent dead-end.
 
-5. **Refresh the recent intakes list earlier and more reliably**
-   - Invalidate/refetch the `opposition-items` query immediately after each intake row is created, not only after all analysis completes.
-   - This lets the row appear as `analyzing` right away.
+### 3. Show the counter-campaign inline on the intake page
+Add a `CounterCampaignPanel` directly under the dropzone on the intake page (not only on the detail route). For the currently-focused intake it renders:
+- Posture + one-line objective (headline)
+- Key messages by audience
+- Sequenced actions timeline (Now / 24h / 72h / 1 week)
+- Channel plan table (WhatsApp, X, TikTok, radio, press…)
+- Risks + success metrics
+- Citations chips
 
-6. **Verify after implementation**
-   - Drop an image in the live preview.
-   - Confirm the visible queue appears immediately.
-   - Confirm the Recent Intakes list updates with the uploaded screenshot.
-   - Confirm success/error feedback is visible without relying on network logs.
+This is the McKinsey-grade output the user is asking to see immediately, not buried a click away.
+
+### 4. Make the Recent Intakes list feel like a queue you drive
+- Each row shows a status pill (Analyzing / Ready / Plan drafted / Published) and a right-side action button that reflects the next best step: `View plan`, `Draft plan`, `Retry`, `Publish`.
+- Clicking a row focuses that intake in the on-page CounterCampaignPanel (no navigation) so the user stays in the guided flow.
+
+### 5. Publish handoff to the Comms Library
+Add a `Send to Comms Library` action on the plan panel that creates a draft comms entry seeded from the plan's key messages + channel plan, and links back to the opposition intake. Closes the loop from "meme dropped" → "counter-campaign shipped".
+
+### 6. Copy and empty states
+- Rewrite the intake page hero to describe the 4 steps in one sentence.
+- Empty state (no intakes yet) shows a short "How this works" strip with the same 4 steps.
+- Tooltips on each step explain what the AI is doing and where the evidence comes from (second brain + open-web citations).
+
+### Technical notes
+- New component `src/components/narrative/opposition/CounterCampaignPanel.tsx` reused by the intake page and the detail route.
+- New component `src/components/narrative/opposition/OppositionStepper.tsx` for the 4-step rail.
+- `src/routes/_authenticated/admin/countries.$code.narrative.opposition.index.tsx` composes: hero → stepper → dropzone → CounterCampaignPanel (focused intake) → Recent Intakes queue.
+- Auto-plan trigger: in `OppositionIntakeDropZone`, when the mutation flips a queue item to `complete` with `status === "analyzed"`, fire `generateOppositionResponsePlan` and surface a `planStage` in the queue row.
+- Add a lightweight polling `useQuery` (interval while any queue item is in `analyzing`/`plan-drafting`) on `getOppositionItem` so the panel and stepper hydrate as the backend advances.
+- New server fn `publishPlanToCommsLibrary({ itemId })` that creates a comms draft from the stored plan; reuse existing comms tables.
+- No schema changes required for steps 1–5; step 5 uses existing comms draft table.
+
+### Out of scope
+- No changes to the analysis prompts or the plan generation model.
+- No changes to signal (non-opposition) flows.

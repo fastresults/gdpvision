@@ -108,7 +108,7 @@ export const generateOppositionResponsePlan = createServerFn({ method: "POST" })
     const { data: row, error } = await context.supabase
       .from("opposition_items")
       .select(
-        "id,country_code,motivation_summary,origin_summary,themes,severity",
+        "id,country_code,motivation_summary,origin_summary,themes,severity,submitter_context",
       )
       .eq("id", data.itemId)
       .single();
@@ -126,7 +126,9 @@ export const generateOppositionResponsePlan = createServerFn({ method: "POST" })
       severity: row.severity ?? 3,
       rulingPartyLine: rulingLine,
       manifestoPledges: pledges,
+      submitterContext: (row.submitter_context ?? "").trim() || undefined,
     });
+
 
     const { data: saved, error: pErr } = await context.supabase
       .from("opposition_response_plans")

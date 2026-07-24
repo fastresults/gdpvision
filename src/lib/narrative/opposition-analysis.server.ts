@@ -30,7 +30,7 @@ async function callGateway(body: unknown): Promise<string> {
 
 // ─── 1) Extract raw_text from image / doc / url / text ────────────────────
 
-async function extractFromImage(base64: string, mime: string): Promise<string> {
+async function extractFromImage(base64: string, mime: string, submitterContext?: string): Promise<string> {
   return callGateway({
     model: "google/gemini-2.5-flash",
     temperature: 0.1,
@@ -38,18 +38,24 @@ async function extractFromImage(base64: string, mime: string): Promise<string> {
       {
         role: "system",
         content:
-          "You are an OSINT analyst. Transcribe every visible text verbatim, then describe key visuals (people, symbols, memes, watermarks, hashtags). Note the visual tone (mocking, angry, celebratory, misleading).",
+          "You are an OSINT analyst. Transcribe every visible text verbatim, then describe key visuals (people, symbols, memes, watermarks, hashtags). Note the visual tone (mocking, angry, celebratory, misleading). If the submitter brief names specific people, roles, or events depicted, use those identifications in your description — do not guess or substitute other names.",
       },
       {
         role: "user",
         content: [
-          { type: "text", text: "Extract ALL text and describe the visual composition." },
+          {
+            type: "text",
+            text: submitterContext
+              ? `Submitter brief (authoritative context on who/what is depicted):\n${submitterContext.slice(0, 2000)}\n\nExtract ALL text and describe the visual composition, honoring the brief for named people/events.`
+              : "Extract ALL text and describe the visual composition.",
+          },
           { type: "image_url", image_url: { url: `data:${mime};base64,${base64}` } },
         ],
       },
     ],
   });
 }
+
 
 async function extractFromDocument(base64: string, mime: string, filename: string): Promise<string> {
   return callGateway({

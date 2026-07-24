@@ -192,11 +192,13 @@ export const createOppositionItem = createServerFn({ method: "POST" })
           raw_text: data.rawText ?? null,
           submitted_by: context.userId,
           submitted_channel: data.submittedChannel ?? null,
+          submitter_context: data.submitterContext ?? null,
           status: "queued",
           owner_country_code: data.countryCode,
           uploaded_by: context.userId,
           visibility: "private",
         })
+
         .select("id")
         .single();
       if (e2) throw new Error(e2.message);

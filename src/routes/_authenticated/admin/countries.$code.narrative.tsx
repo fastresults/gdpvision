@@ -1,11 +1,13 @@
-import { createFileRoute, Link, Outlet, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useParams, useRouterState } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { Radar, FolderOpen } from "lucide-react";
+import { Radar, FolderOpen, ShieldAlert } from "lucide-react";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { listSignals } from "@/lib/narrative-chamber.functions";
+import { listOppositionItems } from "@/lib/narrative/opposition-intake.functions";
 import { AddSignalDialog } from "@/components/narrative/AddSignalDialog";
 import { SignalTriageRail } from "@/components/narrative/SignalTriageRail";
+import { OppositionRail } from "@/components/narrative/opposition/OppositionRail";
 import { CoverageBadge } from "@/components/narrative/CoverageBadge";
 
 

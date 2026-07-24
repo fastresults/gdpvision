@@ -112,9 +112,11 @@ import { Route as AuthenticatedAdminCountriesCodePersonasSegmentsRouteImport } f
 import { Route as AuthenticatedAdminCountriesCodePersonasBlueprintRouteImport } from './routes/_authenticated/admin/countries.$code.personas.blueprint'
 import { Route as AuthenticatedAdminCountriesCodePersonasIdRouteImport } from './routes/_authenticated/admin/countries.$code.personas.$id'
 import { Route as AuthenticatedAdminCountriesCodeNarrativeLibraryRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.library'
+import { Route as AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.opposition.index'
 import { Route as AuthenticatedAdminCountriesCodeStudioThreatsIdRouteImport } from './routes/_authenticated/admin/countries.$code.studio.threats.$id'
 import { Route as AuthenticatedAdminCountriesCodePersonasStudiesIdRouteImport } from './routes/_authenticated/admin/countries.$code.personas.studies.$id'
 import { Route as AuthenticatedAdminCountriesCodeNarrativeSignalIdRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.signal.$id'
+import { Route as AuthenticatedAdminCountriesCodeNarrativeOppositionIdRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.opposition.$id'
 import { Route as AuthenticatedAdminCountriesCodeCabinetSessionSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.session.$sid'
 import { Route as AuthenticatedAdminCountriesCodeCabinetMinutesSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.minutes.$sid'
 import { Route as AuthenticatedAdminCountriesCodeCabinetAgendaSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.agenda.$sid'
@@ -718,6 +720,12 @@ const AuthenticatedAdminCountriesCodeNarrativeLibraryRoute =
     path: '/library',
     getParentRoute: () => AuthenticatedAdminCountriesCodeNarrativeRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRoute =
+  AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRouteImport.update({
+    id: '/opposition/',
+    path: '/opposition/',
+    getParentRoute: () => AuthenticatedAdminCountriesCodeNarrativeRoute,
+  } as any)
 const AuthenticatedAdminCountriesCodeStudioThreatsIdRoute =
   AuthenticatedAdminCountriesCodeStudioThreatsIdRouteImport.update({
     id: '/threats/$id',
@@ -734,6 +742,12 @@ const AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute =
   AuthenticatedAdminCountriesCodeNarrativeSignalIdRouteImport.update({
     id: '/signal/$id',
     path: '/signal/$id',
+    getParentRoute: () => AuthenticatedAdminCountriesCodeNarrativeRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodeNarrativeOppositionIdRoute =
+  AuthenticatedAdminCountriesCodeNarrativeOppositionIdRouteImport.update({
+    id: '/opposition/$id',
+    path: '/opposition/$id',
     getParentRoute: () => AuthenticatedAdminCountriesCodeNarrativeRoute,
   } as any)
 const AuthenticatedAdminCountriesCodeCabinetSessionSidRoute =
@@ -861,9 +875,11 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/cabinet/agenda/$sid': typeof AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute
   '/admin/countries/$code/cabinet/minutes/$sid': typeof AuthenticatedAdminCountriesCodeCabinetMinutesSidRoute
   '/admin/countries/$code/cabinet/session/$sid': typeof AuthenticatedAdminCountriesCodeCabinetSessionSidRoute
+  '/admin/countries/$code/narrative/opposition/$id': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIdRoute
   '/admin/countries/$code/narrative/signal/$id': typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute
   '/admin/countries/$code/personas/studies/$id': typeof AuthenticatedAdminCountriesCodePersonasStudiesIdRoute
   '/admin/countries/$code/studio/threats/$id': typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRoute
+  '/admin/countries/$code/narrative/opposition/': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -962,9 +978,11 @@ export interface FileRoutesByTo {
   '/admin/countries/$code/cabinet/agenda/$sid': typeof AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute
   '/admin/countries/$code/cabinet/minutes/$sid': typeof AuthenticatedAdminCountriesCodeCabinetMinutesSidRoute
   '/admin/countries/$code/cabinet/session/$sid': typeof AuthenticatedAdminCountriesCodeCabinetSessionSidRoute
+  '/admin/countries/$code/narrative/opposition/$id': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIdRoute
   '/admin/countries/$code/narrative/signal/$id': typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute
   '/admin/countries/$code/personas/studies/$id': typeof AuthenticatedAdminCountriesCodePersonasStudiesIdRoute
   '/admin/countries/$code/studio/threats/$id': typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRoute
+  '/admin/countries/$code/narrative/opposition': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1074,9 +1092,11 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/cabinet/agenda/$sid': typeof AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute
   '/_authenticated/admin/countries/$code/cabinet/minutes/$sid': typeof AuthenticatedAdminCountriesCodeCabinetMinutesSidRoute
   '/_authenticated/admin/countries/$code/cabinet/session/$sid': typeof AuthenticatedAdminCountriesCodeCabinetSessionSidRoute
+  '/_authenticated/admin/countries/$code/narrative/opposition/$id': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIdRoute
   '/_authenticated/admin/countries/$code/narrative/signal/$id': typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute
   '/_authenticated/admin/countries/$code/personas/studies/$id': typeof AuthenticatedAdminCountriesCodePersonasStudiesIdRoute
   '/_authenticated/admin/countries/$code/studio/threats/$id': typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRoute
+  '/_authenticated/admin/countries/$code/narrative/opposition/': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1186,9 +1206,11 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/cabinet/agenda/$sid'
     | '/admin/countries/$code/cabinet/minutes/$sid'
     | '/admin/countries/$code/cabinet/session/$sid'
+    | '/admin/countries/$code/narrative/opposition/$id'
     | '/admin/countries/$code/narrative/signal/$id'
     | '/admin/countries/$code/personas/studies/$id'
     | '/admin/countries/$code/studio/threats/$id'
+    | '/admin/countries/$code/narrative/opposition/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1287,9 +1309,11 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/cabinet/agenda/$sid'
     | '/admin/countries/$code/cabinet/minutes/$sid'
     | '/admin/countries/$code/cabinet/session/$sid'
+    | '/admin/countries/$code/narrative/opposition/$id'
     | '/admin/countries/$code/narrative/signal/$id'
     | '/admin/countries/$code/personas/studies/$id'
     | '/admin/countries/$code/studio/threats/$id'
+    | '/admin/countries/$code/narrative/opposition'
   id:
     | '__root__'
     | '/'
@@ -1398,9 +1422,11 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/countries/$code/cabinet/agenda/$sid'
     | '/_authenticated/admin/countries/$code/cabinet/minutes/$sid'
     | '/_authenticated/admin/countries/$code/cabinet/session/$sid'
+    | '/_authenticated/admin/countries/$code/narrative/opposition/$id'
     | '/_authenticated/admin/countries/$code/narrative/signal/$id'
     | '/_authenticated/admin/countries/$code/personas/studies/$id'
     | '/_authenticated/admin/countries/$code/studio/threats/$id'
+    | '/_authenticated/admin/countries/$code/narrative/opposition/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -2140,6 +2166,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRouteImport
       parentRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRoute
     }
+    '/_authenticated/admin/countries/$code/narrative/opposition/': {
+      id: '/_authenticated/admin/countries/$code/narrative/opposition/'
+      path: '/opposition'
+      fullPath: '/admin/countries/$code/narrative/opposition/'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRoute
+    }
     '/_authenticated/admin/countries/$code/studio/threats/$id': {
       id: '/_authenticated/admin/countries/$code/studio/threats/$id'
       path: '/threats/$id'
@@ -2159,6 +2192,13 @@ declare module '@tanstack/react-router' {
       path: '/signal/$id'
       fullPath: '/admin/countries/$code/narrative/signal/$id'
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRoute
+    }
+    '/_authenticated/admin/countries/$code/narrative/opposition/$id': {
+      id: '/_authenticated/admin/countries/$code/narrative/opposition/$id'
+      path: '/opposition/$id'
+      fullPath: '/admin/countries/$code/narrative/opposition/$id'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIdRouteImport
       parentRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRoute
     }
     '/_authenticated/admin/countries/$code/cabinet/session/$sid': {
@@ -2188,7 +2228,9 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedAdminCountriesCodeNarrativeRouteChildren {
   AuthenticatedAdminCountriesCodeNarrativeLibraryRoute: typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRoute
   AuthenticatedAdminCountriesCodeNarrativeIndexRoute: typeof AuthenticatedAdminCountriesCodeNarrativeIndexRoute
+  AuthenticatedAdminCountriesCodeNarrativeOppositionIdRoute: typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIdRoute
   AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute: typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute
+  AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRoute: typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRoute
 }
 
 const AuthenticatedAdminCountriesCodeNarrativeRouteChildren: AuthenticatedAdminCountriesCodeNarrativeRouteChildren =
@@ -2197,8 +2239,12 @@ const AuthenticatedAdminCountriesCodeNarrativeRouteChildren: AuthenticatedAdminC
       AuthenticatedAdminCountriesCodeNarrativeLibraryRoute,
     AuthenticatedAdminCountriesCodeNarrativeIndexRoute:
       AuthenticatedAdminCountriesCodeNarrativeIndexRoute,
+    AuthenticatedAdminCountriesCodeNarrativeOppositionIdRoute:
+      AuthenticatedAdminCountriesCodeNarrativeOppositionIdRoute,
     AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute:
       AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute,
+    AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRoute:
+      AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRoute,
   }
 
 const AuthenticatedAdminCountriesCodeNarrativeRouteWithChildren =

@@ -1,0 +1,1 @@
+ALTER TABLE public.opposition_items ADD COLUMN IF NOT EXISTS submitter_context text;

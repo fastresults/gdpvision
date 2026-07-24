@@ -4137,6 +4137,7 @@ export type Database = {
           storage_path: string | null
           submitted_by: string | null
           submitted_channel: string | null
+          submitter_context: string | null
           themes: Json
           title: string | null
           updated_at: string
@@ -4164,6 +4165,7 @@ export type Database = {
           storage_path?: string | null
           submitted_by?: string | null
           submitted_channel?: string | null
+          submitter_context?: string | null
           themes?: Json
           title?: string | null
           updated_at?: string
@@ -4191,6 +4193,7 @@ export type Database = {
           storage_path?: string | null
           submitted_by?: string | null
           submitted_channel?: string | null
+          submitter_context?: string | null
           themes?: Json
           title?: string | null
           updated_at?: string

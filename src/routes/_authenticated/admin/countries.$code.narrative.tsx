@@ -49,7 +49,10 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/narr
 function NarrativeLayout() {
   const { code } = Route.useParams();
   const { data: signals } = useSuspenseQuery(signalsQuery(code));
+  const { data: oppositionItems } = useSuspenseQuery(oppositionQuery(code));
   const params = useParams({ strict: false }) as { id?: string };
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const mode: "opposition" | "signals" = pathname.includes("/narrative/opposition") ? "opposition" : "signals";
 
   return (
     <SuperAdminShell

@@ -19,6 +19,8 @@ export interface OppositionItem {
   mime_type: string | null;
   raw_text: string | null;
   submitted_channel: string | null;
+  submitter_context: string | null;
+
   status: OppositionStatus;
   status_error: string | null;
   motivation_summary: string | null;
@@ -71,7 +73,7 @@ export const listOppositionItems = createServerFn({ method: "GET" })
     const { data: rows, error } = await context.supabase
       .from("opposition_items")
       .select(
-        "id,country_code,kind,title,source_url,storage_path,mime_type,raw_text,submitted_channel,status,status_error,motivation_summary,origin_summary,amplification,themes,severity,sentiment,confidence_grade,citations,visibility,created_at,updated_at",
+        "id,country_code,kind,title,source_url,storage_path,mime_type,raw_text,submitted_channel,submitter_context,status,status_error,motivation_summary,origin_summary,amplification,themes,severity,sentiment,confidence_grade,citations,visibility,created_at,updated_at",
       )
       .eq("country_code", data.countryCode)
       .neq("status", "archived")
@@ -143,7 +145,9 @@ const CreateInput = z.object({
   mimeType: z.string().optional(),
   rawText: z.string().max(20_000).optional(),
   submittedChannel: z.string().max(60).optional(),
+  submitterContext: z.string().max(8_000).optional(),
 });
+
 
 export const createOppositionItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -165,10 +169,12 @@ export const createOppositionItem = createServerFn({ method: "POST" })
           raw_text: data.rawText ?? null,
           submitted_by: context.userId,
           submitted_channel: data.submittedChannel ?? null,
+          submitter_context: data.submitterContext ?? null,
           status: "queued",
           owner_country_code: data.countryCode,
           uploaded_by: context.userId,
           visibility: "private",
+
         },
         { onConflict: "country_code,coalesce", ignoreDuplicates: false },
       )
@@ -188,11 +194,13 @@ export const createOppositionItem = createServerFn({ method: "POST" })
           raw_text: data.rawText ?? null,
           submitted_by: context.userId,
           submitted_channel: data.submittedChannel ?? null,
+          submitter_context: data.submitterContext ?? null,
           status: "queued",
           owner_country_code: data.countryCode,
           uploaded_by: context.userId,
           visibility: "private",
         })
+
         .select("id")
         .single();
       if (e2) throw new Error(e2.message);

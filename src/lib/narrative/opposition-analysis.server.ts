@@ -30,7 +30,7 @@ async function callGateway(body: unknown): Promise<string> {
 
 // ─── 1) Extract raw_text from image / doc / url / text ────────────────────
 
-async function extractFromImage(base64: string, mime: string): Promise<string> {
+async function extractFromImage(base64: string, mime: string, submitterContext?: string): Promise<string> {
   return callGateway({
     model: "google/gemini-2.5-flash",
     temperature: 0.1,
@@ -38,18 +38,24 @@ async function extractFromImage(base64: string, mime: string): Promise<string> {
       {
         role: "system",
         content:
-          "You are an OSINT analyst. Transcribe every visible text verbatim, then describe key visuals (people, symbols, memes, watermarks, hashtags). Note the visual tone (mocking, angry, celebratory, misleading).",
+          "You are an OSINT analyst. Transcribe every visible text verbatim, then describe key visuals (people, symbols, memes, watermarks, hashtags). Note the visual tone (mocking, angry, celebratory, misleading). If the submitter brief names specific people, roles, or events depicted, use those identifications in your description — do not guess or substitute other names.",
       },
       {
         role: "user",
         content: [
-          { type: "text", text: "Extract ALL text and describe the visual composition." },
+          {
+            type: "text",
+            text: submitterContext
+              ? `Submitter brief (authoritative context on who/what is depicted):\n${submitterContext.slice(0, 2000)}\n\nExtract ALL text and describe the visual composition, honoring the brief for named people/events.`
+              : "Extract ALL text and describe the visual composition.",
+          },
           { type: "image_url", image_url: { url: `data:${mime};base64,${base64}` } },
         ],
       },
     ],
   });
 }
+
 
 async function extractFromDocument(base64: string, mime: string, filename: string): Promise<string> {
   return callGateway({
@@ -79,9 +85,11 @@ export async function extractRawText(
     mime_type: string | null;
     source_url: string | null;
     raw_text: string | null;
+    submitter_context?: string | null;
   },
 ): Promise<string> {
   if (row.raw_text && row.raw_text.trim().length > 20) return row.raw_text;
+  const ctx = row.submitter_context ?? undefined;
 
   if (row.storage_path) {
     const { data: file, error } = await supabase.storage
@@ -91,7 +99,7 @@ export async function extractRawText(
     const mime = (row.mime_type || "application/octet-stream").toLowerCase();
     const buf = Buffer.from(await file.arrayBuffer());
     const base64 = buf.toString("base64");
-    if (mime.startsWith("image/")) return extractFromImage(base64, mime);
+    if (mime.startsWith("image/")) return extractFromImage(base64, mime, ctx);
     if (mime.startsWith("text/")) return buf.toString("utf-8").slice(0, 20_000);
     return extractFromDocument(base64, mime || "application/pdf", row.storage_path.split("/").pop() ?? "file");
   }
@@ -103,6 +111,7 @@ export async function extractRawText(
 
   return row.raw_text ?? "";
 }
+
 
 // ─── 2) Motivation pass ───────────────────────────────────────────────────
 
@@ -132,21 +141,26 @@ export async function analyzeMotivation(opts: {
   countryCode: string;
   rawText: string;
   brainContext?: string;
+  submitterContext?: string;
 }): Promise<MotivationAnalysis> {
   const user = [
     `Country: ${opts.countryCode}`,
     "",
+    opts.submitterContext
+      ? `Submitter brief (context from the comms team who uploaded this — treat as authoritative on who/what/when depicted):\n${opts.submitterContext.slice(0, 3000)}\n`
+      : "",
     "Opposition content:",
     opts.rawText.slice(0, 8000),
     "",
     opts.brainContext ? `Relevant national context (Second Brain):\n${opts.brainContext.slice(0, 4000)}` : "",
     "",
     "Task: Return a strict JSON object per the schema.",
-    "- motivation_summary: 2-3 sentences. What message is this opposition content trying to plant, and against whom?",
+    "- motivation_summary: 2-3 sentences. What message is this opposition content trying to plant, and against whom? Anchor named people/roles to the submitter brief when provided (do not confuse current officeholders with predecessors).",
     "- themes: 3-6 tags (e.g. 'cost-of-living', 'corruption-narrative', 'ethnic-wedge').",
     "- severity 1-5 (5 = imminent political damage), sentiment -2..+2 (-2 = maximally hostile to government).",
     "- confidence_grade A/B/C/D based on source clarity and grounding.",
   ].filter(Boolean).join("\n");
+
 
   const res = await callSonar({
     model: "sonar-reasoning-pro",
@@ -208,6 +222,7 @@ export async function analyzeOrigin(opts: {
   rawText: string;
   motivationSummary: string;
   oppositionPartyNames: string[];
+  submitterContext?: string;
 }): Promise<OriginAnalysis> {
   const partyHints = opts.oppositionPartyNames.length
     ? `Known opposition parties in-country: ${opts.oppositionPartyNames.join("; ")}.`
@@ -216,6 +231,9 @@ export async function analyzeOrigin(opts: {
     `Country: ${opts.countryCode}`,
     partyHints,
     "",
+    opts.submitterContext
+      ? `Submitter brief (authoritative on who/what/when depicted):\n${opts.submitterContext.slice(0, 2000)}\n`
+      : "",
     "Motivation summary of the content:",
     opts.motivationSummary,
     "",
@@ -230,6 +248,7 @@ export async function analyzeOrigin(opts: {
     "- amplification.similar_recent_posts: up to 5 URLs showing the same framing in the last 30 days.",
     "- amplification.platforms: list of platforms where this narrative is currently active.",
   ].filter(Boolean).join("\n");
+
 
   const res = await callSonar({
     model: "sonar-reasoning-pro",
@@ -313,10 +332,14 @@ export async function generatePlan(opts: {
   rulingPartyLine?: string;
   manifestoPledges?: string;
   recentToneSamples?: string;
+  submitterContext?: string;
 }): Promise<ResponsePlan> {
   const user = [
     `Country: ${opts.countryCode}`,
     "",
+    opts.submitterContext
+      ? `Submitter brief from the comms team (authoritative context — treat as ground truth on who/what/when/where is depicted):\n${opts.submitterContext.slice(0, 3000)}\n`
+      : "",
     "Opposition motivation:",
     opts.motivationSummary,
     "",
@@ -330,7 +353,8 @@ export async function generatePlan(opts: {
     opts.manifestoPledges ? `Manifesto pledges to anchor to:\n${opts.manifestoPledges.slice(0, 2000)}` : "",
     opts.recentToneSamples ? `Recent published tone samples:\n${opts.recentToneSamples.slice(0, 1500)}` : "",
     "",
-    "Task: Draft a counter-campaign response plan. Return strict JSON per schema.",
+    "Task: Draft a counter-campaign response plan tailored to the submitter's brief. Return strict JSON per schema.",
+
     "- posture: ignore | clarify | counter | escalate. Pick the smallest response that neutralises the threat.",
     "- objective: one crisp sentence.",
     "- key_messages: 3-5 audience-tailored talking points, each grounded in the ruling party's own record and pledges.",

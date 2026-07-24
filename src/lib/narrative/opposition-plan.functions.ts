@@ -148,3 +148,112 @@ export const generateOppositionResponsePlan = createServerFn({ method: "POST" })
     if (pErr) throw new Error(pErr.message);
     return { id: saved.id };
   });
+
+// ─── Publish the plan to the Comms Library as a draft ────────────────────
+
+function firstChannelKind(channel: string | undefined): "press_release" | "op_ed" | "briefing" | "speech" | "social" | "memo" {
+  const c = (channel ?? "").toLowerCase();
+  if (/whatsapp|sms|telegram|tiktok|x|twitter|facebook|instagram|social/.test(c)) return "social";
+  if (/press|newswire|release/.test(c)) return "press_release";
+  if (/op[-\s]?ed|opinion/.test(c)) return "op_ed";
+  if (/speech|address|remarks/.test(c)) return "speech";
+  if (/brief/.test(c)) return "briefing";
+  return "memo";
+}
+
+function renderPlanMarkdown(plan: {
+  posture: string | null;
+  objective: string | null;
+  key_messages: unknown;
+  audience_segments: unknown;
+  channel_plan: unknown;
+  sequenced_actions: unknown;
+  risks: unknown;
+  success_metrics: unknown;
+  citations: unknown;
+}, itemTitle: string) {
+  const km = Array.isArray(plan.key_messages) ? (plan.key_messages as Array<{ audience?: string; message: string }>) : [];
+  const cp = Array.isArray(plan.channel_plan) ? (plan.channel_plan as Array<{ channel: string; cadence?: string; artifact_kind: string }>) : [];
+  const sa = Array.isArray(plan.sequenced_actions) ? (plan.sequenced_actions as Array<{ when: string; action: string; owner?: string }>) : [];
+  const risks = Array.isArray(plan.risks) ? (plan.risks as string[]) : [];
+  const metrics = Array.isArray(plan.success_metrics) ? (plan.success_metrics as string[]) : [];
+  const aud = Array.isArray(plan.audience_segments) ? (plan.audience_segments as string[]) : [];
+  const cites = Array.isArray(plan.citations) ? (plan.citations as string[]) : [];
+
+  const lines: string[] = [];
+  lines.push(`# Counter-campaign — ${itemTitle}`);
+  if (plan.posture) lines.push(`**Posture:** ${plan.posture}`);
+  if (plan.objective) lines.push(`\n${plan.objective}\n`);
+  if (aud.length) lines.push(`**Audiences:** ${aud.join(" · ")}`);
+  if (km.length) {
+    lines.push(`\n## Key messages`);
+    for (const m of km) lines.push(`- ${m.audience ? `**[${m.audience}]** ` : ""}${m.message}`);
+  }
+  if (sa.length) {
+    lines.push(`\n## Sequenced actions`);
+    for (const a of sa) lines.push(`- **${a.when}** — ${a.action}${a.owner ? ` _(${a.owner})_` : ""}`);
+  }
+  if (cp.length) {
+    lines.push(`\n## Channel plan`);
+    lines.push(`| Channel | Cadence | Artifact |`);
+    lines.push(`| --- | --- | --- |`);
+    for (const c of cp) lines.push(`| ${c.channel} | ${c.cadence ?? "—"} | ${c.artifact_kind} |`);
+  }
+  if (risks.length) {
+    lines.push(`\n## Risks`);
+    for (const r of risks) lines.push(`- ${r}`);
+  }
+  if (metrics.length) {
+    lines.push(`\n## Success metrics`);
+    for (const r of metrics) lines.push(`- ${r}`);
+  }
+  if (cites.length) {
+    lines.push(`\n## Sources`);
+    cites.slice(0, 20).forEach((u, i) => lines.push(`${i + 1}. ${u}`));
+  }
+  return lines.join("\n");
+}
+
+export const publishOppositionPlanToComms = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ itemId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: item, error: iErr } = await context.supabase
+      .from("opposition_items")
+      .select("id,country_code,title")
+      .eq("id", data.itemId)
+      .single();
+    if (iErr || !item) throw new Error(iErr?.message ?? "Intake not found.");
+
+    const { data: plan, error: pErr } = await context.supabase
+      .from("opposition_response_plans")
+      .select("posture,objective,key_messages,audience_segments,channel_plan,sequenced_actions,risks,success_metrics,citations")
+      .eq("item_id", data.itemId)
+      .maybeSingle();
+    if (pErr) throw new Error(pErr.message);
+    if (!plan) throw new Error("Draft a counter-campaign first.");
+
+    const cp = Array.isArray(plan.channel_plan) ? (plan.channel_plan as Array<{ channel: string; cadence?: string; artifact_kind: string }>) : [];
+    const aud = Array.isArray(plan.audience_segments) ? (plan.audience_segments as string[]) : [];
+    const primaryChannel = cp[0]?.channel ?? "cross-channel";
+    const kind = firstChannelKind(primaryChannel);
+    const audience = aud[0] ?? "General public";
+    const body = renderPlanMarkdown(plan as never, item.title ?? "Opposition intake");
+
+    const { data: row, error: cErr } = await context.supabase
+      .from("comms_artifacts")
+      .insert({
+        scope_key: item.country_code,
+        strategy_id: null,
+        kind,
+        audience,
+        channel: primaryChannel,
+        body,
+        draft_state: "draft",
+        created_by: context.userId,
+      })
+      .select("id")
+      .single();
+    if (cErr) throw new Error(cErr.message);
+    return { id: row.id as string };
+  });

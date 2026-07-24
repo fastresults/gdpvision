@@ -143,7 +143,9 @@ const CreateInput = z.object({
   mimeType: z.string().optional(),
   rawText: z.string().max(20_000).optional(),
   submittedChannel: z.string().max(60).optional(),
+  submitterContext: z.string().max(8_000).optional(),
 });
+
 
 export const createOppositionItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

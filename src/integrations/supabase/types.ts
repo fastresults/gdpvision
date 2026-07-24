@@ -1281,6 +1281,153 @@ export type Database = {
           },
         ]
       }
+      country_manifestos: {
+        Row: {
+          citations: Json
+          confidence_grade: string | null
+          country_code: string
+          created_at: string
+          election_cycle: string
+          id: string
+          owner_country_code: string | null
+          party_id: string
+          pledges: Json
+          source_document_id: string | null
+          source_url: string | null
+          summary: string | null
+          themes: Json
+          title: string | null
+          updated_at: string
+          uploaded_by: string | null
+          visibility: string
+        }
+        Insert: {
+          citations?: Json
+          confidence_grade?: string | null
+          country_code: string
+          created_at?: string
+          election_cycle: string
+          id?: string
+          owner_country_code?: string | null
+          party_id: string
+          pledges?: Json
+          source_document_id?: string | null
+          source_url?: string | null
+          summary?: string | null
+          themes?: Json
+          title?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Update: {
+          citations?: Json
+          confidence_grade?: string | null
+          country_code?: string
+          created_at?: string
+          election_cycle?: string
+          id?: string
+          owner_country_code?: string | null
+          party_id?: string
+          pledges?: Json
+          source_document_id?: string | null
+          source_url?: string | null
+          summary?: string | null
+          themes?: Json
+          title?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "country_manifestos_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "country_parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "country_manifestos_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "country_source_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      country_parties: {
+        Row: {
+          abbreviation: string | null
+          coalition_role: string | null
+          confidence_grade: string | null
+          country_code: string
+          created_at: string
+          founded_year: number | null
+          id: string
+          ideology: string | null
+          is_ruling: boolean
+          last_election_date: string | null
+          leader_name: string | null
+          leader_role: string | null
+          name: string
+          owner_country_code: string | null
+          seats_current: number | null
+          seats_total: number | null
+          source_urls: Json
+          updated_at: string
+          uploaded_by: string | null
+          visibility: string
+          vote_share_pct: number | null
+        }
+        Insert: {
+          abbreviation?: string | null
+          coalition_role?: string | null
+          confidence_grade?: string | null
+          country_code: string
+          created_at?: string
+          founded_year?: number | null
+          id?: string
+          ideology?: string | null
+          is_ruling?: boolean
+          last_election_date?: string | null
+          leader_name?: string | null
+          leader_role?: string | null
+          name: string
+          owner_country_code?: string | null
+          seats_current?: number | null
+          seats_total?: number | null
+          source_urls?: Json
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+          vote_share_pct?: number | null
+        }
+        Update: {
+          abbreviation?: string | null
+          coalition_role?: string | null
+          confidence_grade?: string | null
+          country_code?: string
+          created_at?: string
+          founded_year?: number | null
+          id?: string
+          ideology?: string | null
+          is_ruling?: boolean
+          last_election_date?: string | null
+          leader_name?: string | null
+          leader_role?: string | null
+          name?: string
+          owner_country_code?: string | null
+          seats_current?: number | null
+          seats_total?: number | null
+          source_urls?: Json
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+          vote_share_pct?: number | null
+        }
+        Relationships: []
+      }
       country_sectors: {
         Row: {
           confidence_grade: string
@@ -4010,6 +4157,101 @@ export type Database = {
           summary?: string | null
           target_gap_pct?: number | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      party_backfill_country_runs: {
+        Row: {
+          attempted: number
+          country_code: string
+          created_at: string
+          details: Json
+          error: string | null
+          finished_at: string | null
+          id: string
+          manifesto_ingested: boolean
+          parties_upserted: number
+          ruling_flagged: boolean
+          run_id: string
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          attempted?: number
+          country_code: string
+          created_at?: string
+          details?: Json
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          manifesto_ingested?: boolean
+          parties_upserted?: number
+          ruling_flagged?: boolean
+          run_id: string
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          attempted?: number
+          country_code?: string
+          created_at?: string
+          details?: Json
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          manifesto_ingested?: boolean
+          parties_upserted?: number
+          ruling_flagged?: boolean
+          run_id?: string
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "party_backfill_country_runs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "party_backfill_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      party_backfill_runs: {
+        Row: {
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          heartbeat_at: string | null
+          id: string
+          params: Json
+          requested_by: string | null
+          started_at: string | null
+          status: string
+          totals: Json
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          heartbeat_at?: string | null
+          id?: string
+          params?: Json
+          requested_by?: string | null
+          started_at?: string | null
+          status?: string
+          totals?: Json
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          heartbeat_at?: string | null
+          id?: string
+          params?: Json
+          requested_by?: string | null
+          started_at?: string | null
+          status?: string
+          totals?: Json
         }
         Relationships: []
       }

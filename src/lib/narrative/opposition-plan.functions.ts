@@ -70,11 +70,15 @@ export const analyzeOppositionItem = createServerFn({ method: "POST" })
       // Seed a private memory for the Second Brain
       await context.supabase.from("memory_objects").insert({
         scope_key: row.country_code,
+        sector_code: "cross",
         kind: "threat",
         title: `Opposition narrative — ${motivation.themes.slice(0, 2).join(" / ") || "unspecified"}`,
-        summary: motivation.motivation_summary,
-        detail: toJson({ origin: origin.origin_summary, amplification: origin.amplification }),
-        source_urls: toJson(combinedCitations),
+        payload: toJson({
+          motivation_summary: motivation.motivation_summary,
+          origin_summary: origin.origin_summary,
+          amplification: origin.amplification,
+          citations: combinedCitations,
+        }),
         verified: false,
         visibility: "private",
         owner_country_code: row.country_code,

@@ -15,9 +15,16 @@ import {
   listMinisterBackfillRuns,
   startMinisterBackfill,
 } from "@/lib/country-onboarding/minister-backfill.functions";
+import {
+  cancelPartyBackfillRun,
+  getPartyBackfillRun,
+  listPartyBackfillRuns,
+  startPartyBackfill,
+} from "@/lib/country-onboarding/party-backfill.functions";
 import { ONBOARDING_STAGES } from "@/lib/country-onboarding/stages";
 
 const BACKFILL_RUN_LS_KEY = "minister-backfill:active-run-id";
+const PARTY_BACKFILL_RUN_LS_KEY = "party-backfill:active-run-id";
 
 const STAGES = ONBOARDING_STAGES.map((s, i) => ({
   key: s.key,

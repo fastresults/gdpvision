@@ -1,34 +1,83 @@
-# Fix: Ask citations and re-asking broken on mobile after an answer
 
-## Root causes (verified in `src/components/ledger/AskTheLedger.tsx` and `src/components/citations/CitationSup.tsx`)
+## Goal
 
-1. **Citations open on hover only.** The inline `[N]` chip is `CitationRef` (lines 692–720), which drives Radix `Popover` open state from `onMouseEnter`/`onMouseLeave`/`onFocus`/`onBlur`. On touch devices these events fire as a synthetic pair on tap and immediately close the popover — the card flashes and disappears, and there is no "Details" affordance to open the full modal. `CitationRow` in the sources list (lines 722–741) is a Popover trigger too, with no dialog path. The nicer `CitationSup` component (which has a proper `onClick` → `Dialog` modal) is not used here.
+Add a **separate, admin-triggered routine** that runs across all 22 countries and, for each one, performs deep AI + open-web research to capture:
 
-2. **Composer unreachable after a long answer on mobile.** The mobile panel is `fixed inset-x-0 top-0 z-40` with `bottom: calc(64px + env(safe-area-inset-bottom))` (line 351). Once results, citation list, ExpandActions and (optionally) ArtifactPanel render, the body scroller grows, but the real killer is the iOS keyboard: fixed panels do not shrink with `visualViewport`, so tapping the textarea slides the composer under the keyboard, and any tap outside the textarea (like a citation chip) is intercepted by the keyboard region rather than the trigger.
+1. The full set of **political parties** currently active in the country.
+2. A **flag on which party (or coalition) is in power**.
+3. The **ruling party's manifesto** (latest election platform / programme of government), ingested into the country's Second Brain corpus.
 
-3. **Nested `role="dialog" aria-modal="true"` on the mobile panel** (line 351) plus a Radix `Dialog` opened from within it can cause Radix's focus/inert handling to fight our custom modal wrapper, occasionally freezing pointer events on the panel after close.
+It reuses the proven minister-backfill pattern (persistent job rows, per-country child runs, browser-driven retry loop, admin gating) so it is idempotent, resumable, and never blocks the request thread.
 
-## Changes
+## User-facing behaviour
 
-### A. Tap-first citations (primary fix)
-- Replace inline `CitationRef` and `CitationRow` inside `AskTheLedger.tsx` with the shared `CitationSup` / a new `CitationSourceRow` that both open the existing `Dialog` in `src/components/citations/CitationSup.tsx` on click. Keep hover preview on desktop via `HoverCard` (already inside `CitationSup`), but the click always opens the modal — works identically on touch.
-- Update `renderCitations()` (line 621) to render `<CitationSup n={n} citation={mapToCitationRef(cite)} />`. Map `FigureCitation` → `CitationRef` (n, url, title, org, kind, excerpt, published_at).
-- Rewrite the sources list at lines 535–543 to use a row component that renders `CitationSup` (or a button that opens the same `Dialog`) so tapping a source in the list opens the details modal instead of a hover-only popover.
+- New admin card on `/admin/countries` next to the existing "Backfill ministers" control: **"Backfill political parties & manifestos"** with Start / Resume / View progress actions.
+- Progress rail shows attempted / succeeded / failed per country, plus a live counter of parties captured and manifestos ingested.
+- Per-country page (`/admin/countries/$code/data`) gets a **Parties** panel: list of parties (name, abbreviation, leader, ideology, seats, ruling flag) and a **Manifesto** card linking to the corpus source + chunks.
 
-### B. Mobile panel: keep composer reachable
-- Remove `role="dialog" aria-modal="true"` from the mobile panel wrapper (line 351). It is a page-level surface, not a modal, and it interferes with Radix Dialog. Keep the fixed positioning and z-index.
-- Track `window.visualViewport` height in a small effect and set the panel's `bottom` to `max(tabBarGap, window.innerHeight - visualViewport.height + tabBarGap)` so the composer rides above the iOS keyboard.
-- Add `scroll-padding-bottom` to the scroll container equal to composer height so the last message is never hidden behind the composer.
+## Data model (one migration)
 
-### C. Small hardening
-- In the citation modal path, stop the tap from bubbling into the underlying `AskTheLedger` panel (add `onPointerDownOutside`/`onInteractOutside` no-op only if we see the panel absorbing focus in QA — otherwise leave default).
-- Keep `defaultOpen` behavior for `/console/:code/ask` unchanged.
+New public tables — same GRANT + RLS shape as `ministry_profiles`:
 
-## Files touched
-- `src/components/ledger/AskTheLedger.tsx` — swap `CitationRef`/`CitationRow` for click-to-modal citations; remove `role/aria-modal` on the mobile wrapper; add visualViewport-aware bottom offset.
-- (No changes needed in `CitationSup.tsx`; reuse as-is.)
+- `country_parties`
+  - `id uuid pk`, `country_code text`, `name text`, `abbreviation text`, `leader_name text`, `leader_role text`, `ideology text`, `founded_year int`, `seats_current int`, `seats_total int`, `vote_share_pct numeric`, `is_ruling boolean default false`, `coalition_role text` (`lead` | `partner` | `opposition` | `minor`), `last_election_date date`, `source_urls jsonb`, `confidence_grade char(1)`, `visibility text default 'public'`, `owner_country_code text`, `uploaded_by uuid`, `updated_at`, `created_at`
+  - Unique `(country_code, lower(name))`; partial unique on `(country_code) where is_ruling and coalition_role = 'lead'` to guarantee exactly one lead ruling party.
+- `country_manifestos`
+  - `id uuid pk`, `country_code text`, `party_id uuid fk`, `election_cycle text` (e.g. `2024`), `title text`, `summary text`, `themes jsonb`, `pledges jsonb` (array of `{theme, pledge, sector_code?, kpi_hint?}`), `source_url text`, `source_document_id uuid fk country_source_documents`, `citations jsonb`, `confidence_grade char(1)`, `visibility text default 'public'`, timestamps.
+  - Unique `(country_code, party_id, election_cycle)`.
+- `party_backfill_runs` + `party_backfill_country_runs` — mirror the two minister-backfill tables (status, counters, error, heartbeat_at).
 
-## Verification
-- On the `/console/ATG/ask` mobile viewport (393×852), ask a question, wait for citations, tap `[1]` → the source **Dialog** opens, "Open source" link works, closing the dialog returns focus to the panel.
-- After the answer renders, tap the composer → keyboard opens, composer stays visible, typing and Send work; tap another citation while keyboard is open → dialog opens above keyboard.
-- Desktop right-rail unchanged: hover still previews, click opens the modal.
+RLS: admins full access; country members read where `visibility = 'public'` or `has_country_access(auth.uid(), country_code)`. Same private-ownership trigger as other corpus tables.
+
+## Research pipeline (server-only)
+
+`src/lib/country-onboarding/party-research.server.ts` — same 3-tier fallback shape as `minister-research.server.ts`.
+
+Per country, three passes, each Perplexity `sonar-reasoning-pro` with domain allowlist seeded from `country-context.server` (national gov TLD, electoral commission, parliament, IFES, IPU, Wikipedia, official party sites):
+
+1. **Parties pass** — enumerate active parties with abbreviation, leader, ideology, seat count, last election result. Structured JSON schema; reject rows without ≥1 https source_url.
+2. **Ruling-party pass** — identify the sitting government (single party or coalition), set `is_ruling` + `coalition_role`, cross-check against the ministers already captured in `ministries.minister_profile` (the ruling PM's party must match the flagged lead). Mismatch downgrades confidence to `C` and logs a `grade_alerts` row.
+3. **Manifesto pass** — for the ruling lead party, locate the most recent published manifesto / programme of government. Fetch the URL through `fetchCitationText`; if a real document is retrievable, upload to `country-sources` storage bucket, register in `country_sources` (dedup via `upsertCountrySource`), create a `country_source_documents` row, and chunk it into `country_source_chunks` with embeddings so it becomes queryable from Counsel / Ask.
+
+Each pass writes `onboarding_citations` and updates `party_backfill_country_runs.attempted/succeeded/failed`.
+
+## Orchestrator + trigger
+
+`src/lib/country-onboarding/party-backfill.functions.ts` mirrors `minister-backfill.functions.ts`:
+
+- `startPartyBackfill()` — admin-gated, creates a `party_backfill_runs` row + one `party_backfill_country_runs` per country in `country_authorized_domains` scope (default: all 22).
+- `stepPartyBackfill({ runId, batch: 1 })` — picks the next `pending`/`stale` country, runs the 3-pass pipeline, upserts `country_parties` + `country_manifestos`, writes memory objects (`kind='position'`, title = "Ruling party posture — {party}") into `memory_objects` so the party programme is discoverable by the Second Brain.
+- Heartbeat-based stale detection (10 min) so a dropped browser resumes cleanly.
+- `resumePartyBackfill()` and `cancelPartyBackfill()`.
+
+Client hook: same browser-driven loop already used for minister backfill — `useServerFn(stepPartyBackfill)` in a `while (run.status === 'running')` with abort on unmount.
+
+## Admin UI
+
+- `/admin/countries` — new "Political parties & manifestos" card: **Start**, **Resume last run**, **View progress**. Progress reuses the existing `BackfillProgressPanel` component (generalized to accept a config for label + row shape) so we don't fork the UI.
+- `/admin/countries/$code/data` — new **Parties** tab: table of parties with ruling flag; drawer per party showing leader, ideology, sources; **Manifesto** panel with themes + pledges accordion and a link that opens the ingested source in `SourceDetailSheet`.
+
+## Second Brain integration
+
+- Manifesto content becomes `country_source_chunks` so `country_chunks_search` returns it in Counsel answers.
+- One `memory_objects` row per ruling party (`scope_key='national'`, `kind='position'`, verified=true) summarising the manifesto's headline commitments — same seeding pattern as `onboarding.functions.ts::seedCountryPack`.
+- Citations flow through the standard `[N]` marker system so PrettyJson renders them clickable.
+
+## Technical details
+
+- New file layout:
+  - `supabase/migrations/<ts>_political_parties_manifestos.sql`
+  - `src/lib/country-onboarding/party-research.server.ts`
+  - `src/lib/country-onboarding/party-backfill.functions.ts`
+  - `src/components/admin/PartyBackfillPanel.tsx`
+  - `src/components/country-data/PartiesPanel.tsx`, `ManifestoPanel.tsx`
+- All server fns use `requireSupabaseAuth` + admin role check; `supabaseAdmin` only inside handler bodies (never top-level import in `.functions.ts`).
+- Idempotency: every upsert keyed on the unique indexes above; re-running a completed country updates fields in place, never duplicates.
+- Trigger surface is admin-only; no cron. A future `/api/public/hooks/party-refresh` route can be added later for scheduled refresh but is out of scope for this plan.
+- Zero changes to the seven chambers' UX; this is a corpus-enrichment routine.
+
+## Out of scope
+
+- Historical election archives beyond the latest cycle.
+- Opposition manifestos (captured as party rows only; no full-text ingest).
+- Automated re-run after each election — will be a follow-up trigger once this pipeline stabilises.

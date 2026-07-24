@@ -18,6 +18,13 @@ function signalsQuery(code: string) {
   });
 }
 
+function oppositionQuery(code: string) {
+  return queryOptions({
+    queryKey: ["opposition-items", code],
+    queryFn: () => listOppositionItems({ data: { countryCode: code } }),
+  });
+}
+
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/narrative")({
   head: ({ params }) => ({
     meta: [

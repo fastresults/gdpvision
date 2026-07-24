@@ -20,7 +20,7 @@ export const analyzeOppositionItem = createServerFn({ method: "POST" })
     const { data: row, error } = await context.supabase
       .from("opposition_items")
       .select(
-        "id,country_code,kind,storage_path,mime_type,source_url,raw_text",
+        "id,country_code,kind,storage_path,mime_type,source_url,raw_text,submitter_context",
       )
       .eq("id", data.id)
       .single();
@@ -33,11 +33,13 @@ export const analyzeOppositionItem = createServerFn({ method: "POST" })
 
     try {
       const rawText = await extractRawText(context.supabase, row);
-      const brainCtx = await fetchBrainContext(context.supabase, row.country_code, rawText.slice(0, 400));
+      const submitterContext = (row.submitter_context ?? "").trim() || undefined;
+      const brainCtx = await fetchBrainContext(context.supabase, row.country_code, `${submitterContext ?? ""} ${rawText.slice(0, 400)}`);
       const motivation = await analyzeMotivation({
         countryCode: row.country_code,
         rawText,
         brainContext: brainCtx,
+        submitterContext,
       });
       const oppositionParties = await fetchOppositionPartyNames(context.supabase, row.country_code);
       const origin = await analyzeOrigin({
@@ -45,7 +47,9 @@ export const analyzeOppositionItem = createServerFn({ method: "POST" })
         rawText,
         motivationSummary: motivation.motivation_summary,
         oppositionPartyNames: oppositionParties,
+        submitterContext,
       });
+
 
       const combinedCitations = Array.from(
         new Set([...(motivation.citations ?? []), ...(origin.citations ?? [])]),

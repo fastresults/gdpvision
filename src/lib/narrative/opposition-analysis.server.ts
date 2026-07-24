@@ -132,21 +132,26 @@ export async function analyzeMotivation(opts: {
   countryCode: string;
   rawText: string;
   brainContext?: string;
+  submitterContext?: string;
 }): Promise<MotivationAnalysis> {
   const user = [
     `Country: ${opts.countryCode}`,
     "",
+    opts.submitterContext
+      ? `Submitter brief (context from the comms team who uploaded this — treat as authoritative on who/what/when depicted):\n${opts.submitterContext.slice(0, 3000)}\n`
+      : "",
     "Opposition content:",
     opts.rawText.slice(0, 8000),
     "",
     opts.brainContext ? `Relevant national context (Second Brain):\n${opts.brainContext.slice(0, 4000)}` : "",
     "",
     "Task: Return a strict JSON object per the schema.",
-    "- motivation_summary: 2-3 sentences. What message is this opposition content trying to plant, and against whom?",
+    "- motivation_summary: 2-3 sentences. What message is this opposition content trying to plant, and against whom? Anchor named people/roles to the submitter brief when provided (do not confuse current officeholders with predecessors).",
     "- themes: 3-6 tags (e.g. 'cost-of-living', 'corruption-narrative', 'ethnic-wedge').",
     "- severity 1-5 (5 = imminent political damage), sentiment -2..+2 (-2 = maximally hostile to government).",
     "- confidence_grade A/B/C/D based on source clarity and grounding.",
   ].filter(Boolean).join("\n");
+
 
   const res = await callSonar({
     model: "sonar-reasoning-pro",

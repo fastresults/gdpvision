@@ -495,3 +495,258 @@ function MinisterBackfillPanel({ countries }: { countries: Array<{ code: string;
     </details>
   );
 }
+
+function PartyBackfillPanel({ countries }: { countries: Array<{ code: string; name: string }> }) {
+  const start = useServerFn(startPartyBackfill);
+  const fetchRun = useServerFn(getPartyBackfillRun);
+  const cancel = useServerFn(cancelPartyBackfillRun);
+  const fetchHistory = useServerFn(listPartyBackfillRuns);
+
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [force, setForce] = useState(false);
+  const [dryRun, setDryRun] = useState(true);
+  const [runId, setRunId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return window.localStorage.getItem(PARTY_BACKFILL_RUN_LS_KEY);
+  });
+  const [error, setError] = useState<string | null>(null);
+
+  const runQ = useQuery({
+    queryKey: ["party-backfill-run", runId],
+    queryFn: () => fetchRun({ data: { run_id: runId! } }),
+    enabled: !!runId,
+    refetchInterval: (q) => {
+      const status = (q.state.data as any)?.run?.status;
+      return status && ["queued", "running"].includes(status) ? 3000 : false;
+    },
+  });
+
+  const historyQ = useQuery({
+    queryKey: ["party-backfill-history"],
+    queryFn: () => fetchHistory({ data: { limit: 10 } }),
+    refetchInterval: runId ? 5000 : false,
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (runId) window.localStorage.setItem(PARTY_BACKFILL_RUN_LS_KEY, runId);
+    else window.localStorage.removeItem(PARTY_BACKFILL_RUN_LS_KEY);
+  }, [runId]);
+
+  const status = (runQ.data as any)?.run?.status as string | undefined;
+  const isActive = status === "queued" || status === "running";
+
+  const toggle = (code: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
+      return next;
+    });
+  };
+
+  async function handleStart() {
+    setError(null);
+    try {
+      const r = await start({
+        data: {
+          country_codes: selected.size ? Array.from(selected) : undefined,
+          force,
+          dry_run: dryRun,
+        },
+      });
+      setRunId(r.run_id);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  async function handleCancel() {
+    if (!runId) return;
+    try {
+      await cancel({ data: { run_id: runId } });
+      runQ.refetch();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  const run = (runQ.data as any)?.run;
+  const countryRuns = ((runQ.data as any)?.countries ?? []) as any[];
+  const totals = (run?.totals ?? {}) as Record<string, number>;
+
+  return (
+    <details className="border border-line-200 bg-paper-100/40" open={!!runId}>
+      <summary className="cursor-pointer px-4 py-3 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950">
+        Party & manifesto backfill · deep-research active parties, flag ruling government, ingest manifesto
+        {status && <span className="ml-2 text-ink-950">[{status}]</span>}
+      </summary>
+      <div className="space-y-4 border-t border-line-200 p-4">
+        <div className="flex flex-wrap gap-2">
+          {countries.map((c) => (
+            <button
+              key={c.code}
+              onClick={() => toggle(c.code)}
+              disabled={isActive}
+              className={`px-2.5 py-1 text-[11px] font-mono uppercase tracking-[0.18em] border ${
+                selected.has(c.code)
+                  ? "border-ink-950 bg-ink-950 text-paper-0"
+                  : "border-line-200 text-ink-500 hover:text-ink-950"
+              } disabled:opacity-50`}
+            >
+              {c.code}
+            </button>
+          ))}
+          {selected.size > 0 && !isActive && (
+            <button
+              onClick={() => setSelected(new Set())}
+              className="px-2.5 py-1 text-[11px] font-mono uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950"
+            >
+              clear
+            </button>
+          )}
+        </div>
+        <div className="text-xs text-ink-500">
+          {selected.size === 0
+            ? "No countries selected → will process ALL countries."
+            : `${selected.size} selected.`}
+        </div>
+        <div className="flex flex-wrap items-center gap-4 text-xs">
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={dryRun}
+              onChange={(e) => setDryRun(e.target.checked)}
+              disabled={isActive}
+            />
+            Dry run (no writes)
+          </label>
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={force}
+              onChange={(e) => setForce(e.target.checked)}
+              disabled={isActive}
+            />
+            Force refresh (re-research countries with existing parties)
+          </label>
+          <div className="ml-auto flex items-center gap-2">
+            {isActive ? (
+              <button
+                onClick={handleCancel}
+                className="px-3 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-red-600 text-red-600 hover:bg-red-600 hover:text-paper-0"
+              >
+                Cancel
+              </button>
+            ) : (
+              <button
+                onClick={handleStart}
+                className="px-3 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0"
+              >
+                {dryRun ? "Preview backfill" : "Run backfill"}
+              </button>
+            )}
+            {runId && !isActive && (
+              <button
+                onClick={() => setRunId(null)}
+                className="px-3 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border border-line-200 text-ink-500 hover:text-ink-950"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+
+        {error && <div className="text-sm text-red-600">{error}</div>}
+
+        {run && (
+          <div className="space-y-3">
+            <div className="text-xs text-ink-500">
+              run <span className="font-mono">{String(runId).slice(0, 8)}</span> · {status}
+              {" · "}
+              attempted {totals.attempted ?? 0} · parties upserted {totals.parties_upserted ?? 0} ·
+              ruling flagged {totals.ruling_flagged ?? 0} · manifestos ingested{" "}
+              {totals.manifesto_ingested ?? 0} · failed {totals.failed ?? 0}
+              {run.error && <span className="text-red-600"> · {run.error}</span>}
+            </div>
+            <div className="border border-line-200">
+              <table className="w-full text-xs">
+                <thead className="bg-paper-100 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 text-left">
+                  <tr>
+                    <th className="px-3 py-2">Country</th>
+                    <th className="px-3 py-2">Status</th>
+                    <th className="px-3 py-2 text-right">Attempted</th>
+                    <th className="px-3 py-2 text-right">Upserted</th>
+                    <th className="px-3 py-2 text-right">Ruling?</th>
+                    <th className="px-3 py-2 text-right">Manifesto?</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {countryRuns.map((c) => (
+                    <tr key={c.country_code} className="border-t border-line-200">
+                      <td className="px-3 py-2 font-mono">{c.country_code}</td>
+                      <td className="px-3 py-2">
+                        <span
+                          className={
+                            c.status === "succeeded"
+                              ? "text-emerald-700"
+                              : c.status === "running"
+                              ? "text-amber-700"
+                              : c.status === "failed"
+                              ? "text-red-600"
+                              : "text-ink-500"
+                          }
+                        >
+                          {c.status}
+                        </span>
+                        {c.error && <span className="ml-2 text-red-600">{c.error}</span>}
+                      </td>
+                      <td className="px-3 py-2 text-right">{c.attempted ?? 0}</td>
+                      <td className="px-3 py-2 text-right">{c.parties_upserted ?? 0}</td>
+                      <td className="px-3 py-2 text-right">
+                        {c.ruling_flagged ? "✓" : "—"}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {c.manifesto_ingested ? "✓" : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <details className="text-xs">
+              <summary className="cursor-pointer text-ink-500 hover:text-ink-950">
+                Full per-country detail
+              </summary>
+              <PrettyJson value={countryRuns} />
+            </details>
+          </div>
+        )}
+
+        {(historyQ.data as any[])?.length ? (
+          <details className="text-xs">
+            <summary className="cursor-pointer text-ink-500 hover:text-ink-950">
+              Recent runs
+            </summary>
+            <ul className="mt-2 space-y-1">
+              {((historyQ.data as any[]) ?? []).map((h) => (
+                <li key={h.id} className="flex items-center gap-2 font-mono">
+                  <button
+                    onClick={() => setRunId(h.id)}
+                    className="underline hover:text-ink-950"
+                  >
+                    {String(h.id).slice(0, 8)}
+                  </button>
+                  <span className="text-ink-500">{h.status}</span>
+                  <span className="text-ink-500">
+                    {new Date(h.created_at).toLocaleString()}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
+      </div>
+    </details>
+  );
+}

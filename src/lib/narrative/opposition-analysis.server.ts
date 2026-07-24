@@ -85,9 +85,11 @@ export async function extractRawText(
     mime_type: string | null;
     source_url: string | null;
     raw_text: string | null;
+    submitter_context?: string | null;
   },
 ): Promise<string> {
   if (row.raw_text && row.raw_text.trim().length > 20) return row.raw_text;
+  const ctx = row.submitter_context ?? undefined;
 
   if (row.storage_path) {
     const { data: file, error } = await supabase.storage
@@ -97,7 +99,7 @@ export async function extractRawText(
     const mime = (row.mime_type || "application/octet-stream").toLowerCase();
     const buf = Buffer.from(await file.arrayBuffer());
     const base64 = buf.toString("base64");
-    if (mime.startsWith("image/")) return extractFromImage(base64, mime);
+    if (mime.startsWith("image/")) return extractFromImage(base64, mime, ctx);
     if (mime.startsWith("text/")) return buf.toString("utf-8").slice(0, 20_000);
     return extractFromDocument(base64, mime || "application/pdf", row.storage_path.split("/").pop() ?? "file");
   }
@@ -109,6 +111,7 @@ export async function extractRawText(
 
   return row.raw_text ?? "";
 }
+
 
 // ─── 2) Motivation pass ───────────────────────────────────────────────────
 

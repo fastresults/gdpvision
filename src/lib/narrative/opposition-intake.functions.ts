@@ -73,7 +73,7 @@ export const listOppositionItems = createServerFn({ method: "GET" })
     const { data: rows, error } = await context.supabase
       .from("opposition_items")
       .select(
-        "id,country_code,kind,title,source_url,storage_path,mime_type,raw_text,submitted_channel,status,status_error,motivation_summary,origin_summary,amplification,themes,severity,sentiment,confidence_grade,citations,visibility,created_at,updated_at",
+        "id,country_code,kind,title,source_url,storage_path,mime_type,raw_text,submitted_channel,submitter_context,status,status_error,motivation_summary,origin_summary,amplification,themes,severity,sentiment,confidence_grade,citations,visibility,created_at,updated_at",
       )
       .eq("country_code", data.countryCode)
       .neq("status", "archived")

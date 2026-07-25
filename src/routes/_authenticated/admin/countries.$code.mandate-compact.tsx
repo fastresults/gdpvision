@@ -74,12 +74,25 @@ function MandateCompactPage() {
         { label: "Mandate Compact" },
       ]}
     >
-      <div className="space-y-6 p-4 sm:p-6">
-        <header className="space-y-1">
-          <h1 className="text-xl font-semibold text-ink-900">Mandate Compact · {code}</h1>
-          <p className="text-sm text-ink-500">
-            The covenant that turns the ruling party's manifesto into a signed, ministry-by-ministry delivery plan.
-          </p>
+      <div className="mx-auto max-w-6xl space-y-16 px-4 py-10 sm:px-6 lg:px-10 lg:py-14">
+        <header className="flex items-baseline justify-between gap-6 border-b border-line-200 pb-6">
+          <div className="min-w-0 space-y-1.5">
+            <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
+              Chamber 08 · Mandate Compact
+            </p>
+            <h1 className="font-serif text-3xl font-normal leading-tight text-ink-950 sm:text-4xl">
+              Mandate Compact · <span className="text-ink-700">{code}</span>
+            </h1>
+            <p className="max-w-2xl text-sm leading-relaxed text-ink-500">
+              The covenant that turns the ruling party's manifesto into a signed, ministry-by-ministry delivery plan.
+            </p>
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">Status</p>
+            <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-950">
+              {selectedCompact ? selectedCompact.status.replace("_", " ") : "Draft mode"}
+            </p>
+          </div>
         </header>
 
         <Stepper active={activeStep} onSelect={setActiveStep} />
@@ -126,49 +139,60 @@ function MandateCompactPage() {
 
         <CompactList compacts={compacts} />
       </div>
+
     </SuperAdminShell>
   );
 }
 
 function Stepper({ active, onSelect }: { active: string; onSelect: (k: (typeof STEPS)[number]["key"]) => void }) {
   return (
-    <ol className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-7">
-      {STEPS.map((step, idx) => {
-        const isActive = active === step.key;
-        const Icon = step.icon;
-        return (
-          <li key={step.key}>
-            <button
-              type="button"
-              onClick={() => onSelect(step.key)}
-              className={cn(
-                "flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition",
-                isActive
-                  ? "border-gold-500 bg-paper-0 shadow-sm"
-                  : "border-line-200 bg-paper-50 hover:border-line-100",
-              )}
-            >
-              <span
-                className={cn(
-                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
-                  isActive ? "bg-gold-500 text-ink-950" : "bg-paper-100 text-ink-500",
-                )}
+    <nav aria-label="Mandate Compact workflow">
+      <ol className="grid grid-cols-4 gap-x-3 gap-y-6 md:grid-cols-7 md:gap-x-4">
+        {STEPS.map((step, idx) => {
+          const isActive = active === step.key;
+          const num = String(idx + 1).padStart(2, "0");
+          return (
+            <li key={step.key}>
+              <button
+                type="button"
+                onClick={() => onSelect(step.key)}
+                aria-current={isActive ? "step" : undefined}
+                className="group flex w-full flex-col items-start text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-500"
               >
-                {idx + 1}
-              </span>
-              <span className="min-w-0">
-                <span className="flex items-center gap-2 text-sm font-semibold text-ink-900">
-                  <Icon className="h-4 w-4" /> {step.label}
+                <span
+                  className={cn(
+                    "font-mono text-[10px] tracking-[0.18em] transition-colors",
+                    isActive ? "font-medium text-gold-500" : "text-ink-400 group-hover:text-ink-700",
+                  )}
+                >
+                  {num}
                 </span>
-                <span className="mt-1 block text-xs text-ink-500">{step.hint}</span>
-              </span>
-            </button>
-          </li>
-        );
-      })}
-    </ol>
+                <span
+                  className={cn(
+                    "mt-2 h-[2px] w-full transition-colors",
+                    isActive ? "bg-gold-500" : "bg-line-200 group-hover:bg-ink-300",
+                  )}
+                />
+                <span
+                  className={cn(
+                    "mt-2.5 font-mono text-[10px] uppercase tracking-[0.18em] transition-colors",
+                    isActive ? "font-semibold text-ink-950" : "text-ink-500 group-hover:text-ink-900",
+                  )}
+                >
+                  {step.label}
+                </span>
+                <span className="mt-1 hidden text-[11px] leading-snug text-ink-400 md:block">
+                  {step.hint}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
   );
 }
+
 
 function IngestPanel({ countryCode, compacts }: { countryCode: string; compacts: CompactRow[] }) {
   const qc = useQueryClient();
@@ -209,98 +233,158 @@ function IngestPanel({ countryCode, compacts }: { countryCode: string; compacts:
 
   const disabled = mutation.isPending || !electionCycle.trim() || (!sourceUrl.trim() && !sourceText.trim());
 
-  return (
-    <section className="grid gap-4 rounded-2xl border border-line-200 bg-paper-0 p-5">
-      <header>
-        <h2 className="text-base font-semibold text-ink-900">Ingest a manifesto</h2>
-        <p className="mt-1 text-sm text-ink-500">
-          Paste the manifesto URL and/or the full text. We upsert a Compact draft, register the source in the
-          country's second brain, and chunk-embed the text so Ask-the-Ledger can quote it verbatim.
-        </p>
-      </header>
+  const underline =
+    "w-full appearance-none border-0 border-b border-line-200 bg-transparent px-0 py-2 text-sm text-ink-950 placeholder:text-ink-300 focus:border-gold-500 focus:outline-none focus:ring-0";
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <Field label="Election cycle" required>
+  return (
+    <section className="grid gap-12 border-b border-line-200 pb-12 lg:grid-cols-12 lg:gap-16">
+      <div className="lg:col-span-4">
+        <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">Step 01</p>
+        <h2 className="mt-2 font-serif text-2xl font-normal leading-tight text-ink-950">
+          Ingest a manifesto
+        </h2>
+        <p className="mt-4 text-sm leading-relaxed text-ink-500">
+          Paste the manifesto URL and/or the full text. We upsert a Compact draft, register the
+          source in the country's second brain, and chunk-embed the text so Ask-the-Ledger can
+          quote it verbatim.
+        </p>
+        {compacts.length > 0 && (
+          <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-400">
+            {compacts.length} compact{compacts.length === 1 ? "" : "s"} on file · {countryCode}
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-8 lg:col-span-8">
+        <UnderlineField label="Election cycle" required>
           <input
-            className="input"
+            className={underline}
             placeholder="e.g. 2025-2030"
             value={electionCycle}
             onChange={(e) => setElectionCycle(e.target.value)}
           />
-        </Field>
-        <Field label="Prime Minister">
-          <input className="input" value={pmName} onChange={(e) => setPmName(e.target.value)} />
-        </Field>
-        <Field label="Compact title">
-          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={`${electionCycle || "2025-2030"} Mandate Compact`} />
-        </Field>
-        <Field label="Visibility">
+        </UnderlineField>
+
+        <div className="grid gap-8 md:grid-cols-2">
+          <UnderlineField label="Compact title">
+            <input
+              className={underline}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={`${electionCycle || "2025-2030"} Mandate Compact`}
+            />
+          </UnderlineField>
+          <UnderlineField label="Prime Minister">
+            <input
+              className={underline}
+              value={pmName}
+              onChange={(e) => setPmName(e.target.value)}
+              placeholder="Rt. Hon. —"
+            />
+          </UnderlineField>
+        </div>
+
+        <UnderlineField label="Manifesto source URL">
+          <input
+            className={underline}
+            placeholder="https://…"
+            value={sourceUrl}
+            onChange={(e) => setSourceUrl(e.target.value)}
+          />
+        </UnderlineField>
+
+        <UnderlineField label="Visibility">
           <select
-            className="input"
+            className={underline}
             value={visibility}
             onChange={(e) => setVisibility(e.target.value as "public" | "private")}
           >
             <option value="public">Public — visible to all country users & Promise Tracker once signed</option>
             <option value="private">Private — owner country only</option>
           </select>
-        </Field>
-        <Field label="Manifesto source URL" className="md:col-span-2">
-          <input
-            className="input"
-            placeholder="https://…"
-            value={sourceUrl}
-            onChange={(e) => setSourceUrl(e.target.value)}
-          />
-        </Field>
-        <Field label="Executive summary" className="md:col-span-2">
+        </UnderlineField>
+
+        <UnderlineField label="Executive summary">
           <textarea
-            className="input min-h-[80px]"
+            className={cn(underline, "min-h-[88px] resize-y leading-relaxed")}
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
             placeholder="One-paragraph elevator pitch of the manifesto (optional)."
           />
-        </Field>
-        <Field label="Manifesto full text" className="md:col-span-2">
+        </UnderlineField>
+
+        <UnderlineField
+          label="Manifesto full text"
+          aside={
+            <span className="font-mono text-[10px] tracking-[0.16em] text-ink-400">
+              {sourceText.length.toLocaleString()} chars ·{" "}
+              {sourceText.trim().length > 200 ? "will be chunk-embedded" : "≥200 chars to enable corpus ingest"}
+            </span>
+          }
+        >
           <textarea
-            className="input min-h-[220px] font-mono text-xs"
+            className={cn(
+              "w-full resize-y border border-line-200 bg-paper-50 p-4 font-mono text-xs leading-relaxed text-ink-950 placeholder:text-ink-300 focus:border-gold-500 focus:outline-none focus:ring-0",
+              "min-h-[240px]",
+            )}
             value={sourceText}
             onChange={(e) => setSourceText(e.target.value)}
             placeholder="Paste the full manifesto text here. We'll chunk and embed it into the country's second brain."
           />
-          <p className="mt-1 text-xs text-ink-400">
-            {sourceText.length.toLocaleString()} chars ·{" "}
-            {sourceText.trim().length > 200 ? "will be chunk-embedded" : "add ≥200 chars to enable corpus ingest"}
-          </p>
-        </Field>
-      </div>
+        </UnderlineField>
 
-      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line-100 pt-3">
-        <button
-          type="button"
-          className="btn-primary"
-          disabled={disabled}
-          onClick={() => mutation.mutate()}
-        >
-          {mutation.isPending ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" /> Ingesting…
-            </>
-          ) : (
-            <>
-              <FileCheck className="h-4 w-4" /> Create / update Compact
-            </>
-          )}
-        </button>
+        <div className="flex items-center justify-end gap-6 border-t border-line-200 pt-6">
+          <button
+            type="button"
+            onClick={() => mutation.mutate()}
+            disabled={disabled}
+            className={cn(
+              "inline-flex items-center gap-2 bg-ink-950 px-8 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 transition-colors",
+              "hover:bg-gold-500 hover:text-ink-950",
+              "disabled:cursor-not-allowed disabled:bg-ink-300 disabled:text-paper-0 disabled:hover:bg-ink-300",
+            )}
+          >
+            {mutation.isPending ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Ingesting
+              </>
+            ) : (
+              <>
+                <FileCheck className="h-3.5 w-3.5" /> Create / update Compact
+              </>
+            )}
+          </button>
+        </div>
       </div>
-
-      {compacts.length > 0 && (
-        <p className="text-xs text-ink-400">
-          {compacts.length} compact{compacts.length === 1 ? "" : "s"} already on file for {countryCode}.
-        </p>
-      )}
     </section>
   );
 }
+
+function UnderlineField({
+  label,
+  required,
+  aside,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  aside?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="flex items-baseline justify-between gap-4">
+        <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
+          {label}
+          {required && <span className="ml-1 text-gold-500">*</span>}
+        </span>
+        {aside}
+      </span>
+      <span className="mt-2 block">{children}</span>
+    </label>
+  );
+}
+
 
 function CompactList({ compacts }: { compacts: CompactRow[] }) {
   if (!compacts.length) {

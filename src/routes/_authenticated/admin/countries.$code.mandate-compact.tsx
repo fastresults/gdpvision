@@ -642,6 +642,157 @@ function IngestPanel({ countryCode, compacts }: { countryCode: string; compacts:
   );
 }
 
+function DropZone({
+  phase,
+  phaseMsg,
+  dragOver,
+  onDragState,
+  onFile,
+  onReset,
+}: {
+  phase: "idle" | "extracting" | "ready" | "error";
+  phaseMsg: string;
+  dragOver: boolean;
+  onDragState: (v: boolean) => void;
+  onFile: (f: File) => void;
+  onReset: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const disabled = phase === "extracting";
+
+  const openPicker = () => {
+    if (disabled) return;
+    inputRef.current?.click();
+  };
+
+  return (
+    <div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+        className="sr-only"
+        disabled={disabled}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onFile(f);
+          e.target.value = "";
+        }}
+      />
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label="Drop manifesto file here or click to browse"
+        data-testid="mandate-drop"
+        onClick={openPicker}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openPicker();
+          }
+        }}
+        onDragEnter={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!disabled) onDragState(true);
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+          if (!disabled && !dragOver) onDragState(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onDragState(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onDragState(false);
+          if (disabled) return;
+          const dt = e.dataTransfer;
+          let file: File | null = null;
+          if (dt?.items && dt.items.length) {
+            for (let i = 0; i < dt.items.length; i++) {
+              const it = dt.items[i];
+              if (it.kind === "file") {
+                const f = it.getAsFile();
+                if (f) { file = f; break; }
+              }
+            }
+          }
+          if (!file && dt?.files && dt.files.length) {
+            file = dt.files[0];
+          }
+          // eslint-disable-next-line no-console
+          console.debug("[mandate-compact] drop", { hasFile: !!file, name: file?.name, type: file?.type, size: file?.size });
+          if (!file) {
+            toast.error("No file detected in the drop. Try clicking the zone to browse instead.");
+            return;
+          }
+          if (file.size === 0) {
+            toast.error("That looks like a folder or an empty file — drop a single PDF, DOCX, or TXT.");
+            return;
+          }
+          onFile(file);
+        }}
+        className={cn(
+          "group relative flex cursor-pointer flex-col items-center justify-center gap-3 border-2 border-dashed px-6 py-16 text-center transition-colors focus:outline-none focus-visible:border-gold-500",
+          dragOver
+            ? "border-gold-500 bg-gold-500/5"
+            : phase === "ready"
+              ? "border-line-200 bg-paper-50"
+              : phase === "error"
+                ? "border-signal-critical/40 bg-signal-critical/5"
+                : "border-line-200 bg-paper-50 hover:border-ink-300 hover:bg-paper-0",
+        )}
+      >
+        {phase === "extracting" ? (
+          <>
+            <Loader2 className="h-7 w-7 animate-spin text-gold-500" />
+            <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink-950">
+              {phaseMsg || "Reading…"}
+            </p>
+            <p className="text-xs text-ink-500">This usually takes 10-30 seconds.</p>
+          </>
+        ) : phase === "ready" ? (
+          <>
+            <FileCheck className="h-7 w-7 text-gold-500" />
+            <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink-950">
+              Manifesto read
+            </p>
+            <p className="max-w-lg text-xs text-ink-500">{phaseMsg}</p>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onReset();
+              }}
+              className="mt-2 inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-gold-500"
+            >
+              <X className="h-3 w-3" /> Drop another
+            </button>
+          </>
+        ) : (
+          <>
+            <Upload className="h-7 w-7 text-ink-500 group-hover:text-gold-500" />
+            <p className="font-serif text-lg text-ink-950">Drop the manifesto here</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+              PDF · DOCX · TXT · max 20 MB · or click to browse
+            </p>
+            {phase === "error" && (
+              <p className="mt-2 max-w-lg text-xs text-signal-critical">{phaseMsg}</p>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AutoField({
   label,
   required,

@@ -450,6 +450,7 @@ function PlanActions({
   onApprove,
   onPublish,
   onHandoff,
+  onExport,
   approving,
   publishing,
   handingOff,
@@ -459,6 +460,7 @@ function PlanActions({
   onApprove: () => void;
   onPublish: () => void;
   onHandoff: () => void;
+  onExport: () => void;
   approving: boolean;
   publishing: boolean;
   handingOff: boolean;
@@ -474,6 +476,13 @@ function PlanActions({
         Cabinet & narrative handoff
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={onExport}
+          className="btn-secondary inline-flex items-center gap-2"
+        >
+          <Download size={14} /> Export PDF
+        </button>
         <button
           type="button"
           onClick={onApprove}

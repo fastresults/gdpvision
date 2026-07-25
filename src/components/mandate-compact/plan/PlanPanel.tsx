@@ -134,6 +134,20 @@ export function PlanPanel({
 
   const versions = versionsQ.data ?? [];
 
+  const [exportOpen, setExportOpen] = useState(false);
+  const [printConfig, setPrintConfig] = useState<PrintConfig>(DEFAULT_PRINT_CONFIG);
+
+  const doExport = (config: PrintConfig) => {
+    setPrintConfig(config);
+    setExportOpen(false);
+    if (!plan) return;
+    // Wait one frame so PrintablePlan re-renders with the new config
+    // before we open the browser print dialog.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => triggerPdfPrint(suggestFilename(plan)));
+    });
+  };
+
   return (
     <section className="space-y-8">
       <PlanHeader
@@ -167,10 +181,21 @@ export function PlanPanel({
             onApprove={() => approveM.mutate(plan.id)}
             onPublish={() => publishM.mutate(plan.id)}
             onHandoff={() => handoffM.mutate(plan.id)}
+            onExport={() => setExportOpen(true)}
             approving={approveM.isPending}
             publishing={publishM.isPending}
             handingOff={handoffM.isPending}
             countryCode={countryCode}
+          />
+
+          {/* Print-only render — hidden on screen, drives window.print(). */}
+          <PrintablePlan plan={plan} countryCode={countryCode} config={printConfig} />
+
+          <ExportPdfDialog
+            plan={plan}
+            open={exportOpen}
+            onClose={() => setExportOpen(false)}
+            onExport={doExport}
           />
         </>
       )}

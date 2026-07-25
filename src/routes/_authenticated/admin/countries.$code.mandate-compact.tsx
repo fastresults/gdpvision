@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ScrollText, Upload, Sparkles, Target, FileCheck, Loader2, Wand2, Building2, AlertTriangle } from "lucide-react";
+import { ScrollText, Upload, Sparkles, Target, FileCheck, Loader2, Wand2, Building2, AlertTriangle, TrendingUp, ExternalLink } from "lucide-react";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { listMandateCompacts, type CompactRow } from "@/lib/mandate-compact/list.functions";
@@ -11,6 +11,13 @@ import { ingestManifesto } from "@/lib/mandate-compact/ingest.functions";
 import { getMandateCompactDetail, type CompactDetail } from "@/lib/mandate-compact/detail.functions";
 import { decomposeMandateCompact } from "@/lib/mandate-compact/decompose.functions";
 import { transformMandateCompact } from "@/lib/mandate-compact/transform.functions";
+import {
+  upsertDeliverableStatus,
+  computeScorecards,
+  getPmReportCard,
+  type PmReportCard,
+  type StatusStatus,
+} from "@/lib/mandate-compact/track.functions";
 import { cn } from "@/lib/utils";
 
 function compactsQuery(code: string) {

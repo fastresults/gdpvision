@@ -1,55 +1,80 @@
-## Opposition Intel — guided intake → counter-campaign flow
 
-The intake screen ends after upload. The response plan exists (`generateOppositionResponsePlan`) but is only reachable by clicking a row in the sidebar rail and finding a "Draft response" button in the detail header. Make the counter-campaign the visible product, not a hidden second click.
+# Streamline AI Wiring: Navigation Index & Manifest
 
-### 1. Turn upload into a 4-step guided flow on the intake page
-Replace the "drop then nothing" layout with a numbered wizard rail at the top of `/admin/countries/$code/narrative/opposition`:
+## Problem
 
-```text
-1. Capture  →  2. Analyze  →  3. Counter-campaign  →  4. Publish
-   (drop)      (auto)         (McKinsey plan)         (send to Comms Library)
+The codebase has grown to 7 chambers, ~20 onboarding stages, dozens of server functions, and heavy cross-cutting flows (opposition, narrative, ledger, console). Each AI turn burns tokens re-discovering: "where does X live?", "which server fn writes to table Y?", "what route renders component Z?". No stable map exists — the AI keeps re-grepping the same paths.
+
+## Goal
+
+A durable, auto-maintained set of index files at the repo root that the AI reads FIRST on every task, so it goes straight to the relevant files.
+
+## Deliverables
+
+### 1. `AGENTS.md` (root) — the AI's front door
+
+A single always-read file that answers the top 20 "where is X" questions:
+- Chamber → route + primary components + server fn module
+- Feature (Opposition, Concierge, Onboarding stage N, Ask thread) → files
+- DB table → owning server fn module + RLS notes + related UI
+- Conventions: button contract, PrettyJson rule, dedup rule, public/private visibility
+- "Don't touch" list (generated files, integration-managed files)
+
+Kept under 400 lines. Links out to deeper maps.
+
+### 2. `docs/map/` — per-domain module maps
+
+One short markdown per domain, each ~50–100 lines:
+- `map/chambers.md` — chamber ↔ route ↔ components ↔ server fns
+- `map/onboarding.md` — each of the 20 stages: research fn, commit fn, table(s), UI panel
+- `map/corpus.md` — searchers, second-brain tables, dedup keys
+- `map/server-fns.md` — every `.functions.ts` with one-line purpose + tables touched
+- `map/routes.md` — route tree grouped by persona (marketing, console, admin, instrument, narrative)
+- `map/tables.md` — table → RLS helper → owning module → grants
+
+### 3. `scripts/build-map.ts` — the generator
+
+A single Bun script that regenerates `docs/map/server-fns.md`, `routes.md`, and `tables.md` deterministically from source:
+- Walks `src/lib/**/*.functions.ts`, extracts exports and JSDoc top-line
+- Walks `src/routes/**` for `createFileRoute` paths
+- Parses `supabase/migrations/*.sql` for `CREATE TABLE public.*` + grants
+
+Run via `bun run map`. Adds a pre-push friendly `bun run map:check` that fails if maps are stale.
+
+### 4. File-header convention
+
+Add a 3-line docblock to every server-fn module and non-trivial component:
 ```
+// @domain onboarding/stage-12
+// @tables capital_flow_nodes, capital_flow_edges
+// @ui admin/countries/$code/onboard (Stage 12 panel)
+```
+The generator harvests these. Cheap to add during normal edits; huge payoff for grep-free discovery.
 
-- Steps light up automatically as the newest intake advances (`received` → `uploading`/`registering` → `analyzing` → `analyzed` → `plan ready`).
-- Each step shows what happens next in plain language, so the user always knows what to expect.
+### 5. Update the "always in context" memory
 
-### 2. Auto-generate the counter-campaign — don't wait for a click
-- The moment analysis finishes (`status === "analyzed"`), the intake dropzone auto-calls `generateOppositionResponsePlan` for the most recent intake and shows an inline "Drafting counter-campaign…" state.
-- A prominent primary CTA (`Generate counter-campaign`) is also always visible for manual re-runs and for older intakes.
-- Failure surfaces a clear retry button; no silent dead-end.
+Add to `mem://index.md` Core:
+- "Read `AGENTS.md` before searching. For domain work, read the matching `docs/map/<domain>.md` next."
 
-### 3. Show the counter-campaign inline on the intake page
-Add a `CounterCampaignPanel` directly under the dropzone on the intake page (not only on the detail route). For the currently-focused intake it renders:
-- Posture + one-line objective (headline)
-- Key messages by audience
-- Sequenced actions timeline (Now / 24h / 72h / 1 week)
-- Channel plan table (WhatsApp, X, TikTok, radio, press…)
-- Risks + success metrics
-- Citations chips
+That single line changes AI behavior on every future turn.
 
-This is the McKinsey-grade output the user is asking to see immediately, not buried a click away.
+## Rollout (phased, low-risk)
 
-### 4. Make the Recent Intakes list feel like a queue you drive
-- Each row shows a status pill (Analyzing / Ready / Plan drafted / Published) and a right-side action button that reflects the next best step: `View plan`, `Draft plan`, `Retry`, `Publish`.
-- Clicking a row focuses that intake in the on-page CounterCampaignPanel (no navigation) so the user stays in the guided flow.
+1. **Phase 1 (this task):** Write `AGENTS.md` + `map/chambers.md` + `map/onboarding.md` + `map/corpus.md` by hand from current knowledge. Add the memory rule. — Immediate win.
+2. **Phase 2:** Build `scripts/build-map.ts`; generate `server-fns.md`, `routes.md`, `tables.md`. Commit initial output.
+3. **Phase 3:** Backfill `@domain/@tables/@ui` headers across existing server-fn modules (mechanical, batchable).
+4. **Phase 4:** Optional — wire `bun run map:check` into a lint step so maps never drift.
 
-### 5. Publish handoff to the Comms Library
-Add a `Send to Comms Library` action on the plan panel that creates a draft comms entry seeded from the plan's key messages + channel plan, and links back to the opposition intake. Closes the loop from "meme dropped" → "counter-campaign shipped".
+## Non-goals
 
-### 6. Copy and empty states
-- Rewrite the intake page hero to describe the 4 steps in one sentence.
-- Empty state (no intakes yet) shows a short "How this works" strip with the same 4 steps.
-- Tooltips on each step explain what the AI is doing and where the evidence comes from (second brain + open-web citations).
+- No runtime behavior change. Pure documentation + tooling.
+- Not replacing memory files; complements them (memory = rules, maps = topology).
+- Not introducing Graphify or any external service — plain markdown + one script.
 
-### Technical notes
-- New component `src/components/narrative/opposition/CounterCampaignPanel.tsx` reused by the intake page and the detail route.
-- New component `src/components/narrative/opposition/OppositionStepper.tsx` for the 4-step rail.
-- `src/routes/_authenticated/admin/countries.$code.narrative.opposition.index.tsx` composes: hero → stepper → dropzone → CounterCampaignPanel (focused intake) → Recent Intakes queue.
-- Auto-plan trigger: in `OppositionIntakeDropZone`, when the mutation flips a queue item to `complete` with `status === "analyzed"`, fire `generateOppositionResponsePlan` and surface a `planStage` in the queue row.
-- Add a lightweight polling `useQuery` (interval while any queue item is in `analyzing`/`plan-drafting`) on `getOppositionItem` so the panel and stepper hydrate as the backend advances.
-- New server fn `publishPlanToCommsLibrary({ itemId })` that creates a comms draft from the stored plan; reuse existing comms tables.
-- No schema changes required for steps 1–5; step 5 uses existing comms draft table.
+## Success signal
 
-### Out of scope
-- No changes to the analysis prompts or the plan generation model.
-- No changes to signal (non-opposition) flows.
+Next time you ask "where does opposition wire into comms?", the AI opens `AGENTS.md` → `map/chambers.md` → jumps to `opposition-plan.functions.ts` in one hop, not five greps.
+
+---
+
+Want me to start with **Phase 1 only** (hand-written AGENTS.md + 3 domain maps + memory update) so you see value this turn, then decide about the generator?

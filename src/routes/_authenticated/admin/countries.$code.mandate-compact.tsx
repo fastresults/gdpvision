@@ -267,7 +267,14 @@ function IngestPanel({ countryCode, compacts }: { countryCode: string; compacts:
     );
   };
 
-  const runExtract = async (payload: Parameters<typeof extract>[0]["data"]) => {
+  const runExtract = async (payload: {
+    countryCode: string;
+    fileBase64?: string;
+    mimeType?: string;
+    filename?: string;
+    sourceUrl?: string;
+    pastedText?: string;
+  }) => {
     setPhase("extracting");
     setPhaseMsg("Reading manifesto…");
     try {

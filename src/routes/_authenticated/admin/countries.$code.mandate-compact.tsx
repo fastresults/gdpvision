@@ -144,6 +144,11 @@ function MandateCompactPage() {
             ? <PublishPanel countryCode={code} compact={selectedCompact} />
             : <EmptyState body="Ingest a manifesto first." />
         )}
+        {activeStep === "plan" && (
+          selectedCompact
+            ? <PlanPanel compactId={selectedCompact.id} countryCode={code} />
+            : <EmptyState body="Ingest, decompose, and transform a manifesto first — the transformational plan synthesises tracks 01–07." />
+        )}
         {activeStep === "history" && (
           selectedCompact
             ? <RevisionsPanel compactId={selectedCompact.id} />

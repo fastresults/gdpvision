@@ -195,28 +195,141 @@ function Stepper({ active, onSelect }: { active: string; onSelect: (k: (typeof S
 }
 
 
+type ExtractedForm = {
+  electionCycle: string;
+  title: string;
+  pmName: string;
+  governingParty: string;
+  summary: string;
+  sourceUrl: string;
+  pillars: string[];
+  matchedPartyId: string | null;
+  matchedPartyName: string | null;
+  rawText: string;
+  charCount: number;
+  textSource: "file" | "url" | "pasted";
+  fromAI: boolean;
+};
+
+const EMPTY_FORM: ExtractedForm = {
+  electionCycle: "",
+  title: "",
+  pmName: "",
+  governingParty: "",
+  summary: "",
+  sourceUrl: "",
+  pillars: [],
+  matchedPartyId: null,
+  matchedPartyName: null,
+  rawText: "",
+  charCount: 0,
+  textSource: "pasted",
+  fromAI: false,
+};
+
 function IngestPanel({ countryCode, compacts }: { countryCode: string; compacts: CompactRow[] }) {
   const qc = useQueryClient();
   const ingest = useServerFn(ingestManifesto);
-  const [electionCycle, setElectionCycle] = useState("");
-  const [title, setTitle] = useState("");
-  const [pmName, setPmName] = useState("");
-  const [sourceUrl, setSourceUrl] = useState("");
-  const [sourceText, setSourceText] = useState("");
-  const [summary, setSummary] = useState("");
+  const extract = useServerFn(extractManifesto);
+
+  const [form, setForm] = useState<ExtractedForm>(EMPTY_FORM);
   const [visibility, setVisibility] = useState<"public" | "private">("public");
+  const [phase, setPhase] = useState<"idle" | "extracting" | "ready" | "error">("idle");
+  const [phaseMsg, setPhaseMsg] = useState<string>("");
+  const [pastedUrl, setPastedUrl] = useState("");
+  const [manualOpen, setManualOpen] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [dirtyFields, setDirtyFields] = useState<Set<keyof ExtractedForm>>(new Set());
+
+  const markDirty = (k: keyof ExtractedForm) =>
+    setDirtyFields((prev) => (prev.has(k) ? prev : new Set(prev).add(k)));
+
+  const applyExtracted = (res: ExtractManifestoResult) => {
+    setForm({
+      electionCycle: res.extracted.election_cycle || "",
+      title: res.extracted.title || "",
+      pmName: res.extracted.pm_name || "",
+      governingParty: res.extracted.governing_party || "",
+      summary: res.extracted.summary || "",
+      sourceUrl: res.sourceUrl || "",
+      pillars: res.extracted.pillars_preview || [],
+      matchedPartyId: res.matchedPartyId,
+      matchedPartyName: res.matchedPartyName,
+      rawText: res.rawText,
+      charCount: res.charCount,
+      textSource: res.textSource,
+      fromAI: true,
+    });
+    setDirtyFields(new Set());
+    setPhase("ready");
+    setPhaseMsg(
+      `AI read ${res.charCount.toLocaleString()} chars from ${res.textSource} · ${res.extracted.pillars_preview.length} pillars detected`,
+    );
+  };
+
+  const runExtract = async (payload: Parameters<typeof extract>[0]["data"]) => {
+    setPhase("extracting");
+    setPhaseMsg("Reading manifesto…");
+    try {
+      const res = await extract({ data: payload });
+      applyExtracted(res);
+      toast.success("Manifesto read — review the auto-filled fields below.");
+    } catch (err) {
+      setPhase("error");
+      const msg = (err as Error).message;
+      setPhaseMsg(msg);
+      setManualOpen(true);
+      toast.error(msg);
+    }
+  };
+
+  const handleFile = async (file: File) => {
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("File too large (max 20 MB).");
+      return;
+    }
+    const buf = await file.arrayBuffer();
+    let bin = "";
+    const bytes = new Uint8Array(buf);
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+      bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    }
+    const b64 = btoa(bin);
+    await runExtract({
+      countryCode,
+      fileBase64: b64,
+      mimeType: file.type || undefined,
+      filename: file.name,
+    });
+  };
+
+  const handleUrl = async () => {
+    const url = pastedUrl.trim();
+    if (!url) return;
+    await runExtract({ countryCode, sourceUrl: url });
+  };
+
+  const reset = () => {
+    setForm(EMPTY_FORM);
+    setPhase("idle");
+    setPhaseMsg("");
+    setPastedUrl("");
+    setManualOpen(false);
+    setDirtyFields(new Set());
+  };
 
   const mutation = useMutation({
     mutationFn: () =>
       ingest({
         data: {
           countryCode,
-          electionCycle: electionCycle.trim(),
-          title: title.trim() || undefined,
-          pmName: pmName.trim() || undefined,
-          sourceUrl: sourceUrl.trim() || undefined,
-          sourceText: sourceText.trim() || undefined,
-          summary: summary.trim() || undefined,
+          electionCycle: form.electionCycle.trim(),
+          title: form.title.trim() || undefined,
+          pmName: form.pmName.trim() || undefined,
+          governingPartyId: form.matchedPartyId ?? undefined,
+          sourceUrl: form.sourceUrl.trim() || undefined,
+          sourceText: form.rawText.trim() || undefined,
+          summary: form.summary.trim() || undefined,
           visibility,
         },
       }),
@@ -227,12 +340,15 @@ function IngestPanel({ countryCode, compacts }: { countryCode: string; compacts:
           : `Compact created · ${res.chunks_indexed} chunks indexed`,
       );
       qc.invalidateQueries({ queryKey: ["mandate-compacts", countryCode] });
-      setSourceText("");
+      reset();
     },
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const disabled = mutation.isPending || !electionCycle.trim() || (!sourceUrl.trim() && !sourceText.trim());
+  const canCreate =
+    !mutation.isPending &&
+    form.electionCycle.trim().length > 0 &&
+    (form.sourceUrl.trim().length > 0 || form.rawText.trim().length > 0);
 
   const underline =
     "w-full appearance-none border-0 border-b border-line-200 bg-transparent px-0 py-2 text-sm text-ink-950 placeholder:text-ink-300 focus:border-gold-500 focus:outline-none focus:ring-0";
@@ -242,12 +358,12 @@ function IngestPanel({ countryCode, compacts }: { countryCode: string; compacts:
       <div className="lg:col-span-4">
         <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">Step 01</p>
         <h2 className="mt-2 font-serif text-2xl font-normal leading-tight text-ink-950">
-          Ingest a manifesto
+          Drop the manifesto
         </h2>
         <p className="mt-4 text-sm leading-relaxed text-ink-500">
-          Paste the manifesto URL and/or the full text. We upsert a Compact draft, register the
-          source in the country's second brain, and chunk-embed the text so Ask-the-Ledger can
-          quote it verbatim.
+          Drop a PDF, DOCX, or TXT — or paste a URL. AI reads it end-to-end and
+          fills in the election cycle, title, PM, party, summary, and top
+          pillars. You only review and sign off.
         </p>
         {compacts.length > 0 && (
           <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-400">
@@ -256,128 +372,360 @@ function IngestPanel({ countryCode, compacts }: { countryCode: string; compacts:
         )}
       </div>
 
-      <div className="space-y-8 lg:col-span-8">
-        <UnderlineField label="Election cycle" required>
-          <input
-            className={underline}
-            placeholder="e.g. 2025-2030"
-            value={electionCycle}
-            onChange={(e) => setElectionCycle(e.target.value)}
-          />
-        </UnderlineField>
-
-        <div className="grid gap-8 md:grid-cols-2">
-          <UnderlineField label="Compact title">
-            <input
-              className={underline}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={`${electionCycle || "2025-2030"} Mandate Compact`}
-            />
-          </UnderlineField>
-          <UnderlineField label="Prime Minister">
-            <input
-              className={underline}
-              value={pmName}
-              onChange={(e) => setPmName(e.target.value)}
-              placeholder="Rt. Hon. —"
-            />
-          </UnderlineField>
-        </div>
-
-        <UnderlineField label="Manifesto source URL">
-          <input
-            className={underline}
-            placeholder="https://…"
-            value={sourceUrl}
-            onChange={(e) => setSourceUrl(e.target.value)}
-          />
-        </UnderlineField>
-
-        <UnderlineField label="Visibility">
-          <select
-            className={underline}
-            value={visibility}
-            onChange={(e) => setVisibility(e.target.value as "public" | "private")}
-          >
-            <option value="public">Public — visible to all country users & Promise Tracker once signed</option>
-            <option value="private">Private — owner country only</option>
-          </select>
-        </UnderlineField>
-
-        <UnderlineField label="Executive summary">
-          <textarea
-            className={cn(underline, "min-h-[88px] resize-y leading-relaxed")}
-            value={summary}
-            onChange={(e) => setSummary(e.target.value)}
-            placeholder="One-paragraph elevator pitch of the manifesto (optional)."
-          />
-        </UnderlineField>
-
-        <UnderlineField
-          label="Manifesto full text"
-          aside={
-            <span className="font-mono text-[10px] tracking-[0.16em] text-ink-400">
-              {sourceText.length.toLocaleString()} chars ·{" "}
-              {sourceText.trim().length > 200 ? "will be chunk-embedded" : "≥200 chars to enable corpus ingest"}
-            </span>
-          }
-        >
-          <textarea
+      <div className="space-y-10 lg:col-span-8">
+        {/* ─── Drop zone ─────────────────────────────────────────────── */}
+        <div>
+          <label
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              const f = e.dataTransfer.files?.[0];
+              if (f) void handleFile(f);
+            }}
             className={cn(
-              "w-full resize-y border border-line-200 bg-paper-50 p-4 font-mono text-xs leading-relaxed text-ink-950 placeholder:text-ink-300 focus:border-gold-500 focus:outline-none focus:ring-0",
-              "min-h-[240px]",
-            )}
-            value={sourceText}
-            onChange={(e) => setSourceText(e.target.value)}
-            placeholder="Paste the full manifesto text here. We'll chunk and embed it into the country's second brain."
-          />
-        </UnderlineField>
-
-        <div className="flex items-center justify-end gap-6 border-t border-line-200 pt-6">
-          <button
-            type="button"
-            onClick={() => mutation.mutate()}
-            disabled={disabled}
-            className={cn(
-              "inline-flex items-center gap-2 bg-ink-950 px-8 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 transition-colors",
-              "hover:bg-gold-500 hover:text-ink-950",
-              "disabled:cursor-not-allowed disabled:bg-ink-300 disabled:text-paper-0 disabled:hover:bg-ink-300",
+              "group relative flex cursor-pointer flex-col items-center justify-center gap-3 border-2 border-dashed px-6 py-16 text-center transition-colors",
+              dragOver
+                ? "border-gold-500 bg-gold-500/5"
+                : phase === "ready"
+                  ? "border-line-200 bg-paper-50"
+                  : phase === "error"
+                    ? "border-signal-critical/40 bg-signal-critical/5"
+                    : "border-line-200 bg-paper-50 hover:border-ink-300 hover:bg-paper-0",
             )}
           >
-            {mutation.isPending ? (
+            <input
+              type="file"
+              accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+              className="sr-only"
+              disabled={phase === "extracting"}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void handleFile(f);
+                e.target.value = "";
+              }}
+            />
+            {phase === "extracting" ? (
               <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Ingesting
+                <Loader2 className="h-7 w-7 animate-spin text-gold-500" />
+                <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink-950">
+                  {phaseMsg || "Reading…"}
+                </p>
+                <p className="text-xs text-ink-500">This usually takes 10-30 seconds.</p>
+              </>
+            ) : phase === "ready" ? (
+              <>
+                <FileCheck className="h-7 w-7 text-gold-500" />
+                <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink-950">
+                  Manifesto read
+                </p>
+                <p className="max-w-lg text-xs text-ink-500">{phaseMsg}</p>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    reset();
+                  }}
+                  className="mt-2 inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-gold-500"
+                >
+                  <X className="h-3 w-3" /> Drop another
+                </button>
               </>
             ) : (
               <>
-                <FileCheck className="h-3.5 w-3.5" /> Create / update Compact
+                <Upload className="h-7 w-7 text-ink-500 group-hover:text-gold-500" />
+                <p className="font-serif text-lg text-ink-950">Drop the manifesto here</p>
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                  PDF · DOCX · TXT · max 20 MB
+                </p>
+                {phase === "error" && (
+                  <p className="mt-2 max-w-lg text-xs text-signal-critical">{phaseMsg}</p>
+                )}
               </>
             )}
-          </button>
+          </label>
+
+          {/* URL alternative */}
+          {phase !== "ready" && (
+            <div className="mt-4 flex items-center gap-3 border-b border-line-200 pb-2">
+              <Link2 className="h-3.5 w-3.5 shrink-0 text-ink-400" />
+              <input
+                type="url"
+                value={pastedUrl}
+                onChange={(e) => setPastedUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void handleUrl();
+                  }
+                }}
+                placeholder="…or paste a manifesto URL and press Enter"
+                disabled={phase === "extracting"}
+                className="w-full appearance-none border-0 bg-transparent p-0 py-1 text-sm text-ink-950 placeholder:text-ink-300 focus:outline-none focus:ring-0"
+              />
+              <button
+                type="button"
+                onClick={() => void handleUrl()}
+                disabled={phase === "extracting" || !pastedUrl.trim()}
+                className="shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-gold-500 disabled:cursor-not-allowed disabled:text-ink-300"
+              >
+                Read →
+              </button>
+            </div>
+          )}
         </div>
+
+        {/* ─── Auto-filled preview (visible after extraction) ────────── */}
+        {phase === "ready" && (
+          <div className="space-y-8">
+            {form.pillars.length > 0 && (
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
+                  AI read · {form.pillars.length} pillars detected
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {form.pillars.map((p) => (
+                    <span
+                      key={p}
+                      className="inline-flex items-center border border-line-200 bg-paper-50 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-700"
+                    >
+                      {p}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-400">
+                  Will be committed in Step 02 · Decompose
+                </p>
+              </div>
+            )}
+
+            <AutoField
+              label="Election cycle"
+              required
+              ai={form.fromAI && !dirtyFields.has("electionCycle")}
+            >
+              <input
+                className={underline}
+                placeholder="e.g. 2025-2030"
+                value={form.electionCycle}
+                onChange={(e) => {
+                  markDirty("electionCycle");
+                  setForm((f) => ({ ...f, electionCycle: e.target.value }));
+                }}
+              />
+            </AutoField>
+
+            <div className="grid gap-8 md:grid-cols-2">
+              <AutoField label="Compact title" ai={form.fromAI && !dirtyFields.has("title")}>
+                <input
+                  className={underline}
+                  value={form.title}
+                  onChange={(e) => {
+                    markDirty("title");
+                    setForm((f) => ({ ...f, title: e.target.value }));
+                  }}
+                  placeholder={`${form.electionCycle || "2025-2030"} Mandate Compact`}
+                />
+              </AutoField>
+              <AutoField label="Prime Minister" ai={form.fromAI && !dirtyFields.has("pmName")}>
+                <input
+                  className={underline}
+                  value={form.pmName}
+                  onChange={(e) => {
+                    markDirty("pmName");
+                    setForm((f) => ({ ...f, pmName: e.target.value }));
+                  }}
+                  placeholder="Rt. Hon. —"
+                />
+              </AutoField>
+            </div>
+
+            <AutoField
+              label="Governing party"
+              ai={form.fromAI && !dirtyFields.has("governingParty")}
+              aside={
+                form.matchedPartyName ? (
+                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold-500">
+                    ✓ matched · {form.matchedPartyName}
+                  </span>
+                ) : form.governingParty ? (
+                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-signal-warning">
+                    ⚠ no match in country_parties
+                  </span>
+                ) : null
+              }
+            >
+              <input
+                className={underline}
+                value={form.governingParty}
+                onChange={(e) => {
+                  markDirty("governingParty");
+                  setForm((f) => ({ ...f, governingParty: e.target.value, matchedPartyId: null, matchedPartyName: null }));
+                }}
+              />
+            </AutoField>
+
+            <AutoField label="Manifesto source URL" ai={form.fromAI && !dirtyFields.has("sourceUrl") && form.textSource === "url"}>
+              <input
+                className={underline}
+                placeholder="https://…"
+                value={form.sourceUrl}
+                onChange={(e) => {
+                  markDirty("sourceUrl");
+                  setForm((f) => ({ ...f, sourceUrl: e.target.value }));
+                }}
+              />
+            </AutoField>
+
+            <AutoField label="Executive summary" ai={form.fromAI && !dirtyFields.has("summary")}>
+              <textarea
+                className={cn(underline, "min-h-[88px] resize-y leading-relaxed")}
+                value={form.summary}
+                onChange={(e) => {
+                  markDirty("summary");
+                  setForm((f) => ({ ...f, summary: e.target.value }));
+                }}
+              />
+            </AutoField>
+
+            <AutoField
+              label="Visibility"
+            >
+              <select
+                className={underline}
+                value={visibility}
+                onChange={(e) => setVisibility(e.target.value as "public" | "private")}
+              >
+                <option value="public">Public — visible to all country users & Promise Tracker once signed</option>
+                <option value="private">Private — owner country only</option>
+              </select>
+            </AutoField>
+
+            <details className="border-t border-line-200 pt-4">
+              <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500 hover:text-ink-950">
+                <FileText className="mr-2 inline h-3 w-3" />
+                Full text · {form.charCount.toLocaleString()} chars · chunk-embedded on Create
+              </summary>
+              <textarea
+                className={cn(
+                  "mt-3 w-full resize-y border border-line-200 bg-paper-50 p-4 font-mono text-xs leading-relaxed text-ink-950",
+                  "min-h-[200px] focus:border-gold-500 focus:outline-none focus:ring-0",
+                )}
+                value={form.rawText}
+                onChange={(e) => {
+                  markDirty("rawText");
+                  setForm((f) => ({ ...f, rawText: e.target.value, charCount: e.target.value.length }));
+                }}
+              />
+            </details>
+
+            <div className="flex items-center justify-end gap-6 border-t border-line-200 pt-6">
+              <button
+                type="button"
+                onClick={() => mutation.mutate()}
+                disabled={!canCreate}
+                className={cn(
+                  "inline-flex items-center gap-2 bg-ink-950 px-8 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 transition-colors",
+                  "hover:bg-gold-500 hover:text-ink-950",
+                  "disabled:cursor-not-allowed disabled:bg-ink-300 disabled:text-paper-0 disabled:hover:bg-ink-300",
+                )}
+              >
+                {mutation.isPending ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Creating
+                  </>
+                ) : (
+                  <>
+                    <FileCheck className="h-3.5 w-3.5" /> Create Compact
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ─── Manual fallback (shown on extraction error) ───────────── */}
+        {phase !== "ready" && (
+          <details
+            open={manualOpen}
+            onToggle={(e) => setManualOpen((e.target as HTMLDetailsElement).open)}
+            className="border-t border-line-200 pt-4"
+          >
+            <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500 hover:text-ink-950">
+              <PenLine className="mr-2 inline h-3 w-3" />
+              Enter fields manually instead
+            </summary>
+            <div className="mt-6 space-y-6">
+              <AutoField label="Election cycle" required>
+                <input
+                  className={underline}
+                  placeholder="e.g. 2025-2030"
+                  value={form.electionCycle}
+                  onChange={(e) => setForm((f) => ({ ...f, electionCycle: e.target.value }))}
+                />
+              </AutoField>
+              <AutoField label="Manifesto full text or URL">
+                <textarea
+                  className={cn(
+                    "w-full resize-y border border-line-200 bg-paper-50 p-4 font-mono text-xs leading-relaxed text-ink-950 min-h-[200px]",
+                    "focus:border-gold-500 focus:outline-none focus:ring-0",
+                  )}
+                  value={form.rawText}
+                  onChange={(e) => setForm((f) => ({ ...f, rawText: e.target.value, charCount: e.target.value.length }))}
+                  placeholder="Paste the manifesto text here (min 200 chars)."
+                />
+              </AutoField>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => mutation.mutate()}
+                  disabled={!canCreate}
+                  className={cn(
+                    "inline-flex items-center gap-2 bg-ink-950 px-8 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 transition-colors",
+                    "hover:bg-gold-500 hover:text-ink-950 disabled:cursor-not-allowed disabled:bg-ink-300",
+                  )}
+                >
+                  <FileCheck className="h-3.5 w-3.5" /> Create Compact
+                </button>
+              </div>
+            </div>
+          </details>
+        )}
       </div>
     </section>
   );
 }
 
-function UnderlineField({
+function AutoField({
   label,
   required,
+  ai,
   aside,
   children,
 }: {
   label: string;
   required?: boolean;
+  ai?: boolean;
   aside?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <label className="block">
       <span className="flex items-baseline justify-between gap-4">
-        <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
-          {label}
-          {required && <span className="ml-1 text-gold-500">*</span>}
+        <span className="flex items-baseline gap-2">
+          <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
+            {label}
+            {required && <span className="ml-1 text-gold-500">*</span>}
+          </span>
+          {ai && (
+            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-gold-500">
+              AI
+            </span>
+          )}
         </span>
         {aside}
       </span>
@@ -385,6 +733,7 @@ function UnderlineField({
     </label>
   );
 }
+
 
 
 function CompactList({ compacts }: { compacts: CompactRow[] }) {

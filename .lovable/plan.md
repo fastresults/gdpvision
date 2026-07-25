@@ -1,47 +1,40 @@
 
-## What's actually broken
+## What happened
 
-I checked the network log and the recent dev-server log for the ATG session. After the page loaded and `listMandateCompacts` returned `[]`, **no `extractManifesto` request was ever sent** — so the failure is entirely client-side: the `drop` event never reaches `handleFile`. The server function, Gemini call, and DB writes are all fine; the browser simply isn't handing us the file.
+Server logs for the last hour show **zero calls to `extractManifesto`** even though the user dropped a file. Combined with "no visual feedback at all," this means the browser event never reached our React `onDrop` handler at all — the state transition to `extracting` never ran, so no spinner, no toast, no network request.
 
-Root cause (unverified until we instrument, but the code shape makes it near-certain): the drop zone is a `<label>` that wraps a `<input type="file">`. When a file is dropped onto a label that is the activator for a file input, Chromium's default behaviour is to route the drop to the nested input, which then does nothing because file inputs don't accept programmatic file drops. The React `onDrop` on the `<label>` never fires because the drop target resolves to the child input. Compounding this, `onDragEnter` isn't `preventDefault`ed — some Chromium versions refuse the drop for that alone.
+The DropZone component itself (`src/routes/_authenticated/admin/countries.$code.mandate-compact.tsx` L664–L810) is wired correctly: `role="button"` div, `onDragOver` calls `preventDefault`, `onDrop` reads `dataTransfer.files`. Live DOM inspection confirms the element exists, is on-screen, has `pointer-events: auto`, and its descendants are hit-testable.
 
-## What we'll change
+## Root cause (most likely)
 
-### 1. Fix the drop zone (Step 01 of Chamber 08)
+We prevent the browser's default drop behaviour **only when the pointer is over our div**. If the user's cursor enters the browser window over any other area first (header, sidebar, padding around the zone) or briefly leaves the zone mid-drag, the browser's own drag handler wins and, on drop, **navigates the tab to `file://…`**, unloading React before our handler runs. Because the navigation is cancelled by the SPA router the user sees "nothing happen" — no spinner, no error, no network call. This matches the empty log signature exactly.
 
-- Replace the `<label>` container with a plain `<div>` and lift `<input type="file" ref>` out of the drop target. Trigger the picker with an explicit `inputRef.current?.click()` on div click / Enter / Space.
-- Add `onDragEnter`, `onDragOver`, `onDrop` on the div, all calling `e.preventDefault()` + `e.stopPropagation()`. Use `dataTransfer.items` first, fall back to `dataTransfer.files`.
-- Guard against directory drops and empty drops; surface a friendly toast.
-- Add a one-line `console.debug("[mandate-compact] drop", ...)` so a follow-up run has visible evidence if anything still misbehaves.
+Secondary contributors:
+- The zone's top edge sits at `y = -69.5` in the current viewport (partly under the sticky header), so the user's drop point is close to non-zone regions.
+- There's no non-state visual acknowledgement — if React state fails to update for any reason, the UI stays completely idle.
 
-### 2. Harden the extract server function against silent failures
+## Fix
 
-- Wrap `pdf-parse` / `mammoth` dynamic imports so a Worker-runtime import error surfaces as a clear toast ("PDF parsing unavailable in this deployment — paste text or a URL instead") instead of a stack the UI swallows.
-- Send back a structured `error` field on the client so the drop zone can render `phase="error"` with the real reason.
+### 1. Window-level drag/drop guard (mandate-compact route only)
+Add a `useEffect` on the Ingest step that installs `dragover` and `drop` listeners on `window` while the panel is mounted. Both call `preventDefault()` so the browser never navigates away when a file is dropped anywhere on the page. The listeners are removed on unmount and only active during the ingest step to avoid interfering with other drag/drop UIs.
 
-### 3. Multi-election index (many manifestos per country, each with its own plan)
+### 2. Reliable feedback on the zone itself
+- Enlarge the effective hit area and add a fixed min-height so the zone can't shrink behind the sticky header.
+- Fire an immediate `toast.loading("Reading manifesto…")` inside `handleFile` **before** the async `arrayBuffer()` call, and dismiss/replace it in `runExtract`. Guarantees at least one visible signal even if React batching delays the `setPhase` render.
+- Add a lightweight top-of-page progress bar (existing token) toggled by `phase === "extracting"` so feedback is visible even when the zone is scrolled off screen.
 
-Today the page shows one active compact via `selectedCompactId`, and a `CompactList` at the bottom. We'll promote this into a first-class Elections Index that matches how a country actually re-elects and re-drafts:
+### 3. Diagnostic breadcrumbs
+- Add `console.info("[mandate-compact] drop received", …)` at the very top of `onDrop` (before any early return), and one at the top of `handleFile`. These let us verify the event path on the next attempt via console logs.
+- Log the extract result and any thrown error with a `[mandate-compact]` tag in `runExtract`.
 
-- **New "Elections" rail at the top of Chamber 08**, above the stepper: one row per `mandate_compacts` row for the country — election_cycle, PM, party, status pill (draft / signed / active / concluded), pledge count, deliverable coverage %, and a "Open plan" affordance. Sorted newest cycle first, current cycle marked.
-- **"New compact" CTA** on that rail resets Step 01 to a blank drop zone and clears `selectedCompactId`. Ingest already keys on `(country_code, election_cycle)`, so a different cycle creates a new row; same cycle re-ingests the existing compact (with a visible "you're editing the 2025-2030 compact" banner so no one clobbers a live plan by accident).
-- **Every downstream panel binds to the selected compact.** Decompose / Transform / Track / Ministries / Publish / History already accept `selectedCompact`; we just make sure switching a compact in the rail persists across steps and each compact keeps its own pillars, pledges, deliverables, scorecards, and revisions (they already do — foreign keys are per-compact_id).
-- **Concluded cycles stay browsable read-only** so a new government can compare their compact against the outgoing PM's actuals.
-- **Meta on each compact** (already stored, just surface): governing party badge, source URL, ingested-at, chunks indexed.
+### 4. Verify
+After the change, ask the user to drop again; then:
+- Read browser console for `[mandate-compact] drop received`.
+- Check `stack_modern--server-function-logs` for an `extractManifesto` entry.
+- If drop still doesn't fire but browser is no longer navigating away, we know it's a hit-test issue and iterate on zone geometry.
 
-### 4. Small correctness follow-ups discovered while reading the file
+## Files touched
 
-- `IngestPanel` derives `canCreate` from `sourceUrl OR rawText`, but if extract fails silently the form is empty and Create is disabled with no explanation — the new error surface above covers this.
-- Add a `data-testid="mandate-drop"` on the zone so we can drive Playwright verification in build mode.
+- `src/routes/_authenticated/admin/countries.$code.mandate-compact.tsx` — window drag guard `useEffect`, immediate `toast.loading` in `handleFile`, breadcrumb `console.info` calls, min-height on the drop zone, top progress indicator during extraction.
 
-## Verification plan (build-mode)
-
-1. Load `/admin/countries/ATG/mandate-compact` in Playwright, drop a small PDF via `dispatchEvent('drop')` with a synthesized `DataTransfer`, assert that `extractManifesto` is POSTed and the form fills.
-2. Ingest a second compact for a different `election_cycle` on the same country, confirm both appear in the Elections rail, confirm switching between them swaps the pillars/pledges in Decompose.
-3. Read published worker logs after one real drop to confirm no `[unenv]` / pdf-parse import failure in the Worker runtime; if it fails there, keep the drop zone working and route PDF parsing to a text-only or URL path with a clear message.
-
-## Technical notes
-
-- Files touched: `src/routes/_authenticated/admin/countries.$code.mandate-compact.tsx` (drop zone rewrite + Elections rail), `src/lib/mandate-compact/extract.functions.ts` (error surface + import guards). No schema changes — `mandate_compacts` already supports multiple rows per country keyed by `election_cycle`.
-- No changes to RLS, corpus writers, or downstream chambers.
-- Global button and PrettyJson contracts respected.
+No server-side or schema changes. No changes to the extract server function (already fixed in the previous turn).

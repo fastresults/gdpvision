@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -220,6 +220,90 @@ type ExtractedForm = {
   fromAI: boolean;
 };
 
+type UploadDebugEntry = {
+  at: string;
+  label: string;
+  detail?: string;
+};
+
+declare global {
+  interface Window {
+    __MANDATE_UPLOAD_DEBUG__?: UploadDebugEntry[];
+  }
+}
+
+function isSupportedManifestoFile(file: File) {
+  const mime = (file.type || "").toLowerCase();
+  const name = file.name.toLowerCase();
+  return (
+    mime === "application/pdf" ||
+    mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    mime.startsWith("text/") ||
+    name.endsWith(".pdf") ||
+    name.endsWith(".docx") ||
+    name.endsWith(".txt") ||
+    name.endsWith(".md")
+  );
+}
+
+function capManifestoText(raw: string) {
+  const text = raw.replace(/\r\n/g, "\n").trim();
+  if (text.length <= 500_000) return { text, capped: false };
+  return {
+    text: `${text.slice(0, 450_000)}\n\n[…manifesto text capped for AI extraction…]\n\n${text.slice(-45_000)}`,
+    capped: true,
+  };
+}
+
+async function extractPdfTextInBrowser(file: File, onProgress: (message: string) => void) {
+  onProgress("Opening PDF in the browser…");
+  const [{ pdfjs }, workerUrlModule] = await Promise.all([
+    import("react-pdf"),
+    import("pdfjs-dist/build/pdf.worker.min.mjs?url"),
+  ]);
+  pdfjs.GlobalWorkerOptions.workerSrc = workerUrlModule.default;
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const pdf = await pdfjs.getDocument({ data: bytes }).promise;
+  const pageTexts: string[] = [];
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+    if (pageNumber === 1 || pageNumber % 5 === 0 || pageNumber === pdf.numPages) {
+      onProgress(`Reading PDF page ${pageNumber} of ${pdf.numPages}…`);
+    }
+    const page = await pdf.getPage(pageNumber);
+    const content = await page.getTextContent();
+    const line = content.items
+      .map((item) => ("str" in item && typeof item.str === "string" ? item.str : ""))
+      .filter(Boolean)
+      .join(" ");
+    if (line.trim()) pageTexts.push(line);
+  }
+  await pdf.destroy();
+  return pageTexts.join("\n\n");
+}
+
+async function extractDocxTextInBrowser(file: File, onProgress: (message: string) => void) {
+  onProgress("Opening DOCX in the browser…");
+  const mammoth = await import("mammoth");
+  const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+  return String(result.value ?? "");
+}
+
+async function extractTextFromFileInBrowser(file: File, onProgress: (message: string) => void) {
+  const mime = (file.type || "").toLowerCase();
+  const name = file.name.toLowerCase();
+  if (mime === "application/pdf" || name.endsWith(".pdf")) {
+    return extractPdfTextInBrowser(file, onProgress);
+  }
+  if (mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || name.endsWith(".docx")) {
+    return extractDocxTextInBrowser(file, onProgress);
+  }
+  if (mime.startsWith("text/") || name.endsWith(".txt") || name.endsWith(".md")) {
+    onProgress("Reading text file…");
+    return file.text();
+  }
+  throw new Error("Unsupported file type. Use PDF, DOCX, TXT, or MD.");
+}
+
 const EMPTY_FORM: ExtractedForm = {
   electionCycle: "",
   title: "",
@@ -249,6 +333,15 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
   const [manualOpen, setManualOpen] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [dirtyFields, setDirtyFields] = useState<Set<keyof ExtractedForm>>(new Set());
+  const [uploadLog, setUploadLog] = useState<UploadDebugEntry[]>([]);
+
+  const recordUpload = useCallback((label: string, detail?: string) => {
+    const entry: UploadDebugEntry = { at: new Date().toLocaleTimeString(), label, detail };
+    setUploadLog((current) => [entry, ...current].slice(0, 8));
+    if (typeof window !== "undefined") {
+      window.__MANDATE_UPLOAD_DEBUG__ = [entry, ...(window.__MANDATE_UPLOAD_DEBUG__ ?? [])].slice(0, 30);
+    }
+  }, []);
 
   const markDirty = (k: keyof ExtractedForm) =>
     setDirtyFields((prev) => (prev.has(k) ? prev : new Set(prev).add(k)));
@@ -303,12 +396,14 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
     pastedText?: string;
   }) => {
     setPhase("extracting");
-    setPhaseMsg("Reading manifesto…");
-    const tid = toast.loading("Reading manifesto…");
+    setPhaseMsg("AI is extracting the mandate fields…");
+    recordUpload("AI extraction started", "Sending readable manifesto text to the extraction engine");
+    const tid = toast.loading("AI is extracting the mandate fields…");
     try {
       const res = await extract({ data: payload });
       // eslint-disable-next-line no-console
       console.info("[mandate-compact] extract ok", { chars: res.charCount, pillars: res.extracted.pillars_preview?.length });
+      recordUpload("AI extraction complete", `${res.charCount.toLocaleString()} chars processed`);
       applyExtracted(res);
       toast.success("Manifesto read — review the auto-filled fields below.", { id: tid });
     } catch (err) {
@@ -316,6 +411,7 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
       const msg = (err as Error).message;
       setPhaseMsg(msg);
       setManualOpen(true);
+      recordUpload("Extraction failed", msg);
       // eslint-disable-next-line no-console
       console.error("[mandate-compact] extract failed", err);
       toast.error(msg, { id: tid });
@@ -325,21 +421,62 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
   const handleFile = async (file: File) => {
     // eslint-disable-next-line no-console
     console.info("[mandate-compact] handleFile", { name: file.name, size: file.size, type: file.type });
+    recordUpload("File received", `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB`);
     if (file.size > 20 * 1024 * 1024) {
+      setPhase("error");
+      setPhaseMsg("File too large (max 20 MB).");
+      setManualOpen(true);
       toast.error("File too large (max 20 MB).");
       return;
     }
-    toast.message(`Reading ${file.name}…`, { duration: 2000 });
-    const buf = await file.arrayBuffer();
-    let bin = "";
-    const bytes = new Uint8Array(buf);
-    for (let i = 0; i < bytes.length; i += 0x8000) {
-      bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    if (!isSupportedManifestoFile(file)) {
+      const msg = "Unsupported file type. Use PDF, DOCX, TXT, or MD.";
+      setPhase("error");
+      setPhaseMsg(msg);
+      setManualOpen(true);
+      recordUpload("Unsupported file", file.type || file.name);
+      toast.error(msg);
+      return;
     }
-    const b64 = btoa(bin);
+
+    setPhase("extracting");
+    setPhaseMsg(`Preparing ${file.name}…`);
+    setManualOpen(false);
+    toast.message(`Reading ${file.name}…`, { duration: 2000 });
+
+    let rawText = "";
+    try {
+      rawText = await extractTextFromFileInBrowser(file, (message) => {
+        setPhaseMsg(message);
+        recordUpload(message);
+      });
+    } catch (err) {
+      const msg = `Could not read this file in the browser: ${(err as Error).message}. If it is a scanned PDF, paste the manifesto URL or text below.`;
+      setPhase("error");
+      setPhaseMsg(msg);
+      setManualOpen(true);
+      recordUpload("Browser read failed", (err as Error).message);
+      toast.error(msg);
+      return;
+    }
+
+    const capped = capManifestoText(rawText);
+    if (capped.text.length < 200) {
+      const msg = `Extracted only ${capped.text.length} chars — this may be a scanned/image PDF. Paste the manifesto URL or text below.`;
+      setPhase("error");
+      setPhaseMsg(msg);
+      setManualOpen(true);
+      recordUpload("Readable text too short", `${capped.text.length} chars`);
+      toast.error(msg);
+      return;
+    }
+    if (capped.capped) {
+      recordUpload("Text capped", "The document was over 500,000 characters; AI received the opening and closing sections.");
+    }
+    recordUpload("Readable text ready", `${capped.text.length.toLocaleString()} chars`);
     await runExtract({
       countryCode,
-      fileBase64: b64,
+      pastedText: capped.text,
       mimeType: file.type || undefined,
       filename: file.name,
     });
@@ -359,6 +496,7 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
     setPastedUrl("");
     setManualOpen(false);
     setDirtyFields(new Set());
+    setUploadLog([]);
   };
 
   const mutation = useMutation({
@@ -440,6 +578,7 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
           onDragState={setDragOver}
           onFile={handleFile}
           onReset={reset}
+          uploadLog={uploadLog}
         />
 
 
@@ -701,13 +840,15 @@ function DropZone({
   onDragState,
   onFile,
   onReset,
+  uploadLog,
 }: {
   phase: "idle" | "extracting" | "ready" | "error";
   phaseMsg: string;
   dragOver: boolean;
   onDragState: (v: boolean) => void;
-  onFile: (f: File) => void;
+  onFile: (f: File) => void | Promise<void>;
   onReset: () => void;
+  uploadLog: UploadDebugEntry[];
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const disabled = phase === "extracting";
@@ -727,7 +868,7 @@ function DropZone({
         disabled={disabled}
         onChange={(e) => {
           const f = e.target.files?.[0];
-          if (f) onFile(f);
+          if (f) void onFile(f);
           e.target.value = "";
         }}
       />
@@ -790,7 +931,7 @@ function DropZone({
             toast.error("That looks like a folder or an empty file — drop a single PDF, DOCX, or TXT.");
             return;
           }
-          onFile(file);
+          void onFile(file);
         }}
         className={cn(
           "group relative flex min-h-[280px] cursor-pointer flex-col items-center justify-center gap-3 border-2 border-dashed px-6 py-16 text-center transition-colors focus:outline-none focus-visible:border-gold-500",
@@ -810,6 +951,19 @@ function DropZone({
               {phaseMsg || "Reading…"}
             </p>
             <p className="text-xs text-ink-500">This usually takes 10-30 seconds.</p>
+            {uploadLog.length > 0 && (
+              <div className="mt-3 w-full max-w-md border-t border-line-200 pt-3 text-left" aria-live="polite">
+                {uploadLog.slice(0, 3).map((item) => (
+                  <div key={`${item.at}-${item.label}`} className="flex items-start gap-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
+                    <span className="shrink-0 text-gold-500">{item.at}</span>
+                    <span className="min-w-0">
+                      <span className="text-ink-950">{item.label}</span>
+                      {item.detail ? <span className="normal-case tracking-normal text-ink-400"> · {item.detail}</span> : null}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         ) : phase === "ready" ? (
           <>

@@ -15,6 +15,7 @@ import appCss from "../styles.css?url";
 import faviconAsset from "../assets/favicon.png.asset.json";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ViewAsBanner } from "../lib/impersonation";
+import { Toaster } from "@/components/ui/sonner";
 
 
 function NotFoundComponent() {
@@ -150,6 +151,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <RouteScrollTop />
       <ViewAsBanner />
+      <Toaster position="top-right" richColors closeButton />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
     </QueryClientProvider>

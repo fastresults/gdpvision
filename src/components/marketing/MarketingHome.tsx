@@ -15,6 +15,7 @@ import ch04 from "@/assets/chambers/chamber-04.jpg.asset.json";
 import ch05 from "@/assets/chambers/chamber-05.jpg.asset.json";
 import ch06 from "@/assets/chambers/chamber-06.jpg.asset.json";
 import ch07 from "@/assets/chambers/chamber-07.jpg.asset.json";
+import ch08 from "@/assets/chambers/chamber-08.jpg.asset.json";
 
 const CHAMBERS = [
   {
@@ -108,6 +109,19 @@ const CHAMBERS = [
       "Every finding cited, exportable, and traceable back to the Ledger.",
     ],
   },
+  {
+    index: "08",
+    title: "The Mandate Compact",
+    accentVar: "--sector-02",
+    image: ch08.url,
+    purpose:
+      "Turn the ruling party's manifesto into a signed, ministry-by-ministry delivery plan the PM can score every quarter.",
+    bullets: [
+      "Ingest the manifesto and decompose it into pillars, pledges, and ministry-owned deliverables.",
+      "Quarterly scorecards and a PM Report Card that grade every ministry from delivered to broken.",
+      "Signed, versioned compact with a full audit trail — every revision snapshotted and diffable.",
+    ],
+  },
 ];
 
 function shuffleTail() {
@@ -165,7 +179,7 @@ export function MarketingHome() {
             <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-ink-700 md:text-[17px]">
               Purpose-built for Presidents, Prime Ministers and Cabinets.
               GDPVision turns a nation's public and private data into decisions
-              that measurably lift GDP — across seven sovereign chambers of state.
+              that measurably lift GDP — across eight sovereign chambers of state.
             </p>
             <div
               aria-live="polite"
@@ -226,7 +240,7 @@ export function MarketingHome() {
                 href="#instrument"
                 className="font-mono text-[12px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950"
               >
-                See the seven chambers ↓
+                See the eight chambers ↓
               </a>
             </div>
           </div>
@@ -333,8 +347,8 @@ export function MarketingHome() {
         <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
           <SectionHeader
             eyebrow="The instrument"
-            title="Seven chambers, each engineered to move GDP."
-            lede="Not a dashboard and not a consulting deliverable. GDPVision is organised as an instrument of state — a live Ledger under seven chambers, with the Counsel above them as a voice-first advisor."
+            title="Eight chambers, each engineered to move GDP."
+            lede="Not a dashboard and not a consulting deliverable. GDPVision is organised as an instrument of state — a live Ledger under eight chambers, with the Counsel above them as a voice-first advisor."
           />
           <div className="mt-16 grid gap-x-8 gap-y-6 md:grid-cols-2 lg:grid-cols-3">
             {CHAMBERS.map((c) => (

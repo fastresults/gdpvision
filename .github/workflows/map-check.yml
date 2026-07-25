@@ -1,0 +1,27 @@
+name: AI navigation maps
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "supabase/migrations/**"
+      - "scripts/build-map.ts"
+      - "scripts/backfill-headers.ts"
+      - "scripts/check-headers.ts"
+      - "docs/map/**"
+      - ".github/workflows/map-check.yml"
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Check generated maps are up to date
+        run: bun run map:check
+      - name: Check every server-fn module has @domain/@tables/@ui headers
+        run: bun run check:headers

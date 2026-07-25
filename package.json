@@ -16,7 +16,9 @@
     "ledger-qa:all": "bash scripts/ledger-qa/verify.sh && python3 scripts/ledger-qa/cascade-invariants.py && python3 scripts/ledger-qa/e2e.py",
     "map": "bun scripts/build-map.ts",
     "map:check": "bun scripts/build-map.ts --check",
-    "headers": "bun scripts/backfill-headers.ts"
+    "headers": "bun scripts/backfill-headers.ts",
+    "check:headers": "bun scripts/check-headers.ts",
+    "check:maps": "bun scripts/build-map.ts --check && bun scripts/check-headers.ts"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.7",

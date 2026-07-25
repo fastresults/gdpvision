@@ -111,4 +111,11 @@ Full route map: `docs/map/routes.md` (Phase 2, generated).
 
 ---
 
-*Phase 1 hand-written. Phases 2–4 will add generated `docs/map/{server-fns,routes,tables}.md` from `scripts/build-map.ts` plus `@domain/@tables/@ui` header backfill.*
+## 9. Keeping the map fresh (Phase 4 drift guard)
+
+- `bun run map` — regenerate `docs/map/{server-fns,routes,tables}.md`.
+- `bun run headers` — backfill `@domain / @tables / @ui` docblocks on `*.functions.ts`.
+- `bun run check:maps` — CI guard: fails if generated maps are stale OR any server-fn module is missing header tags. Wired into `.github/workflows/map-check.yml` on every PR touching `src/**`, `supabase/migrations/**`, or the map scripts.
+
+When you add a new server function, migration, or route: run `bun run headers && bun run map` before committing, or CI will reject the PR.
+

@@ -104,6 +104,11 @@ function MandateCompactPage() {
             ? <TrackPanel countryCode={code} compact={selectedCompact} />
             : <EmptyState body="Ingest, decompose, and transform a manifesto first." />
         )}
+        {activeStep === "publish" && (
+          selectedCompact
+            ? <PublishPanel countryCode={code} compact={selectedCompact} />
+            : <EmptyState body="Ingest a manifesto first." />
+        )}
 
         <CompactList compacts={compacts} />
       </div>

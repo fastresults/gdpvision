@@ -15,6 +15,7 @@ import ch04 from "@/assets/chambers/chamber-04.jpg.asset.json";
 import ch05 from "@/assets/chambers/chamber-05.jpg.asset.json";
 import ch06 from "@/assets/chambers/chamber-06.jpg.asset.json";
 import ch07 from "@/assets/chambers/chamber-07.jpg.asset.json";
+import ch08 from "@/assets/chambers/chamber-08.jpg.asset.json";
 
 const CHAMBERS = [
   {
@@ -106,6 +107,19 @@ const CHAMBERS = [
       "Synthetic personas and segments modelled from the sovereign corpus and public evidence.",
       "Studies that stress-test policy, incentive, and narrative options against real audience logic.",
       "Every finding cited, exportable, and traceable back to the Ledger.",
+    ],
+  },
+  {
+    index: "08",
+    title: "The Mandate Compact",
+    accentVar: "--sector-02",
+    image: ch08.url,
+    purpose:
+      "Turn the ruling party's manifesto into a signed, ministry-by-ministry delivery plan the PM can score every quarter.",
+    bullets: [
+      "Ingest the manifesto and decompose it into pillars, pledges, and ministry-owned deliverables.",
+      "Quarterly scorecards and a PM Report Card that grade every ministry from delivered to broken.",
+      "Signed, versioned compact with a full audit trail — every revision snapshotted and diffable.",
     ],
   },
 ];

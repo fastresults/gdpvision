@@ -50,6 +50,7 @@ const STEPS = [
   { key: "transform", label: "Transform", icon: Sparkles, hint: "Ministry-owned delivery plan" },
   { key: "track", label: "Track", icon: Target, hint: "Quarterly scorecards" },
   { key: "publish", label: "Publish", icon: ShieldCheck, hint: "Sign, activate, conclude" },
+  { key: "history", label: "History", icon: Clock, hint: "Audit trail & diffs" },
 ] as const;
 
 function MandateCompactPage() {

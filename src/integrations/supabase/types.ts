@@ -2580,6 +2580,183 @@ export type Database = {
           },
         ]
       }
+      fdi_playbook_actions: {
+        Row: {
+          action: string
+          country_code: string
+          created_at: string
+          evidence_citation: Json | null
+          horizon: string
+          id: string
+          investor_signal: string | null
+          kpi_id: string | null
+          kpi_target: string | null
+          ministry_id: string | null
+          ministry_slug: string | null
+          playbook_id: string
+          sector_code: string | null
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          country_code: string
+          created_at?: string
+          evidence_citation?: Json | null
+          horizon: string
+          id?: string
+          investor_signal?: string | null
+          kpi_id?: string | null
+          kpi_target?: string | null
+          ministry_id?: string | null
+          ministry_slug?: string | null
+          playbook_id: string
+          sector_code?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          country_code?: string
+          created_at?: string
+          evidence_citation?: Json | null
+          horizon?: string
+          id?: string
+          investor_signal?: string | null
+          kpi_id?: string | null
+          kpi_target?: string | null
+          ministry_id?: string | null
+          ministry_slug?: string | null
+          playbook_id?: string
+          sector_code?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fdi_playbook_actions_kpi_id_fkey"
+            columns: ["kpi_id"]
+            isOneToOne: false
+            referencedRelation: "country_kpis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fdi_playbook_actions_ministry_id_fkey"
+            columns: ["ministry_id"]
+            isOneToOne: false
+            referencedRelation: "ministries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fdi_playbook_actions_playbook_id_fkey"
+            columns: ["playbook_id"]
+            isOneToOne: false
+            referencedRelation: "fdi_playbooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fdi_playbooks: {
+        Row: {
+          ai_model: string | null
+          country_code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          scope: string
+          sector_code: string | null
+          strategy_id: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          ai_model?: string | null
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          scope: string
+          sector_code?: string | null
+          strategy_id?: string | null
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          ai_model?: string | null
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          scope?: string
+          sector_code?: string | null
+          strategy_id?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fdi_playbooks_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "fdi_strategies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fdi_posture_snapshots: {
+        Row: {
+          ai_model: string | null
+          capital_gap_pct_gdp: number | null
+          capital_gap_usd: number | null
+          citations: Json
+          components: Json
+          country_code: string
+          created_at: string
+          generated_at: string
+          id: string
+          investor_value_prop: string | null
+          peer_country_codes: string[]
+          posture_score: number
+          updated_at: string
+        }
+        Insert: {
+          ai_model?: string | null
+          capital_gap_pct_gdp?: number | null
+          capital_gap_usd?: number | null
+          citations?: Json
+          components?: Json
+          country_code: string
+          created_at?: string
+          generated_at?: string
+          id?: string
+          investor_value_prop?: string | null
+          peer_country_codes?: string[]
+          posture_score: number
+          updated_at?: string
+        }
+        Update: {
+          ai_model?: string | null
+          capital_gap_pct_gdp?: number | null
+          capital_gap_usd?: number | null
+          citations?: Json
+          components?: Json
+          country_code?: string
+          created_at?: string
+          generated_at?: string
+          id?: string
+          investor_value_prop?: string | null
+          peer_country_codes?: string[]
+          posture_score?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fdi_strategies: {
         Row: {
           actions: Json
@@ -2696,6 +2873,48 @@ export type Database = {
           updated_at?: string
           uploaded_by?: string | null
           visibility?: string
+        }
+        Relationships: []
+      }
+      fdi_transition_theses: {
+        Row: {
+          ai_model: string | null
+          angles: Json
+          citations: Json
+          country_code: string
+          created_at: string
+          id: string
+          investor_archetypes: Json
+          precedents: Json
+          sector_code: string
+          thesis: string
+          updated_at: string
+        }
+        Insert: {
+          ai_model?: string | null
+          angles?: Json
+          citations?: Json
+          country_code: string
+          created_at?: string
+          id?: string
+          investor_archetypes?: Json
+          precedents?: Json
+          sector_code: string
+          thesis: string
+          updated_at?: string
+        }
+        Update: {
+          ai_model?: string | null
+          angles?: Json
+          citations?: Json
+          country_code?: string
+          created_at?: string
+          id?: string
+          investor_archetypes?: Json
+          precedents?: Json
+          sector_code?: string
+          thesis?: string
+          updated_at?: string
         }
         Relationships: []
       }

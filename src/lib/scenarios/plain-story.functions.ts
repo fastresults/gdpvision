@@ -64,10 +64,11 @@ export const generatePlainStory = createServerFn({ method: "POST" })
     const cached = assumptions.plain_story as PlainStory | undefined;
     if (cached && !data.force) return { story: cached };
 
-    const results = s.results as EngineOutput | Record<string, never>;
+    const results = (s.results ?? {}) as EngineOutput | Record<string, never>;
     if (!("years" in results)) {
       return { story: null, note: "Scenario has no engine results yet." };
     }
+    const engineResults = results as EngineOutput;
 
     const { data: country } = await supabase
       .from("countries")

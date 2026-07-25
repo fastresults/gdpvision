@@ -381,11 +381,21 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
           fills in the election cycle, title, PM, party, summary, and top
           pillars. You only review and sign off.
         </p>
-        {compacts.length > 0 && (
+        {editingCompact ? (
+          <div className="mt-6 border-l-2 border-gold-500 bg-gold-500/5 px-3 py-2">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950">
+              Editing · {editingCompact.election_cycle}
+            </p>
+            <p className="mt-1 text-[11px] text-ink-500">
+              A new upload with the same election cycle will re-index this compact. To start a fresh cycle, use “+ New compact” above.
+            </p>
+          </div>
+        ) : compacts.length > 0 ? (
           <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-400">
-            {compacts.length} compact{compacts.length === 1 ? "" : "s"} on file · {countryCode}
+            {compacts.length} compact{compacts.length === 1 ? "" : "s"} on file · {countryCode} · uploading creates a new one
           </p>
-        )}
+        ) : null}
+
       </div>
 
       <div className="space-y-10 lg:col-span-8">

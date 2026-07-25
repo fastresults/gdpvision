@@ -5,7 +5,7 @@ import ogImage from "@/assets/gdpvision-og.jpg";
 const SITE_URL = "https://gdpvision.com";
 const TITLE = "GDPVision — The world's first GDP-elevation instrument";
 const DESCRIPTION =
-  "Purpose-built for Presidents, Prime Ministers and Cabinets. Turn public and private national data into decisions that elevate GDP — across seven sovereign chambers.";
+  "Purpose-built for Presidents, Prime Ministers and Cabinets. Turn public and private national data into decisions that elevate GDP — across eight sovereign chambers.";
 
 export const Route = createFileRoute("/")({
   head: () => {

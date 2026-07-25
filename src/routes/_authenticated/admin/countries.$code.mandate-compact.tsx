@@ -74,12 +74,25 @@ function MandateCompactPage() {
         { label: "Mandate Compact" },
       ]}
     >
-      <div className="space-y-6 p-4 sm:p-6">
-        <header className="space-y-1">
-          <h1 className="text-xl font-semibold text-ink-900">Mandate Compact · {code}</h1>
-          <p className="text-sm text-ink-500">
-            The covenant that turns the ruling party's manifesto into a signed, ministry-by-ministry delivery plan.
-          </p>
+      <div className="mx-auto max-w-6xl space-y-16 px-4 py-10 sm:px-6 lg:px-10 lg:py-14">
+        <header className="flex items-baseline justify-between gap-6 border-b border-line-200 pb-6">
+          <div className="min-w-0 space-y-1.5">
+            <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
+              Chamber 08 · Mandate Compact
+            </p>
+            <h1 className="font-serif text-3xl font-normal leading-tight text-ink-950 sm:text-4xl">
+              Mandate Compact · <span className="text-ink-700">{code}</span>
+            </h1>
+            <p className="max-w-2xl text-sm leading-relaxed text-ink-500">
+              The covenant that turns the ruling party's manifesto into a signed, ministry-by-ministry delivery plan.
+            </p>
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">Status</p>
+            <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-950">
+              {selectedCompact ? selectedCompact.status.replace("_", " ") : "Draft mode"}
+            </p>
+          </div>
         </header>
 
         <Stepper active={activeStep} onSelect={setActiveStep} />
@@ -126,6 +139,7 @@ function MandateCompactPage() {
 
         <CompactList compacts={compacts} />
       </div>
+
     </SuperAdminShell>
   );
 }

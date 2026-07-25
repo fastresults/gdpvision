@@ -50,6 +50,7 @@ export function PrintablePlan({
   return (
     <div id="plan-print-root" data-page-numbers={config.showPageNumbers ? "on" : "off"}>
       <style>{PRINT_CSS}</style>
+      {!config.showPageNumbers && <style>{PAGE_NUMBERS_OFF_CSS}</style>}
 
       {config.showCoverPage && (
         <section className="pp-page pp-cover">

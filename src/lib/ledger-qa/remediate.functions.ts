@@ -1,3 +1,7 @@
+// @domain ledger-qa
+// @tables country_sources,ledger_qa_actions,source_health_checks
+// @ui src/routes/_authenticated/admin/ledger-qa.tsx
+
 // Ledger-QA remediators + audit reader. Super-admin gated.
 
 import { createServerFn } from "@tanstack/react-start";

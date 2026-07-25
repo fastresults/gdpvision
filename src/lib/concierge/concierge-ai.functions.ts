@@ -1,3 +1,7 @@
+// @domain concierge
+// @tables —
+// @ui src/routes/_authenticated/concierge.new.tsx
+
 // Concierge AI helpers. All requester-facing text is scrubbed through the
 // minister lexicon before it leaves the server.
 

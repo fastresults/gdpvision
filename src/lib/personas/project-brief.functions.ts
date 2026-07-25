@@ -1,3 +1,7 @@
+// @domain personas
+// @tables persona_projects
+// @ui src/components/personas/StudyWizard/BlueprintReview.tsx; src/components/personas/StudyWizard/ProgramBriefIntake.tsx; src/hooks/useProgramBriefGate.ts
+
 // Chamber 07 · Program Brief — mandatory intake for every research program.
 //
 // A program brief is captured (typed / dictated / uploaded), enriched into a

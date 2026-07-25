@@ -1,3 +1,7 @@
+// @domain core
+// @tables comms_artifacts,country_sectors,intake_items,narrative_lineage,strategy_statements
+// @ui src/components/narrative/AddSignalDialog.tsx; src/components/narrative/DossierCard.tsx; src/components/narrative/DraftStudio.tsx
+
 // Chamber 05 — Narrative Chamber: country-scoped signal → statement pipeline.
 // Adds AI-grounded ingestion, triage recommendation, strategy drafting,
 // channel drafting, publish + coverage — layered on top of the existing

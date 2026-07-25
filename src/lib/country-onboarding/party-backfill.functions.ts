@@ -1,3 +1,7 @@
+// @domain country-onboarding
+// @tables countries,country_manifestos,country_parties,country_source_chunks,country_source_documents,party_backfill_country_runs,party_backfill_runs
+// @ui src/routes/_authenticated/admin/countries.index.tsx
+
 // Admin-only backfill: for every existing country, deep-research the active
 // political parties, flag the ruling party (or coalition lead), and — for
 // that ruling lead — ingest the manifesto / programme of government into

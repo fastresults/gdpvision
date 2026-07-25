@@ -1,3 +1,7 @@
+// @domain core
+// @tables audit_log,cadence_closes,kpi_snapshots,kpis
+// @ui —
+
 // Cadence engine (PRD Wave E1).
 // Closes monthly/quarterly/annual/term windows by snapshotting every KPI
 // value against its target, then recording an audit row in cadence_closes.

@@ -1,3 +1,7 @@
+// @domain personas
+// @tables persona_projects,persona_segment_members,persona_segments,personas
+// @ui src/components/personas/StudioStepper.tsx; src/components/personas/StudyWizard/BlueprintReview.tsx; src/routes/_authenticated/admin/countries.$code.personas.$id.tsx
+
 // Chamber 07 · Persona + segment generation server functions.
 
 import { createServerFn } from "@tanstack/react-start";

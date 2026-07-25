@@ -1,3 +1,7 @@
+// @domain core
+// @tables citations,memory_objects
+// @ui src/components/narrative/CitationsRail.tsx
+
 // Persistent citation bindings (PRD Wave B2).
 // Links artifact blocks (strategy, comms, counsel) to Second-Brain memory objects
 // with optional quote + position metadata. Stored in the `citations` table.

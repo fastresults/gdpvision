@@ -1,3 +1,7 @@
+// @domain corpus
+// @tables corpus_fetch_attempts
+// @ui src/routes/_authenticated/admin/corpus-audit.tsx; src/routes/_authenticated/admin/ledger-qa.tsx
+
 // Server functions powering /admin/corpus-audit.
 
 import { createServerFn } from "@tanstack/react-start";

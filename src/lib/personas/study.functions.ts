@@ -1,3 +1,7 @@
+// @domain personas
+// @tables memory_objects,persona_chat_messages,persona_chats,persona_projects,persona_segment_members,persona_segments,persona_study_drafts,personas,studies,study_program_reports,study_questions,study_reports,study_responses,study_transcripts
+// @ui src/components/personas/StudioStepper.tsx; src/components/personas/StudyWizard/ProgramSynthesisCard.tsx; src/routes/_authenticated/admin/countries.$code.personas.$id.tsx
+
 // Chamber 07 · Studies (survey, focus group, creative test) + persona chat.
 
 import { createServerFn } from "@tanstack/react-start";

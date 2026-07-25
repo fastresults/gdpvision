@@ -1,3 +1,7 @@
+// @domain core
+// @tables comms_artifacts,counsel_answers,intake_items,narrative_lineage,strategy_statements
+// @ui src/routes/_authenticated/narrative/trace.$id.tsx
+
 // Signal → Strategy → Artifact traceability (PRD Wave B5).
 // Writes and reads narrative_lineage rows binding an intake signal to any
 // downstream artifact (strategy statement, comms artifact, counsel answer).

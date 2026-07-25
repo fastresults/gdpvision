@@ -1,3 +1,7 @@
+// @domain core
+// @tables idle_images
+// @ui src/routes/kiosk.admin.tsx
+
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 

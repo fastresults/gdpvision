@@ -1,3 +1,7 @@
+// @domain country-onboarding
+// @tables countries,onboarding_drafts,onboarding_summaries
+// @ui src/routes/_authenticated/admin/countries.$code.onboard.tsx
+
 // Executive-summary generation for onboarding stages.
 // Reads the committed draft payload for a (country, stage), asks Lovable AI
 // to write a short elegant briefing + a few key highlights, and upserts into

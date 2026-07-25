@@ -1,3 +1,7 @@
+// @domain country-onboarding
+// @tables countries,country_capital_flows,country_kpis,country_sectors,country_source_chunks,country_sources,memory_objects,ministries,ministry_profiles,ministry_sectors,onboarding_drafts,onboarding_runs,sector_dossiers
+// @ui src/routes/_authenticated/admin/countries.$code.onboard.tsx
+
 // Sequential onboarding orchestrator.
 //
 // One country = one run at a time. Each stage runs inline through the existing

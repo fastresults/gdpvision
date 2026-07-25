@@ -1,3 +1,7 @@
+// @domain country-onboarding
+// @tables countries,minister_backfill_country_runs,minister_backfill_runs,ministries,ministry_profiles
+// @ui src/routes/_authenticated/admin/countries.index.tsx
+
 // Admin-only backfill: fill in ministry_profiles.minister and
 // ministry_profiles.minister_profile for every existing country that already
 // has ministries, using the 4-pass resolveMinister loop.

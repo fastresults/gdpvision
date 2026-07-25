@@ -1,3 +1,7 @@
+// @domain core
+// @tables country_sectors,intake_items,narrative_entity_watchlist,narrative_feeds,narrative_harvest_runs
+// @ui src/components/narrative/CoverageBadge.tsx; src/components/narrative/RadarHeatStrip.tsx; src/components/narrative/SignalSourcesPanel.tsx
+
 // Chamber 05 · server functions exposed to the UI (feeds CRUD, suggest, manual run, radar stats).
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";

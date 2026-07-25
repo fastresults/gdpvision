@@ -1,3 +1,7 @@
+// @domain core
+// @tables data_revisions,series,series_points
+// @ui src/components/narrative/CitationsRail.tsx
+
 // Fact-check & citations (PRD §7.6 FR-NC-11, §12 screens 12/13).
 // Extracts numeric claims from a draft body and matches them against the
 // Ledger's series_points for the same country.

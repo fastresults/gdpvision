@@ -1,3 +1,7 @@
+// @domain console
+// @tables cabinet_sessions,countries,ministries,service_request_deliverables,service_requests
+// @ui src/routes/_authenticated/console.$code.index.tsx; src/routes/_authenticated/console.$code.request.new.tsx
+
 // Server functions powering the Country Console (front-facing layer for
 // ministers / permanent secretaries). No chamber vocabulary is ever returned
 // on requester-facing surfaces.

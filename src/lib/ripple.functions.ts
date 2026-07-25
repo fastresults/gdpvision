@@ -1,3 +1,7 @@
+// @domain core
+// @tables sector_edges
+// @ui —
+
 // Ripple propagation (PRD Wave E3).
 // Given a scenario impact on a source sector, walk the sector_edges adjacency
 // matrix to produce first- and second-order impact decomposition. Fixed

@@ -1,3 +1,7 @@
+// @domain core
+// @tables audit_log,countries,instance_bindings,instance_config,profiles,user_roles
+// @ui src/routes/_authenticated/admin/audits.log.tsx; src/routes/_authenticated/admin/index.tsx; src/routes/_authenticated/onboarding/country.tsx
+
 // Admin console server functions (PRD §12 Screen 18).
 // Every handler verifies the caller is `admin` via has_role, then uses the
 // service-role client (loaded inside the handler) to read/write across

@@ -1,3 +1,7 @@
+// @domain personas
+// @tables —
+// @ui src/components/console/VoiceMicButton.tsx; src/components/narrative/opposition/OppositionIntakeDropZone.tsx; src/components/personas/StudyWizard/MultimodalInput.tsx
+
 // Chamber 07 · Wizard STT — audio blob → transcript via Lovable AI Gateway.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";

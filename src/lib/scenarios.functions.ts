@@ -1,3 +1,7 @@
+// @domain core
+// @tables countries,country_sectors,exposure_index,levers,ministries,scenario_promotions,scenarios
+// @ui src/components/scenarios/GuidedRail.tsx; src/components/scenarios/NarrativePanel.tsx; src/routes/_authenticated/admin/countries.$code.portfolio.$ministry.tsx
+
 // Engine + scenario workspace server functions (PRD §7.2).
 // All authed via requireSupabaseAuth so RLS scopes reads to the caller.
 

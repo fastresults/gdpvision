@@ -1,3 +1,7 @@
+// @domain personas
+// @tables —
+// @ui src/components/personas/StudyWizard/MultimodalInput.tsx; src/hooks/useConsoleUploads.ts
+
 // Chamber 07 · Wizard uploads — signed URL for direct browser upload +
 // text extraction for AI grounding. Files land under study-artifacts/<COUNTRY>/…
 import { createServerFn } from "@tanstack/react-start";

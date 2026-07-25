@@ -1,3 +1,7 @@
+// @domain personas
+// @tables persona_projects,persona_segments,persona_study_drafts,personas
+// @ui src/routes/_authenticated/admin/countries.$code.personas.segments.tsx
+
 // Chamber 07 · Stage 02 AI Composer — proposes segments automatically from brief + personas.
 
 import { createServerFn } from "@tanstack/react-start";

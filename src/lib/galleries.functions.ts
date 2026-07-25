@@ -1,3 +1,7 @@
+// @domain core
+// @tables galleries,gallery_items
+// @ui src/components/admin/GalleryManager.tsx
+
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { Gallery, GalleryItem, MediaMode } from "./kiosk-types";

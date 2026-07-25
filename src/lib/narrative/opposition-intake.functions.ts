@@ -1,3 +1,7 @@
+// @domain narrative
+// @tables opposition_items,opposition_response_plans
+// @ui src/components/narrative/opposition/CounterCampaignPanel.tsx; src/components/narrative/opposition/OppositionDetail.tsx; src/components/narrative/opposition/OppositionIntakeDropZone.tsx
+
 // Chamber 05 · Opposition Intel — intake + CRUD server functions.
 // Files land under opposition-intel/<COUNTRY>/… (private bucket).
 import { createServerFn } from "@tanstack/react-start";

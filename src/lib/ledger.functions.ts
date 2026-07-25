@@ -1,3 +1,7 @@
+// @domain core
+// @tables capital_flow_nodes,countries,country_capital_flows,country_kpis,country_sectors,country_source_chunks,country_sources,data_revisions,dossier_questions,exposure_index,figure_snapshots,grade_alerts,instance_bindings,intake_items,memory_objects,ministries,ministry_profiles,ministry_sectors,reconciliation_notes,sector_dossiers,series,series_freshness,series_points,source_health_checks,source_suppressions
+// @ui src/components/ledger/ArtifactPanel.tsx; src/components/ledger/AskTheLedger.tsx; src/components/ledger/ExpandActions.tsx
+
 // Ledger server functions (PRD §7.1 Chamber 1). All reads run under the
 // authenticated user's RLS via requireSupabaseAuth; writes are additionally
 // role-gated inside the handler with has_role().

@@ -1,3 +1,7 @@
+// @domain country-data
+// @tables countries,country_kpis,country_source_chunks,country_source_connections,country_source_documents,country_sources,kpi_research_attempts,memory_objects,ministries,ministry_profiles,onboarding_runs,sector_dossiers,source_candidates
+// @ui src/components/country-data/AddMemoryDialog.tsx; src/components/country-data/AddSourceDialog.tsx; src/components/country-data/SourceDetailSheet.tsx
+
 // Super-admin control surface for a country's ingested data corpus.
 // Sources, KPIs, sector dossiers, ministry profiles, corpus stats,
 // semantic search over embedded chunks, and second-brain memory objects.

@@ -1,3 +1,7 @@
+// @domain personas
+// @tables persona_projects
+// @ui src/components/personas/StudyWizard/BlueprintReview.tsx; src/hooks/useProgramBriefGate.ts
+
 // Chamber 07 · Blueprint — AI-first research design proposal.
 //
 // After the admin commits the Program Brief, `composeBlueprint` reads the

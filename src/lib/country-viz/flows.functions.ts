@@ -1,3 +1,7 @@
+// @domain country-viz
+// @tables capital_flow_nodes,countries,country_capital_flows
+// @ui src/components/viz/SovereignSankey.tsx
+
 // GDP Vision — Sovereign capital flow ledger.
 // Read-only aggregate over committed country_capital_flows + registry.
 

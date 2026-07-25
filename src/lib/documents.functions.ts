@@ -1,3 +1,7 @@
+// @domain core
+// @tables briefing_requests,commitments,decisions,exports_documents
+// @ui src/routes/_authenticated/admin/documents.tsx; src/routes/_authenticated/instrument/cabinet.decisions.tsx
+
 // Document export system (PRD Wave F2).
 // Renders HTML documents for Cabinet decisions, Briefing packs, FDI packages,
 // Term reports, and State-of-the-Mandate briefings. Persists to

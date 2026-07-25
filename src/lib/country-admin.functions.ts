@@ -1,3 +1,7 @@
+// @domain core
+// @tables audit_log,countries,country_access_requests,country_sectors,instance_bindings,ministries,profiles,sectors,user_roles
+// @ui src/routes/_authenticated/admin/country.$code.tsx; src/routes/_authenticated/agency.index.tsx; src/routes/_authenticated/concierge.index.tsx
+
 // Country-scoped admin + onboarding server functions.
 // - getMyCountryStatus / requestCountryAccess: signed-in user flow.
 // - listMyAdminScopes: which countries the caller can administer.

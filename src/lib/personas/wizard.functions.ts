@@ -1,3 +1,7 @@
+// @domain personas
+// @tables persona_segment_members,persona_segments,persona_study_drafts,personas,studies,study_evidence,study_instruments
+// @ui src/components/personas/StudyWizard/SessionsHub.tsx; src/components/personas/StudyWizard/WizardModal.tsx
+
 // Chamber 07 · Research Studio Wizard — server functions.
 // Corpus-first, McKinsey-grade brief → outcome → cast → commit pipeline.
 

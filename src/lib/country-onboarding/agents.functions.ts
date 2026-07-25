@@ -1,3 +1,7 @@
+// @domain country-onboarding
+// @tables audit_log,countries,country_authorized_domains,country_capital_flows,country_kpis,country_sectors,country_source_chunks,country_sources,memory_objects,ministries,ministry_profiles,ministry_sectors,onboarding_citations,onboarding_drafts,onboarding_pipeline_runs,onboarding_runs,onboarding_summaries,sector_dossiers,sectors
+// @ui src/routes/_authenticated/admin/activity.tsx; src/routes/_authenticated/admin/countries.$code.data.tsx; src/routes/_authenticated/admin/countries.$code.onboard.tsx
+
 // AI-first country onboarding server functions.
 // Each `runXxx` server fn calls Perplexity Sonar (grounded, cited), writes an
 // `onboarding_run` + `onboarding_drafts` + `onboarding_citations`, and returns

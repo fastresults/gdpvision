@@ -1,3 +1,7 @@
+// @domain country-home
+// @tables cabinet_sessions,countries,country_kpis,country_source_documents,country_sources,ministries,service_request_deliverables
+// @ui src/components/country/CountryMasthead.tsx
+
 // Country home summary: masthead brief-strip data.
 // Returns light KPI + activity counts. Any missing value is returned as
 // `null` and the UI renders "— not yet on record" (empty state contract).

@@ -1,3 +1,7 @@
+// @domain narrative
+// @tables comms_artifacts,memory_objects,opposition_items,opposition_response_plans
+// @ui src/components/narrative/opposition/CounterCampaignPanel.tsx; src/components/narrative/opposition/OppositionDetail.tsx; src/components/narrative/opposition/OppositionIntakeDropZone.tsx
+
 // Chamber 05 · Opposition Intel — analyze & plan server functions.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";

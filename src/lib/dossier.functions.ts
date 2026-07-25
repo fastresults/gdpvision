@@ -1,3 +1,7 @@
+// @domain core
+// @tables comms_artifacts,dossier_questions,intake_items,memory_objects,series,series_points,source_suppressions,strategy_statements
+// @ui src/routes/_authenticated/narrative/signal.$id.tsx
+
 // Context Dossier (PRD §12 Screen 10). Given a signal (intake_item), pull the
 // researched surround: Ledger facts, related Second-Brain memory objects,
 // prior strategy statements, prior comms artifacts, and persisted open

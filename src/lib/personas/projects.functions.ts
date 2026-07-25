@@ -1,3 +1,7 @@
+// @domain personas
+// @tables persona_projects,persona_segment_members,persona_segments,persona_study_drafts,studies,study_evidence,study_instruments,study_program_reports,study_questions,study_reports,study_responses,study_transcripts
+// @ui src/components/personas/StudyWizard/ProgramsIndex.tsx; src/components/personas/StudyWizard/ProjectSwitcher.tsx; src/routes/_authenticated/admin/countries.$code.personas.index.tsx
+
 // Chamber 07 · Research projects — each country can run multiple concurrent
 // research programs (each with its own brief → segments → studies → memo).
 

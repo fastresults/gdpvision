@@ -1,3 +1,7 @@
+// @domain core
+// @tables cabinet_sessions,commitments,decisions,exports_log,exposure_index,goal_cycles,kpis,packages
+// @ui src/routes/_authenticated/instrument/cabinet.index.tsx; src/routes/_authenticated/instrument/cabinet.session.tsx; src/routes/_authenticated/instrument/mandate.studio.tsx
+
 // Phase 3 — Studio, Room & Mandate server functions.
 // All authed via requireSupabaseAuth; RLS enforces country/role scoping.
 

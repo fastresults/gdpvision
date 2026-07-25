@@ -1,4 +1,4 @@
-// Sovereign switchboard: Chamber 01 gets a hero row; 02–07 fill a 2×3 grid.
+// Sovereign switchboard: Chamber 01 gets a hero row; 02–08 fill the grid.
 // Numeric monogram is the visual anchor; icon is a small mark, not a headline.
 
 import { Link } from "@tanstack/react-router";
@@ -9,6 +9,7 @@ import {
   Landmark,
   Layers,
   MessageSquare,
+  ScrollText,
   TrendingUp,
   Users,
   type LucideIcon,
@@ -26,7 +27,8 @@ type Chamber = {
     | "/admin/countries/$code/studio"
     | "/admin/countries/$code/narrative"
     | "/admin/countries/$code/cabinet"
-    | "/admin/countries/$code/personas";
+    | "/admin/countries/$code/personas"
+    | "/admin/countries/$code/mandate-compact";
 };
 
 const HERO: Chamber = {
@@ -44,7 +46,9 @@ const REST: Chamber[] = [
   { n: "05", icon: MessageSquare, title: "The Narrative Chamber", blurb: "Signal to statement inside a working day.", to: "/admin/countries/$code/narrative" },
   { n: "06", icon: Landmark, title: "The Cabinet Room", blurb: "Prep, run, and follow through on cabinet business.", to: "/admin/countries/$code/cabinet" },
   { n: "07", icon: Users, title: "Synthetic Persona Lab", blurb: "Simulate publics, applicants, and stakeholders.", to: "/admin/countries/$code/personas" },
+  { n: "08", icon: ScrollText, title: "The Mandate Compact", blurb: "Manifesto to delivery — pledges tracked to the ministry.", to: "/admin/countries/$code/mandate-compact" },
 ];
+
 
 export function ChambersLauncher({ code }: { code: string }) {
   return (
@@ -57,14 +61,14 @@ export function ChambersLauncher({ code }: { code: string }) {
           <h2 className="mt-2 font-serif text-3xl text-ink-950">Enter a chamber</h2>
         </div>
         <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Seven workspaces · one country
+          Eight sovereign chambers · one country
         </span>
       </div>
 
       {/* Hero chamber (01) */}
       <HeroTile code={code} chamber={HERO} />
 
-      {/* 2×3 grid for 02–07 */}
+      {/* Grid for 02–08 */}
       <div className="grid grid-cols-1 gap-0 border-t border-line-200 md:grid-cols-2 lg:grid-cols-3">
         {REST.map((c, i) => (
           <Tile key={c.n} code={code} chamber={c} index={i} />
@@ -73,6 +77,7 @@ export function ChambersLauncher({ code }: { code: string }) {
     </section>
   );
 }
+
 
 function HeroTile({ code, chamber }: { code: string; chamber: Chamber }) {
   const Icon = chamber.icon;

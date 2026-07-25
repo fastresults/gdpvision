@@ -146,43 +146,53 @@ function MandateCompactPage() {
 
 function Stepper({ active, onSelect }: { active: string; onSelect: (k: (typeof STEPS)[number]["key"]) => void }) {
   return (
-    <ol className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-7">
-      {STEPS.map((step, idx) => {
-        const isActive = active === step.key;
-        const Icon = step.icon;
-        return (
-          <li key={step.key}>
-            <button
-              type="button"
-              onClick={() => onSelect(step.key)}
-              className={cn(
-                "flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition",
-                isActive
-                  ? "border-gold-500 bg-paper-0 shadow-sm"
-                  : "border-line-200 bg-paper-50 hover:border-line-100",
-              )}
-            >
-              <span
-                className={cn(
-                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
-                  isActive ? "bg-gold-500 text-ink-950" : "bg-paper-100 text-ink-500",
-                )}
+    <nav aria-label="Mandate Compact workflow">
+      <ol className="grid grid-cols-4 gap-x-3 gap-y-6 md:grid-cols-7 md:gap-x-4">
+        {STEPS.map((step, idx) => {
+          const isActive = active === step.key;
+          const num = String(idx + 1).padStart(2, "0");
+          return (
+            <li key={step.key}>
+              <button
+                type="button"
+                onClick={() => onSelect(step.key)}
+                aria-current={isActive ? "step" : undefined}
+                className="group flex w-full flex-col items-start text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-500"
               >
-                {idx + 1}
-              </span>
-              <span className="min-w-0">
-                <span className="flex items-center gap-2 text-sm font-semibold text-ink-900">
-                  <Icon className="h-4 w-4" /> {step.label}
+                <span
+                  className={cn(
+                    "font-mono text-[10px] tracking-[0.18em] transition-colors",
+                    isActive ? "font-medium text-gold-500" : "text-ink-400 group-hover:text-ink-700",
+                  )}
+                >
+                  {num}
                 </span>
-                <span className="mt-1 block text-xs text-ink-500">{step.hint}</span>
-              </span>
-            </button>
-          </li>
-        );
-      })}
-    </ol>
+                <span
+                  className={cn(
+                    "mt-2 h-[2px] w-full transition-colors",
+                    isActive ? "bg-gold-500" : "bg-line-200 group-hover:bg-ink-300",
+                  )}
+                />
+                <span
+                  className={cn(
+                    "mt-2.5 font-mono text-[10px] uppercase tracking-[0.18em] transition-colors",
+                    isActive ? "font-semibold text-ink-950" : "text-ink-500 group-hover:text-ink-900",
+                  )}
+                >
+                  {step.label}
+                </span>
+                <span className="mt-1 hidden text-[11px] leading-snug text-ink-400 md:block">
+                  {step.hint}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
   );
 }
+
 
 function IngestPanel({ countryCode, compacts }: { countryCode: string; compacts: CompactRow[] }) {
   const qc = useQueryClient();

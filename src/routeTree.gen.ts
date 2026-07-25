@@ -115,7 +115,9 @@ import { Route as AuthenticatedAdminCountriesCodePersonasBlueprintRouteImport } 
 import { Route as AuthenticatedAdminCountriesCodePersonasIdRouteImport } from './routes/_authenticated/admin/countries.$code.personas.$id'
 import { Route as AuthenticatedAdminCountriesCodeNarrativeLibraryRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.library'
 import { Route as AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.opposition.index'
+import { Route as AuthenticatedAdminCountriesCodeStudioThreatsNewRouteImport } from './routes/_authenticated/admin/countries.$code.studio.threats.new'
 import { Route as AuthenticatedAdminCountriesCodeStudioThreatsIdRouteImport } from './routes/_authenticated/admin/countries.$code.studio.threats.$id'
+import { Route as AuthenticatedAdminCountriesCodeStudioSectorsSectorCodeRouteImport } from './routes/_authenticated/admin/countries.$code.studio.sectors.$sectorCode'
 import { Route as AuthenticatedAdminCountriesCodePersonasStudiesIdRouteImport } from './routes/_authenticated/admin/countries.$code.personas.studies.$id'
 import { Route as AuthenticatedAdminCountriesCodeNarrativeSignalIdRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.signal.$id'
 import { Route as AuthenticatedAdminCountriesCodeNarrativeOppositionIdRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.opposition.$id'
@@ -740,10 +742,22 @@ const AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRoute =
     path: '/opposition/',
     getParentRoute: () => AuthenticatedAdminCountriesCodeNarrativeRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeStudioThreatsNewRoute =
+  AuthenticatedAdminCountriesCodeStudioThreatsNewRouteImport.update({
+    id: '/threats/new',
+    path: '/threats/new',
+    getParentRoute: () => AuthenticatedAdminCountriesCodeStudioRoute,
+  } as any)
 const AuthenticatedAdminCountriesCodeStudioThreatsIdRoute =
   AuthenticatedAdminCountriesCodeStudioThreatsIdRouteImport.update({
     id: '/threats/$id',
     path: '/threats/$id',
+    getParentRoute: () => AuthenticatedAdminCountriesCodeStudioRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodeStudioSectorsSectorCodeRoute =
+  AuthenticatedAdminCountriesCodeStudioSectorsSectorCodeRouteImport.update({
+    id: '/sectors/$sectorCode',
+    path: '/sectors/$sectorCode',
     getParentRoute: () => AuthenticatedAdminCountriesCodeStudioRoute,
   } as any)
 const AuthenticatedAdminCountriesCodePersonasStudiesIdRoute =
@@ -894,7 +908,9 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/narrative/opposition/$id': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIdRoute
   '/admin/countries/$code/narrative/signal/$id': typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute
   '/admin/countries/$code/personas/studies/$id': typeof AuthenticatedAdminCountriesCodePersonasStudiesIdRoute
+  '/admin/countries/$code/studio/sectors/$sectorCode': typeof AuthenticatedAdminCountriesCodeStudioSectorsSectorCodeRoute
   '/admin/countries/$code/studio/threats/$id': typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRoute
+  '/admin/countries/$code/studio/threats/new': typeof AuthenticatedAdminCountriesCodeStudioThreatsNewRoute
   '/admin/countries/$code/narrative/opposition/': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRoute
 }
 export interface FileRoutesByTo {
@@ -999,7 +1015,9 @@ export interface FileRoutesByTo {
   '/admin/countries/$code/narrative/opposition/$id': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIdRoute
   '/admin/countries/$code/narrative/signal/$id': typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute
   '/admin/countries/$code/personas/studies/$id': typeof AuthenticatedAdminCountriesCodePersonasStudiesIdRoute
+  '/admin/countries/$code/studio/sectors/$sectorCode': typeof AuthenticatedAdminCountriesCodeStudioSectorsSectorCodeRoute
   '/admin/countries/$code/studio/threats/$id': typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRoute
+  '/admin/countries/$code/studio/threats/new': typeof AuthenticatedAdminCountriesCodeStudioThreatsNewRoute
   '/admin/countries/$code/narrative/opposition': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRoute
 }
 export interface FileRoutesById {
@@ -1115,7 +1133,9 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/narrative/opposition/$id': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIdRoute
   '/_authenticated/admin/countries/$code/narrative/signal/$id': typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute
   '/_authenticated/admin/countries/$code/personas/studies/$id': typeof AuthenticatedAdminCountriesCodePersonasStudiesIdRoute
+  '/_authenticated/admin/countries/$code/studio/sectors/$sectorCode': typeof AuthenticatedAdminCountriesCodeStudioSectorsSectorCodeRoute
   '/_authenticated/admin/countries/$code/studio/threats/$id': typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRoute
+  '/_authenticated/admin/countries/$code/studio/threats/new': typeof AuthenticatedAdminCountriesCodeStudioThreatsNewRoute
   '/_authenticated/admin/countries/$code/narrative/opposition/': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRoute
 }
 export interface FileRouteTypes {
@@ -1231,7 +1251,9 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/narrative/opposition/$id'
     | '/admin/countries/$code/narrative/signal/$id'
     | '/admin/countries/$code/personas/studies/$id'
+    | '/admin/countries/$code/studio/sectors/$sectorCode'
     | '/admin/countries/$code/studio/threats/$id'
+    | '/admin/countries/$code/studio/threats/new'
     | '/admin/countries/$code/narrative/opposition/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1336,7 +1358,9 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/narrative/opposition/$id'
     | '/admin/countries/$code/narrative/signal/$id'
     | '/admin/countries/$code/personas/studies/$id'
+    | '/admin/countries/$code/studio/sectors/$sectorCode'
     | '/admin/countries/$code/studio/threats/$id'
+    | '/admin/countries/$code/studio/threats/new'
     | '/admin/countries/$code/narrative/opposition'
   id:
     | '__root__'
@@ -1451,7 +1475,9 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/countries/$code/narrative/opposition/$id'
     | '/_authenticated/admin/countries/$code/narrative/signal/$id'
     | '/_authenticated/admin/countries/$code/personas/studies/$id'
+    | '/_authenticated/admin/countries/$code/studio/sectors/$sectorCode'
     | '/_authenticated/admin/countries/$code/studio/threats/$id'
+    | '/_authenticated/admin/countries/$code/studio/threats/new'
     | '/_authenticated/admin/countries/$code/narrative/opposition/'
   fileRoutesById: FileRoutesById
 }
@@ -2213,11 +2239,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRouteImport
       parentRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRoute
     }
+    '/_authenticated/admin/countries/$code/studio/threats/new': {
+      id: '/_authenticated/admin/countries/$code/studio/threats/new'
+      path: '/threats/new'
+      fullPath: '/admin/countries/$code/studio/threats/new'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeStudioThreatsNewRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodeStudioRoute
+    }
     '/_authenticated/admin/countries/$code/studio/threats/$id': {
       id: '/_authenticated/admin/countries/$code/studio/threats/$id'
       path: '/threats/$id'
       fullPath: '/admin/countries/$code/studio/threats/$id'
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodeStudioRoute
+    }
+    '/_authenticated/admin/countries/$code/studio/sectors/$sectorCode': {
+      id: '/_authenticated/admin/countries/$code/studio/sectors/$sectorCode'
+      path: '/sectors/$sectorCode'
+      fullPath: '/admin/countries/$code/studio/sectors/$sectorCode'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeStudioSectorsSectorCodeRouteImport
       parentRoute: typeof AuthenticatedAdminCountriesCodeStudioRoute
     }
     '/_authenticated/admin/countries/$code/personas/studies/$id': {
@@ -2378,15 +2418,21 @@ const AuthenticatedAdminCountriesCodeScenariosRouteWithChildren =
 
 interface AuthenticatedAdminCountriesCodeStudioRouteChildren {
   AuthenticatedAdminCountriesCodeStudioIndexRoute: typeof AuthenticatedAdminCountriesCodeStudioIndexRoute
+  AuthenticatedAdminCountriesCodeStudioSectorsSectorCodeRoute: typeof AuthenticatedAdminCountriesCodeStudioSectorsSectorCodeRoute
   AuthenticatedAdminCountriesCodeStudioThreatsIdRoute: typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRoute
+  AuthenticatedAdminCountriesCodeStudioThreatsNewRoute: typeof AuthenticatedAdminCountriesCodeStudioThreatsNewRoute
 }
 
 const AuthenticatedAdminCountriesCodeStudioRouteChildren: AuthenticatedAdminCountriesCodeStudioRouteChildren =
   {
     AuthenticatedAdminCountriesCodeStudioIndexRoute:
       AuthenticatedAdminCountriesCodeStudioIndexRoute,
+    AuthenticatedAdminCountriesCodeStudioSectorsSectorCodeRoute:
+      AuthenticatedAdminCountriesCodeStudioSectorsSectorCodeRoute,
     AuthenticatedAdminCountriesCodeStudioThreatsIdRoute:
       AuthenticatedAdminCountriesCodeStudioThreatsIdRoute,
+    AuthenticatedAdminCountriesCodeStudioThreatsNewRoute:
+      AuthenticatedAdminCountriesCodeStudioThreatsNewRoute,
   }
 
 const AuthenticatedAdminCountriesCodeStudioRouteWithChildren =

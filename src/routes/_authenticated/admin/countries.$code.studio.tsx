@@ -95,7 +95,18 @@ function StudioLayout() {
             className="flex items-center justify-between border border-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-950 hover:bg-ink-950 hover:text-paper-0"
           >
             <span className="flex items-center gap-2">
-              <AlertOctagon size={13} /> New threat
+              <AlertOctagon size={13} /> Macro FDI Board
+            </span>
+            <ChevronRight size={13} />
+          </Link>
+          <Link
+            to="/admin/countries/$code/studio/threats/new"
+            params={{ code }}
+            activeProps={{ className: "border-ink-950 bg-ink-950 text-paper-0" }}
+            className="flex items-center justify-between border border-line-200 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-700 hover:border-ink-950 hover:text-ink-950"
+          >
+            <span className="flex items-center gap-2">
+              <AlertOctagon size={13} /> Frame new threat
             </span>
             <ChevronRight size={13} />
           </Link>

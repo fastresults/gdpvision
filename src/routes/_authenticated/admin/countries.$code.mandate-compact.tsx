@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ScrollText, Upload, Sparkles, Target, FileCheck, Loader2, Wand2, Building2, AlertTriangle, TrendingUp, ExternalLink } from "lucide-react";
+import { ScrollText, Upload, Sparkles, Target, FileCheck, Loader2, Wand2, Building2, AlertTriangle, TrendingUp, ExternalLink, ShieldCheck, PenLine, PlayCircle, Flag } from "lucide-react";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { listMandateCompacts, type CompactRow } from "@/lib/mandate-compact/list.functions";
@@ -18,6 +18,11 @@ import {
   type PmReportCard,
   type StatusStatus,
 } from "@/lib/mandate-compact/track.functions";
+import {
+  signMandateCompact,
+  activateMandateCompact,
+  concludeMandateCompact,
+} from "@/lib/mandate-compact/publish.functions";
 import { cn } from "@/lib/utils";
 
 function compactsQuery(code: string) {
@@ -43,6 +48,7 @@ const STEPS = [
   { key: "decompose", label: "Decompose", icon: ScrollText, hint: "AI pillars & pledges" },
   { key: "transform", label: "Transform", icon: Sparkles, hint: "Ministry-owned delivery plan" },
   { key: "track", label: "Track", icon: Target, hint: "Quarterly scorecards" },
+  { key: "publish", label: "Publish", icon: ShieldCheck, hint: "Sign, activate, conclude" },
 ] as const;
 
 function MandateCompactPage() {
@@ -98,6 +104,11 @@ function MandateCompactPage() {
             ? <TrackPanel countryCode={code} compact={selectedCompact} />
             : <EmptyState body="Ingest, decompose, and transform a manifesto first." />
         )}
+        {activeStep === "publish" && (
+          selectedCompact
+            ? <PublishPanel countryCode={code} compact={selectedCompact} />
+            : <EmptyState body="Ingest a manifesto first." />
+        )}
 
         <CompactList compacts={compacts} />
       </div>
@@ -107,7 +118,7 @@ function MandateCompactPage() {
 
 function Stepper({ active, onSelect }: { active: string; onSelect: (k: (typeof STEPS)[number]["key"]) => void }) {
   return (
-    <ol className="grid grid-cols-2 gap-2 md:grid-cols-4">
+    <ol className="grid grid-cols-2 gap-2 md:grid-cols-5">
       {STEPS.map((step, idx) => {
         const isActive = active === step.key;
         const Icon = step.icon;
@@ -974,6 +985,124 @@ function StatusRow({
           {mut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
         </button>
       </div>
+    </li>
+  );
+}
+
+// ────────────────────────── Slice D · Publish ──────────────────────────
+
+function PublishPanel({ countryCode, compact }: { countryCode: string; compact: CompactRow }) {
+  const qc = useQueryClient();
+  const sign = useServerFn(signMandateCompact);
+  const activate = useServerFn(activateMandateCompact);
+  const conclude = useServerFn(concludeMandateCompact);
+  const [reason, setReason] = useState("");
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["mandate-compacts", countryCode] });
+    qc.invalidateQueries({ queryKey: ["mandate-compact-detail", compact.id] });
+  };
+
+  const signMut = useMutation({
+    mutationFn: () => sign({ data: { compactId: compact.id, reason: reason.trim() || undefined } }),
+    onSuccess: (r) => { toast.success(r.unchanged ? "Already signed" : `Signed · revision ${r.revision_number}`); invalidate(); setReason(""); },
+    onError: (err: Error) => toast.error(err.message),
+  });
+  const activateMut = useMutation({
+    mutationFn: () => activate({ data: { compactId: compact.id, reason: reason.trim() || undefined } }),
+    onSuccess: (r) => { toast.success(r.unchanged ? "Already in force" : `Activated · revision ${r.revision_number}`); invalidate(); setReason(""); },
+    onError: (err: Error) => toast.error(err.message),
+  });
+  const concludeMut = useMutation({
+    mutationFn: () => conclude({ data: { compactId: compact.id, reason: reason.trim() || undefined } }),
+    onSuccess: (r) => { toast.success(r.unchanged ? "Already concluded" : `Concluded · revision ${r.revision_number}`); invalidate(); setReason(""); },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const status = compact.status;
+  const canSign = status === "draft";
+  const canActivate = status === "signed";
+  const canConclude = status === "in_force";
+  const busy = signMut.isPending || activateMut.isPending || concludeMut.isPending;
+
+  return (
+    <section className="grid gap-4 rounded-2xl border border-line-200 bg-paper-0 p-5">
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-ink-900">Publish the compact</h2>
+          <p className="mt-1 text-sm text-ink-500">
+            Sign the compact to freeze it, then activate it so it lights up the Country Console.
+            Every transition writes an audit revision with a full snapshot.
+          </p>
+        </div>
+        <StatusPill status={status} />
+      </header>
+
+      <ol className="grid gap-3 md:grid-cols-3">
+        <TransitionCard
+          n={1} icon={PenLine} label="Sign" tone={canSign ? "primary" : "muted"}
+          body="Freeze pillars, pledges, and deliverables. Marks signed_at and creates rev-1."
+          disabled={!canSign || busy} loading={signMut.isPending}
+          onClick={() => signMut.mutate()}
+        />
+        <TransitionCard
+          n={2} icon={PlayCircle} label="Activate" tone={canActivate ? "primary" : "muted"}
+          body="Compact goes into force. It becomes the live PM Report Card in each minister's console."
+          disabled={!canActivate || busy} loading={activateMut.isPending}
+          onClick={() => activateMut.mutate()}
+        />
+        <TransitionCard
+          n={3} icon={Flag} label="Conclude" tone={canConclude ? "primary" : "muted"}
+          body="Term ends. Report card is frozen for the historical record."
+          disabled={!canConclude || busy} loading={concludeMut.isPending}
+          onClick={() => concludeMut.mutate()}
+        />
+      </ol>
+
+      <label className="grid gap-1">
+        <span className="text-xs font-medium uppercase tracking-wide text-ink-500">Change note (optional)</span>
+        <textarea
+          className="input min-h-[70px]"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="e.g. Cabinet reshuffle · added Ministry of Energy Transition as lead for pledge 3.2"
+        />
+      </label>
+    </section>
+  );
+}
+
+function TransitionCard({
+  n, icon: Icon, label, body, disabled, loading, onClick, tone,
+}: {
+  n: number; icon: any; label: string; body: string; disabled?: boolean; loading?: boolean;
+  onClick: () => void; tone: "primary" | "muted";
+}) {
+  return (
+    <li className={cn(
+      "flex flex-col justify-between gap-3 rounded-xl border p-4",
+      tone === "primary" ? "border-gold-500 bg-paper-0" : "border-line-200 bg-paper-50",
+    )}>
+      <div className="flex items-start gap-3">
+        <span className={cn(
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+          tone === "primary" ? "bg-gold-500 text-ink-950" : "bg-paper-100 text-ink-500",
+        )}>{n}</span>
+        <div className="min-w-0">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-ink-900">
+            <Icon className="h-4 w-4" /> {label}
+          </h3>
+          <p className="mt-1 text-xs text-ink-500">{body}</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        className={tone === "primary" ? "btn-primary w-full" : "btn-ghost w-full"}
+        disabled={disabled}
+        onClick={onClick}
+      >
+        {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Working…</> : label}
+      </button>
     </li>
   );
 }

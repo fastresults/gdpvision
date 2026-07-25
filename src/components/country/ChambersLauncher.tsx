@@ -61,14 +61,14 @@ export function ChambersLauncher({ code }: { code: string }) {
           <h2 className="mt-2 font-serif text-3xl text-ink-950">Enter a chamber</h2>
         </div>
         <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Seven workspaces · one country
+          Eight sovereign chambers · one country
         </span>
       </div>
 
       {/* Hero chamber (01) */}
       <HeroTile code={code} chamber={HERO} />
 
-      {/* 2×3 grid for 02–07 */}
+      {/* Grid for 02–08 */}
       <div className="grid grid-cols-1 gap-0 border-t border-line-200 md:grid-cols-2 lg:grid-cols-3">
         {REST.map((c, i) => (
           <Tile key={c.n} code={code} chamber={c} index={i} />
@@ -77,6 +77,7 @@ export function ChambersLauncher({ code }: { code: string }) {
     </section>
   );
 }
+
 
 function HeroTile({ code, chamber }: { code: string; chamber: Chamber }) {
   const Icon = chamber.icon;

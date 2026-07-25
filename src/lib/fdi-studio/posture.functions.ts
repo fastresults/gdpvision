@@ -114,7 +114,7 @@ async function pickPeers(supabase: any, self: { code: string; gdp_usd: number | 
   const out: PeerRow[] = [];
   for (const p of ranked) {
     const sectors = await loadCountrySectors(supabase, p.code);
-    const shares = sectors.map((s) => s.share_pct / 100);
+    const shares = sectors.map((s: { code: string; label: string; hue_token: string | null; share_pct: number }) => s.share_pct / 100);
     const inflow = await computeFdiInflow(supabase, p.code);
     out.push({
       code: p.code,
@@ -178,10 +178,10 @@ export const getFdiPosture = createServerFn({ method: "POST" })
     const gdp = country?.gdp_current_usd ?? null;
     const currentInflow = await computeFdiInflow(supabase, code);
 
-    const shares = sectors.map((s) => s.share_pct / 100);
+    const shares = sectors.map((s: { code: string; label: string; hue_token: string | null; share_pct: number }) => s.share_pct / 100);
     const hhiVal = hhi(shares);
     const top1 = sectors[0]?.share_pct ?? 0;
-    const top3 = sectors.slice(0, 3).reduce((s, r) => s + r.share_pct, 0);
+    const top3 = sectors.slice(0, 3).reduce((s: number, r: { share_pct: number }) => s + r.share_pct, 0);
 
     const peers = await pickPeers(supabase, { code, gdp_usd: gdp });
 
@@ -281,7 +281,7 @@ export const getFdiPosture = createServerFn({ method: "POST" })
       },
       peers,
       active_transitions,
-      sectors: sectors.map((s) => ({ ...s, fdi_dependency: null })),
+      sectors: sectors.map((s: { code: string; label: string; hue_token: string | null; share_pct: number }) => ({ ...s, fdi_dependency: null })),
       investor_value_prop: valueProp.text,
       snapshot_id: snap?.id ?? null,
       generated_at: snap?.generated_at ?? new Date().toISOString(),

@@ -152,7 +152,7 @@ export const generatePlainStory = createServerFn({ method: "POST" })
     // Cache back into assumptions.
     await supabase
       .from("scenarios")
-      .update({ assumptions: { ...assumptions, plain_story: story } })
+      .update({ assumptions: { ...assumptions, plain_story: story as unknown as Record<string, string> } as Record<string, unknown> as never })
       .eq("id", data.scenarioId);
 
     return { story };

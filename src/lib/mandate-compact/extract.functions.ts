@@ -124,9 +124,9 @@ export const extractManifesto = createServerFn({ method: "POST" })
 
     let extracted: ManifestoExtracted;
     try {
-      const { experimental_output } = await generateText({
+      const result = await generateText({
         model: gateway(MODEL),
-        output: Output.object({ schema: ExtractedSchema }),
+        experimental_output: Output.object({ schema: ExtractedSchema }),
         system:
           "You are a policy analyst reading a party manifesto for country " +
           data.countryCode +
@@ -136,7 +136,7 @@ export const extractManifesto = createServerFn({ method: "POST" })
           "Summary must be 2-3 sentences, <= 600 characters.",
         prompt: `MANIFESTO EXCERPT (may be truncated):\n\n${excerpt}`,
       });
-      extracted = experimental_output;
+      extracted = (result as unknown as { experimental_output: ManifestoExtracted }).experimental_output;
     } catch (err) {
       throw new Error(`AI extraction failed: ${(err as Error).message}`);
     }

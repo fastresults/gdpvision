@@ -133,7 +133,7 @@ async function transitionCompact(
   }
 
   const patch: Record<string, any> = { status: target };
-  if (target === "signed" || (from === "draft" && target === "signed")) {
+  if (target === "signed") {
     patch.signed_at = new Date().toISOString();
   }
 

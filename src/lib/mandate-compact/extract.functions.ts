@@ -152,7 +152,17 @@ export const extractManifesto = createServerFn({ method: "POST" })
         prompt: `MANIFESTO EXCERPT (may be truncated):\n\n${excerpt}`,
       } as any);
       extracted = (result?.experimental_output ?? result?.output) as ManifestoExtracted;
-      if (!extracted) throw new Error("empty extraction");
+      if (typeof extracted === "string") {
+        const raw = (extracted as string).trim().replace(/^`+\s*(?:json)?\s*/i, "").replace(/`+\s*$/i, "").trim();
+        try {
+          extracted = JSON.parse(raw) as ManifestoExtracted;
+        } catch {
+          const m = raw.match(/\{[\s\S]*\}/);
+          if (!m) throw new Error("model returned non-JSON output");
+          extracted = JSON.parse(m[0]) as ManifestoExtracted;
+        }
+      }
+      if (!extracted || typeof extracted !== "object") throw new Error("empty extraction");
     } catch (err) {
       throw new Error(`AI extraction failed: ${(err as Error).message}`);
     }

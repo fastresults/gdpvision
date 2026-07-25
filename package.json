@@ -13,7 +13,9 @@
     "ledger-qa:verify": "bash scripts/ledger-qa/verify.sh",
     "ledger-qa:invariants": "python3 scripts/ledger-qa/cascade-invariants.py",
     "ledger-qa:e2e": "python3 scripts/ledger-qa/e2e.py",
-    "ledger-qa:all": "bash scripts/ledger-qa/verify.sh && python3 scripts/ledger-qa/cascade-invariants.py && python3 scripts/ledger-qa/e2e.py"
+    "ledger-qa:all": "bash scripts/ledger-qa/verify.sh && python3 scripts/ledger-qa/cascade-invariants.py && python3 scripts/ledger-qa/e2e.py",
+    "map": "bun scripts/build-map.ts",
+    "map:check": "bun scripts/build-map.ts --check"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.7",

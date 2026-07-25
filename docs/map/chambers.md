@@ -60,6 +60,14 @@ Each of the 7 chambers = a route surface + component tree + server-fn module(s) 
 - **Hooks**: `src/hooks/useProgramBriefGate.ts`, `useVoiceRecorder.ts`
 - **Server fns**: `src/lib/personas/{wizard,study,generate,blueprint,projects,project-brief,parse-upload,transcribe,compose-study,compose-segments,autorun}.functions.ts`, helper `personas/context-pack.server.ts`, `personas/study-autorun.ts`, `personas/report-export.ts`
 
+## Chamber 08 · Mandate Compact
+
+- **Route**: `admin/countries.$code.mandate-compact.tsx`
+- **Components (inline in route)**: `Stepper`, `IngestPanel`, `CompactList`, `StatusPill`, `PhasePlaceholder`
+- **Server fns**: `src/lib/mandate-compact/{ingest,list}.functions.ts`
+- **Tables**: `mandate_compacts`, `compact_pillars`, `compact_pledges`, `compact_deliverables`, `compact_status_updates`, `compact_scorecards`, `compact_revisions` + writes to `country_manifestos`, `country_sources`, `country_source_documents`, `country_source_chunks`, `memory_objects`
+- **Corpus**: manifesto text is chunk-embedded via `country-onboarding/ingest.server.ts` (chunkText + embedBatch) so Ask-the-Ledger can quote pledges verbatim; a `memory_object` of kind `mandate_compact` mirrors the compact for cross-chamber lookup
+
 ---
 
 ## Cross-cutting surfaces

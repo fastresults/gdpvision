@@ -18,6 +18,11 @@ import {
   type PmReportCard,
   type StatusStatus,
 } from "@/lib/mandate-compact/track.functions";
+import {
+  signMandateCompact,
+  activateMandateCompact,
+  concludeMandateCompact,
+} from "@/lib/mandate-compact/publish.functions";
 import { cn } from "@/lib/utils";
 
 function compactsQuery(code: string) {

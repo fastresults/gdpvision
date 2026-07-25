@@ -397,7 +397,13 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
     "w-full appearance-none border-0 border-b border-line-200 bg-transparent px-0 py-2 text-sm text-ink-950 placeholder:text-ink-300 focus:border-gold-500 focus:outline-none focus:ring-0";
 
   return (
-    <section className="grid gap-12 border-b border-line-200 pb-12 lg:grid-cols-12 lg:gap-16">
+    <section className="relative grid gap-12 border-b border-line-200 pb-12 lg:grid-cols-12 lg:gap-16">
+      {phase === "extracting" && (
+        <div className="pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden bg-gold-500/20">
+          <div className="h-full w-1/3 animate-[shimmer_1.2s_linear_infinite] bg-gold-500" style={{ animation: "mc-progress 1.2s linear infinite" }} />
+          <style>{`@keyframes mc-progress { 0% { transform: translateX(-100%); } 100% { transform: translateX(400%); } }`}</style>
+        </div>
+      )}
       <div className="lg:col-span-4">
         <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">Step 01</p>
         <h2 className="mt-2 font-serif text-2xl font-normal leading-tight text-ink-950">

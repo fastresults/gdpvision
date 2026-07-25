@@ -37,11 +37,7 @@ export type RevisionSnapshot = {
   revision_number: number;
   reason: string | null;
   created_at: string;
-  snapshot: {
-    transition?: { from: string; to: string };
-    compact?: Record<string, unknown>;
-    pillars?: Array<Record<string, unknown>>;
-  };
+  snapshot: any;
 };
 
 export const listCompactRevisions = createServerFn({ method: "POST" })

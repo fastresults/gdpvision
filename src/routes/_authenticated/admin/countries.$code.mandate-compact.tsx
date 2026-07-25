@@ -164,7 +164,7 @@ function MandateCompactPage() {
 function Stepper({ active, onSelect }: { active: string; onSelect: (k: (typeof STEPS)[number]["key"]) => void }) {
   return (
     <nav aria-label="Mandate Compact workflow">
-      <ol className="grid grid-cols-4 gap-x-3 gap-y-6 md:grid-cols-7 md:gap-x-4">
+      <ol className="grid grid-cols-4 gap-x-3 gap-y-6 md:grid-cols-8 md:gap-x-4">
         {STEPS.map((step, idx) => {
           const isActive = active === step.key;
           const num = String(idx + 1).padStart(2, "0");

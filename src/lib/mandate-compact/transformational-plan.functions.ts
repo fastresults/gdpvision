@@ -35,7 +35,6 @@ export type PlanSection = {
   heading: string;
   body_md: string;
   eyebrow?: string | null;
-  data_refs?: Record<string, unknown>;
 };
 
 export type PlanMetrics = {

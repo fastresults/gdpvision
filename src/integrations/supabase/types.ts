@@ -1293,6 +1293,83 @@ export type Database = {
           },
         ]
       }
+      compact_transformational_plans: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          authored_at: string
+          authored_by: string | null
+          compact_id: string
+          country_code: string
+          created_at: string
+          id: string
+          metrics: Json
+          model: string | null
+          narrative_signal_id: string | null
+          narrative_strategy_id: string | null
+          published_at: string | null
+          sections: Json
+          sources: Json
+          status: string
+          subtitle: string | null
+          title: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          authored_at?: string
+          authored_by?: string | null
+          compact_id: string
+          country_code: string
+          created_at?: string
+          id?: string
+          metrics?: Json
+          model?: string | null
+          narrative_signal_id?: string | null
+          narrative_strategy_id?: string | null
+          published_at?: string | null
+          sections?: Json
+          sources?: Json
+          status?: string
+          subtitle?: string | null
+          title?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          authored_at?: string
+          authored_by?: string | null
+          compact_id?: string
+          country_code?: string
+          created_at?: string
+          id?: string
+          metrics?: Json
+          model?: string | null
+          narrative_signal_id?: string | null
+          narrative_strategy_id?: string | null
+          published_at?: string | null
+          sections?: Json
+          sources?: Json
+          status?: string
+          subtitle?: string | null
+          title?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compact_transformational_plans_compact_id_fkey"
+            columns: ["compact_id"]
+            isOneToOne: false
+            referencedRelation: "mandate_compacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       corpus_fetch_attempts: {
         Row: {
           actor: string | null

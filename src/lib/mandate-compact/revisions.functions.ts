@@ -121,10 +121,20 @@ function scalarEq(a: unknown, b: unknown): boolean {
   return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 }
 
+function coerce(v: unknown): string | number | boolean | null {
+  if (v == null) return null;
+  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return v;
+  try {
+    return JSON.stringify(v);
+  } catch {
+    return String(v);
+  }
+}
+
 function diffFields(a: Record<string, any>, b: Record<string, any>, fields: string[]): FieldChange[] {
   const out: FieldChange[] = [];
   for (const f of fields) {
-    if (!scalarEq(a?.[f], b?.[f])) out.push({ field: f, from: a?.[f] ?? null, to: b?.[f] ?? null });
+    if (!scalarEq(a?.[f], b?.[f])) out.push({ field: f, from: coerce(a?.[f]), to: coerce(b?.[f]) });
   }
   return out;
 }

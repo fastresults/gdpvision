@@ -236,7 +236,7 @@ const EMPTY_FORM: ExtractedForm = {
   fromAI: false,
 };
 
-function IngestPanel({ countryCode, compacts }: { countryCode: string; compacts: CompactRow[] }) {
+function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: string; compacts: CompactRow[]; editingCompact?: CompactRow | null }) {
   const qc = useQueryClient();
   const ingest = useServerFn(ingestManifesto);
   const extract = useServerFn(extractManifesto);

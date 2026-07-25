@@ -1,4 +1,4 @@
-// Sovereign switchboard: Chamber 01 gets a hero row; 02–07 fill a 2×3 grid.
+// Sovereign switchboard: Chamber 01 gets a hero row; 02–08 fill the grid.
 // Numeric monogram is the visual anchor; icon is a small mark, not a headline.
 
 import { Link } from "@tanstack/react-router";
@@ -9,6 +9,7 @@ import {
   Landmark,
   Layers,
   MessageSquare,
+  ScrollText,
   TrendingUp,
   Users,
   type LucideIcon,
@@ -26,7 +27,8 @@ type Chamber = {
     | "/admin/countries/$code/studio"
     | "/admin/countries/$code/narrative"
     | "/admin/countries/$code/cabinet"
-    | "/admin/countries/$code/personas";
+    | "/admin/countries/$code/personas"
+    | "/admin/countries/$code/mandate-compact";
 };
 
 const HERO: Chamber = {
@@ -44,7 +46,9 @@ const REST: Chamber[] = [
   { n: "05", icon: MessageSquare, title: "The Narrative Chamber", blurb: "Signal to statement inside a working day.", to: "/admin/countries/$code/narrative" },
   { n: "06", icon: Landmark, title: "The Cabinet Room", blurb: "Prep, run, and follow through on cabinet business.", to: "/admin/countries/$code/cabinet" },
   { n: "07", icon: Users, title: "Synthetic Persona Lab", blurb: "Simulate publics, applicants, and stakeholders.", to: "/admin/countries/$code/personas" },
+  { n: "08", icon: ScrollText, title: "The Mandate Compact", blurb: "Manifesto to delivery — pledges tracked to the ministry.", to: "/admin/countries/$code/mandate-compact" },
 ];
+
 
 export function ChambersLauncher({ code }: { code: string }) {
   return (

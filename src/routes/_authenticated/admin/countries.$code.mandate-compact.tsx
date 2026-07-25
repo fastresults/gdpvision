@@ -108,6 +108,11 @@ function MandateCompactPage() {
             ? <TrackPanel countryCode={code} compact={selectedCompact} />
             : <EmptyState body="Ingest, decompose, and transform a manifesto first." />
         )}
+        {activeStep === "ministries" && (
+          selectedCompact
+            ? <MinistriesPanel compactId={selectedCompact.id} />
+            : <EmptyState body="Ingest, decompose, and transform a manifesto first — the ministry drilldown lights up once deliverables have owners." />
+        )}
         {activeStep === "publish" && (
           selectedCompact
             ? <PublishPanel countryCode={code} compact={selectedCompact} />

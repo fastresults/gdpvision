@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -276,6 +276,24 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
     );
   };
 
+  // Prevent the browser from navigating to file://… when a file is dropped
+  // anywhere on the page while the ingest panel is mounted. Without this,
+  // a near-miss drop on the surrounding chrome unloads React silently.
+  useEffect(() => {
+    const prevent = (e: DragEvent) => {
+      // Only guard actual file drags — leave text/HTML drags to the app.
+      if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes("Files")) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("dragover", prevent);
+    window.addEventListener("drop", prevent);
+    return () => {
+      window.removeEventListener("dragover", prevent);
+      window.removeEventListener("drop", prevent);
+    };
+  }, []);
+
   const runExtract = async (payload: {
     countryCode: string;
     fileBase64?: string;
@@ -286,24 +304,32 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
   }) => {
     setPhase("extracting");
     setPhaseMsg("Reading manifesto…");
+    const tid = toast.loading("Reading manifesto…");
     try {
       const res = await extract({ data: payload });
+      // eslint-disable-next-line no-console
+      console.info("[mandate-compact] extract ok", { chars: res.charCount, pillars: res.extracted.pillars_preview?.length });
       applyExtracted(res);
-      toast.success("Manifesto read — review the auto-filled fields below.");
+      toast.success("Manifesto read — review the auto-filled fields below.", { id: tid });
     } catch (err) {
       setPhase("error");
       const msg = (err as Error).message;
       setPhaseMsg(msg);
       setManualOpen(true);
-      toast.error(msg);
+      // eslint-disable-next-line no-console
+      console.error("[mandate-compact] extract failed", err);
+      toast.error(msg, { id: tid });
     }
   };
 
   const handleFile = async (file: File) => {
+    // eslint-disable-next-line no-console
+    console.info("[mandate-compact] handleFile", { name: file.name, size: file.size, type: file.type });
     if (file.size > 20 * 1024 * 1024) {
       toast.error("File too large (max 20 MB).");
       return;
     }
+    toast.message(`Reading ${file.name}…`, { duration: 2000 });
     const buf = await file.arrayBuffer();
     let bin = "";
     const bytes = new Uint8Array(buf);
@@ -318,6 +344,7 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
       filename: file.name,
     });
   };
+
 
   const handleUrl = async () => {
     const url = pastedUrl.trim();
@@ -370,7 +397,13 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
     "w-full appearance-none border-0 border-b border-line-200 bg-transparent px-0 py-2 text-sm text-ink-950 placeholder:text-ink-300 focus:border-gold-500 focus:outline-none focus:ring-0";
 
   return (
-    <section className="grid gap-12 border-b border-line-200 pb-12 lg:grid-cols-12 lg:gap-16">
+    <section className="relative grid gap-12 border-b border-line-200 pb-12 lg:grid-cols-12 lg:gap-16">
+      {phase === "extracting" && (
+        <div className="pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden bg-gold-500/20">
+          <div className="h-full w-1/3 animate-[shimmer_1.2s_linear_infinite] bg-gold-500" style={{ animation: "mc-progress 1.2s linear infinite" }} />
+          <style>{`@keyframes mc-progress { 0% { transform: translateX(-100%); } 100% { transform: translateX(400%); } }`}</style>
+        </div>
+      )}
       <div className="lg:col-span-4">
         <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">Step 01</p>
         <h2 className="mt-2 font-serif text-2xl font-normal leading-tight text-ink-950">
@@ -727,6 +760,8 @@ function DropZone({
           onDragState(false);
         }}
         onDrop={(e) => {
+          // eslint-disable-next-line no-console
+          console.info("[mandate-compact] drop received", { types: e.dataTransfer ? Array.from(e.dataTransfer.types) : [], files: e.dataTransfer?.files?.length });
           e.preventDefault();
           e.stopPropagation();
           onDragState(false);
@@ -758,7 +793,7 @@ function DropZone({
           onFile(file);
         }}
         className={cn(
-          "group relative flex cursor-pointer flex-col items-center justify-center gap-3 border-2 border-dashed px-6 py-16 text-center transition-colors focus:outline-none focus-visible:border-gold-500",
+          "group relative flex min-h-[280px] cursor-pointer flex-col items-center justify-center gap-3 border-2 border-dashed px-6 py-16 text-center transition-colors focus:outline-none focus-visible:border-gold-500",
           dragOver
             ? "border-gold-500 bg-gold-500/5"
             : phase === "ready"

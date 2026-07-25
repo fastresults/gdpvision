@@ -42,10 +42,21 @@ function MandateCompactPage() {
 
   return (
     <SuperAdminShell
-      title="Mandate Compact"
-      subtitle={`${code} · Chamber 08 — the covenant that turns the ruling party's manifesto into a signed, ministry-by-ministry delivery plan.`}
+      eyebrow="Chamber 08"
+      crumbs={[
+        { label: "Countries", to: "/admin/countries" },
+        { label: code, to: "/admin/countries/$code/onboard", params: { code } },
+        { label: "Mandate Compact" },
+      ]}
     >
       <div className="space-y-6 p-4 sm:p-6">
+        <header className="space-y-1">
+          <h1 className="text-xl font-semibold text-ink-900">Mandate Compact · {code}</h1>
+          <p className="text-sm text-ink-500">
+            The covenant that turns the ruling party's manifesto into a signed, ministry-by-ministry delivery plan.
+          </p>
+        </header>
+
         <Stepper active={activeStep} onSelect={setActiveStep} />
 
         {activeStep === "ingest" && <IngestPanel countryCode={code} compacts={compacts} />}

@@ -276,6 +276,24 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
     );
   };
 
+  // Prevent the browser from navigating to file://… when a file is dropped
+  // anywhere on the page while the ingest panel is mounted. Without this,
+  // a near-miss drop on the surrounding chrome unloads React silently.
+  useEffect(() => {
+    const prevent = (e: DragEvent) => {
+      // Only guard actual file drags — leave text/HTML drags to the app.
+      if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes("Files")) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("dragover", prevent);
+    window.addEventListener("drop", prevent);
+    return () => {
+      window.removeEventListener("dragover", prevent);
+      window.removeEventListener("drop", prevent);
+    };
+  }, []);
+
   const runExtract = async (payload: {
     countryCode: string;
     fileBase64?: string;
@@ -286,24 +304,32 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
   }) => {
     setPhase("extracting");
     setPhaseMsg("Reading manifesto…");
+    const tid = toast.loading("Reading manifesto…");
     try {
       const res = await extract({ data: payload });
+      // eslint-disable-next-line no-console
+      console.info("[mandate-compact] extract ok", { chars: res.charCount, pillars: res.extracted.pillars_preview?.length });
       applyExtracted(res);
-      toast.success("Manifesto read — review the auto-filled fields below.");
+      toast.success("Manifesto read — review the auto-filled fields below.", { id: tid });
     } catch (err) {
       setPhase("error");
       const msg = (err as Error).message;
       setPhaseMsg(msg);
       setManualOpen(true);
-      toast.error(msg);
+      // eslint-disable-next-line no-console
+      console.error("[mandate-compact] extract failed", err);
+      toast.error(msg, { id: tid });
     }
   };
 
   const handleFile = async (file: File) => {
+    // eslint-disable-next-line no-console
+    console.info("[mandate-compact] handleFile", { name: file.name, size: file.size, type: file.type });
     if (file.size > 20 * 1024 * 1024) {
       toast.error("File too large (max 20 MB).");
       return;
     }
+    toast.message(`Reading ${file.name}…`, { duration: 2000 });
     const buf = await file.arrayBuffer();
     let bin = "";
     const bytes = new Uint8Array(buf);
@@ -318,6 +344,7 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
       filename: file.name,
     });
   };
+
 
   const handleUrl = async () => {
     const url = pastedUrl.trim();

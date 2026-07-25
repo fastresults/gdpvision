@@ -48,6 +48,15 @@ export const extractManifesto = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ExtractInput.parse(input))
   .handler(async ({ data, context }): Promise<ExtractManifestoResult> => {
+    console.info("[mandate-compact/extract] received", {
+      countryCode: data.countryCode,
+      hasFileBase64: Boolean(data.fileBase64),
+      pastedChars: data.pastedText?.length ?? 0,
+      hasUrl: Boolean(data.sourceUrl),
+      mimeType: data.mimeType ?? null,
+      filename: data.filename ?? null,
+    });
+
     const { supabase, userId } = context;
     const { data: allowed, error: aErr } = await supabase.rpc("has_country_access", {
       _user_id: userId,
@@ -112,7 +121,7 @@ export const extractManifesto = createServerFn({ method: "POST" })
         throw new Error(`URL fetch failed: ${(err as Error).message}`);
       }
     } else if (data.pastedText) {
-      textSource = "pasted";
+      textSource = data.filename || data.mimeType ? "file" : "pasted";
       rawText = data.pastedText;
     } else {
       throw new Error("Provide a file, URL, or pasted text.");

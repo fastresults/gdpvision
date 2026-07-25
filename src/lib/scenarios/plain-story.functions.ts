@@ -78,7 +78,7 @@ export const generatePlainStory = createServerFn({ method: "POST" })
 
     const question = String(assumptions.question_text ?? s.title);
     const thesis = String(assumptions.thesis ?? "");
-    const engineSummary = summarizeEngine(results);
+    const engineSummary = summarizeEngine(engineResults);
 
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) return { story: null, note: "AI Gateway not configured" };

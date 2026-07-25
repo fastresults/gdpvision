@@ -127,7 +127,7 @@ export const generatePlaybook = createServerFn({ method: "POST" })
     const ctx = await loadContext(supabase, data.countryCode, data.strategyId);
     if (!ctx.country) throw new Error("Country not found");
 
-    const gateway = createLovableAiGatewayProvider(key, { structuredOutputs: true } as any);
+    const gateway = createLovableAiGatewayProvider(key);
     const model = "google/gemini-2.5-flash";
 
     const scopeLine = data.scope === "strategy" && ctx.strategy

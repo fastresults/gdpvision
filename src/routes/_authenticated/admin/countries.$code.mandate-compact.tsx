@@ -787,7 +787,7 @@ function DropZone({
           onFile(file);
         }}
         className={cn(
-          "group relative flex cursor-pointer flex-col items-center justify-center gap-3 border-2 border-dashed px-6 py-16 text-center transition-colors focus:outline-none focus-visible:border-gold-500",
+          "group relative flex min-h-[280px] cursor-pointer flex-col items-center justify-center gap-3 border-2 border-dashed px-6 py-16 text-center transition-colors focus:outline-none focus-visible:border-gold-500",
           dragOver
             ? "border-gold-500 bg-gold-500/5"
             : phase === "ready"

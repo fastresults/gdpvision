@@ -96,17 +96,27 @@ function MandateCompactPage() {
           </div>
         </header>
 
-        <Stepper active={activeStep} onSelect={setActiveStep} />
-
-        {compacts.length > 0 && activeStep !== "ingest" && (
-          <CompactSelector
+        {compacts.length > 0 && (
+          <ElectionsIndex
             compacts={compacts}
             selectedId={selectedCompact?.id ?? null}
-            onSelect={setSelectedCompactId}
+            onSelect={(id) => setSelectedCompactId(id)}
+            onNew={() => {
+              setSelectedCompactId(null);
+              setActiveStep("ingest");
+            }}
           />
         )}
 
-        {activeStep === "ingest" && <IngestPanel countryCode={code} compacts={compacts} />}
+        <Stepper active={activeStep} onSelect={setActiveStep} />
+
+        {activeStep === "ingest" && (
+          <IngestPanel
+            countryCode={code}
+            compacts={compacts}
+            editingCompact={selectedCompact}
+          />
+        )}
         {activeStep === "decompose" && (
           selectedCompact
             ? <DecomposePanel countryCode={code} compact={selectedCompact} />
@@ -137,9 +147,8 @@ function MandateCompactPage() {
             ? <RevisionsPanel compactId={selectedCompact.id} />
             : <EmptyState body="Ingest a manifesto first — the audit trail begins with the first snapshot." />
         )}
-
-        <CompactList compacts={compacts} />
       </div>
+
 
     </SuperAdminShell>
   );

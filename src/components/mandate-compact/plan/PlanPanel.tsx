@@ -22,6 +22,7 @@ import {
   Users2,
   BookOpen,
   Crown,
+  Download,
 } from "lucide-react";
 
 import {
@@ -35,6 +36,8 @@ import {
   type PlanSection,
   type PlanSectionKind,
 } from "@/lib/mandate-compact/transformational-plan.functions";
+import { PrintablePlan, DEFAULT_PRINT_CONFIG, type PrintConfig } from "@/components/mandate-compact/plan/PrintablePlan";
+import { ExportPdfDialog, suggestFilename, triggerPdfPrint } from "@/components/mandate-compact/plan/ExportPdfDialog";
 import { cn } from "@/lib/utils";
 
 const KIND_META: Record<

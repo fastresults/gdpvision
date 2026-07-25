@@ -111,6 +111,11 @@ function MandateCompactPage() {
             ? <PublishPanel countryCode={code} compact={selectedCompact} />
             : <EmptyState body="Ingest a manifesto first." />
         )}
+        {activeStep === "history" && (
+          selectedCompact
+            ? <RevisionsPanel compactId={selectedCompact.id} />
+            : <EmptyState body="Ingest a manifesto first — the audit trail begins with the first snapshot." />
+        )}
 
         <CompactList compacts={compacts} />
       </div>

@@ -381,80 +381,15 @@ function IngestPanel({ countryCode, compacts }: { countryCode: string; compacts:
 
       <div className="space-y-10 lg:col-span-8">
         {/* ─── Drop zone ─────────────────────────────────────────────── */}
-        <div>
-          <label
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOver(true);
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragOver(false);
-              const f = e.dataTransfer.files?.[0];
-              if (f) void handleFile(f);
-            }}
-            className={cn(
-              "group relative flex cursor-pointer flex-col items-center justify-center gap-3 border-2 border-dashed px-6 py-16 text-center transition-colors",
-              dragOver
-                ? "border-gold-500 bg-gold-500/5"
-                : phase === "ready"
-                  ? "border-line-200 bg-paper-50"
-                  : phase === "error"
-                    ? "border-signal-critical/40 bg-signal-critical/5"
-                    : "border-line-200 bg-paper-50 hover:border-ink-300 hover:bg-paper-0",
-            )}
-          >
-            <input
-              type="file"
-              accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-              className="sr-only"
-              disabled={phase === "extracting"}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void handleFile(f);
-                e.target.value = "";
-              }}
-            />
-            {phase === "extracting" ? (
-              <>
-                <Loader2 className="h-7 w-7 animate-spin text-gold-500" />
-                <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink-950">
-                  {phaseMsg || "Reading…"}
-                </p>
-                <p className="text-xs text-ink-500">This usually takes 10-30 seconds.</p>
-              </>
-            ) : phase === "ready" ? (
-              <>
-                <FileCheck className="h-7 w-7 text-gold-500" />
-                <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink-950">
-                  Manifesto read
-                </p>
-                <p className="max-w-lg text-xs text-ink-500">{phaseMsg}</p>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    reset();
-                  }}
-                  className="mt-2 inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-gold-500"
-                >
-                  <X className="h-3 w-3" /> Drop another
-                </button>
-              </>
-            ) : (
-              <>
-                <Upload className="h-7 w-7 text-ink-500 group-hover:text-gold-500" />
-                <p className="font-serif text-lg text-ink-950">Drop the manifesto here</p>
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                  PDF · DOCX · TXT · max 20 MB
-                </p>
-                {phase === "error" && (
-                  <p className="mt-2 max-w-lg text-xs text-signal-critical">{phaseMsg}</p>
-                )}
-              </>
-            )}
-          </label>
+        <DropZone
+          phase={phase}
+          phaseMsg={phaseMsg}
+          dragOver={dragOver}
+          onDragState={setDragOver}
+          onFile={handleFile}
+          onReset={reset}
+        />
+
 
           {/* URL alternative */}
           {phase !== "ready" && (

@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ScrollText, Upload, Sparkles, Target, FileCheck, Loader2, Wand2, Building2, AlertTriangle } from "lucide-react";
+import { ScrollText, Upload, Sparkles, Target, FileCheck, Loader2, Wand2, Building2, AlertTriangle, TrendingUp, ExternalLink } from "lucide-react";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { listMandateCompacts, type CompactRow } from "@/lib/mandate-compact/list.functions";
@@ -11,6 +11,13 @@ import { ingestManifesto } from "@/lib/mandate-compact/ingest.functions";
 import { getMandateCompactDetail, type CompactDetail } from "@/lib/mandate-compact/detail.functions";
 import { decomposeMandateCompact } from "@/lib/mandate-compact/decompose.functions";
 import { transformMandateCompact } from "@/lib/mandate-compact/transform.functions";
+import {
+  upsertDeliverableStatus,
+  computeScorecards,
+  getPmReportCard,
+  type PmReportCard,
+  type StatusStatus,
+} from "@/lib/mandate-compact/track.functions";
 import { cn } from "@/lib/utils";
 
 function compactsQuery(code: string) {
@@ -86,7 +93,11 @@ function MandateCompactPage() {
             ? <TransformPanel countryCode={code} compact={selectedCompact} />
             : <EmptyState body="Ingest and decompose a manifesto first." />
         )}
-        {activeStep === "track" && <PhasePlaceholder title="Track" body="Live PM Report Card: on-track / at-risk / off-track by ministry, computed quarterly from status updates. Ships in Slice C." />}
+        {activeStep === "track" && (
+          selectedCompact
+            ? <TrackPanel countryCode={code} compact={selectedCompact} />
+            : <EmptyState body="Ingest, decompose, and transform a manifesto first." />
+        )}
 
         <CompactList compacts={compacts} />
       </div>
@@ -605,5 +616,364 @@ function RiskPill({ level }: { level: string }) {
     <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide", tone[level] ?? "bg-paper-100 text-ink-700")}>
       {level}
     </span>
+  );
+}
+
+// ────────────────────────── Slice C · Track ──────────────────────────
+
+function currentQuarter(): string {
+  const d = new Date();
+  const q = Math.floor(d.getMonth() / 3) + 1;
+  return `${d.getFullYear()}-Q${q}`;
+}
+
+function reportCardQuery(compactId: string) {
+  return queryOptions({
+    queryKey: ["mandate-compact-report-card", compactId],
+    queryFn: () => getPmReportCard({ data: { compactId } }),
+  });
+}
+
+function TrackPanel({ countryCode, compact }: { countryCode: string; compact: CompactRow }) {
+  const qc = useQueryClient();
+  const detail = useQuery(detailQuery(compact.id));
+  const report = useQuery(reportCardQuery(compact.id));
+  const compute = useServerFn(computeScorecards);
+  const [period, setPeriod] = useState<string>(currentQuarter());
+
+  const computeMut = useMutation({
+    mutationFn: () => compute({ data: { compactId: compact.id, period } }),
+    onSuccess: (r) => {
+      toast.success(`Scorecards computed for ${r.period} · ${r.ministries_scored} ministries`);
+      qc.invalidateQueries({ queryKey: ["mandate-compact-report-card", compact.id] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const delivCount =
+    detail.data?.pillars.reduce(
+      (s, p) => s + p.pledges.reduce((ss, pl) => ss + pl.deliverables.length, 0),
+      0,
+    ) ?? 0;
+
+  return (
+    <div className="grid gap-4">
+      <section className="grid gap-4 rounded-2xl border border-line-200 bg-paper-0 p-5">
+        <header className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-ink-900">PM Report Card</h2>
+            <p className="mt-1 text-sm text-ink-500">
+              Live delivery scoreboard per ministry for the selected quarter, computed from status updates below.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              className="input h-9 w-28"
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+              placeholder="2025-Q2"
+            />
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={computeMut.isPending || delivCount === 0}
+              onClick={() => computeMut.mutate()}
+            >
+              {computeMut.isPending ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Computing…</>
+              ) : (
+                <><TrendingUp className="h-4 w-4" /> Recompute</>
+              )}
+            </button>
+          </div>
+        </header>
+
+        {report.isLoading && <p className="text-sm text-ink-500">Loading report card…</p>}
+        {report.data && <ReportCardSummary report={report.data} />}
+        {report.data && report.data.ministries.length === 0 && (
+          <EmptyState body={`No scorecards yet for ${period}. Record status updates below, then click Recompute.`} />
+        )}
+      </section>
+
+      {detail.data && (
+        <StatusUpdateBoard
+          countryCode={countryCode}
+          compact={compact}
+          detail={detail.data}
+          period={period}
+          onSaved={() => {
+            qc.invalidateQueries({ queryKey: ["mandate-compact-report-card", compact.id] });
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ReportCardSummary({ report }: { report: PmReportCard }) {
+  const t = report.totals;
+  const pct = (n: number) => `${n.toFixed(1)}%`;
+  return (
+    <div className="grid gap-4">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-6">
+        <BigStat label="Deliverables" value={`${t.deliverables_reported}/${t.deliverables_total}`} sub="reported / total" tone="ink" />
+        <BigStat label="Weighted" value={pct(t.weighted_progress)} sub="progress score" tone="gold" />
+        <BigStat label="Delivered" value={pct(t.delivered_pct)} tone="green" />
+        <BigStat label="On track" value={pct(t.on_track_pct)} tone="lead" />
+        <BigStat label="At risk" value={pct(t.at_risk_pct)} tone="amber" />
+        <BigStat label="Off / broken" value={pct(t.off_track_pct + t.broken_pct)} tone="rose" />
+      </div>
+
+      {report.ministries.length > 0 && (
+        <div className="overflow-hidden rounded-xl border border-line-100">
+          <table className="w-full text-sm">
+            <thead className="bg-paper-50 text-[10px] uppercase tracking-wide text-ink-500">
+              <tr>
+                <th className="px-3 py-2 text-left">Ministry</th>
+                <th className="px-3 py-2 text-right">Reported</th>
+                <th className="px-3 py-2 text-right">Delivered</th>
+                <th className="px-3 py-2 text-right">On track</th>
+                <th className="px-3 py-2 text-right">At risk</th>
+                <th className="px-3 py-2 text-right">Off / broken</th>
+                <th className="px-3 py-2 text-right">Weighted</th>
+                <th className="px-3 py-2">Delivery bar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {report.ministries.map((m) => (
+                <tr key={m.id} className="border-t border-line-100">
+                  <td className="px-3 py-2 font-medium text-ink-900">{m.ministry_name}</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-ink-700">{m.deliverables_reported}/{m.deliverables_total}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{m.delivered_pct.toFixed(1)}%</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{m.on_track_pct.toFixed(1)}%</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{m.at_risk_pct.toFixed(1)}%</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{(m.off_track_pct + m.broken_pct).toFixed(1)}%</td>
+                  <td className="px-3 py-2 text-right font-semibold tabular-nums text-ink-900">{m.weighted_progress.toFixed(1)}%</td>
+                  <td className="px-3 py-2 min-w-[160px]"><StackBar m={m} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {report.recent_updates.length > 0 && (
+        <details className="rounded-xl border border-line-100 bg-paper-50 p-3">
+          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-ink-500">
+            Recent status updates ({report.recent_updates.length})
+          </summary>
+          <ul className="mt-2 grid gap-1 text-xs">
+            {report.recent_updates.map((u) => (
+              <li key={u.id} className="flex flex-wrap items-center gap-2 rounded bg-paper-0 px-2 py-1">
+                <StatusPillCompact status={u.status} />
+                <span className="text-ink-500 tabular-nums">{u.period}</span>
+                <span className="text-ink-400">·</span>
+                <span className="text-ink-700 truncate">{u.narrative ?? "—"}</span>
+                {u.evidence_url && (
+                  <a href={u.evidence_url} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1 text-ink-500 hover:text-ink-900">
+                    evidence <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
+  );
+}
+
+function StackBar({ m }: { m: PmReportCard["ministries"][number] }) {
+  const segs = [
+    { pct: m.delivered_pct, cls: "bg-signal-lead" },
+    { pct: m.on_track_pct, cls: "bg-signal-lead/60" },
+    { pct: m.at_risk_pct, cls: "bg-gold-500" },
+    { pct: m.off_track_pct, cls: "bg-amber-500" },
+    { pct: m.broken_pct, cls: "bg-rose-500" },
+  ];
+  return (
+    <div className="flex h-2 w-full overflow-hidden rounded-full bg-paper-100">
+      {segs.map((s, i) => s.pct > 0 && <div key={i} className={s.cls} style={{ width: `${s.pct}%` }} />)}
+    </div>
+  );
+}
+
+function BigStat({ label, value, sub, tone = "ink" }: { label: string; value: string; sub?: string; tone?: "ink" | "gold" | "green" | "lead" | "amber" | "rose" }) {
+  const toneCls: Record<string, string> = {
+    ink: "text-ink-900",
+    gold: "text-ink-950",
+    green: "text-ink-900",
+    lead: "text-ink-900",
+    amber: "text-ink-950",
+    rose: "text-ink-950",
+  };
+  const bgCls: Record<string, string> = {
+    ink: "bg-paper-50",
+    gold: "bg-gold-500/15",
+    green: "bg-signal-lead/20",
+    lead: "bg-signal-lead/15",
+    amber: "bg-amber-500/15",
+    rose: "bg-rose-500/15",
+  };
+  return (
+    <div className={cn("rounded-xl px-3 py-2", bgCls[tone])}>
+      <div className="text-[10px] uppercase tracking-wide text-ink-500">{label}</div>
+      <div className={cn("mt-1 text-lg font-semibold tabular-nums", toneCls[tone])}>{value}</div>
+      {sub && <div className="text-[10px] text-ink-400">{sub}</div>}
+    </div>
+  );
+}
+
+function StatusPillCompact({ status }: { status: StatusStatus }) {
+  const tone: Record<StatusStatus, string> = {
+    delivered: "bg-signal-lead/25 text-ink-900",
+    on_track: "bg-signal-lead/15 text-ink-900",
+    at_risk: "bg-gold-500/25 text-ink-950",
+    off_track: "bg-amber-500/25 text-ink-950",
+    broken: "bg-rose-500/25 text-ink-950",
+  };
+  return (
+    <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide", tone[status])}>
+      {status.replace("_", " ")}
+    </span>
+  );
+}
+
+function StatusUpdateBoard({
+  compact,
+  detail,
+  period,
+  onSaved,
+}: {
+  countryCode: string;
+  compact: CompactRow;
+  detail: CompactDetail;
+  period: string;
+  onSaved: () => void;
+}) {
+  const flat = useMemo(() => {
+    const out: { pillar: string; pledge: string; ministry: string | null; deliverable_id: string; deliverable_title: string }[] = [];
+    for (const pi of detail.pillars) {
+      for (const pl of pi.pledges) {
+        for (const d of pl.deliverables) {
+          out.push({
+            pillar: pi.title,
+            pledge: pl.title,
+            ministry: d.lead_ministry_name,
+            deliverable_id: d.id,
+            deliverable_title: d.title,
+          });
+        }
+      }
+    }
+    return out;
+  }, [detail]);
+
+  if (flat.length === 0) {
+    return (
+      <EmptyState body="No deliverables yet. Run Transform first, then return to Track to record status." />
+    );
+  }
+
+  return (
+    <section className="grid gap-3 rounded-2xl border border-line-200 bg-paper-0 p-5">
+      <header>
+        <h3 className="text-sm font-semibold text-ink-900">Record status for {period}</h3>
+        <p className="mt-1 text-xs text-ink-500">
+          Pick a status per deliverable; latest wins per period. Click Recompute above to refresh the report card.
+        </p>
+      </header>
+      <ul className="grid gap-2">
+        {flat.map((row) => (
+          <StatusRow key={row.deliverable_id} row={row} period={period} compactId={compact.id} onSaved={onSaved} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function StatusRow({
+  row,
+  period,
+  onSaved,
+}: {
+  row: { pillar: string; pledge: string; ministry: string | null; deliverable_id: string; deliverable_title: string };
+  period: string;
+  compactId: string;
+  onSaved: () => void;
+}) {
+  const upsert = useServerFn(upsertDeliverableStatus);
+  const [status, setStatus] = useState<StatusStatus | "">("");
+  const [narrative, setNarrative] = useState("");
+  const [evidenceUrl, setEvidenceUrl] = useState("");
+
+  const mut = useMutation({
+    mutationFn: () =>
+      upsert({
+        data: {
+          deliverableId: row.deliverable_id,
+          period,
+          status: status as StatusStatus,
+          narrative: narrative || undefined,
+          evidenceUrl: evidenceUrl || undefined,
+        },
+      }),
+    onSuccess: () => {
+      toast.success(`Status saved · ${row.deliverable_title.slice(0, 40)}…`);
+      setNarrative("");
+      setEvidenceUrl("");
+      onSaved();
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  return (
+    <li className="grid gap-2 rounded-lg border border-line-100 bg-paper-50 p-3 md:grid-cols-[1fr_auto] md:items-start">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-baseline gap-2">
+          <span className="font-medium text-ink-900">{row.deliverable_title}</span>
+          <span className="text-[10px] uppercase tracking-wide text-ink-400">
+            {row.ministry ?? "Unassigned"} · {row.pillar}
+          </span>
+        </div>
+        <p className="mt-1 text-xs text-ink-500">Pledge: {row.pledge}</p>
+        <div className="mt-2 grid gap-2 md:grid-cols-2">
+          <input
+            className="input h-8 text-xs"
+            placeholder="Evidence URL (optional)"
+            value={evidenceUrl}
+            onChange={(e) => setEvidenceUrl(e.target.value)}
+          />
+          <input
+            className="input h-8 text-xs"
+            placeholder="Narrative (optional)"
+            value={narrative}
+            onChange={(e) => setNarrative(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <select
+          className="input h-8 text-xs"
+          value={status}
+          onChange={(e) => setStatus(e.target.value as StatusStatus | "")}
+        >
+          <option value="">Select status…</option>
+          <option value="delivered">Delivered</option>
+          <option value="on_track">On track</option>
+          <option value="at_risk">At risk</option>
+          <option value="off_track">Off track</option>
+          <option value="broken">Broken</option>
+        </select>
+        <button
+          type="button"
+          className="btn-secondary"
+          disabled={!status || mut.isPending}
+          onClick={() => mut.mutate()}
+        >
+          {mut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
+        </button>
+      </div>
+    </li>
   );
 }

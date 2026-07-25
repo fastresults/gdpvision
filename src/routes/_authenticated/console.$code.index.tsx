@@ -118,6 +118,13 @@ function StudyPage() {
           <p className="mt-3 text-sm text-ink-500">
             {inFlight.length} in flight · {delivered.length} delivered
           </p>
+          <Link
+            to="/console/$code/mandate"
+            params={{ code }}
+            className="mt-3 inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950 hover:text-ink-500"
+          >
+            → Mandate Compact
+          </Link>
         </div>
         <button
           onClick={signOut}

@@ -3,8 +3,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ScrollText, Upload, Sparkles, Target, FileCheck, Loader2, Wand2, Building2, AlertTriangle, TrendingUp, ExternalLink, ShieldCheck, PenLine, PlayCircle, Flag, Clock } from "lucide-react";
+import { ScrollText, Upload, Sparkles, Target, FileCheck, Loader2, Wand2, Building2, AlertTriangle, TrendingUp, ExternalLink, ShieldCheck, PenLine, PlayCircle, Flag, Clock, Users } from "lucide-react";
 import { RevisionsPanel } from "@/components/mandate-compact/RevisionsPanel";
+import { MinistriesPanel } from "@/components/mandate-compact/MinistriesPanel";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { listMandateCompacts, type CompactRow } from "@/lib/mandate-compact/list.functions";
@@ -49,6 +50,7 @@ const STEPS = [
   { key: "decompose", label: "Decompose", icon: ScrollText, hint: "AI pillars & pledges" },
   { key: "transform", label: "Transform", icon: Sparkles, hint: "Ministry-owned delivery plan" },
   { key: "track", label: "Track", icon: Target, hint: "Quarterly scorecards" },
+  { key: "ministries", label: "Ministries", icon: Users, hint: "Per-ministry drilldown & at-risk digest" },
   { key: "publish", label: "Publish", icon: ShieldCheck, hint: "Sign, activate, conclude" },
   { key: "history", label: "History", icon: Clock, hint: "Audit trail & diffs" },
 ] as const;
@@ -106,6 +108,11 @@ function MandateCompactPage() {
             ? <TrackPanel countryCode={code} compact={selectedCompact} />
             : <EmptyState body="Ingest, decompose, and transform a manifesto first." />
         )}
+        {activeStep === "ministries" && (
+          selectedCompact
+            ? <MinistriesPanel compactId={selectedCompact.id} />
+            : <EmptyState body="Ingest, decompose, and transform a manifesto first — the ministry drilldown lights up once deliverables have owners." />
+        )}
         {activeStep === "publish" && (
           selectedCompact
             ? <PublishPanel countryCode={code} compact={selectedCompact} />
@@ -125,7 +132,7 @@ function MandateCompactPage() {
 
 function Stepper({ active, onSelect }: { active: string; onSelect: (k: (typeof STEPS)[number]["key"]) => void }) {
   return (
-    <ol className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-6">
+    <ol className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-7">
       {STEPS.map((step, idx) => {
         const isActive = active === step.key;
         const Icon = step.icon;

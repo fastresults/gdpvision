@@ -78,7 +78,7 @@ async function loadDetailSnapshot(supabase: any, compactId: string) {
     pledgesByPillar.set(pl.pillar_id, arr);
   }
 
-  const pillars = (pillarsRes.data ?? []).map((p) => ({
+  const pillars = ((pillarsRes.data ?? []) as any[]).map((p: any) => ({
     ...p,
     pledges: pledgesByPillar.get(p.id) ?? [],
   }));

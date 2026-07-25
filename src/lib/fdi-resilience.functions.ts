@@ -1,3 +1,7 @@
+// @domain core
+// @tables country_kpis,country_sectors,fdi_strategies,fdi_threats,ministries,packages,scenarios
+// @ui src/components/studio/ExposureLedger.tsx; src/components/studio/ReallocationMarimekko.tsx; src/components/studio/ResilienceActionsRail.tsx
+
 // Chamber 04 — FDI Transition Studio server functions.
 // Threat-in / resilient-FDI-strategy-out workbench.
 // All authed via requireSupabaseAuth; RLS scopes reads/writes per country.

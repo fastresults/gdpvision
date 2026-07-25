@@ -1,3 +1,7 @@
+// @domain ledger-qa
+// @tables corpus_fetch_attempts,country_capital_flows,country_kpis,country_sectors,ledger_qa_actions,ministries,ministry_profiles
+// @ui src/routes/_authenticated/admin/ledger-qa.tsx
+
 // Ledger-QA self-heal backfill server functions.
 // Every function is admin-gated, idempotent, budgeted, and posts to
 // ledger_qa_actions so the audit trail is authoritative.

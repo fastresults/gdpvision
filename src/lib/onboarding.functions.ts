@@ -1,3 +1,7 @@
+// @domain core
+// @tables audit_log,country_sectors,memory_objects
+// @ui —
+
 // Onboarding seed flow (PRD Wave F3).
 // When a Country Pack is activated, seed Second Brain memory templates so the
 // nation immediately has a working corpus for Counsel and dossiers. Idempotent:

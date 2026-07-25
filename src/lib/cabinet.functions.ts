@@ -1,3 +1,7 @@
+// @domain core
+// @tables cabinet_agenda_items,cabinet_attendance,cabinet_brief_cache,cabinet_sessions,cabinet_votes,commitments,countries,country_kpis,country_sectors,decisions,dossier_questions,fdi_strategies,fdi_threats,grade_alerts,intake_items,ministries,ministry_profiles,scenarios
+// @ui src/components/cabinet/CommitmentsCockpit.tsx; src/components/cabinet/DecisionQueue.tsx; src/components/cabinet/MinistryReadinessMatrix.tsx
+
 // Chamber 06 — The Cabinet Room server functions.
 // All authed via requireSupabaseAuth; RLS enforces country scoping via has_country_access.
 

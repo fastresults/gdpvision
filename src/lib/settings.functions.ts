@@ -1,3 +1,7 @@
+// @domain core
+// @tables app_settings
+// @ui src/routes/kiosk.admin.tsx
+
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { DEFAULT_SETTINGS, type SettingKey, type Settings } from "./kiosk-types";

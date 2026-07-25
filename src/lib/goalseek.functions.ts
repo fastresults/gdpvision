@@ -1,3 +1,7 @@
+// @domain core
+// @tables kpis,levers
+// @ui —
+
 // Goal-seek (PRD Wave E2).
 // Given a KPI and a target value, search available levers for the smallest-cost
 // combination whose sum of KPI impacts reaches the target within a horizon.

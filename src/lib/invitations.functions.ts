@@ -1,3 +1,7 @@
+// @domain core
+// @tables invitations,user_roles
+// @ui src/routes/_authenticated/admin/invitations.tsx; src/routes/_authenticated/home.tsx; src/routes/auth.invite.tsx
+
 // Invitation-only signup server functions.
 // - Admins create/list/revoke invitations.
 // - Anyone can look up a single invitation by opaque token.

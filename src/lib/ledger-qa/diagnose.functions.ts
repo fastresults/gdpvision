@@ -1,3 +1,7 @@
+// @domain ledger-qa
+// @tables corpus_fetch_attempts
+// @ui src/routes/_authenticated/admin/ledger-qa.tsx
+
 // Ledger-QA AI Diagnose fallback.
 // When the registry has no wired remediator for a WARN/FAIL, ask Lovable AI
 // to synthesise a diagnosis from live corpus-attempt logs + table row-counts.

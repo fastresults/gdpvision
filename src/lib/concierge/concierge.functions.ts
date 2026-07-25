@@ -1,3 +1,7 @@
+// @domain concierge
+// @tables service_request_deliverables,service_request_drafts,service_request_events,service_requests
+// @ui src/routes/_authenticated/agency.index.tsx; src/routes/_authenticated/concierge.$id.tsx; src/routes/_authenticated/concierge.index.tsx
+
 // Concierge server functions. All requester-facing text passes through the
 // minister lexicon scrubber. Uses `requireSupabaseAuth` (RLS enforces
 // per-country and per-role access).

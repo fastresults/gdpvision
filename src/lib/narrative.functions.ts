@@ -1,3 +1,7 @@
+// @domain core
+// @tables comms_artifact_revisions,comms_artifacts,intake_items,memory_objects,narrative_lineage,sectors,strategy_statements
+// @ui src/components/narrative/DraftStudio.tsx; src/components/narrative/StrategyPanel.tsx; src/components/narrative/comms/ScheduleDialog.tsx
+
 // Phase 4 — Narrative Chamber server functions (Second Brain + intake).
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";

@@ -1,3 +1,7 @@
+// @domain country-viz
+// @tables countries,country_kpi_points,country_kpis,country_sectors,memory_objects,ministries,ministry_profiles,ministry_sectors,sector_dossiers,sectors
+// @ui src/components/cabinet/SituationBoard.tsx; src/components/viz/DebtHorizon.tsx; src/components/viz/EvidenceRail.tsx
+
 // GDP Vision — visualization data layer.
 // Read-only aggregate over already-committed onboarding data. No writes.
 

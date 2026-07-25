@@ -1,3 +1,7 @@
+// @domain country-onboarding
+// @tables audit_log,capital_flow_nodes,countries,country_capital_flows,country_kpis,country_sectors,country_source_chunks,country_source_documents,country_sources,kpi_research_attempts,kpi_seed_items,memory_objects,ministries,ministry_deep_dive_items,ministry_profiles,onboarding_citations,onboarding_drafts,onboarding_runs,onboarding_summaries,sector_dossiers
+// @ui src/routes/_authenticated/admin/countries.$code.data.tsx; src/routes/_authenticated/admin/countries.$code.onboard.tsx
+
 // AI-first corpus, KPI, sector-dossier, ministry deep-dive, and second-brain seed
 // server functions. Wave 2 of the country onboarding pipeline.
 //

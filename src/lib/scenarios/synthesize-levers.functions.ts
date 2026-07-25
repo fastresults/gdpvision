@@ -1,3 +1,7 @@
+// @domain scenarios
+// @tables countries,country_capital_flows,country_kpis,country_sectors,intake_items,lever_drafts,ministries
+// @ui src/components/scenarios/LeverDraftReview.tsx
+
 // AI Lever Synthesis. Reads the country's second-brain (sectors, KPIs, ministries,
 // capital flows, active signals/threats) and asks Gemini for 8–14 bounded policy
 // levers grounded in that context. Persists results to `lever_drafts`. A separate

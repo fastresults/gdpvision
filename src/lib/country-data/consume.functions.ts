@@ -1,3 +1,7 @@
+// @domain country-data
+// @tables country_kpis
+// @ui src/routes/_authenticated/instrument/mandate.scorecard.tsx
+
 // Consumer-facing reads over the ingested country data corpus.
 // Any authenticated user bound to the country (RLS-enforced) can read.
 // KPI reads reflect source toggles: a KPI whose linked source is inactive

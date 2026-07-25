@@ -1,3 +1,7 @@
+// @domain core
+// @tables countries,country_sectors,instance_bindings,ministries
+// @ui src/routes/_authenticated/config/index.tsx
+
 // Country Configuration (PRD §12 Screen 0) server functions.
 // Handles provisioning: registry listing, Country Pack review, activation
 // (instance binding), portfolio→sector mapping confirmation, and the

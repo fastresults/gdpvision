@@ -1,3 +1,7 @@
+// @domain scenarios
+// @tables countries,country_kpis,country_sectors,intake_items,ministries
+// @ui src/components/scenarios/AiRecommendDrawer.tsx; src/routes/_authenticated/admin/countries.$code.scenarios.new.tsx
+
 // AI Scenario Recommender — reads the country's second-brain context and
 // returns a fully-configured scenario (title, horizon, playbooks, exact lever
 // values, thesis, risks, citations) grounded in the current lever defs.

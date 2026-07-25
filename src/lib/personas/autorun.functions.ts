@@ -1,3 +1,7 @@
+// @domain personas
+// @tables persona_study_drafts
+// @ui src/components/personas/StudyWizard/AutoRunConsole.tsx; src/routes/_authenticated/admin/countries.$code.personas.index.tsx
+
 // Chamber 07 · Research Studio · Durable auto-run orchestrator.
 // One tick = one phase, guarded by an advisory heartbeat lock.
 // Idempotent, resumable, and safe against tab close / double click / two tabs.

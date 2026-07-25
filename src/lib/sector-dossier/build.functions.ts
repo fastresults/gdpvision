@@ -1,3 +1,7 @@
+// @domain sector-dossier
+// @tables capital_flow_nodes,countries,country_capital_flows,country_kpis,country_sectors,memory_objects,ministry_profiles,ministry_sectors,sector_dossier_briefs,sector_dossiers,sectors
+// @ui src/components/sector/SectorDossierDrawer.tsx
+
 // Context pack + AI brief for a single sector. McKinsey-style pyramid output.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";

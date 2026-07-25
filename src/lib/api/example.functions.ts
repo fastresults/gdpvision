@@ -1,3 +1,7 @@
+// @domain api
+// @tables —
+// @ui —
+
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 

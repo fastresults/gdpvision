@@ -1,3 +1,7 @@
+// @domain core
+// @tables countries,keying_audits,sectors
+// @ui src/routes/_authenticated/admin/audits.keying.tsx
+
 // Universal country+sector keying audit (PRD DoD gate).
 // Scans domain tables for missing/invalid country_code / sector_code
 // references. Admin-only; results persist to public.keying_audits.

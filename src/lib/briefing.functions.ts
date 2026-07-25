@@ -1,3 +1,7 @@
+// @domain core
+// @tables briefing_requests
+// @ui src/components/marketing/BriefingForm.tsx
+
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { REGISTRY_CODES } from "@/lib/caricom-registry";

@@ -1,3 +1,7 @@
+// @domain core
+// @tables items,media_assets
+// @ui src/components/admin/GalleryManager.tsx; src/routes/kiosk.admin.tsx
+
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 

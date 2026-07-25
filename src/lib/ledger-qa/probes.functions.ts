@@ -1,3 +1,7 @@
+// @domain ledger-qa
+// @tables figure_snapshots,intake_items,ledger_qa_actions
+// @ui src/routes/_authenticated/admin/ledger-qa.tsx
+
 // Ledger-QA write-probe hygiene.
 // snapshot-rt and handoff probes insert a row each run. This admin-gated
 // helper trims each probe's rows to the latest N so the tables don't grow

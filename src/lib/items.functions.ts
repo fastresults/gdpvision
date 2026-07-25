@@ -1,3 +1,7 @@
+// @domain core
+// @tables categories,items,presentations,thumbnails
+// @ui src/components/admin/GalleryManager.tsx; src/routes/kiosk.admin.tsx
+
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { VIDEO_CATEGORIES, type CategoryBehavior, type Item, type ItemCategory, type ThumbnailStatus } from "./kiosk-types";

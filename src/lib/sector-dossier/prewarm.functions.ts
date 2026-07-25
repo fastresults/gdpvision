@@ -1,3 +1,7 @@
+// @domain sector-dossier
+// @tables country_sectors
+// @ui src/routes/_authenticated/admin/countries.$code.onboard.tsx
+
 // Background pre-warm of sector dossier briefs so first-open is instant.
 // Iterates every sector in `country_sectors` for a country and fills the
 // `sector_dossier_briefs` cache. Idempotent: skips entries whose fingerprint

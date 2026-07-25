@@ -1,3 +1,7 @@
+// @domain scenarios
+// @tables countries,country_kpis,country_sectors,intake_items,ministries
+// @ui src/components/scenarios/AiPlaySuggestions.tsx
+
 // AI-suggested playbooks. Grounds Gemini in the country's second-brain
 // (KPIs, sector shares, active threats, ministry mandate, recent P1/P2 signals)
 // and returns candidate plays as {direction, magnitude} moves over the current

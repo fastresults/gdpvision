@@ -1,3 +1,7 @@
+// @domain ledger-qa
+// @tables capital_flow_nodes,corpus_fetch_attempts,country_capital_flows,country_kpis,country_sectors,country_sources,ledger_qa_actions,ministries,ministry_profiles,onboarding_drafts
+// @ui src/routes/_authenticated/admin/countries.$code.onboard.tsx; src/routes/_authenticated/admin/ledger-qa.tsx
+
 // Chamber 01 v2 acceptance — self-healing sequencer.
 //
 // One server function that walks every acceptance step top-to-bottom for a

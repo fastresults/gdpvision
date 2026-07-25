@@ -1,3 +1,7 @@
+// @domain core
+// @tables counsel_answers,instance_config,memory_objects,scenarios,source_suppressions
+// @ui src/hooks/useCountryAskThread.ts; src/routes/_authenticated/counsel/archive.tsx; src/routes/_authenticated/counsel/index.tsx
+
 // Counsel — text/voice-adjacent RAG assistant over the Second Brain + Ledger.
 // Retrieval is currently keyword/weight-ranked; embeddings backfill lands with the harvest pipeline.
 // Memory reads route through corpusRead() so a sparse corpus automatically

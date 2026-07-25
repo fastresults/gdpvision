@@ -22,6 +22,7 @@ import {
   Users2,
   BookOpen,
   Crown,
+  Download,
 } from "lucide-react";
 
 import {
@@ -35,6 +36,8 @@ import {
   type PlanSection,
   type PlanSectionKind,
 } from "@/lib/mandate-compact/transformational-plan.functions";
+import { PrintablePlan, DEFAULT_PRINT_CONFIG, type PrintConfig } from "@/components/mandate-compact/plan/PrintablePlan";
+import { ExportPdfDialog, suggestFilename, triggerPdfPrint } from "@/components/mandate-compact/plan/ExportPdfDialog";
 import { cn } from "@/lib/utils";
 
 const KIND_META: Record<
@@ -131,6 +134,20 @@ export function PlanPanel({
 
   const versions = versionsQ.data ?? [];
 
+  const [exportOpen, setExportOpen] = useState(false);
+  const [printConfig, setPrintConfig] = useState<PrintConfig>(DEFAULT_PRINT_CONFIG);
+
+  const doExport = (config: PrintConfig) => {
+    setPrintConfig(config);
+    setExportOpen(false);
+    if (!plan) return;
+    // Wait one frame so PrintablePlan re-renders with the new config
+    // before we open the browser print dialog.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => triggerPdfPrint(suggestFilename(plan)));
+    });
+  };
+
   return (
     <section className="space-y-8">
       <PlanHeader
@@ -164,10 +181,21 @@ export function PlanPanel({
             onApprove={() => approveM.mutate(plan.id)}
             onPublish={() => publishM.mutate(plan.id)}
             onHandoff={() => handoffM.mutate(plan.id)}
+            onExport={() => setExportOpen(true)}
             approving={approveM.isPending}
             publishing={publishM.isPending}
             handingOff={handoffM.isPending}
             countryCode={countryCode}
+          />
+
+          {/* Print-only render — hidden on screen, drives window.print(). */}
+          <PrintablePlan plan={plan} countryCode={countryCode} config={printConfig} />
+
+          <ExportPdfDialog
+            plan={plan}
+            open={exportOpen}
+            onClose={() => setExportOpen(false)}
+            onExport={doExport}
           />
         </>
       )}
@@ -422,6 +450,7 @@ function PlanActions({
   onApprove,
   onPublish,
   onHandoff,
+  onExport,
   approving,
   publishing,
   handingOff,
@@ -431,6 +460,7 @@ function PlanActions({
   onApprove: () => void;
   onPublish: () => void;
   onHandoff: () => void;
+  onExport: () => void;
   approving: boolean;
   publishing: boolean;
   handingOff: boolean;
@@ -446,6 +476,13 @@ function PlanActions({
         Cabinet & narrative handoff
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={onExport}
+          className="btn-secondary inline-flex items-center gap-2"
+        >
+          <Download size={14} /> Export PDF
+        </button>
         <button
           type="button"
           onClick={onApprove}

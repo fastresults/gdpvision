@@ -85,7 +85,7 @@ export const getCompactRevision = createServerFn({ method: "POST" })
 
 // ── Diff engine ─────────────────────────────────────────────────────────
 
-export type FieldChange = { field: string; from: unknown; to: unknown };
+export type FieldChange = { field: string; from: string | number | boolean | null; to: string | number | boolean | null };
 export type EntityDiff = {
   id: string;
   label: string;

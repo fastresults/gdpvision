@@ -93,7 +93,11 @@ function MandateCompactPage() {
             ? <TransformPanel countryCode={code} compact={selectedCompact} />
             : <EmptyState body="Ingest and decompose a manifesto first." />
         )}
-        {activeStep === "track" && <PhasePlaceholder title="Track" body="Live PM Report Card: on-track / at-risk / off-track by ministry, computed quarterly from status updates. Ships in Slice C." />}
+        {activeStep === "track" && (
+          selectedCompact
+            ? <TrackPanel countryCode={code} compact={selectedCompact} />
+            : <EmptyState body="Ingest, decompose, and transform a manifesto first." />
+        )}
 
         <CompactList compacts={compacts} />
       </div>

@@ -23,6 +23,12 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `commitments` | `20260711210340_4b2b5fce-463a-44dc-8111-9113376f0b95.sql` | ✓ | ✓ |
 | `comms_artifact_revisions` | `20260718172802_cdc7bb81-0692-4a6e-a203-10f0b98fb2c8.sql` | ✓ | ✓ |
 | `comms_artifacts` | `20260711210806_b2663549-da57-43e6-929f-a8ca9a44f37d.sql` | ✓ | ✓ |
+| `compact_deliverables` | `20260725013404_ac6d2411-7789-4e86-a8d5-4e68cc6c4af5.sql` | ✓ | ✓ |
+| `compact_pillars` | `20260725013404_ac6d2411-7789-4e86-a8d5-4e68cc6c4af5.sql` | ✓ | ✓ |
+| `compact_pledges` | `20260725013404_ac6d2411-7789-4e86-a8d5-4e68cc6c4af5.sql` | ✓ | ✓ |
+| `compact_revisions` | `20260725013404_ac6d2411-7789-4e86-a8d5-4e68cc6c4af5.sql` | ✓ | ✓ |
+| `compact_scorecards` | `20260725013404_ac6d2411-7789-4e86-a8d5-4e68cc6c4af5.sql` | ✓ | ✓ |
+| `compact_status_updates` | `20260725013404_ac6d2411-7789-4e86-a8d5-4e68cc6c4af5.sql` | ✓ | ✓ |
 | `corpus_fetch_attempts` | `20260714204429_f55877d7-7cb3-4e35-bd43-93b36c352dbc.sql` | ✓ | ✓ |
 | `counsel_answers` | `20260711210806_b2663549-da57-43e6-929f-a8ca9a44f37d.sql` | ✓ | ✓ |
 | `countries` | `20260711204655_3293ec0b-b7a7-4fd3-b2b8-3a8c52c526e8.sql` | ✓ | ✓ |
@@ -67,6 +73,7 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `ledger_qa_actions` | `20260714203423_2410b5c1-fa81-430c-961a-414e96b8c448.sql` | ✓ | ✓ |
 | `lever_drafts` | `20260718213005_e7d11d4f-5bd3-4152-b260-d6f241942593.sql` | ✓ | ✓ |
 | `levers` | `20260711205639_802eb249-2568-439e-bd40-960ca67fb9aa.sql` | ✓ | ✓ |
+| `mandate_compacts` | `20260725013404_ac6d2411-7789-4e86-a8d5-4e68cc6c4af5.sql` | ✓ | ✓ |
 | `mandates` | `20260711210340_4b2b5fce-463a-44dc-8111-9113376f0b95.sql` | ✓ | ✓ |
 | `media_assets` | `20260606003936_452d1144-5424-42b0-bf47-325af53f55e8.sql` | ✓ | ✓ |
 | `memory_objects` | `20260711210806_b2663549-da57-43e6-929f-a8ca9a44f37d.sql` | ✓ | ✓ |
@@ -131,4 +138,4 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `study_transcripts` | `20260719003344_ed31c12d-9c3e-44d7-a001-0aade49f099c.sql` | ✓ | ✓ |
 | `user_roles` | `20260711204655_3293ec0b-b7a7-4fd3-b2b8-3a8c52c526e8.sql` | ✓ | ✓ |
 
-_Total tables: 123_
+_Total tables: 130_

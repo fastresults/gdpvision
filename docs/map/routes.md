@@ -62,6 +62,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/_authenticated/admin/countries/$code/cabinet/session/$sid` | `src/routes/_authenticated/admin/countries.$code.cabinet.session.$sid.tsx` |
 | `/_authenticated/admin/countries/$code/data` | `src/routes/_authenticated/admin/countries.$code.data.tsx` |
 | `/_authenticated/admin/countries/$code/ledger` | `src/routes/_authenticated/admin/countries.$code.ledger.tsx` |
+| `/_authenticated/admin/countries/$code/mandate-compact` | `src/routes/_authenticated/admin/countries.$code.mandate-compact.tsx` |
 | `/_authenticated/admin/countries/$code/narrative` | `src/routes/_authenticated/admin/countries.$code.narrative.tsx` |
 | `/_authenticated/admin/countries/$code/narrative/` | `src/routes/_authenticated/admin/countries.$code.narrative.index.tsx` |
 | `/_authenticated/admin/countries/$code/narrative/library` | `src/routes/_authenticated/admin/countries.$code.narrative.library.tsx` |

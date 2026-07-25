@@ -3,9 +3,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ScrollText, Upload, Sparkles, Target, FileCheck, Loader2, Wand2, Building2, AlertTriangle, TrendingUp, ExternalLink, ShieldCheck, PenLine, PlayCircle, Flag, Clock, Users, Link2, FileText, X } from "lucide-react";
+import { ScrollText, Upload, Sparkles, Target, FileCheck, Loader2, Wand2, Building2, AlertTriangle, TrendingUp, ExternalLink, ShieldCheck, PenLine, PlayCircle, Flag, Clock, Users, Link2, FileText, X, Crown } from "lucide-react";
 import { RevisionsPanel } from "@/components/mandate-compact/RevisionsPanel";
 import { MinistriesPanel } from "@/components/mandate-compact/MinistriesPanel";
+import { PlanPanel } from "@/components/mandate-compact/plan/PlanPanel";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { listMandateCompacts, type CompactRow } from "@/lib/mandate-compact/list.functions";
@@ -53,6 +54,7 @@ const STEPS = [
   { key: "track", label: "Track", icon: Target, hint: "Quarterly scorecards" },
   { key: "ministries", label: "Ministries", icon: Users, hint: "Per-ministry drilldown & at-risk digest" },
   { key: "publish", label: "Publish", icon: ShieldCheck, hint: "Sign, activate, conclude" },
+  { key: "plan", label: "Plan", icon: Crown, hint: "Cabinet report + Narrative handoff" },
   { key: "history", label: "History", icon: Clock, hint: "Audit trail & diffs" },
 ] as const;
 
@@ -142,6 +144,11 @@ function MandateCompactPage() {
             ? <PublishPanel countryCode={code} compact={selectedCompact} />
             : <EmptyState body="Ingest a manifesto first." />
         )}
+        {activeStep === "plan" && (
+          selectedCompact
+            ? <PlanPanel compactId={selectedCompact.id} countryCode={code} />
+            : <EmptyState body="Ingest, decompose, and transform a manifesto first — the transformational plan synthesises tracks 01–07." />
+        )}
         {activeStep === "history" && (
           selectedCompact
             ? <RevisionsPanel compactId={selectedCompact.id} />
@@ -157,7 +164,7 @@ function MandateCompactPage() {
 function Stepper({ active, onSelect }: { active: string; onSelect: (k: (typeof STEPS)[number]["key"]) => void }) {
   return (
     <nav aria-label="Mandate Compact workflow">
-      <ol className="grid grid-cols-4 gap-x-3 gap-y-6 md:grid-cols-7 md:gap-x-4">
+      <ol className="grid grid-cols-4 gap-x-3 gap-y-6 md:grid-cols-8 md:gap-x-4">
         {STEPS.map((step, idx) => {
           const isActive = active === step.key;
           const num = String(idx + 1).padStart(2, "0");

@@ -3,7 +3,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ScrollText, Upload, Sparkles, Target, FileCheck, Loader2, Wand2, Building2, AlertTriangle, TrendingUp, ExternalLink, ShieldCheck, PenLine, PlayCircle, Flag } from "lucide-react";
+import { ScrollText, Upload, Sparkles, Target, FileCheck, Loader2, Wand2, Building2, AlertTriangle, TrendingUp, ExternalLink, ShieldCheck, PenLine, PlayCircle, Flag, Clock } from "lucide-react";
+import { RevisionsPanel } from "@/components/mandate-compact/RevisionsPanel";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { listMandateCompacts, type CompactRow } from "@/lib/mandate-compact/list.functions";
@@ -49,6 +50,7 @@ const STEPS = [
   { key: "transform", label: "Transform", icon: Sparkles, hint: "Ministry-owned delivery plan" },
   { key: "track", label: "Track", icon: Target, hint: "Quarterly scorecards" },
   { key: "publish", label: "Publish", icon: ShieldCheck, hint: "Sign, activate, conclude" },
+  { key: "history", label: "History", icon: Clock, hint: "Audit trail & diffs" },
 ] as const;
 
 function MandateCompactPage() {
@@ -109,6 +111,11 @@ function MandateCompactPage() {
             ? <PublishPanel countryCode={code} compact={selectedCompact} />
             : <EmptyState body="Ingest a manifesto first." />
         )}
+        {activeStep === "history" && (
+          selectedCompact
+            ? <RevisionsPanel compactId={selectedCompact.id} />
+            : <EmptyState body="Ingest a manifesto first — the audit trail begins with the first snapshot." />
+        )}
 
         <CompactList compacts={compacts} />
       </div>
@@ -118,7 +125,7 @@ function MandateCompactPage() {
 
 function Stepper({ active, onSelect }: { active: string; onSelect: (k: (typeof STEPS)[number]["key"]) => void }) {
   return (
-    <ol className="grid grid-cols-2 gap-2 md:grid-cols-5">
+    <ol className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-6">
       {STEPS.map((step, idx) => {
         const isActive = active === step.key;
         const Icon = step.icon;

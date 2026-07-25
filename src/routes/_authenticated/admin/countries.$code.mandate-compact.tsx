@@ -100,7 +100,7 @@ function MandateCompactPage() {
           <ElectionsIndex
             compacts={compacts}
             selectedId={selectedCompact?.id ?? null}
-            onSelect={(id) => setSelectedCompactId(id)}
+            onSelect={(id: string) => setSelectedCompactId(id)}
             onNew={() => {
               setSelectedCompactId(null);
               setActiveStep("ingest");

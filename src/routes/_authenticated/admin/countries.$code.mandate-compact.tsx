@@ -391,35 +391,35 @@ function IngestPanel({ countryCode, compacts }: { countryCode: string; compacts:
         />
 
 
-          {/* URL alternative */}
-          {phase !== "ready" && (
-            <div className="mt-4 flex items-center gap-3 border-b border-line-200 pb-2">
-              <Link2 className="h-3.5 w-3.5 shrink-0 text-ink-400" />
-              <input
-                type="url"
-                value={pastedUrl}
-                onChange={(e) => setPastedUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    void handleUrl();
-                  }
-                }}
-                placeholder="…or paste a manifesto URL and press Enter"
-                disabled={phase === "extracting"}
-                className="w-full appearance-none border-0 bg-transparent p-0 py-1 text-sm text-ink-950 placeholder:text-ink-300 focus:outline-none focus:ring-0"
-              />
-              <button
-                type="button"
-                onClick={() => void handleUrl()}
-                disabled={phase === "extracting" || !pastedUrl.trim()}
-                className="shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-gold-500 disabled:cursor-not-allowed disabled:text-ink-300"
-              >
-                Read →
-              </button>
-            </div>
-          )}
-        </div>
+        {/* URL alternative */}
+        {phase !== "ready" && (
+          <div className="mt-4 flex items-center gap-3 border-b border-line-200 pb-2">
+            <Link2 className="h-3.5 w-3.5 shrink-0 text-ink-400" />
+            <input
+              type="url"
+              value={pastedUrl}
+              onChange={(e) => setPastedUrl(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void handleUrl();
+                }
+              }}
+              placeholder="…or paste a manifesto URL and press Enter"
+              disabled={phase === "extracting"}
+              className="w-full appearance-none border-0 bg-transparent p-0 py-1 text-sm text-ink-950 placeholder:text-ink-300 focus:outline-none focus:ring-0"
+            />
+            <button
+              type="button"
+              onClick={() => void handleUrl()}
+              disabled={phase === "extracting" || !pastedUrl.trim()}
+              className="shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-gold-500 disabled:cursor-not-allowed disabled:text-ink-300"
+            >
+              Read →
+            </button>
+          </div>
+        )}
+
 
         {/* ─── Auto-filled preview (visible after extraction) ────────── */}
         {phase === "ready" && (

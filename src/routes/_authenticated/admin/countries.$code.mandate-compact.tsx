@@ -838,42 +838,87 @@ function AutoField({
 
 
 
-function CompactList({ compacts }: { compacts: CompactRow[] }) {
-  if (!compacts.length) {
-    return (
-      <div className="rounded-2xl border border-dashed border-line-200 bg-paper-50 p-6 text-center text-sm text-ink-500">
-        No Mandate Compacts yet. Start by ingesting the current government's manifesto above.
-      </div>
-    );
-  }
+function ElectionsIndex({
+  compacts,
+  selectedId,
+  onSelect,
+  onNew,
+}: {
+  compacts: CompactRow[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  onNew: () => void;
+}) {
   return (
-    <section className="grid gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-500">Compacts on file</h2>
-      <ul className="grid gap-3">
-        {compacts.map((c) => (
-          <li key={c.id} className="rounded-2xl border border-line-200 bg-paper-0 p-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h3 className="text-base font-semibold text-ink-900">{c.title ?? `${c.election_cycle} Compact`}</h3>
-                <p className="mt-1 text-xs text-ink-500">
-                  {c.pm_name ? `PM ${c.pm_name} · ` : ""}
-                  {c.election_cycle} · {c.visibility}
-                </p>
-              </div>
-              <StatusPill status={c.status} />
-            </div>
-            {c.summary && <p className="mt-2 text-sm text-ink-700">{c.summary}</p>}
-            <dl className="mt-3 grid grid-cols-3 gap-2 text-xs text-ink-500">
-              <Stat label="Pillars" value={c.pillar_count} />
-              <Stat label="Pledges" value={c.pledge_count} />
-              <Stat label="Deliverables" value={c.deliverable_count} />
-            </dl>
-          </li>
-        ))}
+    <section aria-label="Elections & manifestos on file" className="space-y-4">
+      <div className="flex items-baseline justify-between gap-4">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
+            Elections index
+          </p>
+          <h2 className="mt-1 font-serif text-xl text-ink-950">
+            {compacts.length} manifesto{compacts.length === 1 ? "" : "s"} on file
+          </h2>
+        </div>
+        <button
+          type="button"
+          onClick={onNew}
+          className="inline-flex items-center gap-1.5 border border-line-200 bg-paper-0 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950 hover:border-gold-500 hover:text-gold-500"
+        >
+          + New compact
+        </button>
+      </div>
+      <ul className="grid gap-2">
+        {compacts.map((c) => {
+          const active = c.id === selectedId;
+          const coverage =
+            c.pledge_count > 0
+              ? Math.round((c.deliverable_count / c.pledge_count) * 100)
+              : 0;
+          return (
+            <li key={c.id}>
+              <button
+                type="button"
+                onClick={() => onSelect(c.id)}
+                aria-current={active ? "true" : undefined}
+                className={cn(
+                  "group grid w-full grid-cols-12 items-center gap-3 border px-4 py-3 text-left transition-colors",
+                  active
+                    ? "border-gold-500 bg-gold-500/5"
+                    : "border-line-200 bg-paper-0 hover:border-ink-300",
+                )}
+              >
+                <span className="col-span-2 font-mono text-[11px] tracking-[0.14em] text-ink-950">
+                  {c.election_cycle}
+                </span>
+                <span className="col-span-4 min-w-0">
+                  <span className="block truncate font-serif text-sm text-ink-950">
+                    {c.title ?? `${c.election_cycle} Compact`}
+                  </span>
+                  {c.pm_name && (
+                    <span className="mt-0.5 block truncate text-[11px] text-ink-500">
+                      PM {c.pm_name}
+                    </span>
+                  )}
+                </span>
+                <span className="col-span-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
+                  {c.pledge_count} pledges
+                </span>
+                <span className="col-span-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
+                  {coverage}% owned
+                </span>
+                <span className="col-span-2 flex justify-end">
+                  <StatusPill status={c.status} />
+                </span>
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
 }
+
 
 function PhasePlaceholder({ title, body }: { title: string; body: string }) {
   return (

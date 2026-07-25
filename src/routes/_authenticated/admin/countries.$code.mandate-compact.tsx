@@ -42,6 +42,11 @@ function MandateCompactPage() {
   const { code } = Route.useParams();
   const { data: compacts } = useSuspenseQuery(compactsQuery(code));
   const [activeStep, setActiveStep] = useState<(typeof STEPS)[number]["key"]>("ingest");
+  const [selectedCompactId, setSelectedCompactId] = useState<string | null>(compacts[0]?.id ?? null);
+  const selectedCompact = useMemo(
+    () => compacts.find((c) => c.id === selectedCompactId) ?? compacts[0] ?? null,
+    [compacts, selectedCompactId],
+  );
 
   return (
     <SuperAdminShell
@@ -62,9 +67,25 @@ function MandateCompactPage() {
 
         <Stepper active={activeStep} onSelect={setActiveStep} />
 
+        {compacts.length > 0 && activeStep !== "ingest" && (
+          <CompactSelector
+            compacts={compacts}
+            selectedId={selectedCompact?.id ?? null}
+            onSelect={setSelectedCompactId}
+          />
+        )}
+
         {activeStep === "ingest" && <IngestPanel countryCode={code} compacts={compacts} />}
-        {activeStep === "decompose" && <PhasePlaceholder title="Decompose" body="Auto-derive pillars, pledges and quantitative anchors from the ingested manifesto. Ships in Slice B." />}
-        {activeStep === "transform" && <PhasePlaceholder title="Transform" body="Assign each pledge to a lead ministry with a McKinsey-grade transformation brief and quarterly milestones. Ships in Slice B." />}
+        {activeStep === "decompose" && (
+          selectedCompact
+            ? <DecomposePanel countryCode={code} compact={selectedCompact} />
+            : <EmptyState body="Ingest a manifesto first, then return here to decompose it." />
+        )}
+        {activeStep === "transform" && (
+          selectedCompact
+            ? <TransformPanel countryCode={code} compact={selectedCompact} />
+            : <EmptyState body="Ingest and decompose a manifesto first." />
+        )}
         {activeStep === "track" && <PhasePlaceholder title="Track" body="Live PM Report Card: on-track / at-risk / off-track by ministry, computed quarterly from status updates. Ships in Slice C." />}
 
         <CompactList compacts={compacts} />

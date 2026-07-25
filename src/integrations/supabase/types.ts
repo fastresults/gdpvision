@@ -798,6 +798,501 @@ export type Database = {
           },
         ]
       }
+      compact_deliverables: {
+        Row: {
+          budget_currency: string | null
+          budget_envelope: number | null
+          citations: Json
+          compact_id: string
+          country_code: string
+          created_at: string
+          dependencies: string[]
+          id: string
+          kpi_ids: string[]
+          lead_ministry_id: string | null
+          memory_object_id: string | null
+          owner_country_code: string | null
+          pledge_id: string
+          quarterly_milestones: Json
+          risk_level: string | null
+          signed_off_at: string | null
+          signed_off_by: string | null
+          supporting_ministry_ids: string[]
+          theory_of_change: string | null
+          title: string
+          transformational_note: string | null
+          updated_at: string
+          uploaded_by: string | null
+          visibility: string
+        }
+        Insert: {
+          budget_currency?: string | null
+          budget_envelope?: number | null
+          citations?: Json
+          compact_id: string
+          country_code: string
+          created_at?: string
+          dependencies?: string[]
+          id?: string
+          kpi_ids?: string[]
+          lead_ministry_id?: string | null
+          memory_object_id?: string | null
+          owner_country_code?: string | null
+          pledge_id: string
+          quarterly_milestones?: Json
+          risk_level?: string | null
+          signed_off_at?: string | null
+          signed_off_by?: string | null
+          supporting_ministry_ids?: string[]
+          theory_of_change?: string | null
+          title: string
+          transformational_note?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Update: {
+          budget_currency?: string | null
+          budget_envelope?: number | null
+          citations?: Json
+          compact_id?: string
+          country_code?: string
+          created_at?: string
+          dependencies?: string[]
+          id?: string
+          kpi_ids?: string[]
+          lead_ministry_id?: string | null
+          memory_object_id?: string | null
+          owner_country_code?: string | null
+          pledge_id?: string
+          quarterly_milestones?: Json
+          risk_level?: string | null
+          signed_off_at?: string | null
+          signed_off_by?: string | null
+          supporting_ministry_ids?: string[]
+          theory_of_change?: string | null
+          title?: string
+          transformational_note?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compact_deliverables_compact_id_fkey"
+            columns: ["compact_id"]
+            isOneToOne: false
+            referencedRelation: "mandate_compacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compact_deliverables_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "compact_deliverables_lead_ministry_id_fkey"
+            columns: ["lead_ministry_id"]
+            isOneToOne: false
+            referencedRelation: "ministries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compact_deliverables_memory_object_id_fkey"
+            columns: ["memory_object_id"]
+            isOneToOne: false
+            referencedRelation: "memory_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compact_deliverables_pledge_id_fkey"
+            columns: ["pledge_id"]
+            isOneToOne: false
+            referencedRelation: "compact_pledges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compact_pillars: {
+        Row: {
+          citations: Json
+          color_token: string | null
+          compact_id: string
+          country_code: string
+          created_at: string
+          id: string
+          narrative: string | null
+          owner_country_code: string | null
+          sort_order: number
+          title: string
+          updated_at: string
+          uploaded_by: string | null
+          visibility: string
+        }
+        Insert: {
+          citations?: Json
+          color_token?: string | null
+          compact_id: string
+          country_code: string
+          created_at?: string
+          id?: string
+          narrative?: string | null
+          owner_country_code?: string | null
+          sort_order?: number
+          title: string
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Update: {
+          citations?: Json
+          color_token?: string | null
+          compact_id?: string
+          country_code?: string
+          created_at?: string
+          id?: string
+          narrative?: string | null
+          owner_country_code?: string | null
+          sort_order?: number
+          title?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compact_pillars_compact_id_fkey"
+            columns: ["compact_id"]
+            isOneToOne: false
+            referencedRelation: "mandate_compacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compact_pillars_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      compact_pledges: {
+        Row: {
+          baseline_value: number | null
+          citations: Json
+          compact_id: string
+          country_code: string
+          created_at: string
+          id: string
+          memory_object_id: string | null
+          owner_country_code: string | null
+          page_ref: string | null
+          pillar_id: string
+          pledge_type: string | null
+          sort_order: number
+          target_value: number | null
+          title: string
+          unit: string | null
+          updated_at: string
+          uploaded_by: string | null
+          verbatim_quote: string | null
+          visibility: string
+        }
+        Insert: {
+          baseline_value?: number | null
+          citations?: Json
+          compact_id: string
+          country_code: string
+          created_at?: string
+          id?: string
+          memory_object_id?: string | null
+          owner_country_code?: string | null
+          page_ref?: string | null
+          pillar_id: string
+          pledge_type?: string | null
+          sort_order?: number
+          target_value?: number | null
+          title: string
+          unit?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          verbatim_quote?: string | null
+          visibility?: string
+        }
+        Update: {
+          baseline_value?: number | null
+          citations?: Json
+          compact_id?: string
+          country_code?: string
+          created_at?: string
+          id?: string
+          memory_object_id?: string | null
+          owner_country_code?: string | null
+          page_ref?: string | null
+          pillar_id?: string
+          pledge_type?: string | null
+          sort_order?: number
+          target_value?: number | null
+          title?: string
+          unit?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          verbatim_quote?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compact_pledges_compact_id_fkey"
+            columns: ["compact_id"]
+            isOneToOne: false
+            referencedRelation: "mandate_compacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compact_pledges_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "compact_pledges_memory_object_id_fkey"
+            columns: ["memory_object_id"]
+            isOneToOne: false
+            referencedRelation: "memory_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compact_pledges_pillar_id_fkey"
+            columns: ["pillar_id"]
+            isOneToOne: false
+            referencedRelation: "compact_pillars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compact_revisions: {
+        Row: {
+          compact_id: string
+          country_code: string
+          created_at: string
+          editor_id: string | null
+          id: string
+          owner_country_code: string | null
+          reason: string | null
+          revision_number: number
+          snapshot: Json
+          visibility: string
+        }
+        Insert: {
+          compact_id: string
+          country_code: string
+          created_at?: string
+          editor_id?: string | null
+          id?: string
+          owner_country_code?: string | null
+          reason?: string | null
+          revision_number: number
+          snapshot?: Json
+          visibility?: string
+        }
+        Update: {
+          compact_id?: string
+          country_code?: string
+          created_at?: string
+          editor_id?: string | null
+          id?: string
+          owner_country_code?: string | null
+          reason?: string | null
+          revision_number?: number
+          snapshot?: Json
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compact_revisions_compact_id_fkey"
+            columns: ["compact_id"]
+            isOneToOne: false
+            referencedRelation: "mandate_compacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compact_revisions_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      compact_scorecards: {
+        Row: {
+          at_risk_pct: number
+          broken_pct: number
+          compact_id: string
+          computed_at: string
+          country_code: string
+          delivered_pct: number
+          id: string
+          ministry_id: string | null
+          off_track_pct: number
+          on_track_pct: number
+          owner_country_code: string | null
+          period: string
+          visibility: string
+          weighted_progress: number
+        }
+        Insert: {
+          at_risk_pct?: number
+          broken_pct?: number
+          compact_id: string
+          computed_at?: string
+          country_code: string
+          delivered_pct?: number
+          id?: string
+          ministry_id?: string | null
+          off_track_pct?: number
+          on_track_pct?: number
+          owner_country_code?: string | null
+          period: string
+          visibility?: string
+          weighted_progress?: number
+        }
+        Update: {
+          at_risk_pct?: number
+          broken_pct?: number
+          compact_id?: string
+          computed_at?: string
+          country_code?: string
+          delivered_pct?: number
+          id?: string
+          ministry_id?: string | null
+          off_track_pct?: number
+          on_track_pct?: number
+          owner_country_code?: string | null
+          period?: string
+          visibility?: string
+          weighted_progress?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compact_scorecards_compact_id_fkey"
+            columns: ["compact_id"]
+            isOneToOne: false
+            referencedRelation: "mandate_compacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compact_scorecards_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "compact_scorecards_ministry_id_fkey"
+            columns: ["ministry_id"]
+            isOneToOne: false
+            referencedRelation: "ministries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compact_status_updates: {
+        Row: {
+          compact_id: string
+          country_code: string
+          created_at: string
+          deliverable_id: string
+          evidence_url: string | null
+          id: string
+          kpi_snapshot: Json
+          memory_object_id: string | null
+          ministry_id: string | null
+          narrative: string | null
+          owner_country_code: string | null
+          period: string
+          reported_by: string | null
+          status: string
+          uploaded_by: string | null
+          visibility: string
+        }
+        Insert: {
+          compact_id: string
+          country_code: string
+          created_at?: string
+          deliverable_id: string
+          evidence_url?: string | null
+          id?: string
+          kpi_snapshot?: Json
+          memory_object_id?: string | null
+          ministry_id?: string | null
+          narrative?: string | null
+          owner_country_code?: string | null
+          period: string
+          reported_by?: string | null
+          status: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Update: {
+          compact_id?: string
+          country_code?: string
+          created_at?: string
+          deliverable_id?: string
+          evidence_url?: string | null
+          id?: string
+          kpi_snapshot?: Json
+          memory_object_id?: string | null
+          ministry_id?: string | null
+          narrative?: string | null
+          owner_country_code?: string | null
+          period?: string
+          reported_by?: string | null
+          status?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compact_status_updates_compact_id_fkey"
+            columns: ["compact_id"]
+            isOneToOne: false
+            referencedRelation: "mandate_compacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compact_status_updates_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "compact_status_updates_deliverable_id_fkey"
+            columns: ["deliverable_id"]
+            isOneToOne: false
+            referencedRelation: "compact_deliverables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compact_status_updates_memory_object_id_fkey"
+            columns: ["memory_object_id"]
+            isOneToOne: false
+            referencedRelation: "memory_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compact_status_updates_ministry_id_fkey"
+            columns: ["ministry_id"]
+            isOneToOne: false
+            referencedRelation: "ministries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       corpus_fetch_attempts: {
         Row: {
           actor: string | null
@@ -3120,6 +3615,94 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sectors"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      mandate_compacts: {
+        Row: {
+          citations: Json
+          country_code: string
+          created_at: string
+          election_cycle: string
+          governing_party_id: string | null
+          id: string
+          manifesto_id: string | null
+          owner_country_code: string | null
+          pm_name: string | null
+          signed_at: string | null
+          signed_by: string | null
+          status: string
+          summary: string | null
+          term_end: string | null
+          term_start: string | null
+          title: string | null
+          updated_at: string
+          uploaded_by: string | null
+          visibility: string
+        }
+        Insert: {
+          citations?: Json
+          country_code: string
+          created_at?: string
+          election_cycle: string
+          governing_party_id?: string | null
+          id?: string
+          manifesto_id?: string | null
+          owner_country_code?: string | null
+          pm_name?: string | null
+          signed_at?: string | null
+          signed_by?: string | null
+          status?: string
+          summary?: string | null
+          term_end?: string | null
+          term_start?: string | null
+          title?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Update: {
+          citations?: Json
+          country_code?: string
+          created_at?: string
+          election_cycle?: string
+          governing_party_id?: string | null
+          id?: string
+          manifesto_id?: string | null
+          owner_country_code?: string | null
+          pm_name?: string | null
+          signed_at?: string | null
+          signed_by?: string | null
+          status?: string
+          summary?: string | null
+          term_end?: string | null
+          term_start?: string | null
+          title?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mandate_compacts_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "mandate_compacts_governing_party_id_fkey"
+            columns: ["governing_party_id"]
+            isOneToOne: false
+            referencedRelation: "country_parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mandate_compacts_manifesto_id_fkey"
+            columns: ["manifesto_id"]
+            isOneToOne: false
+            referencedRelation: "country_manifestos"
+            referencedColumns: ["id"]
           },
         ]
       }

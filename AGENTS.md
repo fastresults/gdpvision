@@ -37,6 +37,7 @@ Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 ·
 | 05 | Narrative | `admin/countries/$code/narrative` | — | `SignalTriageRail`, `DraftStudio`, opposition wizard | `narrative.functions.ts`, `narrative/opposition-*.ts` |
 | 06 | Cabinet Room | `admin/countries/$code/cabinet` | — | `SituationBoard`, `DecisionQueue`, `CommitmentsCockpit` | `cabinet.functions.ts` |
 | 07 | Persona Lab | `admin/countries/$code/personas` | — | `StudyWizard/*`, `MultimodalInput` | `personas/*.functions.ts` |
+| 08 | Mandate Compact | `admin/countries/$code/mandate-compact` | — | `Stepper`, `IngestPanel`, `CompactList` | `mandate-compact/{ingest,list}.functions.ts` |
 
 Full chamber map: `docs/map/chambers.md`.
 

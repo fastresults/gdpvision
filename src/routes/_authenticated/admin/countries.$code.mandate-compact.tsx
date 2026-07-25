@@ -3,13 +3,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ScrollText, Upload, Sparkles, Target, FileCheck, Loader2, Wand2, Building2, AlertTriangle, TrendingUp, ExternalLink, ShieldCheck, PenLine, PlayCircle, Flag, Clock, Users } from "lucide-react";
+import { ScrollText, Upload, Sparkles, Target, FileCheck, Loader2, Wand2, Building2, AlertTriangle, TrendingUp, ExternalLink, ShieldCheck, PenLine, PlayCircle, Flag, Clock, Users, Link2, FileText, X } from "lucide-react";
 import { RevisionsPanel } from "@/components/mandate-compact/RevisionsPanel";
 import { MinistriesPanel } from "@/components/mandate-compact/MinistriesPanel";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { listMandateCompacts, type CompactRow } from "@/lib/mandate-compact/list.functions";
 import { ingestManifesto } from "@/lib/mandate-compact/ingest.functions";
+import { extractManifesto, type ExtractManifestoResult } from "@/lib/mandate-compact/extract.functions";
 import { getMandateCompactDetail, type CompactDetail } from "@/lib/mandate-compact/detail.functions";
 import { decomposeMandateCompact } from "@/lib/mandate-compact/decompose.functions";
 import { transformMandateCompact } from "@/lib/mandate-compact/transform.functions";

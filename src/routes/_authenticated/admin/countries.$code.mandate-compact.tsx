@@ -754,6 +754,8 @@ function DropZone({
           onDragState(false);
         }}
         onDrop={(e) => {
+          // eslint-disable-next-line no-console
+          console.info("[mandate-compact] drop received", { types: e.dataTransfer ? Array.from(e.dataTransfer.types) : [], files: e.dataTransfer?.files?.length });
           e.preventDefault();
           e.stopPropagation();
           onDragState(false);

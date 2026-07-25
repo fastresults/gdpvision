@@ -478,14 +478,12 @@ function PlanActions({
               : "Send to Narrative Chamber"}
         </button>
         {hasNarrative && plan.narrative_signal_id && (
-          <Link
-            to="/narrative/signal/$id"
-            params={{ id: plan.narrative_signal_id }}
-            search={{ code: countryCode } as never}
+          <a
+            href={`/narrative/signal/${plan.narrative_signal_id}?code=${countryCode}`}
             className="btn-ghost inline-flex items-center gap-2"
           >
             <ArrowUpRight size={14} /> Open signal
-          </Link>
+          </a>
         )}
       </div>
       <p className="mt-3 text-[11px] leading-relaxed text-ink-500">

@@ -118,7 +118,7 @@ function MandateCompactPage() {
 
 function Stepper({ active, onSelect }: { active: string; onSelect: (k: (typeof STEPS)[number]["key"]) => void }) {
   return (
-    <ol className="grid grid-cols-2 gap-2 md:grid-cols-4">
+    <ol className="grid grid-cols-2 gap-2 md:grid-cols-5">
       {STEPS.map((step, idx) => {
         const isActive = active === step.key;
         const Icon = step.icon;

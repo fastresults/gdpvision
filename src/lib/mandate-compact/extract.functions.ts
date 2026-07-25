@@ -132,14 +132,26 @@ export const extractManifesto = createServerFn({ method: "POST" })
       throw new Error(`Extracted only ${rawText.length} chars — manifesto too short or unreadable.`);
     }
 
-    // 2) AI extraction — send a large but capped window so it stays under
-    // token limits while catching cover-page, TOC, and closing sections.
-    const HEAD = 40_000;
-    const TAIL = 12_000;
-    const excerpt =
-      rawText.length <= HEAD + TAIL
-        ? rawText
-        : `${rawText.slice(0, HEAD)}\n\n[…truncated…]\n\n${rawText.slice(-TAIL)}`;
+    // 2) AI extraction — for normal manifesto lengths, send the whole readable
+    // text. For very large files, keep the opening, evenly sampled middle, and
+    // closing so the model sees the actual policy sections, not just the cover
+    // page / table of contents.
+    const EXCERPT_LIMIT = 150_000;
+    let excerpt = rawText;
+    if (rawText.length > EXCERPT_LIMIT) {
+      const head = rawText.slice(0, 45_000);
+      const tail = rawText.slice(-35_000);
+      const middleBudget = EXCERPT_LIMIT - head.length - tail.length;
+      const slices: string[] = [];
+      const sliceCount = 4;
+      const sliceSize = Math.floor(middleBudget / sliceCount);
+      for (let i = 1; i <= sliceCount; i += 1) {
+        const center = Math.floor((rawText.length * i) / (sliceCount + 1));
+        const start = Math.max(0, center - Math.floor(sliceSize / 2));
+        slices.push(rawText.slice(start, start + sliceSize));
+      }
+      excerpt = [head, ...slices, tail].join("\n\n[…sampled manifesto section…]\n\n");
+    }
 
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
@@ -156,7 +168,7 @@ export const extractManifesto = createServerFn({ method: "POST" })
           data.countryCode +
           ". Extract the requested fields precisely from the document itself. " +
           "Use empty strings for unknowns rather than inventing values. " +
-          "For pillars, prefer the document's own section titles / thematic headings; return 5-8 short phrases (<= 60 chars each). " +
+          "For pillars_preview, you must return 5-8 short phrases (<= 60 chars each). Prefer the document's own section titles / thematic headings; if explicit headings are absent, synthesize concise policy pillar names grounded in repeated commitments from the text. " +
           "Summary must be 2-3 sentences, <= 600 characters.",
         prompt: `MANIFESTO EXCERPT (may be truncated):\n\n${excerpt}`,
       } as any);
@@ -171,21 +183,68 @@ export const extractManifesto = createServerFn({ method: "POST" })
           extracted = JSON.parse(m[0]) as ManifestoExtracted;
         }
       }
+      if (extracted && typeof extracted === "object" && "extracted" in extracted) {
+        const nested = (extracted as { extracted?: unknown }).extracted;
+        if (nested && typeof nested === "object") extracted = nested as ManifestoExtracted;
+      }
       if (!extracted || typeof extracted !== "object") throw new Error("empty extraction");
     } catch (err) {
       throw new Error(`AI extraction failed: ${(err as Error).message}`);
     }
 
+    const inferredPillars = (() => {
+      const text = rawText.toLowerCase();
+      const catalog: Array<[string, RegExp]> = [
+        ["Economic growth and jobs", /\b(job|employment|entrepreneur|business|investment|economic growth|small business|enterprise)\b/i],
+        ["Tourism and investment", /\b(tourism|visitor|hotel|cruise|hospitality|foreign direct investment|investor)\b/i],
+        ["Housing and infrastructure", /\b(housing|homes|infrastructure|roads|water|ports|airport|utilities|construction)\b/i],
+        ["Health and social protection", /\b(health|hospital|clinic|medical|wellness|social protection|elderly|disability|pension)\b/i],
+        ["Education, youth and skills", /\b(education|school|teacher|student|youth|training|skills|scholarship|university)\b/i],
+        ["Agriculture and food security", /\b(agriculture|farm|fisher|food security|livestock|crop|fisheries)\b/i],
+        ["Climate resilience and energy", /\b(climate|resilience|renewable|solar|energy|environment|hurricane|sustainability|green)\b/i],
+        ["Security and justice", /\b(security|crime|police|justice|court|border|defence|safety)\b/i],
+        ["Digital government", /\b(digital|technology|broadband|e-government|online|data|innovation)\b/i],
+        ["Governance and fiscal discipline", /\b(governance|transparency|accountability|fiscal|debt|tax|public service|reform)\b/i],
+      ];
+      const matches = catalog.filter(([, re]) => re.test(text)).map(([label]) => label);
+      return (matches.length >= 5 ? matches : [
+        ...matches,
+        "Economic transformation",
+        "Human capital",
+        "Public service delivery",
+        "National resilience",
+        "Inclusive prosperity",
+      ]).filter((item, idx, arr) => arr.indexOf(item) === idx).slice(0, 8);
+    })();
+
     // Clamp to declared caps.
+    const maybeExtracted = extracted as ManifestoExtracted & { pillars?: unknown; themes?: unknown; priorities?: unknown };
+    const modelPillars = Array.isArray(maybeExtracted.pillars_preview)
+      ? maybeExtracted.pillars_preview
+      : Array.isArray(maybeExtracted.pillars)
+        ? maybeExtracted.pillars
+        : Array.isArray(maybeExtracted.themes)
+          ? maybeExtracted.themes
+          : Array.isArray(maybeExtracted.priorities)
+            ? maybeExtracted.priorities
+            : [];
     extracted.summary = (extracted.summary ?? "").slice(0, 600);
-    extracted.title = (extracted.title ?? "").slice(0, 300);
+    extracted.title = (extracted.title ?? data.filename ?? "Manifesto").slice(0, 300);
     extracted.pm_name = (extracted.pm_name ?? "").slice(0, 200);
     extracted.governing_party = (extracted.governing_party ?? "").slice(0, 200);
-    extracted.election_cycle = (extracted.election_cycle ?? "").slice(0, 64);
-    extracted.pillars_preview = (extracted.pillars_preview ?? [])
+    extracted.election_cycle = (extracted.election_cycle || rawText.match(/\b(20\d{2}\s*[-–—]\s*20\d{2})\b/)?.[1] || "Current term").slice(0, 64);
+    extracted.pillars_preview = modelPillars
       .filter((p) => typeof p === "string" && p.trim().length > 0)
       .slice(0, 8)
       .map((p) => p.slice(0, 80));
+    if (extracted.pillars_preview.length < 5) {
+      extracted.pillars_preview = inferredPillars;
+      console.info("[mandate-compact/extract] inferred pillars fallback", {
+        countryCode: data.countryCode,
+        filename: data.filename ?? null,
+        pillars: extracted.pillars_preview.length,
+      });
+    }
 
     // 3) Best-effort party match against country_parties.
     let matchedPartyId: string | null = null;

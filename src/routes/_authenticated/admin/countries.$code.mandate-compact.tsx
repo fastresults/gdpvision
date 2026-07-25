@@ -246,6 +246,9 @@ function isSupportedManifestoFile(file: File) {
   );
 }
 
+const MAX_MANIFESTO_FILE_MB = 75;
+const MAX_MANIFESTO_FILE_BYTES = MAX_MANIFESTO_FILE_MB * 1024 * 1024;
+
 function capManifestoText(raw: string) {
   const text = raw.replace(/\r\n/g, "\n").trim();
   if (text.length <= 500_000) return { text, capped: false };
@@ -422,11 +425,13 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
     // eslint-disable-next-line no-console
     console.info("[mandate-compact] handleFile", { name: file.name, size: file.size, type: file.type });
     recordUpload("File received", `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB`);
-    if (file.size > 20 * 1024 * 1024) {
+    if (file.size > MAX_MANIFESTO_FILE_BYTES) {
       setPhase("error");
-      setPhaseMsg("File too large (max 20 MB).");
+      const msg = `File too large (${(file.size / 1024 / 1024).toFixed(2)} MB). Maximum is ${MAX_MANIFESTO_FILE_MB} MB.`;
+      setPhaseMsg(msg);
       setManualOpen(true);
-      toast.error("File too large (max 20 MB).");
+      recordUpload("File too large", msg);
+      toast.error(msg);
       return;
     }
     if (!isSupportedManifestoFile(file)) {
@@ -442,7 +447,10 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
     setPhase("extracting");
     setPhaseMsg(`Preparing ${file.name}…`);
     setManualOpen(false);
-    toast.message(`Reading ${file.name}…`, { duration: 2000 });
+    toast.message(`Reading ${file.name}…`, {
+      description: `${(file.size / 1024 / 1024).toFixed(2)} MB accepted — extracting text in the browser first.`,
+      duration: 3000,
+    });
 
     let rawText = "";
     try {
@@ -989,7 +997,7 @@ function DropZone({
             <Upload className="h-7 w-7 text-ink-500 group-hover:text-gold-500" />
             <p className="font-serif text-lg text-ink-950">Drop the manifesto here</p>
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-              PDF · DOCX · TXT · max 20 MB · or click to browse
+              PDF · DOCX · TXT · max {MAX_MANIFESTO_FILE_MB} MB · or click to browse
             </p>
             {phase === "error" && (
               <p className="mt-2 max-w-lg text-xs text-signal-critical">{phaseMsg}</p>

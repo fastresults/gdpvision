@@ -1,74 +1,47 @@
 
-# Step 01 · AI-first Manifesto Drop Zone
+## What's actually broken
 
-Today Step 01 is a form. It should be a **drop zone**: the admin drops a manifesto (PDF, DOCX, TXT, or URL), and AI reads it and pre-fills election cycle, title, PM name, summary, source URL, and full text. The admin only reviews and signs off.
+I checked the network log and the recent dev-server log for the ATG session. After the page loaded and `listMandateCompacts` returned `[]`, **no `extractManifesto` request was ever sent** — so the failure is entirely client-side: the `drop` event never reaches `handleFile`. The server function, Gemini call, and DB writes are all fine; the browser simply isn't handing us the file.
 
-## What changes for the user
+Root cause (unverified until we instrument, but the code shape makes it near-certain): the drop zone is a `<label>` that wraps a `<input type="file">`. When a file is dropped onto a label that is the activator for a file input, Chromium's default behaviour is to route the drop to the nested input, which then does nothing because file inputs don't accept programmatic file drops. The React `onDrop` on the `<label>` never fires because the drop target resolves to the child input. Compounding this, `onDragEnter` isn't `preventDefault`ed — some Chromium versions refuse the drop for that alone.
 
-```text
-┌─────────────────────────────────────────────────┐
-│  ⬆  Drop the manifesto here                     │
-│     PDF · DOCX · TXT  ·  or paste a URL / text  │
-│     AI will read it and fill in the rest        │
-└─────────────────────────────────────────────────┘
-```
+## What we'll change
 
-After drop:
-1. **Extracting** — file parsed to text (PDF/DOCX/TXT) or URL fetched via Firecrawl.
-2. **Reading** — Gemini reads the full text and returns structured fields.
-3. **Auto-filled preview** — every field below the drop zone populates with a small "AI · edit" affordance. Admin can override any value inline.
-4. **One button** — `Create Compact` (already active, no manual typing required).
+### 1. Fix the drop zone (Step 01 of Chamber 08)
 
-Visibility (public/private) is the only field the admin still chooses explicitly, defaulting to Public.
+- Replace the `<label>` container with a plain `<div>` and lift `<input type="file" ref>` out of the drop target. Trigger the picker with an explicit `inputRef.current?.click()` on div click / Enter / Space.
+- Add `onDragEnter`, `onDragOver`, `onDrop` on the div, all calling `e.preventDefault()` + `e.stopPropagation()`. Use `dataTransfer.items` first, fall back to `dataTransfer.files`.
+- Guard against directory drops and empty drops; surface a friendly toast.
+- Add a one-line `console.debug("[mandate-compact] drop", ...)` so a follow-up run has visible evidence if anything still misbehaves.
 
-## Fields AI extracts
+### 2. Harden the extract server function against silent failures
 
-- `election_cycle` (e.g. "2025-2030") — inferred from cover page / dates
-- `title` — manifesto title
-- `pm_name` — party leader / PM candidate
-- `governing_party` name (matched against `country_parties`, else surfaced as unmatched)
-- `summary` — 2-3 sentence exec summary
-- `pillars_preview` — top 5-8 pillar names (used later in Decompose, shown as a read-only chip row so the admin sees AI already understood the document)
-- `source_url` — carried through if URL was the input
-- `full_text` — stored and chunk-embedded exactly as today
+- Wrap `pdf-parse` / `mammoth` dynamic imports so a Worker-runtime import error surfaces as a clear toast ("PDF parsing unavailable in this deployment — paste text or a URL instead") instead of a stack the UI swallows.
+- Send back a structured `error` field on the client so the drop zone can render `phase="error"` with the real reason.
 
-## Technical section
+### 3. Multi-election index (many manifestos per country, each with its own plan)
 
-**New server fn: `src/lib/mandate-compact/extract.functions.ts`**
-- `extractManifesto({ countryCode, fileBase64?, mimeType?, filename?, sourceUrl?, pastedText? })`
-- Auth: `requireSupabaseAuth` + `has_country_access`.
-- Text acquisition waterfall:
-  - `fileBase64` PDF → `document--parse_document`-style extraction using existing `@/lib/ingest/pdf.server` if present, otherwise send the PDF as an `input_file` content block to Gemini 3.6 Flash multimodal.
-  - DOCX/TXT → decode inline (mammoth for docx, utf-8 for txt).
-  - `sourceUrl` → reuse existing Firecrawl helper (already used by `party-research.server.ts`).
-  - `pastedText` → passthrough.
-- Structured extraction: `generateText` with `Output.object` (Zod schema for the fields above, no `.min/.max`, prompt states the caps and we clamp in code). Model: `google/gemini-3.6-flash` via `ai-gateway.server`.
-- Returns `{ extracted: {...}, rawText, charCount, sourceUrl, matchedPartyId }`.
+Today the page shows one active compact via `selectedCompactId`, and a `CompactList` at the bottom. We'll promote this into a first-class Elections Index that matches how a country actually re-elects and re-drafts:
 
-**Ingest fn stays unchanged** (`ingestManifesto`). The drop zone calls `extractManifesto` first, then the existing `ingestManifesto` with the extracted values — no schema/migration changes.
+- **New "Elections" rail at the top of Chamber 08**, above the stepper: one row per `mandate_compacts` row for the country — election_cycle, PM, party, status pill (draft / signed / active / concluded), pledge count, deliverable coverage %, and a "Open plan" affordance. Sorted newest cycle first, current cycle marked.
+- **"New compact" CTA** on that rail resets Step 01 to a blank drop zone and clears `selectedCompactId`. Ingest already keys on `(country_code, election_cycle)`, so a different cycle creates a new row; same cycle re-ingests the existing compact (with a visible "you're editing the 2025-2030 compact" banner so no one clobbers a live plan by accident).
+- **Every downstream panel binds to the selected compact.** Decompose / Transform / Track / Ministries / Publish / History already accept `selectedCompact`; we just make sure switching a compact in the rail persists across steps and each compact keeps its own pillars, pledges, deliverables, scorecards, and revisions (they already do — foreign keys are per-compact_id).
+- **Concluded cycles stay browsable read-only** so a new government can compare their compact against the outgoing PM's actuals.
+- **Meta on each compact** (already stored, just surface): governing party badge, source URL, ingested-at, chunks indexed.
 
-**Route file: `src/routes/_authenticated/admin/countries.$code.mandate-compact.tsx`**
-Rewrite `IngestPanel` (~lines 197-361):
+### 4. Small correctness follow-ups discovered while reading the file
 
-1. **DropZone component** (new) — HTML5 drag/drop + file picker + URL input tab.
-   - Accepts `.pdf, .docx, .txt`, max 20 MB.
-   - On drop → base64-encode client-side → call `extractManifesto`.
-   - States: `idle → extracting → reading → ready → error`, each with editorial mono status line under the zone (matches the current aesthetic).
-2. **Auto-fill state**: single `extracted` object drives all form fields. Fields render as underline inputs (unchanged style) but pre-populated, each with a subtle "AI" mono tag that fades on user edit.
-3. **Pillars preview** (read-only chip row) sits between summary and full-text, labelled `AI READ · 7 PILLARS DETECTED · will be committed in Step 02`.
-4. **Create button** enabled the moment extraction finishes; no manual entry required for the happy path.
-5. **Fallback**: if extraction fails, drop zone shows the error and reveals the current manual fields (progressive disclosure), so nothing is lost.
+- `IngestPanel` derives `canCreate` from `sourceUrl OR rawText`, but if extract fails silently the form is empty and Create is disabled with no explanation — the new error surface above covers this.
+- Add a `data-testid="mandate-drop"` on the zone so we can drive Playwright verification in build mode.
 
-**Dependencies to add**: `mammoth` (~150 kB) for DOCX text extraction. PDF parsing reuses whatever the corpus pipeline already uses; if none exists, send the PDF directly to Gemini as `input_file` (multimodal) and skip a local PDF parser entirely.
+## Verification plan (build-mode)
 
-**Files touched**
-- `src/lib/mandate-compact/extract.functions.ts` — new server fn.
-- `src/routes/_authenticated/admin/countries.$code.mandate-compact.tsx` — replace `IngestPanel` + supporting `DropZone` sub-component; delete `UnderlineField`-only fallback path from happy flow (keep for manual override).
-- `package.json` — add `mammoth`.
+1. Load `/admin/countries/ATG/mandate-compact` in Playwright, drop a small PDF via `dispatchEvent('drop')` with a synthesized `DataTransfer`, assert that `extractManifesto` is POSTed and the form fills.
+2. Ingest a second compact for a different `election_cycle` on the same country, confirm both appear in the Elections rail, confirm switching between them swaps the pillars/pledges in Decompose.
+3. Read published worker logs after one real drop to confirm no `[unenv]` / pdf-parse import failure in the Worker runtime; if it fails there, keep the drop zone working and route PDF parsing to a text-only or URL path with a clear message.
 
-No DB migrations, no changes to `ingestManifesto`, no changes to Steps 02-07.
+## Technical notes
 
-## Out of scope
-- Batch ingest of multiple manifestos.
-- OCR of scanned/image-only PDFs (Gemini multimodal handles most cases; scanned edge case flagged as future work).
-- Auto-triggering Step 02 Decompose after ingest (still a deliberate admin action, but the pillars preview shows AI is ready).
+- Files touched: `src/routes/_authenticated/admin/countries.$code.mandate-compact.tsx` (drop zone rewrite + Elections rail), `src/lib/mandate-compact/extract.functions.ts` (error surface + import guards). No schema changes — `mandate_compacts` already supports multiple rows per country keyed by `election_cycle`.
+- No changes to RLS, corpus writers, or downstream chambers.
+- Global button and PrettyJson contracts respected.

@@ -511,3 +511,12 @@ const PRINT_CSS = `
   }
 }
 `;
+
+const PAGE_NUMBERS_OFF_CSS = `
+@media print {
+  @page {
+    @bottom-right { content: none; }
+    @bottom-left { content: none; }
+  }
+}
+`;

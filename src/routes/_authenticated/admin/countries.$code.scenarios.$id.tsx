@@ -1,14 +1,24 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { queryOptions, useMutation, useSuspenseQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { Copy, GitFork, Pin, PinOff } from "lucide-react";
+import { queryOptions, useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, Copy, GitFork, Pin, PinOff } from "lucide-react";
+import { toast } from "sonner";
 
-import { getScenario, promoteScenario, type ScenarioArtifact } from "@/lib/scenarios.functions";
+import {
+  getScenario,
+  promoteScenario,
+  runScenarioEngine,
+  saveScenario,
+  type EngineRunResult,
+  type ScenarioArtifact,
+} from "@/lib/scenarios.functions";
 import type { EngineOutput } from "@/lib/engine/v1_macro";
 import { GdpFanChart } from "@/components/scenarios/GdpFanChart";
 import { SectorWaterfall } from "@/components/scenarios/SectorWaterfall";
 import { AttributionStack } from "@/components/scenarios/AttributionStack";
-import { NarrativePanel } from "@/components/scenarios/NarrativePanel";
+import { StoryPanel } from "@/components/scenarios/v3/StoryPanel";
+import { AdjustSheet } from "@/components/scenarios/v3/AdjustSheet";
+import { ScenarioActionBar } from "@/components/scenarios/v3/ScenarioActionBar";
 import { readPins, writePins } from "./countries.$code.scenarios";
 
 function scenarioQuery(id: string) {
@@ -32,10 +42,26 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/scen
 function ScenarioViewer() {
   const { code, id } = Route.useParams();
   const navigate = useNavigate();
-  const { data } = useSuspenseQuery(scenarioQuery(id));
+  const { data, refetch } = useSuspenseQuery(scenarioQuery(id));
   const artifact: ScenarioArtifact = data;
-  const results = artifact.results as EngineOutput | Record<string, never>;
+  const results = (artifact.results ?? {}) as EngineOutput | Record<string, never>;
   const hasResults = "years" in results;
+
+  // Hydrate lever defs (for the AdjustSheet). Cheap: server fn is cached by
+  // country + horizon + levers key.
+  const engineInitQ = useQuery({
+    queryKey: ["scenario-engine-init", code, artifact.horizon_years, id],
+    queryFn: () =>
+      runScenarioEngine({
+        data: {
+          countryCode: code,
+          horizonYears: artifact.horizon_years,
+          levers: artifact.lever_settings,
+        },
+      }),
+    staleTime: 5 * 60_000,
+    enabled: hasResults,
+  });
 
   const [pinned, setPinned] = useState(false);
   useEffect(() => setPinned(readPins(code).includes(id)), [code, id]);
@@ -50,56 +76,77 @@ function ScenarioViewer() {
   const promote = useMutation({
     mutationFn: (toStatus: "shared" | "adopted" | "archived") =>
       promoteScenario({ data: { id, toStatus } }),
-    onSuccess: () => window.location.reload(),
+    onSuccess: () => refetch(),
   });
 
-  const assumptionsNote =
-    typeof artifact.assumptions?.note === "string" ? (artifact.assumptions.note as string) : "";
-  const narrativeMd =
-    typeof artifact.assumptions?.narrative_md === "string"
-      ? (artifact.assumptions.narrative_md as string)
-      : null;
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  const [analystOpen, setAnalystOpen] = useState(false);
+  const [preview, setPreview] = useState<EngineRunResult | null>(null);
+
+  const displayed: EngineOutput | null = useMemo(() => {
+    if (preview) return preview.output;
+    if (hasResults) return results as EngineOutput;
+    return null;
+  }, [preview, results, hasResults]);
+
+  const question = String(
+    (artifact.assumptions?.question_text as string | undefined) ?? artifact.title,
+  );
+  const thesis =
+    typeof artifact.assumptions?.thesis === "string"
+      ? (artifact.assumptions.thesis as string)
+      : undefined;
+  const citations = Array.isArray(artifact.assumptions?.citations)
+    ? (artifact.assumptions.citations as Array<{ label: string; kind: string; ref?: string }>)
+    : undefined;
+
+  const saveNewVersion = useMutation({
+    mutationFn: (levers: Record<string, number>) =>
+      saveScenario({
+        data: {
+          countryCode: code,
+          ministrySlug: artifact.ministry?.slug ?? null,
+          sectorCode: artifact.sector_code,
+          title: `${artifact.title} (adjusted)`,
+          horizonYears: artifact.horizon_years,
+          levers,
+          assumptions: {
+            question_text: question,
+            thesis: thesis ?? "",
+            source: "adjust_v3",
+            parent_scenario: id,
+          },
+        },
+      }),
+    onSuccess: async (res) => {
+      toast.success("Saved as new version");
+      setAdjustOpen(false);
+      setPreview(null);
+      await navigate({
+        to: "/admin/countries/$code/scenarios/$id",
+        params: { code, id: res.id },
+      });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
 
   return (
-    <div className="p-8">
-      <header className="flex flex-wrap items-baseline justify-between gap-3">
+    <div className="mx-auto max-w-6xl px-4 pb-24 pt-8 md:px-8">
+      <div className="mb-6 flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            <span className="mr-2 border border-ink-950 px-1.5 py-0.5 text-ink-950">Projection</span>
-            {artifact.status} · {artifact.model_version} · {artifact.horizon_years}y
+          <Link
+            to="/admin/countries/$code/scenarios"
+            params={{ code }}
+            className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500 hover:text-ink-950"
+          >
+            ← Ask another question
+          </Link>
+          <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            {artifact.status} · {artifact.horizon_years}y · {artifact.model_version}
           </p>
-          <h2 className="mt-2 font-serif text-3xl text-ink-950">{artifact.title}</h2>
-          {artifact.ministry ? (
-            <p className="mt-1 text-sm text-ink-500">
-              Baseline from ·{" "}
-              <Link
-                to="/admin/countries/$code/portfolio/$ministry"
-                params={{ code, ministry: artifact.ministry.slug }}
-                className="underline underline-offset-2 hover:text-ink-950"
-              >
-                {artifact.ministry.name}
-              </Link>{" "}
-              <span className="text-ink-500/70">(Chamber 02)</span>
-            </p>
-          ) : (
-            <p className="mt-1 text-sm text-ink-500">
-              Baseline from ·{" "}
-              <Link
-                to="/admin/countries/$code/portfolio"
-                params={{ code }}
-                className="underline underline-offset-2 hover:text-ink-950"
-              >
-                {code} cabinet
-              </Link>{" "}
-              <span className="text-ink-500/70">(Chamber 02)</span>
-            </p>
-          )}
         </div>
         <div className="flex flex-wrap gap-2">
-          <button
-            onClick={togglePin}
-            className="inline-flex items-center gap-1.5 border border-line-200 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-700 hover:border-ink-950 hover:text-ink-950"
-          >
+          <button onClick={togglePin} className="btn-ghost inline-flex items-center gap-1.5">
             {pinned ? <PinOff size={12} /> : <Pin size={12} />}
             {pinned ? "Unpin" : "Pin"}
           </button>
@@ -107,105 +154,161 @@ function ScenarioViewer() {
             to="/admin/countries/$code/scenarios/new"
             params={{ code }}
             search={{ fork: id }}
-            className="inline-flex items-center gap-1.5 border border-line-200 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-700 hover:border-ink-950 hover:text-ink-950"
+            className="btn-ghost inline-flex items-center gap-1.5"
           >
-            <GitFork size={12} /> Fork
+            <GitFork size={12} /> Fork in workbench
           </Link>
           <button
-            onClick={() =>
-              navigator.clipboard.writeText(window.location.href).catch(() => {})
-            }
-            className="inline-flex items-center gap-1.5 border border-line-200 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-700 hover:border-ink-950 hover:text-ink-950"
+            onClick={() => navigator.clipboard.writeText(window.location.href).catch(() => {})}
+            className="btn-ghost inline-flex items-center gap-1.5"
           >
             <Copy size={12} /> Copy link
           </button>
-          {artifact.status === "draft" && (
-            <button
-              onClick={() => promote.mutate("shared")}
-              disabled={promote.isPending}
-              className="border border-ink-950 bg-ink-950 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-50"
-            >
-              Share
-            </button>
-          )}
-          {artifact.status === "shared" && (
-            <button
-              onClick={() => promote.mutate("adopted")}
-              disabled={promote.isPending}
-              className="border border-ink-950 bg-ink-950 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-50"
-            >
-              Adopt
-            </button>
-          )}
         </div>
-      </header>
-
-      {assumptionsNote && (
-        <p className="mt-4 max-w-3xl text-sm leading-relaxed text-ink-700">{assumptionsNote}</p>
-      )}
+      </div>
 
       {!hasResults ? (
         <p className="mt-8 border border-line-200 p-6 text-sm text-ink-500">
           No engine output snapshot found on this artifact.
         </p>
       ) : (
-        <>
-          <section className="mt-8">
-            <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-              Projected GDP growth · P10 / P50 / P90
-            </h3>
-            <div className="mt-3">
-              <GdpFanChart years={results.years} path={results.gdpGrowthPath} />
-            </div>
-          </section>
-
-          <section className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-2">
-            <div>
-              <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                Sector waterfall (Δ pp)
-              </h3>
-              <div className="mt-3">
-                <SectorWaterfall impacts={results.sectorImpacts} />
-              </div>
-            </div>
-            <div>
-              <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                Attribution — lever contribution
-              </h3>
-              <div className="mt-3">
-                <AttributionStack items={results.attribution} />
-              </div>
-            </div>
-          </section>
-
-          <section className="mt-10">
-            <NarrativePanel
-              initial={narrativeMd}
-              payload={{ scenarioId: id }}
-              onGenerated={() => navigate({ to: ".", replace: true })}
+        <section className="grid grid-cols-1 gap-8 lg:grid-cols-5">
+          <div className="lg:col-span-3">
+            <StoryPanel
+              scenarioId={id}
+              question={question}
+              fallbackThesis={thesis}
+              citations={citations}
             />
-          </section>
-        </>
+          </div>
+
+          <div className="lg:col-span-2">
+            <div className="border border-line-200 bg-paper-50 p-4">
+              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
+                Projected GDP growth
+              </p>
+              <p className="mt-0.5 text-[11px] text-ink-500">
+                Shaded band = worst plausible ↔ best plausible
+              </p>
+              <div className="mt-3">
+                {displayed && (
+                  <GdpFanChart
+                    years={displayed.years}
+                    path={displayed.gdpGrowthPath}
+                    ghostPath={
+                      preview && hasResults ? (results as EngineOutput).gdpGrowthPath : undefined
+                    }
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6 border border-line-200 p-4">
+              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
+                Biggest sector shifts
+              </p>
+              <div className="mt-3">
+                {displayed && <SectorWaterfall impacts={displayed.sectorImpacts} />}
+              </div>
+            </div>
+          </div>
+        </section>
       )}
 
-      {artifact.promotions.length > 0 && (
-        <section className="mt-10">
-          <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            Promotion log
-          </h3>
-          <ul className="mt-3 divide-y divide-line-200 border-t border-line-200 text-xs">
-            {artifact.promotions.map((p) => (
-              <li key={p.id} className="flex justify-between py-2">
-                <span>
-                  {p.from_status} → <span className="font-medium">{p.to_status}</span>
-                </span>
-                <span className="font-mono text-ink-500">
-                  {new Date(p.created_at).toISOString().slice(0, 16).replace("T", " ")}
-                </span>
-              </li>
-            ))}
-          </ul>
+      {hasResults && displayed && (
+        <section className="mt-10 border-t border-line-200 pt-6">
+          <button
+            type="button"
+            onClick={() => setAnalystOpen((v) => !v)}
+            className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500 hover:text-ink-950"
+          >
+            <ChevronDown
+              className={`h-3.5 w-3.5 transition ${analystOpen ? "rotate-180" : ""}`}
+            />
+            Analyst view — what drove the change
+          </button>
+          {analystOpen && (
+            <div className="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-2">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
+                  What drove the change
+                </p>
+                <div className="mt-3">
+                  <AttributionStack items={displayed.attribution} />
+                </div>
+              </div>
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
+                  All sector movement
+                </p>
+                <div className="mt-3">
+                  <SectorWaterfall impacts={displayed.sectorImpacts} />
+                </div>
+                <div className="mt-4">
+                  <Link
+                    to="/admin/countries/$code/scenarios/new"
+                    params={{ code }}
+                    search={{ fork: id }}
+                    className="btn-ghost inline-flex items-center gap-1.5 text-[11px]"
+                  >
+                    Open full workbench →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
+      )}
+
+      {artifact.status === "draft" && (
+        <div className="mt-6 flex justify-end">
+          <button
+            onClick={() => promote.mutate("shared")}
+            disabled={promote.isPending}
+            className="btn-secondary"
+          >
+            Share with Cabinet
+          </button>
+        </div>
+      )}
+
+      <ScenarioActionBar
+        onAdjust={() => {
+          if (!engineInitQ.data) {
+            toast.info("Warming the engine…");
+            return;
+          }
+          setAdjustOpen(true);
+        }}
+        onCompare={() =>
+          navigate({ to: "/admin/countries/$code/scenarios/compare", params: { code } })
+        }
+        onSendCabinet={() => {
+          navigator.clipboard.writeText(window.location.href).catch(() => {});
+          toast.success("Link copied — paste into Cabinet session");
+          navigate({ to: "/admin/countries/$code/cabinet", params: { code } });
+        }}
+        onSendNarrative={() => {
+          navigator.clipboard.writeText(window.location.href).catch(() => {});
+          toast.success("Link copied — paste into Narrative brief");
+          navigate({ to: "/admin/countries/$code/narrative", params: { code } });
+        }}
+      />
+
+      {engineInitQ.data && (
+        <AdjustSheet
+          open={adjustOpen}
+          onClose={() => {
+            setAdjustOpen(false);
+            setPreview(null);
+          }}
+          engineInit={engineInitQ.data}
+          currentLevers={artifact.lever_settings}
+          horizonYears={artifact.horizon_years}
+          onPreview={(_, res) => setPreview(res)}
+          onCommit={(levers) => saveNewVersion.mutateAsync(levers).then(() => undefined)}
+          showAllHref={`/admin/countries/${code}/scenarios/new?fork=${id}`}
+        />
       )}
     </div>
   );

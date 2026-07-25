@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -96,17 +96,27 @@ function MandateCompactPage() {
           </div>
         </header>
 
-        <Stepper active={activeStep} onSelect={setActiveStep} />
-
-        {compacts.length > 0 && activeStep !== "ingest" && (
-          <CompactSelector
+        {compacts.length > 0 && (
+          <ElectionsIndex
             compacts={compacts}
             selectedId={selectedCompact?.id ?? null}
-            onSelect={setSelectedCompactId}
+            onSelect={(id: string) => setSelectedCompactId(id)}
+            onNew={() => {
+              setSelectedCompactId(null);
+              setActiveStep("ingest");
+            }}
           />
         )}
 
-        {activeStep === "ingest" && <IngestPanel countryCode={code} compacts={compacts} />}
+        <Stepper active={activeStep} onSelect={setActiveStep} />
+
+        {activeStep === "ingest" && (
+          <IngestPanel
+            countryCode={code}
+            compacts={compacts}
+            editingCompact={selectedCompact}
+          />
+        )}
         {activeStep === "decompose" && (
           selectedCompact
             ? <DecomposePanel countryCode={code} compact={selectedCompact} />
@@ -137,9 +147,8 @@ function MandateCompactPage() {
             ? <RevisionsPanel compactId={selectedCompact.id} />
             : <EmptyState body="Ingest a manifesto first — the audit trail begins with the first snapshot." />
         )}
-
-        <CompactList compacts={compacts} />
       </div>
+
 
     </SuperAdminShell>
   );
@@ -227,7 +236,7 @@ const EMPTY_FORM: ExtractedForm = {
   fromAI: false,
 };
 
-function IngestPanel({ countryCode, compacts }: { countryCode: string; compacts: CompactRow[] }) {
+function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: string; compacts: CompactRow[]; editingCompact?: CompactRow | null }) {
   const qc = useQueryClient();
   const ingest = useServerFn(ingestManifesto);
   const extract = useServerFn(extractManifesto);
@@ -372,119 +381,64 @@ function IngestPanel({ countryCode, compacts }: { countryCode: string; compacts:
           fills in the election cycle, title, PM, party, summary, and top
           pillars. You only review and sign off.
         </p>
-        {compacts.length > 0 && (
+        {editingCompact ? (
+          <div className="mt-6 border-l-2 border-gold-500 bg-gold-500/5 px-3 py-2">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950">
+              Editing · {editingCompact.election_cycle}
+            </p>
+            <p className="mt-1 text-[11px] text-ink-500">
+              A new upload with the same election cycle will re-index this compact. To start a fresh cycle, use “+ New compact” above.
+            </p>
+          </div>
+        ) : compacts.length > 0 ? (
           <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-400">
-            {compacts.length} compact{compacts.length === 1 ? "" : "s"} on file · {countryCode}
+            {compacts.length} compact{compacts.length === 1 ? "" : "s"} on file · {countryCode} · uploading creates a new one
           </p>
-        )}
+        ) : null}
+
       </div>
 
       <div className="space-y-10 lg:col-span-8">
         {/* ─── Drop zone ─────────────────────────────────────────────── */}
-        <div>
-          <label
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOver(true);
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragOver(false);
-              const f = e.dataTransfer.files?.[0];
-              if (f) void handleFile(f);
-            }}
-            className={cn(
-              "group relative flex cursor-pointer flex-col items-center justify-center gap-3 border-2 border-dashed px-6 py-16 text-center transition-colors",
-              dragOver
-                ? "border-gold-500 bg-gold-500/5"
-                : phase === "ready"
-                  ? "border-line-200 bg-paper-50"
-                  : phase === "error"
-                    ? "border-signal-critical/40 bg-signal-critical/5"
-                    : "border-line-200 bg-paper-50 hover:border-ink-300 hover:bg-paper-0",
-            )}
-          >
-            <input
-              type="file"
-              accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-              className="sr-only"
-              disabled={phase === "extracting"}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void handleFile(f);
-                e.target.value = "";
-              }}
-            />
-            {phase === "extracting" ? (
-              <>
-                <Loader2 className="h-7 w-7 animate-spin text-gold-500" />
-                <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink-950">
-                  {phaseMsg || "Reading…"}
-                </p>
-                <p className="text-xs text-ink-500">This usually takes 10-30 seconds.</p>
-              </>
-            ) : phase === "ready" ? (
-              <>
-                <FileCheck className="h-7 w-7 text-gold-500" />
-                <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink-950">
-                  Manifesto read
-                </p>
-                <p className="max-w-lg text-xs text-ink-500">{phaseMsg}</p>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    reset();
-                  }}
-                  className="mt-2 inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-gold-500"
-                >
-                  <X className="h-3 w-3" /> Drop another
-                </button>
-              </>
-            ) : (
-              <>
-                <Upload className="h-7 w-7 text-ink-500 group-hover:text-gold-500" />
-                <p className="font-serif text-lg text-ink-950">Drop the manifesto here</p>
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                  PDF · DOCX · TXT · max 20 MB
-                </p>
-                {phase === "error" && (
-                  <p className="mt-2 max-w-lg text-xs text-signal-critical">{phaseMsg}</p>
-                )}
-              </>
-            )}
-          </label>
+        <DropZone
+          phase={phase}
+          phaseMsg={phaseMsg}
+          dragOver={dragOver}
+          onDragState={setDragOver}
+          onFile={handleFile}
+          onReset={reset}
+        />
 
-          {/* URL alternative */}
-          {phase !== "ready" && (
-            <div className="mt-4 flex items-center gap-3 border-b border-line-200 pb-2">
-              <Link2 className="h-3.5 w-3.5 shrink-0 text-ink-400" />
-              <input
-                type="url"
-                value={pastedUrl}
-                onChange={(e) => setPastedUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    void handleUrl();
-                  }
-                }}
-                placeholder="…or paste a manifesto URL and press Enter"
-                disabled={phase === "extracting"}
-                className="w-full appearance-none border-0 bg-transparent p-0 py-1 text-sm text-ink-950 placeholder:text-ink-300 focus:outline-none focus:ring-0"
-              />
-              <button
-                type="button"
-                onClick={() => void handleUrl()}
-                disabled={phase === "extracting" || !pastedUrl.trim()}
-                className="shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-gold-500 disabled:cursor-not-allowed disabled:text-ink-300"
-              >
-                Read →
-              </button>
-            </div>
-          )}
-        </div>
+
+        {/* URL alternative */}
+        {phase !== "ready" && (
+          <div className="mt-4 flex items-center gap-3 border-b border-line-200 pb-2">
+            <Link2 className="h-3.5 w-3.5 shrink-0 text-ink-400" />
+            <input
+              type="url"
+              value={pastedUrl}
+              onChange={(e) => setPastedUrl(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void handleUrl();
+                }
+              }}
+              placeholder="…or paste a manifesto URL and press Enter"
+              disabled={phase === "extracting"}
+              className="w-full appearance-none border-0 bg-transparent p-0 py-1 text-sm text-ink-950 placeholder:text-ink-300 focus:outline-none focus:ring-0"
+            />
+            <button
+              type="button"
+              onClick={() => void handleUrl()}
+              disabled={phase === "extracting" || !pastedUrl.trim()}
+              className="shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-gold-500 disabled:cursor-not-allowed disabled:text-ink-300"
+            >
+              Read →
+            </button>
+          </div>
+        )}
+
 
         {/* ─── Auto-filled preview (visible after extraction) ────────── */}
         {phase === "ready" && (
@@ -707,6 +661,157 @@ function IngestPanel({ countryCode, compacts }: { countryCode: string; compacts:
   );
 }
 
+function DropZone({
+  phase,
+  phaseMsg,
+  dragOver,
+  onDragState,
+  onFile,
+  onReset,
+}: {
+  phase: "idle" | "extracting" | "ready" | "error";
+  phaseMsg: string;
+  dragOver: boolean;
+  onDragState: (v: boolean) => void;
+  onFile: (f: File) => void;
+  onReset: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const disabled = phase === "extracting";
+
+  const openPicker = () => {
+    if (disabled) return;
+    inputRef.current?.click();
+  };
+
+  return (
+    <div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+        className="sr-only"
+        disabled={disabled}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onFile(f);
+          e.target.value = "";
+        }}
+      />
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label="Drop manifesto file here or click to browse"
+        data-testid="mandate-drop"
+        onClick={openPicker}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openPicker();
+          }
+        }}
+        onDragEnter={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!disabled) onDragState(true);
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+          if (!disabled && !dragOver) onDragState(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onDragState(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onDragState(false);
+          if (disabled) return;
+          const dt = e.dataTransfer;
+          let file: File | null = null;
+          if (dt?.items && dt.items.length) {
+            for (let i = 0; i < dt.items.length; i++) {
+              const it = dt.items[i];
+              if (it.kind === "file") {
+                const f = it.getAsFile();
+                if (f) { file = f; break; }
+              }
+            }
+          }
+          if (!file && dt?.files && dt.files.length) {
+            file = dt.files[0];
+          }
+          // eslint-disable-next-line no-console
+          console.debug("[mandate-compact] drop", { hasFile: !!file, name: file?.name, type: file?.type, size: file?.size });
+          if (!file) {
+            toast.error("No file detected in the drop. Try clicking the zone to browse instead.");
+            return;
+          }
+          if (file.size === 0) {
+            toast.error("That looks like a folder or an empty file — drop a single PDF, DOCX, or TXT.");
+            return;
+          }
+          onFile(file);
+        }}
+        className={cn(
+          "group relative flex cursor-pointer flex-col items-center justify-center gap-3 border-2 border-dashed px-6 py-16 text-center transition-colors focus:outline-none focus-visible:border-gold-500",
+          dragOver
+            ? "border-gold-500 bg-gold-500/5"
+            : phase === "ready"
+              ? "border-line-200 bg-paper-50"
+              : phase === "error"
+                ? "border-signal-critical/40 bg-signal-critical/5"
+                : "border-line-200 bg-paper-50 hover:border-ink-300 hover:bg-paper-0",
+        )}
+      >
+        {phase === "extracting" ? (
+          <>
+            <Loader2 className="h-7 w-7 animate-spin text-gold-500" />
+            <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink-950">
+              {phaseMsg || "Reading…"}
+            </p>
+            <p className="text-xs text-ink-500">This usually takes 10-30 seconds.</p>
+          </>
+        ) : phase === "ready" ? (
+          <>
+            <FileCheck className="h-7 w-7 text-gold-500" />
+            <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-ink-950">
+              Manifesto read
+            </p>
+            <p className="max-w-lg text-xs text-ink-500">{phaseMsg}</p>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onReset();
+              }}
+              className="mt-2 inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-gold-500"
+            >
+              <X className="h-3 w-3" /> Drop another
+            </button>
+          </>
+        ) : (
+          <>
+            <Upload className="h-7 w-7 text-ink-500 group-hover:text-gold-500" />
+            <p className="font-serif text-lg text-ink-950">Drop the manifesto here</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+              PDF · DOCX · TXT · max 20 MB · or click to browse
+            </p>
+            {phase === "error" && (
+              <p className="mt-2 max-w-lg text-xs text-signal-critical">{phaseMsg}</p>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AutoField({
   label,
   required,
@@ -743,42 +848,87 @@ function AutoField({
 
 
 
-function CompactList({ compacts }: { compacts: CompactRow[] }) {
-  if (!compacts.length) {
-    return (
-      <div className="rounded-2xl border border-dashed border-line-200 bg-paper-50 p-6 text-center text-sm text-ink-500">
-        No Mandate Compacts yet. Start by ingesting the current government's manifesto above.
-      </div>
-    );
-  }
+function ElectionsIndex({
+  compacts,
+  selectedId,
+  onSelect,
+  onNew,
+}: {
+  compacts: CompactRow[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  onNew: () => void;
+}) {
   return (
-    <section className="grid gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-500">Compacts on file</h2>
-      <ul className="grid gap-3">
-        {compacts.map((c) => (
-          <li key={c.id} className="rounded-2xl border border-line-200 bg-paper-0 p-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h3 className="text-base font-semibold text-ink-900">{c.title ?? `${c.election_cycle} Compact`}</h3>
-                <p className="mt-1 text-xs text-ink-500">
-                  {c.pm_name ? `PM ${c.pm_name} · ` : ""}
-                  {c.election_cycle} · {c.visibility}
-                </p>
-              </div>
-              <StatusPill status={c.status} />
-            </div>
-            {c.summary && <p className="mt-2 text-sm text-ink-700">{c.summary}</p>}
-            <dl className="mt-3 grid grid-cols-3 gap-2 text-xs text-ink-500">
-              <Stat label="Pillars" value={c.pillar_count} />
-              <Stat label="Pledges" value={c.pledge_count} />
-              <Stat label="Deliverables" value={c.deliverable_count} />
-            </dl>
-          </li>
-        ))}
+    <section aria-label="Elections & manifestos on file" className="space-y-4">
+      <div className="flex items-baseline justify-between gap-4">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
+            Elections index
+          </p>
+          <h2 className="mt-1 font-serif text-xl text-ink-950">
+            {compacts.length} manifesto{compacts.length === 1 ? "" : "s"} on file
+          </h2>
+        </div>
+        <button
+          type="button"
+          onClick={onNew}
+          className="inline-flex items-center gap-1.5 border border-line-200 bg-paper-0 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950 hover:border-gold-500 hover:text-gold-500"
+        >
+          + New compact
+        </button>
+      </div>
+      <ul className="grid gap-2">
+        {compacts.map((c) => {
+          const active = c.id === selectedId;
+          const coverage =
+            c.pledge_count > 0
+              ? Math.round((c.deliverable_count / c.pledge_count) * 100)
+              : 0;
+          return (
+            <li key={c.id}>
+              <button
+                type="button"
+                onClick={() => onSelect(c.id)}
+                aria-current={active ? "true" : undefined}
+                className={cn(
+                  "group grid w-full grid-cols-12 items-center gap-3 border px-4 py-3 text-left transition-colors",
+                  active
+                    ? "border-gold-500 bg-gold-500/5"
+                    : "border-line-200 bg-paper-0 hover:border-ink-300",
+                )}
+              >
+                <span className="col-span-2 font-mono text-[11px] tracking-[0.14em] text-ink-950">
+                  {c.election_cycle}
+                </span>
+                <span className="col-span-4 min-w-0">
+                  <span className="block truncate font-serif text-sm text-ink-950">
+                    {c.title ?? `${c.election_cycle} Compact`}
+                  </span>
+                  {c.pm_name && (
+                    <span className="mt-0.5 block truncate text-[11px] text-ink-500">
+                      PM {c.pm_name}
+                    </span>
+                  )}
+                </span>
+                <span className="col-span-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
+                  {c.pledge_count} pledges
+                </span>
+                <span className="col-span-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
+                  {coverage}% owned
+                </span>
+                <span className="col-span-2 flex justify-end">
+                  <StatusPill status={c.status} />
+                </span>
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
 }
+
 
 function PhasePlaceholder({ title, body }: { title: string; body: string }) {
   return (

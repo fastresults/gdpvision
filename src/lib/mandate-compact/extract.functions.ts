@@ -68,14 +68,28 @@ export const extractManifesto = createServerFn({ method: "POST" })
       const mime = (data.mimeType ?? "").toLowerCase();
       try {
         if (mime === "application/pdf" || name.endsWith(".pdf")) {
-          const pdfParse: any = await import("pdf-parse" as any).then((m: any) => m.default ?? m);
+          let pdfParse: any;
+          try {
+            pdfParse = await import("pdf-parse" as any).then((m: any) => m.default ?? m);
+          } catch (impErr) {
+            throw new Error(
+              `PDF parsing isn't available in this runtime (${(impErr as Error).message}). Paste the manifesto URL or drop a DOCX/TXT instead.`,
+            );
+          }
           const out = await pdfParse(bytes);
           rawText = String(out?.text ?? "");
         } else if (
           mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
           name.endsWith(".docx")
         ) {
-          const mammoth: any = await import("mammoth" as any);
+          let mammoth: any;
+          try {
+            mammoth = await import("mammoth" as any);
+          } catch (impErr) {
+            throw new Error(
+              `DOCX parsing isn't available in this runtime (${(impErr as Error).message}). Paste the manifesto URL or drop a PDF/TXT instead.`,
+            );
+          }
           const out = await mammoth.extractRawText({ buffer: bytes });
           rawText = String(out?.value ?? "");
         } else if (mime.startsWith("text/") || name.endsWith(".txt") || name.endsWith(".md")) {
@@ -86,6 +100,7 @@ export const extractManifesto = createServerFn({ method: "POST" })
       } catch (err) {
         throw new Error(`File parse failed: ${(err as Error).message}`);
       }
+
     } else if (data.sourceUrl) {
       textSource = "url";
       try {

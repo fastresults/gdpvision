@@ -348,7 +348,7 @@ export function MarketingHome() {
           <SectionHeader
             eyebrow="One sovereign corpus"
             title="Public data. Private data. Held apart, read together."
-            lede="No other GDP instrument governs both. Public evidence is aggregated, graded and cited for every ministry. Private Cabinet uploads sit under the same provenance discipline — visible only to those with authorised country access, never mixed into the public view."
+            lede="Public evidence is aggregated, graded and cited for every ministry. Private Cabinet uploads sit under the same provenance discipline — visible only to those with authorised country access, never mixed into the public view."
           />
           <div className="mt-16 grid gap-8 border-t border-line-200 pt-12 md:grid-cols-3">
             {[
@@ -376,25 +376,75 @@ export function MarketingHome() {
         </div>
       </section>
 
+      {/* THE LOOP --------------------------------------------------------- */}
+      <section id="loop" className="border-b border-line-200">
+        <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
+          <SectionHeader
+            eyebrow="How a decision moves"
+            title="A decision is rehearsed, taken, tracked, and scored."
+            lede="Most systems show a government what already happened. GDPVision carries a decision through its whole life — from the question on the Cabinet table to the quarter it is graded in."
+          />
+          <div className="mt-16 grid gap-8 border-t border-line-200 pt-12 md:grid-cols-2 lg:grid-cols-4">
+            {LOOP_STEPS.map((s) => (
+              <div key={s.step} className="border-t border-line-200 pt-6">
+                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold-500">
+                  {s.step} · {s.head}
+                </div>
+                <p className="mt-4 text-[15px] leading-relaxed text-ink-700">{s.body}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-12 max-w-2xl font-serif text-[21px] leading-snug text-ink-950">
+            At every step the instrument drafts and prices. Principals decide.
+            Nothing releases autonomously.
+          </p>
+        </div>
+      </section>
+
       {/* INSTRUMENT — CHAMBERS ------------------------------------------- */}
       <section id="instrument" className="border-b border-line-200 bg-paper-100/40">
         <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
           <SectionHeader
             eyebrow="The instrument"
             title="Eight chambers, each engineered to move GDP."
-            lede="Not a dashboard and not a consulting deliverable. GDPVision is organised as an instrument of state — a live Ledger under eight chambers, with the Counsel above them as a voice-first advisor."
+            lede="Not a dashboard and not a consulting deliverable. GDPVision is organised as an instrument of state — a live Ledger beneath eight chambers, with the Counsel above them."
           />
+          <div className="mt-16 grid gap-x-10 gap-y-10 border-t border-line-200 pt-12 md:grid-cols-2">
+            {FEATURED_CHAMBERS.map((c) => (
+              <div key={c.index}>
+                <div className="mb-4 font-mono text-[12px] uppercase tracking-[0.18em] text-gold-500">
+                  {c.featureLabel}
+                </div>
+                <ChamberPanel
+                  index={c.index}
+                  title={c.title}
+                  purpose={c.purpose}
+                  bullets={c.bullets}
+                  accentVar={c.accentVar}
+                  image={c.image}
+                />
+              </div>
+            ))}
+          </div>
           <div className="mt-16 grid gap-x-8 gap-y-6 md:grid-cols-2 lg:grid-cols-3">
-            {CHAMBERS.map((c) => (
+            {GRID_CHAMBERS.map((c) => (
               <ChamberPanel key={c.index} {...c} />
             ))}
           </div>
-          <p className="mt-10 max-w-2xl font-mono text-[12px] uppercase tracking-[0.16em] text-ink-500">
-            Above the chambers · The Counsel — voice-first sovereign advisor,
-            2–4 sentences of cited counsel, on desk or in a moving car.
-          </p>
         </div>
       </section>
+
+      {/* THE COUNSEL ------------------------------------------------------ */}
+      <section id="counsel" className="border-b border-line-200">
+        <div className="mx-auto max-w-[1280px] px-6 py-20 md:px-10 md:py-24">
+          <SectionHeader
+            eyebrow="Above the chambers"
+            title="The Counsel."
+            lede="A voice-first sovereign advisor. Two to four sentences of cited counsel, drawn from the Ledger, at a desk or in a moving car. It answers the question a principal actually asks between engagements — and it cites where the answer came from."
+          />
+        </div>
+      </section>
+
 
       {/* SOVEREIGNTY ------------------------------------------------------ */}
       <section id="sovereignty" className="border-b border-line-200">

@@ -284,7 +284,7 @@ export function MarketingHome() {
         <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
           <div key={moment.id} className="animate-in fade-in duration-500 motion-reduce:animate-none">
             <SectionHeader
-              eyebrow="The moment"
+              eyebrow="The moment · Eight regional exposures, graded and cited"
               title={moment.title}
               lede={moment.lede}
             />
@@ -301,6 +301,11 @@ export function MarketingHome() {
               ))}
             </div>
           </div>
+          <p className="mt-10 max-w-2xl text-[15px] leading-relaxed text-ink-700">
+            Every figure on this page carries a confidence grade and a source.
+            Inside the instrument, so does every figure your Cabinet sees.
+          </p>
+
           <nav
             aria-label="Cycle through economic impact scenarios"
             className="mt-16 flex items-center justify-end gap-6 border-t border-line-200 pt-6"

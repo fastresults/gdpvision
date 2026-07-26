@@ -488,6 +488,7 @@ export function MarketingHome() {
           <SectionHeader
             eyebrow="Sovereignty"
             title="One isolated deployment per nation. The government owns the data outright."
+            lede="Before anything else is discussed, this is usually the question. It is answered in the architecture rather than the contract."
           />
           <div className="grid gap-8 border-t border-line-200 pt-10">
             {[
@@ -500,18 +501,19 @@ export function MarketingHome() {
                 body: "Contractually and technically, the government owns its instance data. Full export and verified deletion on termination. Hosting region selected with the government, including EU data-residency options.",
               },
               {
-                head: "Access & audit",
-                body: "MFA mandatory for all roles, hardware-key support for Principals and Stewards, immutable audit log for data changes, decisions, and exports.",
-              },
-              {
                 head: "Public and private, separated by design",
                 body: "Visibility is a first-class attribute on every row. Private Cabinet uploads never enter the public corpus, are gated by country access, and every read and write is audited.",
+              },
+              {
+                head: "Access & audit",
+                body: "MFA mandatory for all roles, hardware-key support for Principals and Stewards, immutable audit log for data changes, decisions, and exports.",
               },
               {
                 head: "No trackers, ever",
                 body: "No third-party analytics or trackers inside government instances. Error telemetry is first-party and instance-consented.",
               },
             ].map((p) => (
+
               <div key={p.head} className="border-b border-line-200 pb-8 last:border-b-0">
                 <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
                   {p.head}

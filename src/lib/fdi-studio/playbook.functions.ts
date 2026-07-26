@@ -100,21 +100,54 @@ async function loadContext(supabase: any, code: string, strategyId?: string) {
   return { country, ministries: ministries ?? [], kpis: kpis ?? [], sectors: sectors ?? [], strategy, threat };
 }
 
+// Keep the schema constraint-free (no .min/.max, no formats): bounds are stated
+// in the prompt and clamped in code. Bounds inside the schema make an otherwise
+// successful gateway call fail post-hoc as AI_NoObjectGeneratedError.
+const ActionSchema = z.object({
+  horizon: z.string(),
+  sector_code: z.string().nullish(),
+  ministry_slug: z.string().nullish(),
+  action: z.string(),
+  investor_signal: z.string().nullish(),
+  kpi_slug: z.string().nullish(),
+  kpi_target: z.string().nullish(),
+});
+
 const PlaybookSchema = z.object({
   title: z.string(),
   summary: z.string(),
-  actions: z.array(
-    z.object({
-      horizon: z.enum(HORIZONS),
-      sector_code: z.string().nullable(),
-      ministry_slug: z.string().nullable(),
-      action: z.string(),
-      investor_signal: z.string().nullable(),
-      kpi_slug: z.string().nullable(),
-      kpi_target: z.string().nullable(),
-    }),
-  ).min(4).max(24),
+  actions: z.array(ActionSchema),
 });
+
+type RawPlan = z.infer<typeof PlaybookSchema>;
+
+function normalizeHorizon(v: unknown): Horizon | null {
+  const s = String(v ?? "").toLowerCase().replace(/\s+/g, "");
+  if (["30d", "30days", "30day", "1m"].includes(s)) return "30d";
+  if (["3m", "3months", "3month", "90d"].includes(s)) return "3m";
+  if (["6m", "6months", "6month", "180d"].includes(s)) return "6m";
+  if (["12m", "12months", "12month", "1y", "1year"].includes(s)) return "12m";
+  return null;
+}
+
+/** Last-resort parse of raw model text when structured validation fails. */
+function parseFallback(text: string | undefined): RawPlan | null {
+  if (!text) return null;
+  const cleaned = text
+    .replace(/^\s*```(?:json)?/i, "")
+    .replace(/```\s*$/, "")
+    .trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start === -1 || end <= start) return null;
+  try {
+    const parsed = PlaybookSchema.safeParse(JSON.parse(cleaned.slice(start, end + 1)));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
 
 export const generatePlaybook = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

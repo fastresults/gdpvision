@@ -91,24 +91,9 @@ function AuthEntry() {
   }
 
   return (
-    <div className="flex items-center gap-4 md:gap-5">
-      <Link to="/auth" search={{ mode: "sign-in" }} className="hover:text-ink-950">
-        Sign in
-      </Link>
-      <Link
-        to="/auth"
-        search={{ mode: "sign-up" }}
-        className="border-l-2 border-gold-500 bg-ink-950 px-3 py-2 text-paper-0 hover:bg-ink-700"
-      >
-        Create account
-      </Link>
-      <Link
-        to="/auth"
-        search={{ mode: "forgot" }}
-        className="hover:text-ink-950 hidden md:inline"
-      >
-        Forgot?
-      </Link>
-    </div>
+    <Link to="/auth" search={{ mode: "sign-in" }} className="hover:text-ink-950">
+      Sign in
+    </Link>
   );
+
 }

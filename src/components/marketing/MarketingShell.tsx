@@ -24,9 +24,10 @@ export function MarketingShell({ children }: MarketingShellProps) {
           <nav className="flex items-center gap-6 md:gap-8 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
             <a href="#instrument" className="hover:text-ink-950 hidden md:inline">The Instrument</a>
             <a href="#sovereignty" className="hover:text-ink-950 hidden md:inline">Sovereignty</a>
-            <a href="#briefing" className="hover:text-ink-950 text-ink-950 hidden md:inline">
+            <a href="#briefing" className="hover:text-ink-950 text-ink-950 border-l-2 border-gold-500 pl-3 hidden md:inline">
               Request briefing
             </a>
+
             <AuthEntry />
           </nav>
         </div>

@@ -182,20 +182,27 @@ export function MarketingHome() {
         <div className="mx-auto grid max-w-[1280px] items-center gap-12 px-6 py-16 md:grid-cols-[1.15fr_1fr] md:gap-16 md:px-10 md:py-24">
           <div>
             <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">
-              GDPVision · v1.0
+              GDPVision · An instrument of state
             </div>
             <div className="mt-6 h-px w-16 bg-gold-500" aria-hidden />
             <h1 className="mt-8 font-serif text-[43px] leading-[1.05] tracking-tight text-ink-950 md:text-[68px]">
-              The world's first instrument built to elevate national GDP.
+              No small state should learn its own economy from someone else's
+              report.
             </h1>
             <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-ink-700 md:text-[17px]">
-              Purpose-built for Presidents, Prime Ministers and Cabinets.
-              GDPVision turns a nation's public and private data into decisions
-              that measurably lift GDP — across eight sovereign chambers of state.
+              GDPVision is a sovereign instrument for Presidents, Prime Ministers
+              and Cabinets. It holds a nation's public and private evidence in one
+              graded Ledger, and lets Cabinet rehearse a decision before it is
+              taken. One isolated deployment per nation. The government owns it
+              outright.
             </p>
             <div
               aria-live="polite"
-              className="mt-8 min-h-[160px] md:min-h-[180px]"
+              onMouseEnter={() => setPaused(true)}
+              onMouseLeave={() => setPaused(false)}
+              onFocusCapture={() => setPaused(true)}
+              onBlurCapture={() => setPaused(false)}
+              className="mt-8"
             >
               <div
                 key={current.id}
@@ -207,8 +214,17 @@ export function MarketingHome() {
                 <p className="mt-3 max-w-xl text-[17px] leading-relaxed text-ink-700 md:text-[21px]">
                   {current.body}
                 </p>
+                <div className="mt-5 max-w-xl border-t border-gold-500 pt-4">
+                  <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-gold-500">
+                    The instrument's answer
+                  </div>
+                  <p className="mt-3 text-[17px] leading-relaxed text-ink-950 md:text-[21px]">
+                    {current.response}
+                  </p>
+                </div>
               </div>
             </div>
+
             <nav
               aria-label="Cycle through threats"
               className="mt-4 flex items-center gap-6 border-t border-line-200 pt-3"

@@ -100,21 +100,54 @@ async function loadContext(supabase: any, code: string, strategyId?: string) {
   return { country, ministries: ministries ?? [], kpis: kpis ?? [], sectors: sectors ?? [], strategy, threat };
 }
 
+// Keep the schema constraint-free (no .min/.max, no formats): bounds are stated
+// in the prompt and clamped in code. Bounds inside the schema make an otherwise
+// successful gateway call fail post-hoc as AI_NoObjectGeneratedError.
+const ActionSchema = z.object({
+  horizon: z.string(),
+  sector_code: z.string().nullish(),
+  ministry_slug: z.string().nullish(),
+  action: z.string(),
+  investor_signal: z.string().nullish(),
+  kpi_slug: z.string().nullish(),
+  kpi_target: z.string().nullish(),
+});
+
 const PlaybookSchema = z.object({
   title: z.string(),
   summary: z.string(),
-  actions: z.array(
-    z.object({
-      horizon: z.enum(HORIZONS),
-      sector_code: z.string().nullable(),
-      ministry_slug: z.string().nullable(),
-      action: z.string(),
-      investor_signal: z.string().nullable(),
-      kpi_slug: z.string().nullable(),
-      kpi_target: z.string().nullable(),
-    }),
-  ).min(4).max(24),
+  actions: z.array(ActionSchema),
 });
+
+type RawPlan = z.infer<typeof PlaybookSchema>;
+
+function normalizeHorizon(v: unknown): Horizon | null {
+  const s = String(v ?? "").toLowerCase().replace(/\s+/g, "");
+  if (["30d", "30days", "30day", "1m"].includes(s)) return "30d";
+  if (["3m", "3months", "3month", "90d"].includes(s)) return "3m";
+  if (["6m", "6months", "6month", "180d"].includes(s)) return "6m";
+  if (["12m", "12months", "12month", "1y", "1year"].includes(s)) return "12m";
+  return null;
+}
+
+/** Last-resort parse of raw model text when structured validation fails. */
+function parseFallback(text: string | undefined): RawPlan | null {
+  if (!text) return null;
+  const cleaned = text
+    .replace(/^\s*```(?:json)?/i, "")
+    .replace(/```\s*$/, "")
+    .trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start === -1 || end <= start) return null;
+  try {
+    const parsed = PlaybookSchema.safeParse(JSON.parse(cleaned.slice(start, end + 1)));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
 
 export const generatePlaybook = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -163,9 +196,11 @@ Rules:
 - Prefer 2-3 actions per horizon (max 6). Balance across the top sectors.
 - kpi_target must be a numeric target with unit (e.g. "USD 45m committed", "12,000 stay-over arrivals/month").
 - Cite the actual ministry_slug from the list above; if none fits, use null.
+- horizon MUST be exactly one of "30d", "3m", "6m", "12m".
+- Return between 8 and 16 actions total (2-4 per horizon).
 - Title: max 8 words. Summary: max 60 words, plain English.`;
 
-    let plan: z.infer<typeof PlaybookSchema>;
+    let plan: RawPlan | null = null;
     try {
       const { output } = await generateText({
         model: gateway(model),
@@ -174,7 +209,21 @@ Rules:
       });
       plan = output;
     } catch (err: any) {
-      throw new Error(`AI playbook generation failed: ${err?.message ?? err}`);
+      plan = parseFallback(err?.text);
+      if (!plan) throw new Error(`AI playbook generation failed: ${err?.message ?? err}`);
+    }
+
+    const minBySlug = new Map(ctx.ministries.map((m: any) => [m.slug, m]));
+    const kpiBySlug = new Map(ctx.kpis.map((k: any) => [k.slug, k]));
+    const validSectors = new Set(ctx.sectors.map((s: any) => s.sector_code));
+
+    const cleanActions = (plan.actions ?? [])
+      .map((a) => ({ ...a, horizon: normalizeHorizon(a.horizon) }))
+      .filter((a): a is typeof a & { horizon: Horizon } => Boolean(a.horizon && a.action?.trim()))
+      .slice(0, 24);
+
+    if (cleanActions.length === 0) {
+      throw new Error("AI playbook generation failed: model returned no usable actions");
     }
 
     // Insert parent + actions
@@ -184,8 +233,8 @@ Rules:
         country_code: data.countryCode,
         strategy_id: data.strategyId ?? null,
         scope: data.scope,
-        title: plan.title,
-        summary: plan.summary,
+        title: plan.title?.slice(0, 160) || `FDI transition playbook — ${ctx.country.name}`,
+        summary: plan.summary ?? null,
         ai_model: model,
         created_by: userId,
       })
@@ -193,25 +242,24 @@ Rules:
       .single();
     if (pErr || !pb) throw new Error(pErr?.message ?? "Failed to create playbook");
 
-    const minBySlug = new Map(ctx.ministries.map((m: any) => [m.slug, m]));
-    const kpiBySlug = new Map(ctx.kpis.map((k: any) => [k.slug, k]));
-    const rows = plan.actions.map((a, i) => {
+    const rows = cleanActions.map((a, i) => {
       const m = a.ministry_slug ? minBySlug.get(a.ministry_slug) : null;
       const k = a.kpi_slug ? kpiBySlug.get(a.kpi_slug) : null;
       return {
         playbook_id: pb.id,
         country_code: data.countryCode,
         horizon: a.horizon,
-        sector_code: a.sector_code,
+        sector_code: a.sector_code && validSectors.has(a.sector_code) ? a.sector_code : null,
         ministry_id: (m as any)?.id ?? null,
         ministry_slug: (m as any)?.slug ?? a.ministry_slug ?? null,
         action: a.action,
-        investor_signal: a.investor_signal,
+        investor_signal: a.investor_signal ?? null,
         kpi_id: (k as any)?.id ?? null,
-        kpi_target: a.kpi_target,
+        kpi_target: a.kpi_target ?? null,
         sort_order: i,
       };
     });
+
     const { error: aErr } = await supabase.from("fdi_playbook_actions").insert(rows);
     if (aErr) throw new Error(aErr.message);
 

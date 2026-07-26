@@ -265,11 +265,12 @@ export function MarketingHome() {
                 Request a Cabinet briefing
               </a>
               <a
-                href="#instrument"
+                href="#loop"
                 className="font-mono text-[12px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950"
               >
-                See the eight chambers ↓
+                See how a decision moves through the instrument ↓
               </a>
+
             </div>
           </div>
           <div className="relative flex items-center justify-center">

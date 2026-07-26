@@ -124,6 +124,42 @@ const CHAMBERS = [
   },
 ];
 
+const FEATURE_LABELS: Record<string, string> = {
+  "04": "04 →  Where the revenue cliff is priced",
+  "08": "08 →  Where the manifesto becomes a delivery plan",
+};
+
+const FEATURED_CHAMBERS = CHAMBERS.filter((c) => c.index === "04" || c.index === "08").map(
+  (c) => ({ ...c, featureLabel: FEATURE_LABELS[c.index] }),
+);
+
+const GRID_CHAMBERS = CHAMBERS.filter((c) => c.index !== "04" && c.index !== "08");
+
+const LOOP_STEPS = [
+  {
+    step: "01",
+    head: "Rehearse",
+    body: "Pull the lever in the Scenario Engine. Watch it propagate through the inter-sector dependency web. The compensation ledger shows what the gain costs elsewhere — nothing is free, and the instrument says so.",
+  },
+  {
+    step: "02",
+    head: "Decide",
+    body: "The scenario is promoted to the Cabinet Room. Session Mode puts two options side by side, on the same assumptions, and the decision is recorded live with an owner attached.",
+  },
+  {
+    step: "03",
+    head: "Track",
+    body: "The commitment enters the cockpit. What was adopted, who owns it, where it stands — visible between sessions, not reconstructed after them.",
+  },
+  {
+    step: "04",
+    head: "Score",
+    body: "The Mandate Compact grades it against what the government promised. Quarterly scorecards, a PM Report Card, and a signed compact whose every revision is snapshotted and diffable.",
+  },
+];
+
+
+
 function shuffleTail() {
   const tail = EXISTENTIAL_THREATS.slice(1);
   for (let i = tail.length - 1; i > 0; i--) {

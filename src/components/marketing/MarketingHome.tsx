@@ -137,9 +137,14 @@ export function MarketingHome() {
   const [tail, setTail] = useState(() => EXISTENTIAL_THREATS.slice(1));
   const [index, setIndex] = useState(0);
   const [momentIndex, setMomentIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [stopped, setStopped] = useState(false);
   useEffect(() => {
     setTail(shuffleTail());
     setMomentIndex(1 + Math.floor(Math.random() * (MOMENT_VARIANTS.length - 1)));
+  }, []);
+  useEffect(() => {
+    if (paused || stopped) return;
     const id = setInterval(() => {
       setIndex((prev) => {
         const next = (prev + 1) % EXISTENTIAL_THREATS.length;
@@ -148,7 +153,8 @@ export function MarketingHome() {
       });
     }, 10000);
     return () => clearInterval(id);
-  }, []);
+  }, [paused, stopped]);
+
   const current = index === 0 ? EXISTENTIAL_THREATS[0] : tail[index - 1];
   const moment = MOMENT_VARIANTS[momentIndex];
   const total = MOMENT_VARIANTS.length;

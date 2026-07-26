@@ -1,123 +1,39 @@
+## Marketing home — copy upgrade v2
 
-# Chamber 04 · FDI Transition Studio — v2 (Macro ↔ Micro, FDI-first)
+Copy, IA and CTA changes only. No visual redesign, no token/colour changes, no changes to authenticated surfaces. All figures and citations in `moment-variants.ts` stay untouched.
 
-Feedback: current studio (threat → strategy → stress) is a mechanical workbench. It doesn't answer the two questions a PM/Investment Minister actually asks: *"What's our FDI posture right now?"* and *"What do we do — by ministry, this quarter, this year — to attract the capital that closes the gap?"*
+Confirmed: ship the recommended H1; ship the briefing preparation line. The non-CARICOM email address was not supplied, so that escape hatch ships as a keyboard-reachable line pointing at the existing briefing form (no `mailto:`) until an address is confirmed.
 
-v2 reframes the chamber around **FDI attraction as the operating goal**, adds a **Macro Board** entry point above the current threat flow, and turns strategies into a **timeboxed, ministry-owned playbook** (30d / 3m / 6m / 12m) — cabinet-ready.
+### 1. Threat responses (highest value)
+`src/lib/existential-threats.ts` — add a `response: string` field to the interface and the eight verbatim responses from the PRD. Render in `MarketingHome` hero carousel beneath the body: gold hairline, mono uppercase label "The instrument's answer", response text in `text-ink-950`.
 
-## Two-tier architecture
+### 2. Register fixes
+- `MarketingShell.tsx`: logged-out nav becomes The Instrument · Sovereignty · Request briefing · Sign in. Remove "Create account" and "Forgot?" (Forgot already lives on `/auth`). Logged-in state unchanged. Footer untouched.
+- `src/routes/index.tsx`: new TITLE/DESCRIPTION per §6.12, applied to og: and twitter: variants; `og:image` unchanged.
 
-```text
-/admin/countries/$code/studio
-├─ (index)               ← NEW: Macro FDI Board (national posture)
-├─ /sectors/$code        ← NEW: Micro sector transition dossier
-└─ /threats/$id          ← existing threat→strategy flow, refit as one lens
-```
+### 3. Hero
+Eyebrow "GDPVision · An instrument of state"; H1 "No small state should learn its own economy from someone else's report."; new four-sentence sub-headline (removes "measurably lift GDP"); primary CTA unchanged; secondary link becomes "See how a decision moves through the instrument ↓" anchored to `#loop`.
 
-### Tier 1 · Macro FDI Board (new landing)
-One screen a Prime Minister can read in 60 seconds:
+### 4. New `#loop` section
+Between corpus and chambers. Eyebrow/title/lede plus four numbered steps (Rehearse / Decide / Track / Score) in the existing bordered-column pattern with gold mono numerals, closing on the doctrine line "At every step the instrument drafts and prices. Principals decide. Nothing releases autonomously."
 
-- **FDI Posture Score** (0–100) — composite of concentration risk (HHI), sector diversification vs. peers, active pipeline value, and mitigation coverage. Big number + trend arrow.
-- **Concentration Map** — treemap of current GDP by sector, tinted by FDI dependency and shaded red where exposure > threshold. Click → Micro dossier.
-- **Peer Benchmark Strip** — 3 Caribbean peers (from `countries` + `country_sectors`) side-by-side on 4 metrics: FDI/GDP, sector HHI, top-3 concentration, diversification velocity.
-- **Capital Gap** — target vs. current FDI inflow, with the *"what we must attract"* number front and center (USD, % of GDP).
-- **Active Transitions** — chips for every open threat/strategy with status, ministries engaged, residual risk.
-- **Investor Value Proposition** (AI, one paragraph, cited from the corpus) — plain-English pitch to prospective FDI, refreshed per session.
+### 5. Chamber hierarchy
+Chambers 04 and 08 lift into a two-column featured band above the grid at ~1.5× scale with mono labels "04 → Where the revenue cliff is priced" / "08 → Where the manifesto becomes a delivery plan". Remaining six (01, 02, 03, 05, 06, 07) stay in the grid, copy unchanged. Section lede revised per §6.6. `ChamberPanel` API unchanged — the featured band wraps it in a wider column.
 
-### Tier 2 · Micro Sector Transition Dossier (new)
-Per-sector deep dive when a user drills in from the map or a threat:
+### 6. Counsel, corpus, sovereignty, provenance
+- New `#counsel` band after the chamber grid; delete the mono footnote.
+- Corpus lede loses the "No other GDP instrument governs both" claim.
+- Sovereignty gains the new lede; panels reordered: Sovereign instance → Data ownership → Public and private → Access & audit → No trackers.
+- Provenance lede rewritten; add fourth "Today · Built in the region, for the region" card.
 
-- Header: sector share, FDI dependency, top source countries (from `capital_flow_nodes`), grade.
-- **Transition Thesis** (AI) — "From what → to what," e.g. *"From cruise-dependent tourism → high-value stay-over + med-tourism."*
-- **FDI Attraction Angles** — 3-5 investable propositions with target investor archetypes, ticket sizes, precedents (cited).
-- **Ministry Web** — force-directed mini-diagram: which ministries must move together (from `ministry_sectors`).
-- **Playbook Timeline** (below).
+### 7. Moment section
+Eyebrow becomes "The moment · Eight regional exposures, graded and cited"; standing grading line added beneath the three `NumberTile`s. No stat, grade or citation touched.
 
-## The 30d / 3m / 6m / 12m Playbook (core new artifact)
+### 8. Briefing CTA and form
+Add fourth qualifier "— Nothing is recorded" and the confirmed preparation line. In `BriefingForm.tsx`, add the non-CARICOM note beneath the nation selector as focusable text pointing to the same form (address pending).
 
-For every strategy (and available at macro level as a rolled-up cabinet plan), generate a **timeboxed transition playbook** owned by named ministries.
+### 9. Carousel behaviour
+Threat auto-advance pauses on pointer hover and on focus within the region, and stops permanently after any Prev/Next interaction.
 
-```text
-┌ 30 DAYS ────────────────────── Signal & unblock
-│  • Investment Promotion Agency: launch expression-of-interest for X
-│  • MoF: table fiscal incentive amendment (draft)
-│  • MoT: publish revised sector roadmap
-├ 90 DAYS ────────────────────── Structure & de-risk
-│  • Legal reforms filed; PPP framework adopted
-│  • 2 anchor investor meetings booked
-├ 6 MONTHS ───────────────────── Land & anchor
-│  • First MOU signed (target USD X)
-│  • Skills program with MoE launched
-└ 12 MONTHS ──────────────────── Compound & measure
-   • FDI inflow +Y% vs. baseline
-   • Exposure reduced Z pp
-```
-
-Each horizon lists: **owner ministry**, **action**, **investor signal**, **KPI + target**, **evidence citation**. Statuses roll up to the Cabinet Room (Chamber 06) and can be published to Narrative (Chamber 05).
-
-## AI pipeline (3-pass, cited)
-
-1. **Posture pass** — Gemini reads `country_sectors`, `capital_flow_nodes`, `exposure_index`, `country_kpis` → produces FDI Posture Score inputs, peer benchmark selection, capital gap number.
-2. **Thesis pass** — Perplexity `sonar-reasoning-pro` deep-research per sector: transition thesis, investable angles, precedents, target investor archetypes. Every claim must carry a corpus citation via the standard writers/searchers.
-3. **Playbook pass** — Gemini structured-output into the 30/3/6/12 schema, keyed to ministries from `ministry_sectors`, with KPI targets pulled from `country_kpis`.
-
-All outputs render via `<PrettyJson>` where they surface as JSON, and via `<CitedMarkdown>` for prose.
-
-## Data model additions
-
-New tables (each with GRANTs + RLS + `has_country_access`):
-
-- `fdi_posture_snapshots` — per-country score, components, peer refs, capital_gap_usd, generated_at, citations jsonb.
-- `fdi_transition_theses` — per (country_code, sector_code): thesis, angles jsonb, investor_archetypes jsonb, precedents jsonb, citations jsonb.
-- `fdi_playbooks` — parent row per strategy or macro rollup.
-- `fdi_playbook_actions` — child rows: horizon (`30d|3m|6m|12m`), ministry_id, action, investor_signal, kpi_id, kpi_target, status, evidence_citation_id.
-
-## UI components (new under `src/components/studio/`)
-
-- `MacroFdiBoard.tsx` — landing hero + posture score + capital gap.
-- `ConcentrationMap.tsx` — FDI-tinted treemap.
-- `PeerBenchmarkStrip.tsx`.
-- `InvestorValueProp.tsx` — AI paragraph with citations.
-- `SectorTransitionDossier.tsx` — micro page shell.
-- `MinistryWeb.tsx` — small force graph.
-- `PlaybookTimeline.tsx` — horizontal 4-horizon rail with ministry swimlanes; editable inline; owner chips.
-- `PlaybookActionRow.tsx`.
-- `PublishToCabinetButton.tsx` / `PublishToNarrativeButton.tsx` — reuse existing handoff pattern.
-
-All buttons use `btn-primary/secondary/ghost`; all JSON via `<PrettyJson>`; timeline uses `sector-*` and `signal-*` tokens only.
-
-## Server functions (new under `src/lib/fdi-studio/`)
-
-- `posture.functions.ts` → `computeFdiPosture`, `refreshFdiPosture`.
-- `thesis.functions.ts` → `researchSectorThesis` (Perplexity + corpus writes).
-- `playbook.functions.ts` → `generatePlaybook(strategyId | {countryCode})`, `updatePlaybookAction`, `rollupToCabinet`.
-- `peers.functions.ts` → `pickPeers(countryCode)` (region + GDP band).
-
-All `.middleware([requireSupabaseAuth])`, called from components via `useServerFn` + `useQuery` (never public loaders). Deep research uses the existing corpus gateway/writers; no direct Perplexity from components.
-
-## Routing
-
-- `studio/index.tsx` — replaced by Macro Board. The current "Name the threat" landing moves to `studio/threats/new`.
-- `studio/sectors/$sectorCode.tsx` — new micro dossier.
-- Existing `studio/threats/$id` kept and enhanced: its Stress panel gains the Playbook Timeline as the primary artifact; old panels move under "Analyst view" (same pattern as Chamber 03 v3).
-
-## Cross-chamber wiring
-
-- **Chamber 06 Cabinet** — playbook actions surface as Decisions/Commitments (`decisions`, `commitments`), grouped by horizon.
-- **Chamber 05 Narrative** — Investor Value Prop + top angles publish as a comms artifact draft.
-- **Chamber 08 Mandate Compact** — playbook actions link back to pillars/deliverables where sector maps.
-
-## Rollout
-
-1. Migrations (tables + GRANTs + RLS) + type regen.
-2. Posture + peers server fns + Macro Board.
-3. Thesis pass + Sector Dossier route.
-4. Playbook generator + Timeline component; wire into existing threat page.
-5. Cabinet/Narrative/Compact handoffs.
-6. Update `docs/map/chambers.md` + Chamber 04 row; run `bun run headers && bun run map`.
-
-## Explicitly out of scope
-
-- No changes to Chamber 03 engine.
-- Existing threat CRUD stays; only its result surface changes.
-- No new secrets; uses existing `LOVABLE_API_KEY` and `PERPLEXITY_API_KEY`.
+### Technical notes
+Files: `MarketingHome.tsx`, `existential-threats.ts`, `moment-variants.ts` (title/eyebrow-adjacent copy only), `MarketingShell.tsx`, `BriefingForm.tsx`, `routes/index.tsx`. Buttons keep `btn-*` / existing utility patterns; new sections use existing `SectionHeader` and heading order (`h2` per section, `h3` within). Verify with lint, typecheck and `bun run check:maps`.

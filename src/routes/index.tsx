@@ -3,9 +3,10 @@ import { MarketingHome } from "@/components/marketing/MarketingHome";
 import ogImage from "@/assets/gdpvision-og.jpg";
 
 const SITE_URL = "https://gdpvision.com";
-const TITLE = "GDPVision — The world's first GDP-elevation instrument";
+const TITLE = "GDPVision — the sovereign instrument for Cabinet decisions";
 const DESCRIPTION =
-  "Purpose-built for Presidents, Prime Ministers and Cabinets. Turn public and private national data into decisions that elevate GDP — across eight sovereign chambers.";
+  "Purpose-built for Presidents, Prime Ministers and Cabinets. One graded Ledger of a nation's public and private evidence, eight chambers, and one isolated deployment per nation — so a decision can be rehearsed before it is taken.";
+
 
 export const Route = createFileRoute("/")({
   head: () => {

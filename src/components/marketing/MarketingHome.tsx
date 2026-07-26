@@ -533,7 +533,7 @@ export function MarketingHome() {
             title="Built by OPEN Interactive — seventeen years in the room, one working prototype already running."
             lede="OPEN Interactive originated the Caribbean Investment Summit franchise in 2009, delivered national digital infrastructure for the Government of St. Kitts & Nevis, and has maintained head-of-government relationships across the OECS for seventeen years. GDPVision is built by the people already in the room."
           />
-          <div className="mt-16 grid gap-8 md:grid-cols-3">
+          <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             {[
               {
                 year: "2009 →",
@@ -550,7 +550,13 @@ export function MarketingHome() {
                 head: "SEDE — the Saint Lucia prototype",
                 body: "A working sovereign decision engine: live macro model, voice console, dossier corpus, ingest pipeline. GDPVision v1 absorbs SEDE as its interaction-proven core.",
               },
+              {
+                year: "Today",
+                head: "Built in the region, for the region",
+                body: "GDPVision is designed against the exposures Caribbean and small-island states actually carry — revenue concentration, climate shock, external repricing, and a data cadence that arrives too late to govern from. Not a global product adapted downward.",
+              },
             ].map((p) => (
+
               <div key={p.head} className="border-t border-line-200 pt-6">
                 <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold-500">
                   {p.year}

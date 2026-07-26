@@ -161,13 +161,19 @@ export function MarketingHome() {
   const threatTotal = EXISTENTIAL_THREATS.length;
   const goPrev = () => setMomentIndex((i) => (i - 1 + total) % total);
   const goNext = () => setMomentIndex((i) => (i + 1) % total);
-  const goPrevThreat = () => setIndex((i) => (i - 1 + threatTotal) % threatTotal);
-  const goNextThreat = () =>
+  const goPrevThreat = () => {
+    setStopped(true);
+    setIndex((i) => (i - 1 + threatTotal) % threatTotal);
+  };
+  const goNextThreat = () => {
+    setStopped(true);
     setIndex((i) => {
       const next = (i + 1) % threatTotal;
       if (next === 0) setTail(shuffleTail());
       return next;
     });
+  };
+
 
   return (
     <MarketingShell>

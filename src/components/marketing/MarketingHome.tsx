@@ -627,18 +627,21 @@ export function MarketingHome() {
                 title="Request a confidential briefing."
                 lede="A short, dignified enquiry from a member of a sitting government or their designated advisor. OPEN Interactive responds within one working day."
               />
-              <div className="mt-10 space-y-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
-                <div>— Delivered in person or over secure video</div>
-                <div>— Sixty minutes, no slideware</div>
-                <div>— Under NDA on request</div>
-                <div>— Nothing is recorded</div>
+              <div className="mt-10 flex items-start justify-between gap-8">
+                <div className="space-y-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
+                  <div>— Delivered in person or over secure video</div>
+                  <div>— Sixty minutes, no slideware</div>
+                  <div>— Under NDA on request</div>
+                  <div>— Nothing is recorded</div>
+                </div>
+                <Illustration src={illBriefing.url} variant="spot" className="hidden shrink-0 md:block" />
               </div>
               <p className="mt-8 max-w-md text-[15px] leading-relaxed text-ink-700">
                 Briefings are prepared against your nation's own public data. You
                 will see your economy in the instrument, not a generic
                 demonstration.
               </p>
-              <Illustration src={illBriefing.url} variant="spot" className="mt-10" />
+
             </div>
             <BriefingForm />
           </div>

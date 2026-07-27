@@ -203,8 +203,14 @@ export function MarketingHome() {
   const moment = MOMENT_VARIANTS[momentIndex];
   const total = MOMENT_VARIANTS.length;
   const threatTotal = EXISTENTIAL_THREATS.length;
-  const goPrev = () => setMomentIndex((i) => (i - 1 + total) % total);
-  const goNext = () => setMomentIndex((i) => (i + 1) % total);
+  const goPrev = () => {
+    setMomentStopped(true);
+    setMomentIndex((i) => (i - 1 + total) % total);
+  };
+  const goNext = () => {
+    setMomentStopped(true);
+    setMomentIndex((i) => (i + 1) % total);
+  };
   const goPrevThreat = () => {
     setStopped(true);
     setIndex((i) => (i - 1 + threatTotal) % threatTotal);

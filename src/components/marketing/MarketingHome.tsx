@@ -435,11 +435,14 @@ export function MarketingHome() {
       {/* THE LOOP --------------------------------------------------------- */}
       <section id="loop" className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
-          <SectionHeader
-            eyebrow="How a decision moves"
-            title="A decision is rehearsed, taken, tracked, and scored."
-            lede="Most systems show a government what already happened. GDPVision carries a decision through its whole life — from the question on the Cabinet table to the quarter it is graded in."
-          />
+          <div className="grid items-end gap-8 md:grid-cols-[1fr_auto]">
+            <SectionHeader
+              eyebrow="How a decision moves"
+              title="A decision is rehearsed, taken, tracked, and scored."
+              lede="Most systems show a government what already happened. GDPVision carries a decision through its whole life — from the question on the Cabinet table to the quarter it is graded in."
+            />
+            <Illustration src={illLoop.url} variant="spot" className="hidden justify-self-end md:block" />
+          </div>
           <div className="mt-16 grid gap-8 border-t border-line-200 pt-12 md:grid-cols-2 lg:grid-cols-4">
             {LOOP_STEPS.map((s) => (
               <div key={s.step} className="border-t border-line-200 pt-6">
@@ -450,11 +453,11 @@ export function MarketingHome() {
               </div>
             ))}
           </div>
-          <Illustration src={illLoop.url} variant="band" className="mt-16" />
           <p className="mt-12 max-w-2xl font-serif text-[21px] leading-snug text-ink-950">
             At every step the instrument drafts and prices. Principals decide.
             Nothing releases autonomously.
           </p>
+
         </div>
       </section>
 

@@ -90,6 +90,7 @@ function AuthPage() {
     <MarketingShell>
       <div className="mx-auto max-w-md px-6 py-24">
         <SectionHeader eyebrow="Instrument access" title={title} />
+        <Illustration src={illLamp.url} variant="spot" className="mt-8" />
 
         <div className="mt-6 border-l-2 border-gold-500 bg-paper-100 p-4">
           <div className="flex items-center justify-between gap-3">

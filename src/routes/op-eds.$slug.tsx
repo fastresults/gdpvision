@@ -71,7 +71,10 @@ function OpEdNotFound() {
         <h1 className="mt-6 font-serif text-[34px] leading-tight text-ink-950">
           This piece is still in preparation.
         </h1>
-        <Link to="/op-eds" className="btn-secondary px-6 py-3 font-mono text-[12px] uppercase tracking-[0.18em] mt-8 inline-flex">
+        <Link
+          to="/op-eds"
+          className="btn-secondary px-6 py-3 font-mono text-[12px] uppercase tracking-[0.18em] mt-8 inline-flex"
+        >
           The writing
         </Link>
       </div>
@@ -132,7 +135,10 @@ function OpEdPage() {
             <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-500">
               {op.promise}
             </p>
-            <a href="#read-the-full-argument" className="btn-primary px-6 py-3 font-mono text-[12px] uppercase tracking-[0.18em] mt-8 inline-flex">
+            <a
+              href="#read-the-full-argument"
+              className="btn-primary px-6 py-3 font-mono text-[12px] uppercase tracking-[0.18em] mt-8 inline-flex"
+            >
               Read the full argument
             </a>
           </div>
@@ -146,18 +152,18 @@ function OpEdPage() {
       <section className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-6 py-16 md:px-10 md:py-20">
           <div className="max-w-[680px]">
-          <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-            The opening
-          </div>
-          <div className="mt-6 space-y-6">
-            {op.excerpt.map((para, i) => (
-              <p
-                key={i}
-                className="font-serif text-[19px] leading-[1.65] text-ink-950 md:text-[20px]"
-              >
-                {para}
-              </p>
-            ))}
+            <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+              The opening
+            </div>
+            <div className="mt-6 space-y-6">
+              {op.excerpt.map((para, i) => (
+                <p
+                  key={i}
+                  className="font-serif text-[19px] leading-[1.65] text-ink-950 md:text-[20px]"
+                >
+                  {para}
+                </p>
+              ))}
             </div>
           </div>
         </div>
@@ -185,13 +191,13 @@ function OpEdPage() {
       <section className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-6 py-16 md:px-10">
           <div className="max-w-[820px]">
-          <OpEdGate
-            slug={op.slug}
-            title={op.title}
-            accentVar={accentVar}
-            attribution={attribution}
-            onEvent={track}
-          />
+            <OpEdGate
+              slug={op.slug}
+              title={op.title}
+              accentVar={accentVar}
+              attribution={attribution}
+              onEvent={track}
+            />
           </div>
         </div>
       </section>
@@ -200,38 +206,38 @@ function OpEdPage() {
       <section className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-6 py-16 md:px-10">
           <div className="max-w-[820px]">
-          <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-            Sources
-          </div>
-          <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink-700">
-            Every figure in this piece can be checked before you give us a name.
-          </p>
-          <ol className="mt-8 divide-y divide-line-200 border-t border-line-200">
-            {op.sources.map((s, i) => (
-              <li key={i} className="flex gap-5 py-4">
-                <span className="w-6 shrink-0 pt-1 font-mono text-[11px] text-ink-500">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <span className="min-w-0 text-[14.5px] leading-relaxed text-ink-700">
-                  <span className="text-ink-950">{s.org}</span>
-                  {" — "}
-                  {s.url ? (
-                    <a
-                      href={s.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline decoration-line-200 underline-offset-4 hover:text-ink-950"
-                    >
-                      {s.title}
-                    </a>
-                  ) : (
-                    s.title
-                  )}
-                  {s.year ? <span className="text-ink-500"> · {s.year}</span> : null}
-                </span>
-              </li>
-            ))}
-          </ol>
+            <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+              Sources
+            </div>
+            <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink-700">
+              Every figure in this piece can be checked before you give us a name.
+            </p>
+            <ol className="mt-8 divide-y divide-line-200 border-t border-line-200">
+              {op.sources.map((s, i) => (
+                <li key={i} className="flex gap-5 py-4">
+                  <span className="w-6 shrink-0 pt-1 font-mono text-[11px] text-ink-500">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span className="min-w-0 text-[14.5px] leading-relaxed text-ink-700">
+                    <span className="text-ink-950">{s.org}</span>
+                    {" — "}
+                    {s.url ? (
+                      <a
+                        href={s.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline decoration-line-200 underline-offset-4 hover:text-ink-950"
+                      >
+                        {s.title}
+                      </a>
+                    ) : (
+                      s.title
+                    )}
+                    {s.year ? <span className="text-ink-500"> · {s.year}</span> : null}
+                  </span>
+                </li>
+              ))}
+            </ol>
           </div>
         </div>
       </section>
@@ -276,13 +282,12 @@ function OpEdPage() {
       <section className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-6 py-14 md:px-10">
           <div className="max-w-[680px]">
-          <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-            The author
-          </div>
+            <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+              The author
+            </div>
             <p className="mt-4 text-[15px] leading-relaxed text-ink-700">{OP_ED_AUTHOR.note}</p>
           </div>
         </div>
-
       </section>
 
       {/* THE OTHERS ------------------------------------------------------ */}

@@ -327,9 +327,13 @@ export function MarketingHome() {
       <section id="problem" className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
           <div key={moment.id} className="animate-in fade-in duration-500 motion-reduce:animate-none">
-            <div className="flex items-start gap-5">
-              <Illustration src={illMoment.url} variant="mark" className="mt-1 hidden shrink-0 md:block" />
-              <div className="min-w-0 flex-1">
+            <div className="grid items-center gap-8 md:grid-cols-[320px_minmax(0,1fr)] md:gap-12 lg:grid-cols-[384px_minmax(0,1fr)]">
+              <Illustration
+                src={illMoment.url}
+                variant="spot"
+                className="hidden shrink-0 !w-[320px] lg:!w-[384px] md:block"
+              />
+              <div className="min-w-0">
                 <SectionHeader
                   eyebrow="The moment · Eight regional exposures, graded and cited"
                   title={moment.title}

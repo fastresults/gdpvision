@@ -7,7 +7,24 @@ interface MarketingShellProps {
   children: ReactNode;
 }
 
+function useSignedIn() {
+  const [signedIn, setSignedIn] = useState<boolean>(false);
+  useEffect(() => {
+    let alive = true;
+    supabase.auth.getUser().then(({ data }) => alive && setSignedIn(!!data.user));
+    const { data } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (alive) setSignedIn(!!session);
+    });
+    return () => {
+      alive = false;
+      data.subscription.unsubscribe();
+    };
+  }, []);
+  return signedIn;
+}
+
 export function MarketingShell({ children }: MarketingShellProps) {
+  const signedIn = useSignedIn();
   return (
     <div className="min-h-dvh bg-paper-0 text-ink-950 font-sans antialiased">
       <a

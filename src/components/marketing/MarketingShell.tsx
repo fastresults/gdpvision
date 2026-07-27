@@ -86,20 +86,9 @@ export function MarketingShell({ children }: MarketingShellProps) {
 function AuthEntry() {
   // Optimistic default: show logged-out affordances until we know otherwise,
   // so the header never renders empty on first paint.
-  const [signedIn, setSignedIn] = useState<boolean>(false);
+  const signedIn = useSignedIn();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    let alive = true;
-    supabase.auth.getUser().then(({ data }) => alive && setSignedIn(!!data.user));
-    const { data } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (alive) setSignedIn(!!session);
-    });
-    return () => {
-      alive = false;
-      data.subscription.unsubscribe();
-    };
-  }, []);
 
   if (signedIn) {
     return (

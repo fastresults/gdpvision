@@ -23,7 +23,7 @@ export const Route = createFileRoute("/op-eds/$slug")({
       };
     }
     const url = `${SITE_URL}/op-eds/${op.slug}`;
-    const og = op.emblem.startsWith("http") ? op.emblem : `${SITE_URL}${op.emblem}`;
+    const og = op.ogImage;
     return {
       meta: [
         { title: `${op.title} — GDPVision` },
@@ -180,9 +180,6 @@ function OpEdPage() {
             <p className="mx-auto mt-6 max-w-[720px] text-[14px] leading-relaxed text-ink-700">
               {op.figure.caption}
             </p>
-            <p className="mx-auto mt-2 max-w-[720px] font-mono text-[11px] uppercase tracking-[0.16em] text-ink-500">
-              Data confidence · grade {op.figure.grade}
-            </p>
           </div>
         </section>
       ) : null}
@@ -218,23 +215,7 @@ function OpEdPage() {
                   <span className="w-6 shrink-0 pt-1 font-mono text-[11px] text-ink-500">
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  <span className="min-w-0 text-[14.5px] leading-relaxed text-ink-700">
-                    <span className="text-ink-950">{s.org}</span>
-                    {" — "}
-                    {s.url ? (
-                      <a
-                        href={s.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline decoration-line-200 underline-offset-4 hover:text-ink-950"
-                      >
-                        {s.title}
-                      </a>
-                    ) : (
-                      s.title
-                    )}
-                    {s.year ? <span className="text-ink-500"> · {s.year}</span> : null}
-                  </span>
+                  <span className="min-w-0 text-[14.5px] leading-relaxed text-ink-700">{s}</span>
                 </li>
               ))}
             </ol>

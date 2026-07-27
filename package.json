@@ -14,6 +14,7 @@
     "ledger-qa:invariants": "python3 scripts/ledger-qa/cascade-invariants.py",
     "ledger-qa:e2e": "python3 scripts/ledger-qa/e2e.py",
     "ledger-qa:all": "bash scripts/ledger-qa/verify.sh && python3 scripts/ledger-qa/cascade-invariants.py && python3 scripts/ledger-qa/e2e.py",
+    "op-eds": "bun run scripts/build-op-eds.ts",
     "map": "bun scripts/build-map.ts",
     "map:check": "bun scripts/build-map.ts --check",
     "headers": "bun scripts/backfill-headers.ts",

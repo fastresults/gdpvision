@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
+import { Illustration } from "@/components/marketing/Illustration";
+import illLamp from "@/assets/illustrations/section-lamp.jpg.asset.json";
 
 
 
@@ -88,6 +90,7 @@ function AuthPage() {
     <MarketingShell>
       <div className="mx-auto max-w-md px-6 py-24">
         <SectionHeader eyebrow="Instrument access" title={title} />
+        <Illustration src={illLamp.url} variant="spot" className="mt-8" />
 
         <div className="mt-6 border-l-2 border-gold-500 bg-paper-100 p-4">
           <div className="flex items-center justify-between gap-3">

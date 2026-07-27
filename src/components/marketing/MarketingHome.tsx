@@ -183,6 +183,14 @@ export function MarketingHome() {
   const [momentIndex, setMomentIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [stopped, setStopped] = useState(false);
+  const [momentStopped, setMomentStopped] = useState(false);
+  useEffect(() => {
+    if (momentStopped) return;
+    const id = setInterval(() => {
+      setMomentIndex((i) => (i + 1) % MOMENT_VARIANTS.length);
+    }, 4000);
+    return () => clearInterval(id);
+  }, [momentStopped]);
   useEffect(() => {
     setTail(shuffleTail());
     setMomentIndex(1 + Math.floor(Math.random() * (MOMENT_VARIANTS.length - 1)));
@@ -203,8 +211,14 @@ export function MarketingHome() {
   const moment = MOMENT_VARIANTS[momentIndex];
   const total = MOMENT_VARIANTS.length;
   const threatTotal = EXISTENTIAL_THREATS.length;
-  const goPrev = () => setMomentIndex((i) => (i - 1 + total) % total);
-  const goNext = () => setMomentIndex((i) => (i + 1) % total);
+  const goPrev = () => {
+    setMomentStopped(true);
+    setMomentIndex((i) => (i - 1 + total) % total);
+  };
+  const goNext = () => {
+    setMomentStopped(true);
+    setMomentIndex((i) => (i + 1) % total);
+  };
   const goPrevThreat = () => {
     setStopped(true);
     setIndex((i) => (i - 1 + threatTotal) % threatTotal);

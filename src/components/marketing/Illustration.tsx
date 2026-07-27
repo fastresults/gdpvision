@@ -33,26 +33,24 @@ interface IllustrationProps {
   className?: string;
 }
 
+// Width clamps only — the art keeps its own aspect ratio so nothing is boxed,
+// letterboxed or cropped. Height follows from the asset.
 const VARIANTS: Record<IllustrationVariant, string> = {
-  // Tiny inline mark, sits beside an eyebrow or a wordmark.
-  mark: "h-9 w-9 md:h-10 md:w-10",
+  // Tiny inline mark, sits beside an eyebrow, label or wordmark.
+  mark: "w-[72px] md:w-[88px]",
   // Small margin-anchored mark beside a column of text.
-  spot: "w-full max-w-[120px] md:max-w-[140px] aspect-square",
+  spot: "w-[150px] md:w-[190px]",
   // Supporting art that occupies the empty half of an existing 2-col grid.
-  aside: "w-full max-w-[260px] aspect-square",
+  aside: "w-full max-w-[300px]",
   // Thin engraved divider under a section header, never full width.
-  rule: "w-full max-w-[560px] aspect-[6/1]",
+  rule: "w-full max-w-[520px]",
 };
 
 export function Illustration({ src, alt, variant = "spot", className }: IllustrationProps) {
   const decorative = !alt;
   return (
     <div
-      className={cn(
-        "overflow-hidden select-none pointer-events-none",
-        VARIANTS[variant],
-        className,
-      )}
+      className={cn("select-none pointer-events-none", VARIANTS[variant], className)}
       aria-hidden={decorative || undefined}
     >
       <img
@@ -61,12 +59,13 @@ export function Illustration({ src, alt, variant = "spot", className }: Illustra
         loading="lazy"
         decoding="async"
         className={cn(
-          "h-full w-full object-contain",
+          "block h-auto w-full object-contain",
           // Contract: monochrome only. Never let a generated asset introduce
           // colour, and let the paper ground show through the white field.
-          "grayscale contrast-[1.08] opacity-[0.85] mix-blend-darken",
+          "grayscale contrast-[1.12] opacity-90 mix-blend-darken",
         )}
       />
     </div>
   );
 }
+

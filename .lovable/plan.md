@@ -1,37 +1,39 @@
-## Goal
+## Problem
 
-Keep the marginalia placement exactly as it is, but scale the engraved sketches back up so the cross-hatching and line detail read at normal viewing distance. Right now the width clamps are tuned for "accent" and are losing the artwork.
+The "The Moment" section cycles through eight exposures (CBI Cliff, One Storm from Zero, Tourism Trap, Cut Off from the System, The Debt Ceiling, Powering Uncompetitiveness, Regulated Out of the Game, The Talent Drain), but the accent illustration is hard-coded to a single asset (`section-moment.jpg`), so all eight show the same harbour sketch.
 
-## What changes
+## Plan
 
-Only `src/components/marketing/Illustration.tsx` (the variant width clamps) plus the two docs that record the numbers. No layout, no section restructuring, no new assets.
+**1. Generate eight illustrations in the house style**
 
-### New scale (roughly 1.6–1.8× current)
+Each rendered with the canonical engraved-graphite prompt from `docs/illustration-contract.md` — monochrome, hand-drawn, no colour, no text, white ground — so they sit in the same family as the existing set. Subject per threat:
 
-| Variant | Now | New | Why |
-|---|---|---|---|
-| `mark` | 72 / 88px | 104 / 128px | chamber-panel corner marks and eyebrow marks currently read as favicons; engraved detail needs ~120px to survive |
-| `spot` | 150 / 190px | 232 / 288px | margin-anchored art beside a column — big enough to read the subject, still under half the column |
-| `aside` | 300px | 460px (520px at `xl`) | fills the empty half of the existing 2-col grid properly instead of floating small in it |
-| `rule` | 520px | 720px | the divider engraving reads as a line at 520; at 720 the hatching is legible |
+- CBI Cliff — a passport/seal ledger at the edge of an eroding cliff shelf
+- One Storm from Zero — a barometer and storm-swept palm over a low coastline
+- Tourism Trap — a single cruise liner dwarfing a small quay
+- Cut Off from the System — severed telegraph/cable lines between two shores
+- The Debt Ceiling — a stacked-weights balance scale pressing on a vaulted ceiling
+- Powering Uncompetitiveness — diesel generator and transmission pylons on an island ridge
+- Regulated Out of the Game — a wax-sealed edict and gavel over a chart of the region
+- The Talent Drain — a departure gangway, figures boarding, an emptying schoolhouse behind
 
-Also raise render fidelity slightly: `opacity-90 → opacity-95` and keep `contrast-[1.12]`, so mid-greys don't wash into the paper ground at larger sizes.
+**2. Upload as CDN assets**
 
-Aspect ratio stays free (width-only clamps), `grayscale`, `mix-blend-darken`, `select-none pointer-events-none`, lazy loading all unchanged.
+Written to `src/assets/illustrations/threat-<id>.jpg.asset.json` via the assets CLI; no binaries left in the repo.
 
-### Guardrails that stay intact
+**3. Wire the data**
 
-- One illustration per section.
-- Never full-bleed, never inside the reading column.
-- `band` stays retired.
-- Alternating margin sides down the page stays.
+Add an optional `illustration` field to the `ExistentialThreat` interface in `src/lib/existential-threats.ts` and set it on all eight entries, importing the pointer JSON.
 
-### Docs to sync
+**4. Render per-threat**
 
-- `docs/illustration-contract.md` — the size table in §4.
-- `AGENTS.md` — the cardinal-rule line listing variant maxima.
-- `mem://design/illustration-contract` — same numbers.
+In `src/components/marketing/MarketingHome.tsx`, the moment section's `<Illustration>` reads `moment.illustration ?? illMoment.url`, keeps the current size/placement (320–384px, two-column layout), and gains a `key={moment.id}` so it cross-fades with the existing `animate-in` transition when Previous/Next is pressed. Alt text set from the threat title, since these carry meaning now.
 
-## Verification
+**5. Verify**
 
-Screenshot the marketing home at 1386px and at 390px via Playwright and check each section: the illustration should be clearly legible as a drawing, still visually subordinate to the headline type, and never crowding the reading column on mobile.
+Screenshot the section across all eight states at desktop and mobile widths to confirm each image loads, matches the style, and the layout holds.
+
+### Technical notes
+
+- No change to the `<Illustration>` component, the illustration contract, or any other section.
+- `docs/illustration-contract.md` gets a one-line note that per-threat variants live under `src/assets/illustrations/threat-*`.

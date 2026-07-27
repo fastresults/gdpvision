@@ -52,7 +52,7 @@ export function Illustration({ src, alt, variant = "band", className }: Illustra
           "h-full w-full object-contain",
           // Contract: monochrome only. Never let a generated asset introduce
           // colour, and let the paper ground show through the white field.
-          "grayscale mix-blend-multiply",
+          "grayscale contrast-[1.08] mix-blend-darken",
         )}
       />
     </div>

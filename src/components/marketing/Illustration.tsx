@@ -40,7 +40,7 @@ export function Illustration({ src, alt, variant = "band", className }: Illustra
   const decorative = !alt;
   return (
     <div
-      className={cn("overflow-hidden bg-paper-0", VARIANTS[variant], className)}
+      className={cn("overflow-hidden", VARIANTS[variant], className)}
       aria-hidden={decorative || undefined}
     >
       <img

@@ -35,9 +35,9 @@ export function MarketingShell({ children }: MarketingShellProps) {
       </a>
       <header className="border-b border-line-200">
         <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 py-5 md:px-10">
-          <a href="#top" className="focus-visible:outline-none">
+          <Link to={signedIn ? "/home" : "/"} className="focus-visible:outline-none">
             <Wordmark className="text-[15px] md:text-[17px]" />
-          </a>
+          </Link>
           <nav className="flex items-center gap-6 md:gap-8 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
             <a href="#instrument" className="hover:text-ink-950 hidden md:inline">
               The Instrument

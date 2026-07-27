@@ -580,7 +580,7 @@ export function MarketingHome() {
             title="Built by OPEN Interactive — seventeen years in the room, one working prototype already running."
             lede="OPEN Interactive originated the Caribbean Investment Summit franchise in 2009, delivered national digital infrastructure for the Government of St. Kitts & Nevis, and has maintained head-of-government relationships across the OECS for seventeen years. GDPVision is built by the people already in the room."
           />
-          <Illustration src={illProvenance.url} variant="band" className="mt-14" />
+          <Illustration src={illProvenance.url} variant="rule" className="mt-10" />
           <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             {[
               {

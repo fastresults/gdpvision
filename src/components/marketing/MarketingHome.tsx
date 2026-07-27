@@ -583,7 +583,14 @@ export function MarketingHome() {
                 <div>— Delivered in person or over secure video</div>
                 <div>— Sixty minutes, no slideware</div>
                 <div>— Under NDA on request</div>
+                <div>— Nothing is recorded</div>
               </div>
+              <p className="mt-8 max-w-md text-[15px] leading-relaxed text-ink-700">
+                Briefings are prepared against your nation's own public data. You
+                will see your economy in the instrument, not a generic
+                demonstration.
+              </p>
+
             </div>
             <BriefingForm />
           </div>

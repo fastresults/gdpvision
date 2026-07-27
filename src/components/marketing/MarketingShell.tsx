@@ -22,9 +22,20 @@ export function MarketingShell({ children }: MarketingShellProps) {
             <Wordmark className="text-[15px] md:text-[17px]" />
           </a>
           <nav className="flex items-center gap-6 md:gap-8 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
-            <a href="#instrument" className="hover:text-ink-950 hidden md:inline">The Instrument</a>
-            <a href="#sovereignty" className="hover:text-ink-950 hidden md:inline">Sovereignty</a>
-            <a href="#briefing" className="hover:text-ink-950 text-ink-950 border-l-2 border-gold-500 pl-3 hidden md:inline">
+            <a href="#instrument" className="hover:text-ink-950 hidden md:inline">
+              The Instrument
+            </a>
+            <a href="#sovereignty" className="hover:text-ink-950 hidden md:inline">
+              Sovereignty
+            </a>
+            <Link to="/op-eds" className="hover:text-ink-950 hidden md:inline">
+              The writing
+            </Link>
+
+            <a
+              href="#briefing"
+              className="hover:text-ink-950 text-ink-950 border-l-2 border-gold-500 pl-3 hidden md:inline"
+            >
               Request briefing
             </a>
 
@@ -39,9 +50,9 @@ export function MarketingShell({ children }: MarketingShellProps) {
             <div>
               <Wordmark className="text-[13px]" />
               <p className="mt-4 max-w-xl text-[13.5px] leading-relaxed text-ink-700">
-                An OPEN Interactive product. Sovereign instances of the GDPVision
-                instrument are provisioned by invitation, under a confidential
-                engagement with the government of the day.
+                An OPEN Interactive product. Sovereign instances of the GDPVision instrument are
+                provisioned by invitation, under a confidential engagement with the government of
+                the day.
               </p>
             </div>
             <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500 flex flex-wrap gap-6">
@@ -76,7 +87,9 @@ function AuthEntry() {
   if (signedIn) {
     return (
       <div className="flex items-center gap-5">
-        <Link to="/instrument" className="hover:text-ink-950">Open instrument</Link>
+        <Link to="/instrument" className="hover:text-ink-950">
+          Open instrument
+        </Link>
         <button
           type="button"
           onClick={async () => {
@@ -96,5 +109,4 @@ function AuthEntry() {
       Sign in
     </Link>
   );
-
 }

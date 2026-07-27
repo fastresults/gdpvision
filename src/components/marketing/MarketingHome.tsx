@@ -16,130 +16,17 @@ import illCounsel from "@/assets/illustrations/section-counsel.jpg.asset.json";
 import illSovereignty from "@/assets/illustrations/section-sovereignty.jpg.asset.json";
 import illProvenance from "@/assets/illustrations/section-provenance.jpg.asset.json";
 import illBriefing from "@/assets/illustrations/section-briefing.jpg.asset.json";
-import ch01 from "@/assets/chambers/chamber-01.jpg.asset.json";
-import ch02 from "@/assets/chambers/chamber-02.jpg.asset.json";
-import ch03 from "@/assets/chambers/chamber-03.jpg.asset.json";
-import ch04 from "@/assets/chambers/chamber-04.jpg.asset.json";
-import ch05 from "@/assets/chambers/chamber-05.jpg.asset.json";
-import ch06 from "@/assets/chambers/chamber-06.jpg.asset.json";
-import ch07 from "@/assets/chambers/chamber-07.jpg.asset.json";
-import ch08 from "@/assets/chambers/chamber-08.jpg.asset.json";
-
-const CHAMBERS = [
-  {
-    index: "01",
-    title: "The National Ledger",
-    accentVar: "--sector-01",
-    image: ch01.url,
-    purpose:
-      "The single source of GDP truth every other decision reads from.",
-    bullets: [
-      "A 12-sector ontology with a decade of history and a data-confidence grade on every series.",
-      "Exposure indices — single, methodologically-documented numbers, drillable to source.",
-      "Four-layer sector dossiers: economic, policy, comms, and regional.",
-    ],
-  },
-  {
-    index: "02",
-    title: "Portfolio Workspaces",
-    accentVar: "--sector-03",
-    image: ch02.url,
-    purpose:
-      "Every minister sees their contribution to GDP — and the levers that raise it.",
-    bullets: [
-      "Sector position, dependency web, and the portfolio's share of national exposure.",
-      "A shelf of the minister's scenarios, from draft through Cabinet-adopted.",
-      "Play-of-the-day cards derived from live lever values.",
-    ],
-  },
-  {
-    index: "03",
-    title: "The Scenario Engine",
-    accentVar: "--sector-09",
-    image: ch03.url,
-    purpose:
-      "Rehearse every GDP-moving decision before it costs a cent.",
-    bullets: [
-      "Sovereign Vitals — real GDP, debt-to-GDP, FX retention, primary balance, public confidence — live.",
-      "Ripple propagation through the inter-sector dependency web.",
-      "Goal-seek: set the target, discover the levers that reach it.",
-    ],
-  },
-  {
-    index: "04",
-    title: "The FDI Transition Studio",
-    accentVar: "--sector-07",
-    image: ch04.url,
-    purpose:
-      "Replace fragile revenue with durable GDP through an assembled book of investment packages.",
-    bullets: [
-      "The Gap: the revenue and GDP hole under the selected wind-down glide-path, year by year.",
-      "Investment package builder with capital-to-GDP conversion and time-to-impact lags.",
-      "Readiness scoring across legal, land, workforce, incentives, and institutional capacity.",
-    ],
-  },
-  {
-    index: "05",
-    title: "The Narrative Chamber",
-    accentVar: "--sector-04",
-    image: ch05.url,
-    purpose:
-      "Protect GDP by reaching a defensible national position inside a working day.",
-    bullets: [
-      "Signal Desk, Context Dossiers, and a persistent Second Brain that never starts from a blank page.",
-      "Doctorate-grade strategy statements with a message architecture that carries across every channel.",
-      "Human-command doctrine: the chamber drafts, principals decide, nothing releases autonomously.",
-    ],
-  },
-  {
-    index: "06",
-    title: "The Cabinet Room",
-    accentVar: "--sector-10",
-    image: ch06.url,
-    purpose:
-      "Convert Cabinet time into recorded, tracked commitments that move the GDP dial.",
-    bullets: [
-      "Session Mode: agenda of promoted scenarios, full-bleed comparisons, decisions recorded live.",
-      "National Scorecard — every ratified KPI, current pace, movement since last session.",
-      "Commitments roll-up: what was adopted, who owns it, where it stands.",
-    ],
-  },
-  {
-    index: "07",
-    title: "Persona Lab",
-    accentVar: "--sector-06",
-    image: ch07.url,
-    purpose:
-      "Test resonance with citizens and investors before policies, incentives, or narratives ship.",
-    bullets: [
-      "Synthetic personas and segments modelled from the sovereign corpus and public evidence.",
-      "Studies that stress-test policy, incentive, and narrative options against real audience logic.",
-      "Every finding cited, exportable, and traceable back to the Ledger.",
-    ],
-  },
-  {
-    index: "08",
-    title: "The Mandate Compact",
-    accentVar: "--sector-02",
-    image: ch08.url,
-    purpose:
-      "Turn the ruling party's manifesto into a signed, ministry-by-ministry delivery plan the PM can score every quarter.",
-    bullets: [
-      "Ingest the manifesto and decompose it into pillars, pledges, and ministry-owned deliverables.",
-      "Quarterly scorecards and a PM Report Card that grade every ministry from delivered to broken.",
-      "Signed, versioned compact with a full audit trail — every revision snapshotted and diffable.",
-    ],
-  },
-];
+import { CHAMBERS } from "@/lib/chambers";
 
 const FEATURE_LABELS: Record<string, string> = {
   "04": "04 →  Where the revenue cliff is priced",
   "08": "08 →  Where the manifesto becomes a delivery plan",
 };
 
-const FEATURED_CHAMBERS = CHAMBERS.filter((c) => c.index === "04" || c.index === "08").map(
-  (c) => ({ ...c, featureLabel: FEATURE_LABELS[c.index] }),
-);
+const FEATURED_CHAMBERS = CHAMBERS.filter((c) => c.index === "04" || c.index === "08").map((c) => ({
+  ...c,
+  featureLabel: FEATURE_LABELS[c.index],
+}));
 
 const GRID_CHAMBERS = CHAMBERS.filter((c) => c.index !== "04" && c.index !== "08");
 
@@ -165,8 +52,6 @@ const LOOP_STEPS = [
     body: "The Mandate Compact grades it against what the government promised. Quarterly scorecards, a PM Report Card, and a signed compact whose every revision is snapshotted and diffable.",
   },
 ];
-
-
 
 function shuffleTail() {
   const tail = EXISTENTIAL_THREATS.slice(1);
@@ -232,7 +117,6 @@ export function MarketingHome() {
     });
   };
 
-
   return (
     <MarketingShell>
       {/* HERO ------------------------------------------------------------- */}
@@ -244,15 +128,13 @@ export function MarketingHome() {
             </div>
             <div className="mt-6 h-px w-16 bg-gold-500" aria-hidden />
             <h1 className="mt-8 font-serif text-[43px] leading-[1.05] tracking-tight text-ink-950 md:text-[68px]">
-              No small state should learn its own economy from someone else's
-              report.
+              No small state should learn its own economy from someone else's report.
             </h1>
             <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-ink-700 md:text-[17px]">
-              GDPVision is a sovereign instrument for Presidents, Prime Ministers
-              and Cabinets. It holds a nation's public and private evidence in one
-              graded Ledger, and lets Cabinet rehearse a decision before it is
-              taken. One isolated deployment per nation. The government owns it
-              outright.
+              GDPVision is a sovereign instrument for Presidents, Prime Ministers and Cabinets. It
+              holds a nation's public and private evidence in one graded Ledger, and lets Cabinet
+              rehearse a decision before it is taken. One isolated deployment per nation. The
+              government owns it outright.
             </p>
             <div
               aria-live="polite"
@@ -293,8 +175,20 @@ export function MarketingHome() {
                 aria-label="Previous threat"
                 className="group flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
               >
-                <svg width="44" height="10" viewBox="0 0 44 10" fill="none" aria-hidden className="transition-transform duration-300 group-hover:-translate-x-1">
-                  <path d="M43 5H1M1 5L5 1M1 5L5 9" stroke="currentColor" strokeWidth="1" strokeLinecap="square" />
+                <svg
+                  width="44"
+                  height="10"
+                  viewBox="0 0 44 10"
+                  fill="none"
+                  aria-hidden
+                  className="transition-transform duration-300 group-hover:-translate-x-1"
+                >
+                  <path
+                    d="M43 5H1M1 5L5 1M1 5L5 9"
+                    stroke="currentColor"
+                    strokeWidth="1"
+                    strokeLinecap="square"
+                  />
                 </svg>
                 <span>Prev</span>
               </button>
@@ -310,8 +204,20 @@ export function MarketingHome() {
                 className="group flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
               >
                 <span>Next</span>
-                <svg width="44" height="10" viewBox="0 0 44 10" fill="none" aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">
-                  <path d="M1 5H43M43 5L39 1M43 5L39 9" stroke="currentColor" strokeWidth="1" strokeLinecap="square" />
+                <svg
+                  width="44"
+                  height="10"
+                  viewBox="0 0 44 10"
+                  fill="none"
+                  aria-hidden
+                  className="transition-transform duration-300 group-hover:translate-x-1"
+                >
+                  <path
+                    d="M1 5H43M43 5L39 1M43 5L39 9"
+                    stroke="currentColor"
+                    strokeWidth="1"
+                    strokeLinecap="square"
+                  />
                 </svg>
               </button>
             </nav>
@@ -328,7 +234,6 @@ export function MarketingHome() {
               >
                 See how a decision moves through the instrument ↓
               </a>
-
             </div>
           </div>
           <div className="relative flex items-center justify-center">
@@ -340,7 +245,10 @@ export function MarketingHome() {
       {/* PROBLEM ---------------------------------------------------------- */}
       <section id="problem" className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
-          <div key={moment.id} className="animate-in fade-in duration-500 motion-reduce:animate-none">
+          <div
+            key={moment.id}
+            className="animate-in fade-in duration-500 motion-reduce:animate-none"
+          >
             <div className="grid items-center gap-8 md:grid-cols-[320px_minmax(0,1fr)] md:gap-12 lg:grid-cols-[384px_minmax(0,1fr)]">
               <Illustration
                 key={moment.id}
@@ -371,10 +279,9 @@ export function MarketingHome() {
             </div>
           </div>
           <p className="mt-12 max-w-2xl text-[15px] leading-relaxed text-ink-700">
-            Every figure on this page carries a confidence grade and a source.
-            Inside the instrument, so does every figure your Cabinet sees.
+            Every figure on this page carries a confidence grade and a source. Inside the
+            instrument, so does every figure your Cabinet sees.
           </p>
-
 
           <nav
             aria-label="Cycle through economic impact scenarios"
@@ -386,8 +293,20 @@ export function MarketingHome() {
               aria-label="Previous scenario"
               className="group flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
             >
-              <svg width="44" height="10" viewBox="0 0 44 10" fill="none" aria-hidden className="transition-transform duration-300 group-hover:-translate-x-1">
-                <path d="M43 5H1M1 5L5 1M1 5L5 9" stroke="currentColor" strokeWidth="1" strokeLinecap="square" />
+              <svg
+                width="44"
+                height="10"
+                viewBox="0 0 44 10"
+                fill="none"
+                aria-hidden
+                className="transition-transform duration-300 group-hover:-translate-x-1"
+              >
+                <path
+                  d="M43 5H1M1 5L5 1M1 5L5 9"
+                  stroke="currentColor"
+                  strokeWidth="1"
+                  strokeLinecap="square"
+                />
               </svg>
               <span>Prev</span>
             </button>
@@ -403,14 +322,25 @@ export function MarketingHome() {
               className="group flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
             >
               <span>Next</span>
-              <svg width="44" height="10" viewBox="0 0 44 10" fill="none" aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">
-                <path d="M1 5H43M43 5L39 1M43 5L39 9" stroke="currentColor" strokeWidth="1" strokeLinecap="square" />
+              <svg
+                width="44"
+                height="10"
+                viewBox="0 0 44 10"
+                fill="none"
+                aria-hidden
+                className="transition-transform duration-300 group-hover:translate-x-1"
+              >
+                <path
+                  d="M1 5H43M43 5L39 1M43 5L39 9"
+                  stroke="currentColor"
+                  strokeWidth="1"
+                  strokeLinecap="square"
+                />
               </svg>
             </button>
           </nav>
         </div>
       </section>
-
 
       {/* CORPUS ----------------------------------------------------------- */}
       <section id="corpus" className="border-b border-line-200">
@@ -448,7 +378,6 @@ export function MarketingHome() {
               </div>
             ))}
           </div>
-
         </div>
       </section>
 
@@ -461,7 +390,11 @@ export function MarketingHome() {
               title="A decision is rehearsed, taken, tracked, and scored."
               lede="Most systems show a government what already happened. GDPVision carries a decision through its whole life — from the question on the Cabinet table to the quarter it is graded in."
             />
-            <Illustration src={illLoop.url} variant="spot" className="hidden justify-self-end md:block" />
+            <Illustration
+              src={illLoop.url}
+              variant="spot"
+              className="hidden justify-self-end md:block"
+            />
           </div>
           <div className="mt-16 grid gap-8 border-t border-line-200 pt-12 md:grid-cols-2 lg:grid-cols-4">
             {LOOP_STEPS.map((s) => (
@@ -474,10 +407,9 @@ export function MarketingHome() {
             ))}
           </div>
           <p className="mt-12 max-w-2xl font-serif text-[21px] leading-snug text-ink-950">
-            At every step the instrument drafts and prices. Principals decide.
-            Nothing releases autonomously.
+            At every step the instrument drafts and prices. Principals decide. Nothing releases
+            autonomously.
           </p>
-
         </div>
       </section>
 
@@ -527,8 +459,14 @@ export function MarketingHome() {
           <div className="grid gap-6 border-t border-line-200 pt-8 md:mt-2">
             {[
               { head: "Voice-first", body: "Asked aloud between engagements. No screen required." },
-              { head: "Two to four sentences", body: "The length of an answer a principal can act on, not a report." },
-              { head: "Always cited", body: "Every claim carries its source and confidence grade from the Ledger." },
+              {
+                head: "Two to four sentences",
+                body: "The length of an answer a principal can act on, not a report.",
+              },
+              {
+                head: "Always cited",
+                body: "Every claim carries its source and confidence grade from the Ledger.",
+              },
             ].map((p) => (
               <div key={p.head} className="flex items-start gap-5">
                 <div className="min-w-0">
@@ -542,9 +480,7 @@ export function MarketingHome() {
             <Illustration src={illCounsel.url} variant="spot" className="mt-2" />
           </div>
         </div>
-
       </section>
-
 
       {/* SOVEREIGNTY ------------------------------------------------------ */}
       <section id="sovereignty" className="border-b border-line-200">
@@ -580,7 +516,6 @@ export function MarketingHome() {
                 body: "No third-party analytics or trackers inside government instances. Error telemetry is first-party and instance-consented.",
               },
             ].map((p) => (
-
               <div key={p.head} className="border-b border-line-200 pb-8 last:border-b-0">
                 <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
                   {p.head}
@@ -624,7 +559,6 @@ export function MarketingHome() {
                 body: "GDPVision is designed against the exposures Caribbean and small-island states actually carry — revenue concentration, climate shock, external repricing, and a data cadence that arrives too late to govern from. Not a global product adapted downward.",
               },
             ].map((p) => (
-
               <div key={p.head} className="border-t border-line-200 pt-6">
                 <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold-500">
                   {p.year}
@@ -654,14 +588,16 @@ export function MarketingHome() {
                   <div>— Under NDA on request</div>
                   <div>— Nothing is recorded</div>
                 </div>
-                <Illustration src={illBriefing.url} variant="spot" className="hidden shrink-0 md:block" />
+                <Illustration
+                  src={illBriefing.url}
+                  variant="spot"
+                  className="hidden shrink-0 md:block"
+                />
               </div>
               <p className="mt-8 max-w-md text-[15px] leading-relaxed text-ink-700">
-                Briefings are prepared against your nation's own public data. You
-                will see your economy in the instrument, not a generic
-                demonstration.
+                Briefings are prepared against your nation's own public data. You will see your
+                economy in the instrument, not a generic demonstration.
               </p>
-
             </div>
             <BriefingForm />
           </div>

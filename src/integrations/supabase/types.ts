@@ -4994,6 +4994,99 @@ export type Database = {
         }
         Relationships: []
       }
+      op_ed_events: {
+        Row: {
+          created_at: string
+          event: string
+          id: string
+          referrer: string | null
+          slug: string
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          visitor_key: string | null
+        }
+        Insert: {
+          created_at?: string
+          event: string
+          id?: string
+          referrer?: string | null
+          slug: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          visitor_key?: string | null
+        }
+        Update: {
+          created_at?: string
+          event?: string
+          id?: string
+          referrer?: string | null
+          slug?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          visitor_key?: string | null
+        }
+        Relationships: []
+      }
+      op_ed_requests: {
+        Row: {
+          chamber: string
+          created_at: string
+          email: string
+          id: string
+          name: string
+          organisation: string
+          referrer: string | null
+          role: string
+          slug: string
+          status: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          chamber: string
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          organisation: string
+          referrer?: string | null
+          role: string
+          slug: string
+          status?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          chamber?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          organisation?: string
+          referrer?: string | null
+          role?: string
+          slug?: string
+          status?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
+      }
       opposition_items: {
         Row: {
           amplification: Json

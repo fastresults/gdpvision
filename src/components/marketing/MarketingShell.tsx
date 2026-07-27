@@ -7,7 +7,24 @@ interface MarketingShellProps {
   children: ReactNode;
 }
 
+function useSignedIn() {
+  const [signedIn, setSignedIn] = useState<boolean>(false);
+  useEffect(() => {
+    let alive = true;
+    supabase.auth.getUser().then(({ data }) => alive && setSignedIn(!!data.user));
+    const { data } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (alive) setSignedIn(!!session);
+    });
+    return () => {
+      alive = false;
+      data.subscription.unsubscribe();
+    };
+  }, []);
+  return signedIn;
+}
+
 export function MarketingShell({ children }: MarketingShellProps) {
+  const signedIn = useSignedIn();
   return (
     <div className="min-h-dvh bg-paper-0 text-ink-950 font-sans antialiased">
       <a
@@ -18,9 +35,9 @@ export function MarketingShell({ children }: MarketingShellProps) {
       </a>
       <header className="border-b border-line-200">
         <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 py-5 md:px-10">
-          <a href="#top" className="focus-visible:outline-none">
+          <Link to={signedIn ? "/home" : "/"} className="focus-visible:outline-none">
             <Wordmark className="text-[15px] md:text-[17px]" />
-          </a>
+          </Link>
           <nav className="flex items-center gap-6 md:gap-8 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
             <a href="#instrument" className="hover:text-ink-950 hidden md:inline">
               The Instrument
@@ -69,20 +86,9 @@ export function MarketingShell({ children }: MarketingShellProps) {
 function AuthEntry() {
   // Optimistic default: show logged-out affordances until we know otherwise,
   // so the header never renders empty on first paint.
-  const [signedIn, setSignedIn] = useState<boolean>(false);
+  const signedIn = useSignedIn();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    let alive = true;
-    supabase.auth.getUser().then(({ data }) => alive && setSignedIn(!!data.user));
-    const { data } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (alive) setSignedIn(!!session);
-    });
-    return () => {
-      alive = false;
-      data.subscription.unsubscribe();
-    };
-  }, []);
 
   if (signedIn) {
     return (

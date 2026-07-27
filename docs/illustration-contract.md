@@ -47,15 +47,34 @@ Sections must not place a bare `<img>` for an illustration.
 import { Illustration } from "@/components/marketing/Illustration";
 import corpusIll from "@/assets/illustrations/section-corpus.jpg.asset.json";
 
-<Illustration src={corpusIll.url} variant="band" className="mt-12" />
+<Illustration src={corpusIll.url} variant="aside" />
 ```
 
-Variants: `band` (3:1 divider between header and content), `spot` (square mark beside a
-column), `panel` (4:3 supporting figure).
+### Scale + placement (v2 — binding)
 
-The component owns: paper ground, forced `grayscale`, `mix-blend-darken`, lazy loading,
-and accessibility. It never introduces a colour token — only `paper-*` / `ink-*` / `line-*`
-are legal, per the token contract in `AGENTS.md`.
+Illustrations are **marginalia**. They accent the page; they never carry it.
+
+| Variant | Max size | Use |
+|---|---|---|
+| `mark` | 36–40px | inline beside an eyebrow, wordmark, or card label |
+| `spot` | 120–140px | margin-anchored beside a column, never centred in the flow |
+| `aside` | 260px | occupies the empty half of an existing two-column grid |
+| `rule` | 560px wide, 6:1 | a single engraved divider under a section header |
+
+Hard rules:
+
+- **One illustration maximum per section.**
+- **Never full-bleed and never inside the reading column.** The retired `band`
+  variant (full-width 3:1 slab) must not be reintroduced.
+- Alternate the margin side down a page so placements read as composition, not a stack.
+- If a section has nothing but a header and an illustration, the section needs more
+  content — do not let the image become the content.
+
+The component owns: paper ground, forced `grayscale`, `mix-blend-darken`, `opacity-85`,
+`select-none pointer-events-none`, lazy loading, and accessibility. It never introduces a
+colour token — only `paper-*` / `ink-*` / `line-*` are legal, per the token contract in
+`AGENTS.md`.
+
 
 ## 5. Accessibility
 

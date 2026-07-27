@@ -56,10 +56,11 @@ Illustrations are **marginalia**. They accent the page; they never carry it.
 
 | Variant | Max size | Use |
 |---|---|---|
-| `mark` | 36–40px | inline beside an eyebrow, wordmark, or card label |
-| `spot` | 120–140px | margin-anchored beside a column, never centred in the flow |
-| `aside` | 260px | occupies the empty half of an existing two-column grid |
-| `rule` | 560px wide, 6:1 | a single engraved divider under a section header |
+| `mark` | 104–128px | inline beside an eyebrow, wordmark, or card label |
+| `spot` | 232–288px | margin-anchored beside a column, never centred in the flow |
+| `aside` | 460px (520px at `xl`) | occupies the empty half of an existing two-column grid |
+| `rule` | 720px wide | a single engraved divider under a section header |
+
 
 Hard rules:
 

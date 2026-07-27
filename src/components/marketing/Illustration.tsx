@@ -36,15 +36,16 @@ interface IllustrationProps {
 // Width clamps only — the art keeps its own aspect ratio so nothing is boxed,
 // letterboxed or cropped. Height follows from the asset.
 const VARIANTS: Record<IllustrationVariant, string> = {
-  // Tiny inline mark, sits beside an eyebrow, label or wordmark.
-  mark: "w-[72px] md:w-[88px]",
-  // Small margin-anchored mark beside a column of text.
-  spot: "w-[150px] md:w-[190px]",
+  // Small inline mark, sits beside an eyebrow, label or wordmark.
+  mark: "w-[104px] md:w-[128px]",
+  // Margin-anchored art beside a column of text.
+  spot: "w-[232px] md:w-[288px]",
   // Supporting art that occupies the empty half of an existing 2-col grid.
-  aside: "w-full max-w-[300px]",
-  // Thin engraved divider under a section header, never full width.
-  rule: "w-full max-w-[520px]",
+  aside: "w-full max-w-[460px] xl:max-w-[520px]",
+  // Engraved divider under a section header, never full width.
+  rule: "w-full max-w-[720px]",
 };
+
 
 export function Illustration({ src, alt, variant = "spot", className }: IllustrationProps) {
   const decorative = !alt;
@@ -62,7 +63,7 @@ export function Illustration({ src, alt, variant = "spot", className }: Illustra
           "block h-auto w-full object-contain",
           // Contract: monochrome only. Never let a generated asset introduce
           // colour, and let the paper ground show through the white field.
-          "grayscale contrast-[1.12] opacity-90 mix-blend-darken",
+          "grayscale contrast-[1.12] opacity-95 mix-blend-darken",
         )}
       />
     </div>

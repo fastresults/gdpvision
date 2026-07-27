@@ -36,12 +36,7 @@ const VARIANTS: Record<IllustrationVariant, string> = {
   panel: "w-full aspect-[4/3]",
 };
 
-export function Illustration({
-  src,
-  alt,
-  variant = "band",
-  className,
-}: IllustrationProps) {
+export function Illustration({ src, alt, variant = "band", className }: IllustrationProps) {
   const decorative = !alt;
   return (
     <div

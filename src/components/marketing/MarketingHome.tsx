@@ -395,11 +395,16 @@ export function MarketingHome() {
       {/* CORPUS ----------------------------------------------------------- */}
       <section id="corpus" className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
-          <SectionHeader
-            eyebrow="One sovereign corpus"
-            title="Public data. Private data. Held apart, read together."
-            lede="Public evidence is aggregated, graded and cited for every ministry. Private Cabinet uploads sit under the same provenance discipline — visible only to those with authorised country access, never mixed into the public view."
-          />
+          <div className="grid items-end gap-10 md:grid-cols-[1.3fr_1fr]">
+            <SectionHeader
+              eyebrow="One sovereign corpus"
+              title="Public data. Private data. Held apart, read together."
+              lede="Public evidence is aggregated, graded and cited for every ministry. Private Cabinet uploads sit under the same provenance discipline — visible only to those with authorised country access, never mixed into the public view."
+            />
+            <div className="hidden justify-end md:flex">
+              <Illustration src={illCorpus.url} variant="aside" />
+            </div>
+          </div>
           <div className="mt-16 grid gap-8 border-t border-line-200 pt-12 md:grid-cols-3">
             {[
               {
@@ -423,7 +428,7 @@ export function MarketingHome() {
               </div>
             ))}
           </div>
-          <Illustration src={illCorpus.url} variant="band" className="mt-16" />
+
         </div>
       </section>
 

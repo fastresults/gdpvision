@@ -38,24 +38,18 @@ export function ChamberPanel({
         className="absolute left-0 top-0 z-10 h-full w-[2px]"
         style={{ background: `var(${accentVar})` }}
       />
-      {image ? (
-        <div className="relative aspect-[3/1] w-full overflow-hidden border-b border-line-200 bg-paper-100">
-          <img
-            src={image}
-            alt={`${title} — product view`}
-            loading="lazy"
-            className="h-full w-full object-cover object-top"
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-paper-0 via-paper-0/40 to-transparent"
-          />
-        </div>
-      ) : null}
       <div className="pl-6 pr-5 py-6">
-        <div className="flex items-baseline justify-between font-mono text-[11px] uppercase tracking-[0.16em] text-ink-500">
-          <span>Chamber {index}</span>
+        <div className="flex items-start justify-between gap-4 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-500">
+          <span className="pt-1">Chamber {index}</span>
+          {image ? (
+            <Illustration
+              src={image}
+              variant="mark"
+              className="h-16 w-16 shrink-0 opacity-90 md:h-[72px] md:w-[72px]"
+            />
+          ) : null}
         </div>
+
         <h3 className="mt-3 font-serif text-[27px] leading-tight text-ink-950">
           {title}
         </h3>

@@ -40,10 +40,7 @@ function parseFrontmatter(raw: string): { front: Front; body: string } {
 
 function unquote(v: string): string {
   const t = v.trim();
-  if (
-    (t.startsWith('"') && t.endsWith('"')) ||
-    (t.startsWith("'") && t.endsWith("'"))
-  ) {
+  if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
     return t.slice(1, -1).replace(/\\"/g, '"');
   }
   return t;

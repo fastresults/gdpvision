@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { Illustration } from "./Illustration";
+
 
 interface ChamberPanelProps {
   index: string; // "01" .. "07"

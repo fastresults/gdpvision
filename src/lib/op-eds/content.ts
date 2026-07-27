@@ -107,18 +107,12 @@ export const OP_EDS: OpEd[] = [
   {
     slug: "the-revenue-cliff-nobody-priced",
     chamber: "04",
-    status: "published",
+    status: "draft",
     title: "The revenue cliff nobody priced",
     standfirst: "Fragile revenue lines are treated as permanent until the year they are not.",
     promise: "One argument, twelve minutes, every figure sourced.",
-    excerpt: [
-      "PREVIEW PARAGRAPH ONE. This placeholder stands in for the manuscript's opening paragraph so the layout can be reviewed before the real prose lands.",
-      "PREVIEW PARAGRAPH TWO. It runs to roughly the length of a real opening paragraph, because the measure of the reading column is the whole point of checking it.",
-      "PREVIEW PARAGRAPH THREE. The gate sits immediately beneath, and the sources beneath that.",
-    ],
-    sources: [
-      { org: "PREVIEW", title: "Placeholder source entry", year: "2026", url: "https://example.org" },
-    ],
+    excerpt: [],
+    sources: [],
     emblem: emblem04.url,
     pdfKey: "the-revenue-cliff-nobody-priced.pdf",
   },

@@ -53,7 +53,7 @@ import corpusIll from "@/assets/illustrations/section-corpus.jpg.asset.json";
 Variants: `band` (3:1 divider between header and content), `spot` (square mark beside a
 column), `panel` (4:3 supporting figure).
 
-The component owns: paper ground, forced `grayscale`, `mix-blend-multiply`, lazy loading,
+The component owns: paper ground, forced `grayscale`, `mix-blend-darken`, lazy loading,
 and accessibility. It never introduces a colour token — only `paper-*` / `ink-*` / `line-*`
 are legal, per the token contract in `AGENTS.md`.
 

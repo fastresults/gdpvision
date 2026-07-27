@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
+import { Illustration } from "@/components/marketing/Illustration";
+import illLamp from "@/assets/illustrations/section-lamp.jpg.asset.json";
 
 
 

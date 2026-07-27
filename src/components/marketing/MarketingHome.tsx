@@ -606,7 +606,7 @@ export function MarketingHome() {
                 will see your economy in the instrument, not a generic
                 demonstration.
               </p>
-
+              <Illustration src={illBriefing.url} variant="spot" className="mt-10" />
             </div>
             <BriefingForm />
           </div>

@@ -40,6 +40,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/_authenticated/console` | `src/routes/_authenticated/console.tsx` |
 | `/_authenticated/console/$code/` | `src/routes/_authenticated/console.$code.index.tsx` |
 | `/_authenticated/console/$code/ask` | `src/routes/_authenticated/console.$code.ask.tsx` |
+| `/_authenticated/console/$code/mandate` | `src/routes/_authenticated/console.$code.mandate.tsx` |
 | `/_authenticated/console/$code/request/new` | `src/routes/_authenticated/console.$code.request.new.tsx` |
 | `/_authenticated/console/$code/requests/` | `src/routes/_authenticated/console.$code.requests.index.tsx` |
 | `/_authenticated/console/$code/requests/$id` | `src/routes/_authenticated/console.$code.requests.$id.tsx` |
@@ -85,6 +86,8 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/_authenticated/admin/countries/$code/scenarios/new` | `src/routes/_authenticated/admin/countries.$code.scenarios.new.tsx` |
 | `/_authenticated/admin/countries/$code/studio` | `src/routes/_authenticated/admin/countries.$code.studio.tsx` |
 | `/_authenticated/admin/countries/$code/studio/` | `src/routes/_authenticated/admin/countries.$code.studio.index.tsx` |
+| `/_authenticated/admin/countries/$code/studio/sectors/$sectorCode` | `src/routes/_authenticated/admin/countries.$code.studio.sectors.$sectorCode.tsx` |
+| `/_authenticated/admin/countries/$code/studio/threats/new` | `src/routes/_authenticated/admin/countries.$code.studio.threats.new.tsx` |
 | `/_authenticated/admin/countries/$code/viz` | `src/routes/_authenticated/admin/countries.$code.viz.tsx` |
 | `/_authenticated/admin/country/$code` | `src/routes/_authenticated/admin/country.$code.tsx` |
 | `/_authenticated/admin/documents` | `src/routes/_authenticated/admin/documents.tsx` |

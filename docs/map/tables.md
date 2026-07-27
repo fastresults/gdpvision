@@ -29,6 +29,7 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `compact_revisions` | `20260725013404_ac6d2411-7789-4e86-a8d5-4e68cc6c4af5.sql` | ✓ | ✓ |
 | `compact_scorecards` | `20260725013404_ac6d2411-7789-4e86-a8d5-4e68cc6c4af5.sql` | ✓ | ✓ |
 | `compact_status_updates` | `20260725013404_ac6d2411-7789-4e86-a8d5-4e68cc6c4af5.sql` | ✓ | ✓ |
+| `compact_transformational_plans` | `20260725203556_c6d19be2-101f-4619-ade0-44e4523a316f.sql` | ✓ | ✓ |
 | `corpus_fetch_attempts` | `20260714204429_f55877d7-7cb3-4e35-bd43-93b36c352dbc.sql` | ✓ | ✓ |
 | `counsel_answers` | `20260711210806_b2663549-da57-43e6-929f-a8ca9a44f37d.sql` | ✓ | ✓ |
 | `countries` | `20260711204655_3293ec0b-b7a7-4fd3-b2b8-3a8c52c526e8.sql` | ✓ | ✓ |
@@ -51,8 +52,12 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `exports_documents` | `20260712091249_5e1ea539-de92-4045-88d5-c48d0c22fe34.sql` | ✓ | ✓ |
 | `exports_log` | `20260711210340_4b2b5fce-463a-44dc-8111-9113376f0b95.sql` | ✓ | ✓ |
 | `exposure_index` | `20260711204907_4075e222-a107-43e8-bae1-b926961373e5.sql` | ✓ | ✓ |
+| `fdi_playbook_actions` | `20260725223134_ffc96c53-1a87-4f5e-9e5f-592ae18b14be.sql` | ✓ | ✓ |
+| `fdi_playbooks` | `20260725223134_ffc96c53-1a87-4f5e-9e5f-592ae18b14be.sql` | ✓ | ✓ |
+| `fdi_posture_snapshots` | `20260725223134_ffc96c53-1a87-4f5e-9e5f-592ae18b14be.sql` | ✓ | ✓ |
 | `fdi_strategies` | `20260718130044_4b584a4e-1901-4886-a51d-0b9b87a12e5d.sql` | ✓ | ✓ |
 | `fdi_threats` | `20260718130044_4b584a4e-1901-4886-a51d-0b9b87a12e5d.sql` | ✓ | ✓ |
+| `fdi_transition_theses` | `20260725223134_ffc96c53-1a87-4f5e-9e5f-592ae18b14be.sql` | ✓ | ✓ |
 | `figure_snapshots` | `20260714114233_2abeecba-1b44-4c34-b326-ef94db46f408.sql` | ✓ | ✓ |
 | `galleries` | `20260612023016_c238d366-02a5-4310-9581-eb7b2e6bb206.sql` | ✓ | ✓ |
 | `gallery_items` | `20260612023016_c238d366-02a5-4310-9581-eb7b2e6bb206.sql` | ✓ | ✓ |
@@ -138,4 +143,4 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `study_transcripts` | `20260719003344_ed31c12d-9c3e-44d7-a001-0aade49f099c.sql` | ✓ | ✓ |
 | `user_roles` | `20260711204655_3293ec0b-b7a7-4fd3-b2b8-3a8c52c526e8.sql` | ✓ | ✓ |
 
-_Total tables: 130_
+_Total tables: 135_

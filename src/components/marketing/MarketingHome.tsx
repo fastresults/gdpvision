@@ -124,6 +124,42 @@ const CHAMBERS = [
   },
 ];
 
+const FEATURE_LABELS: Record<string, string> = {
+  "04": "04 →  Where the revenue cliff is priced",
+  "08": "08 →  Where the manifesto becomes a delivery plan",
+};
+
+const FEATURED_CHAMBERS = CHAMBERS.filter((c) => c.index === "04" || c.index === "08").map(
+  (c) => ({ ...c, featureLabel: FEATURE_LABELS[c.index] }),
+);
+
+const GRID_CHAMBERS = CHAMBERS.filter((c) => c.index !== "04" && c.index !== "08");
+
+const LOOP_STEPS = [
+  {
+    step: "01",
+    head: "Rehearse",
+    body: "Pull the lever in the Scenario Engine. Watch it propagate through the inter-sector dependency web. The compensation ledger shows what the gain costs elsewhere — nothing is free, and the instrument says so.",
+  },
+  {
+    step: "02",
+    head: "Decide",
+    body: "The scenario is promoted to the Cabinet Room. Session Mode puts two options side by side, on the same assumptions, and the decision is recorded live with an owner attached.",
+  },
+  {
+    step: "03",
+    head: "Track",
+    body: "The commitment enters the cockpit. What was adopted, who owns it, where it stands — visible between sessions, not reconstructed after them.",
+  },
+  {
+    step: "04",
+    head: "Score",
+    body: "The Mandate Compact grades it against what the government promised. Quarterly scorecards, a PM Report Card, and a signed compact whose every revision is snapshotted and diffable.",
+  },
+];
+
+
+
 function shuffleTail() {
   const tail = EXISTENTIAL_THREATS.slice(1);
   for (let i = tail.length - 1; i > 0; i--) {
@@ -137,9 +173,14 @@ export function MarketingHome() {
   const [tail, setTail] = useState(() => EXISTENTIAL_THREATS.slice(1));
   const [index, setIndex] = useState(0);
   const [momentIndex, setMomentIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [stopped, setStopped] = useState(false);
   useEffect(() => {
     setTail(shuffleTail());
     setMomentIndex(1 + Math.floor(Math.random() * (MOMENT_VARIANTS.length - 1)));
+  }, []);
+  useEffect(() => {
+    if (paused || stopped) return;
     const id = setInterval(() => {
       setIndex((prev) => {
         const next = (prev + 1) % EXISTENTIAL_THREATS.length;
@@ -148,20 +189,27 @@ export function MarketingHome() {
       });
     }, 10000);
     return () => clearInterval(id);
-  }, []);
+  }, [paused, stopped]);
+
   const current = index === 0 ? EXISTENTIAL_THREATS[0] : tail[index - 1];
   const moment = MOMENT_VARIANTS[momentIndex];
   const total = MOMENT_VARIANTS.length;
   const threatTotal = EXISTENTIAL_THREATS.length;
   const goPrev = () => setMomentIndex((i) => (i - 1 + total) % total);
   const goNext = () => setMomentIndex((i) => (i + 1) % total);
-  const goPrevThreat = () => setIndex((i) => (i - 1 + threatTotal) % threatTotal);
-  const goNextThreat = () =>
+  const goPrevThreat = () => {
+    setStopped(true);
+    setIndex((i) => (i - 1 + threatTotal) % threatTotal);
+  };
+  const goNextThreat = () => {
+    setStopped(true);
     setIndex((i) => {
       const next = (i + 1) % threatTotal;
       if (next === 0) setTail(shuffleTail());
       return next;
     });
+  };
+
 
   return (
     <MarketingShell>
@@ -170,20 +218,27 @@ export function MarketingHome() {
         <div className="mx-auto grid max-w-[1280px] items-center gap-12 px-6 py-16 md:grid-cols-[1.15fr_1fr] md:gap-16 md:px-10 md:py-24">
           <div>
             <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">
-              GDPVision · v1.0
+              GDPVision · An instrument of state
             </div>
             <div className="mt-6 h-px w-16 bg-gold-500" aria-hidden />
             <h1 className="mt-8 font-serif text-[43px] leading-[1.05] tracking-tight text-ink-950 md:text-[68px]">
-              The world's first instrument built to elevate national GDP.
+              No small state should learn its own economy from someone else's
+              report.
             </h1>
             <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-ink-700 md:text-[17px]">
-              Purpose-built for Presidents, Prime Ministers and Cabinets.
-              GDPVision turns a nation's public and private data into decisions
-              that measurably lift GDP — across eight sovereign chambers of state.
+              GDPVision is a sovereign instrument for Presidents, Prime Ministers
+              and Cabinets. It holds a nation's public and private evidence in one
+              graded Ledger, and lets Cabinet rehearse a decision before it is
+              taken. One isolated deployment per nation. The government owns it
+              outright.
             </p>
             <div
               aria-live="polite"
-              className="mt-8 min-h-[160px] md:min-h-[180px]"
+              onMouseEnter={() => setPaused(true)}
+              onMouseLeave={() => setPaused(false)}
+              onFocusCapture={() => setPaused(true)}
+              onBlurCapture={() => setPaused(false)}
+              className="mt-8"
             >
               <div
                 key={current.id}
@@ -195,8 +250,17 @@ export function MarketingHome() {
                 <p className="mt-3 max-w-xl text-[17px] leading-relaxed text-ink-700 md:text-[21px]">
                   {current.body}
                 </p>
+                <div className="mt-5 max-w-xl border-t border-gold-500 pt-4">
+                  <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-gold-500">
+                    The instrument's answer
+                  </div>
+                  <p className="mt-3 text-[17px] leading-relaxed text-ink-950 md:text-[21px]">
+                    {current.response}
+                  </p>
+                </div>
               </div>
             </div>
+
             <nav
               aria-label="Cycle through threats"
               className="mt-4 flex items-center gap-6 border-t border-line-200 pt-3"
@@ -237,11 +301,12 @@ export function MarketingHome() {
                 Request a Cabinet briefing
               </a>
               <a
-                href="#instrument"
+                href="#loop"
                 className="font-mono text-[12px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950"
               >
-                See the eight chambers ↓
+                See how a decision moves through the instrument ↓
               </a>
+
             </div>
           </div>
           <div className="relative flex items-center justify-center">
@@ -255,7 +320,7 @@ export function MarketingHome() {
         <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
           <div key={moment.id} className="animate-in fade-in duration-500 motion-reduce:animate-none">
             <SectionHeader
-              eyebrow="The moment"
+              eyebrow="The moment · Eight regional exposures, graded and cited"
               title={moment.title}
               lede={moment.lede}
             />
@@ -272,6 +337,11 @@ export function MarketingHome() {
               ))}
             </div>
           </div>
+          <p className="mt-10 max-w-2xl text-[15px] leading-relaxed text-ink-700">
+            Every figure on this page carries a confidence grade and a source.
+            Inside the instrument, so does every figure your Cabinet sees.
+          </p>
+
           <nav
             aria-label="Cycle through economic impact scenarios"
             className="mt-16 flex items-center justify-end gap-6 border-t border-line-200 pt-6"
@@ -314,7 +384,7 @@ export function MarketingHome() {
           <SectionHeader
             eyebrow="One sovereign corpus"
             title="Public data. Private data. Held apart, read together."
-            lede="No other GDP instrument governs both. Public evidence is aggregated, graded and cited for every ministry. Private Cabinet uploads sit under the same provenance discipline — visible only to those with authorised country access, never mixed into the public view."
+            lede="Public evidence is aggregated, graded and cited for every ministry. Private Cabinet uploads sit under the same provenance discipline — visible only to those with authorised country access, never mixed into the public view."
           />
           <div className="mt-16 grid gap-8 border-t border-line-200 pt-12 md:grid-cols-3">
             {[
@@ -342,25 +412,75 @@ export function MarketingHome() {
         </div>
       </section>
 
+      {/* THE LOOP --------------------------------------------------------- */}
+      <section id="loop" className="border-b border-line-200">
+        <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
+          <SectionHeader
+            eyebrow="How a decision moves"
+            title="A decision is rehearsed, taken, tracked, and scored."
+            lede="Most systems show a government what already happened. GDPVision carries a decision through its whole life — from the question on the Cabinet table to the quarter it is graded in."
+          />
+          <div className="mt-16 grid gap-8 border-t border-line-200 pt-12 md:grid-cols-2 lg:grid-cols-4">
+            {LOOP_STEPS.map((s) => (
+              <div key={s.step} className="border-t border-line-200 pt-6">
+                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold-500">
+                  {s.step} · {s.head}
+                </div>
+                <p className="mt-4 text-[15px] leading-relaxed text-ink-700">{s.body}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-12 max-w-2xl font-serif text-[21px] leading-snug text-ink-950">
+            At every step the instrument drafts and prices. Principals decide.
+            Nothing releases autonomously.
+          </p>
+        </div>
+      </section>
+
       {/* INSTRUMENT — CHAMBERS ------------------------------------------- */}
       <section id="instrument" className="border-b border-line-200 bg-paper-100/40">
         <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
           <SectionHeader
             eyebrow="The instrument"
             title="Eight chambers, each engineered to move GDP."
-            lede="Not a dashboard and not a consulting deliverable. GDPVision is organised as an instrument of state — a live Ledger under eight chambers, with the Counsel above them as a voice-first advisor."
+            lede="Not a dashboard and not a consulting deliverable. GDPVision is organised as an instrument of state — a live Ledger beneath eight chambers, with the Counsel above them."
           />
+          <div className="mt-16 grid gap-x-10 gap-y-10 border-t border-line-200 pt-12 md:grid-cols-2">
+            {FEATURED_CHAMBERS.map((c) => (
+              <div key={c.index}>
+                <div className="mb-4 font-mono text-[12px] uppercase tracking-[0.18em] text-gold-500">
+                  {c.featureLabel}
+                </div>
+                <ChamberPanel
+                  index={c.index}
+                  title={c.title}
+                  purpose={c.purpose}
+                  bullets={c.bullets}
+                  accentVar={c.accentVar}
+                  image={c.image}
+                />
+              </div>
+            ))}
+          </div>
           <div className="mt-16 grid gap-x-8 gap-y-6 md:grid-cols-2 lg:grid-cols-3">
-            {CHAMBERS.map((c) => (
+            {GRID_CHAMBERS.map((c) => (
               <ChamberPanel key={c.index} {...c} />
             ))}
           </div>
-          <p className="mt-10 max-w-2xl font-mono text-[12px] uppercase tracking-[0.16em] text-ink-500">
-            Above the chambers · The Counsel — voice-first sovereign advisor,
-            2–4 sentences of cited counsel, on desk or in a moving car.
-          </p>
         </div>
       </section>
+
+      {/* THE COUNSEL ------------------------------------------------------ */}
+      <section id="counsel" className="border-b border-line-200">
+        <div className="mx-auto max-w-[1280px] px-6 py-20 md:px-10 md:py-24">
+          <SectionHeader
+            eyebrow="Above the chambers"
+            title="The Counsel."
+            lede="A voice-first sovereign advisor. Two to four sentences of cited counsel, drawn from the Ledger, at a desk or in a moving car. It answers the question a principal actually asks between engagements — and it cites where the answer came from."
+          />
+        </div>
+      </section>
+
 
       {/* SOVEREIGNTY ------------------------------------------------------ */}
       <section id="sovereignty" className="border-b border-line-200">
@@ -368,6 +488,7 @@ export function MarketingHome() {
           <SectionHeader
             eyebrow="Sovereignty"
             title="One isolated deployment per nation. The government owns the data outright."
+            lede="Before anything else is discussed, this is usually the question. It is answered in the architecture rather than the contract."
           />
           <div className="grid gap-8 border-t border-line-200 pt-10">
             {[
@@ -380,18 +501,19 @@ export function MarketingHome() {
                 body: "Contractually and technically, the government owns its instance data. Full export and verified deletion on termination. Hosting region selected with the government, including EU data-residency options.",
               },
               {
-                head: "Access & audit",
-                body: "MFA mandatory for all roles, hardware-key support for Principals and Stewards, immutable audit log for data changes, decisions, and exports.",
-              },
-              {
                 head: "Public and private, separated by design",
                 body: "Visibility is a first-class attribute on every row. Private Cabinet uploads never enter the public corpus, are gated by country access, and every read and write is audited.",
+              },
+              {
+                head: "Access & audit",
+                body: "MFA mandatory for all roles, hardware-key support for Principals and Stewards, immutable audit log for data changes, decisions, and exports.",
               },
               {
                 head: "No trackers, ever",
                 body: "No third-party analytics or trackers inside government instances. Error telemetry is first-party and instance-consented.",
               },
             ].map((p) => (
+
               <div key={p.head} className="border-b border-line-200 pb-8 last:border-b-0">
                 <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
                   {p.head}
@@ -409,9 +531,9 @@ export function MarketingHome() {
           <SectionHeader
             eyebrow="Provenance"
             title="Built by OPEN Interactive — seventeen years in the room, one working prototype already running."
-            lede="OPEN Interactive originated the Caribbean Investment Summit franchise, delivered national digital infrastructure for the Government of St. Kitts & Nevis, and maintains head-of-government relationships across the OECS — the same team now delivering the world's first GDP-elevation instrument for sovereign governments."
+            lede="OPEN Interactive originated the Caribbean Investment Summit franchise in 2009, delivered national digital infrastructure for the Government of St. Kitts & Nevis, and has maintained head-of-government relationships across the OECS for seventeen years. GDPVision is built by the people already in the room."
           />
-          <div className="mt-16 grid gap-8 md:grid-cols-3">
+          <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             {[
               {
                 year: "2009 →",
@@ -428,7 +550,13 @@ export function MarketingHome() {
                 head: "SEDE — the Saint Lucia prototype",
                 body: "A working sovereign decision engine: live macro model, voice console, dossier corpus, ingest pipeline. GDPVision v1 absorbs SEDE as its interaction-proven core.",
               },
+              {
+                year: "Today",
+                head: "Built in the region, for the region",
+                body: "GDPVision is designed against the exposures Caribbean and small-island states actually carry — revenue concentration, climate shock, external repricing, and a data cadence that arrives too late to govern from. Not a global product adapted downward.",
+              },
             ].map((p) => (
+
               <div key={p.head} className="border-t border-line-200 pt-6">
                 <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold-500">
                   {p.year}
@@ -455,7 +583,14 @@ export function MarketingHome() {
                 <div>— Delivered in person or over secure video</div>
                 <div>— Sixty minutes, no slideware</div>
                 <div>— Under NDA on request</div>
+                <div>— Nothing is recorded</div>
               </div>
+              <p className="mt-8 max-w-md text-[15px] leading-relaxed text-ink-700">
+                Briefings are prepared against your nation's own public data. You
+                will see your economy in the instrument, not a generic
+                demonstration.
+              </p>
+
             </div>
             <BriefingForm />
           </div>

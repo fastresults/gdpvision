@@ -496,14 +496,33 @@ export function MarketingHome() {
 
       {/* THE COUNSEL ------------------------------------------------------ */}
       <section id="counsel" className="border-b border-line-200">
-        <div className="mx-auto max-w-[1280px] px-6 py-20 md:px-10 md:py-24">
-          <SectionHeader
-            eyebrow="Above the chambers"
-            title="The Counsel."
-            lede="A voice-first sovereign advisor. Two to four sentences of cited counsel, drawn from the Ledger, at a desk or in a moving car. It answers the question a principal actually asks between engagements — and it cites where the answer came from."
-          />
-          <Illustration src={illCounsel.url} variant="band" className="mt-14" />
+        <div className="mx-auto grid max-w-[1280px] items-start gap-12 px-6 py-20 md:grid-cols-[1fr_0.8fr] md:px-10 md:py-24">
+          <div>
+            <SectionHeader
+              eyebrow="Above the chambers"
+              title="The Counsel."
+              lede="A voice-first sovereign advisor. Two to four sentences of cited counsel, drawn from the Ledger, at a desk or in a moving car. It answers the question a principal actually asks between engagements — and it cites where the answer came from."
+            />
+          </div>
+          <div className="grid gap-6 border-t border-line-200 pt-8 md:mt-2">
+            {[
+              { head: "Voice-first", body: "Asked aloud between engagements. No screen required." },
+              { head: "Two to four sentences", body: "The length of an answer a principal can act on, not a report." },
+              { head: "Always cited", body: "Every claim carries its source and confidence grade from the Ledger." },
+            ].map((p) => (
+              <div key={p.head} className="flex items-start gap-5">
+                <div className="min-w-0">
+                  <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold-500">
+                    {p.head}
+                  </div>
+                  <p className="mt-2 text-[15px] leading-relaxed text-ink-700">{p.body}</p>
+                </div>
+              </div>
+            ))}
+            <Illustration src={illCounsel.url} variant="spot" className="mt-2" />
+          </div>
         </div>
+
       </section>
 
 

@@ -7,6 +7,8 @@ Regenerate with `bun run map`. Do not hand-edit.
 | Route | File |
 |-------|------|
 | `/` | `src/routes/index.tsx` |
+| `/op-eds/` | `src/routes/op-eds.index.tsx` |
+| `/op-eds/$slug` | `src/routes/op-eds.$slug.tsx` |
 | `/reset-password` | `src/routes/reset-password.tsx` |
 
 ## auth

@@ -14,7 +14,9 @@ import { Route as KioskRouteImport } from './routes/kiosk'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OpEdsIndexRouteImport } from './routes/op-eds.index'
 import { Route as KioskIndexRouteImport } from './routes/kiosk.index'
+import { Route as OpEdsSlugRouteImport } from './routes/op-eds.$slug'
 import { Route as KioskAdminRouteImport } from './routes/kiosk.admin'
 import { Route as AuthInviteRouteImport } from './routes/auth.invite'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
@@ -149,10 +151,20 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OpEdsIndexRoute = OpEdsIndexRouteImport.update({
+  id: '/op-eds/',
+  path: '/op-eds/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const KioskIndexRoute = KioskIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => KioskRoute,
+} as any)
+const OpEdsSlugRoute = OpEdsSlugRouteImport.update({
+  id: '/op-eds/$slug',
+  path: '/op-eds/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const KioskAdminRoute = KioskAdminRouteImport.update({
   id: '/admin',
@@ -809,7 +821,9 @@ export interface FileRoutesByFullPath {
   '/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
   '/kiosk/admin': typeof KioskAdminRoute
+  '/op-eds/$slug': typeof OpEdsSlugRoute
   '/kiosk/': typeof KioskIndexRoute
+  '/op-eds/': typeof OpEdsIndexRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
@@ -921,7 +935,9 @@ export interface FileRoutesByTo {
   '/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
   '/kiosk/admin': typeof KioskAdminRoute
+  '/op-eds/$slug': typeof OpEdsSlugRoute
   '/kiosk': typeof KioskIndexRoute
+  '/op-eds': typeof OpEdsIndexRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
@@ -1034,7 +1050,9 @@ export interface FileRoutesById {
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
   '/kiosk/admin': typeof KioskAdminRoute
+  '/op-eds/$slug': typeof OpEdsSlugRoute
   '/kiosk/': typeof KioskIndexRoute
+  '/op-eds/': typeof OpEdsIndexRoute
   '/_authenticated/admin/activity': typeof AuthenticatedAdminActivityRoute
   '/_authenticated/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/_authenticated/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
@@ -1152,7 +1170,9 @@ export interface FileRouteTypes {
     | '/home'
     | '/auth/invite'
     | '/kiosk/admin'
+    | '/op-eds/$slug'
     | '/kiosk/'
+    | '/op-eds/'
     | '/admin/activity'
     | '/admin/brain'
     | '/admin/corpus-audit'
@@ -1264,7 +1284,9 @@ export interface FileRouteTypes {
     | '/home'
     | '/auth/invite'
     | '/kiosk/admin'
+    | '/op-eds/$slug'
     | '/kiosk'
+    | '/op-eds'
     | '/admin/activity'
     | '/admin/brain'
     | '/admin/corpus-audit'
@@ -1376,7 +1398,9 @@ export interface FileRouteTypes {
     | '/_authenticated/home'
     | '/auth/invite'
     | '/kiosk/admin'
+    | '/op-eds/$slug'
     | '/kiosk/'
+    | '/op-eds/'
     | '/_authenticated/admin/activity'
     | '/_authenticated/admin/brain'
     | '/_authenticated/admin/corpus-audit'
@@ -1487,6 +1511,8 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   KioskRoute: typeof KioskRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
+  OpEdsSlugRoute: typeof OpEdsSlugRoute
+  OpEdsIndexRoute: typeof OpEdsIndexRoute
   ApiPublicHooksCadenceDailyRoute: typeof ApiPublicHooksCadenceDailyRoute
   ApiPublicHooksLedgerQaRoute: typeof ApiPublicHooksLedgerQaRoute
   ApiPublicHooksNarrativeHarvestRoute: typeof ApiPublicHooksNarrativeHarvestRoute
@@ -1532,12 +1558,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/op-eds/': {
+      id: '/op-eds/'
+      path: '/op-eds'
+      fullPath: '/op-eds/'
+      preLoaderRoute: typeof OpEdsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/kiosk/': {
       id: '/kiosk/'
       path: '/'
       fullPath: '/kiosk/'
       preLoaderRoute: typeof KioskIndexRouteImport
       parentRoute: typeof KioskRoute
+    }
+    '/op-eds/$slug': {
+      id: '/op-eds/$slug'
+      path: '/op-eds/$slug'
+      fullPath: '/op-eds/$slug'
+      preLoaderRoute: typeof OpEdsSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/kiosk/admin': {
       id: '/kiosk/admin'
@@ -2733,6 +2773,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   KioskRoute: KioskRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
+  OpEdsSlugRoute: OpEdsSlugRoute,
+  OpEdsIndexRoute: OpEdsIndexRoute,
   ApiPublicHooksCadenceDailyRoute: ApiPublicHooksCadenceDailyRoute,
   ApiPublicHooksLedgerQaRoute: ApiPublicHooksLedgerQaRoute,
   ApiPublicHooksNarrativeHarvestRoute: ApiPublicHooksNarrativeHarvestRoute,
@@ -2743,13 +2785,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

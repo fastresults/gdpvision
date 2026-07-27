@@ -101,6 +101,8 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `onboarding_pipeline_runs` | `20260713173420_ecbaa7d0-d17f-45cd-90f2-77477487dd09.sql` | ✓ | ✓ |
 | `onboarding_runs` | `20260712164359_bd7338ea-f23d-42d2-8a7a-740c887cd400.sql` | ✓ | ✓ |
 | `onboarding_summaries` | `20260713071438_14868af4-bafa-41b1-b8da-481a9a76054e.sql` | ✓ | ✓ |
+| `op_ed_events` | `20260727163938_07c0730e-bac1-41bd-b4a4-f73269815671.sql` | ✓ | ✓ |
+| `op_ed_requests` | `20260727163827_6ce4ce01-8b96-437e-8afb-c70265fb157e.sql` | ✓ | ✓ |
 | `opposition_items` | `20260724175038_f526e476-967f-438a-b531-723ad1e537b5.sql` | ✓ | ✓ |
 | `opposition_response_plans` | `20260724175038_f526e476-967f-438a-b531-723ad1e537b5.sql` | ✓ | ✓ |
 | `packages` | `20260711210340_4b2b5fce-463a-44dc-8111-9113376f0b95.sql` | ✓ | ✓ |
@@ -143,4 +145,4 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `study_transcripts` | `20260719003344_ed31c12d-9c3e-44d7-a001-0aade49f099c.sql` | ✓ | ✓ |
 | `user_roles` | `20260711204655_3293ec0b-b7a7-4fd3-b2b8-3a8c52c526e8.sql` | ✓ | ✓ |
 
-_Total tables: 135_
+_Total tables: 137_

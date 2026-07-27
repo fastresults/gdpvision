@@ -329,7 +329,9 @@ export function MarketingHome() {
           <div key={moment.id} className="animate-in fade-in duration-500 motion-reduce:animate-none">
             <div className="grid items-center gap-8 md:grid-cols-[320px_minmax(0,1fr)] md:gap-12 lg:grid-cols-[384px_minmax(0,1fr)]">
               <Illustration
-                src={illMoment.url}
+                key={moment.id}
+                src={moment.illustration ?? illMoment.url}
+                alt={moment.title}
                 variant="spot"
                 className="hidden shrink-0 !w-[320px] lg:!w-[384px] md:block"
               />

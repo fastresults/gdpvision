@@ -47,7 +47,7 @@ export function ChamberPanel({
             <Illustration
               src={image}
               variant="mark"
-              className="h-16 w-16 shrink-0 opacity-90 md:h-[72px] md:w-[72px]"
+              className="shrink-0"
             />
           ) : null}
         </div>

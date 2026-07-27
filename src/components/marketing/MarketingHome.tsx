@@ -327,11 +327,16 @@ export function MarketingHome() {
       <section id="problem" className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
           <div key={moment.id} className="animate-in fade-in duration-500 motion-reduce:animate-none">
-            <SectionHeader
-              eyebrow="The moment · Eight regional exposures, graded and cited"
-              title={moment.title}
-              lede={moment.lede}
-            />
+            <div className="flex items-start gap-5">
+              <Illustration src={illMoment.url} variant="mark" className="mt-1 hidden shrink-0 md:block" />
+              <div className="min-w-0 flex-1">
+                <SectionHeader
+                  eyebrow="The moment · Eight regional exposures, graded and cited"
+                  title={moment.title}
+                  lede={moment.lede}
+                />
+              </div>
+            </div>
             <div className="mt-16 grid gap-12 border-t border-line-200 pt-12 md:grid-cols-3">
               {moment.stats.map((s, i) => (
                 <NumberTile
@@ -345,11 +350,11 @@ export function MarketingHome() {
               ))}
             </div>
           </div>
-          <Illustration src={illMoment.url} variant="band" className="mt-16" />
-          <p className="mt-10 max-w-2xl text-[15px] leading-relaxed text-ink-700">
+          <p className="mt-12 max-w-2xl text-[15px] leading-relaxed text-ink-700">
             Every figure on this page carries a confidence grade and a source.
             Inside the instrument, so does every figure your Cabinet sees.
           </p>
+
 
           <nav
             aria-label="Cycle through economic impact scenarios"

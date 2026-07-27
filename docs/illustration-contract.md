@@ -35,6 +35,7 @@ Generate to `/tmp`, upload via `lovable-assets create`, and commit only the poin
 
 - Section / page illustrations → `src/assets/illustrations/<name>.jpg.asset.json`
 - Chamber illustrations → `src/assets/chambers/chamber-0N.jpg.asset.json`
+- Per-exposure illustrations for the marketing "moment" carousel → `src/assets/illustrations/threat-<id>.jpg.asset.json`
 
 Never commit the binary.
 

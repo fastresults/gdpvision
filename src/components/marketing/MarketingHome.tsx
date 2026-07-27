@@ -183,6 +183,14 @@ export function MarketingHome() {
   const [momentIndex, setMomentIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [stopped, setStopped] = useState(false);
+  const [momentStopped, setMomentStopped] = useState(false);
+  useEffect(() => {
+    if (momentStopped) return;
+    const id = setInterval(() => {
+      setMomentIndex((i) => (i + 1) % MOMENT_VARIANTS.length);
+    }, 4000);
+    return () => clearInterval(id);
+  }, [momentStopped]);
   useEffect(() => {
     setTail(shuffleTail());
     setMomentIndex(1 + Math.floor(Math.random() * (MOMENT_VARIANTS.length - 1)));

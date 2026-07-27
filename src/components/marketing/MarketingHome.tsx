@@ -8,6 +8,14 @@ import { ChamberPanel } from "./ChamberPanel";
 import { SectionHeader } from "./SectionHeader";
 import { BriefingForm } from "./BriefingForm";
 import { Wordmark } from "./Wordmark";
+import { Illustration } from "./Illustration";
+import illMoment from "@/assets/illustrations/section-moment.jpg.asset.json";
+import illCorpus from "@/assets/illustrations/section-corpus.jpg.asset.json";
+import illLoop from "@/assets/illustrations/section-loop.jpg.asset.json";
+import illCounsel from "@/assets/illustrations/section-counsel.jpg.asset.json";
+import illSovereignty from "@/assets/illustrations/section-sovereignty.jpg.asset.json";
+import illProvenance from "@/assets/illustrations/section-provenance.jpg.asset.json";
+import illBriefing from "@/assets/illustrations/section-briefing.jpg.asset.json";
 import ch01 from "@/assets/chambers/chamber-01.jpg.asset.json";
 import ch02 from "@/assets/chambers/chamber-02.jpg.asset.json";
 import ch03 from "@/assets/chambers/chamber-03.jpg.asset.json";
@@ -337,6 +345,7 @@ export function MarketingHome() {
               ))}
             </div>
           </div>
+          <Illustration src={illMoment.url} variant="band" className="mt-16" />
           <p className="mt-10 max-w-2xl text-[15px] leading-relaxed text-ink-700">
             Every figure on this page carries a confidence grade and a source.
             Inside the instrument, so does every figure your Cabinet sees.
@@ -409,6 +418,7 @@ export function MarketingHome() {
               </div>
             ))}
           </div>
+          <Illustration src={illCorpus.url} variant="band" className="mt-16" />
         </div>
       </section>
 
@@ -430,6 +440,7 @@ export function MarketingHome() {
               </div>
             ))}
           </div>
+          <Illustration src={illLoop.url} variant="band" className="mt-16" />
           <p className="mt-12 max-w-2xl font-serif text-[21px] leading-snug text-ink-950">
             At every step the instrument drafts and prices. Principals decide.
             Nothing releases autonomously.
@@ -478,6 +489,7 @@ export function MarketingHome() {
             title="The Counsel."
             lede="A voice-first sovereign advisor. Two to four sentences of cited counsel, drawn from the Ledger, at a desk or in a moving car. It answers the question a principal actually asks between engagements — and it cites where the answer came from."
           />
+          <Illustration src={illCounsel.url} variant="band" className="mt-14" />
         </div>
       </section>
 
@@ -485,11 +497,14 @@ export function MarketingHome() {
       {/* SOVEREIGNTY ------------------------------------------------------ */}
       <section id="sovereignty" className="border-b border-line-200">
         <div className="mx-auto grid max-w-[1280px] items-start gap-16 px-6 py-24 md:grid-cols-[1fr_1.2fr] md:px-10 md:py-32">
-          <SectionHeader
-            eyebrow="Sovereignty"
-            title="One isolated deployment per nation. The government owns the data outright."
-            lede="Before anything else is discussed, this is usually the question. It is answered in the architecture rather than the contract."
-          />
+          <div>
+            <SectionHeader
+              eyebrow="Sovereignty"
+              title="One isolated deployment per nation. The government owns the data outright."
+              lede="Before anything else is discussed, this is usually the question. It is answered in the architecture rather than the contract."
+            />
+            <Illustration src={illSovereignty.url} variant="spot" className="mt-12" />
+          </div>
           <div className="grid gap-8 border-t border-line-200 pt-10">
             {[
               {
@@ -533,6 +548,7 @@ export function MarketingHome() {
             title="Built by OPEN Interactive — seventeen years in the room, one working prototype already running."
             lede="OPEN Interactive originated the Caribbean Investment Summit franchise in 2009, delivered national digital infrastructure for the Government of St. Kitts & Nevis, and has maintained head-of-government relationships across the OECS for seventeen years. GDPVision is built by the people already in the room."
           />
+          <Illustration src={illProvenance.url} variant="band" className="mt-14" />
           <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             {[
               {

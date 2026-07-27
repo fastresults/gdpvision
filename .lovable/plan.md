@@ -1,43 +1,59 @@
-## Part 1 — The illustration contract (global rule)
+## What's wrong today
 
-Define one binding house style for every illustration in the product and in print/PDF output. Derived from the uploaded references: hand-drawn graphite / pen-and-ink engraving, monochrome, white ground, fine cross-hatch and stipple shading, no colour fills, no gradients, no 3D, no flat-vector "corporate" iconography, subject centred with generous white space.
+Audit of every placement made in the last pass:
 
-**Where it is written down (so it binds future work):**
-1. `docs/illustration-contract.md` — the canonical spec: subject matter rules, rendering rules, prompt template, sizing, alt-text rules, do/don't list.
-2. A Core line added to project memory (`mem://index.md`) plus a detail memory `mem://design/illustration-contract`, so every future session applies it without being asked.
-3. A short pointer section in `AGENTS.md` §1 Cardinal rules.
+| Where | Current treatment | Problem |
+|---|---|---|
+| `#moment`, `#corpus`, `#loop`, `#counsel`, `#provenance` | `variant="band"` = `w-full aspect-[3/1]` inside a 1280px container → a ~1280×427px image block | Five near-identical full-width slabs sitting in the main reading column. They interrupt the text rhythm, out-weigh the type, and repeat as a pattern down the page. |
+| `#counsel` | Section is *only* a header + a full-width band | The illustration has become the content. |
+| `#sovereignty`, `#briefing` | `variant="spot"` at 220px square, stacked under the text | Better, but still a centred block in the flow, and 220px is heavier than a "spot". |
+| `/auth` sign-in | 220px spot under the form column | Competes with the primary action. |
+| Chamber cards (`ChamberPanel`) | bare `<img>` at `aspect-[3/1] object-cover` as a card header | Cropped, heavy, bypasses the `<Illustration>` contract, and eight of them at once reads as stock art. |
 
-**The rule itself:**
-- Every illustration in front-facing UI/UX and in any exported document (Mandate Compact PDF, briefing packs, decks) uses the engraved-sketch style.
-- Illustrations render monochrome and are tinted only through the existing ink/paper tokens — never introduce new colour.
-- Sole exception: the website hero section, which keeps its current photographic treatment.
-- Illustrations are decorative unless they carry meaning; decorative ones get `alt=""` + `aria-hidden`, meaningful ones get a real description.
-- New illustrations are generated from the shared prompt template in the contract doc, stored under `src/assets/illustrations/`, and referenced via the assets pointer pattern already used for the chamber images.
+The style is right; the **scale, count, and position** are wrong. Award-winning editorial pages (Pentagram, Zuzunaga, FT Alphaville-class) use engraved marks as *marginalia* — small, off-axis, aligned to a rule or an eyebrow — never as a repeating full-bleed slab.
 
-**Enforcement in code:** a single `<Illustration>` component (`src/components/marketing/Illustration.tsx`) that all sections use. It owns the frame, the paper background, the mix-blend/`sepia`-free monochrome treatment, sizing variants (`spot` / `band` / `panel`), lazy loading, and the alt/aria handling. Sections do not place bare `<img>` tags — the contract is enforced by the component, and the docs state that.
+## The corrected system
 
-## Part 2 — Illustrating the public sections
+Rewrite `Illustration.tsx` around a proper scale with hard maximum sizes, and retire `band` as the default.
 
-Generate a set of new engraved-sketch illustrations and place one per section of the public site (`MarketingHome`), plus the auth and invite pages.
+```text
+mark    28–40px   inline beside an eyebrow / step number
+spot    96–140px  margin-anchored beside a column, never centred in flow
+aside   max 260px sits in the empty half of an existing 2-col grid
+rule    max 560px wide, aspect 6:1, opacity 80, used ONCE as a section divider
+```
 
-| Section | Illustration concept |
-|---|---|
-| `#problem` (threats carousel) | A small spot mark per threat theme; one shared "storm over a harbour" band behind the carousel frame |
-| `#corpus` | Sketched cabinet of stacked, indexed folios with a lamp — study/archive |
-| `#loop` (Rehearse/Decide/Track/Score) | Four numbered spot sketches, one per step |
-| `#instrument` (chambers) | Featured chambers 04/08 keep their photographs; the six grid chambers move to sketch spots so the band reads as hierarchy |
-| `#counsel` | Two chairs and a table, counsel-in-session |
-| `#sovereignty` | A sealed strongbox / key motif for the five panels (one spot on the lead panel) |
-| `#provenance` | Regional chart-and-dividers sketch |
-| `#briefing` | Sealed envelope and pen beside the form |
-| `/auth`, `/auth/invite` | One quiet lamp spot to carry the same register |
+Additional contract rules baked into the component:
+- default variant becomes `spot`, not `band`
+- every illustration renders at `opacity-[.85]` with `select-none pointer-events-none`
+- `aside`/`spot` get `md:` positioning helpers so they sit in the outer margin, not the text column
+- one illustration maximum per section — the component itself can't stop that, so the rule goes into `docs/illustration-contract.md` and `AGENTS.md`
 
-Hero stays exactly as it is.
+## Placement, section by section
 
-**Chamber imagery:** the eight existing `chamber-0N.jpg` photographs are off-contract. Plan is to regenerate all eight in the sketch style so the grid is consistent, keeping the same filenames/pointers so nothing else changes. If you would rather leave the chamber photographs alone, say so and I will scope the sketches to the non-chamber sections only.
+- **`#moment`** — remove the band entirely. Instead a `mark` sits next to the "The moment" eyebrow. The three NumberTiles stay the visual hero.
+- **`#corpus`** — convert the section to a two-column grid (`md:grid-cols-[1.3fr_1fr]`): copy + the public/private list on the left, one `aside` illustration bottom-aligned in the right margin. No slab.
+- **`#loop`** — the four loop steps already form a 4-up grid. Drop the band; place a `mark` above each step number? No — one `spot` right-aligned above the grid, aligned to the container's right edge, so it reads as a plate reference rather than a banner.
+- **`#counsel`** — this section is too thin to carry an image alone. Restructure into `md:grid-cols-[1fr_0.8fr]`: the Counsel copy plus three short capability lines on the left (voice-first / two-to-four sentences / cited), the illustration as an `aside` on the right. The section gains substance and the image stops being the content.
+- **`#sovereignty`** — keep it in the left column but drop to `spot` (≤140px), top-aligned beside the eyebrow rather than stacked below the lede.
+- **`#provenance`** — replace band with a single `rule` divider under the section header, max 560px, left-aligned to the text measure.
+- **`#briefing`** — drop to `spot`, moved to sit under the mono spec lines and above the paragraph, so the form column stays the clear focal point.
+- **`/auth`** — `mark` beside the wordmark instead of a 220px block under the form.
+- **`ChamberPanel`** — stop cropping to a 3:1 header. Move the chamber sketch to a small `spot` floated to the panel's top-right at ~88px, `object-contain`, behind the title block at low opacity. Routed through `<Illustration>` so the contract holds. Eight small marks read as a considered set; eight banners read as clip art.
 
-### Technical notes
-- Images generated at 1024px-ish, saved as `.png`/`.jpg` under `src/assets/illustrations/`, imported through the existing asset-pointer JSON convention.
-- No new colour tokens; `Illustration` uses `paper-0`/`line-200`/`ink-*` only, per the button/token contract.
-- `MarketingHome.tsx`, `ChamberPanel.tsx`, `BriefingForm.tsx`, `routes/auth.tsx`, `routes/auth.invite.tsx` are the edited files; copy is untouched.
-- Verify with lint, typecheck, `bun run check:maps`, and a rendered pass over the page at desktop and mobile widths.
+## Layout improvements that come with it
+
+- Reclaiming ~2,000px of vertical slab tightens the page considerably; section padding stays as-is so the rhythm improves rather than compresses.
+- Two thin sections (`#counsel`, `#corpus`) become proper two-column compositions, which is what removes the "header + picture" monotony.
+- Alternating the margin side (right, left, right) down the page creates a slow visual zig-zag instead of a stack of centred rectangles.
+
+## Technical notes
+
+- `src/components/marketing/Illustration.tsx` — new variant map, new defaults, max-width clamps, opacity/no-select.
+- `src/components/marketing/MarketingHome.tsx` — placements above; two sections restructured to grids.
+- `src/components/marketing/ChamberPanel.tsx` — replace the bare `<img>` header with a contract-compliant corner spot.
+- `src/routes/auth.tsx` — spot → mark.
+- `docs/illustration-contract.md` + `AGENTS.md` + project memory — add the scale table and the "one per section, never in the reading column, never full-width" rules so this doesn't regress.
+- Verified afterwards with a Playwright capture of the marketing page at 1280 and 390 wide.
+
+No copy, data, or backend changes.

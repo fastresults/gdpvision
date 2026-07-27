@@ -327,11 +327,16 @@ export function MarketingHome() {
       <section id="problem" className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
           <div key={moment.id} className="animate-in fade-in duration-500 motion-reduce:animate-none">
-            <SectionHeader
-              eyebrow="The moment · Eight regional exposures, graded and cited"
-              title={moment.title}
-              lede={moment.lede}
-            />
+            <div className="flex items-start gap-5">
+              <Illustration src={illMoment.url} variant="mark" className="mt-1 hidden shrink-0 md:block" />
+              <div className="min-w-0 flex-1">
+                <SectionHeader
+                  eyebrow="The moment · Eight regional exposures, graded and cited"
+                  title={moment.title}
+                  lede={moment.lede}
+                />
+              </div>
+            </div>
             <div className="mt-16 grid gap-12 border-t border-line-200 pt-12 md:grid-cols-3">
               {moment.stats.map((s, i) => (
                 <NumberTile
@@ -345,11 +350,11 @@ export function MarketingHome() {
               ))}
             </div>
           </div>
-          <Illustration src={illMoment.url} variant="band" className="mt-16" />
-          <p className="mt-10 max-w-2xl text-[15px] leading-relaxed text-ink-700">
+          <p className="mt-12 max-w-2xl text-[15px] leading-relaxed text-ink-700">
             Every figure on this page carries a confidence grade and a source.
             Inside the instrument, so does every figure your Cabinet sees.
           </p>
+
 
           <nav
             aria-label="Cycle through economic impact scenarios"
@@ -390,11 +395,16 @@ export function MarketingHome() {
       {/* CORPUS ----------------------------------------------------------- */}
       <section id="corpus" className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
-          <SectionHeader
-            eyebrow="One sovereign corpus"
-            title="Public data. Private data. Held apart, read together."
-            lede="Public evidence is aggregated, graded and cited for every ministry. Private Cabinet uploads sit under the same provenance discipline — visible only to those with authorised country access, never mixed into the public view."
-          />
+          <div className="grid items-end gap-10 md:grid-cols-[1.3fr_1fr]">
+            <SectionHeader
+              eyebrow="One sovereign corpus"
+              title="Public data. Private data. Held apart, read together."
+              lede="Public evidence is aggregated, graded and cited for every ministry. Private Cabinet uploads sit under the same provenance discipline — visible only to those with authorised country access, never mixed into the public view."
+            />
+            <div className="hidden justify-end md:flex">
+              <Illustration src={illCorpus.url} variant="aside" />
+            </div>
+          </div>
           <div className="mt-16 grid gap-8 border-t border-line-200 pt-12 md:grid-cols-3">
             {[
               {
@@ -418,18 +428,21 @@ export function MarketingHome() {
               </div>
             ))}
           </div>
-          <Illustration src={illCorpus.url} variant="band" className="mt-16" />
+
         </div>
       </section>
 
       {/* THE LOOP --------------------------------------------------------- */}
       <section id="loop" className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
-          <SectionHeader
-            eyebrow="How a decision moves"
-            title="A decision is rehearsed, taken, tracked, and scored."
-            lede="Most systems show a government what already happened. GDPVision carries a decision through its whole life — from the question on the Cabinet table to the quarter it is graded in."
-          />
+          <div className="grid items-end gap-8 md:grid-cols-[1fr_auto]">
+            <SectionHeader
+              eyebrow="How a decision moves"
+              title="A decision is rehearsed, taken, tracked, and scored."
+              lede="Most systems show a government what already happened. GDPVision carries a decision through its whole life — from the question on the Cabinet table to the quarter it is graded in."
+            />
+            <Illustration src={illLoop.url} variant="spot" className="hidden justify-self-end md:block" />
+          </div>
           <div className="mt-16 grid gap-8 border-t border-line-200 pt-12 md:grid-cols-2 lg:grid-cols-4">
             {LOOP_STEPS.map((s) => (
               <div key={s.step} className="border-t border-line-200 pt-6">
@@ -440,11 +453,11 @@ export function MarketingHome() {
               </div>
             ))}
           </div>
-          <Illustration src={illLoop.url} variant="band" className="mt-16" />
           <p className="mt-12 max-w-2xl font-serif text-[21px] leading-snug text-ink-950">
             At every step the instrument drafts and prices. Principals decide.
             Nothing releases autonomously.
           </p>
+
         </div>
       </section>
 
@@ -483,14 +496,33 @@ export function MarketingHome() {
 
       {/* THE COUNSEL ------------------------------------------------------ */}
       <section id="counsel" className="border-b border-line-200">
-        <div className="mx-auto max-w-[1280px] px-6 py-20 md:px-10 md:py-24">
-          <SectionHeader
-            eyebrow="Above the chambers"
-            title="The Counsel."
-            lede="A voice-first sovereign advisor. Two to four sentences of cited counsel, drawn from the Ledger, at a desk or in a moving car. It answers the question a principal actually asks between engagements — and it cites where the answer came from."
-          />
-          <Illustration src={illCounsel.url} variant="band" className="mt-14" />
+        <div className="mx-auto grid max-w-[1280px] items-start gap-12 px-6 py-20 md:grid-cols-[1fr_0.8fr] md:px-10 md:py-24">
+          <div>
+            <SectionHeader
+              eyebrow="Above the chambers"
+              title="The Counsel."
+              lede="A voice-first sovereign advisor. Two to four sentences of cited counsel, drawn from the Ledger, at a desk or in a moving car. It answers the question a principal actually asks between engagements — and it cites where the answer came from."
+            />
+          </div>
+          <div className="grid gap-6 border-t border-line-200 pt-8 md:mt-2">
+            {[
+              { head: "Voice-first", body: "Asked aloud between engagements. No screen required." },
+              { head: "Two to four sentences", body: "The length of an answer a principal can act on, not a report." },
+              { head: "Always cited", body: "Every claim carries its source and confidence grade from the Ledger." },
+            ].map((p) => (
+              <div key={p.head} className="flex items-start gap-5">
+                <div className="min-w-0">
+                  <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold-500">
+                    {p.head}
+                  </div>
+                  <p className="mt-2 text-[15px] leading-relaxed text-ink-700">{p.body}</p>
+                </div>
+              </div>
+            ))}
+            <Illustration src={illCounsel.url} variant="spot" className="mt-2" />
+          </div>
         </div>
+
       </section>
 
 
@@ -548,7 +580,7 @@ export function MarketingHome() {
             title="Built by OPEN Interactive — seventeen years in the room, one working prototype already running."
             lede="OPEN Interactive originated the Caribbean Investment Summit franchise in 2009, delivered national digital infrastructure for the Government of St. Kitts & Nevis, and has maintained head-of-government relationships across the OECS for seventeen years. GDPVision is built by the people already in the room."
           />
-          <Illustration src={illProvenance.url} variant="band" className="mt-14" />
+          <Illustration src={illProvenance.url} variant="rule" className="mt-10" />
           <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             {[
               {
@@ -595,18 +627,21 @@ export function MarketingHome() {
                 title="Request a confidential briefing."
                 lede="A short, dignified enquiry from a member of a sitting government or their designated advisor. OPEN Interactive responds within one working day."
               />
-              <div className="mt-10 space-y-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
-                <div>— Delivered in person or over secure video</div>
-                <div>— Sixty minutes, no slideware</div>
-                <div>— Under NDA on request</div>
-                <div>— Nothing is recorded</div>
+              <div className="mt-10 flex items-start justify-between gap-8">
+                <div className="space-y-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
+                  <div>— Delivered in person or over secure video</div>
+                  <div>— Sixty minutes, no slideware</div>
+                  <div>— Under NDA on request</div>
+                  <div>— Nothing is recorded</div>
+                </div>
+                <Illustration src={illBriefing.url} variant="spot" className="hidden shrink-0 md:block" />
               </div>
               <p className="mt-8 max-w-md text-[15px] leading-relaxed text-ink-700">
                 Briefings are prepared against your nation's own public data. You
                 will see your economy in the instrument, not a generic
                 demonstration.
               </p>
-              <Illustration src={illBriefing.url} variant="spot" className="mt-10" />
+
             </div>
             <BriefingForm />
           </div>

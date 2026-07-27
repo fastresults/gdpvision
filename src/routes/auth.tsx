@@ -89,8 +89,13 @@ function AuthPage() {
   return (
     <MarketingShell>
       <div className="mx-auto max-w-md px-6 py-24">
-        <SectionHeader eyebrow="Instrument access" title={title} />
-        <Illustration src={illLamp.url} variant="spot" className="mt-8" />
+        <div className="flex items-start gap-4">
+          <Illustration src={illLamp.url} variant="mark" className="mt-1 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <SectionHeader eyebrow="Instrument access" title={title} />
+          </div>
+        </div>
+
 
         <div className="mt-6 border-l-2 border-gold-500 bg-paper-100 p-4">
           <div className="flex items-center justify-between gap-3">

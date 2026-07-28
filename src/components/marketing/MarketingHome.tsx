@@ -375,18 +375,20 @@ export function MarketingHome() {
 
       {/* CORPUS ----------------------------------------------------------- */}
       <section id="corpus" className="border-b border-line-200">
-        <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
-          <div className="grid items-end gap-10 md:grid-cols-[1.3fr_1fr]">
+        <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
+          <div className="grid items-end gap-8 md:grid-cols-[1.3fr_1fr] md:gap-10">
             <SectionHeader
               eyebrow="One sovereign corpus"
               title="Public data. Private data. Held apart, read together."
               lede="Public evidence is aggregated, graded and cited for every ministry. Private Cabinet uploads sit under the same provenance discipline — visible only to those with authorised country access, never mixed into the public view."
             />
-            <div className="hidden justify-end md:flex">
-              <Illustration src={illCorpus.url} variant="aside" />
+            <div className="flex justify-center md:justify-end">
+              <Illustration src={illCorpus.url} variant="spot" className="md:hidden" />
+              <Illustration src={illCorpus.url} variant="aside" className="hidden md:block" />
             </div>
           </div>
-          <div className="mt-16 grid gap-8 border-t border-line-200 pt-12 md:grid-cols-3">
+          <div className="mt-10 grid gap-8 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-3">
+
             {[
               {
                 head: "Public corpus",

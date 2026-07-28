@@ -72,11 +72,3 @@ export function AttentionRail({
     </section>
   );
 }
-
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}

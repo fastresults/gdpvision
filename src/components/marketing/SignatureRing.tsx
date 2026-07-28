@@ -84,7 +84,7 @@ export function SignatureRing({ size = 520, animate = true, showBrain = true, cl
         viewBox={`0 0 ${size} ${size}`}
         role="img"
         aria-label={description}
-        className="relative block h-full w-full"
+        className="relative block h-full w-full -translate-y-1/4"
         style={{ zIndex: 1 }}
       >
 

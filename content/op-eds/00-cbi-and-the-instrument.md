@@ -104,5 +104,3 @@ The date has been set by others. That part is finished, and no amount of regiona
 What has not been decided — what remains entirely in the hands of the governments concerned — is whether the replacement is priced, sequenced, readiness-scored and placed in front of capital while there is still time for the lag to run.
 
 That decision is being made right now. It is being made by default, in every month it is not made deliberately. And the cost of default is not a worse outcome in ten years. It is a smaller set of options in two.
-</content>
-</invoke>

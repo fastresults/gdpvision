@@ -1,32 +1,31 @@
-## Goal
-Add a floating, sticky "Back to top" affordance on the public home page (`/`) so users can always return to the top of the long, sectioned page from any scroll position.
+Refine the closing paragraph of Section 01 · What is at stake so it carries more clarity and force.
 
-## What we'll build
-1. A reusable `FloatingBackToTop` component in `src/components/marketing/FloatingBackToTop.tsx`.
-   - Uses the existing `btn-primary` utility (ink-950 background, paper-0 foreground) to stay on-brand and respect the global button contract.
-   - Circular icon-only button with an `ArrowUp` lucide icon, or a compact pill with "Top" label + arrow — final label chosen during implementation to match the spare, editorial voice of the marketing site.
-   - Fixed to bottom-right (`fixed bottom-6 right-6 z-50`) with a subtle drop shadow using the existing shadow tokens.
-   - Appears once the user scrolls past a threshold (default 300px) so it is not redundant at the top of the page; fades/slides in with `motion-reduce` support.
-   - Click handler smooth-scrolls to `window.scrollTo({ top: 0, behavior: 'smooth' })`, falling back to `auto` when `prefers-reduced-motion: reduce` is active.
-   - Accessible: `aria-label="Back to top"`, keyboard focusable, visible focus ring via the existing `btn-primary` focus-visible style.
+The selected paragraph is `STAKES_CLOSE` in `src/lib/business-case.ts` (lines 108-109). It is the bridge between the six stake figures and the rest of the paper. Its job is to name the exact challenge a government faces, not merely to list the pressures again.
 
-2. Wire the component into `src/components/marketing/MarketingHome.tsx` just before the closing `</MarketingShell>` tag so it renders across all home-page sections.
+Problems with the current copy:
+- It is one long sentence that carries too many ideas: three pressures, fiscal slack, emigration, and stale data all compete for attention.
+- "The region must govern against all of them" is vague. It does not say what governing against them actually means in this context.
+- "Using an evidence base that describes a country that no longer exists" is strong but gets buried at the end.
+- The phrase "physical-risk corridor that is no longer seasonal" is abstract and could be crisper.
+- The transition from the stakes to the next section ("It is instrumentation, not effort") is weak; the paragraph should tee up the instrumentation argument.
 
-3. (Optional, recommended) Apply the same component to the other long public pages once proven on the home page:
-   - `src/routes/business-case.tsx`
-   - `src/routes/op-eds.index.tsx`
-   - `src/routes/op-eds.$slug.tsx`
-   - This keeps the public-site UX consistent and costs only dropping the component into each page shell.
+Proposed revision:
+```
+Set those figures together and the problem becomes unmistakable. Three sovereign pressures are now running on the same deadline: the revenue model that pays for half the state is ending; the trade rules that shape competitiveness are being written elsewhere; and the hurricane corridor is no longer a seasonal worry — it is a structural fiscal risk. A government facing all three at once has no fiscal slack, a shrinking pool of people who can do the work, and an evidence base that describes the country as it was two years ago. The challenge is not a lack of effort. It is a lack of instrumentation fit for the transition ahead.
+```
 
-## Implementation notes
-- No new route or server function needed; this is pure UI/presentation work.
-- Use `useEffect` with a window scroll listener. Debounce/throttle with a lightweight `requestAnimationFrame` pattern to avoid layout thrashing.
-- No new dependencies — reuse `lucide-react` for the arrow icon and existing Tailwind theme tokens.
-- Verify the button does not overlap the footer content on mobile; keep safe margins (`bottom-6 right-6`) and ensure it clears the mobile menu toggle area.
-- Test the public page at 390px viewport to confirm the tap target is at least 44px and the button remains visible above the mobile footer.
+Why this works better:
+- One idea per sentence, sequenced from diagnosis to consequence.
+- The three pressures are named in plain language that mirrors the preceding figures (CBI revenue, tariff regime, natural disasters).
+- The final sentence pivots cleanly to the next section: "It is instrumentation, not effort."
+- The stale-data point is preserved but sharpened: "describes the country as it was two years ago."
+- The emotional weight is carried by the stacking of pressures and the mismatch between the evidence and the moment, not by adjectives.
 
-## Deliverables
-- `src/components/marketing/FloatingBackToTop.tsx`
-- Updated `src/components/marketing/MarketingHome.tsx` including the new component
-- (Optional) Updated `business-case.tsx`, `op-eds.index.tsx`, and `op-eds.$slug.tsx` for consistency
-- Visual verification via the live preview at desktop and mobile widths
+Implementation steps:
+1. Replace the `STAKES_CLOSE` string in `src/lib/business-case.ts` with the revised version.
+2. Check that the revised paragraph does not break the layout: it is rendered in `src/routes/business-case.tsx` at line 192 inside a `grid` with the cliff illustration, so length should remain roughly comparable.
+3. Verify tone consistency with the rest of `business-case.ts` — no exclamation points, no marketing hyperbole, no first-person plural, keep the sober decision-paper voice.
+4. Run `bun run lint` to ensure no formatting issues.
+5. Open the preview at `/business-case` and scroll to Section 01 to confirm the paragraph sits cleanly next to the cliff illustration and reads with the right cadence.
+
+No other file changes are needed; the paragraph only appears in this one location.

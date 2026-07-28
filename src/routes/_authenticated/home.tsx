@@ -232,7 +232,7 @@ function CountryPickerWelcome({ bindings }: { bindings: Array<{ country_code: st
             key={b.country_code}
             code={b.country_code}
             name={b.name ?? b.country_code}
-            to="/admin/countries/$code/onboard"
+            to="/console/$code"
           />
         ))}
       </div>
@@ -344,8 +344,8 @@ function CountriesGrid({ countries }: { countries: any[] }) {
               gdp={c.gdp_current_usd}
               gdpYear={c.gdp_year}
               progress={(c.completed_stages ?? []).length}
-              to="/admin/countries/$code/onboard"
-            />
+              to="/console/$code"
+              showOnboardingLink
           ))}
         </div>
       )}

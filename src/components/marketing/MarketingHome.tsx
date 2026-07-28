@@ -349,7 +349,7 @@ export function MarketingHome() {
               type="button"
               onClick={goNext}
               aria-label="Next scenario"
-              className="group flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
+              className="group -mx-2 flex min-h-[44px] items-center gap-3 px-2 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
             >
               <span>Next</span>
               <svg
@@ -358,8 +358,9 @@ export function MarketingHome() {
                 viewBox="0 0 44 10"
                 fill="none"
                 aria-hidden
-                className="transition-transform duration-300 group-hover:translate-x-1"
+                className="w-[28px] shrink-0 transition-transform duration-300 group-hover:translate-x-1 sm:w-[44px]"
               >
+
                 <path
                   d="M1 5H43M43 5L39 1M43 5L39 9"
                   stroke="currentColor"

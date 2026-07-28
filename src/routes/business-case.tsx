@@ -122,16 +122,17 @@ function BusinessCasePage() {
     <MarketingShell>
       {/* Masthead */}
       <section className="border-b border-line-200">
-        <div className="mx-auto max-w-[1280px] px-6 py-20 md:px-10 md:py-28">
+        <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-28">
           <div className="grid gap-10 md:grid-cols-[1fr_320px] md:items-center">
-            <div>
+            <div className="min-w-0">
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
                 {BUSINESS_CASE_META.eyebrow}
               </div>
               <div className="mt-4 h-px w-12 bg-ink-700" aria-hidden />
-              <h1 className="mt-6 max-w-3xl font-serif text-[40px] leading-[1.05] tracking-tight text-ink-950 md:text-[56px]">
+              <h1 className="mt-5 max-w-3xl font-serif text-[30px] leading-[1.08] tracking-tight text-ink-950 sm:mt-6 sm:text-[40px] sm:leading-[1.05] md:text-[56px]">
                 {BUSINESS_CASE_META.title}
               </h1>
+
               <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-ink-700">
                 {BUSINESS_CASE_META.standfirst}
               </p>

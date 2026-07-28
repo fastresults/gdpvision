@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 
 import type { ChamberSummary } from "@/lib/executive/types";
+import { sheetRoute, slugForIndex, type ExecutiveSurface } from "@/lib/executive/chambers";
 import { TONE_RULE, TONE_TEXT, relTime, shortDate } from "./tone";
 
 /**
@@ -8,7 +9,15 @@ import { TONE_RULE, TONE_TEXT, relTime, shortDate } from "./tone";
  * for orientation; this is for triage. Same data, two mental models, no
  * navigation between them.
  */
-export function ChamberLedgerTable({ code, chambers }: { code: string; chambers: ChamberSummary[] }) {
+export function ChamberLedgerTable({
+  code,
+  chambers,
+  surface,
+}: {
+  code: string;
+  chambers: ChamberSummary[];
+  surface: ExecutiveSurface;
+}) {
   const rows = [...chambers].sort((a, b) => {
     const at = a.next_due?.at ? Date.parse(a.next_due.at) : Infinity;
     const bt = b.next_due?.at ? Date.parse(b.next_due.at) : Infinity;
@@ -37,7 +46,11 @@ export function ChamberLedgerTable({ code, chambers }: { code: string; chambers:
                 <span className={`block h-full min-h-[44px] w-[3px] ${TONE_RULE[c.health]}`} />
               </td>
               <td className="px-4 py-3">
-                <Link to={c.to} params={{ code }} className="group block min-w-0">
+                <Link
+                  to={sheetRoute(surface)}
+                  params={{ code, chamber: slugForIndex(c.index) }}
+                  className="group block min-w-0"
+                >
                   <span data-numeric className="font-mono text-[9px] tracking-[0.2em] text-ink-500">
                     {c.index}
                   </span>

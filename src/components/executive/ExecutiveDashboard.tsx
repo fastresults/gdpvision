@@ -4,6 +4,7 @@ import { LayoutGrid, Rows3, Printer } from "lucide-react";
 
 import { getExecutiveDashboard } from "@/lib/executive/dashboard.functions";
 import { rankAttention } from "@/lib/executive/attention";
+import type { ExecutiveSurface } from "@/lib/executive/chambers";
 
 import { PrincipalMasthead } from "./PrincipalMasthead";
 import { AttentionRail } from "./AttentionRail";
@@ -36,9 +37,11 @@ export function ExecutiveSkeleton() {
 export function ExecutiveDashboard({
   code,
   principal = "Prime Minister",
+  surface = "console",
 }: {
   code: string;
   principal?: string;
+  surface?: ExecutiveSurface;
 }) {
   const { data } = useSuspenseQuery(executiveQuery(code));
   const [view, setView] = useState<"grid" | "ledger">("grid");
@@ -48,7 +51,7 @@ export function ExecutiveDashboard({
     <div className="executive-brief space-y-6">
       <PrincipalMasthead masthead={data.masthead} principal={principal} />
 
-      <AttentionRail code={code} items={attention} />
+      <AttentionRail code={code} items={attention} surface={surface} />
 
       <section>
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 pb-3">
@@ -73,11 +76,11 @@ export function ExecutiveDashboard({
         {view === "grid" ? (
           <div className="grid grid-cols-1 border-l border-t border-line-200 sm:grid-cols-2 lg:grid-cols-4">
             {data.chambers.map((c, i) => (
-              <ChamberCard key={c.index} code={code} chamber={c} index={i} />
+              <ChamberCard key={c.index} code={code} chamber={c} index={i} surface={surface} />
             ))}
           </div>
         ) : (
-          <ChamberLedgerTable code={code} chambers={data.chambers} />
+          <ChamberLedgerTable code={code} chambers={data.chambers} surface={surface} />
         )}
       </section>
 

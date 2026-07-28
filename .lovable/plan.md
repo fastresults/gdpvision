@@ -1,45 +1,32 @@
-## Why you can't find it
+## Goal
 
-The dashboard was built, but nothing in the country-user flow points at it.
+When a super admin signs in and picks a country flag on `/home`, they land on that country's **Executive Brief** — the identical dashboard a country admin sees — instead of the onboarding/admin page.
 
-- It exists twice: `/admin/countries/$code/executive` (wrapped in the **super-admin** shell, and `/admin/*` has a `beforeLoad` gate that redirects anyone who isn't a global admin) and `/console/$code/brief`.
-- `/console/$code/brief` has **no link anywhere** — the console bottom bar has exactly three rails: Study / Ask / Send.
-- A country user signing in hits `/home`, which immediately redirects to `/console/$code` — the requests list ("The Study"), not the brief.
-- `ChambersLauncher` (the brief link + the eight chamber cards) renders only on `/home` for super admins and on the admin country page, and every card points at an `/admin/...` route country users are bounced out of.
+## Current behaviour (verified)
 
-So the brief is real, reachable only by typing the URL, and the chambers are agency-side only.
+- `/home` renders `SuperAdminWelcome`, whose `CountriesGrid` → `CountryCard` links are hard-typed to `/admin/countries/$code/onboard`.
+- Country admins land on `/console/$code`, which renders `ExecutiveDashboard` + request lanes inside the 4-rail console shell (Brief / Study / Ask / Send).
+- The console layout already resolves its country from the route param, so it works for any signed-in user, not just bound country users.
 
----
+## Changes
 
-## Part 1 — The brief becomes the console home
+1. **Country cards route to the brief**
+   - Widen `CountryCard`'s `to` prop to accept `/console/$code` and point the super-admin grid (and the multi-binding picker) at `/console/$code`.
+   - Cards keep flag, name, GDP and onboarding-progress chips exactly as today.
 
-1. Move today's request-list page from `console.$code.index.tsx` into `console.$code.study.tsx` (route `/console/$code/study`), unchanged.
-2. `console.$code.index.tsx` becomes the Executive Brief: masthead, "Requires you" attention rail, the eight chamber cards, due ledger — the same `<ExecutiveDashboard>` already built, rendered at console width with a mobile-first density pass (single-column cards under `sm`, attention rail first).
-3. `/console/$code/brief` stays as a redirect to `/console/$code` so existing links and the print target don't break.
-4. Bottom tab bar goes from 3 rails to 4: **Brief** (home) · **Study** · **Ask** · **Send** — Send keeps the primary treatment. Active-state logic updated so `/requests/*` marks Study, not the home tab.
-5. The brief's in-flight/delivered counts get a "See all" link into Study, so the two lanes stay one tap apart.
+2. **Keep the operator path reachable**
+   - Add a small secondary link on each super-admin card footer (e.g. `Onboarding →`) going to `/admin/countries/$code/onboard`, so provisioning work isn't lost. The card's main click target is the dashboard.
+   - The existing "Countries queue →" link above the grid stays.
 
-## Part 2 — Country users can enter the chambers
+3. **Console chrome for super admins**
+   - `console.tsx` derives the country name from the user's own bindings, which a super admin doesn't have. Fall back to the onboarding countries registry (or `caricom-registry` name lookup) so the header chip shows the proper country name rather than a bare code.
+   - Add an unobtrusive "Agency ←" / back-to-`/home` affordance in the console header, shown only when the signed-in user is a global admin, so they can switch countries without the browser back button.
 
-Chambers currently live only under `/admin/*`, which is hard-gated to global admins, and the pages render inside `SuperAdminShell`. Rather than duplicate ~30 route files, the gate and the chrome become role-aware:
+4. **No permission changes**
+   - Super admins already pass every gate; server functions continue to run as their real identity. The existing "View as country user" impersonation mode is untouched and remains the way to preview a restricted country-user experience.
 
-1. **Gate** — `_authenticated/admin/route.tsx` allows through either a global admin, or a signed-in user with a binding to the `$code` in the URL. Non-matching country codes still redirect. Admin-only surfaces (`/admin/countries` index, `/admin/brain`, users, invitations, audits, onboarding, ledger-QA, config) keep the strict super-admin check.
-2. **Chrome** — `SuperAdminShell` gains a country-user mode: the "Super admin" eyebrow and the agency nav are replaced by the country chip plus a back-to-brief link, so a Prime Minister never sees agency navigation.
-3. **Server-side truth** — audit the chamber server functions for `assertSuperAdmin`-style checks and move them to the existing `has_country_access` scoping so the read/write is authorised by binding, not by role. Anything genuinely agency-only (onboarding runs, corpus admin, cross-country surfaces) keeps the super-admin assertion. This is the security-critical step; the UI gate alone is not sufficient.
-4. **Links** — `ChambersLauncher` and the brief's chamber cards resolve to the same routes for both audiences; the launcher is added to the console (below the brief's chamber grid it's redundant, so the brief cards themselves become the switchboard).
+## Verification
 
-## Part 3 — Super-admin parity
-
-- `/admin/countries/$code/executive` keeps working unchanged for the agency view.
-- Impersonation ("view as country user") already redirects to `/console/$code`, so super admins will land on the brief too and see exactly what the Principal sees.
-
-## Technical notes
-
-- Files touched: `src/routes/_authenticated/console.tsx` (tabs), `console.$code.index.tsx` (new brief home), new `console.$code.study.tsx`, `console.$code.brief.tsx` (redirect), `src/routes/_authenticated/admin/route.tsx` (gate), `src/components/admin/SuperAdminShell.tsx` (role-aware chrome), `src/components/country/ChambersLauncher.tsx`, plus the chamber `*.functions.ts` audit.
-- No schema changes; `has_country_access` and the country bindings already exist.
-- `ExecutiveDashboard`, its resolvers, and the attention ranking are reused as-is — no rewrite of the data layer.
-- After the route changes: `bun run map` + `bun run check:maps` so CI stays green.
-
-## Sequence
-
-Part 1 lands first and is independently verifiable (sign in → brief is the first screen). Part 2 follows with the server-function audit, since that's where the real access decision is made.
+- Sign-in as super admin → `/home` → click a flag → `/console/ATG` shows the executive brief, chamber cards, attention rail and the 4-rail tab bar.
+- Header chip shows the country name; back link returns to `/home`.
+- Country-admin flow (direct redirect to `/console/$code`) is unchanged.

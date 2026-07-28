@@ -79,6 +79,7 @@ function OpEdNotFound() {
           The writing
         </Link>
       </div>
+      <FloatingBackToTop />
     </MarketingShell>
   );
 }
@@ -293,6 +294,7 @@ function OpEdPage() {
           </div>
         </section>
       ) : null}
+      <FloatingBackToTop />
     </MarketingShell>
   );
 }

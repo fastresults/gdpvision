@@ -6,9 +6,9 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { FileText, Home, MessageCircle, Send } from "lucide-react";
 
 import { getMyCountryStatus } from "@/lib/country-admin.functions";
-import { CARICOM_OECS_REGISTRY, flagUrl } from "@/lib/caricom-registry";
+import { CARICOM_OECS_REGISTRY } from "@/lib/caricom-registry";
 import { Wordmark } from "@/components/marketing/Wordmark";
-import { CountryChip } from "@/components/console/CountryChip";
+import { CountrySwitcher } from "@/components/console/CountrySwitcher";
 import { useImpersonation } from "@/lib/impersonation";
 
 const statusQuery = queryOptions({
@@ -18,10 +18,7 @@ const statusQuery = queryOptions({
 
 export const Route = createFileRoute("/_authenticated/console")({
   head: () => ({
-    meta: [
-      { title: "Your console — GDPVision" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Your console — GDPVision" }, { name: "robots", content: "noindex" }],
   }),
   loader: async ({ context }) => {
     await context.queryClient.ensureQueryData(statusQuery);
@@ -50,9 +47,7 @@ function ConsoleLayout() {
   const countryName =
     status.bindings.find((b) => b.country_code === code)?.name ??
     (code ? countryLabel(code) : null);
-  const flag = code ? flagUrl(code, "w160") : null;
   const isAgency = status.isGlobalAdmin && !viewAs;
-
 
   type Tab = {
     to:
@@ -97,19 +92,26 @@ function ConsoleLayout() {
       ]
     : [];
 
-
   return (
     <div className="flex min-h-dvh flex-col bg-paper-50 text-ink-950">
       <header className="sticky top-0 z-20 border-b border-line-200 bg-paper-0/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
-          <Link
-            to="/console/$code"
-            params={{ code: code ?? "" }}
-            className="flex min-w-0 items-center gap-2 sm:gap-3"
-          >
-            <Wordmark className="text-ink-950" />
-            {code && <CountryChip flagUrl={flag} code={code} name={countryName} className="ml-1" />}
-          </Link>
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <Link to="/console/$code" params={{ code: code ?? "" }} className="shrink-0">
+              <Wordmark className="text-ink-950" />
+            </Link>
+            {code && (
+              <CountrySwitcher
+                code={code}
+                name={countryName}
+                isGlobalAdmin={status.isGlobalAdmin}
+                bindings={status.bindings.map((b) => ({
+                  code: b.country_code,
+                  name: b.name ?? countryLabel(b.country_code),
+                }))}
+              />
+            )}
+          </div>
           {isAgency && (
             <Link
               to="/home"
@@ -119,7 +121,6 @@ function ConsoleLayout() {
             </Link>
           )}
         </div>
-
       </header>
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-28 sm:px-6 sm:py-10 sm:pb-28">

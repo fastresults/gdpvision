@@ -1,9 +1,9 @@
 // Country Console layout — country-user chrome. Minimal: header + content +
-// a persistent 3-rail bottom tab bar. No hamburger, no drawer.
+// a persistent 4-rail bottom tab bar. No hamburger, no drawer.
 
 import { createFileRoute, Link, Outlet, useParams, useRouterState } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { Home, MessageCircle, Send } from "lucide-react";
+import { FileText, Home, MessageCircle, Send } from "lucide-react";
 
 import { getMyCountryStatus } from "@/lib/country-admin.functions";
 import { flagUrl } from "@/lib/caricom-registry";
@@ -47,7 +47,11 @@ function ConsoleLayout() {
   const flag = code ? flagUrl(code, "w160") : null;
 
   type Tab = {
-    to: "/console/$code" | "/console/$code/ask" | "/console/$code/request/new";
+    to:
+      | "/console/$code"
+      | "/console/$code/study"
+      | "/console/$code/ask"
+      | "/console/$code/request/new";
     label: string;
     icon: typeof Home;
     isActive: boolean;
@@ -57,9 +61,17 @@ function ConsoleLayout() {
     ? [
         {
           to: "/console/$code",
-          label: "Study",
+          label: "Brief",
           icon: Home,
-          isActive: pathname === `/console/${code}` || pathname.startsWith(`/console/${code}/requests`),
+          isActive: pathname === `/console/${code}`,
+        },
+        {
+          to: "/console/$code/study",
+          label: "Study",
+          icon: FileText,
+          isActive:
+            pathname.startsWith(`/console/${code}/study`) ||
+            pathname.startsWith(`/console/${code}/requests`),
         },
         {
           to: "/console/$code/ask",
@@ -71,7 +83,7 @@ function ConsoleLayout() {
           to: "/console/$code/request/new",
           label: "Send",
           icon: Send,
-          isActive: pathname.startsWith(`/console/${code}/request`),
+          isActive: pathname.startsWith(`/console/${code}/request/`),
           primary: true,
         },
       ]
@@ -97,14 +109,14 @@ function ConsoleLayout() {
         <Outlet />
       </main>
 
-      {/* Persistent bottom tab bar — 3 rails, no menus */}
+      {/* Persistent bottom tab bar — 4 rails, no menus */}
       {code && (
         <nav
           aria-label="Primary"
           className="fixed inset-x-0 bottom-0 z-30 border-t border-line-200 bg-paper-0/95 backdrop-blur"
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
-          <div className="mx-auto grid max-w-6xl grid-cols-3">
+          <div className="mx-auto grid max-w-6xl grid-cols-4">
             {tabs.map((t) => {
               const Icon = t.icon;
               const base =

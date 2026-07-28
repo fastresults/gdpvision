@@ -456,7 +456,7 @@ export function MarketingHome() {
             title="Eight chambers, each engineered to move GDP."
             lede="Not a dashboard and not a consulting deliverable. GDPVision is organised as an instrument of state — a live Ledger beneath eight chambers, with the Counsel above them."
           />
-          <div className="mt-16 grid gap-x-10 gap-y-10 border-t border-line-200 pt-12 md:grid-cols-2">
+          <div className="mt-10 grid gap-x-10 gap-y-10 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2">
             {FEATURED_CHAMBERS.map((c) => (
               <div key={c.index}>
                 <div className="mb-4 font-mono text-[12px] uppercase tracking-[0.18em] text-gold-500">

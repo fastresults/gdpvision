@@ -42,10 +42,12 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/_authenticated/console` | `src/routes/_authenticated/console.tsx` |
 | `/_authenticated/console/$code/` | `src/routes/_authenticated/console.$code.index.tsx` |
 | `/_authenticated/console/$code/ask` | `src/routes/_authenticated/console.$code.ask.tsx` |
+| `/_authenticated/console/$code/brief` | `src/routes/_authenticated/console.$code.brief.tsx` |
 | `/_authenticated/console/$code/mandate` | `src/routes/_authenticated/console.$code.mandate.tsx` |
 | `/_authenticated/console/$code/request/new` | `src/routes/_authenticated/console.$code.request.new.tsx` |
 | `/_authenticated/console/$code/requests/` | `src/routes/_authenticated/console.$code.requests.index.tsx` |
 | `/_authenticated/console/$code/requests/$id` | `src/routes/_authenticated/console.$code.requests.$id.tsx` |
+| `/_authenticated/console/$code/study` | `src/routes/_authenticated/console.$code.study.tsx` |
 
 ## admin
 
@@ -64,6 +66,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/_authenticated/admin/countries/$code/cabinet/minutes/$sid` | `src/routes/_authenticated/admin/countries.$code.cabinet.minutes.$sid.tsx` |
 | `/_authenticated/admin/countries/$code/cabinet/session/$sid` | `src/routes/_authenticated/admin/countries.$code.cabinet.session.$sid.tsx` |
 | `/_authenticated/admin/countries/$code/data` | `src/routes/_authenticated/admin/countries.$code.data.tsx` |
+| `/_authenticated/admin/countries/$code/executive` | `src/routes/_authenticated/admin/countries.$code.executive.tsx` |
 | `/_authenticated/admin/countries/$code/ledger` | `src/routes/_authenticated/admin/countries.$code.ledger.tsx` |
 | `/_authenticated/admin/countries/$code/mandate-compact` | `src/routes/_authenticated/admin/countries.$code.mandate-compact.tsx` |
 | `/_authenticated/admin/countries/$code/narrative` | `src/routes/_authenticated/admin/countries.$code.narrative.tsx` |

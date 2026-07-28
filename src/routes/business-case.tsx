@@ -562,7 +562,7 @@ function BusinessCasePage() {
 
       {/* Close */}
       <section>
-        <div className="mx-auto max-w-[1280px] px-6 py-20 md:px-10 md:py-28">
+        <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-28">
           <div className="grid gap-10 md:grid-cols-[1fr_320px] md:items-center">
             <div>
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">

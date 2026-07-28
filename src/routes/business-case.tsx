@@ -287,7 +287,7 @@ function BusinessCasePage() {
           ))}
         </div>
         <div className="mt-12 grid gap-10 md:grid-cols-[300px_1fr] md:items-center">
-          <div className="hidden md:block">
+          <div className="flex justify-center md:block">
             <Illustration src={artLedgerCost.url} variant="spot" />
           </div>
           <p className="max-w-3xl text-[17px] leading-relaxed text-ink-950">{SHADOW_CLOSE}</p>

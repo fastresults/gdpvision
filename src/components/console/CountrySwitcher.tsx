@@ -109,7 +109,7 @@ export function CountrySwitcher({
             setOpen(true);
           }
         }}
-        className="group inline-flex items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-500"
+        className="group inline-flex items-center gap-1 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-500"
       >
         <CountryChip
           flagUrl={flag}
@@ -120,7 +120,7 @@ export function CountrySwitcher({
         <ChevronDown
           size={13}
           strokeWidth={1.75}
-          className={`-ml-6 mr-1 shrink-0 text-ink-500 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`shrink-0 text-ink-500 transition-transform group-hover:text-ink-950 ${open ? "rotate-180" : ""}`}
           aria-hidden
         />
       </button>

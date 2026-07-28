@@ -416,7 +416,7 @@ export function MarketingHome() {
 
       {/* THE LOOP --------------------------------------------------------- */}
       <section id="loop" className="border-b border-line-200">
-        <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
+        <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
           <div className="grid items-end gap-8 md:grid-cols-[1fr_auto]">
             <SectionHeader
               eyebrow="How a decision moves"
@@ -426,10 +426,11 @@ export function MarketingHome() {
             <Illustration
               src={illLoop.url}
               variant="spot"
-              className="hidden justify-self-end md:block"
+              className="mx-auto md:mx-0 md:justify-self-end"
             />
           </div>
-          <div className="mt-16 grid gap-8 border-t border-line-200 pt-12 md:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid gap-8 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2 lg:grid-cols-4">
+
             {LOOP_STEPS.map((s) => (
               <div key={s.step} className="border-t border-line-200 pt-6">
                 <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold-500">

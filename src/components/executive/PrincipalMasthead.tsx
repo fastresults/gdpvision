@@ -1,5 +1,6 @@
 import { flagUrl } from "@/lib/caricom-registry";
 import type { ExecutiveMasthead } from "@/lib/executive/types";
+import { useExecutiveDetail } from "./DetailModal";
 import { relTime } from "./tone";
 
 function gdpLabel(v: number | null): string {
@@ -25,6 +26,7 @@ export function PrincipalMasthead({
   masthead: ExecutiveMasthead;
   principal?: string;
 }) {
+  const { open } = useExecutiveDetail();
   const flag = flagUrl(masthead.code, "w320");
   const today = new Date().toLocaleDateString("en-GB", {
     weekday: "long",

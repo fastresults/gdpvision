@@ -76,7 +76,7 @@ export function ChamberCard({
           {chamber.recent.length === 0 && (
             <li className="text-[12px] text-ink-300">— not yet on record</li>
           )}
-          {chamber.recent.map((r, i) => (
+          {chamber.recent.slice(0, 3).map((r, i) => (
             <li key={i} className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-2">
               <span data-numeric className="shrink-0 font-mono text-[9px] uppercase tracking-[0.14em] text-ink-500">
                 {relTime(r.at)}

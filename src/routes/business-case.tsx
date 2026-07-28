@@ -38,12 +38,14 @@ import {
   WORTH,
   WORTH_INTRO,
 } from "@/lib/business-case";
-import artProvenance from "@/assets/illustrations/section-provenance.jpg.asset.json";
-import artSovereignty from "@/assets/illustrations/section-sovereignty.jpg.asset.json";
-import artCorpus from "@/assets/illustrations/section-corpus.jpg.asset.json";
-import artCounsel from "@/assets/illustrations/section-counsel.jpg.asset.json";
-import artBriefing from "@/assets/illustrations/section-briefing.jpg.asset.json";
-import artLoop from "@/assets/illustrations/section-loop.jpg.asset.json";
+import artInstrument from "@/assets/illustrations/bc-instrument.jpg.asset.json";
+import artCliff from "@/assets/illustrations/bc-cliff.jpg.asset.json";
+import artLag from "@/assets/illustrations/bc-lag.jpg.asset.json";
+import artComponent from "@/assets/illustrations/bc-component.jpg.asset.json";
+import artLedgerCost from "@/assets/illustrations/bc-ledger-cost.jpg.asset.json";
+import artPaths from "@/assets/illustrations/bc-paths.jpg.asset.json";
+import artSeal from "@/assets/illustrations/bc-seal.jpg.asset.json";
+import artBriefingRoom from "@/assets/illustrations/bc-briefing-room.jpg.asset.json";
 import ogImage from "@/assets/gdpvision-og.jpg";
 
 const SITE_URL = "https://gdpvision.com";
@@ -135,7 +137,7 @@ function BusinessCasePage() {
               </div>
             </div>
             <div className="hidden justify-self-end md:block">
-              <Illustration src={artProvenance.url} variant="spot" />
+              <Illustration src={artInstrument.url} variant="spot" />
             </div>
           </div>
         </div>
@@ -185,12 +187,17 @@ function BusinessCasePage() {
             </div>
           ))}
         </div>
-        <p className="mt-14 max-w-3xl text-[17px] leading-relaxed text-ink-950">{STAKES_CLOSE}</p>
+        <div className="mt-14 grid gap-10 md:grid-cols-[300px_1fr] md:items-center">
+          <div className="hidden md:block">
+            <Illustration src={artCliff.url} variant="spot" />
+          </div>
+          <p className="max-w-3xl text-[17px] leading-relaxed text-ink-950">{STAKES_CLOSE}</p>
+        </div>
       </Section>
 
       {/* 2 · Instrumentation, not effort */}
       <Section>
-        <div className="grid gap-12 md:grid-cols-[1fr_320px] md:items-start">
+        <div className="grid gap-12 md:grid-cols-[1fr_300px] md:items-center">
           <div>
             <SectionHeader
               eyebrow="02 · The problem"
@@ -214,7 +221,7 @@ function BusinessCasePage() {
             </p>
           </div>
           <div className="hidden justify-self-end md:block">
-            <Illustration src={artLoop.url} variant="spot" />
+            <Illustration src={artLag.url} variant="spot" />
           </div>
         </div>
       </Section>
@@ -233,7 +240,7 @@ function BusinessCasePage() {
           ))}
         </div>
         <div className="mt-10">
-          <Illustration src={artCorpus.url} variant="rule" className="mx-auto" />
+          <Illustration src={artComponent.url} variant="rule" className="mx-auto" />
         </div>
         <p className="mt-10 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
           What a chat session cannot do — not “does less well”, but cannot, by construction
@@ -274,7 +281,12 @@ function BusinessCasePage() {
             </div>
           ))}
         </div>
-        <p className="mt-12 max-w-3xl text-[17px] leading-relaxed text-ink-950">{SHADOW_CLOSE}</p>
+        <div className="mt-12 grid gap-10 md:grid-cols-[300px_1fr] md:items-center">
+          <div className="hidden md:block">
+            <Illustration src={artLedgerCost.url} variant="spot" />
+          </div>
+          <p className="max-w-3xl text-[17px] leading-relaxed text-ink-950">{SHADOW_CLOSE}</p>
+        </div>
       </Section>
 
       {/* 5 · Tier one */}
@@ -347,7 +359,12 @@ function BusinessCasePage() {
             </article>
           ))}
         </div>
-        <p className="mt-12 max-w-3xl text-[17px] leading-relaxed text-ink-950">{OPTIONS_CLOSE}</p>
+        <div className="mt-12 grid gap-10 md:grid-cols-[1fr_300px] md:items-center">
+          <p className="max-w-3xl text-[17px] leading-relaxed text-ink-950">{OPTIONS_CLOSE}</p>
+          <div className="hidden justify-self-end md:block">
+            <Illustration src={artPaths.url} variant="spot" />
+          </div>
+        </div>
       </Section>
 
       {/* 7 · What the instrument is */}
@@ -374,12 +391,7 @@ function BusinessCasePage() {
             </div>
           ))}
         </div>
-        <div className="mt-12 grid gap-10 md:grid-cols-[1fr_320px] md:items-center">
-          <p className="max-w-2xl text-[17px] leading-relaxed text-ink-950">{CORPUS_FOOTNOTE}</p>
-          <div className="hidden justify-self-end md:block">
-            <Illustration src={artCounsel.url} variant="spot" />
-          </div>
-        </div>
+        <p className="mt-12 max-w-2xl text-[17px] leading-relaxed text-ink-950">{CORPUS_FOOTNOTE}</p>
       </Section>
 
       {/* 8 · What this is worth */}
@@ -398,7 +410,10 @@ function BusinessCasePage() {
 
       {/* 9 · Five approvals */}
       <Section>
-        <div className="grid gap-12 md:grid-cols-[1fr_320px] md:items-start">
+        <div className="grid gap-12 md:grid-cols-[300px_1fr] md:items-start">
+          <div className="hidden md:block md:pt-2">
+            <Illustration src={artSeal.url} variant="spot" />
+          </div>
           <div>
             <SectionHeader
               eyebrow="09 · The five approvals"
@@ -413,9 +428,6 @@ function BusinessCasePage() {
             <p className="mt-8 max-w-2xl text-[16.5px] leading-relaxed text-ink-950">
               {APPROVALS_CLOSE}
             </p>
-          </div>
-          <div className="hidden justify-self-end md:block">
-            <Illustration src={artSovereignty.url} variant="spot" />
           </div>
         </div>
       </Section>
@@ -549,7 +561,7 @@ function BusinessCasePage() {
               </div>
             </div>
             <div className="hidden justify-self-end md:block">
-              <Illustration src={artBriefing.url} variant="spot" />
+              <Illustration src={artBriefingRoom.url} variant="spot" />
             </div>
           </div>
         </div>

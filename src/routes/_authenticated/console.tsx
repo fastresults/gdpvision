@@ -47,7 +47,11 @@ function ConsoleLayout() {
   const flag = code ? flagUrl(code, "w160") : null;
 
   type Tab = {
-    to: "/console/$code" | "/console/$code/ask" | "/console/$code/request/new";
+    to:
+      | "/console/$code"
+      | "/console/$code/study"
+      | "/console/$code/ask"
+      | "/console/$code/request/new";
     label: string;
     icon: typeof Home;
     isActive: boolean;
@@ -57,9 +61,17 @@ function ConsoleLayout() {
     ? [
         {
           to: "/console/$code",
-          label: "Study",
+          label: "Brief",
           icon: Home,
-          isActive: pathname === `/console/${code}` || pathname.startsWith(`/console/${code}/requests`),
+          isActive: pathname === `/console/${code}`,
+        },
+        {
+          to: "/console/$code/study",
+          label: "Study",
+          icon: FileText,
+          isActive:
+            pathname.startsWith(`/console/${code}/study`) ||
+            pathname.startsWith(`/console/${code}/requests`),
         },
         {
           to: "/console/$code/ask",
@@ -71,7 +83,7 @@ function ConsoleLayout() {
           to: "/console/$code/request/new",
           label: "Send",
           icon: Send,
-          isActive: pathname.startsWith(`/console/${code}/request`),
+          isActive: pathname.startsWith(`/console/${code}/request/`),
           primary: true,
         },
       ]

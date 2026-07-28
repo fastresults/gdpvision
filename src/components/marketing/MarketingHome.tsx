@@ -315,13 +315,12 @@ export function MarketingHome() {
           <nav
             aria-label="Cycle through economic impact scenarios"
             className="mt-10 flex items-center justify-end gap-5 border-t border-line-200 pt-4 sm:mt-16 sm:gap-6 sm:pt-6"
-
           >
             <button
               type="button"
               onClick={goPrev}
               aria-label="Previous scenario"
-              className="group flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
+              className="group -mx-2 flex min-h-[44px] items-center gap-3 px-2 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
             >
               <svg
                 width="44"
@@ -329,8 +328,9 @@ export function MarketingHome() {
                 viewBox="0 0 44 10"
                 fill="none"
                 aria-hidden
-                className="transition-transform duration-300 group-hover:-translate-x-1"
+                className="w-[28px] shrink-0 transition-transform duration-300 group-hover:-translate-x-1 sm:w-[44px]"
               >
+
                 <path
                   d="M43 5H1M1 5L5 1M1 5L5 9"
                   stroke="currentColor"

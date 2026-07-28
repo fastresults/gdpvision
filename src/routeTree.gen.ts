@@ -93,6 +93,7 @@ import { Route as AuthenticatedAdminAuditsKeyingRouteImport } from './routes/_au
 import { Route as AuthenticatedConsoleCodeRequestsIndexRouteImport } from './routes/_authenticated/console.$code.requests.index'
 import { Route as AuthenticatedConsoleCodeRequestsIdRouteImport } from './routes/_authenticated/console.$code.requests.$id'
 import { Route as AuthenticatedConsoleCodeRequestNewRouteImport } from './routes/_authenticated/console.$code.request.new'
+import { Route as AuthenticatedConsoleCodeChamberChamberRouteImport } from './routes/_authenticated/console.$code.chamber.$chamber'
 import { Route as AuthenticatedAdminCountriesCodeVizRouteImport } from './routes/_authenticated/admin/countries.$code.viz'
 import { Route as AuthenticatedAdminCountriesCodeStudioRouteImport } from './routes/_authenticated/admin/countries.$code.studio'
 import { Route as AuthenticatedAdminCountriesCodeScenariosRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios'
@@ -613,6 +614,12 @@ const AuthenticatedConsoleCodeRequestNewRoute =
     path: '/$code/request/new',
     getParentRoute: () => AuthenticatedConsoleRoute,
   } as any)
+const AuthenticatedConsoleCodeChamberChamberRoute =
+  AuthenticatedConsoleCodeChamberChamberRouteImport.update({
+    id: '/$code/chamber/$chamber',
+    path: '/$code/chamber/$chamber',
+    getParentRoute: () => AuthenticatedConsoleRoute,
+  } as any)
 const AuthenticatedAdminCountriesCodeVizRoute =
   AuthenticatedAdminCountriesCodeVizRouteImport.update({
     id: '/countries/$code/viz',
@@ -922,6 +929,7 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/scenarios': typeof AuthenticatedAdminCountriesCodeScenariosRouteWithChildren
   '/admin/countries/$code/studio': typeof AuthenticatedAdminCountriesCodeStudioRouteWithChildren
   '/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
+  '/console/$code/chamber/$chamber': typeof AuthenticatedConsoleCodeChamberChamberRoute
   '/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
   '/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
   '/console/$code/requests/': typeof AuthenticatedConsoleCodeRequestsIndexRoute
@@ -1034,6 +1042,7 @@ export interface FileRoutesByTo {
   '/admin/countries/$code/mandate-compact': typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   '/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
   '/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
+  '/console/$code/chamber/$chamber': typeof AuthenticatedConsoleCodeChamberChamberRoute
   '/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
   '/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
   '/console/$code/requests': typeof AuthenticatedConsoleCodeRequestsIndexRoute
@@ -1157,6 +1166,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/scenarios': typeof AuthenticatedAdminCountriesCodeScenariosRouteWithChildren
   '/_authenticated/admin/countries/$code/studio': typeof AuthenticatedAdminCountriesCodeStudioRouteWithChildren
   '/_authenticated/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
+  '/_authenticated/console/$code/chamber/$chamber': typeof AuthenticatedConsoleCodeChamberChamberRoute
   '/_authenticated/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
   '/_authenticated/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
   '/_authenticated/console/$code/requests/': typeof AuthenticatedConsoleCodeRequestsIndexRoute
@@ -1280,6 +1290,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/scenarios'
     | '/admin/countries/$code/studio'
     | '/admin/countries/$code/viz'
+    | '/console/$code/chamber/$chamber'
     | '/console/$code/request/new'
     | '/console/$code/requests/$id'
     | '/console/$code/requests/'
@@ -1392,6 +1403,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/mandate-compact'
     | '/admin/countries/$code/onboard'
     | '/admin/countries/$code/viz'
+    | '/console/$code/chamber/$chamber'
     | '/console/$code/request/new'
     | '/console/$code/requests/$id'
     | '/console/$code/requests'
@@ -1514,6 +1526,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/countries/$code/scenarios'
     | '/_authenticated/admin/countries/$code/studio'
     | '/_authenticated/admin/countries/$code/viz'
+    | '/_authenticated/console/$code/chamber/$chamber'
     | '/_authenticated/console/$code/request/new'
     | '/_authenticated/console/$code/requests/$id'
     | '/_authenticated/console/$code/requests/'
@@ -2150,6 +2163,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConsoleCodeRequestNewRouteImport
       parentRoute: typeof AuthenticatedConsoleRoute
     }
+    '/_authenticated/console/$code/chamber/$chamber': {
+      id: '/_authenticated/console/$code/chamber/$chamber'
+      path: '/$code/chamber/$chamber'
+      fullPath: '/console/$code/chamber/$chamber'
+      preLoaderRoute: typeof AuthenticatedConsoleCodeChamberChamberRouteImport
+      parentRoute: typeof AuthenticatedConsoleRoute
+    }
     '/_authenticated/admin/countries/$code/viz': {
       id: '/_authenticated/admin/countries/$code/viz'
       path: '/countries/$code/viz'
@@ -2741,6 +2761,7 @@ interface AuthenticatedConsoleRouteChildren {
   AuthenticatedConsoleCodeMandateRoute: typeof AuthenticatedConsoleCodeMandateRoute
   AuthenticatedConsoleCodeStudyRoute: typeof AuthenticatedConsoleCodeStudyRoute
   AuthenticatedConsoleCodeIndexRoute: typeof AuthenticatedConsoleCodeIndexRoute
+  AuthenticatedConsoleCodeChamberChamberRoute: typeof AuthenticatedConsoleCodeChamberChamberRoute
   AuthenticatedConsoleCodeRequestNewRoute: typeof AuthenticatedConsoleCodeRequestNewRoute
   AuthenticatedConsoleCodeRequestsIdRoute: typeof AuthenticatedConsoleCodeRequestsIdRoute
   AuthenticatedConsoleCodeRequestsIndexRoute: typeof AuthenticatedConsoleCodeRequestsIndexRoute
@@ -2752,6 +2773,8 @@ const AuthenticatedConsoleRouteChildren: AuthenticatedConsoleRouteChildren = {
   AuthenticatedConsoleCodeMandateRoute: AuthenticatedConsoleCodeMandateRoute,
   AuthenticatedConsoleCodeStudyRoute: AuthenticatedConsoleCodeStudyRoute,
   AuthenticatedConsoleCodeIndexRoute: AuthenticatedConsoleCodeIndexRoute,
+  AuthenticatedConsoleCodeChamberChamberRoute:
+    AuthenticatedConsoleCodeChamberChamberRoute,
   AuthenticatedConsoleCodeRequestNewRoute:
     AuthenticatedConsoleCodeRequestNewRoute,
   AuthenticatedConsoleCodeRequestsIdRoute:

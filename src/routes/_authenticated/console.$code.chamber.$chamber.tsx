@@ -5,7 +5,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { Suspense } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 
-import { ExecutiveDashboard, executiveQuery } from "@/components/executive/ExecutiveDashboard";
+import { executiveQuery } from "@/components/executive/ExecutiveDashboard";
 import { ChamberSheet } from "@/components/executive/chamber/ChamberSheet";
 import { indexForSlug } from "@/lib/executive/chambers";
 
@@ -56,7 +56,3 @@ export function SheetSkeleton() {
     </div>
   );
 }
-
-// Keeps the dashboard module in the same chunk as the sheet — the Principal
-// almost always arrives here from the brief.
-void ExecutiveDashboard;

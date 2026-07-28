@@ -89,7 +89,7 @@ export async function resolveNarrative(sb: Db, cc: string): Promise<ChamberSumma
           : null,
       recent: [...artifacts]
         .filter((a: any) => a.updated_at ?? a.created_at)
-        .slice(0, 3)
+        .slice(0, 10)
         .map((a: any) => ({
           at: a.updated_at ?? a.created_at,
           text: `${a.title ?? a.kind} · ${a.draft_state ?? "draft"}`,
@@ -189,7 +189,7 @@ export async function resolveCabinet(sb: Db, cc: string): Promise<ChamberSummary
       recent: [...commitments]
         .filter((c: any) => c.created_at)
         .sort((a: any, b: any) => Date.parse(b.created_at) - Date.parse(a.created_at))
-        .slice(0, 3)
+        .slice(0, 10)
         .map((c: any) => ({ at: c.created_at, text: `${c.title} · ${c.status ?? "open"}` })),
       alerts: [
         ...(upcoming && unprepared > 0 && (daysToSession ?? 99) <= 7
@@ -271,7 +271,7 @@ export async function resolvePersonas(sb: Db, cc: string): Promise<ChamberSummar
       recent: [...studies]
         .filter((s: any) => s.updated_at ?? s.created_at)
         .sort((a: any, b: any) => Date.parse(b.updated_at ?? b.created_at) - Date.parse(a.updated_at ?? a.created_at))
-        .slice(0, 3)
+        .slice(0, 10)
         .map((s: any) => ({ at: s.updated_at ?? s.created_at, text: `${s.title} · ${s.status ?? "draft"}` })),
       alerts: [],
       health: (running.length ? "positive" : studies.length ? "neutral" : "quiet") as Tone,
@@ -344,7 +344,7 @@ export async function resolveMandate(sb: Db, cc: string): Promise<ChamberSummary
       recent: [...deliverables]
         .filter((d: any) => d.updated_at ?? d.created_at)
         .sort((a: any, b: any) => Date.parse(b.updated_at ?? b.created_at) - Date.parse(a.updated_at ?? a.created_at))
-        .slice(0, 3)
+        .slice(0, 10)
         .map((d: any) => ({ at: d.updated_at ?? d.created_at, text: `${d.title} · ${d.risk_level ?? "risk unset"}` })),
       alerts: [
         ...(atRisk.length > 0

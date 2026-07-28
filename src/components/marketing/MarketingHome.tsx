@@ -147,21 +147,22 @@ export function MarketingHome() {
     <MarketingShell>
       {/* HERO ------------------------------------------------------------- */}
       <section id="top" className="border-b border-line-200">
-        <div className="mx-auto grid max-w-[1280px] items-center gap-12 px-6 py-16 md:grid-cols-[1.15fr_1fr] md:gap-16 md:px-10 md:py-24">
-          <div>
+        <div className="mx-auto grid max-w-[1280px] items-center gap-10 px-5 py-12 sm:px-6 sm:py-16 md:grid-cols-[1.15fr_1fr] md:gap-16 md:px-10 md:py-24">
+          <div className="min-w-0">
             <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">
               GDPVision · An instrument of state
             </div>
             <div className="mt-6 h-px w-16 bg-gold-500" aria-hidden />
-            <h1 className="mt-8 font-serif text-[43px] leading-[1.05] tracking-tight text-ink-950 md:text-[68px]">
+            <h1 className="mt-6 font-serif text-[32px] leading-[1.08] tracking-tight text-ink-950 sm:mt-8 sm:text-[43px] sm:leading-[1.05] md:text-[68px]">
               No small state should learn its own economy from someone else's report.
             </h1>
-            <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-ink-700 md:text-[17px]">
+            <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-ink-700 sm:mt-6 md:text-[17px]">
               GDPVision is a sovereign instrument for Presidents, Prime Ministers and Cabinets. It
               holds a nation's public and private evidence in one graded Ledger, and lets Cabinet
               rehearse a decision before it is taken. One isolated deployment per nation. The
               government owns it outright.
             </p>
+
             <div
               aria-live="polite"
               onMouseEnter={() => setPaused(true)}

@@ -314,7 +314,8 @@ export function MarketingHome() {
 
           <nav
             aria-label="Cycle through economic impact scenarios"
-            className="mt-16 flex items-center justify-end gap-6 border-t border-line-200 pt-6"
+            className="mt-10 flex items-center justify-end gap-5 border-t border-line-200 pt-4 sm:mt-16 sm:gap-6 sm:pt-6"
+
           >
             <button
               type="button"

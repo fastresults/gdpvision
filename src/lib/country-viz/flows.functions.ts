@@ -52,19 +52,30 @@ export type CapitalFlowsOverview = {
   };
 };
 
-async function assertAdmin(context: { supabase: any; userId: string }) {
+// Global admins pass; otherwise the caller must be bound to this country.
+// These handlers read through supabaseAdmin (RLS bypassed), so this check is
+// the only thing standing between a country user and another country's data.
+async function assertCountryAccess(
+  context: { supabase: any; userId: string },
+  countryCode: string,
+) {
   const { data: isAdmin } = await context.supabase.rpc("has_role", {
     _user_id: context.userId,
     _role: "admin",
   });
-  if (!isAdmin) throw new Error("Forbidden: super admin only");
+  if (isAdmin) return;
+  const { data: hasCountry } = await context.supabase.rpc("has_country_access", {
+    _user_id: context.userId,
+    _country_code: countryCode,
+  });
+  if (!hasCountry) throw new Error("Forbidden: no access to this country");
 }
 
 export const getCapitalFlows = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => Input.parse(d))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context);
+    await assertCountryAccess(context, data.countryCode);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { recordCorpusReadOutcome, triggerCorpusBackfill } = await import("@/lib/corpus/gateway.server");
     const cc = data.countryCode;

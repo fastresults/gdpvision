@@ -204,8 +204,8 @@ function DetailModal({
                 </>
               )}
 
-              {index && (
-                <Row label="Owning office" value={chamber?.owner ?? detail.kind !== "chamber" ? (detail.kind !== "chamber" ? (detail.owner ?? chamber?.owner ?? "—") : "—") : "—"} />
+              {detail.kind !== "chamber" && (detail.owner || chamber?.owner) && (
+                <Row label="Owning office" value={detail.owner ?? chamber?.owner ?? "—"} />
               )}
             </div>
 

@@ -6,7 +6,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { FileText, Home, MessageCircle, Send } from "lucide-react";
 
 import { getMyCountryStatus } from "@/lib/country-admin.functions";
-import { flagUrl } from "@/lib/caricom-registry";
+import { CARICOM_OECS_REGISTRY, flagUrl } from "@/lib/caricom-registry";
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { CountryChip } from "@/components/console/CountryChip";
 import { useImpersonation } from "@/lib/impersonation";
@@ -30,6 +30,10 @@ export const Route = createFileRoute("/_authenticated/console")({
   component: ConsoleLayout,
 });
 
+function countryLabel(code: string): string | null {
+  return CARICOM_OECS_REGISTRY.find((n) => n.code === code.toUpperCase())?.name ?? null;
+}
+
 function ConsoleLayout() {
   const { data: status } = useSuspenseQuery(statusQuery);
   const params = useParams({ strict: false }) as { code?: string };
@@ -43,8 +47,12 @@ function ConsoleLayout() {
     status.bindings[0]?.country_code ??
     null;
 
-  const countryName = status.bindings.find((b) => b.country_code === code)?.name ?? null;
+  const countryName =
+    status.bindings.find((b) => b.country_code === code)?.name ??
+    (code ? countryLabel(code) : null);
   const flag = code ? flagUrl(code, "w160") : null;
+  const isAgency = status.isGlobalAdmin && !viewAs;
+
 
   type Tab = {
     to:
@@ -102,7 +110,16 @@ function ConsoleLayout() {
             <Wordmark className="text-ink-950" />
             {code && <CountryChip flagUrl={flag} code={code} name={countryName} className="ml-1" />}
           </Link>
+          {isAgency && (
+            <Link
+              to="/home"
+              className="shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
+            >
+              ← All countries
+            </Link>
+          )}
         </div>
+
       </header>
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-28 sm:px-6 sm:py-10 sm:pb-28">

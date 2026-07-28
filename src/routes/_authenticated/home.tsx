@@ -232,7 +232,7 @@ function CountryPickerWelcome({ bindings }: { bindings: Array<{ country_code: st
             key={b.country_code}
             code={b.country_code}
             name={b.name ?? b.country_code}
-            to="/admin/countries/$code/onboard"
+            to="/console/$code"
           />
         ))}
       </div>
@@ -344,8 +344,10 @@ function CountriesGrid({ countries }: { countries: any[] }) {
               gdp={c.gdp_current_usd}
               gdpYear={c.gdp_year}
               progress={(c.completed_stages ?? []).length}
-              to="/admin/countries/$code/onboard"
+              to="/console/$code"
+              showOnboardingLink
             />
+
           ))}
         </div>
       )}
@@ -361,60 +363,72 @@ function CountryCard({
   gdpYear,
   progress,
   to,
+  showOnboardingLink,
 }: {
   code: string;
   name: string;
   gdp?: number | string | null;
   gdpYear?: number | null;
   progress?: number;
-  to: "/admin/countries/$code/onboard";
+  to: "/admin/countries/$code/onboard" | "/console/$code";
+  showOnboardingLink?: boolean;
 }) {
   const flag = flagUrl(code, "w320");
   return (
-    <Link
-      to={to}
-      params={{ code }}
-      className="group block border border-line-200 bg-card shadow-sm transition hover:-translate-y-0.5 hover:border-ink-950 hover:shadow-md"
-    >
-      <div className="relative aspect-[3/2] w-full overflow-hidden bg-paper-100">
-        {flag ? (
-          <img src={flag} alt={`Flag of ${name}`} loading="lazy" className="h-full w-full object-cover" />
-        ) : (
-          <div className="grid h-full w-full place-items-center font-serif text-3xl text-ink-500">{code}</div>
-        )}
-        <div className="absolute left-2 top-2 flex gap-1">
-          {isOecs(code) && (
-            <span
-              title="OECS member state"
-              className="rounded-sm bg-ink-950/85 px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase tracking-[0.15em] text-paper-0 backdrop-blur"
-            >
-              OECS
-            </span>
+    <div className="group relative border border-line-200 bg-card shadow-sm transition hover:-translate-y-0.5 hover:border-ink-950 hover:shadow-md">
+      <Link to={to} params={{ code }} className="block">
+        <div className="relative aspect-[3/2] w-full overflow-hidden bg-paper-100">
+          {flag ? (
+            <img src={flag} alt={`Flag of ${name}`} loading="lazy" className="h-full w-full object-cover" />
+          ) : (
+            <div className="grid h-full w-full place-items-center font-serif text-3xl text-ink-500">{code}</div>
           )}
-          {isCaricom(code) && (
-            <span
-              title="CARICOM member"
-              className="rounded-sm bg-paper-0/90 px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase tracking-[0.15em] text-ink-950 backdrop-blur"
-            >
-              CARICOM
-            </span>
-          )}
+          <div className="absolute left-2 top-2 flex gap-1">
+            {isOecs(code) && (
+              <span
+                title="OECS member state"
+                className="rounded-sm bg-ink-950/85 px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase tracking-[0.15em] text-paper-0 backdrop-blur"
+              >
+                OECS
+              </span>
+            )}
+            {isCaricom(code) && (
+              <span
+                title="CARICOM member"
+                className="rounded-sm bg-paper-0/90 px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase tracking-[0.15em] text-ink-950 backdrop-blur"
+              >
+                CARICOM
+              </span>
+            )}
+          </div>
         </div>
-      </div>
-      <div className="p-3">
-        <div className="font-serif text-base leading-tight text-ink-950">{name}</div>
-        <div className="mt-1 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
-          <span>{code}</span>
-          {gdp ? (
-            <span data-numeric>${(Number(gdp) / 1e9).toFixed(2)}B{gdpYear ? ` · ${gdpYear}` : ""}</span>
-          ) : typeof progress === "number" ? (
-            <span data-numeric>{progress}/12</span>
-          ) : null}
+        <div className="p-3">
+          <div className="font-serif text-base leading-tight text-ink-950">{name}</div>
+          <div className="mt-1 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+            <span>{code}</span>
+            {gdp ? (
+              <span data-numeric>${(Number(gdp) / 1e9).toFixed(2)}B{gdpYear ? ` · ${gdpYear}` : ""}</span>
+            ) : typeof progress === "number" ? (
+              <span data-numeric>{progress}/12</span>
+            ) : null}
+          </div>
         </div>
-      </div>
-    </Link>
+      </Link>
+      {showOnboardingLink && (
+        <div className="border-t border-line-200 px-3 py-2 text-right">
+          <Link
+            to="/admin/countries/$code/onboard"
+            params={{ code }}
+            className="font-mono text-[9px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
+          >
+            Onboarding →
+          </Link>
+        </div>
+      )}
+    </div>
   );
 }
+
 
 function QuickAction({
   icon: Icon,

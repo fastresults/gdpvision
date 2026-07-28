@@ -15,11 +15,9 @@ export function FloatingBackToTop() {
     if (typeof window === "undefined") return;
 
     const onScroll = () => {
-      console.log("scroll", window.scrollY, window.scrollY > SCROLL_THRESHOLD);
       setVisible(window.scrollY > SCROLL_THRESHOLD);
     };
 
-    console.log("effect", window.scrollY, window.scrollY > SCROLL_THRESHOLD);
     setVisible(window.scrollY > SCROLL_THRESHOLD);
     window.addEventListener("scroll", onScroll, { passive: true });
 

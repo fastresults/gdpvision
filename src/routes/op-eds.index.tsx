@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
+import { FloatingBackToTop } from "@/components/marketing/FloatingBackToTop";
 import { Illustration } from "@/components/marketing/Illustration";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { chamberByIndex } from "@/lib/chambers";
@@ -115,6 +116,7 @@ function OpEdsIndex() {
 
         </div>
       </section>
+      <FloatingBackToTop />
     </MarketingShell>
   );
 }

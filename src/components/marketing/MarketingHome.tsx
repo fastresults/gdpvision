@@ -660,6 +660,7 @@ export function MarketingHome() {
         <Wordmark />
         <a href="/kiosk">Kiosk</a>
       </div>
+      <FloatingBackToTop />
     </MarketingShell>
   );
 }

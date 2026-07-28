@@ -1,6 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
+import { FloatingBackToTop } from "@/components/marketing/FloatingBackToTop";
 import { Illustration } from "@/components/marketing/Illustration";
 import { OpEdGate } from "@/components/marketing/OpEdGate";
 import { chamberByIndex } from "@/lib/chambers";

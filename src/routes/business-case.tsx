@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
+import { FloatingBackToTop } from "@/components/marketing/FloatingBackToTop";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { Illustration } from "@/components/marketing/Illustration";
 import { NumberTile } from "@/components/marketing/NumberTile";
@@ -596,6 +597,7 @@ function BusinessCasePage() {
           </div>
         </div>
       </section>
+      <FloatingBackToTop />
     </MarketingShell>
   );
 }

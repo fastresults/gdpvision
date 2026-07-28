@@ -1,10 +1,11 @@
-import { Link } from "@tanstack/react-router";
-
 import type { ChamberSummary } from "@/lib/executive/types";
+import { originOf } from "@/lib/executive/detail";
+import { useExecutiveDetail } from "./DetailModal";
 import { shortDate } from "./tone";
 
 /** What is due — every chamber's next dated obligation, one calendar. */
-export function DueLedger({ code, chambers }: { code: string; chambers: ChamberSummary[] }) {
+export function DueLedger({ chambers }: { code?: string; chambers: ChamberSummary[] }) {
+  const { open } = useExecutiveDetail();
   const horizon = Date.now() + 45 * 86_400_000;
   const rows = chambers
     .filter((c) => c.next_due?.at)

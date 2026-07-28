@@ -272,18 +272,18 @@ export function MarketingHome() {
 
       {/* PROBLEM ---------------------------------------------------------- */}
       <section id="problem" className="border-b border-line-200">
-        <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
+        <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
           <div
             key={moment.id}
             className="animate-in fade-in duration-500 motion-reduce:animate-none"
           >
-            <div className="grid items-center gap-8 md:grid-cols-[320px_minmax(0,1fr)] md:gap-12 lg:grid-cols-[384px_minmax(0,1fr)]">
+            <div className="grid items-center gap-6 md:grid-cols-[320px_minmax(0,1fr)] md:gap-12 lg:grid-cols-[384px_minmax(0,1fr)]">
               <Illustration
                 key={moment.id}
                 src={moment.illustration ?? illMoment.url}
                 alt={moment.title}
                 variant="spot"
-                className="hidden shrink-0 !w-[320px] lg:!w-[384px] md:block"
+                className="mx-auto shrink-0 !w-[232px] md:mx-0 md:!w-[320px] lg:!w-[384px]"
               />
               <div className="min-w-0">
                 <SectionHeader
@@ -293,6 +293,7 @@ export function MarketingHome() {
                 />
               </div>
             </div>
+
             <div className="mt-16 grid gap-12 border-t border-line-200 pt-12 md:grid-cols-3">
               {moment.stats.map((s, i) => (
                 <NumberTile

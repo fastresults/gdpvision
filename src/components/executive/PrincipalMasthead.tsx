@@ -84,10 +84,17 @@ export function PrincipalMasthead({
       <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-line-100 pt-4 sm:grid-cols-4">
         {figures.map((f) => (
           <div key={f.label} className="min-w-0">
-            <dt className="truncate font-mono text-[9px] uppercase tracking-[0.2em] text-ink-500">{f.label}</dt>
-            <dd data-numeric className="mt-1 truncate font-serif text-[22px] leading-none text-ink-950">
-              {f.value}
-            </dd>
+            <button
+              type="button"
+              aria-haspopup="dialog"
+              onClick={() => open({ kind: "kpi", label: f.label, value: f.value, note: f.note })}
+              className="block w-full min-w-0 text-left transition-opacity hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-500"
+            >
+              <dt className="truncate font-mono text-[9px] uppercase tracking-[0.2em] text-ink-500">{f.label}</dt>
+              <dd data-numeric className="mt-1 truncate font-serif text-[22px] leading-none text-ink-950">
+                {f.value}
+              </dd>
+            </button>
           </div>
         ))}
       </dl>

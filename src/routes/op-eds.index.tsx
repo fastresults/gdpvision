@@ -8,7 +8,7 @@ import { OP_EDS, OP_ED_AUTHOR, isReadable } from "@/lib/op-eds/content";
 const SITE_URL = "https://gdpvision.com";
 const TITLE = "The writing — arguments for principals | GDPVision";
 const DESCRIPTION =
-  "Eight short, sourced arguments on how a small state can govern its own economy: the ledger, the revenue cliff, Cabinet time, and the manifesto as a delivery contract.";
+  "Nine short, sourced arguments on how a small state can govern its own economy: the ledger, the revenue cliff, Cabinet time, and the manifesto as a delivery contract.";
 
 export const Route = createFileRoute("/op-eds/")({
   head: () => ({
@@ -35,7 +35,7 @@ function OpEdsIndex() {
         <div className="mx-auto max-w-[1280px] px-6 py-20 md:px-10 md:py-28">
           <SectionHeader
             eyebrow="The writing"
-            title="Eight arguments, written for principals."
+            title="Nine arguments, written for principals."
             lede="Each piece takes about twelve minutes and carries its sources on the page. Nothing here is withheld to make a point — the evidence is visible before you give us a name."
           />
         </div>
@@ -53,7 +53,7 @@ function OpEdsIndex() {
                 <>
                   <div className="flex items-start justify-between gap-4">
                     <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-500">
-                      Chamber {op.chamber} · {chamber?.title}
+                      Chamber {op.chamber} · {chamber?.title ?? op.chamberName}
                     </div>
                     <Illustration src={op.emblem} variant="mark" className="shrink-0 !w-[104px]" />
                   </div>

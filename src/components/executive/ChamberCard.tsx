@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, Clock } from "lucide-react";
 
 import type { ChamberSummary } from "@/lib/executive/types";
+import { sheetRoute, slugForIndex, type ExecutiveSurface } from "@/lib/executive/chambers";
 import { KpiTriple } from "./KpiTriple";
 import { TempoSparkline } from "./TempoSparkline";
 import { TONE_RULE, TONE_TEXT, relTime, shortDate } from "./tone";
@@ -15,18 +16,20 @@ export function ChamberCard({
   code,
   chamber,
   index,
+  surface,
 }: {
   code: string;
   chamber: ChamberSummary;
   index: number;
+  surface: ExecutiveSurface;
 }) {
   const quiet = chamber.health === "quiet";
   const idle = relTime(chamber.last_activity_at);
 
   return (
     <Link
-      to={chamber.to}
-      params={{ code }}
+      to={sheetRoute(surface)}
+      params={{ code, chamber: slugForIndex(chamber.index) }}
       style={{ animationDelay: `${index * 45}ms` }}
       className="group relative flex min-h-[228px] flex-col justify-between border-b border-r border-line-200 bg-card p-5 transition-colors hover:bg-paper-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-500 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:fill-mode-both"
     >
@@ -73,7 +76,7 @@ export function ChamberCard({
           {chamber.recent.length === 0 && (
             <li className="text-[12px] text-ink-300">— not yet on record</li>
           )}
-          {chamber.recent.map((r, i) => (
+          {chamber.recent.slice(0, 3).map((r, i) => (
             <li key={i} className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-2">
               <span data-numeric className="shrink-0 font-mono text-[9px] uppercase tracking-[0.14em] text-ink-500">
                 {relTime(r.at)}
@@ -83,7 +86,7 @@ export function ChamberCard({
           ))}
         </ul>
         <span className="mt-3 inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.22em] text-ink-950">
-          Enter chamber <ArrowUpRight size={11} strokeWidth={1.5} />
+          Open the room sheet <ArrowUpRight size={11} strokeWidth={1.5} />
         </span>
       </div>
 

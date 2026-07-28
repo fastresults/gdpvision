@@ -93,6 +93,7 @@ import { Route as AuthenticatedAdminAuditsKeyingRouteImport } from './routes/_au
 import { Route as AuthenticatedConsoleCodeRequestsIndexRouteImport } from './routes/_authenticated/console.$code.requests.index'
 import { Route as AuthenticatedConsoleCodeRequestsIdRouteImport } from './routes/_authenticated/console.$code.requests.$id'
 import { Route as AuthenticatedConsoleCodeRequestNewRouteImport } from './routes/_authenticated/console.$code.request.new'
+import { Route as AuthenticatedConsoleCodeChamberChamberRouteImport } from './routes/_authenticated/console.$code.chamber.$chamber'
 import { Route as AuthenticatedAdminCountriesCodeVizRouteImport } from './routes/_authenticated/admin/countries.$code.viz'
 import { Route as AuthenticatedAdminCountriesCodeStudioRouteImport } from './routes/_authenticated/admin/countries.$code.studio'
 import { Route as AuthenticatedAdminCountriesCodeScenariosRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios'
@@ -126,6 +127,7 @@ import { Route as AuthenticatedAdminCountriesCodeStudioSectorsSectorCodeRouteImp
 import { Route as AuthenticatedAdminCountriesCodePersonasStudiesIdRouteImport } from './routes/_authenticated/admin/countries.$code.personas.studies.$id'
 import { Route as AuthenticatedAdminCountriesCodeNarrativeSignalIdRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.signal.$id'
 import { Route as AuthenticatedAdminCountriesCodeNarrativeOppositionIdRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.opposition.$id'
+import { Route as AuthenticatedAdminCountriesCodeExecutiveChamberChamberRouteImport } from './routes/_authenticated/admin/countries.$code.executive.chamber.$chamber'
 import { Route as AuthenticatedAdminCountriesCodeCabinetSessionSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.session.$sid'
 import { Route as AuthenticatedAdminCountriesCodeCabinetMinutesSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.minutes.$sid'
 import { Route as AuthenticatedAdminCountriesCodeCabinetAgendaSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.agenda.$sid'
@@ -613,6 +615,12 @@ const AuthenticatedConsoleCodeRequestNewRoute =
     path: '/$code/request/new',
     getParentRoute: () => AuthenticatedConsoleRoute,
   } as any)
+const AuthenticatedConsoleCodeChamberChamberRoute =
+  AuthenticatedConsoleCodeChamberChamberRouteImport.update({
+    id: '/$code/chamber/$chamber',
+    path: '/$code/chamber/$chamber',
+    getParentRoute: () => AuthenticatedConsoleRoute,
+  } as any)
 const AuthenticatedAdminCountriesCodeVizRoute =
   AuthenticatedAdminCountriesCodeVizRouteImport.update({
     id: '/countries/$code/viz',
@@ -811,6 +819,12 @@ const AuthenticatedAdminCountriesCodeNarrativeOppositionIdRoute =
     path: '/opposition/$id',
     getParentRoute: () => AuthenticatedAdminCountriesCodeNarrativeRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeExecutiveChamberChamberRoute =
+  AuthenticatedAdminCountriesCodeExecutiveChamberChamberRouteImport.update({
+    id: '/chamber/$chamber',
+    path: '/chamber/$chamber',
+    getParentRoute: () => AuthenticatedAdminCountriesCodeExecutiveRoute,
+  } as any)
 const AuthenticatedAdminCountriesCodeCabinetSessionSidRoute =
   AuthenticatedAdminCountriesCodeCabinetSessionSidRouteImport.update({
     id: '/countries/$code/cabinet/session/$sid',
@@ -912,7 +926,7 @@ export interface FileRoutesByFullPath {
   '/instrument/scenarios/': typeof AuthenticatedInstrumentScenariosIndexRoute
   '/narrative/strategy/': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
-  '/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRoute
+  '/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
   '/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/admin/countries/$code/mandate-compact': typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   '/admin/countries/$code/narrative': typeof AuthenticatedAdminCountriesCodeNarrativeRouteWithChildren
@@ -922,6 +936,7 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/scenarios': typeof AuthenticatedAdminCountriesCodeScenariosRouteWithChildren
   '/admin/countries/$code/studio': typeof AuthenticatedAdminCountriesCodeStudioRouteWithChildren
   '/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
+  '/console/$code/chamber/$chamber': typeof AuthenticatedConsoleCodeChamberChamberRoute
   '/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
   '/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
   '/console/$code/requests/': typeof AuthenticatedConsoleCodeRequestsIndexRoute
@@ -943,6 +958,7 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/cabinet/agenda/$sid': typeof AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute
   '/admin/countries/$code/cabinet/minutes/$sid': typeof AuthenticatedAdminCountriesCodeCabinetMinutesSidRoute
   '/admin/countries/$code/cabinet/session/$sid': typeof AuthenticatedAdminCountriesCodeCabinetSessionSidRoute
+  '/admin/countries/$code/executive/chamber/$chamber': typeof AuthenticatedAdminCountriesCodeExecutiveChamberChamberRoute
   '/admin/countries/$code/narrative/opposition/$id': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIdRoute
   '/admin/countries/$code/narrative/signal/$id': typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute
   '/admin/countries/$code/personas/studies/$id': typeof AuthenticatedAdminCountriesCodePersonasStudiesIdRoute
@@ -1029,11 +1045,12 @@ export interface FileRoutesByTo {
   '/instrument/scenarios': typeof AuthenticatedInstrumentScenariosIndexRoute
   '/narrative/strategy': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
-  '/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRoute
+  '/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
   '/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/admin/countries/$code/mandate-compact': typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   '/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
   '/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
+  '/console/$code/chamber/$chamber': typeof AuthenticatedConsoleCodeChamberChamberRoute
   '/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
   '/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
   '/console/$code/requests': typeof AuthenticatedConsoleCodeRequestsIndexRoute
@@ -1055,6 +1072,7 @@ export interface FileRoutesByTo {
   '/admin/countries/$code/cabinet/agenda/$sid': typeof AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute
   '/admin/countries/$code/cabinet/minutes/$sid': typeof AuthenticatedAdminCountriesCodeCabinetMinutesSidRoute
   '/admin/countries/$code/cabinet/session/$sid': typeof AuthenticatedAdminCountriesCodeCabinetSessionSidRoute
+  '/admin/countries/$code/executive/chamber/$chamber': typeof AuthenticatedAdminCountriesCodeExecutiveChamberChamberRoute
   '/admin/countries/$code/narrative/opposition/$id': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIdRoute
   '/admin/countries/$code/narrative/signal/$id': typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute
   '/admin/countries/$code/personas/studies/$id': typeof AuthenticatedAdminCountriesCodePersonasStudiesIdRoute
@@ -1147,7 +1165,7 @@ export interface FileRoutesById {
   '/_authenticated/instrument/scenarios/': typeof AuthenticatedInstrumentScenariosIndexRoute
   '/_authenticated/narrative/strategy/': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/_authenticated/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
-  '/_authenticated/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRoute
+  '/_authenticated/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
   '/_authenticated/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/_authenticated/admin/countries/$code/mandate-compact': typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   '/_authenticated/admin/countries/$code/narrative': typeof AuthenticatedAdminCountriesCodeNarrativeRouteWithChildren
@@ -1157,6 +1175,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/scenarios': typeof AuthenticatedAdminCountriesCodeScenariosRouteWithChildren
   '/_authenticated/admin/countries/$code/studio': typeof AuthenticatedAdminCountriesCodeStudioRouteWithChildren
   '/_authenticated/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
+  '/_authenticated/console/$code/chamber/$chamber': typeof AuthenticatedConsoleCodeChamberChamberRoute
   '/_authenticated/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
   '/_authenticated/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
   '/_authenticated/console/$code/requests/': typeof AuthenticatedConsoleCodeRequestsIndexRoute
@@ -1178,6 +1197,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/cabinet/agenda/$sid': typeof AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute
   '/_authenticated/admin/countries/$code/cabinet/minutes/$sid': typeof AuthenticatedAdminCountriesCodeCabinetMinutesSidRoute
   '/_authenticated/admin/countries/$code/cabinet/session/$sid': typeof AuthenticatedAdminCountriesCodeCabinetSessionSidRoute
+  '/_authenticated/admin/countries/$code/executive/chamber/$chamber': typeof AuthenticatedAdminCountriesCodeExecutiveChamberChamberRoute
   '/_authenticated/admin/countries/$code/narrative/opposition/$id': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIdRoute
   '/_authenticated/admin/countries/$code/narrative/signal/$id': typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute
   '/_authenticated/admin/countries/$code/personas/studies/$id': typeof AuthenticatedAdminCountriesCodePersonasStudiesIdRoute
@@ -1280,6 +1300,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/scenarios'
     | '/admin/countries/$code/studio'
     | '/admin/countries/$code/viz'
+    | '/console/$code/chamber/$chamber'
     | '/console/$code/request/new'
     | '/console/$code/requests/$id'
     | '/console/$code/requests/'
@@ -1301,6 +1322,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/cabinet/agenda/$sid'
     | '/admin/countries/$code/cabinet/minutes/$sid'
     | '/admin/countries/$code/cabinet/session/$sid'
+    | '/admin/countries/$code/executive/chamber/$chamber'
     | '/admin/countries/$code/narrative/opposition/$id'
     | '/admin/countries/$code/narrative/signal/$id'
     | '/admin/countries/$code/personas/studies/$id'
@@ -1392,6 +1414,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/mandate-compact'
     | '/admin/countries/$code/onboard'
     | '/admin/countries/$code/viz'
+    | '/console/$code/chamber/$chamber'
     | '/console/$code/request/new'
     | '/console/$code/requests/$id'
     | '/console/$code/requests'
@@ -1413,6 +1436,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/cabinet/agenda/$sid'
     | '/admin/countries/$code/cabinet/minutes/$sid'
     | '/admin/countries/$code/cabinet/session/$sid'
+    | '/admin/countries/$code/executive/chamber/$chamber'
     | '/admin/countries/$code/narrative/opposition/$id'
     | '/admin/countries/$code/narrative/signal/$id'
     | '/admin/countries/$code/personas/studies/$id'
@@ -1514,6 +1538,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/countries/$code/scenarios'
     | '/_authenticated/admin/countries/$code/studio'
     | '/_authenticated/admin/countries/$code/viz'
+    | '/_authenticated/console/$code/chamber/$chamber'
     | '/_authenticated/console/$code/request/new'
     | '/_authenticated/console/$code/requests/$id'
     | '/_authenticated/console/$code/requests/'
@@ -1535,6 +1560,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/countries/$code/cabinet/agenda/$sid'
     | '/_authenticated/admin/countries/$code/cabinet/minutes/$sid'
     | '/_authenticated/admin/countries/$code/cabinet/session/$sid'
+    | '/_authenticated/admin/countries/$code/executive/chamber/$chamber'
     | '/_authenticated/admin/countries/$code/narrative/opposition/$id'
     | '/_authenticated/admin/countries/$code/narrative/signal/$id'
     | '/_authenticated/admin/countries/$code/personas/studies/$id'
@@ -2150,6 +2176,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConsoleCodeRequestNewRouteImport
       parentRoute: typeof AuthenticatedConsoleRoute
     }
+    '/_authenticated/console/$code/chamber/$chamber': {
+      id: '/_authenticated/console/$code/chamber/$chamber'
+      path: '/$code/chamber/$chamber'
+      fullPath: '/console/$code/chamber/$chamber'
+      preLoaderRoute: typeof AuthenticatedConsoleCodeChamberChamberRouteImport
+      parentRoute: typeof AuthenticatedConsoleRoute
+    }
     '/_authenticated/admin/countries/$code/viz': {
       id: '/_authenticated/admin/countries/$code/viz'
       path: '/countries/$code/viz'
@@ -2381,6 +2414,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIdRouteImport
       parentRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRoute
     }
+    '/_authenticated/admin/countries/$code/executive/chamber/$chamber': {
+      id: '/_authenticated/admin/countries/$code/executive/chamber/$chamber'
+      path: '/chamber/$chamber'
+      fullPath: '/admin/countries/$code/executive/chamber/$chamber'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeExecutiveChamberChamberRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodeExecutiveRoute
+    }
     '/_authenticated/admin/countries/$code/cabinet/session/$sid': {
       id: '/_authenticated/admin/countries/$code/cabinet/session/$sid'
       path: '/countries/$code/cabinet/session/$sid'
@@ -2404,6 +2444,21 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AuthenticatedAdminCountriesCodeExecutiveRouteChildren {
+  AuthenticatedAdminCountriesCodeExecutiveChamberChamberRoute: typeof AuthenticatedAdminCountriesCodeExecutiveChamberChamberRoute
+}
+
+const AuthenticatedAdminCountriesCodeExecutiveRouteChildren: AuthenticatedAdminCountriesCodeExecutiveRouteChildren =
+  {
+    AuthenticatedAdminCountriesCodeExecutiveChamberChamberRoute:
+      AuthenticatedAdminCountriesCodeExecutiveChamberChamberRoute,
+  }
+
+const AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren =
+  AuthenticatedAdminCountriesCodeExecutiveRoute._addFileChildren(
+    AuthenticatedAdminCountriesCodeExecutiveRouteChildren,
+  )
 
 interface AuthenticatedAdminCountriesCodeNarrativeRouteChildren {
   AuthenticatedAdminCountriesCodeNarrativeLibraryRoute: typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRoute
@@ -2553,7 +2608,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminCountryCodeRoute: typeof AuthenticatedAdminCountryCodeRoute
   AuthenticatedAdminCountriesIndexRoute: typeof AuthenticatedAdminCountriesIndexRoute
   AuthenticatedAdminCountriesCodeDataRoute: typeof AuthenticatedAdminCountriesCodeDataRoute
-  AuthenticatedAdminCountriesCodeExecutiveRoute: typeof AuthenticatedAdminCountriesCodeExecutiveRoute
+  AuthenticatedAdminCountriesCodeExecutiveRoute: typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
   AuthenticatedAdminCountriesCodeLedgerRoute: typeof AuthenticatedAdminCountriesCodeLedgerRoute
   AuthenticatedAdminCountriesCodeMandateCompactRoute: typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   AuthenticatedAdminCountriesCodeNarrativeRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRouteWithChildren
@@ -2586,7 +2641,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminCountriesCodeDataRoute:
       AuthenticatedAdminCountriesCodeDataRoute,
     AuthenticatedAdminCountriesCodeExecutiveRoute:
-      AuthenticatedAdminCountriesCodeExecutiveRoute,
+      AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren,
     AuthenticatedAdminCountriesCodeLedgerRoute:
       AuthenticatedAdminCountriesCodeLedgerRoute,
     AuthenticatedAdminCountriesCodeMandateCompactRoute:
@@ -2741,6 +2796,7 @@ interface AuthenticatedConsoleRouteChildren {
   AuthenticatedConsoleCodeMandateRoute: typeof AuthenticatedConsoleCodeMandateRoute
   AuthenticatedConsoleCodeStudyRoute: typeof AuthenticatedConsoleCodeStudyRoute
   AuthenticatedConsoleCodeIndexRoute: typeof AuthenticatedConsoleCodeIndexRoute
+  AuthenticatedConsoleCodeChamberChamberRoute: typeof AuthenticatedConsoleCodeChamberChamberRoute
   AuthenticatedConsoleCodeRequestNewRoute: typeof AuthenticatedConsoleCodeRequestNewRoute
   AuthenticatedConsoleCodeRequestsIdRoute: typeof AuthenticatedConsoleCodeRequestsIdRoute
   AuthenticatedConsoleCodeRequestsIndexRoute: typeof AuthenticatedConsoleCodeRequestsIndexRoute
@@ -2752,6 +2808,8 @@ const AuthenticatedConsoleRouteChildren: AuthenticatedConsoleRouteChildren = {
   AuthenticatedConsoleCodeMandateRoute: AuthenticatedConsoleCodeMandateRoute,
   AuthenticatedConsoleCodeStudyRoute: AuthenticatedConsoleCodeStudyRoute,
   AuthenticatedConsoleCodeIndexRoute: AuthenticatedConsoleCodeIndexRoute,
+  AuthenticatedConsoleCodeChamberChamberRoute:
+    AuthenticatedConsoleCodeChamberChamberRoute,
   AuthenticatedConsoleCodeRequestNewRoute:
     AuthenticatedConsoleCodeRequestNewRoute,
   AuthenticatedConsoleCodeRequestsIdRoute:

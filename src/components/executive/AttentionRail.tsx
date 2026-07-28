@@ -2,13 +2,22 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 
 import type { AttentionItem } from "@/lib/executive/attention";
+import { sheetRoute, slugForIndex, type ExecutiveSurface } from "@/lib/executive/chambers";
 
 /**
  * The verdict rail. The first thing on screen is prose, ranked, each item a
  * sentence a human would say out loud — not a wall of widgets that leaves the
  * diagnosis to the reader. Hover reveals why an item ranked where it did.
  */
-export function AttentionRail({ code, items }: { code: string; items: AttentionItem[] }) {
+export function AttentionRail({
+  code,
+  items,
+  surface,
+}: {
+  code: string;
+  items: AttentionItem[];
+  surface: ExecutiveSurface;
+}) {
   return (
     <section className="border-y border-ink-950">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 border-b border-line-200 px-5 py-3">
@@ -27,8 +36,9 @@ export function AttentionRail({ code, items }: { code: string; items: AttentionI
           {items.map((it, i) => (
             <li key={`${it.chamber}-${i}`} style={{ animationDelay: `${i * 40}ms` }} className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-left-1 motion-safe:fill-mode-both">
               <Link
-                to={it.to}
-                params={{ code }}
+                to={sheetRoute(surface)}
+                params={{ code, chamber: slugForIndex(it.chamber) }}
+                hash="awaits"
                 className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-b border-line-100 px-5 py-3.5 transition-colors last:border-b-0 hover:bg-paper-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-500"
               >
                 <span data-numeric className="shrink-0 font-mono text-[10px] tracking-[0.2em] text-ink-500">

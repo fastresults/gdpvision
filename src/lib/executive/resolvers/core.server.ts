@@ -80,7 +80,7 @@ export async function resolveLedger(sb: Db, cc: string): Promise<ChamberSummary>
       recent: [...rows]
         .filter((r: any) => r.updated_at)
         .sort((a: any, b: any) => Date.parse(b.updated_at) - Date.parse(a.updated_at))
-        .slice(0, 3)
+        .slice(0, 10)
         .map((r: any) => ({ at: r.updated_at, text: `${r.label ?? r.id} updated` })),
       alerts: [
         ...(staleDays !== null && staleDays > 90
@@ -161,7 +161,7 @@ export async function resolvePortfolios(sb: Db, cc: string): Promise<ChamberSumm
       recent: [...dossiers]
         .filter((d: any) => d.updated_at)
         .sort((a: any, b: any) => Date.parse(b.updated_at) - Date.parse(a.updated_at))
-        .slice(0, 3)
+        .slice(0, 10)
         .map((d: any) => ({ at: d.updated_at, text: `${d.sector_code} · ${d.kind} dossier refreshed` })),
       alerts:
         gap > 0
@@ -214,7 +214,7 @@ export async function resolveScenarios(sb: Db, cc: string): Promise<ChamberSumma
       recent: [...rows]
         .filter((r: any) => r.updated_at)
         .sort((a: any, b: any) => Date.parse(b.updated_at) - Date.parse(a.updated_at))
-        .slice(0, 3)
+        .slice(0, 10)
         .map((r: any) => ({ at: r.updated_at, text: `${r.title} · ${r.status}` })),
       alerts:
         drafts.length >= 3 && (idleDays ?? 0) > 14
@@ -289,7 +289,7 @@ export async function resolveStudio(sb: Db, cc: string): Promise<ChamberSummary>
       recent: [...actions]
         .filter((a: any) => a.updated_at ?? a.created_at)
         .sort((a: any, b: any) => Date.parse(b.updated_at ?? b.created_at) - Date.parse(a.updated_at ?? a.created_at))
-        .slice(0, 3)
+        .slice(0, 10)
         .map((a: any) => ({ at: a.updated_at ?? a.created_at, text: `${a.horizon ?? "action"} · ${a.action}` })),
       alerts:
         threats.length > 0 && actions.length === 0

@@ -37,7 +37,7 @@ function ExecutiveRoute() {
     <SuperAdminShell>
       <div className="mx-auto w-full max-w-[1240px] px-5 py-8 sm:px-8">
         <Suspense fallback={<ExecutiveSkeleton />}>
-          <ExecutiveDashboard code={code} />
+          <ExecutiveDashboard code={code} surface="admin" />
         </Suspense>
       </div>
     </SuperAdminShell>

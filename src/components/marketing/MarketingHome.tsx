@@ -23,7 +23,6 @@ function useHashScroll() {
   }, [hash]);
 }
 
-
 import { EXISTENTIAL_THREATS } from "@/lib/existential-threats";
 import { MOMENT_VARIANTS } from "@/lib/moment-variants";
 import { SignatureRing } from "./SignatureRing";
@@ -33,6 +32,7 @@ import { SectionHeader } from "./SectionHeader";
 import { BriefingForm } from "./BriefingForm";
 import { Wordmark } from "./Wordmark";
 import { Illustration } from "./Illustration";
+import { FloatingBackToTop } from "./FloatingBackToTop";
 import illMoment from "@/assets/illustrations/section-moment.jpg.asset.json";
 import illCorpus from "@/assets/illustrations/section-corpus.jpg.asset.json";
 import illLoop from "@/assets/illustrations/section-loop.jpg.asset.json";
@@ -266,7 +266,6 @@ export function MarketingHome() {
           <div className="relative flex items-center justify-center">
             <SignatureRing size={480} />
           </div>
-
         </div>
       </section>
 
@@ -330,7 +329,6 @@ export function MarketingHome() {
                 aria-hidden
                 className="w-[28px] shrink-0 transition-transform duration-300 group-hover:-translate-x-1 sm:w-[44px]"
               >
-
                 <path
                   d="M43 5H1M1 5L5 1M1 5L5 9"
                   stroke="currentColor"
@@ -360,7 +358,6 @@ export function MarketingHome() {
                 aria-hidden
                 className="w-[28px] shrink-0 transition-transform duration-300 group-hover:translate-x-1 sm:w-[44px]"
               >
-
                 <path
                   d="M1 5H43M43 5L39 1M43 5L39 9"
                   stroke="currentColor"
@@ -388,7 +385,6 @@ export function MarketingHome() {
             </div>
           </div>
           <div className="mt-10 grid gap-8 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-3">
-
             {[
               {
                 head: "Public corpus",
@@ -430,7 +426,6 @@ export function MarketingHome() {
             />
           </div>
           <div className="mt-10 grid gap-8 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2 lg:grid-cols-4">
-
             {LOOP_STEPS.map((s) => (
               <div key={s.step} className="border-t border-line-200 pt-6">
                 <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold-500">
@@ -450,7 +445,6 @@ export function MarketingHome() {
       {/* INSTRUMENT — CHAMBERS ------------------------------------------- */}
       <section id="instrument" className="border-b border-line-200 bg-paper-100/40">
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
-
           <SectionHeader
             eyebrow="The instrument"
             title="Eight chambers, each engineered to move GDP."
@@ -565,7 +559,6 @@ export function MarketingHome() {
       {/* PROVENANCE ------------------------------------------------------- */}
       <section id="provenance" className="border-b border-line-200 bg-paper-100/40">
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
-
           <SectionHeader
             eyebrow="Provenance"
             title="Built by OPEN Interactive — seventeen years in the room, one working prototype already running."
@@ -620,12 +613,10 @@ export function MarketingHome() {
         </div>
       </section>
 
-
       {/* BRIEFING CTA ----------------------------------------------------- */}
       <section id="briefing">
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
           <div className="grid gap-10 md:grid-cols-[1fr_1.4fr] md:gap-16 items-start">
-
             <div>
               <SectionHeader
                 eyebrow="Cabinet briefing"
@@ -660,6 +651,7 @@ export function MarketingHome() {
         <Wordmark />
         <a href="/kiosk">Kiosk</a>
       </div>
+      <FloatingBackToTop />
     </MarketingShell>
   );
 }

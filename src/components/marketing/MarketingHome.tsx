@@ -449,7 +449,8 @@ export function MarketingHome() {
 
       {/* INSTRUMENT — CHAMBERS ------------------------------------------- */}
       <section id="instrument" className="border-b border-line-200 bg-paper-100/40">
-        <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
+        <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
+
           <SectionHeader
             eyebrow="The instrument"
             title="Eight chambers, each engineered to move GDP."

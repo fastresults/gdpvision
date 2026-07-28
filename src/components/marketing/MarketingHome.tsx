@@ -264,7 +264,7 @@ export function MarketingHome() {
             </div>
           </div>
           <div className="relative flex items-center justify-center">
-            <SignatureRing size={480} className="max-w-[min(480px,82vw)]" />
+            <SignatureRing size={480} />
           </div>
 
         </div>

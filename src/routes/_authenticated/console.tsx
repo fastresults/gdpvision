@@ -110,7 +110,16 @@ function ConsoleLayout() {
             <Wordmark className="text-ink-950" />
             {code && <CountryChip flagUrl={flag} code={code} name={countryName} className="ml-1" />}
           </Link>
+          {isAgency && (
+            <Link
+              to="/home"
+              className="shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
+            >
+              ← All countries
+            </Link>
+          )}
         </div>
+
       </header>
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-28 sm:px-6 sm:py-10 sm:pb-28">

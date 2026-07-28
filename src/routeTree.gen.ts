@@ -100,6 +100,7 @@ import { Route as AuthenticatedAdminCountriesCodeOnboardRouteImport } from './ro
 import { Route as AuthenticatedAdminCountriesCodeNarrativeRouteImport } from './routes/_authenticated/admin/countries.$code.narrative'
 import { Route as AuthenticatedAdminCountriesCodeMandateCompactRouteImport } from './routes/_authenticated/admin/countries.$code.mandate-compact'
 import { Route as AuthenticatedAdminCountriesCodeLedgerRouteImport } from './routes/_authenticated/admin/countries.$code.ledger'
+import { Route as AuthenticatedAdminCountriesCodeExecutiveRouteImport } from './routes/_authenticated/admin/countries.$code.executive'
 import { Route as AuthenticatedAdminCountriesCodeDataRouteImport } from './routes/_authenticated/admin/countries.$code.data'
 import { Route as AuthenticatedAdminCountriesCodeStudioIndexRouteImport } from './routes/_authenticated/admin/countries.$code.studio.index'
 import { Route as AuthenticatedAdminCountriesCodeScenariosIndexRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios.index'
@@ -652,6 +653,12 @@ const AuthenticatedAdminCountriesCodeLedgerRoute =
     path: '/countries/$code/ledger',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeExecutiveRoute =
+  AuthenticatedAdminCountriesCodeExecutiveRouteImport.update({
+    id: '/countries/$code/executive',
+    path: '/countries/$code/executive',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminCountriesCodeDataRoute =
   AuthenticatedAdminCountriesCodeDataRouteImport.update({
     id: '/countries/$code/data',
@@ -889,6 +896,7 @@ export interface FileRoutesByFullPath {
   '/instrument/scenarios/': typeof AuthenticatedInstrumentScenariosIndexRoute
   '/narrative/strategy/': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
+  '/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRoute
   '/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/admin/countries/$code/mandate-compact': typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   '/admin/countries/$code/narrative': typeof AuthenticatedAdminCountriesCodeNarrativeRouteWithChildren
@@ -1003,6 +1011,7 @@ export interface FileRoutesByTo {
   '/instrument/scenarios': typeof AuthenticatedInstrumentScenariosIndexRoute
   '/narrative/strategy': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
+  '/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRoute
   '/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/admin/countries/$code/mandate-compact': typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   '/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
@@ -1118,6 +1127,7 @@ export interface FileRoutesById {
   '/_authenticated/instrument/scenarios/': typeof AuthenticatedInstrumentScenariosIndexRoute
   '/_authenticated/narrative/strategy/': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/_authenticated/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
+  '/_authenticated/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRoute
   '/_authenticated/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/_authenticated/admin/countries/$code/mandate-compact': typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   '/_authenticated/admin/countries/$code/narrative': typeof AuthenticatedAdminCountriesCodeNarrativeRouteWithChildren
@@ -1238,6 +1248,7 @@ export interface FileRouteTypes {
     | '/instrument/scenarios/'
     | '/narrative/strategy/'
     | '/admin/countries/$code/data'
+    | '/admin/countries/$code/executive'
     | '/admin/countries/$code/ledger'
     | '/admin/countries/$code/mandate-compact'
     | '/admin/countries/$code/narrative'
@@ -1352,6 +1363,7 @@ export interface FileRouteTypes {
     | '/instrument/scenarios'
     | '/narrative/strategy'
     | '/admin/countries/$code/data'
+    | '/admin/countries/$code/executive'
     | '/admin/countries/$code/ledger'
     | '/admin/countries/$code/mandate-compact'
     | '/admin/countries/$code/onboard'
@@ -1466,6 +1478,7 @@ export interface FileRouteTypes {
     | '/_authenticated/instrument/scenarios/'
     | '/_authenticated/narrative/strategy/'
     | '/_authenticated/admin/countries/$code/data'
+    | '/_authenticated/admin/countries/$code/executive'
     | '/_authenticated/admin/countries/$code/ledger'
     | '/_authenticated/admin/countries/$code/mandate-compact'
     | '/_authenticated/admin/countries/$code/narrative'
@@ -2160,6 +2173,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeLedgerRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/countries/$code/executive': {
+      id: '/_authenticated/admin/countries/$code/executive'
+      path: '/countries/$code/executive'
+      fullPath: '/admin/countries/$code/executive'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeExecutiveRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/countries/$code/data': {
       id: '/_authenticated/admin/countries/$code/data'
       path: '/countries/$code/data'
@@ -2493,6 +2513,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminCountryCodeRoute: typeof AuthenticatedAdminCountryCodeRoute
   AuthenticatedAdminCountriesIndexRoute: typeof AuthenticatedAdminCountriesIndexRoute
   AuthenticatedAdminCountriesCodeDataRoute: typeof AuthenticatedAdminCountriesCodeDataRoute
+  AuthenticatedAdminCountriesCodeExecutiveRoute: typeof AuthenticatedAdminCountriesCodeExecutiveRoute
   AuthenticatedAdminCountriesCodeLedgerRoute: typeof AuthenticatedAdminCountriesCodeLedgerRoute
   AuthenticatedAdminCountriesCodeMandateCompactRoute: typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   AuthenticatedAdminCountriesCodeNarrativeRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRouteWithChildren
@@ -2524,6 +2545,8 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
       AuthenticatedAdminCountriesIndexRoute,
     AuthenticatedAdminCountriesCodeDataRoute:
       AuthenticatedAdminCountriesCodeDataRoute,
+    AuthenticatedAdminCountriesCodeExecutiveRoute:
+      AuthenticatedAdminCountriesCodeExecutiveRoute,
     AuthenticatedAdminCountriesCodeLedgerRoute:
       AuthenticatedAdminCountriesCodeLedgerRoute,
     AuthenticatedAdminCountriesCodeMandateCompactRoute:

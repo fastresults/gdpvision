@@ -1,55 +1,28 @@
 ## Goal
 
-On the Executive Brief (primary view) and the Chamber Room Sheet (secondary view), every line the Principal can see becomes clickable and opens the same popup modal instead of a dead row — with one clear onward action inside it.
+In the Country Console header, the country chip beside the GDPVISION wordmark becomes a clickable switcher. A super admin clicks it and gets a searchable list of every onboarded country, with flags, and jumps straight into that country's Executive Brief.
 
-## One modal, one anatomy
+## Behaviour
 
-New `src/components/executive/DetailModal.tsx` (shadcn `Dialog`, ink/paper tokens, `btn-primary` / `btn-ghost`):
+- **Super admin**: the chip shows a small chevron and opens a dropdown panel listing all onboarded countries (same source the `/home` flag gallery uses), each row with flag, ISO code and name. A type-to-filter field sits at the top; the current country is marked. Selecting a country switches the view-as target and navigates to `/console/{CODE}` (the Executive Brief). A footer row keeps "← All countries" as an escape hatch to `/home`.
+- **Country user with more than one country binding**: same panel, but limited to the countries they are bound to.
+- **Country user with a single binding**: chip stays exactly as today — plain, non-interactive, no chevron. No new affordance where there is nothing to switch to.
 
-```text
-CHAMBER 07 · PERSONA LAB            [ 7D AGO ]
-─────────────────────────────────────────────
-Headline (the item's own sentence, serif, large)
-─────────────────────────────────────────────
-WHY / DETAIL     reasoning chips or KPI context
-ON RECORD        exact timestamp + owning office
-─────────────────────────────────────────────
-[ Open the room sheet ]   [ Enter the chamber ]
-```
+## Interaction detail
 
-Driven by a small discriminated union `ExecutiveDetail`:
-- `kpi` — label, value, tone, chamber, what the number counts
-- `alert` — text, severity, the `because[]` arithmetic
-- `activity` — movement line + exact date/time
-- `due` — deliverable label, due date, owner, state
-- `chamber` — full chamber summary (numbers + tempo + counts), used from the ledger table
+- Keyboard: Enter/Space opens, arrow keys move, Enter selects, Escape closes; focus returns to the chip.
+- Panel is anchored under the chip, capped in height with internal scroll, and closes on outside click or route change.
+- Mobile: the same panel, full width under the header so rows are comfortably tappable.
+- The wordmark keeps its own separate link (Brief / home); clicking the chip must no longer trigger the wordmark's navigation.
 
-State handled by a tiny `useDetail()` hook so each surface only does `onSelect(detail)`.
+## Visual language
 
-## What becomes clickable
+Follows the existing paper/ink system — mono uppercase micro-labels, hairline `line-200` borders, `paper-0` surface, gold focus ring. No new colours. Rows use the same flag treatment as the masthead.
 
-Primary view (`ExecutiveDashboard`):
-- `AttentionRail` rows → alert modal (currently navigate straight to the sheet; the sheet becomes a button inside the modal)
-- `ChamberCard`: the three KPI cells and each hover activity line become clickable; the card body keeps navigating to the room sheet
-- `ChamberLedgerTable` rows → chamber modal; individual KPI cells → kpi modal
-- `DueLedger` rows → due modal
-- `PrincipalMasthead` stats (GDP, Grade A/B, corpus freshness) → kpi modal
+## Technical notes
 
-Secondary view (`ChamberSheet`):
-- Macro band numbers → kpi modal
-- `AwaitsList` items → alert modal (with the full `because` arithmetic)
-- `DeliverablesTable`: the due row and every "Recent movement" line → due / activity modal
-- `TempoPanel` stats → kpi modal (movements, since last, busiest)
-
-Every previously-static row gets `<button>` semantics, keyboard focus ring, and `aria-haspopup="dialog"`; the modal restores focus on close. Modals are `print:hidden` and never block the existing print parity.
-
-## Notes / trade-offs
-
-- This is presentation-only: it uses the data the resolvers already return (`kpis`, `alerts`, `recent`, `next_due`, `tempo`). No schema, server-fn, or resolver changes.
-- Because `ActivityLine` today is just `{ at, text }`, the activity modal shows the sentence, exact timestamp, chamber and owner — not a deep record view. If you want a movement to open the underlying row (the actual KPI, study, threat, or commitment), that needs the resolvers to carry an id/link per line — a follow-up phase I can do next.
-
-## Files
-
-- new `src/components/executive/DetailModal.tsx`, `src/components/executive/useDetail.ts`, detail types in `src/lib/executive/detail.ts`
-- edit `ExecutiveDashboard.tsx`, `AttentionRail.tsx`, `ChamberCard.tsx`, `ChamberLedgerTable.tsx`, `DueLedger.tsx`, `PrincipalMasthead.tsx`, `KpiTriple.tsx`
-- edit `chamber/ChamberSheet.tsx`, `chamber/AwaitsList.tsx`, `chamber/DeliverablesTable.tsx`, `chamber/TempoPanel.tsx`
+- Split the header link in `src/routes/_authenticated/console.tsx`: wordmark stays a `Link`, chip becomes a sibling switcher (fixes the current nested-interactive markup).
+- New `src/components/console/CountrySwitcher.tsx` wrapping the existing `CountryChip` as its trigger; `CountryChip` itself stays presentational.
+- Country list: `listOnboardingCountries()` for super admins (already query-cached under `["onboarding","countries"]`), `getMyCountryStatus().bindings` for country users. Fetch on first open so the console shell stays light.
+- Switching calls `useImpersonation().enter(code)` for super admins before navigating, so the rest of the app agrees on which country is in view.
+- Frontend only — no schema, RLS, or server-function changes.

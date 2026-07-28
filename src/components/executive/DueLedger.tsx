@@ -28,10 +28,19 @@ export function DueLedger({ chambers }: { code?: string; chambers: ChamberSummar
             const overdue = at < Date.now();
             return (
               <li key={c.index} className="border-b border-line-100 last:border-b-0">
-                <Link
-                  to={c.to}
-                  params={{ code }}
-                  className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-4 py-2.5 transition-colors hover:bg-paper-100 sm:grid-cols-[92px_120px_minmax(0,1fr)_auto]"
+                <button
+                  type="button"
+                  aria-haspopup="dialog"
+                  onClick={() =>
+                    open({
+                      kind: "due",
+                      ...originOf(c),
+                      label: c.next_due!.label,
+                      at: c.next_due!.at,
+                      state: overdue ? "Overdue" : "Due",
+                    })
+                  }
+                  className="grid w-full grid-cols-[auto_minmax(0,1fr)] items-baseline gap-4 py-2.5 text-left transition-colors hover:bg-paper-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-500 sm:grid-cols-[92px_120px_minmax(0,1fr)_auto]"
                 >
                   <span
                     data-numeric
@@ -48,7 +57,8 @@ export function DueLedger({ chambers }: { code?: string; chambers: ChamberSummar
                   <span className="hidden shrink-0 font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500 sm:block">
                     {c.owner}
                   </span>
-                </Link>
+                </button>
+
               </li>
             );
           })}

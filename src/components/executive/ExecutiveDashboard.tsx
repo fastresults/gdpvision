@@ -93,6 +93,7 @@ export function ExecutiveDashboard({
         live from the corpus
       </p>
     </div>
+    </ExecutiveDetailProvider>
   );
 }
 

@@ -54,34 +54,40 @@ export function SignatureRing({ size = 520, animate = true, showBrain = true, cl
   const totalPct = 100 / segments;
   const description = `National Signature ring. ${segments} balanced sectors, each ${totalPct.toFixed(1)}% of the master mark: ${CANONICAL_SECTORS.map((s) => s.label).join(", ")}.`;
 
+  // The ring is fluid: `size` is the internal coordinate space and the
+  // desktop cap. On narrow viewports it scales down with its container so it
+  // can never drag the page sideways.
+  const brainPx = (inner * 2 - 20) * 1.2;
+  const brainPct = (brainPx / size) * 100;
+
   return (
-    <div className={cn("relative", className)} style={{ width: size, height: size }}>
+    <div
+      className={cn("relative aspect-square w-full", className)}
+      style={{ maxWidth: size }}
+    >
       {showBrain ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute"
+          className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
           style={{
-            width: (inner * 2 - 20) * 1.2,
-            height: (inner * 2 - 20) * 1.2,
-            left: cx - (inner * 2 - 20) * 0.6,
-            top: cy - (inner * 2 - 20) * 0.6,
+            width: `${brainPct}%`,
+            height: `${brainPct}%`,
             opacity: assembled ? 1 : 0,
             transition: "opacity 900ms ease-out 800ms",
             zIndex: 0,
           }}
         >
-          <BrainMask size={(inner * 2 - 20) * 1.2} />
+          <BrainMask size={brainPx} />
         </div>
       ) : null}
       <svg
         viewBox={`0 0 ${size} ${size}`}
-        width={size}
-        height={size}
         role="img"
         aria-label={description}
         className="relative block h-full w-full"
         style={{ zIndex: 1 }}
       >
+
         {/* Hairline concentric guides */}
         <circle cx={cx} cy={cy} r={outer + 8} fill="none" stroke="var(--line-200)" strokeWidth={0.5} />
         <circle cx={cx} cy={cy} r={inner - 8} fill="none" stroke="var(--line-200)" strokeWidth={0.5} />

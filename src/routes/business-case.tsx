@@ -100,7 +100,10 @@ function Section({
 }) {
   return (
     <section className={bordered ? "border-b border-line-200" : undefined}>
-      <div className="mx-auto max-w-[1280px] px-6 py-16 md:px-10 md:py-24">{children}</div>
+      <div className="mx-auto max-w-[1280px] px-5 py-12 sm:px-6 sm:py-16 md:px-10 md:py-24">
+        {children}
+      </div>
+
     </section>
   );
 }

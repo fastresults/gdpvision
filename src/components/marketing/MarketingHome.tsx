@@ -33,6 +33,7 @@ import { SectionHeader } from "./SectionHeader";
 import { BriefingForm } from "./BriefingForm";
 import { Wordmark } from "./Wordmark";
 import { Illustration } from "./Illustration";
+import { FloatingBackToTop } from "./FloatingBackToTop";
 import illMoment from "@/assets/illustrations/section-moment.jpg.asset.json";
 import illCorpus from "@/assets/illustrations/section-corpus.jpg.asset.json";
 import illLoop from "@/assets/illustrations/section-loop.jpg.asset.json";

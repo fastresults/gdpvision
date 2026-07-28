@@ -194,13 +194,13 @@ export function MarketingHome() {
 
             <nav
               aria-label="Cycle through threats"
-              className="mt-4 flex items-center gap-6 border-t border-line-200 pt-3"
+              className="mt-4 flex items-center gap-5 border-t border-line-200 pt-1 sm:gap-6 sm:pt-3"
             >
               <button
                 type="button"
                 onClick={goPrevThreat}
                 aria-label="Previous threat"
-                className="group flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
+                className="group -mx-2 flex min-h-[44px] items-center gap-3 px-2 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
               >
                 <svg
                   width="44"
@@ -208,7 +208,7 @@ export function MarketingHome() {
                   viewBox="0 0 44 10"
                   fill="none"
                   aria-hidden
-                  className="transition-transform duration-300 group-hover:-translate-x-1"
+                  className="w-[28px] shrink-0 transition-transform duration-300 group-hover:-translate-x-1 sm:w-[44px]"
                 >
                   <path
                     d="M43 5H1M1 5L5 1M1 5L5 9"
@@ -228,7 +228,7 @@ export function MarketingHome() {
                 type="button"
                 onClick={goNextThreat}
                 aria-label="Next threat"
-                className="group flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
+                className="group -mx-2 flex min-h-[44px] items-center gap-3 px-2 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
               >
                 <span>Next</span>
                 <svg
@@ -237,7 +237,7 @@ export function MarketingHome() {
                   viewBox="0 0 44 10"
                   fill="none"
                   aria-hidden
-                  className="transition-transform duration-300 group-hover:translate-x-1"
+                  className="w-[28px] shrink-0 transition-transform duration-300 group-hover:translate-x-1 sm:w-[44px]"
                 >
                   <path
                     d="M1 5H43M43 5L39 1M43 5L39 9"
@@ -248,24 +248,25 @@ export function MarketingHome() {
                 </svg>
               </button>
             </nav>
-            <div className="mt-5 flex flex-wrap items-center gap-6">
+            <div className="mt-5 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6">
               <a
                 href="#briefing"
-                className="inline-flex items-center justify-center bg-ink-950 px-6 py-3 font-mono text-[12px] uppercase tracking-[0.18em] text-paper-0 transition-colors duration-200 hover:bg-gold-500"
+                className="inline-flex min-h-[48px] items-center justify-center bg-ink-950 px-6 py-3 font-mono text-[12px] uppercase tracking-[0.18em] text-paper-0 transition-colors duration-200 hover:bg-gold-500"
               >
                 Request a Cabinet briefing
               </a>
               <a
                 href="#loop"
-                className="font-mono text-[12px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950"
+                className="inline-flex min-h-[44px] items-center font-mono text-[12px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950"
               >
                 See how a decision moves through the instrument ↓
               </a>
             </div>
           </div>
           <div className="relative flex items-center justify-center">
-            <SignatureRing size={480} />
+            <SignatureRing size={480} className="max-w-[min(480px,82vw)]" />
           </div>
+
         </div>
       </section>
 

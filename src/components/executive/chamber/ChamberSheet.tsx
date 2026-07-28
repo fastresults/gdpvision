@@ -3,6 +3,8 @@ import { ArrowLeft, ArrowUpRight, Printer } from "lucide-react";
 
 import type { ChamberSummary } from "@/lib/executive/types";
 import { briefRoute, type ExecutiveSurface } from "@/lib/executive/chambers";
+import { kpiDetail, originOf } from "@/lib/executive/detail";
+import { ExecutiveDetailProvider, useExecutiveDetail } from "../DetailModal";
 import { TONE_TEXT, relTime } from "../tone";
 import { KpiTriple } from "../KpiTriple";
 import { TempoPanel } from "./TempoPanel";
@@ -23,6 +25,24 @@ export function ChamberSheet({
   chamber: ChamberSummary;
   surface: ExecutiveSurface;
 }) {
+  return (
+    <ExecutiveDetailProvider code={code} surface={surface} chambers={[chamber]}>
+      <SheetBody code={code} chamber={chamber} surface={surface} />
+    </ExecutiveDetailProvider>
+  );
+}
+
+function SheetBody({
+  code,
+  chamber,
+  surface,
+}: {
+  code: string;
+  chamber: ChamberSummary;
+  surface: ExecutiveSurface;
+}) {
+  const { open } = useExecutiveDetail();
+  const origin = originOf(chamber);
   const quiet = chamber.health === "quiet";
   const awaiting = chamber.alerts.length;
   const verdict = awaiting
@@ -75,7 +95,13 @@ export function ChamberSheet({
             <h2 className="mb-4 font-mono text-[10px] uppercase tracking-[0.28em] text-ink-950">The numbers</h2>
             <div className="grid grid-cols-2 gap-6 sm:grid-cols-3">
               {chamber.kpis.map((k, i) => (
-                <div key={`${k.label}-${i}`} className="min-w-0">
+                <button
+                  key={`${k.label}-${i}`}
+                  type="button"
+                  aria-haspopup="dialog"
+                  onClick={() => open(kpiDetail(k, origin))}
+                  className="min-w-0 text-left transition-opacity hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-500"
+                >
                   <div
                     data-numeric
                     className={`truncate font-serif text-[34px] leading-none ${TONE_TEXT[k.tone ?? "neutral"]}`}
@@ -86,16 +112,26 @@ export function ChamberSheet({
                   <div className="mt-2 font-mono text-[9px] uppercase leading-relaxed tracking-[0.18em] text-ink-500">
                     {k.label}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </section>
 
-          <TempoPanel tempo={chamber.tempo} lastActivityAt={chamber.last_activity_at} quiet={quiet} />
+          <TempoPanel
+            tempo={chamber.tempo}
+            lastActivityAt={chamber.last_activity_at}
+            quiet={quiet}
+            chamber={chamber}
+          />
 
-          <AwaitsList alerts={chamber.alerts} />
+          <AwaitsList alerts={chamber.alerts} origin={origin} />
 
-          <DeliverablesTable owner={chamber.owner} nextDue={chamber.next_due} recent={chamber.recent} />
+          <DeliverablesTable
+            owner={chamber.owner}
+            nextDue={chamber.next_due}
+            recent={chamber.recent}
+            origin={origin}
+          />
         </div>
 
         {/* ── Actions: right column on desktop, sticky footer on mobile ── */}
@@ -120,7 +156,7 @@ export function ChamberSheet({
               <Printer size={12} strokeWidth={1.5} /> Print sheet
             </button>
             <div className="border-t border-line-100 pt-3">
-              <KpiTriple kpis={chamber.kpis} size="sm" />
+              <KpiTriple kpis={chamber.kpis} size="sm" onSelect={(k) => open(kpiDetail(k, origin))} />
             </div>
           </div>
         </aside>

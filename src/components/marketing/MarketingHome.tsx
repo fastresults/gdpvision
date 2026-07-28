@@ -65,7 +65,9 @@ function shuffleTail() {
 }
 
 export function MarketingHome() {
+  useHashScroll();
   const [tail, setTail] = useState(() => EXISTENTIAL_THREATS.slice(1));
+
   const [index, setIndex] = useState(0);
   const [momentIndex, setMomentIndex] = useState(0);
   const [paused, setPaused] = useState(false);

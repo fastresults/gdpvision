@@ -154,7 +154,7 @@ export function MarketingHome() {
             </div>
             <div className="mt-6 h-px w-16 bg-gold-500" aria-hidden />
             <h1 className="mt-6 font-serif text-[32px] leading-[1.08] tracking-tight text-ink-950 sm:mt-8 sm:text-[43px] sm:leading-[1.05] md:text-[68px]">
-              No small state should learn its own economy from someone else's report.
+              Your nation's GDP growth engine
             </h1>
             <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-ink-700 sm:mt-6 md:text-[17px]">
               GDPVision is a sovereign instrument for Presidents, Prime Ministers and Cabinets. It

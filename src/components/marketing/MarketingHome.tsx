@@ -153,7 +153,7 @@ export function MarketingHome() {
               GDPVision · An instrument of state
             </div>
             <div className="mt-6 h-px w-16 bg-gold-500" aria-hidden />
-            <h1 className="mt-6 font-serif text-[32px] leading-[1.08] tracking-tight text-ink-950 sm:mt-8 sm:text-[43px] sm:leading-[1.05] md:text-[68px]">
+            <h1 className="mt-6 font-serif text-[42px] leading-[1.08] tracking-tight text-ink-950 sm:mt-8 sm:text-[56px] sm:leading-[1.05] md:text-[88px]">
               Your nation's GDP growth engine
             </h1>
             <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-ink-700 sm:mt-6 md:text-[17px]">

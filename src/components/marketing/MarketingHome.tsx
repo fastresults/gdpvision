@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { MarketingShell } from "./MarketingShell";
+
 import { EXISTENTIAL_THREATS } from "@/lib/existential-threats";
 import { MOMENT_VARIANTS } from "@/lib/moment-variants";
 import { SignatureRing } from "./SignatureRing";

@@ -106,7 +106,7 @@ export const STAKES: StakeFigure[] = [
 ];
 
 export const STAKES_CLOSE =
-  "Set those together and the shape of the problem is clear. Three existential pressures now share the same timetable: a revenue model ending, a trade regime being reset from outside, and a physical-risk corridor that is no longer seasonal. The region must govern against all of them with no fiscal slack, while losing the people who would do the work — and using an evidence base that describes a country that no longer exists.";
+  "Set those figures together and the problem becomes unmistakable. Three sovereign pressures are now running on the same deadline: the revenue model that pays for half the state is ending; the trade rules that shape competitiveness are being written elsewhere; and the hurricane corridor is no longer a seasonal worry — it is a structural fiscal risk. A government facing all three at once has no fiscal slack, a shrinking pool of people who can do the work, and an evidence base that describes the country as it was two years ago. The challenge is not a lack of effort. It is a lack of instrumentation fit for the transition ahead.";
 
 export const INSTRUMENTATION_INTRO = [
   "It would be easy to attribute the gap to capacity or to will. In my experience that is both wrong and unfair.",

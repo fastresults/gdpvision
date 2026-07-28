@@ -119,7 +119,7 @@ function OpEdPage() {
         <div className="mx-auto grid max-w-[1280px] items-center gap-10 px-6 py-20 md:grid-cols-[1fr_320px] md:px-10 md:py-28">
           <div>
             <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-              Chamber {op.chamber} · {chamber?.title}
+              Chamber {op.chamber} · {chamber?.title ?? op.chamberName}
             </div>
             <div
               aria-hidden

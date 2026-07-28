@@ -36,14 +36,41 @@ export interface OpEd {
 
 export const OP_EDS: OpEd[] = [
   {
+    slug: "cbi-and-the-instrument",
+    chamber: "00",
+    chamberName: "The Instrument",
+    accent: "#a86a2f",
+    status: "published",
+    title: "The region is being asked to replace half its revenue with the instruments of the last century.",
+    standfirst: "Citizenship by Investment reaches half of government revenue in the upper band of five OECS states, and its phase-out has a date. The harder problem is that the region is being asked to engineer that transition using evidence that arrives eighteen months late.",
+    promise: "One argument, twelve minutes, every figure sourced.",
+    excerpt: [
+      "I have spent seventeen years in and around Caribbean government rooms, and I have watched the same meeting happen more times than I can usefully count. A delegation from a larger country explains, politely, that an arrangement a government depends upon will be ending. Not renegotiated. Ending. Everyone thanks everyone. And in the room afterwards nobody speaks for a while, because every person present is doing the same arithmetic and arriving at the same answer.",
+      "Citizenship by Investment is now that arrangement. Five OECS states operate a programme today. At the upper band, receipts reach half of government revenue — a figure drawn from IMF Article IV consultations across those states. Half. Not of a discretionary fund, not of a development budget. Of revenue.",
+      "That money is not abstract. It is in hospitals. It is in schools. It is in the reserve a small island reaches for in the weeks after a hurricane, when the roads are gone and the reinsurance has not yet arrived. And it has a scheduled end.",
+    ],
+    emblem: "/op-eds/art/00-emblem.svg",
+    ogImage: "https://gdpvision.com/op-eds/art/00-emblem.png",
+    figure: { caption: "The Gap — receipts falling faster than the replacement arrives.", image: "/op-eds/art/00-figure.svg" },
+    sources: [
+      "CBI receipts as share of government revenue, upper band — 50%, grade B. IMF Article IV consultations, 2022–2024. Range across the five OECS CBI states.",
+      "OECS states operating a CBI programme today — 5, grade A. St. Kitts & Nevis, Dominica, Antigua & Barbuda, Grenada, Saint Lucia.",
+      "Typical staleness of authoritative sector data — 18 months, grade B. ECCB & NSO release cadence review, 2024.",
+      "Debt-to-GDP, upper-band Caribbean sovereigns — 90%, grade A. IMF WEO database, 2024.",
+      "Interest payments as share of government revenue, high-debt cases — 25%, grade B. IMF Article IV consultations, 2022–2024.",
+      "Damage from Hurricane Maria in Dominica, 2017 — 226% of GDP, grade A. Government of Dominica Post-Disaster Needs Assessment, 2017.",
+      "OECS votes on the OECD Inclusive Framework steering committee — 0, grade A. OECD Inclusive Framework governance roster, 2024.",
+    ],
+    pdfKey: "GDPVision-00-cbi-and-the-instrument.pdf",
+  },
+  {
     slug: "national-ledger",
     chamber: "01",
     chamberName: "The National Ledger",
     accent: "#1e3350",
     status: "published",
     title: "Governing from a photograph.",
-    standfirst:
-      "Authoritative sector data reaches a Caribbean Cabinet roughly eighteen months after the period it describes. We ask governments to steer an economy using a picture of where it used to be — and then to defend the picture as though it were a window.",
+    standfirst: "Authoritative sector data reaches a Caribbean Cabinet roughly eighteen months after the period it describes. We ask governments to steer an economy using a picture of where it used to be — and then to defend the picture as though it were a window.",
     promise: "One argument, twelve minutes, every figure sourced.",
     excerpt: [
       "A Prime Minister I worked with years ago had a habit I have never forgotten. Before saying any number in public, he would pause — half a second, no more — and you could see him deciding whether he was willing to defend it.",
@@ -52,10 +79,7 @@ export const OP_EDS: OpEd[] = [
     ],
     emblem: "/op-eds/art/01-emblem.svg",
     ogImage: "https://gdpvision.com/op-eds/art/01-emblem.png",
-    figure: {
-      caption: "The lag between the period described and the picture a Cabinet sees.",
-      image: "/op-eds/art/01-figure.svg",
-    },
+    figure: { caption: "The lag between the period described and the picture a Cabinet sees.", image: "/op-eds/art/01-figure.svg" },
     sources: [
       "Typical staleness of authoritative sector data — 18 months, grade B. ECCB & NSO release cadence review, 2024.",
     ],
@@ -68,8 +92,7 @@ export const OP_EDS: OpEd[] = [
     accent: "#b98a2f",
     status: "published",
     title: "Ask a minister what their portfolio contributes.",
-    standfirst:
-      "In most governments that question starts a procurement. Weeks later a consultant returns a figure and the Ministry of Finance disputes it. Meanwhile one sector carries most of the economy and every other ministry is arguing blind.",
+    standfirst: "In most governments that question starts a procurement. Weeks later a consultant returns a figure and the Ministry of Finance disputes it. Meanwhile one sector carries most of the economy and every other ministry is arguing blind.",
     promise: "One argument, twelve minutes, every figure sourced.",
     excerpt: [
       "Ask any minister in the region what their portfolio contributes to national GDP.",
@@ -92,8 +115,7 @@ export const OP_EDS: OpEd[] = [
     accent: "#5b4fa8",
     status: "published",
     title: "Two hundred and twenty-six per cent, in a single night.",
-    standfirst:
-      "Hurricane Maria cost Dominica more than two years of national output in one evening. Every fiscal plan in this region is written inside a hurricane corridor. Almost none of them is rehearsed against one.",
+    standfirst: "Hurricane Maria cost Dominica more than two years of national output in one evening. Every fiscal plan in this region is written inside a hurricane corridor. Almost none of them is rehearsed against one.",
     promise: "One argument, twelve minutes, every figure sourced.",
     excerpt: [
       "On the evening of 18 September 2017, Hurricane Maria crossed Dominica. The Post-Disaster Needs Assessment produced afterwards put the damage at 226 per cent of GDP.",
@@ -102,10 +124,7 @@ export const OP_EDS: OpEd[] = [
     ],
     emblem: "/op-eds/art/03-emblem.svg",
     ogImage: "https://gdpvision.com/op-eds/art/03-emblem.png",
-    figure: {
-      caption: "The plan as written, and the event it was not drawn against.",
-      image: "/op-eds/art/03-figure.svg",
-    },
+    figure: { caption: "The plan as written, and the event it was not drawn against.", image: "/op-eds/art/03-figure.svg" },
     sources: [
       "Damage from Hurricane Maria in Dominica, 2017 — 226% of GDP, grade A. Government of Dominica Post-Disaster Needs Assessment, 2017.",
       "Damage from Hurricane Ivan in Grenada, 2004 — 200% of GDP, grade A. OECS / World Bank Ivan Damage Assessment, 2004.",
@@ -120,8 +139,7 @@ export const OP_EDS: OpEd[] = [
     accent: "#a86a2f",
     status: "published",
     title: "The date is set. The replacement is not.",
-    standfirst:
-      "Five OECS states built a revenue pillar that Brussels has now scheduled for demolition. The question is no longer whether to diversify. It is whether anyone has priced the hole.",
+    standfirst: "Five OECS states built a revenue pillar that Brussels has now scheduled for demolition. The question is no longer whether to diversify. It is whether anyone has priced the hole.",
     promise: "One argument, twelve minutes, every figure sourced.",
     excerpt: [
       "There is a particular silence that follows a certain kind of meeting. I have sat in it more than once. A minister has just been told, politely and by someone from a larger country, that an arrangement their government depends upon will be ending. Not negotiated. Ending. The delegation thanks them for their time. And in the room afterwards, nobody speaks for a while, because everyone is doing the same arithmetic and arriving at the same answer.",
@@ -130,10 +148,7 @@ export const OP_EDS: OpEd[] = [
     ],
     emblem: "/op-eds/art/04-emblem.svg",
     ogImage: "https://gdpvision.com/op-eds/art/04-emblem.png",
-    figure: {
-      caption: "The Gap — receipts falling faster than the replacement arrives.",
-      image: "/op-eds/art/04-figure.svg",
-    },
+    figure: { caption: "The Gap — receipts falling faster than the replacement arrives.", image: "/op-eds/art/04-figure.svg" },
     sources: [
       "CBI receipts as share of government revenue, upper band — 50%, grade B. IMF Article IV consultations, 2022–2024. Range across the five OECS CBI states.",
       "OECS states operating a CBI programme today — 5, grade A. St. Kitts & Nevis, Dominica, Antigua & Barbuda, Grenada, Saint Lucia.",
@@ -147,8 +162,7 @@ export const OP_EDS: OpEd[] = [
     accent: "#8e2f3c",
     status: "published",
     title: "Zero seats.",
-    standfirst:
-      "The OECS holds no votes on the body setting the global minimum tax. When the rules that price your economy are written elsewhere, the one thing still within your control is whether you arrive at the argument prepared.",
+    standfirst: "The OECS holds no votes on the body setting the global minimum tax. When the rules that price your economy are written elsewhere, the one thing still within your control is whether you arrive at the argument prepared.",
     promise: "One argument, twelve minutes, every figure sourced.",
     excerpt: [
       "The Organisation of Eastern Caribbean States holds zero votes on the steering committee of the OECD Inclusive Framework.",
@@ -157,10 +171,7 @@ export const OP_EDS: OpEd[] = [
     ],
     emblem: "/op-eds/art/05-emblem.svg",
     ogImage: "https://gdpvision.com/op-eds/art/05-emblem.png",
-    figure: {
-      caption: "Twenty-four seats on the committee. None of them ours.",
-      image: "/op-eds/art/05-figure.svg",
-    },
+    figure: { caption: "Twenty-four seats on the committee. None of them ours.", image: "/op-eds/art/05-figure.svg" },
     sources: [
       "OECS votes on the OECD Inclusive Framework steering committee — 0, grade A. OECD Inclusive Framework governance roster, 2024.",
       "OECD Pillar Two global minimum corporate tax rate now in force — 15%, grade A. OECD/G20 Inclusive Framework, 2024 implementation.",
@@ -175,8 +186,7 @@ export const OP_EDS: OpEd[] = [
     accent: "#7a4a6b",
     status: "published",
     title: "What happened to the decision?",
-    standfirst:
-      "Minutes record what was said. They do not record what was decided, who carries it, or whether it landed. In economies where a quarter of revenue is spoken for before Cabinet sits, that gap is not untidiness. It is money.",
+    standfirst: "Minutes record what was said. They do not record what was decided, who carries it, or whether it landed. In economies where a quarter of revenue is spoken for before Cabinet sits, that gap is not untidiness. It is money.",
     promise: "One argument, twelve minutes, every figure sourced.",
     excerpt: [
       "Ask a Cabinet Secretary what was decided at the meeting three months ago, who owned it, and whether it happened.",
@@ -185,10 +195,7 @@ export const OP_EDS: OpEd[] = [
     ],
     emblem: "/op-eds/art/06-emblem.svg",
     ogImage: "https://gdpvision.com/op-eds/art/06-emblem.png",
-    figure: {
-      caption: "What a decision is supposed to do after the meeting ends.",
-      image: "/op-eds/art/06-figure.svg",
-    },
+    figure: { caption: "What a decision is supposed to do after the meeting ends.", image: "/op-eds/art/06-figure.svg" },
     sources: [
       "Interest payments as share of government revenue, high-debt cases — 25%, grade B. IMF Article IV consultations, 2022–2024.",
       "Debt-to-GDP, upper-band Caribbean sovereigns — 90%, grade A. IMF WEO database, 2024.",
@@ -202,8 +209,7 @@ export const OP_EDS: OpEd[] = [
     accent: "#6f8a3a",
     status: "published",
     title: "We are exporting the people we need, and guessing at how to keep them.",
-    standfirst:
-      "Up to seventy per cent of tertiary-educated citizens have left the upper band of Caribbean states. Retention policy is written, announced, and only then discovered to have missed the people it was written for.",
+    standfirst: "Up to seventy per cent of tertiary-educated citizens have left the upper band of Caribbean states. Retention policy is written, announced, and only then discovered to have missed the people it was written for.",
     promise: "One argument, twelve minutes, every figure sourced.",
     excerpt: [
       "In the upper band of Caribbean states, around seventy per cent of citizens with tertiary education have emigrated. The figure is from the World Bank and OECD skilled-migration database, and it carries a high confidence grade.",
@@ -227,8 +233,7 @@ export const OP_EDS: OpEd[] = [
     accent: "#2e7d5b",
     status: "published",
     title: "Someone will grade your manifesto. It should be you.",
-    standfirst:
-      "Every government publishes a programme and then loses track of it. The scorecard gets built regardless — by a journalist, an NGO, or the opposition. The only real choice is whose numbers the public sees first.",
+    standfirst: "Every government publishes a programme and then loses track of it. The scorecard gets built regardless — by a journalist, an NGO, or the opposition. The only real choice is whose numbers the public sees first.",
     promise: "One argument, twelve minutes, every figure sourced.",
     excerpt: [
       "The manifesto is the most carefully written document a party ever produces and the least used document a government ever owns.",
@@ -237,10 +242,7 @@ export const OP_EDS: OpEd[] = [
     ],
     emblem: "/op-eds/art/08-emblem.svg",
     ogImage: "https://gdpvision.com/op-eds/art/08-emblem.png",
-    figure: {
-      caption: "The scorecard, whoever ends up building it.",
-      image: "/op-eds/art/08-figure.svg",
-    },
+    figure: { caption: "The scorecard, whoever ends up building it.", image: "/op-eds/art/08-figure.svg" },
     sources: [
       "Debt-to-GDP, upper-band Caribbean sovereigns — 90%, grade A. IMF WEO database, 2024.",
       "Interest payments as share of government revenue, high-debt cases — 25%, grade B. IMF Article IV consultations, 2022–2024.",

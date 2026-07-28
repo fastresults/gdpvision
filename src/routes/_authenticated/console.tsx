@@ -6,7 +6,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { FileText, Home, MessageCircle, Send } from "lucide-react";
 
 import { getMyCountryStatus } from "@/lib/country-admin.functions";
-import { flagUrl } from "@/lib/caricom-registry";
+import { CARICOM_OECS_REGISTRY, flagUrl } from "@/lib/caricom-registry";
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { CountryChip } from "@/components/console/CountryChip";
 import { useImpersonation } from "@/lib/impersonation";
@@ -29,6 +29,10 @@ export const Route = createFileRoute("/_authenticated/console")({
   },
   component: ConsoleLayout,
 });
+
+function countryLabel(code: string): string | null {
+  return CARICOM_OECS_REGISTRY.find((n) => n.code === code.toUpperCase())?.name ?? null;
+}
 
 function ConsoleLayout() {
   const { data: status } = useSuspenseQuery(statusQuery);

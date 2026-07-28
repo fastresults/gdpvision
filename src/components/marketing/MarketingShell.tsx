@@ -45,9 +45,13 @@ export function MarketingShell({ children }: MarketingShellProps) {
             <a href="#sovereignty" className="hover:text-ink-950 hidden md:inline">
               Sovereignty
             </a>
+            <Link to="/business-case" className="hover:text-ink-950 hidden md:inline">
+              The business case
+            </Link>
             <Link to="/op-eds" className="hover:text-ink-950 hidden md:inline">
               The writing
             </Link>
+
 
             <a
               href="#briefing"
@@ -73,9 +77,13 @@ export function MarketingShell({ children }: MarketingShellProps) {
               </p>
             </div>
             <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500 flex flex-wrap gap-6">
+              <Link to="/business-case" className="hover:text-ink-950">
+                The business case
+              </Link>
               <span>OPEN Interactive · 2009–2026</span>
               <span>Confidential — government briefing use</span>
             </div>
+
           </div>
         </div>
       </footer>

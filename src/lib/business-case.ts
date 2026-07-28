@@ -26,7 +26,7 @@ export const EXECUTIVE_SUMMARY: LabelledPara[] = [
   },
   {
     label: "Why now",
-    body: "Five OECS states operate a Citizenship by Investment programme that reaches half of government revenue at the upper band. It has a scheduled end and no priced replacement. That transition must be engineered against debt at ninety per cent of GDP, with a quarter of revenue already committed to interest, inside a hurricane corridor where a single night has cost 226 per cent of GDP — and using authoritative data that arrives roughly eighteen months after the period it describes.",
+    body: "Three pressures now arrive at once: Citizenship by Investment at half of government revenue faces a scheduled end with no priced replacement; the tariff regime is being rewritten in capitals the region does not control; and the hurricane corridor is re-arming after a single storm cost 226 per cent of GDP. The response must be engineered against debt at ninety per cent of GDP, with a quarter of revenue already committed to interest, and using authoritative data that arrives roughly eighteen months after the period it describes.",
   },
   {
     label: "The central argument",

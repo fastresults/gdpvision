@@ -473,7 +473,7 @@ export function MarketingHome() {
               </div>
             ))}
           </div>
-          <div className="mt-16 grid gap-x-8 gap-y-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 grid gap-x-8 gap-y-6 sm:mt-16 md:grid-cols-2 lg:grid-cols-3">
             {GRID_CHAMBERS.map((c) => (
               <ChamberPanel key={c.index} {...c} />
             ))}

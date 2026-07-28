@@ -84,6 +84,7 @@ import { Route as AuthenticatedInstrumentMandateScorecardRouteImport } from './r
 import { Route as AuthenticatedInstrumentCabinetSessionRouteImport } from './routes/_authenticated/instrument/cabinet.session'
 import { Route as AuthenticatedInstrumentCabinetDecisionsRouteImport } from './routes/_authenticated/instrument/cabinet.decisions'
 import { Route as AuthenticatedConsoleCodeMandateRouteImport } from './routes/_authenticated/console.$code.mandate'
+import { Route as AuthenticatedConsoleCodeBriefRouteImport } from './routes/_authenticated/console.$code.brief'
 import { Route as AuthenticatedConsoleCodeAskRouteImport } from './routes/_authenticated/console.$code.ask'
 import { Route as AuthenticatedAdminCountryCodeRouteImport } from './routes/_authenticated/admin/country.$code'
 import { Route as AuthenticatedAdminAuditsLogRouteImport } from './routes/_authenticated/admin/audits.log'
@@ -557,6 +558,12 @@ const AuthenticatedConsoleCodeMandateRoute =
     path: '/$code/mandate',
     getParentRoute: () => AuthenticatedConsoleRoute,
   } as any)
+const AuthenticatedConsoleCodeBriefRoute =
+  AuthenticatedConsoleCodeBriefRouteImport.update({
+    id: '/$code/brief',
+    path: '/$code/brief',
+    getParentRoute: () => AuthenticatedConsoleRoute,
+  } as any)
 const AuthenticatedConsoleCodeAskRoute =
   AuthenticatedConsoleCodeAskRouteImport.update({
     id: '/$code/ask',
@@ -864,6 +871,7 @@ export interface FileRoutesByFullPath {
   '/admin/audits/log': typeof AuthenticatedAdminAuditsLogRoute
   '/admin/country/$code': typeof AuthenticatedAdminCountryCodeRoute
   '/console/$code/ask': typeof AuthenticatedConsoleCodeAskRoute
+  '/console/$code/brief': typeof AuthenticatedConsoleCodeBriefRoute
   '/console/$code/mandate': typeof AuthenticatedConsoleCodeMandateRoute
   '/instrument/cabinet/decisions': typeof AuthenticatedInstrumentCabinetDecisionsRoute
   '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
@@ -979,6 +987,7 @@ export interface FileRoutesByTo {
   '/admin/audits/log': typeof AuthenticatedAdminAuditsLogRoute
   '/admin/country/$code': typeof AuthenticatedAdminCountryCodeRoute
   '/console/$code/ask': typeof AuthenticatedConsoleCodeAskRoute
+  '/console/$code/brief': typeof AuthenticatedConsoleCodeBriefRoute
   '/console/$code/mandate': typeof AuthenticatedConsoleCodeMandateRoute
   '/instrument/cabinet/decisions': typeof AuthenticatedInstrumentCabinetDecisionsRoute
   '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
@@ -1095,6 +1104,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/audits/log': typeof AuthenticatedAdminAuditsLogRoute
   '/_authenticated/admin/country/$code': typeof AuthenticatedAdminCountryCodeRoute
   '/_authenticated/console/$code/ask': typeof AuthenticatedConsoleCodeAskRoute
+  '/_authenticated/console/$code/brief': typeof AuthenticatedConsoleCodeBriefRoute
   '/_authenticated/console/$code/mandate': typeof AuthenticatedConsoleCodeMandateRoute
   '/_authenticated/instrument/cabinet/decisions': typeof AuthenticatedInstrumentCabinetDecisionsRoute
   '/_authenticated/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
@@ -1216,6 +1226,7 @@ export interface FileRouteTypes {
     | '/admin/audits/log'
     | '/admin/country/$code'
     | '/console/$code/ask'
+    | '/console/$code/brief'
     | '/console/$code/mandate'
     | '/instrument/cabinet/decisions'
     | '/instrument/cabinet/session'
@@ -1331,6 +1342,7 @@ export interface FileRouteTypes {
     | '/admin/audits/log'
     | '/admin/country/$code'
     | '/console/$code/ask'
+    | '/console/$code/brief'
     | '/console/$code/mandate'
     | '/instrument/cabinet/decisions'
     | '/instrument/cabinet/session'
@@ -1446,6 +1458,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/audits/log'
     | '/_authenticated/admin/country/$code'
     | '/_authenticated/console/$code/ask'
+    | '/_authenticated/console/$code/brief'
     | '/_authenticated/console/$code/mandate'
     | '/_authenticated/instrument/cabinet/decisions'
     | '/_authenticated/instrument/cabinet/session'
@@ -2059,6 +2072,13 @@ declare module '@tanstack/react-router' {
       path: '/$code/mandate'
       fullPath: '/console/$code/mandate'
       preLoaderRoute: typeof AuthenticatedConsoleCodeMandateRouteImport
+      parentRoute: typeof AuthenticatedConsoleRoute
+    }
+    '/_authenticated/console/$code/brief': {
+      id: '/_authenticated/console/$code/brief'
+      path: '/$code/brief'
+      fullPath: '/console/$code/brief'
+      preLoaderRoute: typeof AuthenticatedConsoleCodeBriefRouteImport
       parentRoute: typeof AuthenticatedConsoleRoute
     }
     '/_authenticated/console/$code/ask': {
@@ -2697,6 +2717,7 @@ const AuthenticatedNarrativeRouteRouteWithChildren =
 
 interface AuthenticatedConsoleRouteChildren {
   AuthenticatedConsoleCodeAskRoute: typeof AuthenticatedConsoleCodeAskRoute
+  AuthenticatedConsoleCodeBriefRoute: typeof AuthenticatedConsoleCodeBriefRoute
   AuthenticatedConsoleCodeMandateRoute: typeof AuthenticatedConsoleCodeMandateRoute
   AuthenticatedConsoleCodeIndexRoute: typeof AuthenticatedConsoleCodeIndexRoute
   AuthenticatedConsoleCodeRequestNewRoute: typeof AuthenticatedConsoleCodeRequestNewRoute
@@ -2706,6 +2727,7 @@ interface AuthenticatedConsoleRouteChildren {
 
 const AuthenticatedConsoleRouteChildren: AuthenticatedConsoleRouteChildren = {
   AuthenticatedConsoleCodeAskRoute: AuthenticatedConsoleCodeAskRoute,
+  AuthenticatedConsoleCodeBriefRoute: AuthenticatedConsoleCodeBriefRoute,
   AuthenticatedConsoleCodeMandateRoute: AuthenticatedConsoleCodeMandateRoute,
   AuthenticatedConsoleCodeIndexRoute: AuthenticatedConsoleCodeIndexRoute,
   AuthenticatedConsoleCodeRequestNewRoute:

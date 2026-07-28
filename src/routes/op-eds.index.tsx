@@ -99,6 +99,12 @@ function OpEdsIndex() {
             <p className="max-w-2xl text-[15px] leading-relaxed text-ink-700">
               {OP_ED_AUTHOR.note}
             </p>
+            <p className="mt-6 max-w-2xl text-[15px] leading-relaxed text-ink-700">
+              Procuring this?{" "}
+              <Link to="/business-case" className="underline underline-offset-4 hover:text-ink-950">
+                Read the business case →
+              </Link>
+            </p>
             <a
               href="/#briefing"
               className="btn-secondary px-6 py-3 font-mono text-[12px] uppercase tracking-[0.18em] mt-6 inline-flex"
@@ -106,6 +112,7 @@ function OpEdsIndex() {
               Request a Cabinet briefing
             </a>
           </div>
+
         </div>
       </section>
     </MarketingShell>

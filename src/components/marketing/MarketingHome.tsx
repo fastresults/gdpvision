@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { MarketingShell } from "./MarketingShell";
+
 import { EXISTENTIAL_THREATS } from "@/lib/existential-threats";
 import { MOMENT_VARIANTS } from "@/lib/moment-variants";
 import { SignatureRing } from "./SignatureRing";
@@ -568,8 +570,22 @@ export function MarketingHome() {
               </div>
             ))}
           </div>
+
+          <div className="mt-12 border-t border-line-200 pt-8">
+            <Link
+              to="/business-case"
+              className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-950 hover:text-ink-700"
+            >
+              Read the business case →
+            </Link>
+            <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-ink-700">
+              A decision paper for Cabinet Secretaries, ministries of finance and procurement — the
+              stakes, the tier-one test, the options appraisal and the recommended path.
+            </p>
+          </div>
         </div>
       </section>
+
 
       {/* BRIEFING CTA ----------------------------------------------------- */}
       <section id="briefing">

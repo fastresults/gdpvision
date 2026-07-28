@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as KioskRouteImport } from './routes/kiosk'
+import { Route as BusinessCaseRouteImport } from './routes/business-case'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -140,6 +141,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const KioskRoute = KioskRouteImport.update({
   id: '/kiosk',
   path: '/kiosk',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BusinessCaseRoute = BusinessCaseRouteImport.update({
+  id: '/business-case',
+  path: '/business-case',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -847,6 +853,7 @@ const AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/business-case': typeof BusinessCaseRoute
   '/kiosk': typeof KioskRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
@@ -970,6 +977,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/business-case': typeof BusinessCaseRoute
   '/reset-password': typeof ResetPasswordRoute
   '/console': typeof AuthenticatedConsoleRouteWithChildren
   '/home': typeof AuthenticatedHomeRoute
@@ -1086,6 +1094,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/business-case': typeof BusinessCaseRoute
   '/kiosk': typeof KioskRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
@@ -1211,6 +1220,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/business-case'
     | '/kiosk'
     | '/reset-password'
     | '/admin'
@@ -1334,6 +1344,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/business-case'
     | '/reset-password'
     | '/console'
     | '/home'
@@ -1449,6 +1460,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/business-case'
     | '/kiosk'
     | '/reset-password'
     | '/_authenticated/admin'
@@ -1574,6 +1586,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
+  BusinessCaseRoute: typeof BusinessCaseRoute
   KioskRoute: typeof KioskRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   OpEdsSlugRoute: typeof OpEdsSlugRoute
@@ -1600,6 +1613,13 @@ declare module '@tanstack/react-router' {
       path: '/kiosk'
       fullPath: '/kiosk'
       preLoaderRoute: typeof KioskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/business-case': {
+      id: '/business-case'
+      path: '/business-case'
+      fullPath: '/business-case'
+      preLoaderRoute: typeof BusinessCaseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -2896,6 +2916,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
+  BusinessCaseRoute: BusinessCaseRoute,
   KioskRoute: KioskRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   OpEdsSlugRoute: OpEdsSlugRoute,
@@ -2910,13 +2931,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

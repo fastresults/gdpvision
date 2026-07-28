@@ -346,6 +346,8 @@ function CountriesGrid({ countries }: { countries: any[] }) {
               progress={(c.completed_stages ?? []).length}
               to="/console/$code"
               showOnboardingLink
+            />
+
           ))}
         </div>
       )}

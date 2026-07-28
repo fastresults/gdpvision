@@ -83,6 +83,7 @@ import { Route as AuthenticatedInstrumentMandateStudioRouteImport } from './rout
 import { Route as AuthenticatedInstrumentMandateScorecardRouteImport } from './routes/_authenticated/instrument/mandate.scorecard'
 import { Route as AuthenticatedInstrumentCabinetSessionRouteImport } from './routes/_authenticated/instrument/cabinet.session'
 import { Route as AuthenticatedInstrumentCabinetDecisionsRouteImport } from './routes/_authenticated/instrument/cabinet.decisions'
+import { Route as AuthenticatedConsoleCodeStudyRouteImport } from './routes/_authenticated/console.$code.study'
 import { Route as AuthenticatedConsoleCodeMandateRouteImport } from './routes/_authenticated/console.$code.mandate'
 import { Route as AuthenticatedConsoleCodeBriefRouteImport } from './routes/_authenticated/console.$code.brief'
 import { Route as AuthenticatedConsoleCodeAskRouteImport } from './routes/_authenticated/console.$code.ask'
@@ -552,6 +553,12 @@ const AuthenticatedInstrumentCabinetDecisionsRoute =
     path: '/cabinet/decisions',
     getParentRoute: () => AuthenticatedInstrumentRouteRoute,
   } as any)
+const AuthenticatedConsoleCodeStudyRoute =
+  AuthenticatedConsoleCodeStudyRouteImport.update({
+    id: '/$code/study',
+    path: '/$code/study',
+    getParentRoute: () => AuthenticatedConsoleRoute,
+  } as any)
 const AuthenticatedConsoleCodeMandateRoute =
   AuthenticatedConsoleCodeMandateRouteImport.update({
     id: '/$code/mandate',
@@ -873,6 +880,7 @@ export interface FileRoutesByFullPath {
   '/console/$code/ask': typeof AuthenticatedConsoleCodeAskRoute
   '/console/$code/brief': typeof AuthenticatedConsoleCodeBriefRoute
   '/console/$code/mandate': typeof AuthenticatedConsoleCodeMandateRoute
+  '/console/$code/study': typeof AuthenticatedConsoleCodeStudyRoute
   '/instrument/cabinet/decisions': typeof AuthenticatedInstrumentCabinetDecisionsRoute
   '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
@@ -989,6 +997,7 @@ export interface FileRoutesByTo {
   '/console/$code/ask': typeof AuthenticatedConsoleCodeAskRoute
   '/console/$code/brief': typeof AuthenticatedConsoleCodeBriefRoute
   '/console/$code/mandate': typeof AuthenticatedConsoleCodeMandateRoute
+  '/console/$code/study': typeof AuthenticatedConsoleCodeStudyRoute
   '/instrument/cabinet/decisions': typeof AuthenticatedInstrumentCabinetDecisionsRoute
   '/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
@@ -1106,6 +1115,7 @@ export interface FileRoutesById {
   '/_authenticated/console/$code/ask': typeof AuthenticatedConsoleCodeAskRoute
   '/_authenticated/console/$code/brief': typeof AuthenticatedConsoleCodeBriefRoute
   '/_authenticated/console/$code/mandate': typeof AuthenticatedConsoleCodeMandateRoute
+  '/_authenticated/console/$code/study': typeof AuthenticatedConsoleCodeStudyRoute
   '/_authenticated/instrument/cabinet/decisions': typeof AuthenticatedInstrumentCabinetDecisionsRoute
   '/_authenticated/instrument/cabinet/session': typeof AuthenticatedInstrumentCabinetSessionRoute
   '/_authenticated/instrument/mandate/scorecard': typeof AuthenticatedInstrumentMandateScorecardRoute
@@ -1228,6 +1238,7 @@ export interface FileRouteTypes {
     | '/console/$code/ask'
     | '/console/$code/brief'
     | '/console/$code/mandate'
+    | '/console/$code/study'
     | '/instrument/cabinet/decisions'
     | '/instrument/cabinet/session'
     | '/instrument/mandate/scorecard'
@@ -1344,6 +1355,7 @@ export interface FileRouteTypes {
     | '/console/$code/ask'
     | '/console/$code/brief'
     | '/console/$code/mandate'
+    | '/console/$code/study'
     | '/instrument/cabinet/decisions'
     | '/instrument/cabinet/session'
     | '/instrument/mandate/scorecard'
@@ -1460,6 +1472,7 @@ export interface FileRouteTypes {
     | '/_authenticated/console/$code/ask'
     | '/_authenticated/console/$code/brief'
     | '/_authenticated/console/$code/mandate'
+    | '/_authenticated/console/$code/study'
     | '/_authenticated/instrument/cabinet/decisions'
     | '/_authenticated/instrument/cabinet/session'
     | '/_authenticated/instrument/mandate/scorecard'
@@ -2066,6 +2079,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/instrument/cabinet/decisions'
       preLoaderRoute: typeof AuthenticatedInstrumentCabinetDecisionsRouteImport
       parentRoute: typeof AuthenticatedInstrumentRouteRoute
+    }
+    '/_authenticated/console/$code/study': {
+      id: '/_authenticated/console/$code/study'
+      path: '/$code/study'
+      fullPath: '/console/$code/study'
+      preLoaderRoute: typeof AuthenticatedConsoleCodeStudyRouteImport
+      parentRoute: typeof AuthenticatedConsoleRoute
     }
     '/_authenticated/console/$code/mandate': {
       id: '/_authenticated/console/$code/mandate'
@@ -2719,6 +2739,7 @@ interface AuthenticatedConsoleRouteChildren {
   AuthenticatedConsoleCodeAskRoute: typeof AuthenticatedConsoleCodeAskRoute
   AuthenticatedConsoleCodeBriefRoute: typeof AuthenticatedConsoleCodeBriefRoute
   AuthenticatedConsoleCodeMandateRoute: typeof AuthenticatedConsoleCodeMandateRoute
+  AuthenticatedConsoleCodeStudyRoute: typeof AuthenticatedConsoleCodeStudyRoute
   AuthenticatedConsoleCodeIndexRoute: typeof AuthenticatedConsoleCodeIndexRoute
   AuthenticatedConsoleCodeRequestNewRoute: typeof AuthenticatedConsoleCodeRequestNewRoute
   AuthenticatedConsoleCodeRequestsIdRoute: typeof AuthenticatedConsoleCodeRequestsIdRoute
@@ -2729,6 +2750,7 @@ const AuthenticatedConsoleRouteChildren: AuthenticatedConsoleRouteChildren = {
   AuthenticatedConsoleCodeAskRoute: AuthenticatedConsoleCodeAskRoute,
   AuthenticatedConsoleCodeBriefRoute: AuthenticatedConsoleCodeBriefRoute,
   AuthenticatedConsoleCodeMandateRoute: AuthenticatedConsoleCodeMandateRoute,
+  AuthenticatedConsoleCodeStudyRoute: AuthenticatedConsoleCodeStudyRoute,
   AuthenticatedConsoleCodeIndexRoute: AuthenticatedConsoleCodeIndexRoute,
   AuthenticatedConsoleCodeRequestNewRoute:
     AuthenticatedConsoleCodeRequestNewRoute,

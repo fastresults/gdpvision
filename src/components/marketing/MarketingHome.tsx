@@ -294,7 +294,7 @@ export function MarketingHome() {
               </div>
             </div>
 
-            <div className="mt-16 grid gap-12 border-t border-line-200 pt-12 md:grid-cols-3">
+            <div className="mt-10 grid gap-10 border-t border-line-200 pt-10 sm:mt-16 sm:gap-12 sm:pt-12 md:grid-cols-3">
               {moment.stats.map((s, i) => (
                 <NumberTile
                   key={i}

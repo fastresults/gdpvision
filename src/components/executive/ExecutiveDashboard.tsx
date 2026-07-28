@@ -11,6 +11,7 @@ import { AttentionRail } from "./AttentionRail";
 import { ChamberCard } from "./ChamberCard";
 import { ChamberLedgerTable } from "./ChamberLedgerTable";
 import { DueLedger } from "./DueLedger";
+import { ExecutiveDetailProvider } from "./DetailModal";
 
 export function executiveQuery(code: string) {
   return queryOptions({
@@ -48,6 +49,7 @@ export function ExecutiveDashboard({
   const attention = useMemo(() => rankAttention(data.chambers), [data.chambers]);
 
   return (
+    <ExecutiveDetailProvider code={code} surface={surface} chambers={data.chambers}>
     <div className="executive-brief space-y-6">
       <PrincipalMasthead masthead={data.masthead} principal={principal} />
 
@@ -91,6 +93,7 @@ export function ExecutiveDashboard({
         live from the corpus
       </p>
     </div>
+    </ExecutiveDetailProvider>
   );
 }
 

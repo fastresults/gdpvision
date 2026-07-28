@@ -1,5 +1,6 @@
 import { flagUrl } from "@/lib/caricom-registry";
 import type { ExecutiveMasthead } from "@/lib/executive/types";
+import { useExecutiveDetail } from "./DetailModal";
 import { relTime } from "./tone";
 
 function gdpLabel(v: number | null): string {
@@ -25,6 +26,7 @@ export function PrincipalMasthead({
   masthead: ExecutiveMasthead;
   principal?: string;
 }) {
+  const { open } = useExecutiveDetail();
   const flag = flagUrl(masthead.code, "w320");
   const today = new Date().toLocaleDateString("en-GB", {
     weekday: "long",
@@ -33,15 +35,25 @@ export function PrincipalMasthead({
     year: "numeric",
   });
 
-  const figures: { label: string; value: string }[] = [
-    { label: masthead.gdp_year ? `GDP ${masthead.gdp_year}` : "GDP", value: gdpLabel(masthead.gdp_usd) },
-    { label: "Currency", value: masthead.currency ?? "—" },
+  const figures: { label: string; value: string; note: string }[] = [
+    {
+      label: masthead.gdp_year ? `GDP ${masthead.gdp_year}` : "GDP",
+      value: gdpLabel(masthead.gdp_usd),
+      note: "Nominal GDP in current US dollars, as recorded on the country record.",
+    },
+    { label: "Currency", value: masthead.currency ?? "—", note: "Reporting currency of the national ledger." },
     {
       label: "Grade A/B",
       value: masthead.grade_ab == null ? "—" : `${Math.round(masthead.grade_ab * 100)}%`,
+      note: "Share of KPIs with a value on record graded A or B for source confidence.",
     },
-    { label: "Corpus", value: masthead.corpus_fresh_at ? relTime(masthead.corpus_fresh_at) : "—" },
+    {
+      label: "Corpus",
+      value: masthead.corpus_fresh_at ? relTime(masthead.corpus_fresh_at) : "—",
+      note: "Age of the most recent document ingested into the country corpus.",
+    },
   ];
+
 
   return (
     <header className="border-b border-line-200 pb-6">
@@ -74,10 +86,17 @@ export function PrincipalMasthead({
       <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-line-100 pt-4 sm:grid-cols-4">
         {figures.map((f) => (
           <div key={f.label} className="min-w-0">
-            <dt className="truncate font-mono text-[9px] uppercase tracking-[0.2em] text-ink-500">{f.label}</dt>
-            <dd data-numeric className="mt-1 truncate font-serif text-[22px] leading-none text-ink-950">
-              {f.value}
-            </dd>
+            <button
+              type="button"
+              aria-haspopup="dialog"
+              onClick={() => open({ kind: "kpi", label: f.label, value: f.value, note: f.note })}
+              className="block w-full min-w-0 text-left transition-opacity hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-500"
+            >
+              <dt className="truncate font-mono text-[9px] uppercase tracking-[0.2em] text-ink-500">{f.label}</dt>
+              <dd data-numeric className="mt-1 truncate font-serif text-[22px] leading-none text-ink-950">
+                {f.value}
+              </dd>
+            </button>
           </div>
         ))}
       </dl>

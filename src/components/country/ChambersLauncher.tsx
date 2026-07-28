@@ -53,7 +53,32 @@ const REST: Chamber[] = [
 export function ChambersLauncher({ code }: { code: string }) {
   return (
     <section className="space-y-5">
+      {/* The roof over the eight chambers. */}
+      <Link
+        to="/admin/countries/$code/executive"
+        params={{ code }}
+        className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border border-ink-950 bg-card px-6 py-4 transition hover:bg-paper-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-500"
+      >
+        <span className="min-w-0">
+          <span className="block font-mono text-[10px] uppercase tracking-[0.28em] text-ink-500">
+            For the Principal
+          </span>
+          <span className="mt-1 block truncate font-serif text-[22px] text-ink-950">
+            The Executive Brief
+          </span>
+          <span className="mt-0.5 block truncate text-[13px] text-ink-500">
+            What requires a decision today, and the standing of all eight chambers on one screen.
+          </span>
+        </span>
+        <ArrowUpRight
+          size={18}
+          strokeWidth={1.5}
+          className="shrink-0 text-ink-300 transition group-hover:translate-x-0.5 group-hover:text-ink-950"
+        />
+      </Link>
+
       <div className="flex items-baseline justify-between">
+
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink-500">
             The switchboard

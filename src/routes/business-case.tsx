@@ -416,7 +416,7 @@ function BusinessCasePage() {
       {/* 9 · Five approvals */}
       <Section>
         <div className="grid gap-12 md:grid-cols-[300px_1fr] md:items-start">
-          <div className="hidden md:block md:pt-2">
+          <div className="flex justify-center md:block md:pt-2">
             <Illustration src={artSeal.url} variant="spot" />
           </div>
           <div>

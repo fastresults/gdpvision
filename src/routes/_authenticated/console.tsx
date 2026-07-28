@@ -6,7 +6,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { FileText, Home, MessageCircle, Send } from "lucide-react";
 
 import { getMyCountryStatus } from "@/lib/country-admin.functions";
-import { CARICOM_OECS_REGISTRY, flagUrl } from "@/lib/caricom-registry";
+import { CARICOM_OECS_REGISTRY } from "@/lib/caricom-registry";
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { CountrySwitcher } from "@/components/console/CountrySwitcher";
 import { useImpersonation } from "@/lib/impersonation";

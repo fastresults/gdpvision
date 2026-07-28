@@ -519,7 +519,7 @@ export function MarketingHome() {
 
       {/* SOVEREIGNTY ------------------------------------------------------ */}
       <section id="sovereignty" className="border-b border-line-200">
-        <div className="mx-auto grid max-w-[1280px] items-start gap-16 px-6 py-24 md:grid-cols-[1fr_1.2fr] md:px-10 md:py-32">
+        <div className="mx-auto grid max-w-[1280px] items-start gap-10 px-5 py-14 sm:px-6 sm:py-20 md:grid-cols-[1fr_1.2fr] md:gap-16 md:px-10 md:py-32">
           <div>
             <SectionHeader
               eyebrow="Sovereignty"

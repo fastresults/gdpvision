@@ -147,21 +147,22 @@ export function MarketingHome() {
     <MarketingShell>
       {/* HERO ------------------------------------------------------------- */}
       <section id="top" className="border-b border-line-200">
-        <div className="mx-auto grid max-w-[1280px] items-center gap-12 px-6 py-16 md:grid-cols-[1.15fr_1fr] md:gap-16 md:px-10 md:py-24">
-          <div>
+        <div className="mx-auto grid max-w-[1280px] items-center gap-10 px-5 py-12 sm:px-6 sm:py-16 md:grid-cols-[1.15fr_1fr] md:gap-16 md:px-10 md:py-24">
+          <div className="min-w-0">
             <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">
               GDPVision · An instrument of state
             </div>
             <div className="mt-6 h-px w-16 bg-gold-500" aria-hidden />
-            <h1 className="mt-8 font-serif text-[43px] leading-[1.05] tracking-tight text-ink-950 md:text-[68px]">
+            <h1 className="mt-6 font-serif text-[32px] leading-[1.08] tracking-tight text-ink-950 sm:mt-8 sm:text-[43px] sm:leading-[1.05] md:text-[68px]">
               No small state should learn its own economy from someone else's report.
             </h1>
-            <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-ink-700 md:text-[17px]">
+            <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-ink-700 sm:mt-6 md:text-[17px]">
               GDPVision is a sovereign instrument for Presidents, Prime Ministers and Cabinets. It
               holds a nation's public and private evidence in one graded Ledger, and lets Cabinet
               rehearse a decision before it is taken. One isolated deployment per nation. The
               government owns it outright.
             </p>
+
             <div
               aria-live="polite"
               onMouseEnter={() => setPaused(true)}
@@ -193,13 +194,13 @@ export function MarketingHome() {
 
             <nav
               aria-label="Cycle through threats"
-              className="mt-4 flex items-center gap-6 border-t border-line-200 pt-3"
+              className="mt-4 flex items-center gap-5 border-t border-line-200 pt-1 sm:gap-6 sm:pt-3"
             >
               <button
                 type="button"
                 onClick={goPrevThreat}
                 aria-label="Previous threat"
-                className="group flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
+                className="group -mx-2 flex min-h-[44px] items-center gap-3 px-2 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
               >
                 <svg
                   width="44"
@@ -207,7 +208,7 @@ export function MarketingHome() {
                   viewBox="0 0 44 10"
                   fill="none"
                   aria-hidden
-                  className="transition-transform duration-300 group-hover:-translate-x-1"
+                  className="w-[28px] shrink-0 transition-transform duration-300 group-hover:-translate-x-1 sm:w-[44px]"
                 >
                   <path
                     d="M43 5H1M1 5L5 1M1 5L5 9"
@@ -227,7 +228,7 @@ export function MarketingHome() {
                 type="button"
                 onClick={goNextThreat}
                 aria-label="Next threat"
-                className="group flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
+                className="group -mx-2 flex min-h-[44px] items-center gap-3 px-2 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
               >
                 <span>Next</span>
                 <svg
@@ -236,7 +237,7 @@ export function MarketingHome() {
                   viewBox="0 0 44 10"
                   fill="none"
                   aria-hidden
-                  className="transition-transform duration-300 group-hover:translate-x-1"
+                  className="w-[28px] shrink-0 transition-transform duration-300 group-hover:translate-x-1 sm:w-[44px]"
                 >
                   <path
                     d="M1 5H43M43 5L39 1M43 5L39 9"
@@ -247,16 +248,16 @@ export function MarketingHome() {
                 </svg>
               </button>
             </nav>
-            <div className="mt-5 flex flex-wrap items-center gap-6">
+            <div className="mt-5 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6">
               <a
                 href="#briefing"
-                className="inline-flex items-center justify-center bg-ink-950 px-6 py-3 font-mono text-[12px] uppercase tracking-[0.18em] text-paper-0 transition-colors duration-200 hover:bg-gold-500"
+                className="inline-flex min-h-[48px] items-center justify-center bg-ink-950 px-6 py-3 font-mono text-[12px] uppercase tracking-[0.18em] text-paper-0 transition-colors duration-200 hover:bg-gold-500"
               >
                 Request a Cabinet briefing
               </a>
               <a
                 href="#loop"
-                className="font-mono text-[12px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950"
+                className="inline-flex min-h-[44px] items-center font-mono text-[12px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950"
               >
                 See how a decision moves through the instrument ↓
               </a>
@@ -265,23 +266,24 @@ export function MarketingHome() {
           <div className="relative flex items-center justify-center">
             <SignatureRing size={480} />
           </div>
+
         </div>
       </section>
 
       {/* PROBLEM ---------------------------------------------------------- */}
       <section id="problem" className="border-b border-line-200">
-        <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
+        <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
           <div
             key={moment.id}
             className="animate-in fade-in duration-500 motion-reduce:animate-none"
           >
-            <div className="grid items-center gap-8 md:grid-cols-[320px_minmax(0,1fr)] md:gap-12 lg:grid-cols-[384px_minmax(0,1fr)]">
+            <div className="grid items-center gap-6 md:grid-cols-[320px_minmax(0,1fr)] md:gap-12 lg:grid-cols-[384px_minmax(0,1fr)]">
               <Illustration
                 key={moment.id}
                 src={moment.illustration ?? illMoment.url}
                 alt={moment.title}
                 variant="spot"
-                className="hidden shrink-0 !w-[320px] lg:!w-[384px] md:block"
+                className="mx-auto shrink-0 !w-[232px] md:mx-0 md:!w-[320px] lg:!w-[384px]"
               />
               <div className="min-w-0">
                 <SectionHeader
@@ -291,7 +293,8 @@ export function MarketingHome() {
                 />
               </div>
             </div>
-            <div className="mt-16 grid gap-12 border-t border-line-200 pt-12 md:grid-cols-3">
+
+            <div className="mt-10 grid gap-10 border-t border-line-200 pt-10 sm:mt-16 sm:gap-12 sm:pt-12 md:grid-cols-3">
               {moment.stats.map((s, i) => (
                 <NumberTile
                   key={i}
@@ -311,13 +314,13 @@ export function MarketingHome() {
 
           <nav
             aria-label="Cycle through economic impact scenarios"
-            className="mt-16 flex items-center justify-end gap-6 border-t border-line-200 pt-6"
+            className="mt-10 flex items-center justify-end gap-5 border-t border-line-200 pt-4 sm:mt-16 sm:gap-6 sm:pt-6"
           >
             <button
               type="button"
               onClick={goPrev}
               aria-label="Previous scenario"
-              className="group flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
+              className="group -mx-2 flex min-h-[44px] items-center gap-3 px-2 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
             >
               <svg
                 width="44"
@@ -325,8 +328,9 @@ export function MarketingHome() {
                 viewBox="0 0 44 10"
                 fill="none"
                 aria-hidden
-                className="transition-transform duration-300 group-hover:-translate-x-1"
+                className="w-[28px] shrink-0 transition-transform duration-300 group-hover:-translate-x-1 sm:w-[44px]"
               >
+
                 <path
                   d="M43 5H1M1 5L5 1M1 5L5 9"
                   stroke="currentColor"
@@ -345,7 +349,7 @@ export function MarketingHome() {
               type="button"
               onClick={goNext}
               aria-label="Next scenario"
-              className="group flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
+              className="group -mx-2 flex min-h-[44px] items-center gap-3 px-2 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
             >
               <span>Next</span>
               <svg
@@ -354,8 +358,9 @@ export function MarketingHome() {
                 viewBox="0 0 44 10"
                 fill="none"
                 aria-hidden
-                className="transition-transform duration-300 group-hover:translate-x-1"
+                className="w-[28px] shrink-0 transition-transform duration-300 group-hover:translate-x-1 sm:w-[44px]"
               >
+
                 <path
                   d="M1 5H43M43 5L39 1M43 5L39 9"
                   stroke="currentColor"
@@ -370,18 +375,20 @@ export function MarketingHome() {
 
       {/* CORPUS ----------------------------------------------------------- */}
       <section id="corpus" className="border-b border-line-200">
-        <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
-          <div className="grid items-end gap-10 md:grid-cols-[1.3fr_1fr]">
+        <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
+          <div className="grid items-end gap-8 md:grid-cols-[1.3fr_1fr] md:gap-10">
             <SectionHeader
               eyebrow="One sovereign corpus"
               title="Public data. Private data. Held apart, read together."
               lede="Public evidence is aggregated, graded and cited for every ministry. Private Cabinet uploads sit under the same provenance discipline — visible only to those with authorised country access, never mixed into the public view."
             />
-            <div className="hidden justify-end md:flex">
-              <Illustration src={illCorpus.url} variant="aside" />
+            <div className="flex justify-center md:justify-end">
+              <Illustration src={illCorpus.url} variant="spot" className="md:hidden" />
+              <Illustration src={illCorpus.url} variant="aside" className="hidden md:block" />
             </div>
           </div>
-          <div className="mt-16 grid gap-8 border-t border-line-200 pt-12 md:grid-cols-3">
+          <div className="mt-10 grid gap-8 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-3">
+
             {[
               {
                 head: "Public corpus",
@@ -409,7 +416,7 @@ export function MarketingHome() {
 
       {/* THE LOOP --------------------------------------------------------- */}
       <section id="loop" className="border-b border-line-200">
-        <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
+        <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
           <div className="grid items-end gap-8 md:grid-cols-[1fr_auto]">
             <SectionHeader
               eyebrow="How a decision moves"
@@ -419,10 +426,11 @@ export function MarketingHome() {
             <Illustration
               src={illLoop.url}
               variant="spot"
-              className="hidden justify-self-end md:block"
+              className="mx-auto md:mx-0 md:justify-self-end"
             />
           </div>
-          <div className="mt-16 grid gap-8 border-t border-line-200 pt-12 md:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid gap-8 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2 lg:grid-cols-4">
+
             {LOOP_STEPS.map((s) => (
               <div key={s.step} className="border-t border-line-200 pt-6">
                 <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold-500">
@@ -441,13 +449,14 @@ export function MarketingHome() {
 
       {/* INSTRUMENT — CHAMBERS ------------------------------------------- */}
       <section id="instrument" className="border-b border-line-200 bg-paper-100/40">
-        <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
+        <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
+
           <SectionHeader
             eyebrow="The instrument"
             title="Eight chambers, each engineered to move GDP."
             lede="Not a dashboard and not a consulting deliverable. GDPVision is organised as an instrument of state — a live Ledger beneath eight chambers, with the Counsel above them."
           />
-          <div className="mt-16 grid gap-x-10 gap-y-10 border-t border-line-200 pt-12 md:grid-cols-2">
+          <div className="mt-10 grid gap-x-10 gap-y-10 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2">
             {FEATURED_CHAMBERS.map((c) => (
               <div key={c.index}>
                 <div className="mb-4 font-mono text-[12px] uppercase tracking-[0.18em] text-gold-500">
@@ -464,7 +473,7 @@ export function MarketingHome() {
               </div>
             ))}
           </div>
-          <div className="mt-16 grid gap-x-8 gap-y-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 grid gap-x-8 gap-y-6 sm:mt-16 md:grid-cols-2 lg:grid-cols-3">
             {GRID_CHAMBERS.map((c) => (
               <ChamberPanel key={c.index} {...c} />
             ))}
@@ -474,7 +483,7 @@ export function MarketingHome() {
 
       {/* THE COUNSEL ------------------------------------------------------ */}
       <section id="counsel" className="border-b border-line-200">
-        <div className="mx-auto grid max-w-[1280px] items-start gap-12 px-6 py-20 md:grid-cols-[1fr_0.8fr] md:px-10 md:py-24">
+        <div className="mx-auto grid max-w-[1280px] items-start gap-10 px-5 py-14 sm:px-6 sm:py-16 md:grid-cols-[1fr_0.8fr] md:gap-12 md:px-10 md:py-24">
           <div>
             <SectionHeader
               eyebrow="Above the chambers"
@@ -510,7 +519,7 @@ export function MarketingHome() {
 
       {/* SOVEREIGNTY ------------------------------------------------------ */}
       <section id="sovereignty" className="border-b border-line-200">
-        <div className="mx-auto grid max-w-[1280px] items-start gap-16 px-6 py-24 md:grid-cols-[1fr_1.2fr] md:px-10 md:py-32">
+        <div className="mx-auto grid max-w-[1280px] items-start gap-10 px-5 py-14 sm:px-6 sm:py-20 md:grid-cols-[1fr_1.2fr] md:gap-16 md:px-10 md:py-32">
           <div>
             <SectionHeader
               eyebrow="Sovereignty"
@@ -555,14 +564,15 @@ export function MarketingHome() {
 
       {/* PROVENANCE ------------------------------------------------------- */}
       <section id="provenance" className="border-b border-line-200 bg-paper-100/40">
-        <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
+        <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
+
           <SectionHeader
             eyebrow="Provenance"
             title="Built by OPEN Interactive — seventeen years in the room, one working prototype already running."
             lede="OPEN Interactive originated the Caribbean Investment Summit franchise in 2009, delivered national digital infrastructure for the Government of St. Kitts & Nevis, and has maintained head-of-government relationships across the OECS for seventeen years. GDPVision is built by the people already in the room."
           />
           <Illustration src={illProvenance.url} variant="rule" className="mt-10" />
-          <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid gap-8 sm:mt-16 md:grid-cols-2 lg:grid-cols-4">
             {[
               {
                 year: "2009 →",
@@ -613,8 +623,9 @@ export function MarketingHome() {
 
       {/* BRIEFING CTA ----------------------------------------------------- */}
       <section id="briefing">
-        <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
-          <div className="grid gap-12 md:grid-cols-[1fr_1.4fr] md:gap-16 items-start">
+        <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
+          <div className="grid gap-10 md:grid-cols-[1fr_1.4fr] md:gap-16 items-start">
+
             <div>
               <SectionHeader
                 eyebrow="Cabinet briefing"

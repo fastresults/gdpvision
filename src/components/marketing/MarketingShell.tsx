@@ -35,7 +35,7 @@ export function MarketingShell({ children }: MarketingShellProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-dvh bg-paper-0 text-ink-950 font-sans antialiased">
+    <div className="min-h-dvh overflow-x-hidden bg-paper-0 text-ink-950 font-sans antialiased">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-ink-950 focus:px-3 focus:py-2 focus:text-paper-0 focus:font-mono focus:text-xs focus:uppercase focus:tracking-[0.16em]"

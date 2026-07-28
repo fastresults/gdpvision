@@ -40,21 +40,22 @@ export function ChamberPanel({
         className="absolute left-0 top-0 z-10 h-full w-[2px]"
         style={{ background: `var(${accentVar})` }}
       />
-      <div className="pl-6 pr-5 py-6">
-        <div className="flex items-start justify-between gap-4 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-500">
+      <div className="pl-5 pr-4 py-5 sm:pl-6 sm:pr-5 sm:py-6">
+        <div className="flex items-start justify-between gap-3 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-500 sm:gap-4">
           <span className="pt-1">Chamber {index}</span>
           {image ? (
             <Illustration
               src={image}
               variant="mark"
-              className="shrink-0 !w-[130px] md:!w-[160px]"
+              className="shrink-0 !w-[104px] sm:!w-[130px] md:!w-[160px]"
             />
           ) : null}
         </div>
 
-        <h3 className="mt-3 font-serif text-[27px] leading-tight text-ink-950">
+        <h3 className="mt-3 font-serif text-[23px] leading-tight text-ink-950 sm:text-[27px]">
           {title}
         </h3>
+
         <p className="mt-3 text-[15px] leading-relaxed text-ink-700">{purpose}</p>
         <ul className="mt-5 space-y-2.5 text-[13.5px] leading-relaxed text-ink-700">
           {bullets.map((b) => (

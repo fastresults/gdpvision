@@ -100,7 +100,10 @@ function Section({
 }) {
   return (
     <section className={bordered ? "border-b border-line-200" : undefined}>
-      <div className="mx-auto max-w-[1280px] px-6 py-16 md:px-10 md:py-24">{children}</div>
+      <div className="mx-auto max-w-[1280px] px-5 py-12 sm:px-6 sm:py-16 md:px-10 md:py-24">
+        {children}
+      </div>
+
     </section>
   );
 }
@@ -119,16 +122,17 @@ function BusinessCasePage() {
     <MarketingShell>
       {/* Masthead */}
       <section className="border-b border-line-200">
-        <div className="mx-auto max-w-[1280px] px-6 py-20 md:px-10 md:py-28">
+        <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-28">
           <div className="grid gap-10 md:grid-cols-[1fr_320px] md:items-center">
-            <div>
+            <div className="min-w-0">
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
                 {BUSINESS_CASE_META.eyebrow}
               </div>
               <div className="mt-4 h-px w-12 bg-ink-700" aria-hidden />
-              <h1 className="mt-6 max-w-3xl font-serif text-[40px] leading-[1.05] tracking-tight text-ink-950 md:text-[56px]">
+              <h1 className="mt-5 max-w-3xl font-serif text-[30px] leading-[1.08] tracking-tight text-ink-950 sm:mt-6 sm:text-[40px] sm:leading-[1.05] md:text-[56px]">
                 {BUSINESS_CASE_META.title}
               </h1>
+
               <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-ink-700">
                 {BUSINESS_CASE_META.standfirst}
               </p>
@@ -188,7 +192,8 @@ function BusinessCasePage() {
           ))}
         </div>
         <div className="mt-14 grid gap-10 md:grid-cols-[300px_1fr] md:items-center">
-          <div className="hidden md:block">
+          <div className="flex justify-center md:block">
+
             <Illustration src={artCliff.url} variant="spot" />
           </div>
           <p className="max-w-3xl text-[17px] leading-relaxed text-ink-950">{STAKES_CLOSE}</p>
@@ -282,7 +287,7 @@ function BusinessCasePage() {
           ))}
         </div>
         <div className="mt-12 grid gap-10 md:grid-cols-[300px_1fr] md:items-center">
-          <div className="hidden md:block">
+          <div className="flex justify-center md:block">
             <Illustration src={artLedgerCost.url} variant="spot" />
           </div>
           <p className="max-w-3xl text-[17px] leading-relaxed text-ink-950">{SHADOW_CLOSE}</p>
@@ -300,7 +305,31 @@ function BusinessCasePage() {
           {TIER_ONE_INTRO[1]}
         </p>
 
-        <div className="mt-12 overflow-hidden border border-line-200">
+        {/* Mobile: stacked definition list */}
+        <div className="mt-10 border-t border-line-200 md:hidden">
+          {TIER_ONE_TESTS.map((r) => (
+            <div key={r.test} className="border-b border-line-200 py-5">
+              <div className="text-[15.5px] leading-relaxed text-ink-950">{r.test}</div>
+              <dl className="mt-3 space-y-3">
+                <div>
+                  <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+                    Chat subscription
+                  </dt>
+                  <dd className="mt-1 text-[15px] leading-relaxed text-ink-500">{r.chat}</dd>
+                </div>
+                <div>
+                  <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-gold-500">
+                    GDPVision
+                  </dt>
+                  <dd className="mt-1 text-[15px] leading-relaxed text-ink-700">{r.instrument}</dd>
+                </div>
+              </dl>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop: comparison table */}
+        <div className="mt-12 hidden overflow-hidden border border-line-200 md:block">
           <table className="w-full border-collapse text-left">
             <caption className="sr-only">
               Tier-one tests: a chat subscription compared with GDPVision
@@ -329,6 +358,7 @@ function BusinessCasePage() {
             </tbody>
           </table>
         </div>
+
         <p className="mt-10 max-w-3xl text-[17px] leading-relaxed text-ink-950">{TIER_ONE_CLOSE}</p>
       </Section>
 
@@ -411,7 +441,7 @@ function BusinessCasePage() {
       {/* 9 · Five approvals */}
       <Section>
         <div className="grid gap-12 md:grid-cols-[300px_1fr] md:items-start">
-          <div className="hidden md:block md:pt-2">
+          <div className="flex justify-center md:block md:pt-2">
             <Illustration src={artSeal.url} variant="spot" />
           </div>
           <div>
@@ -532,7 +562,7 @@ function BusinessCasePage() {
 
       {/* Close */}
       <section>
-        <div className="mx-auto max-w-[1280px] px-6 py-20 md:px-10 md:py-28">
+        <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-28">
           <div className="grid gap-10 md:grid-cols-[1fr_320px] md:items-center">
             <div>
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">

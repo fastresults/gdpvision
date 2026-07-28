@@ -92,19 +92,12 @@ export const Route = createFileRoute("/business-case")({
   component: BusinessCasePage,
 });
 
-function Section({
-  children,
-  bordered = true,
-}: {
-  children: React.ReactNode;
-  bordered?: boolean;
-}) {
+function Section({ children, bordered = true }: { children: React.ReactNode; bordered?: boolean }) {
   return (
     <section className={bordered ? "border-b border-line-200" : undefined}>
       <div className="mx-auto max-w-[1280px] px-5 py-12 sm:px-6 sm:py-16 md:px-10 md:py-24">
         {children}
       </div>
-
     </section>
   );
 }
@@ -194,7 +187,6 @@ function BusinessCasePage() {
         </div>
         <div className="mt-14 grid gap-10 md:grid-cols-[300px_1fr] md:items-center">
           <div className="flex justify-center md:block">
-
             <Illustration src={artCliff.url} variant="spot" />
           </div>
           <p className="max-w-3xl text-[17px] leading-relaxed text-ink-950">{STAKES_CLOSE}</p>
@@ -205,10 +197,7 @@ function BusinessCasePage() {
       <Section>
         <div className="grid gap-12 md:grid-cols-[1fr_300px] md:items-center">
           <div>
-            <SectionHeader
-              eyebrow="02 · The problem"
-              title="It is instrumentation, not effort."
-            />
+            <SectionHeader eyebrow="02 · The problem" title="It is instrumentation, not effort." />
             <div className="mt-8 space-y-5 max-w-2xl">
               {INSTRUMENTATION_INTRO.map((p) => (
                 <p key={p.slice(0, 24)} className="text-[16.5px] leading-relaxed text-ink-700">
@@ -400,10 +389,7 @@ function BusinessCasePage() {
 
       {/* 7 · What the instrument is */}
       <Section>
-        <SectionHeader
-          eyebrow="07 · What the instrument actually is"
-          title={INSTRUMENT_INTRO}
-        />
+        <SectionHeader eyebrow="07 · What the instrument actually is" title={INSTRUMENT_INTRO} />
         <div className="mt-12 grid gap-x-10 gap-y-8 md:grid-cols-2">
           {CHAMBERS.map((c) => (
             <div key={c.index} className="relative border-t border-line-200 pt-5 pl-5">
@@ -422,7 +408,9 @@ function BusinessCasePage() {
             </div>
           ))}
         </div>
-        <p className="mt-12 max-w-2xl text-[17px] leading-relaxed text-ink-950">{CORPUS_FOOTNOTE}</p>
+        <p className="mt-12 max-w-2xl text-[17px] leading-relaxed text-ink-950">
+          {CORPUS_FOOTNOTE}
+        </p>
       </Section>
 
       {/* 8 · What this is worth */}

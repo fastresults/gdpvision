@@ -18,10 +18,7 @@ const statusQuery = queryOptions({
 
 export const Route = createFileRoute("/_authenticated/console")({
   head: () => ({
-    meta: [
-      { title: "Your console — GDPVision" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Your console — GDPVision" }, { name: "robots", content: "noindex" }],
   }),
   loader: async ({ context }) => {
     await context.queryClient.ensureQueryData(statusQuery);
@@ -51,7 +48,6 @@ function ConsoleLayout() {
     status.bindings.find((b) => b.country_code === code)?.name ??
     (code ? countryLabel(code) : null);
   const isAgency = status.isGlobalAdmin && !viewAs;
-
 
   type Tab = {
     to:
@@ -96,7 +92,6 @@ function ConsoleLayout() {
       ]
     : [];
 
-
   return (
     <div className="flex min-h-dvh flex-col bg-paper-50 text-ink-950">
       <header className="sticky top-0 z-20 border-b border-line-200 bg-paper-0/90 backdrop-blur">
@@ -126,7 +121,6 @@ function ConsoleLayout() {
             </Link>
           )}
         </div>
-
       </header>
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-28 sm:px-6 sm:py-10 sm:pb-28">

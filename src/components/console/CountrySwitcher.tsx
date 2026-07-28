@@ -51,7 +51,10 @@ export function CountrySwitcher({
 
   const options: SwitchableCountry[] = useMemo(() => {
     const source: SwitchableCountry[] = isGlobalAdmin
-      ? ((all.data as any[]) ?? []).map((c) => ({ code: String(c.code), name: c.name ?? null }))
+      ? ((all.data as Array<{ code: string; name: string | null }>) ?? []).map((c) => ({
+          code: String(c.code),
+          name: c.name ?? null,
+        }))
       : bindings;
     const q = query.trim().toLowerCase();
     const filtered = q
@@ -195,7 +198,12 @@ export function CountrySwitcher({
                   </span>
                   <span className="truncate text-[13px] text-ink-500">{c.name ?? "—"}</span>
                   {active ? (
-                    <Check size={13} strokeWidth={1.75} className="shrink-0 text-ink-950" aria-hidden />
+                    <Check
+                      size={13}
+                      strokeWidth={1.75}
+                      className="shrink-0 text-ink-950"
+                      aria-hidden
+                    />
                   ) : (
                     <span className="w-[13px]" aria-hidden />
                   )}

@@ -483,7 +483,7 @@ export function MarketingHome() {
 
       {/* THE COUNSEL ------------------------------------------------------ */}
       <section id="counsel" className="border-b border-line-200">
-        <div className="mx-auto grid max-w-[1280px] items-start gap-12 px-6 py-20 md:grid-cols-[1fr_0.8fr] md:px-10 md:py-24">
+        <div className="mx-auto grid max-w-[1280px] items-start gap-10 px-5 py-14 sm:px-6 sm:py-16 md:grid-cols-[1fr_0.8fr] md:gap-12 md:px-10 md:py-24">
           <div>
             <SectionHeader
               eyebrow="Above the chambers"

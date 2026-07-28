@@ -11,14 +11,13 @@ import { useExecutiveDetail } from "./DetailModal";
  * diagnosis to the reader. Hover reveals why an item ranked where it did.
  */
 export function AttentionRail({
-  code,
   items,
-  surface,
 }: {
-  code: string;
+  code?: string;
   items: AttentionItem[];
-  surface: ExecutiveSurface;
+  surface?: ExecutiveSurface;
 }) {
+  const { open } = useExecutiveDetail();
   return (
     <section className="border-y border-ink-950">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 border-b border-line-200 px-5 py-3">
@@ -36,11 +35,20 @@ export function AttentionRail({
         <ul>
           {items.map((it, i) => (
             <li key={`${it.chamber}-${i}`} style={{ animationDelay: `${i * 40}ms` }} className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-left-1 motion-safe:fill-mode-both">
-              <Link
-                to={sheetRoute(surface)}
-                params={{ code, chamber: slugForIndex(it.chamber) }}
-                hash="awaits"
-                className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-b border-line-100 px-5 py-3.5 transition-colors last:border-b-0 hover:bg-paper-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-500"
+              <button
+                type="button"
+                aria-haspopup="dialog"
+                onClick={() =>
+                  open({
+                    kind: "alert",
+                    index: it.chamber,
+                    title: it.chamberTitle,
+                    text: it.text,
+                    severity: it.severity,
+                    because: it.because,
+                  })
+                }
+                className="group grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-b border-line-100 px-5 py-3.5 text-left transition-colors last:border-b-0 hover:bg-paper-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-500"
               >
                 <span data-numeric className="shrink-0 font-mono text-[10px] tracking-[0.2em] text-ink-500">
                   {it.chamber}
@@ -56,7 +64,15 @@ export function AttentionRail({
                   strokeWidth={1.5}
                   className="shrink-0 text-ink-300 transition group-hover:translate-x-0.5 group-hover:text-ink-950"
                 />
-              </Link>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
             </li>
           ))}
         </ul>

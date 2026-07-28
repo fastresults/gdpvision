@@ -1,6 +1,28 @@
 import { useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { MarketingShell } from "./MarketingShell";
+
+/**
+ * Cross-page hash arrivals (e.g. /business-case → "/#sovereignty") land here
+ * before the target section has painted. Scroll to it once it exists.
+ */
+function useHashScroll() {
+  const hash = useRouterState({ select: (s) => s.location.hash });
+  useEffect(() => {
+    if (!hash || typeof window === "undefined") return;
+    let tries = 0;
+    const tick = () => {
+      const el = document.getElementById(hash);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      if (tries++ < 20) window.setTimeout(tick, 50);
+    };
+    tick();
+  }, [hash]);
+}
+
 
 import { EXISTENTIAL_THREATS } from "@/lib/existential-threats";
 import { MOMENT_VARIANTS } from "@/lib/moment-variants";
@@ -65,7 +87,9 @@ function shuffleTail() {
 }
 
 export function MarketingHome() {
+  useHashScroll();
   const [tail, setTail] = useState(() => EXISTENTIAL_THREATS.slice(1));
+
   const [index, setIndex] = useState(0);
   const [momentIndex, setMomentIndex] = useState(0);
   const [paused, setPaused] = useState(false);

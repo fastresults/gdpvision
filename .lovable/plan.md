@@ -1,40 +1,38 @@
-## Problem
+## What's actually broken
 
-The `/business-case` decision paper currently borrows six illustrations from the marketing home page (`section-provenance`, `section-loop`, `section-corpus`, `section-counsel`, `section-sovereignty`, `section-briefing`). They are recognisable from the home page, and none of them are drawn for the argument they sit beside — the filing-cabinet engraving under "A language model is a component" is a corpus image, not a component-vs-system image. The page reads as assembled rather than authored.
+I read `src/components/marketing/MarketingShell.tsx` (the shared public header), `src/components/marketing/MarketingHome.tsx`, `src/routes/_authenticated/instrument/route.tsx`, and `src/routes/_authenticated/home.tsx`. Four real defects:
 
-## What gets built
+**1. Three of the six nav items are dead on every page except the home page.**
+"The Instrument", "Sovereignty" and "Request briefing" are plain `<a href="#instrument">` / `#sovereignty` / `#briefing`. Those section IDs exist only in `MarketingHome`. On `/business-case`, `/op-eds`, `/op-eds/$slug`, `/auth` and `/reset-password` — all of which render the same shell — clicking them just appends a hash to the current URL and nothing moves. This is the main "routing doesn't work" symptom.
 
-Eight brand-new engravings, drawn to the existing Illustration Contract (`docs/illustration-contract.md`): monochrome graphite pen-and-ink, cross-hatching and stipple, white ground, objects not people, no text in the artwork. Same prompt prefix verbatim, so they sit in one family with the homepage set but are entirely unique to this page.
+**2. Signed-in state makes it worse, not better.**
+When signed in the wordmark points at `/home`, but the same three hash links still point at home-page sections that don't exist on `/home`. So after signing in and navigating back out to a public page, half the menu is inert.
 
-Subject, matched one-to-one to the section it accents:
+**3. "Open instrument" can dump the user somewhere unexpected.**
+The signed-in header links to `/instrument`, whose loader redirects to `/admin/countries` (super admins) or `/onboarding/country` (anyone with no instance bindings). For a country user the correct destination is their console brief, not the instrument shell.
 
-| Slot | Section | Subject |
-|---|---|---|
-| `bc-instrument` | Masthead | A precision brass surveying theodolite on a tripod — the instrument itself |
-| `bc-cliff` | 01 · What is at stake | A coastal limestone shelf with a sheared edge, survey stakes along the drop |
-| `bc-lag` | 02 · The problem | A ship's chronometer in its gimbal case, hands lagging a second dial |
-| `bc-component` | 03 · A language model is a component | A single machined gear resting beside a complete escapement movement |
-| `bc-ledger-cost` | 04 · The alternative is not free | A brass beam balance, one pan stacked with weights, the other with folded paper |
-| `bc-paths` | 06 · Options appraisal | Three engraved roads diverging over a contoured survey plate |
-| `bc-seal` | 09 · The five approvals | A wax seal, matrix and ribbon on a folded despatch |
-| `bc-briefing-room` | Closing CTA | An empty Cabinet table with blotters and a single closed red box |
+**4. There is no mobile navigation at all.**
+Every nav item carries `hidden md:inline`, so below the `md` breakpoint the header shows only the wordmark and Sign in.
 
-Sizes per contract: spots `1024×1024`, the one `rule` divider `1536×512`.
+Also minor: `useSignedIn` is called twice (shell + `AuthEntry`), opening two auth listeners, and SSR always paints the signed-out header before flipping — a visible flicker.
 
-## Placement
+## The fix
 
-Placement is corrected at the same time, not just swapped in:
+**Make section links route-aware.** Replace the bare anchors with TanStack `<Link to="/" hash="instrument">` (same for `sovereignty`, `briefing`). From the home page this scrolls in place; from any other public page it navigates home and lands on the section. Add a small hash-scroll effect on the home route so a cross-page hash arrival scrolls to the target after mount (the router's scroll-to-top hook already skips hash navigations, but the target may not exist at first paint).
 
-- One illustration per section, maximum — unchanged.
-- Margin side **alternates** down the page (masthead right, 01 left, 02 right, 03 rule under header, 04 left, 06 right, 09 left, closing right) so the eye reads a composition rather than a stack.
-- Sections currently rendering an illustration centred in the flow are moved into the empty half of their existing two-column grid, or given a two-column grid where they lack one, so the artwork sits beside the argument and never interrupts the reading column.
-- `spot` stays the default; `rule` is used once only, as the divider under the section-03 header.
-- No `band`, no full-bleed, no bare `<img>` — everything renders through `<Illustration>`.
+**Give the signed-in header a correct destination.** Keep the wordmark → `/home`, and change "Open instrument" to a "Dashboard" link pointing at `/home`, which already routes super admins to the country picker and country users to their console. Sign-out gets the full hygiene sequence: cancel in-flight queries, clear the query cache, `signOut()`, then `navigate({ to: "/", replace: true })`.
 
-## Technical notes
+**Add a mobile menu.** A compact disclosure under the header (or a sheet) exposing the same six items on small screens, closing on selection.
 
-1. Generate the eight images to `/tmp` at contract sizes.
-2. Upload each with `lovable-assets create`, commit only the pointer at `src/assets/illustrations/bc-<name>.jpg.asset.json`. No binaries in the repo.
-3. Rewrite the six imports in `src/routes/business-case.tsx` to the eight new pointers, and adjust the surrounding grid markup for the alternating placement.
-4. The six homepage assets stay exactly as they are — they are still in use on `/` and must not be deleted or edited.
-5. Visual QA pass with a full-page capture of `/business-case` at desktop and mobile widths to confirm nothing is oversized, nothing collides with type, and the alternation reads correctly.
+**Single session source.** Lift `useSignedIn` into `MarketingShell` and pass the flag to `AuthEntry` so there is one listener and one consistent render.
+
+## Verification
+
+Drive Playwright over `/`, `/business-case`, `/op-eds`, `/op-eds/$slug` signed-out: click each of the six nav items and assert the resulting URL and that the target section is in view. Then repeat with a restored session to confirm the signed-in header renders Dashboard + Sign out, that Dashboard lands on `/home`, and that sign-out returns to `/` with the signed-out header. Check both desktop (1280) and mobile (390) widths, plus a clean console.
+
+## Files
+
+- `src/components/marketing/MarketingShell.tsx` — nav links, mobile menu, single session hook, signed-in affordance, sign-out hygiene
+- `src/components/marketing/MarketingHome.tsx` — hash-arrival scroll on mount
+
+No backend, schema, or copy changes.

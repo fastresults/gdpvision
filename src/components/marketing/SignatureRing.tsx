@@ -62,7 +62,7 @@ export function SignatureRing({ size = 520, animate = true, showBrain = true, cl
 
   return (
     <div
-      className={cn("relative aspect-square w-full", className)}
+      className={cn("relative aspect-square w-full -translate-y-1/4", className)}
       style={{ maxWidth: size }}
     >
       {showBrain ? (

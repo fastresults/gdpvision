@@ -1,8 +1,9 @@
-import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 
 import type { AttentionItem } from "@/lib/executive/attention";
-import { sheetRoute, slugForIndex, type ExecutiveSurface } from "@/lib/executive/chambers";
+import type { ExecutiveSurface } from "@/lib/executive/chambers";
+import { useExecutiveDetail } from "./DetailModal";
+
 
 /**
  * The verdict rail. The first thing on screen is prose, ranked, each item a

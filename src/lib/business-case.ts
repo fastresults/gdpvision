@@ -106,7 +106,7 @@ export const STAKES: StakeFigure[] = [
 ];
 
 export const STAKES_CLOSE =
-  "Set those together and the shape of the problem is clear. The region is being asked to execute the most consequential economic transition in its modern history, against an external deadline it does not control, with no fiscal slack, in a physical-risk corridor, while losing the people who would do the work — and using an evidence base that describes a country that no longer exists.";
+  "Set those together and the shape of the problem is clear. Three existential pressures now share the same timetable: a revenue model ending, a trade regime being reset from outside, and a physical-risk corridor that is no longer seasonal. The region must govern against all of them with no fiscal slack, while losing the people who would do the work — and using an evidence base that describes a country that no longer exists.";
 
 export const INSTRUMENTATION_INTRO = [
   "It would be easy to attribute the gap to capacity or to will. In my experience that is both wrong and unfair.",

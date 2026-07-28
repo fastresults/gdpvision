@@ -564,7 +564,8 @@ export function MarketingHome() {
 
       {/* PROVENANCE ------------------------------------------------------- */}
       <section id="provenance" className="border-b border-line-200 bg-paper-100/40">
-        <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-10 md:py-32">
+        <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
+
           <SectionHeader
             eyebrow="Provenance"
             title="Built by OPEN Interactive — seventeen years in the room, one working prototype already running."

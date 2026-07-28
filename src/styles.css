@@ -384,3 +384,30 @@
     transition-duration: 120ms !important;
   }
 }
+
+/* Executive brief — tempo sparkline draw-on. */
+@keyframes executive-draw {
+  from {
+    stroke-dashoffset: 240;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Print parity: the brief is designed to be carried into the room on paper. */
+@media print {
+  .executive-brief {
+    color: #000;
+  }
+  .executive-brief a {
+    text-decoration: none;
+  }
+  .executive-brief section,
+  .executive-brief table {
+    break-inside: avoid;
+  }
+  .executive-brief .group > div:last-child {
+    display: none; /* hover disclosure never prints */
+  }
+}

@@ -305,7 +305,31 @@ function BusinessCasePage() {
           {TIER_ONE_INTRO[1]}
         </p>
 
-        <div className="mt-12 overflow-hidden border border-line-200">
+        {/* Mobile: stacked definition list */}
+        <div className="mt-10 border-t border-line-200 md:hidden">
+          {TIER_ONE_TESTS.map((r) => (
+            <div key={r.test} className="border-b border-line-200 py-5">
+              <div className="text-[15.5px] leading-relaxed text-ink-950">{r.test}</div>
+              <dl className="mt-3 space-y-3">
+                <div>
+                  <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+                    Chat subscription
+                  </dt>
+                  <dd className="mt-1 text-[15px] leading-relaxed text-ink-500">{r.chat}</dd>
+                </div>
+                <div>
+                  <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-gold-500">
+                    GDPVision
+                  </dt>
+                  <dd className="mt-1 text-[15px] leading-relaxed text-ink-700">{r.instrument}</dd>
+                </div>
+              </dl>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop: comparison table */}
+        <div className="mt-12 hidden overflow-hidden border border-line-200 md:block">
           <table className="w-full border-collapse text-left">
             <caption className="sr-only">
               Tier-one tests: a chat subscription compared with GDPVision
@@ -334,6 +358,7 @@ function BusinessCasePage() {
             </tbody>
           </table>
         </div>
+
         <p className="mt-10 max-w-3xl text-[17px] leading-relaxed text-ink-950">{TIER_ONE_CLOSE}</p>
       </Section>
 

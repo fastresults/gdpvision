@@ -197,7 +197,7 @@ function BusinessCasePage() {
 
       {/* 2 · Instrumentation, not effort */}
       <Section>
-        <div className="grid gap-12 md:grid-cols-[1fr_320px] md:items-start">
+        <div className="grid gap-12 md:grid-cols-[1fr_300px] md:items-center">
           <div>
             <SectionHeader
               eyebrow="02 · The problem"

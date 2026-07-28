@@ -26,7 +26,7 @@ export const EXECUTIVE_SUMMARY: LabelledPara[] = [
   },
   {
     label: "Why now",
-    body: "Five OECS states operate a Citizenship by Investment programme that reaches half of government revenue at the upper band. It has a scheduled end and no priced replacement. That transition must be engineered against debt at ninety per cent of GDP, with a quarter of revenue already committed to interest, inside a hurricane corridor where a single night has cost 226 per cent of GDP — and using authoritative data that arrives roughly eighteen months after the period it describes.",
+    body: "Three pressures now arrive at once: Citizenship by Investment at half of government revenue faces a scheduled end with no priced replacement; the tariff regime is being rewritten in capitals the region does not control; and the hurricane corridor is re-arming after a single storm cost 226 per cent of GDP. The response must be engineered against debt at ninety per cent of GDP, with a quarter of revenue already committed to interest, and using authoritative data that arrives roughly eighteen months after the period it describes.",
   },
   {
     label: "The central argument",
@@ -106,7 +106,7 @@ export const STAKES: StakeFigure[] = [
 ];
 
 export const STAKES_CLOSE =
-  "Set those together and the shape of the problem is clear. The region is being asked to execute the most consequential economic transition in its modern history, against an external deadline it does not control, with no fiscal slack, in a physical-risk corridor, while losing the people who would do the work — and using an evidence base that describes a country that no longer exists.";
+  "Set those together and the shape of the problem is clear. Three existential pressures now share the same timetable: a revenue model ending, a trade regime being reset from outside, and a physical-risk corridor that is no longer seasonal. The region must govern against all of them with no fiscal slack, while losing the people who would do the work — and using an evidence base that describes a country that no longer exists.";
 
 export const INSTRUMENTATION_INTRO = [
   "It would be easy to attribute the gap to capacity or to will. In my experience that is both wrong and unfair.",

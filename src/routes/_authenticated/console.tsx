@@ -50,7 +50,6 @@ function ConsoleLayout() {
   const countryName =
     status.bindings.find((b) => b.country_code === code)?.name ??
     (code ? countryLabel(code) : null);
-  const flag = code ? flagUrl(code, "w160") : null;
   const isAgency = status.isGlobalAdmin && !viewAs;
 
 

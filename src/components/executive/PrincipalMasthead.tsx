@@ -33,15 +33,25 @@ export function PrincipalMasthead({
     year: "numeric",
   });
 
-  const figures: { label: string; value: string }[] = [
-    { label: masthead.gdp_year ? `GDP ${masthead.gdp_year}` : "GDP", value: gdpLabel(masthead.gdp_usd) },
-    { label: "Currency", value: masthead.currency ?? "—" },
+  const figures: { label: string; value: string; note: string }[] = [
+    {
+      label: masthead.gdp_year ? `GDP ${masthead.gdp_year}` : "GDP",
+      value: gdpLabel(masthead.gdp_usd),
+      note: "Nominal GDP in current US dollars, as recorded on the country record.",
+    },
+    { label: "Currency", value: masthead.currency ?? "—", note: "Reporting currency of the national ledger." },
     {
       label: "Grade A/B",
       value: masthead.grade_ab == null ? "—" : `${Math.round(masthead.grade_ab * 100)}%`,
+      note: "Share of KPIs with a value on record graded A or B for source confidence.",
     },
-    { label: "Corpus", value: masthead.corpus_fresh_at ? relTime(masthead.corpus_fresh_at) : "—" },
+    {
+      label: "Corpus",
+      value: masthead.corpus_fresh_at ? relTime(masthead.corpus_fresh_at) : "—",
+      note: "Age of the most recent document ingested into the country corpus.",
+    },
   ];
+
 
   return (
     <header className="border-b border-line-200 pb-6">

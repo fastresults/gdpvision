@@ -133,7 +133,7 @@ export function MarketingShell({ children }: MarketingShellProps) {
         <div className="mx-auto max-w-[1280px] px-6 py-10 md:px-10">
           <div className="grid gap-10 md:grid-cols-[1fr_auto] items-end">
             <div>
-              <Wordmark className="text-[13px]" />
+              <Wordmark className="h-8" />
               <p className="mt-4 max-w-xl text-[13.5px] leading-relaxed text-ink-700">
                 An OPEN Interactive product. Sovereign instances of the GDPVision instrument are
                 provisioned by invitation, under a confidential engagement with the government of

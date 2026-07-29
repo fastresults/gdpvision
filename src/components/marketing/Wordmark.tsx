@@ -1,22 +1,21 @@
 import { cn } from "@/lib/utils";
+import logoAsset from "@/assets/gdpvision-logo.png.asset.json";
 
 interface WordmarkProps {
   className?: string;
+  /** Kept for API compatibility with existing call sites. */
   as?: "span" | "div" | "h1";
 }
 
-// GDPVISION — display serif, letterspaced, always ink (never gold). PRD §10.3.
-export function Wordmark({ className, as: Tag = "span" }: WordmarkProps) {
+// GDP Vision brand lockup (seal + wordmark). Raster brand asset — sized by height.
+export function Wordmark({ className }: WordmarkProps) {
   return (
-    <Tag
-      className={cn(
-        "font-serif text-ink-950 uppercase",
-        "tracking-[0.18em] leading-none",
-        className,
-      )}
-      aria-label="GDPVision"
-    >
-      GDPVision
-    </Tag>
+    <img
+      src={logoAsset.url}
+      alt="GDP Vision"
+      loading="eager"
+      decoding="async"
+      className={cn("h-9 w-auto max-w-full object-contain select-none", className)}
+    />
   );
 }

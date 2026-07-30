@@ -29,7 +29,7 @@ function CodexPage() {
     <div className="min-h-dvh bg-paper-0 text-ink-950">
       <header className="flex items-center justify-between border-b border-line-200 px-8 py-5">
         <div className="flex items-center gap-10">
-          <Link to="/instrument"><Wordmark /></Link>
+          <Link to="/instrument" onClick={() => scrollToTop()}><Wordmark /></Link>
           <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">The Codex</span>
         </div>
         <div className="flex items-center gap-6 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">

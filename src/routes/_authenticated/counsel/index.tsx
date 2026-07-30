@@ -48,7 +48,7 @@ function CounselConsole() {
     <div className="min-h-dvh bg-paper-0 text-ink-950">
       <header className="flex items-center justify-between border-b border-line-200 px-8 py-5">
         <div className="flex items-center gap-8">
-          <Link to="/instrument"><Wordmark /></Link>
+          <Link to="/instrument" onClick={() => scrollToTop()}><Wordmark /></Link>
           <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">Counsel · {code}</span>
         </div>
         <div className="flex items-center gap-6 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500">

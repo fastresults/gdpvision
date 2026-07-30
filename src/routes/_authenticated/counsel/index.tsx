@@ -7,6 +7,7 @@ import { askCounsel, listCounselArchive, type CounselAnswer } from "@/lib/counse
 import { listInstanceBindings } from "@/lib/ledger.functions";
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { supabase } from "@/integrations/supabase/client";
+import { scrollToTop } from "@/lib/utils";
 
 const bindingsQuery = queryOptions({
   queryKey: ["instance-bindings"],
@@ -20,14 +21,17 @@ function archiveQuery(scope: string) {
 }
 
 export const Route = createFileRoute("/_authenticated/counsel/")({
-  head: () => ({ meta: [{ title: "Counsel — GDPVision" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({
+    meta: [{ title: "Counsel — GDPVision" }, { name: "robots", content: "noindex" }],
+  }),
   loader: ({ context }) => context.queryClient.ensureQueryData(bindingsQuery),
   component: CounselConsole,
 });
 
 function CounselConsole() {
   const { data: bindings } = useSuspenseQuery(bindingsQuery);
-  const code = bindings.find((b) => b.is_default)?.country_code ?? bindings[0]?.country_code ?? "LCA";
+  const code =
+    bindings.find((b) => b.is_default)?.country_code ?? bindings[0]?.country_code ?? "LCA";
   const { data: archive } = useSuspenseQuery(archiveQuery(code));
 
   const ask = useServerFn(askCounsel);
@@ -37,22 +41,35 @@ function CounselConsole() {
 
   const mut = useMutation({
     mutationFn: (q: string) => ask({ data: { scopeKey: code, question: q } }),
-    onSuccess: (r) => { setAnswer(r); setErr(null); },
+    onSuccess: (r) => {
+      setAnswer(r);
+      setErr(null);
+    },
     onError: (e: Error) => setErr(e.message),
   });
 
-  async function signOut() { await supabase.auth.signOut(); }
+  async function signOut() {
+    await supabase.auth.signOut();
+  }
 
   return (
     <div className="min-h-dvh bg-paper-0 text-ink-950">
       <header className="flex items-center justify-between border-b border-line-200 px-8 py-5">
         <div className="flex items-center gap-8">
-          <Link to="/instrument"><Wordmark /></Link>
-          <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">Counsel · {code}</span>
+          <Link to="/instrument" onClick={() => scrollToTop()}>
+            <Wordmark />
+          </Link>
+          <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+            Counsel · {code}
+          </span>
         </div>
         <div className="flex items-center gap-6 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500">
-          <Link to="/narrative" className="hover:text-ink-950">Narrative</Link>
-          <button onClick={signOut} className="hover:text-ink-950">Sign out</button>
+          <Link to="/narrative" className="hover:text-ink-950">
+            Narrative
+          </Link>
+          <button onClick={signOut} className="hover:text-ink-950">
+            Sign out
+          </button>
         </div>
       </header>
 
@@ -61,7 +78,10 @@ function CounselConsole() {
           <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">Ask</p>
           <form
             className="mt-3"
-            onSubmit={(e) => { e.preventDefault(); if (question.trim()) mut.mutate(question); }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (question.trim()) mut.mutate(question);
+            }}
           >
             <textarea
               value={question}
@@ -93,29 +113,46 @@ function CounselConsole() {
           {answer && (
             <article className="mt-12 space-y-10">
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Spoken</p>
-                <p className="mt-3 font-serif text-3xl leading-snug text-ink-950">{answer.spoken_block}</p>
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                  Spoken
+                </p>
+                <p className="mt-3 font-serif text-3xl leading-snug text-ink-950">
+                  {answer.spoken_block}
+                </p>
               </div>
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Written</p>
-                <pre className="mt-3 whitespace-pre-wrap font-sans text-sm leading-relaxed text-ink-800">{answer.written_block || "—"}</pre>
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                  Written
+                </p>
+                <pre className="mt-3 whitespace-pre-wrap font-sans text-sm leading-relaxed text-ink-800">
+                  {answer.written_block || "—"}
+                </pre>
               </div>
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Citations</p>
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                  Citations
+                </p>
                 <ol className="mt-3 space-y-1 text-sm">
                   {answer.citations.map((c, i) => (
                     <li key={c.id} className="flex gap-3">
                       <span className="font-mono text-ink-500 w-6">[{i + 1}]</span>
                       <span>{c.title}</span>
-                      <span className="ml-auto font-mono text-[11px] uppercase tracking-widest text-ink-500">{c.kind} · {c.sector_code} · w{c.weight}</span>
+                      <span className="ml-auto font-mono text-[11px] uppercase tracking-widest text-ink-500">
+                        {c.kind} · {c.sector_code} · w{c.weight}
+                      </span>
                     </li>
                   ))}
-                  {answer.citations.length === 0 && <li className="text-ink-500">No matching Second Brain items — treat answer as unsupported.</li>}
+                  {answer.citations.length === 0 && (
+                    <li className="text-ink-500">
+                      No matching Second Brain items — treat answer as unsupported.
+                    </li>
+                  )}
                 </ol>
               </div>
               {answer.scenario_snapshot && (
                 <p className="font-mono text-[10px] uppercase tracking-widest text-ink-500">
-                  Scenario snapshot · model {answer.scenario_snapshot.model_version} · horizon {answer.scenario_snapshot.horizon_years}y
+                  Scenario snapshot · model {answer.scenario_snapshot.model_version} · horizon{" "}
+                  {answer.scenario_snapshot.horizon_years}y
                 </p>
               )}
             </article>
@@ -133,7 +170,9 @@ function CounselConsole() {
                 </p>
               </li>
             ))}
-            {archive.length === 0 && <li className="py-8 text-center text-ink-500 text-sm">No prior consultations.</li>}
+            {archive.length === 0 && (
+              <li className="py-8 text-center text-ink-500 text-sm">No prior consultations.</li>
+            )}
           </ul>
         </aside>
       </main>

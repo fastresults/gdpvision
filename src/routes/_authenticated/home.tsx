@@ -13,6 +13,7 @@ import { useImpersonation } from "@/lib/impersonation";
 import { CountryMasthead } from "@/components/country/CountryMasthead";
 import { ConciergeInvitationCard } from "@/components/country/ConciergeInvitationCard";
 import { ChambersLauncher } from "@/components/country/ChambersLauncher";
+import { scrollToTop } from "@/lib/utils";
 
 const myStatusQuery = queryOptions({
   queryKey: ["my-country-status"],
@@ -26,10 +27,7 @@ const allCountriesQuery = queryOptions({
 
 export const Route = createFileRoute("/_authenticated/home")({
   head: () => ({
-    meta: [
-      { title: "Welcome — GDPVision" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Welcome — GDPVision" }, { name: "robots", content: "noindex" }],
   }),
   loader: async ({ context }) => {
     const status = await context.queryClient.ensureQueryData(myStatusQuery);
@@ -47,14 +45,18 @@ function HomePage() {
   const { state: viewAs } = useImpersonation();
   useEffect(() => {
     let cancelled = false;
-    checkAccessAllowed().then(async (res) => {
-      if (cancelled) return;
-      if (!res.allowed) {
-        await supabase.auth.signOut();
-        navigate({ to: "/auth", search: { blocked: 1 } as any });
-      }
-    }).catch(() => {});
-    return () => { cancelled = true; };
+    checkAccessAllowed()
+      .then(async (res) => {
+        if (cancelled) return;
+        if (!res.allowed) {
+          await supabase.auth.signOut();
+          navigate({ to: "/auth", search: { blocked: 1 } as any });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, [navigate]);
 
   // Super admin has activated "View as country user" → send them into the
@@ -65,7 +67,8 @@ function HomePage() {
 
   // Real country users (no global admin role) are routed to the Console.
   if (!status.isGlobalAdmin && status.bindings.length >= 1) {
-    const target = status.bindings.find((b) => b.is_default)?.country_code ?? status.bindings[0].country_code;
+    const target =
+      status.bindings.find((b) => b.is_default)?.country_code ?? status.bindings[0].country_code;
     return <Navigate to="/console/$code" params={{ code: target }} replace />;
   }
 
@@ -76,7 +79,10 @@ function HomePage() {
       ) : status.bindings.length === 0 ? (
         <NoAccessWelcome />
       ) : status.bindings.length === 1 ? (
-        <CountryAdminWelcome code={status.bindings[0].country_code} name={status.bindings[0].name ?? status.bindings[0].country_code} />
+        <CountryAdminWelcome
+          code={status.bindings[0].country_code}
+          name={status.bindings[0].name ?? status.bindings[0].country_code}
+        />
       ) : (
         <CountryPickerWelcome bindings={status.bindings} />
       )}
@@ -109,10 +115,20 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh bg-paper-0 text-ink-950">
       <header className="flex items-center justify-between border-b border-line-200 px-8 py-5">
-        <Link to="/home"><Wordmark /></Link>
+        <Link to="/home" onClick={() => scrollToTop()}>
+          <Wordmark />
+        </Link>
         <nav className="flex items-center gap-6 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-          <Link to="/home" activeProps={{ className: "text-ink-950" }} className="hover:text-ink-950">Home</Link>
-          <button onClick={signOut} className="hover:text-ink-950">Sign out</button>
+          <Link
+            to="/home"
+            activeProps={{ className: "text-ink-950" }}
+            className="hover:text-ink-950"
+          >
+            Home
+          </Link>
+          <button onClick={signOut} className="hover:text-ink-950">
+            Sign out
+          </button>
         </nav>
       </header>
       <main className="mx-auto max-w-7xl px-8 py-14">{children}</main>
@@ -138,17 +154,21 @@ function SuperAdminWelcome() {
           </p>
           <h1 className="mt-4 font-serif text-5xl leading-tight text-ink-950">Welcome back.</h1>
           <p className="mt-5 max-w-2xl text-lg text-ink-500">
-            Every CARICOM and OECS country in one instrument. Pick a nation to review its ledger and chambers,
-            or jump straight into an operations surface.
+            Every CARICOM and OECS country in one instrument. Pick a nation to review its ledger and
+            chambers, or jump straight into an operations surface.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-6 text-right font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
           <div>
-            <div className="font-serif text-3xl text-emerald-700" data-numeric>{complete}</div>
+            <div className="font-serif text-3xl text-emerald-700" data-numeric>
+              {complete}
+            </div>
             <div>Fully onboarded</div>
           </div>
           <div>
-            <div className="font-serif text-3xl text-ink-950" data-numeric>{total}</div>
+            <div className="font-serif text-3xl text-ink-950" data-numeric>
+              {total}
+            </div>
             <div>Total instances</div>
           </div>
         </div>
@@ -156,22 +176,42 @@ function SuperAdminWelcome() {
 
       <CountriesGrid countries={countries as any[]} />
 
-
       <section>
         <h2 className="mb-5 font-serif text-2xl">Operations</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <QuickAction icon={Database} title="Second brain" blurb="Corpus, memories, and knowledge graph." to="/admin/brain" />
-          <QuickAction icon={Users2} title="Users" blurb="Manage country admins and access." to="/admin" />
-          <QuickAction icon={Activity} title="Activity" blurb="Recent onboarding and system runs." to="/admin/activity" />
-          <QuickAction icon={BookOpen} title="Audit log" blurb="Every commit, source, and decision." to="/admin/audits/log" />
+          <QuickAction
+            icon={Database}
+            title="Second brain"
+            blurb="Corpus, memories, and knowledge graph."
+            to="/admin/brain"
+          />
+          <QuickAction
+            icon={Users2}
+            title="Users"
+            blurb="Manage country admins and access."
+            to="/admin"
+          />
+          <QuickAction
+            icon={Activity}
+            title="Activity"
+            blurb="Recent onboarding and system runs."
+            to="/admin/activity"
+          />
+          <QuickAction
+            icon={BookOpen}
+            title="Audit log"
+            blurb="Every commit, source, and decision."
+            to="/admin/audits/log"
+          />
         </div>
       </section>
 
       <section>
         <h2 className="mb-2 font-serif text-2xl">Testing · View as country user</h2>
         <p className="mb-5 max-w-2xl text-sm text-ink-500">
-          Preview the app exactly as an authorised country user would see it. Server permissions are unchanged;
-          this only changes what your browser renders. Exit any time from the amber banner at the top.
+          Preview the app exactly as an authorised country user would see it. Server permissions are
+          unchanged; this only changes what your browser renders. Exit any time from the amber
+          banner at the top.
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
@@ -187,9 +227,15 @@ function SuperAdminWelcome() {
               }}
               className="group flex items-center gap-4 border border-line-200 bg-card p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-ink-950 hover:shadow-md"
             >
-              <img src={flagUrl(c.code, "w160") ?? undefined} alt="" className="h-10 w-14 border border-line-200 object-cover" />
+              <img
+                src={flagUrl(c.code, "w160") ?? undefined}
+                alt=""
+                className="h-10 w-14 border border-line-200 object-cover"
+              />
               <div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">View as · {c.code}</div>
+                <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                  View as · {c.code}
+                </div>
                 <div className="font-serif text-base text-ink-950">{c.name}</div>
               </div>
             </button>
@@ -214,7 +260,11 @@ function CountryAdminWelcome({ code, name }: { code: string; name: string }) {
 
 // ─── COUNTRY ADMIN (multi) ────────────────────────────────────────────────────
 
-function CountryPickerWelcome({ bindings }: { bindings: Array<{ country_code: string; name: string | null }> }) {
+function CountryPickerWelcome({
+  bindings,
+}: {
+  bindings: Array<{ country_code: string; name: string | null }>;
+}) {
   return (
     <div className="space-y-12">
       <div>
@@ -248,8 +298,8 @@ function NoAccessWelcome() {
       <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-ink-500">GDPVision</p>
       <h1 className="mt-4 font-serif text-4xl">Welcome.</h1>
       <p className="mt-5 text-lg text-ink-500">
-        Your account is signed in, but no country instrument has been assigned yet. Request access below and a
-        super admin will provision your workspace.
+        Your account is signed in, but no country instrument has been assigned yet. Request access
+        below and a super admin will provision your workspace.
       </p>
       <Link
         to="/onboarding/country"
@@ -298,14 +348,21 @@ function CountriesGrid({ countries }: { countries: any[] }) {
     <section>
       <div className="mb-4 flex items-baseline justify-between">
         <h2 className="font-serif text-2xl">Countries</h2>
-        <Link to="/admin/countries" className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950">
+        <Link
+          to="/admin/countries"
+          className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
+        >
           Countries queue →
         </Link>
       </div>
 
       <div className="mb-5 flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[240px]">
-          <Search size={14} strokeWidth={1.5} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-500" />
+          <Search
+            size={14}
+            strokeWidth={1.5}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-500"
+          />
           <input
             type="text"
             value={q}
@@ -325,7 +382,9 @@ function CountriesGrid({ countries }: { countries: any[] }) {
             }`}
           >
             {f === "all" ? "All" : f.toUpperCase()}
-            <span className="ml-1.5 opacity-60" data-numeric>{counts[f]}</span>
+            <span className="ml-1.5 opacity-60" data-numeric>
+              {counts[f]}
+            </span>
           </button>
         ))}
       </div>
@@ -347,14 +406,12 @@ function CountriesGrid({ countries }: { countries: any[] }) {
               to="/console/$code"
               showOnboardingLink
             />
-
           ))}
         </div>
       )}
     </section>
   );
 }
-
 
 function CountryCard({
   code,
@@ -379,9 +436,16 @@ function CountryCard({
       <Link to={to} params={{ code }} className="block">
         <div className="relative aspect-[3/2] w-full overflow-hidden bg-paper-100">
           {flag ? (
-            <img src={flag} alt={`Flag of ${name}`} loading="lazy" className="h-full w-full object-cover" />
+            <img
+              src={flag}
+              alt={`Flag of ${name}`}
+              loading="lazy"
+              className="h-full w-full object-cover"
+            />
           ) : (
-            <div className="grid h-full w-full place-items-center font-serif text-3xl text-ink-500">{code}</div>
+            <div className="grid h-full w-full place-items-center font-serif text-3xl text-ink-500">
+              {code}
+            </div>
           )}
           <div className="absolute left-2 top-2 flex gap-1">
             {isOecs(code) && (
@@ -407,7 +471,9 @@ function CountryCard({
           <div className="mt-1 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
             <span>{code}</span>
             {gdp ? (
-              <span data-numeric>${(Number(gdp) / 1e9).toFixed(2)}B{gdpYear ? ` · ${gdpYear}` : ""}</span>
+              <span data-numeric>
+                ${(Number(gdp) / 1e9).toFixed(2)}B{gdpYear ? ` · ${gdpYear}` : ""}
+              </span>
             ) : typeof progress === "number" ? (
               <span data-numeric>{progress}/12</span>
             ) : null}
@@ -428,7 +494,6 @@ function CountryCard({
     </div>
   );
 }
-
 
 function QuickAction({
   icon: Icon,

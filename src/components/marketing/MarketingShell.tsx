@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Menu, X } from "lucide-react";
 import { Wordmark } from "./Wordmark";
 import { supabase } from "@/integrations/supabase/client";
+import { scrollToTop } from "@/lib/utils";
 
 interface MarketingShellProps {
   children: ReactNode;
@@ -46,11 +47,11 @@ export function MarketingShell({ children }: MarketingShellProps) {
         <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-6 px-6 py-2 md:px-10 md:py-3">
           <Link
             to={signedIn ? "/home" : "/"}
+            onClick={() => scrollToTop()}
             className="flex shrink-0 items-center focus-visible:outline-none"
           >
             <Wordmark className="h-12 md:h-16" />
           </Link>
-
 
           <nav className="hidden items-center gap-6 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500 md:flex md:gap-8">
             {SECTION_LINKS.map((s) => (

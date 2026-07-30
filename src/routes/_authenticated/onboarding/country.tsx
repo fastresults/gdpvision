@@ -7,6 +7,7 @@ import { Wordmark } from "@/components/marketing/Wordmark";
 import { supabase } from "@/integrations/supabase/client";
 import { listCountries } from "@/lib/admin.functions";
 import { getMyCountryStatus, requestCountryAccess } from "@/lib/country-admin.functions";
+import { scrollToTop } from "@/lib/utils";
 
 const statusQuery = queryOptions({
   queryKey: ["my-country-status"],
@@ -19,10 +20,7 @@ const countriesQuery = queryOptions({
 
 export const Route = createFileRoute("/_authenticated/onboarding/country")({
   head: () => ({
-    meta: [
-      { title: "Choose your country — GDPVision" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Choose your country — GDPVision" }, { name: "robots", content: "noindex" }],
   }),
   loader: async ({ context }) => {
     const status = await context.queryClient.ensureQueryData(statusQuery);
@@ -82,14 +80,22 @@ function OnboardingCountryPage() {
   return (
     <div className="min-h-dvh bg-paper-0 text-ink-950">
       <header className="flex items-center justify-between border-b border-line-200 px-8 py-5">
-        <Wordmark />
+        <button
+          type="button"
+          onClick={() => scrollToTop()}
+          className="shrink-0 focus-visible:outline-none"
+        >
+          <Wordmark />
+        </button>
         <div className="flex items-center gap-6 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
           {alreadyBound && (
             <Link to="/instrument" className="hover:text-ink-950">
               Open instrument
             </Link>
           )}
-          <button onClick={signOut} className="hover:text-ink-950">Sign out</button>
+          <button onClick={signOut} className="hover:text-ink-950">
+            Sign out
+          </button>
         </div>
       </header>
 
@@ -104,7 +110,9 @@ function OnboardingCountryPage() {
 
         {status.pendingRequests.length > 0 && (
           <section className="mt-10 border border-line-200 p-6">
-            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">Pending requests</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+              Pending requests
+            </p>
             <ul className="mt-3 space-y-2 text-sm">
               {status.pendingRequests.map((r) => (
                 <li key={r.id} className="flex items-center justify-between">
@@ -123,14 +131,20 @@ function OnboardingCountryPage() {
 
         {status.bindings.length > 0 && (
           <section className="mt-6 border border-line-200 p-6">
-            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">You are bound to</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+              You are bound to
+            </p>
             <ul className="mt-3 space-y-2 text-sm">
               {status.bindings.map((b) => (
                 <li key={b.country_code} className="flex items-center justify-between">
                   <span>
                     {b.name ?? b.country_code}{" "}
                     <span className="font-mono text-[10px] text-ink-500">({b.country_code})</span>
-                    {b.is_default && <span className="ml-2 text-[10px] uppercase tracking-widest text-gold-500">default</span>}
+                    {b.is_default && (
+                      <span className="ml-2 text-[10px] uppercase tracking-widest text-gold-500">
+                        default
+                      </span>
+                    )}
                   </span>
                 </li>
               ))}
@@ -140,7 +154,9 @@ function OnboardingCountryPage() {
 
         <section className="mt-10">
           <label className="block">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-ink-500">Search countries</span>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-ink-500">
+              Search countries
+            </span>
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -165,8 +181,7 @@ function OnboardingCountryPage() {
                     } disabled:cursor-not-allowed disabled:opacity-40`}
                   >
                     <span>
-                      {c.name}{" "}
-                      <span className="font-mono text-[10px] opacity-70">({c.code})</span>
+                      {c.name} <span className="font-mono text-[10px] opacity-70">({c.code})</span>
                     </span>
                     {isBound && <span className="font-mono text-[10px] uppercase">bound</span>}
                     {isPending && <span className="font-mono text-[10px] uppercase">pending</span>}
@@ -175,7 +190,9 @@ function OnboardingCountryPage() {
               );
             })}
             {filtered.length === 0 && (
-              <li className="px-3 py-6 text-center text-sm text-ink-500">No countries match "{query}"</li>
+              <li className="px-3 py-6 text-center text-sm text-ink-500">
+                No countries match "{query}"
+              </li>
             )}
           </ul>
 
@@ -210,8 +227,8 @@ function OnboardingCountryPage() {
               {mut.isPending
                 ? "Sending…"
                 : status.isGlobalAdmin
-                ? `Bind me to ${selected || "…"}`
-                : `Request access to ${selected || "…"}`}
+                  ? `Bind me to ${selected || "…"}`
+                  : `Request access to ${selected || "…"}`}
             </button>
             {mut.isSuccess && !status.isGlobalAdmin && (
               <span className="font-mono text-[10px] uppercase tracking-widest text-ink-500">

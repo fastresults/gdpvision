@@ -11,6 +11,7 @@ Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 ·
 - **Buttons**: use `btn-primary`/`btn-secondary`/`btn-ghost`/`btn-accent` utilities from `src/styles.css`. Never inline `bg-ink-* text-paper-*` on `<button>`/`<a>`. Legal color tokens are the ones registered in `@theme inline`.
 - **JSON in UI**: render via `<PrettyJson>` from `@/components/data/PrettyJson`. Raw `JSON.stringify` in JSX is banned by ESLint except in a `<textarea>` editor or a collapsed `<details>` debug block.
 - **Illustrations**: one house style everywhere (UI + print) — monochrome hand-drawn engraved graphite sketch, rendered through `<Illustration>` from `@/components/marketing/Illustration`. Never a bare `<img>` for an illustration, never colour. Illustrations are marginalia: variants are `mark` (≤128px), `spot` (≤288px), `aside` (≤520px), `rule` (≤720px divider) — **one per section, never full-bleed, never in the reading column**. The `band` slab is retired. Sole exception: the marketing hero. Spec + prompt template: `docs/illustration-contract.md`. Assets: `src/assets/illustrations/*.asset.json`, `src/assets/chambers/*.asset.json`.
+- **Header logo**: the top-left `Wordmark` is a scroll-to-top control on every shell. Every header logo `Link` or button must call `scrollToTop()` from `@/lib/utils` so pressing it always returns the user to the very top of the page.
 - **Second brain no-dup**: every ingest/commit path upserts on a normalized key. See `docs/map/corpus.md`.
 - **Public tables**: every `CREATE TABLE public.*` needs GRANTs in the same migration (see `public-schema-grants` in project knowledge).
 - **Server functions**: `createServerFn` from `@tanstack/react-start` in `*.functions.ts` (client-safe path). `.server.ts` helpers are server-only. Admin client is loaded via `await import('@/integrations/supabase/client.server')` inside handlers.
@@ -29,16 +30,16 @@ Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 ·
 
 ## 3. Chambers (7 sovereign workspaces)
 
-| # | Name | Admin route | Console route | Primary components | Server fns |
-|---|------|-------------|---------------|--------------------|------------|
-| 01 | National Ledger | `admin/countries/$code/ledger` | `console/$code` | `AskTheLedger`, `WhyThisNumberPanel`, `LedgerEnrichments` | `ledger.functions.ts`, `ledger-qa/*` |
-| 02 | Portfolios | `admin/countries/$code/portfolio` | — | `MinistrySectorHeatmap`, `SectorProfilingMatrix` | `mandate.functions.ts`, `sector-dossier/*` |
-| 03 | Scenarios | `admin/countries/$code/scenarios` | — | `GdpFanChart`, `LeversDrawer`, `PlaybookChips` | `scenarios/*.functions.ts` |
-| 04 | FDI Transition Studio | `admin/countries/$code/studio` | — | `WorkbenchJourney`, `ThreatComposer`, `ExposureLedger` | `fdi-resilience.functions.ts`, `goalseek.functions.ts` |
-| 05 | Narrative | `admin/countries/$code/narrative` | — | `SignalTriageRail`, `DraftStudio`, opposition wizard | `narrative.functions.ts`, `narrative/opposition-*.ts` |
-| 06 | Cabinet Room | `admin/countries/$code/cabinet` | — | `SituationBoard`, `DecisionQueue`, `CommitmentsCockpit` | `cabinet.functions.ts` |
-| 07 | Persona Lab | `admin/countries/$code/personas` | — | `StudyWizard/*`, `MultimodalInput` | `personas/*.functions.ts` |
-| 08 | Mandate Compact | `admin/countries/$code/mandate-compact` | — | `Stepper`, `IngestPanel`, `CompactList` | `mandate-compact/{ingest,list}.functions.ts` |
+| #   | Name                  | Admin route                             | Console route   | Primary components                                        | Server fns                                             |
+| --- | --------------------- | --------------------------------------- | --------------- | --------------------------------------------------------- | ------------------------------------------------------ |
+| 01  | National Ledger       | `admin/countries/$code/ledger`          | `console/$code` | `AskTheLedger`, `WhyThisNumberPanel`, `LedgerEnrichments` | `ledger.functions.ts`, `ledger-qa/*`                   |
+| 02  | Portfolios            | `admin/countries/$code/portfolio`       | —               | `MinistrySectorHeatmap`, `SectorProfilingMatrix`          | `mandate.functions.ts`, `sector-dossier/*`             |
+| 03  | Scenarios             | `admin/countries/$code/scenarios`       | —               | `GdpFanChart`, `LeversDrawer`, `PlaybookChips`            | `scenarios/*.functions.ts`                             |
+| 04  | FDI Transition Studio | `admin/countries/$code/studio`          | —               | `WorkbenchJourney`, `ThreatComposer`, `ExposureLedger`    | `fdi-resilience.functions.ts`, `goalseek.functions.ts` |
+| 05  | Narrative             | `admin/countries/$code/narrative`       | —               | `SignalTriageRail`, `DraftStudio`, opposition wizard      | `narrative.functions.ts`, `narrative/opposition-*.ts`  |
+| 06  | Cabinet Room          | `admin/countries/$code/cabinet`         | —               | `SituationBoard`, `DecisionQueue`, `CommitmentsCockpit`   | `cabinet.functions.ts`                                 |
+| 07  | Persona Lab           | `admin/countries/$code/personas`        | —               | `StudyWizard/*`, `MultimodalInput`                        | `personas/*.functions.ts`                              |
+| 08  | Mandate Compact       | `admin/countries/$code/mandate-compact` | —               | `Stepper`, `IngestPanel`, `CompactList`                   | `mandate-compact/{ingest,list}.functions.ts`           |
 
 Full chamber map: `docs/map/chambers.md`.
 
@@ -50,12 +51,12 @@ Order + committer + tables live in `src/lib/country-onboarding/stages.ts`. Orche
 
 Notable stages:
 
-| Stage | Purpose | Research | Commit | Tables |
-|-------|---------|----------|--------|--------|
-| 05 | Ministries | `minister-research.server.ts` | `agents.functions.ts` | `ministry_profiles` |
-| 09 | Ministry×Sector | `ministry-deep-dive-flow.ts` | `agents.functions.ts` | `ministry_sectors` |
-| 12 | Capital flows | `capital-flows.server.ts` | `agents.functions.ts` | `capital_flow_nodes`, `capital_flow_edges` |
-| — | Parties backfill | `party-research.server.ts` | `party-backfill.functions.ts` | `political_parties`, `party_manifestos` |
+| Stage | Purpose          | Research                      | Commit                        | Tables                                     |
+| ----- | ---------------- | ----------------------------- | ----------------------------- | ------------------------------------------ |
+| 05    | Ministries       | `minister-research.server.ts` | `agents.functions.ts`         | `ministry_profiles`                        |
+| 09    | Ministry×Sector  | `ministry-deep-dive-flow.ts`  | `agents.functions.ts`         | `ministry_sectors`                         |
+| 12    | Capital flows    | `capital-flows.server.ts`     | `agents.functions.ts`         | `capital_flow_nodes`, `capital_flow_edges` |
+| —     | Parties backfill | `party-research.server.ts`    | `party-backfill.functions.ts` | `political_parties`, `party_manifestos`    |
 
 Full stage map: `docs/map/onboarding.md`.
 
@@ -103,13 +104,13 @@ Full route map: `docs/map/routes.md` (Phase 2, generated).
 
 ## 8. Where to look when things break
 
-| Symptom | First place |
-|---------|-------------|
-| Onboarding stuck / stale | `country-onboarding/stages.ts`, `orchestrator.functions.ts`, self-heal in `ledger-qa/self-heal.functions.ts` |
-| 500 on route load | Check RLS + GRANTs on tables the loader queries |
-| "Unauthorized" in `build:dev` | Protected server fn called from public loader — move to component |
-| Missing citations | `onboarding_citations` write path in the relevant stage committer |
-| Wrong country data cross-shown | Route must include `$code` param; check `useImpersonation` context |
+| Symptom                        | First place                                                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| Onboarding stuck / stale       | `country-onboarding/stages.ts`, `orchestrator.functions.ts`, self-heal in `ledger-qa/self-heal.functions.ts` |
+| 500 on route load              | Check RLS + GRANTs on tables the loader queries                                                              |
+| "Unauthorized" in `build:dev`  | Protected server fn called from public loader — move to component                                            |
+| Missing citations              | `onboarding_citations` write path in the relevant stage committer                                            |
+| Wrong country data cross-shown | Route must include `$code` param; check `useImpersonation` context                                           |
 
 ---
 
@@ -120,4 +121,3 @@ Full route map: `docs/map/routes.md` (Phase 2, generated).
 - `bun run check:maps` — CI guard: fails if generated maps are stale OR any server-fn module is missing header tags. Wired into `.github/workflows/map-check.yml` on every PR touching `src/**`, `supabase/migrations/**`, or the map scripts.
 
 When you add a new server function, migration, or route: run `bun run headers && bun run map` before committing, or CI will reject the PR.
-

@@ -7,6 +7,7 @@ import { ChambersLauncher } from "@/components/country/ChambersLauncher";
 
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { supabase } from "@/integrations/supabase/client";
+import { scrollToTop } from "@/lib/utils";
 import {
   decideCountryAccessRequest,
   getCountryAdminOverview,
@@ -113,7 +114,11 @@ function CountryAdminPage() {
   });
   const unbindMut = useMutation({
     mutationFn: (v: { userId: string }) => removeBind({ data: { countryCode: code, ...v } }),
-    onSuccess: () => invalidate([["country-admin", code, "users"], ["country-admin", code, "overview"]]),
+    onSuccess: () =>
+      invalidate([
+        ["country-admin", code, "users"],
+        ["country-admin", code, "overview"],
+      ]),
   });
   const gdpMut = useMutation({
     mutationFn: (v: { gdpCurrentUsd: number | null; gdpYear: number | null }) =>
@@ -121,13 +126,19 @@ function CountryAdminPage() {
     onSuccess: () => invalidate([["country-admin", code, "overview"]]),
   });
   const compMut = useMutation({
-    mutationFn: (rows: Array<{ sector_code: string; share_pct: number; confidence_grade: "A" | "B" | "C" | "D" }>) =>
-      saveComp({ data: { countryCode: code, rows } }),
+    mutationFn: (
+      rows: Array<{
+        sector_code: string;
+        share_pct: number;
+        confidence_grade: "A" | "B" | "C" | "D";
+      }>,
+    ) => saveComp({ data: { countryCode: code, rows } }),
     onSuccess: () => invalidate([["country-admin", code, "overview"]]),
   });
   const minMut = useMutation({
-    mutationFn: (ministries: Array<{ id?: string; slug: string; name: string; sort_order: number }>) =>
-      saveMins({ data: { countryCode: code, ministries } }),
+    mutationFn: (
+      ministries: Array<{ id?: string; slug: string; name: string; sort_order: number }>,
+    ) => saveMins({ data: { countryCode: code, ministries } }),
     onSuccess: () => invalidate([["country-admin", code, "overview"]]),
   });
 
@@ -140,15 +151,23 @@ function CountryAdminPage() {
     <div className="min-h-dvh bg-paper-0 text-ink-950">
       <header className="flex items-center justify-between border-b border-line-200 px-8 py-5">
         <div className="flex items-center gap-10">
-          <Link to="/instrument"><Wordmark /></Link>
+          <Link to="/instrument" onClick={() => scrollToTop()}>
+            <Wordmark />
+          </Link>
           <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
             Country admin · {overview.country.name}
           </span>
         </div>
         <div className="flex items-center gap-6 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-          <Link to="/admin" className="hover:text-ink-950">All countries</Link>
-          <Link to="/instrument" className="hover:text-ink-950">Instrument</Link>
-          <button onClick={signOut} className="hover:text-ink-950">Sign out</button>
+          <Link to="/admin" className="hover:text-ink-950">
+            All countries
+          </Link>
+          <Link to="/instrument" className="hover:text-ink-950">
+            Instrument
+          </Link>
+          <button onClick={signOut} className="hover:text-ink-950">
+            Sign out
+          </button>
         </div>
       </header>
 
@@ -159,7 +178,8 @@ function CountryAdminPage() {
           </p>
           <h1 className="mt-2 font-serif text-4xl">{overview.country.name}</h1>
           <p className="mt-3 text-sm text-ink-500">
-            {overview.userCount} user{overview.userCount === 1 ? "" : "s"} bound · {overview.pendingCount} pending access request
+            {overview.userCount} user{overview.userCount === 1 ? "" : "s"} bound ·{" "}
+            {overview.pendingCount} pending access request
             {overview.pendingCount === 1 ? "" : "s"}
           </p>
         </section>
@@ -208,14 +228,20 @@ function CountryAdminPage() {
   );
 }
 
-
 function Requests({
   requests,
   onDecide,
   pending,
   error,
 }: {
-  requests: Array<{ id: string; user_id: string; display_name: string | null; requested_role: string; note: string | null; created_at: string }>;
+  requests: Array<{
+    id: string;
+    user_id: string;
+    display_name: string | null;
+    requested_role: string;
+    note: string | null;
+    created_at: string;
+  }>;
   onDecide: (id: string, approve: boolean) => void;
   pending: boolean;
   error: Error | null;
@@ -224,12 +250,15 @@ function Requests({
     <section>
       <h2 className="font-serif text-2xl">Access requests</h2>
       <p className="mt-2 max-w-2xl text-sm text-ink-500">
-        People asking to join this country. Approving binds them to the country and grants their requested role.
+        People asking to join this country. Approving binds them to the country and grants their
+        requested role.
       </p>
       {error && <p className="mt-3 text-sm text-red-600">{error.message}</p>}
       <ul className="mt-6 space-y-3">
         {requests.length === 0 && (
-          <li className="border border-dashed border-line-200 p-6 text-sm text-ink-500">No pending requests.</li>
+          <li className="border border-dashed border-line-200 p-6 text-sm text-ink-500">
+            No pending requests.
+          </li>
         )}
         {requests.map((r) => (
           <li key={r.id} className="border border-line-200 p-4">
@@ -273,7 +302,12 @@ function Users({
   pending,
   error,
 }: {
-  users: Array<{ user_id: string; display_name: string | null; is_default: boolean; roles: string[] }>;
+  users: Array<{
+    user_id: string;
+    display_name: string | null;
+    is_default: boolean;
+    roles: string[];
+  }>;
   onGrant: (userId: string, role: (typeof COUNTRY_ROLES)[number]) => void;
   onRevoke: (userId: string, role: (typeof COUNTRY_ROLES)[number]) => void;
   onUnbind: (userId: string) => void;
@@ -289,10 +323,19 @@ function Users({
       {error && <p className="mt-3 text-sm text-red-600">{error.message}</p>}
       <ul className="mt-6 space-y-3">
         {users.length === 0 && (
-          <li className="border border-dashed border-line-200 p-6 text-sm text-ink-500">No users bound yet.</li>
+          <li className="border border-dashed border-line-200 p-6 text-sm text-ink-500">
+            No users bound yet.
+          </li>
         )}
         {users.map((u) => (
-          <UserRow key={u.user_id} user={u} onGrant={onGrant} onRevoke={onRevoke} onUnbind={onUnbind} pending={pending} />
+          <UserRow
+            key={u.user_id}
+            user={u}
+            onGrant={onGrant}
+            onRevoke={onRevoke}
+            onUnbind={onUnbind}
+            pending={pending}
+          />
         ))}
       </ul>
     </section>
@@ -319,9 +362,15 @@ function UserRow({
         <div>
           <p className="font-serif text-lg">
             {user.display_name ?? "(unnamed)"}{" "}
-            {user.is_default && <span className="ml-2 font-mono text-[10px] uppercase tracking-widest text-gold-500">default</span>}
+            {user.is_default && (
+              <span className="ml-2 font-mono text-[10px] uppercase tracking-widest text-gold-500">
+                default
+              </span>
+            )}
           </p>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-ink-500">{user.user_id.slice(0, 8)}</p>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-ink-500">
+            {user.user_id.slice(0, 8)}
+          </p>
         </div>
         <button
           disabled={pending}
@@ -333,10 +382,15 @@ function UserRow({
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {user.roles.length === 0 && (
-          <span className="font-mono text-[10px] uppercase tracking-widest text-ink-500">No roles</span>
+          <span className="font-mono text-[10px] uppercase tracking-widest text-ink-500">
+            No roles
+          </span>
         )}
         {user.roles.map((r) => (
-          <span key={r} className="flex items-center gap-2 border border-line-200 px-2 py-1 font-mono text-[10px] uppercase tracking-widest">
+          <span
+            key={r}
+            className="flex items-center gap-2 border border-line-200 px-2 py-1 font-mono text-[10px] uppercase tracking-widest"
+          >
             {r}
             <button
               disabled={pending}
@@ -349,9 +403,15 @@ function UserRow({
         ))}
       </div>
       <div className="mt-3 flex gap-2 text-sm">
-        <select value={role} onChange={(e) => setRole(e.target.value as (typeof COUNTRY_ROLES)[number])} className="border border-line-200 px-2 py-1">
+        <select
+          value={role}
+          onChange={(e) => setRole(e.target.value as (typeof COUNTRY_ROLES)[number])}
+          className="border border-line-200 px-2 py-1"
+        >
           {COUNTRY_ROLES.map((r) => (
-            <option key={r} value={r}>{r}</option>
+            <option key={r} value={r}>
+              {r}
+            </option>
           ))}
         </select>
         <button
@@ -383,12 +443,15 @@ function GdpEditor({
     <section>
       <h2 className="font-serif text-2xl">GDP baseline</h2>
       <p className="mt-2 max-w-2xl text-sm text-ink-500">
-        Current-USD nominal GDP for the reference year. This anchors every downstream ministry and sector estimate.
+        Current-USD nominal GDP for the reference year. This anchors every downstream ministry and
+        sector estimate.
       </p>
       {error && <p className="mt-3 text-sm text-red-600">{error.message}</p>}
       <div className="mt-4 flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1">
-          <span className="font-mono text-[10px] uppercase tracking-widest text-ink-500">GDP (USD)</span>
+          <span className="font-mono text-[10px] uppercase tracking-widest text-ink-500">
+            GDP (USD)
+          </span>
           <input
             inputMode="decimal"
             value={gdp}
@@ -408,10 +471,7 @@ function GdpEditor({
         <button
           disabled={pending}
           onClick={() =>
-            onSave(
-              gdp.trim() === "" ? null : Number(gdp),
-              year.trim() === "" ? null : Number(year),
-            )
+            onSave(gdp.trim() === "" ? null : Number(gdp), year.trim() === "" ? null : Number(year))
           }
           className="border border-ink-950 px-3 py-1 font-mono text-[10px] uppercase tracking-widest hover:bg-ink-950 hover:text-paper-0 disabled:opacity-40"
         >
@@ -431,22 +491,30 @@ function CompositionEditor({
 }: {
   catalog: Array<{ code: string; name: string }>;
   rows: Array<{ sector_code: string; share_pct: number; confidence_grade: string }>;
-  onSave: (rows: Array<{ sector_code: string; share_pct: number; confidence_grade: "A" | "B" | "C" | "D" }>) => void;
+  onSave: (
+    rows: Array<{
+      sector_code: string;
+      share_pct: number;
+      confidence_grade: "A" | "B" | "C" | "D";
+    }>,
+  ) => void;
   pending: boolean;
   error: Error | null;
 }) {
-  const [draft, setDraft] = useState<Record<string, { share: string; grade: "A" | "B" | "C" | "D" }>>(
-    () => {
-      const initial: Record<string, { share: string; grade: "A" | "B" | "C" | "D" }> = {};
-      for (const r of rows) {
-        initial[r.sector_code] = {
-          share: r.share_pct.toString(),
-          grade: (["A", "B", "C", "D"].includes(r.confidence_grade) ? r.confidence_grade : "C") as any,
-        };
-      }
-      return initial;
-    },
-  );
+  const [draft, setDraft] = useState<
+    Record<string, { share: string; grade: "A" | "B" | "C" | "D" }>
+  >(() => {
+    const initial: Record<string, { share: string; grade: "A" | "B" | "C" | "D" }> = {};
+    for (const r of rows) {
+      initial[r.sector_code] = {
+        share: r.share_pct.toString(),
+        grade: (["A", "B", "C", "D"].includes(r.confidence_grade)
+          ? r.confidence_grade
+          : "C") as any,
+      };
+    }
+    return initial;
+  });
 
   const total = useMemo(
     () =>
@@ -458,14 +526,18 @@ function CompositionEditor({
   );
 
   function update(code: string, patch: Partial<{ share: string; grade: "A" | "B" | "C" | "D" }>) {
-    setDraft((d) => ({ ...d, [code]: { share: d[code]?.share ?? "", grade: d[code]?.grade ?? "C", ...patch } }));
+    setDraft((d) => ({
+      ...d,
+      [code]: { share: d[code]?.share ?? "", grade: d[code]?.grade ?? "C", ...patch },
+    }));
   }
 
   return (
     <section>
       <h2 className="font-serif text-2xl">GDP sector composition</h2>
       <p className="mt-2 max-w-2xl text-sm text-ink-500">
-        Share of nominal GDP by sector. Totals should land near 100 percent — anything else surfaces a data-quality flag.
+        Share of nominal GDP by sector. Totals should land near 100 percent — anything else surfaces
+        a data-quality flag.
       </p>
       {error && <p className="mt-3 text-sm text-red-600">{error.message}</p>}
       <div className="mt-6 overflow-x-auto">
@@ -496,11 +568,15 @@ function CompositionEditor({
                   <td className="py-2 pr-4">
                     <select
                       value={v.grade}
-                      onChange={(e) => update(s.code, { grade: e.target.value as "A" | "B" | "C" | "D" })}
+                      onChange={(e) =>
+                        update(s.code, { grade: e.target.value as "A" | "B" | "C" | "D" })
+                      }
                       className="border border-line-200 px-2 py-1"
                     >
                       {(["A", "B", "C", "D"] as const).map((g) => (
-                        <option key={g} value={g}>{g}</option>
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
                       ))}
                     </select>
                   </td>
@@ -546,8 +622,10 @@ function MinistriesEditor({
   pending: boolean;
   error: Error | null;
 }) {
-  const [rows, setRows] = useState<Array<{ id?: string; slug: string; name: string; sort_order: number }>>(
-    () => ministries.map((m) => ({ id: m.id, slug: m.slug, name: m.name, sort_order: m.sort_order })),
+  const [rows, setRows] = useState<
+    Array<{ id?: string; slug: string; name: string; sort_order: number }>
+  >(() =>
+    ministries.map((m) => ({ id: m.id, slug: m.slug, name: m.name, sort_order: m.sort_order })),
   );
 
   function update(i: number, patch: Partial<{ slug: string; name: string; sort_order: number }>) {
@@ -564,16 +642,22 @@ function MinistriesEditor({
     <section>
       <h2 className="font-serif text-2xl">Ministries</h2>
       <p className="mt-2 max-w-2xl text-sm text-ink-500">
-        The ministries that make up this country's cabinet. Ministry ↔ sector weighting is edited under portfolios (next step in the seeding flow).
+        The ministries that make up this country's cabinet. Ministry ↔ sector weighting is edited
+        under portfolios (next step in the seeding flow).
       </p>
       {error && <p className="mt-3 text-sm text-red-600">{error.message}</p>}
       <ul className="mt-6 space-y-2">
         {rows.map((r, i) => (
-          <li key={r.id ?? `new-${i}`} className="flex flex-wrap items-center gap-2 border border-line-200 p-3">
+          <li
+            key={r.id ?? `new-${i}`}
+            className="flex flex-wrap items-center gap-2 border border-line-200 p-3"
+          >
             <input
               placeholder="slug"
               value={r.slug}
-              onChange={(e) => update(i, { slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") })}
+              onChange={(e) =>
+                update(i, { slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") })
+              }
               className="w-40 border border-line-200 px-2 py-1 font-mono text-xs"
             />
             <input

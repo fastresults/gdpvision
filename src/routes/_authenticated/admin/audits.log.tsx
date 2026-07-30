@@ -4,6 +4,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { listAuditLog } from "@/lib/admin.functions";
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { PrettyJson } from "@/components/data/PrettyJson";
+import { scrollToTop } from "@/lib/utils";
 
 const auditQuery = queryOptions({
   queryKey: ["audit-log"],
@@ -12,10 +13,7 @@ const auditQuery = queryOptions({
 
 export const Route = createFileRoute("/_authenticated/admin/audits/log")({
   head: () => ({
-    meta: [
-      { title: "Audit log — GDPVision" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Audit log — GDPVision" }, { name: "robots", content: "noindex" }],
   }),
   loader: ({ context }) => context.queryClient.ensureQueryData(auditQuery),
   component: AuditLogPage,
@@ -28,15 +26,26 @@ function AuditLogPage() {
     <div className="min-h-dvh bg-paper-0 text-ink-950">
       <header className="flex items-center justify-between border-b border-line-200 px-8 py-5">
         <div className="flex items-center gap-10">
-          <Link to="/instrument"><Wordmark /></Link>
-          <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">Admin · Audit log</span>
+          <Link to="/instrument" onClick={() => scrollToTop()}>
+            <Wordmark />
+          </Link>
+          <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+            Admin · Audit log
+          </span>
         </div>
-        <Link to="/admin" className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950">← Admin</Link>
+        <Link
+          to="/admin"
+          className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
+        >
+          ← Admin
+        </Link>
       </header>
 
       <main className="mx-auto max-w-7xl px-8 py-16">
         <h1 className="font-serif text-4xl">Audit log</h1>
-        <p className="mt-3 max-w-2xl text-sm text-ink-500">Most recent {rows.length} administrative and configuration events.</p>
+        <p className="mt-3 max-w-2xl text-sm text-ink-500">
+          Most recent {rows.length} administrative and configuration events.
+        </p>
 
         <table className="mt-10 w-full border-collapse text-sm">
           <thead>
@@ -50,15 +59,32 @@ function AuditLogPage() {
           </thead>
           <tbody>
             {rows.length === 0 && (
-              <tr><td colSpan={5} className="py-8 text-center text-ink-500">No audit entries yet.</td></tr>
+              <tr>
+                <td colSpan={5} className="py-8 text-center text-ink-500">
+                  No audit entries yet.
+                </td>
+              </tr>
             )}
             {rows.map((r) => (
               <tr key={r.id} className="border-b border-line-200 align-top">
-                <td className="py-2 pr-4 font-mono text-[11px] text-ink-500">{new Date(r.created_at).toLocaleString()}</td>
-                <td className="py-2 pr-4 font-mono text-[11px] text-ink-500">{r.actor_label ?? r.actor_id?.slice(0, 8) ?? "system"}</td>
+                <td className="py-2 pr-4 font-mono text-[11px] text-ink-500">
+                  {new Date(r.created_at).toLocaleString()}
+                </td>
+                <td className="py-2 pr-4 font-mono text-[11px] text-ink-500">
+                  {r.actor_label ?? r.actor_id?.slice(0, 8) ?? "system"}
+                </td>
                 <td className="py-2 pr-4">{r.action}</td>
-                <td className="py-2 pr-4 font-mono text-[11px] text-ink-500">{r.target_type ?? "—"}{r.target_id ? ` · ${r.target_id.slice(0, 12)}` : ""}</td>
-                <td className="py-2 text-[11px] text-ink-500 max-w-md">{Object.keys(r.metadata ?? {}).length > 0 ? <PrettyJson value={r.metadata} /> : "—"}</td>
+                <td className="py-2 pr-4 font-mono text-[11px] text-ink-500">
+                  {r.target_type ?? "—"}
+                  {r.target_id ? ` · ${r.target_id.slice(0, 12)}` : ""}
+                </td>
+                <td className="py-2 text-[11px] text-ink-500 max-w-md">
+                  {Object.keys(r.metadata ?? {}).length > 0 ? (
+                    <PrettyJson value={r.metadata} />
+                  ) : (
+                    "—"
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

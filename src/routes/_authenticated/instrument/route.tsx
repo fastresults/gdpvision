@@ -1,10 +1,18 @@
-import { createFileRoute, Link, Outlet, redirect, useNavigate, useSearch } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  Outlet,
+  redirect,
+  useNavigate,
+  useSearch,
+} from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 
 import { listInstanceBindings } from "@/lib/ledger.functions";
 import { getMyCountryStatus } from "@/lib/country-admin.functions";
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { supabase } from "@/integrations/supabase/client";
+import { scrollToTop } from "@/lib/utils";
 
 const bindingsQuery = queryOptions({
   queryKey: ["instance-bindings"],
@@ -33,7 +41,6 @@ function InstrumentShell() {
   const defaultCode =
     bindings.find((b) => b.is_default)?.country_code ?? bindings[0]?.country_code ?? "LCA";
 
-
   async function signOut() {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
@@ -50,12 +57,13 @@ function InstrumentShell() {
     { to: "/instrument/stewardship", label: "Stewardship" },
   ] as const;
 
-
   return (
     <div className="min-h-dvh bg-paper-0 text-ink-950">
       <header className="flex items-center justify-between border-b border-line-200 px-8 py-5">
         <div className="flex items-center gap-10">
-          <Link to="/instrument"><Wordmark /></Link>
+          <Link to="/instrument" onClick={() => scrollToTop()}>
+            <Wordmark />
+          </Link>
           <nav className="flex items-center gap-6 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500">
             {nav.map((n) => (
               <Link
@@ -80,13 +88,20 @@ function InstrumentShell() {
               ← Back to {returnCode} chambers
             </Link>
           )}
-          <Link to="/codex" className="hover:text-ink-950">Codex</Link>
-          <Link to="/config" className="hover:text-ink-950">Config</Link>
-          <Link to="/admin" className="hover:text-ink-950">Admin</Link>
+          <Link to="/codex" className="hover:text-ink-950">
+            Codex
+          </Link>
+          <Link to="/config" className="hover:text-ink-950">
+            Config
+          </Link>
+          <Link to="/admin" className="hover:text-ink-950">
+            Admin
+          </Link>
           <span data-numeric>{defaultCode}</span>
-          <button onClick={signOut} className="hover:text-ink-950">Sign out</button>
+          <button onClick={signOut} className="hover:text-ink-950">
+            Sign out
+          </button>
         </div>
-
       </header>
       <Outlet />
     </div>

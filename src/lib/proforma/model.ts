@@ -463,6 +463,7 @@ export function runProforma(input: ProformaInput, caribbean: MarketCountry[]): P
     quarters,
     years,
     milestones,
+    perCountry,
     totals: {
       signedCountries: signed.length,
       activeAtEnd: last.activeCountries,

@@ -13,6 +13,7 @@ import { useImpersonation } from "@/lib/impersonation";
 import { CountryMasthead } from "@/components/country/CountryMasthead";
 import { ConciergeInvitationCard } from "@/components/country/ConciergeInvitationCard";
 import { ChambersLauncher } from "@/components/country/ChambersLauncher";
+import { scrollToTop } from "@/lib/utils";
 
 const myStatusQuery = queryOptions({
   queryKey: ["my-country-status"],

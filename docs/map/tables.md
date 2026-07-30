@@ -16,6 +16,7 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `cabinet_sessions` | `20260711210340_4b2b5fce-463a-44dc-8111-9113376f0b95.sql` | ✓ | ✓ |
 | `cabinet_votes` | `20260718185610_dcfcb38a-be3f-4aa7-a7b1-1213cdc56fed.sql` | ✓ | ✓ |
 | `cadence_closes` | `20260712091249_5e1ea539-de92-4045-88d5-c48d0c22fe34.sql` | ✓ | ✓ |
+| `calculator_leads` | `20260730014757_22aa2c00-8f22-4afb-8ccd-5f157d033c8a.sql` | ✓ | ✓ |
 | `capital_flow_nodes` | `20260713183450_ce0478be-fb72-47c2-add5-5e62fbca2ba7.sql` | ✓ | ✓ |
 | `capital_flow_research_attempts` | `20260713193030_693f7567-8872-4977-96a6-79309a7ae436.sql` | ✓ | ✓ |
 | `categories` | `20260612002740_9eeffced-9fa0-4d51-b537-6de3526654cd.sql` | ✓ | ✓ |
@@ -116,6 +117,7 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `persona_study_drafts` | `20260720130623_27e7808a-6529-47ee-8713-3ec8ecdbeef2.sql` | ✓ | ✓ |
 | `personas` | `20260719003344_ed31c12d-9c3e-44d7-a001-0aade49f099c.sql` | ✓ | ✓ |
 | `profiles` | `20260711204907_4075e222-a107-43e8-bae1-b926961373e5.sql` | ✓ | ✓ |
+| `proforma_scenarios` | `20260730024332_06386d78-594e-48d8-8876-284988a2c0d8.sql` | ✓ | ✓ |
 | `reconciliation_notes` | `20260714143357_86fafa17-dcff-4baf-8e63-4c3c9ff715e3.sql` | ✓ | ✓ |
 | `research_briefs` | `20260711210806_b2663549-da57-43e6-929f-a8ca9a44f37d.sql` | ✓ | ✓ |
 | `scenario_promotions` | `20260711205639_802eb249-2568-439e-bd40-960ca67fb9aa.sql` | ✓ | ✓ |
@@ -145,4 +147,4 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `study_transcripts` | `20260719003344_ed31c12d-9c3e-44d7-a001-0aade49f099c.sql` | ✓ | ✓ |
 | `user_roles` | `20260711204655_3293ec0b-b7a7-4fd3-b2b8-3a8c52c526e8.sql` | ✓ | ✓ |
 
-_Total tables: 137_
+_Total tables: 139_

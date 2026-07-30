@@ -20,7 +20,9 @@ export function CounselPanel({
     <section className="border border-line-200 bg-paper-50">
       <div className="flex items-center justify-between border-b border-line-200 px-5 py-4 sm:px-6">
         <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Counsel · read against your configuration
+          <Explain id="calc.counsel" label="Counsel">
+            Counsel · read against your configuration
+          </Explain>
         </div>
         {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin text-ink-500" /> : null}
       </div>

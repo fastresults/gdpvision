@@ -1,95 +1,76 @@
-# The Sovereign Value Instrument
+## Goal
 
-A featured call-out on `/business-case` opens a dedicated, shareable calculator at `/business-case/calculator`. Sliders on the left, a sticky verdict on the right. The arithmetic is instant and auditable; the AI writes the counsel around it.
+Any number, assumption or AI-generated output a user might question can be interrogated in place: hover for a one-line rationale, click for a modal that shows the full derivation — inputs, coefficient, formula, the actual arithmetic with the user's own values, and the caveat.
 
-## 1. The call-out on /business-case
+## The primitive: `<Explain>`
 
-A full-width bordered panel placed immediately after the Executive Summary (and echoed near "What it is worth"), with a `bc-seal`-style engraving, a one-line proposition — *"What is instrumented decision-making worth to your economy? Model it in ninety seconds."* — and a `btn-primary` **Open the value calculator**. A secondary text link sits in the sticky top nav next to "Business case".
-
-## 2. The calculator: three moves, one number
+One component, used everywhere. Wraps a figure or label and adds a subtle dotted underline plus a small superscript mark (no clutter, no icon soup).
 
 ```text
-┌── Step 1 · Your economy ──────────┬─────────────────────┐
-│  Country (or manual GDP)          │   STICKY VERDICT     │
-│  GDP · population · public spend  │   ─────────────      │
-│                                   │   +US$ 412 M         │
-├── Step 2 · Four framing questions ┤   GDP uplift, yr 3   │
-│  ▸ Decisions per quarter          │                      │
-│  ▸ Months from question→decision  │   +0.41 pp growth    │
-│  ▸ Share of budget on programmes  │   34× return         │
-│    with no measured outcome       │   Payback: 7 months  │
-│  ▸ Concentration in top sector    │                      │
-├── Step 3 · Eight chamber sliders ─┤   [waterfall bar     │
-│  01 Ledger        ▁▃▅▇  ← adopt   │    by chamber]       │
-│  02 Portfolios    ▁▃▅▇             │                     │
-│  …08 Mandate      ▁▃▅▇             │   AI counsel ▸      │
-└───────────────────────────────────┴─────────────────────┘
+  US$41.2 m ˟          <- hover: "Year-three uplift, soft-capped at 1.2% of GDP."
+      |                   click / tap / Enter: opens Rationale modal
+      v
+  ┌──────────────────────────────────────────┐
+  │ WHAT THIS IS      one sentence, plain     │
+  │ HOW IT IS DERIVED formula, stated         │
+  │ WITH YOUR NUMBERS 3–6 substituted lines   │
+  │ WHY WE BELIEVE IT basis / source          │
+  │ WHAT WOULD CHANGE IT  the caveat          │
+  └──────────────────────────────────────────┘
 ```
 
-**Step 1 — Your economy.** Pick a Caribbean/SIDS country from a preset list (GDP, population, public spend seeded) or enter GDP manually. This anchors everything in real currency, not abstractions.
+Behaviour:
+- Desktop: hover/focus opens a compact popover (existing `hover-card`) after ~150ms with the short rationale and a "See the full derivation →" link.
+- Touch/mobile: no hover; tap opens the modal directly (existing `dialog`, full-height sheet under `sm`).
+- Keyboard: the trigger is a real `<button>`, focusable, `aria-describedby` the short text.
+- Print: the marks and popovers are hidden; nothing leaks into the PDF.
 
-**Step 2 — Four questions, four sliders.** Each is a plain-language question a Principal can answer from memory: decision cadence, decision latency, unmeasured programme share, single-sector concentration. These set the *size of the addressable loss* — the pool the instrument can act on.
+## The content layer: a rationale registry
 
-**Step 3 — Eight chamber sliders.** One per chamber, 0–100, labelled `Not adopted → Piloted → Institutionalised`. Each carries a one-line value proposition drawn from the existing `CHAMBER_LINES` copy, plus the specific mechanism it monetises:
+New `src/lib/explain/registry.ts` — a keyed map of rationale entries, so copy lives in one auditable place rather than scattered across JSX.
 
-| Chamber | Monetised mechanism |
-| --- | --- |
-| 01 National Ledger | Decision latency reduction × decisions per quarter |
-| 02 Portfolios | Reallocation yield on unmeasured programme spend |
-| 03 Scenarios | Avoided cost of a wrong large commitment |
-| 04 FDI Studio | Incremental FDI capture + concentration de-risking |
-| 05 Narrative | Reduced policy-reversal / stalled-programme rate |
-| 06 Cabinet Room | Commitment follow-through on Cabinet decisions |
-| 07 Persona Lab | Programme design hit-rate before spend |
-| 08 Mandate Compact | Mandate delivery rate across the term |
+```ts
+type Rationale = {
+  key: string;              // "calc.uplift", "calc.pool.latency", "calc.chamber.04"
+  title: string;
+  short: string;            // hover line
+  formula?: string;         // stated in words + symbols
+  basis?: string;           // where the coefficient comes from
+  caveat?: string;          // what would change it
+  derive?: (ctx) => Array<{ label: string; value: string; note?: string }>;
+};
+```
 
-Each slider shows its own live contribution in dollars beneath the track, so the user sees exactly which chamber is moving the number.
+`derive` receives the live `ValueResult` + `ValueInput`, so "with your numbers" is always the user's actual run, not a generic example. Reuses `formatUsd`/`formatUsdExact` from `model.ts`; no duplicate math — every line reads from `result.trace`, which already carries pools, ceiling, ramp, per-chamber draws and cost rules.
 
-## 3. The sticky verdict
+## Coverage in the calculator (phase 1)
 
-Fixed on desktop (right rail), sticky bottom sheet on mobile. It never leaves the screen:
+- **Verdict rail**: modelled uplift, pp of GDP, return multiple, payback, cost/yr, the three-year path bars.
+- **Framing questions**: each of the 4 questions gets the "why we ask this / what it feeds" rationale (which pool it fills).
+- **Chamber sliders**: each of the 8 — mechanism, which pools it draws, recoverable share, why that share.
+- **Waterfall bars**: per-chamber contribution and its share of total.
+- **Stance selector**: what conservative/central/optimistic multiply and why 0.6 / 1.0 / 1.45.
+- **The ceiling**: the single most-questioned assumption — the 1.2%-of-GDP soft cap gets its own full entry explaining the softCap curve and why the ceiling protects the argument.
+- **Country preset**: flags that GDP / public-spend / sector-share seeds are order-of-magnitude reference points, all editable.
+- **AI Counsel panel**: a rationale on the panel header stating what the model was given (the trace, not the web), that it interprets rather than computes, and that no number in the verdict comes from the model.
 
-- **Headline:** GDP uplift at year 3 in USD (large serif, verdict-first).
-- **Secondary:** growth in percentage points, return multiple vs. instrument cost, payback in months.
-- **Waterfall:** a horizontal stacked bar attributing the total across the eight chambers, using existing `sector-01..12` tokens.
-- **Three-year path:** a small sparkline (year 1 / 2 / 3), since chambers ramp rather than land at once.
-- **Honesty line:** a conservative/central/optimistic toggle, and a permanent note that this is a *decision-framing model, not a forecast* — consistent with the paper's `NOT_CLAIMED` posture.
+The existing "Open the arithmetic" drawer stays as the full machine-readable trace; `<Explain>` is the human layer above it, and each modal ends with a "See full trace" link that opens the drawer.
 
-## 4. AI-first, without being unreliable
+## Rollout beyond the calculator (phase 2)
 
-The **arithmetic is deterministic** — instant on every slider move, reproducible, and fully shown in an "Open the arithmetic" drawer rendered with `PrettyJson`. Nothing waits on a model.
+The same primitive is then applied to the surfaces where derived figures already exist, using the same registry namespacing:
+- Executive Brief / dashboard figures and ranked alerts (`explain` on each verdict number, pointing at the ledger provenance already stored).
+- Scenario Engine projections (levers → GDP path).
+- FDI Studio scoring, sector dossier scores.
+- Onboarding stage outputs that carry citations — the modal renders `<PrettyJson>` with the ordered `citations` array so refs stay clickable (existing global rule).
 
-The **intelligence is AI**, invoked on a debounced pause (~1.2s) after the user stops moving sliders:
-
-1. **Counsel** — three to five sentences in the sovereign voice of the paper: what this configuration means, the single highest-leverage chamber left untouched, and the one assumption most likely to be wrong.
-2. **Sequencing** — an AI-ordered 30-day / 6-month / year-one adoption order for the chambers the user has raised, with the reason for the order.
-3. **Sensitivity** — the model names which one slider, moved one notch, changes the verdict most.
-
-If the AI call fails or rate-limits, the numbers and the page remain fully intact and a quiet line replaces the counsel. AI never blocks the calculator.
-
-## 5. The gated one-pager
-
-Sliders and verdict are open to everyone. **Download the justification** opens the existing lead form (name, role, organisation, email, honeypot) and, on submit, generates a one-page PDF: the configuration, the verdict, the chamber waterfall, the AI counsel, and the five approvals from the paper — a document a permanent secretary can carry into a Cabinet meeting. Leads land in the same table pattern the op-ed gate uses, tagged `source: calculator`, with the configuration stored so we know what each prospect modelled.
-
-## 6. Trust rails
-
-- Every coefficient has a stated basis and a visible band; nothing is a black box.
-- Cost side uses a published instrument price band, so the return multiple is honest in both directions.
-- The verdict caps at defensible ceilings (no chamber can claim more than a bounded share of GDP) — an over-claiming calculator destroys the paper's credibility.
-- Mobile-first: sliders are 44px touch targets, the verdict becomes a persistent bottom sheet, the waterfall stacks vertically.
-
----
+Phase 2 lands as wiring only: no new math, each call site supplies a key plus its context object.
 
 ## Technical notes
 
-**Route** `src/routes/business-case.calculator.tsx` → `createFileRoute("/business-case/calculator")`, inside `MarketingShell`, own `head()` metadata, `FloatingBackToTop`. Requires promoting `business-case.tsx` to also serve `/business-case` — done by adding `business-case.index.tsx` for the paper and turning `business-case.tsx` into an `<Outlet />` layout.
-
-**Model** `src/lib/calculator/model.ts` — pure, versioned (`v1_value`), no RNG, same discipline as `src/lib/engine/v1_macro.ts`. Exports `CHAMBER_COEFFICIENTS`, `COUNTRY_PRESETS`, and `computeValue(input): ValueResult` returning per-chamber contributions, three-year path, totals, and the arithmetic trace.
-
-**AI** `src/lib/calculator/counsel.functions.ts` — unauthenticated `createServerFn({ method: "POST" })` (public marketing surface, no PII), reads `LOVABLE_API_KEY` inside the handler, uses `createLovableAiGatewayProvider` from `src/lib/ai-gateway.server.ts` with `openai/gpt-5.6-sol`, `providerOptions: { lovable: { reasoningEffort: "none" } }`, `Output.object` with a flat constraint-free schema, guarded by `NoObjectGeneratedError` with a static fallback. Called from the component via `useServerFn` + debounced `useQuery` keyed on the rounded slider state.
-
-**Lead + PDF** `src/lib/calculator/request.functions.ts` mirrors `op-eds/request.functions.ts`; a migration adds `calculator_leads` (with GRANTs, RLS, service-role insert path) storing email, attribution, and the configuration JSON. PDF rendered client-side from a print-styled `PrintableValueCase` component, reusing the `ExportPdfDialog` approach already in `mandate-compact/plan/`.
-
-**Components** under `src/components/calculator/`: `ValueCalculator`, `EconomyStep`, `QuestionSliders`, `ChamberSliders`, `VerdictRail`, `ChamberWaterfall`, `ArithmeticDrawer`, `CounselPanel`, `PrintableValueCase`. All buttons use `btn-*` utilities; only registered `@theme inline` tokens; any illustration goes through `<Illustration>` in the engraved house style.
-
-**Maps** run `bun run headers && bun run map`, and add the calculator row to `docs/map/routes.md`.
+- New files: `src/lib/explain/registry.ts`, `src/lib/explain/calculator-entries.ts`, `src/components/explain/Explain.tsx`, `src/components/explain/RationaleModal.tsx`.
+- Built on existing shadcn `hover-card` and `dialog`; no new dependencies.
+- Styling stays inside the paper voice: mono micro-labels, serif figures, `line-200` rules, `btn-ghost` triggers — no coloured tooltips, no inline `bg-ink-*` on buttons (button contract).
+- Any JSON shown inside a modal renders through `<PrettyJson>`.
+- `<Explain>` renders as plain text when `print:` — `PrintableValueCase.tsx` is unaffected.
+- Modal content is pure client-side; no server calls, so hovering never costs a request.

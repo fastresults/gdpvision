@@ -1,5 +1,7 @@
 import { Download, Loader2 } from "lucide-react";
 
+import { Explain } from "@/components/explain/Explain";
+
 import { ChamberWaterfall } from "./ChamberWaterfall";
 import { STANCE_LABEL, formatUsd, type Stance, type ValueResult } from "@/lib/calculator/model";
 
@@ -8,6 +10,7 @@ const STANCES: Stance[] = ["conservative", "central", "optimistic"];
 /**
  * The verdict. Sticky on desktop, a persistent sheet on mobile. It never
  * leaves the screen while the sliders move — the number is the argument.
+ * Every figure here is interrogable through <Explain>.
  */
 export function VerdictRail({
   result,
@@ -31,10 +34,14 @@ export function VerdictRail({
           Modelled uplift · year three
         </div>
         <div className="mt-3 font-serif text-[38px] leading-[1] tracking-tight text-ink-950 tabular-nums md:text-[46px]">
-          {formatUsd(result.upliftUsd)}
+          <Explain id="calc.uplift" label="Modelled uplift">
+            {formatUsd(result.upliftUsd)}
+          </Explain>
         </div>
         <div className="mt-3 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-700">
-          {result.upliftPpOfGdp.toFixed(2)} pp of GDP
+          <Explain id="calc.pp" label="Uplift as a share of GDP">
+            {result.upliftPpOfGdp.toFixed(2)} pp of GDP
+          </Explain>
         </div>
       </div>
 
@@ -42,28 +49,36 @@ export function VerdictRail({
         <div className="px-2 py-4">
           <dt className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink-500">Return</dt>
           <dd className="mt-2 font-serif text-[20px] text-ink-950 tabular-nums">
-            {result.returnMultiple >= 1 ? `${result.returnMultiple.toFixed(1)}×` : "—"}
+            <Explain id="calc.return" label="Return multiple">
+              {result.returnMultiple >= 1 ? `${result.returnMultiple.toFixed(1)}×` : "—"}
+            </Explain>
           </dd>
         </div>
         <div className="px-2 py-4">
           <dt className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink-500">Payback</dt>
           <dd className="mt-2 font-serif text-[20px] text-ink-950 tabular-nums">
-            {result.paybackMonths === null || result.paybackMonths >= 120
-              ? "—"
-              : `${Math.round(result.paybackMonths)} mo`}
+            <Explain id="calc.payback" label="Payback period">
+              {result.paybackMonths === null || result.paybackMonths >= 120
+                ? "—"
+                : `${Math.round(result.paybackMonths)} mo`}
+            </Explain>
           </dd>
         </div>
         <div className="px-2 py-4">
           <dt className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink-500">Cost / yr</dt>
           <dd className="mt-2 font-serif text-[20px] text-ink-950 tabular-nums">
-            {formatUsd(result.annualCostUsd)}
+            <Explain id="calc.cost" label="Annual cost">
+              {formatUsd(result.annualCostUsd)}
+            </Explain>
           </dd>
         </div>
       </dl>
 
       <div className="border-b border-line-200 px-5 py-5 sm:px-6">
         <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Three-year path
+          <Explain id="calc.path" label="Three-year path">
+            Three-year path
+          </Explain>
         </div>
         <div className="mt-4 flex items-end gap-2" aria-hidden>
           {result.path.map((p) => (
@@ -85,7 +100,9 @@ export function VerdictRail({
 
       <div className="border-b border-line-200 px-5 py-5 sm:px-6">
         <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          By chamber
+          <Explain id="calc.waterfall" label="Attribution by chamber">
+            By chamber
+          </Explain>
         </div>
         <div className="mt-4">
           <ChamberWaterfall chambers={result.chambers} />
@@ -93,7 +110,11 @@ export function VerdictRail({
       </div>
 
       <div className="border-b border-line-200 px-5 py-5 sm:px-6">
-        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Stance</div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+          <Explain id="calc.stance" label="Stance">
+            Stance
+          </Explain>
+        </div>
         <div className="mt-3 flex border border-line-200">
           {STANCES.map((s) => (
             <button
@@ -113,7 +134,11 @@ export function VerdictRail({
         </div>
         <p className="mt-4 text-[12px] leading-relaxed text-ink-500">
           A decision-framing model, not a forecast. Every coefficient is stated, bounded, and capped
-          at 1.2 per cent of GDP. Open the arithmetic to inspect all of it.
+          at{" "}
+          <Explain id="calc.ceiling" label="The ceiling">
+            1.2 per cent of GDP
+          </Explain>
+          . Open the arithmetic to inspect all of it.
         </p>
       </div>
 

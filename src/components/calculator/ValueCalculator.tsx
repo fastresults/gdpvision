@@ -172,8 +172,22 @@ export function ValueCalculator() {
     })),
   };
 
+  const explainCtx: CalcCtx = { input, result, countryName };
+
   return (
-    <>
+    <ExplainProvider
+      value={{
+        ctx: explainCtx,
+        traceLabel: "Open the arithmetic",
+        onTrace: () => {
+          setTraceOpen(true);
+          setTimeout(
+            () => traceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+            60,
+          );
+        },
+      }}
+    >
       <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-10 sm:px-6 md:px-10 md:py-16 lg:grid-cols-[1fr_380px] lg:gap-14 print:hidden">
         <div className="min-w-0 space-y-14">
           {/* Step 1 */}

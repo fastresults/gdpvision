@@ -45,7 +45,7 @@ export const getValueCounsel = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => inputSchema.parse(input))
   .handler(async ({ data }): Promise<CounselResponse> => {
     const key = process.env.LOVABLE_API_KEY;
-    if (!key) return { ok: true, counsel: FALLBACK_COUNSEL, degraded: true };
+    if (!key) return { ok: false, error: "DEBUG NOKEY" };
 
     try {
       const counsel = await generateCounsel(key, data);

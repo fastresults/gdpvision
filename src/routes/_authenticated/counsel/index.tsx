@@ -7,6 +7,7 @@ import { askCounsel, listCounselArchive, type CounselAnswer } from "@/lib/counse
 import { listInstanceBindings } from "@/lib/ledger.functions";
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { supabase } from "@/integrations/supabase/client";
+import { scrollToTop } from "@/lib/utils";
 
 const bindingsQuery = queryOptions({
   queryKey: ["instance-bindings"],

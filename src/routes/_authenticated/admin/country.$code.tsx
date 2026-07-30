@@ -7,6 +7,7 @@ import { ChambersLauncher } from "@/components/country/ChambersLauncher";
 
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { supabase } from "@/integrations/supabase/client";
+import { scrollToTop } from "@/lib/utils";
 import {
   decideCountryAccessRequest,
   getCountryAdminOverview,

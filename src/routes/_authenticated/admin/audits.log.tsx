@@ -4,6 +4,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { listAuditLog } from "@/lib/admin.functions";
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { PrettyJson } from "@/components/data/PrettyJson";
+import { scrollToTop } from "@/lib/utils";
 
 const auditQuery = queryOptions({
   queryKey: ["audit-log"],

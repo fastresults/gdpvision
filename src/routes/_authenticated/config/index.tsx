@@ -13,6 +13,7 @@ import {
 } from "@/lib/config.functions";
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { supabase } from "@/integrations/supabase/client";
+import { scrollToTop } from "@/lib/utils";
 
 const packsQuery = queryOptions({ queryKey: ["country-packs"], queryFn: () => listCountryPacks() });
 

@@ -18,6 +18,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { PrettyJson } from "@/components/data/PrettyJson";
+import { scrollToTop } from "@/lib/utils";
 
 const usersQuery = queryOptions({ queryKey: ["admin-users"], queryFn: () => listAdminUsers() });
 const countriesQuery = queryOptions({ queryKey: ["admin-countries"], queryFn: () => listCountries() });

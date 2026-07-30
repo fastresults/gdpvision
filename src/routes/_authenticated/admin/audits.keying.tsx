@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { listKeyingAudits, runKeyingAudit } from "@/lib/audits.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Wordmark } from "@/components/marketing/Wordmark";
+import { scrollToTop } from "@/lib/utils";
 
 const auditsQuery = queryOptions({ queryKey: ["keying-audits"], queryFn: () => listKeyingAudits() });
 

@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { supabase } from "@/integrations/supabase/client";
+import { scrollToTop } from "@/lib/utils";
 import { CODEX_ENTRIES } from "@/lib/codex-entries";
 
 export const Route = createFileRoute("/_authenticated/codex/")({

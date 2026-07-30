@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { getDocumentHtml, listDocuments } from "@/lib/documents.functions";
 import { Wordmark } from "@/components/marketing/Wordmark";
+import { scrollToTop } from "@/lib/utils";
 
 const docsQuery = queryOptions({ queryKey: ["documents"], queryFn: () => listDocuments() });
 

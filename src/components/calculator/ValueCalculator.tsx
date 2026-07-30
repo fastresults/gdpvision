@@ -254,6 +254,7 @@ export function ValueCalculator() {
                 <CalcSlider
                   key={q.key}
                   label={q.question}
+                  explainId={`calc.q.${q.key}`}
                   help={q.help}
                   value={input[q.key]}
                   min={q.min}

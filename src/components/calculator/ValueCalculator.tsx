@@ -200,7 +200,9 @@ export function ValueCalculator() {
 
             <label className="block">
               <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
-                Reference economy
+                <Explain id="calc.preset" label="Reference economy">
+                  Reference economy
+                </Explain>
               </span>
               <select
                 value={presetCode}
@@ -218,6 +220,7 @@ export function ValueCalculator() {
             <div className="mt-6 divide-y divide-line-100 border-y border-line-100">
               <CalcSlider
                 label="Nominal GDP"
+                explainId="calc.gdp"
                 value={Math.round(input.gdpUsd / 100_000_000)}
                 min={2}
                 max={400}
@@ -228,6 +231,7 @@ export function ValueCalculator() {
               />
               <CalcSlider
                 label="Public expenditure"
+                explainId="calc.publicSpend"
                 value={input.publicSpendPct}
                 min={10}
                 max={55}

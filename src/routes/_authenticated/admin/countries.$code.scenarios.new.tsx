@@ -30,6 +30,7 @@ import type { RecommendedScenario } from "@/lib/scenarios/recommend-scenario.fun
 import { Sparkles } from "lucide-react";
 import { RouteError } from "@/components/state/RouteState";
 import { writePins, readPins } from "./countries.$code.scenarios";
+import "@/lib/explain/scenario-entries";
 
 const NewSearch = z.object({
   ministry: z.string().optional(),

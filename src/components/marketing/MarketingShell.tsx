@@ -53,7 +53,6 @@ export function MarketingShell({ children }: MarketingShellProps) {
             <Wordmark className="h-12 md:h-16" />
           </Link>
 
-
           <nav className="hidden items-center gap-6 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500 md:flex md:gap-8">
             {SECTION_LINKS.map((s) => (
               <Link key={s.hash} to="/" hash={s.hash} className="hover:text-ink-950">

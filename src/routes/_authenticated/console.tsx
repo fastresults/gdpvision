@@ -98,7 +98,12 @@ function ConsoleLayout() {
       <header className="sticky top-0 z-20 border-b border-line-200 bg-paper-0/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <Link to="/console/$code" params={{ code: code ?? "" }} className="shrink-0" onClick={() => scrollToTop()}>
+            <Link
+              to="/console/$code"
+              params={{ code: code ?? "" }}
+              className="shrink-0"
+              onClick={() => scrollToTop()}
+            >
               <Wordmark className="text-ink-950" />
             </Link>
             {code && (

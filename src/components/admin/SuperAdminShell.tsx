@@ -15,7 +15,6 @@ type Props = {
   children: ReactNode;
 };
 
-
 const NAV = [
   { to: "/home", label: "Home" },
   { to: "/admin/countries", label: "Countries" },
@@ -79,11 +78,7 @@ export function SuperAdminShell({ eyebrow, crumbs, wide, children }: Props) {
               </Link>
             ))}
           {audience === "country" && params.code && (
-            <Link
-              to="/console/$code"
-              params={{ code: params.code }}
-              className="hover:text-ink-950"
-            >
+            <Link to="/console/$code" params={{ code: params.code }} className="hover:text-ink-950">
               ← Your brief
             </Link>
           )}
@@ -93,24 +88,19 @@ export function SuperAdminShell({ eyebrow, crumbs, wide, children }: Props) {
         </nav>
       </header>
 
-
       <main className={`mx-auto ${wide ? "max-w-[1440px]" : "max-w-6xl"} px-8 py-10`}>
         {(eyebrow || crumbs?.length) && (
           <div className="mb-6 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
             {crumbs?.map((c, i) => (
               <span key={i} className="flex items-center gap-3">
                 {c.to ? (
-                  <Link
-                    to={c.to}
-                    params={c.params as never}
-                    className="hover:text-ink-950"
-                  >
+                  <Link to={c.to} params={c.params as never} className="hover:text-ink-950">
                     {c.label}
                   </Link>
                 ) : (
                   <span className="text-ink-950">{c.label}</span>
                 )}
-                {i < (crumbs.length - 1) && <span>/</span>}
+                {i < crumbs.length - 1 && <span>/</span>}
               </span>
             ))}
             {eyebrow && !crumbs?.length && <span>{eyebrow}</span>}

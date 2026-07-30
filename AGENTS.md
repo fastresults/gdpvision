@@ -30,16 +30,16 @@ Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 ·
 
 ## 3. Chambers (7 sovereign workspaces)
 
-| # | Name | Admin route | Console route | Primary components | Server fns |
-|---|------|-------------|---------------|--------------------|------------|
-| 01 | National Ledger | `admin/countries/$code/ledger` | `console/$code` | `AskTheLedger`, `WhyThisNumberPanel`, `LedgerEnrichments` | `ledger.functions.ts`, `ledger-qa/*` |
-| 02 | Portfolios | `admin/countries/$code/portfolio` | — | `MinistrySectorHeatmap`, `SectorProfilingMatrix` | `mandate.functions.ts`, `sector-dossier/*` |
-| 03 | Scenarios | `admin/countries/$code/scenarios` | — | `GdpFanChart`, `LeversDrawer`, `PlaybookChips` | `scenarios/*.functions.ts` |
-| 04 | FDI Transition Studio | `admin/countries/$code/studio` | — | `WorkbenchJourney`, `ThreatComposer`, `ExposureLedger` | `fdi-resilience.functions.ts`, `goalseek.functions.ts` |
-| 05 | Narrative | `admin/countries/$code/narrative` | — | `SignalTriageRail`, `DraftStudio`, opposition wizard | `narrative.functions.ts`, `narrative/opposition-*.ts` |
-| 06 | Cabinet Room | `admin/countries/$code/cabinet` | — | `SituationBoard`, `DecisionQueue`, `CommitmentsCockpit` | `cabinet.functions.ts` |
-| 07 | Persona Lab | `admin/countries/$code/personas` | — | `StudyWizard/*`, `MultimodalInput` | `personas/*.functions.ts` |
-| 08 | Mandate Compact | `admin/countries/$code/mandate-compact` | — | `Stepper`, `IngestPanel`, `CompactList` | `mandate-compact/{ingest,list}.functions.ts` |
+| #   | Name                  | Admin route                             | Console route   | Primary components                                        | Server fns                                             |
+| --- | --------------------- | --------------------------------------- | --------------- | --------------------------------------------------------- | ------------------------------------------------------ |
+| 01  | National Ledger       | `admin/countries/$code/ledger`          | `console/$code` | `AskTheLedger`, `WhyThisNumberPanel`, `LedgerEnrichments` | `ledger.functions.ts`, `ledger-qa/*`                   |
+| 02  | Portfolios            | `admin/countries/$code/portfolio`       | —               | `MinistrySectorHeatmap`, `SectorProfilingMatrix`          | `mandate.functions.ts`, `sector-dossier/*`             |
+| 03  | Scenarios             | `admin/countries/$code/scenarios`       | —               | `GdpFanChart`, `LeversDrawer`, `PlaybookChips`            | `scenarios/*.functions.ts`                             |
+| 04  | FDI Transition Studio | `admin/countries/$code/studio`          | —               | `WorkbenchJourney`, `ThreatComposer`, `ExposureLedger`    | `fdi-resilience.functions.ts`, `goalseek.functions.ts` |
+| 05  | Narrative             | `admin/countries/$code/narrative`       | —               | `SignalTriageRail`, `DraftStudio`, opposition wizard      | `narrative.functions.ts`, `narrative/opposition-*.ts`  |
+| 06  | Cabinet Room          | `admin/countries/$code/cabinet`         | —               | `SituationBoard`, `DecisionQueue`, `CommitmentsCockpit`   | `cabinet.functions.ts`                                 |
+| 07  | Persona Lab           | `admin/countries/$code/personas`        | —               | `StudyWizard/*`, `MultimodalInput`                        | `personas/*.functions.ts`                              |
+| 08  | Mandate Compact       | `admin/countries/$code/mandate-compact` | —               | `Stepper`, `IngestPanel`, `CompactList`                   | `mandate-compact/{ingest,list}.functions.ts`           |
 
 Full chamber map: `docs/map/chambers.md`.
 
@@ -51,12 +51,12 @@ Order + committer + tables live in `src/lib/country-onboarding/stages.ts`. Orche
 
 Notable stages:
 
-| Stage | Purpose | Research | Commit | Tables |
-|-------|---------|----------|--------|--------|
-| 05 | Ministries | `minister-research.server.ts` | `agents.functions.ts` | `ministry_profiles` |
-| 09 | Ministry×Sector | `ministry-deep-dive-flow.ts` | `agents.functions.ts` | `ministry_sectors` |
-| 12 | Capital flows | `capital-flows.server.ts` | `agents.functions.ts` | `capital_flow_nodes`, `capital_flow_edges` |
-| — | Parties backfill | `party-research.server.ts` | `party-backfill.functions.ts` | `political_parties`, `party_manifestos` |
+| Stage | Purpose          | Research                      | Commit                        | Tables                                     |
+| ----- | ---------------- | ----------------------------- | ----------------------------- | ------------------------------------------ |
+| 05    | Ministries       | `minister-research.server.ts` | `agents.functions.ts`         | `ministry_profiles`                        |
+| 09    | Ministry×Sector  | `ministry-deep-dive-flow.ts`  | `agents.functions.ts`         | `ministry_sectors`                         |
+| 12    | Capital flows    | `capital-flows.server.ts`     | `agents.functions.ts`         | `capital_flow_nodes`, `capital_flow_edges` |
+| —     | Parties backfill | `party-research.server.ts`    | `party-backfill.functions.ts` | `political_parties`, `party_manifestos`    |
 
 Full stage map: `docs/map/onboarding.md`.
 
@@ -104,13 +104,13 @@ Full route map: `docs/map/routes.md` (Phase 2, generated).
 
 ## 8. Where to look when things break
 
-| Symptom | First place |
-|---------|-------------|
-| Onboarding stuck / stale | `country-onboarding/stages.ts`, `orchestrator.functions.ts`, self-heal in `ledger-qa/self-heal.functions.ts` |
-| 500 on route load | Check RLS + GRANTs on tables the loader queries |
-| "Unauthorized" in `build:dev` | Protected server fn called from public loader — move to component |
-| Missing citations | `onboarding_citations` write path in the relevant stage committer |
-| Wrong country data cross-shown | Route must include `$code` param; check `useImpersonation` context |
+| Symptom                        | First place                                                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| Onboarding stuck / stale       | `country-onboarding/stages.ts`, `orchestrator.functions.ts`, self-heal in `ledger-qa/self-heal.functions.ts` |
+| 500 on route load              | Check RLS + GRANTs on tables the loader queries                                                              |
+| "Unauthorized" in `build:dev`  | Protected server fn called from public loader — move to component                                            |
+| Missing citations              | `onboarding_citations` write path in the relevant stage committer                                            |
+| Wrong country data cross-shown | Route must include `$code` param; check `useImpersonation` context                                           |
 
 ---
 
@@ -121,4 +121,3 @@ Full route map: `docs/map/routes.md` (Phase 2, generated).
 - `bun run check:maps` — CI guard: fails if generated maps are stale OR any server-fn module is missing header tags. Wired into `.github/workflows/map-check.yml` on every PR touching `src/**`, `supabase/migrations/**`, or the map scripts.
 
 When you add a new server function, migration, or route: run `bun run headers && bun run map` before committing, or CI will reject the PR.
-

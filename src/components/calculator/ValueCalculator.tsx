@@ -17,6 +17,11 @@ import {
 } from "@/lib/calculator/model";
 import { getValueCounsel } from "@/lib/calculator/counsel.functions";
 import type { Counsel } from "@/lib/calculator/counsel.server";
+import { Explain } from "@/components/explain/Explain";
+import { ExplainProvider } from "@/components/explain/ExplainProvider";
+// Registers every calculator rationale with the explain registry.
+import type { CalcCtx } from "@/lib/explain/calculator-entries";
+import "@/lib/explain/calculator-entries";
 
 import { ArithmeticDrawer } from "./ArithmeticDrawer";
 import { CalcSlider } from "./CalcSlider";

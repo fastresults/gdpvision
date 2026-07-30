@@ -5,7 +5,7 @@ import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { FloatingBackToTop } from "@/components/marketing/FloatingBackToTop";
 import { Illustration } from "@/components/marketing/Illustration";
 import { ValueCalculator } from "@/components/calculator/ValueCalculator";
-import artInstrument from "@/assets/illustrations/bc-instrument.jpg.asset.json";
+import artArithmometer from "@/assets/illustrations/bc-arithmometer.jpg.asset.json";
 import ogImage from "@/assets/gdpvision-og.jpg";
 
 const SITE_URL = "https://gdpvision.com";
@@ -65,7 +65,7 @@ function CalculatorPage() {
               </p>
             </div>
             <div className="hidden justify-self-end md:block">
-              <Illustration src={artInstrument.url} variant="spot" />
+              <Illustration src={artArithmometer.url} variant="spot" />
             </div>
           </div>
         </div>

@@ -103,9 +103,13 @@ export function Explain({
               {rationale.title}
             </div>
             <p className="mt-2 break-words text-[13px] leading-relaxed text-ink-700">{rationale.short}</p>
-            <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-950">
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="mt-3 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-950 underline decoration-line-200 underline-offset-4 hover:decoration-ink-950"
+            >
               See the full derivation →
-            </div>
+            </button>
           </HoverCardContent>
         </HoverCard>
       )}

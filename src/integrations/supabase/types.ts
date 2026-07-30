@@ -5830,6 +5830,39 @@ export type Database = {
           },
         ]
       }
+      proforma_scenarios: {
+        Row: {
+          assumptions: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          model_version: string
+          name: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          assumptions?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          model_version?: string
+          name: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assumptions?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          model_version?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       reconciliation_notes: {
         Row: {
           country_code: string

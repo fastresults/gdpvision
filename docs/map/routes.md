@@ -7,6 +7,8 @@ Regenerate with `bun run map`. Do not hand-edit.
 | Route | File |
 |-------|------|
 | `/` | `src/routes/index.tsx` |
+| `/business-case` | `src/routes/business-case.tsx` |
+| `/business-case_/calculator` | `src/routes/business-case_.calculator.tsx` |
 | `/op-eds/` | `src/routes/op-eds.index.tsx` |
 | `/op-eds/$slug` | `src/routes/op-eds.$slug.tsx` |
 | `/reset-password` | `src/routes/reset-password.tsx` |
@@ -43,6 +45,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/_authenticated/console/$code/` | `src/routes/_authenticated/console.$code.index.tsx` |
 | `/_authenticated/console/$code/ask` | `src/routes/_authenticated/console.$code.ask.tsx` |
 | `/_authenticated/console/$code/brief` | `src/routes/_authenticated/console.$code.brief.tsx` |
+| `/_authenticated/console/$code/chamber/$chamber` | `src/routes/_authenticated/console.$code.chamber.$chamber.tsx` |
 | `/_authenticated/console/$code/mandate` | `src/routes/_authenticated/console.$code.mandate.tsx` |
 | `/_authenticated/console/$code/request/new` | `src/routes/_authenticated/console.$code.request.new.tsx` |
 | `/_authenticated/console/$code/requests/` | `src/routes/_authenticated/console.$code.requests.index.tsx` |
@@ -98,6 +101,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/_authenticated/admin/documents` | `src/routes/_authenticated/admin/documents.tsx` |
 | `/_authenticated/admin/invitations` | `src/routes/_authenticated/admin/invitations.tsx` |
 | `/_authenticated/admin/ledger-qa` | `src/routes/_authenticated/admin/ledger-qa.tsx` |
+| `/_authenticated/admin/proforma` | `src/routes/_authenticated/admin/proforma.tsx` |
 
 ## instrument
 

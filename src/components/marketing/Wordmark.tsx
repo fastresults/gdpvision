@@ -15,7 +15,7 @@ export function Wordmark({ className }: WordmarkProps) {
       alt="GDP Vision"
       loading="eager"
       decoding="async"
-      className={cn("h-9 w-auto max-w-full object-contain select-none", className)}
+      className={cn("h-[1.9rem] w-auto max-w-full object-contain select-none", className)}
     />
   );
 }

@@ -301,7 +301,9 @@ export function ValueCalculator() {
             </p>
           </section>
 
-          <ArithmeticDrawer trace={result.trace} />
+          <div ref={traceRef}>
+            <ArithmeticDrawer trace={result.trace} open={traceOpen} onOpenChange={setTraceOpen} />
+          </div>
 
           <CounselPanel counsel={counsel} loading={counselLoading} error={counselError} />
         </div>

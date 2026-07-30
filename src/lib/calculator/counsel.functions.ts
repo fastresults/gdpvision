@@ -55,7 +55,7 @@ export const getValueCounsel = createServerFn({ method: "POST" })
       if (message.includes("429")) return { ok: false, error: "The counsel service is busy. The arithmetic below is unaffected." };
       if (message.includes("402")) return { ok: false, error: "The counsel service is unavailable. The arithmetic below is unaffected." };
       console.error("[calculator] counsel failed", error);
-      if (process.env.CALC_DEBUG === "1") return { ok: false, error: `DEBUG ${message.slice(0, 400)}` };
+      return { ok: false, error: `DEBUG ${message.slice(0, 400)}` };
       return { ok: true, counsel: FALLBACK_COUNSEL, degraded: true };
     }
   });

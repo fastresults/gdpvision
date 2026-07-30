@@ -50,7 +50,7 @@ export function MarketingShell({ children }: MarketingShellProps) {
             onClick={() => scrollToTop()}
             className="flex shrink-0 items-center focus-visible:outline-none"
           >
-            <Wordmark className="h-12 md:h-16" />
+            <Wordmark className="h-[2.55rem] md:h-[3.4rem]" />
           </Link>
 
           <nav className="hidden items-center gap-6 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500 md:flex md:gap-8">

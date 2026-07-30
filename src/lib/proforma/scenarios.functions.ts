@@ -90,7 +90,7 @@ export const saveProformaScenario = createServerFn({ method: "POST" })
     if (data.id) {
       const { error } = await context.supabase
         .from("proforma_scenarios")
-        .update({ name: data.name, notes: data.notes ?? null, assumptions: data.assumptions })
+        .update({ name: data.name, notes: data.notes ?? null, assumptions: data.assumptions as never })
         .eq("id", data.id);
       if (error) throw new Error(error.message);
       return { id: data.id };
@@ -101,7 +101,7 @@ export const saveProformaScenario = createServerFn({ method: "POST" })
       .insert({
         name: data.name,
         notes: data.notes ?? null,
-        assumptions: data.assumptions,
+        assumptions: data.assumptions as never,
         created_by: context.userId,
       })
       .select("id")

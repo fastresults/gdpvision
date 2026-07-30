@@ -117,7 +117,7 @@ export function LeadDialog({
           />
 
           {state.kind === "error" ? (
-            <p className="text-[13.5px] leading-relaxed text-signal-high">{state.message}</p>
+            <p className="text-[13.5px] leading-relaxed text-signal-negative">{state.message}</p>
           ) : null}
 
           <button

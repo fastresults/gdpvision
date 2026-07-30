@@ -162,7 +162,34 @@ function BusinessCasePage() {
             </div>
           </div>
         </div>
+        <div className="mt-14 border border-line-200 bg-paper-50">
+          <div className="grid gap-8 p-7 sm:p-10 md:grid-cols-[1fr_240px] md:items-center">
+            <div className="min-w-0">
+              <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+                Interactive · Sovereign value instrument
+              </div>
+              <h3 className="mt-4 font-serif text-[26px] leading-tight tracking-tight text-ink-950 md:text-[32px]">
+                Put your own economy through the model.
+              </h3>
+              <p className="mt-4 max-w-2xl text-[15.5px] leading-relaxed text-ink-700">
+                Four questions answered from memory, one slider per chamber, and a running verdict
+                in dollars, basis points of GDP, and return against cost. The arithmetic is open,
+                the ceiling is stated, and the counsel reads your configuration back to you.
+              </p>
+              <Link
+                to="/business-case/calculator"
+                className="btn-primary mt-7 inline-flex items-center gap-2 px-5 py-3 font-mono text-[11px] uppercase tracking-[0.18em]"
+              >
+                Model the value →
+              </Link>
+            </div>
+            <div className="hidden justify-self-end md:block">
+              <Illustration src={artLedgerCost.url} variant="spot" />
+            </div>
+          </div>
+        </div>
       </Section>
+
 
       {/* 1 · What is at stake */}
       <Section>

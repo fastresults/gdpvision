@@ -19,6 +19,7 @@ import { Route as OpEdsIndexRouteImport } from './routes/op-eds.index'
 import { Route as KioskIndexRouteImport } from './routes/kiosk.index'
 import { Route as OpEdsSlugRouteImport } from './routes/op-eds.$slug'
 import { Route as KioskAdminRouteImport } from './routes/kiosk.admin'
+import { Route as BusinessCaseCalculatorRouteImport } from './routes/business-case_.calculator'
 import { Route as AuthInviteRouteImport } from './routes/auth.invite'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as AuthenticatedConsoleRouteImport } from './routes/_authenticated/console'
@@ -181,6 +182,11 @@ const KioskAdminRoute = KioskAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => KioskRoute,
+} as any)
+const BusinessCaseCalculatorRoute = BusinessCaseCalculatorRouteImport.update({
+  id: '/business-case_/calculator',
+  path: '/business-case/calculator',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthInviteRoute = AuthInviteRouteImport.update({
   id: '/invite',
@@ -862,6 +868,7 @@ export interface FileRoutesByFullPath {
   '/console': typeof AuthenticatedConsoleRouteWithChildren
   '/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
+  '/business-case/calculator': typeof BusinessCaseCalculatorRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
   '/kiosk/': typeof KioskIndexRoute
@@ -982,6 +989,7 @@ export interface FileRoutesByTo {
   '/console': typeof AuthenticatedConsoleRouteWithChildren
   '/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
+  '/business-case/calculator': typeof BusinessCaseCalculatorRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
   '/kiosk': typeof KioskIndexRoute
@@ -1103,6 +1111,7 @@ export interface FileRoutesById {
   '/_authenticated/console': typeof AuthenticatedConsoleRouteWithChildren
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
+  '/business-case_/calculator': typeof BusinessCaseCalculatorRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
   '/kiosk/': typeof KioskIndexRoute
@@ -1229,6 +1238,7 @@ export interface FileRouteTypes {
     | '/console'
     | '/home'
     | '/auth/invite'
+    | '/business-case/calculator'
     | '/kiosk/admin'
     | '/op-eds/$slug'
     | '/kiosk/'
@@ -1349,6 +1359,7 @@ export interface FileRouteTypes {
     | '/console'
     | '/home'
     | '/auth/invite'
+    | '/business-case/calculator'
     | '/kiosk/admin'
     | '/op-eds/$slug'
     | '/kiosk'
@@ -1469,6 +1480,7 @@ export interface FileRouteTypes {
     | '/_authenticated/console'
     | '/_authenticated/home'
     | '/auth/invite'
+    | '/business-case_/calculator'
     | '/kiosk/admin'
     | '/op-eds/$slug'
     | '/kiosk/'
@@ -1589,6 +1601,7 @@ export interface RootRouteChildren {
   BusinessCaseRoute: typeof BusinessCaseRoute
   KioskRoute: typeof KioskRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
+  BusinessCaseCalculatorRoute: typeof BusinessCaseCalculatorRoute
   OpEdsSlugRoute: typeof OpEdsSlugRoute
   OpEdsIndexRoute: typeof OpEdsIndexRoute
   ApiPublicHooksCadenceDailyRoute: typeof ApiPublicHooksCadenceDailyRoute
@@ -1670,6 +1683,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/kiosk/admin'
       preLoaderRoute: typeof KioskAdminRouteImport
       parentRoute: typeof KioskRoute
+    }
+    '/business-case_/calculator': {
+      id: '/business-case_/calculator'
+      path: '/business-case/calculator'
+      fullPath: '/business-case/calculator'
+      preLoaderRoute: typeof BusinessCaseCalculatorRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/auth/invite': {
       id: '/auth/invite'
@@ -2919,6 +2939,7 @@ const rootRouteChildren: RootRouteChildren = {
   BusinessCaseRoute: BusinessCaseRoute,
   KioskRoute: KioskRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
+  BusinessCaseCalculatorRoute: BusinessCaseCalculatorRoute,
   OpEdsSlugRoute: OpEdsSlugRoute,
   OpEdsIndexRoute: OpEdsIndexRoute,
   ApiPublicHooksCadenceDailyRoute: ApiPublicHooksCadenceDailyRoute,

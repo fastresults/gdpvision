@@ -381,6 +381,60 @@ export type Database = {
         }
         Relationships: []
       }
+      calculator_leads: {
+        Row: {
+          configuration: Json
+          country: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string
+          organisation: string
+          referrer: string | null
+          role: string
+          status: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          configuration?: Json
+          country?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          organisation: string
+          referrer?: string | null
+          role: string
+          status?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          configuration?: Json
+          country?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          organisation?: string
+          referrer?: string | null
+          role?: string
+          status?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
+      }
       capital_flow_nodes: {
         Row: {
           created_at: string

@@ -62,6 +62,10 @@ export function MarketingShell({ children }: MarketingShellProps) {
             <Link to="/business-case" className="hover:text-ink-950">
               The business case
             </Link>
+            <Link to="/business-case/calculator" className="hover:text-ink-950">
+              The calculator
+            </Link>
+
             <Link to="/op-eds" className="hover:text-ink-950">
               The writing
             </Link>
@@ -107,6 +111,14 @@ export function MarketingShell({ children }: MarketingShellProps) {
               >
                 The business case
               </Link>
+              <Link
+                to="/business-case/calculator"
+                onClick={() => setMenuOpen(false)}
+                className="border-b border-line-100 py-3 hover:text-ink-950"
+              >
+                The calculator
+              </Link>
+
               <Link
                 to="/op-eds"
                 onClick={() => setMenuOpen(false)}

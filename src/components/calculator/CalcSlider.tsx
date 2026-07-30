@@ -1,3 +1,4 @@
+import { Explain } from "@/components/explain/Explain";
 import { cn } from "@/lib/utils";
 
 /**
@@ -14,6 +15,7 @@ export function CalcSlider({
   unit,
   readout,
   accent,
+  explainId,
   onChange,
   className,
 }: {
@@ -28,6 +30,8 @@ export function CalcSlider({
   readout?: string;
   /** CSS custom property name, e.g. "--sector-01". */
   accent?: string;
+  /** Rationale registry key — adds the interrogation affordance to the label. */
+  explainId?: string;
   onChange: (v: number) => void;
   className?: string;
 }) {
@@ -44,7 +48,13 @@ export function CalcSlider({
               style={{ backgroundColor: `var(${accent})` }}
             />
           ) : null}
-          {label}
+          {explainId ? (
+            <Explain id={explainId} label={label}>
+              {label}
+            </Explain>
+          ) : (
+            label
+          )}
         </label>
         <span className="shrink-0 font-mono text-[12px] uppercase tracking-[0.14em] text-ink-700">
           {readout ?? `${value}${unit ? ` ${unit}` : ""}`}

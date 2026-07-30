@@ -17,6 +17,11 @@ import {
 } from "@/lib/calculator/model";
 import { getValueCounsel } from "@/lib/calculator/counsel.functions";
 import type { Counsel } from "@/lib/calculator/counsel.server";
+import { Explain } from "@/components/explain/Explain";
+import { ExplainProvider } from "@/components/explain/ExplainProvider";
+// Registers every calculator rationale with the explain registry.
+import type { CalcCtx } from "@/lib/explain/calculator-entries";
+import "@/lib/explain/calculator-entries";
 
 import { ArithmeticDrawer } from "./ArithmeticDrawer";
 import { CalcSlider } from "./CalcSlider";
@@ -47,6 +52,8 @@ function StepHeading({ n, title, lede }: { n: string; title: string; lede?: stri
 export function ValueCalculator() {
   const [presetCode, setPresetCode] = useState("LCA");
   const [input, setInput] = useState<ValueInput>(DEFAULT_INPUT);
+  const [traceOpen, setTraceOpen] = useState(false);
+  const traceRef = useRef<HTMLDivElement | null>(null);
   const [counsel, setCounsel] = useState<Counsel | null>(null);
   const [counselError, setCounselError] = useState<string | null>(null);
   const [counselLoading, setCounselLoading] = useState(false);
@@ -165,8 +172,22 @@ export function ValueCalculator() {
     })),
   };
 
+  const explainCtx: CalcCtx = { input, result, countryName };
+
   return (
-    <>
+    <ExplainProvider
+      value={{
+        ctx: explainCtx,
+        traceLabel: "Open the arithmetic",
+        onTrace: () => {
+          setTraceOpen(true);
+          setTimeout(
+            () => traceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+            60,
+          );
+        },
+      }}
+    >
       <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-10 sm:px-6 md:px-10 md:py-16 lg:grid-cols-[1fr_380px] lg:gap-14 print:hidden">
         <div className="min-w-0 space-y-14">
           {/* Step 1 */}
@@ -179,7 +200,9 @@ export function ValueCalculator() {
 
             <label className="block">
               <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
-                Reference economy
+                <Explain id="calc.preset" label="Reference economy">
+                  Reference economy
+                </Explain>
               </span>
               <select
                 value={presetCode}
@@ -197,6 +220,7 @@ export function ValueCalculator() {
             <div className="mt-6 divide-y divide-line-100 border-y border-line-100">
               <CalcSlider
                 label="Nominal GDP"
+                explainId="calc.gdp"
                 value={Math.round(input.gdpUsd / 100_000_000)}
                 min={2}
                 max={400}
@@ -207,6 +231,7 @@ export function ValueCalculator() {
               />
               <CalcSlider
                 label="Public expenditure"
+                explainId="calc.publicSpend"
                 value={input.publicSpendPct}
                 min={10}
                 max={55}
@@ -229,6 +254,7 @@ export function ValueCalculator() {
                 <CalcSlider
                   key={q.key}
                   label={q.question}
+                  explainId={`calc.q.${q.key}`}
                   help={q.help}
                   value={input[q.key]}
                   min={q.min}
@@ -255,6 +281,7 @@ export function ValueCalculator() {
                   <div key={c.index}>
                     <CalcSlider
                       label={`${c.index} · ${TITLE[c.index] ?? c.short}`}
+                      explainId={`calc.chamber.${c.index}`}
                       value={input.chambers[c.index] ?? 0}
                       min={0}
                       max={100}
@@ -268,7 +295,11 @@ export function ValueCalculator() {
                         {c.mechanism}. {CHAMBER_LINES[c.index]?.split(".")[0]}.
                       </p>
                       <span className="font-mono text-[12px] tabular-nums text-ink-950">
-                        {contribution && contribution.usd > 0 ? `+${formatUsd(contribution.usd)}` : "—"}
+                        <Explain id={`calc.chamber.${c.index}`} label={`${c.short} contribution`}>
+                          {contribution && contribution.usd > 0
+                            ? `+${formatUsd(contribution.usd)}`
+                            : "—"}
+                        </Explain>
                       </span>
                     </div>
                   </div>
@@ -280,7 +311,9 @@ export function ValueCalculator() {
             </p>
           </section>
 
-          <ArithmeticDrawer trace={result.trace} />
+          <div ref={traceRef}>
+            <ArithmeticDrawer trace={result.trace} open={traceOpen} onOpenChange={setTraceOpen} />
+          </div>
 
           <CounselPanel counsel={counsel} loading={counselLoading} error={counselError} />
         </div>
@@ -313,6 +346,6 @@ export function ValueCalculator() {
         countryName={countryName}
         counsel={counsel}
       />
-    </>
+    </ExplainProvider>
   );
 }

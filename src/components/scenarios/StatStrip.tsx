@@ -1,11 +1,15 @@
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
+import { Explain } from "@/components/explain/Explain";
 
 export interface StatCell {
   label: string;
   value: string;
   delta?: number; // in pp
   sub?: string;
+  /** Rationale registry key — renders the label as an interrogable trigger. */
+  explainId?: string;
 }
+
 
 export function StatStrip({
   cells,
@@ -25,7 +29,13 @@ export function StatStrip({
       {cells.map((c, i) => (
         <div key={i} className="min-w-0 bg-paper-0 px-3 py-4 sm:px-4">
           <p className="truncate font-mono text-[9px] uppercase tracking-[0.22em] text-ink-500">
-            {c.label}
+            {c.explainId ? (
+              <Explain id={c.explainId} label={c.label}>
+                {c.label}
+              </Explain>
+            ) : (
+              c.label
+            )}
           </p>
           <p
             className="mt-2 whitespace-nowrap font-serif text-[26px] leading-none text-ink-950 tabular-nums lg:text-[30px]"

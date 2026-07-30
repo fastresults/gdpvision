@@ -1,3 +1,4 @@
+import { Explain } from "@/components/explain/Explain";
 import { CHAMBERS } from "@/lib/chambers";
 import { formatUsd, type ChamberContribution } from "@/lib/calculator/model";
 
@@ -41,8 +42,10 @@ export function ChamberWaterfall({ chambers }: { chambers: ChamberContribution[]
               style={{ backgroundColor: `var(${ACCENT[c.index] ?? "--sector-01"})` }}
             />
             <span className="min-w-0 flex-1 truncate text-[13.5px] text-ink-700">
-              <span className="font-mono text-[11px] tracking-[0.12em] text-ink-500">{c.index}</span>{" "}
-              {c.short}
+              <Explain id={`calc.chamber.${c.index}`} label={c.short}>
+                <span className="font-mono text-[11px] tracking-[0.12em] text-ink-500">{c.index}</span>{" "}
+                {c.short}
+              </Explain>
             </span>
             <span className="shrink-0 font-mono text-[12px] tabular-nums text-ink-950">
               {formatUsd(c.usd)}

@@ -1,17 +1,25 @@
-import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
 import { PrettyJson } from "@/components/data/PrettyJson";
 
-/** The whole arithmetic, in the open. Nothing in the verdict is unexplained. */
-export function ArithmeticDrawer({ trace }: { trace: Record<string, unknown> }) {
-  const [open, setOpen] = useState(false);
-
+/**
+ * The whole arithmetic, in the open. Nothing in the verdict is unexplained.
+ * Controlled, so a rationale modal can hand the reader straight to the record.
+ */
+export function ArithmeticDrawer({
+  trace,
+  open,
+  onOpenChange,
+}: {
+  trace: Record<string, unknown>;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
   return (
     <div className="border border-line-200 bg-paper-0">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => onOpenChange(!open)}
         aria-expanded={open}
         className="btn-ghost flex w-full items-center justify-between px-5 py-4 text-left font-mono text-[11px] uppercase tracking-[0.18em]"
       >

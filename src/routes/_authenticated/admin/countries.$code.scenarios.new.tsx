@@ -30,6 +30,7 @@ import type { RecommendedScenario } from "@/lib/scenarios/recommend-scenario.fun
 import { Sparkles } from "lucide-react";
 import { RouteError } from "@/components/state/RouteState";
 import { writePins, readPins } from "./countries.$code.scenarios";
+import "@/lib/explain/scenario-entries";
 
 const NewSearch = z.object({
   ministry: z.string().optional(),
@@ -509,6 +510,7 @@ function Builder() {
             cells={[
               {
                 label: "Year 1 · P50 GDP growth",
+                explainId: "scenario.p50",
                 value: `${year1 >= 0 ? "+" : ""}${year1.toFixed(2)}%`,
                 delta: year1 - baselineY1,
                 sub: year1Band
@@ -517,6 +519,7 @@ function Builder() {
               },
               {
                 label: `Year ${horizonYears} · P50 GDP growth`,
+                explainId: "scenario.band",
                 value: `${yearEnd >= 0 ? "+" : ""}${yearEnd.toFixed(2)}%`,
                 delta: yearEnd - baselineYEnd,
                 sub: yearEndBand
@@ -525,6 +528,7 @@ function Builder() {
               },
               {
                 label: "Net vs baseline · cumulative",
+                explainId: "scenario.net_vs_baseline",
                 value:
                   compensation.regime === "at_baseline"
                     ? "—"
@@ -541,6 +545,7 @@ function Builder() {
               },
               {
                 label: "Levers off default",
+                explainId: "scenario.levers_off_default",
                 value: `${activeLeverCount}`,
                 sub: `${init.leverDefs.length} defined`,
               },

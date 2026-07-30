@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import type { Counsel } from "@/lib/calculator/counsel.server";
 import { APPROVALS } from "@/lib/business-case";
 import {
@@ -64,11 +66,17 @@ export function PrintableValueCase({
   counsel: Counsel | null;
   preparedFor?: string;
 }) {
-  const today = new Date().toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  // Rendered after hydration only: server and client clocks/timezones differ.
+  const [today, setToday] = useState("");
+  useEffect(() => {
+    setToday(
+      new Date().toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }),
+    );
+  }, []);
 
   return (
     <div id="value-case-print-portal">

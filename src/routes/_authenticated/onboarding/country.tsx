@@ -7,6 +7,7 @@ import { Wordmark } from "@/components/marketing/Wordmark";
 import { supabase } from "@/integrations/supabase/client";
 import { listCountries } from "@/lib/admin.functions";
 import { getMyCountryStatus, requestCountryAccess } from "@/lib/country-admin.functions";
+import { scrollToTop } from "@/lib/utils";
 
 const statusQuery = queryOptions({
   queryKey: ["my-country-status"],
@@ -82,7 +83,9 @@ function OnboardingCountryPage() {
   return (
     <div className="min-h-dvh bg-paper-0 text-ink-950">
       <header className="flex items-center justify-between border-b border-line-200 px-8 py-5">
-        <Wordmark />
+        <button type="button" onClick={() => scrollToTop()} className="shrink-0 focus-visible:outline-none">
+          <Wordmark />
+        </button>
         <div className="flex items-center gap-6 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
           {alreadyBound && (
             <Link to="/instrument" className="hover:text-ink-950">

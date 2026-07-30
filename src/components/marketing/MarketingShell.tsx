@@ -47,6 +47,7 @@ export function MarketingShell({ children }: MarketingShellProps) {
         <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-6 px-6 py-2 md:px-10 md:py-3">
           <Link
             to={signedIn ? "/home" : "/"}
+            onClick={() => scrollToTop()}
             className="flex shrink-0 items-center focus-visible:outline-none"
           >
             <Wordmark className="h-12 md:h-16" />

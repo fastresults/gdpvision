@@ -42,7 +42,7 @@ export function MarketingShell({ children }: MarketingShellProps) {
       >
         Skip to content
       </a>
-      <header className="border-b border-line-200">
+      <header className="sticky top-0 z-40 border-b border-line-200 bg-paper-0/95 backdrop-blur supports-[backdrop-filter]:bg-paper-0/80">
         <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-6 px-6 py-2 md:px-10 md:py-3">
           <Link
             to={signedIn ? "/home" : "/"}

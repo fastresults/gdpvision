@@ -10,6 +10,7 @@ import { CARICOM_OECS_REGISTRY } from "@/lib/caricom-registry";
 import { Wordmark } from "@/components/marketing/Wordmark";
 import { CountrySwitcher } from "@/components/console/CountrySwitcher";
 import { useImpersonation } from "@/lib/impersonation";
+import { scrollToTop } from "@/lib/utils";
 
 const statusQuery = queryOptions({
   queryKey: ["my-country-status"],

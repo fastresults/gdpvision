@@ -109,7 +109,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh bg-paper-0 text-ink-950">
       <header className="flex items-center justify-between border-b border-line-200 px-8 py-5">
-        <Link to="/home"><Wordmark /></Link>
+        <Link to="/home" onClick={() => scrollToTop()}><Wordmark /></Link>
         <nav className="flex items-center gap-6 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
           <Link to="/home" activeProps={{ className: "text-ink-950" }} className="hover:text-ink-950">Home</Link>
           <button onClick={signOut} className="hover:text-ink-950">Sign out</button>

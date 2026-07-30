@@ -105,7 +105,7 @@ export async function generateCounsel(apiKey: string, facts: CounselFacts): Prom
     if (NoObjectGeneratedError.isInstance(error)) {
       const parsed = parseFallback(error.text);
       if (parsed) return parsed;
-      return FALLBACK_COUNSEL;
+      throw new Error(`NOOBJ ${String(error.text).slice(0,200)} | ${error.message.slice(0,200)}`);
     }
     throw error;
   }

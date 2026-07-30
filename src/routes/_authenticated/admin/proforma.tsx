@@ -65,7 +65,7 @@ function ProformaPage() {
 
   return (
     <SuperAdminShell eyebrow="Agency" wide>
-      <ExplainProvider ctx={ctx}>
+      <ExplainProvider value={{ ctx, onTrace: () => setTraceOpen(true), traceLabel: "Open the arithmetic" }}>
         <div className="mx-auto w-full max-w-[1360px] px-5 py-8 sm:px-8">
           <header className="max-w-3xl">
             <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">

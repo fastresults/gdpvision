@@ -97,12 +97,12 @@ export function Explain({
           <HoverCardTrigger asChild>{trigger}</HoverCardTrigger>
           <HoverCardContent
             align="start"
-            className="w-80 rounded-none border-line-200 bg-paper-0 p-4 shadow-[0_10px_30px_-18px_rgba(0,0,0,0.55)] print:hidden"
+            className="z-50 max-h-[min(18rem,var(--radix-hover-card-content-available-height))] w-80 max-w-[calc(100vw-1.5rem)] overflow-y-auto overscroll-contain rounded-none border-line-200 bg-paper-0 p-4 shadow-[0_10px_30px_-18px_rgba(0,0,0,0.55)] print:hidden"
           >
-            <div className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-ink-500">
+            <div className="break-words font-mono text-[9.5px] uppercase tracking-[0.18em] text-ink-500">
               {rationale.title}
             </div>
-            <p className="mt-2 text-[13px] leading-relaxed text-ink-700">{rationale.short}</p>
+            <p className="mt-2 break-words text-[13px] leading-relaxed text-ink-700">{rationale.short}</p>
             <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-950">
               See the full derivation →
             </div>

@@ -45,7 +45,7 @@ export const getValueCounsel = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => inputSchema.parse(input))
   .handler(async ({ data }): Promise<CounselResponse> => {
     const key = process.env.LOVABLE_API_KEY;
-    if (!key) return { ok: false, error: "DEBUG NOKEY" };
+    if (!key) return { ok: true, counsel: FALLBACK_COUNSEL, degraded: true };
 
     try {
       const counsel = await generateCounsel(key, data);
@@ -55,7 +55,6 @@ export const getValueCounsel = createServerFn({ method: "POST" })
       if (message.includes("429")) return { ok: false, error: "The counsel service is busy. The arithmetic below is unaffected." };
       if (message.includes("402")) return { ok: false, error: "The counsel service is unavailable. The arithmetic below is unaffected." };
       console.error("[calculator] counsel failed", error);
-      return { ok: false, error: `DEBUG ${message.slice(0, 400)}` };
       return { ok: true, counsel: FALLBACK_COUNSEL, degraded: true };
     }
   });

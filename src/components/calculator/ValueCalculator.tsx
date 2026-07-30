@@ -52,6 +52,8 @@ function StepHeading({ n, title, lede }: { n: string; title: string; lede?: stri
 export function ValueCalculator() {
   const [presetCode, setPresetCode] = useState("LCA");
   const [input, setInput] = useState<ValueInput>(DEFAULT_INPUT);
+  const [traceOpen, setTraceOpen] = useState(false);
+  const traceRef = useRef<HTMLDivElement | null>(null);
   const [counsel, setCounsel] = useState<Counsel | null>(null);
   const [counselError, setCounselError] = useState<string | null>(null);
   const [counselLoading, setCounselLoading] = useState(false);

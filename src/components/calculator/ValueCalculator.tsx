@@ -281,6 +281,7 @@ export function ValueCalculator() {
                   <div key={c.index}>
                     <CalcSlider
                       label={`${c.index} · ${TITLE[c.index] ?? c.short}`}
+                      explainId={`calc.chamber.${c.index}`}
                       value={input.chambers[c.index] ?? 0}
                       min={0}
                       max={100}
@@ -294,7 +295,11 @@ export function ValueCalculator() {
                         {c.mechanism}. {CHAMBER_LINES[c.index]?.split(".")[0]}.
                       </p>
                       <span className="font-mono text-[12px] tabular-nums text-ink-950">
-                        {contribution && contribution.usd > 0 ? `+${formatUsd(contribution.usd)}` : "—"}
+                        <Explain id={`calc.chamber.${c.index}`} label={`${c.short} contribution`}>
+                          {contribution && contribution.usd > 0
+                            ? `+${formatUsd(contribution.usd)}`
+                            : "—"}
+                        </Explain>
                       </span>
                     </div>
                   </div>

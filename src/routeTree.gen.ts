@@ -49,6 +49,7 @@ import { Route as AuthenticatedCounselMobileRouteImport } from './routes/_authen
 import { Route as AuthenticatedCounselArchiveRouteImport } from './routes/_authenticated/counsel/archive'
 import { Route as AuthenticatedConciergeNewRouteImport } from './routes/_authenticated/concierge.new'
 import { Route as AuthenticatedConciergeIdRouteImport } from './routes/_authenticated/concierge.$id'
+import { Route as AuthenticatedAdminProformaRouteImport } from './routes/_authenticated/admin/proforma'
 import { Route as AuthenticatedAdminLedgerQaRouteImport } from './routes/_authenticated/admin/ledger-qa'
 import { Route as AuthenticatedAdminInvitationsRouteImport } from './routes/_authenticated/admin/invitations'
 import { Route as AuthenticatedAdminDocumentsRouteImport } from './routes/_authenticated/admin/documents'
@@ -353,6 +354,12 @@ const AuthenticatedConciergeIdRoute =
     id: '/concierge/$id',
     path: '/concierge/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminProformaRoute =
+  AuthenticatedAdminProformaRouteImport.update({
+    id: '/proforma',
+    path: '/proforma',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminLedgerQaRoute =
   AuthenticatedAdminLedgerQaRouteImport.update({
@@ -879,6 +886,7 @@ export interface FileRoutesByFullPath {
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
+  '/admin/proforma': typeof AuthenticatedAdminProformaRoute
   '/concierge/$id': typeof AuthenticatedConciergeIdRoute
   '/concierge/new': typeof AuthenticatedConciergeNewRoute
   '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
@@ -1000,6 +1008,7 @@ export interface FileRoutesByTo {
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
+  '/admin/proforma': typeof AuthenticatedAdminProformaRoute
   '/concierge/$id': typeof AuthenticatedConciergeIdRoute
   '/concierge/new': typeof AuthenticatedConciergeNewRoute
   '/counsel/archive': typeof AuthenticatedCounselArchiveRoute
@@ -1122,6 +1131,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/documents': typeof AuthenticatedAdminDocumentsRoute
   '/_authenticated/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/_authenticated/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
+  '/_authenticated/admin/proforma': typeof AuthenticatedAdminProformaRoute
   '/_authenticated/concierge/$id': typeof AuthenticatedConciergeIdRoute
   '/_authenticated/concierge/new': typeof AuthenticatedConciergeNewRoute
   '/_authenticated/counsel/archive': typeof AuthenticatedCounselArchiveRoute
@@ -1249,6 +1259,7 @@ export interface FileRouteTypes {
     | '/admin/documents'
     | '/admin/invitations'
     | '/admin/ledger-qa'
+    | '/admin/proforma'
     | '/concierge/$id'
     | '/concierge/new'
     | '/counsel/archive'
@@ -1370,6 +1381,7 @@ export interface FileRouteTypes {
     | '/admin/documents'
     | '/admin/invitations'
     | '/admin/ledger-qa'
+    | '/admin/proforma'
     | '/concierge/$id'
     | '/concierge/new'
     | '/counsel/archive'
@@ -1491,6 +1503,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/documents'
     | '/_authenticated/admin/invitations'
     | '/_authenticated/admin/ledger-qa'
+    | '/_authenticated/admin/proforma'
     | '/_authenticated/concierge/$id'
     | '/_authenticated/concierge/new'
     | '/_authenticated/counsel/archive'
@@ -1893,6 +1906,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/concierge/$id'
       preLoaderRoute: typeof AuthenticatedConciergeIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/proforma': {
+      id: '/_authenticated/admin/proforma'
+      path: '/proforma'
+      fullPath: '/admin/proforma'
+      preLoaderRoute: typeof AuthenticatedAdminProformaRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/ledger-qa': {
       id: '/_authenticated/admin/ledger-qa'
@@ -2642,6 +2662,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminDocumentsRoute: typeof AuthenticatedAdminDocumentsRoute
   AuthenticatedAdminInvitationsRoute: typeof AuthenticatedAdminInvitationsRoute
   AuthenticatedAdminLedgerQaRoute: typeof AuthenticatedAdminLedgerQaRoute
+  AuthenticatedAdminProformaRoute: typeof AuthenticatedAdminProformaRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminAuditsKeyingRoute: typeof AuthenticatedAdminAuditsKeyingRoute
   AuthenticatedAdminAuditsLogRoute: typeof AuthenticatedAdminAuditsLogRoute
@@ -2672,6 +2693,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminDocumentsRoute: AuthenticatedAdminDocumentsRoute,
     AuthenticatedAdminInvitationsRoute: AuthenticatedAdminInvitationsRoute,
     AuthenticatedAdminLedgerQaRoute: AuthenticatedAdminLedgerQaRoute,
+    AuthenticatedAdminProformaRoute: AuthenticatedAdminProformaRoute,
     AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
     AuthenticatedAdminAuditsKeyingRoute: AuthenticatedAdminAuditsKeyingRoute,
     AuthenticatedAdminAuditsLogRoute: AuthenticatedAdminAuditsLogRoute,

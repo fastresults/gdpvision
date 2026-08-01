@@ -369,9 +369,14 @@ export function BriefingPanel({
                     </span>
                     {s.heading}
                   </h3>
-                  <div className="cb-screen-prose mt-4 max-w-none text-sm leading-relaxed text-ink-800">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.body_md}</ReactMarkdown>
-                  </div>
+                  {s.opener ? (
+                    <BriefOpenerBlock opener={s.opener} variant="screen" />
+                  ) : (
+                    <div className="cb-screen-prose mt-4 max-w-none text-sm leading-relaxed text-ink-800">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.body_md}</ReactMarkdown>
+                    </div>
+                  )}
+
                 </article>
               ))}
             </div>

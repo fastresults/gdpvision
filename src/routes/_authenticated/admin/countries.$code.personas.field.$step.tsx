@@ -99,7 +99,9 @@ function FieldStageBody({
     <FieldStageProvider>
       <div className="space-y-6">
         <FieldStepper
+          code={code}
           active={stage}
+          activeProjectId={projectId}
           briefCommitted={gate.committed}
           planCommitted={gate.planCommitted}
           progress={progress}

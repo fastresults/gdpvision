@@ -341,7 +341,8 @@ export async function assembleBriefing(
       "",
       "### Your question, in your words",
       "",
-      committedText,
+      blockquote(briefQuotation(committedText)),
+
       "",
       "### What counts as an answer",
       "",

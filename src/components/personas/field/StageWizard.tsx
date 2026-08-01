@@ -26,8 +26,6 @@ export function StageWizard({
   const nav = useSubSteps();
   const current = nav?.current ?? null;
   const action = current ? (actions?.[current.key] ?? null) : null;
-  const firstOpenIndex = steps.findIndex((step) => !isDone(step));
-  const lastReachableIndex = firstOpenIndex === -1 ? steps.length - 1 : firstOpenIndex;
 
   // The fixed StageFrame footer owns the only primary action. Stage content
   // publishes the active screen's operation here rather than rendering a

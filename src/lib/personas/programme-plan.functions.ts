@@ -64,19 +64,49 @@ export interface PlanProposal {
   risks: Array<{ risk: string; mitigation: string; severity?: string }>;
 }
 
+// A name is only a name when it says something about THIS programme. Generic
+// lifecycle boilerplate ("Phase 1", "TBD", "Untitled") is treated as a missing
+// name so the derivation retries rather than persisting an anonymous phase.
+const GENERIC_NAME =
+  /^(untitled|tbd|to be decided|n\/?a|none|phase\s*\d+|stage\s*\d+|step\s*\d+|part\s*\d+|phase|stage|milestone\s*\d+)\W*$/i;
+
+export function isNamed(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const t = value.trim();
+  return t.length >= 3 && !GENERIC_NAME.test(t);
+}
+
 function isProposal(v: unknown): v is PlanProposal {
   if (!v || typeof v !== "object") return false;
   const p = v as Partial<PlanProposal>;
-  return (
-    typeof p.summary === "string" &&
-    typeof p.duration_days === "number" &&
-    p.duration_days > 0 &&
-    Array.isArray(p.phases) &&
-    p.phases.length > 0 &&
-    Array.isArray(p.milestones) &&
-    p.milestones.length > 0 &&
-    Array.isArray(p.method_mix)
-  );
+  if (
+    typeof p.summary !== "string" ||
+    typeof p.duration_days !== "number" ||
+    p.duration_days <= 0 ||
+    !Array.isArray(p.phases) ||
+    p.phases.length === 0 ||
+    !Array.isArray(p.milestones) ||
+    p.milestones.length === 0 ||
+    !Array.isArray(p.method_mix)
+  ) {
+    return false;
+  }
+  // Every phase must carry a specific, non-repeating name and an intent.
+  const seen = new Set<string>();
+  for (const ph of p.phases) {
+    if (!isNamed(ph?.name)) return false;
+    if (typeof ph.intent !== "string" || ph.intent.trim().length < 8) return false;
+    const key = ph.name.trim().toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+  }
+  // Milestones must be named too, and bound to a real phase.
+  const phaseNames = new Set(p.phases.map((ph) => ph.name.trim().toLowerCase()));
+  for (const m of p.milestones) {
+    if (!isNamed(m?.title)) return false;
+    if (typeof m.phase !== "string" || !phaseNames.has(m.phase.trim().toLowerCase())) return false;
+  }
+  return true;
 }
 
 // ── Prompt ─────────────────────────────────────────────────────────────────
@@ -87,7 +117,8 @@ You have NO templates. Every programme you design is derived entirely from the b
 
 Rules:
 - Derive duration from the brief's stated deadline, scope, audience difficulty and urgency. If the brief names a deadline, size the work to land before it. If it does not, propose a defensible span and justify it.
-- Name phases for this programme, in this client's language. Use as many or as few as the work needs.
+- NAMING IS NOT OPTIONAL. Every phase carries a specific, substantive name drawn from this brief's subject matter, sector and the client's own language — e.g. "Diaspora Trust Baseline", "Agent Network Diagnostic", "Cabinet Read-out & Advisory". Never "Phase 1", "Stage 2", "Fieldwork", "Untitled", "TBD" or any lifecycle boilerplate that would fit any programme. No two phases may share a name. Each phase also carries a one-sentence intent. The same standard applies to milestone titles and deliverable titles.
+- Use as many or as few phases as the work genuinely needs.
 - Every milestone and deliverable must be one this brief genuinely implies.
 - Choose methods per objective and justify each choice. Never list a method you cannot tie to an objective.
 - Express all timing as integer day offsets from programme start (day 0). Offsets must be internally consistent and non-decreasing within a phase.
@@ -162,19 +193,121 @@ type BriefRow = {
   brief_raw: string | null;
   brief_scope: Json | null;
   brief_uploads: Json | null;
+  brief_source: Json | null;
   brief_committed_at: string | null;
 };
 
+type UploadLike = { name?: string; mime?: string; excerpt?: string };
+
+/**
+ * The planner reads brief-first. The governing Source Brief is labelled as
+ * authoritative; supporting context may qualify it but never overrides it.
+ */
 function briefText(row: BriefRow): string {
+  const parts: string[] = [];
+
+  const source = (row.brief_source ?? null) as UploadLike | null;
+  if (source?.excerpt && source.excerpt.trim()) {
+    parts.push(
+      `=== GOVERNING SOURCE BRIEF (authoritative) — ${source.name ?? "brief document"} ===\n${source.excerpt.trim()}`,
+    );
+  }
+
   const raw = (row.brief_raw ?? "").trim();
+  if (raw) {
+    parts.push(`=== BRIEF AS WRITTEN / CONFIRMED BY THE CLIENT (authoritative) ===\n${raw}`);
+  }
+
   const uploads = Array.isArray(row.brief_uploads)
-    ? (row.brief_uploads as unknown as Array<{ name?: string; mime?: string; excerpt?: string }>)
+    ? (row.brief_uploads as unknown as UploadLike[])
     : [];
-  const block = uploads
-    .filter((u) => u.excerpt && u.excerpt.trim().length > 0)
-    .map((u) => `\n\n[UPLOAD: ${u.name ?? "document"}]\n${u.excerpt}`)
-    .join("");
-  return `${raw}${block}`.trim();
+  for (const u of uploads) {
+    if (!u?.excerpt || !u.excerpt.trim()) continue;
+    if (source?.name && u.name === source.name) continue;
+    parts.push(
+      `=== SUPPORTING CONTEXT (qualifies the brief; never overrides it) — ${u.name ?? "document"} ===\n${u.excerpt.trim()}`,
+    );
+  }
+
+  return parts.join("\n\n").trim();
+}
+
+// ── Naming repair pass ─────────────────────────────────────────────────────
+// If both models return a plan with anonymous, duplicate or boilerplate phase
+// names, we do not persist it. One naming-only call re-titles the phases from
+// the brief; if that also fails, the name falls back to the phase's own intent
+// so a generic placeholder never reaches the database.
+
+function isLoosePlan(v: unknown): v is PlanProposal {
+  if (!v || typeof v !== "object") return false;
+  const p = v as Partial<PlanProposal>;
+  return (
+    typeof p.summary === "string" &&
+    typeof p.duration_days === "number" &&
+    p.duration_days > 0 &&
+    Array.isArray(p.phases) &&
+    p.phases.length > 0 &&
+    Array.isArray(p.milestones) &&
+    Array.isArray(p.method_mix)
+  );
+}
+
+function firstSentence(s: string, max = 60): string {
+  const t = s.trim().replace(/\s+/g, " ");
+  const cut = t.split(/[.;—]/)[0] ?? t;
+  return (cut.length > max ? `${cut.slice(0, max - 1).trimEnd()}…` : cut) || t.slice(0, max);
+}
+
+async function repairPhaseNames(plan: PlanProposal, briefBody: string): Promise<PlanProposal> {
+  const bad = plan.phases.some((p, i) => {
+    if (!isNamed(p?.name)) return true;
+    return plan.phases.findIndex((q) => q.name?.trim().toLowerCase() === p.name.trim().toLowerCase()) !== i;
+  });
+  if (!bad) return plan;
+
+  let named: Array<{ index: number; name: string }> = [];
+  try {
+    const res = await deriveJson<{ phases: Array<{ index: number; name: string }> }>({
+      system:
+        "You name research programme phases. Each name is specific to the brief's subject, sector and client language, at most six words, never lifecycle boilerplate ('Phase 1', 'Fieldwork', 'Analysis'), and never repeated. Return JSON only.",
+      user: `BRIEF (extract):\n${briefBody.slice(0, 8_000)}\n\nPHASES TO NAME (index · current name · intent):\n${plan.phases
+        .map((p, i) => `${i} · ${p.name ?? "(unnamed)"} · ${p.intent ?? ""}`)
+        .join("\n")}\n\nReturn: {"phases":[{"index":0,"name":"..."}]}`,
+      validate: (v): v is { phases: Array<{ index: number; name: string }> } =>
+        !!v &&
+        typeof v === "object" &&
+        Array.isArray((v as { phases?: unknown }).phases) &&
+        (v as { phases: Array<{ name?: unknown }> }).phases.every((p) => isNamed(p?.name)),
+    });
+    named = res.phases;
+  } catch {
+    /* fall through to intent-derived names */
+  }
+
+  const used = new Set<string>();
+  const phases = plan.phases.map((p, i) => {
+    const proposed = named.find((n) => n.index === i)?.name?.trim();
+    let name = isNamed(proposed) ? (proposed as string) : isNamed(p.name) ? p.name.trim() : "";
+    if (!name) name = firstSentence(p.intent ?? "") || `${plan.summary ? firstSentence(plan.summary, 40) : "Programme"} · part ${i + 1}`;
+    let key = name.toLowerCase();
+    if (used.has(key)) {
+      name = `${name} · ${i + 1}`;
+      key = name.toLowerCase();
+    }
+    used.add(key);
+    return { ...p, name };
+  });
+
+  // Re-point milestones whose phase reference no longer resolves.
+  const validNames = new Set(phases.map((p) => p.name.toLowerCase()));
+  const oldToNew = new Map(plan.phases.map((p, i) => [(p.name ?? "").trim().toLowerCase(), phases[i].name]));
+  const milestones = (plan.milestones ?? []).map((m) => {
+    const ref = (m.phase ?? "").trim().toLowerCase();
+    if (validNames.has(ref)) return m;
+    return { ...m, phase: oldToNew.get(ref) ?? phases[0].name };
+  });
+
+  return { ...plan, phases, milestones };
 }
 
 // ── Derive a plan proposal ─────────────────────────────────────────────────
@@ -195,7 +328,9 @@ export const deriveProgrammePlan = createServerFn({ method: "POST" })
 
     const { data: row, error } = await supabase
       .from("persona_projects")
-      .select("id,title,country_code,brief_raw,brief_scope,brief_uploads,brief_committed_at")
+      .select(
+        "id,title,country_code,brief_raw,brief_scope,brief_uploads,brief_source,brief_committed_at",
+      )
       .eq("id", data.projectId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -215,23 +350,38 @@ export const deriveProgrammePlan = createServerFn({ method: "POST" })
       .eq("code", project.country_code)
       .maybeSingle();
 
-    const proposal = await deriveJson<PlanProposal>({
-      system: PLANNER_SYSTEM,
-      user: plannerUser({
-        countryName: (country?.name as string) ?? project.country_code,
-        countryCode: project.country_code,
-        title: project.title,
-        briefText: text,
-        scope: project.brief_scope,
-        constraints: {
-          deadline: data.deadline ?? null,
-          startsOn: data.startsOn ?? null,
-          notes: data.constraints ?? null,
-        },
-        steering: data.steering ?? null,
-      }),
-      validate: isProposal,
+    const userPrompt = plannerUser({
+      countryName: (country?.name as string) ?? project.country_code,
+      countryCode: project.country_code,
+      title: project.title,
+      briefText: text,
+      scope: project.brief_scope,
+      constraints: {
+        deadline: data.deadline ?? null,
+        startsOn: data.startsOn ?? null,
+        notes: data.constraints ?? null,
+      },
+      steering: data.steering ?? null,
     });
+
+    // Strict first: a plan with anonymous or duplicate phase names is rejected
+    // and re-derived. Only if both models fail the strict bar do we accept a
+    // looser plan and repair the naming before anything is persisted.
+    let proposal: PlanProposal;
+    try {
+      proposal = await deriveJson<PlanProposal>({
+        system: PLANNER_SYSTEM,
+        user: userPrompt,
+        validate: isProposal,
+      });
+    } catch {
+      const loose = await deriveJson<PlanProposal>({
+        system: PLANNER_SYSTEM,
+        user: userPrompt,
+        validate: isLoosePlan,
+      });
+      proposal = await repairPhaseNames(loose, text);
+    }
 
     const startsOn = resolveStart(data.startsOn, data.deadline, proposal.duration_days);
     const endsOn = addDays(startsOn, proposal.duration_days);
@@ -386,7 +536,7 @@ export const commitProgrammePlan = createServerFn({ method: "POST" })
     const { supabase } = context;
     const { data: plan, error } = await supabase
       .from("programme_plans")
-      .select("id,project_id")
+      .select("*")
       .eq("id", data.planId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -404,7 +554,60 @@ export const commitProgrammePlan = createServerFn({ method: "POST" })
       .update({ status: "active", committed_at: new Date().toISOString() } as never)
       .eq("id", data.planId);
     if (updErr) throw new Error(updErr.message);
-    return { ok: true as const };
+
+    // Archive the approved programme into the country's second brain so any
+    // chamber can cite it. Idempotent — a re-approval updates in place.
+    let filed = false;
+    try {
+      const [{ data: phases }, { data: milestones }, { data: deliverables }, { data: project }] =
+        await Promise.all([
+          supabase
+            .from("programme_phases")
+            .select("name,intent,starts_on,ends_on")
+            .eq("plan_id", data.planId)
+            .order("position"),
+          supabase
+            .from("programme_milestones")
+            .select("title,detail,owner,due_on")
+            .eq("plan_id", data.planId)
+            .order("due_on"),
+          supabase
+            .from("programme_deliverables")
+            .select("title,kind,owner,due_on")
+            .eq("plan_id", data.planId)
+            .order("due_on"),
+          supabase
+            .from("persona_projects")
+            .select("title")
+            .eq("id", plan.project_id as string)
+            .maybeSingle(),
+        ]);
+
+      const { ingestProgrammePlanToCorpus } = await import("./field-corpus.server");
+      await ingestProgrammePlanToCorpus({
+        countryCode: plan.country_code as string,
+        projectId: plan.project_id as string,
+        projectTitle: (project?.title as string | undefined) ?? "Research programme",
+        planId: data.planId,
+        version: (plan.version as number | undefined) ?? 1,
+        startsOn: (plan.starts_on as string | null) ?? null,
+        endsOn: (plan.ends_on as string | null) ?? null,
+        summary: (plan.summary as string | null) ?? null,
+        objectives: plan.objectives ?? null,
+        methodMix: plan.method_mix ?? null,
+        audience: plan.audience ?? null,
+        risks: plan.risks ?? null,
+        rationale: plan.rationale ?? null,
+        phases: (phases ?? []) as never,
+        milestones: (milestones ?? []) as never,
+        deliverables: (deliverables ?? []) as never,
+      });
+      filed = true;
+    } catch {
+      // Approval must not fail because the corpus write did.
+    }
+
+    return { ok: true as const, filedToCorpus: filed };
   });
 
 export const discardProgrammePlan = createServerFn({ method: "POST" })

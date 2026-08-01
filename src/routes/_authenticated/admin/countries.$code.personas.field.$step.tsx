@@ -12,7 +12,7 @@ import { CalendarRange, ClipboardList, Library, Loader2, Mic, Users } from "luci
 
 import { FieldStepper, type FieldStageKey } from "@/components/personas/FieldStepper";
 import { TrackTabs } from "@/components/personas/TrackTabs";
-import { PrettyJson } from "@/components/data/PrettyJson";
+
 import { useResearchGate } from "@/hooks/useResearchGate";
 import {
   commitProgrammePlan,
@@ -128,7 +128,20 @@ function PlanStage({ code, projectId }: { code: string; projectId: string }) {
   });
 
   const data = planQ.data;
-  const plan = data?.plan as { id: string; status: string; starts_on?: string | null; ends_on?: string | null; rationale?: unknown } | undefined;
+  const plan = data?.plan as
+    | {
+        id: string;
+        status: string;
+        summary?: string | null;
+        starts_on?: string | null;
+        ends_on?: string | null;
+        rationale?: unknown;
+      }
+    | undefined;
+  const durationRationale =
+    plan?.rationale && typeof plan.rationale === "object"
+      ? ((plan.rationale as { duration?: unknown }).duration as string | undefined)
+      : undefined;
 
   return (
     <section className="space-y-5">
@@ -196,50 +209,120 @@ function PlanStage({ code, projectId }: { code: string; projectId: string }) {
         </p>
       ) : (
         <div className="space-y-4">
+          {plan?.summary ? (
+            <div className="border border-line-200 bg-paper-0 p-4">
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                The programme in a paragraph
+              </p>
+              <p className="mt-1.5 max-w-3xl text-[13px] leading-relaxed text-ink-800">
+                {plan.summary}
+              </p>
+              {durationRationale ? (
+                <p className="mt-2 max-w-3xl text-[12px] leading-relaxed text-ink-600">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+                    Why this span ·{" "}
+                  </span>
+                  {durationRationale}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="grid gap-3 sm:grid-cols-3">
             <Fact label="Window" value={`${plan?.starts_on ?? "—"} → ${plan?.ends_on ?? "—"}`} />
             <Fact label="Phases" value={String(data.phases.length)} />
             <Fact label="Deliverables" value={String(data.deliverables.length)} />
           </div>
 
-          <PhaseList phases={data.phases as Array<Record<string, unknown>>} />
-
-          <details className="border border-line-200 bg-paper-0">
-            <summary className="cursor-pointer px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-              Milestones & deliverables
-            </summary>
-            <div className="border-t border-line-200 p-4">
-              <PrettyJson value={{ milestones: data.milestones, deliverables: data.deliverables }} />
-            </div>
-          </details>
-
-          {plan?.rationale ? (
-            <div className="border border-line-200 bg-paper-0 p-4">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Why this shape</p>
-              <div className="mt-2">
-                <PrettyJson value={plan.rationale as never} />
-              </div>
-            </div>
-          ) : null}
+          <PhaseList
+            phases={data.phases as Array<Record<string, unknown>>}
+            milestones={data.milestones as Array<Record<string, unknown>>}
+            deliverables={data.deliverables as Array<Record<string, unknown>>}
+          />
         </div>
       )}
     </section>
   );
 }
 
-function PhaseList({ phases }: { phases: Array<Record<string, unknown>> }) {
+/** The name the AI gave this phase — never a generic placeholder. */
+function phaseName(p: Record<string, unknown>, i: number): string {
+  const name = (p.name ?? p.title) as string | undefined;
+  if (typeof name === "string" && name.trim()) return name.trim();
+  const intent = p.intent ?? p.purpose;
+  if (typeof intent === "string" && intent.trim()) {
+    const first = intent.trim().split(/[.;—]/)[0] ?? intent.trim();
+    return first.length > 64 ? `${first.slice(0, 63).trimEnd()}…` : first;
+  }
+  return `Phase ${String(i + 1).padStart(2, "0")} · awaiting a name`;
+}
+
+function PhaseList({
+  phases,
+  milestones,
+  deliverables,
+}: {
+  phases: Array<Record<string, unknown>>;
+  milestones: Array<Record<string, unknown>>;
+  deliverables: Array<Record<string, unknown>>;
+}) {
   if (phases.length === 0) return null;
+  const milestoneIds = new Set(milestones.map((m) => String(m.id)));
   return (
     <ol className="divide-y divide-line-200 border border-line-200 bg-paper-0">
-      {phases.map((p, i) => (
-        <li key={String(p.id ?? i)} className="p-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            Phase {String(i + 1).padStart(2, "0")} · {String(p.starts_on ?? "—")} → {String(p.ends_on ?? "—")}
-          </p>
-          <p className="mt-0.5 font-serif text-lg text-ink-950">{String(p.title ?? "Untitled phase")}</p>
-          {p.purpose ? <p className="mt-1 text-[13px] text-ink-700">{String(p.purpose)}</p> : null}
-        </li>
-      ))}
+      {phases.map((p, i) => {
+        const mine = milestones.filter((m) => String(m.phase_id ?? "") === String(p.id ?? ""));
+        const mineIds = new Set(mine.map((m) => String(m.id)));
+        const drops = deliverables.filter((d) => {
+          const mid = String(d.milestone_id ?? "");
+          if (mid && mineIds.has(mid)) return true;
+          // Deliverables not bound to any milestone sit with the last phase.
+          return !mid || !milestoneIds.has(mid) ? i === phases.length - 1 : false;
+        });
+        const intent = (p.intent ?? p.purpose) as string | undefined;
+        return (
+          <li key={String(p.id ?? i)} className="p-4">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+              Phase {String(i + 1).padStart(2, "0")} · {String(p.starts_on ?? "—")} →{" "}
+              {String(p.ends_on ?? "—")}
+            </p>
+            <p className="mt-0.5 font-serif text-lg text-ink-950">{phaseName(p, i)}</p>
+            {intent ? <p className="mt-1 max-w-3xl text-[13px] text-ink-700">{intent}</p> : null}
+
+            {mine.length > 0 && (
+              <ul className="mt-3 space-y-1.5 border-l border-line-200 pl-3">
+                {mine.map((m) => (
+                  <li key={String(m.id)} className="text-[13px] text-ink-800">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+                      {String(m.due_on ?? "—")}
+                    </span>{" "}
+                    · {String(m.title ?? "Milestone")}
+                    {m.owner ? (
+                      <span className="text-ink-500"> — {String(m.owner)}</span>
+                    ) : null}
+                    {m.detail ? (
+                      <span className="block text-[12px] text-ink-600">{String(m.detail)}</span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {drops.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {drops.map((d) => (
+                  <span
+                    key={String(d.id)}
+                    className="border border-line-200 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-600"
+                  >
+                    {String(d.title ?? "Deliverable")} · {String(d.due_on ?? "—")}
+                  </span>
+                ))}
+              </div>
+            )}
+          </li>
+        );
+      })}
     </ol>
   );
 }

@@ -203,3 +203,57 @@ export async function buildFieldTag(studyId: string): Promise<FieldCorpusTag> {
     method: (study.method as string | null) ?? null,
   };
 }
+
+/**
+ * File an approved programme plan into the country's second brain.
+ *
+ * Idempotent by (country, kind, title) — re-approving a plan updates the same
+ * memory object rather than duplicating it. Private to the owning country, in
+ * line with the rest of the field track.
+ */
+export async function ingestProgrammePlanToCorpus(args: {
+  countryCode: string;
+  projectId: string;
+  projectTitle: string;
+  planId: string;
+  version: number;
+  startsOn: string | null;
+  endsOn: string | null;
+  summary: string | null;
+  objectives: unknown;
+  methodMix: unknown;
+  audience: unknown;
+  risks: unknown;
+  rationale: unknown;
+  phases: Array<{ name: string; intent: string | null; starts_on: string | null; ends_on: string | null }>;
+  milestones: Array<{ title: string; detail: string | null; owner: string | null; due_on: string | null }>;
+  deliverables: Array<{ title: string; kind: string | null; owner: string | null; due_on: string | null }>;
+}): Promise<{ id: string } | null> {
+  const res = await upsertMemoryObject({
+    scope_key: args.countryCode,
+    kind: "research_programme_plan",
+    title: `Programme plan · ${args.projectTitle}`.slice(0, 240),
+    weight: 5,
+    sector_code: "cross",
+    payload: {
+      evidence_type: "real_world_field_research",
+      synthetic: false,
+      programme_id: args.projectId,
+      programme: args.projectTitle,
+      plan_id: args.planId,
+      version: args.version,
+      window: { starts_on: args.startsOn, ends_on: args.endsOn },
+      summary: args.summary,
+      objectives: args.objectives,
+      method_mix: args.methodMix,
+      audience: args.audience,
+      risks: args.risks,
+      rationale: args.rationale,
+      phases: args.phases,
+      milestones: args.milestones,
+      deliverables: args.deliverables,
+      approved_at: new Date().toISOString(),
+    },
+  });
+  return res ? { id: res.id } : null;
+}

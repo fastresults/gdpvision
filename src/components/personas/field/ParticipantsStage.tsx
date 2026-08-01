@@ -138,6 +138,12 @@ export function ParticipantsStage({
       return next;
     });
 
+  useDirtyRegistration("participants-roster", roster.trim().length > 0, "a pasted roster", async () => {
+    await doImport.mutateAsync();
+  });
+
+
+
   return (
     <div className="space-y-5">
       {/* AI-first recruitment: the frame, the research, the slates */}

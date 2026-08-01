@@ -350,8 +350,27 @@ export function InstrumentsStage({
                   </li>
                 ))}
               </ul>
+              <p className="mt-3 border-t border-line-200 pt-2 text-[12px]">
+                <Explain id="research.instrument.frontline" mark={false}>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                    Frontline insight · beyond the brief
+                  </span>
+                </Explain>{" "}
+                {frontlineCount > 0 ? (
+                  <span className="text-ink-700">
+                    {frontlineCount} closing question{frontlineCount === 1 ? "" : "s"} ask where the
+                    work breaks and what they would change. Excluded from coverage above.
+                  </span>
+                ) : (
+                  <span className="text-amber-700">
+                    This instrument no longer carries the closing frontline block. Re-draft to
+                    restore it, or keep it removed deliberately.
+                  </span>
+                )}
+              </p>
             </div>
           ) : null}
+
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-200 p-3">
             <div className="flex flex-wrap items-center gap-2">

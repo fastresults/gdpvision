@@ -27,7 +27,7 @@ export type BriefingPrintConfig = {
 export const DEFAULT_BRIEFING_PRINT_CONFIG: BriefingPrintConfig = {
   classification: "Client · Confidential",
   preparedFor: "The Office of the Prime Minister",
-  preparedBy: "GDPVision · Chamber 07 · Research",
+  preparedBy: "",
   dateLabel: new Date().toLocaleDateString(undefined, {
     year: "numeric",
     month: "long",
@@ -57,7 +57,7 @@ export function PrintableBriefing({
     <PrintSurface
       id={BRIEFING_PRINT_SURFACE}
       rootId="briefing-print-root"
-      pageCss={pageCss(config)}
+      pageCss={pageCss(config, briefing)}
       rootProps={{ "data-page-numbers": config.showPageNumbers ? "on" : "off" }}
     >
       <style>{PRINT_CSS}</style>
@@ -84,7 +84,9 @@ export function PrintableBriefing({
           </div>
           <div className="cb-cover-foot">
             <FootCell label="Prepared for" value={config.preparedFor} />
-            <FootCell label="Prepared by" value={config.preparedBy} />
+            {config.preparedBy.trim().length > 0 && (
+              <FootCell label="Prepared by" value={config.preparedBy} />
+            )}
             <FootCell label="Date" value={config.dateLabel} />
             <FootCell label="Deliverables" value={String(briefing.metrics.deliverables)} />
           </div>

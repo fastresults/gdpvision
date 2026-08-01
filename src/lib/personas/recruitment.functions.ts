@@ -26,7 +26,7 @@ import {
   RecruitmentPersonaShape as PersonaShape,
   type RecruitmentProjectRow as ProjectRow,
 } from "./recruitment-shared";
-import type { RecruitmentFrame } from "./recruitment-research.server";
+import type { RecruitmentFrame, RecruitmentPersona } from "./recruitment-research.server";
 
 // ── Shared reads ───────────────────────────────────────────────────────────
 

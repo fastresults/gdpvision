@@ -30,6 +30,7 @@ import { useDossierActions } from "@/hooks/useDossierActions";
 
 import { DeckModal } from "../deck/DeckModal";
 import { BriefOpenerBlock } from "./BriefOpenerBlock";
+import { sanitizeSectionMarkdown } from "./sanitizeSectionMarkdown";
 
 import { ExportBriefingDialog } from "./ExportBriefingDialog";
 import { ShareLinkBar } from "./ShareLinkBar";

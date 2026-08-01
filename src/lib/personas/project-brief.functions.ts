@@ -261,9 +261,13 @@ export type ProgrammeProposal = {
   openQuestions: string[];
 };
 
+// Intake is two-tier: ONE governing source brief, N supporting context items.
+// `uploads` is retained for older callers and is treated as context.
 const ProposeInput = z.object({
   countryCode: z.string().min(2).max(4),
   raw: z.string().max(40_000).optional(),
+  brief: UploadSchema.nullish(),
+  context: z.array(UploadSchema).max(20).optional(),
   uploads: z.array(UploadSchema).max(20).optional(),
 });
 

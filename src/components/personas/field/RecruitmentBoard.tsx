@@ -228,7 +228,7 @@ export function RecruitmentBoard({
             )}
             {derive.isPending ? "Reading the brief…" : "Derive the recruitment frame"}
           </button>
-          <Explain id="research.recruitment.frame" />
+          <Explain id="research.recruitment.frame">How this frame was set</Explain>
         </div>
         {derive.isError ? (
           <p className="mt-2 text-[12px] text-rose-600">{(derive.error as Error).message}</p>
@@ -252,7 +252,7 @@ export function RecruitmentBoard({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Explain id="research.recruitment.frame" />
+            <Explain id="research.recruitment.frame">How this frame was set</Explain>
             <button
               type="button"
               className="btn-ghost"
@@ -329,7 +329,7 @@ export function RecruitmentBoard({
             )}
             Compose the focus groups
           </button>
-          <Explain id="research.recruitment.groups" />
+          <Explain id="research.recruitment.groups">How groups are balanced</Explain>
         </div>
         {compose.isError ? (
           <p className="mt-2 text-[12px] text-rose-600">{(compose.error as Error).message}</p>
@@ -390,7 +390,7 @@ export function RecruitmentBoard({
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Explain id="research.recruitment.sourcing" />
+                <Explain id="research.recruitment.sourcing">Sourcing standard</Explain>
                 <button
                   type="button"
                   className="btn-secondary"

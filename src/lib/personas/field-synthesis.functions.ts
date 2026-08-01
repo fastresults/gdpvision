@@ -132,6 +132,7 @@ Return JSON:
   "quotes": [{"quote":"verbatim","participant":"P-0001","context":"why it matters"}],
   "tensions": ["contradictions or disagreements in the evidence"],
   "implications": ["what the client should do or decide as a result"],
+  "innovation_signals": [{"idea":"the refinement or invention respondents raised","raised_by":3,"confidence":"how sure they were it would work","what_would_improve":"the improvement they expect","verbatim":"one quote in their words"}],
   "confidence": {"level":"high|moderate|low","why":"...","limitations":["..."]}
 }`;
 

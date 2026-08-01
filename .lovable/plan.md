@@ -1,29 +1,45 @@
-## What the screenshot shows
+## What's wrong
 
-The page in the PDF is not our Table of Contents. It is the client's own RFP text pasted verbatim into the briefing: `commencement-briefing.server.ts` builds the first section ("The brief") by inserting the whole governing-brief text (`committedText`) under "Your question, in your words". That text came out of a parsed PDF with its line breaks lost, so the client's own contents list ("Table of Contents Executive Summary Company Profile & Overview …") reflows as one run-on paragraph, along with "SUBMITTED BY …" cover lines.
+The two buttons in the track row (`Discovery brief`, `Presentation`) only *open* what already exists. Regeneration is buried: re-assembling the dossier means opening the briefing window and finding "Re-assemble from current state"; re-composing the deck means scrolling past it to "Re-compose deck". There is also no signal that what you're about to open is out of date relative to the brief, plan, participants or instruments that have changed since.
 
-Our real contents page exists (`PrintableBriefing.tsx`, `cb-toc`) but it is optional (`showToc`), and the "Print" button exports with whatever config is in state — so the structured contents page can be absent while the raw dump is present.
+## What to build
 
-## Plan
+### 1. Split buttons in the track row
 
-**1. Always present the contents page**
-- Make the contents page non-optional in the exported PDF: contents renders whenever the document has 2+ sections; remove the ability to ship a dossier with no TOC (keep cover/page-number toggles).
-- Number the contents entries to match section numbers already printed on each section head, and add a right-hand page indicator column so it reads as a real TOC rather than a list.
+Each of the two actions becomes a two-part control: the main label opens it, a narrow attached button with a refresh glyph regenerates it.
 
-**2. Stop the raw brief from impersonating a contents page**
-- In `commencement-briefing.server.ts`, replace the verbatim `committedText` insertion with a normalised, bounded quotation:
-  - strip cover/administrative furniture (SUBMITTED BY / CONFIDENTIAL / PREPARED EXCLUSIVELY FOR lines) and any inline "Table of Contents …" run;
-  - re-flow the parsed text into paragraphs and clamp it to a short quoted mandate excerpt;
-  - keep the full governing text where it belongs — provenance/audit — not in the body of the client dossier.
-- Render the excerpt as a blockquote so it is visibly the client's words, not our narrative.
+```text
+┌──────────────────────┬───┐ ┌────────────────────┬───┐
+│ 📄 Discovery brief   │ ↻ │ │ 🖵 Presentation    │ ↻ │
+└──────────────────────┴───┘ └────────────────────┴───┘
+```
 
-**3. Print CSS**
-- Keep the contents page on its own sheet (`break-after: page`) and prevent it colliding with the first section.
-- Guard against the reverse case: if the cover page is off, the contents page must still start the document cleanly under the `@page :first` margins.
+- Refresh side shows a spinner and disables both halves while running.
+- On success the corresponding window opens on the fresh version, so the operator sees the result rather than guessing.
+- Errors surface as a small inline note under the row, not a silent no-op.
+- Tooltip on the refresh half states plainly what it re-reads ("Re-assemble the dossier from the brief, plan, participants and instruments as they stand now").
 
-**4. Verify**
-- Assemble the Grenada briefing, export to PDF headlessly, render every page to an image, and confirm: page 1 cover, page 2 structured contents with one line per section, no run-on RFP contents text, no clipped margins.
+### 2. Staleness signal
+
+When a briefing or deck exists but was assembled before the latest change to its inputs, mark the control: a small gold dot on the refresh half plus a tooltip ("Assembled 3 days ago — inputs have changed since"). The deck also goes stale whenever its `briefingVersion` no longer matches the current briefing version — that comparison already exists inside the panel and moves up to the row.
+
+### 3. Confirm before overwriting a sent dossier
+
+If the briefing status is `shared`, regenerating asks for confirmation first ("This dossier was sent to the client on 28 Jul. Re-assembling replaces it with a new version."). Nothing else prompts — regeneration is cheap and expected while the programme is being prepared.
+
+### 4. Same affordance inside the viewers
+
+- **Briefing window**: the existing "Re-assemble from current state" primary stays, but gains the version and staleness line beside it so the operator can tell whether it's worth pressing.
+- **Deck window**: add a "Re-compose" action into the deck modal's own header, so it can be regenerated without closing back to the panel.
+
+### 5. Shared behaviour
+
+Both regenerations invalidate their query keys and any dependent readouts, so version chips, dates and the export preflight update immediately without a page reload.
 
 ## Technical notes
 
-Files touched: `src/lib/personas/commencement-briefing.server.ts` (brief section assembly + text normaliser), `src/components/personas/field/briefing/PrintableBriefing.tsx` (contents always rendered, page column, print CSS), `src/components/personas/field/briefing/ExportBriefingDialog.tsx` (drop the TOC toggle). Existing briefings need one re-assemble to pick up the cleaned brief section; the panel already prompts for re-assembly.
+- Extract a small `SplitAction` control (primary + attached secondary) under `src/components/personas/field/briefing/`, styled with the existing `btn-secondary` / `btn-ghost` utilities — no inline colour classes.
+- Lift the briefing and deck queries (`getCommencementBriefing`, `getProgrammeDeck`) and the two assemble mutations (`assembleCommencementBriefing`, `assembleProgrammeDeck`) into a `useDossierActions(projectId)` hook so the route row and `BriefingPanel` share one source of truth and one cache, instead of the panel owning them alone.
+- Route file `countries.$code.personas.field.$step.tsx` renders the split buttons through that hook in the `TrackTabs` `actions` slot; `BriefingPanel` consumes the same hook rather than declaring its own mutations.
+- Staleness = compare `assembled_at` against the latest `updated_at` among brief, plan, participants and instruments already returned by `getFieldProgress`; if the progress payload lacks a timestamp for a stage, add it there rather than issuing new reads.
+- `DeckModal` gains an optional `onRecompose` + `recomposing` prop for the header action.

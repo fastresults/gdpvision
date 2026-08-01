@@ -36,7 +36,9 @@ export const DEFAULT_BRIEFING_PRINT_CONFIG: BriefingPrintConfig = {
 
 function windowLabel(b: CommencementBriefing): string {
   const f = (d: string | null) =>
-    d ? new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—";
+    d
+      ? new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+      : "—";
   return `${f(b.window.starts_on)} → ${f(b.window.ends_on)}`;
 }
 
@@ -75,10 +77,7 @@ export function PrintableBriefing({
             <FootCell label="Prepared for" value={config.preparedFor} />
             <FootCell label="Prepared by" value={config.preparedBy} />
             <FootCell label="Date" value={config.dateLabel} />
-            <FootCell
-              label="Deliverables"
-              value={String(briefing.metrics.deliverables)}
-            />
+            <FootCell label="Deliverables" value={String(briefing.metrics.deliverables)} />
           </div>
         </section>
       )}

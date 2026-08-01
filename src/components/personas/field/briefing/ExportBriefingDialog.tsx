@@ -8,10 +8,7 @@
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 
-import {
-  DEFAULT_BRIEFING_PRINT_CONFIG,
-  type BriefingPrintConfig,
-} from "./PrintableBriefing";
+import { DEFAULT_BRIEFING_PRINT_CONFIG, type BriefingPrintConfig } from "./PrintableBriefing";
 
 const STORAGE_KEY = "chamber07:briefing-print-config";
 
@@ -137,7 +134,11 @@ export function ExportBriefingDialog({
           <button type="button" onClick={onClose} className="btn-ghost">
             Cancel
           </button>
-          <button type="button" onClick={submit} className="btn-primary inline-flex items-center gap-2">
+          <button
+            type="button"
+            onClick={submit}
+            className="btn-primary inline-flex items-center gap-2"
+          >
             <Download size={14} />
             Print / Save as PDF
           </button>

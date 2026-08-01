@@ -380,11 +380,7 @@ export async function assembleBriefing(
         ["Segment", "Why this segment", "Target"],
         audience.map((a) => {
           const r = a as Record<string, unknown>;
-          return [
-            str(r["segment"], "—"),
-            str(r["why"], "—"),
-            String(r["target_n"] ?? "—"),
-          ];
+          return [str(r["segment"], "—"), str(r["why"], "—"), String(r["target_n"] ?? "—")];
         }),
       ),
       "",
@@ -427,7 +423,8 @@ export async function assembleBriefing(
         ? "_No instrument has been drafted against this programme yet._"
         : instruments
             .map((inst) => {
-              const kind = str(inst["kind"]) === "discussion_guide" ? "Discussion guide" : "Questionnaire";
+              const kind =
+                str(inst["kind"]) === "discussion_guide" ? "Discussion guide" : "Questionnaire";
               const qs = asArray<FieldQuestion>(inst["questions"]);
               return [
                 `### ${kind} — ${str(inst["title"], "Untitled")} (v${String(inst["version"] ?? 1)})`,
@@ -452,7 +449,9 @@ export async function assembleBriefing(
         ["Wave", "How it is fielded", "Instrument", "Audience", "Target"],
         waves.map((w) => [
           w.title,
-          w.kind === "collection" ? "Hosted link, one response per participant" : "Moderated session",
+          w.kind === "collection"
+            ? "Hosted link, one response per participant"
+            : "Moderated session",
           w.instrumentKind === "discussion_guide" ? "Discussion guide" : "Questionnaire",
           w.audiences.join("; ") || "—",
           w.target === null ? "—" : String(w.target),

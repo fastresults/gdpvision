@@ -51,8 +51,7 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
 
   const briefingQ = useQuery({
     queryKey: ["commencement-briefing", projectId],
-    queryFn: (): Promise<BriefingRecord | null> =>
-      getCommencementBriefing({ data: { projectId } }),
+    queryFn: (): Promise<BriefingRecord | null> => getCommencementBriefing({ data: { projectId } }),
   });
 
   const assemble = useMutation({

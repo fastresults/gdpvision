@@ -139,4 +139,14 @@ registerRationales([
     caveat:
       "Targets are the plan's stated sample sizes. Returns collected outside this system still count once imported, and closing a wave early is always yours to do — the plan records the size you intended, and the finding should state the size you achieved.",
   },
+  {
+    key: "research.fieldwork.intake",
+    title: "How work done elsewhere is filed",
+    short:
+      "Uploaded returns are read, matched to this study's instrument, and shown to you before anything enters the ledger.",
+    basis:
+      "Each file is parsed on its own terms: spreadsheets and exports are read as delimited data, photographs of paper forms are transcribed, documents are extracted, recordings are transcribed. For quantitative material the chamber matches every uploaded column to a question in the instrument of record by meaning rather than wording, coerces each answer to the type that question expects, and scores completeness per respondent. For qualitative material it produces a speaker-labelled transcript, a factual summary and — only where the material settles them — answers against the discussion guide. Nothing is written until you approve the mapping; committed returns carry the instrument version they answered and the batch they came from.",
+    caveat:
+      "Matching is a judgement, not a fact. Anything below 60% confidence is flagged and every column can be re-pointed or excluded by hand. Rows with no instrument answers are held back by default, and a summary is only as good as the material it was drawn from.",
+  },
 ]);

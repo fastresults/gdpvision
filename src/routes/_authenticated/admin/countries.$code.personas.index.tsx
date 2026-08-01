@@ -163,6 +163,25 @@ function PersonasIndex() {
     );
   }
 
+  // No programme selected — the chamber entrance is the gate, not the
+  // synthetic rail. Choose the instrument, or resume an existing programme.
+  if (!activeProjectId) {
+    return (
+      <div className="space-y-6">
+        <header>
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            Chamber 07 · The Research Chamber
+          </p>
+          <h2 className="mt-1 font-serif text-2xl text-ink-950">
+            Every programme starts with one decision.
+          </h2>
+        </header>
+        <TrackGateEntry code={code} />
+        <ProgramsIndex code={code} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <StudioStepper
@@ -178,6 +197,7 @@ function PersonasIndex() {
       )}
 
       <ProgramsIndex code={code} />
+
 
 
 

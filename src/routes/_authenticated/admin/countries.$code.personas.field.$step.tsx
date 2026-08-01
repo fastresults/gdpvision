@@ -22,6 +22,7 @@ import { StageFrame } from "@/components/personas/field/StageFrame";
 
 import { TrackTabs } from "@/components/personas/TrackTabs";
 
+import { useDossierActions } from "@/hooks/useDossierActions";
 import { useResearchGate } from "@/hooks/useResearchGate";
 import { getFieldProgress } from "@/lib/personas/field-progress.functions";
 import type { FieldProgress } from "@/lib/personas/field-stages";

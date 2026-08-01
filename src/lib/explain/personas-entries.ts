@@ -130,6 +130,16 @@ registerRationales([
       "An objective showing no questions here may legitimately be served by the other instrument, or by a desk-research line that has no instrument at all. Read coverage across the whole method mix, not one tab.",
   },
   {
+    key: "research.instrument.frontline",
+    title: "Why every instrument closes with this block",
+    short:
+      "A standing block, beyond the brief, asking the people touching the work where it breaks and what they would change.",
+    basis:
+      "The objective-led questions answer what the client asked. This block asks what only a stakeholder in the field can answer: the specific step that fails, the workaround they already invented, the one change they would make, and — on the questionnaire — how confident they are it would work, so ideas can be ranked rather than merely collected. It is written to this study's own subject matter at draft time, tagged as frontline insight, and carries no objective reference, so it never inflates objective coverage. If the model omits it, the chamber appends it.",
+    caveat:
+      "These answers are unprompted invention, not measured findings. They are reported separately as innovation signals with the number of respondents who raised each one, and should be treated as leads worth testing rather than conclusions.",
+  },
+  {
     key: "research.fieldwork.waves",
     title: "How the fielding ladder is derived",
     short:

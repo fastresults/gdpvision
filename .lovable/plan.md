@@ -1,53 +1,59 @@
-## What's wrong today
+# Chamber 07 · One brief, many contexts
 
-Stage 00 asks the user to *type a programme name* on a blank line before anything else, then — only after the project exists — offers the brief intake (type / dictate / upload) inside `ProgramBriefIntake`. That inverts the product: this is an AI-first instrument, so the material should lead and the naming, framing and instrument choice should fall out of it.
+Today the intake treats every dropped file identically — one undifferentiated pile fed to the AI. The chamber must instead recognise two distinct roles, and file both into the second brain.
 
-## The new Stage 00: "Give the chamber the material"
+- **The source brief** — exactly one. The RFP, the cabinet memo, the tender notice, the dictated ask. It *governs* the programme: name, objectives, decisions, deadline, instrument.
+- **Supporting context** — zero or many. Prior studies, statistics annexes, manifesto extracts, articles, links. They *inform* the programme; they never redefine it.
 
-The gate becomes two beats instead of "pick instrument → type a name":
+## 1. Intake surface (Beat 1)
+
+Rebuild `ProgrammeIngest` as two stacked, clearly unequal zones.
 
 ```text
-1  INTAKE      drop zone · record · paste link · type
-   AI reads everything → proposes brief, title, track
-2  CONFIRM     one screen: proposed name (editable), the AI's read of the
-               decision, recommended instrument (Synthetic / Field,
-               overridable), visibility → Open the chamber
+┌ THE SOURCE BRIEF ── required, one only ─────────────┐
+│  Drop the document that defines this programme      │
+│  ...or dictate it   ...or paste its link            │
+│  [ once set: filename · "read · 4,200 words" · Replace ]
+└─────────────────────────────────────────────────────┘
+
+┌ SUPPORTING CONTEXT ── optional, as many as you like ┐
+│  + files   + links     (list with per-item remove)   │
+└─────────────────────────────────────────────────────┘
+   Anything the documents don't say  [textarea]
+   [ Read this and build the programme ]
 ```
 
-The user may still skip ingest with a quiet "I'll start from a blank brief" link, which lands on today's naming behaviour.
+Rules enforced in the UI:
+- The brief slot holds one item. Dropping a second offers **Replace the brief** or **Add as context** rather than silently appending.
+- Dictation and the typed note attach to the brief when no brief file exists (a dictated brief is a valid brief); once a brief file exists they become an addendum to it.
+- The primary button stays disabled until a brief exists. Supporting documents alone cannot start a programme.
+- Each context item shows name, source (file/link), and read status; removal is one click.
+- Both zones share the existing upload → parse → excerpt pipeline, so nothing about parsing changes.
 
-### Beat 1 — Intake surface
+## 2. The read (Beat 2)
 
-A single full-width capture panel with four equal ways in:
+`proposeProgrammeFromMaterial` takes the material as `{ brief, context[] }` rather than one blob, and the prompt is explicit about precedence: the brief sets title, objectives, decisions, timeframe and instrument; context may only enrich hypotheses, sensitivities and open questions, and where context contradicts the brief the brief wins and the conflict is surfaced as an open question.
 
-- **Drop zone** — drag or browse; PDF, DOCX, PPTX, XLSX, images, audio. Multi-file, each chip shows parse state and an excerpt tick.
-- **Record** — existing voice recorder + transcription, appended into the brief text.
-- **Paste a link** — new. Paste an RFP page, a news article, a ministry PDF URL, a tender notice; it is fetched, extracted and attached as a source with title + excerpt.
-- **Type / paste text** — the same textarea, now secondary rather than the only path.
+The read-out screen (`ProgrammeSetup`) gains a provenance line under the title — *"Read from **tender-notice.pdf**, informed by 3 supporting documents"* — with the context list expandable, plus an Explain entry covering brief-vs-context precedence.
 
-Everything captured is held client-side until the project is created, then written straight into `brief_raw` / `brief_uploads` so nothing is re-entered.
+## 3. Persistence
 
-### Beat 2 — AI read-out
+Migration on `persona_projects`:
+- `brief_source jsonb` — the single governing document (name, path, mime, size, url, excerpt, captured_at).
+- `brief_uploads` keeps its meaning but is now strictly the supporting set (existing rows migrate unchanged: if a project has uploads and no `brief_source`, the first upload is promoted to the brief).
 
-One AI pass over the combined material returns:
+`createProject`, `saveProjectBrief` and `getProjectBrief` all carry the two fields separately, and the Stage 01 `ProgramBriefIntake` screen renders the same two-zone split so the distinction survives into an already-open programme.
 
-- a proposed programme title (one Cabinet-recognisable line),
-- the decision it must inform, audience, hypotheses, timeframe, sensitivities (the existing Research Scope shape),
-- a recommended track with a one-line reason ("citable evidence with named households → Field Programme"),
-- 3–5 open questions the material does not answer.
+## 4. Second brain filing
 
-Shown as an editable card: title in the serif input, the read-out beneath, track as two selectable chips with the recommendation pre-selected, visibility chips as today. `Open the chamber` creates the project already carrying the brief and scope.
-
-### Downstream
-
-Because the brief arrives seeded and enriched, `ProgramBriefIntake` opens in *review-and-commit* state rather than an empty page — the admin edits and commits, and the blueprint stage follows unchanged. The gate hook, stepper and locking rules stay exactly as they are.
+Every item captured at intake is registered in the corpus, not just held on the project row:
+- `upsertCountrySource` per item (deduped on the normalized URL/path key as the corpus contract requires), tagged `org = 'Research Chamber'`, with `doc_role: 'brief' | 'context'` and the programme id in metadata.
+- The extracted text is chunked and embedded through the existing `chunkText` / `embedBatch` path into `country_source_documents` / `country_source_chunks`, so the material is retrievable by every other chamber's corpus search.
+- Visibility follows the programme's Public/Private choice, and private items carry `owner_country_code` + `uploaded_by` so the RLS helper partitions them correctly.
+- Filing runs after the project is created (so it can be attributed) and is idempotent — re-reading the same document adds nothing.
 
 ## Technical notes
 
-- New `src/components/personas/ProgrammeIngest.tsx` — the capture panel; reuses `MultimodalInput`'s upload + transcribe plumbing (`signUploadUrl`, `parseUpload`, `transcribeAudio`) and adds the link row.
-- New server fn `ingestBriefLink` in `src/lib/personas/parse-upload.functions.ts` — fetches a URL via the existing Firecrawl path used in `src/lib/country-onboarding/ingest.server.ts`, falls back to a plain fetch + text extraction, returns `{ url, title, excerpt }` stored in the same upload-chip shape.
-- New server fn `proposeProgrammeFromMaterial` in `project-brief.functions.ts` — same gateway helper and model fallback already in that file, JSON-object response, returns `{ title, scope, recommendedTrack, trackReason, openQuestions }`.
-- `TrackConfirm.tsx` becomes `ProgrammeSetup.tsx`: intake → proposal → confirm, calling `createProject` with `brief_raw`, `brief_uploads` and `brief_scope` seeded (extend `createProject`'s validator to accept them).
-- `TrackGateEntry.tsx`: the two-panel instrument fork stays, but is reached *after* ingest as the recommendation/override step; the chamber entrance now opens on intake.
-- Explain entries in `src/lib/explain/personas-entries.ts` for "how the instrument was recommended" and "what the AI read from your material".
-- Illustration, `btn-*`, `card-choice`, `<PrettyJson>` and Explain contracts observed throughout; no new tables — `persona_projects.brief_*` columns already exist.
+- Files touched: `src/components/personas/ProgrammeIngest.tsx`, `ProgrammeSetup.tsx`, `TrackGateEntry.tsx`, `StudyWizard/ProgramBriefIntake.tsx`, `src/lib/personas/project-brief.functions.ts`, `projects.functions.ts`, plus a new `src/lib/personas/corpus-file.functions.ts` for the corpus filing pass and one migration.
+- No change to the AI model or to the upload/parse plumbing.
+- Header docblocks and `bun run headers && bun run map` refreshed for the new server module.

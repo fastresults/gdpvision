@@ -14,10 +14,16 @@ const STORAGE_KEY = "chamber07:briefing-print-config";
 
 export function ExportBriefingDialog({
   open,
+  projectId,
+  sourcePreparedFor,
+  sourcePreparedBy,
   onClose,
   onExport,
 }: {
   open: boolean;
+  projectId: string;
+  sourcePreparedFor: string;
+  sourcePreparedBy: string;
   onClose: () => void;
   onExport: (config: BriefingPrintConfig) => void;
 }) {
@@ -26,22 +32,26 @@ export function ExportBriefingDialog({
   useEffect(() => {
     if (!open) return;
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(`${STORAGE_KEY}:${projectId}`);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<BriefingPrintConfig>;
-        // Drop any previously stored platform wording — client documents carry
-        // only the client's own naming.
-        if (parsed.preparedBy && /gdpvision|chamber/i.test(parsed.preparedBy)) {
-          parsed.preparedBy = "";
-        }
-        setConfig({ ...DEFAULT_BRIEFING_PRINT_CONFIG, ...parsed });
+        setConfig({
+          ...DEFAULT_BRIEFING_PRINT_CONFIG,
+          ...parsed,
+          preparedFor: sourcePreparedFor,
+          preparedBy: sourcePreparedBy,
+        });
         return;
       }
     } catch {
       /* ignore */
     }
-    setConfig(DEFAULT_BRIEFING_PRINT_CONFIG);
-  }, [open]);
+    setConfig({
+      ...DEFAULT_BRIEFING_PRINT_CONFIG,
+      preparedFor: sourcePreparedFor,
+      preparedBy: sourcePreparedBy,
+    });
+  }, [open, projectId, sourcePreparedBy, sourcePreparedFor]);
 
   useEffect(() => {
     if (!open) return;
@@ -59,7 +69,8 @@ export function ExportBriefingDialog({
 
   const submit = () => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+      const { preparedFor: _preparedFor, preparedBy: _preparedBy, ...display } = config;
+      localStorage.setItem(`${STORAGE_KEY}:${projectId}`, JSON.stringify(display));
     } catch {
       /* ignore */
     }
@@ -106,14 +117,15 @@ export function ExportBriefingDialog({
           />
           <Field
             label="Prepared for"
+            hint="Read from the committed governing brief."
             value={config.preparedFor}
-            onChange={(v) => update("preparedFor", v)}
+            readOnly
           />
           <Field
             label="Prepared by"
-            hint="Your own agency or team name. Left blank, the line is omitted from the cover."
+            hint="Read from the committed governing brief."
             value={config.preparedBy}
-            onChange={(v) => update("preparedBy", v)}
+            readOnly
           />
           <Field label="Date" value={config.dateLabel} onChange={(v) => update("dateLabel", v)} />
 
@@ -159,18 +171,21 @@ function Field({
   hint,
   value,
   onChange,
+  readOnly = false,
 }: {
   label: string;
   hint?: string;
   value: string;
-  onChange: (v: string) => void;
+  onChange?: (v: string) => void;
+  readOnly?: boolean;
 }) {
   return (
     <label className="block">
       <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">{label}</span>
       <input
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange?.(e.target.value)}
+        readOnly={readOnly}
         className="mt-1.5 w-full border border-line-200 bg-paper-0 px-3 py-2 text-sm text-ink-950 outline-none focus:border-ink-500"
       />
       {hint && <span className="mt-1 block text-xs text-ink-500">{hint}</span>}

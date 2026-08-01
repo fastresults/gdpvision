@@ -108,6 +108,7 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
 
   const record = briefingQ.data ?? null;
   const doc = record?.document ?? null;
+  const preflightReady = doc?.preflight?.every((item) => item.ready) ?? false;
 
   const runExport = (config: BriefingPrintConfig) => {
     setPrintConfig(config);
@@ -166,7 +167,12 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
           <>
             <button
               type="button"
-              onClick={() => runExport(printConfig)}
+              onClick={() => runExport({
+                ...printConfig,
+                preparedFor: doc.source.preparedFor,
+                preparedBy: doc.source.preparedBy,
+              })}
+              disabled={!preflightReady}
               className="btn-secondary inline-flex items-center gap-2"
             >
               <Printer size={14} />
@@ -175,6 +181,7 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
             <button
               type="button"
               onClick={() => setExportOpen(true)}
+              disabled={!preflightReady}
               className="btn-secondary inline-flex items-center gap-2"
             >
               <Download size={14} />
@@ -183,10 +190,10 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
             <button
               type="button"
               onClick={() => {
-                if (deckQ.data) setDeckOpen(true);
+                if (deckQ.data?.deck.briefingVersion === doc.version) setDeckOpen(true);
                 else prepareDeck.mutate();
               }}
-              disabled={prepareDeck.isPending}
+              disabled={prepareDeck.isPending || !preflightReady}
               className="btn-accent inline-flex items-center gap-2"
             >
               {prepareDeck.isPending ? (
@@ -249,6 +256,30 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
 
       {doc && (
         <>
+          <div className="border border-line-200 bg-paper-0 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                  Client-output provenance
+                </p>
+                <p className="mt-1 text-sm text-ink-800">
+                  {doc.source.sourceName} · Prepared for {doc.source.preparedFor || "not found in source"}
+                </p>
+              </div>
+              <span className={preflightReady ? "text-gold-500" : "text-signal-negative"}>
+                {preflightReady ? "Ready to export" : "Export blocked"}
+              </span>
+            </div>
+            <div className="mt-3 grid gap-px bg-line-200 sm:grid-cols-2 lg:grid-cols-4">
+              {doc.preflight.map((item) => (
+                <div key={item.sectionId} className="bg-paper-0 p-3 text-xs text-ink-700">
+                  <p className="font-medium text-ink-950">{item.sectionId}</p>
+                  <p>{item.source.replace(/_/g, " ")}</p>
+                  <p>{item.bannedTermCount} prohibited references</p>
+                </div>
+              ))}
+            </div>
+          </div>
           {/* Readiness at issue */}
           <div className="grid gap-px border border-line-200 bg-line-200 sm:grid-cols-2 lg:grid-cols-3">
             {doc.readiness.map((r) => (
@@ -332,6 +363,9 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
 
           <ExportBriefingDialog
             open={exportOpen}
+            projectId={projectId}
+            sourcePreparedFor={doc.source.preparedFor}
+            sourcePreparedBy={doc.source.preparedBy}
             onClose={() => setExportOpen(false)}
             onExport={runExport}
           />

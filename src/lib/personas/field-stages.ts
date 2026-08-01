@@ -153,5 +153,12 @@ export interface FieldProgress {
   fieldFinding: FieldFinding | null;
   planActive: boolean;
   briefCommitted: boolean;
+  /**
+   * The most recent change to anything a client dossier is assembled from —
+   * the brief, the approved plan, the panels and the instruments. A briefing
+   * or deck assembled before this moment is stale.
+   */
+  inputsUpdatedAt: string | null;
   stages: Record<FieldStageKey, FieldStageProgress>;
 }
+

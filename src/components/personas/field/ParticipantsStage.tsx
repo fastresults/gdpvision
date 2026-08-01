@@ -11,6 +11,8 @@ import { useMemo, useState } from "react";
 import { RecruitmentBoard } from "./RecruitmentBoard";
 import { useDirtyRegistration } from "./stage-bus";
 import { EmptyAction } from "./StageFrame";
+import { ShowTheDetail, StageWizard } from "./StageWizard";
+
 
 import {
   createPanel,

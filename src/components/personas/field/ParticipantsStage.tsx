@@ -87,6 +87,13 @@ export function ParticipantsStage({
     () => (panelsQ.data ?? []).filter((p) => p.project_id === projectId),
     [panelsQ.data, projectId],
   );
+  const programmePanelId = projectPanels[0]?.id as string | undefined;
+  const panelContactsQ = useQuery({
+    queryKey: ["research-contacts", code, "panel", programmePanelId],
+    queryFn: () =>
+      listContacts({ data: { countryCode: code, panelId: programmePanelId, limit: 500 } }),
+    enabled: !!programmePanelId,
+  });
 
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ["research-contacts", code] });
@@ -212,10 +219,13 @@ export function ParticipantsStage({
     (n, p) => n + Number((p as { member_count?: number }).member_count ?? 0),
     0,
   );
-  const live = contacts.filter((c) => !c.opted_out_at && c.consent_status !== "declined");
+  const panelContacts = (panelContactsQ.data ?? []) as Contact[];
+  const live = panelContacts.filter((c) => !c.opted_out_at && c.consent_status !== "declined");
   const reachable = live.filter((c) => !!c.email);
   const unreachable = live.filter((c) => !c.email);
-  const optedOut = contacts.filter((c) => !!c.opted_out_at || c.consent_status === "declined");
+  const optedOut = panelContacts.filter(
+    (c) => !!c.opted_out_at || c.consent_status === "declined",
+  );
 
   // The contact book — who we could hear from. On the panel screen it is the
   // picker; the button that forms the panel lives in the action head, so the
@@ -283,11 +293,13 @@ export function ParticipantsStage({
 
   /** The consent screen asks one thing only: can we actually reach these people? */
   const reachabilityBlock =
-    contacts.length === 0 ? (
+    panelMembers === 0 ? (
       <EmptyAction
         title="Nobody to check yet."
         body="Form the panel first — reachability is checked against the people this programme will approach."
       />
+    ) : panelContactsQ.isLoading ? (
+      <p className="text-sm text-ink-500">Checking the programme panel…</p>
     ) : (
       <div className="border border-line-200 bg-paper-0">
         <div className="grid grid-cols-3 divide-x divide-line-200 border-b border-line-200">
@@ -367,11 +379,13 @@ export function ParticipantsStage({
           instruction:
             "Confirm every panel member can be reached, and opt out anyone who has declined.",
           outstanding:
-            unreachable.length > 0
-              ? `${unreachable.length} with no way to reach them`
-              : reachable.length === 0
-                ? "nobody reachable yet"
-                : null,
+            optedOut.length > 0
+              ? `${optedOut.length} panel ${optedOut.length === 1 ? "member has" : "members have"} declined`
+              : unreachable.length > 0
+                ? `${unreachable.length} panel ${unreachable.length === 1 ? "member has" : "members have"} no way to be reached`
+                : reachable.length !== panelMembers
+                  ? "the programme panel has not been fully checked"
+                  : null,
           doneNote: `${reachable.length} reachable · ${optedOut.length} opted out`,
         },
       }}

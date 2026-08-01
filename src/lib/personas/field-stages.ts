@@ -69,7 +69,7 @@ export const FIELD_STAGE_SPECS: Record<FieldStageKey, FieldStageSpec> = {
     label: "Participants",
     sub: "CRM",
     decides: "Who the programme will actually hear from, and on what consent.",
-    doneWhen: "A panel for this programme holds at least one contact who has not declined.",
+    doneWhen: "Every member of this programme's panel is reachable and none has declined.",
     advance: "Write the instrument",
     resolve: "Research candidates",
   },

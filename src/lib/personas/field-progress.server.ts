@@ -171,10 +171,14 @@ export async function computeFieldProgress(
     .eq("country_code", countryCode);
 
   const participants = stage(
-    panelMembers > 0,
+    panelMembers > 0 && contactable === panelMembers,
     panelIds.length === 0
       ? "No panel yet — build one from the contact book."
-      : "The panel is empty — add contacts to it.",
+      : panelMembers === 0
+        ? "The panel is empty — add contacts to it."
+        : contactable === 0
+          ? "No panel member has a usable email address."
+          : `${panelMembers - contactable} panel member${panelMembers - contactable === 1 ? " is" : "s are"} not reachable or has declined.`,
     {
       contacts: contactCount ?? 0,
       panels: panelIds.length,

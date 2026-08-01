@@ -1,68 +1,44 @@
-## Goal
+## What's missing
 
-Once a commencement briefing exists, the super admin can press **Prepare presentation deck** and get a beautiful, on-brand slide deck that walks the client through the agency's order of process: **Brief → Programme → Participants → Instruments → Fieldwork → Evidence → Expected outcome**. The deck is presentable and printable inside GDPVision, and downloadable as a `.pptx`.
+Today every instrument is drafted strictly against the plan's objectives — each question must carry an `objective_ref`. That makes the instruments faithful to the brief, but it means nothing ever asks the stakeholder the one thing only they can answer: *where does this actually break, and what would you change?* Frontline invention is never elicited, so it never reaches the evidence stage.
 
-Note on the model: Claude isn't available through the platform's AI gateway. Deck copy will be written by the gateway default model (GPT-5.6) under a tight house-voice prompt, and the *design* is ours — a fixed GDPVision slide system (engraved-sketch marginalia, ink/paper/gold tokens, serif headings), not model-invented layout. That gives a more reliably on-brand result than any model-authored design.
+## The fix — a standing "Frontline insight" block
 
-## What gets built
+Every survey and every discussion guide gains a short, mandatory closing block, drafted by AI to the study's own subject (never boilerplate), and unconditionally verified after drafting so it can't be dropped.
 
-### 1. Deck data model (new table `programme_decks`)
+**Survey (self-completion)** — 3 items at the end, after the objective-led questions:
+1. Friction: "Thinking about how [subject] works day to day, where does it break down or slow you down most?" (open text)
+2. Invention: "If you could change one thing about how this is done, what would you change and what would improve?" (open text)
+3. Signal-strength scale: "How confident are you that this change would work?" (1–5) — lets us rank ideas, not just collect them.
 
-Stores a versioned deck per programme, alongside the briefing it was built from.
+**Discussion guide** — a named closing segment with 3–4 moderator prompts: the workaround probe ("what do you and your team already do informally to get around this?"), the invention probe, a "who else should we be asking" referral probe, and a one-thing-to-fix round-robin.
 
-- `id`, `project_id`, `country_code`, `briefing_id`, `version`, `status` (`draft` | `shared`), `deck` (jsonb), `assembled_by`, `assembled_at`, `updated_at`
-- Same GRANT + RLS shape as `programme_briefings` (authenticated read/write via `has_country_access`, service_role all).
+These carry `objective_ref: null` and a new `intent: "frontline_insight"` tag so they are visibly *extra-brief* rather than misfiled against an objective.
 
-Deck JSON shape (typed in `src/lib/personas/programme-deck.server.ts`):
+## How it is enforced
 
-```text
-Deck
-  title, subtitle, countryCode, programmeTitle, window, version
-  slides: Slide[]
-Slide
-  id, kind, eyebrow, heading, subheading?
-  bullets?: string[]           // ≤4, each ≤ ~14 words
-  stats?: { label, value, note? }[]   // ≤3
-  rows?: { left, right }[]     // for the process ladder / commitments table
-  note?                        // one-line footer
-  illustrationSlug?            // engraved sketch, marginalia only
-Slide kinds: cover · orientation · stage (×5) · timeline · outcome · closing
-```
+1. **Prompt** — the drafting system prompt in `instrument-draft.server.ts` gains a required section describing the block, its intent tag, and the rule that its wording must name the study's actual subject matter.
+2. **Post-draft guarantee** — a deterministic check after the AI returns: if no question carries `intent: "frontline_insight"`, append a study-worded fallback block. The instrument can never ship without it.
+3. **Schema** — `FieldQuestion` gains optional `intent`; `objective_ref` becomes optional for intent-tagged items; the Zod validator in `field-instrument.functions.ts` accepts the new field so hand-edits survive saving.
 
-### 2. Assembler — `assembleProgrammeDeck` server fn
+## How it shows in the UI
 
-`src/lib/personas/programme-deck.functions.ts` + `.server.ts`, mirroring the briefing assembler:
+- In the Instruments stage, the block renders as its own labelled section — "Frontline insight · beyond the brief" — under the objective-coverage strip, with an `Explain` entry saying why every instrument carries it and that removing it is a deliberate act.
+- Objective coverage maths ignores intent-tagged questions, so coverage percentages stay honest.
+- The editor lets a researcher reword the prompts; deleting the whole block raises a soft warning rather than being silently allowed.
 
-1. Loads the latest `programme_briefings` row (errors clearly if none — the button is only enabled when one exists).
-2. **Deterministic spine**: cover, phase/window figures, the five stage slides, the milestone timeline, and the objective→instrument→deliverable commitment rows are computed straight from the briefing document's `metrics`, `window`, `readiness` and section content. No invented numbers, ever.
-3. **AI pass** (gateway default model, `reasoningEffort: "none"`, structured output): given each briefing section, it writes the slide heading, ≤4 short bullets and the one-line note per slide, in the existing house voice used by the briefing narrative prompt. Length limits are stated in the prompt and clamped in code; a schema-failure falls back to deterministic bullets extracted from the briefing markdown so the deck never fails to build.
-4. Inserts a new version row and returns it. `getProgrammeDeck` reads the latest.
+## Downstream so the answers actually land
 
-### 3. Slide rendering — in-app deck (primary)
+- **Evidence stage / field synthesis** — the synthesis prompt gains a dedicated *"Innovation signals from the field"* output: candidate refinements raised by respondents, each with how many raised it, the confidence rating, and a verbatim. Without this the answers would be collected and then averaged into nothing.
+- **Commencement briefing** — one line added to the Instruments section explaining to the client that every instrument closes with an open frontline-invention block, and that these signals are reported separately from the objective findings.
 
-New route `/_authenticated/admin/countries/$code/personas/field/deck?project=…`, plus components under `src/components/personas/field/deck/`:
+## Files
 
-- `SlideCanvas.tsx` — fixed 1920×1080 slide scaled with `transform: scale(min(scaleX, scaleY))`, absolutely centred in an `overflow:hidden` frame. One component serves the editor view, thumbnails, presenter mode and print.
-- `slide-type.css` block in the deck stylesheet defining `--slide-title / subtitle / body / caption / kicker / chrome` and matching semantic classes, so text is legible when projected (titles 88px, body 32px, chrome 20px). All colours come from existing `ink-*/paper-*/gold-*/line-*` tokens — no raw hex, no new colour names.
-- Slide components per `kind`, all sharing one motif: thin gold rule + mono eyebrow, serif heading, generous margins, at most one engraved `<Illustration>` (`spot` / `mark` variant) as marginalia. Dark ink cover and closing slides, paper-light content slides in between.
-- Deck chrome: thumbnail rail, ←/→ keyboard nav, `F5` fullscreen present mode, slide index in the URL.
-- **Print / PDF**: `?print` mode stacks every slide one per page under `@page { size: 1920px 1080px landscape; margin: 0 }` with `break-after: page`, and the existing print-isolation pattern (`body * { visibility: hidden }` outside the print root) so the browser's Save-as-PDF yields a pixel-faithful handout.
+- `src/lib/personas/instrument-draft.server.ts` — prompt block, `intent` on `FieldQuestion`, post-draft guarantee + fallback wording
+- `src/lib/personas/field-instrument.functions.ts` — Zod `intent` field
+- `src/components/personas/field/InstrumentsStage.tsx` — separate section, coverage exclusion, delete warning
+- `src/lib/explain/` — rationale entry for the block
+- field synthesis server module — innovation-signals output
+- `src/lib/personas/commencement-briefing.server.ts` — one client-facing line
 
-### 4. `.pptx` export (secondary)
-
-`pptxgenjs` added as a dependency and used **client-side** from the deck toolbar (no Worker/Node dependency): `src/lib/personas/deck-pptx.ts` maps the same deck JSON onto a 16:9 pptx with the GDPVision palette (ink navy/near-black, paper cream, gold accent), serif headings, 40–54pt titles and 20–24pt body, one layout per slide kind. Download is named `<Programme> — Commencement Deck v<N>.pptx`. Clearly labelled in the UI as the editable-but-simplified version; the in-app deck/PDF is the master.
-
-### 5. Wiring into the briefing
-
-In `BriefingPanel.tsx`, next to *Print* / *Export PDF* / *Mark as sent*:
-
-- **Prepare presentation deck** — disabled until a briefing exists; shows `Preparing the deck…` while the assembler runs, then reveals **Open deck** (in-app) and **Download .pptx**.
-- Re-running rebuilds from the current briefing as a new version; version + assembled date shown like the briefing does.
-- The deck opens in the same modal shell already used for the briefing, so the field rail stays put, with Present / Print / Download .pptx in its header.
-
-### Technical notes
-
-- Assembler is a protected `createServerFn` (`requireSupabaseAuth`) called from the component via `useServerFn` + `useQuery`/`useMutation` — never from a route loader.
-- Server-only helpers stay in `programme-deck.server.ts`, imported inside handlers; the gateway provider is created per request per the AI SDK gateway pattern, with 429/402 surfaced as readable errors in the UI.
-- Docblock headers (`@domain / @tables / @ui`) added to the new `.functions.ts`, and `bun run headers && bun run map` run so the map-check CI stays green.
-- New route registered by file creation only; `routeTree.gen.ts` untouched.
+Existing already-drafted instruments are untouched; a re-draft picks up the block.

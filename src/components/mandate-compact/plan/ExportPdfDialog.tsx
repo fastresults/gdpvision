@@ -3,17 +3,20 @@
 //
 // One-click "Export PDF" flow. Opens a small dialog to configure the cover
 // page (classification, prepared-for/-by, date), page numbers, and TOC —
-// then swaps document.title and calls window.print(). The browser's native
-// print-to-PDF renders <PrintablePlan/> via the print-only stylesheet.
+// then hands the sheet to the print surface registry, which prints
+// <PrintablePlan/> alone.
 
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 
+import { printSurface } from "@/components/print/PrintSurface";
 import type { TransformationalPlan } from "@/lib/mandate-compact/transformational-plan.functions";
 import {
   DEFAULT_PRINT_CONFIG,
+  PLAN_PRINT_SURFACE,
   type PrintConfig,
 } from "@/components/mandate-compact/plan/PrintablePlan";
+
 
 const STORAGE_KEY = "mandate-compact:print-config";
 

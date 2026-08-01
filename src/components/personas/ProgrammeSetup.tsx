@@ -130,6 +130,38 @@ export function ProgrammeSetup({
           className="w-full border-0 border-b border-line-200 bg-transparent pb-3 font-serif text-xl text-ink-950 placeholder:text-ink-300 focus:border-ink-950 focus:outline-none sm:text-2xl"
         />
 
+        {material && (material.brief || material.context.length > 0) && (
+          <div className="mt-6 border border-line-200 p-4">
+            <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-ink-500">
+              Read from — <Explain id="research.intake.brief-precedence">brief first</Explain>,
+              context second
+            </p>
+            <ul className="mt-2 space-y-1">
+              {material.brief && (
+                <li className="flex items-center gap-2 text-[12.5px] text-ink-950">
+                  <FileText size={12} className="shrink-0" />
+                  <span className="min-w-0 truncate">{material.brief.name}</span>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
+                    source brief
+                  </span>
+                </li>
+              )}
+              {material.context.map((u) => (
+                <li key={u.path} className="flex items-center gap-2 text-[12.5px] text-ink-700">
+                  <FileText size={12} className="shrink-0 text-ink-300" />
+                  <span className="min-w-0 truncate">{u.name}</span>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-300">
+                    context
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-[11px] text-ink-500">
+              All of it is filed to this country's second brain when the chamber opens.
+            </p>
+          </div>
+        )}
+
         {scope && (
           <div className="mt-7 grid gap-6 border border-line-200 p-5 sm:grid-cols-2">
             <ReadOut label="Decisions it must inform" items={scope.decisions} />

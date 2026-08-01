@@ -11,7 +11,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import { FieldStepper, type FieldStageKey } from "@/components/personas/FieldStepper";
-import { BriefingPanel } from "@/components/personas/field/briefing/BriefingPanel";
+import { BriefingModal } from "@/components/personas/field/briefing/BriefingModal";
 import { EvidenceStage } from "@/components/personas/field/EvidenceStage";
 import { FieldworkStage } from "@/components/personas/field/FieldworkStage";
 import { InstrumentsStage } from "@/components/personas/field/InstrumentsStage";
@@ -76,6 +76,7 @@ function FieldStageBody({
   gate: ReturnType<typeof useResearchGate>;
 }) {
   const qc = useQueryClient();
+  const [briefingOpen, setBriefingOpen] = useState((stage as string) === "briefing");
 
   // One read drives the rail, the "done when" test and the next action.
   const progressQ = useQuery({
@@ -110,24 +111,25 @@ function FieldStageBody({
               <span className="font-serif text-ink-950">Commencement briefing</span> — the full
               client-facing account of the approach, ready to send before fieldwork opens.
             </p>
-            <Link
-              to="/admin/countries/$code/personas/field/$step"
-              params={{ code, step: "briefing" }}
-              search={{ project: projectId }}
-              className={
-                (stage as string) === "briefing"
-                  ? "btn-primary inline-flex"
-                  : "btn-secondary inline-flex"
-              }
+            <button
+              type="button"
+              onClick={() => setBriefingOpen(true)}
+              className="btn-secondary inline-flex"
             >
               Open the briefing
-            </Link>
+            </button>
+
           </div>
         )}
 
         {(stage as string) === "briefing" ? (
           gate.planCommitted ? (
-            <BriefingPanel projectId={projectId} />
+            <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
+              <p className="font-serif text-lg text-ink-950">The briefing opens in a window.</p>
+              <p className="mt-1 text-sm text-ink-700">
+                Use “Open the briefing” above to read, print or export the dossier.
+              </p>
+            </div>
           ) : (
             <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
               <p className="font-serif text-lg text-ink-950">Approve the programme plan first.</p>
@@ -213,6 +215,12 @@ function FieldStageBody({
             )}
           </StageFrame>
         )}
+
+        <BriefingModal
+          open={briefingOpen && gate.planCommitted}
+          projectId={projectId}
+          onClose={() => setBriefingOpen(false)}
+        />
       </div>
     </FieldStageProvider>
   );

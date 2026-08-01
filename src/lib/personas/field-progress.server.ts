@@ -177,34 +177,33 @@ export async function computeFieldProgress(
   );
 
   // ── Fieldwork ───────────────────────────────────────────────────────────
+  // Complete means every wave the approved plan obliges has actually closed —
+  // not merely that one return arrived from somewhere.
+  let waveTotal = 0;
+  let waveDone = 0;
+  let nextMove = "Open the field.";
   let responses = 0;
-  let sessionsHeld = 0;
-  let sessions = 0;
-  let collections = 0;
   if (studyId) {
-    const [{ count: r }, { data: ss }, { count: c }] = await Promise.all([
-      supabase
-        .from("field_responses")
-        .select("id", { count: "exact", head: true })
-        .eq("study_id", studyId),
-      supabase.from("field_sessions").select("status").eq("study_id", studyId),
-      supabase
-        .from("field_collections")
-        .select("id", { count: "exact", head: true })
-        .eq("study_id", studyId),
-    ]);
-    responses = r ?? 0;
-    sessions = (ss ?? []).length;
-    sessionsHeld = (ss ?? []).filter((s) => s.status === "held").length;
-    collections = c ?? 0;
+    const { loadFieldworkBoard } = await import("./fieldwork-plan.server");
+    const board = await loadFieldworkBoard(supabase, {
+      projectId,
+      studyId,
+      mailConfigured: false,
+    });
+    waveTotal = board.waves.length;
+    waveDone = board.waves.filter((w) => w.status === "complete").length;
+    responses = board.responseCount;
+    nextMove = board.waves.find((w) => w.status !== "complete")?.next ?? nextMove;
   }
   const fieldwork = stage(
-    responses > 0 || sessionsHeld > 0,
-    collections === 0 && sessions === 0
-      ? "Nothing in the field yet — open a collection or schedule a session."
-      : "No returns yet — invite the panel, or mark a session held.",
-    { responses, sessions, sessionsHeld, collections },
+    waveTotal > 0 && waveDone === waveTotal,
+    waveTotal === 0
+      ? "The approved plan obliges no fieldwork — add a survey or session line to the method mix."
+      : `${waveDone}/${waveTotal} waves complete — ${nextMove.toLowerCase()}.`,
+    { waves: waveTotal, wavesComplete: waveDone, responses },
   );
+
+
 
   // ── Evidence ────────────────────────────────────────────────────────────
   let synthesised = false;

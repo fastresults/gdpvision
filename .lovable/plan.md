@@ -1,31 +1,58 @@
-## What the logs and settings show
 
-- The published site is live and **public** — nothing on it requires a Lovable account.
-- Every participant link is built from `window.location.origin` at the moment an admin issues it: `src/lib/personas/fieldwork.functions.ts` (`${data.origin}/f/${token}`), `comms.functions.ts` (survey + opt-out links) and `DeployPanel.tsx` (open link).
-- Admins work in the **preview** host (`id-preview--….lovableproject.com`). That host is the Lovable workspace preview and *always* asks for a Lovable login. So the link is correct but pointed at the wrong front door — that is the login screen participants are hitting.
+# Commencement Briefing (Chamber 07 · Field programme)
 
-## Part A — links must be free-standing
+A super-admin-only document that says to the client, before a single question is asked: here is what you asked, here is how we will answer it, who we will hear from and why, exactly what we will ask them, and how the evidence will be gathered and judged.
 
-1. Add a single source of truth for the public base address: `src/lib/personas/public-origin.ts`, resolving in order — configured public site URL → the request/published host → `window.location.origin` as last resort — and *never* returning a `lovableproject.com` / `id-preview--` host.
-2. Have the server functions stop trusting the client-sent `origin`: `issueInvitations` and the comms sender resolve the base themselves on the server, keeping the client value only as a fallback for local dev.
-3. `DeployPanel.tsx` and `CollectionWave.tsx` show and copy the resolved public link, not the browser origin.
-4. Add a visible reassurance line under any copied link: the exact address, plus "opens without a login".
-5. Backfill nothing in the database — links are tokens, only the host changes, so all previously issued tokens work the moment they are re-sent from the correct host. Add an "affected invitations" note in the wave card so an admin knows to re-send any invite issued before the fix.
+## When it appears
 
-## Part B — the participant page becomes a proper front door
+An "Assemble the commencement briefing" action sits on the field rail, live once the programme is *ready to commence*:
 
-Rebuild `src/routes/f.$token.tsx` presentation only (the API contract at `src/routes/api/public/field.$token.ts` is unchanged):
+- brief committed
+- plan approved and active
+- participants stage complete (a panel with at least one live contact)
+- instruments stage complete (every instrument the method mix requires is drafted)
+- fieldwork and evidence still outstanding
 
-- **Masthead**: programme wordmark, "Confidential research", the instrument title, estimated time to complete, and a one-line statement of who is asking and why.
-- **Instruction beat before question one**: how answers are used, that they are reported only in aggregate, that progress is saved automatically, and that they may stop at any time.
-- **Progress**: a sticky slim progress bar with "N of M answered", replacing the count buried at the bottom.
-- **Question cards**: generous spacing, clear required marks, per-question help text, larger touch targets for scale/choice on mobile.
-- **Submit**: a sticky footer action with required-question guidance that names the first unanswered question and scrolls to it, rather than a bare count.
-- **Terminal states** (done / closed / opted out / not recognised) get the same masthead treatment plus a courteous closing line — no bare notice text.
-- Fully mobile-first; no app chrome, no navigation, no login affordance anywhere on the page.
+Before that, the action is visible but disabled, and states the one thing still missing (it reads the same `getFieldProgress` the rail already uses, so it can never disagree with the stepper). After fieldwork begins it stays available — the briefing is simply stamped with the date it was assembled.
+
+## What the document contains
+
+1. **Cover** — nation, programme title, the decision question, classification, prepared-for / prepared-by, date, and status ("Ready to commence").
+2. **Executive summary** — AI-written, 200–300 words: what is being decided, how this programme answers it, what the client will hold at the end and when.
+3. **The brief, verbatim** — the committed source brief in full, the scope read-out (objectives, constraints, deadline), and the supporting context filed beside it, each item listed with what it contributed.
+4. **The programme** — phases with their dates and purpose, milestones, deliverables, and the method mix with a short written justification of *why this mix answers this question*.
+5. **Who we will hear from** — each recruitment persona: the label, who they are, why they matter to this decision, the survey target and whether they sit in a focus group. Then the actual panel: counts by segment, how candidates were sourced, and the consent basis. Names are included or reduced to counts, per a toggle at export.
+6. **What we will ask** — every instrument in full: title, objective, and every question in order with its type and options, plus the objective-coverage map showing which plan objective each question serves.
+7. **How the fieldwork will run** — the wave ladder derived from the plan: each wave's method, target, channel (hosted link, session, offline intake), sequence and close test, and what the participant sees.
+8. **How the evidence will be judged** — the synthesis method, what a finding must carry to count, confidence grading, stated limitations, and how the finished evidence is filed to the second brain.
+9. **What we need from you** — approvals, introductions and dates required from the client to keep the programme on schedule.
+10. **Sources & provenance** — every citation carried through from the brief and recruitment research.
+
+Nothing is truncated or hidden behind accordions; every figure that is derived carries an `<Explain>` rationale on screen.
+
+## Front end
+
+- `src/components/personas/field/briefing/BriefingPanel.tsx` — the entry surface on the rail: readiness checklist, "Assemble" button, and once assembled, a section-by-section on-screen reader with a sticky contents rail.
+- `src/components/personas/field/briefing/PrintableBriefing.tsx` — print-only render following the Chamber 08 pattern (permanently in the DOM, visible only in `@media print`, real cover page, TOC, page numbers via paged-media CSS).
+- `src/components/personas/field/briefing/ExportBriefingDialog.tsx` — cover configuration (classification, prepared-for/-by, date, participant names on/off, page numbers, TOC), then `window.print()` for PDF.
+- Also offered: copy-to-clipboard and `.md` download, reusing the existing Chamber 07 markdown exporter conventions.
+- Reached from the field rail as a new step-adjacent panel, plus a button on the Evidence stage's approach section, so it is findable from where the work is.
+
+## Back end
+
+- `src/lib/personas/commencement-briefing.functions.ts` — thin wrapper with three protected server functions: `assembleCommencementBriefing`, `getCommencementBriefing`, `reviseCommencementBriefing` (regenerate the narrative sections after a change, keeping edits the admin made).
+- `src/lib/personas/commencement-briefing.server.ts` — the assembler. Reads the real artefacts (`persona_projects`, `programme_plans`, `research_panels` / `research_panel_members` / `research_contacts`, `field_instruments` and their questions, plus the derived wave board from `fieldwork-plan.server.ts`) and composes a typed `CommencementBriefing` document. Factual sections are assembled deterministically from the data — never invented. Only the executive summary, the method justification and the "why this persona" lines go through the AI gateway, and only over material already in the record.
+- Stored as a versioned document on the programme so it can be re-opened, re-exported and compared. Re-assembly is idempotent per version.
+- Filed to the second brain through the existing Chamber 07 corpus writer on first assembly, so the approach is part of the country's record.
+- Access follows the existing gate: assembled by super admins; country users bound to the nation can read and export it.
 
 ## Technical notes
 
-- Nothing moves under `/api/public/*`; the page route `/f/$token` is already public on the published domain — the only defect was the host baked into issued links.
-- A `PUBLIC_SITE_URL` value (e.g. `https://gdpvision.com`) will be read server-side so the resolved host is deterministic regardless of who issues the link.
-- Deploy/export packs (printable form, CSV, JSON) will stamp the same public host.
+- Server fns are `createServerFn` with `.middleware([requireSupabaseAuth])`, called from components via `useServerFn` + `useQuery` — never from a route loader.
+- Storage uses a jsonb document column on the existing programme record rather than a new table, avoiding a migration; if versioned history is wanted, a small `programme_briefings` table is added with GRANTs and RLS in the same migration.
+- All buttons use `btn-*` utilities; any JSON shown in a debug view goes through `<PrettyJson>`; derived figures register rationales in `src/lib/explain/personas-entries.ts`.
+- After the work: `bun run headers && bun run map`, and the chamber map entry updated.
+
+## Verification
+
+Assemble the briefing on the current Grenada programme, read every section on screen, then render to PDF and inspect each page for clipped text, broken tables and missing sections before reporting back.

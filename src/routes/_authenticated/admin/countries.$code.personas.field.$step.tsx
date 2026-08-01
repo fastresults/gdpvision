@@ -11,6 +11,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import { FieldStepper, type FieldStageKey } from "@/components/personas/FieldStepper";
+import { BriefingPanel } from "@/components/personas/field/briefing/BriefingPanel";
 import { EvidenceStage } from "@/components/personas/field/EvidenceStage";
 import { FieldworkStage } from "@/components/personas/field/FieldworkStage";
 import { InstrumentsStage } from "@/components/personas/field/InstrumentsStage";
@@ -31,6 +32,10 @@ import {
 
 const STEPS: FieldStageKey[] = ["plan", "participants", "instruments", "fieldwork", "evidence"];
 
+// The client-facing dossier is not a rail stage — it sits beside the rail and
+// reads whatever the programme currently holds.
+const BRIEFING_STEP = "briefing";
+
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/personas/field/$step")({
   head: ({ params }) => ({
     meta: [
@@ -45,7 +50,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/pers
 
 function FieldStagePage() {
   const { code, step } = Route.useParams();
-  if (!STEPS.includes(step as FieldStageKey)) throw notFound();
+  if (step !== BRIEFING_STEP && !STEPS.includes(step as FieldStageKey)) throw notFound();
   const stage = step as FieldStageKey;
   const search = useSearch({ strict: false }) as { project?: string };
   const projectId =
@@ -99,7 +104,39 @@ function FieldStageBody({
 
         <TrackTabs code={code} projectId={projectId} track={gate.track} active="field" />
 
-        {!gate.committed && !gate.loading ? (
+        {gate.planCommitted && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border border-line-200 bg-paper-100/40 px-4 py-3">
+            <p className="text-sm text-ink-700">
+              <span className="font-serif text-ink-950">Commencement briefing</span> — the full
+              client-facing account of the approach, ready to send before fieldwork opens.
+            </p>
+            <Link
+              to="/admin/countries/$code/personas/field/$step"
+              params={{ code, step: "briefing" }}
+              search={{ project: projectId }}
+              className={
+                (stage as string) === "briefing"
+                  ? "btn-primary inline-flex"
+                  : "btn-secondary inline-flex"
+              }
+            >
+              Open the briefing
+            </Link>
+          </div>
+        )}
+
+        {(stage as string) === "briefing" ? (
+          gate.planCommitted ? (
+            <BriefingPanel projectId={projectId} />
+          ) : (
+            <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
+              <p className="font-serif text-lg text-ink-950">Approve the programme plan first.</p>
+              <p className="mt-1 text-sm text-ink-700">
+                The briefing is assembled from the approved programme.
+              </p>
+            </div>
+          )
+        ) : !gate.committed && !gate.loading ? (
           <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
             <p className="font-serif text-lg text-ink-950">The brief comes first.</p>
             <p className="mt-1 max-w-xl text-sm text-ink-700">

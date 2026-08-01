@@ -36,6 +36,12 @@ export interface FieldStageSpec {
   doneWhen: string;
   /** Label for the button that advances out of this stage. */
   advance: string;
+  /**
+   * The imperative label of the one action that clears this stage's blocker.
+   * The stage itself registers the handler via useResolveAction; this is the
+   * wording the sticky bar falls back to.
+   */
+  resolve: string;
 }
 
 export const FIELD_STAGE_SPECS: Record<FieldStageKey, FieldStageSpec> = {
@@ -47,6 +53,7 @@ export const FIELD_STAGE_SPECS: Record<FieldStageKey, FieldStageSpec> = {
     decides: "The question the programme exists to answer, and what counts as an answer.",
     doneWhen: "A source brief is committed, with any supporting context filed beside it.",
     advance: "Plan the programme",
+    resolve: "Commit the brief",
   },
   plan: {
     key: "plan",
@@ -56,6 +63,7 @@ export const FIELD_STAGE_SPECS: Record<FieldStageKey, FieldStageSpec> = {
     decides: "The dated shape of the work — phases, milestones, deliverables and method mix.",
     doneWhen: "A plan is approved and active, so everything downstream has dates to hang on.",
     advance: "Recruit the participants",
+    resolve: "Approve the plan",
   },
   participants: {
     key: "participants",
@@ -65,6 +73,7 @@ export const FIELD_STAGE_SPECS: Record<FieldStageKey, FieldStageSpec> = {
     decides: "Who the programme will actually hear from, and on what consent.",
     doneWhen: "A panel for this programme holds at least one contact who has not declined.",
     advance: "Write the instrument",
+    resolve: "Research candidates",
   },
   instruments: {
     key: "instruments",
@@ -74,6 +83,7 @@ export const FIELD_STAGE_SPECS: Record<FieldStageKey, FieldStageSpec> = {
     decides: "What will be asked, in what order, and how the answers will be recorded.",
     doneWhen: "At least one instrument is drafted and saved against this programme.",
     advance: "Go to the field",
+    resolve: "Draft the instrument",
   },
   fieldwork: {
     key: "fieldwork",
@@ -83,6 +93,7 @@ export const FIELD_STAGE_SPECS: Record<FieldStageKey, FieldStageSpec> = {
     decides: "How the evidence is gathered — sessions held and returns collected.",
     doneWhen: "Returns are in: a response has landed, or a session has been held.",
     advance: "Synthesise the evidence",
+    resolve: "Open the collection",
   },
   evidence: {
     key: "evidence",
@@ -92,8 +103,10 @@ export const FIELD_STAGE_SPECS: Record<FieldStageKey, FieldStageSpec> = {
     decides: "What the programme now knows, with what confidence, and what follows from it.",
     doneWhen: "The field finding is synthesised and the programme is closed to the second brain.",
     advance: "Back to the chamber",
+    resolve: "Synthesise the finding",
   },
 };
+
 
 export const FIELD_STAGE_LIST: FieldStageSpec[] = FIELD_STAGES.map((k) => FIELD_STAGE_SPECS[k]);
 

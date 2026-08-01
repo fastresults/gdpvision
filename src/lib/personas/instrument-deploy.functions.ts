@@ -15,45 +15,34 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { FieldQuestion } from "./instrument-draft.server";
 
-async function loadInstrument(
-  supabase: Parameters<typeof Object.keys>[0] extends never ? never : any,
-  instrumentId: string,
-) {
-  const { data, error } = await supabase
-    .from("field_instruments")
-    .select("id,study_id,kind,title,intro,outro,questions,version")
-    .eq("id", instrumentId)
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Instrument not found");
-  return data as {
-    id: string;
-    study_id: string;
-    kind: string;
-    title: string | null;
-    intro: string | null;
-    outro: string | null;
-    questions: FieldQuestion[];
-    version: number;
-  };
-}
-
 /** Build the offline packs for an instrument, returned as inline text. */
 export const buildDeployPacks = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ instrumentId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const inst = await loadInstrument(context.supabase, data.instrumentId);
+    const { data: inst, error } = await context.supabase
+      .from("field_instruments")
+      .select("id,study_id,kind,title,intro,outro,questions,version")
+      .eq("id", data.instrumentId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!inst) throw new Error("Instrument not found");
     const { buildCsvTemplate, buildJsonSchema, buildPrintableForm } = await import(
       "./instrument-deploy.server"
     );
-    const title = inst.title ?? "Instrument";
+    const title = (inst.title as string | null) ?? "Instrument";
     const questions = (inst.questions ?? []) as FieldQuestion[];
     return {
-      version: inst.version,
-      csv: buildCsvTemplate(title, inst.version, questions),
-      json: buildJsonSchema(title, inst.version, inst.kind, questions),
-      form: buildPrintableForm(title, inst.version, inst.intro, inst.outro, questions),
+      version: inst.version as number,
+      csv: buildCsvTemplate(title, inst.version as number, questions),
+      json: buildJsonSchema(title, inst.version as number, inst.kind as string, questions),
+      form: buildPrintableForm(
+        title,
+        inst.version as number,
+        inst.intro as string | null,
+        inst.outro as string | null,
+        questions,
+      ),
     };
   });
 

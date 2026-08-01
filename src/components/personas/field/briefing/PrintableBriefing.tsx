@@ -21,7 +21,6 @@ export type BriefingPrintConfig = {
   dateLabel: string;
   showPageNumbers: boolean;
   showCoverPage: boolean;
-  
 };
 
 export const DEFAULT_BRIEFING_PRINT_CONFIG: BriefingPrintConfig = {
@@ -35,7 +34,6 @@ export const DEFAULT_BRIEFING_PRINT_CONFIG: BriefingPrintConfig = {
   }),
   showPageNumbers: true,
   showCoverPage: true,
-  
 };
 
 function windowLabel(b: CommencementBriefing): string {
@@ -120,7 +118,6 @@ export function PrintableBriefing({
           </ul>
         </section>
       )}
-
 
       <section className="cb-body">
         {briefing.sections.map((s, i) => (

@@ -148,7 +148,6 @@ export function briefQuotation(raw: string, maxChars = 1_400): string {
   return `${(lastStop > maxChars * 0.5 ? cut.slice(0, lastStop + 1) : cut).trim()} […]`;
 }
 
-
 /** Render a quotation as markdown blockquote lines. */
 function blockquote(text: string): string {
   return text
@@ -156,8 +155,6 @@ function blockquote(text: string): string {
     .map((l) => (l.trim().length === 0 ? ">" : `> ${l}`))
     .join("\n");
 }
-
-
 
 function questionLine(q: FieldQuestion, n: number): string {
   const type = q.type.replace(/_/g, " ");

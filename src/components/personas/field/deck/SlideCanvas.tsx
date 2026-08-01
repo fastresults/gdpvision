@@ -209,7 +209,7 @@ export function SlideBody({
           className={`font-mono uppercase ${dark ? "text-paper-0/55" : "text-ink-500"}`}
           style={{ fontSize: 20, letterSpacing: "0.2em" }}
         >
-          {slide.note ?? "GDPVision · Chamber 07"}
+          {slide.note ?? ""}
         </p>
         <p
           className={`font-mono tabular-nums ${dark ? "text-paper-0/55" : "text-ink-500"}`}

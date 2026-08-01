@@ -15,8 +15,8 @@ export async function exportDeckToPptx(deck: ProgrammeDeck): Promise<void> {
   const PptxGenJS = (await import("pptxgenjs")).default;
   const pptx = new PptxGenJS();
   pptx.layout = "LAYOUT_16x9"; // 10 × 5.625 in
-  pptx.author = "GDPVision";
-  pptx.company = "GDPVision";
+  pptx.author = deck.programmeTitle;
+  pptx.company = deck.countryCode;
   pptx.title = `${deck.programmeTitle} — Commencement deck`;
 
   const total = deck.slides.length;
@@ -161,7 +161,7 @@ export async function exportDeckToPptx(deck: ProgrammeDeck): Promise<void> {
       line: { color: dark ? "3A342C" : "DED8CE", width: 1 },
     });
 
-    slide.addText(s.note ?? "GDPVision · Chamber 07", {
+    slide.addText(s.note ?? deck.programmeTitle, {
       x: 0.6,
       y: 4.95,
       w: 6.8,

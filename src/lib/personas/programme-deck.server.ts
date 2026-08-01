@@ -364,7 +364,7 @@ export async function assembleDeck(brief: CommencementBriefing): Promise<Program
     eyebrow: brief.countryCode,
     heading: "Ready to commence",
     subheading: "On your approval, recruitment and fieldwork open against the dates above.",
-    note: "GDPVision · Chamber 07 · Research Chamber",
+    note: `${brief.programmeTitle} · Commencement briefing v${brief.version}`,
   });
 
   return {

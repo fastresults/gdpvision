@@ -255,7 +255,6 @@ export function RecruitmentBoard({
     );
   }
 
-
   // ── No frame yet: the AI-first entrance ─────────────────────────────────
   if (!frame) {
     return (

@@ -77,9 +77,13 @@ export function TrackGateEntry({ code }: { code: string }) {
   return (
     <section className="border border-ink-950 bg-paper-0">
       <header className="border-b border-ink-950 px-6 py-7 text-center sm:px-10 sm:py-10">
-        <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
+        <button type="button" onClick={() => setStage({ step: "intake" })} className="btn-ghost">
+          <ArrowLeft size={12} /> Back to the material
+        </button>
+        <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
           Stage 00 · The gate
         </p>
+
         <h2 className="mx-auto mt-3 max-w-2xl font-serif text-[2rem] leading-[1.1] text-ink-950 sm:text-4xl">
           How should this question be asked?
         </h2>

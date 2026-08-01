@@ -30,6 +30,7 @@ import { useDossierActions } from "@/hooks/useDossierActions";
 
 import { DeckModal } from "../deck/DeckModal";
 import { ExportBriefingDialog } from "./ExportBriefingDialog";
+import { ShareLinkBar } from "./ShareLinkBar";
 import {
   BRIEFING_PRINT_SURFACE,
   DEFAULT_BRIEFING_PRINT_CONFIG,

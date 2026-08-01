@@ -7,7 +7,7 @@
 // the plan obliges has actually closed.
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { ArrowDown, Loader2 } from "lucide-react";
 
 import { CollectionWave } from "./fieldwork/CollectionWave";
 import { SessionWave } from "./fieldwork/SessionWave";

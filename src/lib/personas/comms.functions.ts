@@ -180,53 +180,9 @@ export const deleteTemplate = createServerFn({ method: "POST" })
   });
 
 // ── Merge + send ───────────────────────────────────────────────────────────
+// Delivery and the merge grammar live in comms-delivery.server.ts so the send
+// path is shared with the fieldwork desk and this file stays a thin wrapper.
 
-function firstName(full: string): string {
-  return full.trim().split(/\s+/)[0] ?? full;
-}
-
-function merge(
-  text: string,
-  vars: Record<string, string | null | undefined>,
-): string {
-  return text.replace(/\{\{(\w+)\}\}/g, (_m, k: string) => vars[k] ?? "");
-}
-
-async function deliver(args: {
-  to: string;
-  subject: string;
-  body: string;
-}): Promise<{ status: "sent" | "ready"; error: string | null }> {
-  const key = process.env.RESEND_API_KEY;
-  const from = process.env.RESEARCH_FROM_EMAIL;
-  if (!key || !from) {
-    // No mail provider configured — the message is composed, logged and
-    // exportable, but not dispatched. The UI surfaces this state plainly.
-    return { status: "ready", error: null };
-  }
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from,
-        to: [args.to],
-        subject: args.subject,
-        text: args.body,
-      }),
-    });
-    if (!res.ok) {
-      const t = await res.text().catch(() => "");
-      return { status: "ready", error: `Mail provider ${res.status}: ${t.slice(0, 200)}` };
-    }
-    return { status: "sent", error: null };
-  } catch (e) {
-    return { status: "ready", error: e instanceof Error ? e.message : "send failed" };
-  }
-}
 
 export const sendToInvitees = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

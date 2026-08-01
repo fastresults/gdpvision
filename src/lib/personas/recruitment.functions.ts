@@ -359,8 +359,9 @@ export const researchCandidates = createServerFn({ method: "POST" })
     );
 
     const remaining = Math.max(2, want - run.proposed);
+    const target: RecruitmentPersona = persona;
     let result: { candidates: Awaited<ReturnType<typeof runExtract>>["candidates"]; notes: string[] };
-    let label: string;
+    let label = "Extraction";
 
     async function runExtract(batch: Array<{ url: string; what?: string }>) {
       const { extractCandidatesFromRegistries } = await import("./recruitment-research.server");
@@ -368,12 +369,13 @@ export const researchCandidates = createServerFn({ method: "POST" })
         countryName,
         programmeTitle: project.title,
         question,
-        persona,
+        persona: target,
         registries: batch.map((r) => ({ url: r.url, what: r.what ?? "" })),
         want: remaining,
         exclude,
       });
     }
+
 
     try {
       if (pass <= MAX_EXTRACT_PASSES) {

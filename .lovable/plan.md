@@ -1,60 +1,41 @@
-## Goal
+## What the audit found
 
-Stage 02 (Participants) currently starts empty and demands a pasted roster. It should open the way the rest of Chamber 07 does: the AI reads the brief, plan and second brain, researches the country's real landscape, and **proposes named individuals** — split into a survey frame and focus-group slates — which the admin accepts, edits, adds to, or deletes.
+I read the rail end to end — `field-stages.ts`, `field-progress.server.ts`, `FieldStepper.tsx`, `StageFrame.tsx`, the `$step` route, and the Participants / Instruments / Fieldwork / Evidence stages — plus the preview server logs. The logs show no crashes: the problem is not failure, it is that the rail never tells the user what is saved, never offers the one action that would unblock them, and makes going back to fix something feel forbidden. Six concrete defects:
 
-## The beat
+1. **Edits can be silently lost.** The instrument editor holds title, intro and questions in local state, and a `useEffect` re-seeds that state every time the query refetches. Any refetch triggered elsewhere on the page overwrites in-progress wording with no warning. Nothing marks the editor dirty, and leaving via the stepper or the sticky bar discards the work without a prompt.
+2. **No save confirmation anywhere.** Saving an instrument, a transcript, a roster or a panel produces no visible "saved" state — only a spinner that stops. The user cannot tell whether the click landed.
+3. **The instrument editor is one-way.** Questions can be deleted and re-worded but not added or reordered, so a near-right AI draft has to be regenerated from scratch instead of adjusted.
+4. **The next action pushes past the problem instead of solving it.** When a stage is incomplete the sticky bar's only forward control reads "Skip ahead to …". The blocker is stated but never actionable — no button does the thing that would clear it.
+5. **Backward movement is discouraged and, once closed, impossible.** Back moves one stage at a time; there is no "amend the brief" or "revise the plan" route from a late stage, and `closeProgramme` has no counterpart — a closed programme cannot be reopened to correct a finding.
+6. **The rail can lie about being blocked.** Progress is one query; if it errors or is stale after a mutation, stages read as incomplete with no way to retry the read.
 
-```text
-Recruitment brief (AI-derived personas)  →  Deep research pass  →  Candidate slate
-        ↓                                                              ↓
-  admin can edit segments                              accept one / accept all / edit / delete
-                                                               ↓
-                                                    contact book + panel(s)  →  Stage 03
-```
+## The plan
 
-## 1. Recruitment brief (auto, no blank form)
+### 1. A save contract every stage obeys
+Add `src/components/personas/field/SaveBar.tsx` — one component carrying the same three states everywhere: **unsaved changes** (amber, names what is dirty), **saving**, **saved · timestamp**. Add a `useDirtyState` hook that owns the local-vs-server diff so a background refetch can never overwrite a dirty editor; when the server copy changes underneath a dirty editor, show "the stored version changed — keep mine / take theirs" rather than silently clobbering.
 
-On entering Participants with no contacts, the stage derives a **recruitment brief** from the source brief, approved programme plan and country corpus:
-- 3–6 **target personas** (who they are, why they matter to the decision, seniority, sector, region)
-- per persona: target **survey count** and whether they belong in a **focus group** slate
-- screening criteria and exclusions
+Wire it into Instruments (title, intro, questions), Fieldwork (transcript, session details, pasted returns) and the Participants manual roster.
 
-Shown as an editable read-out (same document style as the plan stage), not JSON. Admin can adjust counts/personas before research runs.
+### 2. Never lose an edit on navigation
+`StageFrame` gains a dirty registry. When any stage reports unsaved work, the stepper links, the back/next controls and the browser unload all route through a small confirm: **Save and continue · Discard · Stay**. Save-and-continue runs the stage's own save before navigating.
 
-## 2. Deep research pass (the AI-first core)
+### 3. Make the instrument editable rather than regenerable
+Add a question, insert after, move up/down, duplicate, change type (from the existing `QUESTION_TYPES`), and edit options. Deleting keeps an inline undo. This turns "the draft is 80% right" into a two-minute edit instead of a re-draft.
 
-A server-side loop, one fan-out per persona, through the existing research waterfall (Perplexity `sonar-reasoning-pro` → Gemini fallback), reusing the pattern in `party-research.server.ts` / `minister-research.server.ts`:
+### 4. Turn every blocker into a button
+Extend each stage spec in `field-stages.ts` with a **resolve action**: the label and target that clears its blocker (Participants → "Research candidates", Instruments → "Draft the instrument", Fieldwork → "Open a collection", Evidence → "Synthesise the finding"). The sticky bar then always shows two controls: the resolve action when incomplete, and the advance action when complete. "Skip ahead" survives only as a quiet secondary link, so moving on is possible but never the loudest option.
 
-- For each persona: find **real, named, publicly identifiable individuals** in that country matching the persona — ministry officials, association heads, chamber-of-commerce members, operators, academics, diaspora leads.
-- Each candidate must return: name, role/title, organisation, why-they-fit (one line tied to the persona), public contact route (official email / org page / LinkedIn), and **at least one https source URL**. No source ⇒ candidate is dropped.
-- A validation/dedupe pass: reject duplicates against existing `research_contacts` (normalised name+org / email), reject obvious hallucinations (no source, dead-generic names), and score each candidate `high | medium | low` confidence.
-- Coverage check: if a persona comes back under target, a **second redrive pass** runs with widened phrasing before the stage reports "thin coverage" honestly rather than padding.
-- Focus-group slates are composed after the survey frame: the AI groups accepted-eligible candidates into 1–3 balanced groups (6–8 each) with a stated composition rationale.
+### 5. Make going backward legitimate
+- The sticky bar gains a persistent **Amend** menu: return to the brief, revise the plan, or jump to any unlocked earlier stage in one move.
+- Add a `reopenProgramme` server function (the mirror of `closeProgramme`) plus a **Reopen to revise** control in Evidence, so a filed finding can be corrected and re-filed. Re-closing re-files to the second brain under the same key, so no duplicate memo is created.
+- Where an earlier change invalidates later work (a new instrument after returns are in), the affected stage shows a plain-language notice rather than failing quietly.
 
-Everything is filed to the second brain as a `recruitment_frame` memory object with its citations, deduped on the programme key. Identity itself stays in `research_contacts` only — corpus keeps the frame and rationale, not personal records.
-
-## 3. Admin control surface
-
-A candidate table grouped by persona, each row: name · role · organisation · fit line · confidence chip · source link.
-
-- **Accept** (per row) → creates/links a `research_contacts` row.
-- **Accept all** per persona, and **Accept all** globally.
-- **Edit** inline (name, role, org, email, persona, notes) before or after acceptance.
-- **Delete / reject** a candidate, with the reason retained so a re-run doesn't re-propose it.
-- **Add manually** — one-off add plus the existing paste-roster importer, kept as a secondary path.
-- Two panel targets: **Survey frame** and **Focus group** slates; a person can sit in both.
-- "Research more like this" per persona to top up a thin slate.
-
-Every AI-derived number (target counts, group sizes, confidence) is wrapped in `<Explain>` with rationales registered in the personas entries file.
-
-## 4. Stage completion
-
-"Done when" for Participants becomes: survey frame has ≥ the brief's minimum accepted contacts **and** at least one focus-group slate is formed (or explicitly waived with a recorded reason). `field-progress.server.ts` reports the single outstanding blocker as it does today.
+### 6. Make the rail's state honest
+Refetch progress after every stage mutation, show a small "checking…" state while it revalidates, and surface a retry line if the progress read fails instead of leaving the whole rail reading as blocked.
 
 ## Technical notes
 
-- Migration: add `research_contacts` candidate fields — `status` (`proposed|accepted|rejected`), `persona_label`, `fit_reason`, `confidence`, `source_url`, `proposed_by_run`; plus a `research_panels.kind` (`survey|focus_group`). GRANTs + RLS scoped by `has_country_access` in the same migration, matching existing policies on those tables.
-- New `src/lib/personas/recruitment-research.server.ts` (deep research + validation + dedupe) and `recruitment.functions.ts` (`deriveRecruitmentBrief`, `researchCandidates`, `acceptCandidates`, `rejectCandidate`, `composeFocusGroups`) — all `.middleware([requireSupabaseAuth])`, called from components via `useServerFn`.
-- Research runs persona-by-persona so a single slow fan-out can't 502 the stage; the UI streams slates in as each persona resolves.
-- `ParticipantsStage.tsx` restructured into: recruitment brief → candidate slates → panels, with paste-import demoted to a secondary action. Existing CRM functions reused, not replaced.
-- Run `bun run headers && bun run map` after adding the new server-fn modules.
+- New: `src/components/personas/field/SaveBar.tsx`, `src/hooks/useDirtyState.ts`, `reopenProgramme` in `src/lib/personas/field-synthesis.functions.ts`.
+- Edited: `field-stages.ts` (resolve actions), `StageFrame.tsx` (dirty guard, two-control bar, amend menu), `InstrumentsStage.tsx`, `FieldworkStage.tsx`, `ParticipantsStage.tsx`, `EvidenceStage.tsx`, the `$step` route (progress invalidation and error surface).
+- No schema change is needed except the reopen path, which only moves `persona_projects.status` back off `completed` — done through the existing server-function boundary with `requireSupabaseAuth`.
+- New rationales registered in `src/lib/explain/personas-entries.ts` for the save contract and for what reopening a closed programme does to the filed memo.

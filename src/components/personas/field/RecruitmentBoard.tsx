@@ -22,7 +22,9 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { useResolveAction } from "./stage-bus";
 import { Explain } from "@/components/explain/Explain";
+
 import {
   acceptCandidates,
   addParticipant,
@@ -187,9 +189,31 @@ export function RecruitmentBoard({
     onSuccess: refresh,
   });
 
+  // The one action that moves recruitment forward, published to the sticky bar.
+  const firstPersona = frame?.personas?.[0]?.label ?? null;
+  useResolveAction(
+    "participants",
+    !frame
+      ? { label: "Derive the recruitment frame", run: () => derive.mutate(), pending: derive.isPending }
+      : totals.proposed > 0
+        ? {
+            label: "Accept all recommended",
+            run: () => accept.mutate({ all: true }),
+            pending: accept.isPending,
+          }
+        : totals.accepted === 0 && firstPersona
+          ? {
+              label: "Research candidates",
+              run: () => research.mutate(firstPersona),
+              pending: research.isPending,
+            }
+          : null,
+  );
+
   if (stateQ.isLoading) {
     return <p className="text-sm text-ink-500">Reading the recruitment record…</p>;
   }
+
 
   // ── No frame yet: the AI-first entrance ─────────────────────────────────
   if (!frame) {

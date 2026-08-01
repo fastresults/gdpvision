@@ -292,10 +292,41 @@ Return JSON:
       finding: memo,
     });
 
-    await supabase
+    const { error: closeErr } = await supabase
       .from("persona_projects")
       .update({ status: "completed" } as never)
       .eq("id", data.projectId);
+    if (closeErr) throw closeErr;
+
+
+
 
     return { memo, memoryId: mem?.id ?? null };
   });
+
+/**
+ * Reopen a closed programme so a finding can be corrected and re-filed.
+ * The filed memo is left in place: re-closing writes over the same corpus key,
+ * so revising never leaves two memos for one programme.
+ */
+export const reopenProgramme = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ projectId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: project } = await supabase
+      .from("persona_projects")
+      .select("id,status")
+      .eq("id", data.projectId)
+      .maybeSingle();
+    if (!project) throw new Error("Research program not found");
+    if (project.status !== "completed") return { status: project.status as string };
+
+    const { error } = await supabase
+      .from("persona_projects")
+      .update({ status: "active" } as never)
+      .eq("id", data.projectId);
+    if (error) throw error;
+    return { status: "active" };
+  });
+

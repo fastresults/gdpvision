@@ -2,14 +2,21 @@
 //
 // The returns become a finding, and the finding becomes something the Cabinet
 // can cite. Synthesise, read it, then close the programme into the second brain.
+// Closing is not terminal: a filed programme can be reopened, corrected and
+// re-filed over the same memo.
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Archive, Loader2, Sparkles } from "lucide-react";
+import { Archive, Loader2, RotateCcw, Sparkles } from "lucide-react";
 
 import { EmptyAction } from "./StageFrame";
+import { useResolveAction } from "./stage-bus";
 import { getCollection } from "@/lib/personas/field-collection.functions";
-import { closeProgramme, synthesiseField } from "@/lib/personas/field-synthesis.functions";
+import {
+  closeProgramme,
+  reopenProgramme,
+  synthesiseField,
+} from "@/lib/personas/field-synthesis.functions";
 
 import type { FieldFinding as Finding } from "@/lib/personas/field-stages";
 
@@ -26,16 +33,19 @@ export function EvidenceStage({
   projectId,
   studyId,
   finding,
+  closed,
   onChanged,
 }: {
   projectId: string;
   studyId: string | null;
   finding: Finding | null;
+  closed?: boolean;
   onChanged: () => void;
 }) {
   const qc = useQueryClient();
   const synthFn = useServerFn(synthesiseField);
   const closeFn = useServerFn(closeProgramme);
+  const reopenFn = useServerFn(reopenProgramme);
 
   const collectionQ = useQuery({
     queryKey: ["field-collection", studyId],
@@ -56,7 +66,25 @@ export function EvidenceStage({
     onSuccess: onChanged,
   });
 
+  const reopen = useMutation({
+    mutationFn: async () => reopenFn({ data: { projectId } }),
+    onSuccess: onChanged,
+  });
+
   const live = (synth.data?.finding as Finding | undefined) ?? finding;
+
+  useResolveAction(
+    "evidence",
+    closed
+      ? null
+      : !live
+        ? {
+            label: "Synthesise the finding",
+            run: () => synth.mutate(),
+            pending: synth.isPending,
+          }
+        : { label: "Close the programme", run: () => close.mutate(), pending: close.isPending },
+  );
 
   if (!studyId) {
     return (
@@ -69,6 +97,31 @@ export function EvidenceStage({
 
   return (
     <div className="space-y-5">
+      {closed ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 border border-emerald-500/40 bg-emerald-500/5 p-4">
+          <div className="min-w-0">
+            <p className="font-serif text-lg text-ink-950">This programme is filed.</p>
+            <p className="mt-0.5 text-[13px] text-ink-700">
+              The closing memo sits in this country's second brain. Reopen it to correct the
+              finding — re-closing writes over the same memo, it does not file a second one.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={reopen.isPending}
+            onClick={() => reopen.mutate()}
+          >
+            {reopen.isPending ? (
+              <Loader2 size={11} className="animate-spin" />
+            ) : (
+              <RotateCcw size={12} />
+            )}
+            Reopen to revise
+          </button>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-3 border border-line-200 bg-paper-0 p-4">
         <div className="min-w-0 flex-1">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
@@ -98,7 +151,7 @@ export function EvidenceStage({
           onClick={() => close.mutate()}
         >
           {close.isPending ? <Loader2 size={11} className="animate-spin" /> : <Archive size={12} />}
-          Close the programme
+          {closed ? "Re-file the programme" : "Close the programme"}
         </button>
       </div>
       {synth.isError ? (
@@ -107,11 +160,15 @@ export function EvidenceStage({
       {close.isError ? (
         <p className="text-[12px] text-rose-600">{(close.error as Error).message}</p>
       ) : null}
+      {reopen.isError ? (
+        <p className="text-[12px] text-rose-600">{(reopen.error as Error).message}</p>
+      ) : null}
       {close.isSuccess ? (
         <p className="text-[12px] text-emerald-700">
           Closed. The programme memo is filed to this country's second brain.
         </p>
       ) : null}
+
 
       {!live ? (
         <EmptyAction

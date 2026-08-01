@@ -9,7 +9,9 @@ import { Loader2, UserPlus, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { RecruitmentBoard } from "./RecruitmentBoard";
+import { useDirtyRegistration } from "./stage-bus";
 import { EmptyAction } from "./StageFrame";
+
 import {
   createPanel,
   importContacts,
@@ -135,6 +137,12 @@ export function ParticipantsStage({
       else next.add(id);
       return next;
     });
+
+  useDirtyRegistration("participants-roster", roster.trim().length > 0, "a pasted roster", async () => {
+    await doImport.mutateAsync();
+  });
+
+
 
   return (
     <div className="space-y-5">

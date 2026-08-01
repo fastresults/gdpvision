@@ -10,6 +10,8 @@ import { CalendarPlus, Loader2, Mail, PlayCircle, Upload } from "lucide-react";
 import { useState } from "react";
 
 import { EmptyAction } from "./StageFrame";
+import { useDirtyRegistration, useResolveAction } from "./stage-bus";
+
 import { listContacts, listPanels } from "@/lib/personas/crm.functions";
 import {
   getCollection,
@@ -163,6 +165,40 @@ export function FieldworkStage({
       refresh();
     },
   });
+
+  // Unsaved work here is text sitting in a box: a transcript, or pasted returns.
+  const heldCount = (sessionsQ.data ?? []).filter(
+    (s) => (s as { status?: string }).status === "held",
+  ).length;
+  useDirtyRegistration(
+    "fieldwork-transcript",
+    !!transcriptFor && transcript.trim().length > 0,
+    "a transcript",
+    async () => {
+      await saveTranscript.mutateAsync();
+    },
+  );
+  useDirtyRegistration("fieldwork-returns", rows.trim().length > 0, "pasted returns", async () => {
+    await importRows.mutateAsync();
+  });
+
+  useResolveAction(
+    "fieldwork",
+    !collection
+      ? {
+          label: "Open the collection",
+          run: () => open.mutate(),
+          pending: open.isPending,
+        }
+      : responseCount === 0 && heldCount === 0
+        ? {
+            label: invitations.length === 0 ? "Invite the panel" : "Import returns",
+            run: () => (invitations.length === 0 ? invite.mutate() : importRows.mutate()),
+            pending: invite.isPending || importRows.isPending,
+          }
+        : null,
+  );
+
 
   if (!studyId) {
     return (

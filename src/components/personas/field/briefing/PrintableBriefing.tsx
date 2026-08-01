@@ -383,6 +383,15 @@ const PRINT_CSS = `
   .cb-prose strong { font-weight: 600; }
   .cb-prose em { color: #55554c; }
   .cb-prose hr { border: none; border-top: 1px solid #d8d4c8; margin: 8mm 0; }
+  .cb-prose blockquote {
+    margin: 0 0 5mm 0;
+    padding: 0 0 0 5mm;
+    border-left: 1.5pt solid #b8912a;
+    color: #33332c;
+    font-style: italic;
+  }
+  .cb-prose blockquote p { margin: 0 0 2.5mm 0; }
+
   .cb-prose table {
     width: 100%;
     table-layout: fixed;

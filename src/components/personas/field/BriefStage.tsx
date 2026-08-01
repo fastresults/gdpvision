@@ -50,7 +50,6 @@ export function BriefStage({
       }}
       panels={{
         commit: (
-
           <div className="space-y-5">
             {committed ? (
               <p className="border border-emerald-500/40 bg-emerald-500/5 p-3 text-[13px] text-ink-800">

@@ -131,13 +131,6 @@ export function DeckModal({
               <div>
                 <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
                   Chamber 07 · Commencement deck · v{deck.version}
-                </p>
-                <p className="mt-0.5 font-serif text-lg text-ink-950">{deck.programmeTitle}</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-              <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
-                  Chamber 07 · Commencement deck · v{deck.version}
                   {stale ? " · out of date" : ""}
                 </p>
                 <p className="mt-0.5 font-serif text-lg text-ink-950">{deck.programmeTitle}</p>

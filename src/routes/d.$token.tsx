@@ -189,7 +189,7 @@ function PublicDossier() {
                   <BriefOpenerBlock opener={s.opener} variant="screen" />
                 ) : (
                   <div className="cb-public-prose mt-4 max-w-none text-[15px] leading-relaxed text-ink-800">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.body_md}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{sanitizeSectionMarkdown(s.body_md)}</ReactMarkdown>
                   </div>
                 )}
 

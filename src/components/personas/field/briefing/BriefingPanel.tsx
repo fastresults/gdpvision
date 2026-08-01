@@ -269,16 +269,34 @@ export function BriefingPanel({
                 {preflightReady ? "Ready to export" : "Export blocked"}
               </span>
             </div>
+            <p className="mt-2 text-xs text-ink-500">
+              {preflightReady
+                ? `All ${preflight.length} sections trace to the client brief; no internal platform references found.`
+                : "One or more sections carry internal platform references. Re-assemble before exporting."}
+            </p>
             <div className="mt-3 grid gap-px bg-line-200 sm:grid-cols-2 lg:grid-cols-4">
               {preflight.map((item) => (
                 <div key={item.sectionId} className="bg-paper-0 p-3 text-xs text-ink-700">
                   <p className="font-medium text-ink-950">{item.sectionId}</p>
                   <p>{item.source.replace(/_/g, " ")}</p>
-                  <p>{item.bannedTermCount} prohibited references</p>
+                  {item.bannedTermCount === 0 ? (
+                    <p className="mt-1 inline-flex items-center gap-1 text-ink-500">
+                      <Check size={12} className="text-gold-500" />
+                      Clean — drawn from the governing brief
+                    </p>
+                  ) : (
+                    <p className="mt-1 font-medium text-signal-negative">
+                      {item.bannedTermCount} prohibited reference
+                      {item.bannedTermCount === 1 ? "" : "s"}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
           </div>
+
+          {record && <ShareLinkBar briefingId={record.id} canPublish={preflightReady} />}
+
           {/* Readiness at issue */}
           <div className="grid gap-px border border-line-200 bg-line-200 sm:grid-cols-2 lg:grid-cols-3">
             {doc.readiness.map((r) => (

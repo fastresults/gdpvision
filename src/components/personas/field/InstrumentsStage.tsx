@@ -646,9 +646,12 @@ export function InstrumentsStage({
                   <button type="button" className="btn-ghost mt-2" onClick={() => insertAfter(i)}>
                     <Plus size={12} /> Insert a question here
                   </button>
-                </li>
-              ))}
+                    </div>
+                  </li>
+                );
+              })}
             </ol>
+
 
             <button
               type="button"

@@ -6927,6 +6927,71 @@ export type Database = {
           },
         ]
       }
+      research_recruitment_runs: {
+        Row: {
+          country_code: string
+          created_at: string
+          created_by: string | null
+          error: string | null
+          found: number
+          id: string
+          notes: Json
+          pass: number
+          persona_label: string
+          project_id: string
+          proposed: number
+          registries: Json
+          sources: Json
+          status: string
+          updated_at: string
+          want: number
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          found?: number
+          id?: string
+          notes?: Json
+          pass?: number
+          persona_label: string
+          project_id: string
+          proposed?: number
+          registries?: Json
+          sources?: Json
+          status?: string
+          updated_at?: string
+          want?: number
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          found?: number
+          id?: string
+          notes?: Json
+          pass?: number
+          persona_label?: string
+          project_id?: string
+          proposed?: number
+          registries?: Json
+          sources?: Json
+          status?: string
+          updated_at?: string
+          want?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_recruitment_runs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "persona_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scenario_promotions: {
         Row: {
           actor_id: string

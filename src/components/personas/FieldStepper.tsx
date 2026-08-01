@@ -27,16 +27,12 @@ export type FieldStageKey =
   | "evidence";
 
 export function FieldStepper({
-  code,
   active,
-  activeProjectId,
   briefCommitted = false,
   planCommitted = false,
   progress,
 }: {
-  code: string;
   active?: FieldStageKey;
-  activeProjectId?: string;
   briefCommitted?: boolean;
   planCommitted?: boolean;
   /** Live per-stage completion, so the rail always tells the truth. */

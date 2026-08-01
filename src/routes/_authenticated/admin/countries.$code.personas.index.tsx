@@ -13,7 +13,12 @@ import { JourneyCard } from "@/components/personas/JourneyCard";
 import { StudioStepper } from "@/components/personas/StudioStepper";
 import { ProgramsIndex } from "@/components/personas/StudyWizard/ProgramsIndex";
 import { ProgramBriefIntake } from "@/components/personas/StudyWizard/ProgramBriefIntake";
-import { useProgramBriefGate } from "@/hooks/useProgramBriefGate";
+import { useResearchGate } from "@/hooks/useResearchGate";
+import { TrackPicker } from "@/components/personas/TrackPicker";
+import { TrackTabs } from "@/components/personas/TrackTabs";
+import { FieldStepper } from "@/components/personas/FieldStepper";
+import type { ResearchTrack } from "@/lib/personas/tracks";
+
 import { listProjects } from "@/lib/personas/projects.functions";
 
 function personasQuery(code: string, projectId?: string) {

@@ -102,8 +102,8 @@ export function EvidenceStage({
           <div className="min-w-0">
             <p className="font-serif text-lg text-ink-950">This programme is filed.</p>
             <p className="mt-0.5 text-[13px] text-ink-700">
-              The closing memo sits in this country's second brain. Reopen it to correct the
-              finding — re-closing writes over the same memo, it does not file a second one.
+              The closing memo sits in this country's second brain. Reopen it to correct the finding
+              — re-closing writes over the same memo, it does not file a second one.
             </p>
           </div>
           <button
@@ -169,7 +169,6 @@ export function EvidenceStage({
         </p>
       ) : null}
 
-
       {!live ? (
         <EmptyAction
           title="Not synthesised yet."
@@ -234,6 +233,31 @@ export function EvidenceStage({
               <ul className="list-disc space-y-1 pl-4">
                 {live.tensions.map((t, i) => (
                   <li key={i}>{t}</li>
+                ))}
+              </ul>
+            </Block>
+          ) : null}
+
+          {live.innovation_signals?.length ? (
+            <Block title="Innovation signals from the field">
+              <p className="text-[12px] text-ink-600">
+                Raised unprompted by the people doing the work — beyond what the brief asked.
+              </p>
+              <ul className="space-y-2">
+                {live.innovation_signals.map((s, i) => (
+                  <li key={i} className="border-l-2 border-line-200 pl-3">
+                    <p className="text-ink-950">{s.idea}</p>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
+                      raised by {s.raised_by ?? 1}
+                      {s.confidence ? ` · confidence ${s.confidence}` : ""}
+                    </p>
+                    {s.what_would_improve ? (
+                      <p className="text-[12px] text-ink-700">{s.what_would_improve}</p>
+                    ) : null}
+                    {s.verbatim ? (
+                      <p className="font-serif italic text-ink-800">“{s.verbatim}”</p>
+                    ) : null}
+                  </li>
                 ))}
               </ul>
             </Block>

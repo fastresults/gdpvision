@@ -44,6 +44,7 @@ type Question = {
   options?: string[];
   required?: boolean;
   objective_ref?: number;
+  intent?: "frontline_insight";
 };
 
 interface Doc {
@@ -205,8 +206,13 @@ export function InstrumentsStage({
 
   const coverage = objectives.map((o, i) => ({
     objective: o.objective,
-    n: (value?.questions ?? []).filter((q) => q.objective_ref === i + 1).length,
+    n: (value?.questions ?? []).filter(
+      (q) => q.intent !== "frontline_insight" && q.objective_ref === i + 1,
+    ).length,
   }));
+  const frontlineCount = (value?.questions ?? []).filter(
+    (q) => q.intent === "frontline_insight",
+  ).length;
 
   return (
     <div className="space-y-5">
@@ -344,6 +350,24 @@ export function InstrumentsStage({
                   </li>
                 ))}
               </ul>
+              <p className="mt-3 border-t border-line-200 pt-2 text-[12px]">
+                <Explain id="research.instrument.frontline" mark={false}>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                    Frontline insight · beyond the brief
+                  </span>
+                </Explain>{" "}
+                {frontlineCount > 0 ? (
+                  <span className="text-ink-700">
+                    {frontlineCount} closing question{frontlineCount === 1 ? "" : "s"} ask where the
+                    work breaks and what they would change. Excluded from coverage above.
+                  </span>
+                ) : (
+                  <span className="text-amber-700">
+                    This instrument no longer carries the closing frontline block. Re-draft to
+                    restore it, or keep it removed deliberately.
+                  </span>
+                )}
+              </p>
             </div>
           ) : null}
 
@@ -436,175 +460,200 @@ export function InstrumentsStage({
             ) : null}
 
             <ol className="space-y-3">
-              {value.questions.map((q, i) => (
-                <li key={q.id} className="border border-line-200 p-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
-                        Q{i + 1}
-                      </span>
-                      <select
-                        value={q.type}
-                        onChange={(e) =>
-                          patch((d) => ({
-                            ...d,
-                            questions: d.questions.map((x) =>
-                              x.id === q.id ? { ...x, type: e.target.value } : x,
-                            ),
-                          }))
-                        }
-                        className="border border-line-200 bg-paper-0 px-2 py-1 text-[12px] focus:border-ink-950 focus:outline-none"
-                      >
-                        {QUESTION_TYPES.map((t) => (
-                          <option key={t} value={t}>
-                            {t.replace(/_/g, " ")}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        value={q.objective_ref ?? ""}
-                        onChange={(e) =>
-                          patch((d) => ({
-                            ...d,
-                            questions: d.questions.map((x) =>
-                              x.id === q.id
-                                ? {
-                                    ...x,
-                                    objective_ref: e.target.value
-                                      ? Number(e.target.value)
-                                      : undefined,
-                                  }
-                                : x,
-                            ),
-                          }))
-                        }
-                        className="border border-line-200 bg-paper-0 px-2 py-1 text-[12px] focus:border-ink-950 focus:outline-none"
-                        title="Which objective this question serves"
-                      >
-                        <option value="">no objective</option>
-                        {objectives.map((_, oi) => (
-                          <option key={oi} value={oi + 1}>
-                            objective {oi + 1}
-                          </option>
-                        ))}
-                      </select>
-                      <label className="flex items-center gap-1 text-[11px] text-ink-600">
-                        <input
-                          type="checkbox"
-                          checked={!!q.required}
-                          onChange={(e) =>
-                            patch((d) => ({
-                              ...d,
-                              questions: d.questions.map((x) =>
-                                x.id === q.id ? { ...x, required: e.target.checked } : x,
-                              ),
-                            }))
-                          }
-                        />
-                        required
-                      </label>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        className="btn-ghost"
-                        disabled={i === 0}
-                        onClick={() => move(i, -1)}
-                        aria-label={`Move question ${i + 1} up`}
-                      >
-                        <ArrowUp size={12} />
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-ghost"
-                        disabled={i === value.questions.length - 1}
-                        onClick={() => move(i, 1)}
-                        aria-label={`Move question ${i + 1} down`}
-                      >
-                        <ArrowDown size={12} />
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-ghost"
-                        onClick={() =>
-                          patch((d) => {
-                            const qs = [...d.questions];
-                            qs.splice(i + 1, 0, { ...q, id: newId() });
-                            return { ...d, questions: qs };
-                          })
-                        }
-                        aria-label={`Duplicate question ${i + 1}`}
-                      >
-                        <Copy size={12} />
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-ghost"
-                        onClick={() => {
-                          setRemoved({ q, at: i });
-                          patch((d) => ({
-                            ...d,
-                            questions: d.questions.filter((x) => x.id !== q.id),
-                          }));
-                        }}
-                        aria-label={`Remove question ${i + 1}`}
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  </div>
+              {value.questions.map((q, i) => {
+                const frontline = q.intent === "frontline_insight";
+                const firstFrontline =
+                  frontline &&
+                  value.questions.findIndex((x) => x.intent === "frontline_insight") === i;
+                return (
+                  <li key={q.id}>
+                    {firstFrontline ? (
+                      <p className="mb-2 border-t border-line-200 pt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                        <Explain id="research.instrument.frontline" mark={false}>
+                          Frontline insight · beyond the brief
+                        </Explain>
+                      </p>
+                    ) : null}
+                    <div
+                      className={cn(
+                        "border p-3",
+                        frontline ? "border-gold-500/50 bg-paper-100/40" : "border-line-200",
+                      )}
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+                            Q{i + 1}
+                          </span>
 
-                  <textarea
-                    value={q.prompt}
-                    rows={2}
-                    placeholder="Ask it the way you would ask it aloud."
-                    onChange={(e) =>
-                      patch((d) => ({
-                        ...d,
-                        questions: d.questions.map((x) =>
-                          x.id === q.id ? { ...x, prompt: e.target.value } : x,
-                        ),
-                      }))
-                    }
-                    className="mt-2 w-full border border-line-200 bg-paper-0 p-2 text-[13px] focus:border-ink-950 focus:outline-none"
-                  />
+                          <select
+                            value={q.type}
+                            onChange={(e) =>
+                              patch((d) => ({
+                                ...d,
+                                questions: d.questions.map((x) =>
+                                  x.id === q.id ? { ...x, type: e.target.value } : x,
+                                ),
+                              }))
+                            }
+                            className="border border-line-200 bg-paper-0 px-2 py-1 text-[12px] focus:border-ink-950 focus:outline-none"
+                          >
+                            {QUESTION_TYPES.map((t) => (
+                              <option key={t} value={t}>
+                                {t.replace(/_/g, " ")}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            value={q.objective_ref ?? ""}
+                            onChange={(e) =>
+                              patch((d) => ({
+                                ...d,
+                                questions: d.questions.map((x) =>
+                                  x.id === q.id
+                                    ? {
+                                        ...x,
+                                        objective_ref: e.target.value
+                                          ? Number(e.target.value)
+                                          : undefined,
+                                      }
+                                    : x,
+                                ),
+                              }))
+                            }
+                            className="border border-line-200 bg-paper-0 px-2 py-1 text-[12px] focus:border-ink-950 focus:outline-none"
+                            title="Which objective this question serves"
+                          >
+                            <option value="">no objective</option>
+                            {objectives.map((_, oi) => (
+                              <option key={oi} value={oi + 1}>
+                                objective {oi + 1}
+                              </option>
+                            ))}
+                          </select>
+                          <label className="flex items-center gap-1 text-[11px] text-ink-600">
+                            <input
+                              type="checkbox"
+                              checked={!!q.required}
+                              onChange={(e) =>
+                                patch((d) => ({
+                                  ...d,
+                                  questions: d.questions.map((x) =>
+                                    x.id === q.id ? { ...x, required: e.target.checked } : x,
+                                  ),
+                                }))
+                              }
+                            />
+                            required
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            disabled={i === 0}
+                            onClick={() => move(i, -1)}
+                            aria-label={`Move question ${i + 1} up`}
+                          >
+                            <ArrowUp size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            disabled={i === value.questions.length - 1}
+                            onClick={() => move(i, 1)}
+                            aria-label={`Move question ${i + 1} down`}
+                          >
+                            <ArrowDown size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            onClick={() =>
+                              patch((d) => {
+                                const qs = [...d.questions];
+                                qs.splice(i + 1, 0, { ...q, id: newId() });
+                                return { ...d, questions: qs };
+                              })
+                            }
+                            aria-label={`Duplicate question ${i + 1}`}
+                          >
+                            <Copy size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            onClick={() => {
+                              setRemoved({ q, at: i });
+                              patch((d) => ({
+                                ...d,
+                                questions: d.questions.filter((x) => x.id !== q.id),
+                              }));
+                            }}
+                            aria-label={`Remove question ${i + 1}`}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
 
-                  {q.type === "single_choice" ||
-                  q.type === "multi_choice" ||
-                  q.type === "ranking" ? (
-                    <label className="mt-2 block">
-                      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
-                        Options · one per line
-                      </span>
                       <textarea
-                        value={(q.options ?? []).join("\n")}
-                        rows={3}
+                        value={q.prompt}
+                        rows={2}
+                        placeholder="Ask it the way you would ask it aloud."
                         onChange={(e) =>
                           patch((d) => ({
                             ...d,
                             questions: d.questions.map((x) =>
-                              x.id === q.id
-                                ? {
-                                    ...x,
-                                    options: e.target.value
-                                      .split(/\r?\n/)
-                                      .map((s) => s.trim())
-                                      .filter(Boolean),
-                                  }
-                                : x,
+                              x.id === q.id ? { ...x, prompt: e.target.value } : x,
                             ),
                           }))
                         }
-                        className="mt-1 w-full border border-line-200 bg-paper-0 p-2 text-[12px] focus:border-ink-950 focus:outline-none"
+                        className="mt-2 w-full border border-line-200 bg-paper-0 p-2 text-[13px] focus:border-ink-950 focus:outline-none"
                       />
-                    </label>
-                  ) : null}
 
-                  <button type="button" className="btn-ghost mt-2" onClick={() => insertAfter(i)}>
-                    <Plus size={12} /> Insert a question here
-                  </button>
-                </li>
-              ))}
+                      {q.type === "single_choice" ||
+                      q.type === "multi_choice" ||
+                      q.type === "ranking" ? (
+                        <label className="mt-2 block">
+                          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+                            Options · one per line
+                          </span>
+                          <textarea
+                            value={(q.options ?? []).join("\n")}
+                            rows={3}
+                            onChange={(e) =>
+                              patch((d) => ({
+                                ...d,
+                                questions: d.questions.map((x) =>
+                                  x.id === q.id
+                                    ? {
+                                        ...x,
+                                        options: e.target.value
+                                          .split(/\r?\n/)
+                                          .map((s) => s.trim())
+                                          .filter(Boolean),
+                                      }
+                                    : x,
+                                ),
+                              }))
+                            }
+                            className="mt-1 w-full border border-line-200 bg-paper-0 p-2 text-[12px] focus:border-ink-950 focus:outline-none"
+                          />
+                        </label>
+                      ) : null}
+
+                      <button
+                        type="button"
+                        className="btn-ghost mt-2"
+                        onClick={() => insertAfter(i)}
+                      >
+                        <Plus size={12} /> Insert a question here
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
             </ol>
 
             <button

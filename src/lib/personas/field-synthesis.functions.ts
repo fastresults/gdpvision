@@ -21,6 +21,14 @@ export interface FieldFinding {
   quotes: Array<{ quote: string; participant: string; context?: string }>;
   tensions: string[];
   implications: string[];
+  /** Unprompted refinements raised in the frontline-insight block. */
+  innovation_signals?: Array<{
+    idea: string;
+    raised_by: number;
+    confidence?: string;
+    verbatim?: string;
+    what_would_improve?: string;
+  }>;
   confidence: { level: string; why: string; limitations: string[] };
 }
 
@@ -73,7 +81,9 @@ export const synthesiseField = createServerFn({ method: "POST" })
     const responseCount = responses?.length ?? 0;
     const sessionCount = sessions?.length ?? 0;
     if (responseCount === 0 && sessionCount === 0) {
-      throw new Error("Nothing to synthesise yet — collect responses or attach a transcript first.");
+      throw new Error(
+        "Nothing to synthesise yet — collect responses or attach a transcript first.",
+      );
     }
 
     const instrumentBlock = instrument?.questions
@@ -100,7 +110,9 @@ Rules you must not break:
 - Every finding must be grounded in the material provided. Do not infer beyond it, do not import outside knowledge as if it were evidence, and do not invent quotes.
 - Attribute quotes only by the pseudonymous participant code given. Never guess or state a real name.
 - Be explicit and honest about limitations: small base sizes, self-selection, single-session evidence, unbalanced segments.
-- Where the evidence is thin or contradictory, say so rather than smoothing it over.`;
+- Where the evidence is thin or contradictory, say so rather than smoothing it over.
+
+Every instrument closes with a "frontline insight" block — questions tagged with "intent": "frontline_insight" — asking respondents where the work breaks and what they would change. Report those answers SEPARATELY as "innovation_signals": cluster the same underlying idea together, count how many respondents raised it, carry their own confidence rating where one was given, and keep one verbatim per signal. Never fold these into the objective findings, and never invent a signal nobody raised.`;
 
     const user = `STUDY: ${study.title}
 OBJECTIVE: ${study.objective ?? "(not stated)"}
@@ -122,6 +134,7 @@ Return JSON:
   "quotes": [{"quote":"verbatim","participant":"P-0001","context":"why it matters"}],
   "tensions": ["contradictions or disagreements in the evidence"],
   "implications": ["what the client should do or decide as a result"],
+  "innovation_signals": [{"idea":"the refinement or invention respondents raised","raised_by":3,"confidence":"how sure they were it would work","what_would_improve":"the improvement they expect","verbatim":"one quote in their words"}],
   "confidence": {"level":"high|moderate|low","why":"...","limitations":["..."]}
 }`;
 
@@ -162,9 +175,7 @@ Return JSON:
 export const compareToSynthetic = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z
-      .object({ fieldStudyId: z.string().uuid(), syntheticStudyId: z.string().uuid() })
-      .parse(d),
+    z.object({ fieldStudyId: z.string().uuid(), syntheticStudyId: z.string().uuid() }).parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
@@ -216,7 +227,11 @@ Return JSON:
       .update({
         config: {
           ...config,
-          calibration: { against: data.syntheticStudyId, ...comparison, at: new Date().toISOString() },
+          calibration: {
+            against: data.syntheticStudyId,
+            ...comparison,
+            at: new Date().toISOString(),
+          },
         } as unknown as Json,
       } as never)
       .eq("id", data.fieldStudyId);
@@ -298,9 +313,6 @@ Return JSON:
       .eq("id", data.projectId);
     if (closeErr) throw closeErr;
 
-
-
-
     return { memo, memoryId: mem?.id ?? null };
   });
 
@@ -329,4 +341,3 @@ export const reopenProgramme = createServerFn({ method: "POST" })
     if (error) throw error;
     return { status: "active" };
   });
-

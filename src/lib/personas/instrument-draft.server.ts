@@ -38,7 +38,15 @@ export interface FieldQuestion {
   rows?: string[];
   /** 1-based index into the plan's objectives this question serves. */
   objective_ref?: number;
+  /**
+   * Why this question exists when it does not serve a stated objective.
+   * "frontline_insight" marks the standing block that asks stakeholders where
+   * the work breaks and what they would change — invention only they can name.
+   */
+  intent?: "frontline_insight";
 }
+
+export const FRONTLINE_INTENT = "frontline_insight" as const;
 
 export interface DraftPayload {
   title: string;
@@ -228,14 +236,103 @@ function normaliseQuestions(questions: FieldQuestion[], objectiveCount: number):
       .slice(0, 40);
     if (!id || used.has(id)) id = `q${i + 1}`;
     used.add(id);
+    const frontline = q.intent === FRONTLINE_INTENT;
     const ref =
+      !frontline &&
       typeof q.objective_ref === "number" &&
       q.objective_ref >= 1 &&
       q.objective_ref <= objectiveCount
         ? Math.round(q.objective_ref)
         : undefined;
-    return { ...q, id, ...(ref ? { objective_ref: ref } : {}) };
+    const out: FieldQuestion = { ...q, id };
+    delete out.objective_ref;
+    if (ref) out.objective_ref = ref;
+    if (frontline) out.intent = FRONTLINE_INTENT;
+    else delete out.intent;
+    return out;
   });
+}
+
+/** Does this instrument already carry the standing frontline-insight block? */
+export function hasFrontlineBlock(questions: FieldQuestion[]): boolean {
+  return questions.some((q) => q.intent === FRONTLINE_INTENT);
+}
+
+/**
+ * The guarantee. Every instrument closes with an open invitation to the people
+ * actually touching the work: where does it break, what would you change, and
+ * how sure are you it would work. If the model omitted it, we append a version
+ * worded to this study's own subject.
+ */
+function appendFrontlineBlock(
+  questions: FieldQuestion[],
+  kind: InstrumentKind,
+  subject: string,
+): FieldQuestion[] {
+  if (hasFrontlineBlock(questions)) return questions;
+  const s = subject.trim() || "the work covered by this study";
+  const block: FieldQuestion[] =
+    kind === "discussion_guide"
+      ? [
+          {
+            id: "fi_friction",
+            type: "moderator_prompt",
+            prompt: `Closing round — where does ${s} break down or slow you down most in practice? Probe for the specific step, not the general complaint.`,
+            help: "Frontline insight · beyond the brief.",
+            intent: FRONTLINE_INTENT,
+          },
+          {
+            id: "fi_workaround",
+            type: "moderator_prompt",
+            prompt: `What do you and your team already do informally to get around that? Probe for workarounds people have invented themselves.`,
+            help: "Frontline insight · beyond the brief.",
+            intent: FRONTLINE_INTENT,
+          },
+          {
+            id: "fi_invention",
+            type: "moderator_prompt",
+            prompt: `If you could change one thing about how ${s} is done, what would you change — and what would improve as a result? Go round the room.`,
+            help: "Frontline insight · beyond the brief.",
+            intent: FRONTLINE_INTENT,
+          },
+          {
+            id: "fi_referral",
+            type: "moderator_prompt",
+            prompt: `Who else should we be asking about this — someone closer to the work than anyone in this room?`,
+            help: "Frontline insight · beyond the brief.",
+            intent: FRONTLINE_INTENT,
+          },
+        ]
+      : [
+          {
+            id: "fi_friction",
+            type: "open_text",
+            prompt: `Thinking about how ${s} works day to day, where does it break down or slow you down most?`,
+            help: "In your own words — this is the part only you can tell us.",
+            required: false,
+            intent: FRONTLINE_INTENT,
+          },
+          {
+            id: "fi_invention",
+            type: "open_text",
+            prompt: `If you could change one thing about how ${s} is done, what would you change, and what would improve?`,
+            help: "One change, however small or however large.",
+            required: false,
+            intent: FRONTLINE_INTENT,
+          },
+          {
+            id: "fi_confidence",
+            type: "scale",
+            prompt: "How confident are you that the change you described would work?",
+            scale_min: 1,
+            scale_max: 5,
+            scale_min_label: "Not confident",
+            scale_max_label: "Very confident",
+            required: false,
+            intent: FRONTLINE_INTENT,
+          },
+        ];
+  return [...questions, ...block];
 }
 
 /** Draft one instrument of `kind` and persist it as the next version. */
@@ -263,6 +360,13 @@ ${
 
 Every objective listed must be covered by at least one question. Tag each question with "objective_ref": the 1-based number of the objective it serves.
 
+MANDATORY CLOSING BLOCK — "frontline insight". After the objective-led questions, and always last, write a short block that goes beyond the brief. The people answering are the ones actually touching this work: they are the single best source of where it breaks, what they already do to get around it, and what should be invented or refined. Word every prompt in this block around THIS study's actual subject matter — never generic phrasing. Tag each of these questions with "intent": "frontline_insight" and give them NO "objective_ref".
+${
+  isGuide
+    ? `For the guide: 3–4 "moderator_prompt" items forming a named closing segment — the friction probe, the informal-workaround probe, the one-thing-you-would-change round, and a referral probe asking who is closer to the work than anyone in the room.`
+    : `For the questionnaire: exactly 3 items — an "open_text" friction question, an "open_text" one-change-and-what-improves question, and a 1–5 "scale" asking how confident they are that their change would work (so the ideas can be ranked, not merely collected). None of them required.`
+}
+
 Question ids must be short, lowercase, snake_case and unique. Scale questions must set scale_min, scale_max and both labels. Choice questions must have real, mutually exclusive options.`;
 
   const user = `${ctx.briefBlock}
@@ -283,11 +387,16 @@ Return JSON:
   "title": "instrument title",
   "intro": "what the respondent/participant is told up front, including why their input matters and how it will be used",
   "outro": "closing text",
-  "questions": [{"id":"...","type":"${QUESTION_TYPES.join("|")}","prompt":"...","help":"...","required":true,"objective_ref":1,"options":["..."],"scale_min":1,"scale_max":5,"scale_min_label":"...","scale_max_label":"...","rows":["..."]}]
+  "questions": [{"id":"...","type":"${QUESTION_TYPES.join("|")}","prompt":"...","help":"...","required":true,"objective_ref":1,"intent":"frontline_insight","options":["..."],"scale_min":1,"scale_max":5,"scale_min_label":"...","scale_max_label":"...","rows":["..."]}]
 }`;
 
   const draft = await deriveJson<DraftPayload>({ system, user, validate: isDraft });
-  const questions = normaliseQuestions(draft.questions, ctx.objectives.length);
+  const subject = (study.objective ?? study.title ?? "").toString().slice(0, 160);
+  const questions = appendFrontlineBlock(
+    normaliseQuestions(draft.questions, ctx.objectives.length),
+    kind,
+    subject,
+  );
 
   const { data: prev } = await supabase
     .from("field_instruments")

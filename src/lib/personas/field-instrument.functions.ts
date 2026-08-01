@@ -35,6 +35,7 @@ const QuestionSchema = z.object({
   scale_max_label: z.string().max(120).optional(),
   rows: z.array(z.string().max(400)).max(40).optional(),
   objective_ref: z.number().int().optional(),
+  intent: z.literal("frontline_insight").optional(),
 });
 
 /** Everything the Instruments stage needs in one read: what is required, what exists, why. */

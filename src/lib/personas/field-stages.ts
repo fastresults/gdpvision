@@ -136,6 +136,14 @@ export interface FieldFinding {
   quotes?: Array<{ quote: string; participant?: string; context?: string }>;
   tensions?: string[];
   implications?: string[];
+  /** Unprompted refinements raised in the frontline-insight block. */
+  innovation_signals?: Array<{
+    idea: string;
+    raised_by?: number;
+    confidence?: string;
+    verbatim?: string;
+    what_would_improve?: string;
+  }>;
   confidence?: { level?: string; why?: string; limitations?: string[] };
 }
 

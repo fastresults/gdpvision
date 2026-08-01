@@ -140,7 +140,6 @@ Return JSON with exactly four string keys:
 - "assurance": 2–3 paragraphs. How quality, consent and confidentiality are held; what the limits of the evidence will be; and how findings will be filed to the client's second brain so they can be cited later.
 - "expected_outcome": 2–3 paragraphs, and these are the closing words of the whole document. Restate the client's original ask in plain language as it was given in the brief and scope, then state precisely what the programme will hand back against it — naming the committed deliverables and the date by which they land. Be concrete and measured; make no claim the committed artefacts do not support.`;
 
-
 async function writeNarrative(input: string): Promise<Narrative | null> {
   try {
     return await deriveJson<Narrative>({
@@ -278,7 +277,6 @@ export async function assembleBriefing(
     })),
     milestones: (milestones ?? []).map((m) => ({ title: m.title, due_on: m.due_on })),
     risks,
-
   }).slice(0, 24_000);
 
   const narrative = await writeNarrative(narrativeInput);
@@ -410,7 +408,14 @@ export async function assembleBriefing(
       "### Target personas recruited",
       "",
       table(
-        ["Persona", "Typical roles", "Typical settings", "Why them", "Recruited", "Consent secured"],
+        [
+          "Persona",
+          "Typical roles",
+          "Typical settings",
+          "Why them",
+          "Recruited",
+          "Consent secured",
+        ],
         (() => {
           type Bucket = {
             roles: Set<string>;
@@ -450,7 +455,6 @@ export async function assembleBriefing(
           ]);
         })(),
       ),
-
     ].join("\n"),
   });
 
@@ -461,7 +465,8 @@ export async function assembleBriefing(
     body_md:
       instruments.length === 0
         ? "_No instrument has been drafted against this programme yet._"
-        : instruments
+        : `Every instrument closes with an open frontline block: beyond the questions your brief asks, we invite the people actually doing the work to say where it breaks, what they already do to get around it, and what they would change. Those answers are reported separately, as innovation signals, and never folded into the objective findings.\n\n` +
+          instruments
             .map((inst) => {
               const kind =
                 str(inst["kind"]) === "discussion_guide" ? "Discussion guide" : "Questionnaire";
@@ -549,8 +554,10 @@ export async function assembleBriefing(
   const deliverableRows = deliverables ?? [];
   const milestoneRows = milestones ?? [];
   const lastDue =
-    deliverableRows.map((d) => d.due_on as string | null).filter(Boolean).slice(-1)[0] ??
-    (plan.ends_on as string | null);
+    deliverableRows
+      .map((d) => d.due_on as string | null)
+      .filter(Boolean)
+      .slice(-1)[0] ?? (plan.ends_on as string | null);
 
   const outcomeRows = objectives.map((o, idx) => {
     const text = str((o as Record<string, unknown>)["objective"], "—");
@@ -570,7 +577,10 @@ export async function assembleBriefing(
     const scored = deliverableRows
       .map((d) => ({ d, score: overlap(t, tokens(str(d.title))) }))
       .sort((a, b) => b.score - a.score);
-    const match = scored[0] && scored[0].score > 0 ? scored[0].d : deliverableRows[idx % Math.max(1, deliverableRows.length)];
+    const match =
+      scored[0] && scored[0].score > 0
+        ? scored[0].d
+        : deliverableRows[idx % Math.max(1, deliverableRows.length)];
 
     return [
       String(idx + 1).padStart(2, "0"),
@@ -616,8 +626,6 @@ export async function assembleBriefing(
       narrative?.expected_outcome ?? fallbackOutcome,
     ].join("\n"),
   });
-
-
 
   // ── Readiness ─────────────────────────────────────────────────────────
   const readiness: BriefingReadinessItem[] = [

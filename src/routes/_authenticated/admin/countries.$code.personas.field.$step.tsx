@@ -128,7 +128,20 @@ function PlanStage({ code, projectId }: { code: string; projectId: string }) {
   });
 
   const data = planQ.data;
-  const plan = data?.plan as { id: string; status: string; starts_on?: string | null; ends_on?: string | null; rationale?: unknown } | undefined;
+  const plan = data?.plan as
+    | {
+        id: string;
+        status: string;
+        summary?: string | null;
+        starts_on?: string | null;
+        ends_on?: string | null;
+        rationale?: unknown;
+      }
+    | undefined;
+  const durationRationale =
+    plan?.rationale && typeof plan.rationale === "object"
+      ? ((plan.rationale as { duration?: unknown }).duration as string | undefined)
+      : undefined;
 
   return (
     <section className="space-y-5">

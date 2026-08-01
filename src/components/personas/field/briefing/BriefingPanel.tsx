@@ -109,6 +109,13 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
   const record = briefingQ.data ?? null;
   const doc = record?.document ?? null;
   const preflightReady = doc?.preflight?.every((item) => item.ready) ?? false;
+  const source = doc?.source ?? {
+    sourceName: "Legacy briefing — rebuild required",
+    preparedFor: "",
+    preparedBy: "",
+    committedText: "",
+  };
+  const preflight = doc?.preflight ?? [];
 
   const runExport = (config: BriefingPrintConfig) => {
     setPrintConfig(config);
@@ -170,8 +177,8 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
               onClick={() =>
                 runExport({
                   ...printConfig,
-                  preparedFor: doc.source.preparedFor,
-                  preparedBy: doc.source.preparedBy,
+                  preparedFor: source.preparedFor,
+                  preparedBy: source.preparedBy,
                 })
               }
               disabled={!preflightReady}
@@ -265,8 +272,7 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
                   Client-output provenance
                 </p>
                 <p className="mt-1 text-sm text-ink-800">
-                  {doc.source.sourceName} · Prepared for{" "}
-                  {doc.source.preparedFor || "not found in source"}
+                  {source.sourceName} · Prepared for {source.preparedFor || "not found in source"}
                 </p>
               </div>
               <span className={preflightReady ? "text-gold-500" : "text-signal-negative"}>
@@ -274,7 +280,7 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
               </span>
             </div>
             <div className="mt-3 grid gap-px bg-line-200 sm:grid-cols-2 lg:grid-cols-4">
-              {doc.preflight.map((item) => (
+              {preflight.map((item) => (
                 <div key={item.sectionId} className="bg-paper-0 p-3 text-xs text-ink-700">
                   <p className="font-medium text-ink-950">{item.sectionId}</p>
                   <p>{item.source.replace(/_/g, " ")}</p>
@@ -367,8 +373,8 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
           <ExportBriefingDialog
             open={exportOpen}
             projectId={projectId}
-            sourcePreparedFor={doc.source.preparedFor}
-            sourcePreparedBy={doc.source.preparedBy}
+            sourcePreparedFor={source.preparedFor}
+            sourcePreparedBy={source.preparedBy}
             onClose={() => setExportOpen(false)}
             onExport={runExport}
           />

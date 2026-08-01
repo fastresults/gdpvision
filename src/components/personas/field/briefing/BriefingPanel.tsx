@@ -34,6 +34,7 @@ import { sanitizeSectionMarkdown } from "./sanitizeSectionMarkdown";
 
 import { ExportBriefingDialog } from "./ExportBriefingDialog";
 import { ShareLinkBar } from "./ShareLinkBar";
+import { DeckShareLinkBar } from "./DeckShareLinkBar";
 import {
   BRIEFING_PRINT_SURFACE,
   DEFAULT_BRIEFING_PRINT_CONFIG,
@@ -299,7 +300,12 @@ export function BriefingPanel({
             </div>
           </div>
 
-          {record && <ShareLinkBar briefingId={record.id} canPublish={preflightReady} />}
+          {record && (
+            <div className="space-y-3">
+              <ShareLinkBar briefingId={record.id} canPublish={preflightReady} />
+              <DeckShareLinkBar projectId={projectId} canPublish={!!dossier.deck && preflightReady} />
+            </div>
+          )}
 
           {/* Readiness at issue */}
           <div className="grid gap-px border border-line-200 bg-line-200 sm:grid-cols-2 lg:grid-cols-3">

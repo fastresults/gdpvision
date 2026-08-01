@@ -72,3 +72,8 @@ export function participantLink(origin: string, token: string, optOut = false): 
 export function dossierLink(origin: string, token: string): string {
   return `${resolvePublicOrigin(origin, DEFAULT_PUBLIC_ORIGIN)}/d/${encodeURIComponent(token)}`;
 }
+
+/** The one place a public client presentation link is spelled. */
+export function deckLink(origin: string, token: string): string {
+  return `${resolvePublicOrigin(origin, DEFAULT_PUBLIC_ORIGIN)}/p/${encodeURIComponent(token)}`;
+}

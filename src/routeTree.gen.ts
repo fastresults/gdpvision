@@ -17,6 +17,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OpEdsIndexRouteImport } from './routes/op-eds.index'
 import { Route as KioskIndexRouteImport } from './routes/kiosk.index'
+import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as OpEdsSlugRouteImport } from './routes/op-eds.$slug'
 import { Route as KioskAdminRouteImport } from './routes/kiosk.admin'
 import { Route as FTokenRouteImport } from './routes/f.$token'
@@ -73,6 +74,7 @@ import { Route as ApiPublicHooksLedgerQaRouteImport } from './routes/api/public/
 import { Route as ApiPublicHooksCadenceDailyRouteImport } from './routes/api/public/hooks/cadence-daily'
 import { Route as ApiPublicFieldTokenRouteImport } from './routes/api/public/field.$token'
 import { Route as ApiPublicDossierTokenRouteImport } from './routes/api/public/dossier/$token'
+import { Route as ApiPublicDeckTokenRouteImport } from './routes/api/public/deck/$token'
 import { Route as AuthenticatedNarrativeTraceIdRouteImport } from './routes/_authenticated/narrative/trace.$id'
 import { Route as AuthenticatedNarrativeStrategyNewRouteImport } from './routes/_authenticated/narrative/strategy.new'
 import { Route as AuthenticatedNarrativeStrategyIdRouteImport } from './routes/_authenticated/narrative/strategy.$id'
@@ -178,6 +180,11 @@ const KioskIndexRoute = KioskIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => KioskRoute,
+} as any)
+const PTokenRoute = PTokenRouteImport.update({
+  id: '/p/$token',
+  path: '/p/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const OpEdsSlugRoute = OpEdsSlugRouteImport.update({
   id: '/op-eds/$slug',
@@ -495,6 +502,11 @@ const ApiPublicFieldTokenRoute = ApiPublicFieldTokenRouteImport.update({
 const ApiPublicDossierTokenRoute = ApiPublicDossierTokenRouteImport.update({
   id: '/api/public/dossier/$token',
   path: '/api/public/dossier/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicDeckTokenRoute = ApiPublicDeckTokenRouteImport.update({
+  id: '/api/public/deck/$token',
+  path: '/api/public/deck/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedNarrativeTraceIdRoute =
@@ -911,6 +923,7 @@ export interface FileRoutesByFullPath {
   '/f/$token': typeof FTokenRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
+  '/p/$token': typeof PTokenRoute
   '/kiosk/': typeof KioskIndexRoute
   '/op-eds/': typeof OpEdsIndexRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
@@ -967,6 +980,7 @@ export interface FileRoutesByFullPath {
   '/narrative/strategy/$id': typeof AuthenticatedNarrativeStrategyIdRoute
   '/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
+  '/api/public/deck/$token': typeof ApiPublicDeckTokenRoute
   '/api/public/dossier/$token': typeof ApiPublicDossierTokenRoute
   '/api/public/field/$token': typeof ApiPublicFieldTokenRoute
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
@@ -1038,6 +1052,7 @@ export interface FileRoutesByTo {
   '/f/$token': typeof FTokenRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
+  '/p/$token': typeof PTokenRoute
   '/kiosk': typeof KioskIndexRoute
   '/op-eds': typeof OpEdsIndexRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
@@ -1094,6 +1109,7 @@ export interface FileRoutesByTo {
   '/narrative/strategy/$id': typeof AuthenticatedNarrativeStrategyIdRoute
   '/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
+  '/api/public/deck/$token': typeof ApiPublicDeckTokenRoute
   '/api/public/dossier/$token': typeof ApiPublicDossierTokenRoute
   '/api/public/field/$token': typeof ApiPublicFieldTokenRoute
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
@@ -1166,6 +1182,7 @@ export interface FileRoutesById {
   '/f/$token': typeof FTokenRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
+  '/p/$token': typeof PTokenRoute
   '/kiosk/': typeof KioskIndexRoute
   '/op-eds/': typeof OpEdsIndexRoute
   '/_authenticated/admin/activity': typeof AuthenticatedAdminActivityRoute
@@ -1222,6 +1239,7 @@ export interface FileRoutesById {
   '/_authenticated/narrative/strategy/$id': typeof AuthenticatedNarrativeStrategyIdRoute
   '/_authenticated/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/_authenticated/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
+  '/api/public/deck/$token': typeof ApiPublicDeckTokenRoute
   '/api/public/dossier/$token': typeof ApiPublicDossierTokenRoute
   '/api/public/field/$token': typeof ApiPublicFieldTokenRoute
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
@@ -1299,6 +1317,7 @@ export interface FileRouteTypes {
     | '/f/$token'
     | '/kiosk/admin'
     | '/op-eds/$slug'
+    | '/p/$token'
     | '/kiosk/'
     | '/op-eds/'
     | '/admin/activity'
@@ -1355,6 +1374,7 @@ export interface FileRouteTypes {
     | '/narrative/strategy/$id'
     | '/narrative/strategy/new'
     | '/narrative/trace/$id'
+    | '/api/public/deck/$token'
     | '/api/public/dossier/$token'
     | '/api/public/field/$token'
     | '/api/public/hooks/cadence-daily'
@@ -1426,6 +1446,7 @@ export interface FileRouteTypes {
     | '/f/$token'
     | '/kiosk/admin'
     | '/op-eds/$slug'
+    | '/p/$token'
     | '/kiosk'
     | '/op-eds'
     | '/admin/activity'
@@ -1482,6 +1503,7 @@ export interface FileRouteTypes {
     | '/narrative/strategy/$id'
     | '/narrative/strategy/new'
     | '/narrative/trace/$id'
+    | '/api/public/deck/$token'
     | '/api/public/dossier/$token'
     | '/api/public/field/$token'
     | '/api/public/hooks/cadence-daily'
@@ -1553,6 +1575,7 @@ export interface FileRouteTypes {
     | '/f/$token'
     | '/kiosk/admin'
     | '/op-eds/$slug'
+    | '/p/$token'
     | '/kiosk/'
     | '/op-eds/'
     | '/_authenticated/admin/activity'
@@ -1609,6 +1632,7 @@ export interface FileRouteTypes {
     | '/_authenticated/narrative/strategy/$id'
     | '/_authenticated/narrative/strategy/new'
     | '/_authenticated/narrative/trace/$id'
+    | '/api/public/deck/$token'
     | '/api/public/dossier/$token'
     | '/api/public/field/$token'
     | '/api/public/hooks/cadence-daily'
@@ -1679,7 +1703,9 @@ export interface RootRouteChildren {
   DTokenRoute: typeof DTokenRoute
   FTokenRoute: typeof FTokenRoute
   OpEdsSlugRoute: typeof OpEdsSlugRoute
+  PTokenRoute: typeof PTokenRoute
   OpEdsIndexRoute: typeof OpEdsIndexRoute
+  ApiPublicDeckTokenRoute: typeof ApiPublicDeckTokenRoute
   ApiPublicDossierTokenRoute: typeof ApiPublicDossierTokenRoute
   ApiPublicFieldTokenRoute: typeof ApiPublicFieldTokenRoute
   ApiPublicHooksCadenceDailyRoute: typeof ApiPublicHooksCadenceDailyRoute
@@ -1747,6 +1773,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/kiosk/'
       preLoaderRoute: typeof KioskIndexRouteImport
       parentRoute: typeof KioskRoute
+    }
+    '/p/$token': {
+      id: '/p/$token'
+      path: '/p/$token'
+      fullPath: '/p/$token'
+      preLoaderRoute: typeof PTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/op-eds/$slug': {
       id: '/op-eds/$slug'
@@ -2138,6 +2171,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/dossier/$token'
       fullPath: '/api/public/dossier/$token'
       preLoaderRoute: typeof ApiPublicDossierTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/deck/$token': {
+      id: '/api/public/deck/$token'
+      path: '/api/public/deck/$token'
+      fullPath: '/api/public/deck/$token'
+      preLoaderRoute: typeof ApiPublicDeckTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/narrative/trace/$id': {
@@ -3068,7 +3108,9 @@ const rootRouteChildren: RootRouteChildren = {
   DTokenRoute: DTokenRoute,
   FTokenRoute: FTokenRoute,
   OpEdsSlugRoute: OpEdsSlugRoute,
+  PTokenRoute: PTokenRoute,
   OpEdsIndexRoute: OpEdsIndexRoute,
+  ApiPublicDeckTokenRoute: ApiPublicDeckTokenRoute,
   ApiPublicDossierTokenRoute: ApiPublicDossierTokenRoute,
   ApiPublicFieldTokenRoute: ApiPublicFieldTokenRoute,
   ApiPublicHooksCadenceDailyRoute: ApiPublicHooksCadenceDailyRoute,

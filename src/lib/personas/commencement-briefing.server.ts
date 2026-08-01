@@ -28,12 +28,33 @@ import type { FieldQuestion } from "./instrument-draft.server";
 
 type Db = SupabaseClient<Database>;
 
+/** A label/value pair in the opener's key-parameters strip. */
+export interface BriefFact {
+  label: string;
+  value: string;
+}
+
+/**
+ * Structured payload for section 01. Rendered by a dedicated component so the
+ * opening page reads as a designed brief acknowledgement rather than a slab of
+ * markdown paragraphs.
+ */
+export interface BriefOpener {
+  lede: string;
+  facts: BriefFact[];
+  quote: string | null;
+  objectives: Array<{ n: string; objective: string; why: string }>;
+}
+
 export interface BriefingSection {
   id: string;
   eyebrow: string;
   heading: string;
   body_md: string;
+  /** Present on section 01 only; renderers fall back to body_md when absent. */
+  opener?: BriefOpener;
 }
+
 
 export interface BriefingReadinessItem {
   label: string;
@@ -101,52 +122,114 @@ function table(headers: string[], rows: string[][]): string {
 }
 
 /**
- * The governing brief usually arrives as text parsed out of a client PDF: the
- * cover furniture ("SUBMITTED BY …", "CONFIDENTIAL — PREPARED EXCLUSIVELY FOR
- * …") and the client's own contents list survive, and line breaks do not. Left
- * verbatim in the dossier those lines reflow into a run-on paragraph that
- * masquerades as our table of contents. Strip the furniture, re-flow what is
- * left into sentences, and clamp it to a short quotation of the client's ask.
+ * The governing brief arrives as text parsed out of a client PDF: cover
+ * furniture, the client's own contents list, addresses, contact lines and
+ * bare figures all survive, and line breaks do not. Quoting that verbatim
+ * produced a ladder of one-line stubs in the dossier.
+ *
+ * So we do not quote the document — we extract from it. Only *running
+ * sentences* survive: a candidate must be long enough, carry lowercase prose,
+ * and end in terminal punctuation. Everything else (headings, list items,
+ * addresses, emails, URLs, bare years, sample figures) is dropped. If nothing
+ * qualifies we return an empty string and the quote block is omitted entirely
+ * rather than printing debris.
  */
-export function briefQuotation(raw: string, maxChars = 1_400): string {
-  const flat = raw
-    .replace(/\r/g, "")
-    .replace(/[ \t]+/g, " ")
-    .trim();
+export function briefQuotation(raw: string, maxChars = 700): string {
+  const flat = raw.replace(/\r/g, "").replace(/[ \t]+/g, " ").trim();
 
   const FURNITURE =
-    /^(submitted\s+by\b|prepared\s+(exclusively\s+)?for\b|confidential\b|.{0,24}\bconfidential\s+[—-]\s+prepared\b|request\s+for\s+propos|rfp\s+response\b|page\s+\d+$|contents\b|table\s+of\s+contents\b)/i;
+    /^(submitted\s+by\b|prepared\s+(exclusively\s+)?for\b|confidential\b|request\s+for\s+propos|rfp\s+response\b|page\s+\d+$|contents\b|table\s+of\s+contents\b|appendix\b|annex\b)/i;
 
-  /** A contents run: many title-cased fragments, no running sentences. */
-  const isContentsRun = (l: string): boolean => {
-    if (/table\s+of\s+contents/i.test(l)) return true;
-    if (l.length < 60) return false;
-    const sentences = (l.match(/[a-z]{2,}[.!?](\s|$)/g) ?? []).length;
-    const capitalised = (l.match(/(^|\s)[A-Z][A-Za-z&'-]+/g) ?? []).length;
-    const words = l.split(/\s+/).length;
-    return sentences === 0 && capitalised / words > 0.45;
+  /** True when the line is a running sentence rather than document furniture. */
+  const isSentence = (l: string): boolean => {
+    if (l.length < 70) return false;
+    if (FURNITURE.test(l)) return false;
+    if (/@|https?:\/\/|www\./i.test(l)) return false;
+    if (!/[.!?]["')\]]?$/.test(l)) return false;
+    const words = l.split(/\s+/);
+    if (words.length < 12) return false;
+    // Prose runs on lowercase connective words; contents runs do not.
+    const lower = words.filter((w) => /^[a-z][a-z'-]{2,}$/.test(w)).length;
+    if (lower / words.length < 0.4) return false;
+    const capitalised = words.filter((w) => /^[A-Z]/.test(w)).length;
+    return capitalised / words.length < 0.45;
   };
 
-  const lines = flat
-    .split(/\n+/)
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0)
-    .filter((l) => !FURNITURE.test(l))
-    .filter((l) => !isContentsRun(l))
-    // All-caps navigation headings ("3.4 DATA COLLECTION") carry no meaning
-    // out of their document; drop them.
-    .filter((l) => !(l.length < 90 && l === l.toUpperCase() && /[A-Z]/.test(l)));
+  const sentences: string[] = [];
+  for (const line of flat.split(/\n+/).map((l) => l.trim())) {
+    if (!isSentence(line)) continue;
+    sentences.push(line);
+    if (sentences.length === 3) break;
+  }
+  if (sentences.length === 0) return "";
 
-  const body = lines
-    .join("\n\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  const body = sentences.join("\n\n");
   if (body.length <= maxChars) return body;
 
   const cut = body.slice(0, maxChars);
   const lastStop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf(".\n"));
   return `${(lastStop > maxChars * 0.5 ? cut.slice(0, lastStop + 1) : cut).trim()} […]`;
 }
+
+/**
+ * The handful of parameters a client wants read back to them on page one:
+ * sample, precision, window, decision date, audiences, methods. Plan values
+ * win; the committed brief text is only consulted for figures the plan does
+ * not carry (stated n, margin of error, decision date).
+ */
+export function briefFacts(input: {
+  committedText: string;
+  startsOn: string | null;
+  endsOn: string | null;
+  methodMix: Array<Record<string, unknown>>;
+  audience: Array<Record<string, unknown>>;
+}): BriefFact[] {
+  const { committedText, startsOn, endsOn, methodMix, audience } = input;
+  const facts: BriefFact[] = [];
+
+  const planned = methodMix.reduce((n, m) => {
+    const v = Number(m["sample_size"]);
+    return n + (Number.isFinite(v) ? v : 0);
+  }, 0);
+  const statedN = committedText.match(/\bn\s*=\s*([\d,]+\s*\+?)/i)?.[1]?.replace(/\s+/g, "");
+  const sample = planned > 0 ? planned.toLocaleString("en-GB") : (statedN ?? null);
+  if (sample) facts.push({ label: "Sample", value: sample });
+
+  const margin = committedText.match(/±\s?\d+(?:\.\d+)?\s?%/)?.[0]?.replace(/\s+/g, "");
+  if (margin) facts.push({ label: "Precision", value: margin });
+
+  const shortDate = (d: string | null): string | null => {
+    if (!d) return null;
+    const p = new Date(d);
+    return Number.isNaN(p.getTime())
+      ? null
+      : p.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit" });
+  };
+  const from = shortDate(startsOn);
+  const to = shortDate(endsOn);
+  if (from && to) facts.push({ label: "Fieldwork window", value: `${from} → ${to}` });
+  const days = daysBetween(startsOn, endsOn);
+  if (days) facts.push({ label: "Duration", value: `${days} days` });
+
+  const segments = audience
+    .map((a) => str(a["segment"]))
+    .filter((s) => s.length > 0)
+    .slice(0, 4);
+  if (segments.length > 0) facts.push({ label: "Audiences", value: segments.join(" · ") });
+
+  const methods = Array.from(
+    new Set(
+      methodMix
+        .map((m) => str(m["method"]).replace(/_/g, " "))
+        .filter((m) => m.length > 0)
+        .map((m) => m.charAt(0).toUpperCase() + m.slice(1)),
+    ),
+  ).slice(0, 4);
+  if (methods.length > 0) facts.push({ label: "Methods", value: methods.join(" · ") });
+
+  return facts.slice(0, 6);
+}
+
 
 /** Render a quotation as markdown blockquote lines. */
 function blockquote(text: string): string {
@@ -340,30 +423,48 @@ export async function assembleBriefing(
   // ── Sections ──────────────────────────────────────────────────────────
   const sections: BriefingSection[] = [];
 
+  const openerLede = str(plan.summary, "—");
+  const openerQuote = briefQuotation(committedText);
+  const openerFacts = briefFacts({
+    committedText,
+    startsOn: (plan.starts_on as string | null) ?? null,
+    endsOn: (plan.ends_on as string | null) ?? null,
+    methodMix: methodMix as Array<Record<string, unknown>>,
+    audience: audience as Array<Record<string, unknown>>,
+  });
+  const openerObjectives = objectives.map((o, i) => ({
+    n: String(i + 1).padStart(2, "0"),
+    objective: str((o as Record<string, unknown>)["objective"], "—"),
+    why: str((o as Record<string, unknown>)["why"], "—"),
+  }));
+
   sections.push({
     id: "brief",
     eyebrow: "As we understood it",
     heading: "The brief",
+    opener: {
+      lede: openerLede,
+      facts: openerFacts,
+      quote: openerQuote.length > 0 ? openerQuote : null,
+      objectives: openerObjectives,
+    },
+    // Markdown mirror, kept for renderers (and stored documents) that predate
+    // the structured opener.
     body_md: [
-      str(plan.summary, "—"),
-      "",
-      "### Your question, in your words",
-      "",
-      blockquote(briefQuotation(committedText)),
-
+      openerLede,
+      ...(openerQuote.length > 0
+        ? ["", "### Your question, in your words", "", blockquote(openerQuote)]
+        : []),
       "",
       "### What counts as an answer",
       "",
       table(
         ["#", "Objective", "Why it matters"],
-        objectives.map((o, i) => [
-          String(i + 1).padStart(2, "0"),
-          str((o as Record<string, unknown>)["objective"], "—"),
-          str((o as Record<string, unknown>)["why"], "—"),
-        ]),
+        openerObjectives.map((o) => [o.n, o.objective, o.why]),
       ),
     ].join("\n"),
   });
+
 
   sections.push({
     id: "approach",

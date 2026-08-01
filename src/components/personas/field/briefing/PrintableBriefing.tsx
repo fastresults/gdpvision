@@ -10,6 +10,8 @@ import remarkGfm from "remark-gfm";
 
 import { PrintSurface } from "@/components/print/PrintSurface";
 import type { CommencementBriefing } from "@/lib/personas/commencement-briefing.functions";
+import { BriefOpenerBlock } from "./BriefOpenerBlock";
+
 
 /** Surface id — pass to printSurface() to print the briefing and nothing else. */
 export const BRIEFING_PRINT_SURFACE = "briefing";
@@ -129,9 +131,14 @@ export function PrintableBriefing({
                 <h3 className="cb-h3">{s.heading}</h3>
               </div>
             </header>
-            <div className="cb-prose">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.body_md}</ReactMarkdown>
-            </div>
+            {s.opener ? (
+              <BriefOpenerBlock opener={s.opener} variant="print" />
+            ) : (
+              <div className="cb-prose">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.body_md}</ReactMarkdown>
+              </div>
+            )}
+
           </article>
         ))}
       </section>
@@ -366,6 +373,90 @@ const PRINT_CSS = `
   .cb-section-title-row { display: flex; align-items: baseline; gap: 5mm; margin-top: 2mm; }
   .cb-section-num { font-family: "SFMono-Regular", monospace; font-size: 11pt; color: #b8912a; }
   .cb-h3 { font-size: 20pt; font-weight: 500; color: #14140f; margin: 0; }
+
+  /* ── Section 01 opener ─────────────────────────────────────────────── */
+  .cb-lede {
+    font-size: 12.5pt;
+    line-height: 1.62;
+    color: #14140f;
+    max-width: 62em;
+    margin: 0 0 7mm 0;
+  }
+  .cb-facts {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border-top: 1px solid #14140f;
+    border-bottom: 1px solid #d8d4c8;
+    margin: 0 0 8mm 0;
+    break-inside: avoid;
+  }
+  .cb-fact {
+    padding: 3mm 4mm 3mm 0;
+    border-bottom: 1px solid #f0eee7;
+  }
+  .cb-fact dt {
+    font-family: "SFMono-Regular", monospace;
+    font-size: 7pt;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #6b6b6b;
+    margin: 0 0 1.5mm 0;
+  }
+  .cb-fact dd {
+    margin: 0;
+    font-size: 10.5pt;
+    color: #14140f;
+    font-variant-numeric: tabular-nums;
+  }
+  .cb-quote {
+    margin: 0 0 8mm 0;
+    padding: 0 0 0 6mm;
+    border-left: 1.5pt solid #b8912a;
+    break-inside: avoid;
+  }
+  .cb-quote figcaption {
+    font-family: "SFMono-Regular", monospace;
+    font-size: 7pt;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #6b6b6b;
+    margin: 0 0 2mm 0;
+  }
+  .cb-quote p {
+    font-style: italic;
+    color: #33332c;
+    max-width: 58em;
+    margin: 0 0 2.5mm 0;
+  }
+  .cb-objectives-head {
+    font-family: "SFMono-Regular", monospace;
+    font-size: 7.5pt;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #6b6b6b;
+    margin: 0 0 3mm 0;
+  }
+  .cb-objectives ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid #14140f;
+  }
+  .cb-objectives li {
+    display: grid;
+    grid-template-columns: 10mm 1fr 1fr;
+    gap: 5mm;
+    align-items: baseline;
+    padding: 3mm 0;
+    border-bottom: 1px solid #e4e2da;
+    break-inside: avoid;
+  }
+  .cb-obj-num { font-family: "SFMono-Regular", monospace; font-size: 9pt; color: #b8912a; }
+  .cb-obj-title { color: #14140f; }
+  .cb-obj-why { color: #55554c; font-size: 9.5pt; }
+
+
 
   .cb-prose h3 {
     font-size: 12.5pt;

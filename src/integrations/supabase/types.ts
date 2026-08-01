@@ -6595,6 +6595,8 @@ export type Database = {
       }
       programme_deliverables: {
         Row: {
+          assignee_id: string | null
+          blocked_reason: string | null
           country_code: string
           created_at: string
           detail: string | null
@@ -6602,6 +6604,7 @@ export type Database = {
           id: string
           kind: string | null
           milestone_id: string | null
+          notes: Json
           owner: string | null
           plan_id: string
           position: number
@@ -6611,6 +6614,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assignee_id?: string | null
+          blocked_reason?: string | null
           country_code: string
           created_at?: string
           detail?: string | null
@@ -6618,6 +6623,7 @@ export type Database = {
           id?: string
           kind?: string | null
           milestone_id?: string | null
+          notes?: Json
           owner?: string | null
           plan_id: string
           position?: number
@@ -6627,6 +6633,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assignee_id?: string | null
+          blocked_reason?: string | null
           country_code?: string
           created_at?: string
           detail?: string | null
@@ -6634,6 +6642,7 @@ export type Database = {
           id?: string
           kind?: string | null
           milestone_id?: string | null
+          notes?: Json
           owner?: string | null
           plan_id?: string
           position?: number
@@ -6643,6 +6652,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "programme_deliverables_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "programme_team"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "programme_deliverables_milestone_id_fkey"
             columns: ["milestone_id"]
@@ -6661,11 +6677,14 @@ export type Database = {
       }
       programme_milestones: {
         Row: {
+          assignee_id: string | null
+          blocked_reason: string | null
           country_code: string
           created_at: string
           detail: string | null
           due_on: string | null
           id: string
+          notes: Json
           owner: string | null
           phase_id: string | null
           plan_id: string
@@ -6676,11 +6695,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assignee_id?: string | null
+          blocked_reason?: string | null
           country_code: string
           created_at?: string
           detail?: string | null
           due_on?: string | null
           id?: string
+          notes?: Json
           owner?: string | null
           phase_id?: string | null
           plan_id: string
@@ -6691,11 +6713,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assignee_id?: string | null
+          blocked_reason?: string | null
           country_code?: string
           created_at?: string
           detail?: string | null
           due_on?: string | null
           id?: string
+          notes?: Json
           owner?: string | null
           phase_id?: string | null
           plan_id?: string
@@ -6706,6 +6731,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "programme_milestones_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "programme_team"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "programme_milestones_phase_id_fkey"
             columns: ["phase_id"]
@@ -6842,6 +6874,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "programme_plans_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "persona_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      programme_team: {
+        Row: {
+          country_code: string
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          project_id: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          project_id: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          project_id?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "programme_team_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "persona_projects"

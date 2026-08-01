@@ -1,45 +1,60 @@
-## What's wrong
+## What exists already
 
-The two buttons in the track row (`Discovery brief`, `Presentation`) only *open* what already exists. Regeneration is buried: re-assembling the dossier means opening the briefing window and finding "Re-assemble from current state"; re-composing the deck means scrolling past it to "Re-compose deck". There is also no signal that what you're about to open is out of date relative to the brief, plan, participants or instruments that have changed since.
+The programme plan derived from the brief already writes real structure to the database: phases, milestones and deliverables, each with a title, optional owner (free text), dates, status and position. Nothing surfaces that structure as a working tracker — it is only read back into the discovery brief and the deck. There is no team roster, no assignment, no status changes after commit, and no view of what is late.
 
 ## What to build
 
-### 1. Split buttons in the track row
-
-Each of the two actions becomes a two-part control: the main label opens it, a narrow attached button with a refresh glyph regenerates it.
+A third control in the track row — **Project tracker** — sitting alongside Discovery brief and Presentation, opening an internal-only workspace over the programme. Internal-only: it never feeds the client dossier or deck, and it carries no staleness/regenerate half (nothing is generated; it is a live board).
 
 ```text
-┌──────────────────────┬───┐ ┌────────────────────┬───┐
-│ 📄 Discovery brief   │ ↻ │ │ 🖵 Presentation    │ ↻ │
-└──────────────────────┴───┘ └────────────────────┴───┘
+┌──────────────────┬─┐ ┌────────────────┬─┐ ┌──────────────────┐
+│ 📄 Discovery brief│↻│ │ 🖵 Presentation │↻│ │ ☑ Project tracker │
+└──────────────────┴─┘ └────────────────┴─┘ └──────────────────┘
 ```
 
-- Refresh side shows a spinner and disables both halves while running.
-- On success the corresponding window opens on the fresh version, so the operator sees the result rather than guessing.
-- Errors surface as a small inline note under the row, not a silent no-op.
-- Tooltip on the refresh half states plainly what it re-reads ("Re-assemble the dossier from the brief, plan, participants and instruments as they stand now").
+Unlike the other two it appears as soon as a programme plan exists (the plan stage is committed), not after all four stages — tracking starts the day the plan lands.
 
-### 2. Staleness signal
+### 1. Team roster
 
-When a briefing or deck exists but was assembled before the latest change to its inputs, mark the control: a small gold dot on the refresh half plus a tooltip ("Assembled 3 days ago — inputs have changed since"). The deck also goes stale whenever its `briefingVersion` no longer matches the current briefing version — that comparison already exists inside the panel and moves up to the row.
+A short, editable list of people on the engagement: name, email, and a role drawn from a fixed vocabulary appropriate to survey and focus-group work — Engagement lead, Research director, Project manager, Field manager, Moderator, Recruiter, Analyst, Data/scripting, Translator, Client contact. Add, edit, remove. Roles matter because assignment lists are filtered by them (a moderator is offered for a focus-group session, a recruiter for participant quotas).
 
-### 3. Confirm before overwriting a sent dossier
+### 2. The board
 
-If the briefing status is `shared`, regenerating asks for confirmation first ("This dossier was sent to the client on 28 Jul. Re-assembling replaces it with a new version."). Nothing else prompts — regeneration is cheap and expected while the programme is being prepared.
+Three grouped views over the same rows, switched by a small segmented control:
 
-### 4. Same affordance inside the viewers
+- **By phase** (default) — the plan's own phases, each listing its milestones with their deliverables nested. This is the operator's mental model and mirrors what the client was told.
+- **By owner** — one column per team member plus "Unassigned", so load is visible at a glance.
+- **What's due** — a flat, date-ordered list of everything open in the next 14 days plus everything overdue, overdue first.
 
-- **Briefing window**: the existing "Re-assemble from current state" primary stays, but gains the version and staleness line beside it so the operator can tell whether it's worth pressing.
-- **Deck window**: add a "Re-compose" action into the deck modal's own header, so it can be regenerated without closing back to the panel.
+Each row is one line: status dot, title, assignee chip, due date, and a kind tag on deliverables (report, topline, transcript, dataset, screener, etc.). Clicking a row opens a right-hand detail drawer with title, detail, assignee, dates, status, and a free-text note thread — no page navigation, no lost scroll position.
 
-### 5. Shared behaviour
+### 3. Statuses that fit fieldwork
 
-Both regenerations invalidate their query keys and any dependent readouts, so version chips, dates and the export preflight update immediately without a page reload.
+`planned → in progress → blocked → done`, plus `cancelled`. Blocked requires a one-line reason, shown inline on the board in gold. Status is settable inline on the row (a small cycling control) and in the drawer.
+
+### 4. Fieldwork-native additions
+
+Two things a generic tracker misses and this work always needs:
+
+- **Waves and sessions surface as tracker rows.** Survey waves and focus-group sessions already exist in the fieldwork stage; the tracker lists them read-only under their phase with their own dates and fill status, so the project manager sees "Wave 2 — 41/120 complete" beside the milestone it serves. Editing still happens in the fieldwork stage; the tracker links through.
+- **Quota and instrument readiness chips** on the milestone that depends on them, so "Fieldwork opens" visibly waits on "Instruments approved".
+
+### 5. Header strip
+
+A single line above the board: programme title, client, span (start → end), days remaining, count of overdue items, and count of open items. That is the whole status report.
 
 ## Technical notes
 
-- Extract a small `SplitAction` control (primary + attached secondary) under `src/components/personas/field/briefing/`, styled with the existing `btn-secondary` / `btn-ghost` utilities — no inline colour classes.
-- Lift the briefing and deck queries (`getCommencementBriefing`, `getProgrammeDeck`) and the two assemble mutations (`assembleCommencementBriefing`, `assembleProgrammeDeck`) into a `useDossierActions(projectId)` hook so the route row and `BriefingPanel` share one source of truth and one cache, instead of the panel owning them alone.
-- Route file `countries.$code.personas.field.$step.tsx` renders the split buttons through that hook in the `TrackTabs` `actions` slot; `BriefingPanel` consumes the same hook rather than declaring its own mutations.
-- Staleness = compare `assembled_at` against the latest `updated_at` among brief, plan, participants and instruments already returned by `getFieldProgress`; if the progress payload lacks a timestamp for a stage, add it there rather than issuing new reads.
-- `DeckModal` gains an optional `onRecompose` + `recomposing` prop for the header action.
+**Schema (one migration, GRANTs + RLS in the same file, matching `has_country_access` policies used by the existing programme tables):**
+
+- `programme_team` — `id`, `project_id`, `country_code`, `name`, `email`, `role`, `created_at`, `updated_at`.
+- Add to `programme_milestones` and `programme_deliverables`: `assignee_id uuid` (FK → `programme_team`, `on delete set null`), `blocked_reason text`, `notes jsonb default '[]'` (append-only `{at, by, text}` entries). Existing `owner` text stays as the AI's derived suggestion and is shown as a hint when nothing is assigned.
+- Status vocabulary enforced by a CHECK on the existing `status` columns.
+
+**Code:**
+
+- `src/lib/personas/programme-tracker.functions.ts` — `getProgrammeTracker` (one read returning plan, phases, milestones, deliverables, team, plus wave/session summaries), `upsertTeamMember`, `removeTeamMember`, `updateTrackerItem` (assignee/status/dates/blocked reason), `appendTrackerNote`. All `.middleware([requireSupabaseAuth])`, called from components via `useServerFn` + `useQuery`. Header docblock with `@domain/@tables/@ui`.
+- `src/components/personas/field/tracker/` — `TrackerModal.tsx` (shell + header strip), `TrackerBoard.tsx` (three groupings), `TrackerRow.tsx`, `ItemDrawer.tsx`, `TeamRoster.tsx`. Buttons use `btn-*` utilities; any JSON shown uses `<PrettyJson>`; no inline colour classes.
+- Track row: a plain `btn-secondary` button (not `SplitAction`, since there is nothing to regenerate) rendered in the `TrackTabs` `actions` slot in `countries.$code.personas.field.$step.tsx`, gated on `progress.planCommitted` rather than the four-stage dossier gate.
+- Invalidation: mutations invalidate `["programme-tracker", projectId]`; nothing touches the briefing or deck query keys, keeping internal state out of client outputs.
+- Run `bun run headers && bun run map` after adding the server-fn module and migration.

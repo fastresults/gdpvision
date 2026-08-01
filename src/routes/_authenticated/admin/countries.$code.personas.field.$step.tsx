@@ -8,11 +8,12 @@ import { createFileRoute, Link, Navigate, notFound, useSearch } from "@tanstack/
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { FileText, Loader2, Presentation } from "lucide-react";
+import { ClipboardList, FileText, Loader2, Presentation } from "lucide-react";
 
 import { FieldStepper, type FieldStageKey } from "@/components/personas/FieldStepper";
 import { BriefingModal } from "@/components/personas/field/briefing/BriefingModal";
 import { SplitAction } from "@/components/personas/field/briefing/SplitAction";
+import { TrackerModal } from "@/components/personas/field/tracker/TrackerModal";
 import { EvidenceStage } from "@/components/personas/field/EvidenceStage";
 import { FieldworkStage } from "@/components/personas/field/FieldworkStage";
 import { InstrumentsStage } from "@/components/personas/field/InstrumentsStage";
@@ -80,6 +81,7 @@ function FieldStageBody({
   const qc = useQueryClient();
   const [briefingOpen, setBriefingOpen] = useState((stage as string) === "briefing");
   const [briefingIntent, setBriefingIntent] = useState<"briefing" | "deck">("briefing");
+  const [trackerOpen, setTrackerOpen] = useState(false);
   const openBriefing = (intent: "briefing" | "deck") => {
     setBriefingIntent(intent);
     setBriefingOpen(true);
@@ -140,39 +142,51 @@ function FieldStageBody({
           track={gate.track}
           active="field"
           actions={
-            dossierReady ? (
+            gate.planCommitted ? (
               <>
-                <SplitAction
-                  label="Discovery brief"
-                  icon={<FileText size={13} />}
-                  title="The full client-facing account of the approach, ready to send before fieldwork opens."
-                  regenerateTitle={
-                    dossier.briefingStaleReason ??
-                    "Re-assemble the dossier from the brief, plan, participants and instruments as they stand now."
-                  }
-                  stale={dossier.briefingStale}
-                  busy={dossier.assembling}
-                  onOpen={() => openBriefing("briefing")}
-                  onRegenerate={() => {
-                    if (!confirmIfShared()) return;
-                    dossier.assembleBriefing({ onDone: () => openBriefing("briefing") });
-                  }}
-                />
-                <SplitAction
-                  label="Presentation"
-                  icon={<Presentation size={13} />}
-                  title="The same approach as an on-brand slide presentation."
-                  regenerateTitle={
-                    dossier.deckStaleReason ??
-                    "Re-compose the deck from the current dossier."
-                  }
-                  stale={dossier.deckStale}
-                  busy={dossier.composing}
-                  onOpen={() => openBriefing("deck")}
-                  onRegenerate={() =>
-                    dossier.composeDeck({ onDone: () => openBriefing("deck") })
-                  }
-                />
+                {dossierReady ? (
+                  <>
+                    <SplitAction
+                      label="Discovery brief"
+                      icon={<FileText size={13} />}
+                      title="The full client-facing account of the approach, ready to send before fieldwork opens."
+                      regenerateTitle={
+                        dossier.briefingStaleReason ??
+                        "Re-assemble the dossier from the brief, plan, participants and instruments as they stand now."
+                      }
+                      stale={dossier.briefingStale}
+                      busy={dossier.assembling}
+                      onOpen={() => openBriefing("briefing")}
+                      onRegenerate={() => {
+                        if (!confirmIfShared()) return;
+                        dossier.assembleBriefing({ onDone: () => openBriefing("briefing") });
+                      }}
+                    />
+                    <SplitAction
+                      label="Presentation"
+                      icon={<Presentation size={13} />}
+                      title="The same approach as an on-brand slide presentation."
+                      regenerateTitle={
+                        dossier.deckStaleReason ?? "Re-compose the deck from the current dossier."
+                      }
+                      stale={dossier.deckStale}
+                      busy={dossier.composing}
+                      onOpen={() => openBriefing("deck")}
+                      onRegenerate={() =>
+                        dossier.composeDeck({ onDone: () => openBriefing("deck") })
+                      }
+                    />
+                  </>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setTrackerOpen(true)}
+                  title="Who owns what, when it is due, and what is blocked. Internal only."
+                  className="btn-secondary inline-flex items-center gap-2"
+                >
+                  <ClipboardList size={13} />
+                  Project tracker
+                </button>
               </>
             ) : null
           }
@@ -183,7 +197,6 @@ function FieldStageBody({
             {dossier.error}
           </p>
         ) : null}
-
 
         {(stage as string) === "briefing" ? (
           dossierReady ? (
@@ -287,6 +300,13 @@ function FieldStageBody({
             )}
           </StageFrame>
         )}
+
+        <TrackerModal
+          open={trackerOpen}
+          code={code}
+          projectId={projectId}
+          onClose={() => setTrackerOpen(false)}
+        />
 
         <BriefingModal
           open={briefingOpen && dossierReady}

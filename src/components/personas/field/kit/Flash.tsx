@@ -4,7 +4,7 @@
 // panel. A decision the operator just took deserves a visible answer.
 
 import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -52,23 +52,19 @@ export function Flash({
   );
 }
 
-/** A copy control that confirms it copied. */
+/** Copy to the clipboard and say so for two seconds. */
 export function useCopyFeedback(): [boolean, (text: string) => void] {
-  const [copied, setCopied] = useStateSafe();
-  const copy = (text: string) => {
-    void navigator.clipboard.writeText(text).then(() => setCopied(true));
-  };
-  return [copied, copy];
-}
+  const [copied, setCopied] = useState(false);
 
-// Small local hook so the flag resets itself without a second import site.
-import { useState } from "react";
-function useStateSafe(): [boolean, (v: boolean) => void] {
-  const [v, setV] = useState(false);
   useEffect(() => {
-    if (!v) return;
-    const t = setTimeout(() => setV(false), 2_000);
+    if (!copied) return;
+    const t = setTimeout(() => setCopied(false), 2_000);
     return () => clearTimeout(t);
-  }, [v]);
-  return [v, setV];
+  }, [copied]);
+
+  const copy = useCallback((text: string) => {
+    void navigator.clipboard.writeText(text).then(() => setCopied(true));
+  }, []);
+
+  return [copied, copy];
 }

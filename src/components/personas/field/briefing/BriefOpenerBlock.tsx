@@ -43,18 +43,8 @@ function ScreenOpener({ opener }: { opener: BriefOpener }) {
         </dl>
       )}
 
-      {opener.quote && (
-        <figure className="mt-6 border-l-2 border-gold-500 pl-5">
-          <figcaption className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            In the client&rsquo;s words
-          </figcaption>
-          <blockquote className="mt-2 max-w-[62ch] space-y-2 font-serif text-[14.5px] italic leading-relaxed text-ink-800">
-            {opener.quote.split("\n\n").map((p) => (
-              <p key={p.slice(0, 40)}>{p}</p>
-            ))}
-          </blockquote>
-        </figure>
-      )}
+
+
 
       {opener.objectives.length > 0 && (
         <div className="mt-8">
@@ -97,14 +87,6 @@ function PrintOpener({ opener }: { opener: BriefOpener }) {
         </dl>
       )}
 
-      {opener.quote && (
-        <figure className="cb-quote">
-          <figcaption>In the client&rsquo;s words</figcaption>
-          {opener.quote.split("\n\n").map((p) => (
-            <p key={p.slice(0, 40)}>{p}</p>
-          ))}
-        </figure>
-      )}
 
       {opener.objectives.length > 0 && (
         <div className="cb-objectives">

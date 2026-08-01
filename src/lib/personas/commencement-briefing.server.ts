@@ -424,7 +424,6 @@ export async function assembleBriefing(
   const sections: BriefingSection[] = [];
 
   const openerLede = str(plan.summary, "—");
-  const openerQuote = briefQuotation(committedText);
   const openerFacts = briefFacts({
     committedText,
     startsOn: (plan.starts_on as string | null) ?? null,
@@ -445,16 +444,13 @@ export async function assembleBriefing(
     opener: {
       lede: openerLede,
       facts: openerFacts,
-      quote: openerQuote.length > 0 ? openerQuote : null,
+      quote: null,
       objectives: openerObjectives,
     },
     // Markdown mirror, kept for renderers (and stored documents) that predate
     // the structured opener.
     body_md: [
       openerLede,
-      ...(openerQuote.length > 0
-        ? ["", "### Your question, in your words", "", blockquote(openerQuote)]
-        : []),
       "",
       "### What counts as an answer",
       "",
@@ -464,6 +460,7 @@ export async function assembleBriefing(
       ),
     ].join("\n"),
   });
+
 
 
   sections.push({

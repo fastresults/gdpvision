@@ -11,6 +11,7 @@ import remarkGfm from "remark-gfm";
 import { printSurface } from "@/components/print/PrintSurface";
 import { DeckModal } from "@/components/personas/field/deck/DeckModal";
 import { BriefOpenerBlock } from "@/components/personas/field/briefing/BriefOpenerBlock";
+import { sanitizeSectionMarkdown } from "@/components/personas/field/briefing/sanitizeSectionMarkdown";
 
 import {
   BRIEFING_PRINT_SURFACE,
@@ -189,7 +190,7 @@ function PublicDossier() {
                   <BriefOpenerBlock opener={s.opener} variant="screen" />
                 ) : (
                   <div className="cb-public-prose mt-4 max-w-none text-[15px] leading-relaxed text-ink-800">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.body_md}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{sanitizeSectionMarkdown(s.body_md)}</ReactMarkdown>
                   </div>
                 )}
 

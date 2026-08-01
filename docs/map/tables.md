@@ -24,6 +24,8 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `commitments` | `20260711210340_4b2b5fce-463a-44dc-8111-9113376f0b95.sql` | ✓ | ✓ |
 | `comms_artifact_revisions` | `20260718172802_cdc7bb81-0692-4a6e-a203-10f0b98fb2c8.sql` | ✓ | ✓ |
 | `comms_artifacts` | `20260711210806_b2663549-da57-43e6-929f-a8ca9a44f37d.sql` | ✓ | ✓ |
+| `comms_log` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
+| `comms_templates` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
 | `compact_deliverables` | `20260725013404_ac6d2411-7789-4e86-a8d5-4e68cc6c4af5.sql` | ✓ | ✓ |
 | `compact_pillars` | `20260725013404_ac6d2411-7789-4e86-a8d5-4e68cc6c4af5.sql` | ✓ | ✓ |
 | `compact_pledges` | `20260725013404_ac6d2411-7789-4e86-a8d5-4e68cc6c4af5.sql` | ✓ | ✓ |
@@ -59,6 +61,11 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `fdi_strategies` | `20260718130044_4b584a4e-1901-4886-a51d-0b9b87a12e5d.sql` | ✓ | ✓ |
 | `fdi_threats` | `20260718130044_4b584a4e-1901-4886-a51d-0b9b87a12e5d.sql` | ✓ | ✓ |
 | `fdi_transition_theses` | `20260725223134_ffc96c53-1a87-4f5e-9e5f-592ae18b14be.sql` | ✓ | ✓ |
+| `field_collections` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
+| `field_instruments` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
+| `field_responses` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
+| `field_session_attendees` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
+| `field_sessions` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
 | `figure_snapshots` | `20260714114233_2abeecba-1b44-4c34-b326-ef94db46f408.sql` | ✓ | ✓ |
 | `galleries` | `20260612023016_c238d366-02a5-4310-9581-eb7b2e6bb206.sql` | ✓ | ✓ |
 | `gallery_items` | `20260612023016_c238d366-02a5-4310-9581-eb7b2e6bb206.sql` | ✓ | ✓ |
@@ -118,8 +125,16 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `personas` | `20260719003344_ed31c12d-9c3e-44d7-a001-0aade49f099c.sql` | ✓ | ✓ |
 | `profiles` | `20260711204907_4075e222-a107-43e8-bae1-b926961373e5.sql` | ✓ | ✓ |
 | `proforma_scenarios` | `20260730024332_06386d78-594e-48d8-8876-284988a2c0d8.sql` | ✓ | ✓ |
+| `programme_deliverables` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
+| `programme_milestones` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
+| `programme_phases` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
+| `programme_plans` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
 | `reconciliation_notes` | `20260714143357_86fafa17-dcff-4baf-8e63-4c3c9ff715e3.sql` | ✓ | ✓ |
 | `research_briefs` | `20260711210806_b2663549-da57-43e6-929f-a8ca9a44f37d.sql` | ✓ | ✓ |
+| `research_contacts` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
+| `research_invitations` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
+| `research_panel_members` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
+| `research_panels` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
 | `scenario_promotions` | `20260711205639_802eb249-2568-439e-bd40-960ca67fb9aa.sql` | ✓ | ✓ |
 | `scenarios` | `20260711205639_802eb249-2568-439e-bd40-960ca67fb9aa.sql` | ✓ | ✓ |
 | `sector_dossier_briefs` | `20260719111310_8e88bf85-9b76-4732-a836-8c13c5a6158c.sql` | ✓ | ✓ |
@@ -147,4 +162,4 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `study_transcripts` | `20260719003344_ed31c12d-9c3e-44d7-a001-0aade49f099c.sql` | ✓ | ✓ |
 | `user_roles` | `20260711204655_3293ec0b-b7a7-4fd3-b2b8-3a8c52c526e8.sql` | ✓ | ✓ |
 
-_Total tables: 139_
+_Total tables: 154_

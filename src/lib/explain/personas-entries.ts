@@ -54,4 +54,15 @@ registerRationales([
     caveat:
       "It is a reading of your documents, not a ruling. Choosing the other instrument changes nothing about the brief; you can also add the second track to the same programme later.",
   },
+  {
+    key: "research.intake.brief-precedence",
+    title: "Source brief vs. supporting context",
+    short:
+      "One document governs the programme. Everything else colours it but cannot overrule it.",
+    basis:
+      "The source brief — the RFP, cabinet memo, tender notice or the principal's own dictated words — decides the objectives, decisions, timeframe and geography. Supporting context is read afterwards and may only enrich, illustrate or qualify those. Both are filed to this country's second brain with their role attached (brief or context), so later retrieval weighs the brief above its context.",
+    caveat:
+      "Where a supporting document contradicts the brief, the brief is kept and the contradiction is surfaced as an open question rather than silently resolved. You can promote or demote any item at any time.",
+  },
 ]);
+

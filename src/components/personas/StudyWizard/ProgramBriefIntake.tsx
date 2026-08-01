@@ -39,6 +39,7 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
   });
 
   const [text, setText] = useState("");
+  const [briefSource, setBriefSource] = useState<WizardUpload | null>(null);
   const [uploads, setUploads] = useState<WizardUpload[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +48,7 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
   useEffect(() => {
     if (hydrated || !briefQ.data) return;
     setText(briefQ.data.brief_raw ?? "");
+    setBriefSource((briefQ.data.brief_source as WizardUpload | null) ?? null);
     setUploads(Array.isArray(briefQ.data.brief_uploads) ? (briefQ.data.brief_uploads as WizardUpload[]) : []);
     setHydrated(true);
   }, [briefQ.data, hydrated]);
@@ -55,15 +57,20 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
   useEffect(() => {
     if (!hydrated) return;
     const t = setTimeout(() => {
-      saveProjectBrief({ data: { projectId, brief_raw: text, brief_uploads: uploads } }).catch(() => {});
+      saveProjectBrief({
+        data: { projectId, brief_raw: text, brief_source: briefSource, brief_uploads: uploads },
+      }).catch(() => {});
     }, 800);
     return () => clearTimeout(t);
-  }, [projectId, text, uploads, hydrated]);
+  }, [projectId, text, briefSource, uploads, hydrated]);
 
   const scope = briefQ.data?.brief_scope ?? null;
   const totalChars = useMemo(
-    () => text.trim().length + uploads.reduce((s, u) => s + (u.excerpt?.length ?? 0), 0),
-    [text, uploads],
+    () =>
+      text.trim().length +
+      (briefSource?.excerpt?.length ?? 0) +
+      uploads.reduce((s, u) => s + (u.excerpt?.length ?? 0), 0),
+    [text, briefSource, uploads],
   );
   const meetsMinimum = totalChars >= 40;
 
@@ -71,7 +78,9 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
     mutationFn: async () => {
       setError(null);
       // Flush pending edits before enrichment reads the row.
-      await saveProjectBrief({ data: { projectId, brief_raw: text, brief_uploads: uploads } });
+      await saveProjectBrief({
+        data: { projectId, brief_raw: text, brief_source: briefSource, brief_uploads: uploads },
+      });
       return enrichProjectBrief({ data: { projectId } });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["program-brief", projectId] }),
@@ -81,7 +90,9 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
   const commit = useMutation({
     mutationFn: async () => {
       setError(null);
-      await saveProjectBrief({ data: { projectId, brief_raw: text, brief_uploads: uploads } });
+      await saveProjectBrief({
+        data: { projectId, brief_raw: text, brief_source: briefSource, brief_uploads: uploads },
+      });
       return commitProjectBrief({ data: { projectId } });
     },
     onSuccess: async () => {
@@ -132,6 +143,32 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
               Intake · type · dictate · upload
             </p>
           </div>
+          <div className="border border-ink-950 bg-paper-50 p-3">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+              Source brief · one only · governs the scope
+            </p>
+            {briefSource ? (
+              <div className="mt-2 flex items-center gap-2 text-[12.5px] text-ink-950">
+                <FileText size={12} className="shrink-0" />
+                <span className="min-w-0 flex-1 truncate">{briefSource.name}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUploads((list) => [...list, briefSource]);
+                    setBriefSource(null);
+                  }}
+                  className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500 hover:text-ink-950"
+                >
+                  Demote to context
+                </button>
+              </div>
+            ) : (
+              <p className="mt-2 text-[12px] text-ink-700">
+                None set — upload the governing document below, then mark it as the source brief.
+                Everything else stays supporting context.
+              </p>
+            )}
+          </div>
           <MultimodalInput
             countryCode={code}
             value={text}
@@ -141,6 +178,32 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
             placeholder="What are you trying to learn, decide, or defend? Who does it affect? What changed?"
             rows={12}
           />
+          {uploads.length > 0 && (
+            <ul className="space-y-1">
+              {uploads.map((u, i) => (
+                <li
+                  key={`${u.path}-${i}`}
+                  className="flex items-center gap-2 border border-line-200 px-2.5 py-1.5 text-[12px] text-ink-700"
+                >
+                  <FileText size={12} className="shrink-0 text-ink-300" />
+                  <span className="min-w-0 flex-1 truncate text-ink-950">{u.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUploads((list) => {
+                        const rest = list.filter((_, idx) => idx !== i);
+                        return briefSource ? [...rest, briefSource] : rest;
+                      });
+                      setBriefSource(u);
+                    }}
+                    className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500 hover:text-ink-950"
+                  >
+                    Make source brief
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
             <span className={meetsMinimum ? "text-emerald-700" : "text-amber-700"}>
               {totalChars} chars

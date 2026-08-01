@@ -101,6 +101,16 @@ export const createProject = createServerFn({ method: "POST" })
         // Stage 00 is AI-first: the material captured before the project
         // existed travels in with it, so nothing is ever re-entered.
         brief_raw: z.string().max(40_000).optional(),
+        // The one governing source brief; brief_uploads is supporting context.
+        brief_source: z
+          .object({
+            name: z.string(),
+            path: z.string(),
+            mime: z.string(),
+            size: z.number(),
+            excerpt: z.string().optional(),
+          })
+          .nullish(),
         brief_uploads: z
           .array(
             z.object({
@@ -146,6 +156,7 @@ export const createProject = createServerFn({ method: "POST" })
         uploaded_by: visibility === "private" ? userId : null,
         created_by: userId,
         ...(data.brief_raw !== undefined ? { brief_raw: data.brief_raw } : {}),
+        ...(data.brief_source !== undefined ? { brief_source: data.brief_source ?? null } : {}),
         ...(data.brief_uploads !== undefined ? { brief_uploads: data.brief_uploads } : {}),
         ...(data.brief_scope !== undefined && data.brief_scope !== null
           ? { brief_scope: data.brief_scope }

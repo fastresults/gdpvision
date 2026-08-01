@@ -8,10 +8,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, Loader2, Lock, Sparkles, Unlock } from "lucide-react";
+import { ArrowLeft, FileText, Loader2, Lock, Sparkles, Unlock } from "lucide-react";
 
 import { Explain } from "@/components/explain/Explain";
 import { createProject } from "@/lib/personas/projects.functions";
+import { fileProgrammeMaterial } from "@/lib/personas/corpus-file.functions";
 import type { ProgrammeProposal } from "@/lib/personas/project-brief.functions";
 import { TRACK_META, type ResearchTrack } from "@/lib/personas/tracks";
 import type { IngestMaterial } from "./ProgrammeIngest";
@@ -46,6 +47,9 @@ export function ProgrammeSetup({
     inputRef.current?.focus();
   }, []);
 
+  const fileFn = useServerFn(fileProgrammeMaterial);
+  const [filing, setFiling] = useState(false);
+
   const create = useMutation({
     mutationFn: () =>
       createFn({
@@ -54,12 +58,34 @@ export function ProgrammeSetup({
           title: title.trim(),
           visibility,
           track: chosenTrack,
-          ...(material ? { brief_raw: material.raw, brief_uploads: material.uploads } : {}),
+          ...(material
+            ? {
+                brief_raw: material.raw,
+                brief_source: material.brief,
+                brief_uploads: material.context,
+              }
+            : {}),
           ...(proposal ? { brief_scope: proposal.scope } : {}),
         },
       }),
     onSuccess: async (row: { id: string }) => {
       await qc.invalidateQueries({ queryKey: ["persona-projects", code] });
+      // File the intake into the second brain with its roles attached before
+      // the chamber opens, so retrieval can weigh brief above context.
+      const items = [
+        ...(material?.brief ? [{ role: "brief" as const, ...material.brief }] : []),
+        ...(material?.context ?? []).map((u) => ({ role: "context" as const, ...u })),
+      ];
+      if (items.length > 0) {
+        setFiling(true);
+        try {
+          await fileFn({
+            data: { countryCode: code, projectId: row.id, visibility, items },
+          });
+        } catch {
+          /* filing is best-effort — the programme still opens */
+        }
+      }
       window.location.assign(
         chosenTrack === "field"
           ? `/admin/countries/${code}/personas?project=${row.id}&open=1`
@@ -103,6 +129,38 @@ export function ProgrammeSetup({
           placeholder="e.g. Tourism levy acceptance among coastal households"
           className="w-full border-0 border-b border-line-200 bg-transparent pb-3 font-serif text-xl text-ink-950 placeholder:text-ink-300 focus:border-ink-950 focus:outline-none sm:text-2xl"
         />
+
+        {material && (material.brief || material.context.length > 0) && (
+          <div className="mt-6 border border-line-200 p-4">
+            <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-ink-500">
+              Read from — <Explain id="research.intake.brief-precedence">brief first</Explain>,
+              context second
+            </p>
+            <ul className="mt-2 space-y-1">
+              {material.brief && (
+                <li className="flex items-center gap-2 text-[12.5px] text-ink-950">
+                  <FileText size={12} className="shrink-0" />
+                  <span className="min-w-0 truncate">{material.brief.name}</span>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
+                    source brief
+                  </span>
+                </li>
+              )}
+              {material.context.map((u) => (
+                <li key={u.path} className="flex items-center gap-2 text-[12.5px] text-ink-700">
+                  <FileText size={12} className="shrink-0 text-ink-300" />
+                  <span className="min-w-0 truncate">{u.name}</span>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-300">
+                    context
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-[11px] text-ink-500">
+              All of it is filed to this country's second brain when the chamber opens.
+            </p>
+          </div>
+        )}
 
         {scope && (
           <div className="mt-7 grid gap-6 border border-line-200 p-5 sm:grid-cols-2">
@@ -203,7 +261,8 @@ export function ProgrammeSetup({
           <button type="submit" disabled={!ready || create.isPending} className="btn-primary disabled:opacity-40">
             {create.isPending ? (
               <>
-                <Loader2 size={11} className="animate-spin" /> Opening the chamber…
+                <Loader2 size={11} className="animate-spin" />{" "}
+                {filing ? "Filing to the second brain…" : "Opening the chamber…"}
               </>
             ) : (
               `Open ${meta.label}`

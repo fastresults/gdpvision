@@ -5972,6 +5972,7 @@ export type Database = {
           brief_committed_at: string | null
           brief_raw: string | null
           brief_scope: Json | null
+          brief_source: Json | null
           brief_uploads: Json
           country_code: string
           created_at: string
@@ -5994,6 +5995,7 @@ export type Database = {
           brief_committed_at?: string | null
           brief_raw?: string | null
           brief_scope?: Json | null
+          brief_source?: Json | null
           brief_uploads?: Json
           country_code: string
           created_at?: string
@@ -6016,6 +6018,7 @@ export type Database = {
           brief_committed_at?: string | null
           brief_raw?: string | null
           brief_scope?: Json | null
+          brief_source?: Json | null
           brief_uploads?: Json
           country_code?: string
           created_at?: string

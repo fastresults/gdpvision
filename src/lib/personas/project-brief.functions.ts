@@ -34,6 +34,7 @@ type ProjectBriefRow = {
   brief_raw: string | null;
   brief_scope: Json | null;
   brief_uploads: Json | null;
+  brief_source: Json | null;
   brief_committed_at: string | null;
 };
 
@@ -45,7 +46,7 @@ export const getProjectBrief = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("persona_projects")
-      .select("id,title,country_code,brief_raw,brief_scope,brief_uploads,brief_committed_at")
+      .select("id,title,country_code,brief_raw,brief_scope,brief_uploads,brief_source,brief_committed_at")
       .eq("id", data.projectId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -57,6 +58,7 @@ export const getProjectBrief = createServerFn({ method: "POST" })
       countryCode: r.country_code,
       brief_raw: r.brief_raw ?? "",
       brief_scope: (r.brief_scope as unknown as ResearchScope | null) ?? null,
+      brief_source: (r.brief_source as unknown as z.infer<typeof UploadSchema> | null) ?? null,
       brief_uploads: Array.isArray(r.brief_uploads) ? (r.brief_uploads as unknown as Array<z.infer<typeof UploadSchema>>) : [],
       committed_at: r.brief_committed_at,
     };
@@ -67,6 +69,8 @@ export const getProjectBrief = createServerFn({ method: "POST" })
 const SaveBriefInput = z.object({
   projectId: z.string().uuid(),
   brief_raw: z.string().max(40_000).optional(),
+  // The single governing brief. `brief_uploads` stays the supporting context.
+  brief_source: UploadSchema.nullish(),
   brief_uploads: z.array(UploadSchema).max(20).optional(),
 });
 
@@ -76,6 +80,7 @@ export const saveProjectBrief = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const patch: Record<string, unknown> = {};
     if (data.brief_raw !== undefined) patch.brief_raw = data.brief_raw;
+    if (data.brief_source !== undefined) patch.brief_source = (data.brief_source ?? null) as unknown as Json;
     if (data.brief_uploads !== undefined) patch.brief_uploads = data.brief_uploads as unknown as Json;
     if (Object.keys(patch).length === 0) return { ok: true as const };
     const { error } = await context.supabase
@@ -143,7 +148,7 @@ export const enrichProjectBrief = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("persona_projects")
-      .select("id,title,country_code,brief_raw,brief_uploads")
+      .select("id,title,country_code,brief_raw,brief_uploads,brief_source")
       .eq("id", data.projectId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -151,20 +156,25 @@ export const enrichProjectBrief = createServerFn({ method: "POST" })
     const r = row as unknown as ProjectBriefRow;
 
     const raw = (r.brief_raw ?? "").trim();
+    const source = (r.brief_source ?? null) as unknown as z.infer<typeof UploadSchema> | null;
     const uploads = Array.isArray(r.brief_uploads)
       ? (r.brief_uploads as unknown as Array<z.infer<typeof UploadSchema>>)
       : [];
+    const sourceBlock =
+      source?.excerpt && source.excerpt.trim().length > 0
+        ? `[GOVERNING BRIEF: ${source.name} (${source.mime})]\n${source.excerpt}\n\n`
+        : "";
     const uploadBlock = uploads
       .filter((u) => u.excerpt && u.excerpt.trim().length > 0)
-      .map((u) => `\n\n[UPLOAD: ${u.name} (${u.mime})]\n${u.excerpt}`)
+      .map((u) => `\n\n[SUPPORTING CONTEXT: ${u.name} (${u.mime})]\n${u.excerpt}`)
       .join("");
-    const combined = `${raw}${uploadBlock}`.trim().slice(0, 20_000);
+    const combined = `${sourceBlock}${raw}${uploadBlock}`.trim().slice(0, 20_000);
     if (combined.length < 40) {
       throw new Error("Add at least 40 characters of brief text (or an uploaded document) before enriching.");
     }
 
-    const system = "You are a McKinsey engagement partner scoping a sovereign research study. Convert the client's raw brief into a rigorous Research Scope. Return strict JSON only.";
-    const user = `Program title: ${r.title}\nCountry: ${r.country_code}\n\nRAW BRIEF (may be typed, transcribed from voice, or extracted from uploads):\n${combined}\n\nReturn JSON:\n{\n  "title": "\u2264 90 char headline for this program",\n  "objectives": ["3-6 crisp objectives"],\n  "hypotheses": ["3-5 falsifiable hypotheses"],\n  "decisions": ["decisions this research must inform, 2-4"],\n  "stakeholders": [{"name":"\u2026","type":"internal|external","role":"\u2026"}],\n  "timeframe": "when this must be delivered / time horizon",\n  "geography": "geographies in scope",\n  "sensitivities": ["political/reputational risks to handle carefully"],\n  "success_criteria": ["what 'done well' looks like, 3-5"]\n}`;
+    const system = "You are a McKinsey engagement partner scoping a sovereign research study. The client supplies ONE governing brief plus supporting context; the governing brief and the client's own words decide objectives, decisions, timeframe and geography, while supporting context may only enrich or qualify them. Convert this into a rigorous Research Scope. Return strict JSON only.";
+    const user = `Program title: ${r.title}\nCountry: ${r.country_code}\n\nMATERIAL (governing brief first, then the client's words, then supporting context):\n${combined}\n\nReturn JSON:\n{\n  "title": "\u2264 90 char headline for this program",\n  "objectives": ["3-6 crisp objectives"],\n  "hypotheses": ["3-5 falsifiable hypotheses"],\n  "decisions": ["decisions this research must inform, 2-4"],\n  "stakeholders": [{"name":"\u2026","type":"internal|external","role":"\u2026"}],\n  "timeframe": "when this must be delivered / time horizon",\n  "geography": "geographies in scope",\n  "sensitivities": ["political/reputational risks to handle carefully"],\n  "success_criteria": ["what 'done well' looks like, 3-5"]\n}`;
 
     let parsed: ResearchScope | null = null;
     let lastErr: unknown = null;
@@ -202,17 +212,21 @@ export const commitProjectBrief = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("persona_projects")
-      .select("brief_raw,brief_scope,brief_uploads,brief_committed_at")
+      .select("brief_raw,brief_scope,brief_uploads,brief_source,brief_committed_at")
       .eq("id", data.projectId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!row) throw new Error("Research program not found");
     if (row.brief_committed_at) return { ok: true as const, alreadyCommitted: true };
     const raw = ((row as { brief_raw: string | null }).brief_raw ?? "").trim();
+    const source = ((row as { brief_source: { excerpt?: string } | null }).brief_source ?? null);
     const uploads = Array.isArray((row as { brief_uploads: unknown }).brief_uploads)
       ? ((row as { brief_uploads: Array<{ excerpt?: string }> }).brief_uploads)
       : [];
-    const totalLen = raw.length + uploads.reduce((s, u) => s + (u.excerpt?.length ?? 0), 0);
+    const totalLen =
+      raw.length +
+      (source?.excerpt?.length ?? 0) +
+      uploads.reduce((s, u) => s + (u.excerpt?.length ?? 0), 0);
     if (totalLen < 40) throw new Error("Brief is too short — add more detail or attach a source document before committing.");
     if (!row.brief_scope) throw new Error("Enrich the brief into a Research Scope before committing.");
     const { error: updErr } = await context.supabase
@@ -261,9 +275,13 @@ export type ProgrammeProposal = {
   openQuestions: string[];
 };
 
+// Intake is two-tier: ONE governing source brief, N supporting context items.
+// `uploads` is retained for older callers and is treated as context.
 const ProposeInput = z.object({
   countryCode: z.string().min(2).max(4),
   raw: z.string().max(40_000).optional(),
+  brief: UploadSchema.nullish(),
+  context: z.array(UploadSchema).max(20).optional(),
   uploads: z.array(UploadSchema).max(20).optional(),
 });
 
@@ -284,21 +302,29 @@ export const proposeProgrammeFromMaterial = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => ProposeInput.parse(d))
   .handler(async ({ data }) => {
     const raw = (data.raw ?? "").trim();
-    const uploadBlock = (data.uploads ?? [])
+    const briefText =
+      data.brief?.excerpt && data.brief.excerpt.trim().length > 0
+        ? `[GOVERNING BRIEF: ${data.brief.name} (${data.brief.mime})]\n${data.brief.excerpt}`
+        : "";
+    const contextBlock = [...(data.context ?? []), ...(data.uploads ?? [])]
       .filter((u) => u.excerpt && u.excerpt.trim().length > 0)
-      .map((u) => `\n\n[SOURCE: ${u.name} (${u.mime})]\n${u.excerpt}`)
+      .map((u) => `\n\n[SUPPORTING CONTEXT: ${u.name} (${u.mime})]\n${u.excerpt}`)
       .join("");
-    const combined = `${raw}${uploadBlock}`.trim().slice(0, 30_000);
+    const combined = `${briefText}${raw ? `\n\n[PRINCIPAL'S OWN WORDS]\n${raw}` : ""}${contextBlock}`
+      .trim()
+      .slice(0, 30_000);
     if (combined.length < 40) {
       throw new Error("Add material first — type a line, dictate, drop a document or paste a link.");
     }
 
     const system =
-      "You are a McKinsey engagement partner scoping a sovereign research programme for a national government. You read whatever material the client gives you — an RFP, a cabinet memo, a news article, a dictated note — and return the programme it implies. Return strict JSON only.";
+      "You are a McKinsey engagement partner scoping a sovereign research programme for a national government. The client gives you ONE governing brief plus supporting context. The governing brief and the principal's own words decide the objectives, decisions, timeframe and geography; supporting context may only enrich, illustrate or qualify them — never override them. Where context contradicts the brief, keep the brief and raise the contradiction as an open question. Return strict JSON only.";
     const user = `Country: ${data.countryCode}
 
-MATERIAL SUPPLIED BY THE CLIENT (typed, dictated, uploaded or scraped from a link):
+MATERIAL SUPPLIED BY THE CLIENT — the governing brief takes precedence over supporting context:
 ${combined}
+
+
 
 Two instruments are available:
 - "synthetic": AI casts a synthetic public from the national corpus and rehearses the conversation. Minutes. Directional, not defensible.

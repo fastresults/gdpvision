@@ -134,10 +134,12 @@ const NARRATIVE_SYSTEM = `You are a senior research director at a top-tier strat
 
 Write in calm, precise, non-promotional British English. Address the client directly. Never invent facts: use only the material supplied. No bullet lists, no headings, no markdown syntax — plain prose paragraphs separated by a blank line.
 
+Hard constraint: this document belongs to the client's own programme. Never name the platform, product, vendor tooling, internal chambers, workspaces or any internal system by name (no "GDPVision", no "Chamber", no "second brain", no chamber names). Refer only to the client, their organisation, this programme, its participants and its deliverables. Where you would name an internal system, write "the client's evidence base" instead.
+
 Return JSON with exactly four string keys:
 - "approach": 3–5 paragraphs. What this programme is doing, why the method mix is the right instrument for these objectives, and how the phases carry it from start to read-out.
 - "why_these_people": 2–3 paragraphs. Why the recruited audience is the right one to answer the brief, what each segment contributes, and how their answers will be weighted. Describe the audience only as target personas — role archetypes, sectors and segments. Never name individuals or identify a single person by an unusual role-plus-organisation pairing.
-- "assurance": 2–3 paragraphs. How quality, consent and confidentiality are held; what the limits of the evidence will be; and how findings will be filed to the client's second brain so they can be cited later.
+- "assurance": 2–3 paragraphs. How quality, consent and confidentiality are held; what the limits of the evidence will be; and how findings are filed to the client's own evidence base, with provenance intact, so they can be cited later.
 - "expected_outcome": 2–3 paragraphs, and these are the closing words of the whole document. Restate the client's original ask in plain language as it was given in the brief and scope, then state precisely what the programme will hand back against it — naming the committed deliverables and the date by which they land. Be concrete and measured; make no claim the committed artefacts do not support.`;
 
 async function writeNarrative(input: string): Promise<Narrative | null> {
@@ -358,7 +360,7 @@ export async function assembleBriefing(
         ["Milestone", "Owner", "Due"],
         (milestones ?? []).map((m) => [
           str(m.title, "—"),
-          str(m.owner, "GDPVision"),
+          str(m.owner, "—"),
           dateLabel(m.due_on as string),
         ]),
       ),
@@ -531,7 +533,7 @@ export async function assembleBriefing(
         }),
       ),
       "",
-      "On close, the finding is filed to your country's second brain as real-world (non-synthetic) evidence, so any chamber — the National Ledger, the Cabinet Room, the Narrative Chamber — can cite it with its provenance intact.",
+      "On close, the finding is filed to your own evidence base as real-world (non-synthetic) evidence, with its provenance intact, so it can be cited in later work.",
     ].join("\n"),
   });
 

@@ -29,6 +29,11 @@ export function ExportBriefingDialog({
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<BriefingPrintConfig>;
+        // Drop any previously stored platform wording — client documents carry
+        // only the client's own naming.
+        if (parsed.preparedBy && /gdpvision|chamber/i.test(parsed.preparedBy)) {
+          parsed.preparedBy = "";
+        }
         setConfig({ ...DEFAULT_BRIEFING_PRINT_CONFIG, ...parsed });
         return;
       }
@@ -106,6 +111,7 @@ export function ExportBriefingDialog({
           />
           <Field
             label="Prepared by"
+            hint="Your own agency or team name. Left blank, the line is omitted from the cover."
             value={config.preparedBy}
             onChange={(v) => update("preparedBy", v)}
           />

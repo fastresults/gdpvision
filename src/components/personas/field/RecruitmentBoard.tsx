@@ -134,7 +134,7 @@ export function RecruitmentBoard({
       const key = person.persona_label ?? "Unassigned";
       if (!map.has(key)) map.set(key, { proposed: [], accepted: [], rejected: [] });
       const bucket = map.get(key)!;
-      const status = person.status ?? "accepted";
+      const status = person.status ?? "proposed";
       if (status === "proposed") bucket.proposed.push(person);
       else if (status === "rejected") bucket.rejected.push(person);
       else bucket.accepted.push(person);
@@ -237,6 +237,22 @@ export function RecruitmentBoard({
 
   if (stateQ.isLoading) {
     return <p className="text-sm text-ink-500">Reading the recruitment record…</p>;
+  }
+
+  if (stateQ.isError) {
+    return (
+      <div className="border border-signal-red/30 bg-paper-0 p-6" role="alert">
+        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-signal-red">
+          Recruitment record unavailable
+        </p>
+        <p className="mt-2 text-sm text-ink-700">
+          {(stateQ.error as Error).message || "The recruitment record could not be loaded."}
+        </p>
+        <button type="button" className="btn-secondary mt-4" onClick={() => void stateQ.refetch()}>
+          Try again
+        </button>
+      </div>
+    );
   }
 
 

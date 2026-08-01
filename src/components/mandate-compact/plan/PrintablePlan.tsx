@@ -154,7 +154,8 @@ export function PrintablePlan({
           </ol>
         </section>
       )}
-    </div>
+    </PrintSurface>
+
   );
 }
 

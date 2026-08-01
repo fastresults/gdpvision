@@ -1,44 +1,81 @@
-## Problem
+# Fix report provenance: no defaults, no guessing, no leakage
 
-The two client-facing artefacts — the Commencement Briefing (PDF) and the Commencement Deck (on-screen, print, .pptx) — carry internal platform vocabulary that the client never gave us: "GDPVision", "Chamber 07", "second brain", "the National Ledger / Cabinet Room / Narrative Chamber". Confirmed in the code:
+## Verified failures
 
-- `PrintableBriefing.tsx` — cover kicker "Chamber 07 · Commencement Briefing"; default `preparedBy` "GDPVision · Chamber 07 · Research"; running footer `content: "GDPVision · Commencement Briefing"`.
-- `commencement-briefing.server.ts` — milestone owner falls back to "GDPVision"; the evidence section ends with a sentence about filing to "your country's second brain … any chamber — the National Ledger, the Cabinet Room, the Narrative Chamber"; the AI narrative prompt instructs the model to write about the "second brain".
-- `programme-deck.server.ts` — closing slide note "GDPVision · Chamber 07 · Research Chamber".
-- `SlideCanvas.tsx` — every slide footer defaults to "GDPVision · Chamber 07".
-- `deck-pptx.ts` — pptx `author`/`company` "GDPVision", slide footer default "GDPVision · Chamber 07".
+- The project’s governing brief is `OPEN_Interactive_IMA_Grenada_RFP_Response_v6.pdf`. It explicitly says **Prepared for: Investment Migration Agency Grenada** and **Submitted by: Stachio Williams / OPEN Interactive**.
+- The displayed **“The Office of the Prime Minister”** is not from that brief. It is a hardcoded print default in `PrintableBriefing.tsx`, and export settings are persisted under one global browser key, so values can bleed between projects.
+- This project has **zero characters in `brief_raw`** and 8,000 characters in `brief_source.excerpt`. The briefing assembler reads `brief_raw` but does **not** read the governing `brief_source` excerpt. Therefore, the actual source document is omitted from the report-generation input.
+- The report is not currently bounded to the original brief. It also consumes the active programme plan, recruited contacts, generated instruments, waves, milestones, deliverables and risks. Some of those are AI-derived downstream artefacts rather than verbatim governing-brief facts.
+- The latest regenerated briefing (v5) still contains **“second brain”**. The latest regenerated deck (v2) still contains **“GDPVision,” “Chamber,” and “second brain.”** Prompt instructions alone did not stop leakage, and there is no deterministic validation gate rejecting contaminated output.
+- The current participant section exposes researched role/organisation details and model-authored rationales. Those are not part of the original brief and therefore violate the requested source boundary.
+- Existing saved briefing/deck versions remain immutable snapshots; changing code does not clean them automatically. The UI continues opening the latest stored contaminated snapshot until a clean replacement is generated.
 
-## Rule to enforce
+## Implementation plan
 
-Client-facing output draws its identity strictly from the governing brief: the programme title, its subtitle, the country, the fieldwork window, the version, and whatever the admin types into the export dialog. No product, chamber or internal-architecture name appears anywhere in the artefacts.
+### 1. Establish one immutable governing-source snapshot
 
-## Changes
+- At brief commit, persist a normalized, immutable source snapshot containing:
+  - governing document identity and extracted text;
+  - exact client/addressee;
+  - exact submitting organisation/preparer;
+  - programme title, objectives, constraints, dates, deliverables and other explicitly supported facts;
+  - provenance pointers back to the source excerpt/page or field.
+- Treat supporting context separately and label it explicitly; it may qualify the governing brief but may not silently create new client promises.
+- Make all report/deck generation read this committed snapshot—not `brief_raw` alone and not mutable browser state.
 
-**1. Briefing document (`PrintableBriefing.tsx`)**
-- Cover kicker becomes "Commencement Briefing" (no chamber).
-- Default `preparedBy` becomes an empty/neutral value the admin fills in the export dialog; when blank, the "Prepared by" cell is omitted rather than printing a placeholder.
-- Running footer becomes the programme title + "Commencement Briefing", derived from the briefing, not a hardcoded product name.
+### 2. Replace open-ended generation with a provenance allow-list
 
-**2. Briefing content (`commencement-briefing.server.ts`)**
-- Milestone owner fallback "GDPVision" → "—" (unassigned), so we never assert an owner the brief did not name.
-- Rewrite the closing evidence sentence in plain client language: findings are filed to the client's own evidence base with provenance intact, available for citation in later work. No product or chamber names.
-- Amend the AI narrative system prompt: remove the "second brain" instruction, and add an explicit constraint — never name the platform, its chambers, or any internal system; refer only to the client, the programme and its deliverables.
+- Build a typed “client output context” from only:
+  1. the committed governing-source snapshot;
+  2. explicitly approved project artefacts that are necessary to describe execution, each carrying its source type and approval state.
+- Exclude unapproved AI proposals, researched personal details, corpus/platform terminology and generic internal workflow copy.
+- For every report field and section, declare its allowed source:
+  - cover identity → governing brief only;
+  - client ask/objectives/constraints → governing brief only;
+  - programme dates/deliverables → approved plan, but only where traceable to or explicitly approved against the brief;
+  - participants → approved persona/segment labels only, never researched names, organisations or model-authored biographies;
+  - instruments/fieldwork → approved artefact facts only;
+  - evidence language → neutral client-facing copy, with no internal platform vocabulary.
 
-**3. Deck (`programme-deck.server.ts`)**
-- Closing slide note becomes the programme title + fieldwork window (or a neutral "Commencement briefing · v{n}"), not a product line.
-- Add the same "no platform or internal-system names" constraint to `DECK_SYSTEM` so model-written headings, bullets and notes can't reintroduce them.
+### 3. Remove all guessed cover metadata
 
-**4. Deck rendering (`SlideCanvas.tsx`, `deck-pptx.ts`)**
-- Slide footer default falls back to the programme title instead of "GDPVision · Chamber 07"; pass the programme title down where the footer needs it.
-- `.pptx` metadata `author`/`company` set from the programme title / country rather than "GDPVision".
+- Delete the hardcoded Prime Minister default.
+- Derive **Prepared for** and **Prepared by** from the governing brief snapshot for each project.
+- Make the browser export key project-specific, or remove browser persistence for source-owned fields entirely.
+- Do not permit stale cross-project values to override source-owned metadata. Any optional manual override must be explicit, project-scoped and visibly marked as an override.
 
-**5. Export dialog (`ExportBriefingDialog.tsx`)**
-- Keep "Prepared for" / "Prepared by" as free-text fields, but seed them from the brief (country / programme) instead of a product default, so the admin's own agency naming is what appears.
+### 4. Add deterministic contamination and unsupported-claim gates
 
-## Not in scope
+- After AI composition, validate every generated section and slide before saving.
+- Reject output containing banned internal terms such as GDPVision, Chamber names/numbers, second brain, internal workspaces or platform terminology.
+- Require every factual statement, number, date, client name, deliverable and constraint to resolve to an allowed provenance record.
+- If validation fails, retry once with the violations identified; if it still fails, use a deterministic source-grounded rendering rather than saving guessed copy.
+- Never save or display a report/deck that fails the gate.
 
-Internal admin UI chrome (panel headers such as "Chamber 07 · Client dossier"), source-file docblocks, and route labels stay as they are — they are never seen by the client.
+### 5. Make provenance visible before export
 
-## Verification
+- Add a preflight panel showing, section by section:
+  - source: governing brief / approved plan / approved participant segment / approved instrument;
+  - unsupported claim count;
+  - banned-term count;
+  - status: ready or blocked.
+- Block PDF, presentation and PowerPoint export until the preflight passes.
+- Add a clear “Rebuild from governing brief” action that creates a new clean briefing and then a deck tied to that exact briefing version.
 
-Assemble a briefing and deck for the current GRD programme, export both to PDF and .pptx, and grep the rendered text (plus the pptx XML) for "GDPVision", "Chamber", "second brain" and the chamber names to confirm zero hits.
+### 6. Repair this project’s stored outputs
+
+- Regenerate the Grenada briefing from the actual uploaded governing brief and approved, traceable artefacts.
+- Generate a new deck only from that clean briefing version.
+- Mark contaminated briefing/deck versions as superseded so the UI cannot open or export them by default; preserve them only for audit history.
+- Verify the cover reads from the brief: **Investment Migration Agency Grenada** and the correct submitting organisation, with no Prime Minister default.
+
+### 7. Test the contract permanently
+
+- Add regression tests proving:
+  - uploaded governing-brief text is used when `brief_raw` is empty;
+  - no global/localStorage metadata crosses projects;
+  - banned platform terms cause generation failure;
+  - names, numbers and dates absent from allowed sources cannot be saved;
+  - participant identities and researched organisations never enter client-facing outputs;
+  - a deck is always linked to—and generated from—the validated briefing version shown in the UI.
+- Validate the regenerated Grenada briefing, PDF, presentation view and editable PowerPoint against the same provenance report.

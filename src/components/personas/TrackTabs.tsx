@@ -18,11 +18,13 @@ export function TrackTabs({
   projectId,
   track,
   active,
+  actions,
 }: {
   code: string;
   projectId: string;
   track: ResearchTrack;
   active: "synthetic" | "field";
+  actions?: React.ReactNode;
 }) {
   const qc = useQueryClient();
   const setTrackFn = useServerFn(setProjectTrack);
@@ -100,6 +102,7 @@ export function TrackTabs({
           </Link>
         );
       })}
+      {actions ? <div className="ml-auto flex flex-wrap items-center gap-2">{actions}</div> : null}
     </div>
   );
 }

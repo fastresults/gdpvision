@@ -325,16 +325,9 @@ export async function loadFieldworkBoard(
     .eq("project_id", projectId)
     .eq("status", "accepted")
     .limit(2_000);
-  const invitedIds = new Set(invitations.map((i) => i.id));
   const eligible = (accepted ?? []).filter(
     (c) => !c.opted_out_at && c.consent_status !== "declined",
   );
-  const invitedContacts = new Set(
-    (invitations ?? []).map((i) => i.name), // names are not ids; recomputed below
-  );
-  void invitedIds;
-  void invitedContacts;
-
   // Sessions + attendees.
   const list = sessionRows ?? [];
   let attendeeRows: Array<Record<string, unknown>> = [];
@@ -430,7 +423,7 @@ export async function loadFieldworkBoard(
     uninvited = eligible.filter((c) => !already.has(c.id as string)).length;
   }
 
-  const waveStates: WaveState[] = waves.map((wave) => {
+  const waveStates: WaveState[] = waves.map((wave): WaveState => {
     if (wave.kind === "collection") {
       const target = wave.target ?? collection?.target_n ?? null;
       const returned = responseCount;
@@ -505,7 +498,7 @@ export async function loadFieldworkBoard(
       id: i.id as string,
       kind: i.kind as string,
       title: (i.title as string | null) ?? null,
-      questions: Array.isArray(i.questions) ? (i.questions as FieldQuestion[]).length : 0,
+      questions: Array.isArray(i.questions) ? (i.questions as unknown as FieldQuestion[]).length : 0,
     })),
     slates,
     sessions,

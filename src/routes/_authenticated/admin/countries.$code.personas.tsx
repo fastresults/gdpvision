@@ -42,10 +42,20 @@ function PersonasLayout() {
     queryFn: () => listStudies({ data: { countryCode: code, projectId: activeProjectId } }),
     enabled: !!activeProjectId,
   });
+  const projects = useQuery({
+    queryKey: ["persona-projects", code],
+    queryFn: () => listProjects({ data: { countryCode: code } }),
+  });
+  const activeProject = (projects.data ?? []).find((p) => p.id === activeProjectId);
+  const fieldRail =
+    !!activeProject?.track_chosen_at &&
+    isResearchTrack(activeProject.track) &&
+    tracksFor(activeProject.track).field;
 
   const pCount = Array.isArray(personas.data) ? personas.data.length : 0;
   const sCount = Array.isArray(segments.data) ? segments.data.length : 0;
   const stCount = Array.isArray(studies.data) ? studies.data.length : 0;
+
 
   const stages = [
     {

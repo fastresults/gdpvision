@@ -14,6 +14,8 @@ const AnswerSchema = z.object({
 
 const OptOutSchema = z.object({ opt_out: z.literal(true) });
 
+type SupabaseAdmin = (typeof import("@/integrations/supabase/client.server"))["supabaseAdmin"];
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,

@@ -16,6 +16,7 @@ import {
   Download,
   FileText,
   Loader2,
+  Presentation,
   Printer,
   RefreshCw,
   Send,
@@ -29,13 +30,20 @@ import {
   markBriefingShared,
   type BriefingRecord,
 } from "@/lib/personas/commencement-briefing.functions";
+import {
+  assembleProgrammeDeck,
+  getProgrammeDeck,
+  type DeckRecord,
+} from "@/lib/personas/programme-deck.functions";
 
+import { DeckModal } from "../deck/DeckModal";
 import { ExportBriefingDialog } from "./ExportBriefingDialog";
 import {
   DEFAULT_BRIEFING_PRINT_CONFIG,
   PrintableBriefing,
   type BriefingPrintConfig,
 } from "./PrintableBriefing";
+
 
 function dateLabel(d: string | null): string {
   if (!d) return "—";
@@ -76,6 +84,27 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
     mutationFn: (briefingId: string) => sharedFn({ data: { briefingId } }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["commencement-briefing", projectId] }),
   });
+
+  // ── presentation deck ────────────────────────────────────────────────────
+  const [deckOpen, setDeckOpen] = useState(false);
+  const deckFn = useServerFn(assembleProgrammeDeck);
+
+  const deckQ = useQuery({
+    queryKey: ["programme-deck", projectId],
+    queryFn: (): Promise<DeckRecord | null> => getProgrammeDeck({ data: { projectId } }),
+  });
+
+  const prepareDeck = useMutation({
+    mutationFn: () => deckFn({ data: { projectId } }),
+    onSuccess: (rec) => {
+      setError(null);
+      qc.setQueryData(["programme-deck", projectId], rec);
+      setDeckOpen(true);
+    },
+    onError: (e: unknown) =>
+      setError(e instanceof Error ? e.message : "Could not compose the deck."),
+  });
+
 
   const record = briefingQ.data ?? null;
   const doc = record?.document ?? null;
@@ -152,6 +181,38 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
               <Download size={14} />
               Export PDF
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (deckQ.data) setDeckOpen(true);
+                else prepareDeck.mutate();
+              }}
+              disabled={prepareDeck.isPending}
+              className="btn-accent inline-flex items-center gap-2"
+            >
+              {prepareDeck.isPending ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Presentation size={14} />
+              )}
+              {prepareDeck.isPending
+                ? "Composing the deck…"
+                : deckQ.data
+                  ? `Open presentation deck · v${deckQ.data.version}`
+                  : "Prepare presentation deck"}
+            </button>
+            {deckQ.data && (
+              <button
+                type="button"
+                onClick={() => prepareDeck.mutate()}
+                disabled={prepareDeck.isPending}
+                className="btn-ghost inline-flex items-center gap-2"
+              >
+                <RefreshCw size={14} />
+                Re-compose deck
+              </button>
+            )}
+
 
             {record && record.status !== "shared" && (
               <button
@@ -277,6 +338,12 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
             onExport={runExport}
           />
           <PrintableBriefing briefing={doc} config={printConfig} />
+          <DeckModal
+            open={deckOpen}
+            deck={deckQ.data?.deck ?? null}
+            onClose={() => setDeckOpen(false)}
+          />
+
         </>
       )}
     </section>

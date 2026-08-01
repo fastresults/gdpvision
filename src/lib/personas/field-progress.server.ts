@@ -93,7 +93,7 @@ export async function computeFieldProgress(
   if (!project) throw new Error("Research programme not found");
   const countryCode = project.country_code as string;
 
-  const [{ data: brief }, { data: plan }] = await Promise.all([
+  const [{ data: brief }, { data: plan }, { count: planDrafts }] = await Promise.all([
     supabase
       .from("persona_projects")
       .select("brief_committed_at")
@@ -105,11 +105,17 @@ export async function computeFieldProgress(
       .eq("project_id", projectId)
       .eq("status", "active")
       .maybeSingle(),
+    supabase
+      .from("programme_plans")
+      .select("id", { count: "exact", head: true })
+      .eq("project_id", projectId),
   ]);
 
   const briefCommitted = !!(brief as { brief_committed_at?: string | null } | null)
     ?.brief_committed_at;
   const planActive = !!plan;
+  const planDrafted = (planDrafts ?? 0) > 0;
+
 
   // The freshness clock for the client dossier: any of these moving after a
   // briefing was assembled means the assembled document no longer describes

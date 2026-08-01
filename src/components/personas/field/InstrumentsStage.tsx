@@ -44,6 +44,7 @@ type Question = {
   options?: string[];
   required?: boolean;
   objective_ref?: number;
+  intent?: "frontline_insight";
 };
 
 interface Doc {

@@ -49,6 +49,7 @@ export function BriefStage({
         },
       }}
       panels={{
+        commit: (
 
           <div className="space-y-5">
             {committed ? (

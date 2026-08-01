@@ -215,6 +215,12 @@ function FieldStageBody({
             )}
           </StageFrame>
         )}
+
+        <BriefingModal
+          open={briefingOpen && gate.planCommitted}
+          projectId={projectId}
+          onClose={() => setBriefingOpen(false)}
+        />
       </div>
     </FieldStageProvider>
   );

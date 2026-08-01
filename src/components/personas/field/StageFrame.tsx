@@ -127,6 +127,17 @@ export function StageFrame({
     [code, guardedGo, navigate, projectId, stage],
   );
 
+  const goDoor = useCallback(() => {
+    guardedGo(() => {
+      scrollToTop();
+      void navigate({
+        to: DOOR_ROUTE,
+        params: { code },
+        search: { project: projectId },
+      });
+    });
+  }, [code, guardedGo, navigate, projectId]);
+
   const nav = useMemo(
     () => ({ stage, steps, index, current, goTo: goSub, isDone }),
     [stage, steps, index, current, goSub, isDone],
@@ -158,7 +169,7 @@ export function StageFrame({
       return;
     }
     if (next) goStage(next);
-    else goStage("brief");
+    else goDoor();
   };
 
   return (
@@ -329,14 +340,7 @@ export function StageFrame({
                     onClick={(e) => {
                       if (hasDirty) {
                         e.preventDefault();
-                        guardedGo(() => {
-                          scrollToTop();
-                          void navigate({
-                            to: DOOR_ROUTE,
-                            params: { code },
-                            search: { project: projectId },
-                          });
-                        });
+                        goDoor();
                       }
                     }}
                   >

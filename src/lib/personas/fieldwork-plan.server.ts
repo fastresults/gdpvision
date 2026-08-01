@@ -491,8 +491,15 @@ export async function loadFieldworkBoard(
     };
   });
 
+  const { data: studyRow } = await supabase
+    .from("studies")
+    .select("country_code")
+    .eq("id", studyId)
+    .maybeSingle();
+
   return {
     studyId,
+    countryCode: (studyRow?.country_code as string | undefined) ?? "",
     waves: waveStates,
     collection,
     invitations,

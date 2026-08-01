@@ -129,4 +129,14 @@ registerRationales([
     caveat:
       "An objective showing no questions here may legitimately be served by the other instrument, or by a desk-research line that has no instrument at all. Read coverage across the whole method mix, not one tab.",
   },
+  {
+    key: "research.fieldwork.waves",
+    title: "How the fielding ladder is derived",
+    short:
+      "One wave per piece of work the approved method mix obliges — not a free-form list of tasks.",
+    basis:
+      "The chamber reads the approved plan's method mix. Every quantitative line collapses into a single hosted questionnaire wave whose target is the sum of those sample sizes; every qualitative line groups into a session wave by kind — focus groups, depth interviews, expert panels, workshops. Desk-research lines field nothing and appear nowhere here. A wave is complete when the collection is closed or its target is met, or when every session in it has been held and its transcript filed.",
+    caveat:
+      "Targets are the plan's stated sample sizes. Returns collected outside this system still count once imported, and closing a wave early is always yours to do — the plan records the size you intended, and the finding should state the size you achieved.",
+  },
 ]);

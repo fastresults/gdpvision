@@ -1,42 +1,77 @@
-## What's wrong
+# Stage 04 · Fieldwork — a guided field desk
 
-Stage 03 (Instruments) is the one stage in the field rail that is *not* AI-first. Everything before it — brief read, programme plan, phase naming, participant recruitment — runs itself and presents a result for approval. Instruments does the opposite: you arrive at an empty panel that says "No instrument yet" and asks you to press one of two buttons and guess which one. Nothing about the brief, the plan's method mix, or the questions it should be asking is on screen.
+## What is actually wrong
 
-Three concrete defects behind that:
+Three problems, and only one of them is cosmetic.
 
-1. **No auto-derivation.** `InstrumentsStage` only drafts on a button click. The AI already has the source brief, the supporting context and the approved plan — it should have drafted before you got there.
-2. **The method is a coin toss put to the user.** The plan already declares a method mix (survey / focus groups / depth interviews). The stage ignores it and offers "Draft a survey" and "Draft a discussion guide" as equal, unexplained options.
-3. **One instrument per programme, silently.** `getInstrument` returns only the highest `version` row for the study. If the plan calls for a survey *and* a discussion guide, drafting the second one makes the first disappear from the UI even though it still exists in the database. A blended programme cannot be represented.
+**1. The hosted collection leads nowhere.** Invitations mint a token and the comms templates mail out `"/f/<token>"`, but there is no such page in the app (`src/routes` has no `f.$token` route). Every invited participant would hit a 404. Nothing can ever be returned through the platform — which is why the stage feels inert.
 
-There is also no visible reasoning: no statement of what the draft was derived from, why each section exists, or how coverage maps back to the plan's objectives.
+**2. Nothing carries over from the earlier stages.** The plan already states the method mix, the audiences and the sample sizes (450 survey, 25 depth interviews, 10-person expert panel for the Grenada programme). Stage 02 already composed named focus-group slates into `research_panels`. Stage 03 already drafted the questionnaire and the guide. Stage 04 ignores all of it: it shows an empty "Session title" box and a blank date field, and "Invite the panel" grabs whichever panel happens to match first — survey slate or focus group, no distinction.
 
-## What to build
+**3. There is no sense of where you are.** Two boxes side by side, no order, no target, no "what happens next", no fielding progress, no way to close the field. Completion is satisfied by a single response or one session marked held, regardless of the plan.
 
-### 1. Derive on arrival, not on demand
+## The redesign: a fielding ladder, derived not typed
 
-When the stage opens with an active plan and no instrument, it drafts immediately — no button press. While it works, show a narrated progress read-out in the house style ("Reading the source brief… mapping the plan's objectives… drafting the survey…"), matching the recruitment agent's behaviour rather than a bare spinner.
+Stage 04 opens with a **derived fielding plan** — the same AI-first beat Stage 03 now has. From the approved method mix the chamber lays out the actual waves this programme must run, each as a card with its own state:
 
-### 2. Draft the set the plan calls for
+```text
+WAVE 1 · Questionnaire · Citizens & Diaspora        target 450   ▓▓▓░░░░░  118 in
+WAVE 2 · Depth interviews · Agents & developers     target  25   ▓▓░░░░░░    6 held
+WAVE 3 · Expert panel · Regulators & policy         target  10   ░░░░░░░░  scheduled
+```
 
-Read `programme_plans.method_mix` and derive **one instrument per planned method** — a survey if the mix contains a survey, a discussion guide if it contains focus groups or depth interviews, both when blended. Present them as a tabbed set ("Survey · 14 questions" / "Discussion guide · 9 prompts") instead of a single mystery document.
+Each wave states what it is for, who it goes to, the instrument it fields, its target, and the single next action. No wave is typed by hand — survey lines become a hosted collection, qualitative lines become sessions pre-seated from the slates composed in Stage 02.
 
-### 3. Show the derivation
+### Wave A — the questionnaire
+1. **Open the field** — creates the collection against the drafted questionnaire, states the target from the plan.
+2. **Invite** — invites the *survey* slate only, and offers the three real routes in one place: send by email, copy each participant's link, or download the link list as CSV for a partner to send. Sending is one action from this stage, not a separate comms screen.
+3. **Watch it come in** — invited / opened / returned counts against target, oldest outstanding invitation, and a one-click reminder to non-responders.
+4. **Off-platform returns** — the paste box stays, but with a worked example and a file drop, and it reports what it parsed before it commits.
 
-Above the document, a provenance strip that states plainly what it was built from — source brief title, number of supporting context items, plan phase the fieldwork sits in, method taken from the mix — and a coverage rail mapping the plan's objectives to the questions that serve them, flagging any objective with no question against it. Both interrogable via `<Explain>`.
+### Wave B/C — sessions
+1. Sessions are **proposed from the composed slates** — one card per slate, named, with its seated participants already listed, so the admin schedules rather than invents. An ad-hoc session stays available.
+2. Scheduling captures time, venue or join link, moderator, and the guide it runs against.
+3. Attendance is ticked from the seated list (`setSessionAttendees` / `setAttendance` already exist and are simply not wired to any UI).
+4. Held → **capture** — paste a transcript, or upload the recording and let the existing transcription path do the work; filed to the second brain with the session's provenance.
 
-### 4. Reframe the manual controls
+### Close the field
+An explicit final action: close the collection, state what was gathered against what was planned, and hand it to Stage 05. That is what makes the stage *done* — not the accidental first response.
 
-The two draft buttons become a single quiet "Re-draft with a steer" affordance under the existing steering box, plus per-instrument "Add the missing method" when the plan asks for something not yet drafted. Editing stays exactly as it is — a near-right draft is adjusted, never regenerated.
+## The missing participant page
 
-### 5. Stage completion follows the plan
+A public route `/f/$token` (under the public-API convention, no auth) that:
+- resolves the invitation token, shows the instrument's intro and consent, renders the questions by type (choice, scale, ranking, matrix, open text), saves partial progress, and submits into `field_responses`;
+- honours `?opt_out=1` by setting the contact's opt-out and never contacting them again;
+- refuses closed or capped collections politely.
 
-`computeFieldProgress` currently marks Instruments done at `instrumentCount > 0`. Change it to: every method in the plan's mix has an instrument, and each has at least one question. Blocker copy names the missing method.
+Without this page nothing else in Stage 04 can complete, so it is built first.
 
-## Technical notes
+## Honest constraint: email delivery
 
-- `src/lib/personas/field-instrument.functions.ts` — add `getInstruments` (latest version per `kind`, not per study) and `ensureInstruments` (idempotent: derive only the missing methods for the plan's mix; safe to call on every stage mount). Keep `draftInstrument` for explicit re-drafts. Add a `deriveMethodsFromPlan` helper shared with progress.
-- `src/lib/personas/field-progress.server.ts` — instruments stage counts distinct `kind` values against the planned methods.
-- `src/components/personas/field/InstrumentsStage.tsx` — auto-derive effect guarded so it fires once per study, method tabs, provenance strip, coverage rail; keep `useDirtyState` / `SaveBar` / `useDirtyRegistration` per active tab so Continue still auto-saves.
-- `src/lib/explain/personas-entries.ts` — rationales for `personas.instrument.derivation` and `personas.instrument.coverage`.
-- Corpus: file each derived instrument to the second brain via the existing `fileProgrammeMaterial` path with a `role:instrument` tag, so the questionnaire is citable alongside the brief.
-- No schema change needed — `field_instruments` already carries `kind` and `version`.
+No email provider key is configured for this workspace, so `sendToInvitees` currently queues rather than sends. The stage will say so plainly and lead with copy-link and CSV export, with a one-line prompt to add a provider when the principal wants the chamber to send on their behalf. I will not present queued mail as sent.
+
+## Completion logic
+
+`computeFieldProgress` stops treating "one response OR one session" as done. Instead, per wave: a survey wave is fielding when it has returns and complete at target (or when the admin closes it early with a stated reason); a session wave is complete when every planned session is held and captured. The stage is done when every wave the plan requires is closed. The blocker text names the wave and the one action that moves it.
+
+---
+
+## Technical detail
+
+**New**
+- `src/routes/f.$token.tsx` — public participant response page (+ a server route under `src/routes/api/public/` for token resolve/submit so it works unauthenticated).
+- `src/lib/personas/fieldwork-plan.server.ts` — derives waves from `programme_plans.method_mix` (reusing the same method→instrument mapping as `instrument-draft.server.ts`), maps each wave to its collection or its composed `research_panels` slate, and computes progress against `sample_size`.
+- `src/lib/personas/fieldwork.functions.ts` — `getFieldworkBoard` (one read: waves, collection, invitations, sessions, slates, targets), `openWave`, `inviteWave`, `sendWaveInvites`, `remindNonResponders`, `scheduleFromSlate`, `closeWave`.
+- `src/components/personas/field/fieldwork/` — `WaveCard`, `CollectionWave`, `SessionWave`, `SessionCard`, `InviteDrawer`, `CaptureDrawer`.
+
+**Changed**
+- `src/components/personas/field/FieldworkStage.tsx` — becomes a thin composition of the wave cards; keeps the existing dirty-state registrations for transcript and pasted returns.
+- `src/lib/personas/field-progress.server.ts` — wave-aware instruments/fieldwork completion and blocker text.
+- `src/lib/personas/field-stages.ts` — `doneWhen`/`resolve` copy for the fieldwork stage.
+- `src/lib/personas/field-collection.functions.ts` — invite by slate rather than by first matching panel; expose participant links; reminder pass.
+- `src/lib/personas/field-sessions.functions.ts` — `scheduleFromSlate` seating attendees at creation.
+- `src/lib/explain/personas-entries.ts` — rationales for wave derivation, target sizing, and what "closed" means.
+
+**Unchanged**: no schema migration. `field_collections`, `research_invitations`, `field_responses`, `field_sessions` and `field_session_attendees` already carry every column this needs.
+
+Maps regenerated with `bun run headers && bun run map` at the end.

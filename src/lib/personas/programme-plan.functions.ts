@@ -536,7 +536,7 @@ export const commitProgrammePlan = createServerFn({ method: "POST" })
     const { supabase } = context;
     const { data: plan, error } = await supabase
       .from("programme_plans")
-      .select("id,project_id")
+      .select("*")
       .eq("id", data.planId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -554,7 +554,60 @@ export const commitProgrammePlan = createServerFn({ method: "POST" })
       .update({ status: "active", committed_at: new Date().toISOString() } as never)
       .eq("id", data.planId);
     if (updErr) throw new Error(updErr.message);
-    return { ok: true as const };
+
+    // Archive the approved programme into the country's second brain so any
+    // chamber can cite it. Idempotent — a re-approval updates in place.
+    let filed = false;
+    try {
+      const [{ data: phases }, { data: milestones }, { data: deliverables }, { data: project }] =
+        await Promise.all([
+          supabase
+            .from("programme_phases")
+            .select("name,intent,starts_on,ends_on")
+            .eq("plan_id", data.planId)
+            .order("position"),
+          supabase
+            .from("programme_milestones")
+            .select("title,detail,owner,due_on")
+            .eq("plan_id", data.planId)
+            .order("due_on"),
+          supabase
+            .from("programme_deliverables")
+            .select("title,kind,owner,due_on")
+            .eq("plan_id", data.planId)
+            .order("due_on"),
+          supabase
+            .from("persona_projects")
+            .select("title")
+            .eq("id", plan.project_id as string)
+            .maybeSingle(),
+        ]);
+
+      const { ingestProgrammePlanToCorpus } = await import("./field-corpus.server");
+      await ingestProgrammePlanToCorpus({
+        countryCode: plan.country_code as string,
+        projectId: plan.project_id as string,
+        projectTitle: (project?.title as string | undefined) ?? "Research programme",
+        planId: data.planId,
+        version: (plan.version as number | undefined) ?? 1,
+        startsOn: (plan.starts_on as string | null) ?? null,
+        endsOn: (plan.ends_on as string | null) ?? null,
+        summary: (plan.summary as string | null) ?? null,
+        objectives: plan.objectives ?? null,
+        methodMix: plan.method_mix ?? null,
+        audience: plan.audience ?? null,
+        risks: plan.risks ?? null,
+        rationale: plan.rationale ?? null,
+        phases: (phases ?? []) as never,
+        milestones: (milestones ?? []) as never,
+        deliverables: (deliverables ?? []) as never,
+      });
+      filed = true;
+    } catch {
+      // Approval must not fail because the corpus write did.
+    }
+
+    return { ok: true as const, filedToCorpus: filed };
   });
 
 export const discardProgrammePlan = createServerFn({ method: "POST" })

@@ -141,7 +141,6 @@ export function FieldStageProvider({ children }: { children: React.ReactNode }) 
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [hasDirty]);
 
-
   const value = useMemo(
     () => ({ setDirty, setResolve, dirtyEntries, resolveAction, guardedGo }),
     [setDirty, setResolve, dirtyEntries, resolveAction, guardedGo],
@@ -210,7 +209,6 @@ export function FieldStageProvider({ children }: { children: React.ReactNode }) 
           </div>
         </div>
       ) : null}
-
     </FieldStageBusContext.Provider>
   );
 }

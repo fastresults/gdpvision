@@ -12,6 +12,7 @@ import { ArrowLeft, Loader2, Lock, Sparkles, Unlock } from "lucide-react";
 
 import { Explain } from "@/components/explain/Explain";
 import { createProject } from "@/lib/personas/projects.functions";
+import { fileProgrammeMaterial } from "@/lib/personas/corpus-file.functions";
 import type { ProgrammeProposal } from "@/lib/personas/project-brief.functions";
 import { TRACK_META, type ResearchTrack } from "@/lib/personas/tracks";
 import type { IngestMaterial } from "./ProgrammeIngest";

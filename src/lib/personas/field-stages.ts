@@ -117,6 +117,8 @@ export interface FieldStageProgress {
 
 export interface FieldProgress {
   studyId: string | null;
+  /** The synthesised field finding, when Stage 05 has produced one. */
+  fieldFinding: Record<string, unknown> | null;
   planActive: boolean;
   briefCommitted: boolean;
   stages: Record<FieldStageKey, FieldStageProgress>;

@@ -185,13 +185,19 @@ export async function computeFieldProgress(
 
   // ── Evidence ────────────────────────────────────────────────────────────
   let synthesised = false;
+  let fieldFinding: Record<string, unknown> | null = null;
   if (studyId) {
     const { data: s } = await supabase
       .from("studies")
       .select("config")
       .eq("id", studyId)
       .maybeSingle();
-    synthesised = !!(s?.config as Record<string, unknown> | null)?.["field_finding"];
+    fieldFinding =
+      ((s?.config as Record<string, unknown> | null)?.["field_finding"] as Record<
+        string,
+        unknown
+      > | null) ?? null;
+    synthesised = !!fieldFinding;
   }
   const closed = project.status === "completed";
   const evidence = stage(
@@ -204,6 +210,7 @@ export async function computeFieldProgress(
 
   return {
     studyId,
+    fieldFinding,
     planActive,
     briefCommitted,
     stages: {

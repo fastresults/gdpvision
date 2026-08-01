@@ -11,6 +11,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, FileText, Loader2, Lock, Sparkles, Unlock } from "lucide-react";
 
 import { Explain } from "@/components/explain/Explain";
+import { ReadOut } from "@/components/personas/ScopeReadOut";
 import { createProject } from "@/lib/personas/projects.functions";
 import { fileProgrammeMaterial } from "@/lib/personas/corpus-file.functions";
 import type { ProgrammeProposal } from "@/lib/personas/project-brief.functions";

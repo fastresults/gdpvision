@@ -5,7 +5,7 @@
 // real one: a hosted link they can answer, an email we actually send, or a file
 // of returns collected elsewhere.
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Copy, Link2, Loader2, Mail, Upload } from "lucide-react";
 import { useState } from "react";

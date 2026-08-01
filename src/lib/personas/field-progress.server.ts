@@ -168,7 +168,7 @@ export async function computeFieldProgress(
   let requiredKinds: string[] = [];
   if (studyId) {
     const [{ data: rows }, { data: activePlan }] = await Promise.all([
-      supabase.from("field_instruments").select("kind").eq("study_id", studyId),
+      supabase.from("field_instruments").select("kind,updated_at").eq("study_id", studyId),
       supabase
         .from("programme_plans")
         .select("method_mix")
@@ -179,7 +179,9 @@ export async function computeFieldProgress(
     heldKinds = [...new Set((rows ?? []).map((r) => r.kind as string))];
     instrumentCount = (rows ?? []).length;
     requiredKinds = requiredInstruments(activePlan?.method_mix).map((r) => r.kind);
+    for (const r of rows ?? []) inputStamps.push(r.updated_at as string | undefined);
   }
+
   const missingKinds = requiredKinds.filter((k) => !heldKinds.includes(k));
   const label = (k: string) =>
     k === "discussion_guide" ? "a discussion guide" : "a questionnaire";

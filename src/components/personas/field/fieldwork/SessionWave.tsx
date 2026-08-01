@@ -179,10 +179,8 @@ export function SessionWave({
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[14px] text-ink-950">{s.title}</span>
                   <span className="font-mono text-[11px] text-ink-500">
-                    {s.scheduled_at
-                      ? new Date(s.scheduled_at).toLocaleString()
-                      : "no date set"}{" "}
-                    · {s.attendees.length} seated
+                    {s.scheduled_at ? new Date(s.scheduled_at).toLocaleString() : "no date set"} ·{" "}
+                    {s.attendees.length} seated
                   </span>
                   <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.16em] text-ink-600">
                     {s.hasTranscript ? "captured" : s.status}

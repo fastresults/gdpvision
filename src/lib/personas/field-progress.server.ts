@@ -203,8 +203,6 @@ export async function computeFieldProgress(
     { waves: waveTotal, wavesComplete: waveDone, responses },
   );
 
-
-
   // ── Evidence ────────────────────────────────────────────────────────────
   let synthesised = false;
   let fieldFinding: FieldFinding | null = null;

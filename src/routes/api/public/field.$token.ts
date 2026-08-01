@@ -72,7 +72,10 @@ export const Route = createFileRoute("/api/public/field/$token")({
 
         return json({
           state: "ok",
-          firstName: String(contact?.full_name ?? "").trim().split(/\s+/)[0] ?? "",
+          firstName:
+            String(contact?.full_name ?? "")
+              .trim()
+              .split(/\s+/)[0] ?? "",
           instrument: {
             title: instrument.title,
             intro: instrument.intro,
@@ -90,9 +93,7 @@ export const Route = createFileRoute("/api/public/field/$token")({
 
         const { data: invite } = await supabaseAdmin
           .from("research_invitations")
-          .select(
-            "id,collection_id,study_id,country_code,contact_id,participant_code,completed_at",
-          )
+          .select("id,collection_id,study_id,country_code,contact_id,participant_code,completed_at")
           .eq("token", token)
           .maybeSingle();
         if (!invite) return json({ state: "invalid" }, 404);

@@ -160,7 +160,11 @@ export function CollectionWave({
               onClick={() => send.mutate()}
             >
               <Mail className="mr-1 inline h-3.5 w-3.5" />
-              {send.isPending ? "Sending…" : board.mailConfigured ? "Send invitations" : "Prepare invitations"}
+              {send.isPending
+                ? "Sending…"
+                : board.mailConfigured
+                  ? "Send invitations"
+                  : "Prepare invitations"}
             </button>
             {returned > 0 && returned < target ? (
               <button
@@ -218,9 +222,7 @@ export function CollectionWave({
                     <button
                       type="button"
                       className="btn-ghost shrink-0"
-                      onClick={() =>
-                        void navigator.clipboard.writeText(`${origin}/f/${i.token}`)
-                      }
+                      onClick={() => void navigator.clipboard.writeText(`${origin}/f/${i.token}`)}
                     >
                       <Copy className="h-3 w-3" />
                     </button>
@@ -279,4 +281,3 @@ function useMutationFactory(
     onError: (e: Error) => say(e.message),
   });
 }
-

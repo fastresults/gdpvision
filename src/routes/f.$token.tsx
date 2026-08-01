@@ -153,9 +153,7 @@ function ParticipantPage() {
       />
     );
 
-  const questions = (data.instrument.questions ?? []).filter(
-    (q) => q.type !== "moderator_prompt",
-  );
+  const questions = (data.instrument.questions ?? []).filter((q) => q.type !== "moderator_prompt");
   const missing = questions.filter(
     (q) => q.required && (answers[q.id] === undefined || answers[q.id] === ""),
   );
@@ -231,7 +229,11 @@ function ParticipantPage() {
       </div>
       <p className="mt-6 text-[11px] leading-relaxed text-ink-500">
         Your answers are confidential and reported only in aggregate. If you would rather not take
-        part, <a className="underline" href={`/f/${token}?opt_out=1`}>opt out here</a>.
+        part,{" "}
+        <a className="underline" href={`/f/${token}?opt_out=1`}>
+          opt out here
+        </a>
+        .
       </p>
     </main>
   );
@@ -330,9 +332,7 @@ function QuestionField({
             <button
               key={o}
               type="button"
-              onClick={() =>
-                onChange(rank >= 0 ? order.filter((x) => x !== o) : [...order, o])
-              }
+              onClick={() => onChange(rank >= 0 ? order.filter((x) => x !== o) : [...order, o])}
               className={
                 rank >= 0
                   ? "card-choice-active flex w-full items-center gap-2 px-3 py-2 text-left text-[14px]"
@@ -346,7 +346,9 @@ function QuestionField({
             </button>
           );
         })}
-        <p className="text-[11px] text-ink-500">Tap in order of importance, most important first.</p>
+        <p className="text-[11px] text-ink-500">
+          Tap in order of importance, most important first.
+        </p>
       </div>
     );
   }

@@ -31,8 +31,7 @@ export function FieldworkStage({
 
   const boardQ = useQuery({
     queryKey: ["fieldwork-board", projectId, studyId],
-    queryFn: () =>
-      getFieldworkBoard({ data: { projectId, studyId: studyId as string } }),
+    queryFn: () => getFieldworkBoard({ data: { projectId, studyId: studyId as string } }),
     enabled: !!studyId,
   });
 
@@ -88,7 +87,6 @@ export function FieldworkStage({
           </button>
         }
       />
-
     );
   }
 

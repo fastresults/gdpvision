@@ -26,7 +26,9 @@ import {
   listProjects,
   renameProject,
 } from "@/lib/personas/projects.functions";
+import { isResearchTrack, TRACK_META } from "@/lib/personas/tracks";
 import { projectsQuery } from "./ProjectSwitcher";
+
 
 type Project = Awaited<ReturnType<typeof listProjects>>[number];
 

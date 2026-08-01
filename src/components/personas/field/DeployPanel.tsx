@@ -11,6 +11,7 @@ import { Copy, FileSpreadsheet, Globe, Loader2, Printer } from "lucide-react";
 import { useState } from "react";
 
 import { buildDeployPacks, setOpenAccess } from "@/lib/personas/instrument-deploy.functions";
+import { browserPublicOrigin, participantLink } from "@/lib/personas/public-origin";
 
 function download(filename: string, mime: string, body: string) {
   const url = URL.createObjectURL(new Blob([body], { type: mime }));
@@ -37,7 +38,9 @@ export function DeployPanel({
   const [note, setNote] = useState<string | null>(null);
   const packsFn = useServerFn(buildDeployPacks);
   const openFn = useServerFn(setOpenAccess);
-  const origin = typeof window === "undefined" ? "" : window.location.origin;
+  // Always the public front door — never the editor preview host, which would
+  // put a login screen between a participant and the questionnaire.
+  const origin = browserPublicOrigin();
 
   const packs = useMutation({
     mutationFn: async (which: "csv" | "json" | "form") => {

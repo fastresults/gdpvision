@@ -23,13 +23,21 @@ const PAGE_CSS = `
 
 const PRINT_CSS = `
 @media print {
+  /* Static flow: an absolute root is sized against the viewport, not the page
+     content box, which clipped the right margin off every sheet. */
   #value-case-print-root {
-    position: absolute;
-    inset: 0;
-    width: 100%;
+    position: static;
+    width: auto;
+    margin: 0;
     color: #000;
     font-family: Georgia, 'Times New Roman', serif;
   }
+  #value-case-print-root img,
+  #value-case-print-root table { max-width: 100%; }
+  #value-case-print-root p,
+  #value-case-print-root li,
+  #value-case-print-root td,
+  #value-case-print-root th { overflow-wrap: anywhere; }
   #value-case-print-root .mono {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     letter-spacing: 0.14em;

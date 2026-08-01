@@ -212,17 +212,21 @@ export const commitProjectBrief = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("persona_projects")
-      .select("brief_raw,brief_scope,brief_uploads,brief_committed_at")
+      .select("brief_raw,brief_scope,brief_uploads,brief_source,brief_committed_at")
       .eq("id", data.projectId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!row) throw new Error("Research program not found");
     if (row.brief_committed_at) return { ok: true as const, alreadyCommitted: true };
     const raw = ((row as { brief_raw: string | null }).brief_raw ?? "").trim();
+    const source = ((row as { brief_source: { excerpt?: string } | null }).brief_source ?? null);
     const uploads = Array.isArray((row as { brief_uploads: unknown }).brief_uploads)
       ? ((row as { brief_uploads: Array<{ excerpt?: string }> }).brief_uploads)
       : [];
-    const totalLen = raw.length + uploads.reduce((s, u) => s + (u.excerpt?.length ?? 0), 0);
+    const totalLen =
+      raw.length +
+      (source?.excerpt?.length ?? 0) +
+      uploads.reduce((s, u) => s + (u.excerpt?.length ?? 0), 0);
     if (totalLen < 40) throw new Error("Brief is too short — add more detail or attach a source document before committing.");
     if (!row.brief_scope) throw new Error("Enrich the brief into a Research Scope before committing.");
     const { error: updErr } = await context.supabase

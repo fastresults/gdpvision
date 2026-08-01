@@ -71,7 +71,7 @@ export function PrintableBriefing({
             </p>
           </div>
           <div className="cb-cover-body">
-            <p className="cb-cover-kicker">Chamber 07 · Commencement Briefing</p>
+            <p className="cb-cover-kicker">Commencement Briefing</p>
             <h1 className="cb-cover-title">{briefing.title}</h1>
             <p className="cb-cover-subtitle">{briefing.subtitle}</p>
             <p className="cb-cover-headline">Fieldwork window · {windowLabel(briefing)}</p>
@@ -163,7 +163,11 @@ function FootCell({ label, value }: { label: string; value: string }) {
  * one printing — `@page` is document-global, so it must never be declared by a
  * printable that is merely mounted.
  */
-function pageCss(config: BriefingPrintConfig): string {
+function pageCss(config: BriefingPrintConfig, briefing: CommencementBriefing): string {
+  const footerLabel = `${briefing.programmeTitle || briefing.title} · Commencement Briefing`.replace(
+    /["\\]/g,
+    "",
+  );
   const footers = config.showPageNumbers
     ? `
     @bottom-right {
@@ -174,7 +178,7 @@ function pageCss(config: BriefingPrintConfig): string {
       letter-spacing: 0.14em;
     }
     @bottom-left {
-      content: "GDPVision · Commencement Briefing";
+      content: "${footerLabel}";
       font-family: "SFMono-Regular", "Menlo", "Consolas", monospace;
       font-size: 8pt;
       color: #6b6b6b;

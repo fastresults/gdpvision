@@ -50,6 +50,12 @@ export function FieldStepper({
   const hintFor = (k: FieldStageKey, fallback: string) =>
     done(k) ? "done" : progress?.stages[k]?.blocker ? "outstanding" : fallback;
 
+  // The rail is a way out of a stage like any other — it goes through the
+  // same save-or-discard gate the sticky bar uses.
+  const navigate = useNavigate();
+  const guardedGo = useGuardedGo();
+
+
   const nodes: Array<{
     key: FieldStageKey;
     n: number;

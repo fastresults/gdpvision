@@ -15,7 +15,9 @@ import { EvidenceStage } from "@/components/personas/field/EvidenceStage";
 import { FieldworkStage } from "@/components/personas/field/FieldworkStage";
 import { InstrumentsStage } from "@/components/personas/field/InstrumentsStage";
 import { ParticipantsStage } from "@/components/personas/field/ParticipantsStage";
+import { FieldStageProvider } from "@/components/personas/field/stage-bus";
 import { StageFrame } from "@/components/personas/field/StageFrame";
+
 import { TrackTabs } from "@/components/personas/TrackTabs";
 
 import { useResearchGate } from "@/hooks/useResearchGate";

@@ -1,37 +1,57 @@
-## 1. Why every tile says "0 prohibited references"
+## What's wrong
 
-Nothing is broken. Each tile in the provenance strip prints a raw count of banned internal terms found in that section. Zero is the *pass* state — it means the section is clean. The wording just reads like a warning when it is actually the all-clear.
+Section 01 currently renders three things stacked as plain paragraphs:
 
-**Fix (presentation only):**
-- Clean sections show a check plus "Clean — drawn from the governing brief" instead of "0 prohibited references".
-- Only sections with a count above zero show the red count and the offending term.
-- The header keeps the single verdict badge ("Ready to export" / "Export blocked") and adds a plain line: "All N sections trace to the client brief; no internal platform references found."
+1. `plan.summary` (this part is fine — the lede reads well).
+2. A verbatim quotation of the client PDF text, produced by `briefQuotation()` in `src/lib/personas/commencement-briefing.server.ts`. The filter only removes cover furniture that appears at the *start of a line*, so it lets through the client proposal's own contents list, address block, contact details and stray fragments — "n = 400+ ±5%", "2026", "Survey Research &", "1st Floor, Galleria Mall…", "Executive Summary", "Project Team", "Financial Proposal — Track One". Each fragment becomes its own paragraph, producing the ladder of one-line stubs in the screenshot.
+3. The objectives table.
 
-## 2. Public, shareable dossier link
+So it is both a content problem (wrong text survives the filter) and a layout problem (nothing but full-width body paragraphs).
 
-Give each project one durable link that opens the **whole dossier** — the discovery brief and the presentation deck — with no sign-in and no reference to the platform, the chamber, or GDPVision.
+## The fix
 
-**Database**
-- Add `share_token` (unique, random hex), `share_enabled` (bool, default false), `shared_publicly_at` to `programme_briefings`. The deck is resolved through the same token via its `project_id`, so no second token.
+### 1. Stop quoting the raw PDF; extract from it
 
-**Public endpoint** — `src/routes/api/public/dossier/$token.ts`
-- Validates the token shape, loads the briefing and the matching deck with the admin client, and returns only the assembled `document`, the deck slides, and the client identity taken from the governing brief.
-- Runs the existing banned-term check server-side before responding; if anything internal slipped in, the endpoint returns "unavailable" rather than leaking it.
-- No project ids, no country codes, no participant PII, `no-store`, `noindex`.
+Replace the "quote a slab of the brief" approach with two derived blocks:
 
-**Public page** — `src/routes/d/$token.tsx`
-- Standalone shell: no app header, no wordmark, no navigation. Masthead is the client and programme name from the brief.
-- Two tabs: **Discovery brief** (the reader, contents rail, print to PDF) and **Presentation** (the slide viewer with fullscreen), reusing the existing printable and deck components but rendered without the internal chrome and without the provenance/tracker controls.
-- Revoked or disabled link renders a quiet "This link is no longer active" notice.
+- **Key parameters strip** — parse the committed brief for the handful of facts a client wants confirmed back: sample size and margin of error, fieldwork window, audiences, deadline/decision date, methods. Rendered as a bordered grid of label/value cells (same visual family as the cover metrics), not prose.
+- **A real quotation** — keep at most 2–3 *sentences* of the client's own ask. Tighten `briefQuotation()` so a paragraph only survives if it is a running sentence: ≥ 12 words, contains a lowercase verb-bearing clause, and ends in terminal punctuation. Anything shorter (headings, list items, addresses, emails, URLs, bare years, figures) is dropped rather than emitted as its own paragraph. If nothing qualifies, omit the quote block entirely rather than printing debris.
 
-**Admin controls** (in the briefing panel, beside "Mark as sent to client")
-- "Create share link" → generates the token and copies the URL.
-- Shows the live URL with copy button, plus "Revoke link" and "Regenerate link".
-- Sharing is blocked while the export preflight is blocked, so an unclean dossier can never be published.
+### 2. Give the section a production-grade layout
+
+Section 01 gets its own structured renderer rather than generic markdown prose:
+
+```text
+AS WE UNDERSTOOD IT
+01  The brief
+
+┌──────────────────────────────────────────────┐
+│  lede paragraph — larger, 60ch measure       │
+└──────────────────────────────────────────────┘
+
+SAMPLE      MARGIN     WINDOW        DECIDES BY     AUDIENCES
+400+        ±5%        Aug–Oct 26    24 Oct 2026    Citizens, Diaspora, Agents
+
+┌ ▌ In the client's words ────────────────────┐
+│  "…two or three real sentences…"            │
+└─────────────────────────────────────────────┘
+
+WHAT COUNTS AS AN ANSWER
+01 │ Objective ................ Why it matters
+02 │ …
+```
+
+- Lede set at ~13pt with a constrained measure so it doesn't run the full page width.
+- Parameters strip: uppercase mono labels, tabular-nums values, hairline dividers.
+- Quotation: gold left rule, indented, italic, capped height.
+- Objectives keep the existing table styling but with numbered gold row markers.
+
+### 3. Apply everywhere the dossier renders
+
+Same structure must hold in the on-screen panel, the print/PDF surface, and the public `/d/$token` share view — all three already consume the same `PrintableBriefing`, so the change lands once. Verify no overflow in landscape print and no clipped right margin.
 
 ## Technical notes
 
-- Migration adds the three columns to `programme_briefings` with GRANTs untouched (existing table) and keeps all reads for the public route on the service-role client inside the handler — no anon policy widening.
-- Token generated with `gen_random_bytes` server-side; never derived from the project id.
-- Public route lives outside `_authenticated`, its loader calls only the public endpoint, so prerender never touches a protected function.
-- Deck and briefing rendering are extracted into presentational components that take data as props, so the internal modal and the public page share one implementation and cannot drift.
+- `src/lib/personas/commencement-briefing.server.ts` — tighten `briefQuotation()`; add a `briefFacts()` extractor; emit section 01 with a structured `facts` payload alongside `body_md` (additive field on `BriefingSection`, existing sections unaffected).
+- `src/components/personas/field/briefing/PrintableBriefing.tsx` — render section 01 through a dedicated `BriefOpener` block; add `.cb-lede`, `.cb-facts`, `.cb-quote` rules to the print stylesheet.
+- No schema change. Existing briefings will re-render correctly on regeneration via the existing "Re-compose" control; stored older documents fall back to the current markdown path.

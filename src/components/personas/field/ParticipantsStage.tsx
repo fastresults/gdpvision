@@ -300,9 +300,44 @@ export function ParticipantsStage({
                 })}
               </ul>
             </div>
-          )}
-        </div>
-      </details>
-    </div>
+          );
+
+  return (
+    <StageWizard
+      panels={{
+        // ── Step 1 · Find candidates ──────────────────────────────────────
+        find: (
+          <div className="space-y-5">
+            <RecruitmentBoard code={code} projectId={projectId} onChanged={refresh} />
+            <ShowTheDetail label={`Add people by hand · ${contacts.length} on file`}>
+              {rosterBlock}
+            </ShowTheDetail>
+          </div>
+        ),
+
+        // ── Step 2 · Form the panel ───────────────────────────────────────
+        panel: (
+          <div className="space-y-5">
+            {panelBlock}
+            {contactBook}
+            <ShowTheDetail label="Add more people by hand">{rosterBlock}</ShowTheDetail>
+          </div>
+        ),
+
+        // ── Step 3 · Record consent ───────────────────────────────────────
+        consent: (
+          <div className="space-y-5">
+            {panelBlock}
+            <p className="max-w-2xl text-[13px] leading-relaxed text-ink-700">
+              Nobody is approached without a record of their consent. Opt someone out here and they
+              drop out of every wave, invitation and export from this moment on.
+            </p>
+            {contactBook}
+          </div>
+        ),
+      }}
+    />
   );
+}
+
 }

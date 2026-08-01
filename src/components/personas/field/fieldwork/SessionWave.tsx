@@ -45,7 +45,7 @@ export function SessionWave({
   const mine = board.sessions.filter((s) => s.method === method);
   const openSlates = board.slates.filter((s) => !s.scheduledSessionId);
 
-  const run = (fn: () => Promise<string>) =>
+  const useRun = (fn: () => Promise<string>) =>
     useMutation({
       mutationFn: fn,
       onSuccess: (m) => {
@@ -75,7 +75,7 @@ export function SessionWave({
     onError: (e: Error) => setNote(e.message),
   });
 
-  const addBlank = run(async () => {
+  const addBlank = useRun(async () => {
     if (!title.trim()) throw new Error("Give the session a name.");
     await scheduleFn({
       data: {

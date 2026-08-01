@@ -54,35 +54,35 @@ export function CollectionWave({
   const opened = state.counts["opened"] ?? 0;
   const origin = typeof window === "undefined" ? "" : window.location.origin;
 
-  const act = (fn: () => Promise<unknown>) =>
+  const useAct = (fn: () => Promise<unknown>) =>
     useMutationFactory(fn, (msg) => setNote(msg), refresh);
 
-  const open = act(async () => {
+  const open = useAct(async () => {
     await openFn({ data: { studyId, targetN: state.wave.target ?? null } });
     return "The field is open.";
   });
-  const invite = act(async () => {
+  const invite = useAct(async () => {
     if (!collection) throw new Error("Open the field first.");
     const r = await inviteFn({ data: { collectionId: collection.id, projectId } });
     return r.message;
   });
-  const send = act(async () => {
+  const send = useAct(async () => {
     if (!collection) throw new Error("Open the field first.");
     const r = await sendFn({ data: { collectionId: collection.id, origin, purpose: "invite" } });
     return r.message;
   });
-  const remind = act(async () => {
+  const remind = useAct(async () => {
     if (!collection) throw new Error("Open the field first.");
     const r = await sendFn({ data: { collectionId: collection.id, origin, purpose: "reminder" } });
     return r.message;
   });
 
-  const close = act(async () => {
+  const close = useAct(async () => {
     if (!collection) throw new Error("Nothing to close.");
     await closeFn({ data: { collectionId: collection.id } });
     return "Wave closed.";
   });
-  const importRows = act(async () => {
+  const importRows = useAct(async () => {
     const parsed = rows
       .split(/\r?\n/)
       .map((l) => l.trim())

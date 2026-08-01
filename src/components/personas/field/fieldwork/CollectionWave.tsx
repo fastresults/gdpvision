@@ -280,9 +280,3 @@ function useMutationFactory(
   });
 }
 
-/** Kept for parity with the sessions wave, which reads the same board. */
-export type { WaveState };
-
-export function useCollectionQueryKey(studyId: string) {
-  return useQuery({ queryKey: ["noop", studyId], queryFn: async () => null, enabled: false });
-}

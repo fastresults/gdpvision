@@ -5,12 +5,7 @@
 
 import { cn } from "@/lib/utils";
 
-export type WavePhase =
-  | "not_started"
-  | "reaching"
-  | "arriving"
-  | "target_met"
-  | "closed";
+export type WavePhase = "not_started" | "reaching" | "arriving" | "target_met" | "closed";
 
 const LABEL: Record<WavePhase, string> = {
   not_started: "Not started",

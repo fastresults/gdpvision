@@ -37,12 +37,7 @@ export function Panel({
   }, [defaultOpen]);
 
   return (
-    <section
-      className={cn(
-        "border bg-paper-0",
-        attention ? "border-ink-950" : "border-line-200",
-      )}
-    >
+    <section className={cn("border bg-paper-0", attention ? "border-ink-950" : "border-line-200")}>
       <div className="flex items-start gap-2 p-3">
         <button
           type="button"

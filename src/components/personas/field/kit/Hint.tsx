@@ -8,12 +8,7 @@
 import { HelpCircle } from "lucide-react";
 import { useEffect, useId, useState, type ReactNode } from "react";
 
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 function useCoarsePointer(): boolean {
@@ -100,6 +95,10 @@ export function Hint({
 }
 
 /** The `?` mark, placed after a label. */
-export function HintMark(props: { what: string; then?: string; side?: "top" | "right" | "bottom" | "left" }) {
+export function HintMark(props: {
+  what: string;
+  then?: string;
+  side?: "top" | "right" | "bottom" | "left";
+}) {
   return <Hint {...props} className="ml-1" />;
 }

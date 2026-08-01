@@ -143,7 +143,8 @@ export function SessionWave({
   const complete = state.status === "complete";
 
   const s1: StepState = mine.length > 0 ? "done" : "live";
-  const s2: StepState = mine.length === 0 ? "locked" : held.length > 0 || captured > 0 ? "done" : "live";
+  const s2: StepState =
+    mine.length === 0 ? "locked" : held.length > 0 || captured > 0 ? "done" : "live";
   const s3: StepState = mine.length === 0 ? "locked" : "live";
   const s4: StepState = complete ? "done" : captured > 0 ? "live" : "locked";
 
@@ -424,7 +425,9 @@ export function SessionWave({
               then: "The stage advances when every wave the plan obliges is complete.",
             }}
             unlocks="a transcript is filed"
-            summary={complete ? `Closed · ${captured} ${plural(captured, "room")} captured` : undefined}
+            summary={
+              complete ? `Closed · ${captured} ${plural(captured, "room")} captured` : undefined
+            }
           />
         </StepLadder>
       </div>

@@ -87,7 +87,6 @@ export function CollectionWave({
     });
   const act = useAct;
 
-
   const open = act(async () => {
     await openFn({ data: { studyId, targetN: state.wave.target ?? null } });
     return "The field is open — the hosted questionnaire is live and its participant links exist.";
@@ -422,7 +421,9 @@ export function CollectionWave({
               then: "The stage advances once every wave the plan obliges is closed.",
             }}
             unlocks="the field has been reached"
-            summary={complete ? `Closed at ${returned}${target > 0 ? ` of ${target}` : ""}` : undefined}
+            summary={
+              complete ? `Closed at ${returned}${target > 0 ? ` of ${target}` : ""}` : undefined
+            }
           >
             {!complete ? (
               <ConfirmAction

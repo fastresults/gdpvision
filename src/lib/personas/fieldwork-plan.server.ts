@@ -232,7 +232,13 @@ export interface FieldworkBoard {
   } | null;
   invitations: BoardInvitation[];
   responseCount: number;
-  instruments: Array<{ id: string; kind: string; title: string | null; questions: number }>;
+  instruments: Array<{
+    id: string;
+    kind: string;
+    title: string | null;
+    questions: number;
+    questionIds: string[];
+  }>;
   slates: BoardSlate[];
   sessions: BoardSession[];
   /** Accepted, non-opted-out people on this programme who are not yet invited. */
@@ -509,6 +515,9 @@ export async function loadFieldworkBoard(
       kind: i.kind as string,
       title: (i.title as string | null) ?? null,
       questions: Array.isArray(i.questions) ? (i.questions as unknown as FieldQuestion[]).length : 0,
+      questionIds: Array.isArray(i.questions)
+        ? (i.questions as unknown as FieldQuestion[]).map((q) => q.id)
+        : [],
     })),
     slates,
     sessions,

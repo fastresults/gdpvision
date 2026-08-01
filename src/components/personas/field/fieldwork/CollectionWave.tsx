@@ -236,7 +236,11 @@ export function CollectionWave({
           ) : null}
 
           <DeployPanel
-            instrumentId={collection.instrument_id}
+            instrumentId={
+              collection.instrument_id ??
+              board.instruments.find((i) => i.kind === "survey")?.id ??
+              null
+            }
             collectionId={collection.id}
             openToken={collection.open_token}
             openEnabled={collection.open_enabled}
@@ -249,7 +253,9 @@ export function CollectionWave({
             waveId={state.wave.id}
             collectionId={collection.id}
             expect="tabular"
-            questionIds={[]}
+            questionIds={
+              board.instruments.find((i) => i.kind === "survey")?.questionIds ?? []
+            }
             refresh={refresh}
           />
 

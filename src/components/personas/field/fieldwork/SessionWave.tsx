@@ -10,6 +10,7 @@ import { CalendarPlus, CheckCircle2, FileText, Loader2, Users } from "lucide-rea
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 
+import { IngestPanel } from "./IngestPanel";
 import { WaveShell } from "./WaveShell";
 
 import { useDirtyRegistration } from "../stage-bus";
@@ -232,6 +233,17 @@ export function SessionWave({
             ))}
           </ul>
         ) : null}
+
+        <IngestPanel
+          studyId={studyId}
+          countryCode={board.countryCode}
+          waveId={state.wave.id}
+          expect="narrative"
+          questionIds={
+            board.instruments.find((i) => i.kind === "discussion_guide")?.questionIds ?? []
+          }
+          refresh={refresh}
+        />
 
         <div className="flex flex-wrap items-end gap-2">
           <label className="flex-1">

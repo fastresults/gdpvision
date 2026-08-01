@@ -11,7 +11,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import { FieldStepper, type FieldStageKey } from "@/components/personas/FieldStepper";
-import { BriefingPanel } from "@/components/personas/field/briefing/BriefingPanel";
+import { BriefingModal } from "@/components/personas/field/briefing/BriefingModal";
 import { EvidenceStage } from "@/components/personas/field/EvidenceStage";
 import { FieldworkStage } from "@/components/personas/field/FieldworkStage";
 import { InstrumentsStage } from "@/components/personas/field/InstrumentsStage";

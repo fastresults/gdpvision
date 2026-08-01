@@ -852,6 +852,165 @@ export type Database = {
           },
         ]
       }
+      comms_log: {
+        Row: {
+          body: string | null
+          channel: string
+          contact_id: string | null
+          country_code: string
+          created_at: string
+          error: string | null
+          id: string
+          invitation_id: string | null
+          purpose: string
+          sent_at: string | null
+          sent_by: string | null
+          session_id: string | null
+          status: string
+          study_id: string | null
+          subject: string | null
+          template_id: string | null
+          to_address: string | null
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          channel?: string
+          contact_id?: string | null
+          country_code: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          invitation_id?: string | null
+          purpose?: string
+          sent_at?: string | null
+          sent_by?: string | null
+          session_id?: string | null
+          status?: string
+          study_id?: string | null
+          subject?: string | null
+          template_id?: string | null
+          to_address?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          channel?: string
+          contact_id?: string | null
+          country_code?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          invitation_id?: string | null
+          purpose?: string
+          sent_at?: string | null
+          sent_by?: string | null
+          session_id?: string | null
+          status?: string
+          study_id?: string | null
+          subject?: string | null
+          template_id?: string | null
+          to_address?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comms_log_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "research_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comms_log_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "research_invitations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comms_log_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "field_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comms_log_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "studies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comms_log_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "comms_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comms_templates: {
+        Row: {
+          body: string
+          channel: string
+          country_code: string
+          created_at: string
+          created_by: string | null
+          generated_by: string | null
+          id: string
+          project_id: string | null
+          purpose: string
+          study_id: string | null
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          body?: string
+          channel?: string
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          generated_by?: string | null
+          id?: string
+          project_id?: string | null
+          purpose?: string
+          study_id?: string | null
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          channel?: string
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          generated_by?: string | null
+          id?: string
+          project_id?: string | null
+          purpose?: string
+          study_id?: string | null
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comms_templates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "persona_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comms_templates_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "studies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compact_deliverables: {
         Row: {
           budget_currency: string | null
@@ -2971,6 +3130,305 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      field_collections: {
+        Row: {
+          access: string
+          closes_at: string | null
+          country_code: string
+          created_at: string
+          id: string
+          instrument_id: string | null
+          mode: string
+          opens_at: string | null
+          public_token: string | null
+          response_cap: number | null
+          status: string
+          study_id: string
+          target_n: number | null
+          updated_at: string
+        }
+        Insert: {
+          access?: string
+          closes_at?: string | null
+          country_code: string
+          created_at?: string
+          id?: string
+          instrument_id?: string | null
+          mode?: string
+          opens_at?: string | null
+          public_token?: string | null
+          response_cap?: number | null
+          status?: string
+          study_id: string
+          target_n?: number | null
+          updated_at?: string
+        }
+        Update: {
+          access?: string
+          closes_at?: string | null
+          country_code?: string
+          created_at?: string
+          id?: string
+          instrument_id?: string | null
+          mode?: string
+          opens_at?: string | null
+          public_token?: string | null
+          response_cap?: number | null
+          status?: string
+          study_id?: string
+          target_n?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_collections_instrument_id_fkey"
+            columns: ["instrument_id"]
+            isOneToOne: false
+            referencedRelation: "field_instruments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_collections_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "studies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      field_instruments: {
+        Row: {
+          country_code: string
+          created_at: string
+          generated_by: string | null
+          id: string
+          intro: string | null
+          kind: string
+          outro: string | null
+          questions: Json
+          study_id: string
+          title: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          generated_by?: string | null
+          id?: string
+          intro?: string | null
+          kind?: string
+          outro?: string | null
+          questions?: Json
+          study_id: string
+          title?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          generated_by?: string | null
+          id?: string
+          intro?: string | null
+          kind?: string
+          outro?: string | null
+          questions?: Json
+          study_id?: string
+          title?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_instruments_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "studies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      field_responses: {
+        Row: {
+          answers: Json
+          collection_id: string
+          country_code: string
+          created_at: string
+          id: string
+          ingested_to_corpus_at: string | null
+          invitation_id: string | null
+          participant_code: string
+          source: string
+          study_id: string
+          submitted_at: string
+          updated_at: string
+        }
+        Insert: {
+          answers?: Json
+          collection_id: string
+          country_code: string
+          created_at?: string
+          id?: string
+          ingested_to_corpus_at?: string | null
+          invitation_id?: string | null
+          participant_code: string
+          source?: string
+          study_id: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Update: {
+          answers?: Json
+          collection_id?: string
+          country_code?: string
+          created_at?: string
+          id?: string
+          ingested_to_corpus_at?: string | null
+          invitation_id?: string | null
+          participant_code?: string
+          source?: string
+          study_id?: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_responses_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "field_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_responses_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "research_invitations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_responses_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "studies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      field_session_attendees: {
+        Row: {
+          attended: boolean | null
+          contact_id: string
+          country_code: string
+          created_at: string
+          participant_code: string | null
+          rsvp: string
+          session_id: string
+        }
+        Insert: {
+          attended?: boolean | null
+          contact_id: string
+          country_code: string
+          created_at?: string
+          participant_code?: string | null
+          rsvp?: string
+          session_id: string
+        }
+        Update: {
+          attended?: boolean | null
+          contact_id?: string
+          country_code?: string
+          created_at?: string
+          participant_code?: string | null
+          rsvp?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_session_attendees_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "research_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_session_attendees_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "field_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      field_sessions: {
+        Row: {
+          country_code: string
+          created_at: string
+          duration_minutes: number | null
+          id: string
+          ingested_to_corpus_at: string | null
+          join_url: string | null
+          method: string
+          moderator: string | null
+          notes: string | null
+          recording_path: string | null
+          scheduled_at: string | null
+          status: string
+          study_id: string
+          title: string
+          transcript: string | null
+          updated_at: string
+          venue: string | null
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          ingested_to_corpus_at?: string | null
+          join_url?: string | null
+          method?: string
+          moderator?: string | null
+          notes?: string | null
+          recording_path?: string | null
+          scheduled_at?: string | null
+          status?: string
+          study_id: string
+          title: string
+          transcript?: string | null
+          updated_at?: string
+          venue?: string | null
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          ingested_to_corpus_at?: string | null
+          join_url?: string | null
+          method?: string
+          moderator?: string | null
+          notes?: string | null
+          recording_path?: string | null
+          scheduled_at?: string | null
+          status?: string
+          study_id?: string
+          title?: string
+          transcript?: string | null
+          updated_at?: string
+          venue?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_sessions_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "studies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       figure_snapshots: {
         Row: {
@@ -5863,6 +6321,262 @@ export type Database = {
         }
         Relationships: []
       }
+      programme_deliverables: {
+        Row: {
+          country_code: string
+          created_at: string
+          detail: string | null
+          due_on: string | null
+          id: string
+          kind: string | null
+          milestone_id: string | null
+          owner: string | null
+          plan_id: string
+          position: number
+          status: string
+          storage_path: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          detail?: string | null
+          due_on?: string | null
+          id?: string
+          kind?: string | null
+          milestone_id?: string | null
+          owner?: string | null
+          plan_id: string
+          position?: number
+          status?: string
+          storage_path?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          detail?: string | null
+          due_on?: string | null
+          id?: string
+          kind?: string | null
+          milestone_id?: string | null
+          owner?: string | null
+          plan_id?: string
+          position?: number
+          status?: string
+          storage_path?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "programme_deliverables_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "programme_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "programme_deliverables_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "programme_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      programme_milestones: {
+        Row: {
+          country_code: string
+          created_at: string
+          detail: string | null
+          due_on: string | null
+          id: string
+          owner: string | null
+          phase_id: string | null
+          plan_id: string
+          position: number
+          starts_on: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          detail?: string | null
+          due_on?: string | null
+          id?: string
+          owner?: string | null
+          phase_id?: string | null
+          plan_id: string
+          position?: number
+          starts_on?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          detail?: string | null
+          due_on?: string | null
+          id?: string
+          owner?: string | null
+          phase_id?: string | null
+          plan_id?: string
+          position?: number
+          starts_on?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "programme_milestones_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "programme_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "programme_milestones_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "programme_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      programme_phases: {
+        Row: {
+          country_code: string
+          created_at: string
+          ends_on: string | null
+          id: string
+          intent: string | null
+          name: string
+          plan_id: string
+          position: number
+          starts_on: string | null
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          ends_on?: string | null
+          id?: string
+          intent?: string | null
+          name: string
+          plan_id: string
+          position?: number
+          starts_on?: string | null
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          ends_on?: string | null
+          id?: string
+          intent?: string | null
+          name?: string
+          plan_id?: string
+          position?: number
+          starts_on?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "programme_phases_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "programme_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      programme_plans: {
+        Row: {
+          audience: Json
+          committed_at: string | null
+          country_code: string
+          created_at: string
+          created_by: string | null
+          ends_on: string | null
+          id: string
+          method_mix: Json
+          objectives: Json
+          owner_country_code: string | null
+          project_id: string
+          rationale: Json
+          raw_proposal: Json | null
+          risks: Json
+          starts_on: string | null
+          status: string
+          summary: string | null
+          updated_at: string
+          uploaded_by: string | null
+          version: number
+          visibility: string
+        }
+        Insert: {
+          audience?: Json
+          committed_at?: string | null
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          ends_on?: string | null
+          id?: string
+          method_mix?: Json
+          objectives?: Json
+          owner_country_code?: string | null
+          project_id: string
+          rationale?: Json
+          raw_proposal?: Json | null
+          risks?: Json
+          starts_on?: string | null
+          status?: string
+          summary?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          version?: number
+          visibility?: string
+        }
+        Update: {
+          audience?: Json
+          committed_at?: string | null
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          ends_on?: string | null
+          id?: string
+          method_mix?: Json
+          objectives?: Json
+          owner_country_code?: string | null
+          project_id?: string
+          rationale?: Json
+          raw_proposal?: Json | null
+          risks?: Json
+          starts_on?: string | null
+          status?: string
+          summary?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          version?: number
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "programme_plans_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "persona_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reconciliation_notes: {
         Row: {
           country_code: string
@@ -5934,6 +6648,234 @@ export type Database = {
           sector_hint?: string | null
         }
         Relationships: []
+      }
+      research_contacts: {
+        Row: {
+          consent_status: string
+          country_code: string
+          created_at: string
+          created_by: string | null
+          email: string | null
+          email_norm: string | null
+          full_name: string
+          id: string
+          last_contacted_at: string | null
+          notes: string | null
+          opted_out_at: string | null
+          organisation: string | null
+          owner_country_code: string | null
+          phone: string | null
+          phone_norm: string | null
+          role_title: string | null
+          source: string | null
+          tags: string[]
+          updated_at: string
+          uploaded_by: string | null
+          visibility: string
+        }
+        Insert: {
+          consent_status?: string
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          email_norm?: string | null
+          full_name: string
+          id?: string
+          last_contacted_at?: string | null
+          notes?: string | null
+          opted_out_at?: string | null
+          organisation?: string | null
+          owner_country_code?: string | null
+          phone?: string | null
+          phone_norm?: string | null
+          role_title?: string | null
+          source?: string | null
+          tags?: string[]
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Update: {
+          consent_status?: string
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          email_norm?: string | null
+          full_name?: string
+          id?: string
+          last_contacted_at?: string | null
+          notes?: string | null
+          opted_out_at?: string | null
+          organisation?: string | null
+          owner_country_code?: string | null
+          phone?: string | null
+          phone_norm?: string | null
+          role_title?: string | null
+          source?: string | null
+          tags?: string[]
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Relationships: []
+      }
+      research_invitations: {
+        Row: {
+          collection_id: string | null
+          completed_at: string | null
+          contact_id: string
+          country_code: string
+          created_at: string
+          declined_at: string | null
+          id: string
+          invited_at: string | null
+          opened_at: string | null
+          participant_code: string
+          reminder_count: number
+          started_at: string | null
+          status: string
+          study_id: string | null
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          collection_id?: string | null
+          completed_at?: string | null
+          contact_id: string
+          country_code: string
+          created_at?: string
+          declined_at?: string | null
+          id?: string
+          invited_at?: string | null
+          opened_at?: string | null
+          participant_code: string
+          reminder_count?: number
+          started_at?: string | null
+          status?: string
+          study_id?: string | null
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          collection_id?: string | null
+          completed_at?: string | null
+          contact_id?: string
+          country_code?: string
+          created_at?: string
+          declined_at?: string | null
+          id?: string
+          invited_at?: string | null
+          opened_at?: string | null
+          participant_code?: string
+          reminder_count?: number
+          started_at?: string | null
+          status?: string
+          study_id?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_invitations_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "field_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "research_invitations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "research_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "research_invitations_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "studies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_panel_members: {
+        Row: {
+          added_at: string
+          contact_id: string
+          country_code: string
+          panel_id: string
+        }
+        Insert: {
+          added_at?: string
+          contact_id: string
+          country_code: string
+          panel_id: string
+        }
+        Update: {
+          added_at?: string
+          contact_id?: string
+          country_code?: string
+          panel_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_panel_members_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "research_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "research_panel_members_panel_id_fkey"
+            columns: ["panel_id"]
+            isOneToOne: false
+            referencedRelation: "research_panels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_panels: {
+        Row: {
+          country_code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_panels_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "persona_projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scenario_promotions: {
         Row: {
@@ -6812,9 +7754,12 @@ export type Database = {
           created_at: string
           id: string
           kind: string
+          method: string | null
+          mode: string
           objective: string | null
           owner_country_code: string | null
           owner_user_id: string | null
+          programme_milestone_id: string | null
           project_id: string | null
           segment_id: string | null
           status: string
@@ -6829,9 +7774,12 @@ export type Database = {
           created_at?: string
           id?: string
           kind: string
+          method?: string | null
+          mode?: string
           objective?: string | null
           owner_country_code?: string | null
           owner_user_id?: string | null
+          programme_milestone_id?: string | null
           project_id?: string | null
           segment_id?: string | null
           status?: string
@@ -6846,9 +7794,12 @@ export type Database = {
           created_at?: string
           id?: string
           kind?: string
+          method?: string | null
+          mode?: string
           objective?: string | null
           owner_country_code?: string | null
           owner_user_id?: string | null
+          programme_milestone_id?: string | null
           project_id?: string | null
           segment_id?: string | null
           status?: string
@@ -6858,6 +7809,13 @@ export type Database = {
           visibility?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "studies_programme_milestone_id_fkey"
+            columns: ["programme_milestone_id"]
+            isOneToOne: false
+            referencedRelation: "programme_milestones"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "studies_project_id_fkey"
             columns: ["project_id"]

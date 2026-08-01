@@ -1,64 +1,53 @@
-## What's actually wrong (read from the code, not guessed)
+## What's wrong today
 
-The entrance at `/admin/countries/$code/personas` renders `TrackGateEntry` and it fails as a decision surface:
+Stage 00 asks the user to *type a programme name* on a blank line before anything else, then — only after the project exists — offers the brief intake (type / dictate / upload) inside `ProgramBriefIntake`. That inverts the product: this is an AI-first instrument, so the material should lead and the naming, framing and instrument choice should fall out of it.
 
-1. **The choice isn't binary.** Three equal-weight cards render side by side (`synthetic`, `field`, `blended`). A third "Rehearse, then verify" column turns a clear fork into a menu.
-2. **The gate is buried.** The page stacks a small header, then the gate card, then the entire `ProgramsIndex` list below it. Nothing commands the screen.
-3. **The commitment step comes first and looks like a form.** A bare text input plus two raw `<input type="radio">` Public/Private controls sit in the card header, before the user knows what they're choosing between. Both CTAs are disabled until it's filled, and the only explanation is a `title` tooltip.
-4. **The cards are dense and undifferentiated** — same icon treatment, same dl/bullet stack, same button. Nothing conveys "minutes, directional" vs "weeks, citable" at a glance.
+## The new Stage 00: "Give the chamber the material"
 
-## The rebuild
-
-**Stage 00 becomes a full-bleed decision screen, not a card on a list page.**
+The gate becomes two beats instead of "pick instrument → type a name":
 
 ```text
-┌──────────────────────────────────────────────────────────────┐
-│  CHAMBER 07 · THE RESEARCH CHAMBER                           │
-│  How should this question be asked?                          │
-│  One decision. You can add the other instrument later.       │
-├───────────────────────────┬──────────────────────────────────┤
-│  SYNTHETIC LAB            │  FIELD PROGRAMME                 │
-│  [engraved illustration]  │  [engraved illustration]         │
-│  Ask a synthetic public   │  Ask the real public             │
-│  — today.                 │  — properly.                     │
-│                           │                                  │
-│  MINUTES                  │  WEEKS                           │
-│  Directional              │  Citable evidence                │
-│  · Cast personas          │  · Programme plan, phases        │
-│  · Group segments         │  · Participants & comms          │
-│  · Rehearse studies       │  · Instruments & fieldwork       │
-│                           │                                  │
-│  [ Choose Synthetic Lab ] │  [ Choose Field Programme ]      │
-└───────────────────────────┴──────────────────────────────────┘
-        Not sure? Run both — rehearse, then verify. (quiet link)
-              ─────────────────────────────────────
-        Or resume a programme:  [3 recent programmes] · All programmes →
+1  INTAKE      drop zone · record · paste link · type
+   AI reads everything → proposes brief, title, track
+2  CONFIRM     one screen: proposed name (editable), the AI's read of the
+               decision, recommended instrument (Synthetic / Field,
+               overridable), visibility → Open the chamber
 ```
 
-Concretely:
+The user may still skip ingest with a quiet "I'll start from a blank brief" link, which lands on today's naming behaviour.
 
-- **Two panels only.** Half-screen each, min-height ~440px, hairline divider, hover raises the panel and reveals the CTA in full ink. `blended` demotes to a single quiet line under the fork ("Run both — rehearse, then verify"), which starts a blended programme.
-- **Choose first, name second.** Clicking a panel opens a focused confirm step (inline slide-over on the same screen): programme name, Public/Private as two labelled toggle chips (not raw radios), and a one-line restatement of the track chosen with a "change" link. Create button is the only action. No disabled buttons on the fork itself.
-- **Each panel carries an engraved illustration** via `<Illustration>` (`spot` variant) per the illustration contract — one for synthetic (an orrery / model of a crowd), one for field (surveyor's instrument). Generated in the house graphite style.
-- **Tempo and proof become the visual spine** — large serif "Minutes" / "Weeks" and a proof line, so the trade-off is legible in two seconds without reading body copy.
-- **Existing programmes move below the fold**: three most-recent programme chips with track badges plus "All programmes →". The full `ProgramsIndex` table stops competing with the gate; it lives under a collapsed/secondary section on this screen and stays fully available at its own view.
-- **Track is visible forever after.** Once inside a programme, the header shows a track badge (Synthetic / Field / Blended) with a "change track" affordance, so the gate decision is never ambiguous later.
-- **Explain contract**: the "Directional, not defensible" and "Citable evidence" claims get `<Explain id="research.proof.synthetic|field">` entries so a principal can interrogate what each standard of proof means.
+### Beat 1 — Intake surface
 
-## Files
+A single full-width capture panel with four equal ways in:
 
-| File | Change |
-| --- | --- |
-| `src/components/personas/TrackGateEntry.tsx` | Full rewrite — two-panel fork + confirm step, no inline form in the header |
-| `src/components/personas/TrackConfirm.tsx` | New — name + visibility + create, scoped to the chosen track |
-| `src/routes/_authenticated/admin/countries.$code.personas.index.tsx` | No-project branch becomes the gate screen; recent-programmes strip replaces the stacked `ProgramsIndex` |
-| `src/components/personas/TrackTabs.tsx` | Add persistent track badge + change-track affordance |
-| `src/lib/personas/tracks.ts` | Add `proof` explain ids, mark `blended` as secondary |
-| `src/lib/explain/personas-entries.ts` | Register the two standard-of-proof rationales |
-| `src/assets/illustrations/*.asset.json` | Two new engraved spots (synthetic public, field survey) |
+- **Drop zone** — drag or browse; PDF, DOCX, PPTX, XLSX, images, audio. Multi-file, each chip shows parse state and an excerpt tick.
+- **Record** — existing voice recorder + transcription, appended into the brief text.
+- **Paste a link** — new. Paste an RFP page, a news article, a ministry PDF URL, a tender notice; it is fetched, extracted and attached as a source with title + excerpt.
+- **Type / paste text** — the same textarea, now secondary rather than the only path.
 
-Buttons use `btn-primary` / `btn-ghost`; all colour via registered tokens only.
+Everything captured is held client-side until the project is created, then written straight into `brief_raw` / `brief_uploads` so nothing is re-entered.
 
-## Verification
+### Beat 2 — AI read-out
 
-Playwright pass at 1280px and 390px: load the chamber with no project, screenshot the fork, click Field Programme, confirm the name step appears and creating lands on the field rail; repeat for Synthetic.
+One AI pass over the combined material returns:
+
+- a proposed programme title (one Cabinet-recognisable line),
+- the decision it must inform, audience, hypotheses, timeframe, sensitivities (the existing Research Scope shape),
+- a recommended track with a one-line reason ("citable evidence with named households → Field Programme"),
+- 3–5 open questions the material does not answer.
+
+Shown as an editable card: title in the serif input, the read-out beneath, track as two selectable chips with the recommendation pre-selected, visibility chips as today. `Open the chamber` creates the project already carrying the brief and scope.
+
+### Downstream
+
+Because the brief arrives seeded and enriched, `ProgramBriefIntake` opens in *review-and-commit* state rather than an empty page — the admin edits and commits, and the blueprint stage follows unchanged. The gate hook, stepper and locking rules stay exactly as they are.
+
+## Technical notes
+
+- New `src/components/personas/ProgrammeIngest.tsx` — the capture panel; reuses `MultimodalInput`'s upload + transcribe plumbing (`signUploadUrl`, `parseUpload`, `transcribeAudio`) and adds the link row.
+- New server fn `ingestBriefLink` in `src/lib/personas/parse-upload.functions.ts` — fetches a URL via the existing Firecrawl path used in `src/lib/country-onboarding/ingest.server.ts`, falls back to a plain fetch + text extraction, returns `{ url, title, excerpt }` stored in the same upload-chip shape.
+- New server fn `proposeProgrammeFromMaterial` in `project-brief.functions.ts` — same gateway helper and model fallback already in that file, JSON-object response, returns `{ title, scope, recommendedTrack, trackReason, openQuestions }`.
+- `TrackConfirm.tsx` becomes `ProgrammeSetup.tsx`: intake → proposal → confirm, calling `createProject` with `brief_raw`, `brief_uploads` and `brief_scope` seeded (extend `createProject`'s validator to accept them).
+- `TrackGateEntry.tsx`: the two-panel instrument fork stays, but is reached *after* ingest as the recommendation/override step; the chamber entrance now opens on intake.
+- Explain entries in `src/lib/explain/personas-entries.ts` for "how the instrument was recommended" and "what the AI read from your material".
+- Illustration, `btn-*`, `card-choice`, `<PrettyJson>` and Explain contracts observed throughout; no new tables — `persona_projects.brief_*` columns already exist.

@@ -165,7 +165,27 @@ export const saveRecruitmentBrief = createServerFn({ method: "POST" })
     return frame;
   });
 
-// ── Deep research: one persona at a time ───────────────────────────────────
+// ── Deep research: one short pass at a time, resumable ─────────────────────
+//
+// A single long reasoning call does not survive an edge request, so the hunt
+// runs as an agent loop the browser drives: pass 0 locates the registries,
+// passes 1..3 extract names from small registry batches, pass 4 widens if the
+// slate is thin. Every pass writes what it found and updates the run row, so
+// a killed request still leaves evidence and can be resumed.
+
+const REGISTRY_BATCH = 3;
+const MAX_EXTRACT_PASSES = 3;
+
+type RunRow = {
+  id: string;
+  pass: number;
+  want: number;
+  found: number;
+  proposed: number;
+  registries: unknown;
+  sources: unknown;
+  notes: unknown;
+};
 
 export const researchCandidates = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -175,6 +195,7 @@ export const researchCandidates = createServerFn({ method: "POST" })
         projectId: z.string().uuid(),
         personaLabel: z.string().min(1).max(80),
         want: z.number().int().min(2).max(40).optional(),
+        restart: z.boolean().optional(),
       })
       .parse(d),
   )
@@ -199,11 +220,137 @@ export const researchCandidates = createServerFn({ method: "POST" })
       .select("name")
       .eq("code", project.country_code)
       .maybeSingle();
+    const countryName = (country?.name as string) ?? project.country_code;
+    const want = data.want ?? Math.min(persona.survey_target, 12);
 
-    // Everyone already known for this country, so research never re-proposes.
+    // ── The run record ────────────────────────────────────────────────────
+    const { data: openRuns } = await supabase
+      .from("research_recruitment_runs")
+      .select("id,pass,want,found,proposed,registries,sources,notes")
+      .eq("project_id", data.projectId)
+      .eq("persona_label", persona.label)
+      .eq("status", "running")
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    let run = (openRuns?.[0] ?? null) as RunRow | null;
+    if (run && data.restart) {
+      await supabase
+        .from("research_recruitment_runs")
+        .update({ status: "superseded" } as never)
+        .eq("id", run.id);
+      run = null;
+    }
+    if (!run) {
+      const { data: created, error: runErr } = await supabase
+        .from("research_recruitment_runs")
+        .insert({
+          country_code: project.country_code,
+          project_id: data.projectId,
+          persona_label: persona.label,
+          status: "running",
+          pass: 0,
+          want,
+          created_by: userId,
+        } as never)
+        .select("id,pass,want,found,proposed,registries,sources,notes")
+        .single();
+      if (runErr) throw new Error(runErr.message);
+      run = created as unknown as RunRow;
+    }
+
+    const registries = Array.isArray(run.registries)
+      ? (run.registries as Array<{ url: string; what?: string }>)
+      : [];
+    const sources = Array.isArray(run.sources) ? (run.sources as string[]) : [];
+    const notes = Array.isArray(run.notes) ? (run.notes as string[]) : [];
+    const pass = run.pass ?? 0;
+
+    const close = async (status: "complete" | "thin" | "failed", err?: string) =>
+      supabase
+        .from("research_recruitment_runs")
+        .update({
+          status,
+          error: err ?? null,
+          notes: notes.slice(-12) as never,
+          sources: sources.slice(0, 60) as never,
+        } as never)
+        .eq("id", run.id);
+
+    const question = briefText(project).slice(0, 2_000);
+    const log = (msg: string, extra?: Record<string, unknown>) =>
+      console.info(
+        `[recruit] ${project.country_code} · ${project.title.slice(0, 40)} · ${persona.label} · pass ${pass} · ${msg}`,
+        extra ?? {},
+      );
+
+    // ── Pass 0 · locate the registries ────────────────────────────────────
+    if (pass === 0) {
+      try {
+        const { findPersonaRegistries } = await import("./recruitment-research.server");
+        const res = await findPersonaRegistries({
+          countryName,
+          programmeTitle: project.title,
+          persona,
+        });
+        for (const c of res.citations) if (!sources.includes(c.url)) sources.push(c.url);
+        notes.push(...res.notes);
+        log("registries located", { count: res.registries.length });
+
+        if (res.registries.length === 0) {
+          // Nothing to read — go straight to the widened sweep.
+          await supabase
+            .from("research_recruitment_runs")
+            .update({ pass: MAX_EXTRACT_PASSES + 1, notes: notes as never, sources: sources as never } as never)
+            .eq("id", run.id);
+          return {
+            done: false,
+            persona: persona.label,
+            pass: MAX_EXTRACT_PASSES + 1,
+            label: "No registries found — widening the search",
+            proposed: 0,
+            totalProposed: run.proposed,
+            want,
+            status: "running" as const,
+            notes,
+            sources: sources.slice(0, 20),
+          };
+        }
+
+        await supabase
+          .from("research_recruitment_runs")
+          .update({
+            pass: 1,
+            registries: res.registries as never,
+            sources: sources as never,
+            notes: notes as never,
+          } as never)
+          .eq("id", run.id);
+
+        return {
+          done: false,
+          persona: persona.label,
+          pass: 1,
+          label: `${res.registries.length} public listings located — reading them for names`,
+          proposed: 0,
+          totalProposed: run.proposed,
+          want,
+          status: "running" as const,
+          notes,
+          sources: sources.slice(0, 20),
+        };
+      } catch (e) {
+        const msg = (e as Error).message.slice(0, 400);
+        notes.push(`Registry pass failed — ${msg}`);
+        await close("failed", msg);
+        throw new Error(`Could not locate public listings for ${persona.label}: ${msg}`);
+      }
+    }
+
+    // ── Everyone already known, so no pass re-proposes a person ───────────
     const { data: known } = await supabase
       .from("research_contacts")
-      .select("full_name,email_norm,status")
+      .select("full_name,email_norm")
       .eq("country_code", project.country_code)
       .limit(1_000);
     const exclude = (known ?? []).map((k) => String(k.full_name));
@@ -211,19 +358,72 @@ export const researchCandidates = createServerFn({ method: "POST" })
       (known ?? []).map((k) => k.email_norm).filter((e): e is string => !!e),
     );
 
-    const { researchPersonaCandidates } = await import("./recruitment-research.server");
-    const want = data.want ?? Math.min(persona.survey_target, 12);
-    const result = await researchPersonaCandidates({
-      countryName: (country?.name as string) ?? project.country_code,
-      countryCode: project.country_code,
-      programmeTitle: project.title,
-      question: briefText(project).slice(0, 2_000),
-      persona,
-      want,
-      exclude,
-    });
+    const remaining = Math.max(2, want - run.proposed);
+    let result: { candidates: Awaited<ReturnType<typeof runExtract>>["candidates"]; notes: string[] };
+    let label: string;
 
-    const runId = `rec_${Date.now().toString(36)}`;
+    async function runExtract(batch: Array<{ url: string; what?: string }>) {
+      const { extractCandidatesFromRegistries } = await import("./recruitment-research.server");
+      return extractCandidatesFromRegistries({
+        countryName,
+        programmeTitle: project.title,
+        question,
+        persona,
+        registries: batch.map((r) => ({ url: r.url, what: r.what ?? "" })),
+        want: remaining,
+        exclude,
+      });
+    }
+
+    try {
+      if (pass <= MAX_EXTRACT_PASSES) {
+        const start = (pass - 1) * REGISTRY_BATCH;
+        const batch = registries.slice(start, start + REGISTRY_BATCH);
+        if (batch.length === 0) {
+          // No more registries to read — fall through to the widened sweep.
+          const { widenCandidateSweep } = await import("./recruitment-research.server");
+          const res = await widenCandidateSweep({
+            countryName,
+            programmeTitle: project.title,
+            question,
+            persona,
+            want: remaining,
+            exclude,
+          });
+          for (const c of res.citations) if (!sources.includes(c.url)) sources.push(c.url);
+          result = { candidates: res.candidates, notes: res.notes };
+          label = "Widened sweep";
+        } else {
+          const res = await runExtract(batch);
+          for (const c of res.citations) if (!sources.includes(c.url)) sources.push(c.url);
+          result = { candidates: res.candidates, notes: res.notes };
+          label = `Read ${batch.length} listing${batch.length === 1 ? "" : "s"}`;
+        }
+      } else {
+        const { widenCandidateSweep } = await import("./recruitment-research.server");
+        const res = await widenCandidateSweep({
+          countryName,
+          programmeTitle: project.title,
+          question,
+          persona,
+          want: remaining,
+          exclude,
+        });
+        for (const c of res.citations) if (!sources.includes(c.url)) sources.push(c.url);
+        result = { candidates: res.candidates, notes: res.notes };
+        label = "Widened sweep";
+      }
+    } catch (e) {
+      const msg = (e as Error).message.slice(0, 400);
+      notes.push(`${label ?? "Extraction"} failed — ${msg}`);
+      await close("failed", msg);
+      throw new Error(`Research pass failed for ${persona.label}: ${msg}`);
+    }
+
+    notes.push(...result.notes);
+
+    // ── Persist the people this pass found ────────────────────────────────
+    const runId = `rec_${run.id.slice(0, 8)}_p${pass}`;
     let proposed = 0;
     for (const c of result.candidates) {
       const em = normEmail(c.email);
@@ -259,45 +459,78 @@ export const researchCandidates = createServerFn({ method: "POST" })
       }
     }
 
-    // File the frame + its sourcing to the second brain (never the people).
-    try {
-      const { upsertMemoryObject } = await import("@/lib/corpus/writers.server");
-      await upsertMemoryObject({
-        scope_key: project.country_code,
-        kind: "research_recruitment_frame",
-        title: `Recruitment frame · ${project.title}`.slice(0, 240),
-        weight: 4,
-        sector_code: "cross",
-        payload: {
-          evidence_type: "real_world_field_research",
-          synthetic: false,
-          programme_id: project.id,
-          programme: project.title,
-          summary: frame?.summary ?? null,
-          personas: frame?.personas ?? [],
-          screening: frame?.screening ?? [],
-          exclusions: frame?.exclusions ?? [],
-          last_pass: {
-            persona: persona.label,
-            run_id: runId,
-            proposed,
-            sources: result.citations.map((c) => c.url).slice(0, 40),
-            notes: result.notes,
+    const totalProposed = run.proposed + proposed;
+    const totalFound = run.found + result.candidates.length;
+    log(`${label} · ${result.candidates.length} sourced · ${proposed} new`, { totalProposed });
+
+    const nextPass = pass + 1;
+    const enough = totalProposed >= want;
+    const noMoreBatches = nextPass > MAX_EXTRACT_PASSES || registries.length <= (nextPass - 1) * REGISTRY_BATCH;
+    const widened = pass > MAX_EXTRACT_PASSES || label === "Widened sweep";
+    const done = enough || (noMoreBatches && widened);
+
+    await supabase
+      .from("research_recruitment_runs")
+      .update({
+        pass: nextPass,
+        found: totalFound,
+        proposed: totalProposed,
+        sources: sources.slice(0, 60) as never,
+        notes: notes.slice(-12) as never,
+        status: done ? (totalProposed > 0 ? (totalProposed >= want ? "complete" : "thin") : "thin") : "running",
+      } as never)
+      .eq("id", run.id);
+
+    // ── File the frame + this run's outcome to the second brain ───────────
+    if (done) {
+      try {
+        const { upsertMemoryObject } = await import("@/lib/corpus/writers.server");
+        await upsertMemoryObject({
+          scope_key: project.country_code,
+          kind: "research_recruitment_frame",
+          title: `Recruitment frame · ${project.title}`.slice(0, 240),
+          weight: 4,
+          sector_code: "cross",
+          payload: {
+            evidence_type: "real_world_field_research",
+            synthetic: false,
+            programme_id: project.id,
+            programme: project.title,
+            summary: frame?.summary ?? null,
+            personas: frame?.personas ?? [],
+            screening: frame?.screening ?? [],
+            exclusions: frame?.exclusions ?? [],
+            last_run: {
+              persona: persona.label,
+              run_id: run.id,
+              passes: nextPass,
+              found: totalFound,
+              proposed: totalProposed,
+              want,
+              registries: registries.map((r) => r.url).slice(0, 20),
+              sources: sources.slice(0, 40),
+              notes: notes.slice(-6),
+            },
+            updated_at: new Date().toISOString(),
           },
-          updated_at: new Date().toISOString(),
-        },
-      });
-    } catch {
-      /* corpus filing must never fail a research pass */
+        });
+      } catch {
+        /* corpus filing must never fail a research pass */
+      }
     }
 
     return {
+      done,
       persona: persona.label,
+      pass: nextPass,
+      label,
       proposed,
+      totalProposed,
       found: result.candidates.length,
       want,
-      notes: result.notes,
-      sources: result.citations.map((c) => ({ url: c.url, title: c.title ?? null })).slice(0, 20),
+      status: done ? (totalProposed >= want ? ("complete" as const) : ("thin" as const)) : ("running" as const),
+      notes: notes.slice(-6),
+      sources: sources.slice(0, 20),
     };
   });
 

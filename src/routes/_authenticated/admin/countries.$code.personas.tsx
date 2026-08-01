@@ -115,13 +115,18 @@ function PersonasLayout() {
               The Research Chamber
             </p>
             <h1 className="mt-1 font-serif text-2xl leading-tight text-ink-950">
-              Two instruments.<br />One standard of proof.
+              {activeProjectId ? (
+                <>Two instruments.<br />One standard of proof.</>
+              ) : (
+                <>Give it the material.<br />It builds the programme.</>
+              )}
             </h1>
             <p className="mt-3 text-[13px] leading-relaxed text-ink-700">
               {activeProjectId
                 ? `Cast a public → group them → rehearse the conversation. AI grounds every voice in ${code}'s second brain.`
-                : `A synthetic public answers today. A field programme answers in weeks, with evidence a Cabinet can publish. Choose one to open the chamber.`}
+                : `Drop the RFP, dictate the ask or paste a link. The chamber reads it, names the programme, scopes it, and recommends the instrument — synthetic today, or field evidence in weeks.`}
             </p>
+
           </div>
 
           {activeProjectId && (

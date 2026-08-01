@@ -6533,6 +6533,66 @@ export type Database = {
           },
         ]
       }
+      programme_decks: {
+        Row: {
+          assembled_at: string
+          assembled_by: string | null
+          briefing_id: string | null
+          country_code: string
+          created_at: string
+          deck: Json
+          id: string
+          project_id: string
+          shared_at: string | null
+          status: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          assembled_at?: string
+          assembled_by?: string | null
+          briefing_id?: string | null
+          country_code: string
+          created_at?: string
+          deck?: Json
+          id?: string
+          project_id: string
+          shared_at?: string | null
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          assembled_at?: string
+          assembled_by?: string | null
+          briefing_id?: string | null
+          country_code?: string
+          created_at?: string
+          deck?: Json
+          id?: string
+          project_id?: string
+          shared_at?: string | null
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "programme_decks_briefing_id_fkey"
+            columns: ["briefing_id"]
+            isOneToOne: false
+            referencedRelation: "programme_briefings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "programme_decks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "persona_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       programme_deliverables: {
         Row: {
           country_code: string

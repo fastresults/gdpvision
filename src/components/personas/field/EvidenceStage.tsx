@@ -10,6 +10,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Archive, Loader2, RotateCcw, Sparkles } from "lucide-react";
 
 import { EmptyAction } from "./StageFrame";
+import { ShowTheDetail, StageWizard } from "./StageWizard";
 import { useResolveAction } from "./stage-bus";
 import { getCollection } from "@/lib/personas/field-collection.functions";
 import {
@@ -95,9 +96,7 @@ export function EvidenceStage({
     );
   }
 
-  return (
-    <div className="space-y-5">
-      {closed ? (
+  const closedBanner = closed ? (
         <div className="flex flex-wrap items-center justify-between gap-3 border border-emerald-500/40 bg-emerald-500/5 p-4">
           <div className="min-w-0">
             <p className="font-serif text-lg text-ink-950">This programme is filed.</p>
@@ -120,8 +119,10 @@ export function EvidenceStage({
             Reopen to revise
           </button>
         </div>
-      ) : null}
+  ) : null;
 
+  const bar = (
+    <>
       <div className="flex flex-wrap items-center gap-3 border border-line-200 bg-paper-0 p-4">
         <div className="min-w-0 flex-1">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
@@ -168,8 +169,10 @@ export function EvidenceStage({
           Closed. The programme memo is filed to this country's second brain.
         </p>
       ) : null}
+    </>
+  );
 
-      {!live ? (
+  const findingView = !live ? (
         <EmptyAction
           title="Not synthesised yet."
           body="Once returns are in, the chamber reads every response and transcript and writes the finding — toplines, tensions, quotes and an explicit confidence statement."
@@ -286,7 +289,44 @@ export function EvidenceStage({
             </Block>
           ) : null}
         </article>
-      )}
-    </div>
+      );
+
+  return (
+    <StageWizard
+      panels={{
+        // ── Step 1 · How much evidence is under this? ─────────────────────
+        landed: (
+          <div className="space-y-5">
+            {bar}
+            <p className="max-w-2xl text-[13px] leading-relaxed text-ink-700">
+              Read the count before the finding. A finding drawn from a handful of returns is not
+              wrong — but it must be spoken with the confidence that number earns, and no more.
+            </p>
+          </div>
+        ),
+
+        // ── Step 2 · Read the finding ─────────────────────────────────────
+        synthesise: (
+          <div className="space-y-5">
+            {bar}
+            {findingView}
+          </div>
+        ),
+
+        // ── Step 3 · File it ──────────────────────────────────────────────
+        file: (
+          <div className="space-y-5">
+            {closedBanner}
+            <p className="max-w-2xl text-[13px] leading-relaxed text-ink-700">
+              Filing writes the closing memo into this country's second brain, where every later
+              programme can read it. Re-filing overwrites the same memo — it never leaves a second
+              copy behind.
+            </p>
+            {bar}
+            <ShowTheDetail label="Re-read the finding before filing">{findingView}</ShowTheDetail>
+          </div>
+        ),
+      }}
+    />
   );
 }

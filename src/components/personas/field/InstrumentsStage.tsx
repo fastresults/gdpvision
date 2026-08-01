@@ -24,6 +24,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Explain } from "@/components/explain/Explain";
 import "@/lib/explain/personas-entries";
 import { EmptyAction } from "./StageFrame";
+import { ShowTheDetail, StageWizard } from "./StageWizard";
 import { SaveBar } from "./SaveBar";
 import { useDirtyRegistration, useResolveAction } from "./stage-bus";
 import { useDirtyState } from "@/hooks/useDirtyState";
@@ -214,9 +215,8 @@ export function InstrumentsStage({
     (q) => q.intent === "frontline_insight",
   ).length;
 
-  return (
-    <div className="space-y-5">
-      {/* ── Derivation read-out: what this was written from ─────────────── */}
+  // ── What this was written from, and the button that writes it ─────────
+  const derivationBlock = (
       <div className="border border-line-200 bg-paper-0 p-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
@@ -283,50 +283,10 @@ export function InstrumentsStage({
           />
         </label>
       </div>
+  );
 
-      {stateQ.isLoading ? (
-        <p className="text-sm text-ink-500">Reading the instruments…</p>
-      ) : !active || !value ? (
-        derive.isPending ? null : (
-          <EmptyAction
-            title="No instrument yet."
-            body="The chamber writes these from the brief and the approved plan. Use the button above if the first attempt did not land."
-          />
-        )
-      ) : (
-        <div className="border border-line-200 bg-paper-0">
-          {/* Tabs — one per instrument the plan requires. */}
-          <div className="flex flex-wrap items-center gap-1 border-b border-line-200 p-2">
-            {instruments.map((i) => (
-              <button
-                key={i.id}
-                type="button"
-                onClick={() => setActiveKind(i.kind)}
-                className={cn(
-                  "px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em]",
-                  i.id === active.id
-                    ? "bg-ink-950 text-paper-0"
-                    : "text-ink-500 hover:text-ink-950",
-                )}
-              >
-                {kindLabel(i.kind)} · {((i.questions as Question[]) ?? []).length}
-              </button>
-            ))}
-            {missing.map((k) => (
-              <button
-                key={k}
-                type="button"
-                disabled={derive.isPending}
-                onClick={() => derive.mutate(k as "survey" | "discussion_guide")}
-                className="border border-dashed border-line-200 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950"
-              >
-                + {kindLabel(k)}
-              </button>
-            ))}
-          </div>
-
-          {/* Coverage — every objective, and how many questions serve it. */}
-          {coverage.length > 0 ? (
+  // ── Does every objective actually get asked about? ────────────────────
+  const coverageBlock = coverage.length > 0 ? (
             <div className="border-b border-line-200 p-3">
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
                 <Explain id="research.instrument.coverage" mark={false}>
@@ -369,7 +329,48 @@ export function InstrumentsStage({
                 )}
               </p>
             </div>
-          ) : null}
+          ) : null;
+
+  const editor = stateQ.isLoading ? (
+        <p className="text-sm text-ink-500">Reading the instruments…</p>
+      ) : !active || !value ? (
+        derive.isPending ? null : (
+          <EmptyAction
+            title="No instrument yet."
+            body="The chamber writes these from the brief and the approved plan. Use the button above if the first attempt did not land."
+          />
+        )
+      ) : (
+        <div className="border border-line-200 bg-paper-0">
+          {/* Tabs — one per instrument the plan requires. */}
+          <div className="flex flex-wrap items-center gap-1 border-b border-line-200 p-2">
+            {instruments.map((i) => (
+              <button
+                key={i.id}
+                type="button"
+                onClick={() => setActiveKind(i.kind)}
+                className={cn(
+                  "px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em]",
+                  i.id === active.id
+                    ? "bg-ink-950 text-paper-0"
+                    : "text-ink-500 hover:text-ink-950",
+                )}
+              >
+                {kindLabel(i.kind)} · {((i.questions as Question[]) ?? []).length}
+              </button>
+            ))}
+            {missing.map((k) => (
+              <button
+                key={k}
+                type="button"
+                disabled={derive.isPending}
+                onClick={() => derive.mutate(k as "survey" | "discussion_guide")}
+                className="border border-dashed border-line-200 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950"
+              >
+                + {kindLabel(k)}
+              </button>
+            ))}
+          </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-200 p-3">
             <div className="flex flex-wrap items-center gap-2">
@@ -665,7 +666,37 @@ export function InstrumentsStage({
             </button>
           </div>
         </div>
-      )}
-    </div>
+      );
+
+  return (
+    <StageWizard
+      panels={{
+        // ── Step 1 · Let the chamber write the first draft ────────────────
+        draft: (
+          <div className="space-y-5">
+            {derivationBlock}
+            {instruments.length > 0 ? (
+              <ShowTheDetail label="Read the draft as it stands">{editor}</ShowTheDetail>
+            ) : null}
+          </div>
+        ),
+
+        // ── Step 2 · Put it in your own words ─────────────────────────────
+        edit: editor,
+
+        // ── Step 3 · Check nothing in the brief goes unasked ──────────────
+        coverage: (
+          <div className="space-y-5">
+            {coverageBlock ?? (
+              <p className="border border-dashed border-line-200 p-4 text-[13px] text-ink-600">
+                No objectives were recorded on the brief, so there is nothing to check coverage
+                against. Read the questions once more and continue.
+              </p>
+            )}
+            <ShowTheDetail label="Show the questions">{editor}</ShowTheDetail>
+          </div>
+        ),
+      }}
+    />
   );
 }

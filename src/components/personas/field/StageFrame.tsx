@@ -1,12 +1,13 @@
 // Chamber 07 · Field stage frame.
 //
-// Every field stage wears the same three-part frame: a masthead that says what
-// this stage decides, the work surface itself, and a sticky decision bar that
-// always carries the action that matters — the one that clears the blocker when
-// the stage is incomplete, the one that advances when it is done. Navigation is
-// guarded: unsaved work is never dropped silently.
+// The frame owns three things and nothing else: the one breadcrumb sentence
+// that says where you are, the one guidance/"done when" test for the stage, and
+// the ONE footer. The footer grammar never changes — Back on the left, a quiet
+// "do this for me" in the middle, a single primary on the right that names the
+// outcome and says what it will do. Moving inside a stage and moving between
+// stages both pass through the same unsaved-work gate.
 
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import {
   ArrowLeft,
   ArrowRight,
@@ -16,7 +17,7 @@ import {
   Loader2,
   Wrench,
 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { Explain } from "@/components/explain/Explain";
 import "@/lib/explain/personas-entries";
@@ -28,11 +29,28 @@ import {
   type FieldProgress,
   type FieldStageKey,
 } from "@/lib/personas/field-stages";
+import {
+  firstOpenSubStep,
+  programmeProgress,
+  subStepsFor,
+  type FieldSubStep,
+} from "@/lib/personas/field-substeps";
 import { cn, scrollToTop } from "@/lib/utils";
 import { useFieldStageBus } from "./stage-bus";
+import { SubStepProvider } from "./substep-context";
 
 const STEP_ROUTE = "/admin/countries/$code/personas/field/$step" as const;
 const DOOR_ROUTE = "/admin/countries/$code/personas" as const;
+
+/** Plain-language ways back, so the amend menu reads like a sentence. */
+const AMEND_LABEL: Record<FieldStageKey, string> = {
+  brief: "Change the question we're answering",
+  plan: "Revise the dates and the method mix",
+  participants: "Change who we're hearing from",
+  instruments: "Change what we're asking",
+  fieldwork: "Go back to the field",
+  evidence: "Re-read the evidence",
+};
 
 export function StageFrame({
   code,
@@ -60,13 +78,27 @@ export function StageFrame({
   const prev = prevFieldStage(stage);
   const position = FIELD_STAGES.indexOf(stage) + 1;
   const navigate = useNavigate();
+  const search = useSearch({ strict: false }) as { project?: string; sub?: string };
 
   // The gate lives above this frame (see FieldStageProvider), so the rail is
   // guarded too — this frame just reads what stages published.
   const { dirtyEntries, resolveAction, guardedGo } = useFieldStageBus();
   const hasDirty = dirtyEntries.length > 0;
 
-  const go = useCallback(
+  // ── Where you are inside the stage ──────────────────────────────────────
+  const steps = useMemo(() => subStepsFor(stage), [stage]);
+  const isDone = useCallback((s: FieldSubStep) => s.isDone(progress), [progress]);
+  const fallbackKey = firstOpenSubStep(stage, progress);
+  const currentKey =
+    steps.find((s) => s.key === search.sub)?.key ?? fallbackKey ?? steps[0]?.key ?? null;
+  const index = Math.max(
+    0,
+    steps.findIndex((s) => s.key === currentKey),
+  );
+  const current = steps[index] ?? null;
+  const overall = programmeProgress(progress);
+
+  const goStage = useCallback(
     (target: FieldStageKey) => {
       guardedGo(() => {
         scrollToTop();
@@ -76,7 +108,7 @@ export function StageFrame({
           void navigate({
             to: STEP_ROUTE,
             params: { code, step: target },
-            search: { project: projectId },
+            search: { project: projectId } as never,
           });
         }
       });
@@ -84,17 +116,76 @@ export function StageFrame({
     [code, guardedGo, navigate, projectId],
   );
 
+  const goSub = useCallback(
+    (key: string) => {
+      guardedGo(() => {
+        scrollToTop();
+        void navigate({
+          to: STEP_ROUTE,
+          params: { code, step: stage },
+          search: { project: projectId, sub: key } as never,
+          replace: true,
+        });
+      });
+    },
+    [code, guardedGo, navigate, projectId, stage],
+  );
+
+  const nav = useMemo(
+    () => ({ stage, steps, index, current, goTo: goSub, isDone }),
+    [stage, steps, index, current, goSub, isDone],
+  );
+
+  const atFirstSub = index <= 0;
+  const atLastSub = index >= steps.length - 1;
+
   const [amendOpen, setAmendOpen] = useState(false);
   const earlier = FIELD_STAGES.slice(0, FIELD_STAGES.indexOf(stage));
 
+  // The one primary. On the last sub-step it advances the stage; before that it
+  // advances the screen. It always names the outcome, never "Next".
+  const primaryLabel = atLastSub
+    ? next
+      ? spec.advance
+      : "Finish · back to the chamber"
+    : (current?.primaryLabel ?? "Continue");
+  const primaryConsequence = atLastSub
+    ? next
+      ? `This moves the programme on to ${FIELD_STAGE_SPECS[next].label.toLowerCase()}.`
+      : "This returns you to the chamber."
+    : (current?.consequence ?? "");
+
+  const onPrimary = () => {
+    if (!atLastSub) {
+      const nk = steps[index + 1]?.key;
+      if (nk) goSub(nk);
+      return;
+    }
+    if (next) goStage(next);
+    else goStage("brief");
+  };
+
   return (
-    <>
-      <section className="space-y-5 pb-28">
+    <SubStepProvider value={nav}>
+      <section className="space-y-5 pb-32">
         <header className="border-b border-line-200 pb-4">
+          {/* ONE breadcrumb sentence — always here, never more than this line. */}
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            Stage {String(spec.n).padStart(2, "0")} · {spec.sub}
+            Field programme · Stage {String(spec.n).padStart(2, "0")} {spec.label}
+            {current ? (
+              <>
+                {" · "}Step {index + 1} of {steps.length}
+                <span className="normal-case tracking-normal text-ink-700"> — {current.label}</span>
+              </>
+            ) : null}
           </p>
-          <h2 className="mt-1 font-serif text-2xl text-ink-950">{spec.label}</h2>
+          {overall.total > 0 ? (
+            <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500 tabular-nums">
+              {overall.done} of {overall.total} steps complete
+            </p>
+          ) : null}
+
+          <h2 className="mt-2 font-serif text-2xl text-ink-950">{spec.label}</h2>
           <p className="mt-1.5 max-w-2xl text-sm text-ink-700">{spec.decides}</p>
 
           <div
@@ -135,24 +226,40 @@ export function StageFrame({
 
         {children}
 
-        {/* Sticky decision bar */}
+        {/* THE footer. One grammar, one primary, everywhere. */}
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line-200 bg-paper-0/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-paper-0/85">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              {/* BACK — always the same shape, same place, on every stage. */}
+              {/* BACK — one step at a time: within the stage, then out of it. */}
               <button
                 type="button"
                 className="btn-secondary"
-                disabled={!prev}
-                onClick={() => prev && go(prev)}
-                title={prev ? `Back to ${FIELD_STAGE_SPECS[prev].label}` : "First stage"}
+                disabled={atFirstSub && !prev}
+                onClick={() => {
+                  if (!atFirstSub) {
+                    const pk = steps[index - 1]?.key;
+                    if (pk) goSub(pk);
+                    return;
+                  }
+                  if (prev) goStage(prev);
+                }}
+                title={
+                  !atFirstSub
+                    ? `Back to ${steps[index - 1]?.label}`
+                    : prev
+                      ? `Back to ${FIELD_STAGE_SPECS[prev].label}`
+                      : "First step of the programme"
+                }
               >
                 <ArrowLeft size={12} /> Back
-                {prev ? (
-                  <span className="hidden text-ink-500 sm:inline">
-                    · {FIELD_STAGE_SPECS[prev].label}
-                  </span>
-                ) : null}
+                <span className="hidden max-w-[14rem] truncate text-ink-500 sm:inline">
+                  ·{" "}
+                  {!atFirstSub
+                    ? steps[index - 1]?.label
+                    : prev
+                      ? FIELD_STAGE_SPECS[prev].label
+                      : ""}
+                </span>
               </button>
 
               {earlier.length > 0 ? (
@@ -166,7 +273,7 @@ export function StageFrame({
                     Amend <ChevronDown size={12} />
                   </button>
                   {amendOpen ? (
-                    <div className="absolute bottom-full left-0 z-40 mb-2 w-60 border border-line-200 bg-paper-0 p-1 shadow-lg">
+                    <div className="absolute bottom-full left-0 z-40 mb-2 w-72 border border-line-200 bg-paper-0 p-1 shadow-lg">
                       {earlier.map((k) => (
                         <button
                           key={k}
@@ -174,14 +281,10 @@ export function StageFrame({
                           className="block w-full px-3 py-2 text-left text-[13px] text-ink-800 hover:bg-paper-100"
                           onClick={() => {
                             setAmendOpen(false);
-                            go(k);
+                            goStage(k);
                           }}
                         >
-                          {k === "brief"
-                            ? "Return to the brief"
-                            : k === "plan"
-                              ? "Revise the plan"
-                              : `Back to ${FIELD_STAGE_SPECS[k].label}`}
+                          {AMEND_LABEL[k]}
                         </button>
                       ))}
                     </div>
@@ -189,8 +292,8 @@ export function StageFrame({
                 </div>
               ) : null}
 
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
-                {position} of {FIELD_STAGES.length}
+              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500 tabular-nums">
+                Stage {position} of {FIELD_STAGES.length}
               </span>
             </div>
 
@@ -201,12 +304,14 @@ export function StageFrame({
                 </span>
               ) : null}
 
+              {/* DO THIS FOR ME — quiet, never competing with the primary. */}
               {!complete && resolveAction ? (
                 <button
                   type="button"
-                  className="btn-secondary"
+                  className="btn-ghost"
                   disabled={resolveAction.pending}
                   onClick={resolveAction.run}
+                  title="Let the chamber do this step for you"
                 >
                   {resolveAction.pending ? (
                     <Loader2 size={11} className="animate-spin" />
@@ -217,44 +322,46 @@ export function StageFrame({
                 </button>
               ) : null}
 
-              {/* CONTINUE — always present, always right-most, always the same shape. */}
-              {next ? (
-                <button
-                  type="button"
-                  className={complete ? "btn-primary" : "btn-secondary"}
-                  onClick={() => go(next)}
-                  title={
-                    complete
-                      ? spec.advance
-                      : `${FIELD_STAGE_SPECS[stage].label} is still outstanding — you can continue and come back.`
-                  }
-                >
-                  Continue
-                  <span className="hidden sm:inline">· {FIELD_STAGE_SPECS[next].label}</span>
-                  <ArrowRight size={12} />
-                </button>
-              ) : (
-                <Link
-                  to={DOOR_ROUTE}
-                  params={{ code }}
-                  search={{ project: projectId }}
-                  className={complete ? "btn-primary" : "btn-secondary"}
-                  onClick={(e) => {
-                    if (hasDirty) {
-                      e.preventDefault();
-                      go("brief");
+              {/* THE primary — far right, names the outcome, says what it does. */}
+              <div className="text-right">
+                {atLastSub && !next ? (
+                  <Link
+                    to={DOOR_ROUTE}
+                    params={{ code }}
+                    search={{ project: projectId }}
+                    className={complete ? "btn-primary" : "btn-secondary"}
+                    onClick={(e) => {
+                      if (hasDirty) {
+                        e.preventDefault();
+                        goStage("brief");
+                      }
+                    }}
+                  >
+                    {primaryLabel} <ArrowRight size={12} />
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    className={
+                      atLastSub ? (complete ? "btn-primary" : "btn-secondary") : "btn-primary"
                     }
-                  }}
-                >
-                  Finish <span className="hidden sm:inline">· back to the chamber</span>
-                  <ArrowRight size={12} />
-                </Link>
-              )}
+                    onClick={onPrimary}
+                  >
+                    <span className="max-w-[18rem] truncate">{primaryLabel}</span>
+                    <ArrowRight size={12} />
+                  </button>
+                )}
+                {primaryConsequence ? (
+                  <p className="mt-1 hidden max-w-xs text-[11px] leading-tight text-ink-500 md:block">
+                    {primaryConsequence}
+                  </p>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
       </section>
-    </>
+    </SubStepProvider>
   );
 }
 

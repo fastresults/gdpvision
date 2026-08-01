@@ -11,6 +11,8 @@ import { useMemo, useState } from "react";
 import { RecruitmentBoard } from "./RecruitmentBoard";
 import { useDirtyRegistration } from "./stage-bus";
 import { EmptyAction } from "./StageFrame";
+import { ShowTheDetail, StageWizard } from "./StageWizard";
+
 
 import {
   createPanel,
@@ -147,34 +149,29 @@ export function ParticipantsStage({
     },
   );
 
-  return (
-    <div className="space-y-5">
-      {/* AI-first recruitment: the frame, the research, the slates */}
-      <RecruitmentBoard code={code} projectId={projectId} onChanged={refresh} />
-
-      {/* Panel state */}
-      {projectPanels.length > 0 ? (
-        <div className="border border-line-200 bg-paper-0 p-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            This programme's panel
+  const panelBlock =
+    projectPanels.length > 0 ? (
+      <div className="border border-line-200 bg-paper-0 p-4">
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+          This programme's panel
+        </p>
+        {projectPanels.map((p) => (
+          <p key={p.id as string} className="mt-1 font-serif text-lg text-ink-950">
+            {String(p.name)}{" "}
+            <span className="font-mono text-[11px] tabular-nums text-ink-500">
+              · {String((p as { member_count?: number }).member_count ?? 0)} members
+            </span>
           </p>
-          {projectPanels.map((p) => (
-            <p key={p.id as string} className="mt-1 font-serif text-lg text-ink-950">
-              {String(p.name)}{" "}
-              <span className="font-mono text-[11px] tabular-nums text-ink-500">
-                · {String((p as { member_count?: number }).member_count ?? 0)} members
-              </span>
-            </p>
-          ))}
-        </div>
-      ) : null}
+        ))}
+      </div>
+    ) : null;
 
-      {/* Manual fallback: the contact book, by hand */}
-      <details className="border border-line-200 bg-paper-0">
-        <summary className="cursor-pointer px-4 py-3 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Contact book &amp; manual roster · {contacts.length} people on file
-        </summary>
-        <div className="space-y-5 border-t border-line-200 p-4">
+
+  // The paste-a-roster card — the manual way in, kept for when AI recruitment
+  // isn't the right instrument.
+  const rosterBlock = (
+
+
           <div className="border border-line-200 bg-paper-0 p-4">
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
               Add people · paste a roster
@@ -216,8 +213,11 @@ export function ParticipantsStage({
             </div>
           </div>
 
-          {/* Contact book */}
-          {contactsQ.isLoading ? (
+  );
+
+  // The contact book — who we could hear from, and who has opted out.
+  const contactBook = contactsQ.isLoading ? (
+
             <p className="text-sm text-ink-500">Reading the contact book…</p>
           ) : contacts.length === 0 ? (
             <EmptyAction
@@ -302,9 +302,43 @@ export function ParticipantsStage({
                 })}
               </ul>
             </div>
-          )}
-        </div>
-      </details>
-    </div>
+          );
+
+  return (
+    <StageWizard
+      panels={{
+        // ── Step 1 · Find candidates ──────────────────────────────────────
+        find: (
+          <div className="space-y-5">
+            <RecruitmentBoard code={code} projectId={projectId} onChanged={refresh} />
+            <ShowTheDetail label={`Add people by hand · ${contacts.length} on file`}>
+              {rosterBlock}
+            </ShowTheDetail>
+          </div>
+        ),
+
+        // ── Step 2 · Form the panel ───────────────────────────────────────
+        panel: (
+          <div className="space-y-5">
+            {panelBlock}
+            {contactBook}
+            <ShowTheDetail label="Add more people by hand">{rosterBlock}</ShowTheDetail>
+          </div>
+        ),
+
+        // ── Step 3 · Record consent ───────────────────────────────────────
+        consent: (
+          <div className="space-y-5">
+            {panelBlock}
+            <p className="max-w-2xl text-[13px] leading-relaxed text-ink-700">
+              Nobody is approached without a record of their consent. Opt someone out here and they
+              drop out of every wave, invitation and export from this moment on.
+            </p>
+            {contactBook}
+          </div>
+        ),
+      }}
+    />
   );
 }
+

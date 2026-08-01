@@ -20,6 +20,8 @@ import { InstrumentsStage } from "@/components/personas/field/InstrumentsStage";
 import { ParticipantsStage } from "@/components/personas/field/ParticipantsStage";
 import { FieldStageProvider } from "@/components/personas/field/stage-bus";
 import { StageFrame } from "@/components/personas/field/StageFrame";
+import { ShowTheDetail, StageWizard } from "@/components/personas/field/StageWizard";
+
 
 import { TrackTabs } from "@/components/personas/TrackTabs";
 
@@ -371,105 +373,137 @@ function PlanStage({
       ? ((plan.rationale as { duration?: unknown }).duration as string | undefined)
       : undefined;
 
-  return (
-    <section className="space-y-5">
-      <div className="border border-line-200 bg-paper-0 p-4">
-        <label className="block">
-          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            Steering (optional)
-          </span>
-          <textarea
-            value={steering}
-            onChange={(e) => setSteering(e.target.value)}
-            rows={2}
-            placeholder="e.g. Cabinet needs a read before the budget; keep fieldwork inside eight weeks."
-            className="mt-1 w-full border border-line-200 bg-paper-0 p-2 text-sm focus:border-ink-950 focus:outline-none"
-          />
-        </label>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => derive.mutate()}
-            disabled={derive.isPending}
-            className="btn-primary"
-          >
-            {derive.isPending ? (
-              <>
-                <Loader2 size={11} className="animate-spin" /> Drafting…
-              </>
-            ) : plan ? (
-              "Redraft the programme"
-            ) : (
-              "Draft the programme"
-            )}
-          </button>
-          {plan && plan.status !== "active" && (
-            <button
-              type="button"
-              onClick={() => commit.mutate(plan.id)}
-              disabled={commit.isPending}
-              className="btn-secondary"
-            >
-              {commit.isPending ? "Approving…" : "Approve plan"}
-            </button>
+  const drafting = (
+    <div className="border border-line-200 bg-paper-0 p-4">
+      <label className="block">
+        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+          Steering (optional)
+        </span>
+        <textarea
+          value={steering}
+          onChange={(e) => setSteering(e.target.value)}
+          rows={2}
+          placeholder="e.g. Cabinet needs a read before the budget; keep fieldwork inside eight weeks."
+          className="mt-1 w-full border border-line-200 bg-paper-0 p-2 text-sm focus:border-ink-950 focus:outline-none"
+        />
+      </label>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => derive.mutate()}
+          disabled={derive.isPending}
+          className="btn-primary"
+        >
+          {derive.isPending ? (
+            <>
+              <Loader2 size={11} className="animate-spin" /> Drafting…
+            </>
+          ) : plan ? (
+            "Redraft the programme"
+          ) : (
+            "Draft the programme"
           )}
-          {plan?.status === "active" && (
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-emerald-700">
-              Plan active
-            </span>
-          )}
-        </div>
+        </button>
         {derive.isError && (
-          <p className="mt-2 text-[11px] text-rose-600">{(derive.error as Error).message}</p>
-        )}
-        {commit.isError && (
-          <p className="mt-2 text-[11px] text-rose-600">{(commit.error as Error).message}</p>
+          <p className="text-[11px] text-rose-600">{(derive.error as Error).message}</p>
         )}
       </div>
+    </div>
+  );
 
-      {planQ.isLoading ? (
-        <p className="text-sm text-ink-500">Loading the programme…</p>
-      ) : !data ? (
-        <p className="border border-dashed border-line-200 p-6 text-center text-sm text-ink-500">
-          No programme drafted yet.
-        </p>
+  const approval = (
+    <div className="flex flex-wrap items-center gap-3 border border-line-200 bg-paper-0 p-4">
+      <p className="min-w-0 flex-1 text-[13px] leading-relaxed text-ink-700">
+        Approving fixes the dates and the method mix. Everything downstream — who you hear from,
+        what you ask them, which waves you field — is derived from what you approve here.
+      </p>
+      {plan && plan.status !== "active" ? (
+        <button
+          type="button"
+          onClick={() => commit.mutate(plan.id)}
+          disabled={commit.isPending}
+          className="btn-primary"
+        >
+          {commit.isPending ? "Approving…" : "Approve this plan"}
+        </button>
+      ) : plan?.status === "active" ? (
+        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-emerald-700">
+          Plan active
+        </span>
       ) : (
-        <div className="space-y-4">
-          {plan?.summary ? (
-            <div className="border border-line-200 bg-paper-0 p-4">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                The programme in a paragraph
-              </p>
-              <p className="mt-1.5 max-w-3xl text-[13px] leading-relaxed text-ink-800">
-                {plan.summary}
-              </p>
-              {durationRationale ? (
-                <p className="mt-2 max-w-3xl text-[12px] leading-relaxed text-ink-600">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
-                    Why this span ·{" "}
-                  </span>
-                  {durationRationale}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Fact label="Window" value={`${plan?.starts_on ?? "—"} → ${plan?.ends_on ?? "—"}`} />
-            <Fact label="Phases" value={String(data.phases.length)} />
-            <Fact label="Deliverables" value={String(data.deliverables.length)} />
-          </div>
-
-          <PhaseList
-            phases={data.phases as Array<Record<string, unknown>>}
-            milestones={data.milestones as Array<Record<string, unknown>>}
-            deliverables={data.deliverables as Array<Record<string, unknown>>}
-          />
-        </div>
+        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+          Nothing to approve yet
+        </span>
       )}
-    </section>
+      {commit.isError && (
+        <p className="text-[11px] text-rose-600">{(commit.error as Error).message}</p>
+      )}
+    </div>
+  );
+
+  const planView = planQ.isLoading ? (
+    <p className="text-sm text-ink-500">Loading the programme…</p>
+  ) : !data ? (
+    <p className="border border-dashed border-line-200 p-6 text-center text-sm text-ink-500">
+      No programme drafted yet.
+    </p>
+  ) : (
+    <div className="space-y-4">
+      {plan?.summary ? (
+        <div className="border border-line-200 bg-paper-0 p-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            The programme in a paragraph
+          </p>
+          <p className="mt-1.5 max-w-3xl text-[13px] leading-relaxed text-ink-800">{plan.summary}</p>
+          {durationRationale ? (
+            <p className="mt-2 max-w-3xl text-[12px] leading-relaxed text-ink-600">
+              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+                Why this span ·{" "}
+              </span>
+              {durationRationale}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Fact label="Window" value={`${plan?.starts_on ?? "—"} → ${plan?.ends_on ?? "—"}`} />
+        <Fact label="Phases" value={String(data.phases.length)} />
+        <Fact label="Deliverables" value={String(data.deliverables.length)} />
+      </div>
+
+      <PhaseList
+        phases={data.phases as Array<Record<string, unknown>>}
+        milestones={data.milestones as Array<Record<string, unknown>>}
+        deliverables={data.deliverables as Array<Record<string, unknown>>}
+      />
+    </div>
+  );
+
+  return (
+    <StageWizard
+      panels={{
+        // ── Step 1 · Let the chamber draft the programme ───────────────────
+        draft: (
+          <div className="space-y-5">
+            {drafting}
+            {planView}
+          </div>
+        ),
+
+        // ── Step 2 · Approve it ────────────────────────────────────────────
+        approve: (
+          <div className="space-y-5">
+            {approval}
+            {planView}
+            <ShowTheDetail label="Redraft it instead">{drafting}</ShowTheDetail>
+          </div>
+        ),
+      }}
+    />
   );
 }
+
 
 /** The name the AI gave this phase — never a generic placeholder. */
 function phaseName(p: Record<string, unknown>, i: number): string {

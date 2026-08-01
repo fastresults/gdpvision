@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { useGuardedGo } from "@/components/personas/field/stage-bus";
+import { subStepProgress } from "@/lib/personas/field-substeps";
 import type { FieldProgress } from "@/lib/personas/field-stages";
 import { cn, scrollToTop } from "@/lib/utils";
 
@@ -48,6 +49,11 @@ export function FieldStepper({
   const done = (k: FieldStageKey) => !!progress?.stages[k]?.complete;
   const hintFor = (k: FieldStageKey, fallback: string) =>
     done(k) ? "done" : progress?.stages[k]?.blocker ? "outstanding" : fallback;
+  // Micro-counter: how many screens inside this stage are already settled.
+  const counter = (k: FieldStageKey) => {
+    const { done: d, total } = subStepProgress(k, progress);
+    return total > 1 ? `${d}/${total}` : null;
+  };
 
   // The rail is a way out of a stage like any other — it goes through the
   // same save-or-discard gate the sticky bar uses.
@@ -199,6 +205,9 @@ export function FieldStepper({
                     )}
                   >
                     <Icon size={11} /> {s.sub}
+                    {counter(s.key) ? (
+                      <span className="tabular-nums text-ink-500">· {counter(s.key)}</span>
+                    ) : null}
                   </span>
                   <span className="mt-0.5 block font-serif text-[15px] leading-tight text-ink-950">
                     {s.label}

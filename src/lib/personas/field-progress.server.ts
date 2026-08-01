@@ -93,7 +93,7 @@ export async function computeFieldProgress(
   if (!project) throw new Error("Research programme not found");
   const countryCode = project.country_code as string;
 
-  const [{ data: brief }, { data: plan }] = await Promise.all([
+  const [{ data: brief }, { data: plan }, { count: planDrafts }] = await Promise.all([
     supabase
       .from("persona_projects")
       .select("brief_committed_at")
@@ -105,11 +105,17 @@ export async function computeFieldProgress(
       .eq("project_id", projectId)
       .eq("status", "active")
       .maybeSingle(),
+    supabase
+      .from("programme_plans")
+      .select("id", { count: "exact", head: true })
+      .eq("project_id", projectId),
   ]);
 
   const briefCommitted = !!(brief as { brief_committed_at?: string | null } | null)
     ?.brief_committed_at;
   const planActive = !!plan;
+  const planDrafted = (planDrafts ?? 0) > 0;
+
 
   // The freshness clock for the client dossier: any of these moving after a
   // briefing was assembled means the assembled document no longer describes
@@ -129,12 +135,10 @@ export async function computeFieldProgress(
     .eq("project_id", projectId);
   const panelIds = (panels ?? []).map((p) => p.id as string);
   let panelMembers = 0;
+  let memberIds: string[] = [];
   if (panelIds.length > 0) {
-    const [{ count }, { data: lastMember }] = await Promise.all([
-      supabase
-        .from("research_panel_members")
-        .select("contact_id", { count: "exact", head: true })
-        .in("panel_id", panelIds),
+    const [{ data: members }, { data: lastMember }] = await Promise.all([
+      supabase.from("research_panel_members").select("contact_id").in("panel_id", panelIds),
       supabase
         .from("research_panel_members")
         .select("added_at")
@@ -142,10 +146,24 @@ export async function computeFieldProgress(
         .order("added_at", { ascending: false })
         .limit(1),
     ]);
-    panelMembers = count ?? 0;
+    memberIds = [...new Set((members ?? []).map((m) => m.contact_id as string))];
+    panelMembers = memberIds.length;
     inputStamps.push(lastMember?.[0]?.added_at as string | undefined);
   }
 
+  // Contactable = on the panel, not opted out, and reachable by email. This is
+  // the number that decides whether an invitation can actually go anywhere.
+  let contactable = 0;
+  if (memberIds.length > 0) {
+    const { count } = await supabase
+      .from("research_contacts")
+      .select("id", { count: "exact", head: true })
+      .in("id", memberIds)
+      .is("opted_out_at", null)
+      .not("email", "is", null)
+      .neq("consent_status", "declined");
+    contactable = count ?? 0;
+  }
 
   const { count: contactCount } = await supabase
     .from("research_contacts")
@@ -157,8 +175,14 @@ export async function computeFieldProgress(
     panelIds.length === 0
       ? "No panel yet — build one from the contact book."
       : "The panel is empty — add contacts to it.",
-    { contacts: contactCount ?? 0, panels: panelIds.length, members: panelMembers },
+    {
+      contacts: contactCount ?? 0,
+      panels: panelIds.length,
+      members: panelMembers,
+      contactable,
+    },
   );
+
 
   // ── Instruments ─────────────────────────────────────────────────────────
   // The plan decides what this programme must hold: a questionnaire for every
@@ -166,9 +190,14 @@ export async function computeFieldProgress(
   let instrumentCount = 0;
   let heldKinds: string[] = [];
   let requiredKinds: string[] = [];
+  let questionCount = 0;
+  let frontlineCount = 0;
   if (studyId) {
     const [{ data: rows }, { data: activePlan }] = await Promise.all([
-      supabase.from("field_instruments").select("kind,updated_at").eq("study_id", studyId),
+      supabase
+        .from("field_instruments")
+        .select("kind,updated_at,questions")
+        .eq("study_id", studyId),
       supabase
         .from("programme_plans")
         .select("method_mix")
@@ -179,7 +208,13 @@ export async function computeFieldProgress(
     heldKinds = [...new Set((rows ?? []).map((r) => r.kind as string))];
     instrumentCount = (rows ?? []).length;
     requiredKinds = requiredInstruments(activePlan?.method_mix).map((r) => r.kind);
-    for (const r of rows ?? []) inputStamps.push(r.updated_at as string | undefined);
+    for (const r of rows ?? []) {
+      inputStamps.push(r.updated_at as string | undefined);
+      const qs = Array.isArray(r.questions) ? (r.questions as Array<Record<string, unknown>>) : [];
+      questionCount += qs.length;
+      // The mandatory closing block that asks where the work breaks.
+      frontlineCount += qs.filter((q) => q?.["intent"] === "frontline_insight").length;
+    }
   }
 
   const missingKinds = requiredKinds.filter((k) => !heldKinds.includes(k));
@@ -195,8 +230,11 @@ export async function computeFieldProgress(
       required: requiredKinds.length,
       held: heldKinds.length,
       missing: missingKinds.length,
+      questions: questionCount,
+      frontline: frontlineCount,
     },
   );
+
 
   // ── Fieldwork ───────────────────────────────────────────────────────────
   // Complete means every wave the approved plan obliges has actually closed —
@@ -262,8 +300,14 @@ export async function computeFieldProgress(
     inputsUpdatedAt,
 
     stages: {
-      brief: stage(briefCommitted, "The source brief is not committed."),
-      plan: stage(planActive, "No approved programme plan yet."),
+      brief: stage(briefCommitted, "The source brief is not committed.", {
+        committed: briefCommitted ? 1 : 0,
+      }),
+      plan: stage(planActive, "No approved programme plan yet.", {
+        drafted: planDrafted ? 1 : 0,
+        active: planActive ? 1 : 0,
+      }),
+
       participants,
       instruments,
       fieldwork,

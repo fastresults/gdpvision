@@ -135,12 +135,10 @@ export async function computeFieldProgress(
     .eq("project_id", projectId);
   const panelIds = (panels ?? []).map((p) => p.id as string);
   let panelMembers = 0;
+  let memberIds: string[] = [];
   if (panelIds.length > 0) {
-    const [{ count }, { data: lastMember }] = await Promise.all([
-      supabase
-        .from("research_panel_members")
-        .select("contact_id", { count: "exact", head: true })
-        .in("panel_id", panelIds),
+    const [{ data: members }, { data: lastMember }] = await Promise.all([
+      supabase.from("research_panel_members").select("contact_id").in("panel_id", panelIds),
       supabase
         .from("research_panel_members")
         .select("added_at")
@@ -148,10 +146,24 @@ export async function computeFieldProgress(
         .order("added_at", { ascending: false })
         .limit(1),
     ]);
-    panelMembers = count ?? 0;
+    memberIds = [...new Set((members ?? []).map((m) => m.contact_id as string))];
+    panelMembers = memberIds.length;
     inputStamps.push(lastMember?.[0]?.added_at as string | undefined);
   }
 
+  // Contactable = on the panel, not opted out, and reachable by email. This is
+  // the number that decides whether an invitation can actually go anywhere.
+  let contactable = 0;
+  if (memberIds.length > 0) {
+    const { count } = await supabase
+      .from("research_contacts")
+      .select("id", { count: "exact", head: true })
+      .in("id", memberIds)
+      .is("opted_out_at", null)
+      .not("email", "is", null)
+      .neq("consent_status", "declined");
+    contactable = count ?? 0;
+  }
 
   const { count: contactCount } = await supabase
     .from("research_contacts")
@@ -163,8 +175,14 @@ export async function computeFieldProgress(
     panelIds.length === 0
       ? "No panel yet — build one from the contact book."
       : "The panel is empty — add contacts to it.",
-    { contacts: contactCount ?? 0, panels: panelIds.length, members: panelMembers },
+    {
+      contacts: contactCount ?? 0,
+      panels: panelIds.length,
+      members: panelMembers,
+      contactable,
+    },
   );
+
 
   // ── Instruments ─────────────────────────────────────────────────────────
   // The plan decides what this programme must hold: a questionnaire for every

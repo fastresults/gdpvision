@@ -7,7 +7,16 @@
 // full-screen, print to PDF, or download an editable .pptx.
 
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Download, Loader2, Play, Printer, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Loader2,
+  Play,
+  Printer,
+  RefreshCw,
+  X,
+} from "lucide-react";
 
 import { PrintSurface, printSurface } from "@/components/print/PrintSurface";
 import type { ProgrammeDeck } from "@/lib/personas/programme-deck.functions";

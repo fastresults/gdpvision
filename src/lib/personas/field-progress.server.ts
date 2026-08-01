@@ -190,9 +190,14 @@ export async function computeFieldProgress(
   let instrumentCount = 0;
   let heldKinds: string[] = [];
   let requiredKinds: string[] = [];
+  let questionCount = 0;
+  let frontlineCount = 0;
   if (studyId) {
     const [{ data: rows }, { data: activePlan }] = await Promise.all([
-      supabase.from("field_instruments").select("kind,updated_at").eq("study_id", studyId),
+      supabase
+        .from("field_instruments")
+        .select("kind,updated_at,questions")
+        .eq("study_id", studyId),
       supabase
         .from("programme_plans")
         .select("method_mix")
@@ -203,7 +208,13 @@ export async function computeFieldProgress(
     heldKinds = [...new Set((rows ?? []).map((r) => r.kind as string))];
     instrumentCount = (rows ?? []).length;
     requiredKinds = requiredInstruments(activePlan?.method_mix).map((r) => r.kind);
-    for (const r of rows ?? []) inputStamps.push(r.updated_at as string | undefined);
+    for (const r of rows ?? []) {
+      inputStamps.push(r.updated_at as string | undefined);
+      const qs = Array.isArray(r.questions) ? (r.questions as Array<Record<string, unknown>>) : [];
+      questionCount += qs.length;
+      // The mandatory closing block that asks where the work breaks.
+      frontlineCount += qs.filter((q) => q?.["intent"] === "frontline_insight").length;
+    }
   }
 
   const missingKinds = requiredKinds.filter((k) => !heldKinds.includes(k));
@@ -219,8 +230,11 @@ export async function computeFieldProgress(
       required: requiredKinds.length,
       held: heldKinds.length,
       missing: missingKinds.length,
+      questions: questionCount,
+      frontline: frontlineCount,
     },
   );
+
 
   // ── Fieldwork ───────────────────────────────────────────────────────────
   // Complete means every wave the approved plan obliges has actually closed —

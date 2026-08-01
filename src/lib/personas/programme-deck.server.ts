@@ -11,6 +11,11 @@
 // deterministic prose lifted from the briefing when the model is unavailable.
 
 import type { CommencementBriefing } from "./commencement-briefing.server";
+import {
+  assertClientOutputClean,
+  makePreflightItem,
+  type OutputPreflightItem,
+} from "./client-output-provenance.server";
 import { deriveJson } from "./field-ai.server";
 
 export type DeckSlideKind =
@@ -56,6 +61,8 @@ export interface ProgrammeDeck {
   assembled_at: string;
   window: { starts_on: string | null; ends_on: string | null; duration_days: number | null };
   slides: DeckSlide[];
+  briefingVersion: number;
+  preflight: OutputPreflightItem[];
 }
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -148,6 +155,7 @@ async function writeSlideCopy(
       user,
       validate: isAiCopy,
     });
+    assertClientOutputClean(res, "Generated presentation copy");
     for (const s of res.slides) out.set(s.id, s);
   } catch {
     /* deterministic fallbacks below */
@@ -367,6 +375,15 @@ export async function assembleDeck(brief: CommencementBriefing): Promise<Program
     note: `${brief.programmeTitle} · Commencement briefing v${brief.version}`,
   });
 
+  assertClientOutputClean(slides, "Programme presentation deck");
+  const preflight = slides.map((slide) =>
+    makePreflightItem(
+      slide.id,
+      slide.id === "brief" || slide.id === "cover" ? "governing_brief" : "approved_plan",
+      slide,
+    ),
+  );
+
   return {
     version: brief.version,
     countryCode: brief.countryCode,
@@ -377,5 +394,7 @@ export async function assembleDeck(brief: CommencementBriefing): Promise<Program
     assembled_at: new Date().toISOString(),
     window: brief.window,
     slides,
+    briefingVersion: brief.version,
+    preflight,
   };
 }

@@ -26,7 +26,7 @@ export type BriefingPrintConfig = {
 
 export const DEFAULT_BRIEFING_PRINT_CONFIG: BriefingPrintConfig = {
   classification: "Client · Confidential",
-  preparedFor: "The Office of the Prime Minister",
+  preparedFor: "",
   preparedBy: "",
   dateLabel: new Date().toLocaleDateString(undefined, {
     year: "numeric",

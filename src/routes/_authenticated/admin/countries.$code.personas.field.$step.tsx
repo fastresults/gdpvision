@@ -76,6 +76,7 @@ function FieldStageBody({
   gate: ReturnType<typeof useResearchGate>;
 }) {
   const qc = useQueryClient();
+  const [briefingOpen, setBriefingOpen] = useState((stage as string) === "briefing");
 
   // One read drives the rail, the "done when" test and the next action.
   const progressQ = useQuery({
@@ -123,7 +124,12 @@ function FieldStageBody({
 
         {(stage as string) === "briefing" ? (
           gate.planCommitted ? (
-            <BriefingPanel projectId={projectId} />
+            <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
+              <p className="font-serif text-lg text-ink-950">The briefing opens in a window.</p>
+              <p className="mt-1 text-sm text-ink-700">
+                Use “Open the briefing” above to read, print or export the dossier.
+              </p>
+            </div>
           ) : (
             <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
               <p className="font-serif text-lg text-ink-950">Approve the programme plan first.</p>

@@ -104,3 +104,99 @@ export const markBriefingShared = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
+
+/** The public link state for a programme's latest dossier. */
+export interface DossierShareState {
+  token: string | null;
+  enabled: boolean;
+  shared_publicly_at: string | null;
+}
+
+function newToken(): string {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Read the link state without touching it. */
+export const getDossierShare = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ briefingId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }): Promise<DossierShareState> => {
+    const { data: row, error } = await context.supabase
+      .from("programme_briefings")
+      .select("share_token,share_enabled,shared_publicly_at")
+      .eq("id", data.briefingId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return {
+      token: row?.share_enabled ? ((row.share_token as string | null) ?? null) : null,
+      enabled: !!row?.share_enabled,
+      shared_publicly_at: (row?.shared_publicly_at as string | null) ?? null,
+    };
+  });
+
+/**
+ * Create, replace or revoke the public link. The dossier is only publishable
+ * once every section traces to the governing brief — an unclean document can
+ * never be put behind a link.
+ */
+export const setDossierShare = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        briefingId: z.string().uuid(),
+        action: z.enum(["create", "regenerate", "revoke"]),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }): Promise<DossierShareState> => {
+    const { data: row, error: readErr } = await context.supabase
+      .from("programme_briefings")
+      .select("id,document,share_token,shared_publicly_at")
+      .eq("id", data.briefingId)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!row) throw new Error("That briefing no longer exists.");
+
+    if (data.action === "revoke") {
+      const { error } = await context.supabase
+        .from("programme_briefings")
+        .update({ share_enabled: false } as never)
+        .eq("id", data.briefingId);
+      if (error) throw new Error(error.message);
+      return {
+        token: null,
+        enabled: false,
+        shared_publicly_at: (row.shared_publicly_at as string | null) ?? null,
+      };
+    }
+
+    const doc = row.document as unknown as CommencementBriefing | null;
+    const clean = doc?.preflight?.every((p) => p.ready) ?? false;
+    if (!clean) {
+      throw new Error(
+        "This dossier has not passed its provenance check, so it cannot be published.",
+      );
+    }
+
+    const token =
+      data.action === "regenerate" || !row.share_token ? newToken() : (row.share_token as string);
+    const now = new Date().toISOString();
+    const { error } = await context.supabase
+      .from("programme_briefings")
+      .update({
+        share_token: token,
+        share_enabled: true,
+        shared_publicly_at: (row.shared_publicly_at as string | null) ?? now,
+      } as never)
+      .eq("id", data.briefingId);
+    if (error) throw new Error(error.message);
+
+    return {
+      token,
+      enabled: true,
+      shared_publicly_at: (row.shared_publicly_at as string | null) ?? now,
+    };
+  });

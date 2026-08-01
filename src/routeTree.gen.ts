@@ -20,6 +20,7 @@ import { Route as KioskIndexRouteImport } from './routes/kiosk.index'
 import { Route as OpEdsSlugRouteImport } from './routes/op-eds.$slug'
 import { Route as KioskAdminRouteImport } from './routes/kiosk.admin'
 import { Route as FTokenRouteImport } from './routes/f.$token'
+import { Route as DTokenRouteImport } from './routes/d.$token'
 import { Route as BusinessCaseCalculatorRouteImport } from './routes/business-case_.calculator'
 import { Route as AuthInviteRouteImport } from './routes/auth.invite'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
@@ -71,6 +72,7 @@ import { Route as ApiPublicHooksNarrativeHarvestRouteImport } from './routes/api
 import { Route as ApiPublicHooksLedgerQaRouteImport } from './routes/api/public/hooks/ledger-qa'
 import { Route as ApiPublicHooksCadenceDailyRouteImport } from './routes/api/public/hooks/cadence-daily'
 import { Route as ApiPublicFieldTokenRouteImport } from './routes/api/public/field.$token'
+import { Route as ApiPublicDossierTokenRouteImport } from './routes/api/public/dossier/$token'
 import { Route as AuthenticatedNarrativeTraceIdRouteImport } from './routes/_authenticated/narrative/trace.$id'
 import { Route as AuthenticatedNarrativeStrategyNewRouteImport } from './routes/_authenticated/narrative/strategy.new'
 import { Route as AuthenticatedNarrativeStrategyIdRouteImport } from './routes/_authenticated/narrative/strategy.$id'
@@ -190,6 +192,11 @@ const KioskAdminRoute = KioskAdminRouteImport.update({
 const FTokenRoute = FTokenRouteImport.update({
   id: '/f/$token',
   path: '/f/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DTokenRoute = DTokenRouteImport.update({
+  id: '/d/$token',
+  path: '/d/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BusinessCaseCalculatorRoute = BusinessCaseCalculatorRouteImport.update({
@@ -483,6 +490,11 @@ const ApiPublicHooksCadenceDailyRoute =
 const ApiPublicFieldTokenRoute = ApiPublicFieldTokenRouteImport.update({
   id: '/api/public/field/$token',
   path: '/api/public/field/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicDossierTokenRoute = ApiPublicDossierTokenRouteImport.update({
+  id: '/api/public/dossier/$token',
+  path: '/api/public/dossier/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedNarrativeTraceIdRoute =
@@ -895,6 +907,7 @@ export interface FileRoutesByFullPath {
   '/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
   '/business-case/calculator': typeof BusinessCaseCalculatorRoute
+  '/d/$token': typeof DTokenRoute
   '/f/$token': typeof FTokenRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
@@ -954,6 +967,7 @@ export interface FileRoutesByFullPath {
   '/narrative/strategy/$id': typeof AuthenticatedNarrativeStrategyIdRoute
   '/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
+  '/api/public/dossier/$token': typeof ApiPublicDossierTokenRoute
   '/api/public/field/$token': typeof ApiPublicFieldTokenRoute
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/ledger-qa': typeof ApiPublicHooksLedgerQaRoute
@@ -1020,6 +1034,7 @@ export interface FileRoutesByTo {
   '/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
   '/business-case/calculator': typeof BusinessCaseCalculatorRoute
+  '/d/$token': typeof DTokenRoute
   '/f/$token': typeof FTokenRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
@@ -1079,6 +1094,7 @@ export interface FileRoutesByTo {
   '/narrative/strategy/$id': typeof AuthenticatedNarrativeStrategyIdRoute
   '/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
+  '/api/public/dossier/$token': typeof ApiPublicDossierTokenRoute
   '/api/public/field/$token': typeof ApiPublicFieldTokenRoute
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/ledger-qa': typeof ApiPublicHooksLedgerQaRoute
@@ -1146,6 +1162,7 @@ export interface FileRoutesById {
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
   '/business-case_/calculator': typeof BusinessCaseCalculatorRoute
+  '/d/$token': typeof DTokenRoute
   '/f/$token': typeof FTokenRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
@@ -1205,6 +1222,7 @@ export interface FileRoutesById {
   '/_authenticated/narrative/strategy/$id': typeof AuthenticatedNarrativeStrategyIdRoute
   '/_authenticated/narrative/strategy/new': typeof AuthenticatedNarrativeStrategyNewRoute
   '/_authenticated/narrative/trace/$id': typeof AuthenticatedNarrativeTraceIdRoute
+  '/api/public/dossier/$token': typeof ApiPublicDossierTokenRoute
   '/api/public/field/$token': typeof ApiPublicFieldTokenRoute
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/ledger-qa': typeof ApiPublicHooksLedgerQaRoute
@@ -1277,6 +1295,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/auth/invite'
     | '/business-case/calculator'
+    | '/d/$token'
     | '/f/$token'
     | '/kiosk/admin'
     | '/op-eds/$slug'
@@ -1336,6 +1355,7 @@ export interface FileRouteTypes {
     | '/narrative/strategy/$id'
     | '/narrative/strategy/new'
     | '/narrative/trace/$id'
+    | '/api/public/dossier/$token'
     | '/api/public/field/$token'
     | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/ledger-qa'
@@ -1402,6 +1422,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/auth/invite'
     | '/business-case/calculator'
+    | '/d/$token'
     | '/f/$token'
     | '/kiosk/admin'
     | '/op-eds/$slug'
@@ -1461,6 +1482,7 @@ export interface FileRouteTypes {
     | '/narrative/strategy/$id'
     | '/narrative/strategy/new'
     | '/narrative/trace/$id'
+    | '/api/public/dossier/$token'
     | '/api/public/field/$token'
     | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/ledger-qa'
@@ -1527,6 +1549,7 @@ export interface FileRouteTypes {
     | '/_authenticated/home'
     | '/auth/invite'
     | '/business-case_/calculator'
+    | '/d/$token'
     | '/f/$token'
     | '/kiosk/admin'
     | '/op-eds/$slug'
@@ -1586,6 +1609,7 @@ export interface FileRouteTypes {
     | '/_authenticated/narrative/strategy/$id'
     | '/_authenticated/narrative/strategy/new'
     | '/_authenticated/narrative/trace/$id'
+    | '/api/public/dossier/$token'
     | '/api/public/field/$token'
     | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/ledger-qa'
@@ -1652,9 +1676,11 @@ export interface RootRouteChildren {
   KioskRoute: typeof KioskRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   BusinessCaseCalculatorRoute: typeof BusinessCaseCalculatorRoute
+  DTokenRoute: typeof DTokenRoute
   FTokenRoute: typeof FTokenRoute
   OpEdsSlugRoute: typeof OpEdsSlugRoute
   OpEdsIndexRoute: typeof OpEdsIndexRoute
+  ApiPublicDossierTokenRoute: typeof ApiPublicDossierTokenRoute
   ApiPublicFieldTokenRoute: typeof ApiPublicFieldTokenRoute
   ApiPublicHooksCadenceDailyRoute: typeof ApiPublicHooksCadenceDailyRoute
   ApiPublicHooksLedgerQaRoute: typeof ApiPublicHooksLedgerQaRoute
@@ -1741,6 +1767,13 @@ declare module '@tanstack/react-router' {
       path: '/f/$token'
       fullPath: '/f/$token'
       preLoaderRoute: typeof FTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/d/$token': {
+      id: '/d/$token'
+      path: '/d/$token'
+      fullPath: '/d/$token'
+      preLoaderRoute: typeof DTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/business-case_/calculator': {
@@ -2098,6 +2131,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/field/$token'
       fullPath: '/api/public/field/$token'
       preLoaderRoute: typeof ApiPublicFieldTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/dossier/$token': {
+      id: '/api/public/dossier/$token'
+      path: '/api/public/dossier/$token'
+      fullPath: '/api/public/dossier/$token'
+      preLoaderRoute: typeof ApiPublicDossierTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/narrative/trace/$id': {
@@ -3025,9 +3065,11 @@ const rootRouteChildren: RootRouteChildren = {
   KioskRoute: KioskRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   BusinessCaseCalculatorRoute: BusinessCaseCalculatorRoute,
+  DTokenRoute: DTokenRoute,
   FTokenRoute: FTokenRoute,
   OpEdsSlugRoute: OpEdsSlugRoute,
   OpEdsIndexRoute: OpEdsIndexRoute,
+  ApiPublicDossierTokenRoute: ApiPublicDossierTokenRoute,
   ApiPublicFieldTokenRoute: ApiPublicFieldTokenRoute,
   ApiPublicHooksCadenceDailyRoute: ApiPublicHooksCadenceDailyRoute,
   ApiPublicHooksLedgerQaRoute: ApiPublicHooksLedgerQaRoute,
@@ -3039,13 +3081,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -9,6 +9,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/` | `src/routes/index.tsx` |
 | `/business-case` | `src/routes/business-case.tsx` |
 | `/business-case_/calculator` | `src/routes/business-case_.calculator.tsx` |
+| `/d/$token` | `src/routes/d.$token.tsx` |
 | `/f/$token` | `src/routes/f.$token.tsx` |
 | `/op-eds/` | `src/routes/op-eds.index.tsx` |
 | `/op-eds/$slug` | `src/routes/op-eds.$slug.tsx` |
@@ -163,6 +164,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 
 | Route | File |
 |-------|------|
+| `/api/public/dossier/$token` | `src/routes/api/public/dossier/$token.ts` |
 | `/api/public/field/$token` | `src/routes/api/public/field.$token.ts` |
 | `/api/public/hooks/cadence-daily` | `src/routes/api/public/hooks/cadence-daily.ts` |
 | `/api/public/hooks/ledger-qa` | `src/routes/api/public/hooks/ledger-qa.ts` |

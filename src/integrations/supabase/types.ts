@@ -6490,7 +6490,10 @@ export type Database = {
           document: Json
           id: string
           project_id: string
+          share_enabled: boolean
+          share_token: string | null
           shared_at: string | null
+          shared_publicly_at: string | null
           status: string
           updated_at: string
           version: number
@@ -6504,7 +6507,10 @@ export type Database = {
           document?: Json
           id?: string
           project_id: string
+          share_enabled?: boolean
+          share_token?: string | null
           shared_at?: string | null
+          shared_publicly_at?: string | null
           status?: string
           updated_at?: string
           version?: number
@@ -6518,7 +6524,10 @@ export type Database = {
           document?: Json
           id?: string
           project_id?: string
+          share_enabled?: boolean
+          share_token?: string | null
           shared_at?: string | null
+          shared_publicly_at?: string | null
           status?: string
           updated_at?: string
           version?: number

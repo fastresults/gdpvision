@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import { browserPublicOrigin } from "@/lib/personas/public-origin";
+import { browserPublicOrigin, participantLink } from "@/lib/personas/public-origin";
 
 import { IngestPanel } from "./IngestPanel";
 import { WaveShell } from "./WaveShell";
@@ -306,7 +306,7 @@ export function CollectionWave({
                   purpose="Every person invited, their state, and their private link."
                   badge={`${board.invitations.length} issued`}
                   hint={{
-                    what: "One row per invitation, with the link you can pass on by hand.",
+                    what: "One row per invitation, with the link you can pass on by hand. Every link opens without a login.",
                     then: "States run pending → invited → opened → returned.",
                   }}
                 >
@@ -321,7 +321,7 @@ export function CollectionWave({
                           type="button"
                           className="btn-ghost shrink-0"
                           aria-label={`Copy the participant link for ${i.name}`}
-                          onClick={() => copy(`${origin}/f/${i.token}`)}
+                          onClick={() => copy(participantLink(origin, i.token))}
                         >
                           <Copy className="h-3 w-3" />
                         </button>

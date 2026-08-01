@@ -34,7 +34,7 @@ export const Route = createFileRoute("/api/public/field/$token")({
           .select("id,collection_id,contact_id,participant_code,status,completed_at,declined_at")
           .eq("token", token)
           .maybeSingle();
-        if (!invite) return json({ state: "invalid" }, 404);
+        if (!invite) return openLinkGet(supabaseAdmin, token);
         if (invite.declined_at) return json({ state: "opted_out" });
         if (invite.completed_at) return json({ state: "done" });
 
@@ -96,7 +96,7 @@ export const Route = createFileRoute("/api/public/field/$token")({
           .select("id,collection_id,study_id,country_code,contact_id,participant_code,completed_at")
           .eq("token", token)
           .maybeSingle();
-        if (!invite) return json({ state: "invalid" }, 404);
+        if (!invite) return openLinkPost(supabaseAdmin, token, raw);
 
         // Opt-out is honoured before anything else.
         const optOut = OptOutSchema.safeParse(raw);
@@ -155,3 +155,84 @@ export const Route = createFileRoute("/api/public/field/$token")({
     },
   },
 });
+
+/**
+ * The anonymous route in: a collection published with an open link. There is no
+ * invitation and no contact behind it, so nothing personal is read or written —
+ * the return is filed under a sequential participant code.
+ */
+async function openLinkGet(admin: SupabaseAdmin, token: string) {
+  const collection = await openCollection(admin, token);
+  if (!collection) return json({ state: "invalid" }, 404);
+  if (collection.status !== "open") return json({ state: "closed" });
+  if (collection.closes_at && new Date(collection.closes_at) < new Date()) {
+    return json({ state: "closed" });
+  }
+
+  const { data: instrument } = await admin
+    .from("field_instruments")
+    .select("title,intro,outro,questions")
+    .eq("id", collection.instrument_id ?? "")
+    .maybeSingle();
+  if (!instrument) return json({ state: "closed" });
+
+  return json({
+    state: "ok",
+    firstName: "",
+    instrument: {
+      title: instrument.title,
+      intro: instrument.intro,
+      outro: instrument.outro,
+      questions: instrument.questions,
+    },
+  });
+}
+
+async function openLinkPost(admin: SupabaseAdmin, token: string, raw: unknown) {
+  const collection = await openCollection(admin, token);
+  if (!collection) return json({ state: "invalid" }, 404);
+  if (collection.status !== "open") return json({ state: "closed" });
+
+  const parsed = AnswerSchema.safeParse(raw);
+  if (!parsed.success) return json({ state: "invalid_body" }, 400);
+
+  const { count } = await admin
+    .from("field_responses")
+    .select("id", { count: "exact", head: true })
+    .eq("collection_id", collection.id);
+  const seq = count ?? 0;
+  if (collection.response_cap && seq >= collection.response_cap) return json({ state: "closed" });
+
+  const { error } = await admin.from("field_responses").insert({
+    collection_id: collection.id,
+    study_id: collection.study_id,
+    country_code: collection.country_code,
+    participant_code: `P-${String(seq + 1).padStart(4, "0")}`,
+    answers: parsed.data.answers as never,
+    source: "open_link",
+    instrument_version: collection.instrument_version,
+  } as never);
+  if (error) return json({ state: "error" }, 500);
+  return json({ state: "done" });
+}
+
+async function openCollection(admin: SupabaseAdmin, token: string) {
+  const { data } = await admin
+    .from("field_collections")
+    .select(
+      "id,study_id,country_code,status,instrument_id,instrument_version,response_cap,closes_at",
+    )
+    .eq("open_token", token)
+    .eq("open_enabled", true)
+    .maybeSingle();
+  return (data ?? null) as {
+    id: string;
+    study_id: string;
+    country_code: string;
+    status: string;
+    instrument_id: string | null;
+    instrument_version: number | null;
+    response_cap: number | null;
+    closes_at: string | null;
+  } | null;
+}

@@ -15,7 +15,6 @@ import { ProgramsIndex } from "@/components/personas/StudyWizard/ProgramsIndex";
 import { ProgramBriefIntake } from "@/components/personas/StudyWizard/ProgramBriefIntake";
 import { useResearchGate } from "@/hooks/useResearchGate";
 import { TrackPicker } from "@/components/personas/TrackPicker";
-import { TrackGateEntry } from "@/components/personas/TrackGateEntry";
 import { TrackTabs } from "@/components/personas/TrackTabs";
 import { FieldStepper } from "@/components/personas/FieldStepper";
 import type { ResearchTrack } from "@/lib/personas/tracks";
@@ -164,20 +163,17 @@ function PersonasIndex() {
     );
   }
 
-  // No programme selected — the chamber entrance is the gate, not the
-  // synthetic rail. Choose the instrument, or resume an existing programme.
+  // No programme selected — lead with the complete portfolio. New-project
+  // intake begins only after the administrator chooses a research track.
   if (!activeProjectId) {
     return (
-      <div className="space-y-10">
-        <TrackGateEntry code={code} />
-        <details className="group border-t border-line-200 pt-4">
-          <summary className="cursor-pointer list-none font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500 hover:text-ink-950">
-            Or resume an existing programme ▾
-          </summary>
-          <div className="mt-4">
-            <ProgramsIndex code={code} />
-          </div>
-        </details>
+      <div className="space-y-6">
+        <header>
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Chamber 07 · Research portfolio</p>
+          <h2 className="mt-1 font-serif text-3xl text-ink-950">Research projects</h2>
+          <p className="mt-2 max-w-2xl text-sm text-ink-600">Resume active work, review completed evidence, or commission a new synthetic or field programme.</p>
+        </header>
+        <ProgramsIndex code={code} portfolio />
       </div>
     );
   }

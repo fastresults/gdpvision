@@ -7,7 +7,7 @@
 // instruments are on file, reads it on screen, exports it as a PDF, and
 // records that it went to the client.
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -24,18 +24,9 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-import {
-  assembleCommencementBriefing,
-  getCommencementBriefing,
-  markBriefingShared,
-  type BriefingRecord,
-} from "@/lib/personas/commencement-briefing.functions";
-import {
-  assembleProgrammeDeck,
-  getProgrammeDeck,
-  type DeckRecord,
-} from "@/lib/personas/programme-deck.functions";
+import { markBriefingShared } from "@/lib/personas/commencement-briefing.functions";
 import { printSurface } from "@/components/print/PrintSurface";
+import { useDossierActions } from "@/hooks/useDossierActions";
 
 import { DeckModal } from "../deck/DeckModal";
 import { ExportBriefingDialog } from "./ExportBriefingDialog";
@@ -58,34 +49,23 @@ function dateLabel(d: string | null): string {
 export function BriefingPanel({
   projectId,
   intent = "briefing",
+  inputsUpdatedAt = null,
 }: {
   projectId: string;
   intent?: "briefing" | "deck";
+  inputsUpdatedAt?: string | null;
 }) {
   const qc = useQueryClient();
   const [exportOpen, setExportOpen] = useState(false);
   const [printConfig, setPrintConfig] = useState<BriefingPrintConfig>(
     DEFAULT_BRIEFING_PRINT_CONFIG,
   );
-  const [error, setError] = useState<string | null>(null);
   const [active, setActive] = useState<string | null>(null);
 
-  const assembleFn = useServerFn(assembleCommencementBriefing);
   const sharedFn = useServerFn(markBriefingShared);
 
-  const briefingQ = useQuery({
-    queryKey: ["commencement-briefing", projectId],
-    queryFn: (): Promise<BriefingRecord | null> => getCommencementBriefing({ data: { projectId } }),
-  });
-
-  const assemble = useMutation({
-    mutationFn: () => assembleFn({ data: { projectId } }),
-    onSuccess: () => {
-      setError(null);
-      void qc.invalidateQueries({ queryKey: ["commencement-briefing", projectId] });
-    },
-    onError: (e: unknown) => setError(e instanceof Error ? e.message : "Could not assemble."),
-  });
+  const dossier = useDossierActions(projectId, inputsUpdatedAt);
+  const { error } = dossier;
 
   const share = useMutation({
     mutationFn: (briefingId: string) => sharedFn({ data: { briefingId } }),
@@ -94,25 +74,8 @@ export function BriefingPanel({
 
   // ── presentation deck ────────────────────────────────────────────────────
   const [deckOpen, setDeckOpen] = useState(false);
-  const deckFn = useServerFn(assembleProgrammeDeck);
 
-  const deckQ = useQuery({
-    queryKey: ["programme-deck", projectId],
-    queryFn: (): Promise<DeckRecord | null> => getProgrammeDeck({ data: { projectId } }),
-  });
-
-  const prepareDeck = useMutation({
-    mutationFn: () => deckFn({ data: { projectId } }),
-    onSuccess: (rec) => {
-      setError(null);
-      qc.setQueryData(["programme-deck", projectId], rec);
-      setDeckOpen(true);
-    },
-    onError: (e: unknown) =>
-      setError(e instanceof Error ? e.message : "Could not compose the deck."),
-  });
-
-  const record = briefingQ.data ?? null;
+  const record = dossier.briefing;
   const doc = record?.document ?? null;
   const preflightReady = doc?.preflight?.every((item) => item.ready) ?? false;
   const source = doc?.source ?? {
@@ -129,10 +92,11 @@ export function BriefingPanel({
   useEffect(() => {
     if (intent !== "deck" || jumped.current) return;
     if (!doc || !preflightReady) return;
-    if (deckQ.data?.deck.briefingVersion !== doc.version) return;
+    if (dossier.deck?.deck.briefingVersion !== doc.version) return;
     jumped.current = true;
     setDeckOpen(true);
-  }, [intent, doc, preflightReady, deckQ.data]);
+  }, [intent, doc, preflightReady, dossier.deck]);
+
 
   const runExport = (config: BriefingPrintConfig) => {
     setPrintConfig(config);

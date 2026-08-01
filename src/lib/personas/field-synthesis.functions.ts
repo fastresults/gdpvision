@@ -200,10 +200,11 @@ Return JSON:
   "calibration_actions": ["how to improve the synthetic model next time"]
 }`;
 
-    const comparison = await deriveJson<{ verdict: string; deltas: unknown[] }>({
+    type Calibration = { verdict: string; deltas: Json[] };
+    const comparison = await deriveJson<Calibration>({
       system,
       user,
-      validate: (v): v is { verdict: string; deltas: unknown[] } => {
+      validate: (v): v is Calibration => {
         const c = v as { verdict?: unknown; deltas?: unknown } | null;
         return !!c && typeof c.verdict === "string" && Array.isArray(c.deltas);
       },

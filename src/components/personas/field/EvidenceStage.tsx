@@ -239,6 +239,31 @@ export function EvidenceStage({
             </Block>
           ) : null}
 
+          {live.innovation_signals?.length ? (
+            <Block title="Innovation signals from the field">
+              <p className="text-[12px] text-ink-600">
+                Raised unprompted by the people doing the work — beyond what the brief asked.
+              </p>
+              <ul className="space-y-2">
+                {live.innovation_signals.map((s, i) => (
+                  <li key={i} className="border-l-2 border-line-200 pl-3">
+                    <p className="text-ink-950">{s.idea}</p>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
+                      raised by {s.raised_by ?? 1}
+                      {s.confidence ? ` · confidence ${s.confidence}` : ""}
+                    </p>
+                    {s.what_would_improve ? (
+                      <p className="text-[12px] text-ink-700">{s.what_would_improve}</p>
+                    ) : null}
+                    {s.verbatim ? (
+                      <p className="font-serif italic text-ink-800">“{s.verbatim}”</p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </Block>
+          ) : null}
+
           {live.implications?.length ? (
             <Block title="What follows from it">
               <ul className="list-disc space-y-1 pl-4">

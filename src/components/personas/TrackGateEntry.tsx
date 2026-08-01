@@ -155,7 +155,7 @@ export function TrackGateEntry({ code }: { code: string }) {
       <footer className="border-t border-line-200 px-6 py-4 text-center sm:px-10">
         <p className="text-[12px] text-ink-700">
           Not sure?{" "}
-          <button type="button" onClick={() => setChosen("blended")} className="underline underline-offset-2 hover:text-ink-950">
+          <button type="button" onClick={() => setStage({ step: "setup", track: "blended" })} className="underline underline-offset-2 hover:text-ink-950">
             Run both — rehearse today, verify in the field.
           </button>
         </p>

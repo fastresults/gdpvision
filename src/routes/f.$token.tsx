@@ -333,7 +333,7 @@ function ParticipantPage() {
       {/* The one action, always reachable. */}
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line-200 bg-paper-0/95 backdrop-blur">
         <div className="mx-auto w-full max-w-2xl px-5 py-3">
-          {error ? <p className="mb-2 text-[12px] text-signal-high">{error}</p> : null}
+          {error ? <p className="mb-2 text-[12px] text-signal-negative">{error}</p> : null}
           <div className="flex items-center gap-3">
             <button
               type="button"

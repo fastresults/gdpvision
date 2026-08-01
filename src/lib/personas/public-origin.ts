@@ -67,3 +67,8 @@ export function browserPublicOrigin(): string {
 export function participantLink(origin: string, token: string, optOut = false): string {
   return `${origin}/f/${token}${optOut ? "?opt_out=1" : ""}`;
 }
+
+/** The one place a public client dossier link is spelled. */
+export function dossierLink(origin: string, token: string): string {
+  return `${resolvePublicOrigin(origin, DEFAULT_PUBLIC_ORIGIN)}/d/${encodeURIComponent(token)}`;
+}

@@ -16,6 +16,7 @@ import {
   setDossierShare,
   type DossierShareState,
 } from "@/lib/personas/commencement-briefing.functions";
+import { browserPublicOrigin, dossierLink } from "@/lib/personas/public-origin";
 
 export function ShareLinkBar({ briefingId, canPublish }: { briefingId: string; canPublish: boolean }) {
   const qc = useQueryClient();
@@ -45,7 +46,7 @@ export function ShareLinkBar({ briefingId, canPublish }: { briefingId: string; c
   const state = q.data;
   const url =
     state?.enabled && state.token && typeof window !== "undefined"
-      ? `${window.location.origin}/d/${state.token}`
+      ? dossierLink(browserPublicOrigin(), state.token)
       : null;
 
   const copy = async () => {

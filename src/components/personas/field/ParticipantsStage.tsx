@@ -211,8 +211,11 @@ export function ParticipantsStage({
             </div>
           </div>
 
-          {/* Contact book */}
-          {contactsQ.isLoading ? (
+  );
+
+  // The contact book — who we could hear from, and who has opted out.
+  const contactBook = contactsQ.isLoading ? (
+
             <p className="text-sm text-ink-500">Reading the contact book…</p>
           ) : contacts.length === 0 ? (
             <EmptyAction

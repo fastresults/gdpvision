@@ -151,21 +151,32 @@ export function FieldStageProvider({ children }: { children: React.ReactNode }) 
     <FieldStageBusContext.Provider value={value}>
       {children}
 
-      {pendingNav ? (
+      {saving && !navError ? (
+        <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center pb-20">
+          <p className="flex items-center gap-2 border border-line-200 bg-paper-0 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-700 shadow-lg">
+            <Loader2 size={11} className="animate-spin" /> Saving your work…
+          </p>
+        </div>
+      ) : null}
+
+      {pendingNav && navError ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/40 p-4">
           <div className="w-full max-w-md border border-line-200 bg-paper-0 p-5">
-            <p className="font-serif text-lg text-ink-950">You have unsaved work.</p>
+            <p className="font-serif text-lg text-ink-950">That didn't save.</p>
             <p className="mt-1 text-[13px] text-ink-700">
-              Unsaved · {dirtyEntries.map((d) => d.label).join(", ")}. Save it before moving, or
+              Unsaved · {dirtyEntries.map((d) => d.label).join(", ")}. Try again, or move on and
               leave it behind.
             </p>
-            {navError ? <p className="mt-2 text-[12px] text-rose-600">{navError}</p> : null}
+            <p className="mt-2 text-[12px] text-rose-600">{navError}</p>
             <div className="mt-4 flex flex-wrap justify-end gap-2">
               <button
                 type="button"
                 className="btn-ghost"
                 disabled={saving}
-                onClick={() => setPendingNav(null)}
+                onClick={() => {
+                  setPendingNav(null);
+                  setNavError(null);
+                }}
               >
                 Stay here
               </button>
@@ -176,6 +187,7 @@ export function FieldStageProvider({ children }: { children: React.ReactNode }) 
                 onClick={() => {
                   const run = pendingNav;
                   setPendingNav(null);
+                  setNavError(null);
                   setDirtyMap({});
                   run?.();
                 }}
@@ -186,15 +198,19 @@ export function FieldStageProvider({ children }: { children: React.ReactNode }) 
                 type="button"
                 className="btn-primary"
                 disabled={saving}
-                onClick={() => void saveAllAndGo()}
+                onClick={() => {
+                  const run = pendingNav;
+                  if (run) void runSaveAllAndGo(run);
+                }}
               >
                 {saving ? <Loader2 size={11} className="animate-spin" /> : null}
-                Save and continue
+                Try saving again
               </button>
             </div>
           </div>
         </div>
       ) : null}
+
     </FieldStageBusContext.Provider>
   );
 }

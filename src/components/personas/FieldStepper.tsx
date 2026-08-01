@@ -154,8 +154,18 @@ export function FieldStepper({
                     : undefined
                 }
                 onClick={(e) => {
-                  if (s.locked) e.preventDefault();
+                  e.preventDefault();
+                  if (s.locked || isActive) return;
+                  guardedGo(() => {
+                    scrollToTop();
+                    void navigate({
+                      to,
+                      params: params as never,
+                      search: activeProjectId ? { project: activeProjectId } : undefined,
+                    });
+                  });
                 }}
+
                 className={cn(
                   "group flex items-start gap-2 border-l-2 py-1 pl-2 transition-colors",
                   s.locked && "pointer-events-none cursor-not-allowed opacity-40",

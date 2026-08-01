@@ -246,7 +246,7 @@ export function StageFrame({
   );
 }
 
-}
+
 
 /** An empty state that names the one action which fills it. */
 export function EmptyAction({

@@ -3,6 +3,7 @@
 // The real-world rail. Mirrors StudioStepper's grammar but walks the stages a
 // dated field programme actually passes through.
 
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Check,
   ClipboardList,
@@ -16,7 +17,10 @@ import {
 
 import { subStepProgress } from "@/lib/personas/field-substeps";
 import type { FieldProgress } from "@/lib/personas/field-stages";
-import { cn } from "@/lib/utils";
+import { cn, scrollToTop } from "@/lib/utils";
+import { useGuardedGo } from "./field/stage-bus";
+
+const STEP_ROUTE = "/admin/countries/$code/personas/field/$step" as const;
 
 export type FieldStageKey =
   | "brief"
@@ -27,21 +31,26 @@ export type FieldStageKey =
   | "evidence";
 
 export function FieldStepper({
+  code,
   active,
+  activeProjectId,
   briefCommitted = false,
   planCommitted = false,
   progress,
 }: {
-  /** Retained for call-site compatibility; progress is intentionally non-interactive. */
-  code?: string;
+  code: string;
   active?: FieldStageKey;
-  activeProjectId?: string;
+  activeProjectId: string;
   briefCommitted?: boolean;
   planCommitted?: boolean;
   /** Live per-stage completion, so the rail always tells the truth. */
   progress?: FieldProgress;
 }) {
+  const guardedGo = useGuardedGo();
+  const navigate = useNavigate();
   const done = (k: FieldStageKey) => !!progress?.stages[k]?.complete;
+  const hasBrief = briefCommitted || done("brief");
+  const hasPlan = planCommitted || done("plan");
   const hintFor = (k: FieldStageKey, fallback: string) =>
     done(k) ? "done" : progress?.stages[k]?.blocker ? "outstanding" : fallback;
   // Micro-counter: how many screens inside this stage are already settled.
@@ -76,7 +85,7 @@ export function FieldStepper({
       sub: "AI plan",
       hint: planCommitted ? "active" : "pending",
       icon: CalendarRange,
-      locked: !briefCommitted,
+      locked: !hasBrief,
       complete: planCommitted,
     },
     {
@@ -86,7 +95,7 @@ export function FieldStepper({
       sub: "CRM",
       hint: hintFor("participants", "panels & consent"),
       icon: Users,
-      locked: !planCommitted,
+      locked: !hasPlan,
       complete: done("participants"),
     },
     {
@@ -96,7 +105,7 @@ export function FieldStepper({
       sub: "Fieldcraft",
       hint: hintFor("instruments", "surveys & guides"),
       icon: ClipboardList,
-      locked: !done("participants"),
+      locked: !hasPlan,
       complete: done("instruments"),
     },
     {
@@ -106,7 +115,7 @@ export function FieldStepper({
       sub: "Collection",
       hint: hintFor("fieldwork", "sessions & returns"),
       icon: Mic,
-      locked: !done("instruments"),
+      locked: !hasPlan,
       complete: done("fieldwork"),
     },
     {
@@ -116,7 +125,7 @@ export function FieldStepper({
       sub: "Synthesis",
       hint: hintFor("evidence", "filed to the brain"),
       icon: Library,
-      locked: !done("fieldwork"),
+      locked: !hasPlan,
       complete: done("evidence"),
     },
   ];
@@ -132,11 +141,30 @@ export function FieldStepper({
           const isActive = active === s.key;
           return (
             <li key={s.key}>
-              <div
+              <Link
+                to={STEP_ROUTE}
+                params={{ code, step: s.key }}
+                search={{ project: activeProjectId }}
                 aria-disabled={s.locked}
+                tabIndex={s.locked ? -1 : undefined}
+                onClick={(event) => {
+                  if (s.locked || isActive) {
+                    event.preventDefault();
+                    return;
+                  }
+                  event.preventDefault();
+                  guardedGo(() => {
+                    scrollToTop();
+                    void navigate({
+                      to: STEP_ROUTE,
+                      params: { code, step: s.key },
+                      search: { project: activeProjectId } as never,
+                    });
+                  });
+                }}
                 className={cn(
-                  "flex items-start gap-2 border-l-2 py-1 pl-2",
-                  s.locked && "opacity-40",
+                  "flex items-start gap-2 border-l-2 py-1 pl-2 transition-colors",
+                  s.locked ? "cursor-not-allowed opacity-40" : "cursor-pointer",
                   isActive
                     ? "border-ink-950"
                     : s.complete
@@ -181,7 +209,7 @@ export function FieldStepper({
                     {s.hint}
                   </span>
                 </span>
-              </div>
+              </Link>
             </li>
           );
         })}

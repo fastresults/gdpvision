@@ -110,18 +110,14 @@ function FieldStageBody({
               <span className="font-serif text-ink-950">Commencement briefing</span> — the full
               client-facing account of the approach, ready to send before fieldwork opens.
             </p>
-            <Link
-              to="/admin/countries/$code/personas/field/$step"
-              params={{ code, step: "briefing" }}
-              search={{ project: projectId }}
-              className={
-                (stage as string) === "briefing"
-                  ? "btn-primary inline-flex"
-                  : "btn-secondary inline-flex"
-              }
+            <button
+              type="button"
+              onClick={() => setBriefingOpen(true)}
+              className="btn-secondary inline-flex"
             >
               Open the briefing
-            </Link>
+            </button>
+
           </div>
         )}
 

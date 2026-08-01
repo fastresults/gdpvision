@@ -10,7 +10,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Check, CircleDashed, Download, FileText, Loader2, RefreshCw, Send } from "lucide-react";
+import {
+  Check,
+  CircleDashed,
+  Download,
+  FileText,
+  Loader2,
+  Printer,
+  RefreshCw,
+  Send,
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 

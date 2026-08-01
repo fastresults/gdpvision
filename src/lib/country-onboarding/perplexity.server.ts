@@ -158,8 +158,11 @@ export async function callSonar(opts: {
 /** Best-effort JSON extraction from a Sonar response (handles code fences). */
 export function parseSonarJson<T = unknown>(content: string): T | null {
   if (!content) return null;
-  const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const raw = (fenced?.[1] ?? content).trim();
+  // Reasoning models emit a <think>…</think> preamble; it is never JSON.
+  const thought = content.replace(/<think>[\s\S]*?<\/think>/gi, "").replace(/^[\s\S]*?<\/think>/i, "");
+  const body = thought.trim().length > 0 ? thought : content;
+  const fenced = body.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const raw = (fenced?.[1] ?? body).trim();
   const firstBrace = raw.indexOf("{");
   const firstBracket = raw.indexOf("[");
   const start =

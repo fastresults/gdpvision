@@ -21,6 +21,9 @@ type Db = SupabaseClient<Database>;
 
 export type IngestKind = "tabular" | "narrative";
 
+/** Answer values are serialisable by construction — they cross the RPC boundary. */
+export type AnswerValue = string | number | boolean | null | string[] | number[];
+
 export interface MappingLine {
   /** Column header (tabular) or the phrase in the document the answer came from. */
   column: string;
@@ -32,7 +35,7 @@ export interface MappingLine {
 export interface StagedRow {
   index: number;
   participant_code: string;
-  answers: Record<string, unknown>;
+  answers: Record<string, AnswerValue>;
   completeness: number;
   flags: string[];
   include: boolean;
@@ -43,7 +46,7 @@ export interface StagedNarrative {
   summary: string;
   transcript: string;
   /** Answers the moderator's notes settle against instrument questions. */
-  answers: Record<string, unknown>;
+  answers: Record<string, AnswerValue>;
   flags: string[];
 }
 
@@ -165,7 +168,7 @@ Return JSON: {"mapping":[{"column":"...","question_id":"q1"|null,"confidence":0.
 }
 
 /** Coerce a raw cell to the shape the question expects, flagging what won't fit. */
-function coerce(q: FieldQuestion | undefined, raw: string): { value: unknown; flag?: string } {
+function coerce(q: FieldQuestion | undefined, raw: string): { value: AnswerValue; flag?: string } {
   const v = raw.trim();
   if (!q) return { value: v };
   if (v === "") return { value: null };
@@ -213,7 +216,7 @@ export function stageRows(
   let flagged = 0;
 
   rows.forEach((cells, i) => {
-    const answers: Record<string, unknown> = {};
+    const answers: Record<string, AnswerValue> = {};
     const flags: string[] = [];
     headers.forEach((_, c) => {
       const line = mapping[c];

@@ -65,7 +65,7 @@ export const stageIngest = createServerFn({ method: "POST" })
         ? {
             id: inst.id as string,
             version: (inst.version as number) ?? 1,
-            questions: ((inst.questions ?? []) as unknown as FieldQuestion[]) ?? [],
+            questions: (inst.questions ?? []) as unknown as FieldQuestion[],
           }
         : null,
       storagePath: data.storagePath,

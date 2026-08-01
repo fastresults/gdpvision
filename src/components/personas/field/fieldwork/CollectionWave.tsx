@@ -75,7 +75,8 @@ export function CollectionWave({
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const complete = state.status === "complete";
 
-  const act = (fn: () => Promise<string>) =>
+  // One shape for every move on this wave: run it, say what happened, refresh.
+  const useAct = (fn: () => Promise<string>) =>
     useMutation({
       mutationFn: fn,
       onSuccess: (text) => {
@@ -84,6 +85,8 @@ export function CollectionWave({
       },
       onError: (e: Error) => setNote({ tone: "attention", text: e.message }),
     });
+  const act = useAct;
+
 
   const open = act(async () => {
     await openFn({ data: { studyId, targetN: state.wave.target ?? null } });

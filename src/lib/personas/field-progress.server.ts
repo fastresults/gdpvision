@@ -140,19 +140,40 @@ export async function computeFieldProgress(
   );
 
   // ── Instruments ─────────────────────────────────────────────────────────
+  // The plan decides what this programme must hold: a questionnaire for every
+  // quantitative line, a discussion guide for every qualitative one.
   let instrumentCount = 0;
+  let heldKinds: string[] = [];
+  let requiredKinds: string[] = [];
   if (studyId) {
-    const { count } = await supabase
-      .from("field_instruments")
-      .select("id", { count: "exact", head: true })
-      .eq("study_id", studyId);
-    instrumentCount = count ?? 0;
+    const [{ data: rows }, { data: activePlan }] = await Promise.all([
+      supabase.from("field_instruments").select("kind").eq("study_id", studyId),
+      supabase
+        .from("programme_plans")
+        .select("method_mix")
+        .eq("project_id", projectId)
+        .eq("status", "active")
+        .maybeSingle(),
+    ]);
+    heldKinds = [...new Set((rows ?? []).map((r) => r.kind as string))];
+    instrumentCount = (rows ?? []).length;
+    requiredKinds = requiredInstruments(activePlan?.method_mix).map((r) => r.kind);
   }
+  const missingKinds = requiredKinds.filter((k) => !heldKinds.includes(k));
+  const label = (k: string) => (k === "discussion_guide" ? "a discussion guide" : "a questionnaire");
   const instruments = stage(
-    instrumentCount > 0,
-    "No instrument yet — let the AI draft one from the brief and the plan.",
-    { instruments: instrumentCount },
+    requiredKinds.length > 0 && missingKinds.length === 0,
+    missingKinds.length > 0
+      ? `The plan still needs ${missingKinds.map(label).join(" and ")} — the chamber drafts them on arrival.`
+      : "No approved plan to draft instruments against.",
+    {
+      instruments: instrumentCount,
+      required: requiredKinds.length,
+      held: heldKinds.length,
+      missing: missingKinds.length,
+    },
   );
+
 
   // ── Fieldwork ───────────────────────────────────────────────────────────
   let responses = 0;

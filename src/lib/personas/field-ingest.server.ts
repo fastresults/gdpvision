@@ -520,7 +520,7 @@ export async function commitBatch(
     .from("field_sessions")
     .update({
       transcript: narrative.transcript,
-      summary: narrative.summary,
+      notes: narrative.summary,
       status: "held",
     } as never)
     .eq("id", sessionId);
@@ -542,14 +542,16 @@ export async function commitBatch(
     await ingestSessionToCorpus({
       tag,
       sessionId,
-      title: narrative.title,
-      method: "focus_group",
+      sessionTitle: narrative.title,
+      scheduledAt: null,
       transcript: narrative.transcript,
-      summary: narrative.summary,
+      notes: narrative.summary,
+      participantCodes: [],
     });
   } catch {
     /* best-effort */
   }
+
 
   return { committed: 1, message: "Session filed with its transcript and summary." };
 }

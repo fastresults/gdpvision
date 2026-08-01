@@ -387,11 +387,16 @@ Return JSON:
   "title": "instrument title",
   "intro": "what the respondent/participant is told up front, including why their input matters and how it will be used",
   "outro": "closing text",
-  "questions": [{"id":"...","type":"${QUESTION_TYPES.join("|")}","prompt":"...","help":"...","required":true,"objective_ref":1,"options":["..."],"scale_min":1,"scale_max":5,"scale_min_label":"...","scale_max_label":"...","rows":["..."]}]
+  "questions": [{"id":"...","type":"${QUESTION_TYPES.join("|")}","prompt":"...","help":"...","required":true,"objective_ref":1,"intent":"frontline_insight","options":["..."],"scale_min":1,"scale_max":5,"scale_min_label":"...","scale_max_label":"...","rows":["..."]}]
 }`;
 
   const draft = await deriveJson<DraftPayload>({ system, user, validate: isDraft });
-  const questions = normaliseQuestions(draft.questions, ctx.objectives.length);
+  const subject = (study.objective ?? study.title ?? "").toString().slice(0, 160);
+  const questions = appendFrontlineBlock(
+    normaliseQuestions(draft.questions, ctx.objectives.length),
+    kind,
+    subject,
+  );
 
   const { data: prev } = await supabase
     .from("field_instruments")

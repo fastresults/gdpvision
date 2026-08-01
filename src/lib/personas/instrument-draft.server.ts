@@ -47,6 +47,21 @@ export interface DraftPayload {
   questions: FieldQuestion[];
 }
 
+export interface InstrumentRow {
+  id: string;
+  study_id: string;
+  country_code: string;
+  kind: string;
+  title: string | null;
+  intro: string | null;
+  outro: string | null;
+  questions: FieldQuestion[];
+  version: number;
+  generated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface RequiredInstrument {
   kind: InstrumentKind;
   /** Plan method lines that resolve to this instrument. */
@@ -298,11 +313,11 @@ Return JSON:
     .select("*")
     .single();
   if (error) throw new Error(error.message);
-  return row;
+  return row as unknown as InstrumentRow;
 }
 
 /** The latest version of each instrument held against a study. */
-export async function latestInstruments(supabase: Db, studyId: string) {
+export async function latestInstruments(supabase: Db, studyId: string): Promise<InstrumentRow[]> {
   const { data, error } = await supabase
     .from("field_instruments")
     .select("*")
@@ -310,12 +325,12 @@ export async function latestInstruments(supabase: Db, studyId: string) {
     .order("version", { ascending: false });
   if (error) throw new Error(error.message);
   const seen = new Set<string>();
-  const out: Array<Record<string, unknown>> = [];
+  const out: InstrumentRow[] = [];
   for (const row of data ?? []) {
-    const kind = (row as { kind: string }).kind;
-    if (seen.has(kind)) continue;
-    seen.add(kind);
-    out.push(row as Record<string, unknown>);
+    const r = row as unknown as InstrumentRow;
+    if (seen.has(r.kind)) continue;
+    seen.add(r.kind);
+    out.push({ ...r, questions: (r.questions ?? []) as FieldQuestion[] });
   }
   return out;
 }

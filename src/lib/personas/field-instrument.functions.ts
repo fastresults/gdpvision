@@ -17,10 +17,10 @@ import {
   latestInstruments,
   loadDerivationContext,
 } from "./instrument-draft.server";
-import type { FieldQuestion, InstrumentKind } from "./instrument-draft.server";
+import type { FieldQuestion, InstrumentKind, InstrumentRow } from "./instrument-draft.server";
 
 export { QUESTION_TYPES };
-export type { FieldQuestion, InstrumentKind };
+export type { FieldQuestion, InstrumentKind, InstrumentRow };
 
 const QuestionSchema = z.object({
   id: z.string().min(1).max(60),
@@ -49,9 +49,7 @@ export const getInstruments = createServerFn({ method: "POST" })
       objectives: ctx.objectives,
       provenance: ctx.provenance,
       instruments,
-      missing: ctx.required
-        .map((r) => r.kind)
-        .filter((k) => !instruments.some((i) => (i as { kind: string }).kind === k)),
+      missing: ctx.required.map((r) => r.kind).filter((k) => !instruments.some((i) => i.kind === k)),
     };
   });
 
@@ -73,7 +71,7 @@ export const ensureInstruments = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const ctx = await loadDerivationContext(context.supabase, data.studyId);
     const existing = await latestInstruments(context.supabase, data.studyId);
-    const held = new Set(existing.map((i) => (i as { kind: string }).kind));
+    const held = new Set(existing.map((i) => i.kind));
     const wanted = (data.kind ? [data.kind] : ctx.required.map((r) => r.kind)).filter(
       (k) => !held.has(k),
     );

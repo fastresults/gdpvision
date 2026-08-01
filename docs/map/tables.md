@@ -135,6 +135,7 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `research_invitations` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
 | `research_panel_members` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
 | `research_panels` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
+| `research_recruitment_runs` | `20260801025145_e2d958be-bc2b-4098-8da7-7f2ae1c029bf.sql` | ✓ | ✓ |
 | `scenario_promotions` | `20260711205639_802eb249-2568-439e-bd40-960ca67fb9aa.sql` | ✓ | ✓ |
 | `scenarios` | `20260711205639_802eb249-2568-439e-bd40-960ca67fb9aa.sql` | ✓ | ✓ |
 | `sector_dossier_briefs` | `20260719111310_8e88bf85-9b76-4732-a836-8c13c5a6158c.sql` | ✓ | ✓ |
@@ -162,4 +163,4 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `study_transcripts` | `20260719003344_ed31c12d-9c3e-44d7-a001-0aade49f099c.sql` | ✓ | ✓ |
 | `user_roles` | `20260711204655_3293ec0b-b7a7-4fd3-b2b8-3a8c52c526e8.sql` | ✓ | ✓ |
 
-_Total tables: 154_
+_Total tables: 155_

@@ -132,6 +132,7 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `programme_milestones` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
 | `programme_phases` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
 | `programme_plans` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
+| `programme_team` | `20260801174655_ec6f50e3-c988-43aa-b608-25793f8903a4.sql` | ✓ | ✓ |
 | `reconciliation_notes` | `20260714143357_86fafa17-dcff-4baf-8e63-4c3c9ff715e3.sql` | ✓ | ✓ |
 | `research_briefs` | `20260711210806_b2663549-da57-43e6-929f-a8ca9a44f37d.sql` | ✓ | ✓ |
 | `research_contacts` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
@@ -166,4 +167,4 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `study_transcripts` | `20260719003344_ed31c12d-9c3e-44d7-a001-0aade49f099c.sql` | ✓ | ✓ |
 | `user_roles` | `20260711204655_3293ec0b-b7a7-4fd3-b2b8-3a8c52c526e8.sql` | ✓ | ✓ |
 
-_Total tables: 158_
+_Total tables: 159_

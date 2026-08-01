@@ -11,7 +11,6 @@ import { Archive, Loader2, RotateCcw, Sparkles } from "lucide-react";
 
 import { EmptyAction } from "./StageFrame";
 import { ShowTheDetail, StageWizard } from "./StageWizard";
-import { useResolveAction } from "./stage-bus";
 import { getCollection } from "@/lib/personas/field-collection.functions";
 import {
   closeProgramme,
@@ -73,19 +72,6 @@ export function EvidenceStage({
   });
 
   const live = (synth.data?.finding as Finding | undefined) ?? finding;
-
-  useResolveAction(
-    "evidence",
-    closed
-      ? null
-      : !live
-        ? {
-            label: "Synthesise the finding",
-            run: () => synth.mutate(),
-            pending: synth.isPending,
-          }
-        : { label: "Close the programme", run: () => close.mutate(), pending: close.isPending },
-  );
 
   if (!studyId) {
     return (

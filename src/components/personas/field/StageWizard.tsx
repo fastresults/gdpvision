@@ -41,6 +41,7 @@ export function StageWizard({
           label: action.action.label,
           run: action.action.onClick,
           pending: action.action.pending,
+          disabled: action.action.disabled,
         }
       : null,
   );

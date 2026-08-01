@@ -8,7 +8,7 @@ import { createFileRoute, Link, Navigate, notFound, useSearch } from "@tanstack/
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { ClipboardList, FileText, Loader2, Presentation } from "lucide-react";
+import { ClipboardList, FileText, FlaskConical, Loader2, Presentation } from "lucide-react";
 
 import { FieldStepper, type FieldStageKey } from "@/components/personas/FieldStepper";
 import { BriefingModal } from "@/components/personas/field/briefing/BriefingModal";
@@ -23,8 +23,6 @@ import { FieldStageProvider } from "@/components/personas/field/stage-bus";
 import { StageFrame } from "@/components/personas/field/StageFrame";
 import { ShowTheDetail, StageWizard } from "@/components/personas/field/StageWizard";
 
-
-import { TrackTabs } from "@/components/personas/TrackTabs";
 
 import { useDossierActions } from "@/hooks/useDossierActions";
 import { useResearchGate } from "@/hooks/useResearchGate";
@@ -139,14 +137,28 @@ function FieldStageBody({
           progress={progress}
         />
 
-        <TrackTabs
-          code={code}
-          projectId={projectId}
-          track={gate.track}
-          active="field"
-          actions={
-            gate.planCommitted ? (
-              <>
+        <div className="flex flex-wrap items-center gap-2 border-b border-line-200 pb-3">
+          <div className="mr-auto min-w-0">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+              Field programme workspace
+            </p>
+            <p className="mt-0.5 text-[12px] text-ink-700">
+              Complete the guided rail below; client outputs and internal delivery tools stay here.
+            </p>
+          </div>
+          {gate.track !== "field" ? (
+            <Link
+              to="/admin/countries/$code/personas"
+              params={{ code }}
+              search={{ project: projectId }}
+              className="btn-ghost"
+              title="Open the Synthetic Lab for this programme"
+            >
+              <FlaskConical size={13} /> Synthetic Lab
+            </Link>
+          ) : null}
+          {gate.planCommitted ? (
+            <>
                 {dossierReady ? (
                   <>
                     <SplitAction
@@ -190,10 +202,9 @@ function FieldStageBody({
                   <ClipboardList size={13} />
                   Project tracker
                 </button>
-              </>
-            ) : null
-          }
-        />
+            </>
+          ) : null}
+        </div>
 
         {dossier.error ? (
           <p className="border border-signal-negative/40 bg-signal-negative/5 px-4 py-2 text-sm text-ink-800">
@@ -244,21 +255,26 @@ function FieldStageBody({
             />
           </StageFrame>
         ) : !gate.committed && !gate.loading ? (
-          <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
-            <p className="font-serif text-lg text-ink-950">The brief comes first.</p>
-            <p className="mt-1 max-w-xl text-sm text-ink-700">
-              A field programme is planned from the brief — its questions, constraints and deadline
-              set the phases, the participants and the instruments.
-            </p>
-            <Link
-              to="/admin/countries/$code/personas/field/$step"
-              params={{ code, step: "brief" }}
-              search={{ project: projectId }}
-              className="btn-primary mt-4 inline-flex"
-            >
-              Write the brief
-            </Link>
-          </div>
+          <StageFrame
+            code={code}
+            projectId={projectId}
+            stage={stage}
+            progress={progress}
+            progressPending={progressQ.isFetching}
+            progressError={progressQ.isError ? "unreadable" : null}
+            onRetryProgress={() => void progressQ.refetch()}
+          >
+            <div className="border border-ink-950 bg-paper-50 p-6">
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Locked prerequisite</p>
+              <p className="mt-2 font-serif text-xl text-ink-950">The brief comes first.</p>
+              <p className="mt-1 max-w-xl text-sm text-ink-700">
+                Return to Stage 00 and commit the question of record before this decision can open.
+              </p>
+              <Link to="/admin/countries/$code/personas/field/$step" params={{ code, step: "brief" }} search={{ project: projectId }} className="btn-primary mt-4 inline-flex">
+                Return to the brief
+              </Link>
+            </div>
+          </StageFrame>
         ) : stage === "plan" ? (
           <StageFrame
             code={code}
@@ -272,20 +288,26 @@ function FieldStageBody({
             <PlanStage code={code} projectId={projectId} onChanged={refresh} />
           </StageFrame>
         ) : !gate.planCommitted ? (
-          <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
-            <p className="font-serif text-lg text-ink-950">Approve the programme plan first.</p>
-            <p className="mt-1 text-sm text-ink-700">
-              Participants, instruments and fieldwork are all scheduled against the approved plan.
-            </p>
-            <Link
-              to="/admin/countries/$code/personas/field/$step"
-              params={{ code, step: "plan" }}
-              search={{ project: projectId }}
-              className="btn-primary mt-4 inline-flex"
-            >
-              Open the programme plan
-            </Link>
-          </div>
+          <StageFrame
+            code={code}
+            projectId={projectId}
+            stage={stage}
+            progress={progress}
+            progressPending={progressQ.isFetching}
+            progressError={progressQ.isError ? "unreadable" : null}
+            onRetryProgress={() => void progressQ.refetch()}
+          >
+            <div className="border border-ink-950 bg-paper-50 p-6">
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Locked prerequisite</p>
+              <p className="mt-2 font-serif text-xl text-ink-950">Approve the programme first.</p>
+              <p className="mt-1 max-w-xl text-sm text-ink-700">
+                Participant recruitment, instruments and fieldwork must inherit an approved method mix and dates.
+              </p>
+              <Link to="/admin/countries/$code/personas/field/$step" params={{ code, step: "plan" }} search={{ project: projectId }} className="btn-primary mt-4 inline-flex">
+                Return to the programme
+              </Link>
+            </div>
+          </StageFrame>
         ) : (
           <StageFrame
             code={code}

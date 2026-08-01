@@ -28,7 +28,7 @@ import "@/lib/explain/personas-entries";
 import { EmptyAction } from "./StageFrame";
 import { ShowTheDetail, StageWizard } from "./StageWizard";
 import { SaveBar } from "./SaveBar";
-import { useDirtyRegistration, useResolveAction } from "./stage-bus";
+import { useDirtyRegistration } from "./stage-bus";
 import { useDirtyState } from "@/hooks/useDirtyState";
 import {
   QUESTION_TYPES,
@@ -165,19 +165,6 @@ export function InstrumentsStage({
     await save.mutateAsync();
   });
 
-  useResolveAction(
-    "instrument",
-    missing.length > 0
-      ? {
-          label: `Draft the ${missing.map((k) => (k === "discussion_guide" ? "guide" : "questionnaire")).join(" and ")}`,
-          run: () => derive.mutate(undefined),
-          pending: derive.isPending,
-        }
-      : doc.dirty
-        ? { label: "Save the instrument", run: () => save.mutate(), pending: save.isPending }
-        : null,
-  );
-
   const patch = (fn: (d: Doc) => Doc) => doc.set((prev) => fn(prev));
 
   const move = (i: number, dir: -1 | 1) =>
@@ -259,13 +246,9 @@ export function InstrumentsStage({
             </button>
           </p>
         ) : missing.length > 0 ? (
-          <button
-            type="button"
-            className="btn-primary mt-3"
-            onClick={() => derive.mutate(undefined)}
-          >
-            <Sparkles size={12} /> Draft what the plan still needs
-          </button>
+          <p className="mt-3 text-[12px] text-ink-700">
+            Use the fixed action bar below to draft what the plan still needs.
+          </p>
         ) : instruments.length > 0 ? (
           <p className="mt-3 flex items-center gap-2 text-[12px] text-emerald-700">
             <Check size={13} strokeWidth={3} /> Every instrument the plan requires is drafted.

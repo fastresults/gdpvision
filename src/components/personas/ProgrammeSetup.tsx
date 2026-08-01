@@ -11,6 +11,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, FileText, Loader2, Lock, Sparkles, Unlock } from "lucide-react";
 
 import { Explain } from "@/components/explain/Explain";
+import { ReadOut } from "@/components/personas/ScopeReadOut";
 import { createProject } from "@/lib/personas/projects.functions";
 import { fileProgrammeMaterial } from "@/lib/personas/corpus-file.functions";
 import type { ProgrammeProposal } from "@/lib/personas/project-brief.functions";
@@ -281,19 +282,3 @@ export function ProgrammeSetup({
   );
 }
 
-function ReadOut({ label, items }: { label: string; items?: string[] }) {
-  if (!items || items.length === 0) return null;
-  return (
-    <div>
-      <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-ink-500">{label}</p>
-      <ul className="mt-2 space-y-1.5">
-        {items.slice(0, 6).map((i) => (
-          <li key={i} className="text-[12.5px] leading-relaxed text-ink-700">
-            <span className="mr-2 text-ink-300">—</span>
-            {i}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}

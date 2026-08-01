@@ -2,13 +2,27 @@
 // research program. No segments, studies, or auto-run are allowed to run
 // until the admin has captured (type / dictate / upload), enriched, and
 // confirmed the brief.
+//
+// The screen is a briefing, not a form: it states what the chamber has
+// gathered, where the brief still thin, and exactly what confirming does.
 
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, ClipboardList, FileText, Loader2, Lock, Sparkles } from "lucide-react";
+import { CheckCircle2, FileText, Loader2, Sparkles } from "lucide-react";
 
 import { MultimodalInput, type WizardUpload } from "./MultimodalInput";
 import { PrettyJson } from "@/components/data/PrettyJson";
+import { Explain } from "@/components/explain/Explain";
+import { Illustration } from "@/components/marketing/Illustration";
+import intakeArt from "@/assets/illustrations/research-field.jpg";
+import {
+  CoverageRow,
+  ScopeReadOut,
+  deriveCoverage,
+  type ScopeLike,
+} from "@/components/personas/ScopeReadOut";
+import "@/lib/explain/personas-entries";
+import { cn } from "@/lib/utils";
 import {
   commitProjectBrief,
   enrichProjectBrief,
@@ -22,14 +36,11 @@ type Props = {
   onCommitted?: () => void;
 };
 
-const GUIDED_PROMPTS: { title: string; body: string }[] = [
-  { title: "Decision", body: "What decision does this research need to inform? Who will act on it?" },
-  { title: "Audience", body: "Who are we listening to — segments, geographies, roles, income bands?" },
-  { title: "Hypotheses", body: "What do you believe today, and what would falsify it?" },
-  { title: "Timeframe & scope", body: "By when do you need this? Which geographies, sectors, or channels are in scope?" },
-  { title: "Sensitivities", body: "Any political, reputational or diplomatic issues to handle carefully." },
-  { title: "Source material", body: "Attach the RFP, prior study, cabinet memo, or media clippings that seed this work." },
-];
+const BEATS = [
+  { key: "read", label: "Material read" },
+  { key: "scope", label: "Scope confirmed" },
+  { key: "open", label: "Chamber opens" },
+] as const;
 
 export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
   const qc = useQueryClient();
@@ -64,15 +75,27 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
     return () => clearTimeout(t);
   }, [projectId, text, briefSource, uploads, hydrated]);
 
-  const scope = briefQ.data?.brief_scope ?? null;
+  const scope = (briefQ.data?.brief_scope ?? null) as ScopeLike | null;
+  const typedChars = text.trim().length;
   const totalChars = useMemo(
     () =>
-      text.trim().length +
+      typedChars +
       (briefSource?.excerpt?.length ?? 0) +
       uploads.reduce((s, u) => s + (u.excerpt?.length ?? 0), 0),
-    [text, briefSource, uploads],
+    [typedChars, briefSource, uploads],
   );
   const meetsMinimum = totalChars >= 40;
+
+  const coverage = useMemo(
+    () =>
+      deriveCoverage(scope, {
+        hasBrief: !!briefSource,
+        contextCount: uploads.length,
+        typedChars,
+      }),
+    [scope, briefSource, uploads.length, typedChars],
+  );
+  const openCount = coverage.filter((c) => c.state !== "captured").length;
 
   const enrich = useMutation({
     mutationFn: async () => {
@@ -113,26 +136,109 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
     );
   }
 
+  const activeBeat: (typeof BEATS)[number]["key"] = scope ? "scope" : "read";
+  const busy = enrich.isPending || commit.isPending;
+  const blockedReason = !meetsMinimum
+    ? "Attach the source brief, or add a few more lines — 40 characters minimum."
+    : null;
+
   return (
-    <section className="space-y-5">
-      <header className="border border-ink-950 bg-paper-0 p-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1 border border-ink-950 bg-ink-950 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.2em] text-paper-0">
-            <Lock size={10} /> Stage 00 · Required
-          </span>
-          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            {code} · {briefQ.data?.title ?? "New program"}
-          </span>
+    <section className="space-y-5 pb-24">
+      {/* ── Briefing masthead ─────────────────────────────────────────── */}
+      <header className="border border-ink-950 bg-paper-0 p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-6">
+          <div className="min-w-0">
+            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
+              Stage 00 · Required · {code} · {briefQ.data?.title ?? "New programme"}
+            </p>
+            <h2 className="mt-2 font-serif text-2xl leading-tight text-ink-950 sm:text-3xl">
+              {scope
+                ? "Here is what the chamber read. Confirm it, or add what's missing."
+                : "Capture the brief before any research runs."}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-700">
+              The{" "}
+              <Explain id="research.intake.brief-precedence">source brief</Explain> governs the
+              scope; supporting context can only qualify it. Nothing casts, groups or rehearses
+              until you confirm — and confirming locks the scope, not the material: addenda can be
+              added later from the programme header.
+            </p>
+          </div>
+          <Illustration
+            src={intakeArt}
+            variant="mark"
+            className="hidden shrink-0 opacity-80 lg:block"
+          />
         </div>
-        <h2 className="mt-2 font-serif text-2xl leading-tight text-ink-950">
-          Capture the brief before any research runs
-        </h2>
-        <p className="mt-1 max-w-3xl text-sm leading-relaxed text-ink-700">
-          This is an academic and survey process. Type, dictate, or upload the source material that
-          frames the study. The AI will convert it into a structured Research Scope; nothing casts,
-          groups or rehearses until you confirm.
-        </p>
+
+        {/* Three-beat progress line */}
+        <ol className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line-200 pt-4">
+          {BEATS.map((b, i) => {
+            const done = (b.key === "read" && !!scope) || false;
+            const active = b.key === activeBeat;
+            return (
+              <li key={b.key} className="flex items-center gap-3">
+                {i > 0 && <span className="text-ink-300">→</span>}
+                <span
+                  className={cn(
+                    "flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em]",
+                    done ? "text-emerald-700" : active ? "text-ink-950" : "text-ink-300",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "grid h-4 w-4 place-items-center rounded-full border text-[8px]",
+                      done
+                        ? "border-emerald-600 bg-emerald-600 text-paper-0"
+                        : active
+                          ? "border-ink-950 bg-ink-950 text-paper-0"
+                          : "border-line-200",
+                    )}
+                  >
+                    {done ? "✓" : i + 1}
+                  </span>
+                  {b.label}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
       </header>
+
+      {/* ── What we gathered ──────────────────────────────────────────── */}
+      <section className="border border-line-200 bg-paper-50 p-4">
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+          What we have gathered
+        </p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <EvidenceTile
+            label="Source brief"
+            primary={briefSource?.name ?? "None set"}
+            detail={
+              briefSource
+                ? `${briefSource.excerpt?.length ?? 0} chars extracted · governs the scope`
+                : "Promote one document below to govern the scope."
+            }
+            strong={!!briefSource}
+          />
+          <EvidenceTile
+            label="Supporting context"
+            primary={`${uploads.length} item${uploads.length === 1 ? "" : "s"}`}
+            detail={
+              uploads.length > 0
+                ? uploads.map((u) => u.name).join(" · ")
+                : "Optional — clippings, prior studies, memos."
+            }
+            strong={uploads.length > 0}
+          />
+          <EvidenceTile
+            label="Typed or dictated"
+            primary={`${typedChars} chars`}
+            detail={`${totalChars} chars total read · autosaves`}
+            strong={typedChars > 0}
+          />
+        </div>
+      </section>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         {/* Intake rail */}
@@ -157,7 +263,7 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
                     setUploads((list) => [...list, briefSource]);
                     setBriefSource(null);
                   }}
-                  className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500 hover:text-ink-950"
+                  className="btn-ghost"
                 >
                   Demote to context
                 </button>
@@ -196,7 +302,7 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
                       });
                       setBriefSource(u);
                     }}
-                    className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500 hover:text-ink-950"
+                    className="btn-ghost"
                   >
                     Make source brief
                   </button>
@@ -204,94 +310,137 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
               ))}
             </ul>
           )}
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
-            <span className={meetsMinimum ? "text-emerald-700" : "text-amber-700"}>
-              {totalChars} chars
-            </span>{" "}
-            · minimum 40 to enrich · autosaves
-          </p>
         </div>
 
-        {/* Guided prompts */}
-        <aside className="min-w-0 space-y-3 border border-line-200 bg-paper-50 p-4">
-          <div className="flex items-center gap-2">
-            <ClipboardList size={13} className="text-ink-500" />
+        {/* Live coverage rail */}
+        <aside className="min-w-0 space-y-3 self-start border border-line-200 bg-paper-50 p-4">
+          <div className="flex items-baseline justify-between gap-2">
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-              What the AI will look for
+              <Explain id="research.intake.readout">Where we're at</Explain>
             </p>
+            <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
+              {6 - openCount}/6 captured
+            </span>
           </div>
-          <ul className="space-y-3">
-            {GUIDED_PROMPTS.map((p) => (
-              <li key={p.title}>
-                <p className="font-serif text-[13px] leading-tight text-ink-950">{p.title}</p>
-                <p className="mt-0.5 text-[12px] leading-snug text-ink-700">{p.body}</p>
-              </li>
+          <ul className="space-y-2.5">
+            {coverage.map((row) => (
+              <CoverageRow key={row.key} row={row} />
             ))}
           </ul>
+          <p className="border-t border-line-200 pt-3 text-[11px] leading-snug text-ink-500">
+            {scope
+              ? openCount === 0
+                ? "Every dimension is covered. You can confirm the scope."
+                : `${openCount} dimension${openCount === 1 ? "" : "s"} still thin — add material and re-read, or proceed and resolve them in the programme plan.`
+              : "These are read from your material once the chamber reads it."}
+          </p>
         </aside>
       </div>
 
-      {/* Enriched scope preview */}
+      {/* ── Research Scope read-out ───────────────────────────────────── */}
       {scope && (
-        <section className="border border-emerald-600/40 bg-emerald-50/40 p-4">
-          <div className="flex items-center justify-between gap-3">
+        <section className="border border-line-200 bg-paper-0 p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-200 pb-3">
             <div className="flex items-center gap-2">
               <CheckCircle2 size={14} className="text-emerald-700" />
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-emerald-800">
-                Research Scope · enriched
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950">
+                Research Scope · as read from your material
               </p>
             </div>
             <button
               type="button"
               onClick={() => enrich.mutate()}
-              disabled={enrich.isPending || !meetsMinimum}
-              className="inline-flex items-center gap-1.5 border border-emerald-700 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-emerald-800 hover:bg-emerald-700 hover:text-paper-0 disabled:opacity-40"
+              disabled={busy || !meetsMinimum}
+              className="btn-secondary disabled:opacity-40"
             >
-              {enrich.isPending ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-              Re-enrich
+              {enrich.isPending ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : (
+                <Sparkles size={11} />
+              )}
+              Re-read material
             </button>
           </div>
-          <div className="mt-3">
-            <PrettyJson value={scope as never} />
+          <div className="mt-4">
+            <ScopeReadOut scope={scope} />
           </div>
+          <details className="mt-5 border-t border-line-200 pt-3">
+            <summary className="cursor-pointer list-none font-mono text-[9px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950">
+              Machine-readable scope ▾
+            </summary>
+            <div className="mt-3">
+              <PrettyJson value={scope as never} />
+            </div>
+          </details>
         </section>
       )}
 
-      {/* Action bar */}
-      <footer className="flex flex-wrap items-center gap-3 border-t border-line-200 pt-4">
-        {!scope && (
+      {/* ── Single decisive action bar ────────────────────────────────── */}
+      <footer className="sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center gap-3 border-t border-ink-950 bg-paper-0/95 px-1 py-3 backdrop-blur supports-[backdrop-filter]:bg-paper-0/85">
+        {scope ? (
+          <button
+            type="button"
+            onClick={() => commit.mutate()}
+            disabled={busy || !meetsMinimum}
+            className="btn-primary disabled:opacity-40"
+          >
+            {commit.isPending ? (
+              <Loader2 size={12} className="animate-spin" />
+            ) : (
+              <CheckCircle2 size={12} />
+            )}
+            {commit.isPending ? "Confirming…" : "Confirm scope & open the chamber"}
+          </button>
+        ) : (
           <button
             type="button"
             onClick={() => enrich.mutate()}
-            disabled={enrich.isPending || !meetsMinimum}
-            className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-40"
+            disabled={busy || !meetsMinimum}
+            className="btn-primary disabled:opacity-40"
           >
-            {enrich.isPending ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-            {enrich.isPending ? "Enriching…" : "Enrich into Research Scope"}
+            {enrich.isPending ? (
+              <Loader2 size={12} className="animate-spin" />
+            ) : (
+              <Sparkles size={12} />
+            )}
+            {enrich.isPending ? "Reading your material…" : "Read my material"}
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => commit.mutate()}
-          disabled={commit.isPending || !scope || !meetsMinimum}
-          className="inline-flex items-center gap-1.5 border border-emerald-700 bg-emerald-700 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper-0 hover:bg-emerald-800 disabled:opacity-40"
-          title={
-            !scope
-              ? "Enrich the brief first"
-              : !meetsMinimum
-                ? "Brief too short"
-                : "Lock the brief and unlock the Cast / Group / Rehearse stages"
-          }
-        >
-          {commit.isPending ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
-          {commit.isPending ? "Committing…" : "Confirm brief & open workspace"}
-        </button>
-        <p className="text-[11px] leading-snug text-ink-500">
-          Committing locks the brief for this program. You can still add later addenda from the
-          program header.
+        <p className="max-w-xl text-[11px] leading-snug text-ink-500">
+          {blockedReason ??
+            (scope
+              ? "Confirming locks this scope for the programme and opens the next stage."
+              : "The chamber reads brief first, context second, and returns a structured scope you can edit.")}
         </p>
         {error && <p className="w-full text-[12px] text-rose-600">{error}</p>}
       </footer>
     </section>
+  );
+}
+
+function EvidenceTile({
+  label,
+  primary,
+  detail,
+  strong,
+}: {
+  label: string;
+  primary: string;
+  detail: string;
+  strong: boolean;
+}) {
+  return (
+    <div className="min-w-0 border border-line-200 bg-paper-0 p-3">
+      <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-ink-500">{label}</p>
+      <p
+        className={cn(
+          "mt-1 truncate font-serif text-[14px] leading-tight",
+          strong ? "text-ink-950" : "text-ink-300",
+        )}
+      >
+        {primary}
+      </p>
+      <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-ink-500">{detail}</p>
+    </div>
   );
 }

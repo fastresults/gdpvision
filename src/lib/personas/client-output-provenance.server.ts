@@ -25,7 +25,10 @@ function lineAfter(text: string, label: RegExp): string {
   const lines = text.split(/\r?\n/).map((line) => line.trim());
   const index = lines.findIndex((line) => label.test(line));
   if (index < 0) return "";
-  const inline = lines[index]?.replace(label, "").replace(/^\s*[:\-–—]\s*/, "").trim();
+  const inline = lines[index]
+    ?.replace(label, "")
+    .replace(/^\s*[:\-–—]\s*/, "")
+    .trim();
   if (inline) return inline;
   return lines.slice(index + 1).find((line) => line.length > 0) ?? "";
 }
@@ -67,8 +70,6 @@ export function assertClientOutputClean(value: unknown, label: string): void {
     );
   }
 }
-
-
 export function makePreflightItem(
   sectionId: string,
   source: OutputPreflightItem["source"],

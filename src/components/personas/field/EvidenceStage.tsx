@@ -257,6 +257,48 @@ export function EvidenceStage({
 
   return (
     <StageWizard
+      actions={{
+        landed: {
+          instruction:
+            "Read how much evidence the finding will rest on before you read the finding itself.",
+          outstanding: returns === 0 ? "no returns collected yet" : null,
+          doneNote: `${returns} ${returns === 1 ? "return" : "returns"} in hand`,
+        },
+        synthesise: {
+          instruction: live
+            ? "Read the finding and re-synthesise if it does not yet hold up."
+            : "Let the chamber read every return and transcript and write the finding.",
+          outstanding: !live ? "the finding has not been written yet" : null,
+          doneNote: "Finding written",
+          error: synth.isError ? (synth.error as Error).message : null,
+          action: {
+            label: live ? "Re-synthesise" : "Synthesise the finding",
+            onClick: () => synth.mutate(),
+            pending: synth.isPending,
+            disabled: returns === 0,
+            icon: <Sparkles size={12} />,
+            note: "Reads every return and writes toplines, tensions and confidence.",
+          },
+        },
+        file: {
+          instruction: "File the closing memo into this country's second brain.",
+          outstanding: !live ? "no finding to file yet" : closed ? null : "not filed yet",
+          doneNote: "Filed to the second brain",
+          error: close.isError
+            ? (close.error as Error).message
+            : reopen.isError
+              ? (reopen.error as Error).message
+              : null,
+          action: {
+            label: closed ? "Re-file the programme" : "Close the programme",
+            onClick: () => close.mutate(),
+            pending: close.isPending,
+            disabled: !live,
+            icon: <Archive size={12} />,
+            note: "Re-filing overwrites the same memo — it never leaves a second copy.",
+          },
+        },
+      }}
       panels={{
         // ── Step 1 · How much evidence is under this? ─────────────────────
         landed: (
@@ -270,12 +312,7 @@ export function EvidenceStage({
         ),
 
         // ── Step 2 · Read the finding ─────────────────────────────────────
-        synthesise: (
-          <div className="space-y-5">
-            {bar}
-            {findingView}
-          </div>
-        ),
+        synthesise: <div className="space-y-5">{findingView}</div>,
 
         // ── Step 3 · File it ──────────────────────────────────────────────
         file: (
@@ -286,11 +323,11 @@ export function EvidenceStage({
               programme can read it. Re-filing overwrites the same memo — it never leaves a second
               copy behind.
             </p>
-            {bar}
             <ShowTheDetail label="Re-read the finding before filing">{findingView}</ShowTheDetail>
           </div>
         ),
       }}
     />
   );
+
 }

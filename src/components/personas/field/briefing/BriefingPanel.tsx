@@ -91,8 +91,8 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
         <h2 className="mt-1 font-serif text-2xl text-ink-950">Commencement briefing</h2>
         <p className="mt-2 max-w-2xl text-sm text-ink-700">
           The complete, plain-language account of what is about to happen: the brief as we
-          understood it, the programme and its dates, every named participant and why they were
-          chosen, every question that will be asked, how the fieldwork will be run, and how the
+          understood it, the programme and its dates, the target personas we will hear from and why
+          they were chosen, every question that will be asked, how the fieldwork will be run, and how the
           evidence will be judged and filed. Assemble it, read it, then send it before the first
           participant is contacted.
         </p>

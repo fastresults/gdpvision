@@ -218,6 +218,7 @@ export interface BoardInvitation {
 
 export interface FieldworkBoard {
   studyId: string;
+  countryCode: string;
   waves: WaveState[];
   collection: {
     id: string;
@@ -226,10 +227,18 @@ export interface FieldworkBoard {
     public_token: string | null;
     target_n: number | null;
     instrument_id: string | null;
+    open_token: string | null;
+    open_enabled: boolean;
   } | null;
   invitations: BoardInvitation[];
   responseCount: number;
-  instruments: Array<{ id: string; kind: string; title: string | null; questions: number }>;
+  instruments: Array<{
+    id: string;
+    kind: string;
+    title: string | null;
+    questions: number;
+    questionIds: string[];
+  }>;
   slates: BoardSlate[];
   sessions: BoardSession[];
   /** Accepted, non-opted-out people on this programme who are not yet invited. */
@@ -257,7 +266,7 @@ export async function loadFieldworkBoard(
         .maybeSingle(),
       supabase
         .from("field_collections")
-        .select("id,status,access,public_token,target_n,instrument_id,mode")
+        .select("id,status,access,public_token,target_n,instrument_id,mode,open_token,open_enabled")
         .eq("study_id", studyId)
         .eq("mode", "hosted")
         .order("created_at", { ascending: false }),
@@ -488,8 +497,15 @@ export async function loadFieldworkBoard(
     };
   });
 
+  const { data: studyRow } = await supabase
+    .from("studies")
+    .select("country_code")
+    .eq("id", studyId)
+    .maybeSingle();
+
   return {
     studyId,
+    countryCode: (studyRow?.country_code as string | undefined) ?? "",
     waves: waveStates,
     collection,
     invitations,
@@ -498,7 +514,12 @@ export async function loadFieldworkBoard(
       id: i.id as string,
       kind: i.kind as string,
       title: (i.title as string | null) ?? null,
-      questions: Array.isArray(i.questions) ? (i.questions as unknown as FieldQuestion[]).length : 0,
+      questions: Array.isArray(i.questions)
+        ? (i.questions as unknown as FieldQuestion[]).length
+        : 0,
+      questionIds: Array.isArray(i.questions)
+        ? (i.questions as unknown as FieldQuestion[]).map((q) => q.id)
+        : [],
     })),
     slates,
     sessions,

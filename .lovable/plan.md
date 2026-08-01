@@ -1,43 +1,71 @@
-# Fieldwork · Offline intake (AI drop zones)
+# Fieldwork: capture anywhere, land everywhere
 
-Today Stage 04 assumes fieldwork happens inside the system: a hosted questionnaire wave collects `field_responses` via tokens, and session waves expect a transcript typed or pasted into `attachSessionTranscript`. There is no path for "we ran this survey on paper / in WhatsApp / in a room" — the only import route (`importResponses`) takes pre-structured rows and is not surfaced in the wave UI.
+Two halves of one loop. **Deploy** an instrument out of the chamber in whatever form the field actually uses, then **ingest** whatever comes back — file, transcript, spreadsheet, or paper — and have AI seat it against the right wave, the right participant, and the right question.
 
-This adds an AI-first **Offline intake** beat to every wave: drop documents, audio, photos or paste a link, and the AI reads them against that wave's instrument and turns them into structured responses or a session record.
+## Part A — Drop zones on every wave (as previously planned)
 
-## What the admin sees
+Each wave card in `FieldworkStage.tsx` gains an **Upload results** affordance alongside its existing "Next move":
 
-Each wave card in the Fieldwork Desk gains a second action next to its "Next move": **Intake results**. It opens a wave-scoped intake panel with:
+- Hosted questionnaire wave → drop CSV/XLSX exports, PDF/scans of completed forms.
+- Session waves (focus groups, depth interviews, panels) → drop audio/video, transcripts, moderator notes, DOCX/PDF.
 
-- A drop zone (files, multi-file), a "record / upload audio" option, and a paste-link field — same intake vocabulary as Chamber 07's programme ingest.
-- A live **Reading** state showing per-file extraction status.
-- A **Proposed mapping** review before anything is written:
-  - Collection waves: a table of detected respondents × instrument questions, with confidence per cell, unmatched answers flagged, and per-row accept / edit / discard.
-  - Session waves: a proposed session (title, method, date, detected participants, transcript, key moments), matched against already-scheduled sessions so an uploaded recording attaches to the right one instead of creating a duplicate.
-- Accept writes through the existing paths, then offers **Ingest to second brain** (already wired via `ingestCollection` / `ingestSessionToCorpus`).
-- An **Explain this** rationale on the mapping ("how we matched this document to your instrument").
+Files land in the existing corpus storage path, are parsed via `parse-upload.functions.ts` / `transcribe.functions.ts`, then handed to an AI mapping pass.
 
-Wave progress counts offline-intaken results the same as hosted ones, so a wave run entirely offline can be closed normally.
+## Part B — Instruments become deployable artefacts
 
-## Backend
+Stage 03 instruments are currently only renderable inside the hosted participant page (`/f/$token`). Add a **Deploy** panel to `InstrumentsStage.tsx` and to each wave, offering four channels:
 
-New `src/lib/personas/offline-intake.server.ts`:
-- `extractArtifacts()` — reuses `parseUpload` extraction (text/markdown/JSON direct, images via vision OCR, PDF/DOCX via the existing parser) plus `transcribe.functions.ts` for audio.
-- `mapToInstrument()` — AI pass grounded in the wave's instrument questions (from `instrument-draft.server.ts` / stage 03 output) and the approved plan. Returns per-respondent answer sets keyed by `question_id`, with `confidence`, `verbatim`, and `unmatched[]`. Strict Zod schema, tolerant of reasoning-model `<think>` wrappers (same hardening as the recruiter agent).
-- `mapToSession()` — AI pass producing transcript (cleaned, speaker-labelled where possible), detected attendees matched against `field_session_attendees` / accepted participants, method, date, and key moments.
+1. **Hosted link** — what exists today: tokenised per-participant invitations.
+2. **Open link** — one anonymous URL with an optional response cap and close date, for when the ministry distributes it themselves (WhatsApp, email blast, kiosk).
+3. **Printable form** — a paper questionnaire / moderator guide PDF, each question stamped with its stable question id and a form serial, so scanned returns are machine-mappable.
+4. **Export for external tooling** — CSV/XLSX column template (one column per question id, with the value legend), plus a JSON schema for teams running Qualtrics/SurveyMonkey/KoBo/Google Forms.
 
-New `src/lib/personas/offline-intake.functions.ts` (`requireSupabaseAuth`):
-- `proposeOfflineIntake` — takes `{ waveId/studyId, kind, artifacts[] }`, runs extract + map, persists a draft proposal, returns it for review. No writes to responses/sessions.
-- `commitOfflineIntake` — accepts the reviewed rows; for collection waves inserts into `field_responses` against an `offline` collection for that wave with `source: 'offline_intake'`; for session waves upserts `field_sessions` and calls the existing `attachSessionTranscript` path.
-- `discardOfflineIntake`.
+The exported column template is the contract. Anything that comes back shaped like it maps with zero AI guessing; anything else falls to the mapper below.
 
-Migration: `research_offline_intakes` (id, study_id, country_code, wave_key, kind, artifacts jsonb, proposal jsonb, status, created_by, timestamps) — with GRANTs, RLS scoped by `has_country_access`, plus a `wave_key` column on `field_collections` so offline collections bind to a wave. Uploads reuse the existing private `study-artifacts` bucket via `signUploadUrl`.
+## Part C — The ingestion mapper (the part that makes this work)
 
-## UI files
+A single server pipeline, `field-ingest.server.ts`, with a strict order of attempts:
 
-- `src/components/personas/field/fieldwork/OfflineIntakePanel.tsx` — drop zone, extraction status, proposal review, commit.
-- `src/components/personas/field/fieldwork/ResponseMappingTable.tsx` and `SessionProposalCard.tsx` — the two review shapes.
-- `CollectionWave.tsx` / `SessionWave.tsx` — add the "Intake results" action and offline counts.
-- `src/lib/personas/field-progress.server.ts` — wave completion counts offline results.
-- `src/lib/explain/personas-entries.ts` — rationale `research.fieldwork.offline-intake`.
+```text
+file → parse → classify → map → stage → review → commit
+```
 
-All buttons use the `btn-*` contract; any JSON shown renders through `<PrettyJson>`; long AI passes run per-artifact so a large drop never trips a single request timeout.
+- **Classify**: tabular (many respondents, one row each) vs. narrative (one session, many speakers).
+- **Map, tabular**: match each column to a question id — exact id, then header text similarity, then AI adjudication against the instrument's prompts. Values are coerced to each question's type (choice options, scale bounds, matrix rows); unmatched columns are kept, never dropped.
+- **Map, narrative**: AI reads the transcript against the discussion guide and answers each `moderator_prompt` / `open_text` question with the participant's own words plus a verbatim quote and a timestamp/线 offset. One `field_response` per identified speaker where speakers can be resolved, else one per session.
+- **Identity**: resolve respondents to `research_contacts` by email/phone/participant code; unknown respondents get an anonymous participant code rather than being rejected.
+- **Confidence**: every mapped cell carries a confidence and a provenance note.
+
+## Part D — Review before anything counts
+
+Nothing writes to `field_responses` until a human says so. A **Staging review** sheet shows:
+
+- A mapping table: source column/prompt → instrument question, with confidence, editable by dropdown.
+- A preview grid of the first rows / the extracted session answers.
+- Duplicate detection against existing responses (same participant + same collection).
+- Counts: N accepted, N flagged, N unmapped.
+- One **Commit to wave** action, which inserts responses, marks matching invitations completed, and re-runs wave progress.
+
+This is the discipline a real fieldwork operation needs: an import you can't audit is data you can't defend in a cabinet room.
+
+## Part E — Progress, provenance, closure
+
+- `field_responses.source` widens beyond `hosted`: `open_link`, `upload_csv`, `upload_transcript`, `paper`, `external`.
+- Wave progress counts uploaded responses identically to hosted ones, so a wave can be satisfied entirely offline.
+- Every ingested artefact is written to the second brain (`field-corpus.server.ts`) as a source document with `visibility: private`, deduped on file hash, so synthesis in Stage 05 cites the real instrument return.
+- An `<Explain>` rationale (`research.fieldwork.ingest`) states how a given response arrived and how confident the mapping was.
+
+## Recommendation from practice
+
+Three things field operations get wrong, and how this handles them:
+
+- **The instrument drifts.** Once a questionnaire leaves the system, someone edits it. So the export stamps an instrument **version**, and ingest warns loudly when returns reference a version other than the live one instead of silently merging them.
+- **Partials are data.** Never discard a half-finished return; store it with its completion rate and let synthesis weight it.
+- **Quotas beat totals.** Waves should track achieved-vs-target *by audience segment*, not just a headline N, or you finish fielding with 300 responses and no one from the group that mattered.
+
+## Technical notes
+
+- New: `src/lib/personas/field-ingest.server.ts`, `field-ingest.functions.ts`, `instrument-deploy.server.ts` (PDF/CSV/JSON generation), UI `fieldwork/UploadDropzone.tsx`, `fieldwork/IngestReviewSheet.tsx`, `field/DeployPanel.tsx`.
+- Migration: `field_ingest_batches` (file ref, wave/collection, kind, status, mapping jsonb, counts) plus GRANTs/RLS scoped by `has_country_access`; widen `field_responses.source`; add `instrument_version` and `completion_rate` to `field_responses`; add `open_token`/`response_cap` support on `field_collections` for anonymous links.
+- Public route `src/routes/api/public/field.open.$token.ts` for open-link responses, rate-limited by cap and close date, mirroring the existing token endpoint's shape.
+- AI passes reuse `deriveJson` in `field-ai.server.ts`; transcription reuses `transcribe.functions.ts`.

@@ -62,6 +62,7 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `fdi_threats` | `20260718130044_4b584a4e-1901-4886-a51d-0b9b87a12e5d.sql` | ✓ | ✓ |
 | `fdi_transition_theses` | `20260725223134_ffc96c53-1a87-4f5e-9e5f-592ae18b14be.sql` | ✓ | ✓ |
 | `field_collections` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
+| `field_ingest_batches` | `20260801113755_96230ab4-3cb6-4caf-a73c-7858305fce0b.sql` | ✓ | ✓ |
 | `field_instruments` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
 | `field_responses` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
 | `field_session_attendees` | `20260801001005_e1ea2bc4-623e-4d81-905f-ffde47694321.sql` | ✓ | ✓ |
@@ -163,4 +164,4 @@ Rows are `CREATE TABLE public.*` in the first migration that defined them.
 | `study_transcripts` | `20260719003344_ed31c12d-9c3e-44d7-a001-0aade49f099c.sql` | ✓ | ✓ |
 | `user_roles` | `20260711204655_3293ec0b-b7a7-4fd3-b2b8-3a8c52c526e8.sql` | ✓ | ✓ |
 
-_Total tables: 155_
+_Total tables: 156_

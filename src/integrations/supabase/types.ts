@@ -3139,7 +3139,10 @@ export type Database = {
           created_at: string
           id: string
           instrument_id: string | null
+          instrument_version: number | null
           mode: string
+          open_enabled: boolean
+          open_token: string | null
           opens_at: string | null
           public_token: string | null
           response_cap: number | null
@@ -3155,7 +3158,10 @@ export type Database = {
           created_at?: string
           id?: string
           instrument_id?: string | null
+          instrument_version?: number | null
           mode?: string
+          open_enabled?: boolean
+          open_token?: string | null
           opens_at?: string | null
           public_token?: string | null
           response_cap?: number | null
@@ -3171,7 +3177,10 @@ export type Database = {
           created_at?: string
           id?: string
           instrument_id?: string | null
+          instrument_version?: number | null
           mode?: string
+          open_enabled?: boolean
+          open_token?: string | null
           opens_at?: string | null
           public_token?: string | null
           response_cap?: number | null
@@ -3190,6 +3199,128 @@ export type Database = {
           },
           {
             foreignKeyName: "field_collections_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "studies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      field_ingest_batches: {
+        Row: {
+          collection_id: string | null
+          committed_at: string | null
+          committed_count: number
+          country_code: string
+          created_at: string
+          created_by: string | null
+          file_hash: string | null
+          filename: string | null
+          flagged_count: number
+          id: string
+          instrument_id: string | null
+          instrument_version: number | null
+          kind: string
+          mapped_count: number
+          mapping: Json
+          mime_type: string | null
+          notes: string | null
+          row_count: number
+          session_id: string | null
+          source: string
+          staged: Json
+          status: string
+          storage_path: string | null
+          study_id: string
+          unmapped_count: number
+          updated_at: string
+          warnings: Json
+          wave_id: string | null
+        }
+        Insert: {
+          collection_id?: string | null
+          committed_at?: string | null
+          committed_count?: number
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          file_hash?: string | null
+          filename?: string | null
+          flagged_count?: number
+          id?: string
+          instrument_id?: string | null
+          instrument_version?: number | null
+          kind?: string
+          mapped_count?: number
+          mapping?: Json
+          mime_type?: string | null
+          notes?: string | null
+          row_count?: number
+          session_id?: string | null
+          source?: string
+          staged?: Json
+          status?: string
+          storage_path?: string | null
+          study_id: string
+          unmapped_count?: number
+          updated_at?: string
+          warnings?: Json
+          wave_id?: string | null
+        }
+        Update: {
+          collection_id?: string | null
+          committed_at?: string | null
+          committed_count?: number
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          file_hash?: string | null
+          filename?: string | null
+          flagged_count?: number
+          id?: string
+          instrument_id?: string | null
+          instrument_version?: number | null
+          kind?: string
+          mapped_count?: number
+          mapping?: Json
+          mime_type?: string | null
+          notes?: string | null
+          row_count?: number
+          session_id?: string | null
+          source?: string
+          staged?: Json
+          status?: string
+          storage_path?: string | null
+          study_id?: string
+          unmapped_count?: number
+          updated_at?: string
+          warnings?: Json
+          wave_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_ingest_batches_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "field_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_ingest_batches_instrument_id_fkey"
+            columns: ["instrument_id"]
+            isOneToOne: false
+            referencedRelation: "field_instruments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_ingest_batches_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "field_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_ingest_batches_study_id_fkey"
             columns: ["study_id"]
             isOneToOne: false
             referencedRelation: "studies"
@@ -3254,10 +3385,13 @@ export type Database = {
         Row: {
           answers: Json
           collection_id: string
+          completion_rate: number | null
           country_code: string
           created_at: string
           id: string
+          ingest_batch_id: string | null
           ingested_to_corpus_at: string | null
+          instrument_version: number | null
           invitation_id: string | null
           participant_code: string
           source: string
@@ -3268,10 +3402,13 @@ export type Database = {
         Insert: {
           answers?: Json
           collection_id: string
+          completion_rate?: number | null
           country_code: string
           created_at?: string
           id?: string
+          ingest_batch_id?: string | null
           ingested_to_corpus_at?: string | null
+          instrument_version?: number | null
           invitation_id?: string | null
           participant_code: string
           source?: string
@@ -3282,10 +3419,13 @@ export type Database = {
         Update: {
           answers?: Json
           collection_id?: string
+          completion_rate?: number | null
           country_code?: string
           created_at?: string
           id?: string
+          ingest_batch_id?: string | null
           ingested_to_corpus_at?: string | null
+          instrument_version?: number | null
           invitation_id?: string | null
           participant_code?: string
           source?: string
@@ -3299,6 +3439,13 @@ export type Database = {
             columns: ["collection_id"]
             isOneToOne: false
             referencedRelation: "field_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_responses_ingest_batch_id_fkey"
+            columns: ["ingest_batch_id"]
+            isOneToOne: false
+            referencedRelation: "field_ingest_batches"
             referencedColumns: ["id"]
           },
           {

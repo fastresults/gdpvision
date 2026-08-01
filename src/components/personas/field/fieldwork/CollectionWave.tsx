@@ -10,7 +10,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { Copy, Link2, Loader2, Mail, Upload } from "lucide-react";
 import { useState } from "react";
 
+import { IngestPanel } from "./IngestPanel";
 import { WaveShell } from "./WaveShell";
+
+import { DeployPanel } from "../DeployPanel";
 
 import { useDirtyRegistration } from "../stage-bus";
 
@@ -232,9 +235,31 @@ export function CollectionWave({
             </details>
           ) : null}
 
+          <DeployPanel
+            instrumentId={
+              collection.instrument_id ??
+              board.instruments.find((i) => i.kind === "survey")?.id ??
+              null
+            }
+            collectionId={collection.id}
+            openToken={collection.open_token}
+            openEnabled={collection.open_enabled}
+            refresh={refresh}
+          />
+
+          <IngestPanel
+            studyId={studyId}
+            countryCode={board.countryCode}
+            waveId={state.wave.id}
+            collectionId={collection.id}
+            expect="tabular"
+            questionIds={board.instruments.find((i) => i.kind === "survey")?.questionIds ?? []}
+            refresh={refresh}
+          />
+
           <details className="border border-line-200">
             <summary className="cursor-pointer p-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-600">
-              Returns collected elsewhere
+              Paste returns line by line
             </summary>
             <div className="p-2">
               <p className="text-[12px] text-ink-600">

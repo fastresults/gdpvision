@@ -10,6 +10,7 @@ import { CalendarPlus, CheckCircle2, FileText, Loader2, Users } from "lucide-rea
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 
+import { IngestPanel } from "./IngestPanel";
 import { WaveShell } from "./WaveShell";
 
 import { useDirtyRegistration } from "../stage-bus";
@@ -36,6 +37,7 @@ export function SessionWave({
   const [when, setWhen] = useState("");
   const [transcriptFor, setTranscriptFor] = useState<string | null>(null);
   const [transcript, setTranscript] = useState("");
+  const [intakeFor, setIntakeFor] = useState("");
 
   const scheduleFn = useServerFn(scheduleFromSlate);
   const sessionFn = useServerFn(upsertSession);
@@ -232,6 +234,41 @@ export function SessionWave({
             ))}
           </ul>
         ) : null}
+
+        <div className="border border-line-200 bg-paper-50 p-2">
+          <label className="block">
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+              File uploaded material against
+            </span>
+            <select
+              value={intakeFor}
+              onChange={(e) => setIntakeFor(e.target.value)}
+              className="mt-1 w-full border border-line-200 bg-paper-0 p-2 text-[13px] focus:border-ink-950 focus:outline-none"
+            >
+              <option value="">A new session, named from the material</option>
+              {mine
+                .filter((s) => !s.hasTranscript)
+                .map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.title}
+                  </option>
+                ))}
+            </select>
+          </label>
+        </div>
+
+        <IngestPanel
+          key={intakeFor || "new"}
+          sessionId={intakeFor || null}
+          studyId={studyId}
+          countryCode={board.countryCode}
+          waveId={state.wave.id}
+          expect="narrative"
+          questionIds={
+            board.instruments.find((i) => i.kind === "discussion_guide")?.questionIds ?? []
+          }
+          refresh={refresh}
+        />
 
         <div className="flex flex-wrap items-end gap-2">
           <label className="flex-1">

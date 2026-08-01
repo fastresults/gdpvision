@@ -22,10 +22,18 @@ export function DeckModal({
   open,
   deck,
   onClose,
+  onRecompose,
+  recomposing = false,
+  stale = false,
 }: {
   open: boolean;
   deck: ProgrammeDeck | null;
   onClose: () => void;
+  /** Rebuild the deck from the current dossier, without leaving the viewer. */
+  onRecompose?: () => void;
+  recomposing?: boolean;
+  /** The deck no longer matches the dossier or the programme behind it. */
+  stale?: boolean;
 }) {
   const [index, setIndex] = useState(0);
   const [presenting, setPresenting] = useState(false);

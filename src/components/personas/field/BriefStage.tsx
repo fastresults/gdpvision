@@ -40,8 +40,16 @@ export function BriefStage({
 
   return (
     <StageWizard
+      actions={{
+        commit: {
+          instruction:
+            "State the one question this programme exists to answer, attach what you already hold, and commit it.",
+          outstanding: committed ? null : "the brief has not been committed",
+          doneNote: stamp ? `Committed on ${stamp}` : "Committed",
+        },
+      }}
       panels={{
-        commit: (
+
           <div className="space-y-5">
             {committed ? (
               <p className="border border-emerald-500/40 bg-emerald-500/5 p-3 text-[13px] text-ink-800">

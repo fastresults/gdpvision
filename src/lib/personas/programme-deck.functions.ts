@@ -38,10 +38,8 @@ export const assembleProgrammeDeck = createServerFn({ method: "POST" })
     if (!briefRow) throw new Error("Assemble the commencement briefing before preparing a deck.");
 
     const { assembleDeck } = await import("./programme-deck.server");
-    const { CommencementBriefingGuard } = { CommencementBriefingGuard: null } as {
-      CommencementBriefingGuard: null;
-    };
-    void CommencementBriefingGuard;
+
+
 
     const briefing = briefRow.document as unknown as Parameters<typeof assembleDeck>[0];
     if (!briefing || !Array.isArray(briefing.sections) || briefing.sections.length === 0) {

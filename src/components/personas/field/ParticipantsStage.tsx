@@ -9,7 +9,9 @@ import { Loader2, UserPlus, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { RecruitmentBoard } from "./RecruitmentBoard";
+import { useDirtyRegistration } from "./stage-bus";
 import { EmptyAction } from "./StageFrame";
+
 import {
   createPanel,
   importContacts,

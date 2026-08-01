@@ -533,7 +533,7 @@ export async function assembleBriefing(
     {
       label: "Participants recruited",
       ready: members.length > 0,
-      detail: `${members.length} named participant${members.length === 1 ? "" : "s"} across ${panelRows.length} panel${panelRows.length === 1 ? "" : "s"}.`,
+      detail: `${members.length} recruited participant${members.length === 1 ? "" : "s"} across ${panelRows.length} panel${panelRows.length === 1 ? "" : "s"}.`,
     },
     {
       label: "Instruments drafted",

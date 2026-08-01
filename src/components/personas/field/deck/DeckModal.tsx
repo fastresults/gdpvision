@@ -7,7 +7,16 @@
 // full-screen, print to PDF, or download an editable .pptx.
 
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Download, Loader2, Play, Printer, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Loader2,
+  Play,
+  Printer,
+  RefreshCw,
+  X,
+} from "lucide-react";
 
 import { PrintSurface, printSurface } from "@/components/print/PrintSurface";
 import type { ProgrammeDeck } from "@/lib/personas/programme-deck.functions";
@@ -22,10 +31,18 @@ export function DeckModal({
   open,
   deck,
   onClose,
+  onRecompose,
+  recomposing = false,
+  stale = false,
 }: {
   open: boolean;
   deck: ProgrammeDeck | null;
   onClose: () => void;
+  /** Rebuild the deck from the current dossier, without leaving the viewer. */
+  onRecompose?: () => void;
+  recomposing?: boolean;
+  /** The deck no longer matches the dossier or the programme behind it. */
+  stale?: boolean;
 }) {
   const [index, setIndex] = useState(0);
   const [presenting, setPresenting] = useState(false);
@@ -123,10 +140,27 @@ export function DeckModal({
               <div>
                 <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
                   Chamber 07 · Commencement deck · v{deck.version}
+                  {stale ? " · out of date" : ""}
                 </p>
                 <p className="mt-0.5 font-serif text-lg text-ink-950">{deck.programmeTitle}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
+                {onRecompose ? (
+                  <button
+                    type="button"
+                    onClick={onRecompose}
+                    disabled={recomposing}
+                    title="Re-compose the deck from the current dossier."
+                    className="btn-secondary inline-flex items-center gap-2"
+                  >
+                    {recomposing ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <RefreshCw size={14} className={stale ? "text-gold-500" : undefined} />
+                    )}
+                    {recomposing ? "Re-composing…" : "Re-compose"}
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={present}
@@ -135,6 +169,7 @@ export function DeckModal({
                   <Play size={14} />
                   Present
                 </button>
+
                 <button
                   type="button"
                   onClick={printDeck}

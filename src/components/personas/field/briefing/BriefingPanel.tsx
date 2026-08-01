@@ -7,7 +7,7 @@
 // instruments are on file, reads it on screen, exports it as a PDF, and
 // records that it went to the client.
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -24,18 +24,9 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-import {
-  assembleCommencementBriefing,
-  getCommencementBriefing,
-  markBriefingShared,
-  type BriefingRecord,
-} from "@/lib/personas/commencement-briefing.functions";
-import {
-  assembleProgrammeDeck,
-  getProgrammeDeck,
-  type DeckRecord,
-} from "@/lib/personas/programme-deck.functions";
+import { markBriefingShared } from "@/lib/personas/commencement-briefing.functions";
 import { printSurface } from "@/components/print/PrintSurface";
+import { useDossierActions } from "@/hooks/useDossierActions";
 
 import { DeckModal } from "../deck/DeckModal";
 import { ExportBriefingDialog } from "./ExportBriefingDialog";
@@ -58,34 +49,23 @@ function dateLabel(d: string | null): string {
 export function BriefingPanel({
   projectId,
   intent = "briefing",
+  inputsUpdatedAt = null,
 }: {
   projectId: string;
   intent?: "briefing" | "deck";
+  inputsUpdatedAt?: string | null;
 }) {
   const qc = useQueryClient();
   const [exportOpen, setExportOpen] = useState(false);
   const [printConfig, setPrintConfig] = useState<BriefingPrintConfig>(
     DEFAULT_BRIEFING_PRINT_CONFIG,
   );
-  const [error, setError] = useState<string | null>(null);
   const [active, setActive] = useState<string | null>(null);
 
-  const assembleFn = useServerFn(assembleCommencementBriefing);
   const sharedFn = useServerFn(markBriefingShared);
 
-  const briefingQ = useQuery({
-    queryKey: ["commencement-briefing", projectId],
-    queryFn: (): Promise<BriefingRecord | null> => getCommencementBriefing({ data: { projectId } }),
-  });
-
-  const assemble = useMutation({
-    mutationFn: () => assembleFn({ data: { projectId } }),
-    onSuccess: () => {
-      setError(null);
-      void qc.invalidateQueries({ queryKey: ["commencement-briefing", projectId] });
-    },
-    onError: (e: unknown) => setError(e instanceof Error ? e.message : "Could not assemble."),
-  });
+  const dossier = useDossierActions(projectId, inputsUpdatedAt);
+  const { error } = dossier;
 
   const share = useMutation({
     mutationFn: (briefingId: string) => sharedFn({ data: { briefingId } }),
@@ -94,25 +74,8 @@ export function BriefingPanel({
 
   // ── presentation deck ────────────────────────────────────────────────────
   const [deckOpen, setDeckOpen] = useState(false);
-  const deckFn = useServerFn(assembleProgrammeDeck);
 
-  const deckQ = useQuery({
-    queryKey: ["programme-deck", projectId],
-    queryFn: (): Promise<DeckRecord | null> => getProgrammeDeck({ data: { projectId } }),
-  });
-
-  const prepareDeck = useMutation({
-    mutationFn: () => deckFn({ data: { projectId } }),
-    onSuccess: (rec) => {
-      setError(null);
-      qc.setQueryData(["programme-deck", projectId], rec);
-      setDeckOpen(true);
-    },
-    onError: (e: unknown) =>
-      setError(e instanceof Error ? e.message : "Could not compose the deck."),
-  });
-
-  const record = briefingQ.data ?? null;
+  const record = dossier.briefing;
   const doc = record?.document ?? null;
   const preflightReady = doc?.preflight?.every((item) => item.ready) ?? false;
   const source = doc?.source ?? {
@@ -129,10 +92,11 @@ export function BriefingPanel({
   useEffect(() => {
     if (intent !== "deck" || jumped.current) return;
     if (!doc || !preflightReady) return;
-    if (deckQ.data?.deck.briefingVersion !== doc.version) return;
+    if (dossier.deck?.deck.briefingVersion !== doc.version) return;
     jumped.current = true;
     setDeckOpen(true);
-  }, [intent, doc, preflightReady, deckQ.data]);
+  }, [intent, doc, preflightReady, dossier.deck]);
+
 
   const runExport = (config: BriefingPrintConfig) => {
     setPrintConfig(config);
@@ -169,18 +133,18 @@ export function BriefingPanel({
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
-          onClick={() => assemble.mutate()}
-          disabled={assemble.isPending}
+          onClick={() => dossier.assembleBriefing()}
+          disabled={dossier.assembling}
           className="btn-primary inline-flex items-center gap-2"
         >
-          {assemble.isPending ? (
+          {dossier.assembling ? (
             <Loader2 size={14} className="animate-spin" />
           ) : record ? (
             <RefreshCw size={14} />
           ) : (
             <FileText size={14} />
           )}
-          {assemble.isPending
+          {dossier.assembling
             ? "Assembling the dossier…"
             : record
               ? "Re-assemble from current state"
@@ -216,28 +180,28 @@ export function BriefingPanel({
             <button
               type="button"
               onClick={() => {
-                if (deckQ.data?.deck.briefingVersion === doc.version) setDeckOpen(true);
-                else prepareDeck.mutate();
+                if (dossier.deck?.deck.briefingVersion === doc.version) setDeckOpen(true);
+                else dossier.composeDeck({ onDone: () => setDeckOpen(true) });
               }}
-              disabled={prepareDeck.isPending || !preflightReady}
+              disabled={dossier.composing || !preflightReady}
               className="btn-accent inline-flex items-center gap-2"
             >
-              {prepareDeck.isPending ? (
+              {dossier.composing ? (
                 <Loader2 size={14} className="animate-spin" />
               ) : (
                 <Presentation size={14} />
               )}
-              {prepareDeck.isPending
+              {dossier.composing
                 ? "Composing the deck…"
-                : deckQ.data
-                  ? `Open presentation deck · v${deckQ.data.version}`
+                : dossier.deck
+                  ? `Open presentation deck · v${dossier.deck.version}`
                   : "Prepare presentation deck"}
             </button>
-            {deckQ.data && (
+            {dossier.deck && (
               <button
                 type="button"
-                onClick={() => prepareDeck.mutate()}
-                disabled={prepareDeck.isPending}
+                onClick={() => dossier.composeDeck({ onDone: () => setDeckOpen(true) })}
+                disabled={dossier.composing}
                 className="btn-ghost inline-flex items-center gap-2"
               >
                 <RefreshCw size={14} />
@@ -267,9 +231,18 @@ export function BriefingPanel({
         )}
       </div>
 
-      {briefingQ.isLoading && <p className="text-sm text-ink-500">Reading the dossier…</p>}
+      {/* Whether what is on file still describes the programme as it stands. */}
+      {(dossier.briefingStaleReason || dossier.deckStaleReason) && (
+        <div className="border-l-2 border-gold-500 bg-paper-100/50 px-4 py-2 text-sm text-ink-800">
+          {dossier.briefingStaleReason && <p>Dossier · {dossier.briefingStaleReason}</p>}
+          {dossier.deckStaleReason && <p>Deck · {dossier.deckStaleReason}</p>}
+        </div>
+      )}
 
-      {!briefingQ.isLoading && !doc && (
+      {dossier.loading && <p className="text-sm text-ink-500">Reading the dossier…</p>}
+
+      {!dossier.loading && !doc && (
+
         <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
           <p className="font-serif text-lg text-ink-950">No briefing assembled yet.</p>
           <p className="mt-1 max-w-xl text-sm text-ink-700">
@@ -398,7 +371,10 @@ export function BriefingPanel({
           <PrintableBriefing briefing={doc} config={printConfig} />
           <DeckModal
             open={deckOpen}
-            deck={deckQ.data?.deck ?? null}
+            deck={dossier.deck?.deck ?? null}
+            stale={dossier.deckStale}
+            recomposing={dossier.composing}
+            onRecompose={() => dossier.composeDeck()}
             onClose={() => setDeckOpen(false)}
           />
         </>

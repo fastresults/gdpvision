@@ -12,6 +12,7 @@ import { FileText, Loader2, Presentation } from "lucide-react";
 
 import { FieldStepper, type FieldStageKey } from "@/components/personas/FieldStepper";
 import { BriefingModal } from "@/components/personas/field/briefing/BriefingModal";
+import { SplitAction } from "@/components/personas/field/briefing/SplitAction";
 import { EvidenceStage } from "@/components/personas/field/EvidenceStage";
 import { FieldworkStage } from "@/components/personas/field/FieldworkStage";
 import { InstrumentsStage } from "@/components/personas/field/InstrumentsStage";
@@ -21,6 +22,7 @@ import { StageFrame } from "@/components/personas/field/StageFrame";
 
 import { TrackTabs } from "@/components/personas/TrackTabs";
 
+import { useDossierActions } from "@/hooks/useDossierActions";
 import { useResearchGate } from "@/hooks/useResearchGate";
 import { getFieldProgress } from "@/lib/personas/field-progress.functions";
 import type { FieldProgress } from "@/lib/personas/field-stages";
@@ -103,6 +105,23 @@ function FieldStageBody({
     void qc.invalidateQueries({ queryKey: ["persona-projects", code] });
   };
 
+  // Both client-facing outputs are read and regenerated through one hook, so
+  // the row, the panel and the deck viewer never disagree about the version.
+  const dossier = useDossierActions(projectId, progress?.inputsUpdatedAt ?? null);
+
+  /** Rebuilding a dossier already sent to the client is confirmed first. */
+  const confirmIfShared = (): boolean => {
+    const rec = dossier.briefing;
+    if (!rec || rec.status !== "shared" || !rec.shared_at) return true;
+    const sent = new Date(rec.shared_at).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+    });
+    return window.confirm(
+      `This dossier was sent to the client on ${sent}. Rebuilding replaces it with a new version.`,
+    );
+  };
+
   return (
     <FieldStageProvider>
       <div className="space-y-6">
@@ -123,28 +142,48 @@ function FieldStageBody({
           actions={
             dossierReady ? (
               <>
-                <button
-                  type="button"
-                  onClick={() => openBriefing("briefing")}
+                <SplitAction
+                  label="Discovery brief"
+                  icon={<FileText size={13} />}
                   title="The full client-facing account of the approach, ready to send before fieldwork opens."
-                  className="btn-secondary inline-flex items-center gap-2"
-                >
-                  <FileText size={13} />
-                  Discovery brief
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openBriefing("deck")}
+                  regenerateTitle={
+                    dossier.briefingStaleReason ??
+                    "Re-assemble the dossier from the brief, plan, participants and instruments as they stand now."
+                  }
+                  stale={dossier.briefingStale}
+                  busy={dossier.assembling}
+                  onOpen={() => openBriefing("briefing")}
+                  onRegenerate={() => {
+                    if (!confirmIfShared()) return;
+                    dossier.assembleBriefing({ onDone: () => openBriefing("briefing") });
+                  }}
+                />
+                <SplitAction
+                  label="Presentation"
+                  icon={<Presentation size={13} />}
                   title="The same approach as an on-brand slide presentation."
-                  className="btn-secondary inline-flex items-center gap-2"
-                >
-                  <Presentation size={13} />
-                  Presentation
-                </button>
+                  regenerateTitle={
+                    dossier.deckStaleReason ??
+                    "Re-compose the deck from the current dossier."
+                  }
+                  stale={dossier.deckStale}
+                  busy={dossier.composing}
+                  onOpen={() => openBriefing("deck")}
+                  onRegenerate={() =>
+                    dossier.composeDeck({ onDone: () => openBriefing("deck") })
+                  }
+                />
               </>
             ) : null
           }
         />
+
+        {dossier.error ? (
+          <p className="border border-signal-negative/40 bg-signal-negative/5 px-4 py-2 text-sm text-ink-800">
+            {dossier.error}
+          </p>
+        ) : null}
+
 
         {(stage as string) === "briefing" ? (
           dossierReady ? (
@@ -253,6 +292,7 @@ function FieldStageBody({
           open={briefingOpen && dossierReady}
           intent={briefingIntent}
           projectId={projectId}
+          inputsUpdatedAt={progress?.inputsUpdatedAt ?? null}
           onClose={() => setBriefingOpen(false)}
         />
       </div>

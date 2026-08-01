@@ -248,11 +248,19 @@ export async function computeFieldProgress(
     { synthesised: synthesised ? 1 : 0, closed: closed ? 1 : 0 },
   );
 
+  const inputsUpdatedAt =
+    inputStamps
+      .filter((s): s is string => typeof s === "string" && s.length > 0)
+      .sort()
+      .at(-1) ?? null;
+
   return {
     studyId,
     fieldFinding,
     planActive,
     briefCommitted,
+    inputsUpdatedAt,
+
     stages: {
       brief: stage(briefCommitted, "The source brief is not committed."),
       plan: stage(planActive, "No approved programme plan yet."),

@@ -52,11 +52,10 @@ function statusOf(p: Project): {
   tone: "ok" | "run" | "draft" | "muted";
 } {
   if (p.status === "archived") return { label: "Archived", tone: "muted" };
-  if (p.has_program_memo) return { label: "Synthesized", tone: "ok" };
-  if (p.studies_total > 0 && p.studies_done < p.studies_total)
+  if (p.progress_percent >= 100) return { label: p.track === "field" ? "Complete" : "Synthesized", tone: "ok" };
+  if (p.progress_percent > 20)
     return { label: "In progress", tone: "run" };
-  if (p.studies_total === 0) return { label: "Draft", tone: "draft" };
-  return { label: "Ready", tone: "ok" };
+  return { label: "Draft", tone: "draft" };
 }
 
 type PortfolioFilter = "all" | "field" | "synthetic" | "active" | "completed";
@@ -123,6 +122,16 @@ export function ProgramsIndex({ code, portfolio = false }: { code: string; portf
     setNewTrack(track);
     setShowForm(true);
   };
+
+  if (q.isPending) {
+    return (
+      <section className="grid min-h-48 place-items-center border border-ink-950 bg-paper-0" aria-label="Loading research projects">
+        <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+          <Loader2 size={13} className="animate-spin" /> Loading research projects
+        </span>
+      </section>
+    );
+  }
 
   return (
     <section className="border border-ink-950 bg-paper-0">

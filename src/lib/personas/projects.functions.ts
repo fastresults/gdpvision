@@ -72,15 +72,18 @@ export const listProjects = createServerFn({ method: "POST" })
     }
     for (const instrument of instruments ?? []) {
       const projectId = projectByStudy.get(instrument.study_id as string);
-      if (projectId) perProject.get(projectId)!.instruments += 1;
+      const project = projectId ? perProject.get(projectId) : undefined;
+      if (project) project.instruments += 1;
     }
     for (const session of sessions ?? []) {
       const projectId = projectByStudy.get(session.study_id as string);
-      if (projectId) perProject.get(projectId)!.sessions += 1;
+      const project = projectId ? perProject.get(projectId) : undefined;
+      if (project) project.sessions += 1;
     }
     for (const report of reports ?? []) {
       const projectId = projectByStudy.get(report.study_id as string);
-      if (projectId) perProject.get(projectId)!.reports += 1;
+      const project = projectId ? perProject.get(projectId) : undefined;
+      if (project) project.reports += 1;
     }
 
     return list.map((p) => {

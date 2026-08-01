@@ -360,6 +360,13 @@ ${
 
 Every objective listed must be covered by at least one question. Tag each question with "objective_ref": the 1-based number of the objective it serves.
 
+MANDATORY CLOSING BLOCK — "frontline insight". After the objective-led questions, and always last, write a short block that goes beyond the brief. The people answering are the ones actually touching this work: they are the single best source of where it breaks, what they already do to get around it, and what should be invented or refined. Word every prompt in this block around THIS study's actual subject matter — never generic phrasing. Tag each of these questions with "intent": "frontline_insight" and give them NO "objective_ref".
+${
+  isGuide
+    ? `For the guide: 3–4 "moderator_prompt" items forming a named closing segment — the friction probe, the informal-workaround probe, the one-thing-you-would-change round, and a referral probe asking who is closer to the work than anyone in the room.`
+    : `For the questionnaire: exactly 3 items — an "open_text" friction question, an "open_text" one-change-and-what-improves question, and a 1–5 "scale" asking how confident they are that their change would work (so the ideas can be ranked, not merely collected). None of them required.`
+}
+
 Question ids must be short, lowercase, snake_case and unique. Scale questions must set scale_min, scale_max and both labels. Choice questions must have real, mutually exclusive options.`;
 
   const user = `${ctx.briefBlock}

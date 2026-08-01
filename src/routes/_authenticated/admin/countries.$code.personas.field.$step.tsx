@@ -12,7 +12,7 @@ import { CalendarRange, ClipboardList, Library, Loader2, Mic, Users } from "luci
 
 import { FieldStepper, type FieldStageKey } from "@/components/personas/FieldStepper";
 import { TrackTabs } from "@/components/personas/TrackTabs";
-import { PrettyJson } from "@/components/data/PrettyJson";
+
 import { useResearchGate } from "@/hooks/useResearchGate";
 import {
   commitProgrammePlan,

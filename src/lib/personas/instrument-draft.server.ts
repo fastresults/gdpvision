@@ -38,7 +38,15 @@ export interface FieldQuestion {
   rows?: string[];
   /** 1-based index into the plan's objectives this question serves. */
   objective_ref?: number;
+  /**
+   * Why this question exists when it does not serve a stated objective.
+   * "frontline_insight" marks the standing block that asks stakeholders where
+   * the work breaks and what they would change — invention only they can name.
+   */
+  intent?: "frontline_insight";
 }
+
+export const FRONTLINE_INTENT = "frontline_insight" as const;
 
 export interface DraftPayload {
   title: string;

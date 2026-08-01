@@ -3,7 +3,7 @@
 // The real-world rail. Mirrors StudioStepper's grammar but walks the stages a
 // dated field programme actually passes through.
 
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Check,
   ClipboardList,
@@ -47,6 +47,7 @@ export function FieldStepper({
   progress?: FieldProgress;
 }) {
   const guardedGo = useGuardedGo();
+  const navigate = useNavigate();
   const done = (k: FieldStageKey) => !!progress?.stages[k]?.complete;
   const hintFor = (k: FieldStageKey, fallback: string) =>
     done(k) ? "done" : progress?.stages[k]?.blocker ? "outstanding" : fallback;
@@ -150,11 +151,13 @@ export function FieldStepper({
                     return;
                   }
                   event.preventDefault();
-                  const href = event.currentTarget.href;
                   guardedGo(() => {
                     scrollToTop();
-                    window.history.pushState({}, "", href);
-                    window.dispatchEvent(new PopStateEvent("popstate"));
+                    void navigate({
+                      to: STEP_ROUTE,
+                      params: { code, step: s.key },
+                      search: { project: activeProjectId } as never,
+                    });
                   });
                 }}
                 className={cn(

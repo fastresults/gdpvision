@@ -16,6 +16,7 @@ import {
   Download,
   FileText,
   Loader2,
+  Presentation,
   Printer,
   RefreshCw,
   Send,
@@ -29,13 +30,20 @@ import {
   markBriefingShared,
   type BriefingRecord,
 } from "@/lib/personas/commencement-briefing.functions";
+import {
+  assembleProgrammeDeck,
+  getProgrammeDeck,
+  type DeckRecord,
+} from "@/lib/personas/programme-deck.functions";
 
+import { DeckModal } from "../deck/DeckModal";
 import { ExportBriefingDialog } from "./ExportBriefingDialog";
 import {
   DEFAULT_BRIEFING_PRINT_CONFIG,
   PrintableBriefing,
   type BriefingPrintConfig,
 } from "./PrintableBriefing";
+
 
 function dateLabel(d: string | null): string {
   if (!d) return "—";

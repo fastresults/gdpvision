@@ -6,6 +6,7 @@
 import { Link } from "@tanstack/react-router";
 import { Check, ClipboardList, FileText, Lock, Mic, Users, CalendarRange, Library } from "lucide-react";
 
+import type { FieldProgress } from "@/lib/personas/field-stages";
 import { cn } from "@/lib/utils";
 
 export type FieldStageKey = "brief" | "plan" | "participants" | "instruments" | "fieldwork" | "evidence";
@@ -18,13 +19,20 @@ export function FieldStepper({
   activeProjectId,
   briefCommitted = false,
   planCommitted = false,
+  progress,
 }: {
   code: string;
   active?: FieldStageKey;
   activeProjectId?: string;
   briefCommitted?: boolean;
   planCommitted?: boolean;
+  /** Live per-stage completion, so the rail always tells the truth. */
+  progress?: FieldProgress;
 }) {
+  const done = (k: FieldStageKey) => !!progress?.stages[k]?.complete;
+  const hintFor = (k: FieldStageKey, fallback: string) =>
+    done(k) ? "done" : (progress?.stages[k]?.blocker ? "outstanding" : fallback);
+
   const nodes: Array<{
     key: FieldStageKey;
     n: number;
@@ -37,11 +45,12 @@ export function FieldStepper({
   }> = [
     { key: "brief", n: 0, label: "Brief", sub: "Intake", hint: briefCommitted ? "committed" : "required", icon: FileText, complete: briefCommitted },
     { key: "plan", n: 1, label: "Programme", sub: "AI plan", hint: planCommitted ? "active" : "pending", icon: CalendarRange, locked: !briefCommitted, complete: planCommitted },
-    { key: "participants", n: 2, label: "Participants", sub: "CRM", hint: "panels & consent", icon: Users, locked: !planCommitted },
-    { key: "instruments", n: 3, label: "Instruments", sub: "Fieldcraft", hint: "surveys & guides", icon: ClipboardList, locked: !planCommitted },
-    { key: "fieldwork", n: 4, label: "Fieldwork", sub: "Collection", hint: "sessions & returns", icon: Mic, locked: !planCommitted },
-    { key: "evidence", n: 5, label: "Evidence", sub: "Synthesis", hint: "filed to the brain", icon: Library, locked: !planCommitted },
+    { key: "participants", n: 2, label: "Participants", sub: "CRM", hint: hintFor("participants", "panels & consent"), icon: Users, locked: !planCommitted, complete: done("participants") },
+    { key: "instruments", n: 3, label: "Instruments", sub: "Fieldcraft", hint: hintFor("instruments", "surveys & guides"), icon: ClipboardList, locked: !planCommitted, complete: done("instruments") },
+    { key: "fieldwork", n: 4, label: "Fieldwork", sub: "Collection", hint: hintFor("fieldwork", "sessions & returns"), icon: Mic, locked: !planCommitted, complete: done("fieldwork") },
+    { key: "evidence", n: 5, label: "Evidence", sub: "Synthesis", hint: hintFor("evidence", "filed to the brain"), icon: Library, locked: !planCommitted, complete: done("evidence") },
   ];
+
 
   return (
     <nav

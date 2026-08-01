@@ -102,15 +102,11 @@ export function StageFrame({
     (target: FieldStageKey) => {
       guardedGo(() => {
         scrollToTop();
-        if (target === "brief") {
-          void navigate({ to: DOOR_ROUTE, params: { code }, search: { project: projectId } });
-        } else {
-          void navigate({
-            to: STEP_ROUTE,
-            params: { code, step: target },
-            search: { project: projectId } as never,
-          });
-        }
+        void navigate({
+          to: STEP_ROUTE,
+          params: { code, step: target },
+          search: { project: projectId } as never,
+        });
       });
     },
     [code, guardedGo, navigate, projectId],
@@ -333,7 +329,14 @@ export function StageFrame({
                     onClick={(e) => {
                       if (hasDirty) {
                         e.preventDefault();
-                        goStage("brief");
+                        guardedGo(() => {
+                          scrollToTop();
+                          void navigate({
+                            to: DOOR_ROUTE,
+                            params: { code },
+                            search: { project: projectId },
+                          });
+                        });
                       }
                     }}
                   >

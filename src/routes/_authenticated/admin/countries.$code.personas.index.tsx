@@ -141,12 +141,14 @@ function PersonasIndex() {
     );
   }
 
-  // Field-only programme: the synthetic rail has nothing to show.
+  // Field-only programme: enter the field rail at its first-class Brief stage.
+  // A committed brief remains available for review and amendment; the rail
+  // never skips it by redirecting straight to Programme.
   if (activeProjectId && !gate.rails.synthetic && gate.committed) {
     return (
       <Navigate
         to="/admin/countries/$code/personas/field/$step"
-        params={{ code, step: "plan" }}
+        params={{ code, step: "brief" }}
         search={{ project: activeProjectId }}
       />
     );

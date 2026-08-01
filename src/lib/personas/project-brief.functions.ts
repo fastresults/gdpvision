@@ -288,21 +288,29 @@ export const proposeProgrammeFromMaterial = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => ProposeInput.parse(d))
   .handler(async ({ data }) => {
     const raw = (data.raw ?? "").trim();
-    const uploadBlock = (data.uploads ?? [])
+    const briefText =
+      data.brief?.excerpt && data.brief.excerpt.trim().length > 0
+        ? `[GOVERNING BRIEF: ${data.brief.name} (${data.brief.mime})]\n${data.brief.excerpt}`
+        : "";
+    const contextBlock = [...(data.context ?? []), ...(data.uploads ?? [])]
       .filter((u) => u.excerpt && u.excerpt.trim().length > 0)
-      .map((u) => `\n\n[SOURCE: ${u.name} (${u.mime})]\n${u.excerpt}`)
+      .map((u) => `\n\n[SUPPORTING CONTEXT: ${u.name} (${u.mime})]\n${u.excerpt}`)
       .join("");
-    const combined = `${raw}${uploadBlock}`.trim().slice(0, 30_000);
+    const combined = `${briefText}${raw ? `\n\n[PRINCIPAL'S OWN WORDS]\n${raw}` : ""}${contextBlock}`
+      .trim()
+      .slice(0, 30_000);
     if (combined.length < 40) {
       throw new Error("Add material first — type a line, dictate, drop a document or paste a link.");
     }
 
     const system =
-      "You are a McKinsey engagement partner scoping a sovereign research programme for a national government. You read whatever material the client gives you — an RFP, a cabinet memo, a news article, a dictated note — and return the programme it implies. Return strict JSON only.";
+      "You are a McKinsey engagement partner scoping a sovereign research programme for a national government. The client gives you ONE governing brief plus supporting context. The governing brief and the principal's own words decide the objectives, decisions, timeframe and geography; supporting context may only enrich, illustrate or qualify them — never override them. Where context contradicts the brief, keep the brief and raise the contradiction as an open question. Return strict JSON only.";
     const user = `Country: ${data.countryCode}
 
-MATERIAL SUPPLIED BY THE CLIENT (typed, dictated, uploaded or scraped from a link):
+MATERIAL SUPPLIED BY THE CLIENT — the governing brief takes precedence over supporting context:
 ${combined}
+
+
 
 Two instruments are available:
 - "synthetic": AI casts a synthetic public from the national corpus and rehearses the conversation. Minutes. Directional, not defensible.

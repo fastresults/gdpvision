@@ -376,7 +376,6 @@ export const researchCandidates = createServerFn({ method: "POST" })
       });
     }
 
-
     try {
       if (pass <= MAX_EXTRACT_PASSES) {
         const start = (pass - 1) * REGISTRY_BATCH;

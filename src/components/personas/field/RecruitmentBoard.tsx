@@ -118,7 +118,10 @@ export function RecruitmentBoard({
   };
 
   const frame = (stateQ.data?.frame ?? null) as Frame | null;
-  const people = (stateQ.data?.people ?? []) as unknown as Person[];
+  const people = useMemo(
+    () => (stateQ.data?.people ?? []) as unknown as Person[],
+    [stateQ.data?.people],
+  );
   const panels = stateQ.data?.panels ?? [];
 
   const byPersona = useMemo(() => {
@@ -189,7 +192,6 @@ export function RecruitmentBoard({
     },
     onSuccess: () => refresh(),
   });
-
 
   const accept = useMutation({
     mutationFn: (args: { ids?: string[]; personaLabel?: string; all?: boolean }) =>

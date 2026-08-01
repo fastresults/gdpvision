@@ -20,6 +20,8 @@ import { InstrumentsStage } from "@/components/personas/field/InstrumentsStage";
 import { ParticipantsStage } from "@/components/personas/field/ParticipantsStage";
 import { FieldStageProvider } from "@/components/personas/field/stage-bus";
 import { StageFrame } from "@/components/personas/field/StageFrame";
+import { ShowTheDetail, StageWizard } from "@/components/personas/field/StageWizard";
+
 
 import { TrackTabs } from "@/components/personas/TrackTabs";
 

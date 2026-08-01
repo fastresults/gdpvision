@@ -18,7 +18,13 @@ import {
 } from "@/lib/personas/commencement-briefing.functions";
 import { browserPublicOrigin, dossierLink } from "@/lib/personas/public-origin";
 
-export function ShareLinkBar({ briefingId, canPublish }: { briefingId: string; canPublish: boolean }) {
+export function ShareLinkBar({
+  briefingId,
+  canPublish,
+}: {
+  briefingId: string;
+  canPublish: boolean;
+}) {
   const qc = useQueryClient();
   const readFn = useServerFn(getDossierShare);
   const writeFn = useServerFn(setDossierShare);
@@ -83,11 +89,7 @@ export function ShareLinkBar({ briefingId, canPublish }: { briefingId: string; c
               className="btn-primary inline-flex items-center gap-2"
               title={canPublish ? undefined : "The dossier must pass its provenance check first."}
             >
-              {m.isPending ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Link2 size={14} />
-              )}
+              {m.isPending ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}
               Create client link
             </button>
           ) : (
@@ -121,7 +123,11 @@ export function ShareLinkBar({ briefingId, canPublish }: { briefingId: string; c
             onFocus={(e) => e.currentTarget.select()}
             className="min-w-0 flex-1 border border-line-200 bg-paper-50 px-3 py-2 font-mono text-[12px] text-ink-800"
           />
-          <button type="button" onClick={() => void copy()} className="btn-secondary inline-flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void copy()}
+            className="btn-secondary inline-flex items-center gap-2"
+          >
             {copied ? <Check size={14} /> : <Copy size={14} />}
             {copied ? "Copied" : "Copy"}
           </button>

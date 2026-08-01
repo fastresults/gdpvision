@@ -102,15 +102,11 @@ export function StageFrame({
     (target: FieldStageKey) => {
       guardedGo(() => {
         scrollToTop();
-        if (target === "brief") {
-          void navigate({ to: DOOR_ROUTE, params: { code }, search: { project: projectId } });
-        } else {
-          void navigate({
-            to: STEP_ROUTE,
-            params: { code, step: target },
-            search: { project: projectId } as never,
-          });
-        }
+        void navigate({
+          to: STEP_ROUTE,
+          params: { code, step: target },
+          search: { project: projectId } as never,
+        });
       });
     },
     [code, guardedGo, navigate, projectId],
@@ -130,6 +126,17 @@ export function StageFrame({
     },
     [code, guardedGo, navigate, projectId, stage],
   );
+
+  const goDoor = useCallback(() => {
+    guardedGo(() => {
+      scrollToTop();
+      void navigate({
+        to: DOOR_ROUTE,
+        params: { code },
+        search: { project: projectId },
+      });
+    });
+  }, [code, guardedGo, navigate, projectId]);
 
   const nav = useMemo(
     () => ({ stage, steps, index, current, goTo: goSub, isDone }),
@@ -162,7 +169,7 @@ export function StageFrame({
       return;
     }
     if (next) goStage(next);
-    else goStage("brief");
+    else goDoor();
   };
 
   return (
@@ -333,7 +340,7 @@ export function StageFrame({
                     onClick={(e) => {
                       if (hasDirty) {
                         e.preventDefault();
-                        goStage("brief");
+                        goDoor();
                       }
                     }}
                   >

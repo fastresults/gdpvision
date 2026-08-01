@@ -208,7 +208,7 @@ function PersonasLayout() {
           {activeProjectId && fieldRail && (
             <Link
               to="/admin/countries/$code/personas/field/$step"
-              params={{ code, step: "plan" }}
+              params={{ code, step: "brief" }}
               search={{ project: activeProjectId }}
               className="block border border-line-200 p-3 hover:border-ink-950"
             >
@@ -219,7 +219,7 @@ function PersonasLayout() {
                 Ask the real public
               </p>
               <p className="mt-1 text-[11px] leading-snug text-ink-500">
-                Plan, participants, instruments, fieldwork, evidence.
+                Brief, plan, participants, instruments, fieldwork, evidence.
               </p>
             </Link>
           )}

@@ -52,7 +52,7 @@ export function TrackTabs({
       caption: "Weeks · citable",
       enabled: rails.field,
       to: "/admin/countries/$code/personas/field/$step" as const,
-      params: { code, step: "plan" },
+      params: { code, step: "brief" },
     },
   ];
 

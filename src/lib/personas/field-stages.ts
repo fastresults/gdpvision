@@ -19,10 +19,8 @@ export const FIELD_STAGES = [
 
 export type FieldStageKey = (typeof FIELD_STAGES)[number];
 
-/** Stages that live on /personas/field/$step (brief lives at the chamber door). */
-export const FIELD_WORK_STAGES = FIELD_STAGES.slice(1) as ReadonlyArray<
-  Exclude<FieldStageKey, "brief">
->;
+/** Every stage, including Brief, lives on /personas/field/$step. */
+export const FIELD_WORK_STAGES: ReadonlyArray<FieldStageKey> = FIELD_STAGES;
 
 export interface FieldStageSpec {
   key: FieldStageKey;

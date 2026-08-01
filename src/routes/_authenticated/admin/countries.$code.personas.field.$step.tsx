@@ -217,7 +217,7 @@ function PlanStage({ code, projectId }: { code: string; projectId: string }) {
             <div className="border border-line-200 bg-paper-0 p-4">
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Why this shape</p>
               <div className="mt-2">
-                <PrettyJson value={plan.rationale} />
+                <PrettyJson value={plan.rationale as never} />
               </div>
             </div>
           ) : null}

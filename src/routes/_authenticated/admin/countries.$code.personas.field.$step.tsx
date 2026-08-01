@@ -178,9 +178,10 @@ function FieldStageBody({
           )}
         </StageFrame>
       )}
-
-    </div>
+      </div>
+    </FieldStageProvider>
   );
+
 }
 
 function PlanStage({

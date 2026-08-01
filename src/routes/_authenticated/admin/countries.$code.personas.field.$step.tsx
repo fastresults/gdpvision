@@ -8,12 +8,19 @@ import { createFileRoute, Link, Navigate, notFound, useSearch } from "@tanstack/
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { CalendarRange, ClipboardList, Library, Loader2, Mic, Users } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { FieldStepper, type FieldStageKey } from "@/components/personas/FieldStepper";
+import { EvidenceStage } from "@/components/personas/field/EvidenceStage";
+import { FieldworkStage } from "@/components/personas/field/FieldworkStage";
+import { InstrumentsStage } from "@/components/personas/field/InstrumentsStage";
+import { ParticipantsStage } from "@/components/personas/field/ParticipantsStage";
+import { StageFrame } from "@/components/personas/field/StageFrame";
 import { TrackTabs } from "@/components/personas/TrackTabs";
 
 import { useResearchGate } from "@/hooks/useResearchGate";
+import { getFieldProgress } from "@/lib/personas/field-progress.functions";
+import type { FieldProgress } from "@/lib/personas/field-stages";
 import {
   commitProgrammePlan,
   deriveProgrammePlan,
@@ -39,14 +46,42 @@ function FieldStagePage() {
   if (!STEPS.includes(step as FieldStageKey)) throw notFound();
   const stage = step as FieldStageKey;
   const search = useSearch({ strict: false }) as { project?: string };
-  const projectId = typeof search.project === "string" && search.project ? search.project : undefined;
+  const projectId =
+    typeof search.project === "string" && search.project ? search.project : undefined;
   const gate = useResearchGate(code, projectId);
 
   if (!projectId) {
-    return (
-      <Navigate to="/admin/countries/$code/personas" params={{ code }} />
-    );
+    return <Navigate to="/admin/countries/$code/personas" params={{ code }} />;
   }
+
+  return <FieldStageBody code={code} projectId={projectId} stage={stage} gate={gate} />;
+}
+
+function FieldStageBody({
+  code,
+  projectId,
+  stage,
+  gate,
+}: {
+  code: string;
+  projectId: string;
+  stage: FieldStageKey;
+  gate: ReturnType<typeof useResearchGate>;
+}) {
+  const qc = useQueryClient();
+
+  // One read drives the rail, the "done when" test and the next action.
+  const progressQ = useQuery({
+    queryKey: ["field-progress", projectId],
+    queryFn: (): Promise<FieldProgress> => getFieldProgress({ data: { projectId } }),
+    enabled: gate.planCommitted,
+  });
+  const progress = progressQ.data;
+  const studyId = progress?.studyId ?? null;
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: ["field-progress", projectId] });
+    void qc.invalidateQueries({ queryKey: ["persona-projects", code] });
+  };
 
   return (
     <div className="space-y-6">
@@ -56,6 +91,7 @@ function FieldStagePage() {
         activeProjectId={projectId}
         briefCommitted={gate.committed}
         planCommitted={gate.planCommitted}
+        progress={progress}
       />
 
       <TrackTabs code={code} projectId={projectId} track={gate.track} active="field" />
@@ -64,8 +100,8 @@ function FieldStagePage() {
         <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
           <p className="font-serif text-lg text-ink-950">The brief comes first.</p>
           <p className="mt-1 max-w-xl text-sm text-ink-700">
-            A field programme is planned from the brief — its questions, constraints and deadline set
-            the phases, the participants and the instruments.
+            A field programme is planned from the brief — its questions, constraints and deadline
+            set the phases, the participants and the instruments.
           </p>
           <Link
             to="/admin/countries/$code/personas"
@@ -77,10 +113,10 @@ function FieldStagePage() {
           </Link>
         </div>
       ) : stage === "plan" ? (
-        <PlanStage code={code} projectId={projectId} />
-      ) : gate.planCommitted ? (
-        <StagePlaceholder stage={stage} />
-      ) : (
+        <StageFrame code={code} projectId={projectId} stage="plan" progress={progress}>
+          <PlanStage code={code} projectId={projectId} onChanged={refresh} />
+        </StageFrame>
+      ) : !gate.planCommitted ? (
         <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
           <p className="font-serif text-lg text-ink-950">Approve the programme plan first.</p>
           <p className="mt-1 text-sm text-ink-700">
@@ -95,12 +131,44 @@ function FieldStagePage() {
             Open the programme plan
           </Link>
         </div>
+      ) : (
+        <StageFrame code={code} projectId={projectId} stage={stage} progress={progress}>
+          {progressQ.isLoading ? (
+            <p className="text-sm text-ink-500">Reading the programme…</p>
+          ) : stage === "participants" ? (
+            <ParticipantsStage code={code} projectId={projectId} onChanged={refresh} />
+          ) : stage === "instruments" ? (
+            <InstrumentsStage studyId={studyId} onChanged={refresh} />
+          ) : stage === "fieldwork" ? (
+            <FieldworkStage
+              code={code}
+              projectId={projectId}
+              studyId={studyId}
+              onChanged={refresh}
+            />
+          ) : (
+            <EvidenceStage
+              projectId={projectId}
+              studyId={studyId}
+              finding={progress?.fieldFinding ?? null}
+              onChanged={refresh}
+            />
+          )}
+        </StageFrame>
       )}
     </div>
   );
 }
 
-function PlanStage({ code, projectId }: { code: string; projectId: string }) {
+function PlanStage({
+  code,
+  projectId,
+  onChanged,
+}: {
+  code: string;
+  projectId: string;
+  onChanged: () => void;
+}) {
   const qc = useQueryClient();
   const [steering, setSteering] = useState("");
   const deriveFn = useServerFn(deriveProgrammePlan);
@@ -112,8 +180,7 @@ function PlanStage({ code, projectId }: { code: string; projectId: string }) {
   });
 
   const derive = useMutation({
-    mutationFn: () =>
-      deriveFn({ data: { projectId, steering: steering.trim() || null } }),
+    mutationFn: () => deriveFn({ data: { projectId, steering: steering.trim() || null } }),
     onSuccess: () => {
       setSteering("");
       void qc.invalidateQueries({ queryKey: ["programme-plan", projectId] });
@@ -124,6 +191,7 @@ function PlanStage({ code, projectId }: { code: string; projectId: string }) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["programme-plan", projectId] });
       void qc.invalidateQueries({ queryKey: ["persona-projects", code] });
+      onChanged();
     },
   });
 
@@ -145,17 +213,6 @@ function PlanStage({ code, projectId }: { code: string; projectId: string }) {
 
   return (
     <section className="space-y-5">
-      <header>
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Stage 01 · Programme plan
-        </p>
-        <h2 className="mt-1 font-serif text-2xl text-ink-950">A dated programme, derived from the brief</h2>
-        <p className="mt-1 max-w-2xl text-sm text-ink-700">
-          The AI reads the brief and proposes the phases, milestones, deliverables and method mix this
-          question actually needs — nothing templated. Steer it, redraft, then approve.
-        </p>
-      </header>
-
       <div className="border border-line-200 bg-paper-0 p-4">
         <label className="block">
           <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
@@ -170,7 +227,12 @@ function PlanStage({ code, projectId }: { code: string; projectId: string }) {
           />
         </label>
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <button type="button" onClick={() => derive.mutate()} disabled={derive.isPending} className="btn-primary">
+          <button
+            type="button"
+            onClick={() => derive.mutate()}
+            disabled={derive.isPending}
+            className="btn-primary"
+          >
             {derive.isPending ? (
               <>
                 <Loader2 size={11} className="animate-spin" /> Drafting…
@@ -197,8 +259,12 @@ function PlanStage({ code, projectId }: { code: string; projectId: string }) {
             </span>
           )}
         </div>
-        {derive.isError && <p className="mt-2 text-[11px] text-rose-600">{(derive.error as Error).message}</p>}
-        {commit.isError && <p className="mt-2 text-[11px] text-rose-600">{(commit.error as Error).message}</p>}
+        {derive.isError && (
+          <p className="mt-2 text-[11px] text-rose-600">{(derive.error as Error).message}</p>
+        )}
+        {commit.isError && (
+          <p className="mt-2 text-[11px] text-rose-600">{(commit.error as Error).message}</p>
+        )}
       </div>
 
       {planQ.isLoading ? (
@@ -297,9 +363,7 @@ function PhaseList({
                       {String(m.due_on ?? "—")}
                     </span>{" "}
                     · {String(m.title ?? "Milestone")}
-                    {m.owner ? (
-                      <span className="text-ink-500"> — {String(m.owner)}</span>
-                    ) : null}
+                    {m.owner ? <span className="text-ink-500"> — {String(m.owner)}</span> : null}
                     {m.detail ? (
                       <span className="block text-[12px] text-ink-600">{String(m.detail)}</span>
                     ) : null}
@@ -332,44 +396,6 @@ function Fact({ label, value }: { label: string; value: string }) {
     <div className="border border-line-200 p-3">
       <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">{label}</p>
       <p className="mt-1 font-serif text-lg text-ink-950">{value}</p>
-    </div>
-  );
-}
-
-const PLACEHOLDER: Record<string, { icon: typeof Users; title: string; body: string }> = {
-  participants: {
-    icon: Users,
-    title: "Participants",
-    body: "The contact book for this programme — panels, consent, opt-outs and invitations, with every message logged.",
-  },
-  instruments: {
-    icon: ClipboardList,
-    title: "Instruments",
-    body: "Questionnaires, discussion guides and stimulus, versioned against the approved plan.",
-  },
-  fieldwork: {
-    icon: Mic,
-    title: "Fieldwork",
-    body: "Collections, sessions, attendance and returns — recordings and transcripts attach here.",
-  },
-  evidence: {
-    icon: Library,
-    title: "Evidence",
-    body: "Every return filed to the second brain, then synthesised and calibrated against the synthetic pass.",
-  },
-};
-
-function StagePlaceholder({ stage }: { stage: FieldStageKey }) {
-  const meta = PLACEHOLDER[stage] ?? { icon: CalendarRange, title: stage, body: "" };
-  const Icon = meta.icon;
-  return (
-    <div className="border border-dashed border-line-200 bg-paper-100/30 p-8 text-center">
-      <Icon className="mx-auto text-ink-500" size={24} strokeWidth={1.5} />
-      <h3 className="mt-3 font-serif text-xl text-ink-950">{meta.title}</h3>
-      <p className="mx-auto mt-2 max-w-lg text-sm text-ink-700">{meta.body}</p>
-      <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-        Server engine ready · workspace lands next
-      </p>
     </div>
   );
 }

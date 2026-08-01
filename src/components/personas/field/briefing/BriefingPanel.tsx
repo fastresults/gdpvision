@@ -371,7 +371,10 @@ export function BriefingPanel({
           <PrintableBriefing briefing={doc} config={printConfig} />
           <DeckModal
             open={deckOpen}
-            deck={deckQ.data?.deck ?? null}
+            deck={dossier.deck?.deck ?? null}
+            stale={dossier.deckStale}
+            recomposing={dossier.composing}
+            onRecompose={() => dossier.composeDeck()}
             onClose={() => setDeckOpen(false)}
           />
         </>

@@ -98,6 +98,22 @@ export const createProject = createServerFn({ method: "POST" })
         title: z.string().min(2).max(120),
         visibility: z.enum(["public", "private"]).optional(),
         track: z.enum(["synthetic", "field", "blended"]).optional(),
+        // Stage 00 is AI-first: the material captured before the project
+        // existed travels in with it, so nothing is ever re-entered.
+        brief_raw: z.string().max(40_000).optional(),
+        brief_uploads: z
+          .array(
+            z.object({
+              name: z.string(),
+              path: z.string(),
+              mime: z.string(),
+              size: z.number(),
+              excerpt: z.string().optional(),
+            }),
+          )
+          .max(20)
+          .optional(),
+        brief_scope: z.unknown().optional(),
       })
       .parse(d),
   )
@@ -129,7 +145,13 @@ export const createProject = createServerFn({ method: "POST" })
         owner_country_code: visibility === "private" ? data.countryCode : null,
         uploaded_by: visibility === "private" ? userId : null,
         created_by: userId,
+        ...(data.brief_raw !== undefined ? { brief_raw: data.brief_raw } : {}),
+        ...(data.brief_uploads !== undefined ? { brief_uploads: data.brief_uploads } : {}),
+        ...(data.brief_scope !== undefined && data.brief_scope !== null
+          ? { brief_scope: data.brief_scope }
+          : {}),
       } as never)
+
       .select("id,title,slug")
       .single();
     if (error) throw new Error(error.message);

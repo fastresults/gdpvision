@@ -29,6 +29,8 @@ import { printSurface } from "@/components/print/PrintSurface";
 import { useDossierActions } from "@/hooks/useDossierActions";
 
 import { DeckModal } from "../deck/DeckModal";
+import { BriefOpenerBlock } from "./BriefOpenerBlock";
+
 import { ExportBriefingDialog } from "./ExportBriefingDialog";
 import { ShareLinkBar } from "./ShareLinkBar";
 import {

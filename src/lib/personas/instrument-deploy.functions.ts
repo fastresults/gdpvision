@@ -27,9 +27,8 @@ export const buildDeployPacks = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!inst) throw new Error("Instrument not found");
-    const { buildCsvTemplate, buildJsonSchema, buildPrintableForm } = await import(
-      "./instrument-deploy.server"
-    );
+    const { buildCsvTemplate, buildJsonSchema, buildPrintableForm } =
+      await import("./instrument-deploy.server");
     const title = (inst.title as string | null) ?? "Instrument";
     const questions = (inst.questions ?? []) as unknown as FieldQuestion[];
     return {

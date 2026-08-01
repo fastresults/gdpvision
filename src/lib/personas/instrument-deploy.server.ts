@@ -77,7 +77,9 @@ export function buildPrintableForm(
           : q.type === "scale"
             ? `<p class="scale">${range(q.scale_min ?? 1, q.scale_max ?? 5)
                 .map((n) => `<span class="box"></span>${n}`)
-                .join(" ")} <em>${esc(q.scale_min_label ?? "")} → ${esc(q.scale_max_label ?? "")}</em></p>`
+                .join(
+                  " ",
+                )} <em>${esc(q.scale_min_label ?? "")} → ${esc(q.scale_max_label ?? "")}</em></p>`
             : `<div class="lines"></div>`;
       return `<li><p class="q"><span class="id">${esc(q.id)}</span> ${i + 1}. ${esc(q.prompt)}</p>${
         q.help ? `<p class="help">${esc(q.help)}</p>` : ""
@@ -124,7 +126,9 @@ function range(a: number, b: number) {
 function esc(s: string) {
   return s.replace(
     /[&<>"]/g,
-    (c) => (({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }) as Record<string, string>)[c] ?? c,
+    (c) =>
+      (({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }) as Record<string, string>)[c] ??
+      c,
   );
 }
 

@@ -8,14 +8,7 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  FileUp,
-  Loader2,
-  Trash2,
-  UploadCloud,
-} from "lucide-react";
+import { AlertTriangle, CheckCircle2, FileUp, Loader2, Trash2, UploadCloud } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -143,7 +136,11 @@ export function IngestPanel({
   });
 
   const revise = useMutation({
-    mutationFn: async (args: { batchId: string; mapping?: MappingLine[]; staged?: StagedRow[] }) => {
+    mutationFn: async (args: {
+      batchId: string;
+      mapping?: MappingLine[];
+      staged?: StagedRow[];
+    }) => {
       await reviseFn({
         data: {
           batchId: args.batchId,
@@ -271,7 +268,9 @@ export function IngestPanel({
         </ul>
       ) : null}
 
-      {note ? <p className="border-t border-line-100 p-2 text-[12px] text-ink-700">{note}</p> : null}
+      {note ? (
+        <p className="border-t border-line-100 p-2 text-[12px] text-ink-700">{note}</p>
+      ) : null}
     </div>
   );
 }
@@ -414,7 +413,9 @@ function StagingReview({
           disabled={busy || (batch.kind === "tabular" && included === 0)}
           onClick={onCommit}
         >
-          {busy ? "Filing…" : `File ${batch.kind === "tabular" ? `${included} returns` : "this session"}`}
+          {busy
+            ? "Filing…"
+            : `File ${batch.kind === "tabular" ? `${included} returns` : "this session"}`}
         </button>
         <button type="button" className="btn-ghost" disabled={busy} onClick={onDiscard}>
           <Trash2 className="mr-1 inline h-3.5 w-3.5" />

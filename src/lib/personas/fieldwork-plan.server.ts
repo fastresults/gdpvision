@@ -514,7 +514,9 @@ export async function loadFieldworkBoard(
       id: i.id as string,
       kind: i.kind as string,
       title: (i.title as string | null) ?? null,
-      questions: Array.isArray(i.questions) ? (i.questions as unknown as FieldQuestion[]).length : 0,
+      questions: Array.isArray(i.questions)
+        ? (i.questions as unknown as FieldQuestion[]).length
+        : 0,
       questionIds: Array.isArray(i.questions)
         ? (i.questions as unknown as FieldQuestion[]).map((q) => q.id)
         : [],

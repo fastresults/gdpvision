@@ -253,9 +253,7 @@ export function CollectionWave({
             waveId={state.wave.id}
             collectionId={collection.id}
             expect="tabular"
-            questionIds={
-              board.instruments.find((i) => i.kind === "survey")?.questionIds ?? []
-            }
+            questionIds={board.instruments.find((i) => i.kind === "survey")?.questionIds ?? []}
             refresh={refresh}
           />
 

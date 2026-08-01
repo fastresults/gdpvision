@@ -126,8 +126,7 @@ function questionCatalogue(questions: FieldQuestion[]) {
   return questions
     .map((q) => {
       const opts = q.options?.length ? ` options: ${q.options.slice(0, 12).join(" | ")}` : "";
-      const scale =
-        q.scale_min != null ? ` scale ${q.scale_min}-${q.scale_max ?? ""}` : "";
+      const scale = q.scale_min != null ? ` scale ${q.scale_min}-${q.scale_max ?? ""}` : "";
       return `- ${q.id} (${q.type}${scale}): ${q.prompt}${opts}`;
     })
     .join("\n");
@@ -196,7 +195,9 @@ function coerce(q: FieldQuestion | undefined, raw: string): { value: AnswerValue
     }
     case "single_choice": {
       const match = q.options?.find((o) => o.toLowerCase() === v.toLowerCase());
-      return match ? { value: match } : { value: v, flag: `${q.id}: "${v}" is not a listed option` };
+      return match
+        ? { value: match }
+        : { value: v, flag: `${q.id}: "${v}" is not a listed option` };
     }
     default:
       return { value: v };
@@ -368,7 +369,8 @@ export async function stageArtifact(args: StageArgs): Promise<IngestBatch> {
     staged = [narrative];
     rowCount = 1;
     flagged = narrative.flags.length > 0 ? 1 : 0;
-    if (artifact.text.trim().length < 200) warnings.push("Very little text was readable in this file.");
+    if (artifact.text.trim().length < 200)
+      warnings.push("Very little text was readable in this file.");
   }
 
   const { data: row, error } = await supabase
@@ -554,7 +556,6 @@ export async function commitBatch(
   } catch {
     /* best-effort */
   }
-
 
   return { committed: 1, message: "Session filed with its transcript and summary." };
 }

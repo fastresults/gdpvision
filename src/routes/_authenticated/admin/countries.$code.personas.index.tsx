@@ -15,6 +15,7 @@ import { ProgramsIndex } from "@/components/personas/StudyWizard/ProgramsIndex";
 import { ProgramBriefIntake } from "@/components/personas/StudyWizard/ProgramBriefIntake";
 import { useResearchGate } from "@/hooks/useResearchGate";
 import { TrackPicker } from "@/components/personas/TrackPicker";
+import { TrackGateEntry } from "@/components/personas/TrackGateEntry";
 import { TrackTabs } from "@/components/personas/TrackTabs";
 import { FieldStepper } from "@/components/personas/FieldStepper";
 import type { ResearchTrack } from "@/lib/personas/tracks";

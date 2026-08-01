@@ -112,10 +112,10 @@ function PersonasLayout() {
         <aside className="min-w-0 space-y-5 border-r border-line-200 pr-6">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-              Synthetic Persona Lab
+              The Research Chamber
             </p>
             <h1 className="mt-1 font-serif text-2xl leading-tight text-ink-950">
-              Ask a synthetic public.<br />Before the real one asks you.
+              Two instruments.<br />One standard of proof.
             </h1>
             <p className="mt-3 text-[13px] leading-relaxed text-ink-700">
               Cast a public → group them → rehearse the conversation. AI grounds every voice in {code}&rsquo;s

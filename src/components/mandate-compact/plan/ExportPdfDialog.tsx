@@ -237,25 +237,11 @@ export function suggestFilename(plan: TransformationalPlan): string {
 }
 
 /**
- * Trigger the browser print flow. Swaps document.title so the browser
- * suggests a sensible filename in the "Save as PDF" dialog, then restores it.
+ * Trigger the browser print flow for the plan. Delegates to the print surface
+ * registry so exactly one printable owns the sheet — the briefing, deck and
+ * other printables stay mounted but are removed from the printed layout.
  */
 export function triggerPdfPrint(filename: string) {
-  const original = document.title;
-  document.title = filename.replace(/\.pdf$/i, "");
-  // Give React a tick to flush any final state changes to the DOM.
-  window.setTimeout(() => {
-    window.print();
-    // Restore title after the print dialog closes (best-effort — some
-    // browsers block until after; the afterprint event is the reliable hook).
-    const restore = () => {
-      document.title = original;
-      window.removeEventListener("afterprint", restore);
-    };
-    window.addEventListener("afterprint", restore);
-    // Safety net in case afterprint never fires (rare).
-    window.setTimeout(() => {
-      if (document.title !== original) document.title = original;
-    }, 30_000);
-  }, 50);
+  printSurface(PLAN_PRINT_SURFACE, { title: filename.replace(/\.pdf$/i, "") });
 }
+

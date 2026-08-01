@@ -86,8 +86,10 @@ function FieldStageBody({
   };
 
   return (
-    <div className="space-y-6">
-      <FieldStepper
+    <FieldStageProvider>
+      <div className="space-y-6">
+        <FieldStepper
+
         code={code}
         active={stage}
         activeProjectId={projectId}

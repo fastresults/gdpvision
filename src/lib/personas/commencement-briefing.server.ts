@@ -14,6 +14,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/integrations/supabase/types";
+import {
+  assertClientOutputClean,
+  governingBriefIdentity,
+  governingBriefText,
+  makePreflightItem,
+  type GoverningBriefIdentity,
+  type OutputPreflightItem,
+} from "./client-output-provenance.server";
 import { deriveJson } from "./field-ai.server";
 import { buildWaves } from "./fieldwork-plan.server";
 import type { FieldQuestion } from "./instrument-draft.server";
@@ -53,6 +61,8 @@ export interface CommencementBriefing {
   };
   readiness: BriefingReadinessItem[];
   sections: BriefingSection[];
+  source: GoverningBriefIdentity & { committedText: string };
+  preflight: OutputPreflightItem[];
 }
 
 // ── Small formatting helpers ───────────────────────────────────────────────
@@ -144,11 +154,13 @@ Return JSON with exactly four string keys:
 
 async function writeNarrative(input: string): Promise<Narrative | null> {
   try {
-    return await deriveJson<Narrative>({
+    const narrative = await deriveJson<Narrative>({
       system: NARRATIVE_SYSTEM,
       user: input,
       validate: isNarrative,
     });
+    assertClientOutputClean(narrative, "Generated briefing narrative");
+    return narrative;
   } catch {
     return null;
   }
@@ -167,6 +179,9 @@ export async function assembleBriefing(
     .maybeSingle();
   if (!project) throw new Error("Research programme not found");
   const countryCode = project.country_code as string;
+  const committedText = governingBriefText(project.brief_source, project.brief_raw);
+  if (committedText.length < 40) throw new Error("The committed governing brief has no usable text.");
+  const sourceIdentity = governingBriefIdentity(project.brief_source, project.title as string);
 
   const { data: plan } = await supabase
     .from("programme_plans")
@@ -252,7 +267,7 @@ export async function assembleBriefing(
   const narrativeInput = JSON.stringify({
     country: countryCode,
     programme: project.title,
-    brief: str(project.brief_raw).slice(0, 6000),
+    governing_brief: committedText.slice(0, 12_000),
     scope: project.brief_scope,
     plan_summary: plan.summary,
     window: { starts_on: plan.starts_on, ends_on: plan.ends_on },
@@ -295,7 +310,7 @@ export async function assembleBriefing(
       "",
       "### Your question, in your words",
       "",
-      str(project.brief_raw, "_No source brief text was recorded._"),
+      committedText,
       "",
       "### What counts as an answer",
       "",
@@ -384,7 +399,7 @@ export async function assembleBriefing(
     heading: "The participants",
     body_md: [
       narrative?.why_these_people ??
-        "The audience below was derived from the brief. Participants are described as target personas — individual identities stay confidential and are held in the recruitment record.",
+        "The audience below was approved from the governing brief. This document describes target segments only; individual recruitment identities remain outside it.",
       "",
       "### Segments the plan requires",
       "",
@@ -405,57 +420,6 @@ export async function assembleBriefing(
           str(p.kind, "—").replace(/_/g, " "),
           String(members.filter((m) => m.panel_id === p.id).length),
         ]),
-      ),
-      "",
-      "### Target personas recruited",
-      "",
-      table(
-        [
-          "Persona",
-          "Typical roles",
-          "Typical settings",
-          "Why them",
-          "Recruited",
-          "Consent secured",
-        ],
-        (() => {
-          type Bucket = {
-            roles: Set<string>;
-            orgs: Set<string>;
-            why: string;
-            count: number;
-            consented: number;
-          };
-          const buckets = new Map<string, Bucket>();
-          for (const m of members) {
-            const c = contactById.get(m.contact_id) ?? {};
-            const key = str(c["persona_label"], "Unsegmented");
-            const b =
-              buckets.get(key) ??
-              ({ roles: new Set(), orgs: new Set(), why: "", count: 0, consented: 0 } as Bucket);
-            const role = str(c["role_title"], "");
-            const org = str(c["organisation"], "");
-            if (role) b.roles.add(role);
-            if (org) b.orgs.add(org);
-            if (!b.why) b.why = str(c["fit_reason"], "");
-            b.count += 1;
-            if (str(c["consent_status"]) === "granted") b.consented += 1;
-            buckets.set(key, b);
-          }
-          const sample = (s: Set<string>) => {
-            const list = [...s].slice(0, 3);
-            if (list.length === 0) return "—";
-            return list.join("; ") + (s.size > 3 ? `; +${s.size - 3} more` : "");
-          };
-          return [...buckets.entries()].map(([persona, b]) => [
-            persona,
-            sample(b.roles),
-            sample(b.orgs),
-            b.why || "—",
-            String(b.count),
-            `${b.consented}/${b.count}`,
-          ]);
-        })(),
       ),
     ].join("\n"),
   });
@@ -509,9 +473,9 @@ export async function assembleBriefing(
       "",
       "- **Hosted collection.** Each participant receives a single-use link; no account or login is required.",
       "- **Moderated sessions.** Seated from the recruited panel, recorded with consent, transcribed and coded.",
-      "- **Off-system capture.** Where an instrument is administered elsewhere — by phone, on paper, or in another platform — the returns are uploaded, read by the model, mapped question by question, and held in staging for review before they count.",
+      "- **Other approved channels.** Where an instrument is administered by phone or on paper, returns are transcribed, mapped question by question and reviewed before they count.",
       "",
-      "Nothing enters the evidence base without passing that review.",
+      "Nothing enters the final evidence set without passing that review.",
     ].join("\n"),
   });
 
@@ -533,7 +497,7 @@ export async function assembleBriefing(
         }),
       ),
       "",
-      "On close, the finding is filed to your own evidence base as real-world (non-synthetic) evidence, with its provenance intact, so it can be cited in later work.",
+      "On close, the finding is delivered with its source record and limitations intact so it can be cited responsibly in later work.",
     ].join("\n"),
   });
 
@@ -633,8 +597,8 @@ export async function assembleBriefing(
   const readiness: BriefingReadinessItem[] = [
     {
       label: "Brief committed",
-      ready: str(project.brief_raw).length > 0,
-      detail: str(project.brief_raw).length > 0 ? "Source brief on file." : "No source brief text.",
+      ready: committedText.length > 0,
+      detail: `Governing brief on file: ${sourceIdentity.sourceName}.`,
     },
     {
       label: "Programme approved",
@@ -663,6 +627,21 @@ export async function assembleBriefing(
     },
   ];
 
+  const preflight = sections.map((section) =>
+    makePreflightItem(
+      section.id,
+      section.id === "brief"
+        ? "governing_brief"
+        : section.id === "participants"
+          ? "approved_segments"
+          : section.id === "instruments"
+            ? "approved_instrument"
+            : "approved_plan",
+      section.body_md,
+    ),
+  );
+  assertClientOutputClean(sections, "Commencement briefing");
+
   return {
     version: 1,
     countryCode,
@@ -687,5 +666,7 @@ export async function assembleBriefing(
     },
     readiness,
     sections,
+    source: { ...sourceIdentity, committedText },
+    preflight,
   };
 }

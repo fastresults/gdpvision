@@ -94,7 +94,7 @@ function FieldStageBody({
   const progressQ = useQuery({
     queryKey: ["field-progress", projectId],
     queryFn: (): Promise<FieldProgress> => getFieldProgress({ data: { projectId } }),
-    enabled: gate.planCommitted,
+    enabled: gate.committed,
   });
   const progress = progressQ.data;
   const studyId = progress?.studyId ?? null;

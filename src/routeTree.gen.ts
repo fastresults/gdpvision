@@ -19,6 +19,7 @@ import { Route as OpEdsIndexRouteImport } from './routes/op-eds.index'
 import { Route as KioskIndexRouteImport } from './routes/kiosk.index'
 import { Route as OpEdsSlugRouteImport } from './routes/op-eds.$slug'
 import { Route as KioskAdminRouteImport } from './routes/kiosk.admin'
+import { Route as FTokenRouteImport } from './routes/f.$token'
 import { Route as BusinessCaseCalculatorRouteImport } from './routes/business-case_.calculator'
 import { Route as AuthInviteRouteImport } from './routes/auth.invite'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
@@ -185,6 +186,11 @@ const KioskAdminRoute = KioskAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => KioskRoute,
+} as any)
+const FTokenRoute = FTokenRouteImport.update({
+  id: '/f/$token',
+  path: '/f/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const BusinessCaseCalculatorRoute = BusinessCaseCalculatorRouteImport.update({
   id: '/business-case_/calculator',
@@ -889,6 +895,7 @@ export interface FileRoutesByFullPath {
   '/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
   '/business-case/calculator': typeof BusinessCaseCalculatorRoute
+  '/f/$token': typeof FTokenRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
   '/kiosk/': typeof KioskIndexRoute
@@ -1013,6 +1020,7 @@ export interface FileRoutesByTo {
   '/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
   '/business-case/calculator': typeof BusinessCaseCalculatorRoute
+  '/f/$token': typeof FTokenRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
   '/kiosk': typeof KioskIndexRoute
@@ -1138,6 +1146,7 @@ export interface FileRoutesById {
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
   '/business-case_/calculator': typeof BusinessCaseCalculatorRoute
+  '/f/$token': typeof FTokenRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
   '/kiosk/': typeof KioskIndexRoute
@@ -1268,6 +1277,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/auth/invite'
     | '/business-case/calculator'
+    | '/f/$token'
     | '/kiosk/admin'
     | '/op-eds/$slug'
     | '/kiosk/'
@@ -1392,6 +1402,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/auth/invite'
     | '/business-case/calculator'
+    | '/f/$token'
     | '/kiosk/admin'
     | '/op-eds/$slug'
     | '/kiosk'
@@ -1516,6 +1527,7 @@ export interface FileRouteTypes {
     | '/_authenticated/home'
     | '/auth/invite'
     | '/business-case_/calculator'
+    | '/f/$token'
     | '/kiosk/admin'
     | '/op-eds/$slug'
     | '/kiosk/'
@@ -1640,6 +1652,7 @@ export interface RootRouteChildren {
   KioskRoute: typeof KioskRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   BusinessCaseCalculatorRoute: typeof BusinessCaseCalculatorRoute
+  FTokenRoute: typeof FTokenRoute
   OpEdsSlugRoute: typeof OpEdsSlugRoute
   OpEdsIndexRoute: typeof OpEdsIndexRoute
   ApiPublicFieldTokenRoute: typeof ApiPublicFieldTokenRoute
@@ -1722,6 +1735,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/kiosk/admin'
       preLoaderRoute: typeof KioskAdminRouteImport
       parentRoute: typeof KioskRoute
+    }
+    '/f/$token': {
+      id: '/f/$token'
+      path: '/f/$token'
+      fullPath: '/f/$token'
+      preLoaderRoute: typeof FTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/business-case_/calculator': {
       id: '/business-case_/calculator'
@@ -3005,6 +3025,7 @@ const rootRouteChildren: RootRouteChildren = {
   KioskRoute: KioskRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   BusinessCaseCalculatorRoute: BusinessCaseCalculatorRoute,
+  FTokenRoute: FTokenRoute,
   OpEdsSlugRoute: OpEdsSlugRoute,
   OpEdsIndexRoute: OpEdsIndexRoute,
   ApiPublicFieldTokenRoute: ApiPublicFieldTokenRoute,

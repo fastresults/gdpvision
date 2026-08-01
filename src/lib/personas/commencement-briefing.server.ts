@@ -28,12 +28,33 @@ import type { FieldQuestion } from "./instrument-draft.server";
 
 type Db = SupabaseClient<Database>;
 
+/** A label/value pair in the opener's key-parameters strip. */
+export interface BriefFact {
+  label: string;
+  value: string;
+}
+
+/**
+ * Structured payload for section 01. Rendered by a dedicated component so the
+ * opening page reads as a designed brief acknowledgement rather than a slab of
+ * markdown paragraphs.
+ */
+export interface BriefOpener {
+  lede: string;
+  facts: BriefFact[];
+  quote: string | null;
+  objectives: Array<{ n: string; objective: string; why: string }>;
+}
+
 export interface BriefingSection {
   id: string;
   eyebrow: string;
   heading: string;
   body_md: string;
+  /** Present on section 01 only; renderers fall back to body_md when absent. */
+  opener?: BriefOpener;
 }
+
 
 export interface BriefingReadinessItem {
   label: string;

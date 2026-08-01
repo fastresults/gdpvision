@@ -77,3 +77,36 @@ registerRationales([
       "You may move ahead of an incomplete stage — research is rarely linear — but the outstanding item stays visible, and anything downstream that depends on it will say so rather than fail quietly.",
   },
 ]);
+
+registerRationales([
+  {
+    key: "research.recruitment.frame",
+    title: "How the recruitment frame was set",
+    short:
+      "The personas, sample sizes and screening rules are derived from your source brief and the approved plan — not from a template.",
+    basis:
+      "The chamber reads the governing source brief first, then the supporting context and the approved programme plan, and finally what this country's second brain already holds. From that it names three to six personas whose testimony the decisions in the brief actually depend on, sets a survey target per persona proportionate to the population it stands for, marks which personas warrant a focus group, and states where such people are publicly listed.",
+    caveat:
+      "It is a research design, not a quota. Sample sizes assume a purposive, not a probability, sample — findings are read as directional weight of opinion within each persona, never as a national margin of error. Edit or re-derive the frame at any time.",
+  },
+  {
+    key: "research.recruitment.sourcing",
+    title: "How candidates are sourced",
+    short:
+      "Every proposed individual is a real, named person found in the open web with a citable source URL.",
+    basis:
+      "Each persona is researched in its own grounded pass over the live web — ministry directories, association member lists, chamber registries, board pages, published interviews and news. A candidate is only proposed when the pass can attach an https source showing who they are and why they match the persona. Contact details are used only where they are already published. No candidate is proposed without a source, and none is invented to fill a target.",
+    caveat:
+      "Public sourcing skews toward people who are visible — officeholders, association leaders, operators who speak to the press. Under-represented voices usually need the manual add or a partner list, and the confidence flag on each candidate tells you how firm the identification is.",
+  },
+  {
+    key: "research.recruitment.groups",
+    title: "How focus groups are balanced",
+    short:
+      "Groups are composed from accepted participants only, balanced so that no single interest dominates a room.",
+    basis:
+      "Only people you have accepted are seated. The chamber then builds slates of roughly six to ten around a shared question, mixing organisations and seniority so that one ministry, firm or faction cannot set the tone, and keeping people whose presence would silence others in separate rooms. Each slate carries the stated reason it exists.",
+    caveat:
+      "Composition is a proposal about dynamics, which no model can fully predict. You can move anyone between slates before invitations go out, and the group's own transcript is what the finding is ultimately drawn from.",
+  },
+]);

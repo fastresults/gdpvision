@@ -5979,6 +5979,7 @@ export type Database = {
           created_by: string | null
           id: string
           owner_country_code: string | null
+          recruitment_brief: Json | null
           slug: string
           status: string
           title: string
@@ -6002,6 +6003,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           owner_country_code?: string | null
+          recruitment_brief?: Json | null
           slug: string
           status?: string
           title: string
@@ -6025,6 +6027,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           owner_country_code?: string | null
+          recruitment_brief?: Json | null
           slug?: string
           status?: string
           title?: string
@@ -6660,12 +6663,14 @@ export type Database = {
       }
       research_contacts: {
         Row: {
+          confidence: string | null
           consent_status: string
           country_code: string
           created_at: string
           created_by: string | null
           email: string | null
           email_norm: string | null
+          fit_reason: string | null
           full_name: string
           id: string
           last_contacted_at: string | null
@@ -6673,22 +6678,31 @@ export type Database = {
           opted_out_at: string | null
           organisation: string | null
           owner_country_code: string | null
+          persona_label: string | null
           phone: string | null
           phone_norm: string | null
+          project_id: string | null
+          proposed_run_id: string | null
+          rejected_reason: string | null
           role_title: string | null
           source: string | null
+          source_url: string | null
+          status: string
+          suggested_for: string[]
           tags: string[]
           updated_at: string
           uploaded_by: string | null
           visibility: string
         }
         Insert: {
+          confidence?: string | null
           consent_status?: string
           country_code: string
           created_at?: string
           created_by?: string | null
           email?: string | null
           email_norm?: string | null
+          fit_reason?: string | null
           full_name: string
           id?: string
           last_contacted_at?: string | null
@@ -6696,22 +6710,31 @@ export type Database = {
           opted_out_at?: string | null
           organisation?: string | null
           owner_country_code?: string | null
+          persona_label?: string | null
           phone?: string | null
           phone_norm?: string | null
+          project_id?: string | null
+          proposed_run_id?: string | null
+          rejected_reason?: string | null
           role_title?: string | null
           source?: string | null
+          source_url?: string | null
+          status?: string
+          suggested_for?: string[]
           tags?: string[]
           updated_at?: string
           uploaded_by?: string | null
           visibility?: string
         }
         Update: {
+          confidence?: string | null
           consent_status?: string
           country_code?: string
           created_at?: string
           created_by?: string | null
           email?: string | null
           email_norm?: string | null
+          fit_reason?: string | null
           full_name?: string
           id?: string
           last_contacted_at?: string | null
@@ -6719,16 +6742,31 @@ export type Database = {
           opted_out_at?: string | null
           organisation?: string | null
           owner_country_code?: string | null
+          persona_label?: string | null
           phone?: string | null
           phone_norm?: string | null
+          project_id?: string | null
+          proposed_run_id?: string | null
+          rejected_reason?: string | null
           role_title?: string | null
           source?: string | null
+          source_url?: string | null
+          status?: string
+          suggested_for?: string[]
           tags?: string[]
           updated_at?: string
           uploaded_by?: string | null
           visibility?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "research_contacts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "persona_projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       research_invitations: {
         Row: {
@@ -6852,6 +6890,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           id: string
+          kind: string
           name: string
           project_id: string | null
           updated_at: string
@@ -6862,6 +6901,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          kind?: string
           name: string
           project_id?: string | null
           updated_at?: string
@@ -6872,6 +6912,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          kind?: string
           name?: string
           project_id?: string | null
           updated_at?: string

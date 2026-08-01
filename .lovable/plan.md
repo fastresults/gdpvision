@@ -1,63 +1,60 @@
-## What the log actually shows
+## Goal
 
-You approved the plan and the programme went `active` — the backend did its job. Then the UI stopped. Stages 02–05 of the field rail (`countries.$code.personas.field.$step.tsx`) render `StagePlaceholder`: an icon, a sentence, and the line *"Server engine ready · workspace lands next."* There is no next step, no handoff, no instruction.
+Stage 02 (Participants) currently starts empty and demands a pasted roster. It should open the way the rest of Chamber 07 does: the AI reads the brief, plan and second brain, researches the country's real landscape, and **proposes named individuals** — split into a survey frame and focus-group slates — which the admin accepts, edits, adds to, or deletes.
 
-That placeholder is a lie about the state of the system. The engines are all built and unused:
-
-| Stage | Backend already shipped | UI today |
-| --- | --- | --- |
-| 02 Participants | `crm.functions.ts` (contacts, import, panels, consent, opt-out), `comms.functions.ts` (templates, send, log) | placeholder |
-| 03 Instruments | `field-instrument.functions.ts` (AI draft, save, versions) | placeholder |
-| 04 Fieldwork | `field-sessions.functions.ts`, `field-collection.functions.ts` (open/close, invite, responses, ingest), `transcribe.functions.ts` | placeholder |
-| 05 Evidence | `field-synthesis.functions.ts` (synthesise, compare-to-synthetic, close), `field-corpus.server.ts` | placeholder |
-
-So the flaw is not one screen. Four of six stages are unbuilt fronts on finished backs, and nothing in the product tells the user what to do next at any point.
-
-## The fix, in two parts
-
-### Part 1 — A guided rail contract (applies to every stage)
-
-Every field stage gets the same three-part frame, so the user is never guessing:
+## The beat
 
 ```text
-┌ Stage masthead ── Stage 02 · Participants ───────────────┐
-│ What this stage decides · what "done" means here         │
-├ The work surface ────────────────────────────────────────┤
-│ (the actual stage UI)                                    │
-├ Decision bar (sticky) ───────────────────────────────────┤
-│  ← Programme plan      [ Recruit the panel → ]  3 of 6   │
-└──────────────────────────────────────────────────────────┘
+Recruitment brief (AI-derived personas)  →  Deep research pass  →  Candidate slate
+        ↓                                                              ↓
+  admin can edit segments                              accept one / accept all / edit / delete
+                                                               ↓
+                                                    contact book + panel(s)  →  Stage 03
 ```
 
-- **Exit criteria, stated up front.** Each stage declares its own "done" test (e.g. Participants: *a panel exists, consented, with no unresolved opt-outs*). Shown at the top, evaluated live.
-- **One primary next action, always.** The sticky bar carries the single highest-value action — never a bare page. When the stage is incomplete the button says what is missing; when it is complete it advances to the next stage.
-- **The stepper reflects truth.** `FieldStepper` currently only knows `briefCommitted` / `planCommitted`, so stages 02–05 all look identical forever. It gets per-stage completion from a new `getFieldProgress` server function so ticks, locks and the "you are here" state are real.
-- **On approval, move the user.** Approving the plan currently leaves you on the plan page. It will advance straight to Stage 02 with a short confirmation of what was just fixed (window, phases, deliverables) — the log shows this is exactly the moment the journey died.
+## 1. Recruitment brief (auto, no blank form)
 
-### Part 2 — Build the four missing workspaces
+On entering Participants with no contacts, the stage derives a **recruitment brief** from the source brief, approved programme plan and country corpus:
+- 3–6 **target personas** (who they are, why they matter to the decision, seniority, sector, region)
+- per persona: target **survey count** and whether they belong in a **focus group** slate
+- screening criteria and exclusions
 
-Thin, decisive surfaces over the existing server functions. No new backend except the progress read.
+Shown as an editable read-out (same document style as the plan stage), not JSON. Admin can adjust counts/personas before research runs.
 
-**Stage 02 · Participants** — contact table with CSV/paste import, consent + opt-out state, panel builder (name, criteria, members), and an invitation composer that uses `draftTemplate` to write the approach message from the brief. Done when a panel is populated and consented.
+## 2. Deep research pass (the AI-first core)
 
-**Stage 03 · Instruments** — AI drafts the questionnaire or discussion guide from the brief and the approved plan (`draftInstrument`), then an editable question list (type, prompt, options, routing) with versioning on save. Done when at least one instrument is saved against a phase.
+A server-side loop, one fan-out per persona, through the existing research waterfall (Perplexity `sonar-reasoning-pro` → Gemini fallback), reusing the pattern in `party-research.server.ts` / `minister-research.server.ts`:
 
-**Stage 04 · Fieldwork** — sessions calendar bound to plan phases, attendee assignment from the panel, attendance marking, recording/transcript attach (`attachSessionTranscript`, `transcribeAudio`), plus collections: open, invite, track returns, import responses. Done when a collection is closed with returns in.
+- For each persona: find **real, named, publicly identifiable individuals** in that country matching the persona — ministry officials, association heads, chamber-of-commerce members, operators, academics, diaspora leads.
+- Each candidate must return: name, role/title, organisation, why-they-fit (one line tied to the persona), public contact route (official email / org page / LinkedIn), and **at least one https source URL**. No source ⇒ candidate is dropped.
+- A validation/dedupe pass: reject duplicates against existing `research_contacts` (normalised name+org / email), reject obvious hallucinations (no source, dead-generic names), and score each candidate `high | medium | low` confidence.
+- Coverage check: if a persona comes back under target, a **second redrive pass** runs with widened phrasing before the stage reports "thin coverage" honestly rather than padding.
+- Focus-group slates are composed after the survey frame: the AI groups accepted-eligible candidates into 1–3 balanced groups (6–8 each) with a stated composition rationale.
 
-**Stage 05 · Evidence** — run `synthesiseField`, show findings with citations back to returns, `compareToSynthetic` when a synthetic pass exists on the same project, then `closeProgramme`, which files the whole evidence set to the country's second brain. Done when the programme is closed and filed.
+Everything is filed to the second brain as a `recruitment_frame` memory object with its citations, deduped on the programme key. Identity itself stays in `research_contacts` only — corpus keeps the frame and rationale, not personal records.
 
-### Cross-cutting
+## 3. Admin control surface
 
-- **Empty states are instructions, not decoration.** Every empty surface names the one action that fills it and links to it.
-- **Explain this** on each stage's exit criteria and on any AI-derived recommendation (instrument length, sample size, phase fit), per the global contract.
-- **Everything files to the second brain** — instruments, transcripts, returns and synthesis all route through the corpus writers with the project's `visibility`, deduped on their normalized keys.
-- **Buttons** use `btn-primary` / `btn-secondary` / `btn-ghost`; JSON renders through `<PrettyJson>`; illustrations only via `<Illustration>`.
+A candidate table grouped by persona, each row: name · role · organisation · fit line · confidence chip · source link.
+
+- **Accept** (per row) → creates/links a `research_contacts` row.
+- **Accept all** per persona, and **Accept all** globally.
+- **Edit** inline (name, role, org, email, persona, notes) before or after acceptance.
+- **Delete / reject** a candidate, with the reason retained so a re-run doesn't re-propose it.
+- **Add manually** — one-off add plus the existing paste-roster importer, kept as a secondary path.
+- Two panel targets: **Survey frame** and **Focus group** slates; a person can sit in both.
+- "Research more like this" per persona to top up a thin slate.
+
+Every AI-derived number (target counts, group sizes, confidence) is wrapped in `<Explain>` with rationales registered in the personas entries file.
+
+## 4. Stage completion
+
+"Done when" for Participants becomes: survey frame has ≥ the brief's minimum accepted contacts **and** at least one focus-group slate is formed (or explicitly waived with a recorded reason). `field-progress.server.ts` reports the single outstanding blocker as it does today.
 
 ## Technical notes
 
-- New: `src/lib/personas/field-progress.functions.ts` → `getFieldProgress({ projectId })` returns per-stage `{ complete, blocker, counts }` in one round trip; used by both `FieldStepper` and the decision bar.
-- New: `src/components/personas/field/StageFrame.tsx` (masthead + exit criteria + sticky decision bar) plus `ParticipantsStage.tsx`, `InstrumentsStage.tsx`, `FieldworkStage.tsx`, `EvidenceStage.tsx`.
-- `countries.$code.personas.field.$step.tsx` becomes a thin router over `StageFrame`; `StagePlaceholder` is deleted.
-- `FieldStepper` takes a `progress` prop; locks derive from progress rather than two booleans.
-- Stage order and exit criteria live in one module (`src/lib/personas/field-stages.ts`) so the stepper, the frame and the progress function cannot drift.
-- Docs: update `docs/map/chambers.md` for Chamber 07, run `bun run headers && bun run map`.
+- Migration: add `research_contacts` candidate fields — `status` (`proposed|accepted|rejected`), `persona_label`, `fit_reason`, `confidence`, `source_url`, `proposed_by_run`; plus a `research_panels.kind` (`survey|focus_group`). GRANTs + RLS scoped by `has_country_access` in the same migration, matching existing policies on those tables.
+- New `src/lib/personas/recruitment-research.server.ts` (deep research + validation + dedupe) and `recruitment.functions.ts` (`deriveRecruitmentBrief`, `researchCandidates`, `acceptCandidates`, `rejectCandidate`, `composeFocusGroups`) — all `.middleware([requireSupabaseAuth])`, called from components via `useServerFn`.
+- Research runs persona-by-persona so a single slow fan-out can't 502 the stage; the UI streams slates in as each persona resolves.
+- `ParticipantsStage.tsx` restructured into: recruitment brief → candidate slates → panels, with paste-import demoted to a secondary action. Existing CRM functions reused, not replaced.
+- Run `bun run headers && bun run map` after adding the new server-fn modules.

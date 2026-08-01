@@ -292,6 +292,7 @@ function FieldStageBody({
           open={briefingOpen && dossierReady}
           intent={briefingIntent}
           projectId={projectId}
+          inputsUpdatedAt={progress?.inputsUpdatedAt ?? null}
           onClose={() => setBriefingOpen(false)}
         />
       </div>

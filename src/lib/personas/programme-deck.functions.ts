@@ -45,6 +45,9 @@ export const assembleProgrammeDeck = createServerFn({ method: "POST" })
     if (!briefing || !Array.isArray(briefing.sections) || briefing.sections.length === 0) {
       throw new Error("The stored briefing is empty — re-assemble it, then prepare the deck.");
     }
+    if (!briefing.preflight?.every((item) => item.ready)) {
+      throw new Error("This briefing predates provenance validation or failed preflight. Rebuild it from the governing brief first.");
+    }
 
     const deck = await assembleDeck(briefing);
 

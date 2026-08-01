@@ -211,19 +211,6 @@ export async function assembleBriefing(
       .in("panel_id", panelIds);
     members = (data ?? []) as typeof members;
   }
-  const contactIds = [...new Set(members.map((m) => m.contact_id))];
-  let contacts: Array<Record<string, unknown>> = [];
-  if (contactIds.length > 0) {
-    const { data } = await supabase
-      .from("research_contacts")
-      .select(
-        "id,full_name,role_title,organisation,persona_label,fit_reason,consent_status,status,confidence",
-      )
-      .in("id", contactIds);
-    contacts = (data ?? []) as typeof contacts;
-  }
-  const contactById = new Map(contacts.map((c) => [c["id"] as string, c]));
-
   // ── Instruments ───────────────────────────────────────────────────────
   const { data: studies } = await supabase
     .from("studies")
@@ -275,12 +262,7 @@ export async function assembleBriefing(
     phases: (phases ?? []).map((p) => ({ name: p.name, intent: p.intent })),
     method_mix: methodMix,
     audience,
-    recruited: contacts.map((c) => ({
-      persona: c["persona_label"],
-      role: c["role_title"],
-      organisation: c["organisation"],
-      why: c["fit_reason"],
-    })),
+    recruited_count: members.length,
     instruments: instruments.map((i) => ({
       kind: i["kind"],
       title: i["title"],

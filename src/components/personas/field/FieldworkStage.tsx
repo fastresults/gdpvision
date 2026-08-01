@@ -13,9 +13,11 @@ import { CollectionWave } from "./fieldwork/CollectionWave";
 import { SessionWave } from "./fieldwork/SessionWave";
 import { EmptyAction } from "./StageFrame";
 import { useResolveAction } from "./stage-bus";
+import { ShowTheDetail, StageWizard } from "./StageWizard";
 
 import { Explain } from "@/components/explain/Explain";
 import { getFieldworkBoard } from "@/lib/personas/fieldwork.functions";
+import { cn } from "@/lib/utils";
 
 export function FieldworkStage({
   projectId,
@@ -143,7 +145,7 @@ export function FieldworkStage({
               <span className="font-mono text-[10px] tracking-[0.16em] text-ink-500">
                 {String(i + 1).padStart(2, "0")}
               </span>{" "}
-              {s.wave.label ?? s.wave.kind}
+              {s.wave.title}
             </span>
             <span
               className={cn(

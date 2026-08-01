@@ -324,24 +324,32 @@ const PRINT_CSS = `
   .cb-foot-value { font-size: 10.5pt; color: #14140f; margin: 0; }
 
   .cb-h2 { font-size: 22pt; font-weight: 500; color: #14140f; margin: 3mm 0 10mm 0; }
+  .cb-toc { break-after: page; }
   .cb-toc-list { list-style: none; padding: 0; margin: 0; border-top: 1px solid #e4e2da; }
   .cb-toc-list li {
     display: grid;
-    grid-template-columns: 14mm 1fr auto;
+    grid-template-columns: 14mm auto 1fr auto;
     gap: 4mm;
     align-items: baseline;
     padding: 4mm 0;
     border-bottom: 1px solid #e4e2da;
+    break-inside: avoid;
   }
   .cb-toc-num { font-family: "SFMono-Regular", monospace; font-size: 9pt; color: #b8912a; }
   .cb-toc-title { font-size: 12pt; color: #14140f; }
+  .cb-toc-leader {
+    border-bottom: 1px dotted #c9c6bb;
+    transform: translateY(-1mm);
+  }
   .cb-toc-kind {
     font-family: "SFMono-Regular", monospace;
     font-size: 8pt;
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: #6b6b6b;
+    text-align: right;
   }
+
   .cb-ready-head { margin-top: 12mm; }
   .cb-ready { list-style: none; padding: 0; margin: 4mm 0 0 0; }
   .cb-ready li {

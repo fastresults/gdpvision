@@ -64,6 +64,7 @@ export function BriefStage({
             <ProgramBriefIntake
               code={code}
               projectId={projectId}
+              embedded
               onCommitted={() => {
                 void qc.invalidateQueries({ queryKey: ["program-brief", projectId] });
                 void qc.invalidateQueries({ queryKey: ["programme-plan", projectId] });

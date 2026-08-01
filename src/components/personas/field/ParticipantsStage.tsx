@@ -358,14 +358,17 @@ export function ParticipantsStage({
               : null,
           doneNote: `Panel formed · ${panelMembers} ${panelMembers === 1 ? "member" : "members"}`,
           error: buildPanel.isError ? (buildPanel.error as Error).message : null,
-          action: {
-            label: projectPanels.length > 0 ? "Set the panel" : "Form the panel",
-            onClick: () => buildPanel.mutate(),
-            pending: buildPanel.isPending,
-            disabled: selected.size === 0,
-            icon: <Users size={12} />,
-            note: "This fixes who this programme fields to.",
-          },
+          action:
+            panelMembers === 0 || selected.size > 0
+              ? {
+                  label: projectPanels.length > 0 ? "Set the panel" : "Form the panel",
+                  onClick: () => buildPanel.mutate(),
+                  pending: buildPanel.isPending,
+                  disabled: selected.size === 0,
+                  icon: <Users size={12} />,
+                  note: "This fixes who this programme fields to.",
+                }
+              : null,
         },
         consent: {
           instruction:

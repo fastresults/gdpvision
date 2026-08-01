@@ -157,7 +157,11 @@ export function StageFrame({
   const [amendOpen, setAmendOpen] = useState(false);
   const earlier = FIELD_STAGES.slice(0, FIELD_STAGES.indexOf(stage));
 
-  const needsAction = !currentDone && !!resolveAction;
+  // A screen may already satisfy its persisted completion predicate while
+  // holding a newer local decision (for example, edited instrument wording).
+  // That published action must win until it is saved; otherwise the footer
+  // incorrectly offers Continue and silently skips the user's work.
+  const needsAction = !!resolveAction;
   const primaryLabel = needsAction
     ? resolveAction.label
     : !currentDone
@@ -178,8 +182,8 @@ export function StageFrame({
         : (current?.consequence ?? "");
 
   const onPrimary = () => {
-    if (!currentDone) {
-      resolveAction?.run();
+    if (needsAction) {
+      resolveAction.run();
       return;
     }
     if (!atLastSub) {
@@ -351,15 +355,12 @@ export function StageFrame({
                   <button
                     type="button"
                     className={currentDone || needsAction ? "btn-primary" : "btn-secondary"}
-                    disabled={
-                      !currentDone &&
-                      (!resolveAction || resolveAction.pending || resolveAction.disabled)
-                    }
+                    disabled={needsAction ? resolveAction.pending || resolveAction.disabled : !currentDone}
                     onClick={onPrimary}
                   >
-                    {resolveAction?.pending && !currentDone ? (
+                    {resolveAction?.pending && needsAction ? (
                       <Loader2 size={11} className="animate-spin" />
-                    ) : !currentDone && resolveAction ? (
+                    ) : needsAction ? (
                       <Wrench size={12} />
                     ) : null}
                     <span className="max-w-[18rem] truncate">{primaryLabel}</span>

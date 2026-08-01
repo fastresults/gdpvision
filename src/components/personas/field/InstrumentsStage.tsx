@@ -26,7 +26,6 @@ import { Explain } from "@/components/explain/Explain";
 import "@/lib/explain/personas-entries";
 import { EmptyAction } from "./StageFrame";
 import { ShowTheDetail, StageWizard } from "./StageWizard";
-import { SaveBar } from "./SaveBar";
 import { useDirtyRegistration } from "./stage-bus";
 import { useDirtyState } from "@/hooks/useDirtyState";
 import {
@@ -375,17 +374,15 @@ export function InstrumentsStage({
             Re-draft
           </button>
         </div>
-        <SaveBar
-          what="the instrument"
-          dirty={doc.dirty}
-          saving={save.isPending}
-          savedAt={doc.savedAt}
-          conflict={doc.conflict}
-          error={save.isError ? (save.error as Error).message : null}
-          onSave={() => save.mutate()}
-          onTakeServer={doc.takeServer}
-          onKeepMine={doc.keepMine}
-        />
+        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+          {doc.conflict
+            ? "Stored version changed · resolve below"
+            : doc.dirty
+              ? "Unsaved changes · save from the fixed footer"
+              : doc.savedAt
+                ? "Saved"
+                : "No changes"}
+        </p>
       </div>
 
       {redraft.isError ? (
@@ -659,27 +656,31 @@ export function InstrumentsStage({
               : null,
           doneNote: `${instruments.length} instrument${instruments.length === 1 ? "" : "s"} drafted`,
           error: derive.isError ? (derive.error as Error).message : null,
-          action: {
-            label: missing.length > 0 ? "Draft the instruments" : "Draft again",
-            onClick: () => derive.mutate(undefined),
-            pending: derive.isPending,
-            icon: <Sparkles size={12} />,
-            note: "Writes from the brief, the objectives and the approved method mix.",
-          },
+          action:
+            missing.length > 0
+              ? {
+                  label: "Draft the instruments",
+                  onClick: () => derive.mutate(undefined),
+                  pending: derive.isPending,
+                  icon: <Sparkles size={12} />,
+                  note: "Writes from the brief, the objectives and the approved method mix.",
+                }
+              : null,
         },
         edit: {
           instruction: "Put the questions in your own words, in the order a conversation takes.",
           outstanding: doc.dirty ? "unsaved edits on this instrument" : null,
           doneNote: `${value?.questions.length ?? 0} question${(value?.questions.length ?? 0) === 1 ? "" : "s"} saved`,
           error: save.isError ? (save.error as Error).message : null,
-          action: {
-            label: "Save the instrument",
-            onClick: () => save.mutate(),
-            pending: save.isPending,
-            disabled: !doc.dirty,
-            icon: <Save size={12} />,
-            note: "Saves your wording and order to this instrument.",
-          },
+          action: doc.dirty
+            ? {
+                label: "Save the instrument",
+                onClick: () => save.mutate(),
+                pending: save.isPending,
+                icon: <Save size={12} />,
+                note: "Saves your wording and order to this instrument.",
+              }
+            : null,
         },
         coverage: {
           instruction:

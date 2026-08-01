@@ -29,11 +29,14 @@ import {
   getProjectBrief,
   saveProjectBrief,
 } from "@/lib/personas/project-brief.functions";
+import { useResolveAction } from "@/components/personas/field/stage-bus";
 
 type Props = {
   code: string;
   projectId: string;
   onCommitted?: () => void;
+  /** The field wizard owns the sole primary footer when embedded there. */
+  embedded?: boolean;
 };
 
 const BEATS = [
@@ -42,7 +45,7 @@ const BEATS = [
   { key: "open", label: "Chamber opens" },
 ] as const;
 
-export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
+export function ProgramBriefIntake({ code, projectId, onCommitted, embedded = false }: Props) {
   const qc = useQueryClient();
   const briefQ = useQuery({
     queryKey: ["program-brief", projectId],
@@ -141,11 +144,31 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
   const blockedReason = !meetsMinimum
     ? "Attach the source brief, or add a few more lines — 40 characters minimum."
     : null;
+  const alreadyCommitted = !!briefQ.data?.committed_at;
+
+  useResolveAction(
+    "programme-brief",
+    embedded && !alreadyCommitted
+      ? scope
+        ? {
+            label: "Commit the brief",
+            run: () => commit.mutate(),
+            pending: commit.isPending,
+            disabled: busy || !meetsMinimum,
+          }
+        : {
+            label: "Read the brief material",
+            run: () => enrich.mutate(),
+            pending: enrich.isPending,
+            disabled: busy || !meetsMinimum,
+          }
+      : null,
+  );
 
   return (
     <section className="space-y-5 pb-24">
       {/* ── Briefing masthead ─────────────────────────────────────────── */}
-      <header className="border border-ink-950 bg-paper-0 p-5 sm:p-6">
+      {!embedded ? <header className="border border-ink-950 bg-paper-0 p-5 sm:p-6">
         <div className="flex items-start justify-between gap-6">
           <div className="min-w-0">
             <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
@@ -203,7 +226,7 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
             );
           })}
         </ol>
-      </header>
+      </header> : null}
 
       {/* ── What we gathered ──────────────────────────────────────────── */}
       <section className="border border-line-200 bg-paper-50 p-4">
@@ -376,7 +399,7 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
       )}
 
       {/* ── Single decisive action bar ────────────────────────────────── */}
-      <footer className="sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center gap-3 border-t border-ink-950 bg-paper-0/95 px-1 py-3 backdrop-blur supports-[backdrop-filter]:bg-paper-0/85">
+      {!embedded ? <footer className="sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center gap-3 border-t border-ink-950 bg-paper-0/95 px-1 py-3 backdrop-blur supports-[backdrop-filter]:bg-paper-0/85">
         {scope ? (
           <button
             type="button"
@@ -413,7 +436,7 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
               : "The chamber reads brief first, context second, and returns a structured scope you can edit.")}
         </p>
         {error && <p className="w-full text-[12px] text-rose-600">{error}</p>}
-      </footer>
+      </footer> : error ? <p className="text-[12px] text-rose-600">{error}</p> : null}
     </section>
   );
 }

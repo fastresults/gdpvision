@@ -9,12 +9,21 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type {
+  BriefFact,
   BriefingReadinessItem,
   BriefingSection,
+  BriefOpener,
   CommencementBriefing,
 } from "./commencement-briefing.server";
 
-export type { BriefingReadinessItem, BriefingSection, CommencementBriefing };
+export type {
+  BriefFact,
+  BriefingReadinessItem,
+  BriefingSection,
+  BriefOpener,
+  CommencementBriefing,
+};
+
 
 export interface BriefingRecord {
   id: string;

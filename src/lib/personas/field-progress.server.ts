@@ -6,6 +6,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/integrations/supabase/types";
 import type { FieldFinding, FieldProgress, FieldStageProgress } from "./field-stages";
+import { requiredInstruments } from "./instrument-draft.server";
+
 
 type Db = SupabaseClient<Database>;
 

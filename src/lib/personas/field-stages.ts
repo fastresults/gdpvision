@@ -81,9 +81,10 @@ export const FIELD_STAGE_SPECS: Record<FieldStageKey, FieldStageSpec> = {
     label: "Instruments",
     sub: "Fieldcraft",
     decides: "What will be asked, in what order, and how the answers will be recorded.",
-    doneWhen: "At least one instrument is drafted and saved against this programme.",
+    doneWhen:
+      "Every instrument the approved method mix requires is drafted against this programme.",
     advance: "Go to the field",
-    resolve: "Draft the instrument",
+    resolve: "Draft the instruments",
   },
   fieldwork: {
     key: "fieldwork",
@@ -106,7 +107,6 @@ export const FIELD_STAGE_SPECS: Record<FieldStageKey, FieldStageSpec> = {
     resolve: "Synthesise the finding",
   },
 };
-
 
 export const FIELD_STAGE_LIST: FieldStageSpec[] = FIELD_STAGES.map((k) => FIELD_STAGE_SPECS[k]);
 

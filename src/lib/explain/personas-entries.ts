@@ -109,4 +109,24 @@ registerRationales([
     caveat:
       "Composition is a proposal about dynamics, which no model can fully predict. You can move anyone between slates before invitations go out, and the group's own transcript is what the finding is ultimately drawn from.",
   },
+  {
+    key: "research.instrument.derivation",
+    title: "How the instrument is written",
+    short:
+      "Drafted on arrival from the source brief, the supporting context and the approved plan — not from a stock question bank.",
+    basis:
+      "The chamber reads the governing source brief, the scope read-out, and the approved programme plan's objectives, method mix and audiences. It then writes one instrument per method the plan obliges: a self-completion questionnaire for the survey lines, a moderator discussion guide for the depth interview, focus group and expert panel lines. Desk-research lines carry no instrument. Every question is tagged to the objective it serves.",
+    caveat:
+      "It is a first draft written to the plan as approved. Wording, order, question type and options are all yours to edit, and re-drafting writes a fresh version rather than editing in place — save your changes first.",
+  },
+  {
+    key: "research.instrument.coverage",
+    title: "What objective coverage means",
+    short:
+      "Each objective in the approved plan, and how many questions in this instrument are tagged to it.",
+    basis:
+      "Every question carries an objective reference set at draft time and editable per question. The count is a straight tally of questions tagged to each objective in the instrument you are looking at.",
+    caveat:
+      "An objective showing no questions here may legitimately be served by the other instrument, or by a desk-research line that has no instrument at all. Read coverage across the whole method mix, not one tab.",
+  },
 ]);

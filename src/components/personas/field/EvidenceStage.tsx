@@ -172,7 +172,7 @@ export function EvidenceStage({
     </>
   );
 
-  const finding = !live ? (
+  const findingView = !live ? (
         <EmptyAction
           title="Not synthesised yet."
           body="Once returns are in, the chamber reads every response and transcript and writes the finding — toplines, tensions, quotes and an explicit confidence statement."
@@ -298,7 +298,7 @@ export function EvidenceStage({
         synthesise: (
           <div className="space-y-5">
             {bar}
-            {finding}
+            {findingView}
           </div>
         ),
 
@@ -312,7 +312,7 @@ export function EvidenceStage({
               copy behind.
             </p>
             {bar}
-            <ShowTheDetail label="Re-read the finding before filing">{finding}</ShowTheDetail>
+            <ShowTheDetail label="Re-read the finding before filing">{findingView}</ShowTheDetail>
           </div>
         ),
       }}

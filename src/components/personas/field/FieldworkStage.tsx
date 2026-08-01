@@ -19,7 +19,7 @@ import {
   inviteContacts,
   openCollection,
 } from "@/lib/personas/field-collection.functions";
-import { getInstrument } from "@/lib/personas/field-instrument.functions";
+import { getInstruments } from "@/lib/personas/field-instrument.functions";
 import {
   attachSessionTranscript,
   listSessions,
@@ -62,7 +62,7 @@ export function FieldworkStage({
   });
   const instrumentQ = useQuery({
     queryKey: ["field-instrument", studyId],
-    queryFn: () => getInstrument({ data: { studyId: studyId as string } }),
+    queryFn: () => getInstruments({ data: { studyId: studyId as string } }),
     enabled: !!studyId,
   });
   const panelsQ = useQuery({
@@ -93,7 +93,9 @@ export function FieldworkStage({
       openFn({
         data: {
           studyId: studyId as string,
-          instrumentId: (instrumentQ.data as { id?: string } | null)?.id ?? null,
+          instrumentId:
+            (instrumentQ.data?.instruments.find((i) => i.kind === "survey") ??
+              instrumentQ.data?.instruments[0])?.id ?? null,
           access: "invited",
         },
       }),

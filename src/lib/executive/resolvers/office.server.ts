@@ -220,9 +220,9 @@ export async function resolveCabinet(sb: Db, cc: string): Promise<ChamberSummary
   }
 }
 
-/** Chamber 07 · Synthetic Persona Lab */
+/** Chamber 07 · The Research Chamber */
 export async function resolvePersonas(sb: Db, cc: string): Promise<ChamberSummary> {
-  const base = emptyChamber("07", "Synthetic Persona Lab", "/admin/countries/$code/personas", "Policy research", [
+  const base = emptyChamber("07", "The Research Chamber", "/admin/countries/$code/personas", "Policy research", [
     "Studies running",
     "Segments",
     "Responses",

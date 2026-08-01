@@ -45,7 +45,7 @@ const REST: Chamber[] = [
   { n: "04", icon: TrendingUp, title: "The FDI Transition Studio", blurb: "Threat in, resilient FDI strategy out — sector by sector.", to: "/admin/countries/$code/studio" },
   { n: "05", icon: MessageSquare, title: "The Narrative Chamber", blurb: "Signal to statement inside a working day.", to: "/admin/countries/$code/narrative" },
   { n: "06", icon: Landmark, title: "The Cabinet Room", blurb: "Prep, run, and follow through on cabinet business.", to: "/admin/countries/$code/cabinet" },
-  { n: "07", icon: Users, title: "Synthetic Persona Lab", blurb: "Simulate publics, applicants, and stakeholders.", to: "/admin/countries/$code/personas" },
+  { n: "07", icon: Users, title: "The Research Chamber", blurb: "Rehearse with a synthetic public, or field the real one.", to: "/admin/countries/$code/personas" },
   { n: "08", icon: ScrollText, title: "The Mandate Compact", blurb: "Manifesto to delivery — pledges tracked to the ministry.", to: "/admin/countries/$code/mandate-compact" },
 ];
 

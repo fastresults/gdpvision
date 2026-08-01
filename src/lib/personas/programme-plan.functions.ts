@@ -328,7 +328,9 @@ export const deriveProgrammePlan = createServerFn({ method: "POST" })
 
     const { data: row, error } = await supabase
       .from("persona_projects")
-      .select("id,title,country_code,brief_raw,brief_scope,brief_uploads,brief_committed_at")
+      .select(
+        "id,title,country_code,brief_raw,brief_scope,brief_uploads,brief_source,brief_committed_at",
+      )
       .eq("id", data.projectId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -348,23 +350,38 @@ export const deriveProgrammePlan = createServerFn({ method: "POST" })
       .eq("code", project.country_code)
       .maybeSingle();
 
-    const proposal = await deriveJson<PlanProposal>({
-      system: PLANNER_SYSTEM,
-      user: plannerUser({
-        countryName: (country?.name as string) ?? project.country_code,
-        countryCode: project.country_code,
-        title: project.title,
-        briefText: text,
-        scope: project.brief_scope,
-        constraints: {
-          deadline: data.deadline ?? null,
-          startsOn: data.startsOn ?? null,
-          notes: data.constraints ?? null,
-        },
-        steering: data.steering ?? null,
-      }),
-      validate: isProposal,
+    const userPrompt = plannerUser({
+      countryName: (country?.name as string) ?? project.country_code,
+      countryCode: project.country_code,
+      title: project.title,
+      briefText: text,
+      scope: project.brief_scope,
+      constraints: {
+        deadline: data.deadline ?? null,
+        startsOn: data.startsOn ?? null,
+        notes: data.constraints ?? null,
+      },
+      steering: data.steering ?? null,
     });
+
+    // Strict first: a plan with anonymous or duplicate phase names is rejected
+    // and re-derived. Only if both models fail the strict bar do we accept a
+    // looser plan and repair the naming before anything is persisted.
+    let proposal: PlanProposal;
+    try {
+      proposal = await deriveJson<PlanProposal>({
+        system: PLANNER_SYSTEM,
+        user: userPrompt,
+        validate: isProposal,
+      });
+    } catch {
+      const loose = await deriveJson<PlanProposal>({
+        system: PLANNER_SYSTEM,
+        user: userPrompt,
+        validate: isLoosePlan,
+      });
+      proposal = await repairPhaseNames(loose, text);
+    }
 
     const startsOn = resolveStart(data.startsOn, data.deadline, proposal.duration_days);
     const endsOn = addDays(startsOn, proposal.duration_days);

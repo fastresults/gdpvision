@@ -112,6 +112,7 @@ interface Narrative {
   approach: string;
   why_these_people: string;
   assurance: string;
+  expected_outcome: string;
 }
 
 function isNarrative(v: unknown): v is Narrative {
@@ -123,7 +124,9 @@ function isNarrative(v: unknown): v is Narrative {
     typeof n.why_these_people === "string" &&
     n.why_these_people.trim().length > 40 &&
     typeof n.assurance === "string" &&
-    n.assurance.trim().length > 40
+    n.assurance.trim().length > 40 &&
+    typeof n.expected_outcome === "string" &&
+    n.expected_outcome.trim().length > 80
   );
 }
 
@@ -131,10 +134,12 @@ const NARRATIVE_SYSTEM = `You are a senior research director at a top-tier strat
 
 Write in calm, precise, non-promotional British English. Address the client directly. Never invent facts: use only the material supplied. No bullet lists, no headings, no markdown syntax — plain prose paragraphs separated by a blank line.
 
-Return JSON with exactly three string keys:
+Return JSON with exactly four string keys:
 - "approach": 3–5 paragraphs. What this programme is doing, why the method mix is the right instrument for these objectives, and how the phases carry it from start to read-out.
 - "why_these_people": 2–3 paragraphs. Why the recruited audience is the right one to answer the brief, what each segment contributes, and how their answers will be weighted. Describe the audience only as target personas — role archetypes, sectors and segments. Never name individuals or identify a single person by an unusual role-plus-organisation pairing.
-- "assurance": 2–3 paragraphs. How quality, consent and confidentiality are held; what the limits of the evidence will be; and how findings will be filed to the client's second brain so they can be cited later.`;
+- "assurance": 2–3 paragraphs. How quality, consent and confidentiality are held; what the limits of the evidence will be; and how findings will be filed to the client's second brain so they can be cited later.
+- "expected_outcome": 2–3 paragraphs, and these are the closing words of the whole document. Restate the client's original ask in plain language as it was given in the brief and scope, then state precisely what the programme will hand back against it — naming the committed deliverables and the date by which they land. Be concrete and measured; make no claim the committed artefacts do not support.`;
+
 
 async function writeNarrative(input: string): Promise<Narrative | null> {
   try {

@@ -113,7 +113,15 @@ function FieldStageBody({
           </Link>
         </div>
       ) : stage === "plan" ? (
-        <StageFrame code={code} projectId={projectId} stage="plan" progress={progress}>
+        <StageFrame
+          code={code}
+          projectId={projectId}
+          stage="plan"
+          progress={progress}
+          progressPending={progressQ.isFetching}
+          progressError={progressQ.isError ? "unreadable" : null}
+          onRetryProgress={() => void progressQ.refetch()}
+        >
           <PlanStage code={code} projectId={projectId} onChanged={refresh} />
         </StageFrame>
       ) : !gate.planCommitted ? (
@@ -132,7 +140,15 @@ function FieldStageBody({
           </Link>
         </div>
       ) : (
-        <StageFrame code={code} projectId={projectId} stage={stage} progress={progress}>
+        <StageFrame
+          code={code}
+          projectId={projectId}
+          stage={stage}
+          progress={progress}
+          progressPending={progressQ.isFetching}
+          progressError={progressQ.isError ? "unreadable" : null}
+          onRetryProgress={() => void progressQ.refetch()}
+        >
           {progressQ.isLoading ? (
             <p className="text-sm text-ink-500">Reading the programme…</p>
           ) : stage === "participants" ? (
@@ -151,11 +167,13 @@ function FieldStageBody({
               projectId={projectId}
               studyId={studyId}
               finding={progress?.fieldFinding ?? null}
+              closed={progress?.stages.evidence.complete ?? false}
               onChanged={refresh}
             />
           )}
         </StageFrame>
       )}
+
     </div>
   );
 }

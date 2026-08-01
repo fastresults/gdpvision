@@ -36,7 +36,9 @@ function parseRoster(text: string) {
     .map((l) => l.trim())
     .filter(Boolean)
     .map((line) => {
-      const cells = line.split(/\t|,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map((c) => c.trim().replace(/^"|"$/g, ""));
+      const cells = line
+        .split(/\t|,(?=(?:[^"]*"[^"]*")*[^"]*$)/)
+        .map((c) => c.trim().replace(/^"|"$/g, ""));
       const [full_name, email, organisation, role_title] = cells;
       return {
         full_name: (full_name ?? "").slice(0, 200),
@@ -174,7 +176,11 @@ export function ParticipantsStage({
             disabled={doImport.isPending}
             onClick={() => doImport.mutate()}
           >
-            {doImport.isPending ? <Loader2 size={11} className="animate-spin" /> : <UserPlus size={12} />}
+            {doImport.isPending ? (
+              <Loader2 size={11} className="animate-spin" />
+            ) : (
+              <UserPlus size={12} />
+            )}
             Add to the contact book
           </button>
           {doImport.isSuccess ? (
@@ -257,9 +263,7 @@ export function ParticipantsStage({
                   <button
                     type="button"
                     className="btn-ghost"
-                    onClick={() =>
-                      optOutFn({ data: { id: c.id, optedOut: !out } }).then(refresh)
-                    }
+                    onClick={() => optOutFn({ data: { id: c.id, optedOut: !out } }).then(refresh)}
                   >
                     {out ? "Restore" : "Opt out"}
                   </button>

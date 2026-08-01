@@ -52,9 +52,10 @@ export async function ensureFieldStudyRow(
   if (!plan) return null; // no active plan — nothing to hang field work on yet
 
   const mix = JSON.stringify(plan.method_mix ?? "").toLowerCase();
-  const method = mix.includes("focus") || mix.includes("interview") || mix.includes("depth")
-    ? "focus_group"
-    : "survey";
+  const method =
+    mix.includes("focus") || mix.includes("interview") || mix.includes("depth")
+      ? "focus_group"
+      : "survey";
 
   const { data: row, error } = await supabase
     .from("studies")

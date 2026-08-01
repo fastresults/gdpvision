@@ -84,7 +84,11 @@ export function EvidenceStage({
           disabled={synth.isPending}
           onClick={() => synth.mutate()}
         >
-          {synth.isPending ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={12} />}
+          {synth.isPending ? (
+            <Loader2 size={11} className="animate-spin" />
+          ) : (
+            <Sparkles size={12} />
+          )}
           {live ? "Re-synthesise" : "Synthesise the finding"}
         </button>
         <button

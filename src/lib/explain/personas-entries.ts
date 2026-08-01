@@ -57,8 +57,7 @@ registerRationales([
   {
     key: "research.intake.brief-precedence",
     title: "Source brief vs. supporting context",
-    short:
-      "One document governs the programme. Everything else colours it but cannot overrule it.",
+    short: "One document governs the programme. Everything else colours it but cannot overrule it.",
     basis:
       "The source brief — the RFP, cabinet memo, tender notice or the principal's own dictated words — decides the objectives, decisions, timeframe and geography. Supporting context is read afterwards and may only enrich, illustrate or qualify those. Both are filed to this country's second brain with their role attached (brief or context), so later retrieval weighs the brief above its context.",
     caveat:

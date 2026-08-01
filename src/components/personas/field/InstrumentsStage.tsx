@@ -115,7 +115,11 @@ export function InstrumentsStage({
             disabled={draft.isPending}
             onClick={() => draft.mutate("survey")}
           >
-            {draft.isPending ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={12} />}
+            {draft.isPending ? (
+              <Loader2 size={11} className="animate-spin" />
+            ) : (
+              <Sparkles size={12} />
+            )}
             Draft a survey
           </button>
           <button

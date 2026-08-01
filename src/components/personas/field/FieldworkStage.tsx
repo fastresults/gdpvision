@@ -235,7 +235,7 @@ export function FieldworkStage({
                 value={rows}
                 onChange={(e) => setRows(e.target.value)}
                 rows={3}
-                placeholder='One return per line — JSON object, or plain text for a single open answer.'
+                placeholder="One return per line — JSON object, or plain text for a single open answer."
                 className="mt-1 w-full border border-line-200 bg-paper-0 p-2 font-mono text-[11px] focus:border-ink-950 focus:outline-none"
               />
               <button
@@ -296,14 +296,21 @@ export function FieldworkStage({
 
         <ul className="mt-3 divide-y divide-line-200">
           {(sessionsQ.data ?? []).map((s) => {
-            const row = s as { id: string; title: string; status: string; scheduled_at: string | null };
+            const row = s as {
+              id: string;
+              title: string;
+              status: string;
+              scheduled_at: string | null;
+            };
             return (
               <li key={row.id} className="py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="text-[13px] text-ink-950">{row.title}</p>
                     <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
-                      {row.scheduled_at ? new Date(row.scheduled_at).toLocaleString() : "unscheduled"}{" "}
+                      {row.scheduled_at
+                        ? new Date(row.scheduled_at).toLocaleString()
+                        : "unscheduled"}{" "}
                       · {row.status}
                     </p>
                   </div>

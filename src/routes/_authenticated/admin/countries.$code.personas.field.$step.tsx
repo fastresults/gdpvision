@@ -46,13 +46,12 @@ function FieldStagePage() {
   if (!STEPS.includes(step as FieldStageKey)) throw notFound();
   const stage = step as FieldStageKey;
   const search = useSearch({ strict: false }) as { project?: string };
-  const projectId = typeof search.project === "string" && search.project ? search.project : undefined;
+  const projectId =
+    typeof search.project === "string" && search.project ? search.project : undefined;
   const gate = useResearchGate(code, projectId);
 
   if (!projectId) {
-    return (
-      <Navigate to="/admin/countries/$code/personas" params={{ code }} />
-    );
+    return <Navigate to="/admin/countries/$code/personas" params={{ code }} />;
   }
 
   return <FieldStageBody code={code} projectId={projectId} stage={stage} gate={gate} />;
@@ -101,8 +100,8 @@ function FieldStageBody({
         <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
           <p className="font-serif text-lg text-ink-950">The brief comes first.</p>
           <p className="mt-1 max-w-xl text-sm text-ink-700">
-            A field programme is planned from the brief — its questions, constraints and deadline set
-            the phases, the participants and the instruments.
+            A field programme is planned from the brief — its questions, constraints and deadline
+            set the phases, the participants and the instruments.
           </p>
           <Link
             to="/admin/countries/$code/personas"
@@ -181,8 +180,7 @@ function PlanStage({
   });
 
   const derive = useMutation({
-    mutationFn: () =>
-      deriveFn({ data: { projectId, steering: steering.trim() || null } }),
+    mutationFn: () => deriveFn({ data: { projectId, steering: steering.trim() || null } }),
     onSuccess: () => {
       setSteering("");
       void qc.invalidateQueries({ queryKey: ["programme-plan", projectId] });
@@ -229,7 +227,12 @@ function PlanStage({
           />
         </label>
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <button type="button" onClick={() => derive.mutate()} disabled={derive.isPending} className="btn-primary">
+          <button
+            type="button"
+            onClick={() => derive.mutate()}
+            disabled={derive.isPending}
+            className="btn-primary"
+          >
             {derive.isPending ? (
               <>
                 <Loader2 size={11} className="animate-spin" /> Drafting…
@@ -256,8 +259,12 @@ function PlanStage({
             </span>
           )}
         </div>
-        {derive.isError && <p className="mt-2 text-[11px] text-rose-600">{(derive.error as Error).message}</p>}
-        {commit.isError && <p className="mt-2 text-[11px] text-rose-600">{(commit.error as Error).message}</p>}
+        {derive.isError && (
+          <p className="mt-2 text-[11px] text-rose-600">{(derive.error as Error).message}</p>
+        )}
+        {commit.isError && (
+          <p className="mt-2 text-[11px] text-rose-600">{(commit.error as Error).message}</p>
+        )}
       </div>
 
       {planQ.isLoading ? (
@@ -356,9 +363,7 @@ function PhaseList({
                       {String(m.due_on ?? "—")}
                     </span>{" "}
                     · {String(m.title ?? "Milestone")}
-                    {m.owner ? (
-                      <span className="text-ink-500"> — {String(m.owner)}</span>
-                    ) : null}
+                    {m.owner ? <span className="text-ink-500"> — {String(m.owner)}</span> : null}
                     {m.detail ? (
                       <span className="block text-[12px] text-ink-600">{String(m.detail)}</span>
                     ) : null}

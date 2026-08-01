@@ -3,7 +3,7 @@
 // The real-world rail. Mirrors StudioStepper's grammar but walks the stages a
 // dated field programme actually passes through.
 
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Check,
   ClipboardList,
@@ -15,8 +15,10 @@ import {
   Library,
 } from "lucide-react";
 
+import { useGuardedGo } from "@/components/personas/field/stage-bus";
 import type { FieldProgress } from "@/lib/personas/field-stages";
-import { cn } from "@/lib/utils";
+import { cn, scrollToTop } from "@/lib/utils";
+
 
 export type FieldStageKey =
   | "brief"

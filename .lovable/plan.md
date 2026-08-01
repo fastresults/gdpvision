@@ -1,71 +1,91 @@
-# Fieldwork: capture anywhere, land everywhere
+## Fieldwork desk — guided, instructed, Tier 1
 
-Two halves of one loop. **Deploy** an instrument out of the chamber in whatever form the field actually uses, then **ingest** whatever comes back — file, transcript, spreadsheet, or paper — and have AI seat it against the right wave, the right participant, and the right question.
+Front UI only. No server functions, no schema, no changes to how waves are derived. Everything below is presentation, copy, and interaction.
 
-## Part A — Drop zones on every wave (as previously planned)
+### What I saw on the live GRD programme
 
-Each wave card in `FieldworkStage.tsx` gains an **Upload results** affordance alongside its existing "Next move":
+Reading the actual rendered stage, the desk is *informative* but not *guided*. Concretely:
 
-- Hosted questionnaire wave → drop CSV/XLSX exports, PDF/scans of completed forms.
-- Session waves (focus groups, depth interviews, panels) → drop audio/video, transcripts, moderator notes, DOCX/PDF.
+- Wave 2 is titled `WAVE 2 · DEPTH_INTERVIEW` — a raw database enum is on screen.
+- Both waves say **IN THE FIELD** while showing `0/450 returns · 0 invited · 0 opened`. Nothing has been fielded. The badge is not believable.
+- The progress bar at 0% renders as a flat grey line indistinguishable from a divider.
+- The action row is three visually equal controls — *Issue links to 51 recruited*, *Prepare invitations*, *Close this wave* — with no order, no numbering, and a wave-ending action sitting beside a starting action at the same weight.
+- Three collapsed grey all-caps strips stack in a row (*Deploy this instrument*, *Collected elsewhere*, *Paste returns line by line*). Nothing says which one you want, whether anything is inside, or that one of them is the reason the wave is stuck.
+- The open participant link is printed twice — once raw in the card, once inside the deploy panel that governs it.
+- **There is not a single tooltip in the stage.** The only interrogable thing is the meter.
+- Session wave: a *File uploaded material against* dropdown floats above an unlabelled drop zone with no visible relationship between the two.
+- Success and error messages land as 12px grey text at the bottom of a panel.
 
-Files land in the existing corpus storage path, are parsed via `parse-upload.functions.ts` / `transcribe.functions.ts`, then handed to an AI mapping pass.
+---
 
-## Part B — Instruments become deployable artefacts
+### The design position
 
-Stage 03 instruments are currently only renderable inside the hosted participant page (`/f/$token`). Add a **Deploy** panel to `InstrumentsStage.tsx` and to each wave, offering four channels:
-
-1. **Hosted link** — what exists today: tokenised per-participant invitations.
-2. **Open link** — one anonymous URL with an optional response cap and close date, for when the ministry distributes it themselves (WhatsApp, email blast, kiosk).
-3. **Printable form** — a paper questionnaire / moderator guide PDF, each question stamped with its stable question id and a form serial, so scanned returns are machine-mappable.
-4. **Export for external tooling** — CSV/XLSX column template (one column per question id, with the value legend), plus a JSON schema for teams running Qualtrics/SurveyMonkey/KoBo/Google Forms.
-
-The exported column template is the contract. Anything that comes back shaped like it maps with zero AI guessing; anything else falls to the mapper below.
-
-## Part C — The ingestion mapper (the part that makes this work)
-
-A single server pipeline, `field-ingest.server.ts`, with a strict order of attempts:
+A wave is a **procedure**, not a panel of options. Every wave gets the same four-beat spine, always in the same order, always numbered, with exactly one live step:
 
 ```text
-file → parse → classify → map → stage → review → commit
+①  Open the field        ── done, ticked, collapses to a line
+②  Reach participants    ── LIVE · the only emphasised control on screen
+③  Collect returns       ── dimmed until ② has happened
+④  Close the wave        ── dimmed until returns exist; confirms before firing
 ```
 
-- **Classify**: tabular (many respondents, one row each) vs. narrative (one session, many speakers).
-- **Map, tabular**: match each column to a question id — exact id, then header text similarity, then AI adjudication against the instrument's prompts. Values are coerced to each question's type (choice options, scale bounds, matrix rows); unmatched columns are kept, never dropped.
-- **Map, narrative**: AI reads the transcript against the discussion guide and answers each `moderator_prompt` / `open_text` question with the participant's own words plus a verbatim quote and a timestamp/线 offset. One `field_response` per identified speaker where speakers can be resolved, else one per session.
-- **Identity**: resolve respondents to `research_contacts` by email/phone/participant code; unknown respondents get an anonymous participant code rather than being rejected.
-- **Confidence**: every mapped cell carries a confidence and a provenance note.
+Steps behind you compress to a single ticked line. The live step is the only one with a primary button. Steps ahead are visible (so the operator knows the shape of the work) but muted and non-actionable, each with a one-line "unlocks when…".
 
-## Part D — Review before anything counts
+---
 
-Nothing writes to `field_responses` until a human says so. A **Staging review** sheet shows:
+### 1 · A field UI kit (new, shared by both wave types)
 
-- A mapping table: source column/prompt → instrument question, with confidence, editable by dropdown.
-- A preview grid of the first rows / the extracted session answers.
-- Duplicate detection against existing responses (same participant + same collection).
-- Counts: N accepted, N flagged, N unmapped.
-- One **Commit to wave** action, which inserts responses, marks matching invitations completed, and re-runs wave progress.
+`src/components/personas/field/kit/`
 
-This is the discipline a real fieldwork operation needs: an import you can't audit is data you can't defend in a cabinet room.
+- **`Hint.tsx`** — the tooltip primitive this stage is missing. Wraps shadcn `Tooltip`; a small `?` affordance or a wrapped control, hover *and* keyboard focus, tap-to-open on coarse pointers, `aria-describedby` wired. This is for *operating instructions* ("what this button does, what happens after you press it"). It complements `Explain`, which stays reserved for *derivations* ("why this number is this number"). Both appear in the stage; they never overlap in purpose.
+- **`StepRow.tsx`** — one numbered beat: index medallion, title, one-sentence instruction, state (`done` / `live` / `locked`), action slot, and a `Hint`.
+- **`Meter.tsx`** — honest progress. A track that reads as a track at 0%, a filled portion, a target tick, and a caption. Zero state says `No returns yet · target 450`, not a blank bar.
+- **`StatusPill.tsx`** — derived in the UI from the counts already on the board: `Not started` → `Invitations out` → `Returns arriving` → `Target met` → `Closed`. No more "In the field" over an empty wave.
+- **`Panel.tsx`** — replaces the bare `<details>` strips. Icon, sentence-case title, one-line purpose, a count/state badge on the right, chevron. Auto-opens when it is the live step; stays closed otherwise.
+- **`Flash.tsx`** — replaces the grey trailing `<p>`. Inline banner with tone (working / done / needs attention), an icon, and auto-clear on success.
+- **`labels.ts`** — `depth_interview` → `Depth interview`, `focus_group` → `Focus group`, etc. No enum ever reaches the screen again.
 
-## Part E — Progress, provenance, closure
+### 2 · `WaveShell` rebuilt
 
-- `field_responses.source` widens beyond `hosted`: `open_link`, `upload_csv`, `upload_transcript`, `paper`, `external`.
-- Wave progress counts uploaded responses identically to hosted ones, so a wave can be satisfied entirely offline.
-- Every ingested artefact is written to the second brain (`field-corpus.server.ts`) as a source document with `visibility: private`, deduped on file hash, so synthesis in Stage 05 cites the real instrument return.
-- An `<Explain>` rationale (`research.fieldwork.ingest`) states how a given response arrived and how confident the mapping was.
+Masthead: wave number, humanised method, honest `StatusPill`, title, purpose, audience chips. Then the `Meter`. Then a **"Next move"** strip — the single live instruction with its own `Hint`, and a *Take me there* control that scrolls to and opens the relevant step. Then the numbered ladder.
 
-## Recommendation from practice
+Every wave card carries a quiet **"What this wave produces"** line so the operator knows why they are doing it (`450 filed returns, tagged to the questionnaire and readable in Evidence`).
 
-Three things field operations get wrong, and how this handles them:
+### 3 · `CollectionWave` as a ladder
 
-- **The instrument drifts.** Once a questionnaire leaves the system, someone edits it. So the export stamps an instrument **version**, and ingest warns loudly when returns reference a version other than the live one instead of silently merging them.
-- **Partials are data.** Never discard a half-finished return; store it with its completion rate and let synthesis weight it.
-- **Quotas beat totals.** Waves should track achieved-vs-target *by audience segment*, not just a headline N, or you finish fielding with 300 responses and no one from the group that mattered.
+- **① Open the field** — once open, collapses to `Field open · questionnaire live · <date>`.
+- **② Reach participants** — the recruited-panel route and the open-link route become two labelled *lanes* inside one step rather than three loose buttons. Primary is `Issue links to 51 recruited`; `Prepare invitations` is explicitly explained by a `Hint` ("mail is not connected, so each invitation is written to the comms log with its own participant link — copy from the register below"). The duplicated raw link is removed from the card body; the link lives only in the deploy lane, with copy-confirmation feedback (`Copied` for 2s).
+- **③ Collect returns** — `Deploy this instrument`, `Collected elsewhere`, and `Paste returns line by line` become three `Panel`s nested under this step, each with a badge (`3 staged · 1 to check`, `0 filed`) and a one-line purpose. The drop zone gets a real hover/drag state, an accepted-formats line, and a three-word "what happens next" (`read → mapped → you approve`).
+- **④ Close the wave** — never fires blind. A small confirm popover states what closing means (`no further returns can be filed; the wave is scored at 312 of 450`).
+- Invitation register gains a compact status legend and per-row copy feedback.
 
-## Technical notes
+### 4 · `SessionWave` as a ladder
 
-- New: `src/lib/personas/field-ingest.server.ts`, `field-ingest.functions.ts`, `instrument-deploy.server.ts` (PDF/CSV/JSON generation), UI `fieldwork/UploadDropzone.tsx`, `fieldwork/IngestReviewSheet.tsx`, `field/DeployPanel.tsx`.
-- Migration: `field_ingest_batches` (file ref, wave/collection, kind, status, mapping jsonb, counts) plus GRANTs/RLS scoped by `has_country_access`; widen `field_responses.source`; add `instrument_version` and `completion_rate` to `field_responses`; add `open_token`/`response_cap` support on `field_collections` for anonymous links.
-- Public route `src/routes/api/public/field.open.$token.ts` for open-link responses, rate-limited by cap and close date, mirroring the existing token endpoint's shape.
-- AI passes reuse `deriveJson` in `field-ai.server.ts`; transcription reuses `transcribe.functions.ts`.
+- **① Seat the rooms** — slates from Participants, each with seat count and a `Hint` explaining that these were composed in Stage 02.
+- **② Hold the sessions** — the session list becomes a proper roster: date, seats, and a state chip (`Scheduled` → `Held` → `Captured`), with the per-session next action inline and the rest dimmed.
+- **③ Capture what was said** — the orphaned *File uploaded material against* select moves *inside* the intake panel as its first field, labelled `Attach to`, so the relationship is unambiguous. Paste-a-transcript and drop-a-recording become two lanes of the same step.
+- **④ Close the wave** — same confirm treatment.
+
+### 5 · Tooltips — the instruction layer
+
+Every control that changes state gets a `Hint` written in the house voice: what it does, what it costs, and what happens next. At minimum: open the field, issue links, prepare/send invitations, remind non-responders, publish/withdraw the open link, printable form, return-sheet template, external-tooling export, drop zone, paste returns, schedule a room, mark held, file transcript, commit a staged batch, discard a batch, close the wave. Column mapping and confidence in the staging table get hints explaining that a low score means *check me*, not *wrong*.
+
+Two rationales are added to `src/lib/explain/personas-entries.ts` for the things that are derivations rather than instructions: how a wave's status is decided, and what "target met" counts.
+
+### 6 · Craft pass
+
+- Mobile: action lanes stack, the step ladder keeps its numbering, tap targets clear 44px, the sticky decision bar never covers the last wave's final step.
+- Motion: staged batches and newly opened steps fade/slide in at ~150ms; the meter fill transitions. Nothing bounces.
+- Accessibility: the ladder is an ordered list, locked steps are `aria-disabled` with a reason, the drop zone is keyboard-reachable, live regions announce staging and filing outcomes.
+- Print: hints and chevrons drop out; the ladder prints as a clean procedure record.
+- House rules held throughout: `btn-*` utilities only, `paper-*`/`ink-*`/`line-*` tokens only, no raw `JSON.stringify` in JSX, engraving-era restraint — no colour beyond the registered signal tokens.
+
+### 7 · Verification
+
+Typecheck, lint, `bun run check:maps`, then re-drive the live GRD programme with Playwright at desktop and mobile widths and read the rendered ladder back to confirm: no enum leakage, honest status, one live step per wave, and a tooltip on every state-changing control.
+
+### Files
+
+New: `kit/Hint.tsx`, `kit/StepRow.tsx`, `kit/Meter.tsx`, `kit/StatusPill.tsx`, `kit/Panel.tsx`, `kit/Flash.tsx`, `kit/labels.ts`.
+Rewritten: `fieldwork/WaveShell.tsx`, `fieldwork/CollectionWave.tsx`, `fieldwork/SessionWave.tsx`, `fieldwork/IngestPanel.tsx`, `DeployPanel.tsx`.
+Touched: `FieldworkStage.tsx` (ladder header + next-move handoff), `src/lib/explain/personas-entries.ts` (two rationales).

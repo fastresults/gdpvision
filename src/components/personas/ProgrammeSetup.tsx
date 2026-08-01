@@ -46,6 +46,9 @@ export function ProgrammeSetup({
     inputRef.current?.focus();
   }, []);
 
+  const fileFn = useServerFn(fileProgrammeMaterial);
+  const [filing, setFiling] = useState(false);
+
   const create = useMutation({
     mutationFn: () =>
       createFn({
@@ -54,12 +57,34 @@ export function ProgrammeSetup({
           title: title.trim(),
           visibility,
           track: chosenTrack,
-          ...(material ? { brief_raw: material.raw, brief_uploads: material.uploads } : {}),
+          ...(material
+            ? {
+                brief_raw: material.raw,
+                brief_source: material.brief,
+                brief_uploads: material.context,
+              }
+            : {}),
           ...(proposal ? { brief_scope: proposal.scope } : {}),
         },
       }),
     onSuccess: async (row: { id: string }) => {
       await qc.invalidateQueries({ queryKey: ["persona-projects", code] });
+      // File the intake into the second brain with its roles attached before
+      // the chamber opens, so retrieval can weigh brief above context.
+      const items = [
+        ...(material?.brief ? [{ role: "brief" as const, ...material.brief }] : []),
+        ...(material?.context ?? []).map((u) => ({ role: "context" as const, ...u })),
+      ];
+      if (items.length > 0) {
+        setFiling(true);
+        try {
+          await fileFn({
+            data: { countryCode: code, projectId: row.id, visibility, items },
+          });
+        } catch {
+          /* filing is best-effort — the programme still opens */
+        }
+      }
       window.location.assign(
         chosenTrack === "field"
           ? `/admin/countries/${code}/personas?project=${row.id}&open=1`

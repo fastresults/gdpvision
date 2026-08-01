@@ -34,6 +34,7 @@ type ProjectBriefRow = {
   brief_raw: string | null;
   brief_scope: Json | null;
   brief_uploads: Json | null;
+  brief_source: Json | null;
   brief_committed_at: string | null;
 };
 

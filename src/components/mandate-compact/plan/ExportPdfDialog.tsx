@@ -3,15 +3,17 @@
 //
 // One-click "Export PDF" flow. Opens a small dialog to configure the cover
 // page (classification, prepared-for/-by, date), page numbers, and TOC —
-// then swaps document.title and calls window.print(). The browser's native
-// print-to-PDF renders <PrintablePlan/> via the print-only stylesheet.
+// then hands the sheet to the print surface registry, which prints
+// <PrintablePlan/> alone.
 
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 
+import { printSurface } from "@/components/print/PrintSurface";
 import type { TransformationalPlan } from "@/lib/mandate-compact/transformational-plan.functions";
 import {
   DEFAULT_PRINT_CONFIG,
+  PLAN_PRINT_SURFACE,
   type PrintConfig,
 } from "@/components/mandate-compact/plan/PrintablePlan";
 
@@ -116,11 +118,7 @@ export function ExportPdfDialog({
             value={config.preparedBy}
             onChange={(v) => update("preparedBy", v)}
           />
-          <Field
-            label="Date"
-            value={config.dateLabel}
-            onChange={(v) => update("dateLabel", v)}
-          />
+          <Field label="Date" value={config.dateLabel} onChange={(v) => update("dateLabel", v)} />
 
           <div className="space-y-3 border-t border-line-200 pt-4">
             <Toggle
@@ -144,11 +142,9 @@ export function ExportPdfDialog({
 
           <p className="border-t border-line-200 pt-4 text-[11px] leading-relaxed text-ink-500">
             The browser print dialog opens next — choose{" "}
-            <span className="font-medium text-ink-950">"Save as PDF"</span> as
-            the destination. Suggested filename:{" "}
-            <span className="font-mono text-[10px] text-ink-700">
-              {suggestFilename(plan)}
-            </span>
+            <span className="font-medium text-ink-950">"Save as PDF"</span> as the destination.
+            Suggested filename:{" "}
+            <span className="font-mono text-[10px] text-ink-700">{suggestFilename(plan)}</span>
           </p>
         </div>
 
@@ -156,7 +152,11 @@ export function ExportPdfDialog({
           <button type="button" onClick={onClose} className="btn-ghost">
             Cancel
           </button>
-          <button type="button" onClick={submit} className="btn-primary inline-flex items-center gap-2">
+          <button
+            type="button"
+            onClick={submit}
+            className="btn-primary inline-flex items-center gap-2"
+          >
             <Download size={14} /> Export PDF
           </button>
         </footer>
@@ -178,20 +178,14 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-        {label}
-      </span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">{label}</span>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="mt-1.5 w-full border border-line-200 bg-paper-0 px-3 py-2 text-sm text-ink-950 focus:border-ink-950 focus:outline-none"
       />
-      {hint && (
-        <span className="mt-1 block text-[11px] leading-snug text-ink-500">
-          {hint}
-        </span>
-      )}
+      {hint && <span className="mt-1 block text-[11px] leading-snug text-ink-500">{hint}</span>}
     </label>
   );
 }
@@ -217,11 +211,7 @@ function Toggle({
       />
       <span>
         <span className="block text-sm text-ink-950">{label}</span>
-        {hint && (
-          <span className="mt-0.5 block text-[11px] leading-snug text-ink-500">
-            {hint}
-          </span>
-        )}
+        {hint && <span className="mt-0.5 block text-[11px] leading-snug text-ink-500">{hint}</span>}
       </span>
     </label>
   );
@@ -237,25 +227,10 @@ export function suggestFilename(plan: TransformationalPlan): string {
 }
 
 /**
- * Trigger the browser print flow. Swaps document.title so the browser
- * suggests a sensible filename in the "Save as PDF" dialog, then restores it.
+ * Trigger the browser print flow for the plan. Delegates to the print surface
+ * registry so exactly one printable owns the sheet — the briefing, deck and
+ * other printables stay mounted but are removed from the printed layout.
  */
 export function triggerPdfPrint(filename: string) {
-  const original = document.title;
-  document.title = filename.replace(/\.pdf$/i, "");
-  // Give React a tick to flush any final state changes to the DOM.
-  window.setTimeout(() => {
-    window.print();
-    // Restore title after the print dialog closes (best-effort — some
-    // browsers block until after; the afterprint event is the reliable hook).
-    const restore = () => {
-      document.title = original;
-      window.removeEventListener("afterprint", restore);
-    };
-    window.addEventListener("afterprint", restore);
-    // Safety net in case afterprint never fires (rare).
-    window.setTimeout(() => {
-      if (document.title !== original) document.title = original;
-    }, 30_000);
-  }, 50);
+  printSurface(PLAN_PRINT_SURFACE, { title: filename.replace(/\.pdf$/i, "") });
 }

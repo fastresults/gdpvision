@@ -8,7 +8,11 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { PrintSurface } from "@/components/print/PrintSurface";
 import type { CommencementBriefing } from "@/lib/personas/commencement-briefing.functions";
+
+/** Surface id — pass to printSurface() to print the briefing and nothing else. */
+export const BRIEFING_PRINT_SURFACE = "briefing";
 
 export type BriefingPrintConfig = {
   classification: string;
@@ -50,7 +54,12 @@ export function PrintableBriefing({
   config: BriefingPrintConfig;
 }) {
   return (
-    <div id="briefing-print-root" data-page-numbers={config.showPageNumbers ? "on" : "off"}>
+    <PrintSurface
+      id={BRIEFING_PRINT_SURFACE}
+      rootId="briefing-print-root"
+      pageCss={pageCss(config)}
+      rootProps={{ "data-page-numbers": config.showPageNumbers ? "on" : "off" }}
+    >
       <style>{PRINT_CSS}</style>
 
       {config.showCoverPage && (
@@ -125,7 +134,7 @@ export function PrintableBriefing({
           </article>
         ))}
       </section>
-    </div>
+    </PrintSurface>
   );
 }
 
@@ -147,13 +156,14 @@ function FootCell({ label, value }: { label: string; value: string }) {
   );
 }
 
-const PRINT_CSS = `
-#briefing-print-root { display: none; }
-
-@media print {
-  @page {
-    size: Letter;
-    margin: 18mm 16mm 22mm 16mm;
+/**
+ * Sheet geometry and running footers. Installed only while this surface is the
+ * one printing — `@page` is document-global, so it must never be declared by a
+ * printable that is merely mounted.
+ */
+function pageCss(config: BriefingPrintConfig): string {
+  const footers = config.showPageNumbers
+    ? `
     @bottom-right {
       content: counter(page) " / " counter(pages);
       font-family: "SFMono-Regular", "Menlo", "Consolas", monospace;
@@ -167,24 +177,33 @@ const PRINT_CSS = `
       font-size: 8pt;
       color: #6b6b6b;
       letter-spacing: 0.14em;
-    }
+    }`
+    : "";
+  return `
+@media print {
+  @page {
+    size: Letter;
+    margin: 18mm 16mm 22mm 16mm;${footers}
   }
   @page :first {
-    margin: 0;
+    margin: ${config.showCoverPage ? "0" : "18mm 16mm 22mm 16mm"};
     @bottom-right { content: none; }
     @bottom-left { content: none; }
   }
+}
+`;
+}
 
+const PRINT_CSS = `
+@media print {
   html, body { background: #ffffff !important; }
-  body * { visibility: hidden !important; }
-  #briefing-print-root, #briefing-print-root * { visibility: visible !important; }
   #briefing-print-root {
-    display: block !important;
     position: absolute;
     inset: 0;
     width: 100%;
     color: #1a1a1a;
     font-family: "Iowan Old Style", "Georgia", "Times New Roman", serif;
+
     font-size: 10.5pt;
     line-height: 1.55;
   }

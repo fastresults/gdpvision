@@ -35,15 +35,16 @@ import {
   getProgrammeDeck,
   type DeckRecord,
 } from "@/lib/personas/programme-deck.functions";
+import { printSurface } from "@/components/print/PrintSurface";
 
 import { DeckModal } from "../deck/DeckModal";
 import { ExportBriefingDialog } from "./ExportBriefingDialog";
 import {
+  BRIEFING_PRINT_SURFACE,
   DEFAULT_BRIEFING_PRINT_CONFIG,
   PrintableBriefing,
   type BriefingPrintConfig,
 } from "./PrintableBriefing";
-
 
 function dateLabel(d: string | null): string {
   if (!d) return "—";
@@ -105,19 +106,17 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
       setError(e instanceof Error ? e.message : "Could not compose the deck."),
   });
 
-
   const record = briefingQ.data ?? null;
   const doc = record?.document ?? null;
 
   const runExport = (config: BriefingPrintConfig) => {
     setPrintConfig(config);
     setExportOpen(false);
-    const original = document.title;
-    if (doc) document.title = `${doc.programmeTitle} — Commencement Briefing`;
-    setTimeout(() => {
-      window.print();
-      document.title = original;
-    }, 120);
+    // printSurface names the one document that may own the sheet — the deck
+    // may also be mounted, and must not print alongside the briefing.
+    printSurface(BRIEFING_PRINT_SURFACE, {
+      title: doc ? `${doc.programmeTitle} — Commencement Briefing` : undefined,
+    });
   };
 
   return (
@@ -130,9 +129,9 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
         <p className="mt-2 max-w-2xl text-sm text-ink-700">
           The complete, plain-language account of what is about to happen: the brief as we
           understood it, the programme and its dates, the target personas we will hear from and why
-          they were chosen, every question that will be asked, how the fieldwork will be run, and how the
-          evidence will be judged and filed. Assemble it, read it, then send it before the first
-          participant is contacted.
+          they were chosen, every question that will be asked, how the fieldwork will be run, and
+          how the evidence will be judged and filed. Assemble it, read it, then send it before the
+          first participant is contacted.
         </p>
       </header>
 
@@ -212,7 +211,6 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
                 Re-compose deck
               </button>
             )}
-
 
             {record && record.status !== "shared" && (
               <button
@@ -343,7 +341,6 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
             deck={deckQ.data?.deck ?? null}
             onClose={() => setDeckOpen(false)}
           />
-
         </>
       )}
     </section>

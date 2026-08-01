@@ -411,3 +411,26 @@
     display: none; /* hover disclosure never prints */
   }
 }
+
+/* ── Print surfaces ─────────────────────────────────────────────────────────
+   Exactly one printable document may own the sheet. Every print root is
+   hidden by default; printSurface() in @/components/print/PrintSurface
+   activates one by id and installs that document's @page rule. See the
+   docblock in that file for why this is not done with `visibility`. */
+#print-portal {
+  display: none;
+}
+
+@media print {
+  [data-print-root] {
+    display: none !important;
+  }
+
+  html[data-printing] body > *:not(#print-portal) {
+    display: none !important;
+  }
+
+  html[data-printing] #print-portal {
+    display: block !important;
+  }
+}

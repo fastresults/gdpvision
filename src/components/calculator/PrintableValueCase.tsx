@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { PrintSurface } from "@/components/print/PrintSurface";
 import type { Counsel } from "@/lib/calculator/counsel.server";
 import { APPROVALS } from "@/lib/business-case";
 import {
@@ -10,15 +11,19 @@ import {
   type ValueResult,
 } from "@/lib/calculator/model";
 
-const PRINT_CSS = `
-#value-case-print-root { display: none; }
+/** Surface id — pass to printSurface() to print the value case alone. */
+export const VALUE_CASE_PRINT_SURFACE = "value-case";
 
+/** Sheet geometry, installed only while this surface owns the page. */
+const PAGE_CSS = `
 @media print {
   @page { size: A4 portrait; margin: 16mm 14mm; }
-  body > *:not(#value-case-print-portal) { display: none !important; }
-  #value-case-print-portal, #value-case-print-portal * { visibility: visible !important; }
+}
+`;
+
+const PRINT_CSS = `
+@media print {
   #value-case-print-root {
-    display: block !important;
     position: absolute;
     inset: 0;
     width: 100%;
@@ -79,15 +84,17 @@ export function PrintableValueCase({
   }, []);
 
   return (
-    <div id="value-case-print-portal">
+    <PrintSurface id={VALUE_CASE_PRINT_SURFACE} rootId="value-case-print-root" pageCss={PAGE_CSS}>
       <style dangerouslySetInnerHTML={{ __html: PRINT_CSS }} />
-      <div id="value-case-print-root">
+      <div>
         <div className="mono">GDPVision · Sovereign value instrument · {today}</div>
         <h1>The value of instrumented decision-making — {countryName}</h1>
         <div className="rule" />
 
         <section>
-          <div className="mono">Modelled uplift, year three · {STANCE_LABEL[input.stance]} stance</div>
+          <div className="mono">
+            Modelled uplift, year three · {STANCE_LABEL[input.stance]} stance
+          </div>
           <div className="verdict">{formatUsd(result.upliftUsd)}</div>
           <p>
             {result.upliftPpOfGdp.toFixed(2)} percentage points of GDP · return of{" "}
@@ -203,6 +210,6 @@ export function PrintableValueCase({
           and bounded, and total claimed uplift is capped at 1.2 per cent of GDP.
         </p>
       </div>
-    </div>
+    </PrintSurface>
   );
 }

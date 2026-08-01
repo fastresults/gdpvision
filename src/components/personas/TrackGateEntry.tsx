@@ -6,7 +6,7 @@
 // manual choice — two instruments, one decision. Blended stays a quiet line.
 
 import { useState } from "react";
-import { ArrowRight, Users2, Wand2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Users2, Wand2 } from "lucide-react";
 
 import { Explain } from "@/components/explain/Explain";
 import { Illustration } from "@/components/marketing/Illustration";

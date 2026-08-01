@@ -85,6 +85,27 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["commencement-briefing", projectId] }),
   });
 
+  // ── presentation deck ────────────────────────────────────────────────────
+  const [deckOpen, setDeckOpen] = useState(false);
+  const deckFn = useServerFn(assembleProgrammeDeck);
+
+  const deckQ = useQuery({
+    queryKey: ["programme-deck", projectId],
+    queryFn: (): Promise<DeckRecord | null> => getProgrammeDeck({ data: { projectId } }),
+  });
+
+  const prepareDeck = useMutation({
+    mutationFn: () => deckFn({ data: { projectId } }),
+    onSuccess: (rec) => {
+      setError(null);
+      qc.setQueryData(["programme-deck", projectId], rec);
+      setDeckOpen(true);
+    },
+    onError: (e: unknown) =>
+      setError(e instanceof Error ? e.message : "Could not compose the deck."),
+  });
+
+
   const record = briefingQ.data ?? null;
   const doc = record?.document ?? null;
 

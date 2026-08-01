@@ -97,7 +97,7 @@ export function TrackGateEntry({ code }: { code: string }) {
             <button
               key={p.key}
               type="button"
-              onClick={() => setChosen(p.key)}
+              onClick={() => setStage({ step: "setup", track: p.key })}
               className="group flex min-h-[420px] flex-col bg-paper-0 p-6 text-left transition-colors hover:bg-paper-50 focus:outline-none focus-visible:bg-paper-50 sm:p-9"
             >
               <div className="flex items-start justify-between gap-4">

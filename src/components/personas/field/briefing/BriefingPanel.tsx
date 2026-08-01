@@ -152,6 +152,38 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
               <Download size={14} />
               Export PDF
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (deckQ.data) setDeckOpen(true);
+                else prepareDeck.mutate();
+              }}
+              disabled={prepareDeck.isPending}
+              className="btn-accent inline-flex items-center gap-2"
+            >
+              {prepareDeck.isPending ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Presentation size={14} />
+              )}
+              {prepareDeck.isPending
+                ? "Composing the deck…"
+                : deckQ.data
+                  ? `Open presentation deck · v${deckQ.data.version}`
+                  : "Prepare presentation deck"}
+            </button>
+            {deckQ.data && (
+              <button
+                type="button"
+                onClick={() => prepareDeck.mutate()}
+                disabled={prepareDeck.isPending}
+                className="btn-ghost inline-flex items-center gap-2"
+              >
+                <RefreshCw size={14} />
+                Re-compose deck
+              </button>
+            )}
+
 
             {record && record.status !== "shared" && (
               <button

@@ -1,51 +1,49 @@
-## What went wrong
+## What's wrong
 
-The screenshot is not a layout bug in the briefing or the deck — it is two print documents printed on top of each other.
+The deck print sheet is declared in pixels:
 
-Confirmed by reading the code:
+```css
+@page { size: 1920px 1080px landscape; margin: 0; }
+```
 
-- `BriefingPanel.tsx` renders **both** `<PrintableBriefing>` and `<DeckModal>` as siblings (lines 340-344). `DeckModal` renders its `#deck-print-root` plus its `<style>` block whenever a deck exists and is open.
-- `PrintableBriefing.tsx` (lines 179-181) declares `body * { visibility: hidden !important }` then `#briefing-print-root, #briefing-print-root * { visibility: visible !important }`.
-- `DeckModal.tsx` (lines 244-246) declares the *identical* pair for `#deck-print-root`.
+Chrome does not accept a pixel page size of that magnitude — it falls back to the default sheet, which is why the print dialog shows **Layout: Portrait** and offers no way to correct it. The slide itself is still laid out at a hard `width: 1920px; height: 1080px`, so each slide is cropped at the right edge (the headline is cut mid-word) and spills a blank second page — 10 slides printing as 11 pages.
 
-Each stylesheet hides everything and then force-shows its own root with `!important`. Neither can hide the other's root, because the other root's `visible !important` wins over a plain `body *` selector of equal specificity declared earlier/later. Both roots are `position: absolute; inset: 0`, so they stack on the same coordinates — exactly the shredded overlay in the screenshot.
+Two independent defects, both must be fixed:
+1. the sheet is the wrong shape and orientation;
+2. the slide is never scaled down to whatever sheet it lands on.
 
-Two more compounding faults:
+## The fix
 
-- **`@page` collision.** Briefing declares `size: Letter` portrait with running headers; the deck declares `size: 1920px 1080px landscape; margin: 0`. `@page` is document-global, so the last one parsed wins and both documents paginate against the wrong sheet.
-- **Same class of bug is latent elsewhere.** `PrintableValueCase.tsx` and `mandate-compact/PrintablePlan.tsx` use the same `body *` hide-and-force-show pattern. Any future screen that mounts two of them repeats this failure.
+### 1. Declare the sheet in physical units
 
-## The fix: one print surface at a time
+In `DeckModal.tsx`, replace the pixel page rule with a real 16:9 landscape sheet:
 
-### 1. Add a shared print-surface primitive
+```text
+@page { size: 13.333in 7.5in; margin: 0 }
+```
 
-New `src/components/print/PrintSurface.tsx` + `print-surface.css` rules in `src/styles.css`:
+That is the exact PowerPoint 16:9 widescreen sheet, so the printed PDF matches the `.pptx` export page-for-page. Browsers honour inch/mm page sizes, and the dialog will report Landscape without the user touching anything.
 
-- A tiny module-level registry with `beginPrint(surfaceId)` / `endPrint()`.
-- On `window.print()`, the caller sets `document.documentElement.dataset.printing = surfaceId`.
-- Base print CSS (global, declared once): every `[data-print-root]` is `display: none !important`, and only `html[data-printing="X"] [data-print-root="X"]` is `display: block !important`.
-- Switch from `visibility` to `display`. `visibility: hidden` keeps layout boxes, which is why fragments still bled through; `display: none` removes them entirely.
-- Hide the app shell with `html[data-printing] body > *:not(#print-portal) { display: none !important }` rather than `body *`.
+### 2. Scale the slide into the sheet instead of overflowing it
 
-### 2. Scope `@page` per surface
+Each `.deck-print-page` becomes a fixed 1280×720 CSS-px box (13.333in × 7.5in at 96dpi) containing the untouched 1920×1080 `SlideBody`, scaled by `transform: scale(0.666667)` with `transform-origin: top left`. Nothing about slide authoring changes — the same pixels that appear on screen and in Present mode land on the page, just uniformly reduced. `overflow: hidden` plus `break-after: page` on every page except the last gives exactly one page per slide.
 
-Only one surface can be printing, so its page box must be the only one active. Since `@page` cannot be conditioned on an attribute, inject the surface's `@page` rule dynamically: each printable component exposes its page CSS as a string, and `beginPrint` writes it into a single `<style id="print-page-rule">` node, removing it in `endPrint`. That guarantees Letter portrait for the briefing and 1920×1080 landscape for the deck, never both.
+### 3. Force background fidelity
 
-### 3. Rewire the four existing printables
+Cover and closing slides are ink-dark. Add `print-color-adjust: exact` (with the `-webkit-` prefix) to the print root so browsers don't strip the dark ground in "simplified" print paths.
 
-- `PrintableBriefing.tsx` → `data-print-root="briefing"`, page rule extracted, `visibility` rules deleted.
-- `DeckModal.tsx` → `data-print-root="deck"`, page rule extracted, `visibility` rules deleted; its `printDeck()` calls `beginPrint("deck")` → `window.print()` → `endPrint()` on `afterprint`.
-- `PrintableValueCase.tsx` and `mandate-compact/plan/PrintablePlan.tsx` → same conversion, so the pattern is uniform and cannot regress.
+### 4. Guard the page count
 
-### 4. Also close the modal-chrome leak
+Add `break-inside: avoid` on the page box and reset any inherited margin/padding inside the print portal, so a stray margin cannot push a slide onto a second sheet.
 
-`BriefingModal` and `DeckModal` overlay chrome will be removed from print by the `body > *:not(#print-portal)` rule, so headers, buttons and the scroll container stop appearing on the sheet.
+## Verification
 
-### 5. Verification before hand-off
+Drive the deck route in a headless browser, print to PDF via the DevTools protocol, and confirm with `pdfinfo`/`pdftoppm`:
+- page size reads ~960×540pt (13.333in × 7.5in) in landscape;
+- page count equals slide count exactly — no trailing blank;
+- render page 1 to an image and confirm the headline is complete and the dark ground is present.
 
-- Playwright with Chromium `page.pdf()` (which honours `@media print`) against the live route with (a) briefing modal open only, (b) deck open on top of the briefing, (c) deck fullscreen — render each PDF to images and inspect every page for overlap, clipped text, and correct sheet size.
-- Confirm the briefing prints Letter portrait with running footers and the deck prints one 16:9 page per slide, with no overlap in either case.
+## Files touched
 
-## Technical notes
-
-No backend, schema, or AI changes. Files touched: new `src/components/print/PrintSurface.tsx`, `src/styles.css` (one global print block), `PrintableBriefing.tsx`, `DeckModal.tsx`, `PrintableValueCase.tsx`, `mandate-compact/plan/PrintablePlan.tsx`, and the two call sites that trigger `window.print()`.
+- `src/components/personas/field/deck/DeckModal.tsx` — `PAGE_CSS` sheet size, `PRINT_CSS` page box + scale wrapper.
+- `src/components/personas/field/deck/SlideCanvas.tsx` — small print wrapper export if the scale wrapper is cleaner co-located with the slide (no change to `SlideBody` itself).

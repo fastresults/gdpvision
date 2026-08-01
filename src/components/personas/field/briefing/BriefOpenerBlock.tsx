@@ -87,14 +87,6 @@ function PrintOpener({ opener }: { opener: BriefOpener }) {
         </dl>
       )}
 
-      {opener.quote && (
-        <figure className="cb-quote">
-          <figcaption>In the client&rsquo;s words</figcaption>
-          {opener.quote.split("\n\n").map((p) => (
-            <p key={p.slice(0, 40)}>{p}</p>
-          ))}
-        </figure>
-      )}
 
       {opener.objectives.length > 0 && (
         <div className="cb-objectives">

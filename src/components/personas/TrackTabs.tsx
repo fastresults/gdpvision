@@ -4,6 +4,7 @@
 // programme it switches between the synthetic and field rails; on a
 // single-track programme it states the track and offers the other one.
 
+import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -24,7 +25,7 @@ export function TrackTabs({
   projectId: string;
   track: ResearchTrack;
   active: "synthetic" | "field";
-  actions?: React.ReactNode;
+  actions?: ReactNode;
 }) {
   const qc = useQueryClient();
   const setTrackFn = useServerFn(setProjectTrack);

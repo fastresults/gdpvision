@@ -241,55 +241,11 @@ export function StageFrame({
             </div>
           </div>
         </div>
-
-        {/* Unsaved-work confirm */}
-        {pendingNav ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/40 p-4">
-            <div className="w-full max-w-md border border-line-200 bg-paper-0 p-5">
-              <p className="font-serif text-lg text-ink-950">You have unsaved work.</p>
-              <p className="mt-1 text-[13px] text-ink-700">
-                Unsaved · {dirtyEntries.map((d) => d.label).join(", ")}. Save it before moving, or
-                leave it behind.
-              </p>
-              {navError ? <p className="mt-2 text-[12px] text-rose-600">{navError}</p> : null}
-              <div className="mt-4 flex flex-wrap justify-end gap-2">
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  disabled={savingNav}
-                  onClick={() => setPendingNav(null)}
-                >
-                  Stay here
-                </button>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  disabled={savingNav}
-                  onClick={() => {
-                    const run = pendingNav;
-                    setPendingNav(null);
-                    setDirtyMap({});
-                    run?.();
-                  }}
-                >
-                  Discard and continue
-                </button>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  disabled={savingNav}
-                  onClick={() => void saveAllAndGo()}
-                >
-                  {savingNav ? <Loader2 size={11} className="animate-spin" /> : null}
-                  Save and continue
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : null}
       </section>
-    </FieldStageBus.Provider>
+    </>
   );
+}
+
 }
 
 /** An empty state that names the one action which fills it. */

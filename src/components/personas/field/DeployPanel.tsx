@@ -11,6 +11,7 @@ import { Copy, FileSpreadsheet, Globe, Loader2, Printer } from "lucide-react";
 import { useState } from "react";
 
 import { buildDeployPacks, setOpenAccess } from "@/lib/personas/instrument-deploy.functions";
+import { browserPublicOrigin, participantLink } from "@/lib/personas/public-origin";
 
 function download(filename: string, mime: string, body: string) {
   const url = URL.createObjectURL(new Blob([body], { type: mime }));
@@ -37,7 +38,9 @@ export function DeployPanel({
   const [note, setNote] = useState<string | null>(null);
   const packsFn = useServerFn(buildDeployPacks);
   const openFn = useServerFn(setOpenAccess);
-  const origin = typeof window === "undefined" ? "" : window.location.origin;
+  // Always the public front door — never the editor preview host, which would
+  // put a login screen between a participant and the questionnaire.
+  const origin = browserPublicOrigin();
 
   const packs = useMutation({
     mutationFn: async (which: "csv" | "json" | "form") => {
@@ -64,7 +67,7 @@ export function DeployPanel({
     onError: (e: Error) => setNote(e.message),
   });
 
-  const link = openToken ? `${origin}/f/${openToken}` : null;
+  const link = openToken ? participantLink(origin, openToken) : null;
 
   return (
     <details className="border border-line-200">
@@ -97,17 +100,23 @@ export function DeployPanel({
               </button>
             </div>
             {openEnabled && link ? (
-              <div className="mt-2 flex items-center gap-2">
-                <code className="truncate font-mono text-[11px] text-ink-700">{link}</code>
-                <button
-                  type="button"
-                  className="btn-ghost ml-auto shrink-0"
-                  onClick={() => void navigator.clipboard.writeText(link)}
-                >
-                  <Copy className="mr-1 inline h-3.5 w-3.5" />
-                  Copy
-                </button>
-              </div>
+              <>
+                <div className="mt-2 flex items-center gap-2">
+                  <code className="truncate font-mono text-[11px] text-ink-700">{link}</code>
+                  <button
+                    type="button"
+                    className="btn-ghost ml-auto shrink-0"
+                    onClick={() => void navigator.clipboard.writeText(link)}
+                  >
+                    <Copy className="mr-1 inline h-3.5 w-3.5" />
+                    Copy
+                  </button>
+                </div>
+                <p className="mt-1 text-[11px] text-ink-600">
+                  Opens without a login, on any device. Links always carry the public address, not
+                  the workspace one — so anything issued before today should be re-sent.
+                </p>
+              </>
             ) : null}
           </div>
         ) : null}

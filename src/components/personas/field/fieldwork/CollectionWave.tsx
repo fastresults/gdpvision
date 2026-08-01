@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import { browserPublicOrigin, participantLink } from "@/lib/personas/public-origin";
+
 import { IngestPanel } from "./IngestPanel";
 import { WaveShell } from "./WaveShell";
 
@@ -72,7 +74,8 @@ export function CollectionWave({
   const returned = state.counts["returned"] ?? 0;
   const invited = state.counts["invited"] ?? 0;
   const opened = state.counts["opened"] ?? 0;
-  const origin = typeof window === "undefined" ? "" : window.location.origin;
+  // Never the editor preview host — a participant must never meet a login screen.
+  const origin = browserPublicOrigin();
   const complete = state.status === "complete";
 
   // One shape for every move on this wave: run it, say what happened, refresh.
@@ -303,7 +306,7 @@ export function CollectionWave({
                   purpose="Every person invited, their state, and their private link."
                   badge={`${board.invitations.length} issued`}
                   hint={{
-                    what: "One row per invitation, with the link you can pass on by hand.",
+                    what: "One row per invitation, with the link you can pass on by hand. Every link opens without a login.",
                     then: "States run pending → invited → opened → returned.",
                   }}
                 >
@@ -318,7 +321,7 @@ export function CollectionWave({
                           type="button"
                           className="btn-ghost shrink-0"
                           aria-label={`Copy the participant link for ${i.name}`}
-                          onClick={() => copy(`${origin}/f/${i.token}`)}
+                          onClick={() => copy(participantLink(origin, i.token))}
                         >
                           <Copy className="h-3 w-3" />
                         </button>

@@ -15,6 +15,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { deriveJson } from "./field-ai.server";
+import { participantLink, serverPublicOrigin } from "./public-origin";
 import { deliver, firstName, merge } from "./comms-delivery.server";
 
 
@@ -199,6 +200,8 @@ export const sendToInvitees = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    // Participant links must open without a login — resolved server-side.
+    const publicOrigin = serverPublicOrigin(data.origin);
 
     const { data: template } = await supabase
       .from("comms_templates")
@@ -265,8 +268,8 @@ export const sendToInvitees = createServerFn({ method: "POST" })
         organisation: c.organisation ?? "",
         programme,
         study,
-        survey_link: `${data.origin}/f/${inv.token as string}`,
-        opt_out_link: `${data.origin}/f/${inv.token as string}?opt_out=1`,
+        survey_link: participantLink(publicOrigin, inv.token as string),
+        opt_out_link: participantLink(publicOrigin, inv.token as string, true),
         session_time: "",
         session_venue: "",
       };

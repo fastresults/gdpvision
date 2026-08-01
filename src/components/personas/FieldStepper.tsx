@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 import { useGuardedGo } from "@/components/personas/field/stage-bus";
-import { stageProgress } from "@/lib/personas/field-substeps";
+import { subStepProgress } from "@/lib/personas/field-substeps";
 import type { FieldProgress } from "@/lib/personas/field-stages";
 import { cn, scrollToTop } from "@/lib/utils";
 
@@ -51,7 +51,7 @@ export function FieldStepper({
     done(k) ? "done" : progress?.stages[k]?.blocker ? "outstanding" : fallback;
   // Micro-counter: how many screens inside this stage are already settled.
   const counter = (k: FieldStageKey) => {
-    const { done: d, total } = stageProgress(k, progress);
+    const { done: d, total } = subStepProgress(k, progress);
     return total > 1 ? `${d}/${total}` : null;
   };
 

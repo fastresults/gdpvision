@@ -139,11 +139,21 @@ export function StageFrame({
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line-200 bg-paper-0/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-paper-0/85">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              {prev ? (
-                <button type="button" className="btn-ghost" onClick={() => go(prev)}>
-                  <ArrowLeft size={12} /> {FIELD_STAGE_SPECS[prev].label}
-                </button>
-              ) : null}
+              {/* BACK — always the same shape, same place, on every stage. */}
+              <button
+                type="button"
+                className="btn-secondary"
+                disabled={!prev}
+                onClick={() => prev && go(prev)}
+                title={prev ? `Back to ${FIELD_STAGE_SPECS[prev].label}` : "First stage"}
+              >
+                <ArrowLeft size={12} /> Back
+                {prev ? (
+                  <span className="hidden text-ink-500 sm:inline">
+                    · {FIELD_STAGE_SPECS[prev].label}
+                  </span>
+                ) : null}
+              </button>
 
               {earlier.length > 0 ? (
                 <div className="relative">
@@ -194,7 +204,7 @@ export function StageFrame({
               {!complete && resolveAction ? (
                 <button
                   type="button"
-                  className="btn-primary"
+                  className="btn-secondary"
                   disabled={resolveAction.pending}
                   onClick={resolveAction.run}
                 >
@@ -207,26 +217,28 @@ export function StageFrame({
                 </button>
               ) : null}
 
+              {/* CONTINUE — always present, always right-most, always the same shape. */}
               {next ? (
-                complete ? (
-                  <button type="button" className="btn-primary" onClick={() => go(next)}>
-                    {spec.advance} <ArrowRight size={12} />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="text-[12px] text-ink-600 underline underline-offset-4 hover:text-ink-950"
-                    onClick={() => go(next)}
-                  >
-                    Skip ahead to {FIELD_STAGE_SPECS[next].label}
-                  </button>
-                )
+                <button
+                  type="button"
+                  className={complete ? "btn-primary" : "btn-secondary"}
+                  onClick={() => go(next)}
+                  title={
+                    complete
+                      ? spec.advance
+                      : `${FIELD_STAGE_SPECS[stage].label} is still outstanding — you can continue and come back.`
+                  }
+                >
+                  Continue
+                  <span className="hidden sm:inline">· {FIELD_STAGE_SPECS[next].label}</span>
+                  <ArrowRight size={12} />
+                </button>
               ) : (
                 <Link
                   to={DOOR_ROUTE}
                   params={{ code }}
                   search={{ project: projectId }}
-                  className="btn-primary"
+                  className={complete ? "btn-primary" : "btn-secondary"}
                   onClick={(e) => {
                     if (hasDirty) {
                       e.preventDefault();
@@ -234,9 +246,13 @@ export function StageFrame({
                     }
                   }}
                 >
-                  {spec.advance} <ArrowRight size={12} />
+                  Finish <span className="hidden sm:inline">· back to the chamber</span>
+                  <ArrowRight size={12} />
                 </Link>
               )}
+            </div>
+          </div>
+
             </div>
           </div>
         </div>

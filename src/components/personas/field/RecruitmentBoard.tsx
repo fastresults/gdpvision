@@ -92,6 +92,7 @@ export function RecruitmentBoard({
   const [steering, setSteering] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [adding, setAdding] = useState<string | null>(null);
+  const [composeNotice, setComposeNotice] = useState<string | null>(null);
   const [lastPass, setLastPass] = useState<
     Record<string, { proposed: number; found: number; want: number; notes: string[] }>
   >({});
@@ -147,6 +148,10 @@ export function RecruitmentBoard({
     }
     return { proposed, accepted };
   }, [byPersona]);
+  const eligibleAccepted = useMemo(
+    () => people.filter((person) => person.status === "accepted" && !person.opted_out_at).length,
+    [people],
+  );
 
   const derive = useMutation({
     mutationFn: () => deriveFn({ data: { projectId, steering: steering.trim() || null } }),
@@ -200,7 +205,11 @@ export function RecruitmentBoard({
 
   const compose = useMutation({
     mutationFn: () => groupsFn({ data: { projectId } }),
-    onSuccess: refresh,
+    onMutate: () => setComposeNotice(null),
+    onSuccess: (result) => {
+      setComposeNotice(result.message);
+      if (result.ok) refresh();
+    },
   });
 
   // The one action that moves recruitment forward, published to the sticky bar.
@@ -357,7 +366,7 @@ export function RecruitmentBoard({
           <button
             type="button"
             className="btn-ghost"
-            disabled={compose.isPending}
+            disabled={compose.isPending || eligibleAccepted < 3}
             onClick={() => compose.mutate()}
           >
             {compose.isPending ? (
@@ -369,6 +378,13 @@ export function RecruitmentBoard({
           </button>
           <Explain id="research.recruitment.groups">How groups are balanced</Explain>
         </div>
+        {eligibleAccepted < 3 ? (
+          <p className="mt-2 text-[12px] text-ink-700">
+            Focus groups unlock after at least 3 candidates are accepted. Research candidates, then
+            accept {3 - eligibleAccepted} more participant{3 - eligibleAccepted === 1 ? "" : "s"}.
+          </p>
+        ) : null}
+        {composeNotice ? <p className="mt-2 text-[12px] text-ink-700">{composeNotice}</p> : null}
         {compose.isError ? (
           <p className="mt-2 text-[12px] text-rose-600">{(compose.error as Error).message}</p>
         ) : null}

@@ -730,12 +730,13 @@ export const composeFocusGroups = createServerFn({ method: "POST" })
     if (!row) throw new Error("Research programme not found");
     const project = row as unknown as ProjectRow;
 
-    const { data: people } = await supabase
+    const { data: people, error: peopleError } = await supabase
       .from("research_contacts")
       .select("id,full_name,role_title,organisation,persona_label,suggested_for,opted_out_at")
       .eq("project_id", data.projectId)
       .eq("status", "accepted")
       .limit(200);
+    if (peopleError) throw new Error(peopleError.message);
 
     // Prefer people explicitly marked for a group; otherwise seat any accepted
     // participant who has not opted out, so composition never dead-ends.
@@ -745,9 +746,17 @@ export const composeFocusGroups = createServerFn({ method: "POST" })
     );
     const eligible = marked.length >= 3 ? marked : available;
     if (eligible.length < 3) {
-      throw new Error(
-        `Only ${eligible.length} accepted participant(s) available — a focus group needs at least 3. Accept more candidates first.`,
-      );
+      return {
+        ok: false as const,
+        groups: 0,
+        seated: 0,
+        accepted: eligible.length,
+        required: 3,
+        message:
+          eligible.length === 0
+            ? "Research candidates, then accept at least 3 before composing a focus group."
+            : `Accept ${3 - eligible.length} more participant${3 - eligible.length === 1 ? "" : "s"} before composing a focus group.`,
+      };
     }
 
 
@@ -797,5 +806,12 @@ export const composeFocusGroups = createServerFn({ method: "POST" })
       );
     }
 
-    return { groups: groups.length, seated: groups.reduce((n, g) => n + g.members.length, 0) };
+    return {
+      ok: true as const,
+      groups: groups.length,
+      seated: groups.reduce((n, g) => n + g.members.length, 0),
+      accepted: eligible.length,
+      required: 3,
+      message: `${groups.length} focus group${groups.length === 1 ? "" : "s"} composed.`,
+    };
   });

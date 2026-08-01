@@ -423,30 +423,48 @@ export async function assembleBriefing(
   // ── Sections ──────────────────────────────────────────────────────────
   const sections: BriefingSection[] = [];
 
+  const openerLede = str(plan.summary, "—");
+  const openerQuote = briefQuotation(committedText);
+  const openerFacts = briefFacts({
+    committedText,
+    startsOn: (plan.starts_on as string | null) ?? null,
+    endsOn: (plan.ends_on as string | null) ?? null,
+    methodMix: methodMix as Array<Record<string, unknown>>,
+    audience: audience as Array<Record<string, unknown>>,
+  });
+  const openerObjectives = objectives.map((o, i) => ({
+    n: String(i + 1).padStart(2, "0"),
+    objective: str((o as Record<string, unknown>)["objective"], "—"),
+    why: str((o as Record<string, unknown>)["why"], "—"),
+  }));
+
   sections.push({
     id: "brief",
     eyebrow: "As we understood it",
     heading: "The brief",
+    opener: {
+      lede: openerLede,
+      facts: openerFacts,
+      quote: openerQuote.length > 0 ? openerQuote : null,
+      objectives: openerObjectives,
+    },
+    // Markdown mirror, kept for renderers (and stored documents) that predate
+    // the structured opener.
     body_md: [
-      str(plan.summary, "—"),
-      "",
-      "### Your question, in your words",
-      "",
-      blockquote(briefQuotation(committedText)),
-
+      openerLede,
+      ...(openerQuote.length > 0
+        ? ["", "### Your question, in your words", "", blockquote(openerQuote)]
+        : []),
       "",
       "### What counts as an answer",
       "",
       table(
         ["#", "Objective", "Why it matters"],
-        objectives.map((o, i) => [
-          String(i + 1).padStart(2, "0"),
-          str((o as Record<string, unknown>)["objective"], "—"),
-          str((o as Record<string, unknown>)["why"], "—"),
-        ]),
+        openerObjectives.map((o) => [o.n, o.objective, o.why]),
       ),
     ].join("\n"),
   });
+
 
   sections.push({
     id: "approach",

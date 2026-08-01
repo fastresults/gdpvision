@@ -29,11 +29,14 @@ import {
   getProjectBrief,
   saveProjectBrief,
 } from "@/lib/personas/project-brief.functions";
+import { useResolveAction } from "@/components/personas/field/stage-bus";
 
 type Props = {
   code: string;
   projectId: string;
   onCommitted?: () => void;
+  /** The field wizard owns the sole primary footer when embedded there. */
+  embedded?: boolean;
 };
 
 const BEATS = [
@@ -42,7 +45,7 @@ const BEATS = [
   { key: "open", label: "Chamber opens" },
 ] as const;
 
-export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
+export function ProgramBriefIntake({ code, projectId, onCommitted, embedded = false }: Props) {
   const qc = useQueryClient();
   const briefQ = useQuery({
     queryKey: ["program-brief", projectId],
@@ -60,7 +63,9 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
     if (hydrated || !briefQ.data) return;
     setText(briefQ.data.brief_raw ?? "");
     setBriefSource((briefQ.data.brief_source as WizardUpload | null) ?? null);
-    setUploads(Array.isArray(briefQ.data.brief_uploads) ? (briefQ.data.brief_uploads as WizardUpload[]) : []);
+    setUploads(
+      Array.isArray(briefQ.data.brief_uploads) ? (briefQ.data.brief_uploads as WizardUpload[]) : [],
+    );
     setHydrated(true);
   }, [briefQ.data, hydrated]);
 
@@ -128,6 +133,32 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
     onError: (e) => setError((e as Error).message),
   });
 
+  const activeBeat: (typeof BEATS)[number]["key"] = scope ? "scope" : "read";
+  const busy = enrich.isPending || commit.isPending;
+  const blockedReason = !meetsMinimum
+    ? "Attach the source brief, or add a few more lines — 40 characters minimum."
+    : null;
+  const alreadyCommitted = !!briefQ.data?.committed_at;
+
+  useResolveAction(
+    "programme-brief",
+    embedded && !alreadyCommitted
+      ? scope
+        ? {
+            label: "Commit the brief",
+            run: () => commit.mutate(),
+            pending: commit.isPending,
+            disabled: busy || !meetsMinimum,
+          }
+        : {
+            label: "Read the brief material",
+            run: () => enrich.mutate(),
+            pending: enrich.isPending,
+            disabled: busy || !meetsMinimum,
+          }
+      : null,
+  );
+
   if (briefQ.isLoading) {
     return (
       <div className="flex items-center gap-2 border border-line-200 bg-paper-50 p-6 text-sm text-ink-500">
@@ -136,74 +167,69 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
     );
   }
 
-  const activeBeat: (typeof BEATS)[number]["key"] = scope ? "scope" : "read";
-  const busy = enrich.isPending || commit.isPending;
-  const blockedReason = !meetsMinimum
-    ? "Attach the source brief, or add a few more lines — 40 characters minimum."
-    : null;
-
   return (
     <section className="space-y-5 pb-24">
       {/* ── Briefing masthead ─────────────────────────────────────────── */}
-      <header className="border border-ink-950 bg-paper-0 p-5 sm:p-6">
-        <div className="flex items-start justify-between gap-6">
-          <div className="min-w-0">
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
-              Stage 00 · Required · {code} · {briefQ.data?.title ?? "New programme"}
-            </p>
-            <h2 className="mt-2 font-serif text-2xl leading-tight text-ink-950 sm:text-3xl">
-              {scope
-                ? "Here is what the chamber read. Confirm it, or add what's missing."
-                : "Capture the brief before any research runs."}
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-700">
-              The{" "}
-              <Explain id="research.intake.brief-precedence">source brief</Explain> governs the
-              scope; supporting context can only qualify it. Nothing casts, groups or rehearses
-              until you confirm — and confirming locks the scope, not the material: addenda can be
-              added later from the programme header.
-            </p>
+      {!embedded ? (
+        <header className="border border-ink-950 bg-paper-0 p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-6">
+            <div className="min-w-0">
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
+                Stage 00 · Required · {code} · {briefQ.data?.title ?? "New programme"}
+              </p>
+              <h2 className="mt-2 font-serif text-2xl leading-tight text-ink-950 sm:text-3xl">
+                {scope
+                  ? "Here is what the chamber read. Confirm it, or add what's missing."
+                  : "Capture the brief before any research runs."}
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-700">
+                The <Explain id="research.intake.brief-precedence">source brief</Explain> governs
+                the scope; supporting context can only qualify it. Nothing casts, groups or
+                rehearses until you confirm — and confirming locks the scope, not the material:
+                addenda can be added later from the programme header.
+              </p>
+            </div>
+            <Illustration
+              src={intakeArt}
+              variant="mark"
+              className="hidden shrink-0 opacity-80 lg:block"
+            />
           </div>
-          <Illustration
-            src={intakeArt}
-            variant="mark"
-            className="hidden shrink-0 opacity-80 lg:block"
-          />
-        </div>
 
-        {/* Three-beat progress line */}
-        <ol className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line-200 pt-4">
-          {BEATS.map((b, i) => {
-            const done = (b.key === "read" && !!scope) || false;
-            const active = b.key === activeBeat;
-            return (
-              <li key={b.key} className="flex items-center gap-3">
-                {i > 0 && <span className="text-ink-300">→</span>}
-                <span
-                  className={cn(
-                    "flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em]",
-                    done ? "text-emerald-700" : active ? "text-ink-950" : "text-ink-300",
-                  )}
-                >
+          {/* Three-beat progress line */}
+          <ol className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line-200 pt-4">
+            {BEATS.map((b, i) => {
+              const done = (b.key === "read" && !!scope) || false;
+              const active = b.key === activeBeat;
+              return (
+                <li key={b.key} className="flex items-center gap-3">
+                  {i > 0 && <span className="text-ink-300">→</span>}
                   <span
                     className={cn(
-                      "grid h-4 w-4 place-items-center rounded-full border text-[8px]",
-                      done
-                        ? "border-emerald-600 bg-emerald-600 text-paper-0"
-                        : active
-                          ? "border-ink-950 bg-ink-950 text-paper-0"
-                          : "border-line-200",
+                      "flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em]",
+                      done ? "text-emerald-700" : active ? "text-ink-950" : "text-ink-300",
                     )}
                   >
-                    {done ? "✓" : i + 1}
+                    <span
+                      className={cn(
+                        "grid h-4 w-4 place-items-center rounded-full border text-[8px]",
+                        done
+                          ? "border-emerald-600 bg-emerald-600 text-paper-0"
+                          : active
+                            ? "border-ink-950 bg-ink-950 text-paper-0"
+                            : "border-line-200",
+                      )}
+                    >
+                      {done ? "✓" : i + 1}
+                    </span>
+                    {b.label}
                   </span>
-                  {b.label}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
-      </header>
+                </li>
+              );
+            })}
+          </ol>
+        </header>
+      ) : null}
 
       {/* ── What we gathered ──────────────────────────────────────────── */}
       <section className="border border-line-200 bg-paper-50 p-4">
@@ -376,44 +402,48 @@ export function ProgramBriefIntake({ code, projectId, onCommitted }: Props) {
       )}
 
       {/* ── Single decisive action bar ────────────────────────────────── */}
-      <footer className="sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center gap-3 border-t border-ink-950 bg-paper-0/95 px-1 py-3 backdrop-blur supports-[backdrop-filter]:bg-paper-0/85">
-        {scope ? (
-          <button
-            type="button"
-            onClick={() => commit.mutate()}
-            disabled={busy || !meetsMinimum}
-            className="btn-primary disabled:opacity-40"
-          >
-            {commit.isPending ? (
-              <Loader2 size={12} className="animate-spin" />
-            ) : (
-              <CheckCircle2 size={12} />
-            )}
-            {commit.isPending ? "Confirming…" : "Confirm scope & open the chamber"}
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => enrich.mutate()}
-            disabled={busy || !meetsMinimum}
-            className="btn-primary disabled:opacity-40"
-          >
-            {enrich.isPending ? (
-              <Loader2 size={12} className="animate-spin" />
-            ) : (
-              <Sparkles size={12} />
-            )}
-            {enrich.isPending ? "Reading your material…" : "Read my material"}
-          </button>
-        )}
-        <p className="max-w-xl text-[11px] leading-snug text-ink-500">
-          {blockedReason ??
-            (scope
-              ? "Confirming locks this scope for the programme and opens the next stage."
-              : "The chamber reads brief first, context second, and returns a structured scope you can edit.")}
-        </p>
-        {error && <p className="w-full text-[12px] text-rose-600">{error}</p>}
-      </footer>
+      {!embedded ? (
+        <footer className="sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center gap-3 border-t border-ink-950 bg-paper-0/95 px-1 py-3 backdrop-blur supports-[backdrop-filter]:bg-paper-0/85">
+          {scope ? (
+            <button
+              type="button"
+              onClick={() => commit.mutate()}
+              disabled={busy || !meetsMinimum}
+              className="btn-primary disabled:opacity-40"
+            >
+              {commit.isPending ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <CheckCircle2 size={12} />
+              )}
+              {commit.isPending ? "Confirming…" : "Confirm scope & open the chamber"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => enrich.mutate()}
+              disabled={busy || !meetsMinimum}
+              className="btn-primary disabled:opacity-40"
+            >
+              {enrich.isPending ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <Sparkles size={12} />
+              )}
+              {enrich.isPending ? "Reading your material…" : "Read my material"}
+            </button>
+          )}
+          <p className="max-w-xl text-[11px] leading-snug text-ink-500">
+            {blockedReason ??
+              (scope
+                ? "Confirming locks this scope for the programme and opens the next stage."
+                : "The chamber reads brief first, context second, and returns a structured scope you can edit.")}
+          </p>
+          {error && <p className="w-full text-[12px] text-rose-600">{error}</p>}
+        </footer>
+      ) : error ? (
+        <p className="text-[12px] text-rose-600">{error}</p>
+      ) : null}
     </section>
   );
 }

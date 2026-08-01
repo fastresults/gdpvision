@@ -72,27 +72,10 @@ export function ScreenAction({ spec, done }: { spec: ScreenActionSpec; done: boo
         {spec.error ? <p className="mt-1 text-[12px] text-rose-600">{spec.error}</p> : null}
       </div>
 
-      {spec.action ? (
-        <div className="text-right">
-          <button
-            type="button"
-            className={done ? "btn-secondary" : "btn-primary"}
-            disabled={spec.action.disabled || spec.action.pending}
-            onClick={spec.action.onClick}
-          >
-            {spec.action.pending ? (
-              <Loader2 size={11} className="animate-spin" />
-            ) : (
-              (spec.action.icon ?? null)
-            )}
-            <span className="max-w-[16rem] truncate">{spec.action.label}</span>
-          </button>
-          {spec.action.note ? (
-            <p className="mt-1 hidden max-w-xs text-[11px] leading-tight text-ink-500 md:block">
-              {spec.action.note}
-            </p>
-          ) : null}
-        </div>
+      {spec.action?.note ? (
+        <p className="w-full border-t border-line-200 pt-2 text-[11px] leading-tight text-ink-500">
+          What happens next · {spec.action.note}
+        </p>
       ) : null}
     </div>
   );

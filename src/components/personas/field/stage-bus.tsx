@@ -29,6 +29,7 @@ export interface ResolveAction {
   label: string;
   run: () => void;
   pending?: boolean;
+  disabled?: boolean;
 }
 
 interface Bus {
@@ -237,17 +238,18 @@ export function useDirtyRegistration(
 /** Publish the one action that clears this stage's blocker. */
 export function useResolveAction(
   id: string,
-  action: { label: string; run: () => void; pending?: boolean } | null,
+  action: { label: string; run: () => void; pending?: boolean; disabled?: boolean } | null,
 ) {
   const bus = useFieldStageBus();
   const runRef = useRef(action?.run);
   runRef.current = action?.run;
   const label = action?.label ?? null;
   const pending = action?.pending ?? false;
+  const disabled = action?.disabled ?? false;
 
   useEffect(() => {
-    bus.setResolve(id, label ? { label, run: () => runRef.current?.(), pending } : null);
+    bus.setResolve(id, label ? { label, run: () => runRef.current?.(), pending, disabled } : null);
     return () => bus.setResolve(id, null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bus.setResolve, id, label, pending]);
+  }, [bus.setResolve, id, label, pending, disabled]);
 }

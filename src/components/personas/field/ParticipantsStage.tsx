@@ -13,7 +13,6 @@ import { useDirtyRegistration } from "./stage-bus";
 import { EmptyAction } from "./StageFrame";
 import { ShowTheDetail, StageWizard } from "./StageWizard";
 
-
 import {
   createPanel,
   importContacts,
@@ -166,53 +165,47 @@ export function ParticipantsStage({
       </div>
     ) : null;
 
-
   // The paste-a-roster card — the manual way in, kept for when AI recruitment
   // isn't the right instrument.
   const rosterBlock = (
-
-
-          <div className="border border-line-200 bg-paper-0 p-4">
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-              Add people · paste a roster
-            </p>
-            <p className="mt-1 text-[12px] text-ink-600">
-              One person per line — name, email, organisation, role. Duplicates merge on email.
-            </p>
-            <textarea
-              value={roster}
-              onChange={(e) => setRoster(e.target.value)}
-              rows={4}
-              placeholder={"Marcia Adams, marcia@gov.gd, Ministry of Finance, Permanent Secretary"}
-              className="mt-2 w-full border border-line-200 bg-paper-0 p-2 font-mono text-[12px] focus:border-ink-950 focus:outline-none"
-            />
-            <div className="mt-2 flex items-center gap-3">
-              <button
-                type="button"
-                className="btn-secondary"
-                disabled={doImport.isPending}
-                onClick={() => doImport.mutate()}
-              >
-                {doImport.isPending ? (
-                  <Loader2 size={11} className="animate-spin" />
-                ) : (
-                  <UserPlus size={12} />
-                )}
-                Add to the contact book
-              </button>
-              {doImport.isSuccess ? (
-                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-emerald-700">
-                  {doImport.data.inserted} added · {doImport.data.merged} merged
-                </span>
-              ) : null}
-              {doImport.isError ? (
-                <span className="text-[11px] text-rose-600">
-                  {(doImport.error as Error).message}
-                </span>
-              ) : null}
-            </div>
-          </div>
-
+    <div className="border border-line-200 bg-paper-0 p-4">
+      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+        Add people · paste a roster
+      </p>
+      <p className="mt-1 text-[12px] text-ink-600">
+        One person per line — name, email, organisation, role. Duplicates merge on email.
+      </p>
+      <textarea
+        value={roster}
+        onChange={(e) => setRoster(e.target.value)}
+        rows={4}
+        placeholder={"Marcia Adams, marcia@gov.gd, Ministry of Finance, Permanent Secretary"}
+        className="mt-2 w-full border border-line-200 bg-paper-0 p-2 font-mono text-[12px] focus:border-ink-950 focus:outline-none"
+      />
+      <div className="mt-2 flex items-center gap-3">
+        <button
+          type="button"
+          className="btn-secondary"
+          disabled={doImport.isPending}
+          onClick={() => doImport.mutate()}
+        >
+          {doImport.isPending ? (
+            <Loader2 size={11} className="animate-spin" />
+          ) : (
+            <UserPlus size={12} />
+          )}
+          Add to the contact book
+        </button>
+        {doImport.isSuccess ? (
+          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-emerald-700">
+            {doImport.data.inserted} added · {doImport.data.merged} merged
+          </span>
+        ) : null}
+        {doImport.isError ? (
+          <span className="text-[11px] text-rose-600">{(doImport.error as Error).message}</span>
+        ) : null}
+      </div>
+    </div>
   );
 
   const panelMembers = projectPanels.reduce(
@@ -358,14 +351,17 @@ export function ParticipantsStage({
               : null,
           doneNote: `Panel formed · ${panelMembers} ${panelMembers === 1 ? "member" : "members"}`,
           error: buildPanel.isError ? (buildPanel.error as Error).message : null,
-          action: {
-            label: projectPanels.length > 0 ? "Set the panel" : "Form the panel",
-            onClick: () => buildPanel.mutate(),
-            pending: buildPanel.isPending,
-            disabled: selected.size === 0,
-            icon: <Users size={12} />,
-            note: "This fixes who this programme fields to.",
-          },
+          action:
+            panelMembers === 0 || selected.size > 0
+              ? {
+                  label: projectPanels.length > 0 ? "Set the panel" : "Form the panel",
+                  onClick: () => buildPanel.mutate(),
+                  pending: buildPanel.isPending,
+                  disabled: selected.size === 0,
+                  icon: <Users size={12} />,
+                  note: "This fixes who this programme fields to.",
+                }
+              : null,
         },
         consent: {
           instruction:
@@ -413,5 +409,3 @@ export function ParticipantsStage({
     />
   );
 }
-
-

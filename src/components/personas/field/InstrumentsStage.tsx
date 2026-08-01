@@ -17,7 +17,6 @@ import {
   Plus,
   Save,
   Sparkles,
-
   Trash2,
   Undo2,
 } from "lucide-react";
@@ -27,8 +26,7 @@ import { Explain } from "@/components/explain/Explain";
 import "@/lib/explain/personas-entries";
 import { EmptyAction } from "./StageFrame";
 import { ShowTheDetail, StageWizard } from "./StageWizard";
-import { SaveBar } from "./SaveBar";
-import { useDirtyRegistration, useResolveAction } from "./stage-bus";
+import { useDirtyRegistration } from "./stage-bus";
 import { useDirtyState } from "@/hooks/useDirtyState";
 import {
   QUESTION_TYPES,
@@ -165,19 +163,6 @@ export function InstrumentsStage({
     await save.mutateAsync();
   });
 
-  useResolveAction(
-    "instrument",
-    missing.length > 0
-      ? {
-          label: `Draft the ${missing.map((k) => (k === "discussion_guide" ? "guide" : "questionnaire")).join(" and ")}`,
-          run: () => derive.mutate(undefined),
-          pending: derive.isPending,
-        }
-      : doc.dirty
-        ? { label: "Save the instrument", run: () => save.mutate(), pending: save.isPending }
-        : null,
-  );
-
   const patch = (fn: (d: Doc) => Doc) => doc.set((prev) => fn(prev));
 
   const move = (i: number, dir: -1 | 1) =>
@@ -219,456 +204,441 @@ export function InstrumentsStage({
 
   // ── What this was written from, and the button that writes it ─────────
   const derivationBlock = (
-      <div className="border border-line-200 bg-paper-0 p-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            <Explain id="research.instrument.derivation" mark={false}>
-              Derived from
-            </Explain>
-          </p>
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
-            The plan requires {required.map((r) => kindLabel(r.kind).toLowerCase()).join(" + ")}
-          </p>
-        </div>
-        <ul className="mt-2 flex flex-wrap gap-2">
-          {provenance.length === 0 ? (
-            <li className="text-[12px] text-ink-600">The study objective only.</li>
-          ) : (
-            provenance.map((p) => (
-              <li
-                key={p}
-                className="border border-line-200 bg-paper-100/50 px-2 py-1 text-[11px] text-ink-700"
-              >
-                {p}
-              </li>
-            ))
-          )}
-        </ul>
-
-        {derive.isPending ? (
-          <p className="mt-3 flex items-center gap-2 text-[13px] text-ink-700">
-            <Loader2 size={13} className="animate-spin" />
-            Reading the brief and the approved plan, then writing{" "}
-            {missing.length > 1 ? "both instruments" : "the instrument"}…
-          </p>
-        ) : derive.isError ? (
-          <p className="mt-3 text-[12px] text-rose-600">
-            {(derive.error as Error).message}{" "}
-            <button type="button" className="underline" onClick={() => derive.mutate(undefined)}>
-              Try again
-            </button>
-          </p>
-        ) : missing.length > 0 ? (
-          <button
-            type="button"
-            className="btn-primary mt-3"
-            onClick={() => derive.mutate(undefined)}
-          >
-            <Sparkles size={12} /> Draft what the plan still needs
-          </button>
-        ) : instruments.length > 0 ? (
-          <p className="mt-3 flex items-center gap-2 text-[12px] text-emerald-700">
-            <Check size={13} strokeWidth={3} /> Every instrument the plan requires is drafted.
-          </p>
-        ) : null}
-
-        <label className="mt-3 block">
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
-            Steer the next draft — optional
-          </span>
-          <textarea
-            value={steering}
-            onChange={(e) => setSteering(e.target.value)}
-            rows={2}
-            placeholder="e.g. keep it under 12 questions; probe on cost of living before trust."
-            className="mt-1 w-full border border-line-200 bg-paper-0 p-2 text-[13px] focus:border-ink-950 focus:outline-none"
-          />
-        </label>
+    <div className="border border-line-200 bg-paper-0 p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+          <Explain id="research.instrument.derivation" mark={false}>
+            Derived from
+          </Explain>
+        </p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+          The plan requires {required.map((r) => kindLabel(r.kind).toLowerCase()).join(" + ")}
+        </p>
       </div>
+      <ul className="mt-2 flex flex-wrap gap-2">
+        {provenance.length === 0 ? (
+          <li className="text-[12px] text-ink-600">The study objective only.</li>
+        ) : (
+          provenance.map((p) => (
+            <li
+              key={p}
+              className="border border-line-200 bg-paper-100/50 px-2 py-1 text-[11px] text-ink-700"
+            >
+              {p}
+            </li>
+          ))
+        )}
+      </ul>
+
+      {derive.isPending ? (
+        <p className="mt-3 flex items-center gap-2 text-[13px] text-ink-700">
+          <Loader2 size={13} className="animate-spin" />
+          Reading the brief and the approved plan, then writing{" "}
+          {missing.length > 1 ? "both instruments" : "the instrument"}…
+        </p>
+      ) : derive.isError ? (
+        <p className="mt-3 text-[12px] text-rose-600">
+          {(derive.error as Error).message}{" "}
+          <button type="button" className="underline" onClick={() => derive.mutate(undefined)}>
+            Try again
+          </button>
+        </p>
+      ) : missing.length > 0 ? (
+        <p className="mt-3 text-[12px] text-ink-700">
+          Use the fixed action bar below to draft what the plan still needs.
+        </p>
+      ) : instruments.length > 0 ? (
+        <p className="mt-3 flex items-center gap-2 text-[12px] text-emerald-700">
+          <Check size={13} strokeWidth={3} /> Every instrument the plan requires is drafted.
+        </p>
+      ) : null}
+
+      <label className="mt-3 block">
+        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+          Steer the next draft — optional
+        </span>
+        <textarea
+          value={steering}
+          onChange={(e) => setSteering(e.target.value)}
+          rows={2}
+          placeholder="e.g. keep it under 12 questions; probe on cost of living before trust."
+          className="mt-1 w-full border border-line-200 bg-paper-0 p-2 text-[13px] focus:border-ink-950 focus:outline-none"
+        />
+      </label>
+    </div>
   );
 
   // ── Does every objective actually get asked about? ────────────────────
-  const coverageBlock = coverage.length > 0 ? (
-            <div className="border-b border-line-200 p-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                <Explain id="research.instrument.coverage" mark={false}>
-                  Objective coverage
-                </Explain>
-              </p>
-              <ul className="mt-2 space-y-1">
-                {coverage.map((c, i) => (
-                  <li key={i} className="flex items-start gap-2 text-[12px]">
-                    <span
-                      className={cn(
-                        "mt-0.5 shrink-0 border px-1.5 py-0.5 font-mono text-[10px]",
-                        c.n > 0
-                          ? "border-emerald-500/40 text-emerald-700"
-                          : "border-amber-500/50 text-amber-700",
-                      )}
-                    >
-                      {c.n > 0 ? `${c.n} q` : "none"}
-                    </span>
-                    <span className="text-ink-700">{c.objective}</span>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-3 border-t border-line-200 pt-2 text-[12px]">
-                <Explain id="research.instrument.frontline" mark={false}>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                    Frontline insight · beyond the brief
-                  </span>
-                </Explain>{" "}
-                {frontlineCount > 0 ? (
-                  <span className="text-ink-700">
-                    {frontlineCount} closing question{frontlineCount === 1 ? "" : "s"} ask where the
-                    work breaks and what they would change. Excluded from coverage above.
-                  </span>
-                ) : (
-                  <span className="text-amber-700">
-                    This instrument no longer carries the closing frontline block. Re-draft to
-                    restore it, or keep it removed deliberately.
-                  </span>
+  const coverageBlock =
+    coverage.length > 0 ? (
+      <div className="border-b border-line-200 p-3">
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+          <Explain id="research.instrument.coverage" mark={false}>
+            Objective coverage
+          </Explain>
+        </p>
+        <ul className="mt-2 space-y-1">
+          {coverage.map((c, i) => (
+            <li key={i} className="flex items-start gap-2 text-[12px]">
+              <span
+                className={cn(
+                  "mt-0.5 shrink-0 border px-1.5 py-0.5 font-mono text-[10px]",
+                  c.n > 0
+                    ? "border-emerald-500/40 text-emerald-700"
+                    : "border-amber-500/50 text-amber-700",
                 )}
-              </p>
-            </div>
-          ) : null;
+              >
+                {c.n > 0 ? `${c.n} q` : "none"}
+              </span>
+              <span className="text-ink-700">{c.objective}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 border-t border-line-200 pt-2 text-[12px]">
+          <Explain id="research.instrument.frontline" mark={false}>
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+              Frontline insight · beyond the brief
+            </span>
+          </Explain>{" "}
+          {frontlineCount > 0 ? (
+            <span className="text-ink-700">
+              {frontlineCount} closing question{frontlineCount === 1 ? "" : "s"} ask where the work
+              breaks and what they would change. Excluded from coverage above.
+            </span>
+          ) : (
+            <span className="text-amber-700">
+              This instrument no longer carries the closing frontline block. Re-draft to restore it,
+              or keep it removed deliberately.
+            </span>
+          )}
+        </p>
+      </div>
+    ) : null;
 
   const editor = stateQ.isLoading ? (
-        <p className="text-sm text-ink-500">Reading the instruments…</p>
-      ) : !active || !value ? (
-        derive.isPending ? null : (
-          <EmptyAction
-            title="No instrument yet."
-            body="The chamber writes these from the brief and the approved plan. Use the button above if the first attempt did not land."
+    <p className="text-sm text-ink-500">Reading the instruments…</p>
+  ) : !active || !value ? (
+    derive.isPending ? null : (
+      <EmptyAction
+        title="No instrument yet."
+        body="The chamber writes these from the brief and the approved plan. Use the button above if the first attempt did not land."
+      />
+    )
+  ) : (
+    <div className="border border-line-200 bg-paper-0">
+      {/* Tabs — one per instrument the plan requires. */}
+      <div className="flex flex-wrap items-center gap-1 border-b border-line-200 p-2">
+        {instruments.map((i) => (
+          <button
+            key={i.id}
+            type="button"
+            onClick={() => setActiveKind(i.kind)}
+            className={cn(
+              "px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em]",
+              i.id === active.id ? "bg-ink-950 text-paper-0" : "text-ink-500 hover:text-ink-950",
+            )}
+          >
+            {kindLabel(i.kind)} · {((i.questions as Question[]) ?? []).length}
+          </button>
+        ))}
+        {missing.map((k) => (
+          <button
+            key={k}
+            type="button"
+            disabled={derive.isPending}
+            onClick={() => derive.mutate(k as "survey" | "discussion_guide")}
+            className="border border-dashed border-line-200 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950"
+          >
+            + {kindLabel(k)}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-200 p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            {kindLabel(active.kind)} · v{active.version} · {value.questions.length} questions
+          </p>
+          <button
+            type="button"
+            className="btn-ghost"
+            disabled={redraft.isPending}
+            onClick={() => redraft.mutate(active.kind as "survey" | "discussion_guide")}
+            title="Write a fresh version of this instrument"
+          >
+            {redraft.isPending ? (
+              <Loader2 size={11} className="animate-spin" />
+            ) : (
+              <Sparkles size={12} />
+            )}
+            Re-draft
+          </button>
+        </div>
+        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+          {doc.conflict
+            ? "Stored version changed · resolve below"
+            : doc.dirty
+              ? "Unsaved changes · save from the fixed footer"
+              : doc.savedAt
+                ? "Saved"
+                : "No changes"}
+        </p>
+      </div>
+
+      {redraft.isError ? (
+        <p className="px-3 pt-3 text-[12px] text-rose-600">{(redraft.error as Error).message}</p>
+      ) : null}
+      {doc.dirty ? (
+        <p className="px-3 pt-3 text-[11px] text-amber-700">
+          Re-drafting replaces the questions below. Save your edits first if you want to keep them.
+        </p>
+      ) : null}
+
+      <div className="space-y-3 p-4">
+        <label className="block">
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+            Title
+          </span>
+          <input
+            value={value.title}
+            onChange={(e) => patch((d) => ({ ...d, title: e.target.value }))}
+            className="mt-1 w-full border border-line-200 bg-paper-0 p-2 text-[13px] focus:border-ink-950 focus:outline-none"
           />
-        )
-      ) : (
-        <div className="border border-line-200 bg-paper-0">
-          {/* Tabs — one per instrument the plan requires. */}
-          <div className="flex flex-wrap items-center gap-1 border-b border-line-200 p-2">
-            {instruments.map((i) => (
-              <button
-                key={i.id}
-                type="button"
-                onClick={() => setActiveKind(i.kind)}
-                className={cn(
-                  "px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em]",
-                  i.id === active.id
-                    ? "bg-ink-950 text-paper-0"
-                    : "text-ink-500 hover:text-ink-950",
-                )}
-              >
-                {kindLabel(i.kind)} · {((i.questions as Question[]) ?? []).length}
-              </button>
-            ))}
-            {missing.map((k) => (
-              <button
-                key={k}
-                type="button"
-                disabled={derive.isPending}
-                onClick={() => derive.mutate(k as "survey" | "discussion_guide")}
-                className="border border-dashed border-line-200 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-950"
-              >
-                + {kindLabel(k)}
-              </button>
-            ))}
+        </label>
+        <label className="block">
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+            What participants are told first
+          </span>
+          <textarea
+            value={value.intro}
+            onChange={(e) => patch((d) => ({ ...d, intro: e.target.value }))}
+            rows={3}
+            className="mt-1 w-full border border-line-200 bg-paper-0 p-2 text-[13px] focus:border-ink-950 focus:outline-none"
+          />
+        </label>
+
+        {removed ? (
+          <div className="flex items-center justify-between gap-2 border border-line-200 bg-paper-100/50 px-3 py-2">
+            <span className="text-[12px] text-ink-700">Question removed.</span>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => {
+                patch((d) => {
+                  const qs = [...d.questions];
+                  qs.splice(removed.at, 0, removed.q);
+                  return { ...d, questions: qs };
+                });
+                setRemoved(null);
+              }}
+            >
+              <Undo2 size={12} /> Undo
+            </button>
           </div>
+        ) : null}
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-200 p-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                {kindLabel(active.kind)} · v{active.version} · {value.questions.length} questions
-              </p>
-              <button
-                type="button"
-                className="btn-ghost"
-                disabled={redraft.isPending}
-                onClick={() => redraft.mutate(active.kind as "survey" | "discussion_guide")}
-                title="Write a fresh version of this instrument"
-              >
-                {redraft.isPending ? (
-                  <Loader2 size={11} className="animate-spin" />
-                ) : (
-                  <Sparkles size={12} />
-                )}
-                Re-draft
-              </button>
-            </div>
-            <SaveBar
-              what="the instrument"
-              dirty={doc.dirty}
-              saving={save.isPending}
-              savedAt={doc.savedAt}
-              conflict={doc.conflict}
-              error={save.isError ? (save.error as Error).message : null}
-              onSave={() => save.mutate()}
-              onTakeServer={doc.takeServer}
-              onKeepMine={doc.keepMine}
-            />
-          </div>
-
-          {redraft.isError ? (
-            <p className="px-3 pt-3 text-[12px] text-rose-600">
-              {(redraft.error as Error).message}
-            </p>
-          ) : null}
-          {doc.dirty ? (
-            <p className="px-3 pt-3 text-[11px] text-amber-700">
-              Re-drafting replaces the questions below. Save your edits first if you want to keep
-              them.
-            </p>
-          ) : null}
-
-          <div className="space-y-3 p-4">
-            <label className="block">
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
-                Title
-              </span>
-              <input
-                value={value.title}
-                onChange={(e) => patch((d) => ({ ...d, title: e.target.value }))}
-                className="mt-1 w-full border border-line-200 bg-paper-0 p-2 text-[13px] focus:border-ink-950 focus:outline-none"
-              />
-            </label>
-            <label className="block">
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
-                What participants are told first
-              </span>
-              <textarea
-                value={value.intro}
-                onChange={(e) => patch((d) => ({ ...d, intro: e.target.value }))}
-                rows={3}
-                className="mt-1 w-full border border-line-200 bg-paper-0 p-2 text-[13px] focus:border-ink-950 focus:outline-none"
-              />
-            </label>
-
-            {removed ? (
-              <div className="flex items-center justify-between gap-2 border border-line-200 bg-paper-100/50 px-3 py-2">
-                <span className="text-[12px] text-ink-700">Question removed.</span>
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  onClick={() => {
-                    patch((d) => {
-                      const qs = [...d.questions];
-                      qs.splice(removed.at, 0, removed.q);
-                      return { ...d, questions: qs };
-                    });
-                    setRemoved(null);
-                  }}
+        <ol className="space-y-3">
+          {value.questions.map((q, i) => {
+            const frontline = q.intent === "frontline_insight";
+            const firstFrontline =
+              frontline && value.questions.findIndex((x) => x.intent === "frontline_insight") === i;
+            return (
+              <li key={q.id}>
+                {firstFrontline ? (
+                  <p className="mb-2 border-t border-line-200 pt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                    <Explain id="research.instrument.frontline" mark={false}>
+                      Frontline insight · beyond the brief
+                    </Explain>
+                  </p>
+                ) : null}
+                <div
+                  className={cn(
+                    "border p-3",
+                    frontline ? "border-gold-500/50 bg-paper-100/40" : "border-line-200",
+                  )}
                 >
-                  <Undo2 size={12} /> Undo
-                </button>
-              </div>
-            ) : null}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+                        Q{i + 1}
+                      </span>
 
-            <ol className="space-y-3">
-              {value.questions.map((q, i) => {
-                const frontline = q.intent === "frontline_insight";
-                const firstFrontline =
-                  frontline &&
-                  value.questions.findIndex((x) => x.intent === "frontline_insight") === i;
-                return (
-                  <li key={q.id}>
-                    {firstFrontline ? (
-                      <p className="mb-2 border-t border-line-200 pt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                        <Explain id="research.instrument.frontline" mark={false}>
-                          Frontline insight · beyond the brief
-                        </Explain>
-                      </p>
-                    ) : null}
-                    <div
-                      className={cn(
-                        "border p-3",
-                        frontline ? "border-gold-500/50 bg-paper-100/40" : "border-line-200",
-                      )}
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
-                            Q{i + 1}
-                          </span>
-
-                          <select
-                            value={q.type}
-                            onChange={(e) =>
-                              patch((d) => ({
-                                ...d,
-                                questions: d.questions.map((x) =>
-                                  x.id === q.id ? { ...x, type: e.target.value } : x,
-                                ),
-                              }))
-                            }
-                            className="border border-line-200 bg-paper-0 px-2 py-1 text-[12px] focus:border-ink-950 focus:outline-none"
-                          >
-                            {QUESTION_TYPES.map((t) => (
-                              <option key={t} value={t}>
-                                {t.replace(/_/g, " ")}
-                              </option>
-                            ))}
-                          </select>
-                          <select
-                            value={q.objective_ref ?? ""}
-                            onChange={(e) =>
-                              patch((d) => ({
-                                ...d,
-                                questions: d.questions.map((x) =>
-                                  x.id === q.id
-                                    ? {
-                                        ...x,
-                                        objective_ref: e.target.value
-                                          ? Number(e.target.value)
-                                          : undefined,
-                                      }
-                                    : x,
-                                ),
-                              }))
-                            }
-                            className="border border-line-200 bg-paper-0 px-2 py-1 text-[12px] focus:border-ink-950 focus:outline-none"
-                            title="Which objective this question serves"
-                          >
-                            <option value="">no objective</option>
-                            {objectives.map((_, oi) => (
-                              <option key={oi} value={oi + 1}>
-                                objective {oi + 1}
-                              </option>
-                            ))}
-                          </select>
-                          <label className="flex items-center gap-1 text-[11px] text-ink-600">
-                            <input
-                              type="checkbox"
-                              checked={!!q.required}
-                              onChange={(e) =>
-                                patch((d) => ({
-                                  ...d,
-                                  questions: d.questions.map((x) =>
-                                    x.id === q.id ? { ...x, required: e.target.checked } : x,
-                                  ),
-                                }))
-                              }
-                            />
-                            required
-                          </label>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            className="btn-ghost"
-                            disabled={i === 0}
-                            onClick={() => move(i, -1)}
-                            aria-label={`Move question ${i + 1} up`}
-                          >
-                            <ArrowUp size={12} />
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-ghost"
-                            disabled={i === value.questions.length - 1}
-                            onClick={() => move(i, 1)}
-                            aria-label={`Move question ${i + 1} down`}
-                          >
-                            <ArrowDown size={12} />
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-ghost"
-                            onClick={() =>
-                              patch((d) => {
-                                const qs = [...d.questions];
-                                qs.splice(i + 1, 0, { ...q, id: newId() });
-                                return { ...d, questions: qs };
-                              })
-                            }
-                            aria-label={`Duplicate question ${i + 1}`}
-                          >
-                            <Copy size={12} />
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-ghost"
-                            onClick={() => {
-                              setRemoved({ q, at: i });
-                              patch((d) => ({
-                                ...d,
-                                questions: d.questions.filter((x) => x.id !== q.id),
-                              }));
-                            }}
-                            aria-label={`Remove question ${i + 1}`}
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      </div>
-
-                      <textarea
-                        value={q.prompt}
-                        rows={2}
-                        placeholder="Ask it the way you would ask it aloud."
+                      <select
+                        value={q.type}
                         onChange={(e) =>
                           patch((d) => ({
                             ...d,
                             questions: d.questions.map((x) =>
-                              x.id === q.id ? { ...x, prompt: e.target.value } : x,
+                              x.id === q.id ? { ...x, type: e.target.value } : x,
                             ),
                           }))
                         }
-                        className="mt-2 w-full border border-line-200 bg-paper-0 p-2 text-[13px] focus:border-ink-950 focus:outline-none"
-                      />
-
-                      {q.type === "single_choice" ||
-                      q.type === "multi_choice" ||
-                      q.type === "ranking" ? (
-                        <label className="mt-2 block">
-                          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
-                            Options · one per line
-                          </span>
-                          <textarea
-                            value={(q.options ?? []).join("\n")}
-                            rows={3}
-                            onChange={(e) =>
-                              patch((d) => ({
-                                ...d,
-                                questions: d.questions.map((x) =>
-                                  x.id === q.id
-                                    ? {
-                                        ...x,
-                                        options: e.target.value
-                                          .split(/\r?\n/)
-                                          .map((s) => s.trim())
-                                          .filter(Boolean),
-                                      }
-                                    : x,
-                                ),
-                              }))
-                            }
-                            className="mt-1 w-full border border-line-200 bg-paper-0 p-2 text-[12px] focus:border-ink-950 focus:outline-none"
-                          />
-                        </label>
-                      ) : null}
-
+                        className="border border-line-200 bg-paper-0 px-2 py-1 text-[12px] focus:border-ink-950 focus:outline-none"
+                      >
+                        {QUESTION_TYPES.map((t) => (
+                          <option key={t} value={t}>
+                            {t.replace(/_/g, " ")}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={q.objective_ref ?? ""}
+                        onChange={(e) =>
+                          patch((d) => ({
+                            ...d,
+                            questions: d.questions.map((x) =>
+                              x.id === q.id
+                                ? {
+                                    ...x,
+                                    objective_ref: e.target.value
+                                      ? Number(e.target.value)
+                                      : undefined,
+                                  }
+                                : x,
+                            ),
+                          }))
+                        }
+                        className="border border-line-200 bg-paper-0 px-2 py-1 text-[12px] focus:border-ink-950 focus:outline-none"
+                        title="Which objective this question serves"
+                      >
+                        <option value="">no objective</option>
+                        {objectives.map((_, oi) => (
+                          <option key={oi} value={oi + 1}>
+                            objective {oi + 1}
+                          </option>
+                        ))}
+                      </select>
+                      <label className="flex items-center gap-1 text-[11px] text-ink-600">
+                        <input
+                          type="checkbox"
+                          checked={!!q.required}
+                          onChange={(e) =>
+                            patch((d) => ({
+                              ...d,
+                              questions: d.questions.map((x) =>
+                                x.id === q.id ? { ...x, required: e.target.checked } : x,
+                              ),
+                            }))
+                          }
+                        />
+                        required
+                      </label>
+                    </div>
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
-                        className="btn-ghost mt-2"
-                        onClick={() => insertAfter(i)}
+                        className="btn-ghost"
+                        disabled={i === 0}
+                        onClick={() => move(i, -1)}
+                        aria-label={`Move question ${i + 1} up`}
                       >
-                        <Plus size={12} /> Insert a question here
+                        <ArrowUp size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        disabled={i === value.questions.length - 1}
+                        onClick={() => move(i, 1)}
+                        aria-label={`Move question ${i + 1} down`}
+                      >
+                        <ArrowDown size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        onClick={() =>
+                          patch((d) => {
+                            const qs = [...d.questions];
+                            qs.splice(i + 1, 0, { ...q, id: newId() });
+                            return { ...d, questions: qs };
+                          })
+                        }
+                        aria-label={`Duplicate question ${i + 1}`}
+                      >
+                        <Copy size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        onClick={() => {
+                          setRemoved({ q, at: i });
+                          patch((d) => ({
+                            ...d,
+                            questions: d.questions.filter((x) => x.id !== q.id),
+                          }));
+                        }}
+                        aria-label={`Remove question ${i + 1}`}
+                      >
+                        <Trash2 size={12} />
                       </button>
                     </div>
-                  </li>
-                );
-              })}
-            </ol>
+                  </div>
 
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => insertAfter(value.questions.length - 1)}
-            >
-              <Plus size={12} /> Add a question
-            </button>
-          </div>
-        </div>
-      );
+                  <textarea
+                    value={q.prompt}
+                    rows={2}
+                    placeholder="Ask it the way you would ask it aloud."
+                    onChange={(e) =>
+                      patch((d) => ({
+                        ...d,
+                        questions: d.questions.map((x) =>
+                          x.id === q.id ? { ...x, prompt: e.target.value } : x,
+                        ),
+                      }))
+                    }
+                    className="mt-2 w-full border border-line-200 bg-paper-0 p-2 text-[13px] focus:border-ink-950 focus:outline-none"
+                  />
+
+                  {q.type === "single_choice" ||
+                  q.type === "multi_choice" ||
+                  q.type === "ranking" ? (
+                    <label className="mt-2 block">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+                        Options · one per line
+                      </span>
+                      <textarea
+                        value={(q.options ?? []).join("\n")}
+                        rows={3}
+                        onChange={(e) =>
+                          patch((d) => ({
+                            ...d,
+                            questions: d.questions.map((x) =>
+                              x.id === q.id
+                                ? {
+                                    ...x,
+                                    options: e.target.value
+                                      .split(/\r?\n/)
+                                      .map((s) => s.trim())
+                                      .filter(Boolean),
+                                  }
+                                : x,
+                            ),
+                          }))
+                        }
+                        className="mt-1 w-full border border-line-200 bg-paper-0 p-2 text-[12px] focus:border-ink-950 focus:outline-none"
+                      />
+                    </label>
+                  ) : null}
+
+                  <button type="button" className="btn-ghost mt-2" onClick={() => insertAfter(i)}>
+                    <Plus size={12} /> Insert a question here
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() => insertAfter(value.questions.length - 1)}
+        >
+          <Plus size={12} /> Add a question
+        </button>
+      </div>
+    </div>
+  );
 
   const uncovered = coverage.filter((c) => c.n === 0).length;
 
@@ -686,27 +656,31 @@ export function InstrumentsStage({
               : null,
           doneNote: `${instruments.length} instrument${instruments.length === 1 ? "" : "s"} drafted`,
           error: derive.isError ? (derive.error as Error).message : null,
-          action: {
-            label: missing.length > 0 ? "Draft the instruments" : "Draft again",
-            onClick: () => derive.mutate(undefined),
-            pending: derive.isPending,
-            icon: <Sparkles size={12} />,
-            note: "Writes from the brief, the objectives and the approved method mix.",
-          },
+          action:
+            missing.length > 0
+              ? {
+                  label: "Draft the instruments",
+                  onClick: () => derive.mutate(undefined),
+                  pending: derive.isPending,
+                  icon: <Sparkles size={12} />,
+                  note: "Writes from the brief, the objectives and the approved method mix.",
+                }
+              : null,
         },
         edit: {
           instruction: "Put the questions in your own words, in the order a conversation takes.",
           outstanding: doc.dirty ? "unsaved edits on this instrument" : null,
           doneNote: `${value?.questions.length ?? 0} question${(value?.questions.length ?? 0) === 1 ? "" : "s"} saved`,
           error: save.isError ? (save.error as Error).message : null,
-          action: {
-            label: "Save the instrument",
-            onClick: () => save.mutate(),
-            pending: save.isPending,
-            disabled: !doc.dirty,
-            icon: <Save size={12} />,
-            note: "Saves your wording and order to this instrument.",
-          },
+          action: doc.dirty
+            ? {
+                label: "Save the instrument",
+                onClick: () => save.mutate(),
+                pending: save.isPending,
+                icon: <Save size={12} />,
+                note: "Saves your wording and order to this instrument.",
+              }
+            : null,
         },
         coverage: {
           instruction:
@@ -721,7 +695,6 @@ export function InstrumentsStage({
         },
       }}
       panels={{
-
         // ── Step 1 · Let the chamber write the first draft ────────────────
         draft: (
           <div className="space-y-5">

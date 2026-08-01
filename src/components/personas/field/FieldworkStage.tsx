@@ -12,7 +12,6 @@ import { ArrowDown, Loader2 } from "lucide-react";
 import { CollectionWave } from "./fieldwork/CollectionWave";
 import { SessionWave } from "./fieldwork/SessionWave";
 import { EmptyAction } from "./StageFrame";
-import { useResolveAction } from "./stage-bus";
 import { ShowTheDetail, StageWizard } from "./StageWizard";
 
 import { Explain } from "@/components/explain/Explain";
@@ -45,21 +44,6 @@ export function FieldworkStage({
   const board = boardQ.data ?? null;
   const waves = board?.waves ?? [];
   const outstanding = waves.find((w) => w.status !== "complete");
-
-  useResolveAction(
-    "fieldwork",
-    outstanding
-      ? {
-          label: outstanding.next,
-          run: () => {
-            document
-              .getElementById(`wave-${outstanding.wave.id}`)
-              ?.scrollIntoView({ behavior: "smooth", block: "start" });
-          },
-          pending: false,
-        }
-      : null,
-  );
 
   if (!studyId) {
     return (
@@ -115,7 +99,13 @@ export function FieldworkStage({
           refresh={refresh}
         />
       ) : (
-        <SessionWave index={i + 1} state={state} board={board} studyId={studyId} refresh={refresh} />
+        <SessionWave
+          index={i + 1}
+          state={state}
+          board={board}
+          studyId={studyId}
+          refresh={refresh}
+        />
       )}
     </div>
   );
@@ -222,15 +212,12 @@ export function FieldworkStage({
                 label={`Show the other waves · ${waves.length - (open.length > 0 ? 1 : 0)}`}
               >
                 <div className="space-y-5">
-                  {waves
-                    .filter((s) => s !== open[0])
-                    .map((s) => renderWave(s, waves.indexOf(s)))}
+                  {waves.filter((s) => s !== open[0]).map((s) => renderWave(s, waves.indexOf(s)))}
                 </div>
               </ShowTheDetail>
             ) : null}
           </div>
         ),
-
 
         // Returns land against collection waves, and this is the closing test.
         returns: (
@@ -255,9 +242,7 @@ export function FieldworkStage({
             )}
           </div>
         ),
-
       }}
     />
   );
 }
-

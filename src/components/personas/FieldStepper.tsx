@@ -106,7 +106,7 @@ export function FieldStepper({
       sub: "Fieldcraft",
       hint: hintFor("instruments", "surveys & guides"),
       icon: ClipboardList,
-      locked: !planCommitted,
+      locked: !done("participants"),
       complete: done("instruments"),
     },
     {
@@ -116,7 +116,7 @@ export function FieldStepper({
       sub: "Collection",
       hint: hintFor("fieldwork", "sessions & returns"),
       icon: Mic,
-      locked: !planCommitted,
+      locked: !done("instruments"),
       complete: done("fieldwork"),
     },
     {
@@ -126,7 +126,7 @@ export function FieldStepper({
       sub: "Synthesis",
       hint: hintFor("evidence", "filed to the brain"),
       icon: Library,
-      locked: !planCommitted,
+      locked: !done("fieldwork"),
       complete: done("evidence"),
     },
   ];

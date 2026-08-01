@@ -9,6 +9,7 @@ import { Check, HelpCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { ScreenAction, type ScreenActionSpec } from "./kit/ScreenAction";
+import { useResolveAction } from "./stage-bus";
 import { useSubSteps } from "./substep-context";
 
 export type { ScreenActionSpec };
@@ -23,38 +24,69 @@ export function StageWizard({
   actions?: Record<string, ScreenActionSpec | null | undefined>;
 }) {
   const nav = useSubSteps();
-  if (!nav || !nav.current) return <>{Object.values(panels)[0] ?? null}</>;
+  const current = nav?.current ?? null;
+  const action = current ? (actions?.[current.key] ?? null) : null;
 
-  const { steps, current, index, goTo, isDone } = nav;
-  const action = actions?.[current.key] ?? null;
+  // The fixed StageFrame footer owns the only primary action. Stage content
+  // publishes the active screen's operation here rather than rendering a
+  // second competing button in the body.
+  useResolveAction(
+    "active-wizard-screen",
+    action?.action
+      ? {
+          label: action.action.label,
+          run: action.action.onClick,
+          pending: action.action.pending,
+          disabled: action.action.disabled,
+        }
+      : null,
+  );
 
+  if (!nav || !current) return <>{Object.values(panels)[0] ?? null}</>;
+
+  const { steps, index, goTo, isDone } = nav;
+  const firstOpenIndex = steps.findIndex((step) => !isDone(step));
+  const lastReachableIndex = firstOpenIndex === -1 ? steps.length - 1 : firstOpenIndex;
 
   return (
     <div className="space-y-5">
-      {/* Sub-step chips — the only navigation inside a stage. */}
-      <ol className="flex flex-wrap items-center gap-1.5" aria-label="Steps in this stage">
+      {/* A compact progress list, not another tab bar. Completed work can be
+          reopened; future decisions stay locked until the first open one is done. */}
+      <ol
+        className="grid gap-2 border-y border-line-200 py-3 sm:grid-cols-2 lg:grid-cols-3"
+        aria-label="Steps in this stage"
+      >
         {steps.map((s, i) => {
           const active = s.key === current.key;
           const done = isDone(s);
+          const reachable = i <= lastReachableIndex || done;
           return (
             <li key={s.key}>
               <button
                 type="button"
-                onClick={() => !active && goTo(s.key)}
+                onClick={() => !active && reachable && goTo(s.key)}
+                disabled={!reachable}
                 aria-current={active ? "step" : undefined}
                 className={cn(
-                  "flex items-center gap-1.5 border px-2.5 py-1.5 text-left font-mono text-[10px] uppercase tracking-[0.16em] transition-colors",
+                  "flex w-full items-start gap-2 border-l-2 px-3 py-2 text-left transition-colors",
                   active
-                    ? "border-ink-950 bg-ink-950 text-paper-0"
+                    ? "border-ink-950 bg-paper-100/60 text-ink-950"
                     : done
                       ? "border-emerald-500/50 text-emerald-700 hover:border-ink-950"
-                      : "border-line-200 text-ink-500 hover:border-ink-500 hover:text-ink-800",
+                      : reachable
+                        ? "border-line-200 text-ink-600 hover:border-ink-500 hover:text-ink-800"
+                        : "cursor-not-allowed border-line-100 text-ink-300",
                 )}
               >
-                <span className="tabular-nums">
+                <span className="mt-0.5 font-mono text-[10px] tabular-nums">
                   {done && !active ? <Check size={11} strokeWidth={3} /> : i + 1}
                 </span>
-                <span className="max-w-[16rem] truncate normal-case tracking-normal">{s.label}</span>
+                <span className="min-w-0">
+                  <span className="block text-[12px] leading-snug">{s.label}</span>
+                  <span className="mt-0.5 block font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">
+                    {done ? "Complete" : active ? "Now" : reachable ? "Ready" : "Locked"}
+                  </span>
+                </span>
               </button>
             </li>
           );
@@ -76,9 +108,8 @@ export function StageWizard({
         </p>
       </div>
 
-      {/* The one instruction and the one action for this screen. */}
+      {/* Status and instruction only. The footer owns the action. */}
       {action ? <ScreenAction spec={action} done={isDone(current)} /> : null}
-
 
       {panels[current.key] ?? (
         <p className="border border-dashed border-line-200 p-6 text-sm text-ink-500">

@@ -8,7 +8,7 @@ import { createFileRoute, Link, Navigate, notFound, useSearch } from "@tanstack/
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { ClipboardList, FileText, Loader2, Presentation } from "lucide-react";
+import { ClipboardList, FileText, FlaskConical, Loader2, Presentation } from "lucide-react";
 
 import { FieldStepper, type FieldStageKey } from "@/components/personas/FieldStepper";
 import { BriefingModal } from "@/components/personas/field/briefing/BriefingModal";
@@ -23,9 +23,6 @@ import { FieldStageProvider } from "@/components/personas/field/stage-bus";
 import { StageFrame } from "@/components/personas/field/StageFrame";
 import { ShowTheDetail, StageWizard } from "@/components/personas/field/StageWizard";
 
-
-import { TrackTabs } from "@/components/personas/TrackTabs";
-
 import { useDossierActions } from "@/hooks/useDossierActions";
 import { useResearchGate } from "@/hooks/useResearchGate";
 import { getFieldProgress } from "@/lib/personas/field-progress.functions";
@@ -36,7 +33,14 @@ import {
   getProgrammePlan,
 } from "@/lib/personas/programme-plan.functions";
 
-const STEPS: FieldStageKey[] = ["brief", "plan", "participants", "instruments", "fieldwork", "evidence"];
+const STEPS: FieldStageKey[] = [
+  "brief",
+  "plan",
+  "participants",
+  "instruments",
+  "fieldwork",
+  "evidence",
+];
 
 // The client-facing dossier is not a rail stage — it sits beside the rail and
 // reads whatever the programme currently holds.
@@ -139,61 +143,72 @@ function FieldStageBody({
           progress={progress}
         />
 
-        <TrackTabs
-          code={code}
-          projectId={projectId}
-          track={gate.track}
-          active="field"
-          actions={
-            gate.planCommitted ? (
-              <>
-                {dossierReady ? (
-                  <>
-                    <SplitAction
-                      label="Discovery brief"
-                      icon={<FileText size={13} />}
-                      title="The full client-facing account of the approach, ready to send before fieldwork opens."
-                      regenerateTitle={
-                        dossier.briefingStaleReason ??
-                        "Re-assemble the dossier from the brief, plan, participants and instruments as they stand now."
-                      }
-                      stale={dossier.briefingStale}
-                      busy={dossier.assembling}
-                      onOpen={() => openBriefing("briefing")}
-                      onRegenerate={() => {
-                        if (!confirmIfShared()) return;
-                        dossier.assembleBriefing({ onDone: () => openBriefing("briefing") });
-                      }}
-                    />
-                    <SplitAction
-                      label="Presentation"
-                      icon={<Presentation size={13} />}
-                      title="The same approach as an on-brand slide presentation."
-                      regenerateTitle={
-                        dossier.deckStaleReason ?? "Re-compose the deck from the current dossier."
-                      }
-                      stale={dossier.deckStale}
-                      busy={dossier.composing}
-                      onOpen={() => openBriefing("deck")}
-                      onRegenerate={() =>
-                        dossier.composeDeck({ onDone: () => openBriefing("deck") })
-                      }
-                    />
-                  </>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => setTrackerOpen(true)}
-                  title="Who owns what, when it is due, and what is blocked. Internal only."
-                  className="btn-secondary inline-flex items-center gap-2"
-                >
-                  <ClipboardList size={13} />
-                  Project tracker
-                </button>
-              </>
-            ) : null
-          }
-        />
+        <div className="flex flex-wrap items-center gap-2 border-b border-line-200 pb-3">
+          <div className="mr-auto min-w-0">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+              Field programme workspace
+            </p>
+            <p className="mt-0.5 text-[12px] text-ink-700">
+              Complete the guided rail below; client outputs and internal delivery tools stay here.
+            </p>
+          </div>
+          {gate.track !== "field" ? (
+            <Link
+              to="/admin/countries/$code/personas"
+              params={{ code }}
+              search={{ project: projectId }}
+              className="btn-ghost"
+              title="Open the Synthetic Lab for this programme"
+            >
+              <FlaskConical size={13} /> Synthetic Lab
+            </Link>
+          ) : null}
+          {gate.planCommitted ? (
+            <>
+              {dossierReady ? (
+                <>
+                  <SplitAction
+                    label="Discovery brief"
+                    icon={<FileText size={13} />}
+                    title="The full client-facing account of the approach, ready to send before fieldwork opens."
+                    regenerateTitle={
+                      dossier.briefingStaleReason ??
+                      "Re-assemble the dossier from the brief, plan, participants and instruments as they stand now."
+                    }
+                    stale={dossier.briefingStale}
+                    busy={dossier.assembling}
+                    onOpen={() => openBriefing("briefing")}
+                    onRegenerate={() => {
+                      if (!confirmIfShared()) return;
+                      dossier.assembleBriefing({ onDone: () => openBriefing("briefing") });
+                    }}
+                  />
+                  <SplitAction
+                    label="Presentation"
+                    icon={<Presentation size={13} />}
+                    title="The same approach as an on-brand slide presentation."
+                    regenerateTitle={
+                      dossier.deckStaleReason ?? "Re-compose the deck from the current dossier."
+                    }
+                    stale={dossier.deckStale}
+                    busy={dossier.composing}
+                    onOpen={() => openBriefing("deck")}
+                    onRegenerate={() => dossier.composeDeck({ onDone: () => openBriefing("deck") })}
+                  />
+                </>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setTrackerOpen(true)}
+                title="Who owns what, when it is due, and what is blocked. Internal only."
+                className="btn-secondary inline-flex items-center gap-2"
+              >
+                <ClipboardList size={13} />
+                Project tracker
+              </button>
+            </>
+          ) : null}
+        </div>
 
         {dossier.error ? (
           <p className="border border-signal-negative/40 bg-signal-negative/5 px-4 py-2 text-sm text-ink-800">
@@ -244,21 +259,33 @@ function FieldStageBody({
             />
           </StageFrame>
         ) : !gate.committed && !gate.loading ? (
-          <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
-            <p className="font-serif text-lg text-ink-950">The brief comes first.</p>
-            <p className="mt-1 max-w-xl text-sm text-ink-700">
-              A field programme is planned from the brief — its questions, constraints and deadline
-              set the phases, the participants and the instruments.
-            </p>
-            <Link
-              to="/admin/countries/$code/personas/field/$step"
-              params={{ code, step: "brief" }}
-              search={{ project: projectId }}
-              className="btn-primary mt-4 inline-flex"
-            >
-              Write the brief
-            </Link>
-          </div>
+          <StageFrame
+            code={code}
+            projectId={projectId}
+            stage={stage}
+            progress={progress}
+            progressPending={progressQ.isFetching}
+            progressError={progressQ.isError ? "unreadable" : null}
+            onRetryProgress={() => void progressQ.refetch()}
+          >
+            <div className="border border-ink-950 bg-paper-50 p-6">
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                Locked prerequisite
+              </p>
+              <p className="mt-2 font-serif text-xl text-ink-950">The brief comes first.</p>
+              <p className="mt-1 max-w-xl text-sm text-ink-700">
+                Return to Stage 00 and commit the question of record before this decision can open.
+              </p>
+              <Link
+                to="/admin/countries/$code/personas/field/$step"
+                params={{ code, step: "brief" }}
+                search={{ project: projectId }}
+                className="btn-primary mt-4 inline-flex"
+              >
+                Return to the brief
+              </Link>
+            </div>
+          </StageFrame>
         ) : stage === "plan" ? (
           <StageFrame
             code={code}
@@ -272,20 +299,34 @@ function FieldStageBody({
             <PlanStage code={code} projectId={projectId} onChanged={refresh} />
           </StageFrame>
         ) : !gate.planCommitted ? (
-          <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
-            <p className="font-serif text-lg text-ink-950">Approve the programme plan first.</p>
-            <p className="mt-1 text-sm text-ink-700">
-              Participants, instruments and fieldwork are all scheduled against the approved plan.
-            </p>
-            <Link
-              to="/admin/countries/$code/personas/field/$step"
-              params={{ code, step: "plan" }}
-              search={{ project: projectId }}
-              className="btn-primary mt-4 inline-flex"
-            >
-              Open the programme plan
-            </Link>
-          </div>
+          <StageFrame
+            code={code}
+            projectId={projectId}
+            stage={stage}
+            progress={progress}
+            progressPending={progressQ.isFetching}
+            progressError={progressQ.isError ? "unreadable" : null}
+            onRetryProgress={() => void progressQ.refetch()}
+          >
+            <div className="border border-ink-950 bg-paper-50 p-6">
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                Locked prerequisite
+              </p>
+              <p className="mt-2 font-serif text-xl text-ink-950">Approve the programme first.</p>
+              <p className="mt-1 max-w-xl text-sm text-ink-700">
+                Participant recruitment, instruments and fieldwork must inherit an approved method
+                mix and dates.
+              </p>
+              <Link
+                to="/admin/countries/$code/personas/field/$step"
+                params={{ code, step: "plan" }}
+                search={{ project: projectId }}
+                className="btn-primary mt-4 inline-flex"
+              >
+                Return to the programme
+              </Link>
+            </div>
+          </StageFrame>
         ) : (
           <StageFrame
             code={code}
@@ -472,7 +513,9 @@ function PlanStage({
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
             The programme in a paragraph
           </p>
-          <p className="mt-1.5 max-w-3xl text-[13px] leading-relaxed text-ink-800">{plan.summary}</p>
+          <p className="mt-1.5 max-w-3xl text-[13px] leading-relaxed text-ink-800">
+            {plan.summary}
+          </p>
           {durationRationale ? (
             <p className="mt-2 max-w-3xl text-[12px] leading-relaxed text-ink-600">
               <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
@@ -506,16 +549,32 @@ function PlanStage({
             "Let the chamber infer the dated shape of the work from the brief, then read it.",
           outstanding: plan ? null : "no programme has been drafted yet",
           doneNote: plan ? "Programme drafted — editable until approved" : null,
+          error: derive.isError ? (derive.error as Error).message : null,
+          action: {
+            label: plan ? "Redraft the programme" : "Draft the programme",
+            onClick: () => derive.mutate(),
+            pending: derive.isPending,
+            note: "Reads the brief and proposes the dated programme for your review.",
+          },
         },
         approve: {
           instruction:
             "Approve the programme so participants, instruments and fieldwork can be scheduled against it.",
           outstanding: plan?.status === "active" ? null : "the plan is not approved",
           doneNote: "Plan approved and active",
+          error: commit.isError ? (commit.error as Error).message : null,
+          action:
+            plan && plan.status !== "active"
+              ? {
+                  label: "Approve this plan",
+                  onClick: () => commit.mutate(plan.id),
+                  pending: commit.isPending,
+                  note: "Fixes the dates and method mix and unlocks participant recruitment.",
+                }
+              : null,
         },
       }}
       panels={{
-
         // ── Step 1 · Let the chamber draft the programme ───────────────────
         draft: (
           <div className="space-y-5">
@@ -536,7 +595,6 @@ function PlanStage({
     />
   );
 }
-
 
 /** The name the AI gave this phase — never a generic placeholder. */
 function phaseName(p: Record<string, unknown>, i: number): string {

@@ -12,6 +12,7 @@ import { FileText, Loader2, Presentation } from "lucide-react";
 
 import { FieldStepper, type FieldStageKey } from "@/components/personas/FieldStepper";
 import { BriefingModal } from "@/components/personas/field/briefing/BriefingModal";
+import { SplitAction } from "@/components/personas/field/briefing/SplitAction";
 import { EvidenceStage } from "@/components/personas/field/EvidenceStage";
 import { FieldworkStage } from "@/components/personas/field/FieldworkStage";
 import { InstrumentsStage } from "@/components/personas/field/InstrumentsStage";

@@ -313,11 +313,19 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
                 }}
                 className="min-w-[240px] border border-ink-950 bg-paper-0 px-2 py-0.5 font-serif text-base text-ink-950 focus:outline-none"
               />
+            ) : isField ? (
+              <Link
+                to="/admin/countries/$code/personas/field/$step"
+                params={{ code, step: resumeStep }}
+                search={{ project: p.id, open: 1 }}
+                className="font-serif text-base text-ink-950 hover:underline"
+              >
+                {p.title}
+              </Link>
             ) : (
               <Link
-                to={isField ? "/admin/countries/$code/personas/field/$step" : "/admin/countries/$code/personas"}
+                to="/admin/countries/$code/personas"
                 params={{ code }}
-                {...(isField ? { params: { code, step: resumeStep } } : {})}
                 search={{ project: p.id, open: 1 }}
                 className="font-serif text-base text-ink-950 hover:underline"
               >
@@ -376,7 +384,7 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
         </div>
 
         <div className="flex items-center gap-2">
-          {p.has_program_memo || p.progress_percent >= 100 ? (
+          {p.has_program_memo ? (
             <Link
               to="/admin/countries/$code/personas/studies"
               params={{ code }}
@@ -385,10 +393,19 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
             >
               Open report <ArrowUpRight size={11} />
             </Link>
+          ) : isField ? (
+            <Link
+              to="/admin/countries/$code/personas/field/$step"
+              params={{ code, step: resumeStep }}
+              search={{ project: p.id, open: 1 }}
+              className="btn-secondary inline-flex items-center gap-1 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em]"
+            >
+              <PlayCircle size={11} /> Resume project
+            </Link>
           ) : (
             <Link
-              to={isField ? "/admin/countries/$code/personas/field/$step" : "/admin/countries/$code/personas"}
-              params={isField ? { code, step: resumeStep } : { code }}
+              to="/admin/countries/$code/personas"
+              params={{ code }}
               search={{ project: p.id, open: 1 }}
               className="btn-secondary inline-flex items-center gap-1 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em]"
             >

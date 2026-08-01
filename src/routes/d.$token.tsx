@@ -209,7 +209,7 @@ function PublicDossier() {
 
       <style>{PROSE_CSS}</style>
       <PrintableBriefing briefing={doc} config={DEFAULT_BRIEFING_PRINT_CONFIG} />
-      <DeckModal open={deckOpen} deck={deck} onClose={() => setDeckOpen(false)} />
+      <DeckModal open={deckOpen} deck={deck} unbranded onClose={() => setDeckOpen(false)} />
     </div>
   );
 }

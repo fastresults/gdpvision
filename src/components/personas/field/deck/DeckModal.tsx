@@ -31,13 +31,16 @@ export function DeckModal({
   open,
   deck,
   onClose,
+  unbranded = false,
   onRecompose,
   recomposing = false,
   stale = false,
 }: {
   open: boolean;
   deck: ProgrammeDeck | null;
-  onClose: () => void;
+  onClose?: () => void;
+  /** Client-facing: drop every platform reference from the chrome. */
+  unbranded?: boolean;
   /** Rebuild the deck from the current dossier, without leaving the viewer. */
   onRecompose?: () => void;
   recomposing?: boolean;
@@ -61,7 +64,7 @@ export function DeckModal({
         if (presenting) {
           setPresenting(false);
           if (document.fullscreenElement) void document.exitFullscreen();
-        } else onClose();
+        } else onClose?.();
       }
       if (e.key === "ArrowRight" || e.key === " ") setIndex((i) => Math.min(i + 1, total - 1));
       if (e.key === "ArrowLeft") setIndex((i) => Math.max(i - 1, 0));
@@ -94,7 +97,7 @@ export function DeckModal({
 
   const printDeck = () => {
     printSurface(DECK_PRINT_SURFACE, {
-      title: `${deck.programmeTitle} — Commencement deck`,
+      title: `${deck.programmeTitle} — Presentation`,
     });
   };
 
@@ -112,7 +115,7 @@ export function DeckModal({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Commencement deck"
+        aria-label={unbranded ? "Presentation" : "Commencement deck"}
         className={
           presenting
             ? "fixed inset-0 z-[60] bg-ink-950"
@@ -139,7 +142,7 @@ export function DeckModal({
             <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line-200 px-5 py-3">
               <div>
                 <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
-                  Chamber 07 · Commencement deck · v{deck.version}
+                  {unbranded ? "Presentation" : "Chamber 07 · Commencement deck"} · v{deck.version}
                   {stale ? " · out of date" : ""}
                 </p>
                 <p className="mt-0.5 font-serif text-lg text-ink-950">{deck.programmeTitle}</p>
@@ -191,14 +194,16 @@ export function DeckModal({
                   )}
                   PowerPoint
                 </button>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  aria-label="Close the deck"
-                  className="btn-ghost inline-flex h-8 w-8 items-center justify-center"
-                >
-                  <X size={14} />
-                </button>
+                {onClose ? (
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    aria-label="Close the deck"
+                    className="btn-ghost inline-flex h-8 w-8 items-center justify-center"
+                  >
+                    <X size={14} />
+                  </button>
+                ) : null}
               </div>
             </header>
 

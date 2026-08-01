@@ -1,57 +1,22 @@
-# Chamber 07 project index and resume experience
+## Goal
 
-## Confirmed problem
+Give the presentation its own client link — `https://gdpvision.com/p/<token>` — that opens only the deck, with no sign-in and no platform chrome, exactly as the Discovery brief link works today.
 
-The projects exist; they are not missing from the database. Grenada currently has **five** Chamber 07 projects: **three synthetic** and **two field**. The existing `ProgramsIndex` already reads them, but the Chamber entrance hides it inside a collapsed **“Or resume an existing programme”** disclosure beneath the new-project intake. With no `?project=` parameter, the UI prioritizes starting another project instead of showing the existing portfolio. Active selection also depends entirely on that URL parameter.
+## What the client sees
 
-## Implementation plan
+A single unbranded page with the deck: slide-by-slide viewing, full-screen present mode, print/save-as-PDF, and download as editable .pptx. Nothing about the workspace, country queue, or platform. Revoked or unpublished links show a plain notice.
 
-1. **Make “Research projects” the Chamber 07 landing experience**
-   - Replace the collapsed resume disclosure with a permanent, first-class portfolio index.
-   - Show a concise header with project totals and prominent actions for **New synthetic project** and **New field project**.
-   - Do not auto-open one project when several exist; let the administrator intentionally select the correct engagement.
+## What the admin sees
 
-2. **Create a clean, scannable project portfolio**
-   - Add filters for **All**, **Field research**, **Synthetic research**, **In progress**, and **Completed**.
-   - Sort by most recently updated by default, with search by project title.
-   - Each project row/card will show:
-     - project title;
-     - Field or Synthetic track;
-     - current status;
-     - current stage and meaningful completion progress;
-     - last activity date;
-     - counts relevant to the track, such as studies, participants/segments, instruments, sessions, and reports;
-     - one clear primary action: **Resume project** or **View results**.
-   - Keep rename, archive, and delete as secondary menu actions so the main workflow stays uncluttered.
+Beside the existing "Client link" bar for the brief, a second **Presentation link** bar in the briefing panel: Create client link → address field with Copy, plus New address and Revoke. The button stays disabled until the deck exists and its provenance check passes, mirroring the brief's gate.
 
-3. **Derive a trustworthy resume destination**
-   - Use the persisted project state to determine the next valid screen:
-     - track not selected → track selection;
-     - brief incomplete → Brief;
-     - programme incomplete → Programme;
-     - participants incomplete → Participants;
-     - instruments incomplete → Instruments;
-     - fieldwork/evidence underway → the latest active stage;
-     - completed → results/report.
-   - Preserve the existing `?project=<id>` contract so every resumed screen remains scoped to the selected country and project.
+## Technical outline
 
-4. **Keep switching available after entry**
-   - Add the existing project switcher to the Chamber 07 shell so an administrator can move between engagements without returning to the country dashboard.
-   - Include a clear **All projects** option that returns to the portfolio index.
-   - Ensure every Chamber 07 sub-route carries the selected project ID rather than silently dropping it.
+1. **Migration** — add `share_token text unique`, `share_enabled boolean default false`, `shared_publicly_at timestamptz` to `public.programme_decks` (mirrors `programme_briefings`); no new table, so no new GRANTs needed beyond what exists.
+2. **Server fns** — `getDeckShare` / `setDeckShare` in `src/lib/personas/programme-deck.functions.ts`, protected by `requireSupabaseAuth`, same create/regenerate/revoke shape as `setDossierShare`. Publishing refuses unless the stored deck passes its preflight and matches the current briefing version.
+3. **Public API** — `src/routes/api/public/deck/$token.ts`: token-format check, admin client lookup by `share_token`, returns `invalid` / `revoked` / `unavailable` / `ok` + the deck JSON only.
+4. **Public page** — `src/routes/p.$token.tsx`, reusing `DeckModal`'s slide canvas and `deck-pptx` export in an always-open, page-level layout; own `head()` with noindex.
+5. **Link spelling** — add `deckLink(origin, token)` to `src/lib/personas/public-origin.ts` so the address always resolves through `browserPublicOrigin()` and never the preview host.
+6. **UI** — generalise `ShareLinkBar` to take label/copy + read/write fns (or add a thin `DeckShareLinkBar`) and mount it under the existing one in `BriefingPanel.tsx`.
 
-5. **Separate project creation from project retrieval**
-   - Move the current AI intake/new-project gate behind the two creation actions instead of making it the default landing screen.
-   - Reuse one creation/navigation hook for both the portfolio and project switcher so all new projects land consistently in the Brief stage.
-
-6. **Validate against real Grenada projects**
-   - Confirm all five existing projects appear in the correct Field/Synthetic filters.
-   - Verify resume routing for the active field programme, the incomplete field programme, the completed synthetic studies, and the two early synthetic projects.
-   - Test direct links, returning to **All projects**, switching projects, archive visibility, responsive layout, and country isolation.
-
-## Technical scope
-
-- Refactor the Chamber 07 index route and the existing `ProgramsIndex`/`ProjectSwitcher` components rather than creating a parallel project system.
-- Extend the existing authenticated project-list read to return aggregate progress/count data needed by the index.
-- No new project table is required; existing `persona_projects`, `studies`, segments, instruments, sessions, drafts, and reports already provide the portfolio data.
-- Preserve existing country-scoped access controls and project URL conventions.
+Regenerating the deck keeps the same token (address stays stable) unless the admin asks for a new address.

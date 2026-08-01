@@ -11,6 +11,7 @@ import remarkGfm from "remark-gfm";
 import { printSurface } from "@/components/print/PrintSurface";
 import { DeckModal } from "@/components/personas/field/deck/DeckModal";
 import { BriefOpenerBlock } from "@/components/personas/field/briefing/BriefOpenerBlock";
+import { sanitizeSectionMarkdown } from "@/components/personas/field/briefing/sanitizeSectionMarkdown";
 
 import {
   BRIEFING_PRINT_SURFACE,

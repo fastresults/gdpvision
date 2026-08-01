@@ -11,6 +11,7 @@ import remarkGfm from "remark-gfm";
 import { PrintSurface } from "@/components/print/PrintSurface";
 import type { CommencementBriefing } from "@/lib/personas/commencement-briefing.functions";
 import { BriefOpenerBlock } from "./BriefOpenerBlock";
+import { sanitizeSectionMarkdown } from "./sanitizeSectionMarkdown";
 
 
 /** Surface id — pass to printSurface() to print the briefing and nothing else. */

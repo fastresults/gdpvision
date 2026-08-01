@@ -9,6 +9,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, Check, CircleDashed } from "lucide-react";
 
 import { Explain } from "@/components/explain/Explain";
+import "@/lib/explain/personas-entries";
 import {
   FIELD_STAGE_SPECS,
   FIELD_STAGES,

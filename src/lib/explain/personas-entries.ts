@@ -66,3 +66,15 @@ registerRationales([
   },
 ]);
 
+registerRationales([
+  {
+    key: "research.stage.done",
+    title: "What finishes this stage",
+    short:
+      "Each field stage has one objective test — an artefact that exists in the record, not an opinion.",
+    basis:
+      "The rail reads the programme's real artefacts on every visit: the committed brief, the active plan, panel membership, saved instruments, collected returns and held sessions, and the synthesised finding. A stage shows as done only when its artefact is present, so the stepper can never claim progress the record does not support.",
+    caveat:
+      "You may move ahead of an incomplete stage — research is rarely linear — but the outstanding item stays visible, and anything downstream that depends on it will say so rather than fail quietly.",
+  },
+]);

@@ -1,73 +1,64 @@
-## What's wrong today
+## What's actually wrong (read from the code, not guessed)
 
-The Persona Lab landing page opens as one undifferentiated "Synthetic Persona Lab" funnel (Cast → Group → Rehearse). The full real-world research server layer now exists — programme plans, phases, milestones, participant CRM, comms, instruments, collections, sessions, synthesis — but has no entry point on this page. A user cannot choose, or even see, that there are two ways to run research.
+The entrance at `/admin/countries/$code/personas` renders `TrackGateEntry` and it fails as a decision surface:
 
-## The idea
+1. **The choice isn't binary.** Three equal-weight cards render side by side (`synthetic`, `field`, `blended`). A third "Rehearse, then verify" column turns a clear fork into a menu.
+2. **The gate is buried.** The page stacks a small header, then the gate card, then the entire `ProgramsIndex` list below it. Nothing commands the screen.
+3. **The commitment step comes first and looks like a form.** A bare text input plus two raw `<input type="radio">` Public/Private controls sit in the card header, before the user knows what they're choosing between. Both CTAs are disabled until it's filled, and the only explanation is a `title` tooltip.
+4. **The cards are dense and undifferentiated** — same icon treatment, same dl/bullet stack, same button. Nothing conveys "minutes, directional" vs "weeks, citable" at a glance.
 
-Rename the chamber to **The Research Chamber** and split it into two clearly-named tracks a Cabinet can tell apart in one glance:
+## The rebuild
 
-- **Synthetic Lab** — "Ask a synthetic public. Today." Personas, segments, rehearsals — answers in minutes, no fieldwork.
-- **Field Programme** — "Ask the real public. Properly." Brief-derived programme plan, participants, instruments, sessions, evidence — weeks, not minutes.
-
-Both tracks feed the same second brain and can be compared against each other at the end (the calibration function already exists).
-
-## The gate
-
-Track is a property of a **programme**, not a global toggle. Sequence:
+**Stage 00 becomes a full-bleed decision screen, not a card on a list page.**
 
 ```text
-Programme index          →  New programme: choose track
-   (tabs: Synthetic |         [ Synthetic Lab ]  [ Field Programme ]  [ Both ]
-    Field | All)                     │
-                                     ▼
-                             Brief intake (shared, existing)
-                                     │
-                     ┌───────────────┴──────────────┐
-                     ▼                              ▼
-            Blueprint (personas,          Programme Plan (phases,
-            segments, studies)            milestones, deliverables)
-                     └──────────────┬───────────────┘
-                                    ▼
-                        Synthesis · field-vs-synthetic calibration
+┌──────────────────────────────────────────────────────────────┐
+│  CHAMBER 07 · THE RESEARCH CHAMBER                           │
+│  How should this question be asked?                          │
+│  One decision. You can add the other instrument later.       │
+├───────────────────────────┬──────────────────────────────────┤
+│  SYNTHETIC LAB            │  FIELD PROGRAMME                 │
+│  [engraved illustration]  │  [engraved illustration]         │
+│  Ask a synthetic public   │  Ask the real public             │
+│  — today.                 │  — properly.                     │
+│                           │                                  │
+│  MINUTES                  │  WEEKS                           │
+│  Directional              │  Citable evidence                │
+│  · Cast personas          │  · Programme plan, phases        │
+│  · Group segments         │  · Participants & comms          │
+│  · Rehearse studies       │  · Instruments & fieldwork       │
+│                           │                                  │
+│  [ Choose Synthetic Lab ] │  [ Choose Field Programme ]      │
+└───────────────────────────┴──────────────────────────────────┘
+        Not sure? Run both — rehearse, then verify. (quiet link)
+              ─────────────────────────────────────
+        Or resume a programme:  [3 recent programmes] · All programmes →
 ```
 
-Gating rules, all enforced in the UI and mirrored by the existing server checks:
+Concretely:
 
-1. No track chosen → nothing downstream is reachable; a track picker is the only action.
-2. Track chosen but no committed brief → brief intake only (reuses `ProgramBriefIntake`).
-3. Brief committed, synthetic track → Blueprint gate, then Cast / Group / Rehearse as now.
-4. Brief committed, field track → Programme Plan derivation gate, then Participants / Instruments / Fieldwork / Evidence.
-5. "Both" unlocks each track's rail independently and turns on the calibration view.
+- **Two panels only.** Half-screen each, min-height ~440px, hairline divider, hover raises the panel and reveals the CTA in full ink. `blended` demotes to a single quiet line under the fork ("Run both — rehearse, then verify"), which starts a blended programme.
+- **Choose first, name second.** Clicking a panel opens a focused confirm step (inline slide-over on the same screen): programme name, Public/Private as two labelled toggle chips (not raw radios), and a one-line restatement of the track chosen with a "change" link. Create button is the only action. No disabled buttons on the fork itself.
+- **Each panel carries an engraved illustration** via `<Illustration>` (`spot` variant) per the illustration contract — one for synthetic (an orrery / model of a crowd), one for field (surveyor's instrument). Generated in the house graphite style.
+- **Tempo and proof become the visual spine** — large serif "Minutes" / "Weeks" and a proof line, so the trade-off is legible in two seconds without reading body copy.
+- **Existing programmes move below the fold**: three most-recent programme chips with track badges plus "All programmes →". The full `ProgramsIndex` table stops competing with the gate; it lives under a collapsed/secondary section on this screen and stays fully available at its own view.
+- **Track is visible forever after.** Once inside a programme, the header shows a track badge (Synthetic / Field / Blended) with a "change track" affordance, so the gate decision is never ambiguous later.
+- **Explain contract**: the "Directional, not defensible" and "Citable evidence" claims get `<Explain id="research.proof.synthetic|field">` entries so a principal can interrogate what each standard of proof means.
 
-Locked steps stay visible but dimmed with a one-line reason ("Commit the brief first"), never hidden — the same pattern the sidebar already uses.
+## Files
 
-## Copy
+| File | Change |
+| --- | --- |
+| `src/components/personas/TrackGateEntry.tsx` | Full rewrite — two-panel fork + confirm step, no inline form in the header |
+| `src/components/personas/TrackConfirm.tsx` | New — name + visibility + create, scoped to the chosen track |
+| `src/routes/_authenticated/admin/countries.$code.personas.index.tsx` | No-project branch becomes the gate screen; recent-programmes strip replaces the stacked `ProgramsIndex` |
+| `src/components/personas/TrackTabs.tsx` | Add persistent track badge + change-track affordance |
+| `src/lib/personas/tracks.ts` | Add `proof` explain ids, mark `blended` as secondary |
+| `src/lib/explain/personas-entries.ts` | Register the two standard-of-proof rationales |
+| `src/assets/illustrations/*.asset.json` | Two new engraved spots (synthetic public, field survey) |
 
-- Chamber line: `Chamber 07 · The Research Chamber`
-- Headline: **Rehearse it synthetically. Then prove it in the field.**
-- Sub: "Two tracks, one evidence base. Cast a synthetic public for an answer today, or run a real programme — participants, instruments, sessions and all — when the answer has to hold up in Cabinet."
-- Synthetic card: "Ask a synthetic public — today." · *Minutes · AI-cast voices grounded in the national corpus · Directional, not defensible.*
-- Field card: "Ask the real public — properly." · *Weeks · Real participants, consented, tracked to milestones · Citable evidence.*
-- Both card: "Rehearse, then verify." · *Run the synthetic pass first, field-test what it predicts, and see where they diverge.*
+Buttons use `btn-primary` / `btn-ghost`; all colour via registered tokens only.
 
-## Technical section
+## Verification
 
-**Migration**
-- `ALTER TABLE public.persona_projects ADD COLUMN IF NOT EXISTS track text NOT NULL DEFAULT 'synthetic'` with a check constraint (`synthetic | field | blended`) and a nullable `track_chosen_at`. Existing rows keep `synthetic` so nothing regresses.
-- No new tables; the field track's schema landed in `20260801001005_*.sql`.
-
-**Server**
-- `projects.functions.ts`: accept and return `track` on `createProject` / `listProjects`; add `setProjectTrack`.
-- Header docblocks + `bun run headers && bun run map` after.
-
-**Hooks**
-- Extend `useProgramBriefGate` into `useResearchGate(projectId)` returning `{ track, needsTrack, needsIntake, needsBlueprint, needsPlan, blueprintCommitted, planCommitted }` — the field branch reads `getProgrammePlan`, the synthetic branch keeps `getBlueprint`.
-
-**UI**
-- `src/components/personas/TrackPicker.tsx` — three cards, the copy above, writes `track`.
-- `src/components/personas/TrackTabs.tsx` — Synthetic / Field / Overview tabs, driven by a `?track=` search param, hidden for single-track programmes.
-- `StudioStepper` gains a field variant (Brief → Plan → Participants → Instruments → Fieldwork → Evidence); the existing synthetic variant is untouched.
-- `countries.$code.personas.index.tsx` becomes a thin router over the gate: track picker → brief → track-specific rail. Programme index gains track chips and a track filter.
-- Sidebar in `countries.$code.personas.tsx` renders the synthetic 3-step path or the field 5-step path based on the active programme's track.
-
-**Out of scope for this pass:** the field workspace screens themselves (plan timeline, CRM table, instrument builder, sessions, evidence) — this pass builds the gate, the tabs, the copy and the field rail with each step linking to a placeholder route that states what lands next.
+Playwright pass at 1280px and 390px: load the chamber with no project, screenshot the fork, click Field Programme, confirm the name step appears and creating lands on the field rail; repeat for Synthetic.

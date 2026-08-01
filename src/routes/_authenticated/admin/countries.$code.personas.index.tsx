@@ -168,20 +168,20 @@ function PersonasIndex() {
   // synthetic rail. Choose the instrument, or resume an existing programme.
   if (!activeProjectId) {
     return (
-      <div className="space-y-6">
-        <header>
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            Chamber 07 · The Research Chamber
-          </p>
-          <h2 className="mt-1 font-serif text-2xl text-ink-950">
-            Every programme starts with one decision.
-          </h2>
-        </header>
+      <div className="space-y-10">
         <TrackGateEntry code={code} />
-        <ProgramsIndex code={code} />
+        <details className="group border-t border-line-200 pt-4">
+          <summary className="cursor-pointer list-none font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500 hover:text-ink-950">
+            Or resume an existing programme ▾
+          </summary>
+          <div className="mt-4">
+            <ProgramsIndex code={code} />
+          </div>
+        </details>
       </div>
     );
   }
+
 
   return (
     <div className="space-y-6">

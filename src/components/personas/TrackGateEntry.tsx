@@ -1,146 +1,134 @@
 // Chamber 07 · Chamber entrance gate.
 //
 // Nothing in this chamber starts until the principal says how the question
-// should be asked. This is the no-programme-selected view: name the
-// programme, then choose the instrument. The programme is created already
-// on that track, so the rail is correct from the first screen.
+// should be asked. Stage 00 is a fork, not a form: two instruments, one
+// decision. Blended is deliberately demoted to a quiet line beneath — it is
+// the exception, not a third equal option.
 
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
-import { Check, Clock, Loader2, Users2, Wand2 } from "lucide-react";
+import { ArrowRight, Users2, Wand2 } from "lucide-react";
 
-import { createProject } from "@/lib/personas/projects.functions";
-import { RESEARCH_TRACKS, TRACK_META, type ResearchTrack } from "@/lib/personas/tracks";
+import { Explain } from "@/components/explain/Explain";
+import { Illustration } from "@/components/marketing/Illustration";
+import { TRACK_META, type ResearchTrack } from "@/lib/personas/tracks";
+import "@/lib/explain/personas-entries";
+import syntheticArt from "@/assets/illustrations/research-synthetic.jpg";
+import fieldArt from "@/assets/illustrations/research-field.jpg";
+
+import { TrackConfirm } from "./TrackConfirm";
+
+const PANELS = [
+  {
+    key: "synthetic" as const,
+    icon: Wand2,
+    art: syntheticArt,
+    explainId: "research.proof.synthetic",
+    question: "Ask a synthetic public — today.",
+    line: "AI casts a public from this country's second brain, groups it into audiences a Cabinet can act on, and rehearses the conversation before you have it.",
+    bullets: ["Cast personas", "Group segments", "Rehearse studies"],
+  },
+  {
+    key: "field" as const,
+    icon: Users2,
+    art: fieldArt,
+    explainId: "research.proof.field",
+    question: "Ask the real public — properly.",
+    line: "The brief becomes a dated programme: phases, milestones, participants, instruments and sessions — every return filed to the second brain.",
+    bullets: ["Programme plan & milestones", "Participants & comms", "Instruments & fieldwork"],
+  },
+];
 
 export function TrackGateEntry({ code }: { code: string }) {
-  const qc = useQueryClient();
-  const createFn = useServerFn(createProject);
-  const [title, setTitle] = useState("");
-  const [visibility, setVisibility] = useState<"public" | "private">("public");
+  const [chosen, setChosen] = useState<ResearchTrack | null>(null);
 
-  const create = useMutation({
-    mutationFn: (track: ResearchTrack) =>
-      createFn({ data: { countryCode: code, title: title.trim(), visibility, track } }),
-    onSuccess: async (row: { id: string }, track) => {
-      await qc.invalidateQueries({ queryKey: ["persona-projects", code] });
-      window.location.assign(
-        track === "field"
-          ? `/admin/countries/${code}/personas?project=${row.id}&open=1`
-          : `/admin/countries/${code}/personas?project=${row.id}`,
-      );
-    },
-  });
-
-  const ready = title.trim().length >= 2;
+  if (chosen) return <TrackConfirm code={code} track={chosen} onBack={() => setChosen(null)} />;
 
   return (
     <section className="border border-ink-950 bg-paper-0">
-      <header className="border-b border-line-200 px-5 py-4">
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
-          Stage 00 · Choose the track
+      <header className="border-b border-ink-950 px-6 py-7 text-center sm:px-10 sm:py-10">
+        <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
+          Stage 00 · The gate
         </p>
-        <h2 className="mt-1 font-serif text-2xl leading-tight text-ink-950">
-          One chamber, two instruments.
+        <h2 className="mx-auto mt-3 max-w-2xl font-serif text-[2rem] leading-[1.1] text-ink-950 sm:text-4xl">
+          How should this question be asked?
         </h2>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-700">
-          A synthetic public answers today and shows you where the argument is weak. A field
-          programme answers in weeks and gives you evidence a Cabinet can publish. Name the
-          programme, then choose the instrument the decision deserves — you can add the other later.
+        <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-ink-700">
+          Pick one instrument. Nothing in this chamber opens until you do — and you can add the
+          other one to the same programme later.
         </p>
-
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Name this research programme — e.g. Tourism levy acceptance"
-            className="min-w-[280px] flex-1 border border-line-200 bg-paper-0 px-3 py-2 text-sm focus:border-ink-950 focus:outline-none"
-          />
-          <label className="flex items-center gap-1 text-[11px] text-ink-700">
-            <input
-              type="radio"
-              checked={visibility === "public"}
-              onChange={() => setVisibility("public")}
-            />{" "}
-            Public
-          </label>
-          <label className="flex items-center gap-1 text-[11px] text-ink-700">
-            <input
-              type="radio"
-              checked={visibility === "private"}
-              onChange={() => setVisibility("private")}
-            />{" "}
-            Private
-          </label>
-        </div>
       </header>
 
-      <div className="grid gap-px bg-line-200 md:grid-cols-3">
-        {RESEARCH_TRACKS.map((key) => {
-          const meta = TRACK_META[key];
-          const Icon = key === "synthetic" ? Wand2 : key === "field" ? Users2 : Clock;
-          const pending = create.isPending && create.variables === key;
+      <div className="grid gap-px bg-line-200 lg:grid-cols-2">
+        {PANELS.map((p) => {
+          const meta = TRACK_META[p.key];
+          const Icon = p.icon;
           return (
-            <article key={key} className="flex flex-col bg-paper-0 p-5">
-              <div className="flex items-center gap-2">
-                <span className="grid h-7 w-7 place-items-center border border-ink-950 bg-ink-950 text-paper-0">
-                  <Icon size={13} />
-                </span>
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                  {meta.label}
-                </p>
+            <button
+              key={p.key}
+              type="button"
+              onClick={() => setChosen(p.key)}
+              className="group flex min-h-[420px] flex-col bg-paper-0 p-6 text-left transition-colors hover:bg-paper-50 focus:outline-none focus-visible:bg-paper-50 sm:p-9"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
+                    <Icon size={13} /> {meta.label}
+                  </p>
+                  <h3 className="mt-3 max-w-sm font-serif text-2xl leading-tight text-ink-950 sm:text-[1.75rem]">
+                    {p.question}
+                  </h3>
+                </div>
+                <Illustration
+                  src={p.art}
+                  variant="mark"
+                  className="hidden shrink-0 opacity-80 sm:block"
+                />
               </div>
-              <h3 className="mt-3 font-serif text-xl leading-tight text-ink-950">{meta.promise}</h3>
-              <p className="mt-2 flex-1 text-[13px] leading-relaxed text-ink-700">{meta.body}</p>
 
-              <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-line-200 pt-3">
+              <div className="mt-7 grid grid-cols-2 gap-6 border-y border-line-200 py-5">
                 <div>
-                  <dt className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
+                  <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-ink-500">
                     Time to answer
-                  </dt>
-                  <dd className="mt-0.5 font-serif text-sm text-ink-950">{meta.tempo}</dd>
+                  </p>
+                  <p className="mt-1 font-serif text-3xl leading-none text-ink-950">{meta.tempo}</p>
                 </div>
                 <div>
-                  <dt className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
+                  <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-ink-500">
                     Standard of proof
-                  </dt>
-                  <dd className="mt-0.5 font-serif text-sm text-ink-950">{meta.proof}</dd>
+                  </p>
+                  <p className="mt-1 font-serif text-xl leading-tight text-ink-950">
+                    <Explain id={p.explainId}>{meta.proof}</Explain>
+                  </p>
                 </div>
-              </dl>
+              </div>
 
-              <ul className="mt-3 space-y-1">
-                {meta.bullets.map((b) => (
-                  <li key={b} className="flex items-start gap-1.5 text-[12px] text-ink-700">
-                    <Check size={12} className="mt-0.5 shrink-0 text-ink-500" /> {b}
+              <p className="mt-5 max-w-md text-[13px] leading-relaxed text-ink-700">{p.line}</p>
+
+              <ul className="mt-4 space-y-1.5">
+                {p.bullets.map((b) => (
+                  <li key={b} className="text-[12px] text-ink-700">
+                    <span className="mr-2 text-ink-300">—</span>
+                    {b}
                   </li>
                 ))}
               </ul>
 
-              <button
-                type="button"
-                onClick={() => create.mutate(key)}
-                disabled={!ready || create.isPending}
-                title={ready ? undefined : "Name the programme first"}
-                className="btn-primary mt-4 w-full justify-center disabled:opacity-40"
-              >
-                {pending ? (
-                  <>
-                    <Loader2 size={11} className="animate-spin" /> Opening…
-                  </>
-                ) : (
-                  `Start ${meta.label}`
-                )}
-              </button>
-            </article>
+              <span className="btn-primary mt-auto w-full justify-center pt-0 opacity-90 transition-opacity group-hover:opacity-100">
+                Choose {meta.label} <ArrowRight size={12} />
+              </span>
+            </button>
           );
         })}
       </div>
 
-      {create.isError && (
-        <p className="border-t border-line-200 px-5 py-3 text-[11px] text-rose-600">
-          {(create.error as Error).message}
+      <footer className="border-t border-line-200 px-6 py-4 text-center sm:px-10">
+        <p className="text-[12px] text-ink-700">
+          Not sure?{" "}
+          <button type="button" onClick={() => setChosen("blended")} className="underline underline-offset-2 hover:text-ink-950">
+            Run both — rehearse today, verify in the field.
+          </button>
         </p>
-      )}
+      </footer>
     </section>
   );
 }

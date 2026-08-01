@@ -93,7 +93,7 @@ export function PrintableBriefing({
         </section>
       )}
 
-      {config.showToc && (
+      {briefing.sections.length >= 2 && (
         <section className="cb-page cb-toc">
           <p className="cb-eyebrow">Contents</p>
           <h2 className="cb-h2">What this document covers</h2>
@@ -102,6 +102,7 @@ export function PrintableBriefing({
               <li key={s.id}>
                 <span className="cb-toc-num">{String(i + 1).padStart(2, "0")}</span>
                 <span className="cb-toc-title">{s.heading}</span>
+                <span className="cb-toc-leader" aria-hidden="true" />
                 <span className="cb-toc-kind">{s.eyebrow}</span>
               </li>
             ))}
@@ -119,6 +120,7 @@ export function PrintableBriefing({
           </ul>
         </section>
       )}
+
 
       <section className="cb-body">
         {briefing.sections.map((s, i) => (

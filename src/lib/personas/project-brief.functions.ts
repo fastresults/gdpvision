@@ -148,7 +148,7 @@ export const enrichProjectBrief = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("persona_projects")
-      .select("id,title,country_code,brief_raw,brief_uploads")
+      .select("id,title,country_code,brief_raw,brief_uploads,brief_source")
       .eq("id", data.projectId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -156,20 +156,25 @@ export const enrichProjectBrief = createServerFn({ method: "POST" })
     const r = row as unknown as ProjectBriefRow;
 
     const raw = (r.brief_raw ?? "").trim();
+    const source = (r.brief_source ?? null) as unknown as z.infer<typeof UploadSchema> | null;
     const uploads = Array.isArray(r.brief_uploads)
       ? (r.brief_uploads as unknown as Array<z.infer<typeof UploadSchema>>)
       : [];
+    const sourceBlock =
+      source?.excerpt && source.excerpt.trim().length > 0
+        ? `[GOVERNING BRIEF: ${source.name} (${source.mime})]\n${source.excerpt}\n\n`
+        : "";
     const uploadBlock = uploads
       .filter((u) => u.excerpt && u.excerpt.trim().length > 0)
-      .map((u) => `\n\n[UPLOAD: ${u.name} (${u.mime})]\n${u.excerpt}`)
+      .map((u) => `\n\n[SUPPORTING CONTEXT: ${u.name} (${u.mime})]\n${u.excerpt}`)
       .join("");
-    const combined = `${raw}${uploadBlock}`.trim().slice(0, 20_000);
+    const combined = `${sourceBlock}${raw}${uploadBlock}`.trim().slice(0, 20_000);
     if (combined.length < 40) {
       throw new Error("Add at least 40 characters of brief text (or an uploaded document) before enriching.");
     }
 
-    const system = "You are a McKinsey engagement partner scoping a sovereign research study. Convert the client's raw brief into a rigorous Research Scope. Return strict JSON only.";
-    const user = `Program title: ${r.title}\nCountry: ${r.country_code}\n\nRAW BRIEF (may be typed, transcribed from voice, or extracted from uploads):\n${combined}\n\nReturn JSON:\n{\n  "title": "\u2264 90 char headline for this program",\n  "objectives": ["3-6 crisp objectives"],\n  "hypotheses": ["3-5 falsifiable hypotheses"],\n  "decisions": ["decisions this research must inform, 2-4"],\n  "stakeholders": [{"name":"\u2026","type":"internal|external","role":"\u2026"}],\n  "timeframe": "when this must be delivered / time horizon",\n  "geography": "geographies in scope",\n  "sensitivities": ["political/reputational risks to handle carefully"],\n  "success_criteria": ["what 'done well' looks like, 3-5"]\n}`;
+    const system = "You are a McKinsey engagement partner scoping a sovereign research study. The client supplies ONE governing brief plus supporting context; the governing brief and the client's own words decide objectives, decisions, timeframe and geography, while supporting context may only enrich or qualify them. Convert this into a rigorous Research Scope. Return strict JSON only.";
+    const user = `Program title: ${r.title}\nCountry: ${r.country_code}\n\nMATERIAL (governing brief first, then the client's words, then supporting context):\n${combined}\n\nReturn JSON:\n{\n  "title": "\u2264 90 char headline for this program",\n  "objectives": ["3-6 crisp objectives"],\n  "hypotheses": ["3-5 falsifiable hypotheses"],\n  "decisions": ["decisions this research must inform, 2-4"],\n  "stakeholders": [{"name":"\u2026","type":"internal|external","role":"\u2026"}],\n  "timeframe": "when this must be delivered / time horizon",\n  "geography": "geographies in scope",\n  "sensitivities": ["political/reputational risks to handle carefully"],\n  "success_criteria": ["what 'done well' looks like, 3-5"]\n}`;
 
     let parsed: ResearchScope | null = null;
     let lastErr: unknown = null;

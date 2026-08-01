@@ -294,7 +294,18 @@ export function EvidenceStage({
   return (
     <StageWizard
       panels={{
-        // ── Step 1 · Read what the field says ─────────────────────────────
+        // ── Step 1 · How much evidence is under this? ─────────────────────
+        landed: (
+          <div className="space-y-5">
+            {bar}
+            <p className="max-w-2xl text-[13px] leading-relaxed text-ink-700">
+              Read the count before the finding. A finding drawn from a handful of returns is not
+              wrong — but it must be spoken with the confidence that number earns, and no more.
+            </p>
+          </div>
+        ),
+
+        // ── Step 2 · Read the finding ─────────────────────────────────────
         synthesise: (
           <div className="space-y-5">
             {bar}
@@ -302,7 +313,7 @@ export function EvidenceStage({
           </div>
         ),
 
-        // ── Step 2 · File it ──────────────────────────────────────────────
+        // ── Step 3 · File it ──────────────────────────────────────────────
         file: (
           <div className="space-y-5">
             {closedBanner}

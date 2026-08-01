@@ -187,9 +187,19 @@ export function FieldworkStage({
           </div>
         ),
 
-        // Returns land against collection waves.
+        // Returns land against collection waves, and this is the closing test.
         returns: (
           <div className="space-y-5">
+            {open.length > 0 ? (
+              <p className="border border-amber-500/40 bg-amber-500/5 p-3 text-[13px] text-ink-800">
+                {open.length} wave{open.length === 1 ? "" : "s"} still open. The field cannot be
+                closed until each one reaches its target or is stood down.
+              </p>
+            ) : (
+              <p className="border border-emerald-500/40 bg-emerald-500/5 p-3 text-[13px] text-ink-800">
+                Every wave the plan obliged has closed. The evidence stage can now read the field.
+              </p>
+            )}
             {collections.length === 0 ? (
               <EmptyAction
                 title="No survey returns to chase"
@@ -201,22 +211,6 @@ export function FieldworkStage({
           </div>
         ),
 
-        // The closing test.
-        landed: (
-          <div className="space-y-5">
-            {ladder}
-            {open.length > 0 ? (
-              <p className="border border-amber-500/40 bg-amber-500/5 p-3 text-[13px] text-ink-800">
-                {open.length} wave{open.length === 1 ? "" : "s"} still open. The field cannot be
-                closed until each one reaches its target or is stood down.
-              </p>
-            ) : (
-              <p className="border border-emerald-500/40 bg-emerald-500/5 p-3 text-[13px] text-ink-800">
-                Every wave the plan obliged has closed. The evidence stage can now read the field.
-              </p>
-            )}
-          </div>
-        ),
       }}
     />
   );

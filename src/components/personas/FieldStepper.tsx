@@ -3,7 +3,6 @@
 // The real-world rail. Mirrors StudioStepper's grammar but walks the stages a
 // dated field programme actually passes through.
 
-import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Check,
   ClipboardList,
@@ -15,10 +14,9 @@ import {
   Library,
 } from "lucide-react";
 
-import { useGuardedGo } from "@/components/personas/field/stage-bus";
 import { subStepProgress } from "@/lib/personas/field-substeps";
 import type { FieldProgress } from "@/lib/personas/field-stages";
-import { cn, scrollToTop } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 export type FieldStageKey =
   | "brief"
@@ -27,8 +25,6 @@ export type FieldStageKey =
   | "instruments"
   | "fieldwork"
   | "evidence";
-
-const STEP_ROUTE = "/admin/countries/$code/personas/field/$step" as const;
 
 export function FieldStepper({
   code,
@@ -54,11 +50,6 @@ export function FieldStepper({
     const { done: d, total } = subStepProgress(k, progress);
     return total > 1 ? `${d}/${total}` : null;
   };
-
-  // The rail is a way out of a stage like any other — it goes through the
-  // same save-or-discard gate the sticky bar uses.
-  const navigate = useNavigate();
-  const guardedGo = useGuardedGo();
 
   const nodes: Array<{
     key: FieldStageKey;
@@ -132,7 +123,7 @@ export function FieldStepper({
   ];
 
   return (
-    <nav
+    <div
       aria-label="Field programme stages"
       className="sticky top-0 z-20 -mx-6 border-b border-line-200 bg-paper-0/95 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-paper-0/80"
     >
@@ -140,38 +131,13 @@ export function FieldStepper({
         {nodes.map((s) => {
           const Icon = s.icon;
           const isActive = active === s.key;
-          const to = STEP_ROUTE;
-          const params = { code, step: s.key };
           return (
             <li key={s.key}>
-              <Link
-                to={to}
-                params={params as never}
-                search={activeProjectId ? { project: activeProjectId } : undefined}
-                disabled={s.locked}
+              <div
                 aria-disabled={s.locked}
-                title={
-                  s.locked
-                    ? !briefCommitted
-                      ? "Commit the brief to unlock"
-                      : "Approve the programme plan to unlock"
-                    : undefined
-                }
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (s.locked || isActive) return;
-                  guardedGo(() => {
-                    scrollToTop();
-                    void navigate({
-                      to,
-                      params: params as never,
-                      search: activeProjectId ? { project: activeProjectId } : undefined,
-                    });
-                  });
-                }}
                 className={cn(
-                  "group flex items-start gap-2 border-l-2 py-1 pl-2 transition-colors",
-                  s.locked && "pointer-events-none cursor-not-allowed opacity-40",
+                  "flex items-start gap-2 border-l-2 py-1 pl-2",
+                  s.locked && "opacity-40",
                   isActive
                     ? "border-ink-950"
                     : s.complete
@@ -216,11 +182,11 @@ export function FieldStepper({
                     {s.hint}
                   </span>
                 </span>
-              </Link>
+              </div>
             </li>
           );
         })}
       </ol>
-    </nav>
+    </div>
   );
 }

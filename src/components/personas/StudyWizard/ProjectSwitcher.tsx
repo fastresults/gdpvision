@@ -6,7 +6,7 @@
 import { useMutation, useQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { ChevronDown, FolderPlus, Loader2 } from "lucide-react";
+import { ChevronDown, FolderPlus, LayoutGrid, Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { createProject, listProjects } from "@/lib/personas/projects.functions";
@@ -29,7 +29,8 @@ export function ProjectSwitcher({
   routeId:
     | "/admin/countries/$code/personas/studies"
     | "/admin/countries/$code/personas/segments"
-    | "/admin/countries/$code/personas/scope";
+    | "/admin/countries/$code/personas/scope"
+    | "/admin/countries/$code/personas";
 }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -90,6 +91,13 @@ export function ProjectSwitcher({
         </button>
         {open && projects.length > 0 && (
           <div className="absolute left-0 top-[calc(100%+4px)] z-30 min-w-[280px] border border-ink-950 bg-paper-0 shadow-lg">
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/admin/countries/$code/personas", params: { code } })}
+              className="flex w-full items-center gap-2 border-b border-line-200 px-3 py-2 text-left font-mono text-[10px] uppercase tracking-[0.16em] text-ink-700 hover:bg-paper-100"
+            >
+              <LayoutGrid size={12} /> All projects
+            </button>
             <ul className="max-h-[320px] overflow-y-auto">
               {projects.map((p) => (
                 <li key={p.id}>

@@ -7,6 +7,7 @@ import { listPersonas, listSegments } from "@/lib/personas/generate.functions";
 import { listStudies } from "@/lib/personas/study.functions";
 import { listProjects } from "@/lib/personas/projects.functions";
 import { isResearchTrack, tracksFor } from "@/lib/personas/tracks";
+import { ProjectSwitcher } from "@/components/personas/StudyWizard/ProjectSwitcher";
 
 
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/personas")({
@@ -128,6 +129,10 @@ function PersonasLayout() {
             </p>
 
           </div>
+
+          {activeProjectId && (
+            <ProjectSwitcher code={code} activeProjectId={activeProjectId} routeId="/admin/countries/$code/personas" />
+          )}
 
           {activeProjectId && (
             <Link

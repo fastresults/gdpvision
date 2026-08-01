@@ -10,15 +10,6 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-function slugify(input: string) {
-  return input
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60) || "project";
-}
-
 // List every research project for a country with rollup counts.
 export const listProjects = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -37,7 +28,8 @@ export const listProjects = createServerFn({ method: "POST" })
       track: string; track_chosen_at: string | null;
       created_at: string; updated_at: string;
       studies_total: number; studies_done: number; segments_total: number;
-      has_program_memo: boolean;
+       has_program_memo: boolean; instruments_total: number; sessions_total: number;
+       reports_total: number; current_stage: string; progress_percent: number;
     }>;
 
     const ids = list.map((p) => p.id as string);
@@ -50,8 +42,20 @@ export const listProjects = createServerFn({ method: "POST" })
         .in("project_id", ids),
     ]);
 
-    const perProject = new Map<string, { total: number; done: number; memo: boolean; segments: number }>();
-    for (const p of list) perProject.set(p.id as string, { total: 0, done: 0, memo: false, segments: 0 });
+    const studyIds = (studies ?? []).map((study) => study.id as string);
+    const [{ data: instruments }, { data: sessions }, { data: reports }] = studyIds.length > 0
+      ? await Promise.all([
+          supabase.from("field_instruments").select("id,study_id").in("study_id", studyIds),
+          supabase.from("field_sessions").select("id,study_id,status").in("study_id", studyIds),
+          supabase.from("study_reports").select("id,study_id").in("study_id", studyIds),
+        ])
+      : [{ data: [] }, { data: [] }, { data: [] }];
+
+    const projectByStudy = new Map<string, string>();
+    for (const study of studies ?? []) projectByStudy.set(study.id as string, study.project_id as string);
+
+    const perProject = new Map<string, { total: number; done: number; memo: boolean; segments: number; instruments: number; sessions: number; reports: number }>();
+    for (const p of list) perProject.set(p.id as string, { total: 0, done: 0, memo: false, segments: 0, instruments: 0, sessions: 0, reports: 0 });
     for (const s of studies ?? []) {
       const b = perProject.get(s.project_id as string);
       if (!b) continue;
@@ -66,24 +70,57 @@ export const listProjects = createServerFn({ method: "POST" })
       const b = perProject.get(segment.project_id as string);
       if (b) b.segments += 1;
     }
+    for (const instrument of instruments ?? []) {
+      const projectId = projectByStudy.get(instrument.study_id as string);
+      const project = projectId ? perProject.get(projectId) : undefined;
+      if (project) project.instruments += 1;
+    }
+    for (const session of sessions ?? []) {
+      const projectId = projectByStudy.get(session.study_id as string);
+      const project = projectId ? perProject.get(projectId) : undefined;
+      if (project) project.sessions += 1;
+    }
+    for (const report of reports ?? []) {
+      const projectId = projectByStudy.get(report.study_id as string);
+      const project = projectId ? perProject.get(projectId) : undefined;
+      if (project) project.reports += 1;
+    }
 
     return list.map((p) => {
-      const b = perProject.get(p.id as string) ?? { total: 0, done: 0, memo: false, segments: 0 };
+      const b = perProject.get(p.id as string) ?? { total: 0, done: 0, memo: false, segments: 0, instruments: 0, sessions: 0, reports: 0 };
       const row = p as Record<string, unknown>;
+      const track = (row.track as string | null) ?? "synthetic";
+      const trackChosen = (row.track_chosen_at as string | null) ?? null;
+      const isField = track === "field";
+      const stage = !trackChosen
+        ? "Choose track"
+        : isField
+          ? b.reports > 0 ? "Evidence" : b.sessions > 0 ? "Fieldwork" : b.instruments > 0 ? "Instruments" : b.total > 0 ? "Programme" : "Brief"
+          : b.memo ? "Results" : b.total > 0 ? "Studies" : b.segments > 0 ? "Participants" : "Brief";
+      const progress = !trackChosen
+        ? 0
+        : isField
+          ? b.reports > 0 ? 100 : b.sessions > 0 ? 80 : b.instruments > 0 ? 60 : b.total > 0 ? 40 : 20
+          : b.memo ? 100 : b.total > 0 ? Math.max(50, Math.round((b.done / b.total) * 90)) : b.segments > 0 ? 35 : 15;
       return {
         id: p.id as string,
         title: p.title as string,
         slug: p.slug as string,
         status: p.status as string,
         visibility: p.visibility as string,
-        track: (row.track as string | null) ?? "synthetic",
-        track_chosen_at: (row.track_chosen_at as string | null) ?? null,
+        track,
+        track_chosen_at: trackChosen,
         created_at: p.created_at as string,
         updated_at: p.updated_at as string,
         studies_total: b.total,
         studies_done: b.done,
         segments_total: b.segments,
         has_program_memo: b.memo,
+        instruments_total: b.instruments,
+        sessions_total: b.sessions,
+        reports_total: b.reports,
+        current_stage: stage,
+        progress_percent: progress,
       };
     });
   });
@@ -129,6 +166,12 @@ export const createProject = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const slugify = (input: string) => input
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60) || "project";
     const base = slugify(data.title);
     let slug = base;
     for (let i = 1; i < 20; i++) {

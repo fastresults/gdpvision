@@ -1,25 +1,57 @@
-## Confirmed cause
+# Chamber 07 project index and resume experience
 
-`ShareLinkBar.tsx` currently creates the client URL with `window.location.origin`. When an administrator is working in the Lovable preview/editor, that produces a gated preview address, so external recipients are redirected to a Lovable login. The project already has `browserPublicOrigin()` in `src/lib/personas/public-origin.ts`, which explicitly rejects these gated hosts, but the dossier share UI is not using it.
+## Confirmed problem
 
-## Plan
+The projects exist; they are not missing from the database. Grenada currently has **five** Chamber 07 projects: **three synthetic** and **two field**. The existing `ProgramsIndex` already reads them, but the Chamber entrance hides it inside a collapsed **“Or resume an existing programme”** disclosure beneath the new-project intake. With no `?project=` parameter, the UI prioritizes starting another project instead of showing the existing portfolio. Active selection also depends entirely on that URL parameter.
 
-1. **Generate only public share addresses**
-   - Replace `window.location.origin` in `ShareLinkBar.tsx` with the existing `browserPublicOrigin()` resolver.
-   - Add a dossier-link helper alongside the existing participant-link helper so all external dossier URLs have one canonical construction path.
-   - Use the canonical public origin `https://gdpvision.com`, while preserving support for an explicitly configured public site URL.
+## Implementation plan
 
-2. **Prevent gated links from reappearing**
-   - Keep rejecting preview/editor hosts such as `lovableproject.com`, `lovable.dev`, and preview-prefixed domains.
-   - Ensure **Create client link**, **New address**, the visible URL field, and **Copy** all produce the same public-domain address.
-   - Do not change the token or sharing permissions; only correct the host used to present the link.
+1. **Make “Research projects” the Chamber 07 landing experience**
+   - Replace the collapsed resume disclosure with a permanent, first-class portfolio index.
+   - Show a concise header with project totals and prominent actions for **New synthetic project** and **New field project**.
+   - Do not auto-open one project when several exist; let the administrator intentionally select the correct engagement.
 
-3. **Verify the public access path end to end**
-   - Confirm `/d/$token` remains outside the authenticated route tree.
-   - Confirm `/api/public/dossier/$token` remains callable without a session and returns only the approved briefing/deck payload.
-   - Test a real enabled share token in a fresh signed-out browser context and verify there is no redirect to `/auth` or Lovable login.
-   - Verify dossier reading, presentation opening, and print/PDF actions still work from the public URL.
+2. **Create a clean, scannable project portfolio**
+   - Add filters for **All**, **Field research**, **Synthetic research**, **In progress**, and **Completed**.
+   - Sort by most recently updated by default, with search by project title.
+   - Each project row/card will show:
+     - project title;
+     - Field or Synthetic track;
+     - current status;
+     - current stage and meaningful completion progress;
+     - last activity date;
+     - counts relevant to the track, such as studies, participants/segments, instruments, sessions, and reports;
+     - one clear primary action: **Resume project** or **View results**.
+   - Keep rename, archive, and delete as secondary menu actions so the main workflow stays uncluttered.
 
-4. **Regression protection**
-   - Add focused coverage for origin selection and dossier URL generation, including a gated-preview input resolving to `https://gdpvision.com`.
-   - Check other external-link generators use the same public-origin contract so this class of failure does not recur.
+3. **Derive a trustworthy resume destination**
+   - Use the persisted project state to determine the next valid screen:
+     - track not selected → track selection;
+     - brief incomplete → Brief;
+     - programme incomplete → Programme;
+     - participants incomplete → Participants;
+     - instruments incomplete → Instruments;
+     - fieldwork/evidence underway → the latest active stage;
+     - completed → results/report.
+   - Preserve the existing `?project=<id>` contract so every resumed screen remains scoped to the selected country and project.
+
+4. **Keep switching available after entry**
+   - Add the existing project switcher to the Chamber 07 shell so an administrator can move between engagements without returning to the country dashboard.
+   - Include a clear **All projects** option that returns to the portfolio index.
+   - Ensure every Chamber 07 sub-route carries the selected project ID rather than silently dropping it.
+
+5. **Separate project creation from project retrieval**
+   - Move the current AI intake/new-project gate behind the two creation actions instead of making it the default landing screen.
+   - Reuse one creation/navigation hook for both the portfolio and project switcher so all new projects land consistently in the Brief stage.
+
+6. **Validate against real Grenada projects**
+   - Confirm all five existing projects appear in the correct Field/Synthetic filters.
+   - Verify resume routing for the active field programme, the incomplete field programme, the completed synthetic studies, and the two early synthetic projects.
+   - Test direct links, returning to **All projects**, switching projects, archive visibility, responsive layout, and country isolation.
+
+## Technical scope
+
+- Refactor the Chamber 07 index route and the existing `ProgramsIndex`/`ProjectSwitcher` components rather than creating a parallel project system.
+- Extend the existing authenticated project-list read to return aggregate progress/count data needed by the index.
+- No new project table is required; existing `persona_projects`, `studies`, segments, instruments, sessions, drafts, and reports already provide the portfolio data.
+- Preserve existing country-scoped access controls and project URL conventions.

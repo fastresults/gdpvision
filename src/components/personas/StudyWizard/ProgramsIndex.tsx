@@ -14,10 +14,11 @@ import {
   MoreHorizontal,
   Pencil,
   PlayCircle,
+  Search,
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import {
   archiveProject,
@@ -51,14 +52,15 @@ function statusOf(p: Project): {
   tone: "ok" | "run" | "draft" | "muted";
 } {
   if (p.status === "archived") return { label: "Archived", tone: "muted" };
-  if (p.has_program_memo) return { label: "Synthesized", tone: "ok" };
-  if (p.studies_total > 0 && p.studies_done < p.studies_total)
+  if (p.progress_percent >= 100) return { label: p.track === "field" ? "Complete" : "Synthesized", tone: "ok" };
+  if (p.progress_percent > 20)
     return { label: "In progress", tone: "run" };
-  if (p.studies_total === 0) return { label: "Draft", tone: "draft" };
-  return { label: "Ready", tone: "ok" };
+  return { label: "Draft", tone: "draft" };
 }
 
-export function ProgramsIndex({ code }: { code: string }) {
+type PortfolioFilter = "all" | "field" | "synthetic" | "active" | "completed";
+
+export function ProgramsIndex({ code, portfolio = false }: { code: string; portfolio?: boolean }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const q = useQuery(projectsQuery(code));
@@ -66,10 +68,14 @@ export function ProgramsIndex({ code }: { code: string }) {
 
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
+  const [newTrack, setNewTrack] = useState<"synthetic" | "field">("synthetic");
+  const [filter, setFilter] = useState<PortfolioFilter>("all");
+  const [query, setQuery] = useState("");
 
   const createFn = useServerFn(createProject);
   const create = useMutation({
-    mutationFn: (t: string) => createFn({ data: { countryCode: code, title: t } }),
+    mutationFn: (input: { title: string; track: "synthetic" | "field" }) =>
+      createFn({ data: { countryCode: code, title: input.title, track: input.track } }),
     onSuccess: async (result) => {
       // Server-fn result may be the row or `{ data: row }` depending on wrapping.
       const row = (result && typeof result === "object" && "id" in (result as Record<string, unknown>)
@@ -100,6 +106,32 @@ export function ProgramsIndex({ code }: { code: string }) {
 
 
   const empty = projects.length === 0;
+  const visibleProjects = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return projects.filter((project) => {
+      if (needle && !project.title.toLowerCase().includes(needle)) return false;
+      if (filter === "field" && project.track !== "field") return false;
+      if (filter === "synthetic" && project.track !== "synthetic") return false;
+      if (filter === "active" && (project.status !== "active" || project.progress_percent >= 100)) return false;
+      if (filter === "completed" && project.status !== "completed" && project.progress_percent < 100) return false;
+      return true;
+    });
+  }, [filter, projects, query]);
+
+  const beginProject = (track: "synthetic" | "field") => {
+    setNewTrack(track);
+    setShowForm(true);
+  };
+
+  if (q.isPending) {
+    return (
+      <section className="grid min-h-48 place-items-center border border-ink-950 bg-paper-0" aria-label="Loading research projects">
+        <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+          <Loader2 size={13} className="animate-spin" /> Loading research projects
+        </span>
+      </section>
+    );
+  }
 
   return (
     <section className="border border-ink-950 bg-paper-0">
@@ -119,16 +151,37 @@ export function ProgramsIndex({ code }: { code: string }) {
             </p>
           </div>
         </div>
-        {!empty && (
-          <button
-            type="button"
-            onClick={() => setShowForm((v) => !v)}
-            className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700"
-          >
-            <FolderPlus size={11} /> New program
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => beginProject("synthetic")} className="btn-secondary inline-flex items-center gap-1.5 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em]">
+            <Sparkles size={11} /> New synthetic project
           </button>
-        )}
+          <button type="button" onClick={() => beginProject("field")} className="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em]">
+            <FolderPlus size={11} /> New field project
+          </button>
+        </div>
       </header>
+
+      {portfolio && !empty && (
+        <div className="flex flex-col gap-3 border-b border-line-200 bg-paper-100/40 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap gap-1" aria-label="Filter research projects">
+            {(["all", "field", "synthetic", "active", "completed"] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setFilter(value)}
+                className={`${filter === value ? "btn-primary" : "btn-ghost"} px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.16em]`}
+              >
+                {value === "active" ? "In progress" : value}
+              </button>
+            ))}
+          </div>
+          <label className="flex min-w-[240px] items-center gap-2 border border-line-200 bg-paper-0 px-2.5 py-1.5">
+            <Search size={13} className="text-ink-500" />
+            <span className="sr-only">Search projects</span>
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search projects" className="w-full bg-transparent text-sm text-ink-950 outline-none" />
+          </label>
+        </div>
+      )}
 
       {(showForm || empty) && (
         <div className="border-b border-line-200 bg-paper-100/40 px-4 py-4">
@@ -145,7 +198,7 @@ export function ProgramsIndex({ code }: { code: string }) {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Investor confidence — H2"
               onKeyDown={(e) => {
-                if (e.key === "Enter" && title.trim().length >= 2) create.mutate(title.trim());
+                if (e.key === "Enter" && title.trim().length >= 2) create.mutate({ title: title.trim(), track: newTrack });
                 if (e.key === "Escape") {
                   setTitle("");
                   setShowForm(false);
@@ -155,9 +208,9 @@ export function ProgramsIndex({ code }: { code: string }) {
             />
             <button
               type="button"
-              onClick={() => title.trim().length >= 2 && create.mutate(title.trim())}
+              onClick={() => title.trim().length >= 2 && create.mutate({ title: title.trim(), track: newTrack })}
               disabled={create.isPending || title.trim().length < 2}
-              className="inline-flex items-center gap-1.5 border border-ink-950 bg-ink-950 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-paper-0 hover:bg-ink-700 disabled:opacity-40"
+              className="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] disabled:opacity-40"
             >
               {create.isPending ? (
                 <>
@@ -165,7 +218,7 @@ export function ProgramsIndex({ code }: { code: string }) {
                 </>
               ) : empty ? (
                 <>
-                  <Sparkles size={11} /> Start your first program
+                    <Sparkles size={11} /> Start {newTrack} project
                 </>
               ) : (
                 "Create program"
@@ -192,10 +245,13 @@ export function ProgramsIndex({ code }: { code: string }) {
 
       {!empty && (
         <ul className="divide-y divide-line-200">
-          {projects.map((p) => (
+          {visibleProjects.map((p) => (
             <ProgramRow key={p.id} p={p} code={code} />
           ))}
         </ul>
+      )}
+      {!empty && visibleProjects.length === 0 && (
+        <p className="px-4 py-8 text-center text-sm text-ink-500">No projects match this view.</p>
       )}
     </section>
   );
@@ -208,8 +264,9 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
   const [title, setTitle] = useState(p.title);
   const menuRef = useRef<HTMLDivElement>(null);
   const status = statusOf(p);
-  const pct =
-    p.studies_total > 0 ? Math.round((p.studies_done / p.studies_total) * 100) : 0;
+  const pct = p.progress_percent;
+  const isField = p.track === "field";
+  const resumeStep = p.current_stage === "Evidence" ? "evidence" : p.current_stage === "Fieldwork" ? "fieldwork" : p.current_stage === "Instruments" ? "instruments" : p.current_stage === "Programme" ? "plan" : "plan";
 
   const renameFn = useServerFn(renameProject);
   const archiveFn = useServerFn(archiveProject);
@@ -265,9 +322,18 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
                 }}
                 className="min-w-[240px] border border-ink-950 bg-paper-0 px-2 py-0.5 font-serif text-base text-ink-950 focus:outline-none"
               />
+            ) : isField ? (
+              <Link
+                to="/admin/countries/$code/personas/field/$step"
+                params={{ code, step: resumeStep }}
+                search={{ project: p.id, open: 1 }}
+                className="font-serif text-base text-ink-950 hover:underline"
+              >
+                {p.title}
+              </Link>
             ) : (
               <Link
-                to="/admin/countries/$code/personas/studies"
+                to="/admin/countries/$code/personas"
                 params={{ code }}
                 search={{ project: p.id, open: 1 }}
                 className="font-serif text-base text-ink-950 hover:underline"
@@ -292,6 +358,16 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
           </div>
 
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+            <span>{p.current_stage}</span>
+            <span>·</span>
+            {isField ? (
+              <>
+                <span className="tabular-nums">{p.instruments_total} instruments</span>
+                <span>·</span>
+                <span className="tabular-nums">{p.sessions_total} sessions</span>
+              </>
+            ) : (
+              <>
             <span className="tabular-nums">
               {p.studies_done}/{p.studies_total} studies
             </span>
@@ -299,10 +375,12 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
             <span className="tabular-nums">
               {p.segments_total} segment{p.segments_total === 1 ? "" : "s"}
             </span>
+              </>
+            )}
             <span>·</span>
             <span>Updated {relTime(p.updated_at)}</span>
           </div>
-          {p.studies_total > 0 && (
+          {pct > 0 && (
             <div className="mt-2 h-[3px] w-full max-w-[360px] overflow-hidden bg-line-200">
               <div
                 className={`h-full transition-[width] duration-500 ${
@@ -324,14 +402,23 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
             >
               Open report <ArrowUpRight size={11} />
             </Link>
+          ) : isField ? (
+            <Link
+              to="/admin/countries/$code/personas/field/$step"
+              params={{ code, step: resumeStep }}
+              search={{ project: p.id, open: 1 }}
+              className="btn-secondary inline-flex items-center gap-1 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em]"
+            >
+              <PlayCircle size={11} /> Resume project
+            </Link>
           ) : (
             <Link
               to="/admin/countries/$code/personas"
               params={{ code }}
               search={{ project: p.id, open: 1 }}
-              className="inline-flex items-center gap-1 border border-ink-950 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-950 hover:bg-ink-950 hover:text-paper-0"
+              className="btn-secondary inline-flex items-center gap-1 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em]"
             >
-              <PlayCircle size={11} /> Continue
+              <PlayCircle size={11} /> Resume project
             </Link>
           )}
           <div className="relative" ref={menuRef}>

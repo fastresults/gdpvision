@@ -244,3 +244,108 @@ export async function assertProgramBriefCommitted(
     throw new Error("Program brief not committed — capture and confirm the brief before running research.");
   }
 }
+
+// ── Stage 00 · AI-first proposal ───────────────────────────────────────────
+//
+// The chamber leads with material, not with a naming field. Everything the
+// admin dropped, dictated, pasted or linked is read in one pass and returned
+// as a proposed programme: a Cabinet-recognisable title, a structured scope,
+// a recommended instrument with its reason, and the questions the material
+// does not answer. Nothing is written — the project is created afterwards.
+
+export type ProgrammeProposal = {
+  title: string;
+  scope: ResearchScope;
+  recommendedTrack: "synthetic" | "field" | "blended";
+  trackReason: string;
+  openQuestions: string[];
+};
+
+const ProposeInput = z.object({
+  countryCode: z.string().min(2).max(4),
+  raw: z.string().max(40_000).optional(),
+  uploads: z.array(UploadSchema).max(20).optional(),
+});
+
+function validProposal(v: unknown): v is ProgrammeProposal {
+  const p = v as ProgrammeProposal;
+  return (
+    !!p &&
+    typeof p === "object" &&
+    typeof p.title === "string" &&
+    p.title.length > 0 &&
+    validScope(p.scope) &&
+    ["synthetic", "field", "blended"].includes(p.recommendedTrack)
+  );
+}
+
+export const proposeProgrammeFromMaterial = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => ProposeInput.parse(d))
+  .handler(async ({ data }) => {
+    const raw = (data.raw ?? "").trim();
+    const uploadBlock = (data.uploads ?? [])
+      .filter((u) => u.excerpt && u.excerpt.trim().length > 0)
+      .map((u) => `\n\n[SOURCE: ${u.name} (${u.mime})]\n${u.excerpt}`)
+      .join("");
+    const combined = `${raw}${uploadBlock}`.trim().slice(0, 30_000);
+    if (combined.length < 40) {
+      throw new Error("Add material first — type a line, dictate, drop a document or paste a link.");
+    }
+
+    const system =
+      "You are a McKinsey engagement partner scoping a sovereign research programme for a national government. You read whatever material the client gives you — an RFP, a cabinet memo, a news article, a dictated note — and return the programme it implies. Return strict JSON only.";
+    const user = `Country: ${data.countryCode}
+
+MATERIAL SUPPLIED BY THE CLIENT (typed, dictated, uploaded or scraped from a link):
+${combined}
+
+Two instruments are available:
+- "synthetic": AI casts a synthetic public from the national corpus and rehearses the conversation. Minutes. Directional, not defensible.
+- "field": real participants, dated instruments, filed transcripts. Weeks. Citable evidence.
+- "blended": rehearse synthetically first, then verify in the field.
+
+Return JSON:
+{
+  "title": "\u2264 90 char Cabinet-recognisable programme name — the decision this research informs",
+  "scope": {
+    "title": "same as above",
+    "objectives": ["3-6 crisp objectives"],
+    "hypotheses": ["3-5 falsifiable hypotheses"],
+    "decisions": ["decisions this research must inform, 2-4"],
+    "stakeholders": [{"name":"\u2026","type":"internal|external","role":"\u2026"}],
+    "timeframe": "when this must be delivered / time horizon",
+    "geography": "geographies in scope",
+    "sensitivities": ["political/reputational risks to handle carefully"],
+    "success_criteria": ["what 'done well' looks like, 3-5"]
+  },
+  "recommendedTrack": "synthetic|field|blended",
+  "trackReason": "one sentence, plain English, naming what in the material drove the choice",
+  "openQuestions": ["3-5 questions the material does not answer"]
+}`;
+
+    let parsed: ProgrammeProposal | null = null;
+    let lastErr: unknown = null;
+    for (const model of [AI_MODEL_PRIMARY, AI_MODEL_FALLBACK]) {
+      try {
+        const content = await callGatewayJson(system, user, model);
+        const candidate = safeParseJson<unknown>(content);
+        if (validProposal(candidate)) {
+          parsed = candidate;
+          break;
+        }
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    if (!parsed) {
+      throw new Error(
+        lastErr instanceof Error ? lastErr.message : "AI could not read that material into a programme.",
+      );
+    }
+    return {
+      ...parsed,
+      title: parsed.title.slice(0, 120),
+      openQuestions: Array.isArray(parsed.openQuestions) ? parsed.openQuestions.slice(0, 6) : [],
+    };
+  });

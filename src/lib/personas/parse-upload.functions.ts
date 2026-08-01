@@ -133,3 +133,56 @@ async function transcribeBuffer(buf: Buffer, mime: string): Promise<string> {
   const j = (await res.json()) as { text?: string };
   return j.text ?? "";
 }
+
+// ── Link ingest ────────────────────────────────────────────────────────────
+//
+// Stage 00 is AI-first: an admin may simply paste the URL of an RFP, a tender
+// notice, a ministry PDF or a news article and let the chamber read it. The
+// page is scraped server-side and returned in the same shape as an upload
+// chip so the intake surface can treat links and files identically.
+
+const LinkInput = z.object({ url: z.string().url().max(2000) });
+
+export const ingestBriefLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => LinkInput.parse(d))
+  .handler(async ({ data }) => {
+    let title = data.url;
+    let text = "";
+
+    try {
+      const { fetchFirecrawl } = await import("@/lib/country-onboarding/ingest.server");
+      const doc = await fetchFirecrawl(data.url);
+      title = doc.title || data.url;
+      text = doc.markdown ?? "";
+    } catch {
+      // Firecrawl unavailable or the page refused — fall back to a plain fetch.
+      const res = await fetch(data.url, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; GDPVision/1.0)" },
+        signal: AbortSignal.timeout(30_000),
+      }).catch(() => null);
+      if (!res || !res.ok) throw new Error(`Could not read that link (${res?.status ?? "no response"}).`);
+      const html = await res.text();
+      title =
+        html.match(/<title[^>]*>([^<]{2,200})<\/title>/i)?.[1]?.trim() ?? data.url;
+      text = html
+        .replace(/<script[\s\S]*?<\/script>/gi, " ")
+        .replace(/<style[\s\S]*?<\/style>/gi, " ")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/&nbsp;/g, " ")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+    }
+
+    if (text.trim().length < 80) {
+      throw new Error("That link returned almost no readable text — try a different URL or upload the document.");
+    }
+
+    return {
+      name: title.slice(0, 160),
+      path: data.url,
+      mime: "text/uri-list",
+      size: text.length,
+      excerpt: text.slice(0, 12_000),
+    };
+  });

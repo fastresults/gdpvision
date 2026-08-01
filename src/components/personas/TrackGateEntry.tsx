@@ -1,21 +1,23 @@
 // Chamber 07 · Chamber entrance gate.
 //
-// Nothing in this chamber starts until the principal says how the question
-// should be asked. Stage 00 is a fork, not a form: two instruments, one
-// decision. Blended is deliberately demoted to a quiet line beneath — it is
-// the exception, not a third equal option.
+// AI-first: the chamber opens on intake, not on a form. The principal gives
+// it material, the AI reads that into a proposed programme and recommends an
+// instrument. Only when nothing is to hand does the fork below appear as a
+// manual choice — two instruments, one decision. Blended stays a quiet line.
 
 import { useState } from "react";
-import { ArrowRight, Users2, Wand2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Users2, Wand2 } from "lucide-react";
 
 import { Explain } from "@/components/explain/Explain";
 import { Illustration } from "@/components/marketing/Illustration";
 import { TRACK_META, type ResearchTrack } from "@/lib/personas/tracks";
+import type { ProgrammeProposal } from "@/lib/personas/project-brief.functions";
 import "@/lib/explain/personas-entries";
 import syntheticArt from "@/assets/illustrations/research-synthetic.jpg";
 import fieldArt from "@/assets/illustrations/research-field.jpg";
 
-import { TrackConfirm } from "./TrackConfirm";
+import { ProgrammeIngest, type IngestMaterial } from "./ProgrammeIngest";
+import { ProgrammeSetup } from "./ProgrammeSetup";
 
 const PANELS = [
   {
@@ -38,17 +40,50 @@ const PANELS = [
   },
 ];
 
-export function TrackGateEntry({ code }: { code: string }) {
-  const [chosen, setChosen] = useState<ResearchTrack | null>(null);
+type Stage =
+  | { step: "intake" }
+  | { step: "fork" }
+  | { step: "setup"; track: ResearchTrack; proposal?: ProgrammeProposal; material?: IngestMaterial };
 
-  if (chosen) return <TrackConfirm code={code} track={chosen} onBack={() => setChosen(null)} />;
+export function TrackGateEntry({ code }: { code: string }) {
+  const [stage, setStage] = useState<Stage>({ step: "intake" });
+
+  if (stage.step === "intake") {
+    return (
+      <ProgrammeIngest
+        code={code}
+        onProposal={(proposal, material) =>
+          setStage({ step: "setup", track: proposal.recommendedTrack, proposal, material })
+        }
+        onSkip={() => setStage({ step: "fork" })}
+      />
+    );
+  }
+
+  if (stage.step === "setup") {
+    return (
+      <ProgrammeSetup
+        code={code}
+        track={stage.track}
+        proposal={stage.proposal}
+        material={stage.material}
+        backLabel={stage.proposal ? "Back to the material" : "Change instrument"}
+        onBack={() => setStage(stage.proposal ? { step: "intake" } : { step: "fork" })}
+      />
+    );
+  }
+
 
   return (
     <section className="border border-ink-950 bg-paper-0">
       <header className="border-b border-ink-950 px-6 py-7 text-center sm:px-10 sm:py-10">
-        <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
+        <button type="button" onClick={() => setStage({ step: "intake" })} className="btn-ghost">
+          <ArrowLeft size={12} /> Back to the material
+        </button>
+        <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
           Stage 00 · The gate
         </p>
+
         <h2 className="mx-auto mt-3 max-w-2xl font-serif text-[2rem] leading-[1.1] text-ink-950 sm:text-4xl">
           How should this question be asked?
         </h2>
@@ -66,7 +101,7 @@ export function TrackGateEntry({ code }: { code: string }) {
             <button
               key={p.key}
               type="button"
-              onClick={() => setChosen(p.key)}
+              onClick={() => setStage({ step: "setup", track: p.key })}
               className="group flex min-h-[420px] flex-col bg-paper-0 p-6 text-left transition-colors hover:bg-paper-50 focus:outline-none focus-visible:bg-paper-50 sm:p-9"
             >
               <div className="flex items-start justify-between gap-4">
@@ -124,7 +159,7 @@ export function TrackGateEntry({ code }: { code: string }) {
       <footer className="border-t border-line-200 px-6 py-4 text-center sm:px-10">
         <p className="text-[12px] text-ink-700">
           Not sure?{" "}
-          <button type="button" onClick={() => setChosen("blended")} className="underline underline-offset-2 hover:text-ink-950">
+          <button type="button" onClick={() => setStage({ step: "setup", track: "blended" })} className="underline underline-offset-2 hover:text-ink-950">
             Run both — rehearse today, verify in the field.
           </button>
         </p>

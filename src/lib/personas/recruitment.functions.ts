@@ -502,16 +502,19 @@ export const composeFocusGroups = createServerFn({ method: "POST" })
       .eq("status", "accepted")
       .limit(200);
 
-    const eligible = (people ?? []).filter(
-      (p) =>
-        !p.opted_out_at &&
-        ((p.suggested_for as string[] | null) ?? []).includes("focus_group"),
+    // Prefer people explicitly marked for a group; otherwise seat any accepted
+    // participant who has not opted out, so composition never dead-ends.
+    const available = (people ?? []).filter((p) => !p.opted_out_at);
+    const marked = available.filter((p) =>
+      ((p.suggested_for as string[] | null) ?? []).includes("focus_group"),
     );
+    const eligible = marked.length >= 3 ? marked : available;
     if (eligible.length < 3) {
       throw new Error(
-        "Not enough accepted people are marked for a focus group — accept more, or mark someone for a group.",
+        `Only ${eligible.length} accepted participant(s) available — a focus group needs at least 3. Accept more candidates first.`,
       );
     }
+
 
     const { composeGroups } = await import("./recruitment-research.server");
     const groups = await composeGroups({

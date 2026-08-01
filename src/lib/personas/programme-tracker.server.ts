@@ -6,11 +6,11 @@
 // shows comes from one query, so a status change is never half-applied across
 // two views of the same programme.
 
-import type { SupabaseClient } from "@supabase/supabase-js";
-
 import type { TrackerData, TrackerItem, TrackerNote } from "./tracker-shared";
 
-type DB = SupabaseClient<any, any, any>;
+type DB = {
+  from: (table: string) => any; // eslint-disable-line @typescript-eslint/no-explicit-any
+};
 
 function notesOf(v: unknown): TrackerNote[] {
   if (!Array.isArray(v)) return [];
@@ -54,7 +54,7 @@ export async function readTracker(supabase: DB, projectId: string): Promise<Trac
   for (const p of phases ?? []) phaseName.set(p.id as string, p.name as string);
 
   const items: TrackerItem[] = [
-    ...(milestones ?? []).map((m: Record<string, any>) => ({
+    ...(milestones ?? []).map((m: Record<string, unknown>) => ({
       id: m["id"] as string,
       kind: "milestone" as const,
       title: m["title"] as string,
@@ -66,7 +66,7 @@ export async function readTracker(supabase: DB, projectId: string): Promise<Trac
       blockedReason: (m["blocked_reason"] as string) ?? null,
       notes: notesOf(m["notes"]),
     })),
-    ...(deliverables ?? []).map((d: Record<string, any>) => ({
+    ...(deliverables ?? []).map((d: Record<string, unknown>) => ({
       id: d["id"] as string,
       kind: "deliverable" as const,
       title: d["title"] as string,

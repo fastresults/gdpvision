@@ -252,9 +252,7 @@ export function TrackerBoard({ code, projectId }: { code: string; projectId: str
                     {openItem === i.id ? (
                       <ItemDetail
                         item={i}
-                        onSave={(patch) =>
-                          update.mutate({ kind: i.kind, itemId: i.id, ...patch })
-                        }
+                        onSave={(patch) => update.mutate({ kind: i.kind, itemId: i.id, ...patch })}
                         saving={update.isPending}
                       />
                     ) : null}

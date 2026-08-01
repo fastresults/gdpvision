@@ -130,12 +130,22 @@ export async function computeFieldProgress(
   const panelIds = (panels ?? []).map((p) => p.id as string);
   let panelMembers = 0;
   if (panelIds.length > 0) {
-    const { count } = await supabase
-      .from("research_panel_members")
-      .select("contact_id", { count: "exact", head: true })
-      .in("panel_id", panelIds);
+    const [{ count }, { data: lastMember }] = await Promise.all([
+      supabase
+        .from("research_panel_members")
+        .select("contact_id", { count: "exact", head: true })
+        .in("panel_id", panelIds),
+      supabase
+        .from("research_panel_members")
+        .select("created_at")
+        .in("panel_id", panelIds)
+        .order("created_at", { ascending: false })
+        .limit(1),
+    ]);
     panelMembers = count ?? 0;
+    inputStamps.push(lastMember?.[0]?.created_at as string | undefined);
   }
+
   const { count: contactCount } = await supabase
     .from("research_contacts")
     .select("id", { count: "exact", head: true })

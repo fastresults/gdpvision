@@ -49,6 +49,8 @@ export function FieldStepper({
   const guardedGo = useGuardedGo();
   const navigate = useNavigate();
   const done = (k: FieldStageKey) => !!progress?.stages[k]?.complete;
+  const hasBrief = briefCommitted || done("brief");
+  const hasPlan = planCommitted || done("plan");
   const hintFor = (k: FieldStageKey, fallback: string) =>
     done(k) ? "done" : progress?.stages[k]?.blocker ? "outstanding" : fallback;
   // Micro-counter: how many screens inside this stage are already settled.
@@ -83,7 +85,7 @@ export function FieldStepper({
       sub: "AI plan",
       hint: planCommitted ? "active" : "pending",
       icon: CalendarRange,
-      locked: !briefCommitted,
+      locked: !hasBrief,
       complete: planCommitted,
     },
     {
@@ -93,7 +95,7 @@ export function FieldStepper({
       sub: "CRM",
       hint: hintFor("participants", "panels & consent"),
       icon: Users,
-      locked: !planCommitted,
+      locked: !hasPlan,
       complete: done("participants"),
     },
     {
@@ -103,7 +105,7 @@ export function FieldStepper({
       sub: "Fieldcraft",
       hint: hintFor("instruments", "surveys & guides"),
       icon: ClipboardList,
-      locked: !planCommitted,
+      locked: !hasPlan,
       complete: done("instruments"),
     },
     {
@@ -113,7 +115,7 @@ export function FieldStepper({
       sub: "Collection",
       hint: hintFor("fieldwork", "sessions & returns"),
       icon: Mic,
-      locked: !planCommitted,
+      locked: !hasPlan,
       complete: done("fieldwork"),
     },
     {
@@ -123,7 +125,7 @@ export function FieldStepper({
       sub: "Synthesis",
       hint: hintFor("evidence", "filed to the brain"),
       icon: Library,
-      locked: !planCommitted,
+      locked: !hasPlan,
       complete: done("evidence"),
     },
   ];

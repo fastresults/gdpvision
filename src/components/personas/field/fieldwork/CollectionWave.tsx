@@ -64,20 +64,19 @@ export function CollectionWave({
   const invite = act(async () => {
     if (!collection) throw new Error("Open the field first.");
     const r = await inviteFn({ data: { collectionId: collection.id, projectId } });
-    return `${r.created} invitation${r.created === 1 ? "" : "s"} issued.`;
+    return r.message;
   });
   const send = act(async () => {
     if (!collection) throw new Error("Open the field first.");
     const r = await sendFn({ data: { collectionId: collection.id, origin, purpose: "invite" } });
-    return board.mailConfigured
-      ? `${r.sent} invitation${r.sent === 1 ? "" : "s"} sent.`
-      : `${r.queued} invitation${r.queued === 1 ? "" : "s"} prepared — mail is not connected, so they are queued in the comms log with their links.`;
+    return r.message;
   });
   const remind = act(async () => {
     if (!collection) throw new Error("Open the field first.");
     const r = await sendFn({ data: { collectionId: collection.id, origin, purpose: "reminder" } });
-    return `${r.sent + r.queued} reminder${r.sent + r.queued === 1 ? "" : "s"} to non-responders.`;
+    return r.message;
   });
+
   const close = act(async () => {
     if (!collection) throw new Error("Nothing to close.");
     await closeFn({ data: { collectionId: collection.id } });

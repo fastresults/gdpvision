@@ -461,7 +461,8 @@ export async function assembleBriefing(
     body_md:
       instruments.length === 0
         ? "_No instrument has been drafted against this programme yet._"
-        : instruments
+        : `Every instrument closes with an open frontline block: beyond the questions your brief asks, we invite the people actually doing the work to say where it breaks, what they already do to get around it, and what they would change. Those answers are reported separately, as innovation signals, and never folded into the objective findings.\n\n` +
+          instruments
             .map((inst) => {
               const kind =
                 str(inst["kind"]) === "discussion_guide" ? "Discussion guide" : "Questionnaire";

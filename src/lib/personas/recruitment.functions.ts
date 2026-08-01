@@ -19,31 +19,16 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Json } from "@/integrations/supabase/types";
 import { normEmail, normPhone } from "./crm.functions";
+import {
+  ensureProgrammePanel,
+  RECRUITMENT_PROJECT_SELECT as ProjectSelect,
+  recruitmentBriefText as briefText,
+  RecruitmentPersonaShape as PersonaShape,
+  type RecruitmentProjectRow as ProjectRow,
+} from "./recruitment-shared";
 import type { RecruitmentFrame } from "./recruitment-research.server";
 
 // ── Shared reads ───────────────────────────────────────────────────────────
-
-type ProjectRow = {
-  id: string;
-  title: string;
-  country_code: string;
-  brief_raw: string | null;
-  brief_scope: Json | null;
-  brief_source: Json | null;
-  recruitment_brief: Json | null;
-};
-
-function briefText(row: ProjectRow): string {
-  const parts: string[] = [];
-  if (typeof row.brief_raw === "string") parts.push(row.brief_raw);
-  const src = row.brief_source as Record<string, unknown> | null;
-  if (src && typeof src["text"] === "string") parts.push(src["text"] as string);
-  if (row.brief_scope) parts.push(JSON.stringify(row.brief_scope));
-  return parts.join("\n\n").trim();
-}
-
-const ProjectSelect =
-  "id,title,country_code,brief_raw,brief_scope,brief_source,recruitment_brief";
 
 // ── Read the recruitment state ─────────────────────────────────────────────
 
@@ -154,18 +139,6 @@ export const deriveRecruitmentBrief = createServerFn({ method: "POST" })
 
     return frame;
   });
-
-const PersonaShape = z.object({
-  label: z.string().trim().min(2).max(80),
-  who: z.string().trim().min(4).max(600),
-  why: z.string().trim().max(600).default(""),
-  seniority: z.string().max(120).nullish(),
-  sector: z.string().max(120).nullish(),
-  region: z.string().max(120).nullish(),
-  survey_target: z.number().int().min(1).max(500),
-  focus_group: z.boolean(),
-  where_to_look: z.array(z.string().max(200)).max(6).optional(),
-});
 
 export const saveRecruitmentBrief = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -330,32 +303,6 @@ export const researchCandidates = createServerFn({ method: "POST" })
 
 // ── Accept / reject / edit / add ───────────────────────────────────────────
 
-async function ensurePanel(
-  supabase: { from: (t: string) => any },
-  args: { countryCode: string; projectId: string; kind: "survey" | "focus_group"; name: string },
-): Promise<string> {
-  const { data: existing } = await supabase
-    .from("research_panels")
-    .select("id")
-    .eq("project_id", args.projectId)
-    .eq("kind", args.kind)
-    .limit(1);
-  const found = existing?.[0]?.id as string | undefined;
-  if (found) return found;
-  const { data: created, error } = await supabase
-    .from("research_panels")
-    .insert({
-      country_code: args.countryCode,
-      project_id: args.projectId,
-      kind: args.kind,
-      name: args.name,
-    })
-    .select("id")
-    .single();
-  if (error) throw new Error(error.message);
-  return created.id as string;
-}
-
 export const acceptCandidates = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
@@ -402,7 +349,7 @@ export const acceptCandidates = createServerFn({ method: "POST" })
 
     const link = async (kind: "survey" | "focus_group", memberIds: string[], name: string) => {
       if (memberIds.length === 0) return;
-      const panelId = await ensurePanel(supabase as never, {
+      const panelId = await ensureProgrammePanel(supabase as never, {
         countryCode,
         projectId: data.projectId,
         kind,

@@ -271,7 +271,14 @@ export async function assembleBriefing(
       questions: asArray<FieldQuestion>(i["questions"]).length,
     })),
     waves: waves.map((w) => ({ title: w.title, purpose: w.purpose, target: w.target })),
+    deliverables: (deliverables ?? []).map((d) => ({
+      title: d.title,
+      kind: d.kind,
+      due_on: d.due_on,
+    })),
+    milestones: (milestones ?? []).map((m) => ({ title: m.title, due_on: m.due_on })),
     risks,
+
   }).slice(0, 24_000);
 
   const narrative = await writeNarrative(narrativeInput);

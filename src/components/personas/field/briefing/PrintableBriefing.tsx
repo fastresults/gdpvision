@@ -21,7 +21,7 @@ export type BriefingPrintConfig = {
   dateLabel: string;
   showPageNumbers: boolean;
   showCoverPage: boolean;
-  showToc: boolean;
+  
 };
 
 export const DEFAULT_BRIEFING_PRINT_CONFIG: BriefingPrintConfig = {

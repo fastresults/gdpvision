@@ -32,3 +32,26 @@ const entries: Array<Rationale<never>> = [
 ];
 
 registerRationales(entries);
+
+registerRationales([
+  {
+    key: "research.intake.readout",
+    title: "How the chamber reads your material",
+    short:
+      "Every document, recording and link you supply is extracted to text and read in one pass into a proposed programme.",
+    basis:
+      "Files are parsed server-side (documents and slides by document extraction, images by OCR, audio by transcription); links are scraped for their main content. The combined text — never a summary of it — is what the model scopes into objectives, hypotheses, decisions, stakeholders, timeframe and sensitivities.",
+    caveat:
+      "The proposal is a first draft of your brief, not a finding. Anything the material is silent on is listed as an open question rather than invented, and every field stays editable before you open the chamber.",
+  },
+  {
+    key: "research.intake.recommendation",
+    title: "Why this instrument was recommended",
+    short:
+      "The recommendation follows the standard of proof your material implies — and you can override it.",
+    basis:
+      "Material that asks for a same-day read, a framing test or a rehearsal points to the Synthetic Lab. Material that asks for evidence a Cabinet can publish — named participants, dated instruments, citable numbers — points to a Field Programme. Where both are needed, the blended track rehearses first and verifies after.",
+    caveat:
+      "It is a reading of your documents, not a ruling. Choosing the other instrument changes nothing about the brief; you can also add the second track to the same programme later.",
+  },
+]);

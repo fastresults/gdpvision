@@ -506,12 +506,26 @@ function PlanStage({
             "Let the chamber infer the dated shape of the work from the brief, then read it.",
           outstanding: plan ? null : "no programme has been drafted yet",
           doneNote: plan ? "Programme drafted — editable until approved" : null,
+          error: derive.isError ? (derive.error as Error).message : null,
+          action: {
+            label: plan ? "Redraft the programme" : "Draft the programme",
+            onClick: () => derive.mutate(),
+            pending: derive.isPending,
+            note: "Reads the brief and proposes the dated programme for your review.",
+          },
         },
         approve: {
           instruction:
             "Approve the programme so participants, instruments and fieldwork can be scheduled against it.",
           outstanding: plan?.status === "active" ? null : "the plan is not approved",
           doneNote: "Plan approved and active",
+          error: commit.isError ? (commit.error as Error).message : null,
+          action: plan && plan.status !== "active" ? {
+            label: "Approve this plan",
+            onClick: () => commit.mutate(plan.id),
+            pending: commit.isPending,
+            note: "Fixes the dates and method mix and unlocks participant recruitment.",
+          } : null,
         },
       }}
       panels={{

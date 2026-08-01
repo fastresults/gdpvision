@@ -89,13 +89,21 @@ export function StageFrame({
   const steps = useMemo(() => subStepsFor(stage), [stage]);
   const isDone = useCallback((s: FieldSubStep) => s.isDone(progress), [progress]);
   const fallbackKey = firstOpenSubStep(stage, progress);
+  const requestedIndex = steps.findIndex((s) => s.key === search.sub);
+  const firstOpenIndex = steps.findIndex((s) => !isDone(s));
+  const requestedAllowed =
+    requestedIndex >= 0 &&
+    (isDone(steps[requestedIndex] as FieldSubStep) ||
+      firstOpenIndex === -1 ||
+      requestedIndex <= firstOpenIndex);
   const currentKey =
-    steps.find((s) => s.key === search.sub)?.key ?? fallbackKey ?? steps[0]?.key ?? null;
+    (requestedAllowed ? steps[requestedIndex]?.key : null) ?? fallbackKey ?? steps[0]?.key ?? null;
   const index = Math.max(
     0,
     steps.findIndex((s) => s.key === currentKey),
   );
   const current = steps[index] ?? null;
+  const currentDone = current ? isDone(current) : false;
   const overall = programmeProgress(progress);
 
   const goStage = useCallback(
@@ -149,20 +157,31 @@ export function StageFrame({
   const [amendOpen, setAmendOpen] = useState(false);
   const earlier = FIELD_STAGES.slice(0, FIELD_STAGES.indexOf(stage));
 
-  // The one primary. On the last sub-step it advances the stage; before that it
-  // advances the screen. It always names the outcome, never "Next".
-  const primaryLabel = atLastSub
-    ? next
-      ? spec.advance
-      : "Finish · back to the chamber"
-    : (current?.primaryLabel ?? "Continue");
-  const primaryConsequence = atLastSub
-    ? next
-      ? `This moves the programme on to ${FIELD_STAGE_SPECS[next].label.toLowerCase()}.`
-      : "This returns you to the chamber."
-    : (current?.consequence ?? "");
+  const needsAction = !currentDone && !!resolveAction;
+  const primaryLabel = needsAction
+    ? resolveAction.label
+    : !currentDone
+      ? "Complete this step to continue"
+      : atLastSub
+        ? next
+          ? spec.advance
+          : "Finish · back to the chamber"
+        : (current?.primaryLabel ?? "Continue");
+  const primaryConsequence = needsAction
+    ? (current?.consequence ?? "Complete this decision before the programme moves on.")
+    : !currentDone
+      ? "The next decision unlocks when the outstanding work above is complete."
+      : atLastSub
+        ? next
+          ? `This moves the programme on to ${FIELD_STAGE_SPECS[next].label.toLowerCase()}.`
+          : "This returns you to the chamber."
+        : (current?.consequence ?? "");
 
   const onPrimary = () => {
+    if (!currentDone) {
+      resolveAction?.run();
+      return;
+    }
     if (!atLastSub) {
       const nk = steps[index + 1]?.key;
       if (nk) goSub(nk);
@@ -311,24 +330,6 @@ export function StageFrame({
                 </span>
               ) : null}
 
-              {/* DO THIS FOR ME — quiet, never competing with the primary. */}
-              {!complete && resolveAction ? (
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  disabled={resolveAction.pending}
-                  onClick={resolveAction.run}
-                  title="Let the chamber do this step for you"
-                >
-                  {resolveAction.pending ? (
-                    <Loader2 size={11} className="animate-spin" />
-                  ) : (
-                    <Wrench size={12} />
-                  )}
-                  {resolveAction.label}
-                </button>
-              ) : null}
-
               {/* THE primary — far right, names the outcome, says what it does. */}
               <div className="text-right">
                 {atLastSub && !next ? (
@@ -350,10 +351,16 @@ export function StageFrame({
                   <button
                     type="button"
                     className={
-                      atLastSub ? (complete ? "btn-primary" : "btn-secondary") : "btn-primary"
+                      currentDone || needsAction ? "btn-primary" : "btn-secondary"
                     }
+                    disabled={!currentDone && (!resolveAction || resolveAction.pending)}
                     onClick={onPrimary}
                   >
+                    {resolveAction?.pending && !currentDone ? (
+                      <Loader2 size={11} className="animate-spin" />
+                    ) : !currentDone && resolveAction ? (
+                      <Wrench size={12} />
+                    ) : null}
                     <span className="max-w-[18rem] truncate">{primaryLabel}</span>
                     <ArrowRight size={12} />
                   </button>

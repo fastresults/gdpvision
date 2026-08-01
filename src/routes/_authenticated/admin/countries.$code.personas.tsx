@@ -118,28 +118,32 @@ function PersonasLayout() {
               Two instruments.<br />One standard of proof.
             </h1>
             <p className="mt-3 text-[13px] leading-relaxed text-ink-700">
-              Cast a public → group them → rehearse the conversation. AI grounds every voice in {code}&rsquo;s
-              second brain.
+              {activeProjectId
+                ? `Cast a public → group them → rehearse the conversation. AI grounds every voice in ${code}'s second brain.`
+                : `A synthetic public answers today. A field programme answers in weeks, with evidence a Cabinet can publish. Choose one to open the chamber.`}
             </p>
           </div>
 
-          <Link
-            to="/admin/countries/$code/personas"
-            params={{ code }}
-            className="block border border-ink-950 bg-ink-950 p-3 text-paper-0 hover:bg-ink-700"
-          >
-            <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em]">
-              <Wand2 size={11} /> Research Studio
-            </p>
-            <p className="mt-1 font-serif text-[15px] leading-tight">Auto-run a full study</p>
-            <p className="mt-1 text-[11px] leading-snug text-paper-0/70">
-              AI casts, questions and synthesizes end-to-end.
-            </p>
-          </Link>
+          {activeProjectId && (
+            <Link
+              to="/admin/countries/$code/personas"
+              params={{ code }}
+              className="block border border-ink-950 bg-ink-950 p-3 text-paper-0 hover:bg-ink-700"
+            >
+              <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em]">
+                <Wand2 size={11} /> Research Studio
+              </p>
+              <p className="mt-1 font-serif text-[15px] leading-tight">Auto-run a full study</p>
+              <p className="mt-1 text-[11px] leading-snug text-paper-0/70">
+                AI casts, questions and synthesizes end-to-end.
+              </p>
+            </Link>
+          )}
 
-          <nav>
+          <nav className={activeProjectId ? undefined : "hidden"}>
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Guided path</p>
             <ol className="mt-2 flex flex-col">
+
               {stages.map((s, i) => {
                 const isLast = i === stages.length - 1;
                 const Icon = s.icon;

@@ -129,12 +129,21 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
           <>
             <button
               type="button"
+              onClick={() => runExport(printConfig)}
+              className="btn-secondary inline-flex items-center gap-2"
+            >
+              <Printer size={14} />
+              Print
+            </button>
+            <button
+              type="button"
               onClick={() => setExportOpen(true)}
               className="btn-secondary inline-flex items-center gap-2"
             >
               <Download size={14} />
               Export PDF
             </button>
+
             {record && record.status !== "shared" && (
               <button
                 type="button"

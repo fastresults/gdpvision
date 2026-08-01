@@ -121,56 +121,20 @@ export function EvidenceStage({
         </div>
   ) : null;
 
+  const returns = collectionQ.data?.responseCount ?? 0;
+
+  // The evidence base, stated plainly. Every button that acts on it lives in
+  // the action head for the screen that owns that move.
   const bar = (
-    <>
-      <div className="flex flex-wrap items-center gap-3 border border-line-200 bg-paper-0 p-4">
-        <div className="min-w-0 flex-1">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            Evidence base
-          </p>
-          <p className="mt-1 font-mono text-[12px] tabular-nums text-ink-700">
-            {collectionQ.data?.responseCount ?? 0} returns collected
-          </p>
-        </div>
-        <button
-          type="button"
-          className="btn-primary"
-          disabled={synth.isPending}
-          onClick={() => synth.mutate()}
-        >
-          {synth.isPending ? (
-            <Loader2 size={11} className="animate-spin" />
-          ) : (
-            <Sparkles size={12} />
-          )}
-          {live ? "Re-synthesise" : "Synthesise the finding"}
-        </button>
-        <button
-          type="button"
-          className="btn-secondary"
-          disabled={close.isPending || !live}
-          onClick={() => close.mutate()}
-        >
-          {close.isPending ? <Loader2 size={11} className="animate-spin" /> : <Archive size={12} />}
-          {closed ? "Re-file the programme" : "Close the programme"}
-        </button>
-      </div>
-      {synth.isError ? (
-        <p className="text-[12px] text-rose-600">{(synth.error as Error).message}</p>
-      ) : null}
-      {close.isError ? (
-        <p className="text-[12px] text-rose-600">{(close.error as Error).message}</p>
-      ) : null}
-      {reopen.isError ? (
-        <p className="text-[12px] text-rose-600">{(reopen.error as Error).message}</p>
-      ) : null}
-      {close.isSuccess ? (
-        <p className="text-[12px] text-emerald-700">
-          Closed. The programme memo is filed to this country's second brain.
-        </p>
-      ) : null}
-    </>
+    <div className="border border-line-200 bg-paper-0 p-4">
+      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Evidence base</p>
+      <p className="mt-1 font-serif text-3xl tabular-nums text-ink-950">{returns}</p>
+      <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+        returns collected
+      </p>
+    </div>
   );
+
 
   const findingView = !live ? (
         <EmptyAction

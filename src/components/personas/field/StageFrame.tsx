@@ -197,7 +197,7 @@ export function StageFrame({
             <div className="flex items-center gap-3">
               {hasDirty ? (
                 <span className="hidden font-mono text-[10px] uppercase tracking-[0.18em] text-amber-700 sm:block">
-                  Unsaved · {dirtyEntries.map((d) => d.label).join(", ")}
+                  Saves as you continue · {dirtyEntries.map((d) => d.label).join(", ")}
                 </span>
               ) : null}
 

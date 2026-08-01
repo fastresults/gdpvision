@@ -129,9 +129,14 @@ export function PrintableBriefing({
                 <h3 className="cb-h3">{s.heading}</h3>
               </div>
             </header>
-            <div className="cb-prose">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.body_md}</ReactMarkdown>
-            </div>
+            {s.opener ? (
+              <BriefOpenerBlock opener={s.opener} variant="print" />
+            ) : (
+              <div className="cb-prose">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.body_md}</ReactMarkdown>
+              </div>
+            )}
+
           </article>
         ))}
       </section>

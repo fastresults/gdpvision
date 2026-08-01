@@ -51,15 +51,21 @@ export function governingBriefText(source: unknown, raw: unknown): string {
 
 export function bannedTermCount(value: unknown): number {
   const text = typeof value === "string" ? value : JSON.stringify(value);
-  return CLIENT_OUTPUT_BANNED_TERMS.reduce((count, pattern) => count + (pattern.test(text) ? 1 : 0), 0);
+  return CLIENT_OUTPUT_BANNED_TERMS.reduce(
+    (count, pattern) => count + (pattern.test(text) ? 1 : 0),
+    0,
+  );
 }
 
 export function assertClientOutputClean(value: unknown, label: string): void {
   const count = bannedTermCount(value);
   if (count > 0) {
-    throw new Error(`${label} contains ${count} prohibited internal reference${count === 1 ? "" : "s"}.`);
+    throw new Error(
+      `${label} contains ${count} prohibited internal reference${count === 1 ? "" : "s"}.`,
+    );
   }
 }
+
 
 export function makePreflightItem(
   sectionId: string,

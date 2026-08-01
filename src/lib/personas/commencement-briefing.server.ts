@@ -180,7 +180,8 @@ export async function assembleBriefing(
   if (!project) throw new Error("Research programme not found");
   const countryCode = project.country_code as string;
   const committedText = governingBriefText(project.brief_source, project.brief_raw);
-  if (committedText.length < 40) throw new Error("The committed governing brief has no usable text.");
+  if (committedText.length < 40)
+    throw new Error("The committed governing brief has no usable text.");
   const sourceIdentity = governingBriefIdentity(project.brief_source, project.title as string);
 
   const { data: plan } = await supabase

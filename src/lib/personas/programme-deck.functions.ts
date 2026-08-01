@@ -38,15 +38,14 @@ export const assembleProgrammeDeck = createServerFn({ method: "POST" })
     if (!briefRow) throw new Error("Assemble the commencement briefing before preparing a deck.");
 
     const { assembleDeck } = await import("./programme-deck.server");
-
-
-
     const briefing = briefRow.document as unknown as Parameters<typeof assembleDeck>[0];
     if (!briefing || !Array.isArray(briefing.sections) || briefing.sections.length === 0) {
       throw new Error("The stored briefing is empty — re-assemble it, then prepare the deck.");
     }
     if (!briefing.preflight?.every((item) => item.ready)) {
-      throw new Error("This briefing predates provenance validation or failed preflight. Rebuild it from the governing brief first.");
+      throw new Error(
+        "This briefing predates provenance validation or failed preflight. Rebuild it from the governing brief first.",
+      );
     }
 
     const deck = await assembleDeck(briefing);

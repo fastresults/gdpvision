@@ -167,11 +167,13 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
           <>
             <button
               type="button"
-              onClick={() => runExport({
-                ...printConfig,
-                preparedFor: doc.source.preparedFor,
-                preparedBy: doc.source.preparedBy,
-              })}
+              onClick={() =>
+                runExport({
+                  ...printConfig,
+                  preparedFor: doc.source.preparedFor,
+                  preparedBy: doc.source.preparedBy,
+                })
+              }
               disabled={!preflightReady}
               className="btn-secondary inline-flex items-center gap-2"
             >
@@ -263,7 +265,8 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
                   Client-output provenance
                 </p>
                 <p className="mt-1 text-sm text-ink-800">
-                  {doc.source.sourceName} · Prepared for {doc.source.preparedFor || "not found in source"}
+                  {doc.source.sourceName} · Prepared for{" "}
+                  {doc.source.preparedFor || "not found in source"}
                 </p>
               </div>
               <span className={preflightReady ? "text-gold-500" : "text-signal-negative"}>

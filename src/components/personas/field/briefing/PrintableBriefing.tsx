@@ -164,10 +164,8 @@ function FootCell({ label, value }: { label: string; value: string }) {
  * printable that is merely mounted.
  */
 function pageCss(config: BriefingPrintConfig, briefing: CommencementBriefing): string {
-  const footerLabel = `${briefing.programmeTitle || briefing.title} · Commencement Briefing`.replace(
-    /["\\]/g,
-    "",
-  );
+  const footerLabel =
+    `${briefing.programmeTitle || briefing.title} · Commencement Briefing`.replace(/["\\]/g, "");
   const footers = config.showPageNumbers
     ? `
     @bottom-right {

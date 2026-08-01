@@ -18,13 +18,7 @@ import {
 } from "./client-output-provenance.server";
 import { deriveJson } from "./field-ai.server";
 
-export type DeckSlideKind =
-  | "cover"
-  | "orientation"
-  | "stage"
-  | "timeline"
-  | "outcome"
-  | "closing";
+export type DeckSlideKind = "cover" | "orientation" | "stage" | "timeline" | "outcome" | "closing";
 
 export interface DeckStat {
   label: string;
@@ -314,8 +308,7 @@ export async function assembleDeck(brief: CommencementBriefing): Promise<Program
         { label: "Phases", value: String(brief.metrics.phases) },
         {
           label: "Window",
-          value:
-            brief.window.duration_days != null ? `${brief.window.duration_days} days` : "—",
+          value: brief.window.duration_days != null ? `${brief.window.duration_days} days` : "—",
           note: `${dateLabel(brief.window.starts_on)} → ${dateLabel(brief.window.ends_on)}`,
         },
         { label: "Deliverables", value: String(brief.metrics.deliverables) },

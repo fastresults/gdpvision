@@ -350,9 +350,7 @@ export function StageFrame({
                 ) : (
                   <button
                     type="button"
-                    className={
-                      currentDone || needsAction ? "btn-primary" : "btn-secondary"
-                    }
+                    className={currentDone || needsAction ? "btn-primary" : "btn-secondary"}
                     disabled={
                       !currentDone &&
                       (!resolveAction || resolveAction.pending || resolveAction.disabled)

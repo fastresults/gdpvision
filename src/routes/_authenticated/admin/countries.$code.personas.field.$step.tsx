@@ -23,7 +23,6 @@ import { FieldStageProvider } from "@/components/personas/field/stage-bus";
 import { StageFrame } from "@/components/personas/field/StageFrame";
 import { ShowTheDetail, StageWizard } from "@/components/personas/field/StageWizard";
 
-
 import { useDossierActions } from "@/hooks/useDossierActions";
 import { useResearchGate } from "@/hooks/useResearchGate";
 import { getFieldProgress } from "@/lib/personas/field-progress.functions";
@@ -34,7 +33,14 @@ import {
   getProgrammePlan,
 } from "@/lib/personas/programme-plan.functions";
 
-const STEPS: FieldStageKey[] = ["brief", "plan", "participants", "instruments", "fieldwork", "evidence"];
+const STEPS: FieldStageKey[] = [
+  "brief",
+  "plan",
+  "participants",
+  "instruments",
+  "fieldwork",
+  "evidence",
+];
 
 // The client-facing dossier is not a rail stage — it sits beside the rail and
 // reads whatever the programme currently holds.
@@ -159,49 +165,47 @@ function FieldStageBody({
           ) : null}
           {gate.planCommitted ? (
             <>
-                {dossierReady ? (
-                  <>
-                    <SplitAction
-                      label="Discovery brief"
-                      icon={<FileText size={13} />}
-                      title="The full client-facing account of the approach, ready to send before fieldwork opens."
-                      regenerateTitle={
-                        dossier.briefingStaleReason ??
-                        "Re-assemble the dossier from the brief, plan, participants and instruments as they stand now."
-                      }
-                      stale={dossier.briefingStale}
-                      busy={dossier.assembling}
-                      onOpen={() => openBriefing("briefing")}
-                      onRegenerate={() => {
-                        if (!confirmIfShared()) return;
-                        dossier.assembleBriefing({ onDone: () => openBriefing("briefing") });
-                      }}
-                    />
-                    <SplitAction
-                      label="Presentation"
-                      icon={<Presentation size={13} />}
-                      title="The same approach as an on-brand slide presentation."
-                      regenerateTitle={
-                        dossier.deckStaleReason ?? "Re-compose the deck from the current dossier."
-                      }
-                      stale={dossier.deckStale}
-                      busy={dossier.composing}
-                      onOpen={() => openBriefing("deck")}
-                      onRegenerate={() =>
-                        dossier.composeDeck({ onDone: () => openBriefing("deck") })
-                      }
-                    />
-                  </>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => setTrackerOpen(true)}
-                  title="Who owns what, when it is due, and what is blocked. Internal only."
-                  className="btn-secondary inline-flex items-center gap-2"
-                >
-                  <ClipboardList size={13} />
-                  Project tracker
-                </button>
+              {dossierReady ? (
+                <>
+                  <SplitAction
+                    label="Discovery brief"
+                    icon={<FileText size={13} />}
+                    title="The full client-facing account of the approach, ready to send before fieldwork opens."
+                    regenerateTitle={
+                      dossier.briefingStaleReason ??
+                      "Re-assemble the dossier from the brief, plan, participants and instruments as they stand now."
+                    }
+                    stale={dossier.briefingStale}
+                    busy={dossier.assembling}
+                    onOpen={() => openBriefing("briefing")}
+                    onRegenerate={() => {
+                      if (!confirmIfShared()) return;
+                      dossier.assembleBriefing({ onDone: () => openBriefing("briefing") });
+                    }}
+                  />
+                  <SplitAction
+                    label="Presentation"
+                    icon={<Presentation size={13} />}
+                    title="The same approach as an on-brand slide presentation."
+                    regenerateTitle={
+                      dossier.deckStaleReason ?? "Re-compose the deck from the current dossier."
+                    }
+                    stale={dossier.deckStale}
+                    busy={dossier.composing}
+                    onOpen={() => openBriefing("deck")}
+                    onRegenerate={() => dossier.composeDeck({ onDone: () => openBriefing("deck") })}
+                  />
+                </>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setTrackerOpen(true)}
+                title="Who owns what, when it is due, and what is blocked. Internal only."
+                className="btn-secondary inline-flex items-center gap-2"
+              >
+                <ClipboardList size={13} />
+                Project tracker
+              </button>
             </>
           ) : null}
         </div>
@@ -265,12 +269,19 @@ function FieldStageBody({
             onRetryProgress={() => void progressQ.refetch()}
           >
             <div className="border border-ink-950 bg-paper-50 p-6">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Locked prerequisite</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                Locked prerequisite
+              </p>
               <p className="mt-2 font-serif text-xl text-ink-950">The brief comes first.</p>
               <p className="mt-1 max-w-xl text-sm text-ink-700">
                 Return to Stage 00 and commit the question of record before this decision can open.
               </p>
-              <Link to="/admin/countries/$code/personas/field/$step" params={{ code, step: "brief" }} search={{ project: projectId }} className="btn-primary mt-4 inline-flex">
+              <Link
+                to="/admin/countries/$code/personas/field/$step"
+                params={{ code, step: "brief" }}
+                search={{ project: projectId }}
+                className="btn-primary mt-4 inline-flex"
+              >
                 Return to the brief
               </Link>
             </div>
@@ -298,12 +309,20 @@ function FieldStageBody({
             onRetryProgress={() => void progressQ.refetch()}
           >
             <div className="border border-ink-950 bg-paper-50 p-6">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Locked prerequisite</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                Locked prerequisite
+              </p>
               <p className="mt-2 font-serif text-xl text-ink-950">Approve the programme first.</p>
               <p className="mt-1 max-w-xl text-sm text-ink-700">
-                Participant recruitment, instruments and fieldwork must inherit an approved method mix and dates.
+                Participant recruitment, instruments and fieldwork must inherit an approved method
+                mix and dates.
               </p>
-              <Link to="/admin/countries/$code/personas/field/$step" params={{ code, step: "plan" }} search={{ project: projectId }} className="btn-primary mt-4 inline-flex">
+              <Link
+                to="/admin/countries/$code/personas/field/$step"
+                params={{ code, step: "plan" }}
+                search={{ project: projectId }}
+                className="btn-primary mt-4 inline-flex"
+              >
                 Return to the programme
               </Link>
             </div>
@@ -494,7 +513,9 @@ function PlanStage({
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
             The programme in a paragraph
           </p>
-          <p className="mt-1.5 max-w-3xl text-[13px] leading-relaxed text-ink-800">{plan.summary}</p>
+          <p className="mt-1.5 max-w-3xl text-[13px] leading-relaxed text-ink-800">
+            {plan.summary}
+          </p>
           {durationRationale ? (
             <p className="mt-2 max-w-3xl text-[12px] leading-relaxed text-ink-600">
               <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
@@ -542,16 +563,18 @@ function PlanStage({
           outstanding: plan?.status === "active" ? null : "the plan is not approved",
           doneNote: "Plan approved and active",
           error: commit.isError ? (commit.error as Error).message : null,
-          action: plan && plan.status !== "active" ? {
-            label: "Approve this plan",
-            onClick: () => commit.mutate(plan.id),
-            pending: commit.isPending,
-            note: "Fixes the dates and method mix and unlocks participant recruitment.",
-          } : null,
+          action:
+            plan && plan.status !== "active"
+              ? {
+                  label: "Approve this plan",
+                  onClick: () => commit.mutate(plan.id),
+                  pending: commit.isPending,
+                  note: "Fixes the dates and method mix and unlocks participant recruitment.",
+                }
+              : null,
         },
       }}
       panels={{
-
         // ── Step 1 · Let the chamber draft the programme ───────────────────
         draft: (
           <div className="space-y-5">
@@ -572,7 +595,6 @@ function PlanStage({
     />
   );
 }
-
 
 /** The name the AI gave this phase — never a generic placeholder. */
 function phaseName(p: Record<string, unknown>, i: number): string {

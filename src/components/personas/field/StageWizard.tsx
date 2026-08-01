@@ -48,12 +48,14 @@ export function StageWizard({
   const firstOpenIndex = steps.findIndex((step) => !isDone(step));
   const lastReachableIndex = firstOpenIndex === -1 ? steps.length - 1 : firstOpenIndex;
 
-
   return (
     <div className="space-y-5">
       {/* A compact progress list, not another tab bar. Completed work can be
           reopened; future decisions stay locked until the first open one is done. */}
-      <ol className="grid gap-2 border-y border-line-200 py-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Steps in this stage">
+      <ol
+        className="grid gap-2 border-y border-line-200 py-3 sm:grid-cols-2 lg:grid-cols-3"
+        aria-label="Steps in this stage"
+      >
         {steps.map((s, i) => {
           const active = s.key === current.key;
           const done = isDone(s);
@@ -108,7 +110,6 @@ export function StageWizard({
 
       {/* Status and instruction only. The footer owns the action. */}
       {action ? <ScreenAction spec={action} done={isDone(current)} /> : null}
-
 
       {panels[current.key] ?? (
         <p className="border border-dashed border-line-200 p-6 text-sm text-ink-500">

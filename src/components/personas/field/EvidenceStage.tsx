@@ -102,8 +102,8 @@ export function EvidenceStage({
           <div className="min-w-0">
             <p className="font-serif text-lg text-ink-950">This programme is filed.</p>
             <p className="mt-0.5 text-[13px] text-ink-700">
-              The closing memo sits in this country's second brain. Reopen it to correct the
-              finding — re-closing writes over the same memo, it does not file a second one.
+              The closing memo sits in this country's second brain. Reopen it to correct the finding
+              — re-closing writes over the same memo, it does not file a second one.
             </p>
           </div>
           <button
@@ -168,7 +168,6 @@ export function EvidenceStage({
           Closed. The programme memo is filed to this country's second brain.
         </p>
       ) : null}
-
 
       {!live ? (
         <EmptyAction

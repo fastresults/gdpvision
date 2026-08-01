@@ -81,7 +81,9 @@ export const synthesiseField = createServerFn({ method: "POST" })
     const responseCount = responses?.length ?? 0;
     const sessionCount = sessions?.length ?? 0;
     if (responseCount === 0 && sessionCount === 0) {
-      throw new Error("Nothing to synthesise yet — collect responses or attach a transcript first.");
+      throw new Error(
+        "Nothing to synthesise yet — collect responses or attach a transcript first.",
+      );
     }
 
     const instrumentBlock = instrument?.questions
@@ -173,9 +175,7 @@ Return JSON:
 export const compareToSynthetic = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z
-      .object({ fieldStudyId: z.string().uuid(), syntheticStudyId: z.string().uuid() })
-      .parse(d),
+    z.object({ fieldStudyId: z.string().uuid(), syntheticStudyId: z.string().uuid() }).parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
@@ -227,7 +227,11 @@ Return JSON:
       .update({
         config: {
           ...config,
-          calibration: { against: data.syntheticStudyId, ...comparison, at: new Date().toISOString() },
+          calibration: {
+            against: data.syntheticStudyId,
+            ...comparison,
+            at: new Date().toISOString(),
+          },
         } as unknown as Json,
       } as never)
       .eq("id", data.fieldStudyId);
@@ -309,9 +313,6 @@ Return JSON:
       .eq("id", data.projectId);
     if (closeErr) throw closeErr;
 
-
-
-
     return { memo, memoryId: mem?.id ?? null };
   });
 
@@ -340,4 +341,3 @@ export const reopenProgramme = createServerFn({ method: "POST" })
     if (error) throw error;
     return { status: "active" };
   });
-

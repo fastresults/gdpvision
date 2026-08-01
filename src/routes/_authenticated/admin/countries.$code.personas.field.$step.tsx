@@ -500,7 +500,22 @@ function PlanStage({
 
   return (
     <StageWizard
+      actions={{
+        draft: {
+          instruction:
+            "Let the chamber infer the dated shape of the work from the brief, then read it.",
+          outstanding: plan ? null : "no programme has been drafted yet",
+          doneNote: plan ? "Programme drafted — editable until approved" : null,
+        },
+        approve: {
+          instruction:
+            "Approve the programme so participants, instruments and fieldwork can be scheduled against it.",
+          outstanding: plan?.status === "active" ? null : "the plan is not approved",
+          doneNote: "Plan approved and active",
+        },
+      }}
       panels={{
+
         // ── Step 1 · Let the chamber draft the programme ───────────────────
         draft: (
           <div className="space-y-5">

@@ -8,18 +8,26 @@
 import { Check, HelpCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { ScreenAction, type ScreenActionSpec } from "./kit/ScreenAction";
 import { useSubSteps } from "./substep-context";
+
+export type { ScreenActionSpec };
 
 export function StageWizard({
   panels,
+  actions,
 }: {
   /** One screen per sub-step key. Only the current one is mounted. */
   panels: Record<string, React.ReactNode>;
+  /** The one instruction, state and action for each screen. */
+  actions?: Record<string, ScreenActionSpec | null | undefined>;
 }) {
   const nav = useSubSteps();
   if (!nav || !nav.current) return <>{Object.values(panels)[0] ?? null}</>;
 
   const { steps, current, index, goTo, isDone } = nav;
+  const action = actions?.[current.key] ?? null;
+
 
   return (
     <div className="space-y-5">
@@ -67,6 +75,10 @@ export function StageWizard({
           {current.goodLooksLike}
         </p>
       </div>
+
+      {/* The one instruction and the one action for this screen. */}
+      {action ? <ScreenAction spec={action} done={isDone(current)} /> : null}
+
 
       {panels[current.key] ?? (
         <p className="border border-dashed border-line-200 p-6 text-sm text-ink-500">

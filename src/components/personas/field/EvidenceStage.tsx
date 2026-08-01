@@ -121,56 +121,20 @@ export function EvidenceStage({
         </div>
   ) : null;
 
+  const returns = collectionQ.data?.responseCount ?? 0;
+
+  // The evidence base, stated plainly. Every button that acts on it lives in
+  // the action head for the screen that owns that move.
   const bar = (
-    <>
-      <div className="flex flex-wrap items-center gap-3 border border-line-200 bg-paper-0 p-4">
-        <div className="min-w-0 flex-1">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            Evidence base
-          </p>
-          <p className="mt-1 font-mono text-[12px] tabular-nums text-ink-700">
-            {collectionQ.data?.responseCount ?? 0} returns collected
-          </p>
-        </div>
-        <button
-          type="button"
-          className="btn-primary"
-          disabled={synth.isPending}
-          onClick={() => synth.mutate()}
-        >
-          {synth.isPending ? (
-            <Loader2 size={11} className="animate-spin" />
-          ) : (
-            <Sparkles size={12} />
-          )}
-          {live ? "Re-synthesise" : "Synthesise the finding"}
-        </button>
-        <button
-          type="button"
-          className="btn-secondary"
-          disabled={close.isPending || !live}
-          onClick={() => close.mutate()}
-        >
-          {close.isPending ? <Loader2 size={11} className="animate-spin" /> : <Archive size={12} />}
-          {closed ? "Re-file the programme" : "Close the programme"}
-        </button>
-      </div>
-      {synth.isError ? (
-        <p className="text-[12px] text-rose-600">{(synth.error as Error).message}</p>
-      ) : null}
-      {close.isError ? (
-        <p className="text-[12px] text-rose-600">{(close.error as Error).message}</p>
-      ) : null}
-      {reopen.isError ? (
-        <p className="text-[12px] text-rose-600">{(reopen.error as Error).message}</p>
-      ) : null}
-      {close.isSuccess ? (
-        <p className="text-[12px] text-emerald-700">
-          Closed. The programme memo is filed to this country's second brain.
-        </p>
-      ) : null}
-    </>
+    <div className="border border-line-200 bg-paper-0 p-4">
+      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Evidence base</p>
+      <p className="mt-1 font-serif text-3xl tabular-nums text-ink-950">{returns}</p>
+      <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+        returns collected
+      </p>
+    </div>
   );
+
 
   const findingView = !live ? (
         <EmptyAction
@@ -293,6 +257,48 @@ export function EvidenceStage({
 
   return (
     <StageWizard
+      actions={{
+        landed: {
+          instruction:
+            "Read how much evidence the finding will rest on before you read the finding itself.",
+          outstanding: returns === 0 ? "no returns collected yet" : null,
+          doneNote: `${returns} ${returns === 1 ? "return" : "returns"} in hand`,
+        },
+        synthesise: {
+          instruction: live
+            ? "Read the finding and re-synthesise if it does not yet hold up."
+            : "Let the chamber read every return and transcript and write the finding.",
+          outstanding: !live ? "the finding has not been written yet" : null,
+          doneNote: "Finding written",
+          error: synth.isError ? (synth.error as Error).message : null,
+          action: {
+            label: live ? "Re-synthesise" : "Synthesise the finding",
+            onClick: () => synth.mutate(),
+            pending: synth.isPending,
+            disabled: returns === 0,
+            icon: <Sparkles size={12} />,
+            note: "Reads every return and writes toplines, tensions and confidence.",
+          },
+        },
+        file: {
+          instruction: "File the closing memo into this country's second brain.",
+          outstanding: !live ? "no finding to file yet" : closed ? null : "not filed yet",
+          doneNote: "Filed to the second brain",
+          error: close.isError
+            ? (close.error as Error).message
+            : reopen.isError
+              ? (reopen.error as Error).message
+              : null,
+          action: {
+            label: closed ? "Re-file the programme" : "Close the programme",
+            onClick: () => close.mutate(),
+            pending: close.isPending,
+            disabled: !live,
+            icon: <Archive size={12} />,
+            note: "Re-filing overwrites the same memo — it never leaves a second copy.",
+          },
+        },
+      }}
       panels={{
         // ── Step 1 · How much evidence is under this? ─────────────────────
         landed: (
@@ -306,12 +312,7 @@ export function EvidenceStage({
         ),
 
         // ── Step 2 · Read the finding ─────────────────────────────────────
-        synthesise: (
-          <div className="space-y-5">
-            {bar}
-            {findingView}
-          </div>
-        ),
+        synthesise: <div className="space-y-5">{findingView}</div>,
 
         // ── Step 3 · File it ──────────────────────────────────────────────
         file: (
@@ -322,11 +323,11 @@ export function EvidenceStage({
               programme can read it. Re-filing overwrites the same memo — it never leaves a second
               copy behind.
             </p>
-            {bar}
             <ShowTheDetail label="Re-read the finding before filing">{findingView}</ShowTheDetail>
           </div>
         ),
       }}
     />
   );
+
 }

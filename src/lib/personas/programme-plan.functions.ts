@@ -64,19 +64,49 @@ export interface PlanProposal {
   risks: Array<{ risk: string; mitigation: string; severity?: string }>;
 }
 
+// A name is only a name when it says something about THIS programme. Generic
+// lifecycle boilerplate ("Phase 1", "TBD", "Untitled") is treated as a missing
+// name so the derivation retries rather than persisting an anonymous phase.
+const GENERIC_NAME =
+  /^(untitled|tbd|to be decided|n\/?a|none|phase\s*\d+|stage\s*\d+|step\s*\d+|part\s*\d+|phase|stage|milestone\s*\d+)\W*$/i;
+
+export function isNamed(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const t = value.trim();
+  return t.length >= 3 && !GENERIC_NAME.test(t);
+}
+
 function isProposal(v: unknown): v is PlanProposal {
   if (!v || typeof v !== "object") return false;
   const p = v as Partial<PlanProposal>;
-  return (
-    typeof p.summary === "string" &&
-    typeof p.duration_days === "number" &&
-    p.duration_days > 0 &&
-    Array.isArray(p.phases) &&
-    p.phases.length > 0 &&
-    Array.isArray(p.milestones) &&
-    p.milestones.length > 0 &&
-    Array.isArray(p.method_mix)
-  );
+  if (
+    typeof p.summary !== "string" ||
+    typeof p.duration_days !== "number" ||
+    p.duration_days <= 0 ||
+    !Array.isArray(p.phases) ||
+    p.phases.length === 0 ||
+    !Array.isArray(p.milestones) ||
+    p.milestones.length === 0 ||
+    !Array.isArray(p.method_mix)
+  ) {
+    return false;
+  }
+  // Every phase must carry a specific, non-repeating name and an intent.
+  const seen = new Set<string>();
+  for (const ph of p.phases) {
+    if (!isNamed(ph?.name)) return false;
+    if (typeof ph.intent !== "string" || ph.intent.trim().length < 8) return false;
+    const key = ph.name.trim().toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+  }
+  // Milestones must be named too, and bound to a real phase.
+  const phaseNames = new Set(p.phases.map((ph) => ph.name.trim().toLowerCase()));
+  for (const m of p.milestones) {
+    if (!isNamed(m?.title)) return false;
+    if (typeof m.phase !== "string" || !phaseNames.has(m.phase.trim().toLowerCase())) return false;
+  }
+  return true;
 }
 
 // ── Prompt ─────────────────────────────────────────────────────────────────

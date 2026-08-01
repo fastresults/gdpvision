@@ -31,7 +31,7 @@ export const buildDeployPacks = createServerFn({ method: "POST" })
       "./instrument-deploy.server"
     );
     const title = (inst.title as string | null) ?? "Instrument";
-    const questions = (inst.questions ?? []) as FieldQuestion[];
+    const questions = (inst.questions ?? []) as unknown as FieldQuestion[];
     return {
       version: inst.version as number,
       csv: buildCsvTemplate(title, inst.version as number, questions),

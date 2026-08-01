@@ -133,7 +133,7 @@ Write in calm, precise, non-promotional British English. Address the client dire
 
 Return JSON with exactly three string keys:
 - "approach": 3–5 paragraphs. What this programme is doing, why the method mix is the right instrument for these objectives, and how the phases carry it from start to read-out.
-- "why_these_people": 2–3 paragraphs. Why the recruited audience is the right one to answer the brief, what each segment contributes, and how their answers will be weighted.
+- "why_these_people": 2–3 paragraphs. Why the recruited audience is the right one to answer the brief, what each segment contributes, and how their answers will be weighted. Describe the audience only as target personas — role archetypes, sectors and segments. Never name individuals or identify a single person by an unusual role-plus-organisation pairing.
 - "assurance": 2–3 paragraphs. How quality, consent and confidentiality are held; what the limits of the evidence will be; and how findings will be filed to the client's second brain so they can be cited later.`;
 
 async function writeNarrative(input: string): Promise<Narrative | null> {

@@ -108,7 +108,9 @@ Rules you must not break:
 - Every finding must be grounded in the material provided. Do not infer beyond it, do not import outside knowledge as if it were evidence, and do not invent quotes.
 - Attribute quotes only by the pseudonymous participant code given. Never guess or state a real name.
 - Be explicit and honest about limitations: small base sizes, self-selection, single-session evidence, unbalanced segments.
-- Where the evidence is thin or contradictory, say so rather than smoothing it over.`;
+- Where the evidence is thin or contradictory, say so rather than smoothing it over.
+
+Every instrument closes with a "frontline insight" block — questions tagged with "intent": "frontline_insight" — asking respondents where the work breaks and what they would change. Report those answers SEPARATELY as "innovation_signals": cluster the same underlying idea together, count how many respondents raised it, carry their own confidence rating where one was given, and keep one verbatim per signal. Never fold these into the objective findings, and never invent a signal nobody raised.`;
 
     const user = `STUDY: ${study.title}
 OBJECTIVE: ${study.objective ?? "(not stated)"}

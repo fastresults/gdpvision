@@ -21,7 +21,6 @@ export type BriefingPrintConfig = {
   dateLabel: string;
   showPageNumbers: boolean;
   showCoverPage: boolean;
-  showToc: boolean;
 };
 
 export const DEFAULT_BRIEFING_PRINT_CONFIG: BriefingPrintConfig = {
@@ -35,7 +34,6 @@ export const DEFAULT_BRIEFING_PRINT_CONFIG: BriefingPrintConfig = {
   }),
   showPageNumbers: true,
   showCoverPage: true,
-  showToc: true,
 };
 
 function windowLabel(b: CommencementBriefing): string {
@@ -93,7 +91,7 @@ export function PrintableBriefing({
         </section>
       )}
 
-      {config.showToc && (
+      {briefing.sections.length >= 2 && (
         <section className="cb-page cb-toc">
           <p className="cb-eyebrow">Contents</p>
           <h2 className="cb-h2">What this document covers</h2>
@@ -102,6 +100,7 @@ export function PrintableBriefing({
               <li key={s.id}>
                 <span className="cb-toc-num">{String(i + 1).padStart(2, "0")}</span>
                 <span className="cb-toc-title">{s.heading}</span>
+                <span className="cb-toc-leader" aria-hidden="true" />
                 <span className="cb-toc-kind">{s.eyebrow}</span>
               </li>
             ))}
@@ -322,24 +321,32 @@ const PRINT_CSS = `
   .cb-foot-value { font-size: 10.5pt; color: #14140f; margin: 0; }
 
   .cb-h2 { font-size: 22pt; font-weight: 500; color: #14140f; margin: 3mm 0 10mm 0; }
+  .cb-toc { break-after: page; }
   .cb-toc-list { list-style: none; padding: 0; margin: 0; border-top: 1px solid #e4e2da; }
   .cb-toc-list li {
     display: grid;
-    grid-template-columns: 14mm 1fr auto;
+    grid-template-columns: 14mm auto 1fr auto;
     gap: 4mm;
     align-items: baseline;
     padding: 4mm 0;
     border-bottom: 1px solid #e4e2da;
+    break-inside: avoid;
   }
   .cb-toc-num { font-family: "SFMono-Regular", monospace; font-size: 9pt; color: #b8912a; }
   .cb-toc-title { font-size: 12pt; color: #14140f; }
+  .cb-toc-leader {
+    border-bottom: 1px dotted #c9c6bb;
+    transform: translateY(-1mm);
+  }
   .cb-toc-kind {
     font-family: "SFMono-Regular", monospace;
     font-size: 8pt;
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: #6b6b6b;
+    text-align: right;
   }
+
   .cb-ready-head { margin-top: 12mm; }
   .cb-ready { list-style: none; padding: 0; margin: 4mm 0 0 0; }
   .cb-ready li {
@@ -373,6 +380,15 @@ const PRINT_CSS = `
   .cb-prose strong { font-weight: 600; }
   .cb-prose em { color: #55554c; }
   .cb-prose hr { border: none; border-top: 1px solid #d8d4c8; margin: 8mm 0; }
+  .cb-prose blockquote {
+    margin: 0 0 5mm 0;
+    padding: 0 0 0 5mm;
+    border-left: 1.5pt solid #b8912a;
+    color: #33332c;
+    font-style: italic;
+  }
+  .cb-prose blockquote p { margin: 0 0 2.5mm 0; }
+
   .cb-prose table {
     width: 100%;
     table-layout: fixed;

@@ -135,11 +135,9 @@ export function ExportBriefingDialog({
               checked={config.showCoverPage}
               onChange={(v) => update("showCoverPage", v)}
             />
-            <Toggle
-              label="Table of contents & readiness"
-              checked={config.showToc}
-              onChange={(v) => update("showToc", v)}
-            />
+            {/* Contents page is always issued: a client dossier without a
+                table of contents is not shippable. */}
+
             <Toggle
               label="Page numbers"
               checked={config.showPageNumbers}

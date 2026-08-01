@@ -1,32 +1,29 @@
-## Goal
+## What the screenshot shows
 
-Replace the wide "Commencement briefing" strip with two compact buttons sitting to the right of the **Field Programme** tab, and only show them once Brief, Plan (Programme), Participants and Instruments are complete.
+The page in the PDF is not our Table of Contents. It is the client's own RFP text pasted verbatim into the briefing: `commencement-briefing.server.ts` builds the first section ("The brief") by inserting the whole governing-brief text (`committedText`) under "Your question, in your words". That text came out of a parsed PDF with its line breaks lost, so the client's own contents list ("Table of Contents Executive Summary Company Profile & Overview …") reflows as one run-on paragraph, along with "SUBMITTED BY …" cover lines.
 
-## What changes
+Our real contents page exists (`PrintableBriefing.tsx`, `cb-toc`) but it is optional (`showToc`), and the "Print" button exports with whatever config is in state — so the structured contents page can be absent while the raw dump is present.
 
-```text
-[ Add synthetic lab ] [ Field programme ]            [ Discovery brief ] [ Presentation ]
-──────────────────────────────────────────────────────────────────────────────────────
-```
+## Plan
 
-1. **Track row hosts the actions** — `TrackTabs` gains an optional `actions` slot rendered right-aligned (`ml-auto`) in the same flex row, so it stays on the same line on desktop and wraps cleanly on mobile. Buttons use `btn-secondary` per the button contract.
+**1. Always present the contents page**
+- Make the contents page non-optional in the exported PDF: contents renders whenever the document has 2+ sections; remove the ability to ship a dossier with no TOC (keep cover/page-number toggles).
+- Number the contents entries to match section numbers already printed on each section head, and add a right-hand page indicator column so it reads as a real TOC rather than a list.
 
-2. **Gate** — in the field stage route, compute `dossierReady` from the existing single read:
-   - `gate.committed` (brief written)
-   - `gate.planCommitted` / `progress.planActive` (programme approved)
-   - `progress.stages.participants.complete`
-   - `progress.stages.instruments.complete`
+**2. Stop the raw brief from impersonating a contents page**
+- In `commencement-briefing.server.ts`, replace the verbatim `committedText` insertion with a normalised, bounded quotation:
+  - strip cover/administrative furniture (SUBMITTED BY / CONFIDENTIAL / PREPARED EXCLUSIVELY FOR lines) and any inline "Table of Contents …" run;
+  - re-flow the parsed text into paragraphs and clamp it to a short quoted mandate excerpt;
+  - keep the full governing text where it belongs — provenance/audit — not in the body of the client dossier.
+- Render the excerpt as a blockquote so it is visibly the client's words, not our narrative.
 
-   Until all four are true, no briefing/deck buttons appear. On the `briefing` step, if not ready, the page keeps a short explainer naming the outstanding step rather than an empty rail.
+**3. Print CSS**
+- Keep the contents page on its own sheet (`break-after: page`) and prevent it colliding with the first section.
+- Guard against the reverse case: if the cover page is off, the contents page must still start the document cleanly under the `@page :first` margins.
 
-3. **Two entry points**
-   - *Discovery brief* — opens the existing `BriefingModal` as today.
-   - *Presentation* — opens the same modal but jumps straight to the deck. `BriefingModal` takes an `intent?: "briefing" | "deck"` prop, passed to `BriefingPanel`, which on `intent === "deck"` opens the deck viewer once a composed deck exists for the current briefing version (otherwise it lands on the panel with the compose action highlighted — no behaviour change to composition or provenance gating).
-
-4. **Remove** the full-width "Commencement briefing — the full client-facing account…" strip from the field stage route; its explanatory sentence becomes the buttons' `title`/hint text.
+**4. Verify**
+- Assemble the Grenada briefing, export to PDF headlessly, render every page to an image, and confirm: page 1 cover, page 2 structured contents with one line per section, no run-on RFP contents text, no clipped margins.
 
 ## Technical notes
 
-- Files: `src/components/personas/TrackTabs.tsx` (actions slot), `src/routes/_authenticated/admin/countries.$code.personas.field.$step.tsx` (gate + button placement, strip removal), `src/components/personas/field/briefing/BriefingModal.tsx` and `BriefingPanel.tsx` (`intent` prop).
-- No server-function, schema, or provenance-gate changes; existing preflight blocking on export/deck stays exactly as-is.
-- Presentational only — the deep-link `?step=briefing` route keeps working.
+Files touched: `src/lib/personas/commencement-briefing.server.ts` (brief section assembly + text normaliser), `src/components/personas/field/briefing/PrintableBriefing.tsx` (contents always rendered, page column, print CSS), `src/components/personas/field/briefing/ExportBriefingDialog.tsx` (drop the TOC toggle). Existing briefings need one re-assemble to pick up the cleaned brief section; the panel already prompts for re-assembly.

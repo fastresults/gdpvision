@@ -100,6 +100,62 @@ function table(headers: string[], rows: string[][]): string {
   ].join("\n");
 }
 
+/**
+ * The governing brief usually arrives as text parsed out of a client PDF: the
+ * cover furniture ("SUBMITTED BY …", "CONFIDENTIAL — PREPARED EXCLUSIVELY FOR
+ * …") and the client's own contents list survive, and line breaks do not. Left
+ * verbatim in the dossier those lines reflow into a run-on paragraph that
+ * masquerades as our table of contents. Strip the furniture, re-flow what is
+ * left into sentences, and clamp it to a short quotation of the client's ask.
+ */
+export function briefQuotation(raw: string, maxChars = 1_400): string {
+  const flat = raw
+    .replace(/\r/g, "")
+    .replace(/[ \t]+/g, " ")
+    .trim();
+
+  const FURNITURE =
+    /^(submitted\s+by\b|prepared\s+(exclusively\s+)?for\b|confidential\b|.{0,24}\bconfidential\s+[—-]\s+prepared\b|request\s+for\s+propos|rfp\s+response\b|page\s+\d+$|contents\b|table\s+of\s+contents\b)/i;
+
+  /** A contents run: many title-cased fragments, no running sentences. */
+  const isContentsRun = (l: string): boolean => {
+    if (/table\s+of\s+contents/i.test(l)) return true;
+    if (l.length < 60) return false;
+    const sentences = (l.match(/[a-z]{2,}[.!?](\s|$)/g) ?? []).length;
+    const capitalised = (l.match(/(^|\s)[A-Z][A-Za-z&'-]+/g) ?? []).length;
+    const words = l.split(/\s+/).length;
+    return sentences === 0 && capitalised / words > 0.45;
+  };
+
+  const lines = flat
+    .split(/\n+/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0)
+    .filter((l) => !FURNITURE.test(l))
+    .filter((l) => !isContentsRun(l))
+    // All-caps navigation headings ("3.4 DATA COLLECTION") carry no meaning
+    // out of their document; drop them.
+    .filter((l) => !(l.length < 90 && l === l.toUpperCase() && /[A-Z]/.test(l)));
+
+  const body = lines
+    .join("\n\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  if (body.length <= maxChars) return body;
+
+  const cut = body.slice(0, maxChars);
+  const lastStop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf(".\n"));
+  return `${(lastStop > maxChars * 0.5 ? cut.slice(0, lastStop + 1) : cut).trim()} […]`;
+}
+
+/** Render a quotation as markdown blockquote lines. */
+function blockquote(text: string): string {
+  return text
+    .split("\n")
+    .map((l) => (l.trim().length === 0 ? ">" : `> ${l}`))
+    .join("\n");
+}
+
 function questionLine(q: FieldQuestion, n: number): string {
   const type = q.type.replace(/_/g, " ");
   const bits = [`**Q${n}.** ${q.prompt}`, `_${type}${q.required ? " · required" : ""}_`];
@@ -293,7 +349,8 @@ export async function assembleBriefing(
       "",
       "### Your question, in your words",
       "",
-      committedText,
+      blockquote(briefQuotation(committedText)),
+
       "",
       "### What counts as an answer",
       "",

@@ -461,13 +461,31 @@ export function InstrumentsStage({
             ) : null}
 
             <ol className="space-y-3">
-              {value.questions.map((q, i) => (
-                <li key={q.id} className="border border-line-200 p-3">
+              {value.questions.map((q, i) => {
+                const frontline = q.intent === "frontline_insight";
+                const firstFrontline =
+                  frontline && value.questions.findIndex((x) => x.intent === "frontline_insight") === i;
+                return (
+                  <li key={q.id}>
+                    {firstFrontline ? (
+                      <p className="mb-2 border-t border-line-200 pt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                        <Explain id="research.instrument.frontline" mark={false}>
+                          Frontline insight · beyond the brief
+                        </Explain>
+                      </p>
+                    ) : null}
+                    <div
+                      className={cn(
+                        "border p-3",
+                        frontline ? "border-gold-500/50 bg-paper-100/40" : "border-line-200",
+                      )}
+                    >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
                         Q{i + 1}
                       </span>
+
                       <select
                         value={q.type}
                         onChange={(e) =>

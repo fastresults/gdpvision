@@ -133,14 +133,6 @@ export function ProgramBriefIntake({ code, projectId, onCommitted, embedded = fa
     onError: (e) => setError((e as Error).message),
   });
 
-  if (briefQ.isLoading) {
-    return (
-      <div className="flex items-center gap-2 border border-line-200 bg-paper-50 p-6 text-sm text-ink-500">
-        <Loader2 size={14} className="animate-spin" /> Loading brief…
-      </div>
-    );
-  }
-
   const activeBeat: (typeof BEATS)[number]["key"] = scope ? "scope" : "read";
   const busy = enrich.isPending || commit.isPending;
   const blockedReason = !meetsMinimum
@@ -166,6 +158,14 @@ export function ProgramBriefIntake({ code, projectId, onCommitted, embedded = fa
           }
       : null,
   );
+
+  if (briefQ.isLoading) {
+    return (
+      <div className="flex items-center gap-2 border border-line-200 bg-paper-50 p-6 text-sm text-ink-500">
+        <Loader2 size={14} className="animate-spin" /> Loading brief…
+      </div>
+    );
+  }
 
   return (
     <section className="space-y-5 pb-24">

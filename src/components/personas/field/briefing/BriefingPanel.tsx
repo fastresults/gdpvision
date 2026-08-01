@@ -133,18 +133,18 @@ export function BriefingPanel({
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
-          onClick={() => assemble.mutate()}
-          disabled={assemble.isPending}
+          onClick={() => dossier.assembleBriefing()}
+          disabled={dossier.assembling}
           className="btn-primary inline-flex items-center gap-2"
         >
-          {assemble.isPending ? (
+          {dossier.assembling ? (
             <Loader2 size={14} className="animate-spin" />
           ) : record ? (
             <RefreshCw size={14} />
           ) : (
             <FileText size={14} />
           )}
-          {assemble.isPending
+          {dossier.assembling
             ? "Assembling the dossier…"
             : record
               ? "Re-assemble from current state"
@@ -180,28 +180,28 @@ export function BriefingPanel({
             <button
               type="button"
               onClick={() => {
-                if (deckQ.data?.deck.briefingVersion === doc.version) setDeckOpen(true);
-                else prepareDeck.mutate();
+                if (dossier.deck?.deck.briefingVersion === doc.version) setDeckOpen(true);
+                else dossier.composeDeck({ onDone: () => setDeckOpen(true) });
               }}
-              disabled={prepareDeck.isPending || !preflightReady}
+              disabled={dossier.composing || !preflightReady}
               className="btn-accent inline-flex items-center gap-2"
             >
-              {prepareDeck.isPending ? (
+              {dossier.composing ? (
                 <Loader2 size={14} className="animate-spin" />
               ) : (
                 <Presentation size={14} />
               )}
-              {prepareDeck.isPending
+              {dossier.composing
                 ? "Composing the deck…"
-                : deckQ.data
-                  ? `Open presentation deck · v${deckQ.data.version}`
+                : dossier.deck
+                  ? `Open presentation deck · v${dossier.deck.version}`
                   : "Prepare presentation deck"}
             </button>
-            {deckQ.data && (
+            {dossier.deck && (
               <button
                 type="button"
-                onClick={() => prepareDeck.mutate()}
-                disabled={prepareDeck.isPending}
+                onClick={() => dossier.composeDeck({ onDone: () => setDeckOpen(true) })}
+                disabled={dossier.composing}
                 className="btn-ghost inline-flex items-center gap-2"
               >
                 <RefreshCw size={14} />
@@ -231,9 +231,18 @@ export function BriefingPanel({
         )}
       </div>
 
-      {briefingQ.isLoading && <p className="text-sm text-ink-500">Reading the dossier…</p>}
+      {/* Whether what is on file still describes the programme as it stands. */}
+      {(dossier.briefingStaleReason || dossier.deckStaleReason) && (
+        <div className="border-l-2 border-gold-500 bg-paper-100/50 px-4 py-2 text-sm text-ink-800">
+          {dossier.briefingStaleReason && <p>Dossier · {dossier.briefingStaleReason}</p>}
+          {dossier.deckStaleReason && <p>Deck · {dossier.deckStaleReason}</p>}
+        </div>
+      )}
 
-      {!briefingQ.isLoading && !doc && (
+      {dossier.loading && <p className="text-sm text-ink-500">Reading the dossier…</p>}
+
+      {!dossier.loading && !doc && (
+
         <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
           <p className="font-serif text-lg text-ink-950">No briefing assembled yet.</p>
           <p className="mt-1 max-w-xl text-sm text-ink-700">

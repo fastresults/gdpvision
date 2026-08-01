@@ -1,49 +1,40 @@
-## What's wrong
+## What's happening
 
-The deck print sheet is declared in pixels:
+Your screenshot shows the Commencement Briefing losing its right margin: body lines, table cells and even the running "12 / 14" page number run off the right edge of the sheet.
+
+The three portrait printables all declare their print root the same way:
 
 ```css
-@page { size: 1920px 1080px landscape; margin: 0; }
+#briefing-print-root   { position: absolute; inset: 0; width: 100%; }  /* PrintableBriefing.tsx */
+#plan-print-root       { position: absolute; inset: 0; width: 100%; }  /* PrintablePlan.tsx */
+#value-case-print-root { position: absolute; inset: 0; width: 100%; }  /* PrintableValueCase.tsx */
 ```
 
-Chrome does not accept a pixel page size of that magnitude — it falls back to the default sheet, which is why the print dialog shows **Layout: Portrait** and offers no way to correct it. The slide itself is still laid out at a hard `width: 1920px; height: 1080px`, so each slide is cropped at the right edge (the headline is cut mid-word) and spills a blank second page — 10 slides printing as 11 pages.
+An absolutely positioned element is sized against the **initial containing block**, not the page content box. When printing, that is the document viewport — roughly the browser window width (~1500px here), not the ~184mm Letter text column. So the content is laid out at window width and then hard-clipped at the paper edge. The wider the window when you hit print, the more is lost — which is why it looks intermittent.
 
-Two independent defects, both must be fixed:
-1. the sheet is the wrong shape and orientation;
-2. the slide is never scaled down to whatever sheet it lands on.
+The presentation deck does not suffer this: it declares an explicit `width: 1920px` that matches its sheet exactly (fixed last turn).
 
 ## The fix
 
-### 1. Declare the sheet in physical units
+Let the print roots participate in normal flow, so the page content box defines their width and the paginator can fragment them across pages.
 
-In `DeckModal.tsx`, replace the pixel page rule with a real 16:9 landscape sheet:
+1. **`src/components/personas/field/briefing/PrintableBriefing.tsx`** — replace the absolute block on `#briefing-print-root` with static flow: `position: static; width: auto; margin: 0;`. Keep font, colour and size rules unchanged.
+2. **`src/components/mandate-compact/plan/PrintablePlan.tsx`** — same change on `#plan-print-root`.
+3. **`src/components/calculator/PrintableValueCase.tsx`** — same change on `#value-case-print-root`.
+4. **Cover pages** — the briefing cover uses `padding: 22mm 18mm` *inside* a page that already has `margin: 0` on `@page :first`, so it stays full-bleed; the non-cover pages inherit the `@page` margin box and no longer need any root-level inset. Verify no double-margin appears on page 1 after the change.
+5. **Bleed guard** — add a defensive `#…-print-root, #…-print-root * { max-width: 100%; }`-style rule for tables and long unbroken strings, plus `table-layout: fixed` on the wide risk/mitigation tables so a long mitigation sentence wraps rather than pushing the table wider than the column.
 
-```text
-@page { size: 13.333in 7.5in; margin: 0 }
-```
+## Verification (not optional)
 
-That is the exact PowerPoint 16:9 widescreen sheet, so the printed PDF matches the `.pptx` export page-for-page. Browsers honour inch/mm page sizes, and the dialog will report Landscape without the user touching anything.
+Render the real GRD briefing through headless print-to-PDF, then convert **every** page to an image and inspect:
 
-### 2. Scale the slide into the sheet instead of overflowing it
+- page width is 8.5in × 11in portrait, symmetric left/right margins;
+- no line, table cell or running footer touches or crosses the right trim;
+- the running header/footer margin boxes sit where intended and the page counter is complete;
+- cover page 1 is full-bleed with no stray margin, and page count matches the on-screen document.
 
-Each `.deck-print-page` becomes a fixed 1280×720 CSS-px box (13.333in × 7.5in at 96dpi) containing the untouched 1920×1080 `SlideBody`, scaled by `transform: scale(0.666667)` with `transform-origin: top left`. Nothing about slide authoring changes — the same pixels that appear on screen and in Present mode land on the page, just uniformly reduced. `overflow: hidden` plus `break-after: page` on every page except the last gives exactly one page per slide.
+Repeat the same PDF pass for the Mandate Compact plan and the Value Case, since they carry the identical defect. Re-run the deck export once as a regression check.
 
-### 3. Force background fidelity
+## Technical note
 
-Cover and closing slides are ink-dark. Add `print-color-adjust: exact` (with the `-webkit-` prefix) to the print root so browsers don't strip the dark ground in "simplified" print paths.
-
-### 4. Guard the page count
-
-Add `break-inside: avoid` on the page box and reset any inherited margin/padding inside the print portal, so a stray margin cannot push a slide onto a second sheet.
-
-## Verification
-
-Drive the deck route in a headless browser, print to PDF via the DevTools protocol, and confirm with `pdfinfo`/`pdftoppm`:
-- page size reads ~960×540pt (13.333in × 7.5in) in landscape;
-- page count equals slide count exactly — no trailing blank;
-- render page 1 to an image and confirm the headline is complete and the dark ground is present.
-
-## Files touched
-
-- `src/components/personas/field/deck/DeckModal.tsx` — `PAGE_CSS` sheet size, `PRINT_CSS` page box + scale wrapper.
-- `src/components/personas/field/deck/SlideCanvas.tsx` — small print wrapper export if the scale wrapper is cleaner co-located with the slide (no change to `SlideBody` itself).
+No layout or content changes to any on-screen UI — the edits are confined to the `@media print` blocks of the three printable components. `PrintSurface` and the global print rules in `src/styles.css` stay as they are.

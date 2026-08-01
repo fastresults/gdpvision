@@ -197,16 +197,29 @@ function pageCss(config: BriefingPrintConfig): string {
 const PRINT_CSS = `
 @media print {
   html, body { background: #ffffff !important; }
+  /*
+   * Static flow, never absolute. An absolutely positioned root is sized
+   * against the initial containing block — the on-screen viewport — not the
+   * page content box, so the document laid out at window width and the paper
+   * clipped whatever fell past the right trim.
+   */
   #briefing-print-root {
-    position: absolute;
-    inset: 0;
-    width: 100%;
+    position: static;
+    width: auto;
+    margin: 0;
     color: #1a1a1a;
     font-family: "Iowan Old Style", "Georgia", "Times New Roman", serif;
 
     font-size: 10.5pt;
     line-height: 1.55;
   }
+  #briefing-print-root img,
+  #briefing-print-root pre,
+  #briefing-print-root table { max-width: 100%; }
+  #briefing-print-root p,
+  #briefing-print-root li,
+  #briefing-print-root td,
+  #briefing-print-root th { overflow-wrap: anywhere; }
 
   .cb-eyebrow, .cb-eyebrow-right {
     font-family: "SFMono-Regular", "Menlo", "Consolas", monospace;
@@ -358,6 +371,7 @@ const PRINT_CSS = `
   .cb-prose hr { border: none; border-top: 1px solid #d8d4c8; margin: 8mm 0; }
   .cb-prose table {
     width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
     margin: 0 0 6mm 0;
     font-size: 9pt;

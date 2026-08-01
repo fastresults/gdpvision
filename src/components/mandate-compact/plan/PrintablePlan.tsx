@@ -216,17 +216,24 @@ function pageCss(config: PrintConfig): string {
 const PRINT_CSS = `
 @media print {
   html, body { background: #ffffff !important; }
+  /* Static flow: an absolute root is sized against the viewport, not the page
+     content box, which clipped the right margin off every sheet. */
   #plan-print-root {
-    position: absolute;
-    inset: 0;
-    top: 0;
-    left: 0;
-    width: 100%;
+    position: static;
+    width: auto;
+    margin: 0;
     color: #1a1a1a;
     font-family: "Iowan Old Style", "Georgia", "Times New Roman", serif;
     font-size: 10.5pt;
     line-height: 1.55;
   }
+  #plan-print-root img,
+  #plan-print-root pre,
+  #plan-print-root table { max-width: 100%; }
+  #plan-print-root p,
+  #plan-print-root li,
+  #plan-print-root td,
+  #plan-print-root th { overflow-wrap: anywhere; }
 
   .pp-eyebrow, .pp-eyebrow-right {
     font-family: "SFMono-Regular", "Menlo", "Consolas", monospace;

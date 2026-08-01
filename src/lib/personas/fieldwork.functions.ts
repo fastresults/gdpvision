@@ -195,6 +195,10 @@ export const sendWaveInvites = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { deliver, firstName } = await import("./comms-delivery.server");
+    // The participant-facing host is resolved here, never trusted from the
+    // browser: an admin working in the editor preview would otherwise issue
+    // links that ask a member of the public to sign in.
+    const publicOrigin = serverPublicOrigin(data.origin);
 
     const { data: collection } = await supabase
       .from("field_collections")
@@ -268,7 +272,7 @@ export const sendWaveInvites = createServerFn({ method: "POST" })
         skipped += 1;
         continue;
       }
-      const link = `${data.origin}/f/${inv.token as string}`;
+      const link = participantLink(publicOrigin, inv.token as string);
       const subject =
         data.purpose === "reminder"
           ? `A reminder — ${programme}`

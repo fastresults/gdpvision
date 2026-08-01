@@ -265,8 +265,8 @@ export const sendToInvitees = createServerFn({ method: "POST" })
         organisation: c.organisation ?? "",
         programme,
         study,
-        survey_link: `${data.origin}/f/${inv.token as string}`,
-        opt_out_link: `${data.origin}/f/${inv.token as string}?opt_out=1`,
+        survey_link: participantLink(publicOrigin, inv.token as string),
+        opt_out_link: participantLink(publicOrigin, inv.token as string, true),
         session_time: "",
         session_venue: "",
       };

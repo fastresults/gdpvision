@@ -164,46 +164,11 @@ export function ParticipantsStage({
       </div>
     ) : null;
 
-  return (
-    <StageWizard
-      panels={{
-        // ── Step 1 · Find candidates ────────────────────────────────────────
-        find: (
-          <div className="space-y-5">
-            <RecruitmentBoard code={code} projectId={projectId} onChanged={refresh} />
-            <ShowTheDetail label={`Add people by hand · ${contacts.length} on file`}>
-              {rosterBlock}
-            </ShowTheDetail>
-          </div>
-        ),
 
-        // ── Step 2 · Form the panel ─────────────────────────────────────────
-        panel: (
-          <div className="space-y-5">
-            {panelBlock}
-            {contactBook}
-          </div>
-        ),
+  // The paste-a-roster card — the manual way in, kept for when AI recruitment
+  // isn't the right instrument.
+  const rosterBlock = (
 
-        // ── Step 3 · Consent ────────────────────────────────────────────────
-        consent: (
-          <div className="space-y-5">
-            {panelBlock}
-            <p className="text-[13px] leading-relaxed text-ink-700">
-              Nobody is approached without a record of their consent. Opt anyone out here and they
-              disappear from every wave, every invitation and every export — permanently.
-            </p>
-            {contactBook}
-          </div>
-        ),
-      }}
-    />
-  );
-
-  function unusedPlaceholder() {
-    return (
-      <div className="space-y-5">
-        <div className="space-y-5 border-t border-line-200 p-4">
 
           <div className="border border-line-200 bg-paper-0 p-4">
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">

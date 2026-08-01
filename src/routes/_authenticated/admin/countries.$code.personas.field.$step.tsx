@@ -8,12 +8,9 @@ import { createFileRoute, Link, Navigate, notFound, useSearch } from "@tanstack/
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { ClipboardList, FileText, FlaskConical, Loader2, Presentation } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { FieldStepper, type FieldStageKey } from "@/components/personas/FieldStepper";
-import { BriefingModal } from "@/components/personas/field/briefing/BriefingModal";
-import { SplitAction } from "@/components/personas/field/briefing/SplitAction";
-import { TrackerModal } from "@/components/personas/field/tracker/TrackerModal";
 import { BriefStage } from "@/components/personas/field/BriefStage";
 import { EvidenceStage } from "@/components/personas/field/EvidenceStage";
 import { FieldworkStage } from "@/components/personas/field/FieldworkStage";
@@ -23,7 +20,6 @@ import { FieldStageProvider } from "@/components/personas/field/stage-bus";
 import { StageFrame } from "@/components/personas/field/StageFrame";
 import { ShowTheDetail, StageWizard } from "@/components/personas/field/StageWizard";
 
-import { useDossierActions } from "@/hooks/useDossierActions";
 import { useResearchGate } from "@/hooks/useResearchGate";
 import { getFieldProgress } from "@/lib/personas/field-progress.functions";
 import type { FieldProgress } from "@/lib/personas/field-stages";
@@ -86,14 +82,6 @@ function FieldStageBody({
   gate: ReturnType<typeof useResearchGate>;
 }) {
   const qc = useQueryClient();
-  const [briefingOpen, setBriefingOpen] = useState((stage as string) === "briefing");
-  const [briefingIntent, setBriefingIntent] = useState<"briefing" | "deck">("briefing");
-  const [trackerOpen, setTrackerOpen] = useState(false);
-  const openBriefing = (intent: "briefing" | "deck") => {
-    setBriefingIntent(intent);
-    setBriefingOpen(true);
-  };
-
   // One read drives the rail, the "done when" test and the next action.
   const progressQ = useQuery({
     queryKey: ["field-progress", projectId],
@@ -102,145 +90,27 @@ function FieldStageBody({
   });
   const progress = progressQ.data;
   const studyId = progress?.studyId ?? null;
-  // The client dossier only exists once the brief, the plan, the participants
-  // and the instruments are all on file.
-  const dossierReady =
-    gate.committed &&
-    gate.planCommitted &&
-    (progress?.stages.participants.complete ?? false) &&
-    (progress?.stages.instruments.complete ?? false);
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ["field-progress", projectId] });
     void qc.invalidateQueries({ queryKey: ["persona-projects", code] });
-  };
-
-  // Both client-facing outputs are read and regenerated through one hook, so
-  // the row, the panel and the deck viewer never disagree about the version.
-  const dossier = useDossierActions(projectId, progress?.inputsUpdatedAt ?? null);
-
-  /** Rebuilding a dossier already sent to the client is confirmed first. */
-  const confirmIfShared = (): boolean => {
-    const rec = dossier.briefing;
-    if (!rec || rec.status !== "shared" || !rec.shared_at) return true;
-    const sent = new Date(rec.shared_at).toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-    });
-    return window.confirm(
-      `This dossier was sent to the client on ${sent}. Rebuilding replaces it with a new version.`,
-    );
   };
 
   return (
     <FieldStageProvider>
       <div className="space-y-6">
         <FieldStepper
-          code={code}
           active={stage}
-          activeProjectId={projectId}
           briefCommitted={gate.committed}
           planCommitted={gate.planCommitted}
           progress={progress}
         />
 
-        <div className="flex flex-wrap items-center gap-2 border-b border-line-200 pb-3">
-          <div className="mr-auto min-w-0">
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-              Field programme workspace
-            </p>
-            <p className="mt-0.5 text-[12px] text-ink-700">
-              Complete the guided rail below; client outputs and internal delivery tools stay here.
-            </p>
-          </div>
-          {gate.track !== "field" ? (
-            <Link
-              to="/admin/countries/$code/personas"
-              params={{ code }}
-              search={{ project: projectId }}
-              className="btn-ghost"
-              title="Open the Synthetic Lab for this programme"
-            >
-              <FlaskConical size={13} /> Synthetic Lab
-            </Link>
-          ) : null}
-          {gate.planCommitted ? (
-            <>
-              {dossierReady ? (
-                <>
-                  <SplitAction
-                    label="Discovery brief"
-                    icon={<FileText size={13} />}
-                    title="The full client-facing account of the approach, ready to send before fieldwork opens."
-                    regenerateTitle={
-                      dossier.briefingStaleReason ??
-                      "Re-assemble the dossier from the brief, plan, participants and instruments as they stand now."
-                    }
-                    stale={dossier.briefingStale}
-                    busy={dossier.assembling}
-                    onOpen={() => openBriefing("briefing")}
-                    onRegenerate={() => {
-                      if (!confirmIfShared()) return;
-                      dossier.assembleBriefing({ onDone: () => openBriefing("briefing") });
-                    }}
-                  />
-                  <SplitAction
-                    label="Presentation"
-                    icon={<Presentation size={13} />}
-                    title="The same approach as an on-brand slide presentation."
-                    regenerateTitle={
-                      dossier.deckStaleReason ?? "Re-compose the deck from the current dossier."
-                    }
-                    stale={dossier.deckStale}
-                    busy={dossier.composing}
-                    onOpen={() => openBriefing("deck")}
-                    onRegenerate={() => dossier.composeDeck({ onDone: () => openBriefing("deck") })}
-                  />
-                </>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => setTrackerOpen(true)}
-                title="Who owns what, when it is due, and what is blocked. Internal only."
-                className="btn-secondary inline-flex items-center gap-2"
-              >
-                <ClipboardList size={13} />
-                Project tracker
-              </button>
-            </>
-          ) : null}
-        </div>
-
-        {dossier.error ? (
-          <p className="border border-signal-negative/40 bg-signal-negative/5 px-4 py-2 text-sm text-ink-800">
-            {dossier.error}
-          </p>
-        ) : null}
-
         {(stage as string) === "briefing" ? (
-          dossierReady ? (
-            <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
-              <p className="font-serif text-lg text-ink-950">The briefing opens in a window.</p>
-              <p className="mt-1 text-sm text-ink-700">
-                Use “Discovery brief” above to read, print or export the dossier.
-              </p>
-            </div>
-          ) : (
-            <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
-              <p className="font-serif text-lg text-ink-950">
-                {!gate.committed
-                  ? "Write the brief first."
-                  : !gate.planCommitted
-                    ? "Approve the programme plan first."
-                    : !(progress?.stages.participants.complete ?? false)
-                      ? "Settle the participants first."
-                      : "Draft the instruments first."}
-              </p>
-              <p className="mt-1 text-sm text-ink-700">
-                The briefing is assembled from the brief, the approved programme, the participants
-                and the instruments.
-              </p>
-            </div>
-          )
+          <Navigate
+            to="/admin/countries/$code/personas"
+            params={{ code }}
+            search={{ project: projectId }}
+          />
         ) : stage === "brief" ? (
           <StageFrame
             code={code}
@@ -362,20 +232,6 @@ function FieldStageBody({
           </StageFrame>
         )}
 
-        <TrackerModal
-          open={trackerOpen}
-          code={code}
-          projectId={projectId}
-          onClose={() => setTrackerOpen(false)}
-        />
-
-        <BriefingModal
-          open={briefingOpen && dossierReady}
-          intent={briefingIntent}
-          projectId={projectId}
-          inputsUpdatedAt={progress?.inputsUpdatedAt ?? null}
-          onClose={() => setBriefingOpen(false)}
-        />
       </div>
     </FieldStageProvider>
   );
@@ -446,46 +302,19 @@ function PlanStage({
           className="mt-1 w-full border border-line-200 bg-paper-0 p-2 text-sm focus:border-ink-950 focus:outline-none"
         />
       </label>
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={() => derive.mutate()}
-          disabled={derive.isPending}
-          className="btn-primary"
-        >
-          {derive.isPending ? (
-            <>
-              <Loader2 size={11} className="animate-spin" /> Drafting…
-            </>
-          ) : plan ? (
-            "Redraft the programme"
-          ) : (
-            "Draft the programme"
-          )}
-        </button>
-        {derive.isError && (
-          <p className="text-[11px] text-rose-600">{(derive.error as Error).message}</p>
-        )}
-      </div>
+      {derive.isError ? (
+        <p className="mt-3 text-[11px] text-rose-600">{(derive.error as Error).message}</p>
+      ) : null}
     </div>
   );
 
   const approval = (
-    <div className="flex flex-wrap items-center gap-3 border border-line-200 bg-paper-0 p-4">
+    <div className="border border-line-200 bg-paper-0 p-4">
       <p className="min-w-0 flex-1 text-[13px] leading-relaxed text-ink-700">
         Approving fixes the dates and the method mix. Everything downstream — who you hear from,
         what you ask them, which waves you field — is derived from what you approve here.
       </p>
-      {plan && plan.status !== "active" ? (
-        <button
-          type="button"
-          onClick={() => commit.mutate(plan.id)}
-          disabled={commit.isPending}
-          className="btn-primary"
-        >
-          {commit.isPending ? "Approving…" : "Approve this plan"}
-        </button>
-      ) : plan?.status === "active" ? (
+      {plan?.status === "active" ? (
         <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-emerald-700">
           Plan active
         </span>

@@ -44,14 +44,12 @@ export function StageWizard({
 
   if (!nav || !current) return <>{Object.values(panels)[0] ?? null}</>;
 
-  const { steps, index, goTo, isDone } = nav;
-  const firstOpenIndex = steps.findIndex((step) => !isDone(step));
-  const lastReachableIndex = firstOpenIndex === -1 ? steps.length - 1 : firstOpenIndex;
+  const { steps, index, isDone } = nav;
 
   return (
     <div className="space-y-5">
-      {/* A compact progress list, not another tab bar. Completed work can be
-          reopened; future decisions stay locked until the first open one is done. */}
+      {/* Progress is deliberately non-interactive. The footer is the only way
+          forward or backward, so a novice never has to choose where to go. */}
       <ol
         className="grid gap-2 border-y border-line-200 py-3 sm:grid-cols-2 lg:grid-cols-3"
         aria-label="Steps in this stage"
@@ -59,23 +57,17 @@ export function StageWizard({
         {steps.map((s, i) => {
           const active = s.key === current.key;
           const done = isDone(s);
-          const reachable = i <= lastReachableIndex || done;
           return (
             <li key={s.key}>
-              <button
-                type="button"
-                onClick={() => !active && reachable && goTo(s.key)}
-                disabled={!reachable}
+              <div
                 aria-current={active ? "step" : undefined}
                 className={cn(
-                  "flex w-full items-start gap-2 border-l-2 px-3 py-2 text-left transition-colors",
+                  "flex w-full items-start gap-2 border-l-2 px-3 py-2 text-left",
                   active
                     ? "border-ink-950 bg-paper-100/60 text-ink-950"
                     : done
-                      ? "border-emerald-500/50 text-emerald-700 hover:border-ink-950"
-                      : reachable
-                        ? "border-line-200 text-ink-600 hover:border-ink-500 hover:text-ink-800"
-                        : "cursor-not-allowed border-line-100 text-ink-300",
+                      ? "border-emerald-500/50 text-emerald-700"
+                      : "border-line-100 text-ink-300",
                 )}
               >
                 <span className="mt-0.5 font-mono text-[10px] tabular-nums">
@@ -84,10 +76,10 @@ export function StageWizard({
                 <span className="min-w-0">
                   <span className="block text-[12px] leading-snug">{s.label}</span>
                   <span className="mt-0.5 block font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">
-                    {done ? "Complete" : active ? "Now" : reachable ? "Ready" : "Locked"}
+                    {done ? "Complete" : active ? "Now" : "Later"}
                   </span>
                 </span>
-              </button>
+              </div>
             </li>
           );
         })}

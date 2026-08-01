@@ -8,16 +8,8 @@
 // stages both pass through the same unsaved-work gate.
 
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  ChevronDown,
-  CircleDashed,
-  Loader2,
-  Wrench,
-} from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { ArrowLeft, ArrowRight, Check, CircleDashed, Loader2, Wrench } from "lucide-react";
+import { useCallback, useMemo } from "react";
 
 import { Explain } from "@/components/explain/Explain";
 import "@/lib/explain/personas-entries";
@@ -41,16 +33,6 @@ import { SubStepProvider } from "./substep-context";
 
 const STEP_ROUTE = "/admin/countries/$code/personas/field/$step" as const;
 const DOOR_ROUTE = "/admin/countries/$code/personas" as const;
-
-/** Plain-language ways back, so the amend menu reads like a sentence. */
-const AMEND_LABEL: Record<FieldStageKey, string> = {
-  brief: "Change the question we're answering",
-  plan: "Revise the dates and the method mix",
-  participants: "Change who we're hearing from",
-  instruments: "Change what we're asking",
-  fieldwork: "Go back to the field",
-  evidence: "Re-read the evidence",
-};
 
 export function StageFrame({
   code,
@@ -153,9 +135,6 @@ export function StageFrame({
 
   const atFirstSub = index <= 0;
   const atLastSub = index >= steps.length - 1;
-
-  const [amendOpen, setAmendOpen] = useState(false);
-  const earlier = FIELD_STAGES.slice(0, FIELD_STAGES.indexOf(stage));
 
   // A screen may already satisfy its persisted completion predicate while
   // holding a newer local decision (for example, edited instrument wording).
@@ -291,36 +270,6 @@ export function StageFrame({
                       : ""}
                 </span>
               </button>
-
-              {earlier.length > 0 ? (
-                <div className="relative">
-                  <button
-                    type="button"
-                    className="btn-ghost"
-                    onClick={() => setAmendOpen((v) => !v)}
-                    aria-expanded={amendOpen}
-                  >
-                    Amend <ChevronDown size={12} />
-                  </button>
-                  {amendOpen ? (
-                    <div className="absolute bottom-full left-0 z-40 mb-2 w-72 border border-line-200 bg-paper-0 p-1 shadow-lg">
-                      {earlier.map((k) => (
-                        <button
-                          key={k}
-                          type="button"
-                          className="block w-full px-3 py-2 text-left text-[13px] text-ink-800 hover:bg-paper-100"
-                          onClick={() => {
-                            setAmendOpen(false);
-                            goStage(k);
-                          }}
-                        >
-                          {AMEND_LABEL[k]}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
 
               <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500 tabular-nums">
                 Stage {position} of {FIELD_STAGES.length}

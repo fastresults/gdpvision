@@ -103,7 +103,9 @@ export const FIELD_SUBSTEPS: Record<FieldStageKey, FieldSubStep[]> = {
         "Every panel member reachable, none opted out, and anyone who declined removed rather than ignored.",
       primaryLabel: "Confirm the panel is reachable",
       consequence: "This settles participants and moves you to the instruments.",
-      isDone: (p) => n(p, "participants", "contactable") > 0,
+      isDone: (p) =>
+        n(p, "participants", "members") > 0 &&
+        n(p, "participants", "contactable") === n(p, "participants", "members"),
     },
   ],
 

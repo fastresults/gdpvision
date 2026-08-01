@@ -279,19 +279,6 @@ export function RecruitmentBoard({
           className="mt-4 w-full border border-line-200 bg-paper-0 p-2 text-[12px] focus:border-ink-950 focus:outline-none"
         />
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            className="btn-primary"
-            disabled={derive.isPending}
-            onClick={() => derive.mutate()}
-          >
-            {derive.isPending ? (
-              <Loader2 size={12} className="animate-spin" />
-            ) : (
-              <Sparkles size={12} />
-            )}
-            {derive.isPending ? "Reading the brief…" : "Derive the recruitment frame"}
-          </button>
           <Explain id="research.recruitment.frame">How this frame was set</Explain>
         </div>
         {derive.isError ? (
@@ -365,34 +352,6 @@ export function RecruitmentBoard({
           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
             {totals.proposed} proposed · {totals.accepted} accepted
           </p>
-          {totals.proposed > 0 ? (
-            <button
-              type="button"
-              className="btn-secondary"
-              disabled={accept.isPending}
-              onClick={() => accept.mutate({ all: true })}
-            >
-              {accept.isPending ? (
-                <Loader2 size={11} className="animate-spin" />
-              ) : (
-                <CheckCheck size={12} />
-              )}
-              Accept every recommendation
-            </button>
-          ) : null}
-          <button
-            type="button"
-            className="btn-ghost"
-            disabled={compose.isPending || eligibleAccepted < 3}
-            onClick={() => compose.mutate()}
-          >
-            {compose.isPending ? (
-              <Loader2 size={11} className="animate-spin" />
-            ) : (
-              <Users size={12} />
-            )}
-            Compose the focus groups
-          </button>
           <Explain id="research.recruitment.groups">How groups are balanced</Explain>
         </div>
         {eligibleAccepted < 3 ? (

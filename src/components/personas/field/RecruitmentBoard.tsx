@@ -92,6 +92,7 @@ export function RecruitmentBoard({
   const [steering, setSteering] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [adding, setAdding] = useState<string | null>(null);
+  const [composeNotice, setComposeNotice] = useState<string | null>(null);
   const [lastPass, setLastPass] = useState<
     Record<string, { proposed: number; found: number; want: number; notes: string[] }>
   >({});
@@ -117,7 +118,10 @@ export function RecruitmentBoard({
   };
 
   const frame = (stateQ.data?.frame ?? null) as Frame | null;
-  const people = (stateQ.data?.people ?? []) as unknown as Person[];
+  const people = useMemo(
+    () => (stateQ.data?.people ?? []) as unknown as Person[],
+    [stateQ.data?.people],
+  );
   const panels = stateQ.data?.panels ?? [];
 
   const byPersona = useMemo(() => {
@@ -130,7 +134,7 @@ export function RecruitmentBoard({
       const key = person.persona_label ?? "Unassigned";
       if (!map.has(key)) map.set(key, { proposed: [], accepted: [], rejected: [] });
       const bucket = map.get(key)!;
-      const status = person.status ?? "accepted";
+      const status = person.status ?? "proposed";
       if (status === "proposed") bucket.proposed.push(person);
       else if (status === "rejected") bucket.rejected.push(person);
       else bucket.accepted.push(person);
@@ -147,6 +151,10 @@ export function RecruitmentBoard({
     }
     return { proposed, accepted };
   }, [byPersona]);
+  const eligibleAccepted = useMemo(
+    () => people.filter((person) => person.status === "accepted" && !person.opted_out_at).length,
+    [people],
+  );
 
   const derive = useMutation({
     mutationFn: () => deriveFn({ data: { projectId, steering: steering.trim() || null } }),
@@ -185,7 +193,6 @@ export function RecruitmentBoard({
     onSuccess: () => refresh(),
   });
 
-
   const accept = useMutation({
     mutationFn: (args: { ids?: string[]; personaLabel?: string; all?: boolean }) =>
       acceptFn({ data: { projectId, ...args } }),
@@ -200,7 +207,11 @@ export function RecruitmentBoard({
 
   const compose = useMutation({
     mutationFn: () => groupsFn({ data: { projectId } }),
-    onSuccess: refresh,
+    onMutate: () => setComposeNotice(null),
+    onSuccess: (result) => {
+      setComposeNotice(result.message);
+      if (result.ok) refresh();
+    },
   });
 
   // The one action that moves recruitment forward, published to the sticky bar.
@@ -228,6 +239,21 @@ export function RecruitmentBoard({
     return <p className="text-sm text-ink-500">Reading the recruitment record…</p>;
   }
 
+  if (stateQ.isError) {
+    return (
+      <div className="border border-signal-red/30 bg-paper-0 p-6" role="alert">
+        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-signal-red">
+          Recruitment record unavailable
+        </p>
+        <p className="mt-2 text-sm text-ink-700">
+          {(stateQ.error as Error).message || "The recruitment record could not be loaded."}
+        </p>
+        <button type="button" className="btn-secondary mt-4" onClick={() => void stateQ.refetch()}>
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   // ── No frame yet: the AI-first entrance ─────────────────────────────────
   if (!frame) {
@@ -357,7 +383,7 @@ export function RecruitmentBoard({
           <button
             type="button"
             className="btn-ghost"
-            disabled={compose.isPending}
+            disabled={compose.isPending || eligibleAccepted < 3}
             onClick={() => compose.mutate()}
           >
             {compose.isPending ? (
@@ -369,6 +395,13 @@ export function RecruitmentBoard({
           </button>
           <Explain id="research.recruitment.groups">How groups are balanced</Explain>
         </div>
+        {eligibleAccepted < 3 ? (
+          <p className="mt-2 text-[12px] text-ink-700">
+            Focus groups unlock after at least 3 candidates are accepted. Research candidates, then
+            accept {3 - eligibleAccepted} more participant{3 - eligibleAccepted === 1 ? "" : "s"}.
+          </p>
+        ) : null}
+        {composeNotice ? <p className="mt-2 text-[12px] text-ink-700">{composeNotice}</p> : null}
         {compose.isError ? (
           <p className="mt-2 text-[12px] text-rose-600">{(compose.error as Error).message}</p>
         ) : null}

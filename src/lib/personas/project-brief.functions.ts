@@ -46,7 +46,7 @@ export const getProjectBrief = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("persona_projects")
-      .select("id,title,country_code,brief_raw,brief_scope,brief_uploads,brief_committed_at")
+      .select("id,title,country_code,brief_raw,brief_scope,brief_uploads,brief_source,brief_committed_at")
       .eq("id", data.projectId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -58,6 +58,7 @@ export const getProjectBrief = createServerFn({ method: "POST" })
       countryCode: r.country_code,
       brief_raw: r.brief_raw ?? "",
       brief_scope: (r.brief_scope as unknown as ResearchScope | null) ?? null,
+      brief_source: (r.brief_source as unknown as z.infer<typeof UploadSchema> | null) ?? null,
       brief_uploads: Array.isArray(r.brief_uploads) ? (r.brief_uploads as unknown as Array<z.infer<typeof UploadSchema>>) : [],
       committed_at: r.brief_committed_at,
     };
@@ -68,6 +69,8 @@ export const getProjectBrief = createServerFn({ method: "POST" })
 const SaveBriefInput = z.object({
   projectId: z.string().uuid(),
   brief_raw: z.string().max(40_000).optional(),
+  // The single governing brief. `brief_uploads` stays the supporting context.
+  brief_source: UploadSchema.nullish(),
   brief_uploads: z.array(UploadSchema).max(20).optional(),
 });
 
@@ -77,6 +80,7 @@ export const saveProjectBrief = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const patch: Record<string, unknown> = {};
     if (data.brief_raw !== undefined) patch.brief_raw = data.brief_raw;
+    if (data.brief_source !== undefined) patch.brief_source = (data.brief_source ?? null) as unknown as Json;
     if (data.brief_uploads !== undefined) patch.brief_uploads = data.brief_uploads as unknown as Json;
     if (Object.keys(patch).length === 0) return { ok: true as const };
     const { error } = await context.supabase

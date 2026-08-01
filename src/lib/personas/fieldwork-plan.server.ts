@@ -218,6 +218,7 @@ export interface BoardInvitation {
 
 export interface FieldworkBoard {
   studyId: string;
+  countryCode: string;
   waves: WaveState[];
   collection: {
     id: string;
@@ -226,6 +227,8 @@ export interface FieldworkBoard {
     public_token: string | null;
     target_n: number | null;
     instrument_id: string | null;
+    open_token: string | null;
+    open_enabled: boolean;
   } | null;
   invitations: BoardInvitation[];
   responseCount: number;
@@ -257,7 +260,7 @@ export async function loadFieldworkBoard(
         .maybeSingle(),
       supabase
         .from("field_collections")
-        .select("id,status,access,public_token,target_n,instrument_id,mode")
+        .select("id,status,access,public_token,target_n,instrument_id,mode,open_token,open_enabled")
         .eq("study_id", studyId)
         .eq("mode", "hosted")
         .order("created_at", { ascending: false }),

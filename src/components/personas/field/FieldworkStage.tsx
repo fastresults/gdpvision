@@ -82,8 +82,13 @@ export function FieldworkStage({
       <EmptyAction
         title="The field desk could not be read"
         body="Something went wrong loading this programme's waves."
-        action={{ label: "Try again", onClick: () => void boardQ.refetch() }}
+        action={
+          <button type="button" className="btn-secondary" onClick={() => void boardQ.refetch()}>
+            Try again
+          </button>
+        }
       />
+
     );
   }
 

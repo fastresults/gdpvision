@@ -8,7 +8,7 @@ import { createFileRoute, Link, Navigate, notFound, useSearch } from "@tanstack/
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { FileText, Loader2, Presentation } from "lucide-react";
 
 import { FieldStepper, type FieldStageKey } from "@/components/personas/FieldStepper";
 import { BriefingModal } from "@/components/personas/field/briefing/BriefingModal";
@@ -77,6 +77,11 @@ function FieldStageBody({
 }) {
   const qc = useQueryClient();
   const [briefingOpen, setBriefingOpen] = useState((stage as string) === "briefing");
+  const [briefingIntent, setBriefingIntent] = useState<"briefing" | "deck">("briefing");
+  const openBriefing = (intent: "briefing" | "deck") => {
+    setBriefingIntent(intent);
+    setBriefingOpen(true);
+  };
 
   // One read drives the rail, the "done when" test and the next action.
   const progressQ = useQuery({
@@ -86,6 +91,13 @@ function FieldStageBody({
   });
   const progress = progressQ.data;
   const studyId = progress?.studyId ?? null;
+  // The client dossier only exists once the brief, the plan, the participants
+  // and the instruments are all on file.
+  const dossierReady =
+    gate.committed &&
+    gate.planCommitted &&
+    (progress?.stages.participants.complete ?? false) &&
+    (progress?.stages.instruments.complete ?? false);
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ["field-progress", projectId] });
     void qc.invalidateQueries({ queryKey: ["persona-projects", code] });
@@ -103,38 +115,59 @@ function FieldStageBody({
           progress={progress}
         />
 
-        <TrackTabs code={code} projectId={projectId} track={gate.track} active="field" />
-
-        {gate.planCommitted && (
-          <div className="flex flex-wrap items-center justify-between gap-3 border border-line-200 bg-paper-100/40 px-4 py-3">
-            <p className="text-sm text-ink-700">
-              <span className="font-serif text-ink-950">Commencement briefing</span> — the full
-              client-facing account of the approach, ready to send before fieldwork opens.
-            </p>
-            <button
-              type="button"
-              onClick={() => setBriefingOpen(true)}
-              className="btn-secondary inline-flex"
-            >
-              Open the briefing
-            </button>
-
-          </div>
-        )}
+        <TrackTabs
+          code={code}
+          projectId={projectId}
+          track={gate.track}
+          active="field"
+          actions={
+            dossierReady ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => openBriefing("briefing")}
+                  title="The full client-facing account of the approach, ready to send before fieldwork opens."
+                  className="btn-secondary inline-flex items-center gap-2"
+                >
+                  <FileText size={13} />
+                  Discovery brief
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openBriefing("deck")}
+                  title="The same approach as an on-brand slide presentation."
+                  className="btn-secondary inline-flex items-center gap-2"
+                >
+                  <Presentation size={13} />
+                  Presentation
+                </button>
+              </>
+            ) : null
+          }
+        />
 
         {(stage as string) === "briefing" ? (
-          gate.planCommitted ? (
+          dossierReady ? (
             <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
               <p className="font-serif text-lg text-ink-950">The briefing opens in a window.</p>
               <p className="mt-1 text-sm text-ink-700">
-                Use “Open the briefing” above to read, print or export the dossier.
+                Use “Discovery brief” above to read, print or export the dossier.
               </p>
             </div>
           ) : (
             <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
-              <p className="font-serif text-lg text-ink-950">Approve the programme plan first.</p>
+              <p className="font-serif text-lg text-ink-950">
+                {!gate.committed
+                  ? "Write the brief first."
+                  : !gate.planCommitted
+                    ? "Approve the programme plan first."
+                    : !(progress?.stages.participants.complete ?? false)
+                      ? "Settle the participants first."
+                      : "Draft the instruments first."}
+              </p>
               <p className="mt-1 text-sm text-ink-700">
-                The briefing is assembled from the approved programme.
+                The briefing is assembled from the brief, the approved programme, the participants
+                and the instruments.
               </p>
             </div>
           )
@@ -217,7 +250,8 @@ function FieldStageBody({
         )}
 
         <BriefingModal
-          open={briefingOpen && gate.planCommitted}
+          open={briefingOpen && dossierReady}
+          intent={briefingIntent}
           projectId={projectId}
           onClose={() => setBriefingOpen(false)}
         />

@@ -13,10 +13,12 @@ export function BriefingModal({
   open,
   projectId,
   onClose,
+  intent = "briefing",
 }: {
   open: boolean;
   projectId: string;
   onClose: () => void;
+  intent?: "briefing" | "deck";
 }) {
   useEffect(() => {
     if (!open) return;
@@ -60,7 +62,7 @@ export function BriefingModal({
           </button>
         </header>
         <div className="overflow-y-auto px-5 py-5">
-          <BriefingPanel projectId={projectId} />
+          <BriefingPanel projectId={projectId} intent={intent} />
         </div>
       </div>
     </div>

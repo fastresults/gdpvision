@@ -9,7 +9,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Check,
   CircleDashed,
@@ -55,7 +55,13 @@ function dateLabel(d: string | null): string {
   });
 }
 
-export function BriefingPanel({ projectId }: { projectId: string }) {
+export function BriefingPanel({
+  projectId,
+  intent = "briefing",
+}: {
+  projectId: string;
+  intent?: "briefing" | "deck";
+}) {
   const qc = useQueryClient();
   const [exportOpen, setExportOpen] = useState(false);
   const [printConfig, setPrintConfig] = useState<BriefingPrintConfig>(
@@ -116,6 +122,17 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
     committedText: "",
   };
   const preflight = doc?.preflight ?? [];
+
+  // Opened straight from the "Presentation" action: jump to the composed deck
+  // once, when one exists for this briefing version and it passed preflight.
+  const jumped = useRef(false);
+  useEffect(() => {
+    if (intent !== "deck" || jumped.current) return;
+    if (!doc || !preflightReady) return;
+    if (deckQ.data?.deck.briefingVersion !== doc.version) return;
+    jumped.current = true;
+    setDeckOpen(true);
+  }, [intent, doc, preflightReady, deckQ.data]);
 
   const runExport = (config: BriefingPrintConfig) => {
     setPrintConfig(config);

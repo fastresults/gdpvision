@@ -76,6 +76,10 @@ export function StageWizard({
         </p>
       </div>
 
+      {/* The one instruction and the one action for this screen. */}
+      {action ? <ScreenAction spec={action} done={isDone(current)} /> : null}
+
+
       {panels[current.key] ?? (
         <p className="border border-dashed border-line-200 p-6 text-sm text-ink-500">
           Nothing to do on this screen.

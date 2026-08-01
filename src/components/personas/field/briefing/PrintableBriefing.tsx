@@ -35,7 +35,7 @@ export const DEFAULT_BRIEFING_PRINT_CONFIG: BriefingPrintConfig = {
   }),
   showPageNumbers: true,
   showCoverPage: true,
-  showToc: true,
+  
 };
 
 function windowLabel(b: CommencementBriefing): string {

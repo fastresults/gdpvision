@@ -206,8 +206,13 @@ export function InstrumentsStage({
 
   const coverage = objectives.map((o, i) => ({
     objective: o.objective,
-    n: (value?.questions ?? []).filter((q) => q.objective_ref === i + 1).length,
+    n: (value?.questions ?? []).filter(
+      (q) => q.intent !== "frontline_insight" && q.objective_ref === i + 1,
+    ).length,
   }));
+  const frontlineCount = (value?.questions ?? []).filter(
+    (q) => q.intent === "frontline_insight",
+  ).length;
 
   return (
     <div className="space-y-5">

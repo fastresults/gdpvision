@@ -25,6 +25,8 @@ function lineAfter(text: string, label: RegExp): string {
   const lines = text.split(/\r?\n/).map((line) => line.trim());
   const index = lines.findIndex((line) => label.test(line));
   if (index < 0) return "";
+  const inline = lines[index]?.replace(label, "").replace(/^\s*[:\-–—]\s*/, "").trim();
+  if (inline) return inline;
   return lines.slice(index + 1).find((line) => line.length > 0) ?? "";
 }
 
@@ -37,8 +39,8 @@ export function governingBriefIdentity(
   const sourceName = typeof record["name"] === "string" ? record["name"] : fallbackTitle;
   return {
     sourceName,
-    preparedFor: lineAfter(excerpt, /^prepared\s+for\b/i),
-    preparedBy: lineAfter(excerpt, /^(?:submitted|prepared)\s+by\b/i),
+    preparedFor: lineAfter(excerpt, /^prepared\s+for\b\s*:?/i),
+    preparedBy: lineAfter(excerpt, /^(?:submitted|prepared)\s+by\b\s*:?/i),
   };
 }
 

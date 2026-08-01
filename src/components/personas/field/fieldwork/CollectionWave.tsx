@@ -72,7 +72,8 @@ export function CollectionWave({
   const returned = state.counts["returned"] ?? 0;
   const invited = state.counts["invited"] ?? 0;
   const opened = state.counts["opened"] ?? 0;
-  const origin = typeof window === "undefined" ? "" : window.location.origin;
+  // Never the editor preview host — a participant must never meet a login screen.
+  const origin = browserPublicOrigin();
   const complete = state.status === "complete";
 
   // One shape for every move on this wave: run it, say what happened, refresh.

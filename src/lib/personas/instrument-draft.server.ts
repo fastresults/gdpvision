@@ -236,14 +236,103 @@ function normaliseQuestions(questions: FieldQuestion[], objectiveCount: number):
       .slice(0, 40);
     if (!id || used.has(id)) id = `q${i + 1}`;
     used.add(id);
+    const frontline = q.intent === FRONTLINE_INTENT;
     const ref =
+      !frontline &&
       typeof q.objective_ref === "number" &&
       q.objective_ref >= 1 &&
       q.objective_ref <= objectiveCount
         ? Math.round(q.objective_ref)
         : undefined;
-    return { ...q, id, ...(ref ? { objective_ref: ref } : {}) };
+    const out: FieldQuestion = { ...q, id };
+    delete out.objective_ref;
+    if (ref) out.objective_ref = ref;
+    if (frontline) out.intent = FRONTLINE_INTENT;
+    else delete out.intent;
+    return out;
   });
+}
+
+/** Does this instrument already carry the standing frontline-insight block? */
+export function hasFrontlineBlock(questions: FieldQuestion[]): boolean {
+  return questions.some((q) => q.intent === FRONTLINE_INTENT);
+}
+
+/**
+ * The guarantee. Every instrument closes with an open invitation to the people
+ * actually touching the work: where does it break, what would you change, and
+ * how sure are you it would work. If the model omitted it, we append a version
+ * worded to this study's own subject.
+ */
+function appendFrontlineBlock(
+  questions: FieldQuestion[],
+  kind: InstrumentKind,
+  subject: string,
+): FieldQuestion[] {
+  if (hasFrontlineBlock(questions)) return questions;
+  const s = subject.trim() || "the work covered by this study";
+  const block: FieldQuestion[] =
+    kind === "discussion_guide"
+      ? [
+          {
+            id: "fi_friction",
+            type: "moderator_prompt",
+            prompt: `Closing round — where does ${s} break down or slow you down most in practice? Probe for the specific step, not the general complaint.`,
+            help: "Frontline insight · beyond the brief.",
+            intent: FRONTLINE_INTENT,
+          },
+          {
+            id: "fi_workaround",
+            type: "moderator_prompt",
+            prompt: `What do you and your team already do informally to get around that? Probe for workarounds people have invented themselves.`,
+            help: "Frontline insight · beyond the brief.",
+            intent: FRONTLINE_INTENT,
+          },
+          {
+            id: "fi_invention",
+            type: "moderator_prompt",
+            prompt: `If you could change one thing about how ${s} is done, what would you change — and what would improve as a result? Go round the room.`,
+            help: "Frontline insight · beyond the brief.",
+            intent: FRONTLINE_INTENT,
+          },
+          {
+            id: "fi_referral",
+            type: "moderator_prompt",
+            prompt: `Who else should we be asking about this — someone closer to the work than anyone in this room?`,
+            help: "Frontline insight · beyond the brief.",
+            intent: FRONTLINE_INTENT,
+          },
+        ]
+      : [
+          {
+            id: "fi_friction",
+            type: "open_text",
+            prompt: `Thinking about how ${s} works day to day, where does it break down or slow you down most?`,
+            help: "In your own words — this is the part only you can tell us.",
+            required: false,
+            intent: FRONTLINE_INTENT,
+          },
+          {
+            id: "fi_invention",
+            type: "open_text",
+            prompt: `If you could change one thing about how ${s} is done, what would you change, and what would improve?`,
+            help: "One change, however small or however large.",
+            required: false,
+            intent: FRONTLINE_INTENT,
+          },
+          {
+            id: "fi_confidence",
+            type: "scale",
+            prompt: "How confident are you that the change you described would work?",
+            scale_min: 1,
+            scale_max: 5,
+            scale_min_label: "Not confident",
+            scale_max_label: "Very confident",
+            required: false,
+            intent: FRONTLINE_INTENT,
+          },
+        ];
+  return [...questions, ...block];
 }
 
 /** Draft one instrument of `kind` and persist it as the next version. */

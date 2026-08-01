@@ -293,9 +293,12 @@ Return JSON:
     });
 
     await supabase
+    const { error: closeErr } = await supabase
       .from("persona_projects")
       .update({ status: "completed" } as never)
       .eq("id", data.projectId);
+    if (closeErr) throw closeErr;
+
 
     return { memo, memoryId: mem?.id ?? null };
   });

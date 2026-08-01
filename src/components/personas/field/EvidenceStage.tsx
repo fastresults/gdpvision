@@ -10,6 +10,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Archive, Loader2, RotateCcw, Sparkles } from "lucide-react";
 
 import { EmptyAction } from "./StageFrame";
+import { ShowTheDetail, StageWizard } from "./StageWizard";
 import { useResolveAction } from "./stage-bus";
 import { getCollection } from "@/lib/personas/field-collection.functions";
 import {
@@ -287,8 +288,8 @@ export function EvidenceStage({
               ) : null}
             </Block>
           ) : null}
-    </article>
-  );
+        </article>
+      );
 
   return (
     <StageWizard

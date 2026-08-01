@@ -17,7 +17,6 @@ import {
   type PrintConfig,
 } from "@/components/mandate-compact/plan/PrintablePlan";
 
-
 const STORAGE_KEY = "mandate-compact:print-config";
 
 export function ExportPdfDialog({
@@ -119,11 +118,7 @@ export function ExportPdfDialog({
             value={config.preparedBy}
             onChange={(v) => update("preparedBy", v)}
           />
-          <Field
-            label="Date"
-            value={config.dateLabel}
-            onChange={(v) => update("dateLabel", v)}
-          />
+          <Field label="Date" value={config.dateLabel} onChange={(v) => update("dateLabel", v)} />
 
           <div className="space-y-3 border-t border-line-200 pt-4">
             <Toggle
@@ -147,11 +142,9 @@ export function ExportPdfDialog({
 
           <p className="border-t border-line-200 pt-4 text-[11px] leading-relaxed text-ink-500">
             The browser print dialog opens next — choose{" "}
-            <span className="font-medium text-ink-950">"Save as PDF"</span> as
-            the destination. Suggested filename:{" "}
-            <span className="font-mono text-[10px] text-ink-700">
-              {suggestFilename(plan)}
-            </span>
+            <span className="font-medium text-ink-950">"Save as PDF"</span> as the destination.
+            Suggested filename:{" "}
+            <span className="font-mono text-[10px] text-ink-700">{suggestFilename(plan)}</span>
           </p>
         </div>
 
@@ -159,7 +152,11 @@ export function ExportPdfDialog({
           <button type="button" onClick={onClose} className="btn-ghost">
             Cancel
           </button>
-          <button type="button" onClick={submit} className="btn-primary inline-flex items-center gap-2">
+          <button
+            type="button"
+            onClick={submit}
+            className="btn-primary inline-flex items-center gap-2"
+          >
             <Download size={14} /> Export PDF
           </button>
         </footer>
@@ -181,20 +178,14 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-        {label}
-      </span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">{label}</span>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="mt-1.5 w-full border border-line-200 bg-paper-0 px-3 py-2 text-sm text-ink-950 focus:border-ink-950 focus:outline-none"
       />
-      {hint && (
-        <span className="mt-1 block text-[11px] leading-snug text-ink-500">
-          {hint}
-        </span>
-      )}
+      {hint && <span className="mt-1 block text-[11px] leading-snug text-ink-500">{hint}</span>}
     </label>
   );
 }
@@ -220,11 +211,7 @@ function Toggle({
       />
       <span>
         <span className="block text-sm text-ink-950">{label}</span>
-        {hint && (
-          <span className="mt-0.5 block text-[11px] leading-snug text-ink-500">
-            {hint}
-          </span>
-        )}
+        {hint && <span className="mt-0.5 block text-[11px] leading-snug text-ink-500">{hint}</span>}
       </span>
     </label>
   );
@@ -247,4 +234,3 @@ export function suggestFilename(plan: TransformationalPlan): string {
 export function triggerPdfPrint(filename: string) {
   printSurface(PLAN_PRINT_SURFACE, { title: filename.replace(/\.pdf$/i, "") });
 }
-

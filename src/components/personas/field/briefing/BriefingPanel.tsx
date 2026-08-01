@@ -46,8 +46,6 @@ import {
   type BriefingPrintConfig,
 } from "./PrintableBriefing";
 
-
-
 function dateLabel(d: string | null): string {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("en-GB", {
@@ -108,7 +106,6 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
       setError(e instanceof Error ? e.message : "Could not compose the deck."),
   });
 
-
   const record = briefingQ.data ?? null;
   const doc = record?.document ?? null;
 
@@ -122,7 +119,6 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
     });
   };
 
-
   return (
     <section className="space-y-6">
       <header className="border-b border-line-200 pb-5">
@@ -133,9 +129,9 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
         <p className="mt-2 max-w-2xl text-sm text-ink-700">
           The complete, plain-language account of what is about to happen: the brief as we
           understood it, the programme and its dates, the target personas we will hear from and why
-          they were chosen, every question that will be asked, how the fieldwork will be run, and how the
-          evidence will be judged and filed. Assemble it, read it, then send it before the first
-          participant is contacted.
+          they were chosen, every question that will be asked, how the fieldwork will be run, and
+          how the evidence will be judged and filed. Assemble it, read it, then send it before the
+          first participant is contacted.
         </p>
       </header>
 
@@ -215,7 +211,6 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
                 Re-compose deck
               </button>
             )}
-
 
             {record && record.status !== "shared" && (
               <button
@@ -346,7 +341,6 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
             deck={deckQ.data?.deck ?? null}
             onClose={() => setDeckOpen(false)}
           />
-
         </>
       )}
     </section>

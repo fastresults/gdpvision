@@ -14,7 +14,6 @@ import type { CommencementBriefing } from "@/lib/personas/commencement-briefing.
 /** Surface id — pass to printSurface() to print the briefing and nothing else. */
 export const BRIEFING_PRINT_SURFACE = "briefing";
 
-
 export type BriefingPrintConfig = {
   classification: string;
   preparedFor: string;
@@ -55,7 +54,6 @@ export function PrintableBriefing({
   config: BriefingPrintConfig;
 }) {
   return (
-
     <PrintSurface
       id={BRIEFING_PRINT_SURFACE}
       rootId="briefing-print-root"
@@ -63,7 +61,6 @@ export function PrintableBriefing({
       rootProps={{ "data-page-numbers": config.showPageNumbers ? "on" : "off" }}
     >
       <style>{PRINT_CSS}</style>
-
 
       {config.showCoverPage && (
         <section className="cb-page cb-cover">
@@ -138,7 +135,6 @@ export function PrintableBriefing({
         ))}
       </section>
     </PrintSurface>
-
   );
 }
 

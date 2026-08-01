@@ -69,27 +69,18 @@ export function PrintablePlan({
             </p>
           </div>
           <div className="pp-cover-body">
-            <p className="pp-cover-kicker">
-              Chamber 08 · Transformational Plan
-            </p>
+            <p className="pp-cover-kicker">Chamber 08 · Transformational Plan</p>
             <h1 className="pp-cover-title">{plan.title}</h1>
-            {plan.subtitle && (
-              <p className="pp-cover-subtitle">{plan.subtitle}</p>
-            )}
+            {plan.subtitle && <p className="pp-cover-subtitle">{plan.subtitle}</p>}
             {plan.metrics.gdp_delta_headline && (
-              <p className="pp-cover-headline">
-                {plan.metrics.gdp_delta_headline}
-              </p>
+              <p className="pp-cover-headline">{plan.metrics.gdp_delta_headline}</p>
             )}
           </div>
           <div className="pp-cover-metrics">
             <MetricCell label="Pillars" value={plan.metrics.pillars} />
             <MetricCell label="Pledges" value={plan.metrics.pledges} />
             <MetricCell label="Deliverables" value={plan.metrics.deliverables} />
-            <MetricCell
-              label="Ministries"
-              value={plan.metrics.ministries_engaged}
-            />
+            <MetricCell label="Ministries" value={plan.metrics.ministries_engaged} />
           </div>
           <div className="pp-cover-foot">
             <div>
@@ -119,9 +110,7 @@ export function PrintablePlan({
           <ol className="pp-toc-list">
             {plan.sections.map((s, i) => (
               <li key={s.id}>
-                <span className="pp-toc-num">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
+                <span className="pp-toc-num">{String(i + 1).padStart(2, "0")}</span>
                 <span className="pp-toc-title">{s.heading}</span>
                 <span className="pp-toc-kind">
                   {(s.eyebrow || s.kind).toString().replace(/_/g, " ")}
@@ -145,9 +134,7 @@ export function PrintablePlan({
           <ol className="pp-src-list">
             {plan.sources.map((s, i) => (
               <li key={i}>
-                <span className="pp-src-num">
-                  [{String(i + 1).padStart(2, "0")}]
-                </span>
+                <span className="pp-src-num">[{String(i + 1).padStart(2, "0")}]</span>
                 <span>{s.label}</span>
               </li>
             ))}
@@ -155,7 +142,6 @@ export function PrintablePlan({
         </section>
       )}
     </PrintSurface>
-
   );
 }
 
@@ -168,30 +154,18 @@ function MetricCell({ label, value }: { label: string; value: number }) {
   );
 }
 
-function PrintSection({
-  section,
-  index,
-}: {
-  section: PlanSection;
-  index: number;
-}) {
+function PrintSection({ section, index }: { section: PlanSection; index: number }) {
   return (
     <article className="pp-section" id={`pp-${section.id}`}>
       <header className="pp-section-head">
-        <p className="pp-eyebrow">
-          {section.eyebrow || section.kind.replace(/_/g, " ")}
-        </p>
+        <p className="pp-eyebrow">{section.eyebrow || section.kind.replace(/_/g, " ")}</p>
         <div className="pp-section-title-row">
-          <span className="pp-section-num">
-            {String(index).padStart(2, "0")}
-          </span>
+          <span className="pp-section-num">{String(index).padStart(2, "0")}</span>
           <h3 className="pp-h3">{section.heading}</h3>
         </div>
       </header>
       <div className="pp-prose">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-          {section.body_md}
-        </ReactMarkdown>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{section.body_md}</ReactMarkdown>
       </div>
     </article>
   );

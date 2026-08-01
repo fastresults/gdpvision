@@ -18,7 +18,6 @@ import { ScaledSlide, SlideBody } from "./SlideCanvas";
 /** Surface id — the deck prints one 16:9 page per slide, and nothing else. */
 export const DECK_PRINT_SURFACE = "deck";
 
-
 export function DeckModal({
   open,
   deck,
@@ -82,7 +81,6 @@ export function DeckModal({
     });
   };
 
-
   const download = async () => {
     setDownloading(true);
     try {
@@ -129,11 +127,19 @@ export function DeckModal({
                 <p className="mt-0.5 font-serif text-lg text-ink-950">{deck.programmeTitle}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <button type="button" onClick={present} className="btn-secondary inline-flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={present}
+                  className="btn-secondary inline-flex items-center gap-2"
+                >
                   <Play size={14} />
                   Present
                 </button>
-                <button type="button" onClick={printDeck} className="btn-secondary inline-flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={printDeck}
+                  className="btn-secondary inline-flex items-center gap-2"
+                >
                   <Printer size={14} />
                   Print / PDF
                 </button>
@@ -143,7 +149,11 @@ export function DeckModal({
                   disabled={downloading}
                   className="btn-secondary inline-flex items-center gap-2"
                 >
-                  {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                  {downloading ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Download size={14} />
+                  )}
                   PowerPoint
                 </button>
                 <button
@@ -192,7 +202,10 @@ export function DeckModal({
                   <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
                     {slide.eyebrow} · {index + 1} / {total}
                   </p>
-                  <NavButton onClick={() => setIndex((i) => Math.min(i + 1, total - 1))} dir="next" />
+                  <NavButton
+                    onClick={() => setIndex((i) => Math.min(i + 1, total - 1))}
+                    dir="next"
+                  />
                 </div>
               </div>
             </div>
@@ -214,7 +227,6 @@ export function DeckModal({
         ))}
         <style>{PRINT_CSS}</style>
       </PrintSurface>
-
     </>
   );
 }

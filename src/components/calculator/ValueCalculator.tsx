@@ -40,13 +40,13 @@ const TITLE: Record<string, string> = Object.fromEntries(CHAMBERS.map((c) => [c.
 function StepHeading({ n, title, lede }: { n: string; title: string; lede?: string }) {
   return (
     <header className="mb-6">
-      <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-        Step {n}
-      </div>
+      <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Step {n}</div>
       <h2 className="mt-3 font-serif text-[26px] leading-tight tracking-tight text-ink-950 md:text-[30px]">
         {title}
       </h2>
-      {lede ? <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-700">{lede}</p> : null}
+      {lede ? (
+        <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-700">{lede}</p>
+      ) : null}
     </header>
   );
 }
@@ -117,7 +117,9 @@ export function ValueCalculator() {
         else setCounselError(res.error);
       } catch {
         if (id === requestRef.current) {
-          setCounselError("The counsel service is unavailable. The arithmetic below is unaffected.");
+          setCounselError(
+            "The counsel service is unavailable. The arithmetic below is unaffected.",
+          );
         }
       } finally {
         if (id === requestRef.current) setCounselLoading(false);

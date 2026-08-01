@@ -53,7 +53,6 @@ const PRINT_CSS = `
 }
 `;
 
-
 /**
  * Hidden on screen, owns the page in print. Produces the single sheet a
  * permanent secretary can carry into the room: the configuration, the verdict,
@@ -85,20 +84,17 @@ export function PrintableValueCase({
   }, []);
 
   return (
-    <PrintSurface
-      id={VALUE_CASE_PRINT_SURFACE}
-      rootId="value-case-print-root"
-      pageCss={PAGE_CSS}
-    >
+    <PrintSurface id={VALUE_CASE_PRINT_SURFACE} rootId="value-case-print-root" pageCss={PAGE_CSS}>
       <style dangerouslySetInnerHTML={{ __html: PRINT_CSS }} />
       <div>
-
         <div className="mono">GDPVision · Sovereign value instrument · {today}</div>
         <h1>The value of instrumented decision-making — {countryName}</h1>
         <div className="rule" />
 
         <section>
-          <div className="mono">Modelled uplift, year three · {STANCE_LABEL[input.stance]} stance</div>
+          <div className="mono">
+            Modelled uplift, year three · {STANCE_LABEL[input.stance]} stance
+          </div>
           <div className="verdict">{formatUsd(result.upliftUsd)}</div>
           <p>
             {result.upliftPpOfGdp.toFixed(2)} percentage points of GDP · return of{" "}
@@ -215,6 +211,5 @@ export function PrintableValueCase({
         </p>
       </div>
     </PrintSurface>
-
   );
 }

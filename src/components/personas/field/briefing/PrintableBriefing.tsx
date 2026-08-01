@@ -371,6 +371,7 @@ const PRINT_CSS = `
   .cb-prose hr { border: none; border-top: 1px solid #d8d4c8; margin: 8mm 0; }
   .cb-prose table {
     width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
     margin: 0 0 6mm 0;
     font-size: 9pt;

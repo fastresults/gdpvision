@@ -372,7 +372,7 @@ export async function assembleBriefing(
     heading: "The participants",
     body_md: [
       narrative?.why_these_people ??
-        "The audience below was derived from the brief and recruited against named, verifiable individuals.",
+        "The audience below was derived from the brief. Participants are described as target personas — individual identities stay confidential and are held in the recruitment record.",
       "",
       "### Segments the plan requires",
       "",
@@ -395,22 +395,50 @@ export async function assembleBriefing(
         ]),
       ),
       "",
-      "### Named participants",
+      "### Target personas recruited",
       "",
       table(
-        ["Name", "Role", "Organisation", "Segment", "Why them", "Consent"],
-        members.map((m) => {
-          const c = contactById.get(m.contact_id) ?? {};
-          return [
-            str(c["full_name"], "—"),
-            str(c["role_title"], "—"),
-            str(c["organisation"], "—"),
-            str(c["persona_label"], "—"),
-            str(c["fit_reason"], "—"),
-            str(c["consent_status"], "pending"),
-          ];
-        }),
+        ["Persona", "Typical roles", "Typical settings", "Why them", "Recruited", "Consent secured"],
+        (() => {
+          type Bucket = {
+            roles: Set<string>;
+            orgs: Set<string>;
+            why: string;
+            count: number;
+            consented: number;
+          };
+          const buckets = new Map<string, Bucket>();
+          for (const m of members) {
+            const c = contactById.get(m.contact_id) ?? {};
+            const key = str(c["persona_label"], "Unsegmented");
+            const b =
+              buckets.get(key) ??
+              ({ roles: new Set(), orgs: new Set(), why: "", count: 0, consented: 0 } as Bucket);
+            const role = str(c["role_title"], "");
+            const org = str(c["organisation"], "");
+            if (role) b.roles.add(role);
+            if (org) b.orgs.add(org);
+            if (!b.why) b.why = str(c["fit_reason"], "");
+            b.count += 1;
+            if (str(c["consent_status"]) === "granted") b.consented += 1;
+            buckets.set(key, b);
+          }
+          const sample = (s: Set<string>) => {
+            const list = [...s].slice(0, 3);
+            if (list.length === 0) return "—";
+            return list.join("; ") + (s.size > 3 ? `; +${s.size - 3} more` : "");
+          };
+          return [...buckets.entries()].map(([persona, b]) => [
+            persona,
+            sample(b.roles),
+            sample(b.orgs),
+            b.why || "—",
+            String(b.count),
+            `${b.consented}/${b.count}`,
+          ]);
+        })(),
       ),
+
     ].join("\n"),
   });
 

@@ -8,6 +8,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Loader2, UserPlus, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { RecruitmentBoard } from "./RecruitmentBoard";
 import { EmptyAction } from "./StageFrame";
 import {
   createPanel,
@@ -137,6 +138,9 @@ export function ParticipantsStage({
 
   return (
     <div className="space-y-5">
+      {/* AI-first recruitment: the frame, the research, the slates */}
+      <RecruitmentBoard code={code} projectId={projectId} onChanged={refresh} />
+
       {/* Panel state */}
       {projectPanels.length > 0 ? (
         <div className="border border-line-200 bg-paper-0 p-4">
@@ -154,7 +158,12 @@ export function ParticipantsStage({
         </div>
       ) : null}
 
-      {/* Roster intake */}
+      {/* Manual fallback: the contact book, by hand */}
+      <details className="border border-line-200 bg-paper-0">
+        <summary className="cursor-pointer px-4 py-3 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+          Contact book &amp; manual roster · {contacts.length} people on file
+        </summary>
+        <div className="space-y-5 border-t border-line-200 p-4">
       <div className="border border-line-200 bg-paper-0 p-4">
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
           Add people · paste a roster
@@ -273,6 +282,8 @@ export function ParticipantsStage({
           </ul>
         </div>
       )}
+        </div>
+      </details>
     </div>
   );
 }

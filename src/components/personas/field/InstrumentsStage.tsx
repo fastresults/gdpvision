@@ -668,9 +668,58 @@ export function InstrumentsStage({
         </div>
       );
 
+  const uncovered = coverage.filter((c) => c.n === 0).length;
+
   return (
     <StageWizard
+      actions={{
+        draft: {
+          instruction:
+            missing.length > 0
+              ? "Let the chamber draft every instrument the approved plan obliges."
+              : "The plan's instruments are drafted — read them before you edit.",
+          outstanding:
+            missing.length > 0
+              ? `${missing.map((k) => kindLabel(k).toLowerCase()).join(" and ")} not drafted`
+              : null,
+          doneNote: `${instruments.length} instrument${instruments.length === 1 ? "" : "s"} drafted`,
+          error: derive.isError ? (derive.error as Error).message : null,
+          action: {
+            label: missing.length > 0 ? "Draft the instruments" : "Draft again",
+            onClick: () => derive.mutate(undefined),
+            pending: derive.isPending,
+            icon: <Sparkles size={12} />,
+            note: "Writes from the brief, the objectives and the approved method mix.",
+          },
+        },
+        edit: {
+          instruction: "Put the questions in your own words, in the order a conversation takes.",
+          outstanding: doc.dirty ? "unsaved edits on this instrument" : null,
+          doneNote: `${value?.questions.length ?? 0} question${(value?.questions.length ?? 0) === 1 ? "" : "s"} saved`,
+          error: save.isError ? (save.error as Error).message : null,
+          action: {
+            label: "Save the instrument",
+            onClick: () => save.mutate(),
+            pending: save.isPending,
+            disabled: !doc.dirty,
+            icon: <Save size={12} />,
+            note: "Saves your wording and order to this instrument.",
+          },
+        },
+        coverage: {
+          instruction:
+            "Check every objective is asked about and the closing frontline block is in place.",
+          outstanding:
+            uncovered > 0
+              ? `${uncovered} objective${uncovered === 1 ? "" : "s"} with no question`
+              : frontlineCount === 0
+                ? "no frontline insight question"
+                : null,
+          doneNote: "Every objective is covered and the frontline block is present",
+        },
+      }}
       panels={{
+
         // ── Step 1 · Let the chamber write the first draft ────────────────
         draft: (
           <div className="space-y-5">

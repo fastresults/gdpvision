@@ -135,6 +135,30 @@ export function DeckModal({
                 <p className="mt-0.5 font-serif text-lg text-ink-950">{deck.programmeTitle}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
+                  Chamber 07 · Commencement deck · v{deck.version}
+                  {stale ? " · out of date" : ""}
+                </p>
+                <p className="mt-0.5 font-serif text-lg text-ink-950">{deck.programmeTitle}</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {onRecompose ? (
+                  <button
+                    type="button"
+                    onClick={onRecompose}
+                    disabled={recomposing}
+                    title="Re-compose the deck from the current dossier."
+                    className="btn-secondary inline-flex items-center gap-2"
+                  >
+                    {recomposing ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <RefreshCw size={14} className={stale ? "text-gold-500" : undefined} />
+                    )}
+                    {recomposing ? "Re-composing…" : "Re-compose"}
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={present}
@@ -143,6 +167,7 @@ export function DeckModal({
                   <Play size={14} />
                   Present
                 </button>
+
                 <button
                   type="button"
                   onClick={printDeck}

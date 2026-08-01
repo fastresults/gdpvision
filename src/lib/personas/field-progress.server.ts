@@ -137,14 +137,15 @@ export async function computeFieldProgress(
         .in("panel_id", panelIds),
       supabase
         .from("research_panel_members")
-        .select("created_at")
+        .select("added_at")
         .in("panel_id", panelIds)
-        .order("created_at", { ascending: false })
+        .order("added_at", { ascending: false })
         .limit(1),
     ]);
     panelMembers = count ?? 0;
-    inputStamps.push(lastMember?.[0]?.created_at as string | undefined);
+    inputStamps.push(lastMember?.[0]?.added_at as string | undefined);
   }
+
 
   const { count: contactCount } = await supabase
     .from("research_contacts")

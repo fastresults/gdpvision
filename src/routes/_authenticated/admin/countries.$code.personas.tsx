@@ -5,6 +5,9 @@ import { Users, Layers, FlaskConical, Wand2 } from "lucide-react";
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { listPersonas, listSegments } from "@/lib/personas/generate.functions";
 import { listStudies } from "@/lib/personas/study.functions";
+import { listProjects } from "@/lib/personas/projects.functions";
+import { isResearchTrack, tracksFor } from "@/lib/personas/tracks";
+
 
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/personas")({
   head: ({ params }) => ({
@@ -42,10 +45,20 @@ function PersonasLayout() {
     queryFn: () => listStudies({ data: { countryCode: code, projectId: activeProjectId } }),
     enabled: !!activeProjectId,
   });
+  const projects = useQuery({
+    queryKey: ["persona-projects", code],
+    queryFn: () => listProjects({ data: { countryCode: code } }),
+  });
+  const activeProject = (projects.data ?? []).find((p) => p.id === activeProjectId);
+  const fieldRail =
+    !!activeProject?.track_chosen_at &&
+    isResearchTrack(activeProject.track) &&
+    tracksFor(activeProject.track).field;
 
   const pCount = Array.isArray(personas.data) ? personas.data.length : 0;
   const sCount = Array.isArray(segments.data) ? segments.data.length : 0;
   const stCount = Array.isArray(studies.data) ? studies.data.length : 0;
+
 
   const stages = [
     {
@@ -177,6 +190,26 @@ function PersonasLayout() {
               })}
             </ol>
           </nav>
+
+          {activeProjectId && fieldRail && (
+            <Link
+              to="/admin/countries/$code/personas/field/$step"
+              params={{ code, step: "plan" }}
+              search={{ project: activeProjectId }}
+              className="block border border-line-200 p-3 hover:border-ink-950"
+            >
+              <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                <Users size={11} /> Field Programme
+              </p>
+              <p className="mt-1 font-serif text-[15px] leading-tight text-ink-950">
+                Ask the real public
+              </p>
+              <p className="mt-1 text-[11px] leading-snug text-ink-500">
+                Plan, participants, instruments, fieldwork, evidence.
+              </p>
+            </Link>
+          )}
+
 
           <Link
             to="/admin/countries/$code/onboard"

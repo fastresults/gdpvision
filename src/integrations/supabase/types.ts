@@ -5981,6 +5981,8 @@ export type Database = {
           slug: string
           status: string
           title: string
+          track: string
+          track_chosen_at: string | null
           updated_at: string
           uploaded_by: string | null
           visibility: string
@@ -6001,6 +6003,8 @@ export type Database = {
           slug: string
           status?: string
           title: string
+          track?: string
+          track_chosen_at?: string | null
           updated_at?: string
           uploaded_by?: string | null
           visibility?: string
@@ -6021,6 +6025,8 @@ export type Database = {
           slug?: string
           status?: string
           title?: string
+          track?: string
+          track_chosen_at?: string | null
           updated_at?: string
           uploaded_by?: string | null
           visibility?: string

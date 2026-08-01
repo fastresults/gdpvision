@@ -13,7 +13,12 @@ import { JourneyCard } from "@/components/personas/JourneyCard";
 import { StudioStepper } from "@/components/personas/StudioStepper";
 import { ProgramsIndex } from "@/components/personas/StudyWizard/ProgramsIndex";
 import { ProgramBriefIntake } from "@/components/personas/StudyWizard/ProgramBriefIntake";
-import { useProgramBriefGate } from "@/hooks/useProgramBriefGate";
+import { useResearchGate } from "@/hooks/useResearchGate";
+import { TrackPicker } from "@/components/personas/TrackPicker";
+import { TrackTabs } from "@/components/personas/TrackTabs";
+import { FieldStepper } from "@/components/personas/FieldStepper";
+import type { ResearchTrack } from "@/lib/personas/tracks";
+
 import { listProjects } from "@/lib/personas/projects.functions";
 
 function personasQuery(code: string, projectId?: string) {
@@ -61,12 +66,53 @@ function PersonasIndex() {
   const segCount = (projectsQ.data ?? []).reduce((sum, p) => sum + p.segments_total, 0);
   const studyCount = (projectsQ.data ?? []).reduce((sum, p) => sum + p.studies_total, 0);
 
-  const briefGate = useProgramBriefGate(activeProjectId);
+  const gate = useResearchGate(code, activeProjectId);
 
-  if (activeProjectId && briefGate.needsIntake) {
+  // Stage 00 — a programme cannot start until the principal says how the
+  // question should be asked.
+  if (activeProjectId && gate.needsTrack) {
     return (
       <div className="space-y-6">
-        <StudioStepper code={code} active="brief" activeProjectId={activeProjectId} briefCommitted={false} blueprintCommitted={false} />
+        <div>
+          <Link
+            to="/admin/countries/$code/personas"
+            params={{ code }}
+            className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
+          >
+            ← All programs
+          </Link>
+        </div>
+        <TrackPicker
+          code={code}
+          projectId={activeProjectId}
+          projectTitle={gate.project?.title}
+          current={gate.track}
+          onChosen={(track: ResearchTrack) => {
+            if (track === "field") {
+              window.location.assign(
+                `/admin/countries/${code}/personas?project=${activeProjectId}&open=1`,
+              );
+            }
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (activeProjectId && gate.needsIntake) {
+    return (
+      <div className="space-y-6">
+        {gate.rails.synthetic ? (
+          <StudioStepper code={code} active="brief" activeProjectId={activeProjectId} briefCommitted={false} blueprintCommitted={false} />
+        ) : (
+          <FieldStepper code={code} active="brief" activeProjectId={activeProjectId} />
+        )}
+        <TrackTabs
+          code={code}
+          projectId={activeProjectId}
+          track={gate.track}
+          active={gate.rails.synthetic ? "synthetic" : "field"}
+        />
         <div>
           <Link
             to="/admin/countries/$code/personas"
@@ -80,10 +126,14 @@ function PersonasIndex() {
           code={code}
           projectId={activeProjectId}
           onCommitted={() => {
-            // Brief captured → hand off to the AI Blueprint stage.
             void qc.invalidateQueries({ queryKey: ["program-blueprint", activeProjectId] });
+            void qc.invalidateQueries({ queryKey: ["programme-plan", activeProjectId] });
+            // Synthetic rails hand off to the AI blueprint; a field-only
+            // programme goes straight to the dated programme plan.
             window.location.assign(
-              `/admin/countries/${code}/personas/blueprint?project=${activeProjectId}`,
+              gate.rails.synthetic
+                ? `/admin/countries/${code}/personas/blueprint?project=${activeProjectId}`
+                : `/admin/countries/${code}/personas/field/plan?project=${activeProjectId}`,
             );
           }}
         />
@@ -91,8 +141,19 @@ function PersonasIndex() {
     );
   }
 
+  // Field-only programme: the synthetic rail has nothing to show.
+  if (activeProjectId && !gate.rails.synthetic && gate.committed) {
+    return (
+      <Navigate
+        to="/admin/countries/$code/personas/field/$step"
+        params={{ code, step: "plan" }}
+        search={{ project: activeProjectId }}
+      />
+    );
+  }
+
   // Brief committed but blueprint still pending — redirect to Blueprint.
-  if (activeProjectId && briefGate.needsBlueprint) {
+  if (activeProjectId && gate.needsBlueprint) {
     return (
       <Navigate
         to="/admin/countries/$code/personas/blueprint"
@@ -108,11 +169,16 @@ function PersonasIndex() {
         code={code}
         active="cast"
         activeProjectId={activeProjectId}
-        briefCommitted={briefGate.committed || !activeProjectId}
-        blueprintCommitted={briefGate.blueprintCommitted || !activeProjectId}
+        briefCommitted={gate.committed || !activeProjectId}
+        blueprintCommitted={gate.blueprintCommitted || !activeProjectId}
       />
 
+      {activeProjectId && (
+        <TrackTabs code={code} projectId={activeProjectId} track={gate.track} active="synthetic" />
+      )}
+
       <ProgramsIndex code={code} />
+
 
 
 

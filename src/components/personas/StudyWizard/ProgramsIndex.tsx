@@ -26,7 +26,9 @@ import {
   listProjects,
   renameProject,
 } from "@/lib/personas/projects.functions";
+import { isResearchTrack, TRACK_META } from "@/lib/personas/tracks";
 import { projectsQuery } from "./ProjectSwitcher";
+
 
 type Project = Awaited<ReturnType<typeof listProjects>>[number];
 
@@ -280,7 +282,15 @@ function ProgramRow({ p, code }: { p: Project; code: string }) {
               {status.tone === "run" && <Loader2 size={10} className="animate-spin" />}
               {status.label}
             </span>
+            <span className="inline-flex items-center gap-1 border border-line-200 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+              {p.track_chosen_at
+                ? isResearchTrack(p.track)
+                  ? TRACK_META[p.track].label
+                  : "Synthetic Lab"
+                : "Track not set"}
+            </span>
           </div>
+
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
             <span className="tabular-nums">
               {p.studies_done}/{p.studies_total} studies

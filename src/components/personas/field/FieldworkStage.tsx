@@ -166,6 +166,42 @@ export function FieldworkStage({
 
   return (
     <StageWizard
+      actions={{
+        readout: {
+          instruction:
+            "Read the ladder the approved plan obliges, then start at the first open wave.",
+          outstanding: waves.length === 0 ? "the plan obliges no waves" : null,
+          doneNote: `${waves.length} wave${waves.length === 1 ? "" : "s"} on the ladder`,
+        },
+        waves: {
+          instruction: outstanding
+            ? `Work wave ${waves.indexOf(outstanding) + 1} — ${outstanding.wave.title}.`
+            : "Every wave the plan obliged has closed.",
+          outstanding: outstanding
+            ? `${open.length} wave${open.length === 1 ? "" : "s"} still open · ${outstanding.next}`
+            : null,
+          doneNote: `${done} of ${waves.length} waves closed`,
+          action: outstanding
+            ? {
+                label: "Take me to the open wave",
+                onClick: () =>
+                  document
+                    .getElementById(`wave-${outstanding.wave.id}`)
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+                icon: <ArrowDown size={12} />,
+                note: "Scrolls to the one wave that still needs you.",
+              }
+            : null,
+        },
+        returns: {
+          instruction: "Check what came back before the field is closed.",
+          outstanding:
+            open.length > 0
+              ? `${open.length} wave${open.length === 1 ? "" : "s"} still open`
+              : null,
+          doneNote: "Returns are in and every wave has closed",
+        },
+      }}
       panels={{
         // Read the ladder before touching it.
         readout: ladder,
@@ -179,13 +215,22 @@ export function FieldworkStage({
                 body="Nothing is left in the field. Move on to the returns and then close the stage."
               />
             ) : (
-              open.map((s) => renderWave(s, waves.indexOf(s)))
+              renderWave(open[0]!, waves.indexOf(open[0]!))
             )}
-            <ShowTheDetail label="Show every wave, including the closed ones">
-              <div className="space-y-5">{waves.map((s, i) => renderWave(s, i))}</div>
-            </ShowTheDetail>
+            {open.length > 1 || done > 0 ? (
+              <ShowTheDetail
+                label={`Show the other waves · ${waves.length - (open.length > 0 ? 1 : 0)}`}
+              >
+                <div className="space-y-5">
+                  {waves
+                    .filter((s) => s !== open[0])
+                    .map((s) => renderWave(s, waves.indexOf(s)))}
+                </div>
+              </ShowTheDetail>
+            ) : null}
           </div>
         ),
+
 
         // Returns land against collection waves, and this is the closing test.
         returns: (

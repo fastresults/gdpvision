@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, Loader2, Lock, Sparkles, Unlock } from "lucide-react";
+import { ArrowLeft, FileText, Loader2, Lock, Sparkles, Unlock } from "lucide-react";
 
 import { Explain } from "@/components/explain/Explain";
 import { createProject } from "@/lib/personas/projects.functions";
@@ -261,7 +261,8 @@ export function ProgrammeSetup({
           <button type="submit" disabled={!ready || create.isPending} className="btn-primary disabled:opacity-40">
             {create.isPending ? (
               <>
-                <Loader2 size={11} className="animate-spin" /> Opening the chamber…
+                <Loader2 size={11} className="animate-spin" />{" "}
+                {filing ? "Filing to the second brain…" : "Opening the chamber…"}
               </>
             ) : (
               `Open ${meta.label}`

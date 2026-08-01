@@ -27,13 +27,14 @@ export const listProjects = createServerFn({ method: "POST" })
     const { supabase } = context;
     const { data: projects } = await supabase
       .from("persona_projects")
-      .select("id,title,slug,status,visibility,created_at,updated_at")
+      .select("id,title,slug,status,visibility,track,track_chosen_at,created_at,updated_at")
       .eq("country_code", data.countryCode)
       .order("updated_at", { ascending: false });
 
     const list = projects ?? [];
     if (list.length === 0) return [] as Array<{
       id: string; title: string; slug: string; status: string; visibility: string;
+      track: string; track_chosen_at: string | null;
       created_at: string; updated_at: string;
       studies_total: number; studies_done: number; segments_total: number;
       has_program_memo: boolean;
@@ -68,12 +69,15 @@ export const listProjects = createServerFn({ method: "POST" })
 
     return list.map((p) => {
       const b = perProject.get(p.id as string) ?? { total: 0, done: 0, memo: false, segments: 0 };
+      const row = p as Record<string, unknown>;
       return {
         id: p.id as string,
         title: p.title as string,
         slug: p.slug as string,
         status: p.status as string,
         visibility: p.visibility as string,
+        track: (row.track as string | null) ?? "synthetic",
+        track_chosen_at: (row.track_chosen_at as string | null) ?? null,
         created_at: p.created_at as string,
         updated_at: p.updated_at as string,
         studies_total: b.total,
@@ -93,6 +97,7 @@ export const createProject = createServerFn({ method: "POST" })
         countryCode: z.string(),
         title: z.string().min(2).max(120),
         visibility: z.enum(["public", "private"]).optional(),
+        track: z.enum(["synthetic", "field", "blended"]).optional(),
       })
       .parse(d),
   )
@@ -119,6 +124,8 @@ export const createProject = createServerFn({ method: "POST" })
         slug,
         status: "active",
         visibility,
+        track: data.track ?? "synthetic",
+        track_chosen_at: data.track ? new Date().toISOString() : null,
         owner_country_code: visibility === "private" ? data.countryCode : null,
         uploaded_by: visibility === "private" ? userId : null,
         created_by: userId,
@@ -128,6 +135,27 @@ export const createProject = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return row;
   });
+
+// Set (or change) which research track a programme runs on.
+export const setProjectTrack = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        projectId: z.string().uuid(),
+        track: z.enum(["synthetic", "field", "blended"]),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("persona_projects")
+      .update({ track: data.track, track_chosen_at: new Date().toISOString() } as never)
+      .eq("id", data.projectId);
+    if (error) throw new Error(error.message);
+    return { ok: true as const, track: data.track };
+  });
+
 
 export const renameProject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

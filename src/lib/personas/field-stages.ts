@@ -115,10 +115,21 @@ export interface FieldStageProgress {
   counts: Record<string, number>;
 }
 
+/** The synthesised field finding, in the shape Stage 05 renders. */
+export interface FieldFinding {
+  headline?: string;
+  toplines?: Array<{ finding: string; evidence?: string; strength?: string }>;
+  segments?: Array<{ segment: string; observation: string }>;
+  quotes?: Array<{ quote: string; participant?: string; context?: string }>;
+  tensions?: string[];
+  implications?: string[];
+  confidence?: { level?: string; why?: string; limitations?: string[] };
+}
+
 export interface FieldProgress {
   studyId: string | null;
   /** The synthesised field finding, when Stage 05 has produced one. */
-  fieldFinding: Record<string, unknown> | null;
+  fieldFinding: FieldFinding | null;
   planActive: boolean;
   briefCommitted: boolean;
   stages: Record<FieldStageKey, FieldStageProgress>;

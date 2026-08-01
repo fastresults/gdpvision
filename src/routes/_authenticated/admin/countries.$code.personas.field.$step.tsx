@@ -20,6 +20,7 @@ import { TrackTabs } from "@/components/personas/TrackTabs";
 
 import { useResearchGate } from "@/hooks/useResearchGate";
 import { getFieldProgress } from "@/lib/personas/field-progress.functions";
+import type { FieldProgress } from "@/lib/personas/field-stages";
 import {
   commitProgrammePlan,
   deriveProgrammePlan,
@@ -73,7 +74,7 @@ function FieldStageBody({
   // One read drives the rail, the "done when" test and the next action.
   const progressQ = useQuery({
     queryKey: ["field-progress", projectId],
-    queryFn: () => getFieldProgress({ data: { projectId } }),
+    queryFn: (): Promise<FieldProgress> => getFieldProgress({ data: { projectId } }),
     enabled: gate.planCommitted,
   });
   const progress = progressQ.data;

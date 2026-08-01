@@ -11,15 +11,7 @@ import { EmptyAction } from "./StageFrame";
 import { getCollection } from "@/lib/personas/field-collection.functions";
 import { closeProgramme, synthesiseField } from "@/lib/personas/field-synthesis.functions";
 
-type Finding = {
-  headline?: string;
-  toplines?: Array<{ finding: string; evidence?: string; strength?: string }>;
-  segments?: Array<{ segment: string; observation: string }>;
-  quotes?: Array<{ quote: string; participant?: string; context?: string }>;
-  tensions?: string[];
-  implications?: string[];
-  confidence?: { level?: string; why?: string; limitations?: string[] };
-};
+import type { FieldFinding as Finding } from "@/lib/personas/field-stages";
 
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (

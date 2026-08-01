@@ -5,7 +5,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/integrations/supabase/types";
-import type { FieldProgress, FieldStageProgress } from "./field-stages";
+import type { FieldFinding, FieldProgress, FieldStageProgress } from "./field-stages";
 
 type Db = SupabaseClient<Database>;
 
@@ -185,7 +185,7 @@ export async function computeFieldProgress(
 
   // ── Evidence ────────────────────────────────────────────────────────────
   let synthesised = false;
-  let fieldFinding: Record<string, unknown> | null = null;
+  let fieldFinding: FieldFinding | null = null;
   if (studyId) {
     const { data: s } = await supabase
       .from("studies")
@@ -193,10 +193,8 @@ export async function computeFieldProgress(
       .eq("id", studyId)
       .maybeSingle();
     fieldFinding =
-      ((s?.config as Record<string, unknown> | null)?.["field_finding"] as Record<
-        string,
-        unknown
-      > | null) ?? null;
+      ((s?.config as Record<string, unknown> | null)?.["field_finding"] as FieldFinding | null) ??
+      null;
     synthesised = !!fieldFinding;
   }
   const closed = project.status === "completed";

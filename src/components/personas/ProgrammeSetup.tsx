@@ -71,7 +71,7 @@ export function ProgrammeSetup({
   const ready = title.trim().length >= 2;
 
   return (
-    <section className="border border-ink-950 bg-paper-0">
+    <section className="min-w-0 overflow-x-clip border border-ink-950 bg-paper-0">
       <header className="border-b border-line-200 px-6 py-5 sm:px-10 sm:py-7">
         <button type="button" onClick={onBack} className="btn-ghost -ml-2">
           <ArrowLeft size={12} /> {backLabel}

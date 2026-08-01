@@ -14,6 +14,7 @@ import { FieldStepper, type FieldStageKey } from "@/components/personas/FieldSte
 import { BriefingModal } from "@/components/personas/field/briefing/BriefingModal";
 import { SplitAction } from "@/components/personas/field/briefing/SplitAction";
 import { TrackerModal } from "@/components/personas/field/tracker/TrackerModal";
+import { BriefStage } from "@/components/personas/field/BriefStage";
 import { EvidenceStage } from "@/components/personas/field/EvidenceStage";
 import { FieldworkStage } from "@/components/personas/field/FieldworkStage";
 import { InstrumentsStage } from "@/components/personas/field/InstrumentsStage";
@@ -35,7 +36,7 @@ import {
   getProgrammePlan,
 } from "@/lib/personas/programme-plan.functions";
 
-const STEPS: FieldStageKey[] = ["plan", "participants", "instruments", "fieldwork", "evidence"];
+const STEPS: FieldStageKey[] = ["brief", "plan", "participants", "instruments", "fieldwork", "evidence"];
 
 // The client-facing dossier is not a rail stage — it sits beside the rail and
 // reads whatever the programme currently holds.
@@ -93,7 +94,7 @@ function FieldStageBody({
   const progressQ = useQuery({
     queryKey: ["field-progress", projectId],
     queryFn: (): Promise<FieldProgress> => getFieldProgress({ data: { projectId } }),
-    enabled: gate.planCommitted,
+    enabled: gate.committed,
   });
   const progress = progressQ.data;
   const studyId = progress?.studyId ?? null;
@@ -225,6 +226,23 @@ function FieldStageBody({
               </p>
             </div>
           )
+        ) : stage === "brief" ? (
+          <StageFrame
+            code={code}
+            projectId={projectId}
+            stage="brief"
+            progress={progress}
+            progressPending={progressQ.isFetching}
+            progressError={progressQ.isError ? "unreadable" : null}
+            onRetryProgress={() => void progressQ.refetch()}
+          >
+            <BriefStage
+              code={code}
+              projectId={projectId}
+              committed={gate.committed}
+              onChanged={refresh}
+            />
+          </StageFrame>
         ) : !gate.committed && !gate.loading ? (
           <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
             <p className="font-serif text-lg text-ink-950">The brief comes first.</p>
@@ -233,9 +251,9 @@ function FieldStageBody({
               set the phases, the participants and the instruments.
             </p>
             <Link
-              to="/admin/countries/$code/personas"
-              params={{ code }}
-              search={{ project: projectId, open: 1 }}
+              to="/admin/countries/$code/personas/field/$step"
+              params={{ code, step: "brief" }}
+              search={{ project: projectId }}
               className="btn-primary mt-4 inline-flex"
             >
               Write the brief

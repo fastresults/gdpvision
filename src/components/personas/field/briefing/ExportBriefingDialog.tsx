@@ -106,6 +106,7 @@ export function ExportBriefingDialog({
           />
           <Field
             label="Prepared by"
+            hint="Your own agency or team name. Left blank, the line is omitted from the cover."
             value={config.preparedBy}
             onChange={(v) => update("preparedBy", v)}
           />

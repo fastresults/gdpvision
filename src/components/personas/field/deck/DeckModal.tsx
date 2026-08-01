@@ -213,19 +213,20 @@ export function DeckModal({
         )}
       </div>
 
-      {/* print surface — one 16:9 page per slide */}
+      {/* print surface — one 16:9 sheet per slide */}
       <PrintSurface
         id={DECK_PRINT_SURFACE}
         rootId="deck-print-root"
         pageCss={PAGE_CSS}
         rootProps={{ "aria-hidden": "true" }}
       >
+        {/* style first: the last page box must stay the last child */}
+        <style>{PRINT_CSS}</style>
         {deck.slides.map((s, i) => (
           <div className="deck-print-page" key={`p-${s.id}`}>
             <SlideBody slide={s} index={i} total={total} />
           </div>
         ))}
-        <style>{PRINT_CSS}</style>
       </PrintSurface>
     </>
   );
@@ -256,13 +257,29 @@ function NavButton({
   );
 }
 
-/** Landscape 16:9 sheet — installed only while the deck is the printing surface. */
+/**
+ * The sheet. Declared in inches, not pixels: browsers silently discard a
+ * pixel `size` of this magnitude and fall back to portrait Letter, which is
+ * what cropped the slides and forced the orientation control to Portrait.
+ * 20in x 11.25in is exactly 1920 x 1080 CSS px at 96dpi, so a slide occupies
+ * one sheet at its authored size with no scaling anywhere in the chain — the
+ * pixels on screen, in Present mode and on paper are the same pixels. The
+ * PDF page is 1440 x 810pt, a true 16:9 landscape sheet that any printer or
+ * viewer fits to its own paper.
+ */
 const PAGE_CSS = `
 @media print {
-  @page { size: 1920px 1080px landscape; margin: 0; }
+  @page { size: 20in 11.25in; margin: 0; }
 }
 `;
 
+/**
+ * One authored 1920x1080 slide per sheet. Deliberately no `transform: scale()`
+ * and no `zoom`: Chromium fragments the document against the unscaled box, so
+ * a scaled slide is clipped to the sheet height *before* the scale applies and
+ * only the top two thirds of every slide reaches the PDF. Matching the sheet
+ * to the slide avoids the paginator entirely.
+ */
 const PRINT_CSS = `
 @media print {
   html, body { background: #ffffff !important; }
@@ -271,12 +288,25 @@ const PRINT_CSS = `
     left: 0;
     top: 0;
     width: 1920px;
+    margin: 0;
+    padding: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  #deck-print-root * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .deck-print-page {
+    position: relative;
     width: 1920px;
     height: 1080px;
+    margin: 0;
+    padding: 0;
     overflow: hidden;
+    break-inside: avoid;
+    page-break-inside: avoid;
     page-break-after: always;
     break-after: page;
   }

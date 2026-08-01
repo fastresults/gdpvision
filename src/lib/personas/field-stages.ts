@@ -108,7 +108,6 @@ export const FIELD_STAGE_SPECS: Record<FieldStageKey, FieldStageSpec> = {
   },
 };
 
-
 export const FIELD_STAGE_LIST: FieldStageSpec[] = FIELD_STAGES.map((k) => FIELD_STAGE_SPECS[k]);
 
 export function nextFieldStage(key: FieldStageKey): FieldStageKey | null {

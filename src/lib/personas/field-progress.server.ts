@@ -8,7 +8,6 @@ import type { Database } from "@/integrations/supabase/types";
 import type { FieldFinding, FieldProgress, FieldStageProgress } from "./field-stages";
 import { requiredInstruments } from "./instrument-draft.server";
 
-
 type Db = SupabaseClient<Database>;
 
 function stage(
@@ -162,7 +161,8 @@ export async function computeFieldProgress(
     requiredKinds = requiredInstruments(activePlan?.method_mix).map((r) => r.kind);
   }
   const missingKinds = requiredKinds.filter((k) => !heldKinds.includes(k));
-  const label = (k: string) => (k === "discussion_guide" ? "a discussion guide" : "a questionnaire");
+  const label = (k: string) =>
+    k === "discussion_guide" ? "a discussion guide" : "a questionnaire";
   const instruments = stage(
     requiredKinds.length > 0 && missingKinds.length === 0,
     missingKinds.length > 0
@@ -175,7 +175,6 @@ export async function computeFieldProgress(
       missing: missingKinds.length,
     },
   );
-
 
   // ── Fieldwork ───────────────────────────────────────────────────────────
   let responses = 0;

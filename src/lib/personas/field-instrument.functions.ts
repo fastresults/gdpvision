@@ -49,7 +49,9 @@ export const getInstruments = createServerFn({ method: "POST" })
       objectives: ctx.objectives,
       provenance: ctx.provenance,
       instruments,
-      missing: ctx.required.map((r) => r.kind).filter((k) => !instruments.some((i) => i.kind === k)),
+      missing: ctx.required
+        .map((r) => r.kind)
+        .filter((k) => !instruments.some((i) => i.kind === k)),
     };
   });
 

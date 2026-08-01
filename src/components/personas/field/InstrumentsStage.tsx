@@ -112,8 +112,7 @@ export function InstrumentsStage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studyId, stateQ.data]);
 
-  const active =
-    instruments.find((i) => i.kind === activeKind) ?? instruments[0] ?? null;
+  const active = instruments.find((i) => i.kind === activeKind) ?? instruments[0] ?? null;
 
   const serverDoc: Doc | undefined = useMemo(
     () =>

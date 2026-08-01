@@ -94,8 +94,10 @@ export function FieldworkStage({
         data: {
           studyId: studyId as string,
           instrumentId:
-            (instrumentQ.data?.instruments.find((i) => i.kind === "survey") ??
-              instrumentQ.data?.instruments[0])?.id ?? null,
+            (
+              instrumentQ.data?.instruments.find((i) => i.kind === "survey") ??
+              instrumentQ.data?.instruments[0]
+            )?.id ?? null,
           access: "invited",
         },
       }),
@@ -200,7 +202,6 @@ export function FieldworkStage({
           }
         : null,
   );
-
 
   if (!studyId) {
     return (

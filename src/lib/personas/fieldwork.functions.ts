@@ -15,6 +15,8 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+import { participantLink, serverPublicOrigin } from "./public-origin";
+
 export const getFieldworkBoard = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>

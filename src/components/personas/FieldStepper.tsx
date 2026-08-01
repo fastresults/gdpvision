@@ -32,7 +32,10 @@ export function FieldStepper({
   planCommitted = false,
   progress,
 }: {
+  /** Retained for call-site compatibility; progress is intentionally non-interactive. */
+  code?: string;
   active?: FieldStageKey;
+  activeProjectId?: string;
   briefCommitted?: boolean;
   planCommitted?: boolean;
   /** Live per-stage completion, so the rail always tells the truth. */

@@ -30,6 +30,16 @@ import { cn } from "@/lib/utils";
 
 type View = "phase" | "owner" | "due";
 
+interface ItemPatch {
+  kind: "milestone" | "deliverable";
+  itemId: string;
+  status?: ItemStatus;
+  assigneeId?: string | null;
+  blockedReason?: string | null;
+  dueOn?: string | null;
+  note?: string;
+}
+
 const VIEWS: { key: View; label: string }[] = [
   { key: "phase", label: "By phase" },
   { key: "owner", label: "By owner" },
@@ -66,7 +76,7 @@ export function TrackerBoard({ code, projectId }: { code: string; projectId: str
   const removeFn = useServerFn(removeTeamMember);
 
   const update = useMutation({
-    mutationFn: (v: Parameters<typeof updateTrackerItem>[0]["data"]) => updateFn({ data: v }),
+    mutationFn: (v: ItemPatch) => updateFn({ data: v }),
     onSuccess: () => {
       setError(null);
       void invalidate();

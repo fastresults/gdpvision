@@ -18,9 +18,9 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Json } from "@/integrations/supabase/types";
-import { normEmail, normPhone } from "./crm.functions";
 import {
   ensureProgrammePanel,
+  normEmail,
   RECRUITMENT_PROJECT_SELECT as ProjectSelect,
   recruitmentBriefText as briefText,
   RecruitmentPersonaShape as PersonaShape,
@@ -235,7 +235,7 @@ export const researchCandidates = createServerFn({ method: "POST" })
         email: c.email,
         email_norm: em,
         phone: null,
-        phone_norm: normPhone(null),
+        phone_norm: null,
         organisation: c.organisation,
         role_title: c.role_title,
         tags: [persona.label],

@@ -16,6 +16,11 @@ export type RecruitmentProjectRow = {
   recruitment_brief: Json | null;
 };
 
+export function normEmail(v: string | null | undefined): string | null {
+  const t = (v ?? "").trim().toLowerCase();
+  return t.length > 3 && t.includes("@") ? t : null;
+}
+
 export const RECRUITMENT_PROJECT_SELECT =
   "id,title,country_code,brief_raw,brief_scope,brief_source,recruitment_brief";
 

@@ -99,14 +99,33 @@ export function FieldStageProvider({ children }: { children: React.ReactNode }) 
     });
   }, []);
 
-  const guardedGo = useCallback((run: () => void) => {
-    if (Object.keys(dirtyRef.current).length > 0) {
-      setNavError(null);
+  // Moving forward (or back, or sideways) SAVES. No question, no modal. The
+  // gate only becomes visible if a save actually fails.
+  const runSaveAllAndGo = useCallback(async (run: () => void) => {
+    setSaving(true);
+    setNavError(null);
+    try {
+      for (const entry of Object.values(dirtyRef.current)) await entry.save();
+      setPendingNav(null);
+      run();
+    } catch (err) {
+      setNavError(err instanceof Error ? err.message : "Could not save.");
       setPendingNav(() => run);
-      return;
+    } finally {
+      setSaving(false);
     }
-    run();
   }, []);
+
+  const guardedGo = useCallback(
+    (run: () => void) => {
+      if (Object.keys(dirtyRef.current).length > 0) {
+        void runSaveAllAndGo(run);
+        return;
+      }
+      run();
+    },
+    [runSaveAllAndGo],
+  );
 
   const dirtyEntries = useMemo(() => Object.values(dirtyMap), [dirtyMap]);
   const resolveAction = useMemo(() => Object.values(resolveMap)[0] ?? null, [resolveMap]);
@@ -122,20 +141,6 @@ export function FieldStageProvider({ children }: { children: React.ReactNode }) 
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [hasDirty]);
 
-  const saveAllAndGo = async () => {
-    setSaving(true);
-    setNavError(null);
-    try {
-      for (const entry of Object.values(dirtyRef.current)) await entry.save();
-      const run = pendingNav;
-      setPendingNav(null);
-      run?.();
-    } catch (err) {
-      setNavError(err instanceof Error ? err.message : "Could not save.");
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const value = useMemo(
     () => ({ setDirty, setResolve, dirtyEntries, resolveAction, guardedGo }),

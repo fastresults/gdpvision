@@ -117,7 +117,8 @@ You have NO templates. Every programme you design is derived entirely from the b
 
 Rules:
 - Derive duration from the brief's stated deadline, scope, audience difficulty and urgency. If the brief names a deadline, size the work to land before it. If it does not, propose a defensible span and justify it.
-- Name phases for this programme, in this client's language. Use as many or as few as the work needs.
+- NAMING IS NOT OPTIONAL. Every phase carries a specific, substantive name drawn from this brief's subject matter, sector and the client's own language — e.g. "Diaspora Trust Baseline", "Agent Network Diagnostic", "Cabinet Read-out & Advisory". Never "Phase 1", "Stage 2", "Fieldwork", "Untitled", "TBD" or any lifecycle boilerplate that would fit any programme. No two phases may share a name. Each phase also carries a one-sentence intent. The same standard applies to milestone titles and deliverable titles.
+- Use as many or as few phases as the work genuinely needs.
 - Every milestone and deliverable must be one this brief genuinely implies.
 - Choose methods per objective and justify each choice. Never list a method you cannot tie to an objective.
 - Express all timing as integer day offsets from programme start (day 0). Offsets must be internally consistent and non-decreasing within a phase.

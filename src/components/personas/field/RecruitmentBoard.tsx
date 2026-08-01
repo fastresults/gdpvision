@@ -156,21 +156,35 @@ export function RecruitmentBoard({
     },
   });
 
+  // The recruiter runs as a short, resumable agent loop: each call is one
+  // pass (locate listings → read them → widen), so no single request stalls.
   const research = useMutation({
-    mutationFn: (personaLabel: string) => researchFn({ data: { projectId, personaLabel } }),
-    onSuccess: (res) => {
-      setLastPass((prev) => ({
-        ...prev,
-        [res.persona]: {
-          proposed: res.proposed,
-          found: res.found,
-          want: res.want,
-          notes: res.notes ?? [],
-        },
-      }));
-      refresh();
+    mutationFn: async (personaLabel: string) => {
+      let last: Awaited<ReturnType<typeof researchFn>> | null = null;
+      let totalProposed = 0;
+      for (let i = 0; i < 6; i += 1) {
+        const res = await researchFn({
+          data: { projectId, personaLabel, restart: i === 0 ? true : undefined },
+        });
+        last = res;
+        totalProposed = res.totalProposed ?? totalProposed;
+        setLastPass((prev) => ({
+          ...prev,
+          [res.persona]: {
+            proposed: totalProposed,
+            found: res.found ?? 0,
+            want: res.want,
+            notes: res.notes ?? [],
+          },
+        }));
+        refresh();
+        if (res.done) break;
+      }
+      return last!;
     },
+    onSuccess: () => refresh(),
   });
+
 
   const accept = useMutation({
     mutationFn: (args: { ids?: string[]; personaLabel?: string; all?: boolean }) =>

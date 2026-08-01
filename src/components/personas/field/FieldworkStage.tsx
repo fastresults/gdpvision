@@ -10,6 +10,8 @@ import { CalendarPlus, Loader2, Mail, PlayCircle, Upload } from "lucide-react";
 import { useState } from "react";
 
 import { EmptyAction } from "./StageFrame";
+import { useDirtyRegistration, useResolveAction } from "./stage-bus";
+
 import { listContacts, listPanels } from "@/lib/personas/crm.functions";
 import {
   getCollection,

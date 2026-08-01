@@ -134,7 +134,15 @@ function clampInt(v: unknown, min: number, max: number, fallback: number): numbe
   return Math.min(max, Math.max(min, Math.round(n)));
 }
 
-// ── Candidate research ─────────────────────────────────────────────────────
+// ── Candidate research: a bounded, resumable agent ─────────────────────────
+//
+// One long reasoning call does not survive an edge request. The recruiter is
+// therefore split into short passes, each well inside the request budget and
+// each persisting what it found before it returns:
+//
+//   Pass A — locate the registries where such people are publicly named.
+//   Pass B — extract named individuals from a small batch of those registries.
+//   Pass W — one widened sweep when the slate is still thin.
 
 const CANDIDATE_SYSTEM = `You are a field-research recruiter for a sovereign government programme. You identify REAL, NAMED, publicly identifiable individuals in a named country who match a described persona and could be invited to take part in research.
 
@@ -146,6 +154,7 @@ Hard rules:
 - confidence: "high" when a primary/official source names them in the role right now; "medium" when the source is credible but dated or secondary; "low" when the match is inferred.
 - suggested_for: ["survey"], ["focus_group"], or both — senior officeholders usually suit a moderated group; frontline operators usually suit a survey.
 - Do not return the same person twice. Do not pad the list to hit a number; returning fewer, sourced people is correct.
+- Return ONLY the JSON object. No preamble, no reasoning, no code fences.
 
 Return ONE JSON object: {"candidates":[{"full_name":"","role_title":"","organisation":"","email":null,"fit_reason":"","confidence":"high|medium|low","source_url":"https://...","suggested_for":["survey"]}],"notes":["..."]}`;
 
@@ -194,123 +203,184 @@ function str(v: unknown, max: number): string | null {
   return t.length > 0 && t.toLowerCase() !== "null" ? t.slice(0, max) : null;
 }
 
-function personaUser(opts: {
+export interface RegistryLead {
+  url: string;
+  what: string;
+}
+
+const REGISTRY_SYSTEM = `You locate the public pages on which real people matching a described persona are NAMED.
+
+Return web pages that publish actual names and roles: ministry leadership pages, permanent-secretary listings, statutory board pages, association and chamber-of-commerce committee pages, professional registries, university faculty pages, published board lists, named press coverage.
+
+Rules:
+- Only pages that plausibly NAME individuals. A homepage or a policy PDF is useless — go to the "our team", "leadership", "board", "members", "executive" page.
+- Prefer pages specific to the named country.
+- 4 to 8 leads. Each carries the https URL and one short line saying who is named there.
+- Return ONLY the JSON object. No preamble, no reasoning, no code fences.
+
+Return ONE JSON object: {"registries":[{"url":"https://...","what":"..."}],"notes":["..."]}`;
+
+/** Pass A — find the pages that name people for this persona. Cheap and fast. */
+export async function findPersonaRegistries(opts: {
   countryName: string;
-  persona: RecruitmentPersona;
   programmeTitle: string;
-  question: string;
-  want: number;
-  exclude: string[];
-  widen: boolean;
-}): string {
-  return [
+  persona: RecruitmentPersona;
+}): Promise<{ registries: RegistryLead[]; citations: SonarCitation[]; notes: string[] }> {
+  const user = [
     `COUNTRY: ${opts.countryName}`,
     `PROGRAMME: ${opts.programmeTitle}`,
-    `RESEARCH QUESTION: ${opts.question.slice(0, 1_200)}`,
-    "",
     `PERSONA: ${opts.persona.label}`,
     `WHO: ${opts.persona.who}`,
-    `WHY THEY MATTER: ${opts.persona.why}`,
     opts.persona.sector ? `SECTOR: ${opts.persona.sector}` : "",
     opts.persona.seniority ? `SENIORITY: ${opts.persona.seniority}` : "",
     opts.persona.region ? `REGION: ${opts.persona.region}` : "",
     opts.persona.where_to_look?.length
-      ? `WHERE SUCH PEOPLE ARE PUBLICLY LISTED: ${opts.persona.where_to_look.join("; ")}`
+      ? `START HERE: ${opts.persona.where_to_look.join("; ")}`
       : "",
     "",
-    `Return up to ${opts.want} named individuals, each with a source URL.`,
-    opts.exclude.length
-      ? `ALREADY ON THE LIST — do not return these people again: ${opts.exclude.slice(0, 60).join("; ")}`
-      : "",
-    opts.widen
-      ? "The first pass returned too few. Widen the search: adjacent institutions, regional and parish bodies, former officeholders still active, association committee members, named operators in trade directories and press coverage. Keep the sourcing standard — no citation, no candidate."
-      : "",
+    "Find the public pages on which such people are named.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const res = await callSonar({
+    model: "sonar-pro",
+    system: REGISTRY_SYSTEM,
+    user,
+    noDomainFilter: true,
+    maxTokens: 1_400,
+  });
+
+  const parsed = parseSonarJson<{ registries?: unknown; notes?: unknown }>(res.content);
+  const registries: RegistryLead[] = [];
+  const seen = new Set<string>();
+  const raw = Array.isArray(parsed?.registries) ? (parsed.registries as unknown[]) : [];
+  for (const r of raw) {
+    const o = (r ?? {}) as Record<string, unknown>;
+    const url = typeof o["url"] === "string" ? o["url"].trim() : "";
+    if (!isHttps(url) || seen.has(url)) continue;
+    seen.add(url);
+    registries.push({ url, what: String(o["what"] ?? "").slice(0, 200) });
+  }
+  // The searcher's own citations are registries too, when the model was terse.
+  for (const c of res.citations) {
+    if (registries.length >= 10) break;
+    if (isHttps(c.url) && !seen.has(c.url)) {
+      seen.add(c.url);
+      registries.push({ url: c.url, what: c.title ?? "Cited source" });
+    }
+  }
+
+  const notes = Array.isArray(parsed?.notes)
+    ? (parsed.notes as unknown[]).slice(0, 3).map((n) => String(n).slice(0, 300))
+    : [];
+
+  return { registries: registries.slice(0, 10), citations: res.citations, notes };
+}
+
+function personaBlock(persona: RecruitmentPersona): string {
+  return [
+    `PERSONA: ${persona.label}`,
+    `WHO: ${persona.who}`,
+    `WHY THEY MATTER: ${persona.why}`,
+    persona.sector ? `SECTOR: ${persona.sector}` : "",
+    persona.seniority ? `SENIORITY: ${persona.seniority}` : "",
+    persona.region ? `REGION: ${persona.region}` : "",
   ]
     .filter(Boolean)
     .join("\n");
 }
 
-/**
- * One persona, one deep-research pass (plus one widened redrive when the first
- * pass comes back thin). Never pads: a short slate is reported honestly.
- */
-export async function researchPersonaCandidates(opts: {
+/** Pass B — read a small batch of registries and return named people. */
+export async function extractCandidatesFromRegistries(opts: {
   countryName: string;
-  countryCode: string;
+  programmeTitle: string;
+  question: string;
+  persona: RecruitmentPersona;
+  registries: RegistryLead[];
+  want: number;
+  exclude: string[];
+}): Promise<{ candidates: CandidateRecord[]; citations: SonarCitation[]; notes: string[] }> {
+  const user = [
+    `COUNTRY: ${opts.countryName}`,
+    `PROGRAMME: ${opts.programmeTitle}`,
+    `RESEARCH QUESTION: ${opts.question.slice(0, 900)}`,
+    "",
+    personaBlock(opts.persona),
+    "",
+    "READ THESE PAGES AND NAME THE PEOPLE ON THEM:",
+    ...opts.registries.map((r) => `- ${r.url}${r.what ? ` — ${r.what}` : ""}`),
+    "",
+    `Return up to ${opts.want} named individuals who match the persona, each with the URL that names them.`,
+    opts.exclude.length
+      ? `ALREADY ON THE LIST — do not return these people again: ${opts.exclude.slice(0, 60).join("; ")}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const res = await callSonar({
+    model: "sonar-pro",
+    system: CANDIDATE_SYSTEM,
+    user,
+    noDomainFilter: true,
+    maxTokens: 2_600,
+  });
+
+  return readCandidatePass(res, opts.persona.label);
+}
+
+/** Pass W — one adjacent-institution sweep when the slate is thin. */
+export async function widenCandidateSweep(opts: {
+  countryName: string;
   programmeTitle: string;
   question: string;
   persona: RecruitmentPersona;
   want: number;
   exclude: string[];
-  domains?: string[];
-}): Promise<PersonaResearchResult> {
+}): Promise<{ candidates: CandidateRecord[]; citations: SonarCitation[]; notes: string[] }> {
+  const user = [
+    `COUNTRY: ${opts.countryName}`,
+    `PROGRAMME: ${opts.programmeTitle}`,
+    `RESEARCH QUESTION: ${opts.question.slice(0, 900)}`,
+    "",
+    personaBlock(opts.persona),
+    "",
+    "The registry pass came back thin. Widen the search: adjacent ministries and agencies, regional and parish bodies, association committee members, former officeholders still active, named operators in trade directories, named people in recent press coverage. Keep the sourcing standard — no citation, no candidate.",
+    `Return up to ${opts.want} further named individuals.`,
+    opts.exclude.length
+      ? `ALREADY ON THE LIST — do not return these people again: ${opts.exclude.slice(0, 60).join("; ")}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const res = await callSonar({
+    model: "sonar-pro",
+    system: CANDIDATE_SYSTEM,
+    user,
+    noDomainFilter: true,
+    maxTokens: 2_600,
+  });
+
+  return readCandidatePass(res, opts.persona.label);
+}
+
+function readCandidatePass(
+  res: { content: string; citations: SonarCitation[] },
+  personaLabel: string,
+): { candidates: CandidateRecord[]; citations: SonarCitation[]; notes: string[] } {
   const notes: string[] = [];
-  const citations: SonarCitation[] = [];
-  const found: CandidateRecord[] = [];
-  const seen = new Set<string>(opts.exclude.map((n) => n.toLowerCase()));
-
-  const runPass = async (widen: boolean) => {
-    const res = await callSonar({
-      model: "sonar-reasoning-pro",
-      system: CANDIDATE_SYSTEM,
-      user: personaUser({
-        countryName: opts.countryName,
-        persona: opts.persona,
-        programmeTitle: opts.programmeTitle,
-        question: opts.question,
-        want: Math.max(4, opts.want - found.length),
-        exclude: [...seen],
-        widen,
-      }),
-      extraDomains: opts.domains,
-      noDomainFilter: true,
-      maxTokens: 4_000,
-    });
-    for (const c of res.citations) {
-      if (!citations.some((x) => x.url === c.url)) citations.push(c);
-    }
-    const parsed = parseSonarJson<unknown>(res.content);
-    if (!parsed) {
-      notes.push(`${opts.persona.label}: the research pass returned nothing readable.`);
-      return;
-    }
-    for (const cand of cleanCandidates(parsed)) {
-      const key = cand.full_name.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      found.push(cand);
-    }
-    const rawNotes = (parsed as { notes?: unknown }).notes;
-    if (Array.isArray(rawNotes)) {
-      for (const n of rawNotes.slice(0, 3)) notes.push(String(n).slice(0, 300));
-    }
-  };
-
-  try {
-    await runPass(false);
-  } catch (e) {
-    notes.push(`${opts.persona.label}: first pass failed — ${(e as Error).message.slice(0, 200)}`);
+  const parsed = parseSonarJson<unknown>(res.content);
+  if (!parsed) {
+    notes.push(`${personaLabel}: the pass returned nothing readable.`);
+    return { candidates: [], citations: res.citations, notes };
   }
-
-  if (found.length < Math.min(opts.want, 6)) {
-    try {
-      await runPass(true);
-    } catch (e) {
-      notes.push(`${opts.persona.label}: redrive failed — ${(e as Error).message.slice(0, 200)}`);
-    }
+  const rawNotes = (parsed as { notes?: unknown }).notes;
+  if (Array.isArray(rawNotes)) {
+    for (const n of rawNotes.slice(0, 2)) notes.push(String(n).slice(0, 300));
   }
-
-  if (found.length === 0) {
-    notes.push(
-      `${opts.persona.label}: no publicly sourced individuals could be found. Add them by hand, or widen the persona.`,
-    );
-  } else if (found.length < opts.want) {
-    notes.push(
-      `${opts.persona.label}: thin coverage — ${found.length} of ${opts.want} sourced. The rest will need hand recruitment.`,
-    );
-  }
-
-  return { persona: opts.persona.label, candidates: found, citations, notes };
+  return { candidates: cleanCandidates(parsed), citations: res.citations, notes };
 }
 
 // ── Focus-group composition ────────────────────────────────────────────────

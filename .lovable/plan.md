@@ -1,41 +1,45 @@
 ## What the audit found
 
-I read the rail end to end — `field-stages.ts`, `field-progress.server.ts`, `FieldStepper.tsx`, `StageFrame.tsx`, the `$step` route, and the Participants / Instruments / Fieldwork / Evidence stages — plus the preview server logs. The logs show no crashes: the problem is not failure, it is that the rail never tells the user what is saved, never offers the one action that would unblock them, and makes going back to fix something feel forbidden. Six concrete defects:
+For the Grenada programme you're on (`Strategic Positioning and Public Mandate Assessment for Investment Migration`):
 
-1. **Edits can be silently lost.** The instrument editor holds title, intro and questions in local state, and a `useEffect` re-seeds that state every time the query refetches. Any refetch triggered elsewhere on the page overwrites in-progress wording with no warning. Nothing marks the editor dirty, and leaving via the stepper or the sticky bar discards the work without a prompt.
-2. **No save confirmation anywhere.** Saving an instrument, a transcript, a roster or a panel produces no visible "saved" state — only a spinner that stops. The user cannot tell whether the click landed.
-3. **The instrument editor is one-way.** Questions can be deleted and re-worded but not added or reordered, so a near-right AI draft has to be regenerated from scratch instead of adjusted.
-4. **The next action pushes past the problem instead of solving it.** When a stage is incomplete the sticky bar's only forward control reads "Skip ahead to …". The blocker is stated but never actionable — no button does the thing that would clear it.
-5. **Backward movement is discouraged and, once closed, impossible.** Back moves one stage at a time; there is no "amend the brief" or "revise the plan" route from a late stage, and `closeProgramme` has no counterpart — a closed programme cannot be reopened to correct a finding.
-6. **The rail can lie about being blocked.** Progress is one query; if it errors or is stale after a mutation, stages read as incomplete with no way to retry the read.
+- The recruitment frame **is** derived — 5 personas are saved on the project.
+- `research_contacts` for that programme: **0 rows**, of which **0** from `ai_research`.
+
+So the frame half of the AI-first contract works; the *find me real names* half never lands a row. Reading `recruitment-research.server.ts` + `recruitment.functions.ts`, three failure modes explain it, and none of them is visible to the user:
+
+1. **The pass is too long for one request.** `researchPersonaCandidates` runs up to two sequential `sonar-reasoning-pro` calls, each with a 240s client timeout, inside one server function invoked from the browser. The edge runtime kills the request long before that — the same 502/timeout class we already fixed in the minister loop by going granular + `sonar-pro`.
+2. **No run record, no logs.** Nothing is persisted before the model returns, so a killed request leaves zero trace. The board just goes quiet.
+3. **The cleaner can silently zero the slate.** Every candidate must have an `https://` URL, a two-word name, and survive the generic-name filter. If the reasoning model wraps its JSON in `<think>` prose, `parseSonarJson` returns null and the whole persona yields nothing — reported only as a soft note the UI may not surface.
+
+Also missing: no way to research *all* personas at once, no persona-level status ("searched / thin / none"), and the corpus only receives the frame on a successful pass, so failed hunts leave no learning.
 
 ## The plan
 
-### 1. A save contract every stage obeys
-Add `src/components/personas/field/SaveBar.tsx` — one component carrying the same three states everywhere: **unsaved changes** (amber, names what is dirty), **saving**, **saved · timestamp**. Add a `useDirtyState` hook that owns the local-vs-server diff so a background refetch can never overwrite a dirty editor; when the server copy changes underneath a dirty editor, show "the stored version changed — keep mine / take theirs" rather than silently clobbering.
+### 1. A real recruiter agent loop (server)
+Rewrite `researchPersonaCandidates` into a bounded, resumable agent with **short passes instead of one long one**:
 
-Wire it into Instruments (title, intro, questions), Fieldwork (transcript, session details, pasted returns) and the Participants manual roster.
+- **Pass A — locate the registries.** `sonar-pro`, cheap and fast: given the persona and `where_to_look`, return 3–8 concrete URLs where such people are publicly named (ministry leadership pages, association boards, registries, chamber directories).
+- **Pass B — extract names.** For each registry URL batch (2–3 URLs per call), a `sonar-pro` call that returns named individuals with role, organisation and the URL that names them. Small calls, each well inside the request budget.
+- **Pass C — widen only if thin.** One adjacent-institution sweep when Pass B yields fewer than the target.
+- Each pass writes its candidates to `research_contacts` **as it completes** — so a killed request still leaves what it found.
+- Drop `sonar-reasoning-pro` here; strip `<think>` blocks defensively in the parser regardless.
 
-### 2. Never lose an edit on navigation
-`StageFrame` gains a dirty registry. When any stage reports unsaved work, the stepper links, the back/next controls and the browser unload all route through a small confirm: **Save and continue · Discard · Stay**. Save-and-continue runs the stage's own save before navigating.
+### 2. Durable run tracking
+New table `research_recruitment_runs` (project, persona, status, pass, found, proposed, notes, sources, timestamps; RLS + GRANTs in the same migration). The server fn opens a run, updates it per pass, closes it `complete` / `thin` / `failed` with the real error text.
 
-### 3. Make the instrument editable rather than regenerable
-Add a question, insert after, move up/down, duplicate, change type (from the existing `QUESTION_TYPES`), and edit options. Deleting keeps an inline undo. This turns "the draft is 80% right" into a two-minute edit instead of a re-draft.
+### 3. Browser-driven loop (same pattern as onboarding "run all pending")
+`researchCandidates` becomes one *pass* per call. The board drives it:
+- **"Find candidates" per persona** → loops passes until the run closes.
+- **"Research every persona"** → walks the frame persona by persona with a live progress rail (persona · pass · found so far).
+- Progress and errors render inline on each persona card, never a silent spinner.
 
-### 4. Turn every blocker into a button
-Extend each stage spec in `field-stages.ts` with a **resolve action**: the label and target that clears its blocker (Participants → "Research candidates", Instruments → "Draft the instrument", Fieldwork → "Open a collection", Evidence → "Synthesise the finding"). The sticky bar then always shows two controls: the resolve action when incomplete, and the advance action when complete. "Skip ahead" survives only as a quiet secondary link, so moving on is possible but never the loudest option.
+### 4. The board tells the truth
+`RecruitmentBoard.tsx` gains per-persona state: `not searched` / `searching · pass 2 of 3` / `12 sourced` / `thin — 3 of 20` / `failed — <reason>`, with the sources list expandable and a **Retry** and **Add by hand** always available. Accept-all and per-person accept stay as they are.
 
-### 5. Make going backward legitimate
-- The sticky bar gains a persistent **Amend** menu: return to the brief, revise the plan, or jump to any unlocked earlier stage in one move.
-- Add a `reopenProgramme` server function (the mirror of `closeProgramme`) plus a **Reopen to revise** control in Evidence, so a filed finding can be corrected and re-filed. Re-closing re-files to the second brain under the same key, so no duplicate memo is created.
-- Where an earlier change invalidates later work (a new instrument after returns are in), the affected stage shows a plain-language notice rather than failing quietly.
+### 5. Corpus filing on every outcome
+File the recruitment frame plus each run's outcome (persona, registries found, sourcing yield, notes) to the second brain via `upsertMemoryObject` — including failures, so a later programme in the same country starts from the registries we already located. Identity still never leaves the CRM; only the frame and the source URLs are filed.
 
-### 6. Make the rail's state honest
-Refetch progress after every stage mutation, show a small "checking…" state while it revalidates, and surface a retry line if the progress read fails instead of leaving the whole rail reading as blocked.
-
-## Technical notes
-
-- New: `src/components/personas/field/SaveBar.tsx`, `src/hooks/useDirtyState.ts`, `reopenProgramme` in `src/lib/personas/field-synthesis.functions.ts`.
-- Edited: `field-stages.ts` (resolve actions), `StageFrame.tsx` (dirty guard, two-control bar, amend menu), `InstrumentsStage.tsx`, `FieldworkStage.tsx`, `ParticipantsStage.tsx`, `EvidenceStage.tsx`, the `$step` route (progress invalidation and error surface).
-- No schema change is needed except the reopen path, which only moves `persona_projects.status` back off `completed` — done through the existing server-function boundary with `requireSupabaseAuth`.
-- New rationales registered in `src/lib/explain/personas-entries.ts` for the save contract and for what reopening a closed programme does to the filed memo.
+### Technical notes
+- Files: `src/lib/personas/recruitment-research.server.ts` (agent rewrite), `src/lib/personas/recruitment.functions.ts` (per-pass fn + run bookkeeping), `src/components/personas/field/RecruitmentBoard.tsx` (progress + status), one migration for the runs table.
+- `parseSonarJson` hardened to strip `<think>…</think>` and fenced blocks before parsing.
+- Every pass logs `console.info` with project, persona, pass, count — so `server-function-logs` shows the hunt next time.

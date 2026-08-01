@@ -300,8 +300,14 @@ export async function computeFieldProgress(
     inputsUpdatedAt,
 
     stages: {
-      brief: stage(briefCommitted, "The source brief is not committed."),
-      plan: stage(planActive, "No approved programme plan yet."),
+      brief: stage(briefCommitted, "The source brief is not committed.", {
+        committed: briefCommitted ? 1 : 0,
+      }),
+      plan: stage(planActive, "No approved programme plan yet.", {
+        drafted: planDrafted ? 1 : 0,
+        active: planActive ? 1 : 0,
+      }),
+
       participants,
       instruments,
       fieldwork,

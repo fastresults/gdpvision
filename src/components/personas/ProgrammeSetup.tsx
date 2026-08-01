@@ -281,19 +281,3 @@ export function ProgrammeSetup({
   );
 }
 
-function ReadOut({ label, items }: { label: string; items?: string[] }) {
-  if (!items || items.length === 0) return null;
-  return (
-    <div>
-      <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-ink-500">{label}</p>
-      <ul className="mt-2 space-y-1.5">
-        {items.slice(0, 6).map((i) => (
-          <li key={i} className="text-[12.5px] leading-relaxed text-ink-700">
-            <span className="mr-2 text-ink-300">—</span>
-            {i}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}

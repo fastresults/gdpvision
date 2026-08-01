@@ -183,9 +183,14 @@ function PublicDossier() {
                   </span>
                   {s.heading}
                 </h2>
-                <div className="cb-public-prose mt-4 max-w-none text-[15px] leading-relaxed text-ink-800">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.body_md}</ReactMarkdown>
-                </div>
+                {s.opener ? (
+                  <BriefOpenerBlock opener={s.opener} variant="screen" />
+                ) : (
+                  <div className="cb-public-prose mt-4 max-w-none text-[15px] leading-relaxed text-ink-800">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.body_md}</ReactMarkdown>
+                  </div>
+                )}
+
               </article>
             ))}
           </div>

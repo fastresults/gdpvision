@@ -406,6 +406,7 @@ export function SessionWave({
                   countryCode={board.countryCode}
                   waveId={state.wave.id}
                   expect="narrative"
+                  questionIds={[]}
                   refresh={refresh}
                 />
               </Panel>

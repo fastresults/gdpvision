@@ -338,6 +338,12 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
             onExport={runExport}
           />
           <PrintableBriefing briefing={doc} config={printConfig} />
+          <DeckModal
+            open={deckOpen}
+            deck={deckQ.data?.deck ?? null}
+            onClose={() => setDeckOpen(false)}
+          />
+
         </>
       )}
     </section>

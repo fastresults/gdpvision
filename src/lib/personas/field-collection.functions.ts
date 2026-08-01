@@ -50,16 +50,25 @@ export const getCollection = createServerFn({ method: "POST" })
         .eq("collection_id", collection.id as string),
     ]);
 
+    type InviteContact = {
+      id: string;
+      full_name: string;
+      email: string | null;
+      organisation: string | null;
+      role_title: string | null;
+      consent_status: string;
+      opted_out_at: string | null;
+    };
     const contactIds = (invites ?? []).map((i) => i.contact_id as string);
-    let contacts: Array<Record<string, unknown>> = [];
+    let contacts: InviteContact[] = [];
     if (contactIds.length > 0) {
       const { data: cs } = await supabase
         .from("research_contacts")
         .select("id,full_name,email,organisation,role_title,consent_status,opted_out_at")
         .in("id", contactIds);
-      contacts = cs ?? [];
+      contacts = (cs ?? []) as InviteContact[];
     }
-    const byId = new Map(contacts.map((c) => [c.id as string, c]));
+    const byId = new Map<string, InviteContact>(contacts.map((c) => [c.id, c]));
 
     return {
       collection,

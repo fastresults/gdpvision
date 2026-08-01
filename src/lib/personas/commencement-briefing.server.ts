@@ -530,6 +530,95 @@ export async function assembleBriefing(
     ].join("\n"),
   });
 
+  // ── Expected outcome, measured against the client's own brief ─────────
+  const allQuestions = instruments.flatMap((i) => asArray<FieldQuestion>(i["questions"]));
+  const tokens = (s: string) =>
+    new Set(
+      s
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, " ")
+        .split(/\s+/)
+        .filter((w) => w.length > 4),
+    );
+  const overlap = (a: Set<string>, b: Set<string>) => {
+    let n = 0;
+    for (const w of a) if (b.has(w)) n += 1;
+    return n;
+  };
+
+  const deliverableRows = deliverables ?? [];
+  const milestoneRows = milestones ?? [];
+  const lastDue =
+    deliverableRows.map((d) => d.due_on as string | null).filter(Boolean).slice(-1)[0] ??
+    (plan.ends_on as string | null);
+
+  const outcomeRows = objectives.map((o, idx) => {
+    const text = str((o as Record<string, unknown>)["objective"], "—");
+    const t = tokens(text);
+
+    const hits = allQuestions.filter((q) => overlap(t, tokens(`${q.prompt} ${q.help ?? ""}`)) >= 2);
+    const coveringWaves = waves.filter((w) =>
+      hits.length > 0 ? true : overlap(t, tokens(`${w.title} ${w.purpose ?? ""}`)) >= 1,
+    );
+    const how =
+      hits.length > 0
+        ? `${hits.length} question${hits.length === 1 ? "" : "s"} across ${coveringWaves.length || waves.length} wave${(coveringWaves.length || waves.length) === 1 ? "" : "s"}`
+        : coveringWaves.length > 0
+          ? coveringWaves.map((w) => w.title).join("; ")
+          : "Covered by synthesis at close";
+
+    const scored = deliverableRows
+      .map((d) => ({ d, score: overlap(t, tokens(str(d.title))) }))
+      .sort((a, b) => b.score - a.score);
+    const match = scored[0] && scored[0].score > 0 ? scored[0].d : deliverableRows[idx % Math.max(1, deliverableRows.length)];
+
+    return [
+      String(idx + 1).padStart(2, "0"),
+      text,
+      how,
+      match ? str(match.title, "—") : "Field finding at close",
+      match ? dateLabel(match.due_on as string) : dateLabel(lastDue),
+    ];
+  });
+
+  const fallbackOutcome = [
+    `You asked us to ${str(plan.summary, "answer the question set out in your brief").replace(/^[A-Z]/, (c) => c.toLowerCase())}`,
+    "",
+    deliverableRows.length > 0
+      ? `Against that ask, this programme hands back ${deliverableRows.length} committed deliverable${deliverableRows.length === 1 ? "" : "s"} — ${deliverableRows.map((d) => str(d.title, "a document")).join(", ")} — with the last of them due ${dateLabel(lastDue)}. Every objective below is carried by named questions, fielded in named waves, and landed in a named deliverable.`
+      : "Against that ask, this programme hands back a field finding at close: headline, toplines with the evidence behind each, segment differences, verbatim quotes, tensions, implications and a stated confidence level.",
+  ].join("\n");
+
+  sections.push({
+    id: "expected-outcome",
+    eyebrow: "Against your brief",
+    heading: "The expected outcome",
+    body_md: [
+      "### What you asked for, and what you receive",
+      "",
+      table(["#", "Your ask", "How it is answered", "What you receive", "When"], outcomeRows),
+      "",
+      "### What this briefing does not promise",
+      "",
+      [
+        `This is qualitative and directional evidence from ${members.length} recruited participant${members.length === 1 ? "" : "s"} across ${waves.length} wave${waves.length === 1 ? "" : "s"} — it is not a nationally representative statistical estimate, and no margin of error is claimed.`,
+        risks.length > 0
+          ? `The risks recorded above — ${risks
+              .map((r) => str((r as Record<string, unknown>)["risk"], "").toLowerCase())
+              .filter(Boolean)
+              .join("; ")} — are carried openly and will be restated in the finding.`
+          : "Any limitation encountered in the field will be stated plainly in the finding rather than smoothed over.",
+        "Where a return falls short of the target, we report the shortfall and its effect on confidence instead of extrapolating past it.",
+      ].join(" "),
+      "",
+      "### In closing",
+      "",
+      narrative?.expected_outcome ?? fallbackOutcome,
+    ].join("\n"),
+  });
+
+
+
   // ── Readiness ─────────────────────────────────────────────────────────
   const readiness: BriefingReadinessItem[] = [
     {

@@ -35,14 +35,17 @@ import {
   getProgrammeDeck,
   type DeckRecord,
 } from "@/lib/personas/programme-deck.functions";
+import { printSurface } from "@/components/print/PrintSurface";
 
 import { DeckModal } from "../deck/DeckModal";
 import { ExportBriefingDialog } from "./ExportBriefingDialog";
 import {
+  BRIEFING_PRINT_SURFACE,
   DEFAULT_BRIEFING_PRINT_CONFIG,
   PrintableBriefing,
   type BriefingPrintConfig,
 } from "./PrintableBriefing";
+
 
 
 function dateLabel(d: string | null): string {
@@ -112,13 +115,13 @@ export function BriefingPanel({ projectId }: { projectId: string }) {
   const runExport = (config: BriefingPrintConfig) => {
     setPrintConfig(config);
     setExportOpen(false);
-    const original = document.title;
-    if (doc) document.title = `${doc.programmeTitle} — Commencement Briefing`;
-    setTimeout(() => {
-      window.print();
-      document.title = original;
-    }, 120);
+    // printSurface names the one document that may own the sheet — the deck
+    // may also be mounted, and must not print alongside the briefing.
+    printSurface(BRIEFING_PRINT_SURFACE, {
+      title: doc ? `${doc.programmeTitle} — Commencement Briefing` : undefined,
+    });
   };
+
 
   return (
     <section className="space-y-6">

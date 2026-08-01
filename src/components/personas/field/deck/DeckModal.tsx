@@ -9,10 +9,15 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Download, Loader2, Play, Printer, X } from "lucide-react";
 
+import { PrintSurface, printSurface } from "@/components/print/PrintSurface";
 import type { ProgrammeDeck } from "@/lib/personas/programme-deck.functions";
 
 import { exportDeckToPptx } from "./deck-pptx";
 import { ScaledSlide, SlideBody } from "./SlideCanvas";
+
+/** Surface id — the deck prints one 16:9 page per slide, and nothing else. */
+export const DECK_PRINT_SURFACE = "deck";
+
 
 export function DeckModal({
   open,
@@ -72,13 +77,11 @@ export function DeckModal({
   };
 
   const printDeck = () => {
-    const original = document.title;
-    document.title = `${deck.programmeTitle} — Commencement deck`;
-    setTimeout(() => {
-      window.print();
-      document.title = original;
-    }, 120);
+    printSurface(DECK_PRINT_SURFACE, {
+      title: `${deck.programmeTitle} — Commencement deck`,
+    });
   };
+
 
   const download = async () => {
     setDownloading(true);
@@ -198,14 +201,20 @@ export function DeckModal({
       </div>
 
       {/* print surface — one 16:9 page per slide */}
-      <div id="deck-print-root" aria-hidden>
+      <PrintSurface
+        id={DECK_PRINT_SURFACE}
+        rootId="deck-print-root"
+        pageCss={PAGE_CSS}
+        rootProps={{ "aria-hidden": "true" }}
+      >
         {deck.slides.map((s, i) => (
           <div className="deck-print-page" key={`p-${s.id}`}>
             <SlideBody slide={s} index={i} total={total} />
           </div>
         ))}
-      </div>
-      <style>{PRINT_CSS}</style>
+        <style>{PRINT_CSS}</style>
+      </PrintSurface>
+
     </>
   );
 }
@@ -235,21 +244,23 @@ function NavButton({
   );
 }
 
-const PRINT_CSS = `
-#deck-print-root { display: none; }
-
+/** Landscape 16:9 sheet — installed only while the deck is the printing surface. */
+const PAGE_CSS = `
 @media print {
   @page { size: 1920px 1080px landscape; margin: 0; }
+}
+`;
+
+const PRINT_CSS = `
+@media print {
   html, body { background: #ffffff !important; }
-  body * { visibility: hidden !important; }
-  #deck-print-root, #deck-print-root * { visibility: visible !important; }
   #deck-print-root {
-    display: block !important;
     position: absolute;
     left: 0;
     top: 0;
     width: 1920px;
   }
+
   .deck-print-page {
     width: 1920px;
     height: 1080px;

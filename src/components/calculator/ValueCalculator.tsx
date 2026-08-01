@@ -27,7 +27,9 @@ import { ArithmeticDrawer } from "./ArithmeticDrawer";
 import { CalcSlider } from "./CalcSlider";
 import { CounselPanel } from "./CounselPanel";
 import { LeadDialog } from "./LeadDialog";
-import { PrintableValueCase } from "./PrintableValueCase";
+import { printSurface } from "@/components/print/PrintSurface";
+import { PrintableValueCase, VALUE_CASE_PRINT_SURFACE } from "./PrintableValueCase";
+
 import { VerdictRail } from "./VerdictRail";
 
 const ACCENT: Record<string, string> = Object.fromEntries(
@@ -148,7 +150,7 @@ export function ValueCalculator() {
 
   function onDownload() {
     if (granted) {
-      window.print();
+      printSurface(VALUE_CASE_PRINT_SURFACE);
       return;
     }
     setLeadOpen(true);
@@ -336,7 +338,7 @@ export function ValueCalculator() {
         configuration={configuration}
         onGranted={() => {
           setGranted(true);
-          setTimeout(() => window.print(), 250);
+          setTimeout(() => printSurface(VALUE_CASE_PRINT_SURFACE), 250);
         }}
       />
 

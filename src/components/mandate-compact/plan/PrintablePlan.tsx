@@ -9,10 +9,14 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { PrintSurface } from "@/components/print/PrintSurface";
 import type {
   TransformationalPlan,
   PlanSection,
 } from "@/lib/mandate-compact/transformational-plan.functions";
+
+/** Surface id — pass to printSurface() to print the plan alone. */
+export const PLAN_PRINT_SURFACE = "mandate-plan";
 
 export type PrintConfig = {
   classification: string;
@@ -48,9 +52,13 @@ export function PrintablePlan({
   config: PrintConfig;
 }) {
   return (
-    <div id="plan-print-root" data-page-numbers={config.showPageNumbers ? "on" : "off"}>
+    <PrintSurface
+      id={PLAN_PRINT_SURFACE}
+      rootId="plan-print-root"
+      pageCss={pageCss(config)}
+      rootProps={{ "data-page-numbers": config.showPageNumbers ? "on" : "off" }}
+    >
       <style>{PRINT_CSS}</style>
-      {!config.showPageNumbers && <style>{PAGE_NUMBERS_OFF_CSS}</style>}
 
       {config.showCoverPage && (
         <section className="pp-page pp-cover">
@@ -193,39 +201,13 @@ function PrintSection({
 // margin boxes for page numbers, matches the app's editorial aesthetic
 // (serif titles, mono eyebrows, gold accents, ink/paper tokens).
 
-const PRINT_CSS = `
-#plan-print-root { display: none; }
-
-@media print {
-  @page {
-    size: Letter;
-    margin: 18mm 16mm 22mm 16mm;
-  }
-  @page :first {
-    margin: 0;
-  }
-
-  html, body { background: #ffffff !important; }
-  body * { visibility: hidden !important; }
-  #plan-print-root, #plan-print-root * { visibility: visible !important; }
-  #plan-print-root {
-    display: block !important;
-    position: absolute;
-    inset: 0;
-    top: 0;
-    left: 0;
-    width: 100%;
-    color: #1a1a1a;
-    font-family: "Iowan Old Style", "Georgia", "Times New Roman", serif;
-    font-size: 10.5pt;
-    line-height: 1.55;
-  }
-
-  /* Page-number margin boxes — driven by data-page-numbers attribute */
-  #plan-print-root[data-page-numbers="on"] {
-    /* body pages carry the counter */
-  }
-  @page {
+/**
+ * Sheet geometry and running footers. `@page` is document-global, so it is
+ * installed only while the plan is the surface that owns the printed page.
+ */
+function pageCss(config: PrintConfig): string {
+  const footers = config.showPageNumbers
+    ? `
     @bottom-right {
       content: counter(page) " / " counter(pages);
       font-family: "SFMono-Regular", "Menlo", "Consolas", monospace;
@@ -239,15 +221,36 @@ const PRINT_CSS = `
       font-size: 8pt;
       color: #6b6b6b;
       letter-spacing: 0.14em;
-    }
+    }`
+    : "";
+  return `
+@media print {
+  @page {
+    size: Letter;
+    margin: 18mm 16mm 22mm 16mm;${footers}
   }
   @page :first {
+    margin: ${config.showCoverPage ? "0" : "18mm 16mm 22mm 16mm"};
     @bottom-right { content: none; }
     @bottom-left { content: none; }
   }
+}
+`;
+}
 
-  #plan-print-root[data-page-numbers="off"] {
-    /* Wipe counters by targeting all pages -- fallback via body class */
+const PRINT_CSS = `
+@media print {
+  html, body { background: #ffffff !important; }
+  #plan-print-root {
+    position: absolute;
+    inset: 0;
+    top: 0;
+    left: 0;
+    width: 100%;
+    color: #1a1a1a;
+    font-family: "Iowan Old Style", "Georgia", "Times New Roman", serif;
+    font-size: 10.5pt;
+    line-height: 1.55;
   }
 
   .pp-eyebrow, .pp-eyebrow-right {
@@ -508,15 +511,6 @@ const PRINT_CSS = `
     font-size: 8.5pt;
     color: #b8912a;
     letter-spacing: 0.14em;
-  }
-}
-`;
-
-const PAGE_NUMBERS_OFF_CSS = `
-@media print {
-  @page {
-    @bottom-right { content: none; }
-    @bottom-left { content: none; }
   }
 }
 `;

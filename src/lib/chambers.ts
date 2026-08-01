@@ -100,7 +100,7 @@ export const CHAMBERS: Chamber[] = [
   },
   {
     index: "07",
-    title: "Persona Lab",
+    title: "The Research Chamber",
     accentVar: "--sector-06",
     image: ch07.url,
     purpose:

@@ -12,7 +12,7 @@ import { isResearchTrack, tracksFor } from "@/lib/personas/tracks";
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/personas")({
   head: ({ params }) => ({
     meta: [
-      { title: `Persona Lab · ${params.code} — GDPVision` },
+      { title: `The Research Chamber · ${params.code} — GDPVision` },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/pers
       <p className="max-w-md text-sm text-rose-600">{error.message}</p>
     </div>
   ),
-  notFoundComponent: () => <div className="p-8 text-sm text-ink-500">Persona Lab not found.</div>,
+  notFoundComponent: () => <div className="p-8 text-sm text-ink-500">Research Chamber not found.</div>,
   component: PersonasLayout,
 });
 
@@ -105,7 +105,7 @@ function PersonasLayout() {
       crumbs={[
         { label: "Countries", to: "/admin/countries" },
         { label: code, to: "/admin/countries/$code/onboard", params: { code } },
-        { label: "Chamber 07 · Persona Lab" },
+        { label: "Chamber 07 · The Research Chamber" },
       ]}
     >
       <div className="grid gap-8 lg:grid-cols-[280px_1fr]">

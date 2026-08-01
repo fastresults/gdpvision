@@ -1,9 +1,9 @@
 // Chamber 07 · Chamber entrance gate.
 //
-// Nothing in this chamber starts until the principal says how the question
-// should be asked. Stage 00 is a fork, not a form: two instruments, one
-// decision. Blended is deliberately demoted to a quiet line beneath — it is
-// the exception, not a third equal option.
+// AI-first: the chamber opens on intake, not on a form. The principal gives
+// it material, the AI reads that into a proposed programme and recommends an
+// instrument. Only when nothing is to hand does the fork below appear as a
+// manual choice — two instruments, one decision. Blended stays a quiet line.
 
 import { useState } from "react";
 import { ArrowRight, Users2, Wand2 } from "lucide-react";
@@ -11,11 +11,13 @@ import { ArrowRight, Users2, Wand2 } from "lucide-react";
 import { Explain } from "@/components/explain/Explain";
 import { Illustration } from "@/components/marketing/Illustration";
 import { TRACK_META, type ResearchTrack } from "@/lib/personas/tracks";
+import type { ProgrammeProposal } from "@/lib/personas/project-brief.functions";
 import "@/lib/explain/personas-entries";
 import syntheticArt from "@/assets/illustrations/research-synthetic.jpg";
 import fieldArt from "@/assets/illustrations/research-field.jpg";
 
-import { TrackConfirm } from "./TrackConfirm";
+import { ProgrammeIngest, type IngestMaterial } from "./ProgrammeIngest";
+import { ProgrammeSetup } from "./ProgrammeSetup";
 
 const PANELS = [
   {
@@ -38,10 +40,39 @@ const PANELS = [
   },
 ];
 
-export function TrackGateEntry({ code }: { code: string }) {
-  const [chosen, setChosen] = useState<ResearchTrack | null>(null);
+type Stage =
+  | { step: "intake" }
+  | { step: "fork" }
+  | { step: "setup"; track: ResearchTrack; proposal?: ProgrammeProposal; material?: IngestMaterial };
 
-  if (chosen) return <TrackConfirm code={code} track={chosen} onBack={() => setChosen(null)} />;
+export function TrackGateEntry({ code }: { code: string }) {
+  const [stage, setStage] = useState<Stage>({ step: "intake" });
+
+  if (stage.step === "intake") {
+    return (
+      <ProgrammeIngest
+        code={code}
+        onProposal={(proposal, material) =>
+          setStage({ step: "setup", track: proposal.recommendedTrack, proposal, material })
+        }
+        onSkip={() => setStage({ step: "fork" })}
+      />
+    );
+  }
+
+  if (stage.step === "setup") {
+    return (
+      <ProgrammeSetup
+        code={code}
+        track={stage.track}
+        proposal={stage.proposal}
+        material={stage.material}
+        backLabel={stage.proposal ? "Back to the material" : "Change instrument"}
+        onBack={() => setStage(stage.proposal ? { step: "intake" } : { step: "fork" })}
+      />
+    );
+  }
+
 
   return (
     <section className="border border-ink-950 bg-paper-0">

@@ -215,97 +215,170 @@ export function ParticipantsStage({
 
   );
 
-  // The contact book — who we could hear from, and who has opted out.
-  const contactBook = contactsQ.isLoading ? (
+  const panelMembers = projectPanels.reduce(
+    (n, p) => n + Number((p as { member_count?: number }).member_count ?? 0),
+    0,
+  );
+  const live = contacts.filter((c) => !c.opted_out_at && c.consent_status !== "declined");
+  const reachable = live.filter((c) => !!c.email);
+  const unreachable = live.filter((c) => !c.email);
+  const optedOut = contacts.filter((c) => !!c.opted_out_at || c.consent_status === "declined");
 
-            <p className="text-sm text-ink-500">Reading the contact book…</p>
-          ) : contacts.length === 0 ? (
-            <EmptyAction
-              title="No contacts yet."
-              body="A field programme needs real people. Paste a roster above — names and emails are enough to start."
+  // The contact book — who we could hear from. On the panel screen it is the
+  // picker; the button that forms the panel lives in the action head, so the
+  // screen never offers the same move twice.
+  const contactBook = (withPicker: boolean) =>
+    contactsQ.isLoading ? (
+      <p className="text-sm text-ink-500">Reading the contact book…</p>
+    ) : contacts.length === 0 ? (
+      <EmptyAction
+        title="No contacts yet."
+        body="A field programme needs real people. Research candidates on the previous screen, or paste a roster by hand."
+      />
+    ) : (
+      <div className="border border-line-200 bg-paper-0">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-200 p-3">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            Contact book · {contacts.length}
+            {withPicker ? ` · ${selected.size} selected` : null}
+          </p>
+          {withPicker && projectPanels.length === 0 ? (
+            <input
+              value={panelName}
+              onChange={(e) => setPanelName(e.target.value)}
+              placeholder="Panel name"
+              className="border border-line-200 bg-paper-0 px-2 py-1 text-[12px] focus:border-ink-950 focus:outline-none"
             />
-          ) : (
-            <div className="border border-line-200 bg-paper-0">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-200 p-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                  Contact book · {contacts.length} · {selected.size} selected
-                </p>
-                <div className="flex flex-wrap items-center gap-2">
-                  {projectPanels.length === 0 && (
-                    <input
-                      value={panelName}
-                      onChange={(e) => setPanelName(e.target.value)}
-                      placeholder="Panel name"
-                      className="border border-line-200 bg-paper-0 px-2 py-1 text-[12px] focus:border-ink-950 focus:outline-none"
-                    />
-                  )}
-                  <button
-                    type="button"
-                    className="btn-primary"
-                    disabled={buildPanel.isPending || selected.size === 0}
-                    onClick={() => buildPanel.mutate()}
-                  >
-                    {buildPanel.isPending ? (
-                      <Loader2 size={11} className="animate-spin" />
-                    ) : (
-                      <Users size={12} />
-                    )}
-                    {projectPanels.length > 0 ? "Set the panel" : "Form the panel"}
-                  </button>
+          ) : null}
+        </div>
+        <ul className="divide-y divide-line-200">
+          {contacts.map((c) => {
+            const out = !!c.opted_out_at || c.consent_status === "declined";
+            return (
+              <li key={c.id} className="flex items-center gap-3 p-3">
+                {withPicker ? (
+                  <input
+                    type="checkbox"
+                    checked={selected.has(c.id)}
+                    disabled={out}
+                    onChange={() => toggle(c.id)}
+                    aria-label={`Select ${c.full_name}`}
+                  />
+                ) : null}
+                <div className="min-w-0 flex-1">
+                  <p className={cn("text-[13px] text-ink-950", out && "line-through opacity-50")}>
+                    {c.full_name}
+                    {c.role_title ? <span className="text-ink-500"> — {c.role_title}</span> : null}
+                  </p>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
+                    {c.organisation ?? "—"} · {c.email ?? "no email"} · consent {c.consent_status}
+                  </p>
                 </div>
-              </div>
-              {buildPanel.isError ? (
-                <p className="px-3 pt-2 text-[11px] text-rose-600">
-                  {(buildPanel.error as Error).message}
-                </p>
-              ) : null}
-              <ul className="divide-y divide-line-200">
-                {contacts.map((c) => {
-                  const out = !!c.opted_out_at || c.consent_status === "declined";
-                  return (
-                    <li key={c.id} className="flex items-center gap-3 p-3">
-                      <input
-                        type="checkbox"
-                        checked={selected.has(c.id)}
-                        disabled={out}
-                        onChange={() => toggle(c.id)}
-                        aria-label={`Select ${c.full_name}`}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p
-                          className={cn(
-                            "text-[13px] text-ink-950",
-                            out && "line-through opacity-50",
-                          )}
-                        >
-                          {c.full_name}
-                          {c.role_title ? (
-                            <span className="text-ink-500"> — {c.role_title}</span>
-                          ) : null}
-                        </p>
-                        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
-                          {c.organisation ?? "—"} · {c.email ?? "no email"} · consent{" "}
-                          {c.consent_status}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        className="btn-ghost"
-                        onClick={() =>
-                          optOutFn({ data: { id: c.id, optedOut: !out } }).then(refresh)
-                        }
-                      >
-                        {out ? "Restore" : "Opt out"}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => optOutFn({ data: { id: c.id, optedOut: !out } }).then(refresh)}
+                >
+                  {out ? "Restore" : "Opt out"}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+
+  /** The consent screen asks one thing only: can we actually reach these people? */
+  const reachabilityBlock =
+    contacts.length === 0 ? (
+      <EmptyAction
+        title="Nobody to check yet."
+        body="Form the panel first — reachability is checked against the people this programme will approach."
+      />
+    ) : (
+      <div className="border border-line-200 bg-paper-0">
+        <div className="grid grid-cols-3 divide-x divide-line-200 border-b border-line-200">
+          {[
+            { label: "Reachable", n: reachable.length },
+            { label: "No channel", n: unreachable.length },
+            { label: "Opted out", n: optedOut.length },
+          ].map((s) => (
+            <div key={s.label} className="p-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+                {s.label}
+              </p>
+              <p className="mt-0.5 font-serif text-2xl tabular-nums text-ink-950">{s.n}</p>
             </div>
-          );
+          ))}
+        </div>
+        {unreachable.length > 0 ? (
+          <ul className="divide-y divide-line-200">
+            {unreachable.map((c) => (
+              <li key={c.id} className="flex items-center gap-3 p-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] text-ink-950">{c.full_name}</p>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
+                    No email on file — an invitation would have nowhere to go.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => optOutFn({ data: { id: c.id, optedOut: true } }).then(refresh)}
+                >
+                  Opt out
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="p-3 text-[13px] text-ink-700">
+            Everyone still in play has a channel we can send an invitation to.
+          </p>
+        )}
+      </div>
+    );
 
   return (
     <StageWizard
+      actions={{
+        find: {
+          instruction:
+            "Research candidates against the brief, then accept the ones worth approaching.",
+          outstanding: contacts.length === 0 ? "nobody accepted into the contact book yet" : null,
+          doneNote: `${contacts.length} ${contacts.length === 1 ? "person" : "people"} on file`,
+        },
+        panel: {
+          instruction: "Tick the people this programme will approach, then form the panel.",
+          outstanding:
+            panelMembers === 0
+              ? selected.size === 0
+                ? "no one selected yet"
+                : `${selected.size} selected — not yet formed into a panel`
+              : null,
+          doneNote: `Panel formed · ${panelMembers} ${panelMembers === 1 ? "member" : "members"}`,
+          error: buildPanel.isError ? (buildPanel.error as Error).message : null,
+          action: {
+            label: projectPanels.length > 0 ? "Set the panel" : "Form the panel",
+            onClick: () => buildPanel.mutate(),
+            pending: buildPanel.isPending,
+            disabled: selected.size === 0,
+            icon: <Users size={12} />,
+            note: "This fixes who this programme fields to.",
+          },
+        },
+        consent: {
+          instruction:
+            "Confirm every panel member can be reached, and opt out anyone who has declined.",
+          outstanding:
+            unreachable.length > 0
+              ? `${unreachable.length} with no way to reach them`
+              : reachable.length === 0
+                ? "nobody reachable yet"
+                : null,
+          doneNote: `${reachable.length} reachable · ${optedOut.length} opted out`,
+        },
+      }}
       panels={{
         // ── Step 1 · Find candidates ──────────────────────────────────────
         find: (
@@ -321,7 +394,7 @@ export function ParticipantsStage({
         panel: (
           <div className="space-y-5">
             {panelBlock}
-            {contactBook}
+            {contactBook(true)}
             <ShowTheDetail label="Add more people by hand">{rosterBlock}</ShowTheDetail>
           </div>
         ),
@@ -330,15 +403,15 @@ export function ParticipantsStage({
         consent: (
           <div className="space-y-5">
             {panelBlock}
-            <p className="max-w-2xl text-[13px] leading-relaxed text-ink-700">
-              Nobody is approached without a record of their consent. Opt someone out here and they
-              drop out of every wave, invitation and export from this moment on.
-            </p>
-            {contactBook}
+            {reachabilityBlock}
+            <ShowTheDetail label={`Show the whole contact book · ${contacts.length}`}>
+              {contactBook(false)}
+            </ShowTheDetail>
           </div>
         ),
       }}
     />
   );
 }
+
 

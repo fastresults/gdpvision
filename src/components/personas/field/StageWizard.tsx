@@ -24,10 +24,8 @@ export function StageWizard({
   actions?: Record<string, ScreenActionSpec | null | undefined>;
 }) {
   const nav = useSubSteps();
-  if (!nav || !nav.current) return <>{Object.values(panels)[0] ?? null}</>;
-
-  const { steps, current, index, goTo, isDone } = nav;
-  const action = actions?.[current.key] ?? null;
+  const current = nav?.current ?? null;
+  const action = current ? (actions?.[current.key] ?? null) : null;
   const firstOpenIndex = steps.findIndex((step) => !isDone(step));
   const lastReachableIndex = firstOpenIndex === -1 ? steps.length - 1 : firstOpenIndex;
 
@@ -45,6 +43,12 @@ export function StageWizard({
         }
       : null,
   );
+
+  if (!nav || !current) return <>{Object.values(panels)[0] ?? null}</>;
+
+  const { steps, index, goTo, isDone } = nav;
+  const firstOpenIndex = steps.findIndex((step) => !isDone(step));
+  const lastReachableIndex = firstOpenIndex === -1 ? steps.length - 1 : firstOpenIndex;
 
 
   return (

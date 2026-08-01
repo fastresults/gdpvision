@@ -89,7 +89,6 @@ export function StageFrame({
 
   return (
     <>
-
       <section className="space-y-5 pb-28">
         <header className="border-b border-line-200 pb-4">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
@@ -245,8 +244,6 @@ export function StageFrame({
     </>
   );
 }
-
-
 
 /** An empty state that names the one action which fills it. */
 export function EmptyAction({

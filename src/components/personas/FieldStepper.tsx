@@ -19,7 +19,6 @@ import { useGuardedGo } from "@/components/personas/field/stage-bus";
 import type { FieldProgress } from "@/lib/personas/field-stages";
 import { cn, scrollToTop } from "@/lib/utils";
 
-
 export type FieldStageKey =
   | "brief"
   | "plan"
@@ -54,7 +53,6 @@ export function FieldStepper({
   // same save-or-discard gate the sticky bar uses.
   const navigate = useNavigate();
   const guardedGo = useGuardedGo();
-
 
   const nodes: Array<{
     key: FieldStageKey;
@@ -165,7 +163,6 @@ export function FieldStepper({
                     });
                   });
                 }}
-
                 className={cn(
                   "group flex items-start gap-2 border-l-2 py-1 pl-2 transition-colors",
                   s.locked && "pointer-events-none cursor-not-allowed opacity-40",

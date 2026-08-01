@@ -110,10 +110,10 @@ export function TrackConfirm({
                   onClick={() => setVisibility(o.key)}
                   className={cn("card-choice max-w-xs flex-1 px-4 py-3 text-left", on && "card-choice-active")}
                 >
-                  <span className="flex items-center gap-2 font-serif text-sm text-ink-950">
+                  <span className="flex items-center gap-2 font-serif text-sm">
                     <Icon size={13} /> {o.label}
                   </span>
-                  <span className="mt-1 block text-[11px] leading-snug text-ink-700">{o.hint}</span>
+                  <span className="mt-1 block text-[11px] leading-snug opacity-70">{o.hint}</span>
                 </button>
               );
             })}

@@ -87,7 +87,7 @@ function PersonasIndex() {
           projectId={activeProjectId}
           projectTitle={gate.project?.title}
           current={gate.track}
-          onChosen={(track) => {
+          onChosen={(track: ResearchTrack) => {
             if (track === "field") {
               window.location.assign(
                 `/admin/countries/${code}/personas?project=${activeProjectId}&open=1`,

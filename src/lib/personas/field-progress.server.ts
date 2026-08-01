@@ -101,7 +101,7 @@ export async function computeFieldProgress(
       .maybeSingle(),
     supabase
       .from("programme_plans")
-      .select("id,status")
+      .select("id,status,updated_at")
       .eq("project_id", projectId)
       .eq("status", "active")
       .maybeSingle(),
@@ -110,6 +110,15 @@ export async function computeFieldProgress(
   const briefCommitted = !!(brief as { brief_committed_at?: string | null } | null)
     ?.brief_committed_at;
   const planActive = !!plan;
+
+  // The freshness clock for the client dossier: any of these moving after a
+  // briefing was assembled means the assembled document no longer describes
+  // the programme as it stands.
+  const inputStamps: Array<string | null | undefined> = [
+    (brief as { brief_committed_at?: string | null } | null)?.brief_committed_at,
+    (plan as { updated_at?: string | null } | null)?.updated_at,
+  ];
+
 
   const studyId = planActive ? await ensureFieldStudyRow(supabase, projectId, userId) : null;
 

@@ -11,6 +11,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, CheckCircle2, FileUp, Loader2, Trash2, UploadCloud } from "lucide-react";
 import { useRef, useState } from "react";
 
+import { Explain } from "@/components/explain/Explain";
 import { supabase } from "@/integrations/supabase/client";
 import type {
   IngestBatch,
@@ -161,7 +162,9 @@ export function IngestPanel({
     <div className="border border-line-200 bg-paper-50">
       <div className="border-b border-line-100 p-3">
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Collected elsewhere
+          <Explain id="research.fieldwork.intake" mark={false}>
+            Collected elsewhere
+          </Explain>
         </p>
         <p className="mt-1 text-[13px] leading-relaxed text-ink-700">
           {expect === "tabular"

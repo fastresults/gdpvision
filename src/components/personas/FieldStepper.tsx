@@ -140,8 +140,8 @@ export function FieldStepper({
         {nodes.map((s) => {
           const Icon = s.icon;
           const isActive = active === s.key;
-          const to = s.key === "brief" ? ("/admin/countries/$code/personas" as const) : STEP_ROUTE;
-          const params = s.key === "brief" ? { code } : { code, step: s.key };
+          const to = STEP_ROUTE;
+          const params = { code, step: s.key };
           return (
             <li key={s.key}>
               <Link

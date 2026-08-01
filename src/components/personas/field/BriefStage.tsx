@@ -29,8 +29,7 @@ export function BriefStage({
     queryFn: () => getProjectBrief({ data: { projectId } }),
   });
 
-  const committedAt = (briefQ.data as { brief_committed_at?: string | null } | undefined)
-    ?.brief_committed_at;
+  const committedAt = (briefQ.data as { committed_at?: string | null } | undefined)?.committed_at;
   const stamp = committedAt
     ? new Date(committedAt).toLocaleDateString("en-GB", {
         day: "numeric",

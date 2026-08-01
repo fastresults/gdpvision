@@ -138,11 +138,14 @@ export function ParticipantsStage({
       return next;
     });
 
-  useDirtyRegistration("participants-roster", roster.trim().length > 0, "a pasted roster", async () => {
-    await doImport.mutateAsync();
-  });
-
-
+  useDirtyRegistration(
+    "participants-roster",
+    roster.trim().length > 0,
+    "a pasted roster",
+    async () => {
+      await doImport.mutateAsync();
+    },
+  );
 
   return (
     <div className="space-y-5">
@@ -172,124 +175,134 @@ export function ParticipantsStage({
           Contact book &amp; manual roster · {contacts.length} people on file
         </summary>
         <div className="space-y-5 border-t border-line-200 p-4">
-      <div className="border border-line-200 bg-paper-0 p-4">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Add people · paste a roster
-        </p>
-        <p className="mt-1 text-[12px] text-ink-600">
-          One person per line — name, email, organisation, role. Duplicates merge on email.
-        </p>
-        <textarea
-          value={roster}
-          onChange={(e) => setRoster(e.target.value)}
-          rows={4}
-          placeholder={"Marcia Adams, marcia@gov.gd, Ministry of Finance, Permanent Secretary"}
-          className="mt-2 w-full border border-line-200 bg-paper-0 p-2 font-mono text-[12px] focus:border-ink-950 focus:outline-none"
-        />
-        <div className="mt-2 flex items-center gap-3">
-          <button
-            type="button"
-            className="btn-secondary"
-            disabled={doImport.isPending}
-            onClick={() => doImport.mutate()}
-          >
-            {doImport.isPending ? (
-              <Loader2 size={11} className="animate-spin" />
-            ) : (
-              <UserPlus size={12} />
-            )}
-            Add to the contact book
-          </button>
-          {doImport.isSuccess ? (
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-emerald-700">
-              {doImport.data.inserted} added · {doImport.data.merged} merged
-            </span>
-          ) : null}
-          {doImport.isError ? (
-            <span className="text-[11px] text-rose-600">{(doImport.error as Error).message}</span>
-          ) : null}
-        </div>
-      </div>
-
-      {/* Contact book */}
-      {contactsQ.isLoading ? (
-        <p className="text-sm text-ink-500">Reading the contact book…</p>
-      ) : contacts.length === 0 ? (
-        <EmptyAction
-          title="No contacts yet."
-          body="A field programme needs real people. Paste a roster above — names and emails are enough to start."
-        />
-      ) : (
-        <div className="border border-line-200 bg-paper-0">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-200 p-3">
+          <div className="border border-line-200 bg-paper-0 p-4">
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-              Contact book · {contacts.length} · {selected.size} selected
+              Add people · paste a roster
             </p>
-            <div className="flex flex-wrap items-center gap-2">
-              {projectPanels.length === 0 && (
-                <input
-                  value={panelName}
-                  onChange={(e) => setPanelName(e.target.value)}
-                  placeholder="Panel name"
-                  className="border border-line-200 bg-paper-0 px-2 py-1 text-[12px] focus:border-ink-950 focus:outline-none"
-                />
-              )}
+            <p className="mt-1 text-[12px] text-ink-600">
+              One person per line — name, email, organisation, role. Duplicates merge on email.
+            </p>
+            <textarea
+              value={roster}
+              onChange={(e) => setRoster(e.target.value)}
+              rows={4}
+              placeholder={"Marcia Adams, marcia@gov.gd, Ministry of Finance, Permanent Secretary"}
+              className="mt-2 w-full border border-line-200 bg-paper-0 p-2 font-mono text-[12px] focus:border-ink-950 focus:outline-none"
+            />
+            <div className="mt-2 flex items-center gap-3">
               <button
                 type="button"
-                className="btn-primary"
-                disabled={buildPanel.isPending || selected.size === 0}
-                onClick={() => buildPanel.mutate()}
+                className="btn-secondary"
+                disabled={doImport.isPending}
+                onClick={() => doImport.mutate()}
               >
-                {buildPanel.isPending ? (
+                {doImport.isPending ? (
                   <Loader2 size={11} className="animate-spin" />
                 ) : (
-                  <Users size={12} />
+                  <UserPlus size={12} />
                 )}
-                {projectPanels.length > 0 ? "Set the panel" : "Form the panel"}
+                Add to the contact book
               </button>
+              {doImport.isSuccess ? (
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-emerald-700">
+                  {doImport.data.inserted} added · {doImport.data.merged} merged
+                </span>
+              ) : null}
+              {doImport.isError ? (
+                <span className="text-[11px] text-rose-600">
+                  {(doImport.error as Error).message}
+                </span>
+              ) : null}
             </div>
           </div>
-          {buildPanel.isError ? (
-            <p className="px-3 pt-2 text-[11px] text-rose-600">
-              {(buildPanel.error as Error).message}
-            </p>
-          ) : null}
-          <ul className="divide-y divide-line-200">
-            {contacts.map((c) => {
-              const out = !!c.opted_out_at || c.consent_status === "declined";
-              return (
-                <li key={c.id} className="flex items-center gap-3 p-3">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(c.id)}
-                    disabled={out}
-                    onChange={() => toggle(c.id)}
-                    aria-label={`Select ${c.full_name}`}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className={cn("text-[13px] text-ink-950", out && "line-through opacity-50")}>
-                      {c.full_name}
-                      {c.role_title ? (
-                        <span className="text-ink-500"> — {c.role_title}</span>
-                      ) : null}
-                    </p>
-                    <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
-                      {c.organisation ?? "—"} · {c.email ?? "no email"} · consent {c.consent_status}
-                    </p>
-                  </div>
+
+          {/* Contact book */}
+          {contactsQ.isLoading ? (
+            <p className="text-sm text-ink-500">Reading the contact book…</p>
+          ) : contacts.length === 0 ? (
+            <EmptyAction
+              title="No contacts yet."
+              body="A field programme needs real people. Paste a roster above — names and emails are enough to start."
+            />
+          ) : (
+            <div className="border border-line-200 bg-paper-0">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-200 p-3">
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                  Contact book · {contacts.length} · {selected.size} selected
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {projectPanels.length === 0 && (
+                    <input
+                      value={panelName}
+                      onChange={(e) => setPanelName(e.target.value)}
+                      placeholder="Panel name"
+                      className="border border-line-200 bg-paper-0 px-2 py-1 text-[12px] focus:border-ink-950 focus:outline-none"
+                    />
+                  )}
                   <button
                     type="button"
-                    className="btn-ghost"
-                    onClick={() => optOutFn({ data: { id: c.id, optedOut: !out } }).then(refresh)}
+                    className="btn-primary"
+                    disabled={buildPanel.isPending || selected.size === 0}
+                    onClick={() => buildPanel.mutate()}
                   >
-                    {out ? "Restore" : "Opt out"}
+                    {buildPanel.isPending ? (
+                      <Loader2 size={11} className="animate-spin" />
+                    ) : (
+                      <Users size={12} />
+                    )}
+                    {projectPanels.length > 0 ? "Set the panel" : "Form the panel"}
                   </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
+                </div>
+              </div>
+              {buildPanel.isError ? (
+                <p className="px-3 pt-2 text-[11px] text-rose-600">
+                  {(buildPanel.error as Error).message}
+                </p>
+              ) : null}
+              <ul className="divide-y divide-line-200">
+                {contacts.map((c) => {
+                  const out = !!c.opted_out_at || c.consent_status === "declined";
+                  return (
+                    <li key={c.id} className="flex items-center gap-3 p-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(c.id)}
+                        disabled={out}
+                        onChange={() => toggle(c.id)}
+                        aria-label={`Select ${c.full_name}`}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className={cn(
+                            "text-[13px] text-ink-950",
+                            out && "line-through opacity-50",
+                          )}
+                        >
+                          {c.full_name}
+                          {c.role_title ? (
+                            <span className="text-ink-500"> — {c.role_title}</span>
+                          ) : null}
+                        </p>
+                        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
+                          {c.organisation ?? "—"} · {c.email ?? "no email"} · consent{" "}
+                          {c.consent_status}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        onClick={() =>
+                          optOutFn({ data: { id: c.id, optedOut: !out } }).then(refresh)
+                        }
+                      >
+                        {out ? "Restore" : "Opt out"}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
       </details>
     </div>

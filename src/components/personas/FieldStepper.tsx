@@ -3,7 +3,7 @@
 // The real-world rail. Mirrors StudioStepper's grammar but walks the stages a
 // dated field programme actually passes through.
 
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Check,
   ClipboardList,
@@ -15,8 +15,9 @@ import {
   Library,
 } from "lucide-react";
 
+import { useGuardedGo } from "@/components/personas/field/stage-bus";
 import type { FieldProgress } from "@/lib/personas/field-stages";
-import { cn } from "@/lib/utils";
+import { cn, scrollToTop } from "@/lib/utils";
 
 export type FieldStageKey =
   | "brief"
@@ -47,6 +48,11 @@ export function FieldStepper({
   const done = (k: FieldStageKey) => !!progress?.stages[k]?.complete;
   const hintFor = (k: FieldStageKey, fallback: string) =>
     done(k) ? "done" : progress?.stages[k]?.blocker ? "outstanding" : fallback;
+
+  // The rail is a way out of a stage like any other — it goes through the
+  // same save-or-discard gate the sticky bar uses.
+  const navigate = useNavigate();
+  const guardedGo = useGuardedGo();
 
   const nodes: Array<{
     key: FieldStageKey;
@@ -146,7 +152,16 @@ export function FieldStepper({
                     : undefined
                 }
                 onClick={(e) => {
-                  if (s.locked) e.preventDefault();
+                  e.preventDefault();
+                  if (s.locked || isActive) return;
+                  guardedGo(() => {
+                    scrollToTop();
+                    void navigate({
+                      to,
+                      params: params as never,
+                      search: activeProjectId ? { project: activeProjectId } : undefined,
+                    });
+                  });
                 }}
                 className={cn(
                   "group flex items-start gap-2 border-l-2 py-1 pl-2 transition-colors",

@@ -15,7 +15,9 @@ import { EvidenceStage } from "@/components/personas/field/EvidenceStage";
 import { FieldworkStage } from "@/components/personas/field/FieldworkStage";
 import { InstrumentsStage } from "@/components/personas/field/InstrumentsStage";
 import { ParticipantsStage } from "@/components/personas/field/ParticipantsStage";
+import { FieldStageProvider } from "@/components/personas/field/stage-bus";
 import { StageFrame } from "@/components/personas/field/StageFrame";
+
 import { TrackTabs } from "@/components/personas/TrackTabs";
 
 import { useResearchGate } from "@/hooks/useResearchGate";
@@ -84,97 +86,98 @@ function FieldStageBody({
   };
 
   return (
-    <div className="space-y-6">
-      <FieldStepper
-        code={code}
-        active={stage}
-        activeProjectId={projectId}
-        briefCommitted={gate.committed}
-        planCommitted={gate.planCommitted}
-        progress={progress}
-      />
-
-      <TrackTabs code={code} projectId={projectId} track={gate.track} active="field" />
-
-      {!gate.committed && !gate.loading ? (
-        <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
-          <p className="font-serif text-lg text-ink-950">The brief comes first.</p>
-          <p className="mt-1 max-w-xl text-sm text-ink-700">
-            A field programme is planned from the brief — its questions, constraints and deadline
-            set the phases, the participants and the instruments.
-          </p>
-          <Link
-            to="/admin/countries/$code/personas"
-            params={{ code }}
-            search={{ project: projectId, open: 1 }}
-            className="btn-primary mt-4 inline-flex"
-          >
-            Write the brief
-          </Link>
-        </div>
-      ) : stage === "plan" ? (
-        <StageFrame
+    <FieldStageProvider>
+      <div className="space-y-6">
+        <FieldStepper
           code={code}
-          projectId={projectId}
-          stage="plan"
+          active={stage}
+          activeProjectId={projectId}
+          briefCommitted={gate.committed}
+          planCommitted={gate.planCommitted}
           progress={progress}
-          progressPending={progressQ.isFetching}
-          progressError={progressQ.isError ? "unreadable" : null}
-          onRetryProgress={() => void progressQ.refetch()}
-        >
-          <PlanStage code={code} projectId={projectId} onChanged={refresh} />
-        </StageFrame>
-      ) : !gate.planCommitted ? (
-        <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
-          <p className="font-serif text-lg text-ink-950">Approve the programme plan first.</p>
-          <p className="mt-1 text-sm text-ink-700">
-            Participants, instruments and fieldwork are all scheduled against the approved plan.
-          </p>
-          <Link
-            to="/admin/countries/$code/personas/field/$step"
-            params={{ code, step: "plan" }}
-            search={{ project: projectId }}
-            className="btn-primary mt-4 inline-flex"
-          >
-            Open the programme plan
-          </Link>
-        </div>
-      ) : (
-        <StageFrame
-          code={code}
-          projectId={projectId}
-          stage={stage}
-          progress={progress}
-          progressPending={progressQ.isFetching}
-          progressError={progressQ.isError ? "unreadable" : null}
-          onRetryProgress={() => void progressQ.refetch()}
-        >
-          {progressQ.isLoading ? (
-            <p className="text-sm text-ink-500">Reading the programme…</p>
-          ) : stage === "participants" ? (
-            <ParticipantsStage code={code} projectId={projectId} onChanged={refresh} />
-          ) : stage === "instruments" ? (
-            <InstrumentsStage studyId={studyId} onChanged={refresh} />
-          ) : stage === "fieldwork" ? (
-            <FieldworkStage
-              code={code}
-              projectId={projectId}
-              studyId={studyId}
-              onChanged={refresh}
-            />
-          ) : (
-            <EvidenceStage
-              projectId={projectId}
-              studyId={studyId}
-              finding={progress?.fieldFinding ?? null}
-              closed={progress?.stages.evidence.complete ?? false}
-              onChanged={refresh}
-            />
-          )}
-        </StageFrame>
-      )}
+        />
 
-    </div>
+        <TrackTabs code={code} projectId={projectId} track={gate.track} active="field" />
+
+        {!gate.committed && !gate.loading ? (
+          <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
+            <p className="font-serif text-lg text-ink-950">The brief comes first.</p>
+            <p className="mt-1 max-w-xl text-sm text-ink-700">
+              A field programme is planned from the brief — its questions, constraints and deadline
+              set the phases, the participants and the instruments.
+            </p>
+            <Link
+              to="/admin/countries/$code/personas"
+              params={{ code }}
+              search={{ project: projectId, open: 1 }}
+              className="btn-primary mt-4 inline-flex"
+            >
+              Write the brief
+            </Link>
+          </div>
+        ) : stage === "plan" ? (
+          <StageFrame
+            code={code}
+            projectId={projectId}
+            stage="plan"
+            progress={progress}
+            progressPending={progressQ.isFetching}
+            progressError={progressQ.isError ? "unreadable" : null}
+            onRetryProgress={() => void progressQ.refetch()}
+          >
+            <PlanStage code={code} projectId={projectId} onChanged={refresh} />
+          </StageFrame>
+        ) : !gate.planCommitted ? (
+          <div className="border border-dashed border-line-200 bg-paper-100/40 p-6">
+            <p className="font-serif text-lg text-ink-950">Approve the programme plan first.</p>
+            <p className="mt-1 text-sm text-ink-700">
+              Participants, instruments and fieldwork are all scheduled against the approved plan.
+            </p>
+            <Link
+              to="/admin/countries/$code/personas/field/$step"
+              params={{ code, step: "plan" }}
+              search={{ project: projectId }}
+              className="btn-primary mt-4 inline-flex"
+            >
+              Open the programme plan
+            </Link>
+          </div>
+        ) : (
+          <StageFrame
+            code={code}
+            projectId={projectId}
+            stage={stage}
+            progress={progress}
+            progressPending={progressQ.isFetching}
+            progressError={progressQ.isError ? "unreadable" : null}
+            onRetryProgress={() => void progressQ.refetch()}
+          >
+            {progressQ.isLoading ? (
+              <p className="text-sm text-ink-500">Reading the programme…</p>
+            ) : stage === "participants" ? (
+              <ParticipantsStage code={code} projectId={projectId} onChanged={refresh} />
+            ) : stage === "instruments" ? (
+              <InstrumentsStage studyId={studyId} onChanged={refresh} />
+            ) : stage === "fieldwork" ? (
+              <FieldworkStage
+                code={code}
+                projectId={projectId}
+                studyId={studyId}
+                onChanged={refresh}
+              />
+            ) : (
+              <EvidenceStage
+                projectId={projectId}
+                studyId={studyId}
+                finding={progress?.fieldFinding ?? null}
+                closed={progress?.stages.evidence.complete ?? false}
+                onChanged={refresh}
+              />
+            )}
+          </StageFrame>
+        )}
+      </div>
+    </FieldStageProvider>
   );
 }
 

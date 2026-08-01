@@ -16,7 +16,7 @@ import {
   Loader2,
   Wrench,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { Explain } from "@/components/explain/Explain";
 import "@/lib/explain/personas-entries";
@@ -29,7 +29,7 @@ import {
   type FieldStageKey,
 } from "@/lib/personas/field-stages";
 import { cn, scrollToTop } from "@/lib/utils";
-import { FieldStageBus, type DirtyEntry, type ResolveAction } from "./stage-bus";
+import { useFieldStageBus } from "./stage-bus";
 
 const STEP_ROUTE = "/admin/countries/$code/personas/field/$step" as const;
 const DOOR_ROUTE = "/admin/countries/$code/personas" as const;
@@ -61,50 +61,14 @@ export function StageFrame({
   const position = FIELD_STAGES.indexOf(stage) + 1;
   const navigate = useNavigate();
 
-  // ---- the bus: stages publish unsaved work and their resolve action --------
-  const [dirtyMap, setDirtyMap] = useState<Record<string, DirtyEntry>>({});
-  const [resolveMap, setResolveMap] = useState<Record<string, ResolveAction>>({});
-  const dirtyRef = useRef(dirtyMap);
-  dirtyRef.current = dirtyMap;
-
-  const setDirty = useCallback((id: string, entry: DirtyEntry | null) => {
-    setDirtyMap((prev) => {
-      if (!entry) {
-        if (!(id in prev)) return prev;
-        const nextMap = { ...prev };
-        delete nextMap[id];
-        return nextMap;
-      }
-      return { ...prev, [id]: entry };
-    });
-  }, []);
-
-  const setResolve = useCallback((id: string, action: ResolveAction | null) => {
-    setResolveMap((prev) => {
-      if (!action) {
-        if (!(id in prev)) return prev;
-        const nextMap = { ...prev };
-        delete nextMap[id];
-        return nextMap;
-      }
-      return { ...prev, [id]: action };
-    });
-  }, []);
-
-  const bus = useMemo(() => ({ setDirty, setResolve }), [setDirty, setResolve]);
-
-  const dirtyEntries = Object.values(dirtyMap);
+  // The gate lives above this frame (see FieldStageProvider), so the rail is
+  // guarded too — this frame just reads what stages published.
+  const { dirtyEntries, resolveAction, guardedGo } = useFieldStageBus();
   const hasDirty = dirtyEntries.length > 0;
-  const resolveAction = Object.values(resolveMap)[0] ?? null;
-
-  // ---- navigation guard ----------------------------------------------------
-  const [pendingNav, setPendingNav] = useState<null | (() => void)>(null);
-  const [savingNav, setSavingNav] = useState(false);
-  const [navError, setNavError] = useState<string | null>(null);
 
   const go = useCallback(
     (target: FieldStageKey) => {
-      const run = () => {
+      guardedGo(() => {
         scrollToTop();
         if (target === "brief") {
           void navigate({ to: DOOR_ROUTE, params: { code }, search: { project: projectId } });
@@ -115,47 +79,16 @@ export function StageFrame({
             search: { project: projectId },
           });
         }
-      };
-      if (Object.keys(dirtyRef.current).length > 0) {
-        setNavError(null);
-        setPendingNav(() => run);
-        return;
-      }
-      run();
+      });
     },
-    [code, navigate, projectId],
+    [code, guardedGo, navigate, projectId],
   );
-
-  useEffect(() => {
-    if (!hasDirty) return;
-    const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
-    window.addEventListener("beforeunload", onBeforeUnload);
-    return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [hasDirty]);
-
-  const saveAllAndGo = async () => {
-    setSavingNav(true);
-    setNavError(null);
-    try {
-      for (const entry of Object.values(dirtyRef.current)) await entry.save();
-      const run = pendingNav;
-      setPendingNav(null);
-      run?.();
-    } catch (err) {
-      setNavError(err instanceof Error ? err.message : "Could not save.");
-    } finally {
-      setSavingNav(false);
-    }
-  };
 
   const [amendOpen, setAmendOpen] = useState(false);
   const earlier = FIELD_STAGES.slice(0, FIELD_STAGES.indexOf(stage));
 
   return (
-    <FieldStageBus.Provider value={bus}>
+    <>
       <section className="space-y-5 pb-28">
         <header className="border-b border-line-200 pb-4">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
@@ -307,54 +240,8 @@ export function StageFrame({
             </div>
           </div>
         </div>
-
-        {/* Unsaved-work confirm */}
-        {pendingNav ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/40 p-4">
-            <div className="w-full max-w-md border border-line-200 bg-paper-0 p-5">
-              <p className="font-serif text-lg text-ink-950">You have unsaved work.</p>
-              <p className="mt-1 text-[13px] text-ink-700">
-                Unsaved · {dirtyEntries.map((d) => d.label).join(", ")}. Save it before moving, or
-                leave it behind.
-              </p>
-              {navError ? <p className="mt-2 text-[12px] text-rose-600">{navError}</p> : null}
-              <div className="mt-4 flex flex-wrap justify-end gap-2">
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  disabled={savingNav}
-                  onClick={() => setPendingNav(null)}
-                >
-                  Stay here
-                </button>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  disabled={savingNav}
-                  onClick={() => {
-                    const run = pendingNav;
-                    setPendingNav(null);
-                    setDirtyMap({});
-                    run?.();
-                  }}
-                >
-                  Discard and continue
-                </button>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  disabled={savingNav}
-                  onClick={() => void saveAllAndGo()}
-                >
-                  {savingNav ? <Loader2 size={11} className="animate-spin" /> : null}
-                  Save and continue
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : null}
       </section>
-    </FieldStageBus.Provider>
+    </>
   );
 }
 

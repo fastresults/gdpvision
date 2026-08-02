@@ -5,7 +5,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, UserPlus, Users } from "lucide-react";
+import { ChevronRight, Loader2, UserPlus, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { RecruitmentBoard } from "./RecruitmentBoard";
@@ -54,7 +54,43 @@ function parseRoster(text: string) {
     .filter((r) => r.full_name.length > 1 && !/^(name|full[_ ]?name)$/i.test(r.full_name));
 }
 
+/** A user-controlled collapse: header stays visible, body folds away. */
+function Collapse({
+  title,
+  aside,
+  defaultOpen = true,
+  children,
+}: {
+  title: React.ReactNode;
+  aside?: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border border-line-200 bg-paper-0">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3">
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          className="flex min-w-0 flex-1 items-center gap-2 text-left font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 transition-colors hover:text-ink-950"
+        >
+          <ChevronRight
+            size={12}
+            className={cn("shrink-0 transition-transform", open && "rotate-90")}
+          />
+          <span className="min-w-0 truncate">{title}</span>
+        </button>
+        {aside}
+      </div>
+      {open ? <div className="border-t border-line-200">{children}</div> : null}
+    </div>
+  );
+}
+
 export function ParticipantsStage({
+
   code,
   projectId,
   onChanged,
@@ -157,20 +193,20 @@ export function ParticipantsStage({
 
   const panelBlock =
     projectPanels.length > 0 ? (
-      <div className="border border-line-200 bg-paper-0 p-4">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          This programme's panel
-        </p>
-        {projectPanels.map((p) => (
-          <p key={p.id as string} className="mt-1 font-serif text-lg text-ink-950">
-            {String(p.name)}{" "}
-            <span className="font-mono text-[11px] tabular-nums text-ink-500">
-              · {String((p as { member_count?: number }).member_count ?? 0)} members
-            </span>
-          </p>
-        ))}
-      </div>
+      <Collapse title="This programme's panel">
+        <div className="p-4">
+          {projectPanels.map((p) => (
+            <p key={p.id as string} className="mt-1 font-serif text-lg text-ink-950 first:mt-0">
+              {String(p.name)}{" "}
+              <span className="font-mono text-[11px] tabular-nums text-ink-500">
+                · {String((p as { member_count?: number }).member_count ?? 0)} members
+              </span>
+            </p>
+          ))}
+        </div>
+      </Collapse>
     ) : null;
+
 
   // The paste-a-roster card — the manual way in, kept for when AI recruitment
   // isn't the right instrument.
@@ -239,22 +275,21 @@ export function ParticipantsStage({
         body="A field programme needs real people. Research candidates on the previous screen, or paste a roster by hand."
       />
     ) : (
-      <div className="border border-line-200 bg-paper-0">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-200 p-3">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            Contact book · {contacts.length}
-            {withPicker ? ` · ${selected.size} selected` : null}
-          </p>
-          {withPicker && projectPanels.length === 0 ? (
+      <Collapse
+        title={`Contact book · ${contacts.length}${withPicker ? ` · ${selected.size} selected` : ""}`}
+        aside={
+          withPicker && projectPanels.length === 0 ? (
             <input
               value={panelName}
               onChange={(e) => setPanelName(e.target.value)}
               placeholder="Panel name"
               className="border border-line-200 bg-paper-0 px-2 py-1 text-[12px] focus:border-ink-950 focus:outline-none"
             />
-          ) : null}
-        </div>
+          ) : null
+        }
+      >
         <ul className="divide-y divide-line-200">
+
           {contacts.map((c) => {
             const out = !!c.opted_out_at || c.consent_status === "declined";
             return (
@@ -288,7 +323,7 @@ export function ParticipantsStage({
             );
           })}
         </ul>
-      </div>
+      </Collapse>
     );
 
   /** The consent screen asks one thing only: can we actually reach these people? */
@@ -317,30 +352,36 @@ export function ParticipantsStage({
           ))}
         </div>
         {unreachable.length > 0 ? (
-          <ul className="divide-y divide-line-200">
-            {unreachable.map((c) => (
-              <li key={c.id} className="flex items-center gap-3 p-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] text-ink-950">{c.full_name}</p>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
-                    No email on file — an invitation would have nowhere to go.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  onClick={() => optOutFn({ data: { id: c.id, optedOut: true } }).then(refresh)}
-                >
-                  Opt out
-                </button>
-              </li>
-            ))}
-          </ul>
+          <Collapse
+            title={`No channel · ${unreachable.length}`}
+            defaultOpen={false}
+          >
+            <ul className="divide-y divide-line-200">
+              {unreachable.map((c) => (
+                <li key={c.id} className="flex items-center gap-3 p-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] text-ink-950">{c.full_name}</p>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
+                      No email on file — an invitation would have nowhere to go.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    onClick={() => optOutFn({ data: { id: c.id, optedOut: true } }).then(refresh)}
+                  >
+                    Opt out
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Collapse>
         ) : (
           <p className="p-3 text-[13px] text-ink-700">
             Everyone still in play has a channel we can send an invitation to.
           </p>
         )}
+
       </div>
     );
 

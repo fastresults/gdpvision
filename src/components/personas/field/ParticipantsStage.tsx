@@ -5,7 +5,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, UserPlus, Users } from "lucide-react";
+import { ChevronRight, Loader2, UserPlus, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { RecruitmentBoard } from "./RecruitmentBoard";

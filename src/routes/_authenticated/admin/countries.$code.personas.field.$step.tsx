@@ -97,11 +97,17 @@ function FieldStageBody({
 
   if ((stage as string) === "briefing") {
     return (
-      <Navigate
-        to="/admin/countries/$code/personas"
-        params={{ code }}
-        search={{ project: projectId }}
-      />
+      <div className="space-y-6">
+        <Link
+          to="/admin/countries/$code/personas/field/$step"
+          params={{ code, step: "brief" }}
+          search={{ project: projectId }}
+          className="btn-ghost inline-flex items-center gap-2"
+        >
+          <ArrowLeft size={14} /> Back to the programme rail
+        </Link>
+        <BriefingPanel projectId={projectId} />
+      </div>
     );
   }
 

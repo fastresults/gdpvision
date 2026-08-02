@@ -85,6 +85,7 @@ function FieldStageBody({
   gate: ReturnType<typeof useResearchGate>;
 }) {
   const qc = useQueryClient();
+  const [trackerOpen, setTrackerOpen] = useState(false);
   // One read drives the rail, the "done when" test and the next action.
   const progressQ = useQuery({
     queryKey: ["field-progress", projectId],

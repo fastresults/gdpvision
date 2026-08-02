@@ -8,9 +8,10 @@ import { createFileRoute, Link, Navigate, notFound, useSearch } from "@tanstack/
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { ArrowLeft, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, FileText, Kanban, Loader2 } from "lucide-react";
 
 import { BriefingPanel } from "@/components/personas/field/briefing/BriefingPanel";
+import { TrackerModal } from "@/components/personas/field/tracker/TrackerModal";
 
 import { FieldStepper, type FieldStageKey } from "@/components/personas/FieldStepper";
 import { BriefStage } from "@/components/personas/field/BriefStage";
@@ -84,6 +85,7 @@ function FieldStageBody({
   gate: ReturnType<typeof useResearchGate>;
 }) {
   const qc = useQueryClient();
+  const [trackerOpen, setTrackerOpen] = useState(false);
   // One read drives the rail, the "done when" test and the next action.
   const progressQ = useQuery({
     queryKey: ["field-progress", projectId],
@@ -205,6 +207,13 @@ function FieldStageBody({
       <div className="space-y-6">
         {gate.committed ? (
           <div className="flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setTrackerOpen(true)}
+              className="btn-secondary inline-flex items-center gap-2"
+            >
+              <Kanban size={14} /> Project tracker
+            </button>
             <Link
               to="/admin/countries/$code/personas/field/$step"
               params={{ code, step: "briefing" }}
@@ -215,6 +224,12 @@ function FieldStageBody({
             </Link>
           </div>
         ) : null}
+        <TrackerModal
+          open={trackerOpen}
+          code={code}
+          projectId={projectId}
+          onClose={() => setTrackerOpen(false)}
+        />
         <FieldStepper
           code={code}
           active={stage}
@@ -228,6 +243,11 @@ function FieldStageBody({
       </div>
     </FieldStageProvider>
   );
+}
+
+function useTrackerModal() {
+  const [trackerOpen, setTrackerOpen] = useState(false);
+  return { trackerOpen, setTrackerOpen };
 }
 
 

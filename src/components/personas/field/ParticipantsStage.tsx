@@ -193,20 +193,20 @@ export function ParticipantsStage({
 
   const panelBlock =
     projectPanels.length > 0 ? (
-      <div className="border border-line-200 bg-paper-0 p-4">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          This programme's panel
-        </p>
-        {projectPanels.map((p) => (
-          <p key={p.id as string} className="mt-1 font-serif text-lg text-ink-950">
-            {String(p.name)}{" "}
-            <span className="font-mono text-[11px] tabular-nums text-ink-500">
-              · {String((p as { member_count?: number }).member_count ?? 0)} members
-            </span>
-          </p>
-        ))}
-      </div>
+      <Collapse title="This programme's panel">
+        <div className="p-4">
+          {projectPanels.map((p) => (
+            <p key={p.id as string} className="mt-1 font-serif text-lg text-ink-950 first:mt-0">
+              {String(p.name)}{" "}
+              <span className="font-mono text-[11px] tabular-nums text-ink-500">
+                · {String((p as { member_count?: number }).member_count ?? 0)} members
+              </span>
+            </p>
+          ))}
+        </div>
+      </Collapse>
     ) : null;
+
 
   // The paste-a-roster card — the manual way in, kept for when AI recruitment
   // isn't the right instrument.

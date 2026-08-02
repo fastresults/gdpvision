@@ -323,7 +323,7 @@ export function ParticipantsStage({
             );
           })}
         </ul>
-      </div>
+      </Collapse>
     );
 
   /** The consent screen asks one thing only: can we actually reach these people? */

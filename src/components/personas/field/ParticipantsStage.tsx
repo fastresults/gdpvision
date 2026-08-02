@@ -353,30 +353,36 @@ export function ParticipantsStage({
           ))}
         </div>
         {unreachable.length > 0 ? (
-          <ul className="divide-y divide-line-200">
-            {unreachable.map((c) => (
-              <li key={c.id} className="flex items-center gap-3 p-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] text-ink-950">{c.full_name}</p>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
-                    No email on file — an invitation would have nowhere to go.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  onClick={() => optOutFn({ data: { id: c.id, optedOut: true } }).then(refresh)}
-                >
-                  Opt out
-                </button>
-              </li>
-            ))}
-          </ul>
+          <Collapse
+            title={`No channel · ${unreachable.length}`}
+            defaultOpen={false}
+          >
+            <ul className="divide-y divide-line-200">
+              {unreachable.map((c) => (
+                <li key={c.id} className="flex items-center gap-3 p-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] text-ink-950">{c.full_name}</p>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
+                      No email on file — an invitation would have nowhere to go.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    onClick={() => optOutFn({ data: { id: c.id, optedOut: true } }).then(refresh)}
+                  >
+                    Opt out
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Collapse>
         ) : (
           <p className="p-3 text-[13px] text-ink-700">
             Everyone still in play has a channel we can send an invitation to.
           </p>
         )}
+
       </div>
     );
 

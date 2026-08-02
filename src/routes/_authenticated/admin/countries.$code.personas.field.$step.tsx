@@ -8,7 +8,9 @@ import { createFileRoute, Link, Navigate, notFound, useSearch } from "@tanstack/
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, FileText, Loader2 } from "lucide-react";
+
+import { BriefingPanel } from "@/components/personas/field/briefing/BriefingPanel";
 
 import { FieldStepper, type FieldStageKey } from "@/components/personas/FieldStepper";
 import { BriefStage } from "@/components/personas/field/BriefStage";
@@ -97,11 +99,17 @@ function FieldStageBody({
 
   if ((stage as string) === "briefing") {
     return (
-      <Navigate
-        to="/admin/countries/$code/personas"
-        params={{ code }}
-        search={{ project: projectId }}
-      />
+      <div className="space-y-6">
+        <Link
+          to="/admin/countries/$code/personas/field/$step"
+          params={{ code, step: "brief" }}
+          search={{ project: projectId }}
+          className="btn-ghost inline-flex items-center gap-2"
+        >
+          <ArrowLeft size={14} /> Back to the programme rail
+        </Link>
+        <BriefingPanel projectId={projectId} />
+      </div>
     );
   }
 
@@ -195,6 +203,18 @@ function FieldStageBody({
   return (
     <FieldStageProvider>
       <div className="space-y-6">
+        {gate.committed ? (
+          <div className="flex flex-wrap justify-end gap-2">
+            <Link
+              to="/admin/countries/$code/personas/field/$step"
+              params={{ code, step: "briefing" }}
+              search={{ project: projectId }}
+              className="btn-secondary inline-flex items-center gap-2"
+            >
+              <FileText size={14} /> Discovery brief &amp; presentation
+            </Link>
+          </div>
+        ) : null}
         <FieldStepper
           code={code}
           active={stage}

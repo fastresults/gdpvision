@@ -124,17 +124,36 @@ export function StageWizard({
  */
 export function ShowTheDetail({
   label = "Show the detail",
+  hideLabel,
+  defaultOpen = false,
   children,
 }: {
   label?: string;
+  /** Label when open. Defaults to the show label with "Hide" swapped in. */
+  hideLabel?: string;
+  defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const closed = hideLabel ?? label.replace(/^Show/i, "Hide");
   return (
-    <details className="border border-line-200 bg-paper-0">
-      <summary className="cursor-pointer px-4 py-3 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950">
-        {label}
-      </summary>
-      <div className="space-y-5 border-t border-line-200 p-4">{children}</div>
-    </details>
+    <div className="border border-line-200 bg-paper-0">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-2 px-4 py-3 text-left font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 transition-colors hover:text-ink-950"
+      >
+        <ChevronRight
+          size={12}
+          className={cn("shrink-0 transition-transform", open && "rotate-90")}
+        />
+        {open ? closed : label}
+      </button>
+      {open ? (
+        <div className="space-y-5 border-t border-line-200 p-4">{children}</div>
+      ) : null}
+    </div>
   );
 }
+

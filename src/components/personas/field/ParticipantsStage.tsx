@@ -54,7 +54,43 @@ function parseRoster(text: string) {
     .filter((r) => r.full_name.length > 1 && !/^(name|full[_ ]?name)$/i.test(r.full_name));
 }
 
+/** A user-controlled collapse: header stays visible, body folds away. */
+function Collapse({
+  title,
+  aside,
+  defaultOpen = true,
+  children,
+}: {
+  title: React.ReactNode;
+  aside?: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border border-line-200 bg-paper-0">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3">
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          className="flex min-w-0 flex-1 items-center gap-2 text-left font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 transition-colors hover:text-ink-950"
+        >
+          <ChevronRight
+            size={12}
+            className={cn("shrink-0 transition-transform", open && "rotate-90")}
+          />
+          <span className="min-w-0 truncate">{title}</span>
+        </button>
+        {aside}
+      </div>
+      {open ? <div className="border-t border-line-200">{children}</div> : null}
+    </div>
+  );
+}
+
 export function ParticipantsStage({
+
   code,
   projectId,
   onChanged,

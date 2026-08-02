@@ -6,8 +6,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import {
   Check,
-  ChevronDown,
-  ChevronRight,
   ClipboardList,
   FileText,
   Lock,
@@ -137,93 +135,91 @@ export function FieldStepper({
     },
   ];
 
+  const go = (s: (typeof nodes)[number]) => {
+    if (s.locked || active === s.key) return;
+    guardedGo(() => {
+      scrollToTop();
+      void navigate({
+        to: STEP_ROUTE,
+        params: { code, step: s.key },
+        search: { project: activeProjectId } as never,
+      });
+    });
+  };
+
   return (
-    <div aria-label="Field programme stages" className="border-y border-line-200">
-      <ol className="divide-y divide-line-200">
+    <div>
+      <ol
+        aria-label="Field programme stages"
+        className="flex items-stretch gap-px overflow-x-auto border-y border-line-200 bg-line-200"
+      >
         {nodes.map((s) => {
           const Icon = s.icon;
           const isActive = active === s.key;
           return (
-            <li key={s.key} className={cn(isActive && "bg-paper-0")}>
+            <li key={s.key} className="min-w-[150px] flex-1 bg-paper-50">
               <button
                 type="button"
-                aria-expanded={isActive}
+                aria-current={isActive ? "step" : undefined}
                 aria-disabled={s.locked}
                 disabled={s.locked}
-                onClick={() => {
-                  if (s.locked || isActive) return;
-                  guardedGo(() => {
-                    scrollToTop();
-                    void navigate({
-                      to: STEP_ROUTE,
-                      params: { code, step: s.key },
-                      search: { project: activeProjectId } as never,
-                    });
-                  });
-                }}
+                onClick={() => go(s)}
                 className={cn(
-                  "flex w-full items-center gap-3 border-l-2 px-3 py-3 text-left transition-colors",
+                  "flex h-full w-full flex-col items-start gap-2 border-t-2 px-3 py-3 text-left transition-colors",
                   s.locked ? "cursor-not-allowed opacity-40" : "cursor-pointer",
                   isActive
-                    ? "border-ink-950"
+                    ? "border-ink-950 bg-paper-0"
                     : s.complete
-                      ? "border-emerald-500/60 hover:bg-paper-100/50"
-                      : "border-line-200 hover:bg-paper-100/50",
+                      ? "border-emerald-500/60 hover:bg-paper-100/60"
+                      : "border-line-200 hover:bg-paper-100/60",
                 )}
               >
-                {s.locked ? (
-                  <Lock size={12} className="shrink-0 text-ink-500" />
-                ) : isActive ? (
-                  <ChevronDown size={14} className="shrink-0 text-ink-950" />
-                ) : (
-                  <ChevronRight size={14} className="shrink-0 text-ink-500" />
-                )}
-
-                <span
-                  className={cn(
-                    "grid h-7 w-7 shrink-0 place-items-center rounded-full border font-mono text-[11px] tabular-nums",
-                    isActive
-                      ? "border-ink-950 bg-ink-950 text-paper-0"
-                      : s.complete
-                        ? "border-emerald-500 bg-emerald-500 text-paper-0"
-                        : "border-line-200 text-ink-500",
-                  )}
-                >
-                  {s.complete && !isActive ? (
-                    <Check size={12} strokeWidth={3} />
-                  ) : (
-                    s.n.toString().padStart(2, "0")
-                  )}
-                </span>
-
-                <span className="min-w-0 flex-1">
+                <span className="flex w-full items-center gap-2">
                   <span
                     className={cn(
-                      "flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em]",
+                      "grid h-6 w-6 shrink-0 place-items-center rounded-full border font-mono text-[10px] tabular-nums",
+                      isActive
+                        ? "border-ink-950 bg-ink-950 text-paper-0"
+                        : s.complete
+                          ? "border-emerald-500 bg-emerald-500 text-paper-0"
+                          : "border-line-200 text-ink-500",
+                    )}
+                  >
+                    {s.complete && !isActive ? (
+                      <Check size={11} strokeWidth={3} />
+                    ) : (
+                      s.n.toString().padStart(2, "0")
+                    )}
+                  </span>
+                  <span
+                    className={cn(
+                      "flex min-w-0 items-center gap-1 truncate font-mono text-[9px] uppercase tracking-[0.18em]",
                       isActive ? "text-ink-950" : "text-ink-500",
                     )}
                   >
-                    <Icon size={11} /> {s.sub}
+                    <Icon size={10} className="shrink-0" /> {s.sub}
                     {counter(s.key) ? (
-                      <span className="tabular-nums text-ink-500">· {counter(s.key)}</span>
+                      <span className="tabular-nums">· {counter(s.key)}</span>
                     ) : null}
                   </span>
-                  <span className="mt-0.5 block font-serif text-[16px] leading-tight text-ink-950">
-                    {s.label}
-                  </span>
+                  {s.locked ? <Lock size={11} className="ml-auto shrink-0 text-ink-500" /> : null}
                 </span>
 
-                <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+                <span className="block font-serif text-[15px] leading-tight text-ink-950">
+                  {s.label}
+                </span>
+                <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">
                   {s.hint}
                 </span>
               </button>
-
-              {isActive ? <div className="border-t border-line-200 px-3 pb-4 pt-4">{children}</div> : null}
             </li>
           );
         })}
       </ol>
+
+      {children ? <div className="pt-5">{children}</div> : null}
     </div>
   );
 }
+
 

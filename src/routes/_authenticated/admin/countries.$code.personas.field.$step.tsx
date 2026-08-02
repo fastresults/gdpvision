@@ -336,11 +336,14 @@ function PlanStage({
         <Fact label="Deliverables" value={String(data.deliverables.length)} />
       </div>
 
-      <PhaseList
-        phases={data.phases as Array<Record<string, unknown>>}
-        milestones={data.milestones as Array<Record<string, unknown>>}
-        deliverables={data.deliverables as Array<Record<string, unknown>>}
-      />
+      <ShowTheDetail label={`Show the phase plan · ${data.phases.length} phases`}>
+        <PhaseList
+          phases={data.phases as Array<Record<string, unknown>>}
+          milestones={data.milestones as Array<Record<string, unknown>>}
+          deliverables={data.deliverables as Array<Record<string, unknown>>}
+        />
+      </ShowTheDetail>
+
     </div>
   );
 

@@ -6,8 +6,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import {
   Check,
-  ChevronDown,
-  ChevronRight,
   ClipboardList,
   FileText,
   Lock,

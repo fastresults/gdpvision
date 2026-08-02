@@ -48,8 +48,8 @@ export function StageWizard({
 
   return (
     <div className="space-y-5">
-      {/* Progress is deliberately non-interactive. The footer is the only way
-          forward or backward, so a novice never has to choose where to go. */}
+      {/* Progress inside this phase. Steps already reached can be revisited in
+          either direction; anything further ahead stays closed. */}
       <ol
         className="grid gap-2 border-y border-line-200 py-3 sm:grid-cols-2 lg:grid-cols-3"
         aria-label="Steps in this stage"
@@ -57,12 +57,17 @@ export function StageWizard({
         {steps.map((s, i) => {
           const active = s.key === current.key;
           const done = isDone(s);
+          const reachable = done || i <= index;
           return (
             <li key={s.key}>
-              <div
+              <button
+                type="button"
+                disabled={!reachable || active}
+                onClick={() => nav.goTo(s.key)}
                 aria-current={active ? "step" : undefined}
                 className={cn(
-                  "flex w-full items-start gap-2 border-l-2 px-3 py-2 text-left",
+                  "flex w-full items-start gap-2 border-l-2 px-3 py-2 text-left transition-colors",
+                  reachable && !active ? "cursor-pointer hover:bg-paper-100/60" : "",
                   active
                     ? "border-ink-950 bg-paper-100/60 text-ink-950"
                     : done
@@ -79,11 +84,12 @@ export function StageWizard({
                     {done ? "Complete" : active ? "Now" : "Later"}
                   </span>
                 </span>
-              </div>
+              </button>
             </li>
           );
         })}
       </ol>
+
 
       {/* Guidance — same words, same place, every screen. */}
       <div className="border-l-2 border-ink-950 bg-paper-100/40 p-4">

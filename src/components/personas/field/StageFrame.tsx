@@ -176,11 +176,11 @@ export function StageFrame({
 
   return (
     <SubStepProvider value={nav}>
-      <section className="space-y-5 pb-32">
+      <section className="space-y-5">
         <header className="border-b border-line-200 pb-4">
           {/* ONE breadcrumb sentence — always here, never more than this line. */}
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            Field programme · Stage {String(spec.n).padStart(2, "0")} {spec.label}
+            Stage {String(spec.n).padStart(2, "0")} {spec.label}
             {current ? (
               <>
                 {" · "}Step {index + 1} of {steps.length}
@@ -194,8 +194,8 @@ export function StageFrame({
             </p>
           ) : null}
 
-          <h2 className="mt-2 font-serif text-2xl text-ink-950">{spec.label}</h2>
-          <p className="mt-1.5 max-w-2xl text-sm text-ink-700">{spec.decides}</p>
+          <p className="mt-2 max-w-2xl text-sm text-ink-700">{spec.decides}</p>
+
 
           <div
             className={cn(
@@ -235,9 +235,10 @@ export function StageFrame({
 
         {children}
 
-        {/* THE footer. One grammar, one primary, everywhere. */}
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line-200 bg-paper-0/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-paper-0/85">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
+        {/* THE footer — inside this phase, so Back/Next belong to it. */}
+        <div className="sticky bottom-0 z-20 border-t border-line-200 bg-paper-0/95 px-1 py-3 backdrop-blur supports-[backdrop-filter]:bg-paper-0/85">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+
             <div className="flex items-center gap-2">
               {/* BACK — one step at a time: within the stage, then out of it. */}
               <button

@@ -95,6 +95,103 @@ function FieldStageBody({
     void qc.invalidateQueries({ queryKey: ["persona-projects", code] });
   };
 
+  if ((stage as string) === "briefing") {
+    return (
+      <Navigate
+        to="/admin/countries/$code/personas"
+        params={{ code }}
+        search={{ project: projectId }}
+      />
+    );
+  }
+
+  const frameProps = {
+    code,
+    projectId,
+    stage,
+    progress,
+    progressPending: progressQ.isFetching,
+    progressError: progressQ.isError ? "unreadable" : null,
+    onRetryProgress: () => void progressQ.refetch(),
+  } as const;
+
+  const body =
+    stage === "brief" ? (
+      <StageFrame {...frameProps} stage="brief">
+        <BriefStage
+          code={code}
+          projectId={projectId}
+          committed={gate.committed}
+          onChanged={refresh}
+        />
+      </StageFrame>
+    ) : !gate.committed && !gate.loading ? (
+      <StageFrame {...frameProps}>
+        <div className="border border-ink-950 bg-paper-50 p-6">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            Locked prerequisite
+          </p>
+          <p className="mt-2 font-serif text-xl text-ink-950">The brief comes first.</p>
+          <p className="mt-1 max-w-xl text-sm text-ink-700">
+            Return to Stage 00 and commit the question of record before this decision can open.
+          </p>
+          <Link
+            to="/admin/countries/$code/personas/field/$step"
+            params={{ code, step: "brief" }}
+            search={{ project: projectId }}
+            className="btn-primary mt-4 inline-flex"
+          >
+            Return to the brief
+          </Link>
+        </div>
+      </StageFrame>
+    ) : stage === "plan" ? (
+      <StageFrame {...frameProps} stage="plan">
+        <PlanStage code={code} projectId={projectId} onChanged={refresh} />
+      </StageFrame>
+    ) : !gate.planCommitted ? (
+      <StageFrame {...frameProps}>
+        <div className="border border-ink-950 bg-paper-50 p-6">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            Locked prerequisite
+          </p>
+          <p className="mt-2 font-serif text-xl text-ink-950">Approve the programme first.</p>
+          <p className="mt-1 max-w-xl text-sm text-ink-700">
+            Participant recruitment, instruments and fieldwork must inherit an approved method mix
+            and dates.
+          </p>
+          <Link
+            to="/admin/countries/$code/personas/field/$step"
+            params={{ code, step: "plan" }}
+            search={{ project: projectId }}
+            className="btn-primary mt-4 inline-flex"
+          >
+            Return to the programme
+          </Link>
+        </div>
+      </StageFrame>
+    ) : (
+      <StageFrame {...frameProps}>
+        {progressQ.isLoading ? (
+          <p className="text-sm text-ink-500">Reading the programme…</p>
+        ) : stage === "participants" ? (
+          <ParticipantsStage code={code} projectId={projectId} onChanged={refresh} />
+        ) : stage === "instruments" ? (
+          <InstrumentsStage studyId={studyId} onChanged={refresh} />
+        ) : stage === "fieldwork" ? (
+          <FieldworkStage code={code} projectId={projectId} studyId={studyId} onChanged={refresh} />
+        ) : (
+          <EvidenceStage
+            projectId={projectId}
+            studyId={studyId}
+            finding={progress?.fieldFinding ?? null}
+            closed={progress?.stages.evidence.complete ?? false}
+            onChanged={refresh}
+          />
+        )}
+      </StageFrame>
+    );
+
   return (
     <FieldStageProvider>
       <div className="space-y-6">
@@ -105,139 +202,14 @@ function FieldStageBody({
           briefCommitted={gate.committed}
           planCommitted={gate.planCommitted}
           progress={progress}
-        />
-
-        {(stage as string) === "briefing" ? (
-          <Navigate
-            to="/admin/countries/$code/personas"
-            params={{ code }}
-            search={{ project: projectId }}
-          />
-        ) : stage === "brief" ? (
-          <StageFrame
-            code={code}
-            projectId={projectId}
-            stage="brief"
-            progress={progress}
-            progressPending={progressQ.isFetching}
-            progressError={progressQ.isError ? "unreadable" : null}
-            onRetryProgress={() => void progressQ.refetch()}
-          >
-            <BriefStage
-              code={code}
-              projectId={projectId}
-              committed={gate.committed}
-              onChanged={refresh}
-            />
-          </StageFrame>
-        ) : !gate.committed && !gate.loading ? (
-          <StageFrame
-            code={code}
-            projectId={projectId}
-            stage={stage}
-            progress={progress}
-            progressPending={progressQ.isFetching}
-            progressError={progressQ.isError ? "unreadable" : null}
-            onRetryProgress={() => void progressQ.refetch()}
-          >
-            <div className="border border-ink-950 bg-paper-50 p-6">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                Locked prerequisite
-              </p>
-              <p className="mt-2 font-serif text-xl text-ink-950">The brief comes first.</p>
-              <p className="mt-1 max-w-xl text-sm text-ink-700">
-                Return to Stage 00 and commit the question of record before this decision can open.
-              </p>
-              <Link
-                to="/admin/countries/$code/personas/field/$step"
-                params={{ code, step: "brief" }}
-                search={{ project: projectId }}
-                className="btn-primary mt-4 inline-flex"
-              >
-                Return to the brief
-              </Link>
-            </div>
-          </StageFrame>
-        ) : stage === "plan" ? (
-          <StageFrame
-            code={code}
-            projectId={projectId}
-            stage="plan"
-            progress={progress}
-            progressPending={progressQ.isFetching}
-            progressError={progressQ.isError ? "unreadable" : null}
-            onRetryProgress={() => void progressQ.refetch()}
-          >
-            <PlanStage code={code} projectId={projectId} onChanged={refresh} />
-          </StageFrame>
-        ) : !gate.planCommitted ? (
-          <StageFrame
-            code={code}
-            projectId={projectId}
-            stage={stage}
-            progress={progress}
-            progressPending={progressQ.isFetching}
-            progressError={progressQ.isError ? "unreadable" : null}
-            onRetryProgress={() => void progressQ.refetch()}
-          >
-            <div className="border border-ink-950 bg-paper-50 p-6">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-                Locked prerequisite
-              </p>
-              <p className="mt-2 font-serif text-xl text-ink-950">Approve the programme first.</p>
-              <p className="mt-1 max-w-xl text-sm text-ink-700">
-                Participant recruitment, instruments and fieldwork must inherit an approved method
-                mix and dates.
-              </p>
-              <Link
-                to="/admin/countries/$code/personas/field/$step"
-                params={{ code, step: "plan" }}
-                search={{ project: projectId }}
-                className="btn-primary mt-4 inline-flex"
-              >
-                Return to the programme
-              </Link>
-            </div>
-          </StageFrame>
-        ) : (
-          <StageFrame
-            code={code}
-            projectId={projectId}
-            stage={stage}
-            progress={progress}
-            progressPending={progressQ.isFetching}
-            progressError={progressQ.isError ? "unreadable" : null}
-            onRetryProgress={() => void progressQ.refetch()}
-          >
-            {progressQ.isLoading ? (
-              <p className="text-sm text-ink-500">Reading the programme…</p>
-            ) : stage === "participants" ? (
-              <ParticipantsStage code={code} projectId={projectId} onChanged={refresh} />
-            ) : stage === "instruments" ? (
-              <InstrumentsStage studyId={studyId} onChanged={refresh} />
-            ) : stage === "fieldwork" ? (
-              <FieldworkStage
-                code={code}
-                projectId={projectId}
-                studyId={studyId}
-                onChanged={refresh}
-              />
-            ) : (
-              <EvidenceStage
-                projectId={projectId}
-                studyId={studyId}
-                finding={progress?.fieldFinding ?? null}
-                closed={progress?.stages.evidence.complete ?? false}
-                onChanged={refresh}
-              />
-            )}
-          </StageFrame>
-        )}
-
+        >
+          {body}
+        </FieldStepper>
       </div>
     </FieldStageProvider>
   );
 }
+
 
 function PlanStage({
   code,
@@ -364,11 +336,14 @@ function PlanStage({
         <Fact label="Deliverables" value={String(data.deliverables.length)} />
       </div>
 
-      <PhaseList
-        phases={data.phases as Array<Record<string, unknown>>}
-        milestones={data.milestones as Array<Record<string, unknown>>}
-        deliverables={data.deliverables as Array<Record<string, unknown>>}
-      />
+      <ShowTheDetail label={`Show the phase plan · ${data.phases.length} phases`}>
+        <PhaseList
+          phases={data.phases as Array<Record<string, unknown>>}
+          milestones={data.milestones as Array<Record<string, unknown>>}
+          deliverables={data.deliverables as Array<Record<string, unknown>>}
+        />
+      </ShowTheDetail>
+
     </div>
   );
 

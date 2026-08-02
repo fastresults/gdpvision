@@ -8,9 +8,10 @@ import { createFileRoute, Link, Navigate, notFound, useSearch } from "@tanstack/
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { ArrowLeft, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, FileText, Kanban, Loader2 } from "lucide-react";
 
 import { BriefingPanel } from "@/components/personas/field/briefing/BriefingPanel";
+import { TrackerModal } from "@/components/personas/field/tracker/TrackerModal";
 
 import { FieldStepper, type FieldStageKey } from "@/components/personas/FieldStepper";
 import { BriefStage } from "@/components/personas/field/BriefStage";

@@ -176,11 +176,11 @@ export function StageFrame({
 
   return (
     <SubStepProvider value={nav}>
-      <section className="space-y-5 pb-32">
+      <section className="space-y-5">
         <header className="border-b border-line-200 pb-4">
           {/* ONE breadcrumb sentence — always here, never more than this line. */}
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            Field programme · Stage {String(spec.n).padStart(2, "0")} {spec.label}
+            Stage {String(spec.n).padStart(2, "0")} {spec.label}
             {current ? (
               <>
                 {" · "}Step {index + 1} of {steps.length}
@@ -194,8 +194,8 @@ export function StageFrame({
             </p>
           ) : null}
 
-          <h2 className="mt-2 font-serif text-2xl text-ink-950">{spec.label}</h2>
-          <p className="mt-1.5 max-w-2xl text-sm text-ink-700">{spec.decides}</p>
+          <p className="mt-2 max-w-2xl text-sm text-ink-700">{spec.decides}</p>
+
 
           <div
             className={cn(

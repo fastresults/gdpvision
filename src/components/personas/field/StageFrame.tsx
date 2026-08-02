@@ -235,9 +235,10 @@ export function StageFrame({
 
         {children}
 
-        {/* THE footer. One grammar, one primary, everywhere. */}
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line-200 bg-paper-0/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-paper-0/85">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
+        {/* THE footer — inside this phase, so Back/Next belong to it. */}
+        <div className="sticky bottom-0 z-20 border-t border-line-200 bg-paper-0/95 px-1 py-3 backdrop-blur supports-[backdrop-filter]:bg-paper-0/85">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+
             <div className="flex items-center gap-2">
               {/* BACK — one step at a time: within the stage, then out of it. */}
               <button

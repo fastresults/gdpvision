@@ -275,22 +275,21 @@ export function ParticipantsStage({
         body="A field programme needs real people. Research candidates on the previous screen, or paste a roster by hand."
       />
     ) : (
-      <div className="border border-line-200 bg-paper-0">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-200 p-3">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            Contact book · {contacts.length}
-            {withPicker ? ` · ${selected.size} selected` : null}
-          </p>
-          {withPicker && projectPanels.length === 0 ? (
+      <Collapse
+        title={`Contact book · ${contacts.length}${withPicker ? ` · ${selected.size} selected` : ""}`}
+        aside={
+          withPicker && projectPanels.length === 0 ? (
             <input
               value={panelName}
               onChange={(e) => setPanelName(e.target.value)}
               placeholder="Panel name"
               className="border border-line-200 bg-paper-0 px-2 py-1 text-[12px] focus:border-ink-950 focus:outline-none"
             />
-          ) : null}
-        </div>
+          ) : null
+        }
+      >
         <ul className="divide-y divide-line-200">
+
           {contacts.map((c) => {
             const out = !!c.opted_out_at || c.consent_status === "declined";
             return (

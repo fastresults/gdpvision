@@ -3,9 +3,11 @@
 // The real-world rail. Mirrors StudioStepper's grammar but walks the stages a
 // dated field programme actually passes through.
 
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import {
   Check,
+  ChevronDown,
+  ChevronRight,
   ClipboardList,
   FileText,
   Lock,
@@ -19,6 +21,7 @@ import { subStepProgress } from "@/lib/personas/field-substeps";
 import type { FieldProgress } from "@/lib/personas/field-stages";
 import { cn, scrollToTop } from "@/lib/utils";
 import { useGuardedGo } from "./field/stage-bus";
+
 
 const STEP_ROUTE = "/admin/countries/$code/personas/field/$step" as const;
 

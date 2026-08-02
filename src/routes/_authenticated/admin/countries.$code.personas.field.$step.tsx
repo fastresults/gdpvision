@@ -206,6 +206,13 @@ function FieldStageBody({
       <div className="space-y-6">
         {gate.committed ? (
           <div className="flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setTrackerOpen(true)}
+              className="btn-secondary inline-flex items-center gap-2"
+            >
+              <Kanban size={14} /> Project tracker
+            </button>
             <Link
               to="/admin/countries/$code/personas/field/$step"
               params={{ code, step: "briefing" }}
@@ -216,6 +223,12 @@ function FieldStageBody({
             </Link>
           </div>
         ) : null}
+        <TrackerModal
+          open={trackerOpen}
+          code={code}
+          projectId={projectId}
+          onClose={() => setTrackerOpen(false)}
+        />
         <FieldStepper
           code={code}
           active={stage}
@@ -229,6 +242,11 @@ function FieldStageBody({
       </div>
     </FieldStageProvider>
   );
+}
+
+function useTrackerModal() {
+  const [trackerOpen, setTrackerOpen] = useState(false);
+  return { trackerOpen, setTrackerOpen };
 }
 
 

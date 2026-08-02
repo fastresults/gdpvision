@@ -5,7 +5,8 @@
 // active screen — nothing else. Navigation and the primary button live in the
 // single footer owned by StageFrame, so no screen ever offers two ways forward.
 
-import { Check, HelpCircle } from "lucide-react";
+import { Check, ChevronRight, HelpCircle } from "lucide-react";
+import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 import { ScreenAction, type ScreenActionSpec } from "./kit/ScreenAction";

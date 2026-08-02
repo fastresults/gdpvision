@@ -40,6 +40,7 @@ export function FieldStepper({
   briefCommitted = false,
   planCommitted = false,
   progress,
+  children,
 }: {
   code: string;
   active?: FieldStageKey;
@@ -48,7 +49,10 @@ export function FieldStepper({
   planCommitted?: boolean;
   /** Live per-stage completion, so the rail always tells the truth. */
   progress?: FieldProgress;
+  /** The open phase's body — the stage UI itself, nested under its header. */
+  children?: React.ReactNode;
 }) {
+
   const guardedGo = useGuardedGo();
   const navigate = useNavigate();
   const done = (k: FieldStageKey) => !!progress?.stages[k]?.complete;

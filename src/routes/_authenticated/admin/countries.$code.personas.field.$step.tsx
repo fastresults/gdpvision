@@ -203,6 +203,18 @@ function FieldStageBody({
   return (
     <FieldStageProvider>
       <div className="space-y-6">
+        {gate.committed ? (
+          <div className="flex flex-wrap justify-end gap-2">
+            <Link
+              to="/admin/countries/$code/personas/field/$step"
+              params={{ code, step: "briefing" }}
+              search={{ project: projectId }}
+              className="btn-secondary inline-flex items-center gap-2"
+            >
+              <FileText size={14} /> Discovery brief &amp; presentation
+            </Link>
+          </div>
+        ) : null}
         <FieldStepper
           code={code}
           active={stage}

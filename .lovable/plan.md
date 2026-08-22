@@ -1,43 +1,42 @@
+# CBI Stakeholder Survey — Instruments Breakdown (Markdown)
+
 ## Goal
 
-Turn the Field Programme rail into six **collapsible phase sections**. Each phase header keeps the label, number, sub-caption and counter you already see (`Intake · Brief · committed`, `01 AI plan · 2/2 · Programme · active`, …). Everything that stage renders lives *inside* that phase, collapsed by default, and only the active phase is open. Inside an open phase the user steps forward and backward through that phase's screens.
+Produce a complete, human-readable markdown breakdown of the survey instruments for the Grenada CBI / Investment Migration study — "Strategic Positioning and Public Mandate Assessment for Investment Migration Grenada · field" — and save it to the project's `public/` folder so it is downloadable at a stable URL.
 
-```text
-▸ 00  Intake        Brief         committed        (collapsed)
-▾ 01  AI plan 2/2   Programme     active           (open)
-      ├ step rail:  1 Draft  ● 2 Approve
-      ├ guidance card + the one screen
-      └ ◀ Back        [ Approve the plan ]  ▶
-▸ 02  CRM 0/3       Participants  outstanding      (collapsed)
-▸ 03  Fieldcraft    Instruments   done             (collapsed)
-▸ 04  Collection    Fieldwork     outstanding      (collapsed)
-▸ 05  Synthesis     Evidence      outstanding      (collapsed)
-```
+## What exists (confirmed in the database)
 
-## What changes
+Study `955ed067-973a-4dd5-a376-764c99845b69` (GRD) holds three instruments, latest versions:
 
-**1. Phase accordion replaces the sticky top rail**
-- `FieldStepper.tsx` becomes `PhaseAccordion`: the six nodes render as full-width header rows (chevron, number badge, sub-caption + counter, label, hint) instead of a sticky grid.
-- Clicking an unlocked header navigates to that stage (still through `useGuardedGo`, so unsaved work is saved/confirmed first) and expands it; the previously open phase collapses. Locked phases show the padlock and don't open.
-- Only one phase is open at a time — the active stage from the route. This preserves both directions of travel across phases.
+| Kind | Title | Version | Questions |
+| --- | --- | --- | --- |
+| survey | Focus Group Participant Pre-Session Questionnaire: Investment Migration Grenada (IMA) | 1 | 10 |
+| discussion_guide | Strategic Positioning and Public Mandate Assessment — Moderator Discussion Guide | 3 | 10 |
 
-**2. Stage UI nests under its phase**
-- The route shell (`countries.$code.personas.field.$step.tsx`) stops rendering the rail above and the stage below as two separate blocks. It renders the accordion, and the current stage's `StageFrame` + content mounts as the body of the open phase row.
-- `StageFrame`'s header shrinks: the phase header already states stage number, label and state, so the frame keeps only the "Done when" test and its guidance, avoiding a doubled title.
+(v2 of the discussion guide is superseded and will be noted but not broken out in full.)
 
-**3. Everything expanded gets collapsed under its phase**
-- Long secondary surfaces already using `ShowTheDetail` stay as is; any remaining always-open tables/panels inside stages (recruitment board tables, wave lists, evidence tables) are moved into `ShowTheDetail` drawers so an opened phase shows only the current screen.
-- Collapsed phases render no body at all (unmounted), so the page is short and scannable.
+## The document
 
-**4. Forward/backward inside each phase**
-- The footer stays the single navigation grammar, and it moves into the open phase body so Back/Next are visually part of that phase.
-- `Back`: previous sub-step; at the first sub-step it collapses this phase and opens the previous one.
-- Primary: performs the published screen action if one is pending; otherwise advances to the next sub-step; at the last sub-step it collapses this phase and opens the next.
-- The in-phase step chips in `StageWizard` become clickable for steps already completed or currently reachable (same rule the frame already uses to validate `?sub=`), so backward movement inside a phase is one click as well as one Back press.
+One file: `public/cbi-stakeholder-survey-instruments.md`, served at `/cbi-stakeholder-survey-instruments.md`.
 
-## Technical notes
+Structure:
 
-- Files: `src/components/personas/FieldStepper.tsx` (rewritten as the accordion), `src/components/personas/field/StageFrame.tsx` (header slimmed, footer relocated into the phase body, back-at-first-substep behaviour unchanged), `src/components/personas/field/StageWizard.tsx` (chips become guarded links), plus the field `$step` route shell for composition.
-- Open/closed state is derived from the route (`$step` + `?sub=`), not local state — deep links, refreshes and the browser back button stay correct.
-- Lock rules are unchanged: brief unlocks the programme; an active programme plan unlocks the remaining four phases.
-- No data, server-function or schema changes.
+1. **Front matter** — study title, country, purpose, confidentiality note, generation date, instrument versions covered.
+2. **Study overview** — objectives of the study (pulled from the study record), how each instrument maps to them.
+3. **Instrument 1 — Pre-Session Questionnaire (survey v1)**
+   - Metadata table: kind, version, question count, generated by, intro/outro verbatim.
+   - Question-by-question breakdown: question ID, type (open_text / single_choice / multi_choice / scale / matrix), full prompt, help text, options list, scale range with anchor labels, required flag, and the study objective each question traces to (`objective_ref`).
+4. **Instrument 2 — Moderator Discussion Guide (v3)** — same breakdown format, with moderator prompts vs. recorded scales/open-text capture clearly labelled.
+5. **Administration notes** — how the instruments are deployed (hosted link, printable form, CSV/JSON packs), participant codes, and versioning rule (returns are filed against the instrument version stamped at deployment).
+6. **Appendix** — question-type legend and objective cross-reference matrix (objective × question IDs for both instruments).
+
+## How it gets built
+
+1. Query the latest version of each instrument (`field_instruments`) for the study — questions, intro, outro, version, generated_by — plus the study's objectives.
+2. Render the markdown from that live data (no hand-typed questions), so the document matches the instrument of record exactly.
+3. Write `public/cbi-stakeholder-survey-instruments.md` and verify it renders cleanly (table integrity, no truncated prompts, all 20 questions present across both instruments).
+
+## Notes
+
+- Content is drawn strictly from the study's own brief/instruments — no GDPVision or chamber branding in the document body, per the client-output provenance rule.
+- No database changes; this is a read-and-export task.

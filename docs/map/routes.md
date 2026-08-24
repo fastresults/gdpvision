@@ -13,6 +13,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/f/$token` | `src/routes/f.$token.tsx` |
 | `/op-eds/` | `src/routes/op-eds.index.tsx` |
 | `/op-eds/$slug` | `src/routes/op-eds.$slug.tsx` |
+| `/p/$token` | `src/routes/p.$token.tsx` |
 | `/reset-password` | `src/routes/reset-password.tsx` |
 
 ## auth
@@ -164,6 +165,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 
 | Route | File |
 |-------|------|
+| `/api/public/deck/$token` | `src/routes/api/public/deck/$token.ts` |
 | `/api/public/dossier/$token` | `src/routes/api/public/dossier/$token.ts` |
 | `/api/public/field/$token` | `src/routes/api/public/field.$token.ts` |
 | `/api/public/hooks/cadence-daily` | `src/routes/api/public/hooks/cadence-daily.ts` |

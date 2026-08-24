@@ -86,7 +86,9 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/scen
 
 function Builder() {
   const { code } = Route.useParams();
-  const search = useSearch({ from: "/_authenticated/admin/countries/$code/scenarios/new" });
+  const search: z.input<typeof NewSearch> = useSearch({
+    from: "/_authenticated/admin/countries/$code/scenarios/new",
+  });
   const navigate = useNavigate();
 
   const { data: ministries } = useSuspenseQuery(ministriesQuery(code));

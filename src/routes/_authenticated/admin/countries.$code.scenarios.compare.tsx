@@ -27,7 +27,7 @@ const PALETTE = ["--sector-01", "--sector-06", "--sector-04", "--sector-09"];
 
 function Compare() {
   const { code } = Route.useParams();
-  const search = Route.useSearch();
+  const search: z.input<typeof Search> = Route.useSearch();
   const [ids, setIds] = useState<string[]>([]);
   useEffect(() => {
     const fromSearch = search.ids

@@ -93,7 +93,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/data
       { name: "robots", content: "noindex" },
     ],
   }),
-  validateSearch: (s: Record<string, unknown>) => ({
+  validateSearch: (s: Record<string, unknown>): { tab?: TabKey } => ({
     tab: (typeof s.tab === "string" ? s.tab : undefined) as TabKey | undefined,
   }),
   loader: async ({ context, params }) => {

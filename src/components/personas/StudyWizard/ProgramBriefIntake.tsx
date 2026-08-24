@@ -6,10 +6,11 @@
 // The screen is a briefing, not a form: it states what the chamber has
 // gathered, where the brief still thin, and exactly what confirming does.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, FileText, Loader2, Sparkles } from "lucide-react";
+import { CheckCircle2, FileText, Loader2, Plus, Sparkles, X } from "lucide-react";
 
+import { IntakeDocumentModal } from "./IntakeDocumentModal";
 import { MultimodalInput, type WizardUpload } from "./MultimodalInput";
 import { PrettyJson } from "@/components/data/PrettyJson";
 import { Explain } from "@/components/explain/Explain";
@@ -57,6 +58,10 @@ export function ProgramBriefIntake({ code, projectId, onCommitted, embedded = fa
   const [uploads, setUploads] = useState<WizardUpload[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<{ item: WizardUpload; role: "brief" | "context" } | null>(
+    null,
+  );
+  const intakeRef = useRef<HTMLDivElement>(null);
 
   // Hydrate local state once when the brief loads.
   useEffect(() => {
@@ -233,9 +238,20 @@ export function ProgramBriefIntake({ code, projectId, onCommitted, embedded = fa
 
       {/* ── What we gathered ──────────────────────────────────────────── */}
       <section className="border border-line-200 bg-paper-50 p-4">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          What we have gathered
-        </p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+            What we have gathered
+          </p>
+          <button
+            type="button"
+            onClick={() =>
+              intakeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
+            className="btn-secondary"
+          >
+            <Plus size={12} /> Add material
+          </button>
+        </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <EvidenceTile
             label="Source brief"
@@ -246,6 +262,17 @@ export function ProgramBriefIntake({ code, projectId, onCommitted, embedded = fa
                 : "Promote one document below to govern the scope."
             }
             strong={!!briefSource}
+            action={
+              briefSource ? (
+                <button
+                  type="button"
+                  onClick={() => setViewing({ item: briefSource, role: "brief" })}
+                  className="mt-1.5 text-[11px] text-ink-700 underline underline-offset-2 hover:text-ink-950"
+                >
+                  View document
+                </button>
+              ) : undefined
+            }
           />
           <EvidenceTile
             label="Supporting context"
@@ -268,7 +295,10 @@ export function ProgramBriefIntake({ code, projectId, onCommitted, embedded = fa
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         {/* Intake rail */}
-        <div className="min-w-0 space-y-3 border border-line-200 bg-paper-0 p-4">
+        <div
+          ref={intakeRef}
+          className="min-w-0 scroll-mt-24 space-y-3 border border-line-200 bg-paper-0 p-4"
+        >
           <div className="flex items-center gap-2">
             <FileText size={13} className="text-ink-500" />
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
@@ -279,22 +309,29 @@ export function ProgramBriefIntake({ code, projectId, onCommitted, embedded = fa
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
               Source brief · one only · governs the scope
             </p>
-            {briefSource ? (
-              <div className="mt-2 flex items-center gap-2 text-[12.5px] text-ink-950">
-                <FileText size={12} className="shrink-0" />
-                <span className="min-w-0 flex-1 truncate">{briefSource.name}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUploads((list) => [...list, briefSource]);
-                    setBriefSource(null);
-                  }}
-                  className="btn-ghost"
-                >
-                  Demote to context
-                </button>
-              </div>
-            ) : (
+             {briefSource ? (
+               <div className="mt-2 flex items-center gap-2 text-[12.5px] text-ink-950">
+                 <FileText size={12} className="shrink-0" />
+                 <span className="min-w-0 flex-1 truncate">{briefSource.name}</span>
+                 <button
+                   type="button"
+                   onClick={() => setViewing({ item: briefSource, role: "brief" })}
+                   className="btn-ghost"
+                 >
+                   View
+                 </button>
+                 <button
+                   type="button"
+                   onClick={() => {
+                     setUploads((list) => [...list, briefSource]);
+                     setBriefSource(null);
+                   }}
+                   className="btn-ghost"
+                 >
+                   Demote to context
+                 </button>
+               </div>
+             ) : (
               <p className="mt-2 text-[12px] text-ink-700">
                 None set — upload the governing document below, then mark it as the source brief.
                 Everything else stays supporting context.
@@ -321,6 +358,13 @@ export function ProgramBriefIntake({ code, projectId, onCommitted, embedded = fa
                   <span className="min-w-0 flex-1 truncate text-ink-950">{u.name}</span>
                   <button
                     type="button"
+                    onClick={() => setViewing({ item: u, role: "context" })}
+                    className="btn-ghost"
+                  >
+                    View
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => {
                       setUploads((list) => {
                         const rest = list.filter((_, idx) => idx !== i);
@@ -331,6 +375,15 @@ export function ProgramBriefIntake({ code, projectId, onCommitted, embedded = fa
                     className="btn-ghost"
                   >
                     Make source brief
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${u.name}`}
+                    title="Remove from this programme's intake (the filed copy in the second brain is kept)"
+                    onClick={() => setUploads((list) => list.filter((_, idx) => idx !== i))}
+                    className="btn-ghost -mr-1 px-1"
+                  >
+                    <X size={12} />
                   </button>
                 </li>
               ))}
@@ -444,6 +497,13 @@ export function ProgramBriefIntake({ code, projectId, onCommitted, embedded = fa
       ) : error ? (
         <p className="text-[12px] text-rose-600">{error}</p>
       ) : null}
+
+      <IntakeDocumentModal
+        projectId={projectId}
+        item={viewing?.item ?? null}
+        role={viewing?.role ?? "context"}
+        onClose={() => setViewing(null)}
+      />
     </section>
   );
 }
@@ -453,11 +513,13 @@ function EvidenceTile({
   primary,
   detail,
   strong,
+  action,
 }: {
   label: string;
   primary: string;
   detail: string;
   strong: boolean;
+  action?: ReactNode;
 }) {
   return (
     <div className="min-w-0 border border-line-200 bg-paper-0 p-3">
@@ -471,6 +533,7 @@ function EvidenceTile({
         {primary}
       </p>
       <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-ink-500">{detail}</p>
+      {action}
     </div>
   );
 }

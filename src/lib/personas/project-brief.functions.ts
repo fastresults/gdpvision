@@ -83,11 +83,64 @@ export const saveProjectBrief = createServerFn({ method: "POST" })
     if (data.brief_source !== undefined) patch.brief_source = (data.brief_source ?? null) as unknown as Json;
     if (data.brief_uploads !== undefined) patch.brief_uploads = data.brief_uploads as unknown as Json;
     if (Object.keys(patch).length === 0) return { ok: true as const };
+
+    // Load the row first — the country and committed state decide whether
+    // this save is an amendment that must be filed into the second brain.
+    const { data: proj, error: pErr } = await context.supabase
+      .from("persona_projects")
+      .select("country_code,brief_committed_at,brief_source,brief_uploads")
+      .eq("id", data.projectId)
+      .maybeSingle();
+    if (pErr) throw new Error(pErr.message);
+    if (!proj) throw new Error("Research program not found");
+
     const { error } = await context.supabase
       .from("persona_projects")
       .update(patch as never)
       .eq("id", data.projectId);
     if (error) throw new Error(error.message);
+
+    // Post-commit amendments file straight into the second brain so every
+    // downstream stage (segments, studies, retrieval) sees the new material.
+    // Idempotent — re-saving unchanged items writes nothing. Best-effort: a
+    // filing failure never fails the save.
+    const p = proj as {
+      country_code: string;
+      brief_committed_at: string | null;
+      brief_source: unknown;
+      brief_uploads: unknown;
+    };
+    const touchesMaterial = data.brief_source !== undefined || data.brief_uploads !== undefined;
+    if (p.brief_committed_at && touchesMaterial) {
+      try {
+        type Up = { name: string; path: string; mime: string; excerpt?: string };
+        const source =
+          data.brief_source !== undefined ? data.brief_source : (p.brief_source as Up | null);
+        const uploads = (data.brief_uploads ??
+          (Array.isArray(p.brief_uploads) ? (p.brief_uploads as Up[]) : [])) as Up[];
+        const items = [
+          ...(source ? [{ role: "brief" as const, ...source }] : []),
+          ...uploads.map((u) => ({ role: "context" as const, ...u })),
+        ];
+        if (items.length > 0) {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { fileIntakeItems } = await import("./corpus-file.server");
+          await fileIntakeItems({
+            admin: supabaseAdmin,
+            countryCode: p.country_code,
+            projectId: data.projectId,
+            userId: context.userId,
+            // No designation survives on the row for post-commit additions —
+            // conservative default; existing filed copies pin their own
+            // visibility so this never forks duplicates.
+            defaultVisibility: "private",
+            items,
+          });
+        }
+      } catch {
+        /* filing is best-effort — the save stands */
+      }
+    }
     return { ok: true as const };
   });
 
@@ -212,7 +265,7 @@ export const commitProjectBrief = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("persona_projects")
-      .select("brief_raw,brief_scope,brief_uploads,brief_source,brief_committed_at")
+      .select("country_code,brief_raw,brief_scope,brief_uploads,brief_source,brief_committed_at")
       .eq("id", data.projectId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -234,6 +287,36 @@ export const commitProjectBrief = createServerFn({ method: "POST" })
       .update({ brief_committed_at: new Date().toISOString() } as never)
       .eq("id", data.projectId);
     if (updErr) throw new Error(updErr.message);
+
+    // File the gathered material into the second brain at commit. Setup via
+    // the material-first flow already files on creation; this covers every
+    // other path (and re-filing is idempotent). Best-effort: a filing
+    // failure never rolls back a commit.
+    try {
+      type Up = { name: string; path: string; mime: string; excerpt?: string };
+      const src = (row as { brief_source: unknown }).brief_source as Up | null;
+      const ups = Array.isArray((row as { brief_uploads: unknown }).brief_uploads)
+        ? ((row as { brief_uploads: unknown }).brief_uploads as Up[])
+        : [];
+      const items = [
+        ...(src ? [{ role: "brief" as const, ...src }] : []),
+        ...ups.map((u) => ({ role: "context" as const, ...u })),
+      ];
+      if (items.length > 0) {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { fileIntakeItems } = await import("./corpus-file.server");
+        await fileIntakeItems({
+          admin: supabaseAdmin,
+          countryCode: (row as { country_code: string }).country_code,
+          projectId: data.projectId,
+          userId: context.userId,
+          defaultVisibility: "private",
+          items,
+        });
+      }
+    } catch {
+      /* filing is best-effort — the commit stands */
+    }
     return { ok: true as const };
   });
 

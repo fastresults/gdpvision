@@ -1,6 +1,6 @@
 // @domain personas
 // @tables country_sources, country_source_documents, country_source_chunks
-// @ui src/components/personas/ProgrammeSetup.tsx; src/components/personas/StudyWizard/ProgramBriefIntake.tsx
+// @ui src/components/personas/ProgrammeSetup.tsx; src/components/personas/StudyWizard/ProgramBriefIntake.tsx; src/components/personas/StudyWizard/IntakeDocumentModal.tsx
 
 // Chamber 07 · File Stage 00 intake material into the second brain.
 //
@@ -10,6 +10,8 @@
 // source tags (`role:brief` / `role:context`) so downstream retrieval can weigh
 // the brief above its context. Idempotent: dedupe is (country, url, visibility)
 // on the source and content_hash on the document, so re-filing writes nothing.
+// The filing loop itself lives in corpus-file.server.ts so the brief commit
+// and amendment paths share it.
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -31,12 +33,6 @@ const Input = z.object({
   items: z.array(ItemSchema).max(25),
 });
 
-/** A link intake stores its URL in `path`; a file intake stores a storage path. */
-function sourceUrlFor(item: z.infer<typeof ItemSchema>): string {
-  if (/^https?:\/\//i.test(item.path)) return item.path;
-  return `study-artifacts://${item.path}`;
-}
-
 export const fileProgrammeMaterial = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => Input.parse(d))
@@ -51,102 +47,94 @@ export const fileProgrammeMaterial = createServerFn({ method: "POST" })
     if (accErr) throw new Error(accErr.message);
     if (!allowed) throw new Error("No access to this country's corpus.");
 
-    const usable = data.items.filter((i) => (i.excerpt ?? "").trim().length >= 200);
-    if (usable.length === 0) return { filed: 0, chunks: 0, skipped: data.items.length };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { fileIntakeItems } = await import("./corpus-file.server");
+    const res = await fileIntakeItems({
+      admin: supabaseAdmin,
+      countryCode: data.countryCode,
+      projectId: data.projectId,
+      userId,
+      defaultVisibility: data.visibility,
+      items: data.items,
+    });
+
+    return {
+      filed: res.filed,
+      chunks: res.chunks,
+      skipped: res.skipped,
+      ...(res.errors.length ? { errors: res.errors } : {}),
+    };
+  });
+
+// ── Intake document reader ─────────────────────────────────────────────────
+//
+// Backs the intake viewer modal: resolves a gathered item (source brief or
+// supporting context) to its filed corpus copy and returns the FULL extracted
+// text — not the 8k-truncated excerpt stored on the project row — plus a
+// signed link to the original file. Returns { filed: false } when the item
+// hasn't reached the corpus yet so the UI can fall back to the excerpt.
+
+const ViewInput = z.object({
+  projectId: z.string().uuid(),
+  path: z.string().min(1).max(2000),
+});
+
+export const getIntakeDocument = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => ViewInput.parse(d))
+  .handler(async ({ data, context }) => {
+    // RLS on persona_projects enforces access to this programme.
+    const { data: project, error: pErr } = await context.supabase
+      .from("persona_projects")
+      .select("id,country_code")
+      .eq("id", data.projectId)
+      .maybeSingle();
+    if (pErr) throw new Error(pErr.message);
+    if (!project) throw new Error("Research programme not found");
+    const countryCode = (project as { country_code: string }).country_code;
+
+    const { intakeSourceUrl } = await import("./corpus-file.server");
+    const url = intakeSourceUrl({ path: data.path });
+    const isLink = /^https?:\/\//i.test(url);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { upsertCountrySource } = await import("@/lib/corpus/writers.server");
-    const { chunkText, embedBatch } = await import("@/lib/country-onboarding/ingest.server");
-    const { contentHash } = await import("@/lib/country-onboarding/memory-dedup.server");
+    const { data: src } = await supabaseAdmin
+      .from("country_sources")
+      .select("id,title,storage_path,visibility")
+      .eq("country_code", countryCode)
+      .eq("url", url)
+      .contains("tags", [`project:${data.projectId}`])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!src) return { filed: false as const };
 
-    let filed = 0;
-    let totalChunks = 0;
-    const errors: string[] = [];
+    const { data: doc } = await supabaseAdmin
+      .from("country_source_documents")
+      .select("raw_text,char_count")
+      .eq("country_source_id", (src as { id: string }).id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    for (const item of usable) {
-      try {
-        const text = (item.excerpt ?? "").trim();
-        const url = sourceUrlFor(item);
-        const src = await upsertCountrySource(supabaseAdmin, {
-          country_code: data.countryCode,
-          url,
-          title: item.name,
-          org: item.role === "brief" ? "Programme brief" : "Programme context",
-          kind: "document",
-          connection_kind: /^https?:/i.test(url) ? "link" : "document",
-          storage_path: /^https?:/i.test(url) ? null : item.path,
-          quality_score: item.role === "brief" ? 5 : 4,
-          tags: ["chamber-07", "research-programme", `role:${item.role}`, `project:${data.projectId}`],
-          created_by: userId,
-          visibility: data.visibility,
-          owner_country_code: data.visibility === "private" ? data.countryCode : null,
-          uploaded_by: data.visibility === "private" ? userId : null,
-        });
-        if (!src?.id) throw new Error("source upsert returned nothing");
-
-        const hash = contentHash(text);
-        const { data: existingDoc } = await supabaseAdmin
-          .from("country_source_documents")
-          .select("id")
-          .eq("country_source_id", src.id)
-          .eq("content_hash", hash)
-          .maybeSingle();
-        if (existingDoc) {
-          filed++;
-          continue;
-        }
-
-        const chunks = chunkText(text);
-        if (chunks.length === 0) continue;
-
-        const { data: docRow, error: dErr } = await supabaseAdmin
-          .from("country_source_documents")
-          .insert({
-            country_source_id: src.id,
-            raw_text: text,
-            char_count: text.length,
-            chunk_count: chunks.length,
-            content_hash: hash,
-            visibility: data.visibility,
-            owner_country_code: data.visibility === "private" ? data.countryCode : null,
-            uploaded_by: data.visibility === "private" ? userId : null,
-          })
-          .select("id")
-          .single();
-        if (dErr || !docRow) throw new Error(dErr?.message ?? "document insert failed");
-
-        const vectors: number[][] = [];
-        for (let i = 0; i < chunks.length; i += 64) {
-          vectors.push(...(await embedBatch(chunks.slice(i, i + 64))));
-        }
-        const rows = chunks.map((c, idx) => ({
-          document_id: docRow.id,
-          country_code: data.countryCode,
-          chunk_index: idx,
-          content: c,
-          embedding: vectors[idx] ? `[${vectors[idx].join(",")}]` : null,
-          visibility: data.visibility,
-          owner_country_code: data.visibility === "private" ? data.countryCode : null,
-          uploaded_by: data.visibility === "private" ? userId : null,
-        }));
-        for (let i = 0; i < rows.length; i += 100) {
-          const { error: cErr } = await supabaseAdmin
-            .from("country_source_chunks")
-            .insert(rows.slice(i, i + 100));
-          if (cErr) throw new Error(cErr.message);
-        }
-
-        filed++;
-        totalChunks += chunks.length;
-      } catch (e) {
-        errors.push(`${item.name}: ${(e as Error).message}`);
-      }
+    let downloadUrl: string | null = null;
+    if (isLink) {
+      downloadUrl = url;
+    } else {
+      const storagePath =
+        (src as { storage_path?: string | null }).storage_path ?? data.path;
+      const { data: signed } = await supabaseAdmin.storage
+        .from("study-artifacts")
+        .createSignedUrl(storagePath, 3600);
+      downloadUrl = signed?.signedUrl ?? null;
     }
 
     return {
-      filed,
-      chunks: totalChunks,
-      skipped: data.items.length - usable.length,
-      ...(errors.length ? { errors } : {}),
+      filed: true as const,
+      name: (src as { title?: string }).title ?? "",
+      text: (doc as { raw_text?: string } | null)?.raw_text ?? "",
+      chars: (doc as { char_count?: number } | null)?.char_count ?? 0,
+      downloadUrl,
+      visibility: (src as { visibility?: string }).visibility ?? "public",
     };
   });

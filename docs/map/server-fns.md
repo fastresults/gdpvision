@@ -43,6 +43,7 @@ are lifted from the top-of-file docblock — add them to any module missing them
 | `src/lib/fdi-studio/playbook.functions.ts` | generatePlaybook, listPlaybooks, updatePlaybookAction, deletePlaybook | fdi-studio | fdi_playbooks,fdi_playbook_actions,fdi_strategies,fdi_threats,ministries,ministry_sectors,country_kpis | src/components/studio/PlaybookTimeline.tsx |
 | `src/lib/fdi-studio/posture.functions.ts` | getFdiPosture | fdi-studio | fdi_posture_snapshots,country_sectors,country_capital_flows,exposure_index,countries,fdi_threats,fdi_strategies | src/components/studio/MacroFdiBoard.tsx |
 | `src/lib/galleries.functions.ts` | listGalleries, listAllGalleryItems, createGallery, updateGallery, deleteGallery, moveGallery, addGalleryItem, updateGalleryItem, deleteGalleryItem, moveGalleryItem | core | galleries,gallery_items | src/components/admin/GalleryManager.tsx |
+| `src/lib/github/repo-health.functions.ts` | getGithubRepoHealth | core | none | src/routes/_authenticated/admin/github.tsx |
 | `src/lib/goalseek.functions.ts` | solveForTarget | core | kpis,levers | — |
 | `src/lib/idle-images.functions.ts` | listIdleImages, addIdleImage, updateIdleImage, removeIdleImage, moveIdleImage | core | idle_images | src/routes/kiosk.admin.tsx |
 | `src/lib/invitations.functions.ts` | createInvitation, listInvitations, revokeInvitation, getInvitationByToken, acceptInvitation, checkAccessAllowed | core | invitations,user_roles | src/routes/_authenticated/admin/invitations.tsx; src/routes/_authenticated/home.tsx; src/routes/auth.invite.tsx |

@@ -55,6 +55,7 @@ import { Route as AuthenticatedConciergeIdRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdminProformaRouteImport } from './routes/_authenticated/admin/proforma'
 import { Route as AuthenticatedAdminLedgerQaRouteImport } from './routes/_authenticated/admin/ledger-qa'
 import { Route as AuthenticatedAdminInvitationsRouteImport } from './routes/_authenticated/admin/invitations'
+import { Route as AuthenticatedAdminGithubRouteImport } from './routes/_authenticated/admin/github'
 import { Route as AuthenticatedAdminDocumentsRouteImport } from './routes/_authenticated/admin/documents'
 import { Route as AuthenticatedAdminCorpusAuditRouteImport } from './routes/_authenticated/admin/corpus-audit'
 import { Route as AuthenticatedAdminBrainRouteImport } from './routes/_authenticated/admin/brain'
@@ -393,6 +394,12 @@ const AuthenticatedAdminInvitationsRoute =
   AuthenticatedAdminInvitationsRouteImport.update({
     id: '/invitations',
     path: '/invitations',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminGithubRoute =
+  AuthenticatedAdminGithubRouteImport.update({
+    id: '/github',
+    path: '/github',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminDocumentsRoute =
@@ -930,6 +937,7 @@ export interface FileRoutesByFullPath {
   '/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
+  '/admin/github': typeof AuthenticatedAdminGithubRoute
   '/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
   '/admin/proforma': typeof AuthenticatedAdminProformaRoute
@@ -1059,6 +1067,7 @@ export interface FileRoutesByTo {
   '/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
   '/admin/documents': typeof AuthenticatedAdminDocumentsRoute
+  '/admin/github': typeof AuthenticatedAdminGithubRoute
   '/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
   '/admin/proforma': typeof AuthenticatedAdminProformaRoute
@@ -1189,6 +1198,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/brain': typeof AuthenticatedAdminBrainRoute
   '/_authenticated/admin/corpus-audit': typeof AuthenticatedAdminCorpusAuditRoute
   '/_authenticated/admin/documents': typeof AuthenticatedAdminDocumentsRoute
+  '/_authenticated/admin/github': typeof AuthenticatedAdminGithubRoute
   '/_authenticated/admin/invitations': typeof AuthenticatedAdminInvitationsRoute
   '/_authenticated/admin/ledger-qa': typeof AuthenticatedAdminLedgerQaRoute
   '/_authenticated/admin/proforma': typeof AuthenticatedAdminProformaRoute
@@ -1324,6 +1334,7 @@ export interface FileRouteTypes {
     | '/admin/brain'
     | '/admin/corpus-audit'
     | '/admin/documents'
+    | '/admin/github'
     | '/admin/invitations'
     | '/admin/ledger-qa'
     | '/admin/proforma'
@@ -1453,6 +1464,7 @@ export interface FileRouteTypes {
     | '/admin/brain'
     | '/admin/corpus-audit'
     | '/admin/documents'
+    | '/admin/github'
     | '/admin/invitations'
     | '/admin/ledger-qa'
     | '/admin/proforma'
@@ -1582,6 +1594,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/brain'
     | '/_authenticated/admin/corpus-audit'
     | '/_authenticated/admin/documents'
+    | '/_authenticated/admin/github'
     | '/_authenticated/admin/invitations'
     | '/_authenticated/admin/ledger-qa'
     | '/_authenticated/admin/proforma'
@@ -2038,6 +2051,13 @@ declare module '@tanstack/react-router' {
       path: '/invitations'
       fullPath: '/admin/invitations'
       preLoaderRoute: typeof AuthenticatedAdminInvitationsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/github': {
+      id: '/_authenticated/admin/github'
+      path: '/github'
+      fullPath: '/admin/github'
+      preLoaderRoute: typeof AuthenticatedAdminGithubRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/documents': {
@@ -2803,6 +2823,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminBrainRoute: typeof AuthenticatedAdminBrainRoute
   AuthenticatedAdminCorpusAuditRoute: typeof AuthenticatedAdminCorpusAuditRoute
   AuthenticatedAdminDocumentsRoute: typeof AuthenticatedAdminDocumentsRoute
+  AuthenticatedAdminGithubRoute: typeof AuthenticatedAdminGithubRoute
   AuthenticatedAdminInvitationsRoute: typeof AuthenticatedAdminInvitationsRoute
   AuthenticatedAdminLedgerQaRoute: typeof AuthenticatedAdminLedgerQaRoute
   AuthenticatedAdminProformaRoute: typeof AuthenticatedAdminProformaRoute
@@ -2834,6 +2855,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminBrainRoute: AuthenticatedAdminBrainRoute,
     AuthenticatedAdminCorpusAuditRoute: AuthenticatedAdminCorpusAuditRoute,
     AuthenticatedAdminDocumentsRoute: AuthenticatedAdminDocumentsRoute,
+    AuthenticatedAdminGithubRoute: AuthenticatedAdminGithubRoute,
     AuthenticatedAdminInvitationsRoute: AuthenticatedAdminInvitationsRoute,
     AuthenticatedAdminLedgerQaRoute: AuthenticatedAdminLedgerQaRoute,
     AuthenticatedAdminProformaRoute: AuthenticatedAdminProformaRoute,

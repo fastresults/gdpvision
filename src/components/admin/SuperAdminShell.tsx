@@ -25,6 +25,8 @@ const NAV = [
   { to: "/admin/activity", label: "Activity" },
   { to: "/config", label: "Configuration" },
   { to: "/admin/audits/log", label: "Audit log" },
+  { to: "/admin/github", label: "GitHub" },
+
 ] as const;
 
 export function SuperAdminShell({ eyebrow, crumbs, wide, children }: Props) {

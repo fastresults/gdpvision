@@ -142,7 +142,9 @@ export const getGithubRepoHealth = createServerFn({ method: "POST" })
 
     // Recently pushed repos double as the picker list and as proof that read
     // access actually works beyond /user.
-    const repos = await gateway("/user/repos?per_page=30&sort=pushed&affiliation=owner,organization_member");
+    const repos = await gateway(
+      "/user/repos?per_page=30&sort=pushed&affiliation=owner,organization_member",
+    );
     if (repos.status === 200 && Array.isArray(repos.body)) {
       health.candidates = (repos.body as Array<Record<string, unknown>>)
         .map((r) => ({

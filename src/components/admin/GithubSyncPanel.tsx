@@ -61,7 +61,7 @@ function Verdict({
     <div className="flex items-start gap-2.5">
       <Icon
         aria-hidden
-        className={`mt-0.5 h-4 w-4 shrink-0 ${good ? "text-ink-950" : "text-signal-amber"}`}
+        className={`mt-0.5 h-4 w-4 shrink-0 ${good ? "text-ink-950" : "text-signal-caution"}`}
       />
       <div>
         <p className="text-sm text-ink-950">{label}</p>

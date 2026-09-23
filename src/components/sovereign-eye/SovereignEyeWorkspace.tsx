@@ -65,14 +65,17 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
         data: {
           countryCode: code,
           title: sceneTitle,
-          description: brief?.text.slice(0, 360) ?? "Saved Sovereign Eye scene.",
+          description:
+            sceneVisibility === "public"
+              ? `Shared sovereign intelligence scene for ${data.country.name}.`
+              : brief?.text.slice(0, 360) ?? "Saved Sovereign Eye scene.",
           layers: selectedLayers.map((layer) => ({ ...layer, visible: true })),
           camera: {
             activeLayerId,
             country: data.country.code,
             generatedAt: data.diagnostics.generatedAt,
           },
-          notes: brief?.text ?? null,
+          notes: sceneVisibility === "public" ? null : brief?.text ?? null,
           visibility: sceneVisibility,
         },
       }),

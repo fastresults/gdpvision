@@ -8168,6 +8168,59 @@ export type Database = {
           },
         ]
       }
+      sovereign_eye_scenes: {
+        Row: {
+          camera: Json
+          country_code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          layers: Json
+          notes: string | null
+          share_token: string | null
+          title: string
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          camera?: Json
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          layers?: Json
+          notes?: string | null
+          share_token?: string | null
+          title: string
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          camera?: Json
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          layers?: Json
+          notes?: string | null
+          share_token?: string | null
+          title?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sovereign_eye_scenes_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       strategy_statements: {
         Row: {
           approvals: Json

@@ -68,6 +68,16 @@ Each of the 7 chambers = a route surface + component tree + server-fn module(s) 
 - **Tables**: `mandate_compacts`, `compact_pillars`, `compact_pledges`, `compact_deliverables`, `compact_status_updates`, `compact_scorecards`, `compact_revisions` + writes to `country_manifestos`, `country_sources`, `country_source_documents`, `country_source_chunks`, `memory_objects`
 - **Corpus**: manifesto text is chunk-embedded via `country-onboarding/ingest.server.ts` (chunkText + embedBatch) so Ask-the-Ledger can quote pledges verbatim; a `memory_object` of kind `mandate_compact` mirrors the compact for cross-chamber lookup
 
+## Strategic workspace · Sovereign Eye
+
+- **Route**: `admin/countries.$code.godseye.tsx`
+- **Public scene route**: `s.$token.tsx` (unbranded, public-layer scenes only)
+- **Components**: `src/components/sovereign-eye/*` — `SovereignEyeWorkspace`, `RegionMap`, `LayerRail`, `EvidencePanel`
+- **Server fns**: `src/lib/sovereign-eye.functions.ts`
+- **Tables**: reads `countries`, `country_kpis`, `country_sectors`, `ministries`, `ministry_profiles`, `country_capital_flows`, `capital_flow_nodes`, `country_sources`, `memory_objects`; persists `sovereign_eye_scenes`
+- **Live context**: public no-key weather and regional seismic feeds are read at request time and remain separate from committed corpus evidence
+- **Sharing safety**: a scene can be published only when every selected layer contains zero private records
+
 ---
 
 ## Cross-cutting surfaces

@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 
+import { RegionMap, type MapFeature } from "@/components/sovereign-eye/RegionMap";
 import { getPublicSovereignEyeScene } from "@/lib/sovereign-eye.functions";
 
 export const Route = createFileRoute("/s/$token")({
@@ -24,6 +26,7 @@ function SharedSceneRoute() {
     queryFn: () => getPublicSovereignEyeScene({ data: { token } }),
     retry: false,
   });
+  const [pinnedFeature, setPinnedFeature] = useState<MapFeature | null>(null);
 
   return (
     <main className="min-h-dvh bg-paper-0 px-5 py-8 text-ink-950 sm:px-8">
@@ -37,6 +40,14 @@ function SharedSceneRoute() {
               <h1 className="mt-2 font-serif text-4xl leading-tight text-ink-950">{data.title}</h1>
               {data.description ? <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ink-600">{data.description}</p> : null}
             </header>
+            <RegionMap
+              code={data.countryCode}
+              countryName={data.title}
+              layers={data.layers}
+              focusedLayerId={data.layers.find((layer) => layer.visible)?.id ?? data.layers[0]?.id ?? "macro-pulse"}
+              pinnedFeature={pinnedFeature}
+              onPin={setPinnedFeature}
+            />
             <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {data.layers.map((layer) => (
                 <div key={layer.id} className="border border-line-200 bg-card p-4">

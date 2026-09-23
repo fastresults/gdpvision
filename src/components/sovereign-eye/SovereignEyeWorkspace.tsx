@@ -101,6 +101,23 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
     setPinnedFeature(null);
   }
 
+  function restoreScene(scene: SovereignEyeScene) {
+    const camera = scene.camera && typeof scene.camera === "object" && !Array.isArray(scene.camera)
+      ? scene.camera as Record<string, unknown>
+      : {};
+    const restoredAiIds = Array.isArray(camera.aiSelectedLayerIds)
+      ? camera.aiSelectedLayerIds.filter((id): id is string => typeof id === "string")
+      : scene.layers.map((layer) => layer.id);
+    setVisibleLayerIds(scene.layers.filter((layer) => layer.visible).map((layer) => layer.id));
+    setAiSelectedLayerIds(restoredAiIds);
+    setFocusedLayerId(typeof camera.focusedLayerId === "string" ? camera.focusedLayerId : scene.layers[0]?.id ?? "macro-pulse");
+    const restoredPin = camera.pinnedFeature;
+    setPinnedFeature(restoredPin && typeof restoredPin === "object" && !Array.isArray(restoredPin) ? restoredPin as MapFeature : null);
+    setSceneTitle(scene.title);
+    setSceneVisibility(scene.visibility);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   return (
     <div className="space-y-6">
       <header className="grid gap-5 border-b border-line-200 pb-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
@@ -226,9 +243,12 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
           {saveMut.error ? <p className="mt-3 text-sm text-signal-negative">{saveMut.error.message}</p> : null}
           {savedScene ? <SavedScene scene={savedScene} /> : null}
           <ul className="mt-5 space-y-2">
-            {data.scenes.map((scene) => (
+             {data.scenes.map((scene) => (
               <li key={scene.id} className="border border-line-200 p-3">
-                <p className="font-serif text-base text-ink-950">{scene.title}</p>
+                 <div className="flex items-start justify-between gap-3">
+                   <p className="font-serif text-base text-ink-950">{scene.title}</p>
+                   <button type="button" onClick={() => restoreScene(scene)} className="btn-ghost min-h-8 px-2 text-[9px]">Open scene</button>
+                 </div>
                 <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">
                   {scene.visibility} · {new Date(scene.updatedAt).toLocaleDateString()}
                 </p>

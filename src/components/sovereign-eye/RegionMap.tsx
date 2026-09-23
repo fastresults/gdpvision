@@ -39,6 +39,8 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
     { show: visibleKinds.has("sector"), symbol: "sector", label: "Sector · size = GDP share" },
     { show: visibleKinds.has("capital"), symbol: "input", label: "Inbound capital" },
     { show: visibleKinds.has("capital"), symbol: "output", label: "Outbound capital" },
+    { show: visibleKinds.has("capital"), symbol: "width", label: "Line width = relative value" },
+    { show: visibleKinds.has("capital") && flows.some((flow) => flow.confidence !== "A"), symbol: "confidence", label: "Dashed = confidence B–D" },
     { show: visibleKinds.has("ministry"), symbol: "ministry", label: "Ministry coverage" },
     { show: visibleKinds.has("corpus"), symbol: "public", label: "Public evidence" },
     { show: visibleKinds.has("corpus") && layers.some((l) => l.kind === "corpus" && l.visibility.private > 0), symbol: "private", label: "Private evidence" },
@@ -70,6 +72,19 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
             <rect width="100" height="100" fill="url(#eye-grid)" />
             <path d="M 8 62 C 28 44, 38 40, 58 43 S 86 41, 94 26" className="fill-none stroke-ink-300" strokeWidth="0.35" strokeDasharray="1.2 1.4" aria-hidden="true" />
             <path d="M 4 74 C 21 69, 33 63, 49 69 S 72 81, 95 69" className="fill-none stroke-ink-300" strokeWidth="0.3" strokeDasharray="0.8 1.2" aria-hidden="true" />
+
+            {layers.filter((layer) => layer.visible && layer.evidenceCount > 0 && (
+              (layer.kind === "macro" && kpis.length === 0) ||
+              (layer.kind === "sector" && sectors.length === 0) ||
+              (layer.kind === "capital" && flows.length === 0) ||
+              (layer.kind === "ministry" && sectors.length === 0) ||
+              (layer.kind === "corpus" && evidence.sources.length + evidence.memory.length === 0) ||
+              (layer.kind === "live" && !live)
+            )).map((layer, index, all) => {
+              const p = ringPoint(origin, index, all.length, 14);
+              const feature: MapFeature = { id: `summary-${layer.id}`, kind: layer.kind, title: layer.label, value: `${layer.evidenceCount} evidence records`, meta: `${layer.status} · layer strength ${layer.strength?.toFixed(2) ?? "not available"}`, evidenceCount: layer.evidenceCount };
+              return <g key={feature.id} {...interaction(feature)}><circle cx={p.x} cy={p.y} r="2.2" className="fill-paper-0 stroke-ink-950" strokeWidth="0.6" /><text x={p.x + 3} y={p.y + 0.7} className="fill-ink-800 font-mono text-[1.7px]">{layer.label}</text></g>;
+            })}
 
             {visibleKinds.has("capital") && flows.slice(0, 6).map((flow, index) => {
               const end = anchors[index % anchors.length]; const weight = Math.max(0.45, Math.min(1.8, flow.valueUsdM / 250));
@@ -133,4 +148,4 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
 }
 
 function Stat({ label, value }: { label: string; value: string }) { return <div className="border border-line-200 p-3"><dt className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">{label}</dt><dd className="mt-1 capitalize text-ink-950" data-numeric>{value}</dd></div>; }
-function LegendMark({ symbol }: { symbol: string }) { if (symbol === "input" || symbol === "output") return <span className={`h-0 w-7 border-t-2 ${symbol === "input" ? "border-signal-positive" : "border-signal-caution"}`} />; if (symbol === "selected") return <span className="h-3 w-3 rounded-full border border-ink-950 bg-gold-500" />; if (symbol === "macro") return <span className="h-3 w-3 rounded-full bg-ink-950" />; if (symbol === "sector") return <span className="h-4 w-4 rounded-full bg-gold-500" />; if (symbol === "ministry") return <Landmark size={15} className="text-ink-700" />; if (symbol === "live") return <CloudSun size={15} className="text-signal-positive" />; if (symbol === "public") return <Database size={14} className="text-ink-700" />; if (symbol === "private") return <Database size={14} className="text-narrative-500" />; return <Waves size={15} />; }
+function LegendMark({ symbol }: { symbol: string }) { if (symbol === "input" || symbol === "output") return <span className={`h-0 w-7 border-t-2 ${symbol === "input" ? "border-signal-positive" : "border-signal-caution"}`} />; if (symbol === "width") return <span className="flex w-7 flex-col gap-1"><span className="border-t border-ink-700" /><span className="border-t-[3px] border-ink-700" /></span>; if (symbol === "confidence") return <span className="w-7 border-t-2 border-dashed border-ink-700" />; if (symbol === "selected") return <span className="h-3 w-3 rounded-full border border-ink-950 bg-gold-500" />; if (symbol === "macro") return <span className="h-3 w-3 rounded-full bg-ink-950" />; if (symbol === "sector") return <span className="h-4 w-4 rounded-full bg-gold-500" />; if (symbol === "ministry") return <Landmark size={15} className="text-ink-700" />; if (symbol === "live") return <CloudSun size={15} className="text-signal-positive" />; if (symbol === "public") return <Database size={14} className="text-ink-700" />; if (symbol === "private") return <Database size={14} className="text-narrative-500" />; return <Waves size={15} />; }

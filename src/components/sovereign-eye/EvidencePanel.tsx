@@ -29,8 +29,8 @@ export function EvidencePanel({
           <div className="border-b border-line-200 p-5 lg:border-b-0 lg:border-r">
             <h3 className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">Macro</h3>
             <ul className="mt-4 space-y-3">
-              {kpis.slice(0, 6).map((kpi) => (
-                <li key={kpi.code} className="border-b border-line-100 pb-3 last:border-0 last:pb-0">
+              {kpis.slice(0, 6).map((kpi, index) => (
+                <li key={`${kpi.code}-${kpi.period ?? "none"}-${index}`} className="border-b border-line-100 pb-3 last:border-0 last:pb-0">
                   <p className="text-sm text-ink-600">{kpi.label}</p>
                   <p className="font-serif text-xl text-ink-950" data-numeric>{fmt(kpi.value, kpi.unit)}</p>
                   <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">{kpi.period ?? "No period"} · {kpi.visibility}</p>
@@ -59,8 +59,8 @@ export function EvidencePanel({
           <div className="p-5">
             <h3 className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">Capital</h3>
             <ul className="mt-4 space-y-3">
-              {flows.slice(0, 6).map((flow) => (
-                <li key={`${flow.nodeKey}-${flow.period}`} className="border-b border-line-100 pb-3 last:border-0 last:pb-0">
+              {flows.slice(0, 6).map((flow, index) => (
+                <li key={`${flow.nodeKey}-${flow.period}-${flow.side}-${index}`} className="border-b border-line-100 pb-3 last:border-0 last:pb-0">
                   <p className="text-sm text-ink-700">{flow.label}</p>
                   <p className="font-serif text-xl text-ink-950" data-numeric>US${flow.valueUsdM.toFixed(2)}m</p>
                   <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">{flow.side} · {flow.confidence} · {flow.visibility}</p>
@@ -78,8 +78,8 @@ export function EvidencePanel({
         </div>
         <div className="max-h-[520px] overflow-y-auto p-5">
           <ul className="space-y-3">
-            {evidence.sources.map((source) => (
-              <li key={`${source.org}-${source.title}`} className="border border-line-200 p-3">
+            {evidence.sources.map((source, index) => (
+              <li key={`${source.org}-${source.title}-${source.url ?? "none"}-${index}`} className="border border-line-200 p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-serif text-base text-ink-950">{source.title}</p>
@@ -93,8 +93,8 @@ export function EvidencePanel({
                 </div>
               </li>
             ))}
-            {evidence.memory.map((item) => (
-              <li key={`${item.kind}-${item.title}`} className="border border-line-200 p-3">
+            {evidence.memory.map((item, index) => (
+              <li key={`${item.kind}-${item.title}-${item.updatedAt ?? "none"}-${index}`} className="border border-line-200 p-3">
                 <p className="font-serif text-base text-ink-950">{item.title}</p>
                 <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">{item.kind} · weight {item.weight.toFixed(2)} · {item.visibility}</p>
               </li>

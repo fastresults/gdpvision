@@ -3,7 +3,7 @@
 
 import { createFileRoute, Link, Outlet, useParams, useRouterState } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { FileText, Home, MessageCircle, Send } from "lucide-react";
+import { FileText, Home, MessageCircle, Radar, Send } from "lucide-react";
 
 import { getMyCountryStatus } from "@/lib/country-admin.functions";
 import { CARICOM_OECS_REGISTRY } from "@/lib/caricom-registry";
@@ -118,14 +118,27 @@ function ConsoleLayout() {
               />
             )}
           </div>
-          {isAgency && (
-            <Link
-              to="/home"
-              className="shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
-            >
-              ← All countries
-            </Link>
-          )}
+          <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+            {code && (
+              <Link
+                to="/admin/countries/$code/godseye"
+                params={{ code }}
+                aria-label="Sovereign Eye"
+                className="shrink-0 text-ink-500 transition-colors hover:text-ink-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-500"
+                onClick={() => scrollToTop()}
+              >
+                <Radar size={20} strokeWidth={1.5} />
+              </Link>
+            )}
+            {isAgency && (
+              <Link
+                to="/home"
+                className="shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950"
+              >
+                ← All countries
+              </Link>
+            )}
+          </div>
         </div>
       </header>
 

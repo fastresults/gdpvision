@@ -1,9 +1,12 @@
 // The Brief — the country user's first screen. Executive dashboard first:
 // what requires a decision today, then the standing of all eight chambers.
-// The request lanes live one tap away under Study.
+// Sovereign Eye sits between the dashboard and the request lanes — the same
+// structural position it occupies in the admin ChambersLauncher. The request
+// lanes live one tap away under Study.
 
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useQuery } from "@tanstack/react-query";
+import { ArrowUpRight, Radar } from "lucide-react";
 import { Suspense } from "react";
 
 import { getConsoleStudy } from "@/lib/console/console.functions";
@@ -65,6 +68,36 @@ function RequestLanes({ code }: { code: string }) {
   );
 }
 
+function SovereignEyeTile({ code }: { code: string }) {
+  return (
+    <Link
+      to="/admin/countries/$code/godseye"
+      params={{ code }}
+      className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-5 border border-line-200 bg-card px-5 py-4 transition hover:border-ink-950 hover:bg-paper-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-500"
+    >
+      <span className="grid h-11 w-11 place-items-center border border-line-200 bg-paper-50 text-ink-800 transition group-hover:border-ink-950">
+        <Radar size={18} strokeWidth={1.5} />
+      </span>
+      <span className="min-w-0">
+        <span className="block font-mono text-[10px] uppercase tracking-[0.28em] text-ink-500">
+          Strategic map
+        </span>
+        <span className="mt-1 block truncate font-serif text-[22px] leading-tight text-ink-950">
+          Sovereign Eye
+        </span>
+        <span className="mt-0.5 block truncate text-[13px] text-ink-500">
+          Corpus evidence, capital flows, live conditions and saved scenes in one map room.
+        </span>
+      </span>
+      <ArrowUpRight
+        size={18}
+        strokeWidth={1.5}
+        className="shrink-0 text-ink-300 transition group-hover:translate-x-0.5 group-hover:text-ink-950"
+      />
+    </Link>
+  );
+}
+
 function BriefPage() {
   const { code } = Route.useParams();
   return (
@@ -72,6 +105,7 @@ function BriefPage() {
       <Suspense fallback={<ExecutiveSkeleton />}>
         <ExecutiveDashboard code={code} />
       </Suspense>
+      <SovereignEyeTile code={code} />
       <RequestLanes code={code} />
     </div>
   );

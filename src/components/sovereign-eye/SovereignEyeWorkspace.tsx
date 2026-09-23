@@ -1,7 +1,7 @@
 import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Bot, Clipboard, Save, Share2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { Explain } from "@/components/explain/Explain";
 import {
@@ -15,7 +15,7 @@ import {
 import "@/lib/explain/sovereign-eye-entries";
 import { EvidencePanel } from "./EvidencePanel";
 import { LayerRail } from "./LayerRail";
-import { RegionMap } from "./RegionMap";
+import { RegionMap, type MapFeature } from "./RegionMap";
 
 export const sovereignEyeQuery = (code: string) =>
   queryOptions<SovereignEyeWorkspaceData>({
@@ -34,17 +34,20 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
   const qc = useQueryClient();
   const briefFn = useServerFn(generateSovereignEyeBrief);
   const saveSceneFn = useServerFn(saveSovereignEyeScene);
-  const [activeLayerId, setActiveLayerId] = useState(data.layers[0]?.id ?? "macro-pulse");
-  const [selectedLayerIds, setSelectedLayerIds] = useState(() => data.layers.filter((l) => l.visible).map((l) => l.id));
+  const [focusedLayerId, setFocusedLayerId] = useState(data.layers[0]?.id ?? "macro-pulse");
+  const [visibleLayerIds, setVisibleLayerIds] = useState(() => data.layers.filter((l) => l.visible).map((l) => l.id));
+  const [aiSelectedLayerIds, setAiSelectedLayerIds] = useState(() => data.layers.filter((l) => l.visible).map((l) => l.id));
+  const [pinnedFeature, setPinnedFeature] = useState<MapFeature | null>(null);
+  const evidenceRef = useRef<HTMLElement>(null);
   const [question, setQuestion] = useState("What needs attention before the next Cabinet discussion?");
   const [brief, setBrief] = useState<{ text: string; generatedAt: string } | null>(null);
   const [sceneTitle, setSceneTitle] = useState(`${data.country.name} sovereign eye`);
   const [sceneVisibility, setSceneVisibility] = useState<"private" | "public">("private");
   const [savedScene, setSavedScene] = useState<SovereignEyeScene | null>(null);
 
-  const selectedLayers = useMemo(
-    () => data.layers.filter((layer) => selectedLayerIds.includes(layer.id)),
-    [data.layers, selectedLayerIds],
+  const visibleLayers = useMemo(
+    () => data.layers.filter((layer) => visibleLayerIds.includes(layer.id)),
+    [data.layers, visibleLayerIds],
   );
 
   const briefMut = useMutation({
@@ -52,7 +55,7 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
       briefFn({
         data: {
           countryCode: code,
-          selectedLayerIds,
+          selectedLayerIds: aiSelectedLayerIds,
           question,
         },
       }),
@@ -69,9 +72,11 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
             sceneVisibility === "public"
               ? `Shared sovereign intelligence scene for ${data.country.name}.`
               : brief?.text.slice(0, 360) ?? "Saved Sovereign Eye scene.",
-          layers: selectedLayers.map((layer) => ({ ...layer, visible: true })),
+           layers: visibleLayers.map((layer) => ({ ...layer, visible: true })),
           camera: {
-            activeLayerId,
+             focusedLayerId,
+             aiSelectedLayerIds,
+             pinnedFeature,
             country: data.country.code,
             generatedAt: data.diagnostics.generatedAt,
           },
@@ -85,10 +90,15 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
     },
   });
 
-  function toggleLayer(id: string) {
-    setSelectedLayerIds((current) =>
+  function toggleAiLayer(id: string) {
+    setAiSelectedLayerIds((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
     );
+  }
+
+  function toggleVisibleLayer(id: string) {
+    setVisibleLayerIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+    setPinnedFeature(null);
   }
 
   return (
@@ -111,17 +121,28 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <LayerRail
           layers={data.layers}
-          activeLayerId={activeLayerId}
-          selectedIds={selectedLayerIds}
-          onActive={setActiveLayerId}
-          onToggle={toggleLayer}
+           focusedLayerId={focusedLayerId}
+           visibleIds={visibleLayerIds}
+           aiSelectedIds={aiSelectedLayerIds}
+           onFocus={(id) => { setFocusedLayerId(id); setPinnedFeature(null); }}
+           onToggleVisible={toggleVisibleLayer}
+           onToggleAi={toggleAiLayer}
+           onShowAll={() => setVisibleLayerIds(data.layers.map((layer) => layer.id))}
+           onClear={() => { setVisibleLayerIds([]); setPinnedFeature(null); }}
         />
         <RegionMap
           code={data.country.code}
           countryName={data.country.name}
-          layers={data.layers.map((layer) => ({ ...layer, visible: selectedLayerIds.includes(layer.id) }))}
+           layers={data.layers.map((layer) => ({ ...layer, visible: visibleLayerIds.includes(layer.id) }))}
           flows={data.flows}
-          activeLayerId={activeLayerId}
+           kpis={data.kpis}
+           sectors={data.sectors}
+           evidence={data.evidence}
+           live={data.live}
+           focusedLayerId={focusedLayerId}
+           pinnedFeature={pinnedFeature}
+           onPin={setPinnedFeature}
+           onEvidence={() => evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
         />
       </div>
 
@@ -144,14 +165,14 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <button
               type="button"
-              disabled={briefMut.isPending || selectedLayerIds.length === 0}
+               disabled={briefMut.isPending || aiSelectedLayerIds.length === 0}
               onClick={() => briefMut.mutate()}
               className="btn-primary min-h-10 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.18em]"
             >
               <Bot size={15} strokeWidth={1.5} />
               {briefMut.isPending ? "Reading map" : "Prepare AI brief"}
             </button>
-            <p className="text-xs text-ink-500">{selectedLayerIds.length} layer{selectedLayerIds.length === 1 ? "" : "s"} selected</p>
+             <p className="text-xs text-ink-500">{aiSelectedLayerIds.length} layer{aiSelectedLayerIds.length === 1 ? "" : "s"} selected for the brief</p>
           </div>
           {briefMut.error ? <p className="mt-3 text-sm text-signal-negative">{briefMut.error.message}</p> : null}
           {brief ? (
@@ -182,20 +203,20 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
             <button
               type="button"
               onClick={() => setSceneVisibility("public")}
-              disabled={selectedLayers.some((layer) => layer.visibility.private > 0)}
+               disabled={visibleLayers.some((layer) => layer.visibility.private > 0)}
               className={`${sceneVisibility === "public" ? "btn-primary" : "btn-secondary"} min-h-10 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em]`}
             >
               Public link
             </button>
           </div>
-          {selectedLayers.some((layer) => layer.visibility.private > 0) ? (
+           {visibleLayers.some((layer) => layer.visibility.private > 0) ? (
             <p className="mt-2 text-xs leading-relaxed text-ink-500">
               Public links require layers containing public evidence only.
             </p>
           ) : null}
           <button
             type="button"
-            disabled={saveMut.isPending || selectedLayers.length === 0 || sceneTitle.trim().length < 2}
+             disabled={saveMut.isPending || visibleLayers.length === 0 || sceneTitle.trim().length < 2}
             onClick={() => saveMut.mutate()}
             className="btn-accent mt-3 min-h-10 w-full px-4 py-2 font-mono text-[10px] uppercase tracking-[0.18em]"
           >
@@ -235,7 +256,9 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
         </div>
       </section>
 
-      <EvidencePanel kpis={data.kpis} sectors={data.sectors} flows={data.flows} evidence={data.evidence} />
+       <section ref={evidenceRef} className="scroll-mt-6">
+         <EvidencePanel kpis={data.kpis} sectors={data.sectors} flows={data.flows} evidence={data.evidence} />
+       </section>
     </div>
   );
 }

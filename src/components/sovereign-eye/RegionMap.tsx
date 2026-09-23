@@ -22,8 +22,6 @@ const anchors = [{ x: 8, y: 18 }, { x: 18, y: 72 }, { x: 82, y: 16 }, { x: 92, y
 const ringPoint = (origin: { x: number; y: number }, index: number, total: number, radius: number) => { const angle = (Math.PI * 2 * index) / Math.max(total, 1) - Math.PI / 2; return { x: origin.x + Math.cos(angle) * radius, y: origin.y + Math.sin(angle) * radius }; };
 const fmt = (n: number | null, unit = "") => n == null ? "Not available" : `${n.toFixed(2)}${unit ? ` ${unit}` : ""}`;
 
-function featureKey(feature: MapFeature) { return feature.id; }
-
 export function RegionMap({ code, countryName, layers, flows = [], kpis = [], sectors = [], evidence = { sources: [], memory: [] }, live, focusedLayerId, pinnedFeature, onPin, onEvidence }: {
   code: string; countryName: string; layers: SovereignEyeLayer[]; flows?: SovereignEyeFlow[]; kpis?: SovereignEyeKpi[]; sectors?: SovereignEyeSector[];
   evidence?: SovereignEyeEvidence; live?: SovereignEyeLiveFeed; focusedLayerId: string; pinnedFeature?: MapFeature | null; onPin?: (feature: MapFeature | null) => void; onEvidence?: () => void;

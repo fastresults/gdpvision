@@ -6,9 +6,9 @@ do-not-edit list, and pointers into `docs/map/*.md`. Everything below is supplem
 ## Project
 
 GDPVision — sovereign economic intelligence platform (gdpvision.com).
-Repo: no GitHub repo is connected to this project — the only Git remote is Lovable's internal store, branch `main`.
-To connect or check GitHub sync, use the Plus (+) menu in the Lovable chat input → GitHub. (The former
-`fastresults/eyeframe-showcase` reference was stale and 404s.)
+Repo: `https://github.com/fastresults/gdpvision` (public), branch `main`. Lovable also syncs to it.
+The older `fastresults/eyeframe-showcase` repo is superseded — the local `eyeframe-showcase/` clone
+beside this one is legacy, read-only.
 
 Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 · Supabase (Lovable Cloud)
 · AI SDK via Lovable AI Gateway. Package manager: **bun** (`bun.lock` is authoritative).

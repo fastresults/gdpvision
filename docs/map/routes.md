@@ -15,6 +15,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/op-eds/$slug` | `src/routes/op-eds.$slug.tsx` |
 | `/p/$token` | `src/routes/p.$token.tsx` |
 | `/reset-password` | `src/routes/reset-password.tsx` |
+| `/s/$token` | `src/routes/s.$token.tsx` |
 
 ## auth
 
@@ -73,6 +74,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/_authenticated/admin/countries/$code/cabinet/session/$sid` | `src/routes/_authenticated/admin/countries.$code.cabinet.session.$sid.tsx` |
 | `/_authenticated/admin/countries/$code/data` | `src/routes/_authenticated/admin/countries.$code.data.tsx` |
 | `/_authenticated/admin/countries/$code/executive` | `src/routes/_authenticated/admin/countries.$code.executive.tsx` |
+| `/_authenticated/admin/countries/$code/godseye` | `src/routes/_authenticated/admin/countries.$code.godseye.tsx` |
 | `/_authenticated/admin/countries/$code/ledger` | `src/routes/_authenticated/admin/countries.$code.ledger.tsx` |
 | `/_authenticated/admin/countries/$code/mandate-compact` | `src/routes/_authenticated/admin/countries.$code.mandate-compact.tsx` |
 | `/_authenticated/admin/countries/$code/narrative` | `src/routes/_authenticated/admin/countries.$code.narrative.tsx` |

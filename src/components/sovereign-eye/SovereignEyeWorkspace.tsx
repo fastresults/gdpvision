@@ -8,8 +8,8 @@ import {
   generateSovereignEyeBrief,
   getSovereignEyeWorkspace,
   saveSovereignEyeScene,
-  type SovereignEyeLayer,
   type SovereignEyeScene,
+  type SovereignEyeWorkspaceData,
 } from "@/lib/sovereign-eye.functions";
 
 import "@/lib/explain/sovereign-eye-entries";
@@ -18,7 +18,7 @@ import { LayerRail } from "./LayerRail";
 import { RegionMap } from "./RegionMap";
 
 export const sovereignEyeQuery = (code: string) =>
-  queryOptions({
+  queryOptions<SovereignEyeWorkspaceData>({
     queryKey: ["sovereign-eye", code, "workspace"],
     queryFn: () => getSovereignEyeWorkspace({ data: { countryCode: code } }),
     staleTime: 60_000,
@@ -65,18 +65,21 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
         data: {
           countryCode: code,
           title: sceneTitle,
-          description: brief?.text.slice(0, 360) ?? "Saved Sovereign Eye scene.",
+          description:
+            sceneVisibility === "public"
+              ? `Shared sovereign intelligence scene for ${data.country.name}.`
+              : brief?.text.slice(0, 360) ?? "Saved Sovereign Eye scene.",
           layers: selectedLayers.map((layer) => ({ ...layer, visible: true })),
           camera: {
             activeLayerId,
             country: data.country.code,
             generatedAt: data.diagnostics.generatedAt,
           },
-          notes: brief?.text ?? null,
+          notes: sceneVisibility === "public" ? null : brief?.text ?? null,
           visibility: sceneVisibility,
         },
       }),
-    onSuccess: (scene) => {
+    onSuccess: (scene: SovereignEyeScene) => {
       setSavedScene(scene);
       qc.invalidateQueries({ queryKey: ["sovereign-eye", code, "workspace"] });
     },
@@ -179,11 +182,17 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
             <button
               type="button"
               onClick={() => setSceneVisibility("public")}
+              disabled={selectedLayers.some((layer) => layer.visibility.private > 0)}
               className={`${sceneVisibility === "public" ? "btn-primary" : "btn-secondary"} min-h-10 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em]`}
             >
               Public link
             </button>
           </div>
+          {selectedLayers.some((layer) => layer.visibility.private > 0) ? (
+            <p className="mt-2 text-xs leading-relaxed text-ink-500">
+              Public links require layers containing public evidence only.
+            </p>
+          ) : null}
           <button
             type="button"
             disabled={saveMut.isPending || selectedLayers.length === 0 || sceneTitle.trim().length < 2}

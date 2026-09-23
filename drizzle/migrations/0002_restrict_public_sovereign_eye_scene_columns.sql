@@ -1,0 +1,2 @@
+REVOKE SELECT ON public.sovereign_eye_scenes FROM anon;
+GRANT SELECT (id, country_code, title, description, layers, camera, notes, visibility, share_token, updated_at) ON public.sovereign_eye_scenes TO anon;

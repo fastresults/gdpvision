@@ -19,6 +19,7 @@ const SceneLayerInput = z.object({
   visible: z.boolean(),
   strength: z.number().nullable(),
   evidenceCount: z.number(),
+  visibility: z.object({ public: z.number(), private: z.number() }),
   updatedAt: z.string().nullable(),
   narrative: z.string(),
 });
@@ -40,13 +41,6 @@ const BriefInput = z.object({
 });
 
 const PublicSceneInput = z.object({ token: z.string().min(12).max(96) });
-
-type AuthContext = {
-  supabase: {
-    rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
-  };
-  userId: string;
-};
 
 export type SovereignEyeCountry = {
   code: string;
@@ -154,7 +148,7 @@ export type SovereignEyeScene = {
   title: string;
   description: string | null;
   layers: SovereignEyeLayer[];
-  camera: Record<string, unknown>;
+  camera: Json;
   notes: string | null;
   visibility: "private" | "public";
   shareToken: string | null;
@@ -258,7 +252,7 @@ function visibilityCounts(rows: Array<{ visibility?: unknown }>) {
   );
 }
 
-async function assertCountryAccess(context: AuthContext, countryCode: string) {
+async function assertCountryAccess(context: { supabase: any; userId: string }, countryCode: string) {
   const { data: isAdmin, error: adminError } = await context.supabase.rpc("has_role", {
     _user_id: context.userId,
     _role: "admin",
@@ -368,7 +362,7 @@ function toScene(row: {
     title: row.title,
     description: row.description,
     layers: Array.isArray(row.layers) ? (row.layers as SovereignEyeLayer[]) : [],
-    camera: row.camera && typeof row.camera === "object" && !Array.isArray(row.camera) ? (row.camera as Record<string, unknown>) : {},
+    camera: row.camera ?? {},
     notes: row.notes,
     visibility: row.visibility === "public" ? "public" : "private",
     shareToken: row.share_token,
@@ -401,7 +395,7 @@ async function loadWorkspaceData(countryCode: string): Promise<SovereignEyeWorks
       .order("updated_at", { ascending: false }),
     supabaseAdmin
       .from("country_sectors")
-      .select("sector_code,share_pct,confidence_grade,visibility,updated_at")
+      .select("sector_code,share_pct,confidence_grade,updated_at")
       .eq("country_code", cc)
       .order("share_pct", { ascending: false }),
     supabaseAdmin.from("sectors").select("code,label,sort_order").order("sort_order", { ascending: true }),
@@ -523,7 +517,7 @@ async function loadWorkspaceData(countryCode: string): Promise<SovereignEyeWorks
   }));
 
   const kpiVisibility = visibilityCounts(kpiRes.data ?? []);
-  const sectorVisibility = visibilityCounts(sectorRes.data ?? []);
+  const sectorVisibility = { public: sectorRes.data?.length ?? 0, private: 0 };
   const flowVisibility = visibilityCounts(flowRes.data ?? []);
   const sourceVisibility = visibilityCounts(sourceRes.data ?? []);
   const memoryVisibility = visibilityCounts(memoryRes.data ?? []);
@@ -714,7 +708,7 @@ export const getSovereignEyeWorkspace = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => CountryInput.parse(data))
   .handler(async ({ data, context }) => {
-    await assertCountryAccess(context as AuthContext, data.countryCode.toUpperCase());
+    await assertCountryAccess(context, data.countryCode.toUpperCase());
     return loadWorkspaceData(data.countryCode);
   });
 
@@ -723,7 +717,10 @@ export const saveSovereignEyeScene = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => SaveSceneInput.parse(data))
   .handler(async ({ data, context }) => {
     const countryCode = data.countryCode.toUpperCase();
-    await assertCountryAccess(context as AuthContext, countryCode);
+    await assertCountryAccess(context, countryCode);
+    if (data.visibility === "public" && data.layers.some((layer) => layer.visibility.private > 0)) {
+      throw new Error("Remove layers containing private country evidence before creating a public link.");
+    }
     const shareToken = data.visibility === "public" ? crypto.randomUUID().replaceAll("-", "") : null;
     const { data: row, error } = await context.supabase
       .from("sovereign_eye_scenes")
@@ -749,7 +746,7 @@ export const generateSovereignEyeBrief = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => BriefInput.parse(data))
   .handler(async ({ data, context }) => {
     const countryCode = data.countryCode.toUpperCase();
-    await assertCountryAccess(context as AuthContext, countryCode);
+    await assertCountryAccess(context, countryCode);
     const key = process.env["LOVABLE_API_KEY"];
     if (!key) throw new Error("AI briefing is not configured for this workspace.");
     const workspace = await loadWorkspaceData(countryCode);

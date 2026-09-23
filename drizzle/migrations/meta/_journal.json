@@ -15,6 +15,13 @@
       "when": 1790173165391,
       "tag": "0001_allow_public_sovereign_eye_scene_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790174490265,
+      "tag": "0002_restrict_public_sovereign_eye_scene_columns",
+      "breakpoints": true
     }
   ]
 }

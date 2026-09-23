@@ -6,7 +6,7 @@ import { getMyCountryStatus } from "@/lib/country-admin.functions";
 //
 // Two audiences now share these routes:
 //   1. Global admins — everything.
-//   2. Country users — ONLY the eight chamber surfaces of the country they are
+//   2. Country users — ONLY the eight chambers and Sovereign Eye surface of the country they are
 //      bound to. Agency surfaces (countries index, second brain, users,
 //      invitations, activity, audits, onboarding, data, ledger-QA) stay
 //      super-admin only.

@@ -8,6 +8,7 @@ import {
   BookOpen,
   Landmark,
   Layers,
+  Radar,
   MessageSquare,
   ScrollText,
   TrendingUp,
@@ -28,7 +29,8 @@ type Chamber = {
     | "/admin/countries/$code/narrative"
     | "/admin/countries/$code/cabinet"
     | "/admin/countries/$code/personas"
-    | "/admin/countries/$code/mandate-compact";
+    | "/admin/countries/$code/mandate-compact"
+    | "/admin/countries/$code/godseye";
 };
 
 const HERO: Chamber = {
@@ -68,6 +70,32 @@ export function ChambersLauncher({ code }: { code: string }) {
           </span>
           <span className="mt-0.5 block truncate text-[13px] text-ink-500">
             What requires a decision today, and the standing of all eight chambers on one screen.
+          </span>
+        </span>
+        <ArrowUpRight
+          size={18}
+          strokeWidth={1.5}
+          className="shrink-0 text-ink-300 transition group-hover:translate-x-0.5 group-hover:text-ink-950"
+        />
+      </Link>
+
+      <Link
+        to="/admin/countries/$code/godseye"
+        params={{ code }}
+        className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-5 border border-line-200 bg-card px-6 py-5 transition hover:border-ink-950 hover:bg-paper-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-500"
+      >
+        <span className="grid h-11 w-11 place-items-center border border-line-200 bg-paper-50 text-ink-800 transition group-hover:border-ink-950">
+          <Radar size={18} strokeWidth={1.5} />
+        </span>
+        <span className="min-w-0">
+          <span className="block font-mono text-[10px] uppercase tracking-[0.28em] text-ink-500">
+            Strategic map
+          </span>
+          <span className="mt-1 block truncate font-serif text-[24px] text-ink-950">
+            Sovereign Eye
+          </span>
+          <span className="mt-0.5 block truncate text-[13px] text-ink-500">
+            Corpus evidence, capital flows, live conditions and saved scenes in one map room.
           </span>
         </span>
         <ArrowUpRight

@@ -17,6 +17,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OpEdsIndexRouteImport } from './routes/op-eds.index'
 import { Route as KioskIndexRouteImport } from './routes/kiosk.index'
+import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as OpEdsSlugRouteImport } from './routes/op-eds.$slug'
 import { Route as KioskAdminRouteImport } from './routes/kiosk.admin'
@@ -113,6 +114,7 @@ import { Route as AuthenticatedAdminCountriesCodeOnboardRouteImport } from './ro
 import { Route as AuthenticatedAdminCountriesCodeNarrativeRouteImport } from './routes/_authenticated/admin/countries.$code.narrative'
 import { Route as AuthenticatedAdminCountriesCodeMandateCompactRouteImport } from './routes/_authenticated/admin/countries.$code.mandate-compact'
 import { Route as AuthenticatedAdminCountriesCodeLedgerRouteImport } from './routes/_authenticated/admin/countries.$code.ledger'
+import { Route as AuthenticatedAdminCountriesCodeGodseyeRouteImport } from './routes/_authenticated/admin/countries.$code.godseye'
 import { Route as AuthenticatedAdminCountriesCodeExecutiveRouteImport } from './routes/_authenticated/admin/countries.$code.executive'
 import { Route as AuthenticatedAdminCountriesCodeDataRouteImport } from './routes/_authenticated/admin/countries.$code.data'
 import { Route as AuthenticatedAdminCountriesCodeStudioIndexRouteImport } from './routes/_authenticated/admin/countries.$code.studio.index'
@@ -181,6 +183,11 @@ const KioskIndexRoute = KioskIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => KioskRoute,
+} as any)
+const STokenRoute = STokenRouteImport.update({
+  id: '/s/$token',
+  path: '/s/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PTokenRoute = PTokenRouteImport.update({
   id: '/p/$token',
@@ -738,6 +745,12 @@ const AuthenticatedAdminCountriesCodeLedgerRoute =
     path: '/countries/$code/ledger',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeGodseyeRoute =
+  AuthenticatedAdminCountriesCodeGodseyeRouteImport.update({
+    id: '/countries/$code/godseye',
+    path: '/countries/$code/godseye',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminCountriesCodeExecutiveRoute =
   AuthenticatedAdminCountriesCodeExecutiveRouteImport.update({
     id: '/countries/$code/executive',
@@ -931,6 +944,7 @@ export interface FileRoutesByFullPath {
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
   '/p/$token': typeof PTokenRoute
+  '/s/$token': typeof STokenRoute
   '/kiosk/': typeof KioskIndexRoute
   '/op-eds/': typeof OpEdsIndexRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
@@ -1006,6 +1020,7 @@ export interface FileRoutesByFullPath {
   '/narrative/strategy/': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
   '/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
+  '/admin/countries/$code/godseye': typeof AuthenticatedAdminCountriesCodeGodseyeRoute
   '/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/admin/countries/$code/mandate-compact': typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   '/admin/countries/$code/narrative': typeof AuthenticatedAdminCountriesCodeNarrativeRouteWithChildren
@@ -1061,6 +1076,7 @@ export interface FileRoutesByTo {
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
   '/p/$token': typeof PTokenRoute
+  '/s/$token': typeof STokenRoute
   '/kiosk': typeof KioskIndexRoute
   '/op-eds': typeof OpEdsIndexRoute
   '/admin/activity': typeof AuthenticatedAdminActivityRoute
@@ -1136,6 +1152,7 @@ export interface FileRoutesByTo {
   '/narrative/strategy': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
   '/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
+  '/admin/countries/$code/godseye': typeof AuthenticatedAdminCountriesCodeGodseyeRoute
   '/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/admin/countries/$code/mandate-compact': typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   '/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
@@ -1192,6 +1209,7 @@ export interface FileRoutesById {
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
   '/p/$token': typeof PTokenRoute
+  '/s/$token': typeof STokenRoute
   '/kiosk/': typeof KioskIndexRoute
   '/op-eds/': typeof OpEdsIndexRoute
   '/_authenticated/admin/activity': typeof AuthenticatedAdminActivityRoute
@@ -1267,6 +1285,7 @@ export interface FileRoutesById {
   '/_authenticated/narrative/strategy/': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/_authenticated/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
   '/_authenticated/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
+  '/_authenticated/admin/countries/$code/godseye': typeof AuthenticatedAdminCountriesCodeGodseyeRoute
   '/_authenticated/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/_authenticated/admin/countries/$code/mandate-compact': typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   '/_authenticated/admin/countries/$code/narrative': typeof AuthenticatedAdminCountriesCodeNarrativeRouteWithChildren
@@ -1328,6 +1347,7 @@ export interface FileRouteTypes {
     | '/kiosk/admin'
     | '/op-eds/$slug'
     | '/p/$token'
+    | '/s/$token'
     | '/kiosk/'
     | '/op-eds/'
     | '/admin/activity'
@@ -1403,6 +1423,7 @@ export interface FileRouteTypes {
     | '/narrative/strategy/'
     | '/admin/countries/$code/data'
     | '/admin/countries/$code/executive'
+    | '/admin/countries/$code/godseye'
     | '/admin/countries/$code/ledger'
     | '/admin/countries/$code/mandate-compact'
     | '/admin/countries/$code/narrative'
@@ -1458,6 +1479,7 @@ export interface FileRouteTypes {
     | '/kiosk/admin'
     | '/op-eds/$slug'
     | '/p/$token'
+    | '/s/$token'
     | '/kiosk'
     | '/op-eds'
     | '/admin/activity'
@@ -1533,6 +1555,7 @@ export interface FileRouteTypes {
     | '/narrative/strategy'
     | '/admin/countries/$code/data'
     | '/admin/countries/$code/executive'
+    | '/admin/countries/$code/godseye'
     | '/admin/countries/$code/ledger'
     | '/admin/countries/$code/mandate-compact'
     | '/admin/countries/$code/onboard'
@@ -1588,6 +1611,7 @@ export interface FileRouteTypes {
     | '/kiosk/admin'
     | '/op-eds/$slug'
     | '/p/$token'
+    | '/s/$token'
     | '/kiosk/'
     | '/op-eds/'
     | '/_authenticated/admin/activity'
@@ -1663,6 +1687,7 @@ export interface FileRouteTypes {
     | '/_authenticated/narrative/strategy/'
     | '/_authenticated/admin/countries/$code/data'
     | '/_authenticated/admin/countries/$code/executive'
+    | '/_authenticated/admin/countries/$code/godseye'
     | '/_authenticated/admin/countries/$code/ledger'
     | '/_authenticated/admin/countries/$code/mandate-compact'
     | '/_authenticated/admin/countries/$code/narrative'
@@ -1717,6 +1742,7 @@ export interface RootRouteChildren {
   FTokenRoute: typeof FTokenRoute
   OpEdsSlugRoute: typeof OpEdsSlugRoute
   PTokenRoute: typeof PTokenRoute
+  STokenRoute: typeof STokenRoute
   OpEdsIndexRoute: typeof OpEdsIndexRoute
   ApiPublicDeckTokenRoute: typeof ApiPublicDeckTokenRoute
   ApiPublicDossierTokenRoute: typeof ApiPublicDossierTokenRoute
@@ -1786,6 +1812,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/kiosk/'
       preLoaderRoute: typeof KioskIndexRouteImport
       parentRoute: typeof KioskRoute
+    }
+    '/s/$token': {
+      id: '/s/$token'
+      path: '/s/$token'
+      fullPath: '/s/$token'
+      preLoaderRoute: typeof STokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/p/$token': {
       id: '/p/$token'
@@ -2459,6 +2492,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeLedgerRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/countries/$code/godseye': {
+      id: '/_authenticated/admin/countries/$code/godseye'
+      path: '/countries/$code/godseye'
+      fullPath: '/admin/countries/$code/godseye'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeGodseyeRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/countries/$code/executive': {
       id: '/_authenticated/admin/countries/$code/executive'
       path: '/countries/$code/executive'
@@ -2834,6 +2874,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminCountriesIndexRoute: typeof AuthenticatedAdminCountriesIndexRoute
   AuthenticatedAdminCountriesCodeDataRoute: typeof AuthenticatedAdminCountriesCodeDataRoute
   AuthenticatedAdminCountriesCodeExecutiveRoute: typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
+  AuthenticatedAdminCountriesCodeGodseyeRoute: typeof AuthenticatedAdminCountriesCodeGodseyeRoute
   AuthenticatedAdminCountriesCodeLedgerRoute: typeof AuthenticatedAdminCountriesCodeLedgerRoute
   AuthenticatedAdminCountriesCodeMandateCompactRoute: typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   AuthenticatedAdminCountriesCodeNarrativeRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRouteWithChildren
@@ -2869,6 +2910,8 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
       AuthenticatedAdminCountriesCodeDataRoute,
     AuthenticatedAdminCountriesCodeExecutiveRoute:
       AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren,
+    AuthenticatedAdminCountriesCodeGodseyeRoute:
+      AuthenticatedAdminCountriesCodeGodseyeRoute,
     AuthenticatedAdminCountriesCodeLedgerRoute:
       AuthenticatedAdminCountriesCodeLedgerRoute,
     AuthenticatedAdminCountriesCodeMandateCompactRoute:
@@ -3131,6 +3174,7 @@ const rootRouteChildren: RootRouteChildren = {
   FTokenRoute: FTokenRoute,
   OpEdsSlugRoute: OpEdsSlugRoute,
   PTokenRoute: PTokenRoute,
+  STokenRoute: STokenRoute,
   OpEdsIndexRoute: OpEdsIndexRoute,
   ApiPublicDeckTokenRoute: ApiPublicDeckTokenRoute,
   ApiPublicDossierTokenRoute: ApiPublicDossierTokenRoute,

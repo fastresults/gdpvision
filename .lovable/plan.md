@@ -33,11 +33,34 @@ What is compared, by layer:
 - **Meaningful** means |z| ≥ 1.5, at least 5 peers, and a gap larger than the noise level set for that indicator.
 - Every figure is registered with "Explain this" (formula, peers used, periods).
 
-## AI explanations of gaps
+## Step 1 — Data scrub (first finding already in)
 
-- The AI runs only for meaningful gaps, as a batch per country. It starts after onboarding is committed, and also from a "Refresh peer analysis" button for admins.
-- It uses the existing source library first, then web research, then the AI gateway fallback. It must cite sources and say what is unknown. Output that does not fit the expected format, or has no citations, is thrown away.
-- Results are saved with a version tag for the input data. They are refreshed only when a peer's figure changes, so there are no duplicates and re-running is safe.
+A read-only check of the current data found:
+- **Coverage is good:** 22 countries, and each has economic indicators, capital flows and sector data. 18 indicators are recorded for 21–22 countries each, so every indicator is well above the 5-peer minimum.
+- **Units don't match:** unemployment is recorded in 4 different units, and most other indicators in 2. The same indicator can't be compared until these are standardised.
+- **Periods are written as free text:** for example "2026 (projection)", "FY2024/25", "January–April 2024" and "latest available (IMF …)". Periods have to be converted to a single year, and projections separated from actual figures.
+- **Some data is old or missing:** poverty figures go back to 2006, and each indicator has 0–3 blank values.
+
+The scrub will:
+1. Convert units to one standard unit per indicator, using a fixed conversion table (for example percent vs ratio, USD vs USD millions).
+2. Convert each period to one reference year, and flag projections.
+3. Leave out of the comparison any figure that is blank, a projection, or more than 3 years older than the peer median. Nothing is deleted; each figure is just marked as excluded, with the reason.
+4. Flag extreme outliers (possible data-entry errors) for an admin to review, rather than treating them silently as real gaps.
+5. Produce a one-page data quality report for each indicator: countries included, reasons for exclusion, and unit fixes. It sits alongside the peer analysis.
+
+The scrub only adds cleaned copies of the figures. The original records are never changed.
+
+## Step 2 — AI explanations of gaps, on a schedule
+
+- **First run now:** as soon as this is built, do a full regional run covering the scrub, the statistics and the AI explanations for the meaningful gaps.
+- **Monthly refresh at 02:00 UTC on the 1st of each month:** re-scrub, recalculate, and re-explain only the gaps whose inputs have changed. That is one run per month, so the extra running cost is minimal.
+- **Safeguards:**
+  - Each run handles a limited number of countries.
+  - A database lock stops two runs from overlapping.
+  - Finished items are recorded, so a re-run skips them.
+  - An AI credit or permission error (402/403) pauses the job and tells admins why. Rate limits (429) wait until the next run.
+- Admins can still start a run with a "Refresh peer analysis" button. The last run's time and status are shown.
+- The AI uses the existing source library first, then web research, then the AI gateway fallback. It must cite sources and say what is unknown. Output that does not fit the expected format, or has no citations, is thrown away.
 - If no explanation has been saved yet, the panel shows the numbers and "Explanation pending", and never shows made-up text.
 
 ## Privacy and access
@@ -52,7 +75,9 @@ What is compared, by layer:
 - `src/lib/sovereign-eye/peer-benchmark.server.ts` does the fixed statistics and is a pure function. `peer-benchmark.functions.ts` provides `getPeerBenchmarks` (protected, all records for one country in a single request, added to the workspace data) and `refreshPeerAnalysis` (admins only, runs the AI batch).
 - The `MapFeature` data gets a `peer` block. `InterpretationPanel` gets a `PeerRow` and the strip chart. `GlobeView` and the Global flows view use the same features, so they need no separate code.
 - The Explain entry `sovereign-eye.peer-gap` is added to `sovereign-eye-entries.ts`.
-- Run `bun run headers && bun run map`. Check with type checks, unit tests on the statistics (ties, fewer than 5 peers, MAD = 0), and a signed-in Playwright run of hover in all three views.
+- Scrub output goes in `peer_kpi_normalized` (country, kpi_code, value_std, unit_std, ref_year, is_projection, excluded_reason, outlier_flag, source kpi id), filled by upsert on (country, kpi_code). A job-status table, `peer_analysis_runs`, holds the lock and lease, progress, and pause reason.
+- The job runs from the public route `src/routes/api/public/hooks/peer-analysis.ts`, which checks for `x-hook-secret` using the existing `verify-hook.server.ts`. It is scheduled with pg_cron `0 2 1 * *`, added with the same secret pattern as the existing cron jobs, and triggered once by hand after it is deployed.
+- Run `bun run headers && bun run map`. Check with type checks, unit tests on the statistics (ties, fewer than 5 peers, MAD = 0) and on unit and period parsing, and a signed-in Playwright run of hover in all three views.
 
 ## Open question
 

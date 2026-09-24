@@ -42,7 +42,9 @@ function windowsToClose(now: Date): Array<{ kind: WindowKind; period: string }> 
 export const Route = createFileRoute("/api/public/hooks/cadence-daily")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        const { verifyHookRequest, unauthorizedHook } = await import("@/lib/auth/verify-hook.server");
+        if (!(await verifyHookRequest(request))) return unauthorizedHook();
         const supabase = createClient<Database>(
           process.env.SUPABASE_URL!,
           process.env.SUPABASE_SERVICE_ROLE_KEY!,

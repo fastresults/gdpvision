@@ -11,11 +11,8 @@ export const Route = createFileRoute("/api/public/hooks/source-health")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const anon = process.env.SUPABASE_PUBLISHABLE_KEY ?? "";
-        const provided = request.headers.get("apikey") ?? "";
-        if (!anon || provided !== anon) {
-          return new Response("Unauthorized", { status: 401 });
-        }
+        const { verifyHookRequest, unauthorizedHook } = await import("@/lib/auth/verify-hook.server");
+        if (!(await verifyHookRequest(request))) return unauthorizedHook();
 
         const supabase = createClient<Database>(
           process.env.SUPABASE_URL!,

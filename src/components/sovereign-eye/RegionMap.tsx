@@ -103,7 +103,7 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
 }) {
   const [hovered, setHovered] = useState<MapFeature | null>(null);
   const [legendOpen, setLegendOpen] = useState(false);
-  const [legendPosition, setLegendPosition] = useState<LegendPosition>({ x: 1, y: 0 });
+  const [legendPosition, setLegendPosition] = useState<LegendPosition>({ x: 1, y: 1 });
   const [legendPreferencesLoaded, setLegendPreferencesLoaded] = useState(false);
   const [mapSize, setMapSize] = useState<ElementSize>({ width: 0, height: 0 });
   const [legendSize, setLegendSize] = useState<ElementSize>({ width: 0, height: 0 });
@@ -197,7 +197,7 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
       }
       if (savedOpen === "true" || savedOpen === "false") setLegendOpen(savedOpen === "true");
     } catch {
-      setLegendPosition({ x: 1, y: 0 });
+      setLegendPosition({ x: 1, y: 1 });
     } finally {
       setLegendPreferencesLoaded(true);
     }

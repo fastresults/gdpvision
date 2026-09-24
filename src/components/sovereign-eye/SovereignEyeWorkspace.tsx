@@ -1,9 +1,10 @@
 import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Bot, Clipboard, Save, Share2 } from "lucide-react";
+import { Bot, Clipboard, Crosshair, Layers, Save, Share2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Explain } from "@/components/explain/Explain";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   generateSovereignEyeBrief,
   getSovereignEyeWorkspace,
@@ -63,6 +64,8 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
   const [savedScene, setSavedScene] = useState<SovereignEyeScene | null>(null);
   const [layersCollapsed, setLayersCollapsed] = useState(false);
   const [focusCollapsed, setFocusCollapsed] = useState(false);
+  const [mobileLayersOpen, setMobileLayersOpen] = useState(false);
+  const [mobileFocusOpen, setMobileFocusOpen] = useState(false);
 
   useEffect(() => {
     setLayersCollapsed(window.localStorage.getItem("sovereign-eye-layers-collapsed") === "true");
@@ -185,8 +188,40 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
         </div>
       </header>
 
-      <div className={`grid gap-3 transition-[grid-template-columns] duration-300 motion-reduce:transition-none ${workspaceColumns}`}>
-        <LayerRail
+      <div className="grid grid-cols-2 gap-2 xl:hidden">
+        <button type="button" className="btn-secondary min-h-10 px-3 text-[11px]" onClick={() => setMobileLayersOpen(true)}><Layers size={15} aria-hidden /> Layers · {visibleLayerIds.length}/{data.layers.length}</button>
+        <button type="button" className="btn-secondary min-h-10 px-3 text-[11px]" onClick={() => setMobileFocusOpen(true)}><Crosshair size={15} aria-hidden /> {pinnedFeature ? "Pinned insight" : "Focus layer"}</button>
+      </div>
+
+      <Sheet open={mobileLayersOpen} onOpenChange={setMobileLayersOpen}>
+        <SheetContent side="left" className="w-[min(92vw,360px)] overflow-y-auto bg-paper-0 p-0">
+          <SheetHeader className="sr-only"><SheetTitle>Map layers</SheetTitle><SheetDescription>Choose which intelligence layers appear on the map.</SheetDescription></SheetHeader>
+          <LayerRail
+            layers={data.layers}
+            focusedLayerId={focusedLayerId}
+            visibleIds={visibleLayerIds}
+            aiSelectedIds={aiSelectedLayerIds}
+            collapsed={false}
+            onCollapse={() => setMobileLayersOpen(false)}
+            onFocus={(id) => { setFocusedLayerId(id); setPinnedFeature(null); setMobileLayersOpen(false); }}
+            onToggleVisible={toggleVisibleLayer}
+            onToggleAi={toggleAiLayer}
+            onShowAll={() => setVisibleLayerIds(data.layers.map((layer) => layer.id))}
+            onClear={() => { setVisibleLayerIds([]); setPinnedFeature(null); }}
+          />
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={mobileFocusOpen} onOpenChange={setMobileFocusOpen}>
+        <SheetContent side="right" className="w-[min(92vw,360px)] overflow-y-auto bg-paper-0 p-0">
+          <SheetHeader className="sr-only"><SheetTitle>Focused layer</SheetTitle><SheetDescription>Review the focused layer or pinned map interpretation.</SheetDescription></SheetHeader>
+          <FocusLayerTray layer={focusedLayer} pinnedFeature={pinnedFeature} collapsed={false} onToggle={() => setMobileFocusOpen(false)} onClearPin={() => setPinnedFeature(null)} onEvidence={() => { setMobileFocusOpen(false); evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} />
+        </SheetContent>
+      </Sheet>
+
+      <div className={`grid gap-3 transition-[grid-template-columns] duration-300 motion-reduce:transition-none xl:grid ${workspaceColumns}`}>
+        <div className="hidden xl:block">
+          <LayerRail
           layers={data.layers}
            focusedLayerId={focusedLayerId}
            visibleIds={visibleLayerIds}
@@ -198,7 +233,8 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
            onToggleAi={toggleAiLayer}
            onShowAll={() => setVisibleLayerIds(data.layers.map((layer) => layer.id))}
            onClear={() => { setVisibleLayerIds([]); setPinnedFeature(null); }}
-        />
+          />
+        </div>
         <RegionMap
           code={data.country.code}
           countryName={data.country.name}
@@ -210,17 +246,19 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
            live={data.live}
            focusedLayerId={focusedLayerId}
            pinnedFeature={pinnedFeature}
-            onPin={(feature) => { setPinnedFeature(feature); if (feature) setFocusCollapsed(false); }}
+            onPin={(feature) => { setPinnedFeature(feature); if (feature) { setFocusCollapsed(false); if (window.innerWidth < 1280) setMobileFocusOpen(true); } }}
            onEvidence={() => evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
         />
-        <FocusLayerTray
-          layer={focusedLayer}
-          pinnedFeature={pinnedFeature}
-          collapsed={focusCollapsed}
-          onToggle={() => setFocusCollapsed((value) => !value)}
-          onClearPin={() => setPinnedFeature(null)}
-          onEvidence={() => evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-        />
+        <div className="hidden xl:block">
+          <FocusLayerTray
+            layer={focusedLayer}
+            pinnedFeature={pinnedFeature}
+            collapsed={focusCollapsed}
+            onToggle={() => setFocusCollapsed((value) => !value)}
+            onClearPin={() => setPinnedFeature(null)}
+            onEvidence={() => evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          />
+        </div>
       </div>
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">

@@ -32,6 +32,15 @@ const ENTRIES: Array<Rationale<never>> = [
     caveat:
       "The result is an analytical readout, not a new source of truth. Use the evidence panel to inspect the public/private corpus rows behind the map before acting on it.",
   },
+  {
+    key: "sovereign-eye.interpretation",
+    title: "How this map interpretation is formed",
+    short: "Trend and forecast language appears only when comparable observations or an explicit scenario support it.",
+    basis:
+      "Current readings come from the displayed record. A trend requires at least two comparable observations for the same indicator or flow. Forecasts require a named scenario with a stated horizon and uncertainty range.",
+    caveat:
+      "A visual size, line width, evidence count or single observation is not a time trend. Where the required history or scenario is absent, the map says so rather than inferring a direction.",
+  },
 ];
 
 registerRationales(ENTRIES);

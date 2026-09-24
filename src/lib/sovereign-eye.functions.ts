@@ -1,5 +1,5 @@
 // @domain sovereign-eye
-// @tables capital_flow_nodes,countries,country_capital_flows,country_kpis,country_sectors,country_sources,memory_objects,ministries,ministry_profiles,sectors,sovereign_eye_scenes
+// @tables capital_flow_nodes,countries,country_capital_flows,country_kpi_points,country_kpis,country_sectors,country_sources,memory_objects,ministries,ministry_profiles,sectors,sovereign_eye_scenes
 // @ui src/components/sovereign-eye/SovereignEyeWorkspace.tsx; src/routes/_authenticated/admin/countries.$code.godseye.tsx
 
 import { createServerFn } from "@tanstack/react-start";
@@ -73,6 +73,7 @@ export type SovereignEyeLayer = {
 };
 
 export type SovereignEyeKpi = {
+  id: string;
   code: string;
   label: string;
   unit: string;
@@ -82,6 +83,7 @@ export type SovereignEyeKpi = {
   category: string | null;
   provenance: string;
   visibility: "public" | "private";
+  points: Array<{ period: string; value: number }>;
 };
 
 export type SovereignEyeSector = {
@@ -390,7 +392,7 @@ async function loadWorkspaceData(countryCode: string): Promise<SovereignEyeWorks
     supabaseAdmin.from("countries").select("code,name,iso3,currency,is_cbi_state").eq("code", cc).maybeSingle(),
     supabaseAdmin
       .from("country_kpis")
-      .select("kpi_code,label,unit,latest_value,latest_period,target,category,provenance,visibility,updated_at")
+      .select("id,kpi_code,label,unit,latest_value,latest_period,target,category,provenance,visibility,updated_at")
       .eq("country_code", cc)
       .order("updated_at", { ascending: false }),
     supabaseAdmin
@@ -450,11 +452,27 @@ async function loadWorkspaceData(countryCode: string): Promise<SovereignEyeWorks
   const profiles = new Map((profileRes.data ?? []).map((p) => [p.ministry_slug, p]));
   const ministries = ministryRes.data ?? [];
   const nodes = new Map((nodeRes.data ?? []).map((n) => [n.node_key, n]));
+  const kpiIds = (kpiRes.data ?? []).map((k) => k.id);
+  const pointsByKpi = new Map<string, Array<{ period: string; value: number }>>();
+  if (kpiIds.length) {
+    const { data: pointRows, error: pointError } = await supabaseAdmin
+      .from("country_kpi_points")
+      .select("country_kpi_id,period,value")
+      .in("country_kpi_id", kpiIds)
+      .order("period", { ascending: true });
+    if (pointError) throw new Error(pointError.message);
+    for (const point of pointRows ?? []) {
+      const existing = pointsByKpi.get(point.country_kpi_id) ?? [];
+      existing.push({ period: point.period, value: numeric(point.value) ?? 0 });
+      pointsByKpi.set(point.country_kpi_id, existing);
+    }
+  }
 
   const kpis: SovereignEyeKpi[] = (kpiRes.data ?? [])
     .filter((k) => HEADLINE_KPIS.has(k.kpi_code) || k.latest_value != null)
     .slice(0, 12)
     .map((k) => ({
+      id: k.id,
       code: k.kpi_code,
       label: k.label,
       unit: k.unit,
@@ -464,6 +482,7 @@ async function loadWorkspaceData(countryCode: string): Promise<SovereignEyeWorks
       category: k.category,
       provenance: k.provenance ?? "unknown",
       visibility: normalizedVisibility(k.visibility),
+      points: pointsByKpi.get(k.id) ?? [],
     }));
 
   const sectors: SovereignEyeSector[] = (sectorRes.data ?? []).slice(0, 10).map((s) => ({

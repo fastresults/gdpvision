@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { RegionMap, type MapFeature } from "@/components/sovereign-eye/RegionMap";
-import { getPublicSovereignEyeScene } from "@/lib/sovereign-eye.functions";
+import { getPublicSovereignEyeScene, type SovereignEyeEvidence, type SovereignEyeFlow, type SovereignEyeKpi, type SovereignEyeLiveFeed, type SovereignEyeSector } from "@/lib/sovereign-eye.functions";
 
 export const Route = createFileRoute("/s/$token")({
   head: () => ({
@@ -27,6 +27,21 @@ function SharedSceneRoute() {
     retry: false,
   });
   const [pinnedFeature, setPinnedFeature] = useState<MapFeature | null>(null);
+  const camera = data?.camera && typeof data.camera === "object" && !Array.isArray(data.camera)
+    ? data.camera as Record<string, unknown>
+    : {};
+  const snapshot = camera.publicSnapshot && typeof camera.publicSnapshot === "object" && !Array.isArray(camera.publicSnapshot)
+    ? camera.publicSnapshot as Record<string, unknown>
+    : {};
+  const kpis = Array.isArray(snapshot.kpis) ? snapshot.kpis as SovereignEyeKpi[] : [];
+  const flows = Array.isArray(snapshot.flows) ? snapshot.flows as SovereignEyeFlow[] : [];
+  const sectors = Array.isArray(snapshot.sectors) ? snapshot.sectors as SovereignEyeSector[] : [];
+  const evidence = snapshot.evidence && typeof snapshot.evidence === "object" && !Array.isArray(snapshot.evidence)
+    ? snapshot.evidence as SovereignEyeEvidence
+    : { sources: [], memory: [] };
+  const live = snapshot.live && typeof snapshot.live === "object" && !Array.isArray(snapshot.live)
+    ? snapshot.live as SovereignEyeLiveFeed
+    : undefined;
 
   return (
     <main className="min-h-dvh bg-paper-0 px-5 py-8 text-ink-950 sm:px-8">
@@ -44,6 +59,11 @@ function SharedSceneRoute() {
               code={data.countryCode}
               countryName={data.title}
               layers={data.layers}
+              kpis={kpis}
+              flows={flows}
+              sectors={sectors}
+              evidence={evidence}
+              live={live}
               focusedLayerId={data.layers.find((layer) => layer.visible)?.id ?? data.layers[0]?.id ?? "macro-pulse"}
               pinnedFeature={pinnedFeature}
               onPin={setPinnedFeature}

@@ -56,6 +56,18 @@ function kpiTrend(kpi: SovereignEyeKpi): string {
   return `${direction}: ${delta >= 0 ? "+" : ""}${delta.toFixed(2)} ${kpi.unit} from ${previous.period} to ${current.period}.`;
 }
 
+function flowTrend(flow: SovereignEyeFlow, flows: SovereignEyeFlow[]): string {
+  const comparable = flows
+    .filter((item) => item.nodeKey === flow.nodeKey && item.side === flow.side)
+    .sort((a, b) => a.period.localeCompare(b.period, undefined, { numeric: true }));
+  const currentIndex = comparable.findIndex((item) => item === flow);
+  const previous = currentIndex > 0 ? comparable[currentIndex - 1] : undefined;
+  if (!previous || previous.period === flow.period) return NO_TREND;
+  const delta = flow.valueUsdM - previous.valueUsdM;
+  const direction = Math.abs(delta) < 0.005 ? "Stable" : delta > 0 ? "Rising" : "Falling";
+  return `${direction}: ${delta >= 0 ? "+" : "−"}US$${Math.abs(delta).toFixed(2)}m from ${previous.period} to ${flow.period}.`;
+}
+
 function interpretation(kind: MapFeature["kind"], title: string): Pick<MapFeature, "signal" | "trend" | "impact" | "forecast"> {
   if (kind === "macro") return { signal: "A macroeconomic observation anchored to the selected country.", trend: NO_TREND, impact: "Movement may affect fiscal room, household conditions, or the economy's near-term resilience; read it with its unit and period.", forecast: NO_FORECAST };
   if (kind === "sector") return { signal: "Marker area represents this sector's share of GDP, not its growth rate.", trend: NO_TREND, impact: "A larger share signals greater economic concentration and potentially greater exposure to sector-specific shocks.", forecast: NO_FORECAST };
@@ -103,7 +115,7 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
     { show: visibleKinds.has("corpus"), symbol: "public", label: "Public evidence", signal: "An outlined evidence mark can be shared with authorised country users.", impact: "It strengthens traceability but does not itself represent an economic outcome." },
     { show: visibleKinds.has("corpus") && layers.some((l) => l.kind === "corpus" && l.visibility.private > 0), symbol: "private", label: "Private evidence", signal: "A filled evidence mark is restricted country material.", impact: "It can inform internal analysis but is excluded from public shared scenes." },
     { show: visibleKinds.has("live"), symbol: "live", label: "Live public feed", signal: "A live symbol shows recently checked weather or seismic context.", impact: "It is operational context, not proof of economic impact or a forecast." },
-  ].filter((item) => item.show), [layers, visibleKinds]);
+  ].filter((item) => item.show), [layers, visibleKinds, flows]);
 
   function scheduleHover(feature: MapFeature | null) {
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
@@ -227,7 +239,7 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
 
             {visibleKinds.has("capital") && flows.slice(0, 6).map((flow, index) => {
               const end = anchors[index % anchors.length]; const weight = Math.max(0.45, Math.min(1.8, flow.valueUsdM / 250));
-              const feature = mapFeature({ id: `flow-${flow.nodeKey}-${index}`, kind: "capital", title: flow.label, value: `US$${flow.valueUsdM.toFixed(2)}m`, meta: `${flow.side === "input" ? "Inbound" : "Outbound"} · ${flow.period}`, visibility: flow.visibility, evidenceCount: 1, provenance: `${flow.method} · confidence grade ${flow.confidence} · ${flow.visibility} evidence` });
+              const feature = mapFeature({ id: `flow-${flow.nodeKey}-${index}`, kind: "capital", title: flow.label, value: `US$${flow.valueUsdM.toFixed(2)}m`, meta: `${flow.side === "input" ? "Inbound" : "Outbound"} · ${flow.period}`, visibility: flow.visibility, evidenceCount: 1, trend: flowTrend(flow, flows), provenance: `${flow.method} · confidence grade ${flow.confidence} · ${flow.visibility} evidence` });
               return <g key={feature.id} {...interaction(feature)}>
                 <path d={`M ${origin.x} ${origin.y} C ${(origin.x + end.x) / 2} ${origin.y - 18 + index * 5}, ${(origin.x + end.x) / 2} ${end.y + 14 - index * 2}, ${end.x} ${end.y}`} className={flow.side === "input" ? "fill-none stroke-signal-positive" : "fill-none stroke-signal-caution"} strokeWidth={weight} strokeLinecap="round" strokeDasharray={flow.confidence === "A" ? undefined : "1.4 1"} opacity={hovered?.id === feature.id || pinnedFeature?.id === feature.id ? 1 : 0.72} />
                 <path d={`M ${origin.x} ${origin.y} C ${(origin.x + end.x) / 2} ${origin.y - 18 + index * 5}, ${(origin.x + end.x) / 2} ${end.y + 14 - index * 2}, ${end.x} ${end.y}`} className="fill-none stroke-transparent" strokeWidth="4" />
@@ -294,7 +306,7 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
                 <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">Visible layers</p>
                 <ul className="mt-3 space-y-1">{legend.map((item) => {
                   const feature = mapFeature({ id: `legend-${item.symbol}`, kind: "legend", title: item.label, value: "Visual encoding", meta: "Legend", signal: item.signal, impact: item.impact });
-                  return <li key={item.label}><button type="button" className="btn-ghost min-h-8 w-full justify-start border-0 px-1 text-left text-[11px] text-ink-700" onMouseEnter={() => scheduleHover(feature)} onMouseLeave={() => scheduleHover(null)} onFocus={() => setHovered(feature)} onBlur={() => setHovered(null)} onClick={() => onPin?.(pinnedFeature?.id === feature.id ? null : feature)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onPin?.(pinnedFeature?.id === feature.id ? null : feature); } }}><LegendMark symbol={item.symbol} /><span>{item.label}</span></button></li>;
+                  return <li key={item.label}><button type="button" className="btn-ghost min-h-8 w-full justify-start border-0 px-1 text-left text-[11px] text-ink-700" onMouseEnter={() => scheduleHover(feature)} onMouseLeave={() => scheduleHover(null)} onFocus={() => setHovered(feature)} onBlur={() => setHovered(null)} onClick={() => onPin?.(pinnedFeature?.id === feature.id ? null : feature)}><LegendMark symbol={item.symbol} /><span>{item.label}</span></button></li>;
                 })}</ul>
               </div>
             ) : null}

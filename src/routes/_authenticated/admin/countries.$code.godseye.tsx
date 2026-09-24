@@ -22,9 +22,6 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/gods
       { name: "robots", content: "noindex" },
     ],
   }),
-  loader: async ({ context, params }) => {
-    await context.queryClient.ensureQueryData(sovereignEyeQuery(params.code));
-  },
   component: SovereignEyeRoute,
   errorComponent: ({ error }) => (
     <SuperAdminShell wide crumbs={[{ label: "Countries", to: "/admin/countries" }, { label: "Sovereign Eye" }]}>

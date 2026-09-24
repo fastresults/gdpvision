@@ -46,7 +46,15 @@ const NO_FORECAST = "No forecast attached. Select and save a named scenario befo
 const NO_TREND = "Trend unavailable. This view has only one comparable observation.";
 
 function kpiTrend(kpi: SovereignEyeKpi): string {
-  const points = kpi.points.filter((point) => Number.isFinite(point.value));
+  const rawPoints = (kpi as Partial<SovereignEyeKpi>).points;
+  const points = Array.isArray(rawPoints)
+    ? rawPoints.filter(
+        (point): point is { period: string; value: number } =>
+          Boolean(point) &&
+          typeof point.period === "string" &&
+          Number.isFinite(point.value),
+      )
+    : [];
   if (points.length < 2) return NO_TREND;
   const previous = points[points.length - 2];
   const current = points[points.length - 1];

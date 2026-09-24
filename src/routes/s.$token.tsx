@@ -5,6 +5,23 @@ import { useState } from "react";
 import { RegionMap, type MapFeature } from "@/components/sovereign-eye/RegionMap";
 import { getPublicSovereignEyeScene, type SovereignEyeEvidence, type SovereignEyeFlow, type SovereignEyeKpi, type SovereignEyeLiveFeed, type SovereignEyeSector } from "@/lib/sovereign-eye.functions";
 
+function normalizeSnapshotKpis(value: unknown): SovereignEyeKpi[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is SovereignEyeKpi => Boolean(item) && typeof item === "object" && !Array.isArray(item))
+    .map((kpi) => ({
+      ...kpi,
+      points: Array.isArray((kpi as Partial<SovereignEyeKpi>).points)
+        ? kpi.points.filter(
+            (point): point is { period: string; value: number } =>
+              Boolean(point) &&
+              typeof point.period === "string" &&
+              Number.isFinite(point.value),
+          )
+        : [],
+    }));
+}
+
 export const Route = createFileRoute("/s/$token")({
   head: () => ({
     meta: [
@@ -33,7 +50,7 @@ function SharedSceneRoute() {
   const snapshot = camera.publicSnapshot && typeof camera.publicSnapshot === "object" && !Array.isArray(camera.publicSnapshot)
     ? camera.publicSnapshot as Record<string, unknown>
     : {};
-  const kpis = Array.isArray(snapshot.kpis) ? snapshot.kpis as SovereignEyeKpi[] : [];
+  const kpis = normalizeSnapshotKpis(snapshot.kpis);
   const flows = Array.isArray(snapshot.flows) ? snapshot.flows as SovereignEyeFlow[] : [];
   const sectors = Array.isArray(snapshot.sectors) ? snapshot.sectors as SovereignEyeSector[] : [];
   const evidence = snapshot.evidence && typeof snapshot.evidence === "object" && !Array.isArray(snapshot.evidence)

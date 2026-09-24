@@ -39,6 +39,9 @@ const fmt = (n: number | null, unit = "") => n == null ? "Not available" : `${n.
 const LEGEND_POSITION_KEY = "sovereign-eye-legend-position";
 const LEGEND_OPEN_KEY = "sovereign-eye-legend-open";
 const LEGEND_MARGIN = 16;
+const HOVER_ACTIVATE_MS = 1500;
+const HOVER_SWAP_MS = 250;
+const HOVER_CLEAR_MS = 120;
 type LegendPosition = { x: number; y: number };
 type ElementSize = { width: number; height: number };
 
@@ -126,7 +129,8 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
 
   function scheduleHover(feature: MapFeature | null) {
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-    hoverTimerRef.current = setTimeout(() => setHovered(feature), feature ? 90 : 60);
+    const delay = feature === null ? HOVER_CLEAR_MS : hovered ? HOVER_SWAP_MS : HOVER_ACTIVATE_MS;
+    hoverTimerRef.current = setTimeout(() => setHovered(feature), delay);
   }
 
   useEffect(() => () => {

@@ -181,7 +181,7 @@ Give 2-3 concise, evidence-bounded likely drivers (max 30 words each) for why th
       if (!used.has(r)) { used.set(r, citations.length + 1); citations.push({ title: sources[r - 1].title ?? sources[r - 1].org ?? "Source", url: sources[r - 1].url }); }
       return used.get(r) as number;
     });
-    return { text: String(d.text ?? "").trim(), refs };
+    return { text: String(d.text ?? "").replace(/\s*\[[\d,\s]+\]/g, "").trim(), refs };
   }).filter((d) => d.text && d.refs.length);
   if (!drivers.length) return null;
   return { drivers, unknowns: String(parsed.unknowns ?? ""), citations };

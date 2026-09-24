@@ -47,7 +47,7 @@ function normalizeKpis(kpis: SovereignEyeKpi[]): SovereignEyeKpi[] {
   }));
 }
 
-export function SovereignEyeWorkspace({ code }: { code: string }) {
+export function SovereignEyeWorkspace({ code, initialMode = "regional" }: { code: string; initialMode?: "regional" | "global" | "globe" }) {
   const { data } = useSuspenseQuery(sovereignEyeQuery(code));
   const kpis = useMemo(() => normalizeKpis(data.kpis), [data.kpis]);
   const qc = useQueryClient();
@@ -246,6 +246,7 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
         </div>
         <RegionMap
           code={data.country.code}
+          initialMode={initialMode}
           countryName={data.country.name}
             layers={renderedLayers}
           flows={data.flows}

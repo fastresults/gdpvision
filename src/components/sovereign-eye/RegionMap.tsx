@@ -39,6 +39,9 @@ const fmt = (n: number | null, unit = "") => n == null ? "Not available" : `${n.
 const LEGEND_POSITION_KEY = "sovereign-eye-legend-position";
 const LEGEND_OPEN_KEY = "sovereign-eye-legend-open";
 const LEGEND_MARGIN = 16;
+// Zoom controls live top-right (right-4/top-4, w-9 × 4 rows). The legend must never enter this rectangle.
+const ZOOM_ZONE_WIDTH = 68; // 16 inset + 36 control + 16 clearance
+const ZOOM_ZONE_HEIGHT = 176; // 16 inset + ~132 control stack + clearance
 const HOVER_ACTIVATE_MS = 1500;
 const HOVER_SWAP_MS = 250;
 const HOVER_CLEAR_MS = 120;

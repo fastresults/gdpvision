@@ -73,8 +73,12 @@ export default function PresentationUpload({ onUploaded, category = "presentatio
       fd.append("label", label.trim());
       fd.append("category", category);
       if (thumb) fd.append("thumbnail", thumb, "thumb.png");
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
       const res = await fetch("/kiosk/api/upload-presentation", {
         method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: fd,
       });
       if (!res.ok) {

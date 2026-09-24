@@ -4,6 +4,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
 export type CategoryBehavior = "website" | "pdf" | "docs" | "video" | "gallery";
 
@@ -89,6 +90,7 @@ export const listCategories = createServerFn({ method: "GET" }).handler(async ()
 });
 
 export const createCategory = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) =>
     z
       .object({
@@ -138,6 +140,7 @@ export const createCategory = createServerFn({ method: "POST" })
   });
 
 export const updateCategory = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) =>
     z
       .object({
@@ -174,6 +177,7 @@ export const updateCategory = createServerFn({ method: "POST" })
   });
 
 export const deleteCategory = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -214,6 +218,7 @@ export const deleteCategory = createServerFn({ method: "POST" })
   });
 
 export const moveCategory = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) =>
     z.object({ id: z.string().uuid(), direction: z.enum(["up", "down"]) }).parse(d),
   )

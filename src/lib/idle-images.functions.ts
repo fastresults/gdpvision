@@ -4,6 +4,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
 export type IdleImage = {
   id: string;
@@ -25,6 +26,7 @@ export const listIdleImages = createServerFn({ method: "GET" }).handler(async ()
 });
 
 export const addIdleImage = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) =>
     z
       .object({
@@ -66,6 +68,7 @@ export const addIdleImage = createServerFn({ method: "POST" })
   });
 
 export const updateIdleImage = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) =>
     z
       .object({
@@ -85,6 +88,7 @@ export const updateIdleImage = createServerFn({ method: "POST" })
   });
 
 export const removeIdleImage = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -94,6 +98,7 @@ export const removeIdleImage = createServerFn({ method: "POST" })
   });
 
 export const moveIdleImage = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) =>
     z.object({ id: z.string().uuid(), direction: z.enum(["up", "down"]) }).parse(d),
   )

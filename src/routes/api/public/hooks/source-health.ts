@@ -1,7 +1,7 @@
 // Source-health cron hook (Phase 5 stewardship).
 // HEAD-checks every active country_source URL, logs into
 // source_health_checks, and updates country_sources.fetch_status.
-// Called by pg_cron with `apikey` header = anon key.
+// Called by pg_cron with an x-hook-secret header (scheduler secret).
 
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
@@ -11,11 +11,8 @@ export const Route = createFileRoute("/api/public/hooks/source-health")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const anon = process.env.SUPABASE_PUBLISHABLE_KEY ?? "";
-        const provided = request.headers.get("apikey") ?? "";
-        if (!anon || provided !== anon) {
-          return new Response("Unauthorized", { status: 401 });
-        }
+        const { verifyHookRequest, unauthorizedHook } = await import("@/lib/auth/verify-hook.server");
+        if (!(await verifyHookRequest(request))) return unauthorizedHook();
 
         const supabase = createClient<Database>(
           process.env.SUPABASE_URL!,

@@ -198,7 +198,7 @@ function DocumentsTab({ countryCode, visibility, onDone }: { countryCode: string
           data: {
             countryCode,
             filename: f.name,
-            mime_type: f.type || "application/octet-stream",
+            mime_type: (f.type || "application/octet-stream") as "application/pdf",
             content_b64: b64,
             title: f.name,
             org: org || (visibility === "private" ? "Private upload" : "Uploaded document"),

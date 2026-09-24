@@ -1,12 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 const MAX_PDF_BYTES = 50 * 1024 * 1024;
+const MAX_THUMB_BYTES = 5 * 1024 * 1024;
 
 export const Route = createFileRoute("/kiosk/api/upload-presentation")({
   server: {
     handlers: {
       POST: async ({ request }) => {
         try {
+          const { verifyAdminRequest } = await import("@/lib/auth/verify-admin-request.server");
+          if (!(await verifyAdminRequest(request))) {
+            return Response.json({ error: "Unauthorized" }, { status: 401 });
+          }
           const form = await request.formData();
           const file = form.get("file");
           const label = String(form.get("label") ?? "").trim();
@@ -63,7 +68,12 @@ export const Route = createFileRoute("/kiosk/api/upload-presentation")({
           // Optional client-rendered thumbnail (page 1 PNG)
           let thumbUrl: string | null = null;
           let thumbStatus: "ready" | "pending" = "pending";
-          if (thumbnail instanceof File && thumbnail.size > 0) {
+          if (
+            thumbnail instanceof File &&
+            thumbnail.size > 0 &&
+            thumbnail.size <= MAX_THUMB_BYTES &&
+            thumbnail.type === "image/png"
+          ) {
             const thumbPath = `${crypto.randomUUID()}.png`;
             const thumbBytes = new Uint8Array(await thumbnail.arrayBuffer());
             const { error: tUpErr } = await supabaseAdmin.storage

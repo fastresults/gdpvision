@@ -4,6 +4,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import { DEFAULT_SETTINGS, type SettingKey, type Settings } from "./kiosk-types";
 
 export const SETTING_KEYS: SettingKey[] = [
@@ -33,6 +34,7 @@ export const listSettings = createServerFn({ method: "GET" }).handler(async () =
 });
 
 export const updateSetting = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) =>
     z
       .object({

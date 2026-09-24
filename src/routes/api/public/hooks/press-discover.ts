@@ -5,14 +5,8 @@ export const Route = createFileRoute("/api/public/hooks/press-discover")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apiKey = request.headers.get("apikey") ?? request.headers.get("x-apikey");
-        const expected = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY;
-        if (!apiKey || !expected || apiKey !== expected) {
-          return new Response(JSON.stringify({ error: "Unauthorized" }), {
-            status: 401,
-            headers: { "Content-Type": "application/json" },
-          });
-        }
+        const { verifyHookRequest, unauthorizedHook } = await import("@/lib/auth/verify-hook.server");
+        if (!(await verifyHookRequest(request))) return unauthorizedHook();
         const body = (await request.json().catch(() => ({}))) as { country?: string };
         const { discoverForCountry, discoverAllCountries } = await import("@/lib/press-discover.server");
         try {

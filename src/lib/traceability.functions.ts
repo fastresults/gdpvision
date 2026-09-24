@@ -23,6 +23,9 @@ export const linkArtifactToSignal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => LinkInput.parse(d))
   .handler(async ({ data, context }) => {
+    const { assertArtifactAccess, assertSignalAccess } = await import("@/lib/auth/artifact-access.server");
+    await assertSignalAccess(context.supabase, data.signalId);
+    await assertArtifactAccess(context.supabase, data.artifactType, data.artifactId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("narrative_lineage").insert({
       signal_id: data.signalId,

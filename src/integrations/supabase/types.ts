@@ -8813,6 +8813,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin_or_steward: { Args: { _user_id: string }; Returns: boolean }
       replace_country_sectors: {
         Args: { _country_code: string; _rows: Json }
         Returns: number
@@ -8823,6 +8824,7 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      verify_hook_secret: { Args: { _secret: string }; Returns: boolean }
     }
     Enums: {
       app_role:

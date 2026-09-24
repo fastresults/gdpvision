@@ -557,7 +557,8 @@ export const searchComms = createServerFn({ method: "GET" })
       .is("deleted_at", null);
 
     if (data.q && data.q.trim()) {
-      const like = `%${data.q.trim().replace(/[%_]/g, (m) => `\\${m}`)}%`;
+      const safe = data.q.trim().replace(/[^\p{L}\p{N}\s\-'.]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 120);
+      const like = `"%${safe}%"`;
       q = q.or(`title.ilike.${like},body.ilike.${like},audience.ilike.${like}`);
     }
     if (data.states?.length) q = q.in("draft_state", data.states);

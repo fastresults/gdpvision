@@ -147,6 +147,8 @@ export const ingestBriefLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => LinkInput.parse(d))
   .handler(async ({ data }) => {
+    const { assertPublicHttpUrl } = await import("@/lib/net/safe-url");
+    assertPublicHttpUrl(data.url);
     let title = data.url;
     let text = "";
 
@@ -160,6 +162,7 @@ export const ingestBriefLink = createServerFn({ method: "POST" })
       const res = await fetch(data.url, {
         headers: { "User-Agent": "Mozilla/5.0 (compatible; GDPVision/1.0)" },
         signal: AbortSignal.timeout(30_000),
+        redirect: "manual",
       }).catch(() => null);
       if (!res || !res.ok) throw new Error(`Could not read that link (${res?.status ?? "no response"}).`);
       const html = await res.text();

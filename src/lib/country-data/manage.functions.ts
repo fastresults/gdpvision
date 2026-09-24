@@ -1423,8 +1423,20 @@ export const registerConnection = createServerFn({ method: "POST" })
 const UploadDocInput = z.object({
   countryCode: z.string().min(2).max(4),
   filename: z.string().min(1),
-  mime_type: z.string().min(1),
-  content_b64: z.string().min(1),
+  mime_type: z.enum([
+    "application/pdf",
+    "text/plain",
+    "text/markdown",
+    "text/csv",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  ]),
+  // ~25 MB decoded (base64 is ~4/3 larger)
+  content_b64: z.string().min(1).max(34_000_000),
   title: z.string().optional(),
   org: z.string().optional(),
   visibility: z.enum(["public", "private"]).default("public"),

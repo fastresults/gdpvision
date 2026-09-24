@@ -1,6 +1,5 @@
 // Chamber 05 · press-monitoring tick.
-// Called by pg_cron twice a day with an apikey header.
-// Bypasses auth per /api/public/* convention — we validate the apikey ourselves.
+// Called by pg_cron with an x-hook-secret header (scheduler secret).
 import { createFileRoute } from "@tanstack/react-router";
 
 type PressTickRequest = { window?: string; country?: string };
@@ -9,13 +8,8 @@ export const Route = createFileRoute("/api/public/hooks/press-tick")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apiKey = request.headers.get("apikey") ?? request.headers.get("x-apikey");
-        const expected = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY;
-        if (!apiKey || !expected || apiKey !== expected) {
-          return new Response(JSON.stringify({ error: "Unauthorized" }), {
-            status: 401, headers: { "Content-Type": "application/json" },
-          });
-        }
+        const { verifyHookRequest, unauthorizedHook } = await import("@/lib/auth/verify-hook.server");
+        if (!(await verifyHookRequest(request))) return unauthorizedHook();
 
         const body = (await request.json().catch(() => ({}))) as PressTickRequest;
         const { runPressTick } = await import("@/lib/press-tick.server");

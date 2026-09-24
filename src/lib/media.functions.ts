@@ -4,6 +4,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
 export type MediaKind = "image" | "video" | "pdf" | "document";
 
@@ -60,6 +61,7 @@ export const listMedia = createServerFn({ method: "GET" })
   });
 
 export const uploadMedia = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) => {
     if (!(d instanceof FormData)) throw new Error("Expected FormData");
     const file = d.get("file");
@@ -100,6 +102,7 @@ export const uploadMedia = createServerFn({ method: "POST" })
   });
 
 export const renameMedia = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) =>
     z.object({ id: z.string().uuid(), filename: z.string().min(1).max(255) }).parse(d),
   )
@@ -114,6 +117,7 @@ export const renameMedia = createServerFn({ method: "POST" })
   });
 
 export const deleteMedia = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -132,6 +136,7 @@ export const deleteMedia = createServerFn({ method: "POST" })
   });
 
 export const setItemFaviconAsset = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) =>
     z
       .object({

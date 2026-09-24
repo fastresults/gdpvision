@@ -76,9 +76,19 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
           camera: {
              focusedLayerId,
              aiSelectedLayerIds,
-             pinnedFeature,
+              pinnedFeature: sceneVisibility === "public" && pinnedFeature?.visibility === "private" ? null : pinnedFeature,
             country: data.country.code,
             generatedAt: data.diagnostics.generatedAt,
+             publicSnapshot: sceneVisibility === "public" ? {
+               kpis: data.kpis.filter((item) => item.visibility === "public"),
+               flows: data.flows.filter((item) => item.visibility === "public"),
+               sectors: data.sectors,
+               evidence: {
+                 sources: data.evidence.sources.filter((item) => item.visibility === "public"),
+                 memory: data.evidence.memory.filter((item) => item.visibility === "public"),
+               },
+               live: data.live,
+             } : null,
           },
           notes: sceneVisibility === "public" ? null : brief?.text ?? null,
           visibility: sceneVisibility,

@@ -218,7 +218,7 @@ function DocumentsTab({ countryCode, onDone, onClose }: { countryCode: string; o
           data: {
             countryCode,
             filename: f.name,
-            mime_type: f.type || "application/octet-stream",
+            mime_type: (f.type || "application/octet-stream") as "application/pdf",
             content_b64: b64,
             title: f.name,
             org: "Uploaded document",

@@ -39,6 +39,9 @@ const fmt = (n: number | null, unit = "") => n == null ? "Not available" : `${n.
 const LEGEND_POSITION_KEY = "sovereign-eye-legend-position";
 const LEGEND_OPEN_KEY = "sovereign-eye-legend-open";
 const LEGEND_MARGIN = 16;
+const HOVER_ACTIVATE_MS = 1500;
+const HOVER_SWAP_MS = 250;
+const HOVER_CLEAR_MS = 120;
 type LegendPosition = { x: number; y: number };
 type ElementSize = { width: number; height: number };
 

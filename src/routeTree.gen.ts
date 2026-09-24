@@ -115,6 +115,7 @@ import { Route as AuthenticatedAdminCountriesCodeNarrativeRouteImport } from './
 import { Route as AuthenticatedAdminCountriesCodeMandateCompactRouteImport } from './routes/_authenticated/admin/countries.$code.mandate-compact'
 import { Route as AuthenticatedAdminCountriesCodeLedgerRouteImport } from './routes/_authenticated/admin/countries.$code.ledger'
 import { Route as AuthenticatedAdminCountriesCodeGodseyeRouteImport } from './routes/_authenticated/admin/countries.$code.godseye'
+import { Route as AuthenticatedAdminCountriesCodeGlobalRouteImport } from './routes/_authenticated/admin/countries.$code.global'
 import { Route as AuthenticatedAdminCountriesCodeExecutiveRouteImport } from './routes/_authenticated/admin/countries.$code.executive'
 import { Route as AuthenticatedAdminCountriesCodeDataRouteImport } from './routes/_authenticated/admin/countries.$code.data'
 import { Route as AuthenticatedAdminCountriesCodeStudioIndexRouteImport } from './routes/_authenticated/admin/countries.$code.studio.index'
@@ -751,6 +752,12 @@ const AuthenticatedAdminCountriesCodeGodseyeRoute =
     path: '/countries/$code/godseye',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeGlobalRoute =
+  AuthenticatedAdminCountriesCodeGlobalRouteImport.update({
+    id: '/countries/$code/global',
+    path: '/countries/$code/global',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminCountriesCodeExecutiveRoute =
   AuthenticatedAdminCountriesCodeExecutiveRouteImport.update({
     id: '/countries/$code/executive',
@@ -1020,6 +1027,7 @@ export interface FileRoutesByFullPath {
   '/narrative/strategy/': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
   '/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
+  '/admin/countries/$code/global': typeof AuthenticatedAdminCountriesCodeGlobalRoute
   '/admin/countries/$code/godseye': typeof AuthenticatedAdminCountriesCodeGodseyeRoute
   '/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/admin/countries/$code/mandate-compact': typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
@@ -1152,6 +1160,7 @@ export interface FileRoutesByTo {
   '/narrative/strategy': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
   '/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
+  '/admin/countries/$code/global': typeof AuthenticatedAdminCountriesCodeGlobalRoute
   '/admin/countries/$code/godseye': typeof AuthenticatedAdminCountriesCodeGodseyeRoute
   '/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/admin/countries/$code/mandate-compact': typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
@@ -1285,6 +1294,7 @@ export interface FileRoutesById {
   '/_authenticated/narrative/strategy/': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/_authenticated/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
   '/_authenticated/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
+  '/_authenticated/admin/countries/$code/global': typeof AuthenticatedAdminCountriesCodeGlobalRoute
   '/_authenticated/admin/countries/$code/godseye': typeof AuthenticatedAdminCountriesCodeGodseyeRoute
   '/_authenticated/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/_authenticated/admin/countries/$code/mandate-compact': typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
@@ -1423,6 +1433,7 @@ export interface FileRouteTypes {
     | '/narrative/strategy/'
     | '/admin/countries/$code/data'
     | '/admin/countries/$code/executive'
+    | '/admin/countries/$code/global'
     | '/admin/countries/$code/godseye'
     | '/admin/countries/$code/ledger'
     | '/admin/countries/$code/mandate-compact'
@@ -1555,6 +1566,7 @@ export interface FileRouteTypes {
     | '/narrative/strategy'
     | '/admin/countries/$code/data'
     | '/admin/countries/$code/executive'
+    | '/admin/countries/$code/global'
     | '/admin/countries/$code/godseye'
     | '/admin/countries/$code/ledger'
     | '/admin/countries/$code/mandate-compact'
@@ -1687,6 +1699,7 @@ export interface FileRouteTypes {
     | '/_authenticated/narrative/strategy/'
     | '/_authenticated/admin/countries/$code/data'
     | '/_authenticated/admin/countries/$code/executive'
+    | '/_authenticated/admin/countries/$code/global'
     | '/_authenticated/admin/countries/$code/godseye'
     | '/_authenticated/admin/countries/$code/ledger'
     | '/_authenticated/admin/countries/$code/mandate-compact'
@@ -2499,6 +2512,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeGodseyeRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/countries/$code/global': {
+      id: '/_authenticated/admin/countries/$code/global'
+      path: '/countries/$code/global'
+      fullPath: '/admin/countries/$code/global'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeGlobalRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/countries/$code/executive': {
       id: '/_authenticated/admin/countries/$code/executive'
       path: '/countries/$code/executive'
@@ -2874,6 +2894,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminCountriesIndexRoute: typeof AuthenticatedAdminCountriesIndexRoute
   AuthenticatedAdminCountriesCodeDataRoute: typeof AuthenticatedAdminCountriesCodeDataRoute
   AuthenticatedAdminCountriesCodeExecutiveRoute: typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
+  AuthenticatedAdminCountriesCodeGlobalRoute: typeof AuthenticatedAdminCountriesCodeGlobalRoute
   AuthenticatedAdminCountriesCodeGodseyeRoute: typeof AuthenticatedAdminCountriesCodeGodseyeRoute
   AuthenticatedAdminCountriesCodeLedgerRoute: typeof AuthenticatedAdminCountriesCodeLedgerRoute
   AuthenticatedAdminCountriesCodeMandateCompactRoute: typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
@@ -2910,6 +2931,8 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
       AuthenticatedAdminCountriesCodeDataRoute,
     AuthenticatedAdminCountriesCodeExecutiveRoute:
       AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren,
+    AuthenticatedAdminCountriesCodeGlobalRoute:
+      AuthenticatedAdminCountriesCodeGlobalRoute,
     AuthenticatedAdminCountriesCodeGodseyeRoute:
       AuthenticatedAdminCountriesCodeGodseyeRoute,
     AuthenticatedAdminCountriesCodeLedgerRoute:

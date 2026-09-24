@@ -103,13 +103,14 @@ export function mapFeature(base: Omit<MapFeature, "signal" | "trend" | "impact" 
   return { ...interpretation(base.kind, base.title), ...base };
 }
 
-export function RegionMap({ code, countryName, layers, flows = [], flowPartners = [], onResearchPartners, researchingPartners = false, kpis = [], sectors = [], evidence = { sources: [], memory: [] }, live, focusedLayerId, pinnedFeature, onPin, onEvidence }: {
+export function RegionMap({ code, countryName, layers, flows = [], flowPartners = [], onResearchPartners, researchingPartners = false, kpis = [], sectors = [], evidence = { sources: [], memory: [] }, live, focusedLayerId, pinnedFeature, onPin, onEvidence, initialMode = "regional" }: {
   code: string; countryName: string; layers: SovereignEyeLayer[]; flows?: SovereignEyeFlow[]; flowPartners?: SovereignEyeFlowPartner[];
   onResearchPartners?: () => void; researchingPartners?: boolean;
   kpis?: SovereignEyeKpi[]; sectors?: SovereignEyeSector[];
   evidence?: SovereignEyeEvidence; live?: SovereignEyeLiveFeed; focusedLayerId: string; pinnedFeature?: MapFeature | null; onPin?: (feature: MapFeature | null) => void; onEvidence?: () => void;
+  initialMode?: "regional" | "global" | "globe";
 }) {
-  const [mapMode, setMapMode] = useState<"regional" | "global" | "globe">("regional");
+  const [mapMode, setMapMode] = useState<"regional" | "global" | "globe">(initialMode);
   const [hovered, setHovered] = useState<MapFeature | null>(null);
   const [legendOpen, setLegendOpen] = useState(false);
   const [legendPosition, setLegendPosition] = useState<LegendPosition>({ x: 1, y: 1 });
@@ -392,7 +393,7 @@ export function RegionMap({ code, countryName, layers, flows = [], flowPartners 
             <button type="button" aria-pressed={mapMode === "globe"} onClick={() => setMapMode("globe")} className={`${mapMode === "globe" ? "btn-primary" : "btn-ghost"} min-h-8 gap-1.5 px-3 font-mono text-[9px] uppercase tracking-[0.16em]`}><Globe2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden /> Globe</button>
           </div>
 
-          {mapMode === "global" && mappablePartners.length === 0 ? (
+          {mapMode !== "regional" && mappablePartners.length === 0 ? (
             <div className="absolute inset-x-4 bottom-16 z-10 mx-auto max-w-md border border-ink-950 bg-paper-0 p-4 shadow-lg">
               <p className="font-serif text-base text-ink-950">No partner geography on record</p>
               <p className="mt-1 text-xs leading-relaxed text-ink-600">

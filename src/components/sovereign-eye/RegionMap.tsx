@@ -237,8 +237,15 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
 
   const availableX = Math.max(0, mapSize.width - legendSize.width - LEGEND_MARGIN * 2);
   const availableY = Math.max(0, mapSize.height - legendSize.height - LEGEND_MARGIN * 2);
-  const legendLeft = LEGEND_MARGIN + legendPosition.x * availableX;
-  const legendTop = LEGEND_MARGIN + legendPosition.y * availableY;
+  // Keep the legend out of the zoom-control rectangle: inside its vertical band, the legend's right edge must stay left of the zone.
+  const clampLegend = (left: number, top: number) => {
+    let clampedLeft = Math.max(LEGEND_MARGIN, Math.min(LEGEND_MARGIN + availableX, left));
+    const clampedTop = Math.max(LEGEND_MARGIN, Math.min(LEGEND_MARGIN + availableY, top));
+    const maxLeftBesideZoom = mapSize.width - ZOOM_ZONE_WIDTH - legendSize.width;
+    if (clampedTop < ZOOM_ZONE_HEIGHT && clampedLeft > maxLeftBesideZoom) clampedLeft = Math.max(LEGEND_MARGIN, maxLeftBesideZoom);
+    return { left: clampedLeft, top: clampedTop };
+  };
+  const { left: legendLeft, top: legendTop } = clampLegend(LEGEND_MARGIN + legendPosition.x * availableX, LEGEND_MARGIN + legendPosition.y * availableY);
 
   function beginLegendDrag(event: ReactPointerEvent<HTMLButtonElement>) {
     if (legendOpen) return;
@@ -249,8 +256,7 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
   function moveLegend(event: ReactPointerEvent<HTMLButtonElement>) {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    const nextLeft = Math.max(LEGEND_MARGIN, Math.min(LEGEND_MARGIN + availableX, drag.originLeft + event.clientX - drag.startX));
-    const nextTop = Math.max(LEGEND_MARGIN, Math.min(LEGEND_MARGIN + availableY, drag.originTop + event.clientY - drag.startY));
+    const { left: nextLeft, top: nextTop } = clampLegend(drag.originLeft + event.clientX - drag.startX, drag.originTop + event.clientY - drag.startY);
     setLegendPosition({ x: availableX > 0 ? (nextLeft - LEGEND_MARGIN) / availableX : 0, y: availableY > 0 ? (nextTop - LEGEND_MARGIN) / availableY : 0 });
   }
 

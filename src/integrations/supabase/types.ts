@@ -1833,6 +1833,60 @@ export type Database = {
         }
         Relationships: []
       }
+      country_capital_flow_partners: {
+        Row: {
+          citations: Json
+          confidence_grade: string
+          country_code: string
+          created_at: string
+          id: string
+          node_key: string
+          partner_iso3: string | null
+          partner_lat: number | null
+          partner_lon: number | null
+          partner_name: string
+          period: string
+          share_pct: number | null
+          updated_at: string
+          value_usd_m: number | null
+          visibility: string
+        }
+        Insert: {
+          citations?: Json
+          confidence_grade?: string
+          country_code: string
+          created_at?: string
+          id?: string
+          node_key: string
+          partner_iso3?: string | null
+          partner_lat?: number | null
+          partner_lon?: number | null
+          partner_name: string
+          period: string
+          share_pct?: number | null
+          updated_at?: string
+          value_usd_m?: number | null
+          visibility?: string
+        }
+        Update: {
+          citations?: Json
+          confidence_grade?: string
+          country_code?: string
+          created_at?: string
+          id?: string
+          node_key?: string
+          partner_iso3?: string | null
+          partner_lat?: number | null
+          partner_lon?: number | null
+          partner_name?: string
+          period?: string
+          share_pct?: number | null
+          updated_at?: string
+          value_usd_m?: number | null
+          visibility?: string
+        }
+        Relationships: []
+      }
       country_capital_flows: {
         Row: {
           citations: Json

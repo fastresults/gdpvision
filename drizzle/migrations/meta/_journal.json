@@ -50,6 +50,13 @@
       "when": 1790288161115,
       "tag": "0006_create_capital_flow_partners",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790293810716,
+      "tag": "0007_peer_benchmarks",
+      "breakpoints": true
     }
   ]
 }

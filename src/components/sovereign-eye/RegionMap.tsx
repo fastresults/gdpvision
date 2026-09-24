@@ -1,4 +1,4 @@
-import { ChevronDown, CloudSun, Database, GripVertical, Landmark, ListTree, Waves } from "lucide-react";
+import { ChevronDown, CloudSun, Database, GripVertical, Landmark, ListTree, Maximize2, Minus, Plus, Waves } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
 import type { SovereignEyeEvidence, SovereignEyeFlow, SovereignEyeKpi, SovereignEyeLayer, SovereignEyeLiveFeed, SovereignEyeSector } from "@/lib/sovereign-eye.functions";
@@ -109,6 +109,51 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
   const legendToggleRef = useRef<HTMLButtonElement>(null);
   const dragRef = useRef<{ pointerId: number; startX: number; startY: number; originLeft: number; originTop: number } | null>(null);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [view, setView] = useState({ x: 0, y: 0, s: 1 });
+  const panRef = useRef<{ pointerId: number; lastX: number; lastY: number } | null>(null);
+  const [panning, setPanning] = useState(false);
+  const toSvg = (clientX: number, clientY: number) => {
+    const svg = svgRef.current; const ctm = svg?.getScreenCTM();
+    if (!svg || !ctm) return { x: 50, y: 50 };
+    const pt = new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse());
+    return { x: pt.x, y: pt.y };
+  };
+  const zoomAt = (factor: number, cx?: number, cy?: number) => setView((v) => {
+    const s = Math.min(1.5, Math.max(0.2, v.s * factor)); const k = s / v.s;
+    const ax = cx ?? v.x + v.s * 50; const ay = cy ?? v.y + v.s * 50;
+    return { s, x: ax - (ax - v.x) * k, y: ay - (ay - v.y) * k };
+  });
+  const zoomAtRef = useRef(zoomAt); zoomAtRef.current = zoomAt;
+  useEffect(() => {
+    const svg = svgRef.current; if (!svg) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
+      const p = toSvg(e.clientX, e.clientY);
+      zoomAtRef.current(Math.exp(dy * 0.0015), p.x, p.y);
+    };
+    svg.addEventListener("wheel", onWheel, { passive: false });
+    return () => svg.removeEventListener("wheel", onWheel);
+  }, []);
+  const beginPan = (e: ReactPointerEvent<SVGSVGElement>) => {
+    const t = e.target as Element;
+    if (t !== e.currentTarget && !t.hasAttribute("data-pan-surface")) return;
+    panRef.current = { pointerId: e.pointerId, lastX: e.clientX, lastY: e.clientY };
+    e.currentTarget.setPointerCapture(e.pointerId); setPanning(true);
+  };
+  const movePan = (e: ReactPointerEvent<SVGSVGElement>) => {
+    const pan = panRef.current; if (!pan || pan.pointerId !== e.pointerId) return;
+    const ctm = svgRef.current?.getScreenCTM(); if (!ctm) return;
+    const dx = (e.clientX - pan.lastX) / ctm.a; const dy = (e.clientY - pan.lastY) / ctm.d;
+    pan.lastX = e.clientX; pan.lastY = e.clientY;
+    setView((v) => ({ ...v, x: v.x - dx, y: v.y - dy }));
+  };
+  const endPan = (e: ReactPointerEvent<SVGSVGElement>) => {
+    if (panRef.current?.pointerId !== e.pointerId) return;
+    panRef.current = null; setPanning(false);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+  };
   const selected = POINTS.find((p) => p.code === code.toUpperCase()) ?? POINTS.find((p) => p.code === "KNA");
   const origin = selected ? project(selected.lon, selected.lat) : { x: 72, y: 54 };
   const active = layers.find((l) => l.id === focusedLayerId) ?? layers.find((l) => l.visible) ?? layers[0];
@@ -231,9 +276,9 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
     <section className="relative overflow-hidden border border-ink-950 bg-paper-0">
       <div className="absolute inset-x-0 top-0 z-20 h-[3px] bg-gold-500" />
       <div ref={mapRef} className="relative min-h-[620px] overflow-hidden bg-paper-50">
-          <svg viewBox="0 0 100 100" role="img" aria-label={`${countryName} sovereign intelligence map`} className="absolute inset-0 h-full w-full">
+          <svg ref={svgRef} viewBox={`${view.x} ${view.y} ${view.s * 100} ${view.s * 100}`} role="img" aria-label={`${countryName} sovereign intelligence map`} className={`absolute inset-0 h-full w-full touch-none ${panning ? "cursor-grabbing" : "cursor-grab"}`} onPointerDown={beginPan} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan}>
             <defs><pattern id="eye-grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" className="stroke-line-200" fill="none" strokeWidth="0.16" /></pattern></defs>
-            <rect width="100" height="100" fill="url(#eye-grid)" />
+            <rect data-pan-surface="" x="-500" y="-500" width="1100" height="1100" fill="url(#eye-grid)" />
             {layers.filter((layer) => layer.visible && (
               (layer.kind === "macro" && kpis.length === 0) ||
               (layer.kind === "sector" && sectors.length === 0) ||
@@ -274,6 +319,12 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
             {POINTS.map((point) => { const p = project(point.lon, point.lat); const isSelected = point.code === code.toUpperCase(); const feature = mapFeature({ id: `place-${point.code}`, kind: "place", title: point.name, value: isSelected ? "Selected country" : "Regional comparator", meta: `${point.lat.toFixed(2)}°, ${point.lon.toFixed(2)}°` }); return <g key={point.code} {...interaction(feature)}><circle cx={p.x} cy={p.y} r="3.8" className="fill-transparent" /><circle cx={p.x} cy={p.y} r={isSelected ? 2.3 : 0.9} className={isSelected ? "fill-gold-500 stroke-ink-950" : "fill-paper-0 stroke-ink-500"} strokeWidth={isSelected ? 0.55 : 0.3} /><text x={p.x + 1.8} y={p.y - 1.4} className={isSelected ? "fill-ink-950 font-mono text-[2px]" : "fill-ink-600 font-mono text-[1.7px]"}>{isSelected ? point.name : point.code}</text></g>; })}
           </svg>
 
+          <div className="absolute right-4 top-4 z-20 flex flex-col border border-line-200 bg-paper-0/95 shadow-sm" role="group" aria-label="Map zoom controls">
+            <button type="button" className="btn-ghost h-9 w-9 justify-center p-0" aria-label="Zoom in" title="Zoom in" onClick={() => zoomAt(1 / 1.3)}><Plus className="h-4 w-4" /></button>
+            <button type="button" className="btn-ghost h-9 w-9 justify-center border-t border-line-200 p-0" aria-label="Zoom out" title="Zoom out" onClick={() => zoomAt(1.3)}><Minus className="h-4 w-4" /></button>
+            <button type="button" className="btn-ghost h-9 w-9 justify-center border-t border-line-200 p-0" aria-label="Reset view" title="Reset view" onClick={() => setView({ x: 0, y: 0, s: 1 })}><Maximize2 className="h-4 w-4" /></button>
+            <span className="border-t border-line-200 py-1 text-center font-mono text-[10px] tabular-nums text-ink-500">{Math.round(100 / view.s)}%</span>
+          </div>
           <div className="pointer-events-none absolute left-5 top-5 max-w-[min(25rem,70%)]">
             <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">Sovereign theatre</p>
             <h2 className="mt-2 font-serif text-3xl leading-tight text-ink-950 sm:text-4xl">{countryName}</h2>

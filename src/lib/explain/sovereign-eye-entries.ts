@@ -59,6 +59,16 @@ const ENTRIES: Array<Rationale<never>> = [
     caveat:
       "Partner shares are model estimates from cited bilateral sources (IMF CDIS/CPIS, UN Comtrade, central bank bulletins), not official bilateral statistics. A missing arc means no cited partner was found — it does not mean no flow exists.",
   },
+  {
+    key: "sovereign-eye.peer-gap",
+    title: "How the Caribbean comparison is calculated",
+    short: "Rank, percentile and gap versus every Caribbean peer with comparable, current public data for the same indicator.",
+    formula: "Robust z = (value − peer median) / (1.4826 × median absolute deviation). Meaningful when |z| ≥ 1.5, at least 5 peers, and the gap exceeds 5% of the median.",
+    basis:
+      "Figures are scrubbed first: units standardised, periods parsed to a reference year, and blank, projected, mismatched-unit or stale (more than 3 years behind the peer median) readings excluded. Recomputed on the 1st of every month.",
+    caveat:
+      "Likely drivers are AI inferences from cited country sources, written only for meaningful gaps. They explain, they do not prove. Peer figures use public records only.",
+  },
 ];
 
 registerRationales(ENTRIES);

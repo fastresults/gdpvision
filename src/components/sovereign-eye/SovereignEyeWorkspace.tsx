@@ -1,7 +1,7 @@
 import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Bot, Clipboard, Save, Share2 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Explain } from "@/components/explain/Explain";
 import {
@@ -15,6 +15,7 @@ import {
 
 import "@/lib/explain/sovereign-eye-entries";
 import { EvidencePanel } from "./EvidencePanel";
+import { FocusLayerTray } from "./FocusLayerTray";
 import { LayerRail } from "./LayerRail";
 import { RegionMap, type MapFeature } from "./RegionMap";
 
@@ -60,11 +61,29 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
   const [sceneTitle, setSceneTitle] = useState(`${data.country.name} sovereign eye`);
   const [sceneVisibility, setSceneVisibility] = useState<"private" | "public">("private");
   const [savedScene, setSavedScene] = useState<SovereignEyeScene | null>(null);
+  const [layersCollapsed, setLayersCollapsed] = useState(false);
+  const [focusCollapsed, setFocusCollapsed] = useState(false);
+
+  useEffect(() => {
+    setLayersCollapsed(window.localStorage.getItem("sovereign-eye-layers-collapsed") === "true");
+    setFocusCollapsed(window.localStorage.getItem("sovereign-eye-focus-collapsed") === "true");
+  }, []);
+
+  useEffect(() => { window.localStorage.setItem("sovereign-eye-layers-collapsed", String(layersCollapsed)); }, [layersCollapsed]);
+  useEffect(() => { window.localStorage.setItem("sovereign-eye-focus-collapsed", String(focusCollapsed)); }, [focusCollapsed]);
 
   const visibleLayers = useMemo(
     () => data.layers.filter((layer) => visibleLayerIds.includes(layer.id)),
     [data.layers, visibleLayerIds],
   );
+  const renderedLayers = useMemo(
+    () => data.layers.map((layer) => ({ ...layer, visible: visibleLayerIds.includes(layer.id) })),
+    [data.layers, visibleLayerIds],
+  );
+  const focusedLayer = renderedLayers.find((layer) => layer.id === focusedLayerId) ?? renderedLayers[0];
+  const workspaceColumns = layersCollapsed
+    ? focusCollapsed ? "xl:grid-cols-[56px_minmax(0,1fr)_56px]" : "xl:grid-cols-[56px_minmax(0,1fr)_300px]"
+    : focusCollapsed ? "xl:grid-cols-[360px_minmax(0,1fr)_56px]" : "xl:grid-cols-[360px_minmax(0,1fr)_300px]";
 
   const briefMut = useMutation({
     mutationFn: () =>
@@ -166,13 +185,15 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
         </div>
       </header>
 
-      <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+      <div className={`grid gap-3 transition-[grid-template-columns] duration-300 motion-reduce:transition-none ${workspaceColumns}`}>
         <LayerRail
           layers={data.layers}
            focusedLayerId={focusedLayerId}
            visibleIds={visibleLayerIds}
            aiSelectedIds={aiSelectedLayerIds}
-           onFocus={(id) => { setFocusedLayerId(id); setPinnedFeature(null); }}
+           collapsed={layersCollapsed}
+           onCollapse={() => setLayersCollapsed((value) => !value)}
+           onFocus={(id) => { setFocusedLayerId(id); setPinnedFeature(null); setFocusCollapsed(false); }}
            onToggleVisible={toggleVisibleLayer}
            onToggleAi={toggleAiLayer}
            onShowAll={() => setVisibleLayerIds(data.layers.map((layer) => layer.id))}
@@ -181,7 +202,7 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
         <RegionMap
           code={data.country.code}
           countryName={data.country.name}
-           layers={data.layers.map((layer) => ({ ...layer, visible: visibleLayerIds.includes(layer.id) }))}
+            layers={renderedLayers}
           flows={data.flows}
             kpis={kpis}
            sectors={data.sectors}
@@ -189,8 +210,16 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
            live={data.live}
            focusedLayerId={focusedLayerId}
            pinnedFeature={pinnedFeature}
-           onPin={setPinnedFeature}
+            onPin={(feature) => { setPinnedFeature(feature); if (feature) setFocusCollapsed(false); }}
            onEvidence={() => evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        />
+        <FocusLayerTray
+          layer={focusedLayer}
+          pinnedFeature={pinnedFeature}
+          collapsed={focusCollapsed}
+          onToggle={() => setFocusCollapsed((value) => !value)}
+          onClearPin={() => setPinnedFeature(null)}
+          onEvidence={() => evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
         />
       </div>
 

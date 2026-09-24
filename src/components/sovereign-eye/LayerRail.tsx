@@ -1,4 +1,4 @@
-import { Activity, Brain, CloudSun, Eye, EyeOff, Landmark, Layers, Waves } from "lucide-react";
+import { Activity, Brain, ChevronLeft, ChevronRight, CloudSun, Eye, EyeOff, Landmark, Layers, Waves } from "lucide-react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
@@ -7,26 +7,39 @@ import type { SovereignEyeLayer } from "@/lib/sovereign-eye.functions";
 
 const ICONS = { macro: Activity, sector: Layers, capital: Waves, ministry: Landmark, corpus: Brain, live: CloudSun };
 
-export function LayerRail({ layers, focusedLayerId, visibleIds, aiSelectedIds, onFocus, onToggleVisible, onToggleAi, onShowAll, onClear }: {
+export function LayerRail({ layers, focusedLayerId, visibleIds, aiSelectedIds, collapsed, onCollapse, onFocus, onToggleVisible, onToggleAi, onShowAll, onClear }: {
   layers: SovereignEyeLayer[];
   focusedLayerId: string;
   visibleIds: string[];
   aiSelectedIds: string[];
+  collapsed: boolean;
+  onCollapse: () => void;
   onFocus: (id: string) => void;
   onToggleVisible: (id: string) => void;
   onToggleAi: (id: string) => void;
   onShowAll: () => void;
   onClear: () => void;
 }) {
+  if (collapsed) {
+    return (
+      <section className="flex min-h-14 items-center justify-between border border-line-200 bg-card xl:min-h-[620px] xl:flex-col xl:py-3" aria-label="Map layers tray">
+        <button type="button" className="btn-ghost h-10 w-10 border-0 p-0" onClick={onCollapse} aria-label="Expand map layers tray"><ChevronRight size={16} aria-hidden /></button>
+        <div className="flex items-center gap-2 px-2 xl:flex-col"><Layers size={17} className="text-ink-700" aria-hidden /><span className="font-mono text-[10px] text-ink-700" data-numeric>{visibleIds.length}/{layers.length}</span></div>
+        <span className="hidden font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500 [writing-mode:vertical-rl] xl:block">Layers</span>
+      </section>
+    );
+  }
+
   return (
     <section className="border border-line-200 bg-card" aria-label="Map layers">
       <div className="border-b border-line-200 px-5 py-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-start gap-3">
+          <div className="min-w-0">
             <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">Map layers</p>
             <h2 className="mt-1 font-serif text-2xl text-ink-950">Choose what is visible</h2>
           </div>
           <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-600">{visibleIds.length} of {layers.length} shown</span>
+          <button type="button" className="btn-ghost h-9 w-9 shrink-0 p-0" onClick={onCollapse} aria-label="Collapse map layers tray"><ChevronLeft size={16} aria-hidden /></button>
         </div>
         <div className="mt-4 flex gap-2">
           <button type="button" onClick={onShowAll} className="btn-secondary min-h-9 px-3 text-[11px]">

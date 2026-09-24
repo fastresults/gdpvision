@@ -1,4 +1,4 @@
-import { ChevronDown, CloudSun, Database, GripVertical, Landmark, ListTree, Radio, Waves } from "lucide-react";
+import { ChevronDown, CloudSun, Database, GripVertical, Landmark, ListTree, Waves } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
 import type { SovereignEyeEvidence, SovereignEyeFlow, SovereignEyeKpi, SovereignEyeLayer, SovereignEyeLiveFeed, SovereignEyeSector } from "@/lib/sovereign-eye.functions";
@@ -110,7 +110,6 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
   const origin = selected ? project(selected.lon, selected.lat) : { x: 72, y: 54 };
   const active = layers.find((l) => l.id === focusedLayerId) ?? layers.find((l) => l.visible) ?? layers[0];
   const visibleKinds = new Set(layers.filter((l) => l.visible).map((l) => l.kind));
-  const inspected = pinnedFeature ?? hovered;
   const legend = useMemo(() => [
     { show: true, symbol: "selected", label: "Selected country", signal: "The gold marker identifies the country currently being analysed.", impact: "All country-anchored indicators and flows are read in relation to this location." },
     { show: visibleKinds.has("macro"), symbol: "macro", label: "Macro indicator", signal: "A dark dot represents one current macroeconomic indicator.", impact: "Inspect the dot for its value, period, source, and any verified historical change." },
@@ -227,8 +226,7 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
   return (
     <section className="relative overflow-hidden border border-ink-950 bg-paper-0">
       <div className="absolute inset-x-0 top-0 z-20 h-[3px] bg-gold-500" />
-      <div className="grid lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div ref={mapRef} className="relative min-h-[620px] overflow-hidden border-b border-line-200 bg-paper-50 lg:border-b-0 lg:border-r">
+      <div ref={mapRef} className="relative min-h-[620px] overflow-hidden bg-paper-50">
           <svg viewBox="0 0 100 100" role="img" aria-label={`${countryName} sovereign intelligence map`} className="absolute inset-0 h-full w-full">
             <defs><pattern id="eye-grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" className="stroke-line-200" fill="none" strokeWidth="0.16" /></pattern></defs>
             <rect width="100" height="100" fill="url(#eye-grid)" />
@@ -319,27 +317,15 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
               </div>
             ) : null}
           </div>
+          {hovered && !pinnedFeature ? (
+            <div className="pointer-events-none absolute left-1/2 top-1/2 z-30 w-[min(32rem,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 border border-ink-950 bg-paper-0/95 p-5 shadow-lg backdrop-blur-sm motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95" aria-live="polite">
+              <InterpretationPanel feature={hovered} pinned={false} />
+            </div>
+          ) : null}
           <div className="absolute bottom-3 right-4 font-mono text-[8px] uppercase tracking-[0.14em] text-ink-500">Caribbean orientation · schematic projection</div>
-        </div>
-
-        <aside className="bg-paper-0 p-5">
-          {inspected ? (
-            <InterpretationPanel feature={inspected} pinned={Boolean(pinnedFeature && inspected.id === pinnedFeature.id)} onClose={() => onPin?.(null)} onEvidence={onEvidence} />
-          ) : <>
-            <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">Focused layer</p>
-            <h3 className="mt-2 font-serif text-2xl text-ink-950">{active?.label ?? "No layer focused"}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-ink-600">{active?.narrative ?? "Choose a visible layer in the controls."}</p>
-            <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
-              <Stat label="Display" value={active?.visible ? "On" : "Off"} /><Stat label="Status" value={active?.status ?? "—"} /><Stat label="Evidence" value={String(active?.evidenceCount ?? 0)} /><Stat label="Last update" value={active?.updatedAt ? new Date(active.updatedAt).toLocaleDateString() : "—"} />
-            </dl>
-            <div className="mt-5 border-t border-line-200 pt-4"><p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">Evidence access</p><div className="mt-3 flex gap-4 text-xs text-ink-700"><span className="flex items-center gap-2"><span className="h-2 w-2 border border-ink-700 bg-paper-0" /> Public {active?.visibility.public ?? 0}</span><span className="flex items-center gap-2"><span className="h-2 w-2 bg-narrative-500" /> Private {active?.visibility.private ?? 0}</span></div></div>
-            <div className="mt-5 border-t border-line-200 pt-4 text-xs leading-relaxed text-ink-500"><p className="flex items-center gap-2 text-ink-700"><Radio size={13} /> Hover or focus to interpret</p><p className="mt-2">Click or tap any mark or legend item to pin its meaning.</p></div>
-          </>}
-        </aside>
       </div>
     </section>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) { return <div className="border border-line-200 p-3"><dt className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">{label}</dt><dd className="mt-1 capitalize text-ink-950" data-numeric>{value}</dd></div>; }
 function LegendMark({ symbol }: { symbol: string }) { if (symbol === "input" || symbol === "output") return <span className={`h-0 w-7 border-t-2 ${symbol === "input" ? "border-signal-positive" : "border-signal-caution"}`} />; if (symbol === "width") return <span className="flex w-7 flex-col gap-1"><span className="border-t border-ink-700" /><span className="border-t-[3px] border-ink-700" /></span>; if (symbol === "confidence") return <span className="w-7 border-t-2 border-dashed border-ink-700" />; if (symbol === "selected") return <span className="h-3 w-3 rounded-full border border-ink-950 bg-gold-500" />; if (symbol === "macro") return <span className="h-3 w-3 rounded-full bg-ink-950" />; if (symbol === "sector") return <span className="h-4 w-4 rounded-full bg-gold-500" />; if (symbol === "ministry") return <Landmark size={15} className="text-ink-700" />; if (symbol === "live") return <CloudSun size={15} className="text-signal-positive" />; if (symbol === "public") return <Database size={14} className="text-ink-700" />; if (symbol === "private") return <Database size={14} className="text-narrative-500" />; return <Waves size={15} />; }

@@ -36,6 +36,13 @@
       "when": 1790211438972,
       "tag": "0004_narrative_lineage_signal_scoped_read",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790259258206,
+      "tag": "0005_capital_flow_nodes_signed_in_read",
+      "breakpoints": true
     }
   ]
 }

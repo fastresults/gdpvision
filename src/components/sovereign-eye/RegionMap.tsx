@@ -129,7 +129,8 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
 
   function scheduleHover(feature: MapFeature | null) {
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-    hoverTimerRef.current = setTimeout(() => setHovered(feature), feature ? 90 : 60);
+    const delay = feature === null ? HOVER_CLEAR_MS : hovered ? HOVER_SWAP_MS : HOVER_ACTIVATE_MS;
+    hoverTimerRef.current = setTimeout(() => setHovered(feature), delay);
   }
 
   useEffect(() => () => {

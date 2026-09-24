@@ -22,6 +22,13 @@
       "when": 1790174490265,
       "tag": "0002_restrict_public_sovereign_eye_scene_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790211151827,
+      "tag": "0003_tighten_rls_and_hook_secret",
+      "breakpoints": true
     }
   ]
 }

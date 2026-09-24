@@ -29,6 +29,13 @@
       "when": 1790211151827,
       "tag": "0003_tighten_rls_and_hook_secret",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790211438972,
+      "tag": "0004_narrative_lineage_signal_scoped_read",
+      "breakpoints": true
     }
   ]
 }

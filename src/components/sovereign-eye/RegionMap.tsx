@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointer
 import { Explain } from "@/components/explain/Explain";
 import type { SovereignEyeEvidence, SovereignEyeFlow, SovereignEyeFlowPartner, SovereignEyeKpi, SovereignEyeLayer, SovereignEyeLiveFeed, SovereignEyeSector } from "@/lib/sovereign-eye.functions";
 
+import { GlobeView } from "./GlobeView";
 import { InterpretationPanel } from "./InterpretationPanel";
 
 type GeoPoint = { code: string; name: string; lat: number; lon: number };
@@ -98,7 +99,7 @@ function interpretation(kind: MapFeature["kind"], title: string): Pick<MapFeatur
   return { signal: title, trend: "This legend item explains a visual encoding, not a change over time.", impact: "Use the encoding to compare visible marks; inspect a specific mark for its economic context.", forecast: "Legend encodings do not contain forecasts." };
 }
 
-function mapFeature(base: Omit<MapFeature, "signal" | "trend" | "impact" | "forecast"> & Partial<Pick<MapFeature, "signal" | "trend" | "impact" | "forecast">>): MapFeature {
+export function mapFeature(base: Omit<MapFeature, "signal" | "trend" | "impact" | "forecast"> & Partial<Pick<MapFeature, "signal" | "trend" | "impact" | "forecast">>): MapFeature {
   return { ...interpretation(base.kind, base.title), ...base };
 }
 
@@ -108,7 +109,7 @@ export function RegionMap({ code, countryName, layers, flows = [], flowPartners 
   kpis?: SovereignEyeKpi[]; sectors?: SovereignEyeSector[];
   evidence?: SovereignEyeEvidence; live?: SovereignEyeLiveFeed; focusedLayerId: string; pinnedFeature?: MapFeature | null; onPin?: (feature: MapFeature | null) => void; onEvidence?: () => void;
 }) {
-  const [mapMode, setMapMode] = useState<"regional" | "global">("regional");
+  const [mapMode, setMapMode] = useState<"regional" | "global" | "globe">("regional");
   const [hovered, setHovered] = useState<MapFeature | null>(null);
   const [legendOpen, setLegendOpen] = useState(false);
   const [legendPosition, setLegendPosition] = useState<LegendPosition>({ x: 1, y: 1 });
@@ -300,7 +301,8 @@ export function RegionMap({ code, countryName, layers, flows = [], flowPartners 
     <section className="relative overflow-hidden border border-ink-950 bg-paper-0">
       <div className="absolute inset-x-0 top-0 z-20 h-[3px] bg-gold-500" />
       <div ref={mapRef} className="relative min-h-[620px] overflow-hidden bg-paper-50">
-          <svg ref={svgRef} viewBox={`${view.x} ${view.y} ${view.s * 100} ${view.s * 100}`} role="img" aria-label={`${countryName} sovereign intelligence map`} className={`absolute inset-0 h-full w-full touch-none ${panning ? "cursor-grabbing" : "cursor-grab"}`} onPointerDown={beginPan} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan}>
+          {mapMode === "globe" ? <GlobeView code={code} countryName={countryName} center={{ lat: selected?.lat ?? 17.3, lon: selected?.lon ?? -62.7 }} partners={mappablePartners} sideOf={(k) => sideByNode.get(k) ?? "input"} flowLabel={(k) => flows.find((f) => f.nodeKey === k)?.label ?? k} interaction={interaction} makeFeature={mapFeature} highlightId={hovered?.id ?? pinnedFeature?.id ?? null} /> : null}
+          <svg ref={svgRef} style={mapMode === "globe" ? { display: "none" } : undefined} viewBox={`${view.x} ${view.y} ${view.s * 100} ${view.s * 100}`} role="img" aria-label={`${countryName} sovereign intelligence map`} className={`absolute inset-0 h-full w-full touch-none ${panning ? "cursor-grabbing" : "cursor-grab"}`} onPointerDown={beginPan} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan}>
             <defs><pattern id="eye-grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" className="stroke-line-200" fill="none" strokeWidth="0.16" /></pattern></defs>
             <rect data-pan-surface="" x="-500" y="-500" width="1100" height="1100" fill="url(#eye-grid)" />
             {regional && layers.filter((layer) => layer.visible && (
@@ -387,6 +389,7 @@ export function RegionMap({ code, countryName, layers, flows = [], flowPartners 
           <div className="absolute bottom-3 left-4 z-20 flex border border-line-200 bg-paper-0/95 shadow-sm" role="group" aria-label="Map view">
             <button type="button" aria-pressed={mapMode === "regional"} onClick={() => { setMapMode("regional"); setView({ x: 0, y: 0, s: 1 }); }} className={`${mapMode === "regional" ? "btn-primary" : "btn-ghost"} min-h-8 px-3 font-mono text-[9px] uppercase tracking-[0.16em]`}>Regional</button>
             <button type="button" aria-pressed={mapMode === "global"} onClick={() => { setMapMode("global"); setView({ x: 0, y: 0, s: 1 }); }} className={`${mapMode === "global" ? "btn-primary" : "btn-ghost"} min-h-8 gap-1.5 px-3 font-mono text-[9px] uppercase tracking-[0.16em]`}><Globe2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden /> Global flows</button>
+            <button type="button" aria-pressed={mapMode === "globe"} onClick={() => setMapMode("globe")} className={`${mapMode === "globe" ? "btn-primary" : "btn-ghost"} min-h-8 gap-1.5 px-3 font-mono text-[9px] uppercase tracking-[0.16em]`}><Globe2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden /> Globe</button>
           </div>
 
           {mapMode === "global" && mappablePartners.length === 0 ? (
@@ -408,12 +411,12 @@ export function RegionMap({ code, countryName, layers, flows = [], flowPartners 
             </div>
           ) : null}
 
-          <div className="absolute right-4 top-4 z-20 flex flex-col border border-line-200 bg-paper-0/95 shadow-sm" role="group" aria-label="Map zoom controls">
+          {mapMode !== "globe" ? <div className="absolute right-4 top-4 z-20 flex flex-col border border-line-200 bg-paper-0/95 shadow-sm" role="group" aria-label="Map zoom controls">
             <button type="button" className="btn-ghost h-9 w-9 justify-center p-0" aria-label="Zoom in" title="Zoom in" onClick={() => zoomAt(1 / 1.3)}><Plus className="h-4 w-4" /></button>
             <button type="button" className="btn-ghost h-9 w-9 justify-center border-t border-line-200 p-0" aria-label="Zoom out" title="Zoom out" onClick={() => zoomAt(1.3)}><Minus className="h-4 w-4" /></button>
             <button type="button" className="btn-ghost h-9 w-9 justify-center border-t border-line-200 p-0" aria-label="Reset view" title="Reset view" onClick={() => setView({ x: 0, y: 0, s: 1 })}><Maximize2 className="h-4 w-4" /></button>
             <span className="border-t border-line-200 py-1 text-center font-mono text-[10px] tabular-nums text-ink-500">{Math.round(100 / view.s)}%</span>
-          </div>
+          </div> : null}
           <div className="pointer-events-none absolute left-5 top-5 max-w-[min(25rem,70%)]">
             <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">Sovereign theatre</p>
             <h2 className="mt-2 font-serif text-3xl leading-tight text-ink-950 sm:text-4xl">{countryName}</h2>
@@ -467,7 +470,7 @@ export function RegionMap({ code, countryName, layers, flows = [], flowPartners 
             </div>
           ) : null}
           <div className="absolute bottom-3 right-4 font-mono text-[8px] uppercase tracking-[0.14em] text-ink-500">
-            {mapMode === "global" ? "Global flows · schematic world view · graticule lines are reference only" : "Caribbean orientation · schematic projection"}
+            {mapMode === "globe" ? "Globe · orthographic · drag to rotate · NOAA / USGS public-domain feeds" : mapMode === "global" ? "Global flows · schematic world view · graticule lines are reference only" : "Caribbean orientation · schematic projection"}
           </div>
       </div>
     </section>

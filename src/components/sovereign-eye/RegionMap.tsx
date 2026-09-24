@@ -110,6 +110,10 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
     hoverTimerRef.current = setTimeout(() => setHovered(feature), feature ? 90 : 60);
   }
 
+  useEffect(() => () => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+  }, []);
+
   useEffect(() => {
     try {
       const savedPosition = window.localStorage.getItem(LEGEND_POSITION_KEY);
@@ -254,8 +258,6 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
             <p className="mt-2 text-sm leading-relaxed text-ink-600">{active?.narrative ?? "Turn on a layer to begin."}</p>
           </div>
 
-          <InterpretationPanel feature={inspected ?? null} pinned={Boolean(pinnedFeature && inspected?.id === pinnedFeature.id)} onClose={() => onPin?.(null)} onEvidence={onEvidence} />
-
           <div
             ref={legendRef}
             className={`absolute z-20 max-w-[calc(100%-2rem)] border border-line-200 bg-paper-0/95 shadow-sm backdrop-blur ${legendOpen ? "w-64" : "w-36"}`}
@@ -292,7 +294,7 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
                 <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">Visible layers</p>
                 <ul className="mt-3 space-y-1">{legend.map((item) => {
                   const feature = mapFeature({ id: `legend-${item.symbol}`, kind: "legend", title: item.label, value: "Visual encoding", meta: "Legend", signal: item.signal, impact: item.impact });
-                  return <li key={item.label}><button type="button" className="btn-ghost min-h-8 w-full justify-start border-0 px-1 text-left text-[11px] text-ink-700" onMouseEnter={() => scheduleHover(feature)} onMouseLeave={() => scheduleHover(null)} onFocus={() => setHovered(feature)} onBlur={() => setHovered(null)} onClick={() => onPin?.(pinnedFeature?.id === feature.id ? null : feature)}><LegendMark symbol={item.symbol} /><span>{item.label}</span></button></li>;
+                  return <li key={item.label}><button type="button" className="btn-ghost min-h-8 w-full justify-start border-0 px-1 text-left text-[11px] text-ink-700" onMouseEnter={() => scheduleHover(feature)} onMouseLeave={() => scheduleHover(null)} onFocus={() => setHovered(feature)} onBlur={() => setHovered(null)} onClick={() => onPin?.(pinnedFeature?.id === feature.id ? null : feature)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onPin?.(pinnedFeature?.id === feature.id ? null : feature); } }}><LegendMark symbol={item.symbol} /><span>{item.label}</span></button></li>;
                 })}</ul>
               </div>
             ) : null}
@@ -301,14 +303,18 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
         </div>
 
         <aside className="bg-paper-0 p-5">
-          <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">Focused layer</p>
-          <h3 className="mt-2 font-serif text-2xl text-ink-950">{active?.label ?? "No layer focused"}</h3>
-          <p className="mt-2 text-sm leading-relaxed text-ink-600">{active?.narrative ?? "Choose a visible layer in the controls."}</p>
-          <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
-            <Stat label="Display" value={active?.visible ? "On" : "Off"} /><Stat label="Status" value={active?.status ?? "—"} /><Stat label="Evidence" value={String(active?.evidenceCount ?? 0)} /><Stat label="Last update" value={active?.updatedAt ? new Date(active.updatedAt).toLocaleDateString() : "—"} />
-          </dl>
-          <div className="mt-5 border-t border-line-200 pt-4"><p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">Evidence access</p><div className="mt-3 flex gap-4 text-xs text-ink-700"><span className="flex items-center gap-2"><span className="h-2 w-2 border border-ink-700 bg-paper-0" /> Public {active?.visibility.public ?? 0}</span><span className="flex items-center gap-2"><span className="h-2 w-2 bg-narrative-500" /> Private {active?.visibility.private ?? 0}</span></div></div>
-          <div className="mt-5 border-t border-line-200 pt-4 text-xs leading-relaxed text-ink-500"><p className="flex items-center gap-2 text-ink-700"><Radio size={13} /> Hover or focus to preview</p><p className="mt-2">Click or tap any mark to pin its details.</p></div>
+          {inspected ? (
+            <InterpretationPanel feature={inspected} pinned={Boolean(pinnedFeature && inspected.id === pinnedFeature.id)} onClose={() => onPin?.(null)} onEvidence={onEvidence} />
+          ) : <>
+            <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">Focused layer</p>
+            <h3 className="mt-2 font-serif text-2xl text-ink-950">{active?.label ?? "No layer focused"}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-ink-600">{active?.narrative ?? "Choose a visible layer in the controls."}</p>
+            <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
+              <Stat label="Display" value={active?.visible ? "On" : "Off"} /><Stat label="Status" value={active?.status ?? "—"} /><Stat label="Evidence" value={String(active?.evidenceCount ?? 0)} /><Stat label="Last update" value={active?.updatedAt ? new Date(active.updatedAt).toLocaleDateString() : "—"} />
+            </dl>
+            <div className="mt-5 border-t border-line-200 pt-4"><p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">Evidence access</p><div className="mt-3 flex gap-4 text-xs text-ink-700"><span className="flex items-center gap-2"><span className="h-2 w-2 border border-ink-700 bg-paper-0" /> Public {active?.visibility.public ?? 0}</span><span className="flex items-center gap-2"><span className="h-2 w-2 bg-narrative-500" /> Private {active?.visibility.private ?? 0}</span></div></div>
+            <div className="mt-5 border-t border-line-200 pt-4 text-xs leading-relaxed text-ink-500"><p className="flex items-center gap-2 text-ink-700"><Radio size={13} /> Hover or focus to interpret</p><p className="mt-2">Click or tap any mark or legend item to pin its meaning.</p></div>
+          </>}
         </aside>
       </div>
     </section>

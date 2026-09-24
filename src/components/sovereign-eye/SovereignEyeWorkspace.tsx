@@ -112,7 +112,12 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
     setAiSelectedLayerIds(restoredAiIds);
     setFocusedLayerId(typeof camera.focusedLayerId === "string" ? camera.focusedLayerId : scene.layers[0]?.id ?? "macro-pulse");
     const restoredPin = camera.pinnedFeature;
-    setPinnedFeature(restoredPin && typeof restoredPin === "object" && !Array.isArray(restoredPin) ? restoredPin as MapFeature : null);
+    setPinnedFeature(
+      restoredPin && typeof restoredPin === "object" && !Array.isArray(restoredPin) &&
+      typeof (restoredPin as Record<string, unknown>).signal === "string"
+        ? restoredPin as MapFeature
+        : null,
+    );
     setSceneTitle(scene.title);
     setSceneVisibility(scene.visibility);
     window.scrollTo({ top: 0, behavior: "smooth" });

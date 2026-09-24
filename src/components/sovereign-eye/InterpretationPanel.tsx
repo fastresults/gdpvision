@@ -11,7 +11,7 @@ export function InterpretationPanel({ feature, pinned, onClose, onEvidence }: {
   onEvidence?: () => void;
 }) {
   return (
-    <section className="absolute bottom-5 left-5 z-10 w-[min(27rem,calc(100%-2.5rem))] border border-ink-950 bg-paper-0/95 p-4 shadow-sm backdrop-blur" aria-live="polite">
+    <section aria-live="polite">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
@@ -28,7 +28,7 @@ export function InterpretationPanel({ feature, pinned, onClose, onEvidence }: {
       </div>
 
       {feature ? (
-        <div className="mt-3 grid gap-3 text-xs leading-relaxed">
+        <div className="mt-4 grid gap-4 text-xs leading-relaxed">
           <InterpretationRow label="Signal" value={feature.signal} />
           <InterpretationRow label="Current reading" value={`${feature.value}${feature.meta ? ` · ${feature.meta}` : ""}`} />
           <InterpretationRow label="Trend" value={feature.trend} explain />
@@ -49,11 +49,11 @@ export function InterpretationPanel({ feature, pinned, onClose, onEvidence }: {
 
 function InterpretationRow({ label, value, explain = false }: { label: string; value: string; explain?: boolean }) {
   return (
-    <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3 border-t border-line-100 pt-2 first:border-t-0 first:pt-0">
+    <div className="border-t border-line-100 pt-3 first:border-t-0 first:pt-0">
       <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-ink-500">{label}</p>
       {explain ? (
-        <Explain id="sovereign-eye.interpretation" ctx={{ label, value }} mark={false} className="text-ink-700">{value}</Explain>
-      ) : <p className="text-ink-700">{value}</p>}
+        <Explain id="sovereign-eye.interpretation" ctx={{ label, value }} mark={false} className="mt-1 block text-ink-700">{value}</Explain>
+      ) : <p className="mt-1 text-ink-700">{value}</p>}
     </div>
   );
 }

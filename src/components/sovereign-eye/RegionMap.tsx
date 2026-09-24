@@ -1,5 +1,5 @@
-import { ChevronDown, CloudSun, Database, Landmark, Radio, Waves } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ChevronDown, CloudSun, Database, GripVertical, Landmark, ListTree, Radio, Waves } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
 import type { SovereignEyeEvidence, SovereignEyeFlow, SovereignEyeKpi, SovereignEyeLayer, SovereignEyeLiveFeed, SovereignEyeSector } from "@/lib/sovereign-eye.functions";
 
@@ -21,6 +21,11 @@ const project = (lon: number, lat: number) => ({ x: ((lon - BOUNDS.minLon) / (BO
 const anchors = [{ x: 8, y: 18 }, { x: 18, y: 72 }, { x: 82, y: 16 }, { x: 92, y: 78 }, { x: 46, y: 8 }, { x: 58, y: 92 }];
 const ringPoint = (origin: { x: number; y: number }, index: number, total: number, radius: number) => { const angle = (Math.PI * 2 * index) / Math.max(total, 1) - Math.PI / 2; return { x: origin.x + Math.cos(angle) * radius, y: origin.y + Math.sin(angle) * radius }; };
 const fmt = (n: number | null, unit = "") => n == null ? "Not available" : `${n.toFixed(2)}${unit ? ` ${unit}` : ""}`;
+const LEGEND_POSITION_KEY = "sovereign-eye-legend-position";
+const LEGEND_OPEN_KEY = "sovereign-eye-legend-open";
+const LEGEND_MARGIN = 16;
+type LegendPosition = { x: number; y: number };
+type ElementSize = { width: number; height: number };
 
 export function RegionMap({ code, countryName, layers, flows = [], kpis = [], sectors = [], evidence = { sources: [], memory: [] }, live, focusedLayerId, pinnedFeature, onPin, onEvidence }: {
   code: string; countryName: string; layers: SovereignEyeLayer[]; flows?: SovereignEyeFlow[]; kpis?: SovereignEyeKpi[]; sectors?: SovereignEyeSector[];
@@ -28,6 +33,14 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
 }) {
   const [hovered, setHovered] = useState<MapFeature | null>(null);
   const [legendOpen, setLegendOpen] = useState(false);
+  const [legendPosition, setLegendPosition] = useState<LegendPosition>({ x: 1, y: 0 });
+  const [mapSize, setMapSize] = useState<ElementSize>({ width: 0, height: 0 });
+  const [legendSize, setLegendSize] = useState<ElementSize>({ width: 0, height: 0 });
+  const mapRef = useRef<HTMLDivElement>(null);
+  const legendRef = useRef<HTMLDivElement>(null);
+  const legendToggleRef = useRef<HTMLButtonElement>(null);
+  const preferencesLoadedRef = useRef(false);
+  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; originLeft: number; originTop: number } | null>(null);
   const selected = POINTS.find((p) => p.code === code.toUpperCase()) ?? POINTS.find((p) => p.code === "KNA");
   const origin = selected ? project(selected.lon, selected.lat) : { x: 72, y: 54 };
   const active = layers.find((l) => l.id === focusedLayerId) ?? layers.find((l) => l.visible) ?? layers[0];
@@ -46,6 +59,81 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
     { show: visibleKinds.has("corpus") && layers.some((l) => l.kind === "corpus" && l.visibility.private > 0), symbol: "private", label: "Private evidence" },
     { show: visibleKinds.has("live"), symbol: "live", label: "Live public feed" },
   ].filter((item) => item.show), [layers, visibleKinds]);
+
+  useEffect(() => {
+    try {
+      const savedPosition = window.localStorage.getItem(LEGEND_POSITION_KEY);
+      const savedOpen = window.localStorage.getItem(LEGEND_OPEN_KEY);
+      if (savedPosition) {
+        const parsed = JSON.parse(savedPosition) as Partial<LegendPosition>;
+        if (typeof parsed.x === "number" && typeof parsed.y === "number") {
+          setLegendPosition({ x: Math.max(0, Math.min(1, parsed.x)), y: Math.max(0, Math.min(1, parsed.y)) });
+        }
+      }
+      if (savedOpen === "true" || savedOpen === "false") setLegendOpen(savedOpen === "true");
+    } catch {
+      setLegendPosition({ x: 1, y: 0 });
+    } finally {
+      preferencesLoadedRef.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!preferencesLoadedRef.current) return;
+    window.localStorage.setItem(LEGEND_POSITION_KEY, JSON.stringify(legendPosition));
+    window.localStorage.setItem(LEGEND_OPEN_KEY, String(legendOpen));
+  }, [legendOpen, legendPosition]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const legendNode = legendRef.current;
+    if (!map || !legendNode) return;
+    const measure = () => {
+      setMapSize({ width: map.clientWidth, height: map.clientHeight });
+      setLegendSize({ width: legendNode.offsetWidth, height: legendNode.offsetHeight });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(map);
+    observer.observe(legendNode);
+    return () => observer.disconnect();
+  }, [legendOpen]);
+
+  useEffect(() => {
+    if (!legendOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setLegendOpen(false);
+      window.requestAnimationFrame(() => legendToggleRef.current?.focus());
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [legendOpen]);
+
+  const availableX = Math.max(0, mapSize.width - legendSize.width - LEGEND_MARGIN * 2);
+  const availableY = Math.max(0, mapSize.height - legendSize.height - LEGEND_MARGIN * 2);
+  const legendLeft = LEGEND_MARGIN + legendPosition.x * availableX;
+  const legendTop = LEGEND_MARGIN + legendPosition.y * availableY;
+
+  function beginLegendDrag(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (legendOpen) return;
+    dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, originLeft: legendLeft, originTop: legendTop };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function moveLegend(event: ReactPointerEvent<HTMLButtonElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const nextLeft = Math.max(LEGEND_MARGIN, Math.min(LEGEND_MARGIN + availableX, drag.originLeft + event.clientX - drag.startX));
+    const nextTop = Math.max(LEGEND_MARGIN, Math.min(LEGEND_MARGIN + availableY, drag.originTop + event.clientY - drag.startY));
+    setLegendPosition({ x: availableX > 0 ? (nextLeft - LEGEND_MARGIN) / availableX : 0, y: availableY > 0 ? (nextTop - LEGEND_MARGIN) / availableY : 0 });
+  }
+
+  function endLegendDrag(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (dragRef.current?.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+  }
 
   function interaction(feature: MapFeature) {
     return {
@@ -66,7 +154,7 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
     <section className="relative overflow-hidden border border-ink-950 bg-paper-0">
       <div className="absolute inset-x-0 top-0 z-20 h-[3px] bg-gold-500" />
       <div className="grid lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="relative min-h-[620px] overflow-hidden border-b border-line-200 bg-paper-50 lg:border-b-0 lg:border-r">
+        <div ref={mapRef} className="relative min-h-[620px] overflow-hidden border-b border-line-200 bg-paper-50 lg:border-b-0 lg:border-r">
           <svg viewBox="0 0 100 100" role="img" aria-label={`${countryName} sovereign intelligence map`} className="absolute inset-0 h-full w-full">
             <defs><pattern id="eye-grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" className="stroke-line-200" fill="none" strokeWidth="0.16" /></pattern></defs>
             <rect width="100" height="100" fill="url(#eye-grid)" />
@@ -122,9 +210,43 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
             {onEvidence && inspected.kind !== "place" && <button type="button" className="btn-secondary mt-3 min-h-8 px-3 text-[10px]" onClick={onEvidence}>View supporting evidence</button>}
           </div> : null}
 
-          <div className="absolute right-4 top-4 z-10 w-64 max-w-[calc(100%-2rem)] border border-line-200 bg-paper-0/95 backdrop-blur">
-            <button type="button" className="btn-ghost flex min-h-10 w-full justify-between border-0 px-3 text-[10px] sm:hidden" onClick={() => setLegendOpen((value) => !value)} aria-expanded={legendOpen}>Legend <ChevronDown size={14} className={legendOpen ? "rotate-180" : ""} /></button>
-            <div className={`${legendOpen ? "block" : "hidden"} p-3 sm:block`}><p className="hidden font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500 sm:block">Legend · visible layers</p><ul className="space-y-2 sm:mt-3">{legend.map((item) => <li key={item.label} className="flex items-center gap-2 text-[11px] text-ink-700"><LegendMark symbol={item.symbol} /><span>{item.label}</span></li>)}</ul></div>
+          <div
+            ref={legendRef}
+            className={`absolute z-20 max-w-[calc(100%-2rem)] border border-line-200 bg-paper-0/95 shadow-sm backdrop-blur ${legendOpen ? "w-64" : "w-36"}`}
+            style={{ left: legendLeft, top: legendTop }}
+          >
+            <div className="flex min-h-10 items-stretch">
+              {!legendOpen ? (
+                <button
+                  type="button"
+                  className="btn-ghost w-9 shrink-0 touch-none cursor-move border-y-0 border-l-0 px-0"
+                  aria-label="Move legend"
+                  onPointerDown={beginLegendDrag}
+                  onPointerMove={moveLegend}
+                  onPointerUp={endLegendDrag}
+                  onPointerCancel={endLegendDrag}
+                >
+                  <GripVertical size={15} aria-hidden />
+                </button>
+              ) : null}
+              <button
+                ref={legendToggleRef}
+                type="button"
+                className="btn-ghost flex min-h-10 min-w-0 flex-1 justify-between border-0 px-3 text-[10px]"
+                onClick={() => setLegendOpen((value) => !value)}
+                aria-expanded={legendOpen}
+                aria-controls="sovereign-eye-map-legend"
+              >
+                <span className="flex items-center gap-2"><ListTree size={14} aria-hidden /> Legend</span>
+                <ChevronDown size={14} aria-hidden className={legendOpen ? "rotate-180" : ""} />
+              </button>
+            </div>
+            {legendOpen ? (
+              <div id="sovereign-eye-map-legend" className="border-t border-line-200 p-3">
+                <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">Visible layers</p>
+                <ul className="mt-3 space-y-2">{legend.map((item) => <li key={item.label} className="flex items-center gap-2 text-[11px] text-ink-700"><LegendMark symbol={item.symbol} /><span>{item.label}</span></li>)}</ul>
+              </div>
+            ) : null}
           </div>
           <div className="absolute bottom-3 right-4 font-mono text-[8px] uppercase tracking-[0.14em] text-ink-500">Caribbean orientation · schematic projection</div>
         </div>

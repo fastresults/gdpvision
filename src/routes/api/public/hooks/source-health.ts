@@ -1,7 +1,7 @@
 // Source-health cron hook (Phase 5 stewardship).
 // HEAD-checks every active country_source URL, logs into
 // source_health_checks, and updates country_sources.fetch_status.
-// Called by pg_cron with `apikey` header = anon key.
+// Called by pg_cron with an x-hook-secret header (scheduler secret).
 
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";

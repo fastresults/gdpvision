@@ -1,6 +1,5 @@
 // Chamber 05 · press-monitoring tick.
-// Called by pg_cron twice a day with an apikey header.
-// Bypasses auth per /api/public/* convention — we validate the apikey ourselves.
+// Called by pg_cron with an x-hook-secret header (scheduler secret).
 import { createFileRoute } from "@tanstack/react-router";
 
 type PressTickRequest = { window?: string; country?: string };

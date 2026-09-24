@@ -39,6 +39,9 @@ const fmt = (n: number | null, unit = "") => n == null ? "Not available" : `${n.
 const LEGEND_POSITION_KEY = "sovereign-eye-legend-position";
 const LEGEND_OPEN_KEY = "sovereign-eye-legend-open";
 const LEGEND_MARGIN = 16;
+// Zoom controls live top-right (right-4/top-4, w-9 × 4 rows). The legend must never enter this rectangle.
+const ZOOM_ZONE_WIDTH = 68; // 16 inset + 36 control + 16 clearance
+const ZOOM_ZONE_HEIGHT = 176; // 16 inset + ~132 control stack + clearance
 const HOVER_ACTIVATE_MS = 1500;
 const HOVER_SWAP_MS = 250;
 const HOVER_CLEAR_MS = 120;
@@ -100,7 +103,7 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
 }) {
   const [hovered, setHovered] = useState<MapFeature | null>(null);
   const [legendOpen, setLegendOpen] = useState(false);
-  const [legendPosition, setLegendPosition] = useState<LegendPosition>({ x: 1, y: 0 });
+  const [legendPosition, setLegendPosition] = useState<LegendPosition>({ x: 1, y: 1 });
   const [legendPreferencesLoaded, setLegendPreferencesLoaded] = useState(false);
   const [mapSize, setMapSize] = useState<ElementSize>({ width: 0, height: 0 });
   const [legendSize, setLegendSize] = useState<ElementSize>({ width: 0, height: 0 });
@@ -194,7 +197,7 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
       }
       if (savedOpen === "true" || savedOpen === "false") setLegendOpen(savedOpen === "true");
     } catch {
-      setLegendPosition({ x: 1, y: 0 });
+      setLegendPosition({ x: 1, y: 1 });
     } finally {
       setLegendPreferencesLoaded(true);
     }
@@ -234,8 +237,15 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
 
   const availableX = Math.max(0, mapSize.width - legendSize.width - LEGEND_MARGIN * 2);
   const availableY = Math.max(0, mapSize.height - legendSize.height - LEGEND_MARGIN * 2);
-  const legendLeft = LEGEND_MARGIN + legendPosition.x * availableX;
-  const legendTop = LEGEND_MARGIN + legendPosition.y * availableY;
+  // Keep the legend out of the zoom-control rectangle: inside its vertical band, the legend's right edge must stay left of the zone.
+  const clampLegend = (left: number, top: number) => {
+    let clampedLeft = Math.max(LEGEND_MARGIN, Math.min(LEGEND_MARGIN + availableX, left));
+    const clampedTop = Math.max(LEGEND_MARGIN, Math.min(LEGEND_MARGIN + availableY, top));
+    const maxLeftBesideZoom = mapSize.width - ZOOM_ZONE_WIDTH - legendSize.width;
+    if (clampedTop < ZOOM_ZONE_HEIGHT && clampedLeft > maxLeftBesideZoom) clampedLeft = Math.max(LEGEND_MARGIN, maxLeftBesideZoom);
+    return { left: clampedLeft, top: clampedTop };
+  };
+  const { left: legendLeft, top: legendTop } = clampLegend(LEGEND_MARGIN + legendPosition.x * availableX, LEGEND_MARGIN + legendPosition.y * availableY);
 
   function beginLegendDrag(event: ReactPointerEvent<HTMLButtonElement>) {
     if (legendOpen) return;
@@ -246,8 +256,7 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
   function moveLegend(event: ReactPointerEvent<HTMLButtonElement>) {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    const nextLeft = Math.max(LEGEND_MARGIN, Math.min(LEGEND_MARGIN + availableX, drag.originLeft + event.clientX - drag.startX));
-    const nextTop = Math.max(LEGEND_MARGIN, Math.min(LEGEND_MARGIN + availableY, drag.originTop + event.clientY - drag.startY));
+    const { left: nextLeft, top: nextTop } = clampLegend(drag.originLeft + event.clientX - drag.startX, drag.originTop + event.clientY - drag.startY);
     setLegendPosition({ x: availableX > 0 ? (nextLeft - LEGEND_MARGIN) / availableX : 0, y: availableY > 0 ? (nextTop - LEGEND_MARGIN) / availableY : 0 });
   }
 

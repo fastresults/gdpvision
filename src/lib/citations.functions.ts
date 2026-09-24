@@ -91,6 +91,8 @@ export const saveCitations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => SaveInput.parse(d))
   .handler(async ({ data, context }) => {
+    const { assertArtifactAccess } = await import("@/lib/auth/artifact-access.server");
+    await assertArtifactAccess(context.supabase, data.ownerType, data.ownerId);
     // Resolve memory_object IDs from refs like "memory:<id>".
     const refs = data.sources.map((s) => {
       const id = s.ref.replace(/^memory:/, "");

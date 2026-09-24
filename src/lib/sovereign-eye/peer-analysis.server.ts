@@ -37,7 +37,7 @@ export async function runPeerAnalysis(opts: { force?: boolean } = {}) {
     .select("name");
   if (!got?.length) return { ok: false, skipped: "already running" };
 
-  const summary: Record<string, unknown> = {};
+  const summary: Record<string, number | string> = {};
   try {
     // 1. Scrub (public rows only — peers never see private data).
     const { data: kpis, error } = await db

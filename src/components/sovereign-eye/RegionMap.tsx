@@ -1,7 +1,8 @@
-import { ChevronDown, CloudSun, Database, GripVertical, Landmark, ListTree, Maximize2, Minus, Plus, Waves } from "lucide-react";
+import { ChevronDown, CloudSun, Database, Globe2, GripVertical, Landmark, ListTree, Maximize2, Minus, Plus, Waves } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
-import type { SovereignEyeEvidence, SovereignEyeFlow, SovereignEyeKpi, SovereignEyeLayer, SovereignEyeLiveFeed, SovereignEyeSector } from "@/lib/sovereign-eye.functions";
+import { Explain } from "@/components/explain/Explain";
+import type { SovereignEyeEvidence, SovereignEyeFlow, SovereignEyeFlowPartner, SovereignEyeKpi, SovereignEyeLayer, SovereignEyeLiveFeed, SovereignEyeSector } from "@/lib/sovereign-eye.functions";
 
 import { InterpretationPanel } from "./InterpretationPanel";
 
@@ -33,6 +34,10 @@ const POINTS: GeoPoint[] = [
 ];
 const BOUNDS = { minLon: -90, maxLon: -54, minLat: 4, maxLat: 34 };
 const project = (lon: number, lat: number) => ({ x: ((lon - BOUNDS.minLon) / (BOUNDS.maxLon - BOUNDS.minLon)) * 100, y: 100 - ((lat - BOUNDS.minLat) / (BOUNDS.maxLat - BOUNDS.minLat)) * 100 });
+// Whole-world equirectangular schematic for the Global flows view. Same
+// hand-rolled SVG approach as the regional projection — no map library.
+const WORLD = { minLon: -180, maxLon: 180, minLat: -55, maxLat: 80 };
+const projectGlobal = (lon: number, lat: number) => ({ x: ((lon - WORLD.minLon) / (WORLD.maxLon - WORLD.minLon)) * 100, y: 100 - ((lat - WORLD.minLat) / (WORLD.maxLat - WORLD.minLat)) * 100 });
 const anchors = [{ x: 8, y: 18 }, { x: 18, y: 72 }, { x: 82, y: 16 }, { x: 92, y: 78 }, { x: 46, y: 8 }, { x: 58, y: 92 }];
 const ringPoint = (origin: { x: number; y: number }, index: number, total: number, radius: number) => { const angle = (Math.PI * 2 * index) / Math.max(total, 1) - Math.PI / 2; return { x: origin.x + Math.cos(angle) * radius, y: origin.y + Math.sin(angle) * radius }; };
 const fmt = (n: number | null, unit = "") => n == null ? "Not available" : `${n.toFixed(2)}${unit ? ` ${unit}` : ""}`;
@@ -97,10 +102,13 @@ function mapFeature(base: Omit<MapFeature, "signal" | "trend" | "impact" | "fore
   return { ...interpretation(base.kind, base.title), ...base };
 }
 
-export function RegionMap({ code, countryName, layers, flows = [], kpis = [], sectors = [], evidence = { sources: [], memory: [] }, live, focusedLayerId, pinnedFeature, onPin, onEvidence }: {
-  code: string; countryName: string; layers: SovereignEyeLayer[]; flows?: SovereignEyeFlow[]; kpis?: SovereignEyeKpi[]; sectors?: SovereignEyeSector[];
+export function RegionMap({ code, countryName, layers, flows = [], flowPartners = [], onResearchPartners, researchingPartners = false, kpis = [], sectors = [], evidence = { sources: [], memory: [] }, live, focusedLayerId, pinnedFeature, onPin, onEvidence }: {
+  code: string; countryName: string; layers: SovereignEyeLayer[]; flows?: SovereignEyeFlow[]; flowPartners?: SovereignEyeFlowPartner[];
+  onResearchPartners?: () => void; researchingPartners?: boolean;
+  kpis?: SovereignEyeKpi[]; sectors?: SovereignEyeSector[];
   evidence?: SovereignEyeEvidence; live?: SovereignEyeLiveFeed; focusedLayerId: string; pinnedFeature?: MapFeature | null; onPin?: (feature: MapFeature | null) => void; onEvidence?: () => void;
 }) {
+  const [mapMode, setMapMode] = useState<"regional" | "global">("regional");
   const [hovered, setHovered] = useState<MapFeature | null>(null);
   const [legendOpen, setLegendOpen] = useState(false);
   const [legendPosition, setLegendPosition] = useState<LegendPosition>({ x: 1, y: 1 });
@@ -159,21 +167,28 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
   };
   const selected = POINTS.find((p) => p.code === code.toUpperCase()) ?? POINTS.find((p) => p.code === "KNA");
   const origin = selected ? project(selected.lon, selected.lat) : { x: 72, y: 54 };
+  const countryGlobal = selected ? projectGlobal(selected.lon, selected.lat) : { x: 22, y: 52 };
+  const sideByNode = new Map(flows.map((flow) => [flow.nodeKey, flow.side]));
+  const mappablePartners = useMemo(
+    () => flowPartners.filter((p) => p.lat != null && p.lon != null).slice(0, 20),
+    [flowPartners],
+  );
   const active = layers.find((l) => l.id === focusedLayerId) ?? layers.find((l) => l.visible) ?? layers[0];
   const visibleKinds = new Set(layers.filter((l) => l.visible).map((l) => l.kind));
+  const regional = mapMode === "regional";
   const legend = useMemo(() => [
     { show: true, symbol: "selected", label: "Selected country", signal: "The gold marker identifies the country currently being analysed.", impact: "All country-anchored indicators and flows are read in relation to this location." },
-    { show: visibleKinds.has("macro"), symbol: "macro", label: "Macro indicator", signal: "A dark dot represents one current macroeconomic indicator.", impact: "Inspect the dot for its value, period, source, and any verified historical change." },
-    { show: visibleKinds.has("sector"), symbol: "sector", label: "Sector · size = GDP share", signal: "Circle area encodes sector share of GDP; larger means a larger share, not faster growth.", impact: "The pattern helps reveal economic concentration and sector exposure." },
+    { show: regional && visibleKinds.has("macro"), symbol: "macro", label: "Macro indicator", signal: "A dark dot represents one current macroeconomic indicator.", impact: "Inspect the dot for its value, period, source, and any verified historical change." },
+    { show: regional && visibleKinds.has("sector"), symbol: "sector", label: "Sector · size = GDP share", signal: "Circle area encodes sector share of GDP; larger means a larger share, not faster growth.", impact: "The pattern helps reveal economic concentration and sector exposure." },
     { show: visibleKinds.has("capital"), symbol: "input", label: "Inbound capital", signal: "A green path carries a recorded or modelled inflow toward the country.", impact: "Inflows may expand financing or receipts; inspect method and confidence before drawing conclusions." },
     { show: visibleKinds.has("capital"), symbol: "output", label: "Outbound capital", signal: "A gold path carries a recorded or modelled outflow away from the country.", impact: "Outflows can represent imports, transfers, or fiscal uses; they are not automatically negative." },
     { show: visibleKinds.has("capital"), symbol: "width", label: "Line width = relative value", signal: "Thicker lines represent larger values relative to other visible capital flows.", impact: "Width compares magnitude in this view only; it does not indicate growth, importance, or confidence." },
-    { show: visibleKinds.has("capital") && flows.some((flow) => flow.confidence !== "A"), symbol: "confidence", label: "Dashed = lower confidence", signal: "A dashed path marks a flow below the strongest confidence grade.", impact: "Treat it as less certain and inspect its method and evidence before using it in a decision." },
-    { show: visibleKinds.has("ministry"), symbol: "ministry", label: "Ministry coverage", signal: "A square identifies a ministry represented in the country evidence.", impact: "It shows institutional accountability coverage, not ministry performance." },
-    { show: visibleKinds.has("corpus"), symbol: "public", label: "Public evidence", signal: "An outlined evidence mark can be shared with authorised country users.", impact: "It strengthens traceability but does not itself represent an economic outcome." },
-    { show: visibleKinds.has("corpus") && layers.some((l) => l.kind === "corpus" && l.visibility.private > 0), symbol: "private", label: "Private evidence", signal: "A filled evidence mark is restricted country material.", impact: "It can inform internal analysis but is excluded from public shared scenes." },
-    { show: visibleKinds.has("live"), symbol: "live", label: "Live public feed", signal: "A live symbol shows recently checked weather or seismic context.", impact: "It is operational context, not proof of economic impact or a forecast." },
-  ].filter((item) => item.show), [layers, visibleKinds, flows]);
+    { show: visibleKinds.has("capital") && (flows.some((flow) => flow.confidence !== "A") || flowPartners.some((p) => p.confidence !== "A")), symbol: "confidence", label: "Dashed = lower confidence", signal: "A dashed path marks a flow below the strongest confidence grade.", impact: "Treat it as less certain and inspect its method and evidence before using it in a decision." },
+    { show: regional && visibleKinds.has("ministry"), symbol: "ministry", label: "Ministry coverage", signal: "A square identifies a ministry represented in the country evidence.", impact: "It shows institutional accountability coverage, not ministry performance." },
+    { show: regional && visibleKinds.has("corpus"), symbol: "public", label: "Public evidence", signal: "An outlined evidence mark can be shared with authorised country users.", impact: "It strengthens traceability but does not itself represent an economic outcome." },
+    { show: regional && visibleKinds.has("corpus") && layers.some((l) => l.kind === "corpus" && l.visibility.private > 0), symbol: "private", label: "Private evidence", signal: "A filled evidence mark is restricted country material.", impact: "It can inform internal analysis but is excluded from public shared scenes." },
+    { show: regional && visibleKinds.has("live"), symbol: "live", label: "Live public feed", signal: "A live symbol shows recently checked weather or seismic context.", impact: "It is operational context, not proof of economic impact or a forecast." },
+  ].filter((item) => item.show), [layers, visibleKinds, flows, flowPartners, regional]);
 
   function scheduleHover(feature: MapFeature | null) {
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
@@ -288,7 +303,7 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
           <svg ref={svgRef} viewBox={`${view.x} ${view.y} ${view.s * 100} ${view.s * 100}`} role="img" aria-label={`${countryName} sovereign intelligence map`} className={`absolute inset-0 h-full w-full touch-none ${panning ? "cursor-grabbing" : "cursor-grab"}`} onPointerDown={beginPan} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan}>
             <defs><pattern id="eye-grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" className="stroke-line-200" fill="none" strokeWidth="0.16" /></pattern></defs>
             <rect data-pan-surface="" x="-500" y="-500" width="1100" height="1100" fill="url(#eye-grid)" />
-            {layers.filter((layer) => layer.visible && (
+            {regional && layers.filter((layer) => layer.visible && (
               (layer.kind === "macro" && kpis.length === 0) ||
               (layer.kind === "sector" && sectors.length === 0) ||
               (layer.kind === "capital" && flows.length === 0) ||
@@ -301,7 +316,7 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
               return <g key={feature.id} {...interaction(feature)}><circle cx={p.x} cy={p.y} r="2.2" className="fill-paper-0 stroke-ink-950" strokeWidth="0.6" /><text x={p.x + 3} y={p.y + 0.7} className="fill-ink-800 font-mono text-[1.7px]">{layer.label}</text></g>;
             })}
 
-            {visibleKinds.has("capital") && flows.slice(0, 6).map((flow, index) => {
+            {regional && visibleKinds.has("capital") && flows.slice(0, 6).map((flow, index) => {
               const end = anchors[index % anchors.length]; const weight = Math.max(0.45, Math.min(1.8, flow.valueUsdM / 250));
               const feature = mapFeature({ id: `flow-${flow.nodeKey}-${index}`, kind: "capital", title: flow.label, value: `US$${flow.valueUsdM.toFixed(2)}m`, meta: `${flow.side === "input" ? "Inbound" : "Outbound"} · ${flow.period}`, visibility: flow.visibility, evidenceCount: 1, trend: flowTrend(flow, flows), provenance: `${flow.method} · confidence grade ${flow.confidence} · ${flow.visibility} evidence` });
               return <g key={feature.id} {...interaction(feature)}>
@@ -312,21 +327,86 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
               </g>;
             })}
 
-            {visibleKinds.has("sector") && sectors.slice(0, 6).map((sector, index) => { const p = ringPoint(origin, index, Math.min(sectors.length, 6), 13); const feature = mapFeature({ id: `sector-${sector.code}`, kind: "sector", title: sector.label, value: `${sector.share.toFixed(2)}% of GDP`, meta: `${sector.ministers.length} ministry links`, evidenceCount: 1, provenance: `Confidence grade ${sector.grade}` }); return <g key={feature.id} {...interaction(feature)}><line x1={origin.x} y1={origin.y} x2={p.x} y2={p.y} className="stroke-gold-300" strokeWidth="0.35" /><circle cx={p.x} cy={p.y} r="4" className="fill-transparent" /><circle cx={p.x} cy={p.y} r={Math.max(1.4, Math.min(3.5, sector.share / 5))} className="fill-gold-500 stroke-paper-0" strokeWidth="0.5" /><text x={p.x + 2} y={p.y - 1.8} className="fill-ink-700 font-mono text-[1.65px]">{sector.label.slice(0, 16)}</text></g>; })}
+            {regional && visibleKinds.has("sector") && sectors.slice(0, 6).map((sector, index) => { const p = ringPoint(origin, index, Math.min(sectors.length, 6), 13); const feature = mapFeature({ id: `sector-${sector.code}`, kind: "sector", title: sector.label, value: `${sector.share.toFixed(2)}% of GDP`, meta: `${sector.ministers.length} ministry links`, evidenceCount: 1, provenance: `Confidence grade ${sector.grade}` }); return <g key={feature.id} {...interaction(feature)}><line x1={origin.x} y1={origin.y} x2={p.x} y2={p.y} className="stroke-gold-300" strokeWidth="0.35" /><circle cx={p.x} cy={p.y} r="4" className="fill-transparent" /><circle cx={p.x} cy={p.y} r={Math.max(1.4, Math.min(3.5, sector.share / 5))} className="fill-gold-500 stroke-paper-0" strokeWidth="0.5" /><text x={p.x + 2} y={p.y - 1.8} className="fill-ink-700 font-mono text-[1.65px]">{sector.label.slice(0, 16)}</text></g>; })}
 
-            {visibleKinds.has("macro") && kpis.slice(0, 4).map((kpi, index) => { const p = ringPoint(origin, index, 4, 7.5); const feature = mapFeature({ id: `kpi-${kpi.code}`, kind: "macro", title: kpi.label, value: fmt(kpi.value, kpi.unit), meta: kpi.period ?? "No period", visibility: kpi.visibility, evidenceCount: 1, trend: kpiTrend(kpi), provenance: `${kpi.provenance} · ${kpi.visibility} evidence${kpi.target == null ? "" : ` · target ${kpi.target.toFixed(2)} ${kpi.unit}`}` }); return <g key={feature.id} {...interaction(feature)}><circle cx={p.x} cy={p.y} r="4" className="fill-transparent" /><circle cx={p.x} cy={p.y} r="1.5" className="fill-ink-950 stroke-paper-0" strokeWidth="0.45" /><text x={p.x + 2} y={p.y + 0.7} className="fill-ink-800 font-mono text-[1.55px]">{kpi.label.slice(0, 14)}</text></g>; })}
+            {regional && visibleKinds.has("macro") && kpis.slice(0, 4).map((kpi, index) => { const p = ringPoint(origin, index, 4, 7.5); const feature = mapFeature({ id: `kpi-${kpi.code}`, kind: "macro", title: kpi.label, value: fmt(kpi.value, kpi.unit), meta: kpi.period ?? "No period", visibility: kpi.visibility, evidenceCount: 1, trend: kpiTrend(kpi), provenance: `${kpi.provenance} · ${kpi.visibility} evidence${kpi.target == null ? "" : ` · target ${kpi.target.toFixed(2)} ${kpi.unit}`}` }); return <g key={feature.id} {...interaction(feature)}><circle cx={p.x} cy={p.y} r="4" className="fill-transparent" /><circle cx={p.x} cy={p.y} r="1.5" className="fill-ink-950 stroke-paper-0" strokeWidth="0.45" /><text x={p.x + 2} y={p.y + 0.7} className="fill-ink-800 font-mono text-[1.55px]">{kpi.label.slice(0, 14)}</text></g>; })}
 
-            {visibleKinds.has("ministry") && sectors.flatMap((sector) => sector.ministers).filter((m, i, all) => all.findIndex((x) => x.name === m.name) === i).slice(0, 5).map((ministry, index, all) => { const p = ringPoint(origin, index, all.length, 20); const feature = mapFeature({ id: `ministry-${index}`, kind: "ministry", title: ministry.name, value: ministry.minister ?? "Minister not resolved", meta: ministry.minister ? "Named minister profile available" : "Coverage gap", evidenceCount: 1 }); return <g key={feature.id} {...interaction(feature)}><rect x={p.x - 1.4} y={p.y - 1.4} width="2.8" height="2.8" className={ministry.minister ? "fill-ink-700" : "fill-paper-0 stroke-ink-500"} strokeWidth="0.4" /><text x={p.x + 2} y={p.y + 0.6} className="fill-ink-700 font-mono text-[1.55px]">{ministry.name.slice(0, 16)}</text></g>; })}
+            {regional && visibleKinds.has("ministry") && sectors.flatMap((sector) => sector.ministers).filter((m, i, all) => all.findIndex((x) => x.name === m.name) === i).slice(0, 5).map((ministry, index, all) => { const p = ringPoint(origin, index, all.length, 20); const feature = mapFeature({ id: `ministry-${index}`, kind: "ministry", title: ministry.name, value: ministry.minister ?? "Minister not resolved", meta: ministry.minister ? "Named minister profile available" : "Coverage gap", evidenceCount: 1 }); return <g key={feature.id} {...interaction(feature)}><rect x={p.x - 1.4} y={p.y - 1.4} width="2.8" height="2.8" className={ministry.minister ? "fill-ink-700" : "fill-paper-0 stroke-ink-500"} strokeWidth="0.4" /><text x={p.x + 2} y={p.y + 0.6} className="fill-ink-700 font-mono text-[1.55px]">{ministry.name.slice(0, 16)}</text></g>; })}
 
-            {visibleKinds.has("corpus") && [...evidence.sources.map((x) => ({ title: x.title, visibility: x.visibility, kind: x.kind })), ...evidence.memory.map((x) => ({ title: x.title, visibility: x.visibility, kind: x.kind }))].slice(0, 7).map((item, index, all) => { const p = ringPoint(origin, index, all.length, 27); const feature = mapFeature({ id: `evidence-${index}-${item.title}`, kind: "corpus", title: item.title, value: item.visibility === "private" ? "Private evidence" : "Public evidence", meta: item.kind, visibility: item.visibility, evidenceCount: 1, provenance: `${item.visibility} · ${item.kind}` }); const points = `${p.x},${p.y - 1.8} ${p.x + 1.8},${p.y} ${p.x},${p.y + 1.8} ${p.x - 1.8},${p.y}`; return <g key={feature.id} {...interaction(feature)}><polygon points={points} className={item.visibility === "private" ? "fill-narrative-500" : "fill-paper-0 stroke-ink-700"} strokeWidth="0.45" /></g>; })}
+            {regional && visibleKinds.has("corpus") && [...evidence.sources.map((x) => ({ title: x.title, visibility: x.visibility, kind: x.kind })), ...evidence.memory.map((x) => ({ title: x.title, visibility: x.visibility, kind: x.kind }))].slice(0, 7).map((item, index, all) => { const p = ringPoint(origin, index, all.length, 27); const feature = mapFeature({ id: `evidence-${index}-${item.title}`, kind: "corpus", title: item.title, value: item.visibility === "private" ? "Private evidence" : "Public evidence", meta: item.kind, visibility: item.visibility, evidenceCount: 1, provenance: `${item.visibility} · ${item.kind}` }); const points = `${p.x},${p.y - 1.8} ${p.x + 1.8},${p.y} ${p.x},${p.y + 1.8} ${p.x - 1.8},${p.y}`; return <g key={feature.id} {...interaction(feature)}><polygon points={points} className={item.visibility === "private" ? "fill-narrative-500" : "fill-paper-0 stroke-ink-700"} strokeWidth="0.45" /></g>; })}
 
-            {visibleKinds.has("live") && live ? <>
+            {regional && visibleKinds.has("live") && live ? <>
               <g {...interaction(mapFeature({ id: "live-weather", kind: "live", title: "Current weather", value: live.weather.summary, meta: `Wind ${fmt(live.weather.windKph, "km/h")} · precipitation ${fmt(live.weather.precipitationMm, "mm")}`, evidenceCount: 1, provenance: `Public feed · checked ${new Date(live.checkedAt).toLocaleString()}` }))}><circle cx={origin.x - 5} cy={origin.y - 5} r="2.1" className="fill-paper-0 stroke-signal-positive" strokeWidth="0.6" /><path d={`M ${origin.x - 6.4} ${origin.y - 5} h 2.8 M ${origin.x - 5} ${origin.y - 6.4} v 2.8`} className="stroke-signal-positive" strokeWidth="0.45" /></g>
               <g {...interaction(mapFeature({ id: "live-seismic", kind: "live", title: "Regional seismic activity", value: `${live.earthquakes.count7d} events`, meta: `Strongest magnitude ${live.earthquakes.strongestMagnitude?.toFixed(2) ?? "—"} · past 7 days`, evidenceCount: 1, provenance: `Public feed · checked ${new Date(live.checkedAt).toLocaleString()}` }))}><circle cx={origin.x + 5} cy={origin.y - 5} r="2.1" className="fill-paper-0 stroke-signal-caution" strokeWidth="0.6" /><circle cx={origin.x + 5} cy={origin.y - 5} r="0.7" className="fill-signal-caution" /></g>
             </> : null}
 
-            {POINTS.map((point) => { const p = project(point.lon, point.lat); const isSelected = point.code === code.toUpperCase(); const feature = mapFeature({ id: `place-${point.code}`, kind: "place", title: point.name, value: isSelected ? "Selected country" : "Regional comparator", meta: `${point.lat.toFixed(2)}°, ${point.lon.toFixed(2)}°` }); return <g key={point.code} {...interaction(feature)}><circle cx={p.x} cy={p.y} r="3.8" className="fill-transparent" /><circle cx={p.x} cy={p.y} r={isSelected ? 2.3 : 0.9} className={isSelected ? "fill-gold-500 stroke-ink-950" : "fill-paper-0 stroke-ink-500"} strokeWidth={isSelected ? 0.55 : 0.3} /><text x={p.x + 1.8} y={p.y - 1.4} className={isSelected ? "fill-ink-950 font-mono text-[2px]" : "fill-ink-600 font-mono text-[1.7px]"}>{isSelected ? point.name : point.code}</text></g>; })}
+            {regional && POINTS.map((point) => { const p = project(point.lon, point.lat); const isSelected = point.code === code.toUpperCase(); const feature = mapFeature({ id: `place-${point.code}`, kind: "place", title: point.name, value: isSelected ? "Selected country" : "Regional comparator", meta: `${point.lat.toFixed(2)}°, ${point.lon.toFixed(2)}°` }); return <g key={point.code} {...interaction(feature)}><circle cx={p.x} cy={p.y} r="3.8" className="fill-transparent" /><circle cx={p.x} cy={p.y} r={isSelected ? 2.3 : 0.9} className={isSelected ? "fill-gold-500 stroke-ink-950" : "fill-paper-0 stroke-ink-500"} strokeWidth={isSelected ? 0.55 : 0.3} /><text x={p.x + 1.8} y={p.y - 1.4} className={isSelected ? "fill-ink-950 font-mono text-[2px]" : "fill-ink-600 font-mono text-[1.7px]"}>{isSelected ? point.name : point.code}</text></g>; })}
+
+            {mapMode === "global" ? <>
+              {Array.from({ length: 13 }, (_, i) => WORLD.minLon + i * 30).map((lon) => { const a = projectGlobal(lon, WORLD.minLat); const b = projectGlobal(lon, WORLD.maxLat); return <line key={`g-lon-${lon}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} className="stroke-line-200" strokeWidth="0.14" />; })}
+              {[-30, 0, 30, 60].map((lat) => { const a = projectGlobal(WORLD.minLon, lat); const b = projectGlobal(WORLD.maxLon, lat); return <line key={`g-lat-${lat}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} className="stroke-line-200" strokeWidth="0.14" />; })}
+              <g {...interaction(mapFeature({ id: "global-country", kind: "place", title: countryName, value: "Selected country", meta: selected ? `${selected.lat.toFixed(2)}°, ${selected.lon.toFixed(2)}°` : "Approximate position" }))}>
+                <circle cx={countryGlobal.x} cy={countryGlobal.y} r="3.4" className="fill-transparent" />
+                <circle cx={countryGlobal.x} cy={countryGlobal.y} r="1.8" className="fill-gold-500 stroke-ink-950" strokeWidth="0.5" />
+                <text x={countryGlobal.x + 2.4} y={countryGlobal.y + 0.8} className="fill-ink-950 font-mono text-[2px]">{countryName}</text>
+              </g>
+              {mappablePartners.map((partner, index) => {
+                const p = projectGlobal(partner.lon as number, partner.lat as number);
+                const side = sideByNode.get(partner.nodeKey) ?? "input";
+                const flowLabel = flows.find((f) => f.nodeKey === partner.nodeKey)?.label ?? partner.nodeKey;
+                const weight = Math.max(0.45, Math.min(1.8, (partner.valueUsdM ?? (partner.sharePct ?? 8) * 8) / 250));
+                const midX = (p.x + countryGlobal.x) / 2; const midY = (p.y + countryGlobal.y) / 2;
+                const dx = countryGlobal.x - p.x; const dy = countryGlobal.y - p.y; const len = Math.max(1, Math.hypot(dx, dy));
+                const cx = midX - (dy / len) * Math.min(18, len * 0.22); const cy = midY + (dx / len) * Math.min(18, len * 0.22);
+                const pathD = `M ${p.x} ${p.y} Q ${cx} ${cy}, ${countryGlobal.x} ${countryGlobal.y}`;
+                const shareText = partner.sharePct != null ? `${partner.sharePct.toFixed(1)}% of ${flowLabel}` : null;
+                const valueText = partner.valueUsdM != null ? `US$${partner.valueUsdM.toFixed(2)}m` : null;
+                const feature = mapFeature({
+                  id: `partner-${partner.nodeKey}-${partner.partnerIso3 ?? partner.partnerName}-${index}`, kind: "capital",
+                  title: `${partner.partnerName} · ${flowLabel}`,
+                  value: [valueText, shareText].filter(Boolean).join(" · ") || "Share not estimated",
+                  meta: `${side === "input" ? "Inbound origin" : "Outbound destination"} · ${partner.period}`,
+                  visibility: partner.visibility, evidenceCount: 1,
+                  trend: "Partner geography is a snapshot for the stated period, not a time series.",
+                  provenance: `Partner share estimate · confidence grade ${partner.confidence} · ${partner.visibility} evidence`,
+                  signal: side === "input"
+                    ? `Capital recorded or modelled as flowing from ${partner.partnerName} into ${countryName}.`
+                    : `Capital recorded or modelled as flowing from ${countryName} toward ${partner.partnerName}.`,
+                  impact: "Partner concentration shows where external receipts or payments depend on a small set of countries; inspect the confidence grade and citation before use.",
+                });
+                return <g key={feature.id} {...interaction(feature)}>
+                  <path d={pathD} className={side === "input" ? "fill-none stroke-signal-positive" : "fill-none stroke-signal-caution"} strokeWidth={weight} strokeLinecap="round" strokeDasharray={partner.confidence === "A" ? undefined : "1.4 1"} opacity={hovered?.id === feature.id || pinnedFeature?.id === feature.id ? 1 : 0.72} />
+                  <path d={pathD} className="fill-none stroke-transparent" strokeWidth="4" />
+                  <circle cx={p.x} cy={p.y} r="1.3" className={side === "input" ? "fill-signal-positive" : "fill-signal-caution"} />
+                  <text x={p.x + 2} y={p.y - 1} className="fill-ink-700 font-mono text-[1.7px]">{partner.partnerIso3 ?? partner.partnerName.slice(0, 12)}</text>
+                </g>;
+              })}
+            </> : null}
           </svg>
+
+          <div className="absolute bottom-3 left-4 z-20 flex border border-line-200 bg-paper-0/95 shadow-sm" role="group" aria-label="Map view">
+            <button type="button" aria-pressed={mapMode === "regional"} onClick={() => { setMapMode("regional"); setView({ x: 0, y: 0, s: 1 }); }} className={`${mapMode === "regional" ? "btn-primary" : "btn-ghost"} min-h-8 px-3 font-mono text-[9px] uppercase tracking-[0.16em]`}>Regional</button>
+            <button type="button" aria-pressed={mapMode === "global"} onClick={() => { setMapMode("global"); setView({ x: 0, y: 0, s: 1 }); }} className={`${mapMode === "global" ? "btn-primary" : "btn-ghost"} min-h-8 gap-1.5 px-3 font-mono text-[9px] uppercase tracking-[0.16em]`}><Globe2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden /> Global flows</button>
+          </div>
+
+          {mapMode === "global" && mappablePartners.length === 0 ? (
+            <div className="absolute inset-x-4 bottom-16 z-10 mx-auto max-w-md border border-ink-950 bg-paper-0 p-4 shadow-lg">
+              <p className="font-serif text-base text-ink-950">No partner geography on record</p>
+              <p className="mt-1 text-xs leading-relaxed text-ink-600">
+                No cited partner countries have been committed for {countryName}&rsquo;s capital flows yet. A missing arc means no cited partner was found — it does not mean no flow exists.
+              </p>
+              {onResearchPartners ? (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button type="button" disabled={researchingPartners} onClick={onResearchPartners} className="btn-primary min-h-9 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em]">
+                    {researchingPartners ? "Researching…" : "Research partner geography"}
+                  </button>
+                  <Explain id="sovereign-eye.flow-partners" mark={false}>
+                    <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">How partners are sourced</span>
+                  </Explain>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="absolute right-4 top-4 z-20 flex flex-col border border-line-200 bg-paper-0/95 shadow-sm" role="group" aria-label="Map zoom controls">
             <button type="button" className="btn-ghost h-9 w-9 justify-center p-0" aria-label="Zoom in" title="Zoom in" onClick={() => zoomAt(1 / 1.3)}><Plus className="h-4 w-4" /></button>
@@ -386,7 +466,9 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
               <InterpretationPanel feature={hovered} pinned={false} />
             </div>
           ) : null}
-          <div className="absolute bottom-3 right-4 font-mono text-[8px] uppercase tracking-[0.14em] text-ink-500">Caribbean orientation · schematic projection</div>
+          <div className="absolute bottom-3 right-4 font-mono text-[8px] uppercase tracking-[0.14em] text-ink-500">
+            {mapMode === "global" ? "Global flows · schematic world view · graticule lines are reference only" : "Caribbean orientation · schematic projection"}
+          </div>
       </div>
     </section>
   );

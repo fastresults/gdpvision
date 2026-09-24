@@ -1,5 +1,5 @@
 // @domain sovereign-eye
-// @tables capital_flow_nodes,countries,country_capital_flows,country_kpi_points,country_kpis,country_sectors,country_sources,memory_objects,ministries,ministry_profiles,sectors,sovereign_eye_scenes
+// @tables capital_flow_nodes,countries,country_capital_flow_partners,country_capital_flows,country_kpi_points,country_kpis,country_sectors,country_sources,memory_objects,ministries,ministry_profiles,sectors,sovereign_eye_scenes
 // @ui src/components/sovereign-eye/SovereignEyeWorkspace.tsx; src/routes/_authenticated/admin/countries.$code.godseye.tsx
 
 import { createServerFn } from "@tanstack/react-start";
@@ -106,6 +106,19 @@ export type SovereignEyeFlow = {
   notes: string | null;
 };
 
+export type SovereignEyeFlowPartner = {
+  nodeKey: string;
+  period: string;
+  partnerName: string;
+  partnerIso3: string | null;
+  lat: number | null;
+  lon: number | null;
+  sharePct: number | null;
+  valueUsdM: number | null;
+  confidence: string;
+  visibility: "public" | "private";
+};
+
 export type SovereignEyeEvidence = {
   sources: Array<{
     title: string;
@@ -163,6 +176,7 @@ export type SovereignEyeWorkspaceData = {
   kpis: SovereignEyeKpi[];
   sectors: SovereignEyeSector[];
   flows: SovereignEyeFlow[];
+  flowPartners: SovereignEyeFlowPartner[];
   evidence: SovereignEyeEvidence;
   live: SovereignEyeLiveFeed;
   scenes: SovereignEyeScene[];
@@ -384,6 +398,7 @@ async function loadWorkspaceData(countryCode: string): Promise<SovereignEyeWorks
     ministryRes,
     profileRes,
     flowRes,
+    flowPartnerRes,
     nodeRes,
     sourceRes,
     memoryRes,
@@ -409,6 +424,12 @@ async function loadWorkspaceData(countryCode: string): Promise<SovereignEyeWorks
       .eq("country_code", cc)
       .order("value_usd_m", { ascending: false })
       .limit(40),
+    supabaseAdmin
+      .from("country_capital_flow_partners")
+      .select("node_key,period,partner_name,partner_iso3,partner_lat,partner_lon,share_pct,value_usd_m,confidence_grade,visibility,updated_at")
+      .eq("country_code", cc)
+      .order("value_usd_m", { ascending: false })
+      .limit(60),
     supabaseAdmin.from("capital_flow_nodes").select("node_key,label,side,sort_order").order("sort_order"),
     supabaseAdmin
       .from("country_sources")
@@ -438,6 +459,7 @@ async function loadWorkspaceData(countryCode: string): Promise<SovereignEyeWorks
     ministryRes.error,
     profileRes.error,
     flowRes.error,
+    flowPartnerRes.error,
     nodeRes.error,
     sourceRes.error,
     memoryRes.error,
@@ -514,6 +536,19 @@ async function loadWorkspaceData(countryCode: string): Promise<SovereignEyeWorks
       notes: f.notes,
     };
   });
+
+  const flowPartners: SovereignEyeFlowPartner[] = (flowPartnerRes.data ?? []).map((p) => ({
+    nodeKey: p.node_key,
+    period: p.period,
+    partnerName: p.partner_name,
+    partnerIso3: p.partner_iso3,
+    lat: p.partner_lat == null ? null : numeric(p.partner_lat),
+    lon: p.partner_lon == null ? null : numeric(p.partner_lon),
+    sharePct: p.share_pct == null ? null : numeric(p.share_pct),
+    valueUsdM: p.value_usd_m == null ? null : numeric(p.value_usd_m),
+    confidence: p.confidence_grade ?? "C",
+    visibility: normalizedVisibility(p.visibility),
+  }));
 
   const sources = (sourceRes.data ?? []).map((s) => ({
     title: s.title,
@@ -645,6 +680,7 @@ async function loadWorkspaceData(countryCode: string): Promise<SovereignEyeWorks
     kpis,
     sectors,
     flows,
+    flowPartners,
     evidence: { sources, memory },
     live,
     scenes: (sceneRes.data ?? []).map(toScene),
@@ -812,6 +848,48 @@ export const generateSovereignEyeBrief = createServerFn({ method: "POST" })
       text: text || "The AI run completed without answer text. Review the selected layers and try again.",
       generatedAt: new Date().toISOString(),
     };
+  });
+
+// Admin-triggered deep research for bilateral partner geography. Writes
+// commit-eligible partner rows into country_capital_flow_partners via the
+// corpus writer (normalized-key upsert, citations snapshotted per row).
+export const researchCapitalFlowPartners = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => CountryInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const countryCode = data.countryCode.toUpperCase();
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden: admin only");
+    const { searchCapitalFlowPartners } = await import("@/lib/corpus/searchers/flow-partners.server");
+    const { upsertCapitalFlowPartner } = await import("@/lib/corpus/writers.server");
+
+    const result = await searchCapitalFlowPartners({ countryCode });
+    if (!result) {
+      return { written: 0, tier: null as string | null, message: "No cited partner geography found for this country yet." };
+    }
+    let written = 0;
+    for (const partner of result.data.partners) {
+      const partnerCitations = partner.source_url
+        ? result.citations.filter((c) => c.url === partner.source_url)
+        : result.citations.slice(0, 3);
+      await upsertCapitalFlowPartner({
+        country_code: countryCode,
+        node_key: partner.node_key,
+        period: result.data.period,
+        partner_name: partner.partner_name,
+        partner_iso3: partner.partner_iso3 ?? null,
+        share_pct: partner.share_pct ?? null,
+        value_usd_m: partner.value_usd_m ?? null,
+        confidence_grade: partner.confidence_grade ?? "C",
+        visibility: "public",
+        citations: partnerCitations.length ? partnerCitations : result.citations.slice(0, 3),
+      });
+      written += 1;
+    }
+    return { written, tier: result.tier, message: null as string | null };
   });
 
 export const getPublicSovereignEyeScene = createServerFn({ method: "GET" })

@@ -320,6 +320,46 @@ export async function upsertCapitalFlow(input: {
   return { id: written.id as string };
 }
 
+// --- Capital flow partner geography ---------------------------------------
+// Dedup on (country_code, node_key, period, partner_name). Coordinates are
+// resolved from the built-in ISO3 centroid table — never guessed.
+export async function upsertCapitalFlowPartner(input: {
+  country_code: string;
+  node_key: string;
+  period: string;
+  partner_name: string;
+  partner_iso3?: string | null;
+  share_pct?: number | null;
+  value_usd_m?: number | null;
+  confidence_grade?: string;
+  visibility?: string;
+  citations?: CorpusCitation[];
+}): Promise<{ id: string }> {
+  const { partnerCentroid, partnerCentroidByName } = await import("@/lib/geo/partner-centroids");
+  const centroid = partnerCentroid(input.partner_iso3) ?? partnerCentroidByName(input.partner_name);
+  const row = {
+    country_code: input.country_code,
+    node_key: input.node_key,
+    period: input.period,
+    partner_name: input.partner_name,
+    partner_iso3: (input.partner_iso3 ?? centroid?.iso3 ?? null) as string | null,
+    partner_lat: centroid?.lat ?? null,
+    partner_lon: centroid?.lon ?? null,
+    share_pct: input.share_pct ?? null,
+    value_usd_m: input.value_usd_m ?? null,
+    confidence_grade: input.confidence_grade ?? "C",
+    visibility: input.visibility ?? "public",
+    citations: (input.citations ?? []) as unknown as Json,
+    updated_at: new Date().toISOString(),
+  };
+  const written = assertDbRow<{ id: string }>(await supabaseAdmin
+    .from("country_capital_flow_partners")
+    .upsert(row as never, { onConflict: "country_code,node_key,period,partner_name" })
+    .select("id")
+    .single(), `upsert capital flow partner ${input.country_code}/${input.node_key}/${input.partner_name}`);
+  return { id: written.id as string };
+}
+
 // --- Citation record ------------------------------------------------------
 // Deduped on (draft_id, url) via the unique index in migration 20260714204429_*.
 // Citations are always attached to an onboarding_drafts row; call sites that

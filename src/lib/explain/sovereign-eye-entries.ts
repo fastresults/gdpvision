@@ -41,6 +41,15 @@ const ENTRIES: Array<Rationale<never>> = [
     caveat:
       "A visual size, line width, evidence count or single observation is not a time trend. Where the required history or scenario is absent, the map says so rather than inferring a direction.",
   },
+  {
+    key: "sovereign-eye.flow-partners",
+    title: "How partner geography is sourced",
+    short: "Global flow arcs are drawn only from cited bilateral partner records, never from invented locations.",
+    basis:
+      "A dedicated research pass asks for the top origin countries (inflows) or destination countries (outflows) per capital-flow node, with an approximate share and a citation for every row. Coordinates come from a fixed reference table of country centroids. Shares and values below the strongest confidence grade are drawn dashed.",
+    caveat:
+      "Partner shares are model estimates from cited bilateral sources (IMF CDIS/CPIS, UN Comtrade, central bank bulletins), not official bilateral statistics. A missing arc means no cited partner was found — it does not mean no flow exists.",
+  },
 ];
 
 registerRationales(ENTRIES);

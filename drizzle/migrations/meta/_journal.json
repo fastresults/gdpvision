@@ -43,6 +43,13 @@
       "when": 1790259258206,
       "tag": "0005_capital_flow_nodes_signed_in_read",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790288161115,
+      "tag": "0006_create_capital_flow_partners",
+      "breakpoints": true
     }
   ]
 }

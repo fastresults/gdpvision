@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { RegionMap, type MapFeature } from "@/components/sovereign-eye/RegionMap";
-import { getPublicSovereignEyeScene, type SovereignEyeEvidence, type SovereignEyeFlow, type SovereignEyeKpi, type SovereignEyeLiveFeed, type SovereignEyeSector } from "@/lib/sovereign-eye.functions";
+import { getPublicSovereignEyeScene, type SovereignEyeEvidence, type SovereignEyeFlow, type SovereignEyeFlowPartner, type SovereignEyeKpi, type SovereignEyeLiveFeed, type SovereignEyeSector } from "@/lib/sovereign-eye.functions";
 
 function normalizeSnapshotKpis(value: unknown): SovereignEyeKpi[] {
   if (!Array.isArray(value)) return [];
@@ -52,6 +52,7 @@ function SharedSceneRoute() {
     : {};
   const kpis = normalizeSnapshotKpis(snapshot.kpis);
   const flows = Array.isArray(snapshot.flows) ? snapshot.flows as SovereignEyeFlow[] : [];
+  const flowPartners = Array.isArray(snapshot.flowPartners) ? snapshot.flowPartners as SovereignEyeFlowPartner[] : [];
   const sectors = Array.isArray(snapshot.sectors) ? snapshot.sectors as SovereignEyeSector[] : [];
   const evidence = snapshot.evidence && typeof snapshot.evidence === "object" && !Array.isArray(snapshot.evidence)
     ? snapshot.evidence as SovereignEyeEvidence
@@ -78,6 +79,7 @@ function SharedSceneRoute() {
               layers={data.layers}
               kpis={kpis}
               flows={flows}
+              flowPartners={flowPartners}
               sectors={sectors}
               evidence={evidence}
               live={live}

@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import {
   generateSovereignEyeBrief,
   getSovereignEyeWorkspace,
+  researchCapitalFlowPartners,
   saveSovereignEyeScene,
   type SovereignEyeKpi,
   type SovereignEyeScene,
@@ -22,7 +23,7 @@ import { RegionMap, type MapFeature } from "./RegionMap";
 
 export const sovereignEyeQuery = (code: string) =>
   queryOptions<SovereignEyeWorkspaceData>({
-    queryKey: ["sovereign-eye", code, "workspace", 2],
+    queryKey: ["sovereign-eye", code, "workspace", 3],
     queryFn: () => getSovereignEyeWorkspace({ data: { countryCode: code } }),
     staleTime: 60_000,
   });
@@ -52,6 +53,11 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
   const qc = useQueryClient();
   const briefFn = useServerFn(generateSovereignEyeBrief);
   const saveSceneFn = useServerFn(saveSovereignEyeScene);
+  const researchPartnersFn = useServerFn(researchCapitalFlowPartners);
+  const researchPartnersMut = useMutation({
+    mutationFn: () => researchPartnersFn({ data: { countryCode: code } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["sovereign-eye", code, "workspace"] }),
+  });
   const [focusedLayerId, setFocusedLayerId] = useState(data.layers[0]?.id ?? "macro-pulse");
   const [visibleLayerIds, setVisibleLayerIds] = useState(() => data.layers.filter((l) => l.visible).map((l) => l.id));
   const [aiSelectedLayerIds, setAiSelectedLayerIds] = useState(() => data.layers.filter((l) => l.visible).map((l) => l.id));
@@ -120,8 +126,9 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
             country: data.country.code,
             generatedAt: data.diagnostics.generatedAt,
              publicSnapshot: sceneVisibility === "public" ? {
-                kpis: kpis.filter((item) => item.visibility === "public"),
-               flows: data.flows.filter((item) => item.visibility === "public"),
+                 kpis: kpis.filter((item) => item.visibility === "public"),
+                flows: data.flows.filter((item) => item.visibility === "public"),
+                flowPartners: data.flowPartners.filter((item) => item.visibility === "public"),
                sectors: data.sectors,
                evidence: {
                  sources: data.evidence.sources.filter((item) => item.visibility === "public"),
@@ -242,6 +249,9 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
           countryName={data.country.name}
             layers={renderedLayers}
           flows={data.flows}
+            flowPartners={data.flowPartners}
+            onResearchPartners={() => researchPartnersMut.mutate()}
+            researchingPartners={researchPartnersMut.isPending}
             kpis={kpis}
            sectors={data.sectors}
            evidence={data.evidence}

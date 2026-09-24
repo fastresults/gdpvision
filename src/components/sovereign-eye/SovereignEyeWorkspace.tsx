@@ -8,6 +8,7 @@ import {
   generateSovereignEyeBrief,
   getSovereignEyeWorkspace,
   saveSovereignEyeScene,
+  type SovereignEyeKpi,
   type SovereignEyeScene,
   type SovereignEyeWorkspaceData,
 } from "@/lib/sovereign-eye.functions";
@@ -19,7 +20,7 @@ import { RegionMap, type MapFeature } from "./RegionMap";
 
 export const sovereignEyeQuery = (code: string) =>
   queryOptions<SovereignEyeWorkspaceData>({
-    queryKey: ["sovereign-eye", code, "workspace"],
+    queryKey: ["sovereign-eye", code, "workspace", 2],
     queryFn: () => getSovereignEyeWorkspace({ data: { countryCode: code } }),
     staleTime: 60_000,
   });
@@ -29,8 +30,23 @@ function shareUrl(scene: SovereignEyeScene) {
   return `${window.location.origin}/s/${scene.shareToken}`;
 }
 
+function normalizeKpis(kpis: SovereignEyeKpi[]): SovereignEyeKpi[] {
+  return kpis.map((kpi) => ({
+    ...kpi,
+    points: Array.isArray((kpi as Partial<SovereignEyeKpi>).points)
+      ? kpi.points.filter(
+          (point): point is { period: string; value: number } =>
+            Boolean(point) &&
+            typeof point.period === "string" &&
+            Number.isFinite(point.value),
+        )
+      : [],
+  }));
+}
+
 export function SovereignEyeWorkspace({ code }: { code: string }) {
   const { data } = useSuspenseQuery(sovereignEyeQuery(code));
+  const kpis = useMemo(() => normalizeKpis(data.kpis), [data.kpis]);
   const qc = useQueryClient();
   const briefFn = useServerFn(generateSovereignEyeBrief);
   const saveSceneFn = useServerFn(saveSovereignEyeScene);
@@ -80,7 +96,7 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
             country: data.country.code,
             generatedAt: data.diagnostics.generatedAt,
              publicSnapshot: sceneVisibility === "public" ? {
-               kpis: data.kpis.filter((item) => item.visibility === "public"),
+                kpis: kpis.filter((item) => item.visibility === "public"),
                flows: data.flows.filter((item) => item.visibility === "public"),
                sectors: data.sectors,
                evidence: {
@@ -167,7 +183,7 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
           countryName={data.country.name}
            layers={data.layers.map((layer) => ({ ...layer, visible: visibleLayerIds.includes(layer.id) }))}
           flows={data.flows}
-           kpis={data.kpis}
+            kpis={kpis}
            sectors={data.sectors}
            evidence={data.evidence}
            live={data.live}
@@ -292,7 +308,7 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
       </section>
 
        <section ref={evidenceRef} className="scroll-mt-6">
-         <EvidencePanel kpis={data.kpis} sectors={data.sectors} flows={data.flows} evidence={data.evidence} />
+         <EvidencePanel kpis={kpis} sectors={data.sectors} flows={data.flows} evidence={data.evidence} />
        </section>
     </div>
   );

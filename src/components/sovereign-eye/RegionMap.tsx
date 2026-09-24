@@ -34,12 +34,12 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
   const [hovered, setHovered] = useState<MapFeature | null>(null);
   const [legendOpen, setLegendOpen] = useState(false);
   const [legendPosition, setLegendPosition] = useState<LegendPosition>({ x: 1, y: 0 });
+  const [legendPreferencesLoaded, setLegendPreferencesLoaded] = useState(false);
   const [mapSize, setMapSize] = useState<ElementSize>({ width: 0, height: 0 });
   const [legendSize, setLegendSize] = useState<ElementSize>({ width: 0, height: 0 });
   const mapRef = useRef<HTMLDivElement>(null);
   const legendRef = useRef<HTMLDivElement>(null);
   const legendToggleRef = useRef<HTMLButtonElement>(null);
-  const preferencesLoadedRef = useRef(false);
   const dragRef = useRef<{ pointerId: number; startX: number; startY: number; originLeft: number; originTop: number } | null>(null);
   const selected = POINTS.find((p) => p.code === code.toUpperCase()) ?? POINTS.find((p) => p.code === "KNA");
   const origin = selected ? project(selected.lon, selected.lat) : { x: 72, y: 54 };
@@ -74,15 +74,15 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
     } catch {
       setLegendPosition({ x: 1, y: 0 });
     } finally {
-      preferencesLoadedRef.current = true;
+      setLegendPreferencesLoaded(true);
     }
   }, []);
 
   useEffect(() => {
-    if (!preferencesLoadedRef.current) return;
+    if (!legendPreferencesLoaded) return;
     window.localStorage.setItem(LEGEND_POSITION_KEY, JSON.stringify(legendPosition));
     window.localStorage.setItem(LEGEND_OPEN_KEY, String(legendOpen));
-  }, [legendOpen, legendPosition]);
+  }, [legendOpen, legendPosition, legendPreferencesLoaded]);
 
   useEffect(() => {
     const map = mapRef.current;

@@ -66,14 +66,16 @@ export function SovereignEyeWorkspace({ code }: { code: string }) {
   const [focusCollapsed, setFocusCollapsed] = useState(false);
   const [mobileLayersOpen, setMobileLayersOpen] = useState(false);
   const [mobileFocusOpen, setMobileFocusOpen] = useState(false);
+  const [trayPreferencesLoaded, setTrayPreferencesLoaded] = useState(false);
 
   useEffect(() => {
     setLayersCollapsed(window.localStorage.getItem("sovereign-eye-layers-collapsed") === "true");
     setFocusCollapsed(window.localStorage.getItem("sovereign-eye-focus-collapsed") === "true");
+    setTrayPreferencesLoaded(true);
   }, []);
 
-  useEffect(() => { window.localStorage.setItem("sovereign-eye-layers-collapsed", String(layersCollapsed)); }, [layersCollapsed]);
-  useEffect(() => { window.localStorage.setItem("sovereign-eye-focus-collapsed", String(focusCollapsed)); }, [focusCollapsed]);
+  useEffect(() => { if (trayPreferencesLoaded) window.localStorage.setItem("sovereign-eye-layers-collapsed", String(layersCollapsed)); }, [layersCollapsed, trayPreferencesLoaded]);
+  useEffect(() => { if (trayPreferencesLoaded) window.localStorage.setItem("sovereign-eye-focus-collapsed", String(focusCollapsed)); }, [focusCollapsed, trayPreferencesLoaded]);
 
   const visibleLayers = useMemo(
     () => data.layers.filter((layer) => visibleLayerIds.includes(layer.id)),

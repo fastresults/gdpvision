@@ -4,6 +4,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import { VIDEO_CATEGORIES, type CategoryBehavior, type Item, type ItemCategory, type ThumbnailStatus } from "./kiosk-types";
 
 export { VIDEO_CATEGORIES, type Item, type ItemCategory, type ThumbnailStatus };
@@ -43,6 +44,7 @@ const ALLOWED_VIDEO_MIME = ["video/mp4", "video/webm", "video/quicktime"];
 const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
 
 export const uploadEventVideo = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) => {
     if (!(d instanceof FormData)) throw new Error("Expected FormData");
     const file = d.get("file");
@@ -100,6 +102,7 @@ export const listItems = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const createItem = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) =>
     z
       .object({
@@ -148,6 +151,7 @@ export const createItem = createServerFn({ method: "POST" })
   });
 
 export const updateItem = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) =>
     z
       .object({
@@ -183,7 +187,10 @@ export const updateItem = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-export const refreshFavicons = createServerFn({ method: "POST" }).handler(async () => {
+export const refreshFavicons = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
+  .middleware([requireAdmin])
+  .handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: rows, error } = await supabaseAdmin
     .from("items")
@@ -213,6 +220,7 @@ export const refreshFavicons = createServerFn({ method: "POST" }).handler(async 
 });
 
 export const deleteItem = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -231,6 +239,7 @@ export const deleteItem = createServerFn({ method: "POST" })
   });
 
 export const moveItem = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) =>
     z.object({ id: z.string().uuid(), direction: z.enum(["up", "down"]) }).parse(d),
   )
@@ -319,6 +328,7 @@ async function fetchScreenshotBytes(
 }
 
 export const generateItemThumbnail = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -397,6 +407,7 @@ export const generateItemThumbnail = createServerFn({ method: "POST" })
   });
 
 export const refreshAllThumbnails = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) =>
     z.object({ force: z.boolean().optional() }).optional().parse(d),
   )

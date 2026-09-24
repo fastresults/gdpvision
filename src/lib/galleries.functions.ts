@@ -4,6 +4,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import type { Gallery, GalleryItem, MediaMode } from "./kiosk-types";
 
 export type { Gallery, GalleryItem };
@@ -34,6 +35,7 @@ export const listAllGalleryItems = createServerFn({ method: "GET" }).handler(asy
 });
 
 export const createGallery = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) =>
     z
       .object({
@@ -68,6 +70,7 @@ export const createGallery = createServerFn({ method: "POST" })
   });
 
 export const updateGallery = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) =>
     z
       .object({
@@ -89,6 +92,7 @@ export const updateGallery = createServerFn({ method: "POST" })
   });
 
 export const deleteGallery = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -98,6 +102,7 @@ export const deleteGallery = createServerFn({ method: "POST" })
   });
 
 export const moveGallery = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) =>
     z.object({ id: z.string().uuid(), direction: z.enum(["up", "down"]) }).parse(d),
   )
@@ -138,6 +143,7 @@ export const moveGallery = createServerFn({ method: "POST" })
   });
 
 export const addGalleryItem = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) =>
     z
       .object({
@@ -178,6 +184,7 @@ export const addGalleryItem = createServerFn({ method: "POST" })
   });
 
 export const updateGalleryItem = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) =>
     z
       .object({
@@ -197,6 +204,7 @@ export const updateGalleryItem = createServerFn({ method: "POST" })
   });
 
 export const deleteGalleryItem = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -206,6 +214,7 @@ export const deleteGalleryItem = createServerFn({ method: "POST" })
   });
 
 export const moveGalleryItem = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
   .inputValidator((d: unknown) =>
     z.object({ id: z.string().uuid(), direction: z.enum(["up", "down"]) }).parse(d),
   )

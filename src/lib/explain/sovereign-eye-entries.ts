@@ -6,6 +6,15 @@ import { registerRationales, type Rationale } from "@/lib/explain/registry";
 
 const ENTRIES: Array<Rationale<never>> = [
   {
+    key: "sovereign-eye.globe-hazards",
+    title: "How the globe's hazard layers are sourced",
+    short: "Hurricanes come from NOAA's National Hurricane Center and earthquakes (M4.5+, past 7 days) from USGS, both U.S. public domain.",
+    basis:
+      "Feeds are fetched server-side, cached briefly (5 minutes for storms, 15 for earthquakes), and shown with distance from the selected country. Storm markers show the current centre from the latest advisory; ring size for earthquakes reflects magnitude only.",
+    caveat:
+      "Live context, not corpus evidence. GDPVision does not forecast storm tracks — use the official NHC cone. A feed that fails is marked unavailable rather than hidden.",
+  },
+  {
     key: "sovereign-eye.layer-strength",
     title: "How layer strength is derived",
     short: "The score blends available rows, confidence grades and freshness into a directional readiness signal.",

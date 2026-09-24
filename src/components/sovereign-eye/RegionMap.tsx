@@ -1,3 +1,4 @@
+import type { KpiPeer } from "@/lib/sovereign-eye/peer-stats";
 import { ChevronDown, CloudSun, Database, Globe2, GripVertical, Landmark, ListTree, Maximize2, Minus, Plus, Waves } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
@@ -21,6 +22,8 @@ export type MapFeature = {
   provenance?: string;
   visibility?: "public" | "private";
   evidenceCount?: number;
+  peer?: KpiPeer | null;
+  peerNote?: string;
 };
 
 const POINTS: GeoPoint[] = [
@@ -332,7 +335,7 @@ export function RegionMap({ code, countryName, layers, flows = [], flowPartners 
 
             {regional && visibleKinds.has("sector") && sectors.slice(0, 6).map((sector, index) => { const p = ringPoint(origin, index, Math.min(sectors.length, 6), 13); const feature = mapFeature({ id: `sector-${sector.code}`, kind: "sector", title: sector.label, value: `${sector.share.toFixed(2)}% of GDP`, meta: `${sector.ministers.length} ministry links`, evidenceCount: 1, provenance: `Confidence grade ${sector.grade}` }); return <g key={feature.id} {...interaction(feature)}><line x1={origin.x} y1={origin.y} x2={p.x} y2={p.y} className="stroke-gold-300" strokeWidth="0.35" /><circle cx={p.x} cy={p.y} r="4" className="fill-transparent" /><circle cx={p.x} cy={p.y} r={Math.max(1.4, Math.min(3.5, sector.share / 5))} className="fill-gold-500 stroke-paper-0" strokeWidth="0.5" /><text x={p.x + 2} y={p.y - 1.8} className="fill-ink-700 font-mono text-[1.65px]">{sector.label.slice(0, 16)}</text></g>; })}
 
-            {regional && visibleKinds.has("macro") && kpis.slice(0, 4).map((kpi, index) => { const p = ringPoint(origin, index, 4, 7.5); const feature = mapFeature({ id: `kpi-${kpi.code}`, kind: "macro", title: kpi.label, value: fmt(kpi.value, kpi.unit), meta: kpi.period ?? "No period", visibility: kpi.visibility, evidenceCount: 1, trend: kpiTrend(kpi), provenance: `${kpi.provenance} · ${kpi.visibility} evidence${kpi.target == null ? "" : ` · target ${kpi.target.toFixed(2)} ${kpi.unit}`}` }); return <g key={feature.id} {...interaction(feature)}><circle cx={p.x} cy={p.y} r="4" className="fill-transparent" /><circle cx={p.x} cy={p.y} r="1.5" className="fill-ink-950 stroke-paper-0" strokeWidth="0.45" /><text x={p.x + 2} y={p.y + 0.7} className="fill-ink-800 font-mono text-[1.55px]">{kpi.label.slice(0, 14)}</text></g>; })}
+            {regional && visibleKinds.has("macro") && kpis.slice(0, 4).map((kpi, index) => { const p = ringPoint(origin, index, 4, 7.5); const feature = mapFeature({ id: `kpi-${kpi.code}`, kind: "macro", title: kpi.label, value: fmt(kpi.value, kpi.unit), meta: kpi.period ?? "No period", visibility: kpi.visibility, evidenceCount: 1, trend: kpiTrend(kpi), peer: kpi.peer ?? null, provenance: `${kpi.provenance} · ${kpi.visibility} evidence${kpi.target == null ? "" : ` · target ${kpi.target.toFixed(2)} ${kpi.unit}`}` }); return <g key={feature.id} {...interaction(feature)}><circle cx={p.x} cy={p.y} r="4" className="fill-transparent" /><circle cx={p.x} cy={p.y} r="1.5" className="fill-ink-950 stroke-paper-0" strokeWidth="0.45" /><text x={p.x + 2} y={p.y + 0.7} className="fill-ink-800 font-mono text-[1.55px]">{kpi.label.slice(0, 14)}</text></g>; })}
 
             {regional && visibleKinds.has("ministry") && sectors.flatMap((sector) => sector.ministers).filter((m, i, all) => all.findIndex((x) => x.name === m.name) === i).slice(0, 5).map((ministry, index, all) => { const p = ringPoint(origin, index, all.length, 20); const feature = mapFeature({ id: `ministry-${index}`, kind: "ministry", title: ministry.name, value: ministry.minister ?? "Minister not resolved", meta: ministry.minister ? "Named minister profile available" : "Coverage gap", evidenceCount: 1 }); return <g key={feature.id} {...interaction(feature)}><rect x={p.x - 1.4} y={p.y - 1.4} width="2.8" height="2.8" className={ministry.minister ? "fill-ink-700" : "fill-paper-0 stroke-ink-500"} strokeWidth="0.4" /><text x={p.x + 2} y={p.y + 0.6} className="fill-ink-700 font-mono text-[1.55px]">{ministry.name.slice(0, 16)}</text></g>; })}
 

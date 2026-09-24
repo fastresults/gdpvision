@@ -191,3 +191,24 @@ export function computeBenchmarks(norm: NormalizedKpi[], meta: Map<string, { lab
   }
   return out;
 }
+
+/** Client-facing peer comparison attached to a KPI mark. */
+export type KpiPeer = {
+  value: number;
+  median: number;
+  peerMin: number;
+  peerMax: number;
+  n: number;
+  rank: number;
+  percentile: number;
+  z: number | null;
+  gap: number;
+  meaningful: boolean;
+  favourable: boolean | null;
+  periodSpan: string;
+  peers: Array<{ code: string; value: number }>;
+  drivers: Array<{ text: string; refs: number[] }>;
+  unknowns: string | null;
+  citations: Array<{ title: string; url: string }>;
+  explanationPending: boolean;
+};

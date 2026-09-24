@@ -150,25 +150,7 @@ export const getInvitationByToken = createServerFn({ method: "GET" })
     z.object({ token: z.string().min(20).max(200) }).parse(data),
   )
   .handler(async ({ data }) => {
-    const { createClient } = await import("@supabase/supabase-js");
-    const key = process.env.SUPABASE_PUBLISHABLE_KEY!;
-    const supabasePublic = createClient(
-      process.env.SUPABASE_URL!,
-      key,
-      {
-        auth: { persistSession: false, autoRefreshToken: false },
-        global: {
-          fetch: (input, init) => {
-            const h = new Headers(init?.headers);
-            if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`) {
-              h.delete("Authorization");
-            }
-            h.set("apikey", key);
-            return fetch(input, { ...init, headers: h });
-          },
-        },
-      },
-    );
+    const { supabaseAdmin: supabasePublic } = await import("@/integrations/supabase/client.server");
     const { data: row, error } = await supabasePublic
       .from("invitations")
       .select("id,email,role,country_code,expires_at,accepted_at,revoked_at,note")

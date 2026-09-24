@@ -3,8 +3,23 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointer
 
 import type { SovereignEyeEvidence, SovereignEyeFlow, SovereignEyeKpi, SovereignEyeLayer, SovereignEyeLiveFeed, SovereignEyeSector } from "@/lib/sovereign-eye.functions";
 
+import { InterpretationPanel } from "./InterpretationPanel";
+
 type GeoPoint = { code: string; name: string; lat: number; lon: number };
-export type MapFeature = { id: string; kind: SovereignEyeLayer["kind"] | "place"; title: string; value: string; meta: string; visibility?: "public" | "private"; evidenceCount?: number };
+export type MapFeature = {
+  id: string;
+  kind: SovereignEyeLayer["kind"] | "place" | "legend";
+  title: string;
+  value: string;
+  meta: string;
+  signal: string;
+  trend: string;
+  impact: string;
+  forecast: string;
+  provenance?: string;
+  visibility?: "public" | "private";
+  evidenceCount?: number;
+};
 
 const POINTS: GeoPoint[] = [
   { code: "BHS", name: "The Bahamas", lat: 25.0343, lon: -77.3963 }, { code: "BLZ", name: "Belize", lat: 17.1899, lon: -88.4976 },
@@ -27,6 +42,35 @@ const LEGEND_MARGIN = 16;
 type LegendPosition = { x: number; y: number };
 type ElementSize = { width: number; height: number };
 
+const NO_FORECAST = "No forecast attached. Select and save a named scenario before treating any projected path as a forecast.";
+const NO_TREND = "Trend unavailable. This view has only one comparable observation.";
+
+function kpiTrend(kpi: SovereignEyeKpi): string {
+  const points = kpi.points.filter((point) => Number.isFinite(point.value));
+  if (points.length < 2) return NO_TREND;
+  const previous = points[points.length - 2];
+  const current = points[points.length - 1];
+  if (!previous || !current) return NO_TREND;
+  const delta = current.value - previous.value;
+  const direction = Math.abs(delta) < 0.005 ? "Stable" : delta > 0 ? "Rising" : "Falling";
+  return `${direction}: ${delta >= 0 ? "+" : ""}${delta.toFixed(2)} ${kpi.unit} from ${previous.period} to ${current.period}.`;
+}
+
+function interpretation(kind: MapFeature["kind"], title: string): Pick<MapFeature, "signal" | "trend" | "impact" | "forecast"> {
+  if (kind === "macro") return { signal: "A macroeconomic observation anchored to the selected country.", trend: NO_TREND, impact: "Movement may affect fiscal room, household conditions, or the economy's near-term resilience; read it with its unit and period.", forecast: NO_FORECAST };
+  if (kind === "sector") return { signal: "Marker area represents this sector's share of GDP, not its growth rate.", trend: NO_TREND, impact: "A larger share signals greater economic concentration and potentially greater exposure to sector-specific shocks.", forecast: NO_FORECAST };
+  if (kind === "capital") return { signal: "A directional capital-flow observation; line width compares its value with other visible flows.", trend: NO_TREND, impact: "Inbound flows can expand available financing; outbound flows can show spending, transfers, or leakage. Direction alone is not a verdict.", forecast: NO_FORECAST };
+  if (kind === "ministry") return { signal: "A ministry node shows institutional coverage and named accountability.", trend: "Not a time trend. Coverage indicates whether responsible institutions are represented in the evidence.", impact: "Clear ownership helps identify who can respond to an economic signal; it does not measure ministry performance.", forecast: "Not applicable to an institutional coverage mark." };
+  if (kind === "corpus") return { signal: "An evidence record available to the country workspace.", trend: "Document volume is not an economic trend. Recency and verification describe evidence quality only.", impact: "Stronger, current evidence improves confidence in decisions but does not itself imply stronger economic performance.", forecast: "Not applicable to an evidence record." };
+  if (kind === "live") return { signal: "A current public condition near the selected country.", trend: "Current condition only; no historical direction is asserted here.", impact: "This may provide operational context, but macroeconomic impact requires linked exposure and duration evidence.", forecast: "No economic forecast is derived from this live reading." };
+  if (kind === "place") return { signal: "A geographic reference point in this schematic Caribbean projection.", trend: "Not applicable to a location marker.", impact: "It provides orientation and identifies the selected country or a regional comparator.", forecast: "Not applicable to a location marker." };
+  return { signal: title, trend: "This legend item explains a visual encoding, not a change over time.", impact: "Use the encoding to compare visible marks; inspect a specific mark for its economic context.", forecast: "Legend encodings do not contain forecasts." };
+}
+
+function mapFeature(base: Omit<MapFeature, "signal" | "trend" | "impact" | "forecast"> & Partial<Pick<MapFeature, "signal" | "trend" | "impact" | "forecast">>): MapFeature {
+  return { ...interpretation(base.kind, base.title), ...base };
+}
+
 export function RegionMap({ code, countryName, layers, flows = [], kpis = [], sectors = [], evidence = { sources: [], memory: [] }, live, focusedLayerId, pinnedFeature, onPin, onEvidence }: {
   code: string; countryName: string; layers: SovereignEyeLayer[]; flows?: SovereignEyeFlow[]; kpis?: SovereignEyeKpi[]; sectors?: SovereignEyeSector[];
   evidence?: SovereignEyeEvidence; live?: SovereignEyeLiveFeed; focusedLayerId: string; pinnedFeature?: MapFeature | null; onPin?: (feature: MapFeature | null) => void; onEvidence?: () => void;
@@ -41,24 +85,30 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
   const legendRef = useRef<HTMLDivElement>(null);
   const legendToggleRef = useRef<HTMLButtonElement>(null);
   const dragRef = useRef<{ pointerId: number; startX: number; startY: number; originLeft: number; originTop: number } | null>(null);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selected = POINTS.find((p) => p.code === code.toUpperCase()) ?? POINTS.find((p) => p.code === "KNA");
   const origin = selected ? project(selected.lon, selected.lat) : { x: 72, y: 54 };
   const active = layers.find((l) => l.id === focusedLayerId) ?? layers.find((l) => l.visible) ?? layers[0];
   const visibleKinds = new Set(layers.filter((l) => l.visible).map((l) => l.kind));
   const inspected = pinnedFeature ?? hovered;
   const legend = useMemo(() => [
-    { show: true, symbol: "selected", label: "Selected country" },
-    { show: visibleKinds.has("macro"), symbol: "macro", label: "Macro indicator" },
-    { show: visibleKinds.has("sector"), symbol: "sector", label: "Sector · size = GDP share" },
-    { show: visibleKinds.has("capital"), symbol: "input", label: "Inbound capital" },
-    { show: visibleKinds.has("capital"), symbol: "output", label: "Outbound capital" },
-    { show: visibleKinds.has("capital"), symbol: "width", label: "Line width = relative value" },
-    { show: visibleKinds.has("capital") && flows.some((flow) => flow.confidence !== "A"), symbol: "confidence", label: "Dashed = confidence B–D" },
-    { show: visibleKinds.has("ministry"), symbol: "ministry", label: "Ministry coverage" },
-    { show: visibleKinds.has("corpus"), symbol: "public", label: "Public evidence" },
-    { show: visibleKinds.has("corpus") && layers.some((l) => l.kind === "corpus" && l.visibility.private > 0), symbol: "private", label: "Private evidence" },
-    { show: visibleKinds.has("live"), symbol: "live", label: "Live public feed" },
+    { show: true, symbol: "selected", label: "Selected country", signal: "The gold marker identifies the country currently being analysed.", impact: "All country-anchored indicators and flows are read in relation to this location." },
+    { show: visibleKinds.has("macro"), symbol: "macro", label: "Macro indicator", signal: "A dark dot represents one current macroeconomic indicator.", impact: "Inspect the dot for its value, period, source, and any verified historical change." },
+    { show: visibleKinds.has("sector"), symbol: "sector", label: "Sector · size = GDP share", signal: "Circle area encodes sector share of GDP; larger means a larger share, not faster growth.", impact: "The pattern helps reveal economic concentration and sector exposure." },
+    { show: visibleKinds.has("capital"), symbol: "input", label: "Inbound capital", signal: "A green path carries a recorded or modelled inflow toward the country.", impact: "Inflows may expand financing or receipts; inspect method and confidence before drawing conclusions." },
+    { show: visibleKinds.has("capital"), symbol: "output", label: "Outbound capital", signal: "A gold path carries a recorded or modelled outflow away from the country.", impact: "Outflows can represent imports, transfers, or fiscal uses; they are not automatically negative." },
+    { show: visibleKinds.has("capital"), symbol: "width", label: "Line width = relative value", signal: "Thicker lines represent larger values relative to other visible capital flows.", impact: "Width compares magnitude in this view only; it does not indicate growth, importance, or confidence." },
+    { show: visibleKinds.has("capital") && flows.some((flow) => flow.confidence !== "A"), symbol: "confidence", label: "Dashed = lower confidence", signal: "A dashed path marks a flow below the strongest confidence grade.", impact: "Treat it as less certain and inspect its method and evidence before using it in a decision." },
+    { show: visibleKinds.has("ministry"), symbol: "ministry", label: "Ministry coverage", signal: "A square identifies a ministry represented in the country evidence.", impact: "It shows institutional accountability coverage, not ministry performance." },
+    { show: visibleKinds.has("corpus"), symbol: "public", label: "Public evidence", signal: "An outlined evidence mark can be shared with authorised country users.", impact: "It strengthens traceability but does not itself represent an economic outcome." },
+    { show: visibleKinds.has("corpus") && layers.some((l) => l.kind === "corpus" && l.visibility.private > 0), symbol: "private", label: "Private evidence", signal: "A filled evidence mark is restricted country material.", impact: "It can inform internal analysis but is excluded from public shared scenes." },
+    { show: visibleKinds.has("live"), symbol: "live", label: "Live public feed", signal: "A live symbol shows recently checked weather or seismic context.", impact: "It is operational context, not proof of economic impact or a forecast." },
   ].filter((item) => item.show), [layers, visibleKinds]);
+
+  function scheduleHover(feature: MapFeature | null) {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = setTimeout(() => setHovered(feature), feature ? 90 : 60);
+  }
 
   useEffect(() => {
     try {
@@ -140,8 +190,8 @@ export function RegionMap({ code, countryName, layers, flows = [], kpis = [], se
       tabIndex: 0,
       role: "button" as const,
       "aria-label": `${feature.title}: ${feature.value}. ${feature.meta}`,
-      onMouseEnter: () => setHovered(feature),
-      onMouseLeave: () => setHovered(null),
+      onMouseEnter: () => scheduleHover(feature),
+      onMouseLeave: () => scheduleHover(null),
       onFocus: () => setHovered(feature),
       onBlur: () => setHovered(null),
       onClick: () => onPin?.(pinnedFeature?.id === feature.id ? null : feature),

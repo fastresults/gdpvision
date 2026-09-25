@@ -8,7 +8,6 @@
 // hiding it.
 
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
@@ -22,6 +21,8 @@ import {
 import { PACKAGE_KINDS, PACKAGE_KIND_LABEL, type PackageKind } from "@/lib/syndication/db";
 import { cn } from "@/lib/utils";
 import "@/lib/explain/packages-entries";
+
+import { PackageViewerDialog } from "./PackageViewerDialog";
 
 const KIND_NOTE: Record<PackageKind, string> = {
   teaser: "One page. Drafted by the model from the project facts; every number checked.",
@@ -56,12 +57,16 @@ export function InvestorPackagesPanel({
   projectApproved,
   projectVersion,
   canApprove,
+  viewId,
+  onView,
 }: {
   code: string;
   projectId: string;
   projectApproved: boolean;
   projectVersion: number;
   canApprove: boolean;
+  viewId: string | null;
+  onView: (id: string | null) => void;
 }) {
   const list = useServerFn(listPackages);
   const generate = useServerFn(generatePackage);
@@ -114,6 +119,16 @@ export function InvestorPackagesPanel({
 
   const packages = q.data?.packages ?? [];
   const aiAvailable = q.data?.aiAvailable ?? true;
+  const viewKind = packages.find((p) => p.id === viewId)?.kind;
+  const viewVersions = viewKind
+    ? packages.filter((p) => p.kind === viewKind).sort((a, b) => b.version - a.version)
+    : [];
+  const canApproveVersion = (p: PackageSummary) =>
+    p.status === "draft" &&
+    canApprove &&
+    projectApproved &&
+    p.project_version === projectVersion &&
+    !p.drafted_by_me;
 
   return (
     <section aria-labelledby="investor-materials-heading" className="space-y-5">
@@ -263,15 +278,13 @@ export function InvestorPackagesPanel({
                       : "Generate"}
                 </button>
                 {latest ? (
-                  <Link
-                    to="/admin/countries/$code/investments/$id/package/$packageId"
-                    params={{ code, id: projectId, packageId: latest.id }}
-                    target="_blank"
-                    rel="noopener"
+                  <button
+                    type="button"
+                    onClick={() => onView(latest.id)}
                     className="btn-ghost px-3 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.16em]"
                   >
-                    Open ↗
-                  </Link>
+                    Open
+                  </button>
                 ) : null}
                 {latest && latest.status === "draft" ? (
                   <button
@@ -327,15 +340,13 @@ export function InvestorPackagesPanel({
                         {v.kind !== "data_room" && v.warnings > 0 ? (
                           <span className="text-signal-caution">{v.warnings} unverified</span>
                         ) : null}
-                        <Link
-                          to="/admin/countries/$code/investments/$id/package/$packageId"
-                          params={{ code, id: projectId, packageId: v.id }}
-                          target="_blank"
-                          rel="noopener"
+                        <button
+                          type="button"
+                          onClick={() => onView(v.id)}
                           className="ml-auto text-ink-700 underline decoration-line-200 underline-offset-4 hover:text-ink-950"
                         >
                           Open
-                        </Link>
+                        </button>
                       </li>
                     ))}
                   </ol>
@@ -345,6 +356,18 @@ export function InvestorPackagesPanel({
           );
         })}
       </div>
+
+      <PackageViewerDialog
+        code={code}
+        projectId={projectId}
+        packageId={viewId}
+        versions={viewVersions}
+        onSelect={(id) => onView(id)}
+        onClose={() => onView(null)}
+        canApprove={canApproveVersion}
+        approving={appr.isPending}
+        onApprove={(p) => appr.mutate({ id: p.id, kind: p.kind })}
+      />
     </section>
   );
 }

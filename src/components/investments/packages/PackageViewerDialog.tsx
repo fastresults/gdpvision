@@ -69,7 +69,8 @@ export function PackageViewerDialog({
   function print() {
     document.body.classList.add("print-viewer");
     const prev = document.title;
-    if (pkg) document.title = `${pkg.project_title} — ${PACKAGE_KIND_LABEL[pkg.kind]} v${pkg.version}`;
+    if (pkg)
+      document.title = `${pkg.project_title} — ${PACKAGE_KIND_LABEL[pkg.kind]} v${pkg.version}`;
     window.print();
     document.title = prev;
   }
@@ -88,7 +89,12 @@ export function PackageViewerDialog({
               </span>
             </DialogDescription>
             {pkg ? (
-              <span className={cn("font-mono text-[10px] uppercase tracking-[0.16em]", STATUS_CLASS[pkg.status])}>
+              <span
+                className={cn(
+                  "font-mono text-[10px] uppercase tracking-[0.16em]",
+                  STATUS_CLASS[pkg.status],
+                )}
+              >
                 {pkg.status}
               </span>
             ) : null}
@@ -104,7 +110,13 @@ export function PackageViewerDialog({
           <div className="ml-auto flex flex-wrap items-center gap-2">
             {versions.length > 1 ? (
               <div className="flex items-center gap-1">
-                <button type="button" className={cn("btn-ghost", tool)} disabled={!older} onClick={() => older && onSelect(older.id)} aria-label="Older version">
+                <button
+                  type="button"
+                  className={cn("btn-ghost", tool)}
+                  disabled={!older}
+                  onClick={() => older && onSelect(older.id)}
+                  aria-label="Older version"
+                >
                   ←
                 </button>
                 <select
@@ -119,7 +131,13 @@ export function PackageViewerDialog({
                     </option>
                   ))}
                 </select>
-                <button type="button" className={cn("btn-ghost", tool)} disabled={!newer} onClick={() => newer && onSelect(newer.id)} aria-label="Newer version">
+                <button
+                  type="button"
+                  className={cn("btn-ghost", tool)}
+                  disabled={!newer}
+                  onClick={() => newer && onSelect(newer.id)}
+                  aria-label="Newer version"
+                >
                   →
                 </button>
               </div>
@@ -143,13 +161,20 @@ export function PackageViewerDialog({
                 Open full page
               </Link>
             ) : null}
-            <button type="button" className={cn("btn-primary", tool)} onClick={print} disabled={!pkg}>
+            <button
+              type="button"
+              className={cn("btn-primary", tool)}
+              onClick={print}
+              disabled={!pkg}
+            >
               Print / Save PDF
             </button>
           </div>
         </div>
         <div className="pkg-viewer-body min-h-0 flex-1 overflow-auto bg-paper-50 px-3 py-6 sm:px-8 print:bg-paper-0 print:p-0">
-          {q.isLoading ? <p className="mx-auto max-w-[8.5in] text-[13px] text-ink-500">Loading…</p> : null}
+          {q.isLoading ? (
+            <p className="mx-auto max-w-[8.5in] text-[13px] text-ink-500">Loading…</p>
+          ) : null}
           {q.error ? (
             <p role="alert" className="mx-auto max-w-[8.5in] text-[13px] text-signal-negative">
               {(q.error as Error).message}

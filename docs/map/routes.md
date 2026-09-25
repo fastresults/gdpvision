@@ -193,3 +193,5 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/api/public/hooks/press-discover` | `src/routes/api/public/hooks/press-discover.ts` |
 | `/api/public/hooks/press-tick` | `src/routes/api/public/hooks/press-tick.ts` |
 | `/api/public/hooks/source-health` | `src/routes/api/public/hooks/source-health.ts` |
+| `/api/public/v1/countries/$code/$resource` | `src/routes/api/public/v1/countries.$code.$resource.ts` |
+| `/api/public/v1/handshake` | `src/routes/api/public/v1/handshake.ts` |

@@ -6,6 +6,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { ApprovalPanel } from "@/components/egov/ApprovalPanel";
 import { BrandPreview } from "@/components/egov/BrandPreview";
+import { ConnectionPanel } from "@/components/egov/ConnectionPanel";
 import { MICRO, PRD_META, SECTION_META } from "@/components/egov/labels";
 import { SectionEditor } from "@/components/egov/SectionEditor";
 import { SharePanel } from "@/components/egov/SharePanel";
@@ -347,6 +348,11 @@ function PrdPage() {
                 prdId={prdId}
                 approved={data.prd.status === "approved"}
                 canShare={data.capabilities.approve}
+              />
+              <ConnectionPanel
+                code={code}
+                prdId={prdId}
+                approved={data.prd.status === "approved"}
               />
               <aside className="border-t border-line-200 pt-4">
                 <div className={MICRO}>Scope</div>

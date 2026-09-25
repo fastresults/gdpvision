@@ -18,6 +18,8 @@ import chambersMap from "../../../docs/map/chambers.md?raw";
 
 import { db, type AnyClient } from "@/lib/syndication/db";
 
+import { API_SCOPES, API_SCOPE_LABEL } from "./api-keys.functions";
+import { brandPayload } from "./api.server";
 import { brandContextLines, buildBrandTokens, type BrandTokens } from "./brand";
 import type { ContextLine, PrdScope } from "./db";
 import type { EgovStage } from "./stages";
@@ -499,6 +501,68 @@ function repoLines(): ContextLine[] {
       "repo_file",
       "prds/PRD-digital-government-studio.md#8",
       "GDPVision interface contract",
+    ),
+  ];
+}
+
+/** The flag as logo and favicon, and the photography plan — the same payload the API serves. */
+function marksAndImageryLines(code: string, t: BrandTokens): ContextLine[] {
+  const b = brandPayload(code, t);
+  const src = (k: string, text: string) =>
+    line(k, text, "user", "brand", "Brand marks and imagery");
+  return [
+    src(
+      "marks.logo",
+      `Logo: ${b.flag.usage.logo}${b.flag.svg ? ` Vector flag: ${b.flag.svg}` : ""}`,
+    ),
+    src(
+      "marks.favicon",
+      `Favicon files: ${b.flag.usage.favicon.join(", ")}. Touch icon: ${b.flag.usage.touch_icon}`,
+    ),
+    src("marks.rule", b.flag.usage.rule),
+    src("imagery.style", `Imagery style: ${b.imagery.style}`),
+    ...b.imagery.rules.map((r, i) => src(`imagery.rule.${i + 1}`, `Imagery rule: ${r}`)),
+    ...b.imagery.required_sets.map((x) =>
+      src(`imagery.set.${x.key}`, `Required image set "${x.key}" — ${x.purpose}: ${x.count}`),
+    ),
+  ];
+}
+
+/** The GDPVision → platform API, as the architecture section must describe it. */
+function apiContractLines(code: string): ContextLine[] {
+  const base = `https://gdpvision.com/api/public/v1`;
+  const src = (k: string, text: string) =>
+    line(k, text, "repo_file", "src/lib/egov/api.server.ts", "GDPVision API contract");
+  return [
+    src(
+      "api.auth",
+      `Authentication: every request carries "Authorization: Bearer gdpv_${code.toLowerCase()}_…", a key issued from the PRD's Platform connection panel; keys are scoped to resources, expire, and can be revoked.`,
+    ),
+    src(
+      "api.handshake",
+      `Handshake: GET ${base}/handshake returns the country, the key's scopes, the approved PRD version, the brand payload (tokens, flag, favicon, imagery rules) and the URL of every resource the key may read.`,
+    ),
+    ...API_SCOPES.map((s) =>
+      src(
+        `api.resource.${s}`,
+        `Resource: GET ${base}/countries/${code}/${s} — ${API_SCOPE_LABEL[s]}.`,
+      ),
+    ),
+    src(
+      "api.envelope",
+      "Envelope: { country, resource, version, generated_at, count, next_since, data }; kpis, commitments, sectors, projects, brain and sources accept ?since=<next_since> for incremental sync.",
+    ),
+    src(
+      "api.sync",
+      "Sync: poll hourly on the server side, store the last good copy, and serve it when GDPVision is unreachable; responses may be cached for 60 seconds.",
+    ),
+    src(
+      "api.env",
+      `Environment variables on the platform: GDPVISION_BASE_URL=${base}, GDPVISION_COUNTRY=${code}, GDPVISION_API_KEY=<the key>; the key never reaches the browser.`,
+    ),
+    src(
+      "api.boundary",
+      "Never served: PRD drafts and context packs, compliance records, beneficial owners, persona data, narrative signals, cabinet minutes, unapproved projects or investor materials, and any row not marked public.",
     ),
   ];
 }

@@ -70,6 +70,7 @@ import { Route as AuthenticatedInstrumentCabinetIndexRouteImport } from './route
 import { Route as AuthenticatedConsoleCodeIndexRouteImport } from './routes/_authenticated/console.$code.index'
 import { Route as AuthenticatedAdminCountriesIndexRouteImport } from './routes/_authenticated/admin/countries.index'
 import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kiosk.api.public.presentation-pdf'
+import { Route as ApiPublicV1HandshakeRouteImport } from './routes/api/public/v1/handshake'
 import { Route as ApiPublicHooksSourceHealthRouteImport } from './routes/api/public/hooks/source-health'
 import { Route as ApiPublicHooksPressTickRouteImport } from './routes/api/public/hooks/press-tick'
 import { Route as ApiPublicHooksPressDiscoverRouteImport } from './routes/api/public/hooks/press-discover'
@@ -131,6 +132,7 @@ import { Route as AuthenticatedAdminCountriesCodePortfolioIndexRouteImport } fro
 import { Route as AuthenticatedAdminCountriesCodePersonasIndexRouteImport } from './routes/_authenticated/admin/countries.$code.personas.index'
 import { Route as AuthenticatedAdminCountriesCodeNarrativeIndexRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.index'
 import { Route as AuthenticatedAdminCountriesCodeCabinetIndexRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.index'
+import { Route as ApiPublicV1CountriesCodeResourceRouteImport } from './routes/api/public/v1/countries.$code.$resource'
 import { Route as AuthenticatedAdminCountriesCodeScenariosNewRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios.new'
 import { Route as AuthenticatedAdminCountriesCodeScenariosCompareRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios.compare'
 import { Route as AuthenticatedAdminCountriesCodeScenariosIdRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios.$id'
@@ -496,6 +498,11 @@ const KioskApiPublicPresentationPdfRoute =
     path: '/api/public/presentation-pdf',
     getParentRoute: () => KioskRoute,
   } as any)
+const ApiPublicV1HandshakeRoute = ApiPublicV1HandshakeRouteImport.update({
+  id: '/api/public/v1/handshake',
+  path: '/api/public/v1/handshake',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksSourceHealthRoute =
   ApiPublicHooksSourceHealthRouteImport.update({
     id: '/api/public/hooks/source-health',
@@ -857,6 +864,12 @@ const AuthenticatedAdminCountriesCodeCabinetIndexRoute =
     path: '/countries/$code/cabinet/',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const ApiPublicV1CountriesCodeResourceRoute =
+  ApiPublicV1CountriesCodeResourceRouteImport.update({
+    id: '/api/public/v1/countries/$code/$resource',
+    path: '/api/public/v1/countries/$code/$resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAdminCountriesCodeScenariosNewRoute =
   AuthenticatedAdminCountriesCodeScenariosNewRouteImport.update({
     id: '/new',
@@ -1098,6 +1111,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/press-discover': typeof ApiPublicHooksPressDiscoverRoute
   '/api/public/hooks/press-tick': typeof ApiPublicHooksPressTickRoute
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
+  '/api/public/v1/handshake': typeof ApiPublicV1HandshakeRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/admin/countries/': typeof AuthenticatedAdminCountriesIndexRoute
   '/console/$code/': typeof AuthenticatedConsoleCodeIndexRoute
@@ -1137,6 +1151,7 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/scenarios/$id': typeof AuthenticatedAdminCountriesCodeScenariosIdRoute
   '/admin/countries/$code/scenarios/compare': typeof AuthenticatedAdminCountriesCodeScenariosCompareRoute
   '/admin/countries/$code/scenarios/new': typeof AuthenticatedAdminCountriesCodeScenariosNewRoute
+  '/api/public/v1/countries/$code/$resource': typeof ApiPublicV1CountriesCodeResourceRoute
   '/admin/countries/$code/cabinet/': typeof AuthenticatedAdminCountriesCodeCabinetIndexRoute
   '/admin/countries/$code/narrative/': typeof AuthenticatedAdminCountriesCodeNarrativeIndexRoute
   '/admin/countries/$code/personas/': typeof AuthenticatedAdminCountriesCodePersonasIndexRoute
@@ -1242,6 +1257,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/press-discover': typeof ApiPublicHooksPressDiscoverRoute
   '/api/public/hooks/press-tick': typeof ApiPublicHooksPressTickRoute
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
+  '/api/public/v1/handshake': typeof ApiPublicV1HandshakeRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/admin/countries': typeof AuthenticatedAdminCountriesIndexRoute
   '/console/$code': typeof AuthenticatedConsoleCodeIndexRoute
@@ -1276,6 +1292,7 @@ export interface FileRoutesByTo {
   '/admin/countries/$code/scenarios/$id': typeof AuthenticatedAdminCountriesCodeScenariosIdRoute
   '/admin/countries/$code/scenarios/compare': typeof AuthenticatedAdminCountriesCodeScenariosCompareRoute
   '/admin/countries/$code/scenarios/new': typeof AuthenticatedAdminCountriesCodeScenariosNewRoute
+  '/api/public/v1/countries/$code/$resource': typeof ApiPublicV1CountriesCodeResourceRoute
   '/admin/countries/$code/cabinet': typeof AuthenticatedAdminCountriesCodeCabinetIndexRoute
   '/admin/countries/$code/narrative': typeof AuthenticatedAdminCountriesCodeNarrativeIndexRoute
   '/admin/countries/$code/personas': typeof AuthenticatedAdminCountriesCodePersonasIndexRoute
@@ -1387,6 +1404,7 @@ export interface FileRoutesById {
   '/api/public/hooks/press-discover': typeof ApiPublicHooksPressDiscoverRoute
   '/api/public/hooks/press-tick': typeof ApiPublicHooksPressTickRoute
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
+  '/api/public/v1/handshake': typeof ApiPublicV1HandshakeRoute
   '/kiosk/api/public/presentation-pdf': typeof KioskApiPublicPresentationPdfRoute
   '/_authenticated/admin/countries/': typeof AuthenticatedAdminCountriesIndexRoute
   '/_authenticated/console/$code/': typeof AuthenticatedConsoleCodeIndexRoute
@@ -1426,6 +1444,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/scenarios/$id': typeof AuthenticatedAdminCountriesCodeScenariosIdRoute
   '/_authenticated/admin/countries/$code/scenarios/compare': typeof AuthenticatedAdminCountriesCodeScenariosCompareRoute
   '/_authenticated/admin/countries/$code/scenarios/new': typeof AuthenticatedAdminCountriesCodeScenariosNewRoute
+  '/api/public/v1/countries/$code/$resource': typeof ApiPublicV1CountriesCodeResourceRoute
   '/_authenticated/admin/countries/$code/cabinet/': typeof AuthenticatedAdminCountriesCodeCabinetIndexRoute
   '/_authenticated/admin/countries/$code/narrative/': typeof AuthenticatedAdminCountriesCodeNarrativeIndexRoute
   '/_authenticated/admin/countries/$code/personas/': typeof AuthenticatedAdminCountriesCodePersonasIndexRoute
@@ -1537,6 +1556,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/press-discover'
     | '/api/public/hooks/press-tick'
     | '/api/public/hooks/source-health'
+    | '/api/public/v1/handshake'
     | '/kiosk/api/public/presentation-pdf'
     | '/admin/countries/'
     | '/console/$code/'
@@ -1576,6 +1596,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/scenarios/$id'
     | '/admin/countries/$code/scenarios/compare'
     | '/admin/countries/$code/scenarios/new'
+    | '/api/public/v1/countries/$code/$resource'
     | '/admin/countries/$code/cabinet/'
     | '/admin/countries/$code/narrative/'
     | '/admin/countries/$code/personas/'
@@ -1681,6 +1702,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/press-discover'
     | '/api/public/hooks/press-tick'
     | '/api/public/hooks/source-health'
+    | '/api/public/v1/handshake'
     | '/kiosk/api/public/presentation-pdf'
     | '/admin/countries'
     | '/console/$code'
@@ -1715,6 +1737,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/scenarios/$id'
     | '/admin/countries/$code/scenarios/compare'
     | '/admin/countries/$code/scenarios/new'
+    | '/api/public/v1/countries/$code/$resource'
     | '/admin/countries/$code/cabinet'
     | '/admin/countries/$code/narrative'
     | '/admin/countries/$code/personas'
@@ -1825,6 +1848,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/press-discover'
     | '/api/public/hooks/press-tick'
     | '/api/public/hooks/source-health'
+    | '/api/public/v1/handshake'
     | '/kiosk/api/public/presentation-pdf'
     | '/_authenticated/admin/countries/'
     | '/_authenticated/console/$code/'
@@ -1864,6 +1888,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/countries/$code/scenarios/$id'
     | '/_authenticated/admin/countries/$code/scenarios/compare'
     | '/_authenticated/admin/countries/$code/scenarios/new'
+    | '/api/public/v1/countries/$code/$resource'
     | '/_authenticated/admin/countries/$code/cabinet/'
     | '/_authenticated/admin/countries/$code/narrative/'
     | '/_authenticated/admin/countries/$code/personas/'
@@ -1912,6 +1937,8 @@ export interface RootRouteChildren {
   ApiPublicHooksPressDiscoverRoute: typeof ApiPublicHooksPressDiscoverRoute
   ApiPublicHooksPressTickRoute: typeof ApiPublicHooksPressTickRoute
   ApiPublicHooksSourceHealthRoute: typeof ApiPublicHooksSourceHealthRoute
+  ApiPublicV1HandshakeRoute: typeof ApiPublicV1HandshakeRoute
+  ApiPublicV1CountriesCodeResourceRoute: typeof ApiPublicV1CountriesCodeResourceRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2343,6 +2370,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KioskApiPublicPresentationPdfRouteImport
       parentRoute: typeof KioskRoute
     }
+    '/api/public/v1/handshake': {
+      id: '/api/public/v1/handshake'
+      path: '/api/public/v1/handshake'
+      fullPath: '/api/public/v1/handshake'
+      preLoaderRoute: typeof ApiPublicV1HandshakeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/source-health': {
       id: '/api/public/hooks/source-health'
       path: '/api/public/hooks/source-health'
@@ -2769,6 +2803,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/countries/$code/cabinet/'
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeCabinetIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/api/public/v1/countries/$code/$resource': {
+      id: '/api/public/v1/countries/$code/$resource'
+      path: '/api/public/v1/countries/$code/$resource'
+      fullPath: '/api/public/v1/countries/$code/$resource'
+      preLoaderRoute: typeof ApiPublicV1CountriesCodeResourceRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/countries/$code/scenarios/new': {
       id: '/_authenticated/admin/countries/$code/scenarios/new'
@@ -3482,6 +3523,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksPressDiscoverRoute: ApiPublicHooksPressDiscoverRoute,
   ApiPublicHooksPressTickRoute: ApiPublicHooksPressTickRoute,
   ApiPublicHooksSourceHealthRoute: ApiPublicHooksSourceHealthRoute,
+  ApiPublicV1HandshakeRoute: ApiPublicV1HandshakeRoute,
+  ApiPublicV1CountriesCodeResourceRoute: ApiPublicV1CountriesCodeResourceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

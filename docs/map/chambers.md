@@ -77,6 +77,7 @@ Each of the 7 chambers = a route surface + component tree + server-fn module(s) 
 - **Governance**: `egov_prds_guard` enforces the status machine, two-person rule and `can_approve_egov` (country_admin, cabinet_secretary); a section edit on a submitted/approved PRD reopens it; approval refuses out-of-date sections
 - **Drafting**: one stage per call (`draftSection`), in `EGOV_STAGES` order; the model sees only the stage's context pack (corpus rows + scope + brand tokens + the bundled `AGENTS.md`/chamber map for the architecture stage) and must cite pack keys; unsupported sections are recorded as gaps
 - **Staleness**: `checkStale` re-hashes each pack's corpus lines and marks changed sections `stale`
+- **Platform connection**: public API v1 for the country's e-government platform — `src/routes/api/public/v1/{handshake,countries.$code.$resource}.ts`, contract in `src/lib/egov/api.server.ts`, keys in `egov/api-keys.functions.ts` (`egov_api_keys`, migration 0013), UI `components/egov/ConnectionPanel.tsx`; brand payload carries flag-as-logo/favicon (`MARKS_USAGE`) and the imagery plan (`IMAGERY_SPEC`) from `egov/brand.ts`
 - **Explain**: `src/lib/explain/egov-entries.ts` (`egov.*`)
 - **Next phases** (see `prds/PRD-digital-government-studio.md` in the working folder): live repo reads + PRD commits to `content/egov/<CODE>/`, daily staleness hook, public v1 API, scaffold of the country's own `egov-<code>` repository
 

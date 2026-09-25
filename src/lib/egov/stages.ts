@@ -99,10 +99,10 @@ export const EGOV_STAGES: EgovStageMeta[] = [
     ordinal: 7,
     label: "7. Brand system",
     short: "Brand",
-    heading: "Brand system",
-    desc: "National flag tokens and house rules.",
+    heading: "Brand system, marks and imagery",
+    desc: "Flag tokens, logo and favicon, photography plan.",
     brief:
-      "Describe the brand system for the platform from the tokens provided: how each colour is used (type, borders, rules, a single accent), typography, spacing, iconography, and the accessibility contrast results. State the rules plainly: light surfaces, colour in borders and accents only, no reversed-out text on dark fills, one accent.",
+      "Describe the brand system for the platform from the tokens provided: how each colour is used (type, borders, rules, a single accent), typography, spacing, iconography, and the accessibility contrast results. State the rules plainly: light surfaces, colour in borders and accents only, no reversed-out text on dark fills, one accent. Then specify the marks: the national flag is the platform's primary logo (vector flag beside the platform name in the ink colour) and its favicon and touch icon, in the sizes given; no other emblem unless the government supplies its official arms. Then specify the imagery: the documentary photography style, the rules for alt text, captions, consent and framing, and the required image sets per landing page, audience, priority service, journey and governance tool, from the imagery lines provided. A platform built from this section must not ship without those image sets.",
     after: [],
   },
   {
@@ -110,10 +110,10 @@ export const EGOV_STAGES: EgovStageMeta[] = [
     ordinal: 8,
     label: "8. Architecture",
     short: "Architecture",
-    heading: "Architecture, tenancy and the GDPVision interface",
-    desc: "This repository's navigation index and maps.",
+    heading: "Architecture, tenancy and the GDPVision connection",
+    desc: "Repository index, maps and the public API contract.",
     brief:
-      "Specify the platform architecture as a separate product in its own repository: stack, hosting, environments, tenancy, content management, observability and security baseline. Specify the read-only interface it consumes from GDPVision (indicators, commitments, procurement, approved investor materials, ministries) and what never leaves GDPVision. Ground the interface section in the repository index provided.",
+      "Specify the platform architecture as a separate product in its own repository: stack, hosting, environments, tenancy, content management, observability and security baseline. Then specify the GDPVision connection exactly as the API contract lines describe it: the handshake, the keyed read-only endpoints per resource, the incremental sync with ?since, the sync interval, the last-good-copy rule when GDPVision is unreachable, which page or feature of the platform each resource feeds (indicators to the national figures, commitments to the commitments tracker, datasets to the open-data portal, procurement to tenders, projects to the invest journey, brand to the chrome), and the environment variables the platform needs. State what never leaves GDPVision. Ground the rest of the section in the repository index provided.",
     after: ["service_catalogue", "governance_layer", "outward_layer", "identity_payments_interop"],
   },
   {

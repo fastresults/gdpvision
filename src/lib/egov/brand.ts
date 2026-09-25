@@ -244,3 +244,41 @@ export function brandContextLines(t: BrandTokens): string[] {
     ...t.rules.map((r) => `Rule: ${r}`),
   ];
 }
+
+// ------------------------------------------------------------------ marks and imagery
+
+/** How the flag serves as the platform's logo and favicon. */
+export const MARKS_USAGE = {
+  logo: "The national flag is the platform's primary logo mark: the vector flag at 32–40px height beside the platform name set in the ink colour. No other emblem is introduced unless the government supplies its official arms.",
+  favicon: ["favicon.svg (the flag)", "favicon-32.png", "favicon-16.png"],
+  touch_icon:
+    "apple-touch-icon.png 180×180: the flag centred on the paper colour with 12% padding.",
+  rule: "The flag's own colours appear as hairline rules and borders only; they are never used as fills behind text.",
+} as const;
+
+/** The photography plan every platform built from a PRD must satisfy. */
+export const IMAGERY_SPEC = {
+  style:
+    "Documentary photography of the country's own people and places — natural light, unposed, the government service visible in context (a clinic desk, a school gate, a customs hall, a fishing harbour). No stock imagery, no renders, no flags as decoration.",
+  rules: [
+    "Every photograph carries alt text describing the scene and a place caption; no photograph appears without a hairline frame and the national rule beneath it.",
+    "One hero image per landing page, one image per audience, one per priority service, one per journey (invest, visit, relocate); portraits of ministers only from official sources.",
+    "Faces of members of the public appear only with consent recorded; children are photographed from behind or at a distance.",
+    "Images are stored in a single registry keyed by page or service, never inline in content data, so the platform can be re-skinned without touching copy.",
+  ],
+  required_sets: [
+    {
+      key: "hero",
+      purpose: "Home and section landings",
+      count: "1 per landing (home, services, governance, invest, visit, relocate)",
+    },
+    { key: "audience", purpose: "Each audience page", count: "6" },
+    { key: "service", purpose: "Each priority service", count: "10 at launch" },
+    { key: "journey", purpose: "Invest, visit, relocate", count: "3" },
+    {
+      key: "governance",
+      purpose: "Open data, budget, tenders, commitments, FOI, feedback",
+      count: "1 shared or 6",
+    },
+  ],
+} as const;

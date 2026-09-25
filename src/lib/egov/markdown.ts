@@ -55,6 +55,23 @@ export function prdToMarkdown(
             `- ${c.role}: ${c.ratio}:1 (${c.aa_text ? "AA" : c.aa_large ? "AA large" : "fails"})`,
         ),
         "",
+        "## Appendix · Marks",
+        "",
+        "- Logo: the national flag (vector) beside the platform name set in the ink colour.",
+        "- Favicon: favicon.svg (the flag), favicon-32.png, favicon-16.png; apple-touch-icon.png 180×180 on the paper colour.",
+        "- Flag colours appear as rules and borders only, never as fills behind text.",
+        "",
+        "## Appendix · GDPVision connection",
+        "",
+        "| Setting | Value |",
+        "|---|---|",
+        "| Base URL | https://gdpvision.com/api/public/v1 |",
+        "| Handshake | GET /handshake |",
+        `| Resources | GET /countries/${prd.country_code}/{brand, kpis, commitments, ministries, sectors, datasets, procurement, projects, brain, sources} |`,
+        "| Auth | Authorization: Bearer <key from the PRD's Platform connection panel> |",
+        "| Incremental | ?since=<next_since from the previous response> |",
+        "| Environment | GDPVISION_BASE_URL, GDPVISION_COUNTRY, GDPVISION_API_KEY (server only) |",
+        "",
       ]
     : [];
   return [...head, ...body, ...tokens].join("\n");

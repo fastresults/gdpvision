@@ -3,7 +3,8 @@
 // tokens enforce.
 
 import { Explain } from "@/components/explain/Explain";
-import type { BrandTokens } from "@/lib/egov/brand";
+import { IMAGERY_SPEC, MARKS_USAGE, type BrandTokens } from "@/lib/egov/brand";
+import { flagUrl } from "@/lib/caricom-registry";
 import { cn } from "@/lib/utils";
 
 import { MICRO } from "./labels";
@@ -120,6 +121,67 @@ export function BrandPreview({ brand }: { brand: BrandTokens }) {
             </li>
           ))}
         </ul>
+      </div>
+
+      <div className="mt-6 border-t border-line-200 pt-4">
+        <div className={MICRO}>Marks · logo and favicon</div>
+        <div className="mt-3 flex flex-wrap items-center gap-6">
+          {flagUrl(brand.country_code, "w160") && (
+            <div className="flex items-center gap-3 border border-line-200 px-4 py-3">
+              <img
+                src={flagUrl(brand.country_code, "w160") ?? undefined}
+                alt={`Flag of ${brand.country_code}`}
+                className="h-8 w-auto border border-line-200"
+              />
+              <span className="font-display text-lg" style={{ color: brand.ink }}>
+                Platform name
+              </span>
+            </div>
+          )}
+          {flagUrl(brand.country_code, "w160") && (
+            <div className="flex items-center gap-2">
+              {[32, 16].map((px) => (
+                <img
+                  key={px}
+                  src={flagUrl(brand.country_code, "w160") ?? undefined}
+                  alt=""
+                  aria-hidden
+                  style={{ width: px, height: px, objectFit: "cover" }}
+                  className="border border-line-200"
+                />
+              ))}
+              <span className="text-xs text-ink-500">favicon 32 / 16</span>
+            </div>
+          )}
+        </div>
+        <ul className="mt-3 space-y-1 text-sm text-ink-700">
+          <li>{MARKS_USAGE.logo}</li>
+          <li>
+            Favicon: {MARKS_USAGE.favicon.join(", ")}. {MARKS_USAGE.touch_icon}
+          </li>
+          <li>{MARKS_USAGE.rule}</li>
+        </ul>
+      </div>
+
+      <div className="mt-6 border-t border-line-200 pt-4">
+        <div className={MICRO}>Imagery</div>
+        <p className="mt-2 text-sm text-ink-700">{IMAGERY_SPEC.style}</p>
+        <table className="mt-3 w-full text-sm">
+          <tbody>
+            {IMAGERY_SPEC.required_sets.map((x) => (
+              <tr key={x.key} className="border-b border-line-200">
+                <td className="py-1.5 pr-3 font-mono text-xs text-ink-500">{x.key}</td>
+                <td className="py-1.5 pr-3 text-ink-950">{x.purpose}</td>
+                <td className="py-1.5 text-right text-xs text-ink-700">{x.count}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-ink-700">
+          {IMAGERY_SPEC.rules.map((r) => (
+            <li key={r}>{r}</li>
+          ))}
+        </ol>
       </div>
 
       <div className="mt-6 border-t border-line-200 pt-4">

@@ -182,13 +182,15 @@ function makeSummary(
         const perCapita = perCapitaByCode.get(code);
         return value == null
           ? []
-          : [{
-              code,
-              name: names.get(code) ?? code,
-              value,
-              period: String(perCapita?.ref_year ?? "Current"),
-              sourceUrl: perCapita ? sourceByKpi.get(perCapita.source_kpi_id) ?? null : null,
-            }];
+          : [
+              {
+                code,
+                name: names.get(code) ?? code,
+                value,
+                period: String(perCapita?.ref_year ?? "Current"),
+                sourceUrl: perCapita ? (sourceByKpi.get(perCapita.source_kpi_id) ?? null) : null,
+              },
+            ];
       });
       const available = distribution.length / memberCodes.length >= MIN_COVERAGE;
       return {

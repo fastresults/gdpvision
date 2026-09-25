@@ -241,6 +241,77 @@ function factsBlock(facts: PackageFacts): string {
   return `FACTS (key | label | display value | notes). These are the only facts you may use.\n${lines.join("\n")}`;
 }
 
+/** Pull a readable string out of whatever the model put in a string slot. */
+function asText(v: unknown): string {
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  if (v && typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    for (const k of ["text", "content", "value", "title", "item", "description", "body"]) {
+      if (typeof o[k] === "string") return o[k] as string;
+    }
+    const firstStr = Object.values(o).find((x) => typeof x === "string");
+    if (typeof firstStr === "string") return firstStr;
+  }
+  return "";
+}
+
+function unwrapOptional(s: z.ZodTypeAny): z.ZodTypeAny {
+  let cur: z.ZodTypeAny = s;
+  while (cur instanceof z.ZodOptional || cur instanceof z.ZodNullable) cur = cur.unwrap();
+  return cur;
+}
+
+/** Repair common near-misses (missing keys, string for list, objects for strings, wrappers). */
+function coerce(schema: z.ZodTypeAny, v: unknown): unknown {
+  const s = unwrapOptional(schema);
+  if (s instanceof z.ZodString) return asText(v);
+  if (s instanceof z.ZodArray) {
+    const el = s.element as z.ZodTypeAny;
+    const arr = Array.isArray(v)
+      ? v
+      : v == null || v === ""
+        ? []
+        : typeof v === "string"
+          ? v
+              .split(/\n+/)
+              .map((x) => x.replace(/^\s*[-*•\d.)]+\s*/, ""))
+              .filter(Boolean)
+          : [v];
+    return arr.map((x) => coerce(el, x));
+  }
+  if (s instanceof z.ZodObject) {
+    let o = v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+    const shape = s.shape as Record<string, z.ZodTypeAny>;
+    const keys = Object.keys(shape);
+    // Unwrap { "teaser": { ...fields } } style wrappers.
+    if (!keys.some((k) => k in o)) {
+      const inner = Object.values(o).find(
+        (x) =>
+          x && typeof x === "object" && !Array.isArray(x) && keys.some((k) => k in (x as object)),
+      );
+      if (inner) o = inner as Record<string, unknown>;
+    }
+    if (typeof v === "string" && keys.includes("text")) o = { text: v };
+    const out: Record<string, unknown> = {};
+    for (const k of keys) {
+      const field = shape[k];
+      const isOptional = field.isOptional() || field.isNullable();
+      if (o[k] == null && isOptional) out[k] = null;
+      else out[k] = coerce(field, o[k]);
+    }
+    return out;
+  }
+  return v;
+}
+
+function parseLenient<T>(schema: z.ZodType<T>, raw: unknown): T | null {
+  const direct = schema.safeParse(raw);
+  if (direct.success) return direct.data;
+  const fixed = schema.safeParse(coerce(schema as unknown as z.ZodTypeAny, raw));
+  return fixed.success ? fixed.data : null;
+}
+
 function parseFallback<T>(schema: z.ZodType<T>, text: string | undefined): T | null {
   if (!text) return null;
   const cleaned = text
@@ -251,8 +322,7 @@ function parseFallback<T>(schema: z.ZodType<T>, text: string | undefined): T | n
   const end = cleaned.lastIndexOf("}");
   if (start === -1 || end <= start) return null;
   try {
-    const r = schema.safeParse(JSON.parse(cleaned.slice(start, end + 1)));
-    return r.success ? r.data : null;
+    return parseLenient(schema, JSON.parse(cleaned.slice(start, end + 1)));
   } catch {
     return null;
   }
@@ -260,20 +330,28 @@ function parseFallback<T>(schema: z.ZodType<T>, text: string | undefined): T | n
 
 async function draft<T>(apiKey: string, schema: z.ZodType<T>, prompt: string): Promise<T> {
   const gateway = createLovableAiGatewayProvider(apiKey);
-  try {
-    const { output } = await generateText({
-      model: gateway(MODEL),
-      system: SYSTEM_PROMPT,
-      output: Output.object({ schema }),
-      prompt,
-    });
-    return output as T;
-  } catch (err) {
-    const e = err as { text?: string; message?: string };
-    const parsed = parseFallback(schema, e?.text);
-    if (parsed) return parsed;
-    throw new Error(`The draft could not be generated: ${e?.message ?? String(err)}`);
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const { output } = await generateText({
+        model: gateway(MODEL),
+        system: SYSTEM_PROMPT,
+        output: Output.object({ schema }),
+        prompt,
+      });
+      return output as T;
+    } catch (err) {
+      lastErr = err;
+      const e = err as { text?: string };
+      const parsed = parseFallback(schema, e?.text);
+      if (parsed) return parsed;
+      console.warn("[packages] draft attempt failed", attempt + 1, (err as Error)?.message);
+    }
   }
+  const msg = (lastErr as { message?: string })?.message ?? String(lastErr);
+  throw new Error(
+    `The draft could not be generated after two attempts. Please try again. (${msg})`,
+  );
 }
 
 const clean = (s: string | null | undefined) => (s ?? "").replace(/\s+/g, " ").trim();

@@ -71,6 +71,7 @@ import { Route as KioskApiPublicPresentationPdfRouteImport } from './routes/kios
 import { Route as ApiPublicHooksSourceHealthRouteImport } from './routes/api/public/hooks/source-health'
 import { Route as ApiPublicHooksPressTickRouteImport } from './routes/api/public/hooks/press-tick'
 import { Route as ApiPublicHooksPressDiscoverRouteImport } from './routes/api/public/hooks/press-discover'
+import { Route as ApiPublicHooksPeerAnalysisRouteImport } from './routes/api/public/hooks/peer-analysis'
 import { Route as ApiPublicHooksNarrativeHarvestRouteImport } from './routes/api/public/hooks/narrative-harvest'
 import { Route as ApiPublicHooksLedgerQaRouteImport } from './routes/api/public/hooks/ledger-qa'
 import { Route as ApiPublicHooksCadenceDailyRouteImport } from './routes/api/public/hooks/cadence-daily'
@@ -490,6 +491,12 @@ const ApiPublicHooksPressDiscoverRoute =
   ApiPublicHooksPressDiscoverRouteImport.update({
     id: '/api/public/hooks/press-discover',
     path: '/api/public/hooks/press-discover',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksPeerAnalysisRoute =
+  ApiPublicHooksPeerAnalysisRouteImport.update({
+    id: '/api/public/hooks/peer-analysis',
+    path: '/api/public/hooks/peer-analysis',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksNarrativeHarvestRoute =
@@ -1015,6 +1022,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/ledger-qa': typeof ApiPublicHooksLedgerQaRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
+  '/api/public/hooks/peer-analysis': typeof ApiPublicHooksPeerAnalysisRoute
   '/api/public/hooks/press-discover': typeof ApiPublicHooksPressDiscoverRoute
   '/api/public/hooks/press-tick': typeof ApiPublicHooksPressTickRoute
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
@@ -1148,6 +1156,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/ledger-qa': typeof ApiPublicHooksLedgerQaRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
+  '/api/public/hooks/peer-analysis': typeof ApiPublicHooksPeerAnalysisRoute
   '/api/public/hooks/press-discover': typeof ApiPublicHooksPressDiscoverRoute
   '/api/public/hooks/press-tick': typeof ApiPublicHooksPressTickRoute
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
@@ -1282,6 +1291,7 @@ export interface FileRoutesById {
   '/api/public/hooks/cadence-daily': typeof ApiPublicHooksCadenceDailyRoute
   '/api/public/hooks/ledger-qa': typeof ApiPublicHooksLedgerQaRoute
   '/api/public/hooks/narrative-harvest': typeof ApiPublicHooksNarrativeHarvestRoute
+  '/api/public/hooks/peer-analysis': typeof ApiPublicHooksPeerAnalysisRoute
   '/api/public/hooks/press-discover': typeof ApiPublicHooksPressDiscoverRoute
   '/api/public/hooks/press-tick': typeof ApiPublicHooksPressTickRoute
   '/api/public/hooks/source-health': typeof ApiPublicHooksSourceHealthRoute
@@ -1421,6 +1431,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/ledger-qa'
     | '/api/public/hooks/narrative-harvest'
+    | '/api/public/hooks/peer-analysis'
     | '/api/public/hooks/press-discover'
     | '/api/public/hooks/press-tick'
     | '/api/public/hooks/source-health'
@@ -1554,6 +1565,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/ledger-qa'
     | '/api/public/hooks/narrative-harvest'
+    | '/api/public/hooks/peer-analysis'
     | '/api/public/hooks/press-discover'
     | '/api/public/hooks/press-tick'
     | '/api/public/hooks/source-health'
@@ -1687,6 +1699,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cadence-daily'
     | '/api/public/hooks/ledger-qa'
     | '/api/public/hooks/narrative-harvest'
+    | '/api/public/hooks/peer-analysis'
     | '/api/public/hooks/press-discover'
     | '/api/public/hooks/press-tick'
     | '/api/public/hooks/source-health'
@@ -1763,6 +1776,7 @@ export interface RootRouteChildren {
   ApiPublicHooksCadenceDailyRoute: typeof ApiPublicHooksCadenceDailyRoute
   ApiPublicHooksLedgerQaRoute: typeof ApiPublicHooksLedgerQaRoute
   ApiPublicHooksNarrativeHarvestRoute: typeof ApiPublicHooksNarrativeHarvestRoute
+  ApiPublicHooksPeerAnalysisRoute: typeof ApiPublicHooksPeerAnalysisRoute
   ApiPublicHooksPressDiscoverRoute: typeof ApiPublicHooksPressDiscoverRoute
   ApiPublicHooksPressTickRoute: typeof ApiPublicHooksPressTickRoute
   ApiPublicHooksSourceHealthRoute: typeof ApiPublicHooksSourceHealthRoute
@@ -2202,6 +2216,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/press-discover'
       fullPath: '/api/public/hooks/press-discover'
       preLoaderRoute: typeof ApiPublicHooksPressDiscoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/peer-analysis': {
+      id: '/api/public/hooks/peer-analysis'
+      path: '/api/public/hooks/peer-analysis'
+      fullPath: '/api/public/hooks/peer-analysis'
+      preLoaderRoute: typeof ApiPublicHooksPeerAnalysisRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/narrative-harvest': {
@@ -3205,6 +3226,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksCadenceDailyRoute: ApiPublicHooksCadenceDailyRoute,
   ApiPublicHooksLedgerQaRoute: ApiPublicHooksLedgerQaRoute,
   ApiPublicHooksNarrativeHarvestRoute: ApiPublicHooksNarrativeHarvestRoute,
+  ApiPublicHooksPeerAnalysisRoute: ApiPublicHooksPeerAnalysisRoute,
   ApiPublicHooksPressDiscoverRoute: ApiPublicHooksPressDiscoverRoute,
   ApiPublicHooksPressTickRoute: ApiPublicHooksPressTickRoute,
   ApiPublicHooksSourceHealthRoute: ApiPublicHooksSourceHealthRoute,

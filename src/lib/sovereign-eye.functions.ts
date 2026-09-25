@@ -2,6 +2,7 @@
 // @tables capital_flow_nodes,countries,country_capital_flow_partners,country_capital_flows,country_kpi_points,country_kpis,country_sectors,country_sources,memory_objects,ministries,ministry_profiles,sectors,sovereign_eye_scenes
 // @ui src/components/sovereign-eye/SovereignEyeWorkspace.tsx; src/routes/_authenticated/admin/countries.$code.godseye.tsx
 
+import type { KpiPeer } from "@/lib/sovereign-eye/peer-stats";
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
@@ -84,6 +85,7 @@ export type SovereignEyeKpi = {
   provenance: string;
   visibility: "public" | "private";
   points: Array<{ period: string; value: number }>;
+  peer?: KpiPeer | null;
 };
 
 export type SovereignEyeSector = {
@@ -490,6 +492,27 @@ async function loadWorkspaceData(countryCode: string): Promise<SovereignEyeWorks
     }
   }
 
+  const [benchRes, explRes] = await Promise.all([
+    supabaseAdmin.from("peer_benchmarks").select("*").eq("country_code", cc),
+    supabaseAdmin.from("peer_gap_explanations").select("kpi_code,input_hash,drivers,unknowns,citations").eq("country_code", cc),
+  ]);
+  const expl = new Map((explRes.data ?? []).map((e) => [e.kpi_code, e]));
+  const peerByKpi = new Map<string, KpiPeer>();
+  for (const b of benchRes.data ?? []) {
+    const e = expl.get(b.kpi_code);
+    const fresh = e && e.input_hash === b.input_hash;
+    peerByKpi.set(b.kpi_code, {
+      value: Number(b.value), median: Number(b.median), peerMin: Number(b.peer_min), peerMax: Number(b.peer_max),
+      n: b.n, rank: b.rank ?? 0, percentile: Number(b.percentile ?? 0), z: b.z == null ? null : Number(b.z),
+      gap: Number(b.gap), meaningful: b.meaningful, favourable: b.favourable, periodSpan: b.period_span ?? "",
+      peers: (b.peer_values as Array<{ code: string; value: number }>) ?? [],
+      drivers: fresh ? ((e.drivers as Array<{ text: string; refs: number[] }>) ?? []) : [],
+      unknowns: fresh ? e.unknowns : null,
+      citations: fresh ? ((e.citations as Array<{ title: string; url: string }>) ?? []) : [],
+      explanationPending: b.meaningful && !fresh,
+    });
+  }
+
   const kpis: SovereignEyeKpi[] = (kpiRes.data ?? [])
     .filter((k) => HEADLINE_KPIS.has(k.kpi_code) || k.latest_value != null)
     .slice(0, 12)
@@ -505,6 +528,7 @@ async function loadWorkspaceData(countryCode: string): Promise<SovereignEyeWorks
       provenance: k.provenance ?? "unknown",
       visibility: normalizedVisibility(k.visibility),
       points: pointsByKpi.get(k.id) ?? [],
+      peer: peerByKpi.get(k.kpi_code) ?? null,
     }));
 
   const sectors: SovereignEyeSector[] = (sectorRes.data ?? []).slice(0, 10).map((s) => ({

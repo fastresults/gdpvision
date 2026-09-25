@@ -175,6 +175,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/api/public/hooks/cadence-daily` | `src/routes/api/public/hooks/cadence-daily.ts` |
 | `/api/public/hooks/ledger-qa` | `src/routes/api/public/hooks/ledger-qa.ts` |
 | `/api/public/hooks/narrative-harvest` | `src/routes/api/public/hooks/narrative-harvest.ts` |
+| `/api/public/hooks/peer-analysis` | `src/routes/api/public/hooks/peer-analysis.ts` |
 | `/api/public/hooks/press-discover` | `src/routes/api/public/hooks/press-discover.ts` |
 | `/api/public/hooks/press-tick` | `src/routes/api/public/hooks/press-tick.ts` |
 | `/api/public/hooks/source-health` | `src/routes/api/public/hooks/source-health.ts` |

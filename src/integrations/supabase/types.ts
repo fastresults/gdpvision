@@ -6092,6 +6092,204 @@ export type Database = {
         }
         Relationships: []
       }
+      peer_analysis_runs: {
+        Row: {
+          last_finished_at: string | null
+          last_started_at: string | null
+          last_summary: Json
+          lease_until: string | null
+          name: string
+          pause_reason: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          last_finished_at?: string | null
+          last_started_at?: string | null
+          last_summary?: Json
+          lease_until?: string | null
+          name: string
+          pause_reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          last_finished_at?: string | null
+          last_started_at?: string | null
+          last_summary?: Json
+          lease_until?: string | null
+          name?: string
+          pause_reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      peer_benchmarks: {
+        Row: {
+          computed_at: string
+          country_code: string
+          direction: string | null
+          favourable: boolean | null
+          gap: number | null
+          id: string
+          input_hash: string
+          kpi_code: string
+          label: string | null
+          mad: number | null
+          meaningful: boolean
+          median: number | null
+          n: number
+          peer_max: number | null
+          peer_min: number | null
+          peer_values: Json
+          percentile: number | null
+          period_span: string | null
+          rank: number | null
+          ref_year: number | null
+          unit: string | null
+          value: number | null
+          z: number | null
+        }
+        Insert: {
+          computed_at?: string
+          country_code: string
+          direction?: string | null
+          favourable?: boolean | null
+          gap?: number | null
+          id?: string
+          input_hash: string
+          kpi_code: string
+          label?: string | null
+          mad?: number | null
+          meaningful?: boolean
+          median?: number | null
+          n?: number
+          peer_max?: number | null
+          peer_min?: number | null
+          peer_values?: Json
+          percentile?: number | null
+          period_span?: string | null
+          rank?: number | null
+          ref_year?: number | null
+          unit?: string | null
+          value?: number | null
+          z?: number | null
+        }
+        Update: {
+          computed_at?: string
+          country_code?: string
+          direction?: string | null
+          favourable?: boolean | null
+          gap?: number | null
+          id?: string
+          input_hash?: string
+          kpi_code?: string
+          label?: string | null
+          mad?: number | null
+          meaningful?: boolean
+          median?: number | null
+          n?: number
+          peer_max?: number | null
+          peer_min?: number | null
+          peer_values?: Json
+          percentile?: number | null
+          period_span?: string | null
+          rank?: number | null
+          ref_year?: number | null
+          unit?: string | null
+          value?: number | null
+          z?: number | null
+        }
+        Relationships: []
+      }
+      peer_gap_explanations: {
+        Row: {
+          citations: Json
+          country_code: string
+          created_at: string
+          drivers: Json
+          id: string
+          input_hash: string
+          kpi_code: string
+          model: string | null
+          unknowns: string | null
+        }
+        Insert: {
+          citations?: Json
+          country_code: string
+          created_at?: string
+          drivers?: Json
+          id?: string
+          input_hash: string
+          kpi_code: string
+          model?: string | null
+          unknowns?: string | null
+        }
+        Update: {
+          citations?: Json
+          country_code?: string
+          created_at?: string
+          drivers?: Json
+          id?: string
+          input_hash?: string
+          kpi_code?: string
+          model?: string | null
+          unknowns?: string | null
+        }
+        Relationships: []
+      }
+      peer_kpi_normalized: {
+        Row: {
+          country_code: string
+          excluded_reason: string | null
+          id: string
+          is_projection: boolean
+          kpi_code: string
+          outlier_flag: boolean
+          raw_period: string | null
+          raw_unit: string | null
+          raw_value: number | null
+          ref_year: number | null
+          source_kpi_id: string | null
+          unit_std: string | null
+          updated_at: string
+          value_std: number | null
+        }
+        Insert: {
+          country_code: string
+          excluded_reason?: string | null
+          id?: string
+          is_projection?: boolean
+          kpi_code: string
+          outlier_flag?: boolean
+          raw_period?: string | null
+          raw_unit?: string | null
+          raw_value?: number | null
+          ref_year?: number | null
+          source_kpi_id?: string | null
+          unit_std?: string | null
+          updated_at?: string
+          value_std?: number | null
+        }
+        Update: {
+          country_code?: string
+          excluded_reason?: string | null
+          id?: string
+          is_projection?: boolean
+          kpi_code?: string
+          outlier_flag?: boolean
+          raw_period?: string | null
+          raw_unit?: string | null
+          raw_value?: number | null
+          ref_year?: number | null
+          source_kpi_id?: string | null
+          unit_std?: string | null
+          updated_at?: string
+          value_std?: number | null
+        }
+        Relationships: []
+      }
       persona_chat_messages: {
         Row: {
           chat_id: string

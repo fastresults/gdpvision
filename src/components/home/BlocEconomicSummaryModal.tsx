@@ -60,7 +60,7 @@ export function BlocEconomicSummaryModal({
 }) {
   const fetchSummary = useServerFn(getBlocEconomicSummary);
   const { data, isPending, error } = useQuery({
-    queryKey: ["bloc-economic-summary", 1],
+    queryKey: ["bloc-economic-summary", 2],
     queryFn: () => fetchSummary(),
     enabled: open,
     staleTime: 30 * 60_000,

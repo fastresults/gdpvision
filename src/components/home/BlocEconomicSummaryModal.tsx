@@ -220,7 +220,10 @@ function ComparisonCategoryRow({
   const perspective = metricPerspective(caricom, oecs, "caricom", "comparison");
   const interaction = useExecutivePerspective(perspective);
   return (
-    <div {...interaction} className="contents">
+    <div
+      {...interaction}
+      className="col-span-3 grid grid-cols-subgrid outline-none transition-colors data-[perspective-active=true]:bg-paper-100"
+    >
       <div
         className="border-t border-line-200 p-3 outline-none transition-colors data-[perspective-active=true]:bg-paper-100 sm:p-4"
       >

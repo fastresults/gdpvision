@@ -110,7 +110,7 @@ function PeerRow({ feature }: { feature: MapFeature }) {
             </ul>
             {peer.unknowns ? <p className="mt-1 text-ink-500">Unknown: {peer.unknowns}</p> : null}
           </div>
-        ) : <p className="mt-2 text-ink-500">Explanation pending — drivers are researched in the next monthly run.</p>
+        ) : <p className="mt-2 text-ink-500">{peer.explanationPending ? "Explanation pending — drivers are researched in the next monthly run." : peer.unknowns ?? "No cited explanation available."}</p>
       ) : null}
       <p className="mt-1 font-mono text-[9px] text-ink-500">{peer.n} peers · data {peer.periodSpan || "period n/a"}</p>
     </div>

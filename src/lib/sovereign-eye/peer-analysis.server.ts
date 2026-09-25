@@ -12,6 +12,7 @@ const RUN = "regional";
 const MODEL = "openai/gpt-6-astra";
 const EXPLAIN_BATCH = 12;
 const LEASE_MIN = 15;
+const NO_CITED = "No cited explanation could be drawn from the available country sources.";
 
 type Admin = (typeof import("@/integrations/supabase/client.server"))["supabaseAdmin"];
 
@@ -77,9 +78,9 @@ export async function runPeerAnalysis(opts: { force?: boolean } = {}) {
         .not("url", "is", null)
         .limit(25);
       const result = await explainGap(b, names, (sources ?? []).filter((s) => s.url?.startsWith("https://")) as Array<{ title: string | null; url: string; org: string | null }>);
-      if (!result) continue;
+      // A null result (no cited drivers) is recorded too, so it is not retried until inputs change.
       await db.from("peer_gap_explanations").upsert(
-        { country_code: b.country_code, kpi_code: b.kpi_code, input_hash: b.input_hash, drivers: result.drivers, unknowns: result.unknowns, citations: result.citations, model: MODEL, created_at: new Date().toISOString() },
+        { country_code: b.country_code, kpi_code: b.kpi_code, input_hash: b.input_hash, drivers: result?.drivers ?? [], unknowns: result?.unknowns ?? NO_CITED, citations: result?.citations ?? [], model: MODEL, created_at: new Date().toISOString() },
         { onConflict: "country_code,kpi_code" },
       );
       explained++;

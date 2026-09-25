@@ -174,7 +174,12 @@ function PerspectivePanel({
           </button>
         ) : null}
       </header>
-      <Explain id="standards.executive-perspective" ctx={perspective} mark={false} className="block">
+      <Explain
+        id="standards.executive-perspective"
+        ctx={perspective}
+        mark={false}
+        className="block"
+      >
         <div className="grid gap-4 px-5 py-4 text-sm leading-relaxed text-ink-700 sm:grid-cols-2">
           <PerspectiveRow label="Executive summary" value={perspective.summary} wide />
           <PerspectiveRow label="Direction" value={perspective.direction} />
@@ -192,7 +197,15 @@ function PerspectivePanel({
   );
 }
 
-function PerspectiveRow({ label, value, wide = false }: { label: string; value: string; wide?: boolean }) {
+function PerspectiveRow({
+  label,
+  value,
+  wide = false,
+}: {
+  label: string;
+  value: string;
+  wide?: boolean;
+}) {
   return (
     <div className={wide ? "sm:col-span-2" : undefined}>
       <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-ink-500">{label}</p>

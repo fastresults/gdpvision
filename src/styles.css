@@ -81,6 +81,10 @@
   --color-scenario-tint: var(--scenario-tint);
   --color-narrative-500: var(--narrative-500);
   --color-draft-state: var(--draft-state);
+  --color-bloc-caricom: var(--bloc-caricom);
+  --color-bloc-caricom-soft: var(--bloc-caricom-soft);
+  --color-bloc-oecs: var(--bloc-oecs);
+  --color-bloc-oecs-soft: var(--bloc-oecs-soft);
 
   /* Sector spectrum — 12 canonical hues (Appendix A) */
   --color-sector-01: var(--sector-01);
@@ -132,6 +136,10 @@
   --scenario-tint: #5b4fa8;
   --narrative-500: #8e2f3c;
   --draft-state: #7a6a8f;
+  --bloc-caricom: #087d72;
+  --bloc-caricom-soft: #8ed9cb;
+  --bloc-oecs: #b98a2f;
+  --bloc-oecs-soft: #ead49b;
 
   /* Sector spectrum — 12 canonical sectors (Appendix A) */
   --sector-01: #1e3350; /* Public administration */
@@ -199,6 +207,14 @@
   border-color: var(--line-200);
   border-style: solid;
   border-width: 1px;
+}
+
+@utility bloc-fill-caricom {
+  background-image: linear-gradient(90deg, var(--bloc-caricom-soft), var(--bloc-caricom));
+}
+
+@utility bloc-fill-oecs {
+  background-image: linear-gradient(90deg, var(--bloc-oecs-soft), var(--bloc-oecs));
 }
 
 /*

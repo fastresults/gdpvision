@@ -223,12 +223,14 @@ function TrendChart({ trend, reference, active }: { trend: BlocTrend; reference?
   const min = Math.min(...all.map((point) => point.value));
   const max = Math.max(...all.map((point) => point.value));
   const years = [...new Set(all.map((point) => point.year))].sort();
+  const firstYear = years[0] ?? 0;
+  const lastYear = years.at(-1) ?? firstYear;
   const path = (points: BlocTrend["points"]) => points.map((point, index) => {
-    const x = years.length <= 1 ? 50 : ((point.year - years[0]) / (years.at(-1)! - years[0])) * 100;
+    const x = years.length <= 1 ? 50 : ((point.year - firstYear) / (lastYear - firstYear)) * 100;
     const y = max === min ? 40 : 72 - ((point.value - min) / (max - min)) * 56;
     return `${index ? "L" : "M"}${x},${y}`;
   }).join(" ");
-  return <article className="border border-line-200 p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-medium text-ink-950">{trend.label}</p><p className="font-mono text-[9px] uppercase tracking-[0.12em] text-ink-500">Median · {trend.points.at(-1)?.coverage}/{trend.points.at(-1)?.eligible}</p></div><span className="font-serif text-lg" data-numeric>{formatMetric(trend.points.at(-1)?.value ?? null, trend.unit)}</span></div><svg viewBox="0 0 100 82" className="mt-4 h-24 w-full overflow-visible" role="img" aria-label={`${trend.label} trend`}><path d={path(reference?.points ?? [])} fill="none" className="stroke-ink-300" strokeWidth="1.5" strokeDasharray="3 3" /><path d={path(trend.points)} fill="none" className={active === "caricom" ? "stroke-bloc-caricom" : "stroke-bloc-oecs"} strokeWidth="2.5" /></svg><div className="flex justify-between font-mono text-[9px] text-ink-500"><span>{years[0]}</span><span>{years.at(-1)}</span></div></article>;
+  return <article className="border border-line-200 p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-medium text-ink-950">{trend.label}</p><p className="font-mono text-[9px] uppercase tracking-[0.12em] text-ink-500">Median · {trend.points.at(-1)?.coverage}/{trend.points.at(-1)?.eligible}</p></div><span className="font-serif text-lg" data-numeric>{formatMetric(trend.points.at(-1)?.value ?? null, trend.unit)}</span></div><svg viewBox="0 0 100 82" className="mt-4 h-24 w-full overflow-visible" role="img" aria-label={`${trend.label} trend`}><path d={path(reference?.points ?? [])} fill="none" className="stroke-ink-300" strokeWidth="1.5" strokeDasharray="3 3" /><path d={path(trend.points)} fill="none" className={active === "caricom" ? "stroke-bloc-caricom" : "stroke-bloc-oecs"} strokeWidth="2.5" /></svg><div className="flex justify-between font-mono text-[9px] text-ink-500"><span>{firstYear}</span><span>{lastYear}</span></div></article>;
 }
 
 function Distribution({ metric, active }: { metric: BlocMetric; active: BlocKey }) {

@@ -13,6 +13,8 @@ import { useImpersonation } from "@/lib/impersonation";
 import { CountryMasthead } from "@/components/country/CountryMasthead";
 import { ConciergeInvitationCard } from "@/components/country/ConciergeInvitationCard";
 import { ChambersLauncher } from "@/components/country/ChambersLauncher";
+import { BlocEconomicSummaryModal, BlocSummaryButton } from "@/components/home/BlocEconomicSummaryModal";
+import type { BlocKey } from "@/lib/caricom.functions";
 import { scrollToTop } from "@/lib/utils";
 
 const myStatusQuery = queryOptions({
@@ -318,6 +320,13 @@ type MembershipFilter = "all" | "caricom" | "oecs";
 function CountriesGrid({ countries }: { countries: any[] }) {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<MembershipFilter>("all");
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [summaryBloc, setSummaryBloc] = useState<BlocKey>("caricom");
+
+  function openSummary(bloc: BlocKey) {
+    setSummaryBloc(bloc);
+    setSummaryOpen(true);
+  }
 
   const rows = useMemo(() => {
     const qq = q.trim().toLowerCase();
@@ -372,22 +381,26 @@ function CountriesGrid({ countries }: { countries: any[] }) {
           />
         </div>
         {(["all", "caricom", "oecs"] as MembershipFilter[]).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-2 text-[11px] font-mono uppercase tracking-[0.2em] border transition ${
-              filter === f
-                ? "border-ink-950 bg-ink-950 text-paper-0"
-                : "border-line-200 text-ink-500 hover:text-ink-950"
-            }`}
-          >
-            {f === "all" ? "All" : f.toUpperCase()}
-            <span className="ml-1.5 opacity-60" data-numeric>
-              {counts[f]}
-            </span>
-          </button>
+          <div key={f} className="inline-flex border border-line-200">
+            <button
+              onClick={() => setFilter(f)}
+              className={`btn-ghost border-0 px-3 py-2 text-[11px] font-mono uppercase tracking-[0.2em] ${filter === f ? "bg-ink-950 text-paper-0 hover:bg-ink-950 hover:text-paper-0" : ""}`}
+              aria-pressed={filter === f}
+            >
+              {f === "all" ? "All" : f.toUpperCase()}
+              <span className="ml-1.5 opacity-60" data-numeric>{counts[f]}</span>
+            </button>
+            {f !== "all" ? <BlocSummaryButton bloc={f} onOpen={openSummary} /> : null}
+          </div>
         ))}
       </div>
+
+      <BlocEconomicSummaryModal
+        open={summaryOpen}
+        activeBloc={summaryBloc}
+        onOpenChange={setSummaryOpen}
+        onBlocChange={setSummaryBloc}
+      />
 
       {rows.length === 0 ? (
         <div className="border border-line-200 px-4 py-12 text-center text-sm text-ink-500">

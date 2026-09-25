@@ -85,7 +85,7 @@ export async function runPartnerBackfill(opts: { maxCountries?: number; force?: 
     const after = await partnerCoverage();
     const summary = { covered: after.covered, total: after.total, remaining: after.missing.length + after.stale.length, processed: processed.join(",") || "none", failed: Object.keys(failed).join(",") || "none" };
     await db.from("peer_analysis_runs").update({ status, pause_reason: pause, lease_until: null, last_finished_at: new Date().toISOString(), last_summary: summary, updated_at: new Date().toISOString() }).eq("name", RUN);
-    return { ok: true, processed, failed, ...summary };
+    return { ok: true, ...summary, processed, failedCodes: failed };
   } catch (e) {
     await db.from("peer_analysis_runs").update({ status: "idle", lease_until: null, pause_reason: String((e as Error)?.message ?? e).slice(0, 200), updated_at: new Date().toISOString() }).eq("name", RUN);
     throw e;

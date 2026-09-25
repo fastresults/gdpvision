@@ -120,8 +120,7 @@ const SYNDICATION: Array<{ title: string; blurb: string; to: SyndicationTo }> = 
   },
   {
     title: "Investors",
-    blurb:
-      "Who is interested in what, how far each conversation has gone, and what happens next.",
+    blurb: "Who is interested in what, how far each conversation has gone, and what happens next.",
     to: "/admin/countries/$code/investors",
   },
 ];

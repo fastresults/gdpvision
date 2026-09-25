@@ -337,6 +337,7 @@ async function draft<T>(apiKey: string, schema: z.ZodType<T>, prompt: string): P
         model: gateway(MODEL),
         system: SYSTEM_PROMPT,
         output: Output.object({ schema }),
+        maxOutputTokens: 16000,
         prompt,
       });
       return output as T;

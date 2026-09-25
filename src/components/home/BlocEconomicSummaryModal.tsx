@@ -5,6 +5,11 @@ import { BarChart3 } from "lucide-react";
 
 import { Explain } from "@/components/explain/Explain";
 import {
+  ExecutivePerspectiveProvider,
+  type ExecutivePerspective,
+  useExecutivePerspective,
+} from "@/components/home/ExecutivePerspective";
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -92,42 +97,44 @@ export function BlocEconomicSummaryModal({
         ) : error || !data ? (
           <SummaryError />
         ) : (
-          <Tabs value={activeBloc} onValueChange={(value) => onBlocChange(value as BlocSummaryTab)}>
-            <div className="sticky top-0 z-10 border-b border-line-200 bg-paper-0 px-6 py-3 sm:px-8">
-              <TabsList className="grid h-11 w-full grid-cols-3 rounded-none bg-paper-100 p-1">
-                {(["caricom", "oecs"] as BlocKey[]).map((key) => (
+          <ExecutivePerspectiveProvider>
+            <Tabs value={activeBloc} onValueChange={(value) => onBlocChange(value as BlocSummaryTab)}>
+              <div className="sticky top-0 z-10 border-b border-line-200 bg-paper-0 px-6 py-3 sm:px-8">
+                <TabsList className="grid h-11 w-full grid-cols-3 rounded-none bg-paper-100 p-1">
+                  {(["caricom", "oecs"] as BlocKey[]).map((key) => (
+                    <TabsTrigger
+                      key={key}
+                      value={key}
+                      className="rounded-none font-mono text-[10px] uppercase tracking-[0.18em] data-[state=active]:shadow-none"
+                    >
+                      {data.blocs[key].label}
+                      <span className="ml-2 text-ink-500" data-numeric>
+                        {data.blocs[key].memberCount}
+                      </span>
+                    </TabsTrigger>
+                  ))}
                   <TabsTrigger
-                    key={key}
-                    value={key}
+                    value="compare"
                     className="rounded-none font-mono text-[10px] uppercase tracking-[0.18em] data-[state=active]:shadow-none"
                   >
-                    {data.blocs[key].label}
-                    <span className="ml-2 text-ink-500" data-numeric>
-                      {data.blocs[key].memberCount}
-                    </span>
+                    Compare
                   </TabsTrigger>
-                ))}
-                <TabsTrigger
-                  value="compare"
-                  className="rounded-none font-mono text-[10px] uppercase tracking-[0.18em] data-[state=active]:shadow-none"
-                >
-                  Compare
-                </TabsTrigger>
-              </TabsList>
-            </div>
-            {(["caricom", "oecs"] as BlocKey[]).map((key) => (
-              <TabsContent key={key} value={key} className="m-0 p-6 sm:p-8">
-                <BlocSummaryView
-                  active={data.blocs[key]}
-                  reference={data.blocs[key === "caricom" ? "oecs" : "caricom"]}
-                  data={data}
-                />
+                </TabsList>
+              </div>
+              {(["caricom", "oecs"] as BlocKey[]).map((key) => (
+                <TabsContent key={key} value={key} className="m-0 p-6 sm:p-8">
+                  <BlocSummaryView
+                    active={data.blocs[key]}
+                    reference={data.blocs[key === "caricom" ? "oecs" : "caricom"]}
+                    data={data}
+                  />
+                </TabsContent>
+              ))}
+              <TabsContent value="compare" className="m-0 p-6 sm:p-8">
+                <BlocComparisonView caricom={data.blocs.caricom} oecs={data.blocs.oecs} />
               </TabsContent>
-            ))}
-            <TabsContent value="compare" className="m-0 p-6 sm:p-8">
-              <BlocComparisonView caricom={data.blocs.caricom} oecs={data.blocs.oecs} />
-            </TabsContent>
-          </Tabs>
+            </Tabs>
+          </ExecutivePerspectiveProvider>
         )}
       </SheetContent>
     </Sheet>
@@ -210,9 +217,14 @@ function ComparisonCategoryRow({
   oecs: BlocMetric;
   maximum: number;
 }) {
+  const perspective = metricPerspective(caricom, oecs, "caricom", "comparison");
+  const interaction = useExecutivePerspective(perspective);
   return (
     <>
-      <div className="border-t border-line-200 p-3 sm:p-4">
+      <div
+        {...interaction}
+        className="border-t border-line-200 p-3 outline-none transition-colors data-[perspective-active=true]:bg-paper-100 sm:p-4"
+      >
         <p className="text-xs font-medium text-ink-950 sm:text-sm">{caricom.label}</p>
         <p className="mt-1 font-mono text-[8px] uppercase tracking-[0.12em] text-ink-500 sm:text-[9px]">
           {caricom.method}
@@ -384,8 +396,13 @@ function HeadlineMetric({
   active: BlocKey;
 }) {
   const max = Math.max(metric.value ?? 0, reference?.value ?? 0, 1);
+  const perspective = metricPerspective(metric, reference, active, "headline");
+  const interaction = useExecutivePerspective(perspective);
   return (
-    <article className="min-w-0 bg-paper-0 p-5">
+    <article
+      {...interaction}
+      className="min-w-0 bg-paper-0 p-5 outline-none transition-colors data-[perspective-active=true]:bg-paper-100"
+    >
       <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
         {metric.label}
       </p>
@@ -421,8 +438,13 @@ function BulletMetric({
   const start = ((0 - min) / span) * 100;
   const end = metric.value == null ? start : ((metric.value - min) / span) * 100;
   const ref = reference?.value == null ? null : ((reference.value - min) / span) * 100;
+  const perspective = metricPerspective(metric, reference, active, "performance");
+  const interaction = useExecutivePerspective(perspective);
   return (
-    <div className="grid gap-3 py-5 md:grid-cols-[190px_minmax(0,1fr)_130px] md:items-center">
+    <div
+      {...interaction}
+      className="grid gap-3 px-2 py-5 outline-none transition-colors data-[perspective-active=true]:bg-paper-100 md:grid-cols-[190px_minmax(0,1fr)_130px] md:items-center"
+    >
       <div>
         <p className="text-sm font-medium text-ink-950">{metric.label}</p>
         <MetricMeta metric={metric} />
@@ -508,9 +530,14 @@ function TrendChart({
   active: BlocKey;
 }) {
   const all = [...trend.points, ...(reference?.points ?? [])];
+  const perspective = trendPerspective(trend, reference, active);
+  const interaction = useExecutivePerspective(perspective);
   if (trend.points.length < 3)
     return (
-      <article className="border border-line-200 p-4">
+      <article
+        {...interaction}
+        className="border border-line-200 p-4 outline-none transition-colors data-[perspective-active=true]:bg-paper-100"
+      >
         <p className="text-sm font-medium text-ink-950">{trend.label}</p>
         <p className="mt-8 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
           Current reading only
@@ -532,7 +559,10 @@ function TrendChart({
       })
       .join(" ");
   return (
-    <article className="border border-line-200 p-4">
+    <article
+      {...interaction}
+      className="border border-line-200 p-4 outline-none transition-colors data-[perspective-active=true]:bg-paper-100"
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-ink-950">{trend.label}</p>
@@ -579,8 +609,13 @@ function Distribution({ metric, active }: { metric: BlocMetric; active: BlocKey 
   const max = Math.max(...values);
   const middle = [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
   const position = (value: number) => (max === min ? 50 : ((value - min) / (max - min)) * 100);
+  const perspective = distributionPerspective(metric, active, middle ?? 0, min, max);
+  const interaction = useExecutivePerspective(perspective);
   return (
-    <article>
+    <article
+      {...interaction}
+      className="px-2 py-1 outline-none transition-colors data-[perspective-active=true]:bg-paper-100"
+    >
       <div className="flex items-baseline justify-between gap-3">
         <p className="text-sm font-medium text-ink-950">{metric.label}</p>
         <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-ink-500">
@@ -604,7 +639,6 @@ function Distribution({ metric, active }: { metric: BlocMetric; active: BlocKey 
             )}
             style={{ left: `${position(point.value)}%` }}
             aria-label={`${point.name}: ${formatMetric(point.value, metric.unit)}, ${point.period}`}
-            title={`${point.name} · ${formatMetric(point.value, metric.unit)} · ${point.period}`}
           />
         ))}
       </div>

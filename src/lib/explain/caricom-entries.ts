@@ -8,7 +8,8 @@ const entries: Array<Rationale<never>> = [
   {
     key: "caricom.bloc-summary",
     title: "How bloc figures are calculated",
-    short: "Totals, weighted averages and medians use current, comparable public readings with at least 70% member coverage.",
+    short:
+      "Totals, weighted averages and medians use current, comparable public readings with at least 70% member coverage.",
     formula:
       "Additive measures are summed. GDP growth is GDP-weighted; GDP per person is total implied GDP divided by covered population. Ratios use the median.",
     basis:
@@ -19,7 +20,8 @@ const entries: Array<Rationale<never>> = [
   {
     key: "caricom.bloc-gap",
     title: "How the bloc comparison is interpreted",
-    short: "The comparison describes scale, rates and member spread separately; it does not collapse them into an opaque strength score.",
+    short:
+      "The comparison describes scale, rates and member spread separately; it does not collapse them into an opaque strength score.",
     basis:
       "The larger current value is identified on a shared scale. Member distributions show whether that bloc-level reading is broad-based or driven by a small number of economies.",
     caveat:

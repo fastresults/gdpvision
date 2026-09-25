@@ -13,7 +13,10 @@ import { useImpersonation } from "@/lib/impersonation";
 import { CountryMasthead } from "@/components/country/CountryMasthead";
 import { ConciergeInvitationCard } from "@/components/country/ConciergeInvitationCard";
 import { ChambersLauncher } from "@/components/country/ChambersLauncher";
-import { BlocEconomicSummaryModal, BlocSummaryButton } from "@/components/home/BlocEconomicSummaryModal";
+import {
+  BlocEconomicSummaryModal,
+  BlocSummaryButton,
+} from "@/components/home/BlocEconomicSummaryModal";
 import type { BlocKey } from "@/lib/caricom.functions";
 import { scrollToTop } from "@/lib/utils";
 
@@ -31,9 +34,17 @@ export const Route = createFileRoute("/_authenticated/home")({
   head: () => ({
     meta: [
       { title: "Sovereign Home — GDPVision" },
-      { name: "description", content: "Review Caribbean country instruments and compare CARICOM and OECS economic strength." },
+      {
+        name: "description",
+        content:
+          "Review Caribbean country instruments and compare CARICOM and OECS economic strength.",
+      },
       { property: "og:title", content: "Sovereign Home — GDPVision" },
-      { property: "og:description", content: "Review Caribbean country instruments and compare CARICOM and OECS economic strength." },
+      {
+        property: "og:description",
+        content:
+          "Review Caribbean country instruments and compare CARICOM and OECS economic strength.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "robots", content: "noindex" },
@@ -396,7 +407,9 @@ function CountriesGrid({ countries }: { countries: any[] }) {
               aria-pressed={filter === f}
             >
               {f === "all" ? "All" : f.toUpperCase()}
-              <span className="ml-1.5 opacity-60" data-numeric>{counts[f]}</span>
+              <span className="ml-1.5 opacity-60" data-numeric>
+                {counts[f]}
+              </span>
             </button>
             {f !== "all" ? <BlocSummaryButton bloc={f} onOpen={openSummary} /> : null}
           </div>

@@ -381,7 +381,6 @@
   padding-bottom: calc(env(safe-area-inset-bottom) + 6rem);
 }
 
-
 @keyframes gdpv-segment-draw {
   from {
     stroke-dashoffset: var(--seg-length, 200);

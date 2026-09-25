@@ -4,7 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { BarChart3 } from "lucide-react";
 
 import { Explain } from "@/components/explain/Explain";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   getBlocEconomicSummary,
@@ -67,14 +73,23 @@ export function BlocEconomicSummaryModal({
         className="w-full max-w-none overflow-y-auto border-line-200 bg-paper-0 p-0 sm:max-w-[min(92vw,980px)]"
       >
         <SheetHeader className="border-b border-line-200 px-6 py-6 pr-14 sm:px-8">
-          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">Regional instrument</p>
-          <SheetTitle className="font-serif text-3xl font-normal text-ink-950">Summary economic data</SheetTitle>
+          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-500">
+            Regional instrument
+          </p>
+          <SheetTitle className="font-serif text-3xl font-normal text-ink-950">
+            Summary economic data
+          </SheetTitle>
           <SheetDescription className="max-w-2xl text-sm leading-relaxed text-ink-500">
-            Comparable public readings for two overlapping Caribbean blocs. CARICOM and OECS are not mutually exclusive groups.
+            Comparable public readings for two overlapping Caribbean blocs. CARICOM and OECS are not
+            mutually exclusive groups.
           </SheetDescription>
         </SheetHeader>
 
-        {isPending ? <SummarySkeleton /> : error || !data ? <SummaryError /> : (
+        {isPending ? (
+          <SummarySkeleton />
+        ) : error || !data ? (
+          <SummaryError />
+        ) : (
           <Tabs value={activeBloc} onValueChange={(value) => onBlocChange(value as BlocKey)}>
             <div className="sticky top-0 z-10 border-b border-line-200 bg-paper-0 px-6 py-3 sm:px-8">
               <TabsList className="grid h-11 w-full grid-cols-2 rounded-none bg-paper-100 p-1">
@@ -85,14 +100,20 @@ export function BlocEconomicSummaryModal({
                     className="rounded-none font-mono text-[10px] uppercase tracking-[0.18em] data-[state=active]:shadow-none"
                   >
                     {data.blocs[key].label}
-                    <span className="ml-2 text-ink-500" data-numeric>{data.blocs[key].memberCount}</span>
+                    <span className="ml-2 text-ink-500" data-numeric>
+                      {data.blocs[key].memberCount}
+                    </span>
                   </TabsTrigger>
                 ))}
               </TabsList>
             </div>
             {(["caricom", "oecs"] as BlocKey[]).map((key) => (
               <TabsContent key={key} value={key} className="m-0 p-6 sm:p-8">
-                <BlocSummaryView active={data.blocs[key]} reference={data.blocs[key === "caricom" ? "oecs" : "caricom"]} data={data} />
+                <BlocSummaryView
+                  active={data.blocs[key]}
+                  reference={data.blocs[key === "caricom" ? "oecs" : "caricom"]}
+                  data={data}
+                />
               </TabsContent>
             ))}
           </Tabs>
@@ -102,45 +123,82 @@ export function BlocEconomicSummaryModal({
   );
 }
 
-function BlocSummaryView({ active, reference, data }: { active: BlocSummary; reference: BlocSummary; data: BlocEconomicSummary }) {
+function BlocSummaryView({
+  active,
+  reference,
+  data,
+}: {
+  active: BlocSummary;
+  reference: BlocSummary;
+  data: BlocEconomicSummary;
+}) {
   const headline = active.metrics.slice(0, 3);
   const performance = active.metrics.slice(3);
-  const referenceByKey = useMemo(() => new Map(reference.metrics.map((metric) => [metric.key, metric])), [reference.metrics]);
+  const referenceByKey = useMemo(
+    () => new Map(reference.metrics.map((metric) => [metric.key, metric])),
+    [reference.metrics],
+  );
   const availableCount = active.metrics.filter((metric) => metric.available).length;
 
   return (
     <div className="space-y-10">
       <section className="flex flex-wrap items-end justify-between gap-4 border-b border-line-200 pb-5">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">{active.memberCount} members and associates</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
+            {active.memberCount} members and associates
+          </p>
           <h2 className="mt-1 font-serif text-3xl text-ink-950">{active.label} economic profile</h2>
         </div>
         <div className="text-right font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
-          <div>{availableCount} of {active.metrics.length} indicators available</div>
+          <div>
+            {availableCount} of {active.metrics.length} indicators available
+          </div>
           <div>Refreshed {formatDate(active.updatedAt ?? data.generatedAt)}</div>
         </div>
       </section>
 
       <section aria-labelledby={`${active.key}-scale`}>
-        <SectionHeading id={`${active.key}-scale`} eyebrow="Economic scale" title="The bloc in aggregate" />
+        <SectionHeading
+          id={`${active.key}-scale`}
+          eyebrow="Economic scale"
+          title="The bloc in aggregate"
+        />
         <div className="mt-4 grid gap-px border border-line-200 bg-line-200 md:grid-cols-3">
           {headline.map((metric) => (
-            <HeadlineMetric key={metric.key} metric={metric} reference={referenceByKey.get(metric.key)} active={active.key} />
+            <HeadlineMetric
+              key={metric.key}
+              metric={metric}
+              reference={referenceByKey.get(metric.key)}
+              active={active.key}
+            />
           ))}
         </div>
       </section>
 
       <section aria-labelledby={`${active.key}-performance`}>
-        <SectionHeading id={`${active.key}-performance`} eyebrow="Economic performance" title="Rates, burdens and capacity" />
+        <SectionHeading
+          id={`${active.key}-performance`}
+          eyebrow="Economic performance"
+          title="Rates, burdens and capacity"
+        />
         <div className="mt-4 divide-y divide-line-200 border-y border-line-200">
           {performance.map((metric) => (
-            <BulletMetric key={metric.key} metric={metric} reference={referenceByKey.get(metric.key)} active={active.key} />
+            <BulletMetric
+              key={metric.key}
+              metric={metric}
+              reference={referenceByKey.get(metric.key)}
+              active={active.key}
+            />
           ))}
         </div>
       </section>
 
       <section aria-labelledby={`${active.key}-momentum`}>
-        <SectionHeading id={`${active.key}-momentum`} eyebrow="Momentum" title="Comparable observations over time" />
+        <SectionHeading
+          id={`${active.key}-momentum`}
+          eyebrow="Momentum"
+          title="Comparable observations over time"
+        />
         <div className="mt-4 grid gap-4 md:grid-cols-3">
           {active.trends.map((trend) => (
             <TrendChart
@@ -154,9 +212,15 @@ function BlocSummaryView({ active, reference, data }: { active: BlocSummary; ref
       </section>
 
       <section aria-labelledby={`${active.key}-distribution`}>
-        <SectionHeading id={`${active.key}-distribution`} eyebrow="Member distribution" title="What sits behind the bloc reading" />
+        <SectionHeading
+          id={`${active.key}-distribution`}
+          eyebrow="Member distribution"
+          title="What sits behind the bloc reading"
+        />
         <div className="mt-4 space-y-6">
-          {performance.slice(0, 4).map((metric) => <Distribution key={metric.key} metric={metric} active={active.key} />)}
+          {performance.slice(0, 4).map((metric) => (
+            <Distribution key={metric.key} metric={metric} active={active.key} />
+          ))}
         </div>
       </section>
 
@@ -166,24 +230,56 @@ function BlocSummaryView({ active, reference, data }: { active: BlocSummary; ref
 }
 
 function SectionHeading({ id, eyebrow, title }: { id: string; eyebrow: string; title: string }) {
-  return <div><p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">{eyebrow}</p><h3 id={id} className="mt-1 font-serif text-xl text-ink-950">{title}</h3></div>;
+  return (
+    <div>
+      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">{eyebrow}</p>
+      <h3 id={id} className="mt-1 font-serif text-xl text-ink-950">
+        {title}
+      </h3>
+    </div>
+  );
 }
 
-function HeadlineMetric({ metric, reference, active }: { metric: BlocMetric; reference?: BlocMetric; active: BlocKey }) {
+function HeadlineMetric({
+  metric,
+  reference,
+  active,
+}: {
+  metric: BlocMetric;
+  reference?: BlocMetric;
+  active: BlocKey;
+}) {
   const max = Math.max(metric.value ?? 0, reference?.value ?? 0, 1);
   return (
     <article className="min-w-0 bg-paper-0 p-5">
-      <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">{metric.label}</p>
+      <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
+        {metric.label}
+      </p>
       <Explain id="caricom.bloc-summary" ctx={{ metric }} className="mt-2 block">
-        <strong className="font-serif text-3xl font-normal text-ink-950" data-numeric>{metric.available ? formatMetric(metric.value, metric.unit) : "—"}</strong>
+        <strong className="font-serif text-3xl font-normal text-ink-950" data-numeric>
+          {metric.available ? formatMetric(metric.value, metric.unit) : "—"}
+        </strong>
       </Explain>
-      <ComparisonBar value={metric.value} reference={reference?.value ?? null} max={max} active={active} />
+      <ComparisonBar
+        value={metric.value}
+        reference={reference?.value ?? null}
+        max={max}
+        active={active}
+      />
       <MetricMeta metric={metric} />
     </article>
   );
 }
 
-function BulletMetric({ metric, reference, active }: { metric: BlocMetric; reference?: BlocMetric; active: BlocKey }) {
+function BulletMetric({
+  metric,
+  reference,
+  active,
+}: {
+  metric: BlocMetric;
+  reference?: BlocMetric;
+  active: BlocKey;
+}) {
   const values = [metric.value, reference?.value].filter((value): value is number => value != null);
   const min = Math.min(0, ...values);
   const max = Math.max(0, ...values);
@@ -193,44 +289,153 @@ function BulletMetric({ metric, reference, active }: { metric: BlocMetric; refer
   const ref = reference?.value == null ? null : ((reference.value - min) / span) * 100;
   return (
     <div className="grid gap-3 py-5 md:grid-cols-[190px_minmax(0,1fr)_130px] md:items-center">
-      <div><p className="text-sm font-medium text-ink-950">{metric.label}</p><MetricMeta metric={metric} /></div>
+      <div>
+        <p className="text-sm font-medium text-ink-950">{metric.label}</p>
+        <MetricMeta metric={metric} />
+      </div>
       <div className="relative h-7 bg-paper-100" aria-hidden>
         <div className="absolute inset-y-0 w-px bg-ink-300" style={{ left: `${start}%` }} />
-        {metric.value != null ? <div className={cn("absolute top-1/2 h-3 -translate-y-1/2", active === "caricom" ? "bloc-fill-caricom" : "bloc-fill-oecs")} style={{ left: `${Math.min(start, end)}%`, width: `${Math.max(Math.abs(end - start), 1)}%` }} /> : null}
-        {ref != null ? <div className="absolute inset-y-1 w-0.5 bg-ink-700" style={{ left: `${ref}%` }} /> : null}
+        {metric.value != null ? (
+          <div
+            className={cn(
+              "absolute top-1/2 h-3 -translate-y-1/2",
+              active === "caricom" ? "bloc-fill-caricom" : "bloc-fill-oecs",
+            )}
+            style={{
+              left: `${Math.min(start, end)}%`,
+              width: `${Math.max(Math.abs(end - start), 1)}%`,
+            }}
+          />
+        ) : null}
+        {ref != null ? (
+          <div className="absolute inset-y-1 w-0.5 bg-ink-700" style={{ left: `${ref}%` }} />
+        ) : null}
       </div>
       <div className="md:text-right">
-        <Explain id="caricom.bloc-summary" ctx={{ metric }}><span className="font-serif text-xl text-ink-950" data-numeric>{metric.available ? formatMetric(metric.value, metric.unit) : "Unavailable"}</span></Explain>
-        {reference?.value != null ? <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-ink-500">Other bloc {formatMetric(reference.value, metric.unit)}</p> : null}
+        <Explain id="caricom.bloc-summary" ctx={{ metric }}>
+          <span className="font-serif text-xl text-ink-950" data-numeric>
+            {metric.available ? formatMetric(metric.value, metric.unit) : "Unavailable"}
+          </span>
+        </Explain>
+        {reference?.value != null ? (
+          <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-ink-500">
+            Other bloc {formatMetric(reference.value, metric.unit)}
+          </p>
+        ) : null}
       </div>
     </div>
   );
 }
 
-function ComparisonBar({ value, reference, max, active }: { value: number | null; reference: number | null; max: number; active: BlocKey }) {
-  const width = value == null ? 0 : Math.max(2, Math.abs(value) / max * 100);
-  const ref = reference == null ? null : Math.abs(reference) / max * 100;
-  return <div className="relative mt-4 h-3 bg-paper-100" aria-hidden><div className={cn("absolute inset-y-0 left-0", active === "caricom" ? "bloc-fill-caricom" : "bloc-fill-oecs")} style={{ width: `${width}%` }} />{ref != null ? <div className="absolute -inset-y-1 w-0.5 bg-ink-700" style={{ left: `${ref}%` }} /> : null}</div>;
+function ComparisonBar({
+  value,
+  reference,
+  max,
+  active,
+}: {
+  value: number | null;
+  reference: number | null;
+  max: number;
+  active: BlocKey;
+}) {
+  const width = value == null ? 0 : Math.max(2, (Math.abs(value) / max) * 100);
+  const ref = reference == null ? null : (Math.abs(reference) / max) * 100;
+  return (
+    <div className="relative mt-4 h-3 bg-paper-100" aria-hidden>
+      <div
+        className={cn(
+          "absolute inset-y-0 left-0",
+          active === "caricom" ? "bloc-fill-caricom" : "bloc-fill-oecs",
+        )}
+        style={{ width: `${width}%` }}
+      />
+      {ref != null ? (
+        <div className="absolute -inset-y-1 w-0.5 bg-ink-700" style={{ left: `${ref}%` }} />
+      ) : null}
+    </div>
+  );
 }
 
 function MetricMeta({ metric }: { metric: BlocMetric }) {
-  return <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.12em] text-ink-500">{metric.method} · {metric.coverage}/{metric.eligible} · {metric.period}</p>;
+  return (
+    <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.12em] text-ink-500">
+      {metric.method} · {metric.coverage}/{metric.eligible} · {metric.period}
+    </p>
+  );
 }
 
-function TrendChart({ trend, reference, active }: { trend: BlocTrend; reference?: BlocTrend; active: BlocKey }) {
+function TrendChart({
+  trend,
+  reference,
+  active,
+}: {
+  trend: BlocTrend;
+  reference?: BlocTrend;
+  active: BlocKey;
+}) {
   const all = [...trend.points, ...(reference?.points ?? [])];
-  if (trend.points.length < 3) return <article className="border border-line-200 p-4"><p className="text-sm font-medium text-ink-950">{trend.label}</p><p className="mt-8 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">Current reading only</p></article>;
+  if (trend.points.length < 3)
+    return (
+      <article className="border border-line-200 p-4">
+        <p className="text-sm font-medium text-ink-950">{trend.label}</p>
+        <p className="mt-8 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
+          Current reading only
+        </p>
+      </article>
+    );
   const min = Math.min(...all.map((point) => point.value));
   const max = Math.max(...all.map((point) => point.value));
   const years = [...new Set(all.map((point) => point.year))].sort();
   const firstYear = years[0] ?? 0;
   const lastYear = years.at(-1) ?? firstYear;
-  const path = (points: BlocTrend["points"]) => points.map((point, index) => {
-    const x = years.length <= 1 ? 50 : ((point.year - firstYear) / (lastYear - firstYear)) * 100;
-    const y = max === min ? 40 : 72 - ((point.value - min) / (max - min)) * 56;
-    return `${index ? "L" : "M"}${x},${y}`;
-  }).join(" ");
-  return <article className="border border-line-200 p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-medium text-ink-950">{trend.label}</p><p className="font-mono text-[9px] uppercase tracking-[0.12em] text-ink-500">Median · {trend.points.at(-1)?.coverage}/{trend.points.at(-1)?.eligible}</p></div><span className="font-serif text-lg" data-numeric>{formatMetric(trend.points.at(-1)?.value ?? null, trend.unit)}</span></div><svg viewBox="0 0 100 82" className="mt-4 h-24 w-full overflow-visible" role="img" aria-label={`${trend.label} trend`}><path d={path(reference?.points ?? [])} fill="none" className="stroke-ink-300" strokeWidth="1.5" strokeDasharray="3 3" /><path d={path(trend.points)} fill="none" className={active === "caricom" ? "stroke-bloc-caricom" : "stroke-bloc-oecs"} strokeWidth="2.5" /></svg><div className="flex justify-between font-mono text-[9px] text-ink-500"><span>{firstYear}</span><span>{lastYear}</span></div></article>;
+  const path = (points: BlocTrend["points"]) =>
+    points
+      .map((point, index) => {
+        const x =
+          years.length <= 1 ? 50 : ((point.year - firstYear) / (lastYear - firstYear)) * 100;
+        const y = max === min ? 40 : 72 - ((point.value - min) / (max - min)) * 56;
+        return `${index ? "L" : "M"}${x},${y}`;
+      })
+      .join(" ");
+  return (
+    <article className="border border-line-200 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-ink-950">{trend.label}</p>
+          <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-ink-500">
+            Median · {trend.points.at(-1)?.coverage}/{trend.points.at(-1)?.eligible}
+          </p>
+        </div>
+        <span className="font-serif text-lg" data-numeric>
+          {formatMetric(trend.points.at(-1)?.value ?? null, trend.unit)}
+        </span>
+      </div>
+      <svg
+        viewBox="0 0 100 82"
+        className="mt-4 h-24 w-full overflow-visible"
+        role="img"
+        aria-label={`${trend.label} trend`}
+      >
+        <path
+          d={path(reference?.points ?? [])}
+          fill="none"
+          className="stroke-ink-300"
+          strokeWidth="1.5"
+          strokeDasharray="3 3"
+        />
+        <path
+          d={path(trend.points)}
+          fill="none"
+          className={active === "caricom" ? "stroke-bloc-caricom" : "stroke-bloc-oecs"}
+          strokeWidth="2.5"
+        />
+      </svg>
+      <div className="flex justify-between font-mono text-[9px] text-ink-500">
+        <span>{firstYear}</span>
+        <span>{lastYear}</span>
+      </div>
+    </article>
+  );
 }
 
 function Distribution({ metric, active }: { metric: BlocMetric; active: BlocKey }) {
@@ -239,23 +444,130 @@ function Distribution({ metric, active }: { metric: BlocMetric; active: BlocKey 
   const min = Math.min(...values);
   const max = Math.max(...values);
   const middle = [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
-  const position = (value: number) => max === min ? 50 : ((value - min) / (max - min)) * 100;
-  return <article><div className="flex items-baseline justify-between gap-3"><p className="text-sm font-medium text-ink-950">{metric.label}</p><p className="font-mono text-[9px] uppercase tracking-[0.12em] text-ink-500">{metric.distribution.length} members · median {formatMetric(middle, metric.unit)}</p></div><div className="relative mt-3 h-9 border-y border-line-200 bg-paper-50"><div className="absolute inset-y-0 w-px bg-ink-300" style={{ left: `${position(middle)}%` }} />{metric.distribution.map((point) => <a key={point.code} href={point.sourceUrl ?? undefined} target={point.sourceUrl ? "_blank" : undefined} rel={point.sourceUrl ? "noreferrer" : undefined} className={cn("absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-paper-0 focus-visible:h-4 focus-visible:w-4", active === "caricom" ? "bg-bloc-caricom" : "bg-bloc-oecs")} style={{ left: `${position(point.value)}%` }} aria-label={`${point.name}: ${formatMetric(point.value, metric.unit)}, ${point.period}`} title={`${point.name} · ${formatMetric(point.value, metric.unit)} · ${point.period}`} />)}</div></article>;
+  const position = (value: number) => (max === min ? 50 : ((value - min) / (max - min)) * 100);
+  return (
+    <article>
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-sm font-medium text-ink-950">{metric.label}</p>
+        <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-ink-500">
+          {metric.distribution.length} members · median {formatMetric(middle, metric.unit)}
+        </p>
+      </div>
+      <div className="relative mt-3 h-9 border-y border-line-200 bg-paper-50">
+        <div
+          className="absolute inset-y-0 w-px bg-ink-300"
+          style={{ left: `${position(middle)}%` }}
+        />
+        {metric.distribution.map((point) => (
+          <a
+            key={point.code}
+            href={point.sourceUrl ?? undefined}
+            target={point.sourceUrl ? "_blank" : undefined}
+            rel={point.sourceUrl ? "noreferrer" : undefined}
+            className={cn(
+              "absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-paper-0 focus-visible:h-4 focus-visible:w-4",
+              active === "caricom" ? "bg-bloc-caricom" : "bg-bloc-oecs",
+            )}
+            style={{ left: `${position(point.value)}%` }}
+            aria-label={`${point.name}: ${formatMetric(point.value, metric.unit)}, ${point.period}`}
+            title={`${point.name} · ${formatMetric(point.value, metric.unit)} · ${point.period}`}
+          />
+        ))}
+      </div>
+    </article>
+  );
 }
 
 function Interpretation({ active, reference }: { active: BlocSummary; reference: BlocSummary }) {
-  const comparisons = active.metrics.flatMap((metric) => {
-    const other = reference.metrics.find((item) => item.key === metric.key);
-    if (metric.value == null || other?.value == null) return [];
-    const denominator = Math.max(Math.abs(other.value), 0.01);
-    return [{ label: metric.label, difference: (metric.value - other.value) / denominator, value: metric.value, other: other.value, unit: metric.unit }];
-  }).sort((a, b) => Math.abs(b.difference) - Math.abs(a.difference));
+  const comparisons = active.metrics
+    .flatMap((metric) => {
+      const other = reference.metrics.find((item) => item.key === metric.key);
+      if (metric.value == null || other?.value == null) return [];
+      const denominator = Math.max(Math.abs(other.value), 0.01);
+      return [
+        {
+          label: metric.label,
+          difference: (metric.value - other.value) / denominator,
+          value: metric.value,
+          other: other.value,
+          unit: metric.unit,
+        },
+      ];
+    })
+    .sort((a, b) => Math.abs(b.difference) - Math.abs(a.difference));
   const scale = comparisons.find((item) => item.label === "Combined GDP");
   const strongest = comparisons.find((item) => item.label !== "Combined GDP");
-  return <section className="border-l-2 border-gold-500 bg-paper-50 p-5"><p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">What this comparison means</p><Explain id="caricom.bloc-gap" className="mt-2 block"><div className="space-y-2 text-sm leading-relaxed text-ink-700">{scale ? <p>{active.label}'s combined GDP is {Math.abs(scale.difference * 100).toFixed(0)}% {scale.difference >= 0 ? "larger" : "smaller"} than {reference.label}'s covered total.</p> : null}{strongest ? <p>The widest available rate gap is {strongest.label.toLowerCase()}: {formatMetric(strongest.value, strongest.unit)} versus {formatMetric(strongest.other, strongest.unit)}.</p> : null}<p>Read the member dot strips before treating any bloc-wide result as uniform across its economies.</p></div></Explain></section>;
+  return (
+    <section className="border-l-2 border-gold-500 bg-paper-50 p-5">
+      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+        What this comparison means
+      </p>
+      <Explain id="caricom.bloc-gap" className="mt-2 block">
+        <div className="space-y-2 text-sm leading-relaxed text-ink-700">
+          {scale ? (
+            <p>
+              {active.label}'s combined GDP is {Math.abs(scale.difference * 100).toFixed(0)}%{" "}
+              {scale.difference >= 0 ? "larger" : "smaller"} than {reference.label}'s covered total.
+            </p>
+          ) : null}
+          {strongest ? (
+            <p>
+              The widest available rate gap is {strongest.label.toLowerCase()}:{" "}
+              {formatMetric(strongest.value, strongest.unit)} versus{" "}
+              {formatMetric(strongest.other, strongest.unit)}.
+            </p>
+          ) : null}
+          <p>
+            Read the member dot strips before treating any bloc-wide result as uniform across its
+            economies.
+          </p>
+        </div>
+      </Explain>
+    </section>
+  );
 }
 
-function SummarySkeleton() { return <div className="space-y-6 p-8" aria-label="Loading economic summary"><div className="h-11 animate-pulse bg-paper-100" /><div className="grid grid-cols-3 gap-3">{[0,1,2].map((i) => <div key={i} className="h-40 animate-pulse bg-paper-100" />)}</div><div className="h-72 animate-pulse bg-paper-100" /></div>; }
-function SummaryError() { return <div className="p-8"><p className="font-serif text-2xl text-ink-950">Summary unavailable</p><p className="mt-2 text-sm text-ink-500">The comparable economic records could not be loaded. Close this panel and try again.</p></div>; }
-function formatDate(value: string | null): string { if (!value) return "not recorded"; const date = new Date(value); return Number.isNaN(date.getTime()) ? "not recorded" : date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); }
-function formatMetric(value: number | null, unit: string): string { if (value == null || !Number.isFinite(value)) return "—"; if (unit === "USD") { const abs = Math.abs(value); if (abs >= 1e12) return `$${(value / 1e12).toFixed(2)}T`; if (abs >= 1e9) return `$${(value / 1e9).toFixed(2)}B`; return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`; } if (unit === "people") { if (Math.abs(value) >= 1e6) return `${(value / 1e6).toFixed(2)}M`; return value.toLocaleString(undefined, { maximumFractionDigits: 0 }); } return `${value.toFixed(2)}${unit.includes("%") ? "%" : ` ${unit}`}`; }
+function SummarySkeleton() {
+  return (
+    <div className="space-y-6 p-8" aria-label="Loading economic summary">
+      <div className="h-11 animate-pulse bg-paper-100" />
+      <div className="grid grid-cols-3 gap-3">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="h-40 animate-pulse bg-paper-100" />
+        ))}
+      </div>
+      <div className="h-72 animate-pulse bg-paper-100" />
+    </div>
+  );
+}
+function SummaryError() {
+  return (
+    <div className="p-8">
+      <p className="font-serif text-2xl text-ink-950">Summary unavailable</p>
+      <p className="mt-2 text-sm text-ink-500">
+        The comparable economic records could not be loaded. Close this panel and try again.
+      </p>
+    </div>
+  );
+}
+function formatDate(value: string | null): string {
+  if (!value) return "not recorded";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "not recorded"
+    : date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+function formatMetric(value: number | null, unit: string): string {
+  if (value == null || !Number.isFinite(value)) return "—";
+  if (unit === "USD") {
+    const abs = Math.abs(value);
+    if (abs >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
+    if (abs >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
+    return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  }
+  if (unit === "people") {
+    if (Math.abs(value) >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
+    return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  }
+  return `${value.toFixed(2)}${unit.includes("%") ? "%" : ` ${unit}`}`;
+}

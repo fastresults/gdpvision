@@ -88,12 +88,32 @@ type PointRow = {
 const METRICS = [
   { key: "gdp", label: "Combined GDP", unit: "USD", method: "total" as const },
   { key: "population", label: "Combined population", unit: "people", method: "total" as const },
-  { key: "exports_of_goods_and_services", label: "Export intensity", unit: "% of GDP", method: "median" as const },
-  { key: "real_gdp_growth", label: "Real GDP growth", unit: "%", method: "weighted average" as const },
-  { key: "gdp_per_capita_current_usd", label: "GDP per person", unit: "USD", method: "weighted average" as const },
+  {
+    key: "exports_of_goods_and_services",
+    label: "Export intensity",
+    unit: "% of GDP",
+    method: "median" as const,
+  },
+  {
+    key: "real_gdp_growth",
+    label: "Real GDP growth",
+    unit: "%",
+    method: "weighted average" as const,
+  },
+  {
+    key: "gdp_per_capita_current_usd",
+    label: "GDP per person",
+    unit: "USD",
+    method: "weighted average" as const,
+  },
   { key: "debt_gdp", label: "Government debt", unit: "% of GDP", method: "median" as const },
   { key: "fdi_net_inflows_gdp", label: "FDI inflows", unit: "% of GDP", method: "median" as const },
-  { key: "current_account_gdp", label: "Current account", unit: "% of GDP", method: "median" as const },
+  {
+    key: "current_account_gdp",
+    label: "Current account",
+    unit: "% of GDP",
+    method: "median" as const,
+  },
   { key: "unemployment_rate", label: "Unemployment", unit: "%", method: "median" as const },
 ] as const;
 
@@ -107,7 +127,9 @@ function membersFor(bloc: BlocKey): string[] {
 }
 
 function weightedAverage(rows: Array<{ value: number; weight: number }>): number | null {
-  const usable = rows.filter((row) => Number.isFinite(row.value) && Number.isFinite(row.weight) && row.weight > 0);
+  const usable = rows.filter(
+    (row) => Number.isFinite(row.value) && Number.isFinite(row.weight) && row.weight > 0,
+  );
   const weight = usable.reduce((sum, row) => sum + row.weight, 0);
   if (!weight) return null;
   return usable.reduce((sum, row) => sum + row.value * row.weight, 0) / weight;
@@ -134,7 +156,8 @@ function makeSummary(
   const sourceByKpi = new Map(kpis.map((kpi) => [kpi.id, kpi.source_url]));
   const countryByCode = new Map(countries.map((country) => [country.code, country]));
   const rows = normalized.filter(
-    (row) => memberSet.has(row.country_code) && row.excluded_reason == null && row.value_std != null,
+    (row) =>
+      memberSet.has(row.country_code) && row.excluded_reason == null && row.value_std != null,
   );
   const populationByCode = new Map(
     rows
@@ -156,13 +179,23 @@ function makeSummary(
         const value = gdpByCode.get(code);
         return value == null
           ? []
-          : [{ code, name: country?.name ?? code, value, period: String(country?.gdp_year ?? "Current"), sourceUrl: null }];
+          : [
+              {
+                code,
+                name: country?.name ?? code,
+                value,
+                period: String(country?.gdp_year ?? "Current"),
+                sourceUrl: null,
+              },
+            ];
       });
       const available = distribution.length / memberCodes.length >= MIN_COVERAGE;
       return {
         ...definition,
         value: available ? distribution.reduce((sum, row) => sum + row.value, 0) : null,
-        period: distribution.length ? latestSpan(distribution.map((row) => row.period)) : "Unavailable",
+        period: distribution.length
+          ? latestSpan(distribution.map((row) => row.period))
+          : "Unavailable",
         coverage: distribution.length,
         eligible: memberCodes.length,
         available,
@@ -183,8 +216,11 @@ function makeSummary(
     if (available && definition.method === "total") {
       value = distribution.reduce((sum, row) => sum + row.value, 0);
     } else if (available && definition.method === "weighted average") {
-      const weights = definition.key === "gdp_per_capita_current_usd" ? populationByCode : gdpByCode;
-      value = weightedAverage(distribution.map((row) => ({ value: row.value, weight: weights.get(row.code) ?? 0 })));
+      const weights =
+        definition.key === "gdp_per_capita_current_usd" ? populationByCode : gdpByCode;
+      value = weightedAverage(
+        distribution.map((row) => ({ value: row.value, weight: weights.get(row.code) ?? 0 })),
+      );
     } else if (available) {
       value = median(distribution.map((row) => row.value));
     }
@@ -199,7 +235,9 @@ function makeSummary(
     };
   });
 
-  const kpiById = new Map(kpis.filter((kpi) => memberSet.has(kpi.country_code)).map((kpi) => [kpi.id, kpi]));
+  const kpiById = new Map(
+    kpis.filter((kpi) => memberSet.has(kpi.country_code)).map((kpi) => [kpi.id, kpi]),
+  );
   const trendBuckets = new Map<string, Map<number, Map<string, number>>>();
   for (const point of points) {
     const kpi = kpiById.get(point.country_kpi_id);
@@ -227,10 +265,18 @@ function makeSummary(
       .filter((point) => point.coverage / point.eligible >= MIN_COVERAGE)
       .sort((a, b) => a.year - b.year)
       .slice(-6);
-    return { key, label: definition?.label ?? key, unit: definition?.unit ?? normalizeUnit("%"), points: trendPoints };
+    return {
+      key,
+      label: definition?.label ?? key,
+      unit: definition?.unit ?? normalizeUnit("%"),
+      points: trendPoints,
+    };
   });
 
-  const updates = rows.map((row) => row.updated_at).filter(Boolean).sort();
+  const updates = rows
+    .map((row) => row.updated_at)
+    .filter(Boolean)
+    .sort();
   return {
     key: bloc,
     label: bloc === "caricom" ? "CARICOM" : "OECS",
@@ -255,7 +301,9 @@ export const getBlocEconomicSummary = createServerFn({ method: "GET" })
     const [normalizedResult, countriesResult, kpisResult] = await Promise.all([
       context.supabase
         .from("peer_kpi_normalized")
-        .select("country_code,kpi_code,value_std,unit_std,ref_year,excluded_reason,source_kpi_id,updated_at"),
+        .select(
+          "country_code,kpi_code,value_std,unit_std,ref_year,excluded_reason,source_kpi_id,updated_at",
+        ),
       context.supabase.from("countries").select("code,name,gdp_current_usd,gdp_year"),
       context.supabase
         .from("country_kpis")

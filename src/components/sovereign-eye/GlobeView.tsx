@@ -9,6 +9,8 @@ import landTopo from "world-atlas/land-110m.json";
 import { CARIBBEAN_POINTS } from "@/lib/sovereign-eye/caribbean-geo";
 import { getGlobalHazards } from "@/lib/sovereign-eye/global-feeds.functions";
 import type { Exposure } from "@/lib/sovereign-eye/hazard-exposure";
+import { Explain } from "@/components/explain/Explain";
+import "@/lib/explain/sovereign-eye-entries";
 import type { SovereignEyeFlowPartner } from "@/lib/sovereign-eye.functions";
 
 import type { MapFeature } from "./RegionMap";
@@ -173,7 +175,7 @@ export function GlobeView({ code, countryName, center, partners, sideOf, flowLab
         {nationExposure.size ? <details className="mt-1 text-[10px] text-ink-700"><summary className="cursor-pointer font-mono text-[9px] uppercase tracking-[0.14em] text-ink-500">Exposed nations · {nationExposure.size}</summary>
           <ul className="mt-1 max-h-32 space-y-0.5 overflow-auto">{[...nationExposure.entries()].sort((a, b) => gradeRank[b[1].grade] - gradeRank[a[1].grade]).map(([iso, e]) => <li key={iso} className="flex justify-between gap-2"><span>{CARIBBEAN_POINTS.find((p) => p.code === iso)?.name ?? iso}</span><span className="font-mono text-ink-500">{e.grade}</span></li>)}</ul>
         </details> : null}
-        <p className="mt-2 text-[10px] leading-snug text-ink-500">Rings mark proximity to live hazards, not damage. Live public-domain feeds (NOAA, USGS). Reference context only — not saved as evidence.</p>
+        <p className="mt-2 text-[10px] leading-snug text-ink-500"><Explain id="sovereign-eye.hazard-exposure">Rings mark proximity to live hazards, not damage.</Explain> Live public-domain feeds (NOAA, USGS). Reference context only — not saved as evidence.</p>
       </div>
     </>
   );

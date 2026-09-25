@@ -9,6 +9,7 @@ import { IMPACT_LABEL, MICRO, STATUS_META } from "@/components/standards/labels"
 import { MappingSuggestions } from "@/components/standards/MappingSuggestions";
 import { PlanSheet } from "@/components/standards/PlanSheet";
 import { StandardsRow } from "@/components/standards/StandardsRow";
+import { StandardsPerspectiveProvider } from "@/components/standards/StandardsPerspective";
 import { SummaryStrip } from "@/components/standards/SummaryStrip";
 import { getStandardsAudit, snapshotNow, type PlanSummary } from "@/lib/standards/audit.functions";
 import { gapOrder, STATUS_ORDER, type AuditRow, type ReqStatus } from "@/lib/standards/scoring";
@@ -220,7 +221,7 @@ function StandardsPage() {
       )}
 
       {data && data.rows.length > 0 && (
-        <>
+        <StandardsPerspectiveProvider>
           <SummaryStrip
             summary={data.summary}
             rows={data.rows}
@@ -230,6 +231,15 @@ function StandardsPage() {
             recording={recording}
             recordError={recordError}
             onRecord={onRecord}
+            onSelectStatus={(nextStatus) => {
+              setTab("gaps");
+              setStatus(nextStatus);
+            }}
+            onSelectPriority={(nextImpact, nextStatus) => {
+              setTab("gaps");
+              setImpact(nextImpact);
+              setStatus(nextStatus);
+            }}
           />
 
           <StandardsRow standards={data.standards} active={standard} onSelect={setStandard} />
@@ -355,7 +365,7 @@ function StandardsPage() {
             userId={data.userId}
             onClose={() => setOpenId(null)}
           />
-        </>
+        </StandardsPerspectiveProvider>
       )}
     </SuperAdminShell>
   );

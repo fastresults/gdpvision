@@ -326,8 +326,11 @@ function parseFallback<T>(schema: z.ZodType<T>, text: string | undefined): T | n
     .replace(/^\s*```(?:json)?/i, "")
     .replace(/```\s*$/, "")
     .trim();
-  const start = cleaned.indexOf("{");
-  const end = cleaned.lastIndexOf("}");
+  const ob = cleaned.indexOf("{");
+  const ab = cleaned.indexOf("[");
+  const isArray = ab !== -1 && (ob === -1 || ab < ob);
+  const start = isArray ? ab : ob;
+  const end = cleaned.lastIndexOf(isArray ? "]" : "}");
   if (start === -1 || end <= start) return null;
   try {
     return parseLenient(schema, JSON.parse(cleaned.slice(start, end + 1)));

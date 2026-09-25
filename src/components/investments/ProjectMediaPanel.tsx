@@ -160,16 +160,6 @@ export function ProjectMediaPanel({
                   >
                     View
                   </button>
-                  {m.url && (
-                    <a
-                      href={m.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn-secondary px-3 py-1.5 text-xs"
-                    >
-                      Download
-                    </a>
-                  )}
                 </div>
               </li>
             ))}

@@ -281,8 +281,16 @@ function coerce(schema: z.ZodTypeAny, v: unknown): unknown {
     return arr.map((x) => coerce(el, x));
   }
   if (s instanceof z.ZodObject) {
-    let o = v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
     const shape = s.shape as Record<string, z.ZodTypeAny>;
+    // A bare array (e.g. the slide list without its wrapper) goes into the
+    // object's first array field.
+    if (Array.isArray(v)) {
+      const arrKey = Object.keys(shape).find(
+        (k) => unwrapOptional(shape[k]!) instanceof z.ZodArray,
+      );
+      v = arrKey ? { [arrKey]: v } : {};
+    }
+    let o = v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
     const keys = Object.keys(shape);
     // Unwrap { "teaser": { ...fields } } style wrappers.
     if (!keys.some((k) => k in o)) {

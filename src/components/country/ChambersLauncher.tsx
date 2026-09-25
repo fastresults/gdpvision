@@ -37,20 +37,62 @@ const HERO: Chamber = {
   n: "01",
   icon: BookOpen,
   title: "The National Ledger",
-  blurb: "Authoritative decomposition of the national economy — sector by sector, source by source.",
+  blurb:
+    "Authoritative decomposition of the national economy — sector by sector, source by source.",
   to: "/admin/countries/$code/ledger",
 };
 
 const REST: Chamber[] = [
-  { n: "02", icon: Layers, title: "Portfolio Workspaces", blurb: "One workspace per ministerial portfolio.", to: "/admin/countries/$code/portfolio" },
-  { n: "03", icon: Activity, title: "The Scenario Engine", blurb: "Consequence-free rehearsal across every downstream metric.", to: "/admin/countries/$code/scenarios" },
-  { n: "04", icon: TrendingUp, title: "The FDI Transition Studio", blurb: "Threat in, resilient FDI strategy out — sector by sector.", to: "/admin/countries/$code/studio" },
-  { n: "05", icon: MessageSquare, title: "The Narrative Chamber", blurb: "Signal to statement inside a working day.", to: "/admin/countries/$code/narrative" },
-  { n: "06", icon: Landmark, title: "The Cabinet Room", blurb: "Prep, run, and follow through on cabinet business.", to: "/admin/countries/$code/cabinet" },
-  { n: "07", icon: Users, title: "The Research Chamber", blurb: "Rehearse with a synthetic public, or field the real one.", to: "/admin/countries/$code/personas" },
-  { n: "08", icon: ScrollText, title: "The Mandate Compact", blurb: "Manifesto to delivery — pledges tracked to the ministry.", to: "/admin/countries/$code/mandate-compact" },
+  {
+    n: "02",
+    icon: Layers,
+    title: "Portfolio Workspaces",
+    blurb: "One workspace per ministerial portfolio.",
+    to: "/admin/countries/$code/portfolio",
+  },
+  {
+    n: "03",
+    icon: Activity,
+    title: "The Scenario Engine",
+    blurb: "Consequence-free rehearsal across every downstream metric.",
+    to: "/admin/countries/$code/scenarios",
+  },
+  {
+    n: "04",
+    icon: TrendingUp,
+    title: "The FDI Transition Studio",
+    blurb: "Threat in, resilient FDI strategy out — sector by sector.",
+    to: "/admin/countries/$code/studio",
+  },
+  {
+    n: "05",
+    icon: MessageSquare,
+    title: "The Narrative Chamber",
+    blurb: "Signal to statement inside a working day.",
+    to: "/admin/countries/$code/narrative",
+  },
+  {
+    n: "06",
+    icon: Landmark,
+    title: "The Cabinet Room",
+    blurb: "Prep, run, and follow through on cabinet business.",
+    to: "/admin/countries/$code/cabinet",
+  },
+  {
+    n: "07",
+    icon: Users,
+    title: "The Research Chamber",
+    blurb: "Rehearse with a synthetic public, or field the real one.",
+    to: "/admin/countries/$code/personas",
+  },
+  {
+    n: "08",
+    icon: ScrollText,
+    title: "The Mandate Compact",
+    blurb: "Manifesto to delivery — pledges tracked to the ministry.",
+    to: "/admin/countries/$code/mandate-compact",
+  },
 ];
-
 
 const SYNDICATION: Array<{
   title: string;
@@ -58,22 +100,31 @@ const SYNDICATION: Array<{
   to:
     | "/admin/countries/$code/standards"
     | "/admin/countries/$code/investments"
-    | "/admin/countries/$code/investors";
+    | "/admin/countries/$code/investors"
+    | "/admin/countries/$code/egov";
 }> = [
   {
     title: "Data standards audit",
-    blurb: "Coverage against IMF, UN, World Bank, FATF and PEFA requirements, and the plans that close each gap.",
+    blurb:
+      "Coverage against IMF, UN, World Bank, FATF and PEFA requirements, and the plans that close each gap.",
     to: "/admin/countries/$code/standards",
   },
   {
     title: "Investment pipeline",
-    blurb: "Projects in one standard format, checked for investor readiness and approved by a second person.",
+    blurb:
+      "Projects in one standard format, checked for investor readiness and approved by a second person.",
     to: "/admin/countries/$code/investments",
   },
   {
     title: "Investors",
     blurb: "Who is interested in what, how far each conversation has gone, and what happens next.",
     to: "/admin/countries/$code/investors",
+  },
+  {
+    title: "Digital Government Studio",
+    blurb:
+      "The product requirements for a national e-government platform, written from this country's corpus and approved by a second person.",
+    to: "/admin/countries/$code/egov",
   },
 ];
 
@@ -131,7 +182,6 @@ export function ChambersLauncher({ code }: { code: string }) {
       </Link>
 
       <div className="flex items-baseline justify-between">
-
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink-500">
             The switchboard
@@ -158,7 +208,7 @@ export function ChambersLauncher({ code }: { code: string }) {
         <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink-500">
           Standards and investment
         </p>
-        <div className="mt-3 grid grid-cols-1 gap-0 border-l border-line-200 md:grid-cols-3">
+        <div className="mt-3 grid grid-cols-1 gap-0 border-l border-line-200 md:grid-cols-2 lg:grid-cols-4">
           {SYNDICATION.map((l) => (
             <Link
               key={l.to}
@@ -183,7 +233,6 @@ export function ChambersLauncher({ code }: { code: string }) {
   );
 }
 
-
 function HeroTile({ code, chamber }: { code: string; chamber: Chamber }) {
   const Icon = chamber.icon;
   return (
@@ -195,9 +244,7 @@ function HeroTile({ code, chamber }: { code: string; chamber: Chamber }) {
       <div className="absolute inset-x-0 top-0 h-[3px] bg-gold-500" />
       <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-8">
         <div className="text-left">
-          <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink-500">
-            Chamber
-          </p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink-500">Chamber</p>
           <div className="mt-1 font-serif text-[72px] leading-none text-ink-950" data-numeric>
             {chamber.n}
           </div>
@@ -212,7 +259,11 @@ function HeroTile({ code, chamber }: { code: string; chamber: Chamber }) {
         </div>
         <div className="hidden shrink-0 items-center gap-2 self-end font-mono text-[11px] uppercase tracking-[0.22em] text-ink-950 md:flex">
           Enter
-          <ArrowUpRight size={16} strokeWidth={1.5} className="transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          <ArrowUpRight
+            size={16}
+            strokeWidth={1.5}
+            className="transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+          />
         </div>
       </div>
     </Link>
@@ -247,7 +298,9 @@ function Tile({ code, chamber, index }: { code: string; chamber: Chamber; index:
       <div className="mt-6 flex items-center justify-between border-t border-line-200 pt-3 font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
         <span className="opacity-0 transition group-hover:opacity-100">Enter</span>
         <span className="flex items-center gap-1 text-ink-950">
-          <span className="font-serif text-base leading-none" data-numeric>{chamber.n}</span>
+          <span className="font-serif text-base leading-none" data-numeric>
+            {chamber.n}
+          </span>
           <ArrowUpRight
             size={12}
             strokeWidth={1.5}

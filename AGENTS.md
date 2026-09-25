@@ -32,16 +32,17 @@ Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 ·
 
 ## 3. Chambers (7 sovereign workspaces)
 
-| #   | Name                  | Admin route                             | Console route   | Primary components                                        | Server fns                                             |
-| --- | --------------------- | --------------------------------------- | --------------- | --------------------------------------------------------- | ------------------------------------------------------ |
-| 01  | National Ledger       | `admin/countries/$code/ledger`          | `console/$code` | `AskTheLedger`, `WhyThisNumberPanel`, `LedgerEnrichments` | `ledger.functions.ts`, `ledger-qa/*`                   |
-| 02  | Portfolios            | `admin/countries/$code/portfolio`       | —               | `MinistrySectorHeatmap`, `SectorProfilingMatrix`          | `mandate.functions.ts`, `sector-dossier/*`             |
-| 03  | Scenarios             | `admin/countries/$code/scenarios`       | —               | `GdpFanChart`, `LeversDrawer`, `PlaybookChips`            | `scenarios/*.functions.ts`                             |
-| 04  | FDI Transition Studio | `admin/countries/$code/studio`          | —               | `WorkbenchJourney`, `ThreatComposer`, `ExposureLedger`    | `fdi-resilience.functions.ts`, `goalseek.functions.ts` |
-| 05  | Narrative             | `admin/countries/$code/narrative`       | —               | `SignalTriageRail`, `DraftStudio`, opposition wizard      | `narrative.functions.ts`, `narrative/opposition-*.ts`  |
-| 06  | Cabinet Room          | `admin/countries/$code/cabinet`         | —               | `SituationBoard`, `DecisionQueue`, `CommitmentsCockpit`   | `cabinet.functions.ts`                                 |
-| 07  | Persona Lab           | `admin/countries/$code/personas`        | —               | `StudyWizard/*`, `MultimodalInput`                        | `personas/*.functions.ts`                              |
-| 08  | Mandate Compact       | `admin/countries/$code/mandate-compact` | —               | `Stepper`, `IngestPanel`, `CompactList`                   | `mandate-compact/{ingest,list}.functions.ts`           |
+| #   | Name                      | Admin route                             | Console route      | Primary components                                                                   | Server fns                                                                       |
+| --- | ------------------------- | --------------------------------------- | ------------------ | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| 01  | National Ledger           | `admin/countries/$code/ledger`          | `console/$code`    | `AskTheLedger`, `WhyThisNumberPanel`, `LedgerEnrichments`                            | `ledger.functions.ts`, `ledger-qa/*`                                             |
+| 02  | Portfolios                | `admin/countries/$code/portfolio`       | —                  | `MinistrySectorHeatmap`, `SectorProfilingMatrix`                                     | `mandate.functions.ts`, `sector-dossier/*`                                       |
+| 03  | Scenarios                 | `admin/countries/$code/scenarios`       | —                  | `GdpFanChart`, `LeversDrawer`, `PlaybookChips`                                       | `scenarios/*.functions.ts`                                                       |
+| 04  | FDI Transition Studio     | `admin/countries/$code/studio`          | —                  | `WorkbenchJourney`, `ThreatComposer`, `ExposureLedger`                               | `fdi-resilience.functions.ts`, `goalseek.functions.ts`                           |
+| 05  | Narrative                 | `admin/countries/$code/narrative`       | —                  | `SignalTriageRail`, `DraftStudio`, opposition wizard                                 | `narrative.functions.ts`, `narrative/opposition-*.ts`                            |
+| 06  | Cabinet Room              | `admin/countries/$code/cabinet`         | —                  | `SituationBoard`, `DecisionQueue`, `CommitmentsCockpit`                              | `cabinet.functions.ts`                                                           |
+| 07  | Persona Lab               | `admin/countries/$code/personas`        | —                  | `StudyWizard/*`, `MultimodalInput`                                                   | `personas/*.functions.ts`                                                        |
+| 08  | Mandate Compact           | `admin/countries/$code/mandate-compact` | —                  | `Stepper`, `IngestPanel`, `CompactList`                                              | `mandate-compact/{ingest,list}.functions.ts`                                     |
+| 09  | Digital Government Studio | `admin/countries/$code/egov`            | public `/e/$token` | `egov/{NewPrdPanel,SectionEditor,ApprovalPanel,BrandPreview,SharePanel,PrdDocument}` | `egov/{prd,draft,share-links,public-prd}.functions.ts`, `egov/context.server.ts` |
 
 Full chamber map: `docs/map/chambers.md`.
 

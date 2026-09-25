@@ -23,6 +23,7 @@ import { Route as OpEdsSlugRouteImport } from './routes/op-eds.$slug'
 import { Route as KioskAdminRouteImport } from './routes/kiosk.admin'
 import { Route as ITokenRouteImport } from './routes/i.$token'
 import { Route as FTokenRouteImport } from './routes/f.$token'
+import { Route as ETokenRouteImport } from './routes/e.$token'
 import { Route as DTokenRouteImport } from './routes/d.$token'
 import { Route as BusinessCaseCalculatorRouteImport } from './routes/business-case_.calculator'
 import { Route as AuthInviteRouteImport } from './routes/auth.invite'
@@ -122,6 +123,7 @@ import { Route as AuthenticatedAdminCountriesCodeInvestmentsRouteImport } from '
 import { Route as AuthenticatedAdminCountriesCodeGodseyeRouteImport } from './routes/_authenticated/admin/countries.$code.godseye'
 import { Route as AuthenticatedAdminCountriesCodeGlobalRouteImport } from './routes/_authenticated/admin/countries.$code.global'
 import { Route as AuthenticatedAdminCountriesCodeExecutiveRouteImport } from './routes/_authenticated/admin/countries.$code.executive'
+import { Route as AuthenticatedAdminCountriesCodeEgovRouteImport } from './routes/_authenticated/admin/countries.$code.egov'
 import { Route as AuthenticatedAdminCountriesCodeDataRouteImport } from './routes/_authenticated/admin/countries.$code.data'
 import { Route as AuthenticatedAdminCountriesCodeStudioIndexRouteImport } from './routes/_authenticated/admin/countries.$code.studio.index'
 import { Route as AuthenticatedAdminCountriesCodeScenariosIndexRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios.index'
@@ -139,6 +141,7 @@ import { Route as AuthenticatedAdminCountriesCodePersonasBlueprintRouteImport } 
 import { Route as AuthenticatedAdminCountriesCodePersonasIdRouteImport } from './routes/_authenticated/admin/countries.$code.personas.$id'
 import { Route as AuthenticatedAdminCountriesCodeNarrativeLibraryRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.library'
 import { Route as AuthenticatedAdminCountriesCodeInvestmentsIdRouteImport } from './routes/_authenticated/admin/countries.$code.investments.$id'
+import { Route as AuthenticatedAdminCountriesCodeEgovPrdIdRouteImport } from './routes/_authenticated/admin/countries.$code.egov_.$prdId'
 import { Route as AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.opposition.index'
 import { Route as AuthenticatedAdminCountriesCodeStudioThreatsNewRouteImport } from './routes/_authenticated/admin/countries.$code.studio.threats.new'
 import { Route as AuthenticatedAdminCountriesCodeStudioThreatsIdRouteImport } from './routes/_authenticated/admin/countries.$code.studio.threats.$id'
@@ -148,6 +151,7 @@ import { Route as AuthenticatedAdminCountriesCodePersonasFieldStepRouteImport } 
 import { Route as AuthenticatedAdminCountriesCodeNarrativeSignalIdRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.signal.$id'
 import { Route as AuthenticatedAdminCountriesCodeNarrativeOppositionIdRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.opposition.$id'
 import { Route as AuthenticatedAdminCountriesCodeExecutiveChamberChamberRouteImport } from './routes/_authenticated/admin/countries.$code.executive.chamber.$chamber'
+import { Route as AuthenticatedAdminCountriesCodeEgovPrdIdDocumentRouteImport } from './routes/_authenticated/admin/countries.$code.egov_.$prdId_.document'
 import { Route as AuthenticatedAdminCountriesCodeCabinetSessionSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.session.$sid'
 import { Route as AuthenticatedAdminCountriesCodeCabinetMinutesSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.minutes.$sid'
 import { Route as AuthenticatedAdminCountriesCodeCabinetAgendaSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.agenda.$sid'
@@ -220,6 +224,11 @@ const ITokenRoute = ITokenRouteImport.update({
 const FTokenRoute = FTokenRouteImport.update({
   id: '/f/$token',
   path: '/f/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ETokenRoute = ETokenRouteImport.update({
+  id: '/e/$token',
+  path: '/e/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DTokenRoute = DTokenRouteImport.update({
@@ -800,6 +809,12 @@ const AuthenticatedAdminCountriesCodeExecutiveRoute =
     path: '/countries/$code/executive',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeEgovRoute =
+  AuthenticatedAdminCountriesCodeEgovRouteImport.update({
+    id: '/countries/$code/egov',
+    path: '/countries/$code/egov',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminCountriesCodeDataRoute =
   AuthenticatedAdminCountriesCodeDataRouteImport.update({
     id: '/countries/$code/data',
@@ -902,6 +917,12 @@ const AuthenticatedAdminCountriesCodeInvestmentsIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedAdminCountriesCodeInvestmentsRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeEgovPrdIdRoute =
+  AuthenticatedAdminCountriesCodeEgovPrdIdRouteImport.update({
+    id: '/countries/$code/egov_/$prdId',
+    path: '/countries/$code/egov/$prdId',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRoute =
   AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRouteImport.update({
     id: '/opposition/',
@@ -956,6 +977,12 @@ const AuthenticatedAdminCountriesCodeExecutiveChamberChamberRoute =
     path: '/chamber/$chamber',
     getParentRoute: () => AuthenticatedAdminCountriesCodeExecutiveRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeEgovPrdIdDocumentRoute =
+  AuthenticatedAdminCountriesCodeEgovPrdIdDocumentRouteImport.update({
+    id: '/countries/$code/egov_/$prdId_/document',
+    path: '/countries/$code/egov/$prdId/document',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminCountriesCodeCabinetSessionSidRoute =
   AuthenticatedAdminCountriesCodeCabinetSessionSidRouteImport.update({
     id: '/countries/$code/cabinet/session/$sid',
@@ -997,6 +1024,7 @@ export interface FileRoutesByFullPath {
   '/auth/invite': typeof AuthInviteRoute
   '/business-case/calculator': typeof BusinessCaseCalculatorRoute
   '/d/$token': typeof DTokenRoute
+  '/e/$token': typeof ETokenRoute
   '/f/$token': typeof FTokenRoute
   '/i/$token': typeof ITokenRoute
   '/kiosk/admin': typeof KioskAdminRoute
@@ -1078,6 +1106,7 @@ export interface FileRoutesByFullPath {
   '/instrument/scenarios/': typeof AuthenticatedInstrumentScenariosIndexRoute
   '/narrative/strategy/': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
+  '/admin/countries/$code/egov': typeof AuthenticatedAdminCountriesCodeEgovRoute
   '/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
   '/admin/countries/$code/global': typeof AuthenticatedAdminCountriesCodeGlobalRoute
   '/admin/countries/$code/godseye': typeof AuthenticatedAdminCountriesCodeGodseyeRoute
@@ -1097,6 +1126,7 @@ export interface FileRoutesByFullPath {
   '/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
   '/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
   '/console/$code/requests/': typeof AuthenticatedConsoleCodeRequestsIndexRoute
+  '/admin/countries/$code/egov/$prdId': typeof AuthenticatedAdminCountriesCodeEgovPrdIdRoute
   '/admin/countries/$code/investments/$id': typeof AuthenticatedAdminCountriesCodeInvestmentsIdRouteWithChildren
   '/admin/countries/$code/narrative/library': typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRoute
   '/admin/countries/$code/personas/$id': typeof AuthenticatedAdminCountriesCodePersonasIdRoute
@@ -1116,6 +1146,7 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/cabinet/agenda/$sid': typeof AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute
   '/admin/countries/$code/cabinet/minutes/$sid': typeof AuthenticatedAdminCountriesCodeCabinetMinutesSidRoute
   '/admin/countries/$code/cabinet/session/$sid': typeof AuthenticatedAdminCountriesCodeCabinetSessionSidRoute
+  '/admin/countries/$code/egov/$prdId/document': typeof AuthenticatedAdminCountriesCodeEgovPrdIdDocumentRoute
   '/admin/countries/$code/executive/chamber/$chamber': typeof AuthenticatedAdminCountriesCodeExecutiveChamberChamberRoute
   '/admin/countries/$code/narrative/opposition/$id': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIdRoute
   '/admin/countries/$code/narrative/signal/$id': typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute
@@ -1137,6 +1168,7 @@ export interface FileRoutesByTo {
   '/auth/invite': typeof AuthInviteRoute
   '/business-case/calculator': typeof BusinessCaseCalculatorRoute
   '/d/$token': typeof DTokenRoute
+  '/e/$token': typeof ETokenRoute
   '/f/$token': typeof FTokenRoute
   '/i/$token': typeof ITokenRoute
   '/kiosk/admin': typeof KioskAdminRoute
@@ -1218,6 +1250,7 @@ export interface FileRoutesByTo {
   '/instrument/scenarios': typeof AuthenticatedInstrumentScenariosIndexRoute
   '/narrative/strategy': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
+  '/admin/countries/$code/egov': typeof AuthenticatedAdminCountriesCodeEgovRoute
   '/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
   '/admin/countries/$code/global': typeof AuthenticatedAdminCountriesCodeGlobalRoute
   '/admin/countries/$code/godseye': typeof AuthenticatedAdminCountriesCodeGodseyeRoute
@@ -1232,6 +1265,7 @@ export interface FileRoutesByTo {
   '/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
   '/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
   '/console/$code/requests': typeof AuthenticatedConsoleCodeRequestsIndexRoute
+  '/admin/countries/$code/egov/$prdId': typeof AuthenticatedAdminCountriesCodeEgovPrdIdRoute
   '/admin/countries/$code/investments/$id': typeof AuthenticatedAdminCountriesCodeInvestmentsIdRouteWithChildren
   '/admin/countries/$code/narrative/library': typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRoute
   '/admin/countries/$code/personas/$id': typeof AuthenticatedAdminCountriesCodePersonasIdRoute
@@ -1251,6 +1285,7 @@ export interface FileRoutesByTo {
   '/admin/countries/$code/cabinet/agenda/$sid': typeof AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute
   '/admin/countries/$code/cabinet/minutes/$sid': typeof AuthenticatedAdminCountriesCodeCabinetMinutesSidRoute
   '/admin/countries/$code/cabinet/session/$sid': typeof AuthenticatedAdminCountriesCodeCabinetSessionSidRoute
+  '/admin/countries/$code/egov/$prdId/document': typeof AuthenticatedAdminCountriesCodeEgovPrdIdDocumentRoute
   '/admin/countries/$code/executive/chamber/$chamber': typeof AuthenticatedAdminCountriesCodeExecutiveChamberChamberRoute
   '/admin/countries/$code/narrative/opposition/$id': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIdRoute
   '/admin/countries/$code/narrative/signal/$id': typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute
@@ -1278,6 +1313,7 @@ export interface FileRoutesById {
   '/auth/invite': typeof AuthInviteRoute
   '/business-case_/calculator': typeof BusinessCaseCalculatorRoute
   '/d/$token': typeof DTokenRoute
+  '/e/$token': typeof ETokenRoute
   '/f/$token': typeof FTokenRoute
   '/i/$token': typeof ITokenRoute
   '/kiosk/admin': typeof KioskAdminRoute
@@ -1359,6 +1395,7 @@ export interface FileRoutesById {
   '/_authenticated/instrument/scenarios/': typeof AuthenticatedInstrumentScenariosIndexRoute
   '/_authenticated/narrative/strategy/': typeof AuthenticatedNarrativeStrategyIndexRoute
   '/_authenticated/admin/countries/$code/data': typeof AuthenticatedAdminCountriesCodeDataRoute
+  '/_authenticated/admin/countries/$code/egov': typeof AuthenticatedAdminCountriesCodeEgovRoute
   '/_authenticated/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
   '/_authenticated/admin/countries/$code/global': typeof AuthenticatedAdminCountriesCodeGlobalRoute
   '/_authenticated/admin/countries/$code/godseye': typeof AuthenticatedAdminCountriesCodeGodseyeRoute
@@ -1378,6 +1415,7 @@ export interface FileRoutesById {
   '/_authenticated/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
   '/_authenticated/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
   '/_authenticated/console/$code/requests/': typeof AuthenticatedConsoleCodeRequestsIndexRoute
+  '/_authenticated/admin/countries/$code/egov_/$prdId': typeof AuthenticatedAdminCountriesCodeEgovPrdIdRoute
   '/_authenticated/admin/countries/$code/investments/$id': typeof AuthenticatedAdminCountriesCodeInvestmentsIdRouteWithChildren
   '/_authenticated/admin/countries/$code/narrative/library': typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRoute
   '/_authenticated/admin/countries/$code/personas/$id': typeof AuthenticatedAdminCountriesCodePersonasIdRoute
@@ -1397,6 +1435,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/cabinet/agenda/$sid': typeof AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute
   '/_authenticated/admin/countries/$code/cabinet/minutes/$sid': typeof AuthenticatedAdminCountriesCodeCabinetMinutesSidRoute
   '/_authenticated/admin/countries/$code/cabinet/session/$sid': typeof AuthenticatedAdminCountriesCodeCabinetSessionSidRoute
+  '/_authenticated/admin/countries/$code/egov_/$prdId_/document': typeof AuthenticatedAdminCountriesCodeEgovPrdIdDocumentRoute
   '/_authenticated/admin/countries/$code/executive/chamber/$chamber': typeof AuthenticatedAdminCountriesCodeExecutiveChamberChamberRoute
   '/_authenticated/admin/countries/$code/narrative/opposition/$id': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIdRoute
   '/_authenticated/admin/countries/$code/narrative/signal/$id': typeof AuthenticatedAdminCountriesCodeNarrativeSignalIdRoute
@@ -1424,6 +1463,7 @@ export interface FileRouteTypes {
     | '/auth/invite'
     | '/business-case/calculator'
     | '/d/$token'
+    | '/e/$token'
     | '/f/$token'
     | '/i/$token'
     | '/kiosk/admin'
@@ -1505,6 +1545,7 @@ export interface FileRouteTypes {
     | '/instrument/scenarios/'
     | '/narrative/strategy/'
     | '/admin/countries/$code/data'
+    | '/admin/countries/$code/egov'
     | '/admin/countries/$code/executive'
     | '/admin/countries/$code/global'
     | '/admin/countries/$code/godseye'
@@ -1524,6 +1565,7 @@ export interface FileRouteTypes {
     | '/console/$code/request/new'
     | '/console/$code/requests/$id'
     | '/console/$code/requests/'
+    | '/admin/countries/$code/egov/$prdId'
     | '/admin/countries/$code/investments/$id'
     | '/admin/countries/$code/narrative/library'
     | '/admin/countries/$code/personas/$id'
@@ -1543,6 +1585,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/cabinet/agenda/$sid'
     | '/admin/countries/$code/cabinet/minutes/$sid'
     | '/admin/countries/$code/cabinet/session/$sid'
+    | '/admin/countries/$code/egov/$prdId/document'
     | '/admin/countries/$code/executive/chamber/$chamber'
     | '/admin/countries/$code/narrative/opposition/$id'
     | '/admin/countries/$code/narrative/signal/$id'
@@ -1564,6 +1607,7 @@ export interface FileRouteTypes {
     | '/auth/invite'
     | '/business-case/calculator'
     | '/d/$token'
+    | '/e/$token'
     | '/f/$token'
     | '/i/$token'
     | '/kiosk/admin'
@@ -1645,6 +1689,7 @@ export interface FileRouteTypes {
     | '/instrument/scenarios'
     | '/narrative/strategy'
     | '/admin/countries/$code/data'
+    | '/admin/countries/$code/egov'
     | '/admin/countries/$code/executive'
     | '/admin/countries/$code/global'
     | '/admin/countries/$code/godseye'
@@ -1659,6 +1704,7 @@ export interface FileRouteTypes {
     | '/console/$code/request/new'
     | '/console/$code/requests/$id'
     | '/console/$code/requests'
+    | '/admin/countries/$code/egov/$prdId'
     | '/admin/countries/$code/investments/$id'
     | '/admin/countries/$code/narrative/library'
     | '/admin/countries/$code/personas/$id'
@@ -1678,6 +1724,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/cabinet/agenda/$sid'
     | '/admin/countries/$code/cabinet/minutes/$sid'
     | '/admin/countries/$code/cabinet/session/$sid'
+    | '/admin/countries/$code/egov/$prdId/document'
     | '/admin/countries/$code/executive/chamber/$chamber'
     | '/admin/countries/$code/narrative/opposition/$id'
     | '/admin/countries/$code/narrative/signal/$id'
@@ -1704,6 +1751,7 @@ export interface FileRouteTypes {
     | '/auth/invite'
     | '/business-case_/calculator'
     | '/d/$token'
+    | '/e/$token'
     | '/f/$token'
     | '/i/$token'
     | '/kiosk/admin'
@@ -1785,6 +1833,7 @@ export interface FileRouteTypes {
     | '/_authenticated/instrument/scenarios/'
     | '/_authenticated/narrative/strategy/'
     | '/_authenticated/admin/countries/$code/data'
+    | '/_authenticated/admin/countries/$code/egov'
     | '/_authenticated/admin/countries/$code/executive'
     | '/_authenticated/admin/countries/$code/global'
     | '/_authenticated/admin/countries/$code/godseye'
@@ -1804,6 +1853,7 @@ export interface FileRouteTypes {
     | '/_authenticated/console/$code/request/new'
     | '/_authenticated/console/$code/requests/$id'
     | '/_authenticated/console/$code/requests/'
+    | '/_authenticated/admin/countries/$code/egov_/$prdId'
     | '/_authenticated/admin/countries/$code/investments/$id'
     | '/_authenticated/admin/countries/$code/narrative/library'
     | '/_authenticated/admin/countries/$code/personas/$id'
@@ -1823,6 +1873,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/countries/$code/cabinet/agenda/$sid'
     | '/_authenticated/admin/countries/$code/cabinet/minutes/$sid'
     | '/_authenticated/admin/countries/$code/cabinet/session/$sid'
+    | '/_authenticated/admin/countries/$code/egov_/$prdId_/document'
     | '/_authenticated/admin/countries/$code/executive/chamber/$chamber'
     | '/_authenticated/admin/countries/$code/narrative/opposition/$id'
     | '/_authenticated/admin/countries/$code/narrative/signal/$id'
@@ -1844,6 +1895,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   BusinessCaseCalculatorRoute: typeof BusinessCaseCalculatorRoute
   DTokenRoute: typeof DTokenRoute
+  ETokenRoute: typeof ETokenRoute
   FTokenRoute: typeof FTokenRoute
   ITokenRoute: typeof ITokenRoute
   OpEdsSlugRoute: typeof OpEdsSlugRoute
@@ -1960,6 +2012,13 @@ declare module '@tanstack/react-router' {
       path: '/f/$token'
       fullPath: '/f/$token'
       preLoaderRoute: typeof FTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/e/$token': {
+      id: '/e/$token'
+      path: '/e/$token'
+      fullPath: '/e/$token'
+      preLoaderRoute: typeof ETokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/d/$token': {
@@ -2655,6 +2714,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeExecutiveRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/countries/$code/egov': {
+      id: '/_authenticated/admin/countries/$code/egov'
+      path: '/countries/$code/egov'
+      fullPath: '/admin/countries/$code/egov'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeEgovRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/countries/$code/data': {
       id: '/_authenticated/admin/countries/$code/data'
       path: '/countries/$code/data'
@@ -2774,6 +2840,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeInvestmentsIdRouteImport
       parentRoute: typeof AuthenticatedAdminCountriesCodeInvestmentsRoute
     }
+    '/_authenticated/admin/countries/$code/egov_/$prdId': {
+      id: '/_authenticated/admin/countries/$code/egov_/$prdId'
+      path: '/countries/$code/egov/$prdId'
+      fullPath: '/admin/countries/$code/egov/$prdId'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeEgovPrdIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/countries/$code/narrative/opposition/': {
       id: '/_authenticated/admin/countries/$code/narrative/opposition/'
       path: '/opposition'
@@ -2836,6 +2909,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/countries/$code/executive/chamber/$chamber'
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeExecutiveChamberChamberRouteImport
       parentRoute: typeof AuthenticatedAdminCountriesCodeExecutiveRoute
+    }
+    '/_authenticated/admin/countries/$code/egov_/$prdId_/document': {
+      id: '/_authenticated/admin/countries/$code/egov_/$prdId_/document'
+      path: '/countries/$code/egov/$prdId/document'
+      fullPath: '/admin/countries/$code/egov/$prdId/document'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeEgovPrdIdDocumentRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/countries/$code/cabinet/session/$sid': {
       id: '/_authenticated/admin/countries/$code/cabinet/session/$sid'
@@ -3066,6 +3146,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminCountryCodeRoute: typeof AuthenticatedAdminCountryCodeRoute
   AuthenticatedAdminCountriesIndexRoute: typeof AuthenticatedAdminCountriesIndexRoute
   AuthenticatedAdminCountriesCodeDataRoute: typeof AuthenticatedAdminCountriesCodeDataRoute
+  AuthenticatedAdminCountriesCodeEgovRoute: typeof AuthenticatedAdminCountriesCodeEgovRoute
   AuthenticatedAdminCountriesCodeExecutiveRoute: typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
   AuthenticatedAdminCountriesCodeGlobalRoute: typeof AuthenticatedAdminCountriesCodeGlobalRoute
   AuthenticatedAdminCountriesCodeGodseyeRoute: typeof AuthenticatedAdminCountriesCodeGodseyeRoute
@@ -3081,10 +3162,12 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminCountriesCodeStandardsRoute: typeof AuthenticatedAdminCountriesCodeStandardsRoute
   AuthenticatedAdminCountriesCodeStudioRoute: typeof AuthenticatedAdminCountriesCodeStudioRouteWithChildren
   AuthenticatedAdminCountriesCodeVizRoute: typeof AuthenticatedAdminCountriesCodeVizRoute
+  AuthenticatedAdminCountriesCodeEgovPrdIdRoute: typeof AuthenticatedAdminCountriesCodeEgovPrdIdRoute
   AuthenticatedAdminCountriesCodeCabinetIndexRoute: typeof AuthenticatedAdminCountriesCodeCabinetIndexRoute
   AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute: typeof AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute
   AuthenticatedAdminCountriesCodeCabinetMinutesSidRoute: typeof AuthenticatedAdminCountriesCodeCabinetMinutesSidRoute
   AuthenticatedAdminCountriesCodeCabinetSessionSidRoute: typeof AuthenticatedAdminCountriesCodeCabinetSessionSidRoute
+  AuthenticatedAdminCountriesCodeEgovPrdIdDocumentRoute: typeof AuthenticatedAdminCountriesCodeEgovPrdIdDocumentRoute
 }
 
 const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
@@ -3105,6 +3188,8 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
       AuthenticatedAdminCountriesIndexRoute,
     AuthenticatedAdminCountriesCodeDataRoute:
       AuthenticatedAdminCountriesCodeDataRoute,
+    AuthenticatedAdminCountriesCodeEgovRoute:
+      AuthenticatedAdminCountriesCodeEgovRoute,
     AuthenticatedAdminCountriesCodeExecutiveRoute:
       AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren,
     AuthenticatedAdminCountriesCodeGlobalRoute:
@@ -3135,6 +3220,8 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
       AuthenticatedAdminCountriesCodeStudioRouteWithChildren,
     AuthenticatedAdminCountriesCodeVizRoute:
       AuthenticatedAdminCountriesCodeVizRoute,
+    AuthenticatedAdminCountriesCodeEgovPrdIdRoute:
+      AuthenticatedAdminCountriesCodeEgovPrdIdRoute,
     AuthenticatedAdminCountriesCodeCabinetIndexRoute:
       AuthenticatedAdminCountriesCodeCabinetIndexRoute,
     AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute:
@@ -3143,6 +3230,8 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
       AuthenticatedAdminCountriesCodeCabinetMinutesSidRoute,
     AuthenticatedAdminCountriesCodeCabinetSessionSidRoute:
       AuthenticatedAdminCountriesCodeCabinetSessionSidRoute,
+    AuthenticatedAdminCountriesCodeEgovPrdIdDocumentRoute:
+      AuthenticatedAdminCountriesCodeEgovPrdIdDocumentRoute,
   }
 
 const AuthenticatedAdminRouteRouteWithChildren =
@@ -3376,6 +3465,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   BusinessCaseCalculatorRoute: BusinessCaseCalculatorRoute,
   DTokenRoute: DTokenRoute,
+  ETokenRoute: ETokenRoute,
   FTokenRoute: FTokenRoute,
   ITokenRoute: ITokenRoute,
   OpEdsSlugRoute: OpEdsSlugRoute,

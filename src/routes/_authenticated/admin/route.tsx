@@ -28,6 +28,7 @@ const COUNTRY_SURFACES = new Set([
   "standards",
   "investments",
   "investors",
+  "egov",
 ]);
 
 /** `/admin/countries/KNA/ledger/...` → `{ code: "KNA", surface: "ledger" }` */

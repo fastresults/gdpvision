@@ -10,6 +10,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/business-case` | `src/routes/business-case.tsx` |
 | `/business-case_/calculator` | `src/routes/business-case_.calculator.tsx` |
 | `/d/$token` | `src/routes/d.$token.tsx` |
+| `/e/$token` | `src/routes/e.$token.tsx` |
 | `/f/$token` | `src/routes/f.$token.tsx` |
 | `/i/$token` | `src/routes/i.$token.tsx` |
 | `/op-eds/` | `src/routes/op-eds.index.tsx` |
@@ -74,6 +75,9 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/_authenticated/admin/countries/$code/cabinet/minutes/$sid` | `src/routes/_authenticated/admin/countries.$code.cabinet.minutes.$sid.tsx` |
 | `/_authenticated/admin/countries/$code/cabinet/session/$sid` | `src/routes/_authenticated/admin/countries.$code.cabinet.session.$sid.tsx` |
 | `/_authenticated/admin/countries/$code/data` | `src/routes/_authenticated/admin/countries.$code.data.tsx` |
+| `/_authenticated/admin/countries/$code/egov` | `src/routes/_authenticated/admin/countries.$code.egov.tsx` |
+| `/_authenticated/admin/countries/$code/egov_/$prdId` | `src/routes/_authenticated/admin/countries.$code.egov_.$prdId.tsx` |
+| `/_authenticated/admin/countries/$code/egov_/$prdId_/document` | `src/routes/_authenticated/admin/countries.$code.egov_.$prdId_.document.tsx` |
 | `/_authenticated/admin/countries/$code/executive` | `src/routes/_authenticated/admin/countries.$code.executive.tsx` |
 | `/_authenticated/admin/countries/$code/global` | `src/routes/_authenticated/admin/countries.$code.global.tsx` |
 | `/_authenticated/admin/countries/$code/godseye` | `src/routes/_authenticated/admin/countries.$code.godseye.tsx` |

@@ -68,6 +68,18 @@ Each of the 7 chambers = a route surface + component tree + server-fn module(s) 
 - **Tables**: `mandate_compacts`, `compact_pillars`, `compact_pledges`, `compact_deliverables`, `compact_status_updates`, `compact_scorecards`, `compact_revisions` + writes to `country_manifestos`, `country_sources`, `country_source_documents`, `country_source_chunks`, `memory_objects`
 - **Corpus**: manifesto text is chunk-embedded via `country-onboarding/ingest.server.ts` (chunkText + embedBatch) so Ask-the-Ledger can quote pledges verbatim; a `memory_object` of kind `mandate_compact` mirrors the compact for cross-chamber lookup
 
+## Chamber 09 · Digital Government Studio
+
+- **Routes**: `admin/countries.$code.egov.tsx` (PRD list + scope wizard), `admin/countries.$code.egov_.$prdId.tsx` (section editor, provenance, approval, brand, share), `admin/countries.$code.egov_.$prdId_.document.tsx` (print view), public `e.$token.tsx`
+- **Components**: `src/components/egov/{NewPrdPanel,SectionEditor,ApprovalPanel,BrandPreview,SharePanel,PrdDocument}.tsx`, `labels.ts`
+- **Server fns**: `src/lib/egov/{prd,draft,share-links,public-prd}.functions.ts`; context packs in `egov/context.server.ts`; stages in `egov/stages.ts`; brand tokens in `egov/brand.ts`; markdown export in `egov/markdown.ts`
+- **Tables**: `egov_prds`, `egov_prd_sections`, `egov_prd_citations`, `egov_prd_snapshots`, `egov_prd_share_links` (drizzle/migrations/0012); history via `log_governance` → `audit_log`
+- **Governance**: `egov_prds_guard` enforces the status machine, two-person rule and `can_approve_egov` (country_admin, cabinet_secretary); a section edit on a submitted/approved PRD reopens it; approval refuses out-of-date sections
+- **Drafting**: one stage per call (`draftSection`), in `EGOV_STAGES` order; the model sees only the stage's context pack (corpus rows + scope + brand tokens + the bundled `AGENTS.md`/chamber map for the architecture stage) and must cite pack keys; unsupported sections are recorded as gaps
+- **Staleness**: `checkStale` re-hashes each pack's corpus lines and marks changed sections `stale`
+- **Explain**: `src/lib/explain/egov-entries.ts` (`egov.*`)
+- **Next phases** (see `prds/PRD-digital-government-studio.md` in the working folder): live repo reads + PRD commits to `content/egov/<CODE>/`, daily staleness hook, public v1 API, scaffold of the country's own `egov-<code>` repository
+
 ## Strategic workspace · Sovereign Eye
 
 - **Route**: `admin/countries.$code.godseye.tsx`

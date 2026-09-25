@@ -345,7 +345,22 @@ async function draft<T>(apiKey: string, schema: z.ZodType<T>, prompt: string): P
       const e = err as { text?: string };
       const parsed = parseFallback(schema, e?.text);
       if (parsed) return parsed;
-      console.warn("[packages] draft attempt failed", attempt + 1, (err as Error)?.message);
+      const cause = (err as { cause?: unknown }).cause;
+      console.warn(
+        "[packages] draft attempt failed",
+        attempt + 1,
+        (err as Error)?.message,
+        "| finish:",
+        (err as { finishReason?: string }).finishReason,
+        "| textLen:",
+        e?.text?.length,
+        "| head:",
+        e?.text?.slice(0, 300),
+        "| tail:",
+        e?.text?.slice(-200),
+        "| cause:",
+        cause instanceof Error ? cause.message.slice(0, 600) : String(cause).slice(0, 600),
+      );
     }
   }
   const msg = (lastErr as { message?: string })?.message ?? String(lastErr);

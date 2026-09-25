@@ -23,6 +23,8 @@ import {
 import { cn } from "@/lib/utils";
 import "@/lib/explain/caricom-entries";
 
+export type BlocSummaryTab = BlocKey | "compare";
+
 export function BlocSummaryButton({
   bloc,
   onOpen,
@@ -54,9 +56,9 @@ export function BlocEconomicSummaryModal({
   onBlocChange,
 }: {
   open: boolean;
-  activeBloc: BlocKey;
+  activeBloc: BlocSummaryTab;
   onOpenChange: (open: boolean) => void;
-  onBlocChange: (bloc: BlocKey) => void;
+  onBlocChange: (bloc: BlocSummaryTab) => void;
 }) {
   const fetchSummary = useServerFn(getBlocEconomicSummary);
   const { data, isPending, error } = useQuery({
@@ -90,9 +92,9 @@ export function BlocEconomicSummaryModal({
         ) : error || !data ? (
           <SummaryError />
         ) : (
-          <Tabs value={activeBloc} onValueChange={(value) => onBlocChange(value as BlocKey)}>
+          <Tabs value={activeBloc} onValueChange={(value) => onBlocChange(value as BlocSummaryTab)}>
             <div className="sticky top-0 z-10 border-b border-line-200 bg-paper-0 px-6 py-3 sm:px-8">
-              <TabsList className="grid h-11 w-full grid-cols-2 rounded-none bg-paper-100 p-1">
+              <TabsList className="grid h-11 w-full grid-cols-3 rounded-none bg-paper-100 p-1">
                 {(["caricom", "oecs"] as BlocKey[]).map((key) => (
                   <TabsTrigger
                     key={key}
@@ -105,6 +107,12 @@ export function BlocEconomicSummaryModal({
                     </span>
                   </TabsTrigger>
                 ))}
+                <TabsTrigger
+                  value="compare"
+                  className="rounded-none font-mono text-[10px] uppercase tracking-[0.18em] data-[state=active]:shadow-none"
+                >
+                  Compare
+                </TabsTrigger>
               </TabsList>
             </div>
             {(["caricom", "oecs"] as BlocKey[]).map((key) => (
@@ -116,6 +124,9 @@ export function BlocEconomicSummaryModal({
                 />
               </TabsContent>
             ))}
+            <TabsContent value="compare" className="m-0 p-6 sm:p-8">
+              <BlocComparisonView caricom={data.blocs.caricom} oecs={data.blocs.oecs} />
+            </TabsContent>
           </Tabs>
         )}
       </SheetContent>

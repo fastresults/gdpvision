@@ -16,6 +16,7 @@ import { ChambersLauncher } from "@/components/country/ChambersLauncher";
 import {
   BlocEconomicSummaryModal,
   BlocSummaryButton,
+  type BlocSummaryTab,
 } from "@/components/home/BlocEconomicSummaryModal";
 import type { BlocKey } from "@/lib/caricom.functions";
 import { scrollToTop } from "@/lib/utils";
@@ -340,7 +341,7 @@ function CountriesGrid({ countries }: { countries: any[] }) {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<MembershipFilter>("all");
   const [summaryOpen, setSummaryOpen] = useState(false);
-  const [summaryBloc, setSummaryBloc] = useState<BlocKey>("caricom");
+  const [summaryBloc, setSummaryBloc] = useState<BlocSummaryTab>("caricom");
 
   function openSummary(bloc: BlocKey) {
     setSummaryBloc(bloc);

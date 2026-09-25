@@ -46,10 +46,7 @@ type StatusFilter = "all" | "not-started" | "in-progress" | "complete";
 
 export const Route = createFileRoute("/_authenticated/admin/countries/")({
   head: () => ({
-    meta: [
-      { title: "Country onboarding — GDPVision" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Country onboarding — GDPVision" }, { name: "robots", content: "noindex" }],
   }),
   loader: async ({ context }) => {
     await Promise.all([
@@ -107,7 +104,9 @@ function CountriesQueue() {
   }, [countries, q, filter]);
 
   const counts = useMemo(() => {
-    let done = 0, started = 0, empty = 0;
+    let done = 0,
+      started = 0,
+      empty = 0;
     for (const c of countries as any[]) {
       const n = (c.completed_stages ?? []).length;
       if (n === 0) empty++;
@@ -124,8 +123,9 @@ function CountriesQueue() {
           <div>
             <h1 className="font-serif text-3xl">Country onboarding</h1>
             <p className="mt-2 max-w-2xl text-sm text-ink-500">
-              AI-first deep-research pipeline. Each country flows through five stages: profile → GDP →
-              sector composition → ministries → ministry↔sector map. Every draft comes back with citations.
+              AI-first deep-research pipeline. Each country flows through five stages: profile → GDP
+              → sector composition → ministries → ministry↔sector map. Every draft comes back with
+              citations.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-4 text-right font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
@@ -168,7 +168,9 @@ function CountriesQueue() {
                 <th className="px-4 py-2">Country</th>
                 <th className="px-4 py-2">GDP</th>
                 {STAGES.map((s) => (
-                  <th key={s.key} title={s.title} className="px-1 py-2 text-center">{s.num}</th>
+                  <th key={s.key} title={s.title} className="px-1 py-2 text-center">
+                    {s.num}
+                  </th>
                 ))}
                 <th className="px-4 py-2 text-right">Progress</th>
                 <th className="px-4 py-2 text-right">Last activity</th>
@@ -191,9 +193,11 @@ function CountriesQueue() {
                       <div className="text-xs text-ink-500">{c.iso3 ?? c.code}</div>
                     </td>
                     <td className="px-4 py-3 text-xs">
-                      {c.gdp_current_usd
-                        ? `$${(Number(c.gdp_current_usd) / 1e9).toFixed(2)}B (${c.gdp_year})`
-                        : <span className="text-ink-500">—</span>}
+                      {c.gdp_current_usd ? (
+                        `$${(Number(c.gdp_current_usd) / 1e9).toFixed(2)}B (${c.gdp_year})`
+                      ) : (
+                        <span className="text-ink-500">—</span>
+                      )}
                     </td>
                     {STAGES.map((s) => (
                       <td key={s.key} title={s.title} className="px-1 py-3 text-center">
@@ -210,18 +214,39 @@ function CountriesQueue() {
                     <td className="px-4 py-3 text-right text-xs text-ink-500 whitespace-nowrap">
                       {lastAt ? new Date(lastAt).toLocaleDateString() : "—"}
                       {" · "}
-                      <Link to="/admin/countries/$code/data" params={{ code: c.code }} className="underline hover:text-ink-950">Data</Link>
+                      <Link
+                        to="/admin/countries/$code/data"
+                        params={{ code: c.code }}
+                        className="underline hover:text-ink-950"
+                      >
+                        Data
+                      </Link>
                       {" · "}
-                      <Link to="/admin/countries/$code/standards" params={{ code: c.code }} className="underline hover:text-ink-950">Standards</Link>
+                      <Link
+                        to="/admin/countries/$code/standards"
+                        params={{ code: c.code }}
+                        className="underline hover:text-ink-950"
+                      >
+                        Standards
+                      </Link>
                       {" · "}
-                      <Link to="/admin/countries/$code/investments" params={{ code: c.code }} className="underline hover:text-ink-950">Investments</Link>
+                      <Link
+                        to="/admin/countries/$code/investments"
+                        params={{ code: c.code }}
+                        className="underline hover:text-ink-950"
+                      >
+                        Investments
+                      </Link>
                     </td>
                   </tr>
                 );
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={STAGES.length + 4} className="px-4 py-8 text-center text-sm text-ink-500">
+                  <td
+                    colSpan={STAGES.length + 4}
+                    className="px-4 py-8 text-center text-sm text-ink-500"
+                  >
                     No countries match.
                   </td>
                 </tr>
@@ -234,20 +259,32 @@ function CountriesQueue() {
   );
 }
 
-function Stat({ label, value, tone }: { label: string; value: number; tone: "emerald" | "amber" | "muted" }) {
+function Stat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "emerald" | "amber" | "muted";
+}) {
   const toneClass =
-    tone === "emerald" ? "text-emerald-700"
-    : tone === "amber" ? "text-amber-700"
-    : "text-ink-500";
+    tone === "emerald" ? "text-emerald-700" : tone === "amber" ? "text-amber-700" : "text-ink-500";
   return (
     <div>
-      <div className={`font-serif text-2xl ${toneClass}`} data-numeric>{value}</div>
+      <div className={`font-serif text-2xl ${toneClass}`} data-numeric>
+        {value}
+      </div>
       <div>{label}</div>
     </div>
   );
 }
 
-function MinisterBackfillPanel({ countries }: { countries: Array<{ code: string; name: string }> }) {
+function MinisterBackfillPanel({
+  countries,
+}: {
+  countries: Array<{ code: string; name: string }>;
+}) {
   const start = useServerFn(startMinisterBackfill);
   const fetchRun = useServerFn(getMinisterBackfillRun);
   const cancel = useServerFn(cancelMinisterBackfillRun);
@@ -443,10 +480,10 @@ function MinisterBackfillPanel({ countries }: { countries: Array<{ code: string;
                             c.status === "succeeded"
                               ? "text-emerald-700"
                               : c.status === "running"
-                              ? "text-amber-700"
-                              : c.status === "failed"
-                              ? "text-red-600"
-                              : "text-ink-500"
+                                ? "text-amber-700"
+                                : c.status === "failed"
+                                  ? "text-red-600"
+                                  : "text-ink-500"
                           }
                         >
                           {c.status}
@@ -480,16 +517,11 @@ function MinisterBackfillPanel({ countries }: { countries: Array<{ code: string;
             <ul className="mt-2 space-y-1">
               {((historyQ.data as any[]) ?? []).map((h) => (
                 <li key={h.id} className="flex items-center gap-2 font-mono">
-                  <button
-                    onClick={() => setRunId(h.id)}
-                    className="underline hover:text-ink-950"
-                  >
+                  <button onClick={() => setRunId(h.id)} className="underline hover:text-ink-950">
                     {String(h.id).slice(0, 8)}
                   </button>
                   <span className="text-ink-500">{h.status}</span>
-                  <span className="text-ink-500">
-                    {new Date(h.created_at).toLocaleString()}
-                  </span>
+                  <span className="text-ink-500">{new Date(h.created_at).toLocaleString()}</span>
                 </li>
               ))}
             </ul>
@@ -582,7 +614,8 @@ function PartyBackfillPanel({ countries }: { countries: Array<{ code: string; na
   return (
     <details className="border border-line-200 bg-paper-100/40" open={!!runId}>
       <summary className="cursor-pointer px-4 py-3 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500 hover:text-ink-950">
-        Party & manifesto backfill · deep-research active parties, flag ruling government, ingest manifesto
+        Party & manifesto backfill · deep-research active parties, flag ruling government, ingest
+        manifesto
         {status && <span className="ml-2 text-ink-950">[{status}]</span>}
       </summary>
       <div className="space-y-4 border-t border-line-200 p-4">
@@ -695,10 +728,10 @@ function PartyBackfillPanel({ countries }: { countries: Array<{ code: string; na
                             c.status === "succeeded"
                               ? "text-emerald-700"
                               : c.status === "running"
-                              ? "text-amber-700"
-                              : c.status === "failed"
-                              ? "text-red-600"
-                              : "text-ink-500"
+                                ? "text-amber-700"
+                                : c.status === "failed"
+                                  ? "text-red-600"
+                                  : "text-ink-500"
                           }
                         >
                           {c.status}
@@ -707,12 +740,8 @@ function PartyBackfillPanel({ countries }: { countries: Array<{ code: string; na
                       </td>
                       <td className="px-3 py-2 text-right">{c.attempted ?? 0}</td>
                       <td className="px-3 py-2 text-right">{c.parties_upserted ?? 0}</td>
-                      <td className="px-3 py-2 text-right">
-                        {c.ruling_flagged ? "✓" : "—"}
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        {c.manifesto_ingested ? "✓" : "—"}
-                      </td>
+                      <td className="px-3 py-2 text-right">{c.ruling_flagged ? "✓" : "—"}</td>
+                      <td className="px-3 py-2 text-right">{c.manifesto_ingested ? "✓" : "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -735,16 +764,11 @@ function PartyBackfillPanel({ countries }: { countries: Array<{ code: string; na
             <ul className="mt-2 space-y-1">
               {((historyQ.data as any[]) ?? []).map((h) => (
                 <li key={h.id} className="flex items-center gap-2 font-mono">
-                  <button
-                    onClick={() => setRunId(h.id)}
-                    className="underline hover:text-ink-950"
-                  >
+                  <button onClick={() => setRunId(h.id)} className="underline hover:text-ink-950">
                     {String(h.id).slice(0, 8)}
                   </button>
                   <span className="text-ink-500">{h.status}</span>
-                  <span className="text-ink-500">
-                    {new Date(h.created_at).toLocaleString()}
-                  </span>
+                  <span className="text-ink-500">{new Date(h.created_at).toLocaleString()}</span>
                 </li>
               ))}
             </ul>

@@ -98,6 +98,68 @@ function SovereignEyeTile({ code }: { code: string }) {
   );
 }
 
+// Same structural position as the admin ChambersLauncher's syndication row:
+// evidence audit → investor-ready pipeline → the investor register.
+type SyndicationTo =
+  | "/admin/countries/$code/standards"
+  | "/admin/countries/$code/investments"
+  | "/admin/countries/$code/investors";
+
+const SYNDICATION: Array<{ title: string; blurb: string; to: SyndicationTo }> = [
+  {
+    title: "Data standards audit",
+    blurb:
+      "Coverage against IMF, UN, World Bank, FATF and PEFA requirements, and the plans that close each gap.",
+    to: "/admin/countries/$code/standards",
+  },
+  {
+    title: "Investment pipeline",
+    blurb:
+      "Projects in one standard format, checked for investor readiness and approved by a second person.",
+    to: "/admin/countries/$code/investments",
+  },
+  {
+    title: "Investors",
+    blurb:
+      "Who is interested in what, how far each conversation has gone, and what happens next.",
+    to: "/admin/countries/$code/investors",
+  },
+];
+
+function SyndicationRow({ code }: { code: string }) {
+  return (
+    <section>
+      <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink-500">
+        Standards and investment
+      </p>
+      <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+        {SYNDICATION.map((l) => (
+          <Link
+            key={l.to}
+            to={l.to}
+            params={{ code }}
+            className="group flex items-start justify-between gap-3 border border-line-200 bg-card px-4 py-3 transition hover:border-ink-950 hover:bg-paper-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-500"
+          >
+            <span className="min-w-0">
+              <span className="block font-serif text-[16px] leading-snug text-ink-950">
+                {l.title}
+              </span>
+              <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-500">
+                {l.blurb}
+              </span>
+            </span>
+            <ArrowUpRight
+              size={14}
+              strokeWidth={1.5}
+              className="mt-1 shrink-0 text-ink-300 transition group-hover:translate-x-0.5 group-hover:text-ink-950"
+            />
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function BriefPage() {
   const { code } = Route.useParams();
   return (
@@ -106,6 +168,7 @@ function BriefPage() {
         <ExecutiveDashboard code={code} />
       </Suspense>
       <SovereignEyeTile code={code} />
+      <SyndicationRow code={code} />
       <RequestLanes code={code} />
     </div>
   );

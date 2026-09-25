@@ -47,25 +47,10 @@ const DraftSchema = z.object({
 });
 type Draft = z.infer<typeof DraftSchema>;
 
-function parseFallback(text: string | undefined): Draft | null {
-  if (!text) return null;
-  const cleaned = text
-    .replace(/^\s*```(?:json)?/i, "")
-    .replace(/```\s*$/, "")
-    .trim();
-  const start = cleaned.indexOf("{");
-  const end = cleaned.lastIndexOf("}");
-  if (start === -1 || end <= start) return null;
-  try {
-    const r = DraftSchema.safeParse(JSON.parse(cleaned.slice(start, end + 1)));
-    return r.success ? r.data : null;
-  } catch {
-    return null;
-  }
-}
-
 async function draft(apiKey: string, prompt: string): Promise<{ out: Draft; model: string }> {
-  const gateway = createLovableAiGatewayProvider(apiKey);
+  const { parseFallback, logDraftFailure } = await import("@/lib/ai-json.server");
+  // Strict shape mode: the model is told the exact JSON schema up front.
+  const gateway = createLovableAiGatewayProvider(apiKey, { structuredOutputs: true });
   const model = modelId();
   let lastErr: unknown;
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -74,19 +59,15 @@ async function draft(apiKey: string, prompt: string): Promise<{ out: Draft; mode
         model: gateway(model),
         system: SYSTEM_PROMPT,
         output: Output.object({ schema: DraftSchema }),
-        maxOutputTokens: 6000,
+        maxOutputTokens: 12000,
         prompt,
       });
       if (output) return { out: output, model };
     } catch (err) {
       lastErr = err;
-      const parsed = parseFallback((err as { text?: string })?.text);
+      const parsed = parseFallback(DraftSchema, (err as { text?: string })?.text, "egov");
       if (parsed) return { out: parsed, model };
-      console.warn(
-        "[egov] draft attempt failed",
-        attempt + 1,
-        (err as Error)?.message?.slice(0, 300),
-      );
+      logDraftFailure("egov", attempt + 1, err);
     }
   }
   const msg = (lastErr as { message?: string })?.message ?? String(lastErr);

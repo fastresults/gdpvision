@@ -2817,6 +2817,68 @@ export type Database = {
           },
         ]
       }
+      egov_api_keys: {
+        Row: {
+          allowed_origins: string[]
+          country_code: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          key_hash: string
+          key_hint: string
+          label: string
+          last_used_at: string | null
+          prd_id: string | null
+          request_count: number
+          revoked_at: string | null
+          revoked_by: string | null
+          scopes: string[]
+        }
+        Insert: {
+          allowed_origins?: string[]
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          key_hash: string
+          key_hint: string
+          label: string
+          last_used_at?: string | null
+          prd_id?: string | null
+          request_count?: number
+          revoked_at?: string | null
+          revoked_by?: string | null
+          scopes?: string[]
+        }
+        Update: {
+          allowed_origins?: string[]
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          key_hash?: string
+          key_hint?: string
+          label?: string
+          last_used_at?: string | null
+          prd_id?: string | null
+          request_count?: number
+          revoked_at?: string | null
+          revoked_by?: string | null
+          scopes?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "egov_api_keys_prd_id_fkey"
+            columns: ["prd_id"]
+            isOneToOne: false
+            referencedRelation: "egov_prds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       egov_prd_citations: {
         Row: {
           confidence: number | null
@@ -10163,6 +10225,17 @@ export type Database = {
       replace_ministry_sectors: {
         Args: { _country_code: string; _rows: Json }
         Returns: number
+      }
+      resolve_egov_api_key: {
+        Args: { _key_hash: string }
+        Returns: {
+          allowed_origins: string[]
+          country_code: string
+          id: string
+          label: string
+          prd_id: string
+          scopes: string[]
+        }[]
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }

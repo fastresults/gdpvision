@@ -333,8 +333,11 @@ function parseFallback<T>(schema: z.ZodType<T>, text: string | undefined): T | n
   const end = cleaned.lastIndexOf(isArray ? "]" : "}");
   if (start === -1 || end <= start) return null;
   try {
-    return parseLenient(schema, JSON.parse(cleaned.slice(start, end + 1)));
-  } catch {
+    const res = parseLenient(schema, JSON.parse(cleaned.slice(start, end + 1)));
+    if (!res) console.warn("[packages] lenient parse rejected draft");
+    return res;
+  } catch (err) {
+    console.warn("[packages] draft JSON unreadable:", (err as Error).message);
     return null;
   }
 }

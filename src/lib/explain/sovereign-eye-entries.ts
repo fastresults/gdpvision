@@ -6,6 +6,14 @@ import { registerRationales, type Rationale } from "@/lib/explain/registry";
 
 const ENTRIES: Array<Rationale<never>> = [
   {
+    key: "sovereign-eye.hazard-exposure",
+    title: "How hazard exposure is graded",
+    short: "Each storm or quake is linked to every Caribbean nation within a radius, graded Direct, Near or Watch.",
+    basis:
+      "Distance is measured from the event to each capital. Storm radii grow with sustained wind (tropical storm 120/300/800 km, hurricane 180/450/1,000 km, major 250/600/1,200 km). Quake radii grow with magnitude (M<6: 50/100/250 km, M6: 100/200/500 km, M7+: 200/400/1,000 km) and halve for quakes deeper than 70 km.",
+    caveat: "Proximity only — not a damage estimate or forecast. Storm tracks can change; always use official NHC and national disaster agency guidance.",
+  },
+  {
     key: "sovereign-eye.globe-hazards",
     title: "How the globe's hazard layers are sourced",
     short: "Hurricanes come from NOAA's National Hurricane Center and earthquakes (M4.5+, past 7 days) from USGS, both U.S. public domain.",

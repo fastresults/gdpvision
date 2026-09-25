@@ -295,6 +295,17 @@
   }
 }
 
+@utility btn-filter-active {
+  @apply btn-base;
+  background-color: var(--ink-950);
+  color: var(--paper-0);
+  border-color: transparent;
+  &:hover:not(:disabled):not([aria-disabled="true"]) {
+    background-color: var(--ink-900);
+    color: var(--paper-0);
+  }
+}
+
 /*
  * Selectable "card as button" pattern for wizards. Toggles between a
  * paper card and an inverse ink card; both states have a real hover.

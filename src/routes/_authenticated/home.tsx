@@ -29,7 +29,15 @@ const allCountriesQuery = queryOptions({
 
 export const Route = createFileRoute("/_authenticated/home")({
   head: () => ({
-    meta: [{ title: "Welcome — GDPVision" }, { name: "robots", content: "noindex" }],
+    meta: [
+      { title: "Sovereign Home — GDPVision" },
+      { name: "description", content: "Review Caribbean country instruments and compare CARICOM and OECS economic strength." },
+      { property: "og:title", content: "Sovereign Home — GDPVision" },
+      { property: "og:description", content: "Review Caribbean country instruments and compare CARICOM and OECS economic strength." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "robots", content: "noindex" },
+    ],
   }),
   loader: async ({ context }) => {
     const status = await context.queryClient.ensureQueryData(myStatusQuery);
@@ -384,7 +392,7 @@ function CountriesGrid({ countries }: { countries: any[] }) {
           <div key={f} className="inline-flex border border-line-200">
             <button
               onClick={() => setFilter(f)}
-              className={`btn-ghost border-0 px-3 py-2 text-[11px] font-mono uppercase tracking-[0.2em] ${filter === f ? "bg-ink-950 text-paper-0 hover:bg-ink-950 hover:text-paper-0" : ""}`}
+              className={`${filter === f ? "btn-filter-active" : "btn-ghost"} border-0 px-3 py-2 text-[11px] font-mono uppercase tracking-[0.2em]`}
               aria-pressed={filter === f}
             >
               {f === "all" ? "All" : f.toUpperCase()}

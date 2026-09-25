@@ -2,7 +2,7 @@
 // @tables countries,country_kpis,country_source_documents,country_sources
 // @ui src/components/executive/ExecutiveDashboard.tsx
 //
-// The Executive Dashboard read. One protected server fn, eight independent
+// The Executive Dashboard read. One protected server fn, nine independent
 // chamber resolvers. A resolver that throws degrades to a quiet card — one
 // broken chamber never blanks the Principal's screen.
 
@@ -20,7 +20,7 @@ export const getExecutiveDashboard = createServerFn({ method: "GET" })
     const cc = data.country_code.toUpperCase();
     const sb = context.supabase as any;
 
-    const [{ resolveLedger, resolvePortfolios, resolveScenarios, resolveStudio }, { resolveNarrative, resolveCabinet, resolvePersonas, resolveMandate }] =
+    const [{ resolveLedger, resolvePortfolios, resolveScenarios, resolveStudio }, { resolveNarrative, resolveCabinet, resolvePersonas, resolveMandate, resolveEgov }] =
       await Promise.all([
         import("./resolvers/core.server"),
         import("./resolvers/office.server"),
@@ -43,6 +43,7 @@ export const getExecutiveDashboard = createServerFn({ method: "GET" })
       resolveCabinet(sb, cc),
       resolvePersonas(sb, cc),
       resolveMandate(sb, cc),
+      resolveEgov(sb, cc),
     ]);
 
     const kpiRows = (kpis.data ?? []).filter((r: any) => r.latest_value !== null && r.latest_value !== undefined);

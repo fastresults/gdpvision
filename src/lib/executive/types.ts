@@ -43,7 +43,8 @@ export type ChamberRoute =
   | "/admin/countries/$code/narrative"
   | "/admin/countries/$code/cabinet"
   | "/admin/countries/$code/personas"
-  | "/admin/countries/$code/mandate-compact";
+  | "/admin/countries/$code/mandate-compact"
+  | "/admin/countries/$code/egov";
 
 export interface ChamberSummary {
   index: string;

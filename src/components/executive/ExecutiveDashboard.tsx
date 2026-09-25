@@ -57,7 +57,7 @@ export function ExecutiveDashboard({
 
       <section>
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 pb-3">
-          <h2 className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink-950">The eight chambers</h2>
+          <h2 className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink-950">The nine chambers</h2>
           <div className="flex shrink-0 items-center gap-1 print:hidden">
             <ViewToggle active={view === "grid"} onClick={() => setView("grid")} label="Grid">
               <LayoutGrid size={12} strokeWidth={1.5} />

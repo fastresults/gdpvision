@@ -1,5 +1,5 @@
 // The Brief — the country user's first screen. Executive dashboard first:
-// what requires a decision today, then the standing of all eight chambers.
+// what requires a decision today, then the standing of all nine chambers.
 // Sovereign Eye sits between the dashboard and the request lanes — the same
 // structural position it occupies in the admin ChambersLauncher. The request
 // lanes live one tap away under Study.
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_authenticated/console/$code/")({
       { title: `Your brief · ${params.code} — GDPVision` },
       {
         name: "description",
-        content: `Today's decisions and the standing of all eight chambers for ${params.code}.`,
+        content: `Today's decisions and the standing of all nine chambers for ${params.code}.`,
       },
       { name: "robots", content: "noindex" },
     ],

@@ -1,8 +1,8 @@
 // @domain executive
-// @tables intake_items,comms_artifacts,cabinet_sessions,cabinet_agenda_items,commitments,studies,persona_segments,study_responses,compact_pledges,compact_deliverables,compact_scorecards,mandate_compacts
+// @tables intake_items,comms_artifacts,cabinet_sessions,cabinet_agenda_items,commitments,studies,persona_segments,study_responses,compact_pledges,compact_deliverables,compact_scorecards,mandate_compacts,egov_prds,egov_prd_sections
 // @ui src/components/executive/ExecutiveDashboard.tsx
 //
-// Resolvers for chambers 05–08.
+// Resolvers for chambers 05–09.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -369,6 +369,113 @@ export async function resolveMandate(sb: Db, cc: string): Promise<ChamberSummary
           : []),
       ],
       health: (atRisk.length ? "caution" : pledges.length ? "positive" : "quiet") as Tone,
+    };
+  } catch {
+    return base;
+  }
+}
+
+/** Chamber 09 · Digital Government Studio */
+export async function resolveEgov(sb: Db, cc: string): Promise<ChamberSummary> {
+  const base = emptyChamber("09", "Digital Government Studio", "/admin/countries/$code/egov", "Office of the Cabinet Secretary", [
+    "PRD status",
+    "Sections drafted",
+    "Awaiting approval",
+  ]);
+  try {
+    const [prdRes, secRes] = await Promise.all([
+      sb
+        .from("egov_prds")
+        .select("id,title,version,status,created_at,updated_at,submitted_at,approved_at")
+        .eq("country_code", cc)
+        .order("version", { ascending: false })
+        .limit(50),
+      sb
+        .from("egov_prd_sections")
+        .select("prd_id,stage_key,status,authored_at,edited_at,created_at")
+        .eq("country_code", cc)
+        .limit(1000),
+    ]);
+    const prds = prdRes.data ?? [];
+    const sections = secRes.data ?? [];
+    if (prds.length === 0) return base;
+
+    const live = prds.find((p: any) => p.status !== "superseded") ?? prds[0];
+    const mine = sections.filter((s: any) => s.prd_id === live.id);
+    const drafted = mine.filter((s: any) => s.status !== "pending").length;
+    const gaps = mine.filter((s: any) => s.status === "gap").length;
+    const stale = mine.filter((s: any) => s.status === "stale").length;
+    const submitted = prds.filter((p: any) => p.status === "submitted").length;
+    const total = mine.length || 10;
+    const statusLabel: Record<string, string> = {
+      draft: "Draft",
+      submitted: "Submitted",
+      approved: "Approved",
+      returned: "Returned",
+      superseded: "Superseded",
+    };
+    const stamps = [
+      ...prds.map((p: any) => p.updated_at ?? p.created_at),
+      ...mine.map((s: any) => s.edited_at ?? s.authored_at).filter(Boolean),
+    ];
+    const idle = daysSince(newest(stamps));
+
+    return {
+      ...base,
+      kpis: [
+        {
+          label: "PRD status",
+          value: `v${live.version} ${statusLabel[live.status] ?? live.status}`,
+          tone: live.status === "approved" ? "positive" : live.status === "returned" ? "negative" : "neutral",
+        },
+        {
+          label: "Sections drafted",
+          value: `${drafted}/${total}`,
+          tone: gaps || stale ? "caution" : drafted === total ? "positive" : "neutral",
+        },
+        { label: "Awaiting approval", value: num(submitted), tone: submitted ? "caution" : "quiet" },
+      ],
+      tempo: bucketTempo(stamps),
+      last_activity_at: newest(stamps),
+      next_due: null,
+      recent: [...mine]
+        .filter((s: any) => s.edited_at ?? s.authored_at)
+        .sort((a: any, b: any) => Date.parse(b.edited_at ?? b.authored_at) - Date.parse(a.edited_at ?? a.authored_at))
+        .slice(0, 10)
+        .map((s: any) => ({ at: s.edited_at ?? s.authored_at, text: `${s.stage_key} · ${s.status}` })),
+      alerts: [
+        ...(submitted > 0
+          ? [
+              {
+                chamber: "09",
+                text: `${submitted} e-government PRD${submitted === 1 ? "" : "s"} awaiting a second person's approval`,
+                severity: 40,
+                because: [`${submitted} submitted`],
+              },
+            ]
+          : []),
+        ...(stale > 0
+          ? [
+              {
+                chamber: "09",
+                text: `${stale} PRD section${stale === 1 ? "" : "s"} out of date with the corpus`,
+                severity: 35,
+                because: [`${stale} stale`],
+              },
+            ]
+          : []),
+        ...(live.status === "draft" && (idle ?? 0) > 30
+          ? [
+              {
+                chamber: "09",
+                text: `E-government PRD untouched for ${idle} days`,
+                severity: 25,
+                because: [`idle ${idle}d`],
+              },
+            ]
+          : []),
+      ],
+      health: (stale || gaps ? "caution" : live.status === "approved" ? "positive" : drafted ? "neutral" : "quiet") as Tone,
     };
   } catch {
     return base;

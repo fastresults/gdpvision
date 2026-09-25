@@ -111,7 +111,7 @@ function buildRoutes(): string {
 
   for (const f of files) {
     const src = readFileSync(f, "utf8");
-    const m = src.match(/createFileRoute\(\s*["']([^"']+)["']\s*\)/);
+    const m = src.match(/createFileRoute\(\s*["']([^"']+)["']\s*,?\s*\)/);
     if (!m) continue;
     const persona = personaOf(rel(f));
     (groups[persona] ??= []).push({ file: rel(f), route: m[1] });

@@ -5,7 +5,7 @@ import { useExecutiveDetail } from "./DetailModal";
 import { TONE_RULE, TONE_TEXT, relTime, shortDate } from "./tone";
 
 /**
- * Ledger view — same eight chambers, sorted by next due date. Grid view is
+ * Ledger view — same nine chambers, sorted by next due date. Grid view is
  * for orientation; this is for triage. Every cell opens its own detail modal.
  */
 export function ChamberLedgerTable({

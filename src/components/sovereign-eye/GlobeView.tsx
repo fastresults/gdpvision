@@ -6,7 +6,7 @@ import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } fro
 import { feature } from "topojson-client";
 import landTopo from "world-atlas/land-110m.json";
 
-import { CARIBBEAN_POINTS } from "@/lib/sovereign-eye/caribbean-geo";
+import { CARIBBEAN_POINTS, shapePath } from "@/lib/sovereign-eye/caribbean-geo";
 import { getGlobalHazards } from "@/lib/sovereign-eye/global-feeds.functions";
 import type { Exposure } from "@/lib/sovereign-eye/hazard-exposure";
 import { Explain } from "@/components/explain/Explain";
@@ -132,19 +132,21 @@ export function GlobeView({ code, countryName, center, partners, sideOf, flowLab
         })}
 
         {CARIBBEAN_POINTS.filter((n) => n.code !== code.toUpperCase() && facing(n.lon, n.lat)).map((n) => {
-          const [x, y] = pt(n.lon, n.lat); const ex = nationExposure.get(n.code);
+          const [x0, y0] = pt(n.lon, n.lat); const ex = nationExposure.get(n.code);
+          const shape = shapePath(n.code, (lon, lat) => (facing(lon, lat) ? (projection([lon, lat]) as [number, number]) : null), 1.3);
+          const x = shape?.cx ?? x0; const y = shape?.cy ?? y0;
           const f = makeFeature({ id: `globe-nation-${n.code}`, kind: "place", title: n.name, value: ex ? `${ex.grade} hazard exposure` : "No active hazard exposure", meta: ex ? `Near: ${ex.events.join(", ")}` : "Caribbean peer nation" });
           return <g key={f.id} {...interaction(f)}>
             <circle cx={x} cy={y} r="1.6" className="fill-transparent" />
             {ex ? <circle cx={x} cy={y} r={ex.grade === "Direct" ? 1.8 : ex.grade === "Near" ? 1.4 : 1.1} className="fill-none stroke-signal-negative" strokeWidth={ex.grade === "Direct" ? 0.4 : 0.22} /> : null}
-            <circle cx={x} cy={y} r="0.55" className="fill-ink-700" />
+            {shape ? <path d={shape.d} className="fill-paper-0 stroke-ink-700" strokeWidth="0.15" strokeLinejoin="round" /> : <circle cx={x} cy={y} r="0.55" className="fill-ink-700" />}
             {view === "region" ? <text x={x + 1} y={y - 0.6} className="fill-ink-700 font-mono text-[1.2px]">{n.code}</text> : null}
           </g>;
         })}
 
         {facing(center.lon, center.lat) ? <g {...interaction(makeFeature({ id: "globe-country", kind: "place", title: countryName, value: selfExposure ? `${selfExposure.grade} hazard exposure` : "Selected country · no active hazard nearby", meta: `${center.lat.toFixed(2)}°, ${center.lon.toFixed(2)}° · dotted box marks the Caribbean basin` }))}>
           <circle cx={home[0]} cy={home[1]} r="2.6" className="fill-none stroke-gold-500" strokeWidth="0.35" />
-          <circle cx={home[0]} cy={home[1]} r="1" className="fill-gold-500 stroke-ink-950" strokeWidth="0.3" />
+          {(() => { const sh = shapePath(code, (lon, lat) => (facing(lon, lat) ? (projection([lon, lat]) as [number, number]) : null), 2); return sh ? <path d={sh.d} className="fill-gold-500 stroke-ink-950" strokeWidth="0.25" strokeLinejoin="round" /> : <circle cx={home[0]} cy={home[1]} r="1" className="fill-gold-500 stroke-ink-950" strokeWidth="0.3" />; })()}
           <text x={home[0] + 3} y={home[1] + 0.6} className="fill-ink-950 font-mono text-[1.9px]">{countryName}</text>
         </g> : null}
       </svg>
@@ -175,7 +177,7 @@ export function GlobeView({ code, countryName, center, partners, sideOf, flowLab
         {nationExposure.size ? <details className="mt-1 text-[10px] text-ink-700"><summary className="cursor-pointer font-mono text-[9px] uppercase tracking-[0.14em] text-ink-500">Exposed nations · {nationExposure.size}</summary>
           <ul className="mt-1 max-h-32 space-y-0.5 overflow-auto">{[...nationExposure.entries()].sort((a, b) => gradeRank[b[1].grade] - gradeRank[a[1].grade]).map(([iso, e]) => <li key={iso} className="flex justify-between gap-2"><span>{CARIBBEAN_POINTS.find((p) => p.code === iso)?.name ?? iso}</span><span className="font-mono text-ink-500">{e.grade}</span></li>)}</ul>
         </details> : null}
-        <p className="mt-2 text-[10px] leading-snug text-ink-500"><Explain id="sovereign-eye.hazard-exposure">Rings mark proximity to live hazards, not damage.</Explain> Live public-domain feeds (NOAA, USGS). Reference context only — not saved as evidence.</p>
+        <p className="mt-2 text-[10px] leading-snug text-ink-500"><Explain id="sovereign-eye.hazard-exposure">Rings mark proximity to live hazards, not damage. Small islands enlarged, not to scale.</Explain> Live public-domain feeds (NOAA, USGS). Reference context only — not saved as evidence.</p>
       </div>
     </>
   );

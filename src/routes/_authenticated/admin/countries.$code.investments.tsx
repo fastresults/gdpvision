@@ -204,7 +204,10 @@ function PipelinePage() {
             Standards audit
           </Link>
           <Oc4idsExportButton code={code} />
-          <SampleButtons code={code} hasSample={(q.data?.rows ?? []).some((r) => r.title.endsWith("(Sample)"))} />
+          <SampleButtons
+            code={code}
+            hasSample={(q.data?.rows ?? []).some((r) => r.title.endsWith("(Sample)"))}
+          />
           <button
             type="button"
             className="btn-primary px-3 py-2 text-xs"

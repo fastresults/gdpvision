@@ -43,12 +43,10 @@ export const listProjectMedia = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!rows?.length) return [];
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: signed } = await supabaseAdmin.storage
-      .from(BUCKET)
-      .createSignedUrls(
-        rows.map((r) => r.storage_path),
-        3600,
-      );
+    const { data: signed } = await supabaseAdmin.storage.from(BUCKET).createSignedUrls(
+      rows.map((r) => r.storage_path),
+      3600,
+    );
     const urlByPath = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
     return rows.map((r) => ({
       id: r.id,
@@ -132,16 +130,46 @@ const SAMPLE_TITLE = "Crabbs Seawater Reverse-Osmosis Desalination Plant (Sample
 const S = "samples/desalination";
 
 const SAMPLE_MEDIA = [
-  { kind: "image", file: "cover.jpg", title: "Plant overview", caption: "Illustrative view of the plant, product-water tanks and the main to St John's.", cover: true },
-  { kind: "image", file: "site-aerial.jpg", title: "Site aerial", caption: "Crabbs Peninsula site with intake pier and storage." },
-  { kind: "image", file: "membrane-hall.jpg", title: "Membrane hall", caption: "Two-pass reverse-osmosis trains." },
-  { kind: "image", file: "intake-outfall.jpg", title: "Intake and brine outfall", caption: "Velocity-capped intake and multiport brine diffuser." },
-  { kind: "image", file: "solar-array.jpg", title: "Solar array", caption: "6 MWp solar supply with battery support." },
+  {
+    kind: "image",
+    file: "cover.jpg",
+    title: "Plant overview",
+    caption: "Illustrative view of the plant, product-water tanks and the main to St John's.",
+    cover: true,
+  },
+  {
+    kind: "image",
+    file: "site-aerial.jpg",
+    title: "Site aerial",
+    caption: "Crabbs Peninsula site with intake pier and storage.",
+  },
+  {
+    kind: "image",
+    file: "membrane-hall.jpg",
+    title: "Membrane hall",
+    caption: "Two-pass reverse-osmosis trains.",
+  },
+  {
+    kind: "image",
+    file: "intake-outfall.jpg",
+    title: "Intake and brine outfall",
+    caption: "Velocity-capped intake and multiport brine diffuser.",
+  },
+  {
+    kind: "image",
+    file: "solar-array.jpg",
+    title: "Solar array",
+    caption: "6 MWp solar supply with battery support.",
+  },
   { kind: "document", file: "concept-note.pdf", title: "Project concept note" },
   { kind: "document", file: "pre-feasibility.pdf", title: "Pre-feasibility summary" },
   { kind: "document", file: "es-screening.pdf", title: "Environmental and social screening" },
   { kind: "document", file: "financial-summary.pdf", title: "Financial model summary" },
-  { kind: "document", file: "term-sheet.pdf", title: "Water purchase agreement — indicative term sheet" },
+  {
+    kind: "document",
+    file: "term-sheet.pdf",
+    title: "Water purchase agreement — indicative term sheet",
+  },
 ] as const;
 
 export const seedSampleDesalination = createServerFn({ method: "POST" })
@@ -190,8 +218,20 @@ export const seedSampleDesalination = createServerFn({ method: "POST" })
       project_id: p.id,
       country_code: data.code,
       beneficial_owners: [
-        { name: "Sample Water Holdings Ltd (placeholder)", nationality: "Antigua and Barbuda", ownership_pct: 60, is_pep: false, evidence: "Sample record" },
-        { name: "Sample Climate Infrastructure Fund (placeholder)", nationality: "Multilateral", ownership_pct: 40, is_pep: false, evidence: "Sample record" },
+        {
+          name: "Sample Water Holdings Ltd (placeholder)",
+          nationality: "Antigua and Barbuda",
+          ownership_pct: 60,
+          is_pep: false,
+          evidence: "Sample record",
+        },
+        {
+          name: "Sample Climate Infrastructure Fund (placeholder)",
+          nationality: "Multilateral",
+          ownership_pct: 40,
+          is_pep: false,
+          evidence: "Sample record",
+        },
       ],
       aml_status: "cleared",
       aml_reference: "SAMPLE-AML-0001",
@@ -218,7 +258,12 @@ export const seedSampleDesalination = createServerFn({ method: "POST" })
       .from("investment_projects")
       .update({ approval_status: "submitted" })
       .eq("id", p.id);
-    return { id: p.id, created: true, submitted: !sub.error, submitError: sub.error?.message ?? null };
+    return {
+      id: p.id,
+      created: true,
+      submitted: !sub.error,
+      submitError: sub.error?.message ?? null,
+    };
   });
 
 export const removeSampleProjects = createServerFn({ method: "POST" })

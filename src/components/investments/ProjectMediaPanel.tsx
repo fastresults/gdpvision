@@ -108,9 +108,7 @@ export function ProjectMediaPanel({
                 type="button"
                 onClick={() => setOpen(m)}
                 className={
-                  m.is_cover
-                    ? "group text-left sm:col-span-2 lg:col-span-3"
-                    : "group text-left"
+                  m.is_cover ? "group text-left sm:col-span-2 lg:col-span-3" : "group text-left"
                 }
               >
                 <div className="overflow-hidden border border-line-200 bg-paper-50">
@@ -150,14 +148,25 @@ export function ProjectMediaPanel({
               <li key={m.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
                 <div>
                   <div className="text-sm text-ink-950">{m.title}</div>
-                  <div className="text-xs text-ink-500">PDF{m.caption ? ` · ${m.caption}` : ""}</div>
+                  <div className="text-xs text-ink-500">
+                    PDF{m.caption ? ` · ${m.caption}` : ""}
+                  </div>
                 </div>
                 <div className="flex gap-2">
-                  <button type="button" className="btn-ghost px-3 py-1.5 text-xs" onClick={() => setOpen(m)}>
+                  <button
+                    type="button"
+                    className="btn-ghost px-3 py-1.5 text-xs"
+                    onClick={() => setOpen(m)}
+                  >
                     View
                   </button>
                   {m.url && (
-                    <a href={m.url} target="_blank" rel="noreferrer" className="btn-secondary px-3 py-1.5 text-xs">
+                    <a
+                      href={m.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn-secondary px-3 py-1.5 text-xs"
+                    >
                       Download
                     </a>
                   )}
@@ -209,11 +218,19 @@ export function ProjectMediaPanel({
             (open.kind === "image" ? (
               <img src={open.url} alt={open.title} className="max-h-[75vh] w-full object-contain" />
             ) : (
-              <iframe src={open.url} title={open.title} className="h-[75vh] w-full border border-line-200" />
+              <iframe
+                src={open.url}
+                title={open.title}
+                className="h-[75vh] w-full border border-line-200"
+              />
             ))}
           {canEdit && open && (
             <div>
-              <button type="button" className="btn-ghost px-3 py-1.5 text-xs" onClick={() => onDelete(open)}>
+              <button
+                type="button"
+                className="btn-ghost px-3 py-1.5 text-xs"
+                onClick={() => onDelete(open)}
+              >
                 Remove
               </button>
             </div>

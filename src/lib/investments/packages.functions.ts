@@ -241,108 +241,8 @@ function factsBlock(facts: PackageFacts): string {
   return `FACTS (key | label | display value | notes). These are the only facts you may use.\n${lines.join("\n")}`;
 }
 
-/** Pull a readable string out of whatever the model put in a string slot. */
-function asText(v: unknown): string {
-  if (typeof v === "string") return v;
-  if (typeof v === "number" || typeof v === "boolean") return String(v);
-  if (v && typeof v === "object") {
-    const o = v as Record<string, unknown>;
-    for (const k of ["text", "content", "value", "title", "item", "description", "body"]) {
-      if (typeof o[k] === "string") return o[k] as string;
-    }
-    const firstStr = Object.values(o).find((x) => typeof x === "string");
-    if (typeof firstStr === "string") return firstStr;
-  }
-  return "";
-}
-
-function unwrapOptional(s: z.ZodTypeAny): z.ZodTypeAny {
-  let cur: z.ZodTypeAny = s;
-  while (cur instanceof z.ZodOptional || cur instanceof z.ZodNullable) cur = cur.unwrap();
-  return cur;
-}
-
-/** Repair common near-misses (missing keys, string for list, objects for strings, wrappers). */
-function coerce(schema: z.ZodTypeAny, v: unknown): unknown {
-  const s = unwrapOptional(schema);
-  if (s instanceof z.ZodString) return asText(v);
-  if (s instanceof z.ZodArray) {
-    const el = s.element as z.ZodTypeAny;
-    const arr = Array.isArray(v)
-      ? v
-      : v == null || v === ""
-        ? []
-        : typeof v === "string"
-          ? v
-              .split(/\n+/)
-              .map((x) => x.replace(/^\s*[-*•\d.)]+\s*/, ""))
-              .filter(Boolean)
-          : [v];
-    return arr.map((x) => coerce(el, x));
-  }
-  if (s instanceof z.ZodObject) {
-    const shape = s.shape as Record<string, z.ZodTypeAny>;
-    // A bare array (e.g. the slide list without its wrapper) goes into the
-    // object's first array field.
-    if (Array.isArray(v)) {
-      const arrKey = Object.keys(shape).find(
-        (k) => unwrapOptional(shape[k]!) instanceof z.ZodArray,
-      );
-      v = arrKey ? { [arrKey]: v } : {};
-    }
-    let o = v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
-    const keys = Object.keys(shape);
-    // Unwrap { "teaser": { ...fields } } style wrappers.
-    if (!keys.some((k) => k in o)) {
-      const inner = Object.values(o).find(
-        (x) =>
-          x && typeof x === "object" && !Array.isArray(x) && keys.some((k) => k in (x as object)),
-      );
-      if (inner) o = inner as Record<string, unknown>;
-    }
-    if (typeof v === "string" && keys.includes("text")) o = { text: v };
-    const out: Record<string, unknown> = {};
-    for (const k of keys) {
-      const field = shape[k];
-      const isOptional = field.isOptional() || field.isNullable();
-      if (o[k] == null && isOptional) out[k] = null;
-      else out[k] = coerce(field, o[k]);
-    }
-    return out;
-  }
-  return v;
-}
-
-function parseLenient<T>(schema: z.ZodType<T>, raw: unknown): T | null {
-  const direct = schema.safeParse(raw);
-  if (direct.success) return direct.data;
-  const fixed = schema.safeParse(coerce(schema as unknown as z.ZodTypeAny, raw));
-  return fixed.success ? fixed.data : null;
-}
-
-function parseFallback<T>(schema: z.ZodType<T>, text: string | undefined): T | null {
-  if (!text) return null;
-  const cleaned = text
-    .replace(/^\s*```(?:json)?/i, "")
-    .replace(/```\s*$/, "")
-    .trim();
-  const ob = cleaned.indexOf("{");
-  const ab = cleaned.indexOf("[");
-  const isArray = ab !== -1 && (ob === -1 || ab < ob);
-  const start = isArray ? ab : ob;
-  const end = cleaned.lastIndexOf(isArray ? "]" : "}");
-  if (start === -1 || end <= start) return null;
-  try {
-    const res = parseLenient(schema, JSON.parse(cleaned.slice(start, end + 1)));
-    if (!res) console.warn("[packages] lenient parse rejected draft");
-    return res;
-  } catch (err) {
-    console.warn("[packages] draft JSON unreadable:", (err as Error).message);
-    return null;
-  }
-}
-
 async function draft<T>(apiKey: string, schema: z.ZodType<T>, prompt: string): Promise<T> {
+  const { parseFallback, logDraftFailure } = await import("@/lib/ai-json.server");
   const gateway = createLovableAiGatewayProvider(apiKey);
   let lastErr: unknown;
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -357,25 +257,9 @@ async function draft<T>(apiKey: string, schema: z.ZodType<T>, prompt: string): P
       return output as T;
     } catch (err) {
       lastErr = err;
-      const e = err as { text?: string };
-      const parsed = parseFallback(schema, e?.text);
+      const parsed = parseFallback(schema, (err as { text?: string })?.text, "packages");
       if (parsed) return parsed;
-      const cause = (err as { cause?: unknown }).cause;
-      console.warn(
-        "[packages] draft attempt failed",
-        attempt + 1,
-        (err as Error)?.message,
-        "| finish:",
-        (err as { finishReason?: string }).finishReason,
-        "| textLen:",
-        e?.text?.length,
-        "| head:",
-        e?.text?.slice(0, 300),
-        "| tail:",
-        e?.text?.slice(-200),
-        "| cause:",
-        cause instanceof Error ? cause.message.slice(0, 600) : String(cause).slice(0, 600),
-      );
+      logDraftFailure("packages", attempt + 1, err);
     }
   }
   const msg = (lastErr as { message?: string })?.message ?? String(lastErr);

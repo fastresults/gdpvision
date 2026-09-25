@@ -15,6 +15,7 @@ are lifted from the top-of-file docblock — add them to any module missing them
 | `src/lib/cadence.functions.ts` | runCadenceClose, listCadenceHistory | core | audit_log,cadence_closes,kpi_snapshots,kpis | — |
 | `src/lib/calculator/counsel.functions.ts` | getValueCounsel | marketing | none | src/components/calculator/CounselPanel.tsx |
 | `src/lib/calculator/request.functions.ts` | recordCalculatorLead | marketing | calculator_leads | src/components/calculator/LeadDialog.tsx |
+| `src/lib/caricom.functions.ts` | getBlocEconomicSummary | caricom | countries,country_kpis,country_kpi_points,peer_kpi_normalized | src/components/home/BlocEconomicSummaryModal.tsx |
 | `src/lib/categories.functions.ts` | listCategories, createCategory, updateCategory, deleteCategory, moveCategory | core | categories,galleries,items | src/components/admin/CategoryManager.tsx; src/routes/kiosk.admin.tsx |
 | `src/lib/citations.functions.ts` | getCitations, saveCitations, listCitationCandidates | core | citations,memory_objects | src/components/narrative/CitationsRail.tsx |
 | `src/lib/concierge/concierge-ai.functions.ts` | interpretIntent, draftRequestCard | concierge | — | src/routes/_authenticated/concierge.new.tsx |

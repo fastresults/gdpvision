@@ -78,6 +78,13 @@
       "when": 1790305485084,
       "tag": "0010_governance_and_syndication",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790351762060,
+      "tag": "0011_investment_project_media",
+      "breakpoints": true
     }
   ]
 }

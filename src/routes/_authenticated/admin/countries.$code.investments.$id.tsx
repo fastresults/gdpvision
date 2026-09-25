@@ -21,6 +21,7 @@ import {
   type ProjectDraft,
 } from "@/components/investments/ProjectForm";
 import { ProjectInterestPanel } from "@/components/investments/ProjectInterestPanel";
+import { ProjectMediaPanel } from "@/components/investments/ProjectMediaPanel";
 import { ReadinessList } from "@/components/investments/ReadinessList";
 import { ShareLinksPanel } from "@/components/investments/ShareLinksPanel";
 import {
@@ -58,6 +59,7 @@ import "@/lib/explain/investments-entries";
 
 const TABS = [
   "overview",
+  "media",
   "readiness",
   "compliance",
   "materials",
@@ -68,6 +70,7 @@ const TABS = [
 type Tab = (typeof TABS)[number];
 const TAB_LABEL: Record<Tab, string> = {
   overview: "Overview",
+  media: "Photos and documents",
   readiness: "Readiness",
   compliance: "Compliance",
   materials: "Investor materials",
@@ -195,6 +198,13 @@ function ProjectWorkspace() {
 
             <TabsContent value="overview" className="pt-6">
               <OverviewTab code={code} project={p} onSaved={refresh} />
+            </TabsContent>
+            <TabsContent value="media" className="pt-6">
+              <ProjectMediaPanel
+                code={code}
+                projectId={id}
+                canEdit={q.data.capabilities.approveInvestments}
+              />
             </TabsContent>
             <TabsContent value="readiness" className="pt-6">
               <div className="max-w-3xl">

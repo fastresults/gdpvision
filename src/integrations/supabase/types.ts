@@ -4296,6 +4296,59 @@ export type Database = {
           },
         ]
       }
+      investment_project_media: {
+        Row: {
+          caption: string | null
+          country_code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_cover: boolean
+          kind: string
+          mime: string
+          project_id: string
+          sort: number
+          storage_path: string
+          title: string
+        }
+        Insert: {
+          caption?: string | null
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_cover?: boolean
+          kind: string
+          mime: string
+          project_id: string
+          sort?: number
+          storage_path: string
+          title: string
+        }
+        Update: {
+          caption?: string | null
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_cover?: boolean
+          kind?: string
+          mime?: string
+          project_id?: string
+          sort?: number
+          storage_path?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investment_project_media_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "investment_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       investment_projects: {
         Row: {
           aml_cleared: boolean
@@ -4312,6 +4365,7 @@ export type Database = {
           es_category: string | null
           feasibility_done: boolean
           id: string
+          is_sample: boolean
           land_secured: boolean
           returned_at: string | null
           returned_by: string | null
@@ -4344,6 +4398,7 @@ export type Database = {
           es_category?: string | null
           feasibility_done?: boolean
           id?: string
+          is_sample?: boolean
           land_secured?: boolean
           returned_at?: string | null
           returned_by?: string | null
@@ -4376,6 +4431,7 @@ export type Database = {
           es_category?: string | null
           feasibility_done?: boolean
           id?: string
+          is_sample?: boolean
           land_secured?: boolean
           returned_at?: string | null
           returned_by?: string | null

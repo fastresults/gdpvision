@@ -6,7 +6,8 @@ import {
   useChildMatches,
   useNavigate,
 } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { removeSampleProjects, seedSampleDesalination } from "@/lib/investments/media.functions";
 import { useServerFn } from "@tanstack/react-start";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
@@ -67,6 +68,57 @@ function InvestmentsRoute() {
   const children = useChildMatches();
   if (children.length > 0) return <Outlet />;
   return <PipelinePage />;
+}
+
+function SampleButtons({ code, hasSample }: { code: string; hasSample: boolean }) {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const seed = useServerFn(seedSampleDesalination);
+  const remove = useServerFn(removeSampleProjects);
+  const [busy, setBusy] = useState(false);
+  async function run(fn: () => Promise<void>) {
+    setBusy(true);
+    try {
+      await fn();
+      await qc.invalidateQueries({ queryKey: ["investments", code] });
+    } catch (e) {
+      alert(errMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return hasSample ? (
+    <button
+      type="button"
+      className="btn-ghost px-3 py-2 text-xs"
+      disabled={busy}
+      onClick={() =>
+        confirm("Remove the sample project, its photos and documents?") &&
+        run(async () => {
+          await remove({ data: { code } });
+        })
+      }
+    >
+      {busy ? "Removing…" : "Remove sample"}
+    </button>
+  ) : (
+    <button
+      type="button"
+      className="btn-secondary px-3 py-2 text-xs"
+      disabled={busy}
+      onClick={() =>
+        run(async () => {
+          const r = await seed({ data: { code } });
+          navigate({
+            to: "/admin/countries/$code/investments/$id",
+            params: { code, id: r.id },
+          });
+        })
+      }
+    >
+      {busy ? "Loading sample…" : "Load sample project"}
+    </button>
+  );
 }
 
 type ApprovalFilter = "all" | "draft" | "submitted" | "approved" | "returned" | "withdrawn";
@@ -152,6 +204,10 @@ function PipelinePage() {
             Standards audit
           </Link>
           <Oc4idsExportButton code={code} />
+          <SampleButtons
+            code={code}
+            hasSample={(q.data?.rows ?? []).some((r) => r.title.endsWith("(Sample)"))}
+          />
           <button
             type="button"
             className="btn-primary px-3 py-2 text-xs"
@@ -317,8 +373,13 @@ function PipelinePage() {
                       params={{ code, id: r.id }}
                       className="text-ink-950 underline decoration-line-200 underline-offset-4 hover:decoration-ink-950"
                     >
-                      {r.title}
+                      {r.title.replace(/ \(Sample\)$/, "")}
                     </Link>
+                    {r.title.endsWith("(Sample)") && (
+                      <span className="ml-2 border border-signal-caution px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-signal-caution">
+                        Sample · illustrative
+                      </span>
+                    )}
                     {r.structure && <div className="text-xs text-ink-500">{r.structure}</div>}
                   </td>
                   <td className="pr-3 text-ink-800">

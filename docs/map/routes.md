@@ -11,6 +11,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/business-case_/calculator` | `src/routes/business-case_.calculator.tsx` |
 | `/d/$token` | `src/routes/d.$token.tsx` |
 | `/f/$token` | `src/routes/f.$token.tsx` |
+| `/i/$token` | `src/routes/i.$token.tsx` |
 | `/op-eds/` | `src/routes/op-eds.index.tsx` |
 | `/op-eds/$slug` | `src/routes/op-eds.$slug.tsx` |
 | `/p/$token` | `src/routes/p.$token.tsx` |
@@ -77,6 +78,8 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/_authenticated/admin/countries/$code/global` | `src/routes/_authenticated/admin/countries.$code.global.tsx` |
 | `/_authenticated/admin/countries/$code/godseye` | `src/routes/_authenticated/admin/countries.$code.godseye.tsx` |
 | `/_authenticated/admin/countries/$code/investments` | `src/routes/_authenticated/admin/countries.$code.investments.tsx` |
+| `/_authenticated/admin/countries/$code/investments/$id` | `src/routes/_authenticated/admin/countries.$code.investments.$id.tsx` |
+| `/_authenticated/admin/countries/$code/investors` | `src/routes/_authenticated/admin/countries.$code.investors.tsx` |
 | `/_authenticated/admin/countries/$code/ledger` | `src/routes/_authenticated/admin/countries.$code.ledger.tsx` |
 | `/_authenticated/admin/countries/$code/mandate-compact` | `src/routes/_authenticated/admin/countries.$code.mandate-compact.tsx` |
 | `/_authenticated/admin/countries/$code/narrative` | `src/routes/_authenticated/admin/countries.$code.narrative.tsx` |

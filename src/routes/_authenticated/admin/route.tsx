@@ -25,6 +25,9 @@ const COUNTRY_SURFACES = new Set([
   "personas",
   "mandate-compact",
   "godseye",
+  "standards",
+  "investments",
+  "investors",
 ]);
 
 /** `/admin/countries/KNA/ledger/...` → `{ code: "KNA", surface: "ledger" }` */

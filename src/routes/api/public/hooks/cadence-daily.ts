@@ -1,6 +1,8 @@
 // Cadence daily cron hook (PRD Wave E1).
 // Called by pg_cron; closes any monthly/quarterly/annual/term windows that
-// have just ended. Idempotent: cadence_closes has a UNIQUE (window_kind,
+// have just ended. When a monthly window closes it also records the standards
+// audit snapshot for every country (src/lib/standards/snapshot.server.ts).
+// Idempotent: cadence_closes has a UNIQUE (window_kind,
 // period_label) constraint.
 
 import { createFileRoute } from "@tanstack/react-router";
@@ -98,7 +100,22 @@ export const Route = createFileRoute("/api/public/hooks/cadence-daily")({
           closed.push({ kind: w.kind, period: w.period, snapshots: snapshots.length });
         }
 
-        return Response.json({ ok: true, closed });
+        // Standards audit: record each country's score for the month that just
+        // closed. Runs even if the cadence close was already recorded (a retry),
+        // since the snapshot upsert is idempotent. A failure here must never
+        // break the cadence closes above.
+        let standardsSnapshot: unknown = null;
+        const monthly = windows.find((w) => w.kind === "monthly");
+        if (monthly) {
+          try {
+            const { snapshotStandardsAudits } = await import("@/lib/standards/snapshot.server");
+            standardsSnapshot = await snapshotStandardsAudits(supabase, monthly.period);
+          } catch (e) {
+            standardsSnapshot = { period: monthly.period, error: (e as Error).message };
+          }
+        }
+
+        return Response.json({ ok: true, closed, standardsSnapshot });
       },
     },
   },

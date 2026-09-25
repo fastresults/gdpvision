@@ -21,6 +21,7 @@ import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as OpEdsSlugRouteImport } from './routes/op-eds.$slug'
 import { Route as KioskAdminRouteImport } from './routes/kiosk.admin'
+import { Route as ITokenRouteImport } from './routes/i.$token'
 import { Route as FTokenRouteImport } from './routes/f.$token'
 import { Route as DTokenRouteImport } from './routes/d.$token'
 import { Route as BusinessCaseCalculatorRouteImport } from './routes/business-case_.calculator'
@@ -116,6 +117,7 @@ import { Route as AuthenticatedAdminCountriesCodeOnboardRouteImport } from './ro
 import { Route as AuthenticatedAdminCountriesCodeNarrativeRouteImport } from './routes/_authenticated/admin/countries.$code.narrative'
 import { Route as AuthenticatedAdminCountriesCodeMandateCompactRouteImport } from './routes/_authenticated/admin/countries.$code.mandate-compact'
 import { Route as AuthenticatedAdminCountriesCodeLedgerRouteImport } from './routes/_authenticated/admin/countries.$code.ledger'
+import { Route as AuthenticatedAdminCountriesCodeInvestorsRouteImport } from './routes/_authenticated/admin/countries.$code.investors'
 import { Route as AuthenticatedAdminCountriesCodeInvestmentsRouteImport } from './routes/_authenticated/admin/countries.$code.investments'
 import { Route as AuthenticatedAdminCountriesCodeGodseyeRouteImport } from './routes/_authenticated/admin/countries.$code.godseye'
 import { Route as AuthenticatedAdminCountriesCodeGlobalRouteImport } from './routes/_authenticated/admin/countries.$code.global'
@@ -136,6 +138,7 @@ import { Route as AuthenticatedAdminCountriesCodePersonasSegmentsRouteImport } f
 import { Route as AuthenticatedAdminCountriesCodePersonasBlueprintRouteImport } from './routes/_authenticated/admin/countries.$code.personas.blueprint'
 import { Route as AuthenticatedAdminCountriesCodePersonasIdRouteImport } from './routes/_authenticated/admin/countries.$code.personas.$id'
 import { Route as AuthenticatedAdminCountriesCodeNarrativeLibraryRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.library'
+import { Route as AuthenticatedAdminCountriesCodeInvestmentsIdRouteImport } from './routes/_authenticated/admin/countries.$code.investments.$id'
 import { Route as AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRouteImport } from './routes/_authenticated/admin/countries.$code.narrative.opposition.index'
 import { Route as AuthenticatedAdminCountriesCodeStudioThreatsNewRouteImport } from './routes/_authenticated/admin/countries.$code.studio.threats.new'
 import { Route as AuthenticatedAdminCountriesCodeStudioThreatsIdRouteImport } from './routes/_authenticated/admin/countries.$code.studio.threats.$id'
@@ -148,6 +151,7 @@ import { Route as AuthenticatedAdminCountriesCodeExecutiveChamberChamberRouteImp
 import { Route as AuthenticatedAdminCountriesCodeCabinetSessionSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.session.$sid'
 import { Route as AuthenticatedAdminCountriesCodeCabinetMinutesSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.minutes.$sid'
 import { Route as AuthenticatedAdminCountriesCodeCabinetAgendaSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.agenda.$sid'
+import { Route as AuthenticatedAdminCountriesCodeInvestmentsIdPackagePackageIdRouteImport } from './routes/_authenticated/admin/countries.$code.investments.$id.package.$packageId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -207,6 +211,11 @@ const KioskAdminRoute = KioskAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => KioskRoute,
+} as any)
+const ITokenRoute = ITokenRouteImport.update({
+  id: '/i/$token',
+  path: '/i/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const FTokenRoute = FTokenRouteImport.update({
   id: '/f/$token',
@@ -761,6 +770,12 @@ const AuthenticatedAdminCountriesCodeLedgerRoute =
     path: '/countries/$code/ledger',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeInvestorsRoute =
+  AuthenticatedAdminCountriesCodeInvestorsRouteImport.update({
+    id: '/countries/$code/investors',
+    path: '/countries/$code/investors',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminCountriesCodeInvestmentsRoute =
   AuthenticatedAdminCountriesCodeInvestmentsRouteImport.update({
     id: '/countries/$code/investments',
@@ -881,6 +896,12 @@ const AuthenticatedAdminCountriesCodeNarrativeLibraryRoute =
     path: '/library',
     getParentRoute: () => AuthenticatedAdminCountriesCodeNarrativeRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeInvestmentsIdRoute =
+  AuthenticatedAdminCountriesCodeInvestmentsIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedAdminCountriesCodeInvestmentsRoute,
+  } as any)
 const AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRoute =
   AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRouteImport.update({
     id: '/opposition/',
@@ -953,6 +974,14 @@ const AuthenticatedAdminCountriesCodeCabinetAgendaSidRoute =
     path: '/countries/$code/cabinet/agenda/$sid',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeInvestmentsIdPackagePackageIdRoute =
+  AuthenticatedAdminCountriesCodeInvestmentsIdPackagePackageIdRouteImport.update(
+    {
+      id: '/package/$packageId',
+      path: '/package/$packageId',
+      getParentRoute: () => AuthenticatedAdminCountriesCodeInvestmentsIdRoute,
+    } as any,
+  )
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -969,6 +998,7 @@ export interface FileRoutesByFullPath {
   '/business-case/calculator': typeof BusinessCaseCalculatorRoute
   '/d/$token': typeof DTokenRoute
   '/f/$token': typeof FTokenRoute
+  '/i/$token': typeof ITokenRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
   '/p/$token': typeof PTokenRoute
@@ -1051,7 +1081,8 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
   '/admin/countries/$code/global': typeof AuthenticatedAdminCountriesCodeGlobalRoute
   '/admin/countries/$code/godseye': typeof AuthenticatedAdminCountriesCodeGodseyeRoute
-  '/admin/countries/$code/investments': typeof AuthenticatedAdminCountriesCodeInvestmentsRoute
+  '/admin/countries/$code/investments': typeof AuthenticatedAdminCountriesCodeInvestmentsRouteWithChildren
+  '/admin/countries/$code/investors': typeof AuthenticatedAdminCountriesCodeInvestorsRoute
   '/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/admin/countries/$code/mandate-compact': typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   '/admin/countries/$code/narrative': typeof AuthenticatedAdminCountriesCodeNarrativeRouteWithChildren
@@ -1066,6 +1097,7 @@ export interface FileRoutesByFullPath {
   '/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
   '/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
   '/console/$code/requests/': typeof AuthenticatedConsoleCodeRequestsIndexRoute
+  '/admin/countries/$code/investments/$id': typeof AuthenticatedAdminCountriesCodeInvestmentsIdRouteWithChildren
   '/admin/countries/$code/narrative/library': typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRoute
   '/admin/countries/$code/personas/$id': typeof AuthenticatedAdminCountriesCodePersonasIdRoute
   '/admin/countries/$code/personas/blueprint': typeof AuthenticatedAdminCountriesCodePersonasBlueprintRoute
@@ -1093,6 +1125,7 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/studio/threats/$id': typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRoute
   '/admin/countries/$code/studio/threats/new': typeof AuthenticatedAdminCountriesCodeStudioThreatsNewRoute
   '/admin/countries/$code/narrative/opposition/': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRoute
+  '/admin/countries/$code/investments/$id/package/$packageId': typeof AuthenticatedAdminCountriesCodeInvestmentsIdPackagePackageIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1105,6 +1138,7 @@ export interface FileRoutesByTo {
   '/business-case/calculator': typeof BusinessCaseCalculatorRoute
   '/d/$token': typeof DTokenRoute
   '/f/$token': typeof FTokenRoute
+  '/i/$token': typeof ITokenRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
   '/p/$token': typeof PTokenRoute
@@ -1187,7 +1221,8 @@ export interface FileRoutesByTo {
   '/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
   '/admin/countries/$code/global': typeof AuthenticatedAdminCountriesCodeGlobalRoute
   '/admin/countries/$code/godseye': typeof AuthenticatedAdminCountriesCodeGodseyeRoute
-  '/admin/countries/$code/investments': typeof AuthenticatedAdminCountriesCodeInvestmentsRoute
+  '/admin/countries/$code/investments': typeof AuthenticatedAdminCountriesCodeInvestmentsRouteWithChildren
+  '/admin/countries/$code/investors': typeof AuthenticatedAdminCountriesCodeInvestorsRoute
   '/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/admin/countries/$code/mandate-compact': typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   '/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
@@ -1197,6 +1232,7 @@ export interface FileRoutesByTo {
   '/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
   '/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
   '/console/$code/requests': typeof AuthenticatedConsoleCodeRequestsIndexRoute
+  '/admin/countries/$code/investments/$id': typeof AuthenticatedAdminCountriesCodeInvestmentsIdRouteWithChildren
   '/admin/countries/$code/narrative/library': typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRoute
   '/admin/countries/$code/personas/$id': typeof AuthenticatedAdminCountriesCodePersonasIdRoute
   '/admin/countries/$code/personas/blueprint': typeof AuthenticatedAdminCountriesCodePersonasBlueprintRoute
@@ -1224,6 +1260,7 @@ export interface FileRoutesByTo {
   '/admin/countries/$code/studio/threats/$id': typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRoute
   '/admin/countries/$code/studio/threats/new': typeof AuthenticatedAdminCountriesCodeStudioThreatsNewRoute
   '/admin/countries/$code/narrative/opposition': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRoute
+  '/admin/countries/$code/investments/$id/package/$packageId': typeof AuthenticatedAdminCountriesCodeInvestmentsIdPackagePackageIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1242,6 +1279,7 @@ export interface FileRoutesById {
   '/business-case_/calculator': typeof BusinessCaseCalculatorRoute
   '/d/$token': typeof DTokenRoute
   '/f/$token': typeof FTokenRoute
+  '/i/$token': typeof ITokenRoute
   '/kiosk/admin': typeof KioskAdminRoute
   '/op-eds/$slug': typeof OpEdsSlugRoute
   '/p/$token': typeof PTokenRoute
@@ -1324,7 +1362,8 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
   '/_authenticated/admin/countries/$code/global': typeof AuthenticatedAdminCountriesCodeGlobalRoute
   '/_authenticated/admin/countries/$code/godseye': typeof AuthenticatedAdminCountriesCodeGodseyeRoute
-  '/_authenticated/admin/countries/$code/investments': typeof AuthenticatedAdminCountriesCodeInvestmentsRoute
+  '/_authenticated/admin/countries/$code/investments': typeof AuthenticatedAdminCountriesCodeInvestmentsRouteWithChildren
+  '/_authenticated/admin/countries/$code/investors': typeof AuthenticatedAdminCountriesCodeInvestorsRoute
   '/_authenticated/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/_authenticated/admin/countries/$code/mandate-compact': typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   '/_authenticated/admin/countries/$code/narrative': typeof AuthenticatedAdminCountriesCodeNarrativeRouteWithChildren
@@ -1339,6 +1378,7 @@ export interface FileRoutesById {
   '/_authenticated/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
   '/_authenticated/console/$code/requests/$id': typeof AuthenticatedConsoleCodeRequestsIdRoute
   '/_authenticated/console/$code/requests/': typeof AuthenticatedConsoleCodeRequestsIndexRoute
+  '/_authenticated/admin/countries/$code/investments/$id': typeof AuthenticatedAdminCountriesCodeInvestmentsIdRouteWithChildren
   '/_authenticated/admin/countries/$code/narrative/library': typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRoute
   '/_authenticated/admin/countries/$code/personas/$id': typeof AuthenticatedAdminCountriesCodePersonasIdRoute
   '/_authenticated/admin/countries/$code/personas/blueprint': typeof AuthenticatedAdminCountriesCodePersonasBlueprintRoute
@@ -1366,6 +1406,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/studio/threats/$id': typeof AuthenticatedAdminCountriesCodeStudioThreatsIdRoute
   '/_authenticated/admin/countries/$code/studio/threats/new': typeof AuthenticatedAdminCountriesCodeStudioThreatsNewRoute
   '/_authenticated/admin/countries/$code/narrative/opposition/': typeof AuthenticatedAdminCountriesCodeNarrativeOppositionIndexRoute
+  '/_authenticated/admin/countries/$code/investments/$id/package/$packageId': typeof AuthenticatedAdminCountriesCodeInvestmentsIdPackagePackageIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1384,6 +1425,7 @@ export interface FileRouteTypes {
     | '/business-case/calculator'
     | '/d/$token'
     | '/f/$token'
+    | '/i/$token'
     | '/kiosk/admin'
     | '/op-eds/$slug'
     | '/p/$token'
@@ -1467,6 +1509,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/global'
     | '/admin/countries/$code/godseye'
     | '/admin/countries/$code/investments'
+    | '/admin/countries/$code/investors'
     | '/admin/countries/$code/ledger'
     | '/admin/countries/$code/mandate-compact'
     | '/admin/countries/$code/narrative'
@@ -1481,6 +1524,7 @@ export interface FileRouteTypes {
     | '/console/$code/request/new'
     | '/console/$code/requests/$id'
     | '/console/$code/requests/'
+    | '/admin/countries/$code/investments/$id'
     | '/admin/countries/$code/narrative/library'
     | '/admin/countries/$code/personas/$id'
     | '/admin/countries/$code/personas/blueprint'
@@ -1508,6 +1552,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/studio/threats/$id'
     | '/admin/countries/$code/studio/threats/new'
     | '/admin/countries/$code/narrative/opposition/'
+    | '/admin/countries/$code/investments/$id/package/$packageId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1520,6 +1565,7 @@ export interface FileRouteTypes {
     | '/business-case/calculator'
     | '/d/$token'
     | '/f/$token'
+    | '/i/$token'
     | '/kiosk/admin'
     | '/op-eds/$slug'
     | '/p/$token'
@@ -1603,6 +1649,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/global'
     | '/admin/countries/$code/godseye'
     | '/admin/countries/$code/investments'
+    | '/admin/countries/$code/investors'
     | '/admin/countries/$code/ledger'
     | '/admin/countries/$code/mandate-compact'
     | '/admin/countries/$code/onboard'
@@ -1612,6 +1659,7 @@ export interface FileRouteTypes {
     | '/console/$code/request/new'
     | '/console/$code/requests/$id'
     | '/console/$code/requests'
+    | '/admin/countries/$code/investments/$id'
     | '/admin/countries/$code/narrative/library'
     | '/admin/countries/$code/personas/$id'
     | '/admin/countries/$code/personas/blueprint'
@@ -1639,6 +1687,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/studio/threats/$id'
     | '/admin/countries/$code/studio/threats/new'
     | '/admin/countries/$code/narrative/opposition'
+    | '/admin/countries/$code/investments/$id/package/$packageId'
   id:
     | '__root__'
     | '/'
@@ -1656,6 +1705,7 @@ export interface FileRouteTypes {
     | '/business-case_/calculator'
     | '/d/$token'
     | '/f/$token'
+    | '/i/$token'
     | '/kiosk/admin'
     | '/op-eds/$slug'
     | '/p/$token'
@@ -1739,6 +1789,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/countries/$code/global'
     | '/_authenticated/admin/countries/$code/godseye'
     | '/_authenticated/admin/countries/$code/investments'
+    | '/_authenticated/admin/countries/$code/investors'
     | '/_authenticated/admin/countries/$code/ledger'
     | '/_authenticated/admin/countries/$code/mandate-compact'
     | '/_authenticated/admin/countries/$code/narrative'
@@ -1753,6 +1804,7 @@ export interface FileRouteTypes {
     | '/_authenticated/console/$code/request/new'
     | '/_authenticated/console/$code/requests/$id'
     | '/_authenticated/console/$code/requests/'
+    | '/_authenticated/admin/countries/$code/investments/$id'
     | '/_authenticated/admin/countries/$code/narrative/library'
     | '/_authenticated/admin/countries/$code/personas/$id'
     | '/_authenticated/admin/countries/$code/personas/blueprint'
@@ -1780,6 +1832,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/countries/$code/studio/threats/$id'
     | '/_authenticated/admin/countries/$code/studio/threats/new'
     | '/_authenticated/admin/countries/$code/narrative/opposition/'
+    | '/_authenticated/admin/countries/$code/investments/$id/package/$packageId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1792,6 +1845,7 @@ export interface RootRouteChildren {
   BusinessCaseCalculatorRoute: typeof BusinessCaseCalculatorRoute
   DTokenRoute: typeof DTokenRoute
   FTokenRoute: typeof FTokenRoute
+  ITokenRoute: typeof ITokenRoute
   OpEdsSlugRoute: typeof OpEdsSlugRoute
   PTokenRoute: typeof PTokenRoute
   STokenRoute: typeof STokenRoute
@@ -1893,6 +1947,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/kiosk/admin'
       preLoaderRoute: typeof KioskAdminRouteImport
       parentRoute: typeof KioskRoute
+    }
+    '/i/$token': {
+      id: '/i/$token'
+      path: '/i/$token'
+      fullPath: '/i/$token'
+      preLoaderRoute: typeof ITokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/f/$token': {
       id: '/f/$token'
@@ -2559,6 +2620,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeLedgerRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/countries/$code/investors': {
+      id: '/_authenticated/admin/countries/$code/investors'
+      path: '/countries/$code/investors'
+      fullPath: '/admin/countries/$code/investors'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeInvestorsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/countries/$code/investments': {
       id: '/_authenticated/admin/countries/$code/investments'
       path: '/countries/$code/investments'
@@ -2699,6 +2767,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeNarrativeLibraryRouteImport
       parentRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRoute
     }
+    '/_authenticated/admin/countries/$code/investments/$id': {
+      id: '/_authenticated/admin/countries/$code/investments/$id'
+      path: '/$id'
+      fullPath: '/admin/countries/$code/investments/$id'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeInvestmentsIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodeInvestmentsRoute
+    }
     '/_authenticated/admin/countries/$code/narrative/opposition/': {
       id: '/_authenticated/admin/countries/$code/narrative/opposition/'
       path: '/opposition'
@@ -2783,6 +2858,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeCabinetAgendaSidRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/countries/$code/investments/$id/package/$packageId': {
+      id: '/_authenticated/admin/countries/$code/investments/$id/package/$packageId'
+      path: '/package/$packageId'
+      fullPath: '/admin/countries/$code/investments/$id/package/$packageId'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeInvestmentsIdPackagePackageIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCountriesCodeInvestmentsIdRoute
+    }
   }
 }
 
@@ -2799,6 +2881,36 @@ const AuthenticatedAdminCountriesCodeExecutiveRouteChildren: AuthenticatedAdminC
 const AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren =
   AuthenticatedAdminCountriesCodeExecutiveRoute._addFileChildren(
     AuthenticatedAdminCountriesCodeExecutiveRouteChildren,
+  )
+
+interface AuthenticatedAdminCountriesCodeInvestmentsIdRouteChildren {
+  AuthenticatedAdminCountriesCodeInvestmentsIdPackagePackageIdRoute: typeof AuthenticatedAdminCountriesCodeInvestmentsIdPackagePackageIdRoute
+}
+
+const AuthenticatedAdminCountriesCodeInvestmentsIdRouteChildren: AuthenticatedAdminCountriesCodeInvestmentsIdRouteChildren =
+  {
+    AuthenticatedAdminCountriesCodeInvestmentsIdPackagePackageIdRoute:
+      AuthenticatedAdminCountriesCodeInvestmentsIdPackagePackageIdRoute,
+  }
+
+const AuthenticatedAdminCountriesCodeInvestmentsIdRouteWithChildren =
+  AuthenticatedAdminCountriesCodeInvestmentsIdRoute._addFileChildren(
+    AuthenticatedAdminCountriesCodeInvestmentsIdRouteChildren,
+  )
+
+interface AuthenticatedAdminCountriesCodeInvestmentsRouteChildren {
+  AuthenticatedAdminCountriesCodeInvestmentsIdRoute: typeof AuthenticatedAdminCountriesCodeInvestmentsIdRouteWithChildren
+}
+
+const AuthenticatedAdminCountriesCodeInvestmentsRouteChildren: AuthenticatedAdminCountriesCodeInvestmentsRouteChildren =
+  {
+    AuthenticatedAdminCountriesCodeInvestmentsIdRoute:
+      AuthenticatedAdminCountriesCodeInvestmentsIdRouteWithChildren,
+  }
+
+const AuthenticatedAdminCountriesCodeInvestmentsRouteWithChildren =
+  AuthenticatedAdminCountriesCodeInvestmentsRoute._addFileChildren(
+    AuthenticatedAdminCountriesCodeInvestmentsRouteChildren,
   )
 
 interface AuthenticatedAdminCountriesCodeNarrativeRouteChildren {
@@ -2957,7 +3069,8 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminCountriesCodeExecutiveRoute: typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
   AuthenticatedAdminCountriesCodeGlobalRoute: typeof AuthenticatedAdminCountriesCodeGlobalRoute
   AuthenticatedAdminCountriesCodeGodseyeRoute: typeof AuthenticatedAdminCountriesCodeGodseyeRoute
-  AuthenticatedAdminCountriesCodeInvestmentsRoute: typeof AuthenticatedAdminCountriesCodeInvestmentsRoute
+  AuthenticatedAdminCountriesCodeInvestmentsRoute: typeof AuthenticatedAdminCountriesCodeInvestmentsRouteWithChildren
+  AuthenticatedAdminCountriesCodeInvestorsRoute: typeof AuthenticatedAdminCountriesCodeInvestorsRoute
   AuthenticatedAdminCountriesCodeLedgerRoute: typeof AuthenticatedAdminCountriesCodeLedgerRoute
   AuthenticatedAdminCountriesCodeMandateCompactRoute: typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   AuthenticatedAdminCountriesCodeNarrativeRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRouteWithChildren
@@ -2999,7 +3112,9 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminCountriesCodeGodseyeRoute:
       AuthenticatedAdminCountriesCodeGodseyeRoute,
     AuthenticatedAdminCountriesCodeInvestmentsRoute:
-      AuthenticatedAdminCountriesCodeInvestmentsRoute,
+      AuthenticatedAdminCountriesCodeInvestmentsRouteWithChildren,
+    AuthenticatedAdminCountriesCodeInvestorsRoute:
+      AuthenticatedAdminCountriesCodeInvestorsRoute,
     AuthenticatedAdminCountriesCodeLedgerRoute:
       AuthenticatedAdminCountriesCodeLedgerRoute,
     AuthenticatedAdminCountriesCodeMandateCompactRoute:
@@ -3262,6 +3377,7 @@ const rootRouteChildren: RootRouteChildren = {
   BusinessCaseCalculatorRoute: BusinessCaseCalculatorRoute,
   DTokenRoute: DTokenRoute,
   FTokenRoute: FTokenRoute,
+  ITokenRoute: ITokenRoute,
   OpEdsSlugRoute: OpEdsSlugRoute,
   PTokenRoute: PTokenRoute,
   STokenRoute: STokenRoute,

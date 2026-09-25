@@ -52,6 +52,31 @@ const REST: Chamber[] = [
 ];
 
 
+const SYNDICATION: Array<{
+  title: string;
+  blurb: string;
+  to:
+    | "/admin/countries/$code/standards"
+    | "/admin/countries/$code/investments"
+    | "/admin/countries/$code/investors";
+}> = [
+  {
+    title: "Data standards audit",
+    blurb: "Coverage against IMF, UN, World Bank, FATF and PEFA requirements, and the plans that close each gap.",
+    to: "/admin/countries/$code/standards",
+  },
+  {
+    title: "Investment pipeline",
+    blurb: "Projects in one standard format, checked for investor readiness and approved by a second person.",
+    to: "/admin/countries/$code/investments",
+  },
+  {
+    title: "Investors",
+    blurb: "Who is interested in what, how far each conversation has gone, and what happens next.",
+    to: "/admin/countries/$code/investors",
+  },
+];
+
 export function ChambersLauncher({ code }: { code: string }) {
   return (
     <section className="space-y-5">
@@ -126,6 +151,33 @@ export function ChambersLauncher({ code }: { code: string }) {
         {REST.map((c, i) => (
           <Tile key={c.n} code={code} chamber={c} index={i} />
         ))}
+      </div>
+
+      {/* From evidence to investment: the standards audit feeds the pipeline. */}
+      <div className="border-t border-line-200 pt-5">
+        <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-ink-500">
+          Standards and investment
+        </p>
+        <div className="mt-3 grid grid-cols-1 gap-0 border-l border-line-200 md:grid-cols-3">
+          {SYNDICATION.map((l) => (
+            <Link
+              key={l.to}
+              to={l.to}
+              params={{ code }}
+              className="group flex items-start justify-between gap-3 border-b border-r border-t border-line-200 px-5 py-4 transition hover:border-ink-950 hover:bg-paper-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-500"
+            >
+              <span className="min-w-0">
+                <span className="block font-serif text-[18px] text-ink-950">{l.title}</span>
+                <span className="mt-0.5 block text-[13px] text-ink-500">{l.blurb}</span>
+              </span>
+              <ArrowUpRight
+                size={16}
+                strokeWidth={1.5}
+                className="mt-1 shrink-0 text-ink-300 transition group-hover:translate-x-0.5 group-hover:text-ink-950"
+              />
+            </Link>
+          ))}
+        </div>
       </div>
     </section>
   );

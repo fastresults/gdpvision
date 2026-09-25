@@ -64,6 +64,13 @@
       "when": 1790299333538,
       "tag": "0008_standards_audit_and_investments",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790301931295,
+      "tag": "0009_governance_and_syndication",
+      "breakpoints": true
     }
   ]
 }

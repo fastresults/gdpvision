@@ -1,133 +1,369 @@
 // @domain investments
-// @tables investment_projects
+// @tables investment_projects,investment_share_links,investor_interests,countries,app_settings,audit_log
 // @ui src/routes/_authenticated/admin/countries.$code.investments.tsx
+//
+// The investment pipeline. The database (drizzle/migrations/0009) owns every
+// governance rule: who can submit, approve, return or withdraw, that editing an
+// approved project reopens it, and that compliance fields never live on the
+// project row. These functions send content fields and status requests only,
+// and pass the database's messages straight through governanceError().
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Json } from "@/integrations/supabase/types";
+import {
+  buildOc4idsPackage,
+  defaultOc4idsPrefix,
+  validateOc4idsPackage,
+  type Oc4idsSourceProject,
+} from "@/lib/investments/oc4ids";
+import {
+  ES_CATEGORIES,
+  readinessChecks,
+  STAGES,
+  type ReadinessCheck,
+} from "@/lib/investments/readiness";
+import {
+  db,
+  governanceError,
+  loadCapabilities,
+  loadHistory,
+  PUBLIC_PROJECT_COLUMNS,
+  type ApprovalStatus,
+  type HistoryEntry,
+  type InterestRow,
+  type InvestmentProjectRow,
+  type ShareLinkRow,
+} from "@/lib/syndication/db";
 
-export type ReadinessCheck = { key: string; label: string; standard: string; ok: boolean };
+/** Every project column a country user may read. Never includes compliance data. */
+const PROJECT_COLUMNS = `${PUBLIC_PROJECT_COLUMNS},feasibility_done,land_secured,aml_cleared,bo_disclosed,created_by,submitted_by,submitted_at,approved_by,returned_by,returned_at,returned_note,created_at`;
 
-type ProjectLike = {
-  title?: string | null;
-  sector?: string | null;
-  structure?: string | null;
-  capex_usd?: number | null;
-  revenue_model?: string | null;
-  sponsor?: string | null;
-  beneficial_owners?: string | null;
-  es_category?: string | null;
-  climate_alignment?: string | null;
-  risks?: string | null;
-  aml_cleared?: boolean | null;
-  feasibility_done?: boolean | null;
-  land_secured?: boolean | null;
+export const codeSchema = z
+  .string()
+  .trim()
+  .min(2)
+  .max(3)
+  .transform((s) => s.toUpperCase());
+
+/** Validates server-fn input and throws the first issue as a plain sentence, not a JSON dump. */
+export function parseInput<S extends z.ZodTypeAny>(schema: S, d: unknown): z.output<S> {
+  const r = schema.safeParse(d);
+  if (r.success) return r.data;
+  const issue = r.error.issues[0];
+  const path = issue?.path?.length ? `${issue.path.join(".")}: ` : "";
+  if (!issue) throw new Error("Invalid input.");
+  // Our own messages are full sentences; zod's defaults ("Required") need the field name.
+  throw new Error(/\.$/.test(issue.message) ? issue.message : `${path}${issue.message}`);
+}
+
+export type ProjectView = InvestmentProjectRow & {
+  readiness: ReadinessCheck[];
+  score: number;
 };
 
-/** Pure readiness scoring against investor-grade standards. */
-export function readinessChecks(p: ProjectLike): ReadinessCheck[] {
-  const has = (v: unknown) => v != null && String(v).trim() !== "";
-  return [
-    { key: "profile", label: "Sector, structure and size defined", standard: "OC4IDS / SIF", ok: has(p.sector) && has(p.structure) && (p.capex_usd ?? 0) > 0 },
-    { key: "revenue", label: "Revenue model described", standard: "World Bank PPP Framework", ok: has(p.revenue_model) },
-    { key: "sponsor", label: "Sponsor identified", standard: "OC4IDS", ok: has(p.sponsor) },
-    { key: "bo", label: "Beneficial owners disclosed", standard: "FATF R.24", ok: has(p.beneficial_owners) },
-    { key: "aml", label: "AML / CBI due diligence cleared", standard: "FATF R.10", ok: !!p.aml_cleared },
-    { key: "es", label: "E&S category assigned (A/B/C)", standard: "IFC Performance Standards", ok: has(p.es_category) },
-    { key: "climate", label: "Climate / taxonomy alignment stated", standard: "ISSB / EU Taxonomy", ok: has(p.climate_alignment) },
-    { key: "risks", label: "Key risks documented", standard: "GI Hub project preparation", ok: has(p.risks) },
-    { key: "feasibility", label: "Feasibility study complete", standard: "GI Hub project preparation", ok: !!p.feasibility_done },
-    { key: "land", label: "Land and permits secured", standard: "World Bank PPP Framework", ok: !!p.land_secured },
-  ];
+/** A history entry with JSON-serialisable metadata. */
+export type HistoryItem = Omit<HistoryEntry, "metadata"> & {
+  metadata: { [key: string]: Json | undefined };
+};
+
+export type Capabilities = {
+  approvePlans: boolean;
+  approveInvestments: boolean;
+  compliance: boolean;
+};
+
+function withReadiness(p: InvestmentProjectRow): ProjectView {
+  const readiness = readinessChecks(p);
+  return { ...p, readiness, score: readiness.filter((c) => c.ok).length };
 }
 
 export const listInvestments = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ code: z.string().min(2).max(3) }).parse(d))
+  .inputValidator((d: unknown) => parseInput(z.object({ code: codeSchema }), d))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
-      .from("investment_projects")
-      .select("*")
-      .eq("country_code", data.code)
-      .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return rows ?? [];
+    const c = db(context.supabase);
+    const nowIso = new Date().toISOString();
+    const [projects, links, interests, capabilities] = await Promise.all([
+      c
+        .from("investment_projects")
+        .select(PROJECT_COLUMNS)
+        .eq("country_code", data.code)
+        .order("updated_at", { ascending: false }),
+      c
+        .from("investment_share_links")
+        .select("id,project_id")
+        .eq("country_code", data.code)
+        .is("revoked_at", null)
+        .gt("expires_at", nowIso),
+      c
+        .from("investor_interests")
+        .select("id,project_id,stage")
+        .eq("country_code", data.code)
+        .not("stage", "in", "(closed_won,closed_lost)"),
+      loadCapabilities(context.supabase, context.userId, data.code),
+    ]);
+    if (projects.error) throw governanceError(projects.error);
+
+    const linkCount = new Map<string, number>();
+    for (const l of (links.data ?? []) as Array<Pick<ShareLinkRow, "project_id">>) {
+      linkCount.set(l.project_id, (linkCount.get(l.project_id) ?? 0) + 1);
+    }
+    const interestCount = new Map<string, number>();
+    for (const i of (interests.data ?? []) as Array<Pick<InterestRow, "project_id">>) {
+      interestCount.set(i.project_id, (interestCount.get(i.project_id) ?? 0) + 1);
+    }
+
+    const rows = ((projects.data ?? []) as unknown as InvestmentProjectRow[]).map((p) => ({
+      ...withReadiness(p),
+      activeLinks: linkCount.get(p.id) ?? 0,
+      openInterests: interestCount.get(p.id) ?? 0,
+    }));
+    return { rows, capabilities, userId: context.userId };
   });
 
-const projectSchema = z.object({
-  id: z.string().uuid().optional(),
-  code: z.string().min(2).max(3),
-  title: z.string().min(2).max(200),
-  sector: z.string().max(100).nullable().optional(),
-  structure: z.string().max(100).nullable().optional(),
-  stage: z.string().max(50).optional(),
-  capex_usd: z.number().nonnegative().nullable().optional(),
-  revenue_model: z.string().max(1000).nullable().optional(),
-  sponsor: z.string().max(200).nullable().optional(),
-  beneficial_owners: z.string().max(1000).nullable().optional(),
-  es_category: z.string().max(10).nullable().optional(),
-  summary: z.string().max(4000).nullable().optional(),
-  risks: z.string().max(4000).nullable().optional(),
-  climate_alignment: z.string().max(1000).nullable().optional(),
-  aml_cleared: z.boolean().optional(),
+export const getInvestment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    parseInput(z.object({ code: codeSchema, id: z.string().uuid() }), d),
+  )
+  .handler(async ({ data, context }) => {
+    const c = db(context.supabase);
+    const { data: row, error } = await c
+      .from("investment_projects")
+      .select(PROJECT_COLUMNS)
+      .eq("country_code", data.code)
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw governanceError(error);
+    if (!row) throw new Error("This project does not exist or you do not have access to it.");
+    const project = withReadiness(row as unknown as InvestmentProjectRow);
+    const [history, capabilities] = await Promise.all([
+      loadHistory(context.supabase, "investment_project", data.id)
+        .then((h) => h as unknown as HistoryItem[])
+        .catch(() => [] as HistoryItem[]),
+      loadCapabilities(context.supabase, context.userId, data.code),
+    ]);
+    return {
+      project,
+      history,
+      capabilities,
+      userId: context.userId,
+      viewerIsCreator: project.created_by === context.userId,
+      viewerIsSubmitter: project.submitted_by === context.userId,
+    };
+  });
+
+const nullableText = (max: number) =>
+  z
+    .string()
+    .max(max)
+    .nullable()
+    .optional()
+    .transform((v) => (v == null || v.trim() === "" ? null : v.trim()));
+
+const contentSchema = z.object({
+  title: z.string().trim().min(2, "Give the project a title of at least two characters.").max(200),
+  sector: nullableText(100),
+  structure: nullableText(100),
+  stage: z.enum(STAGES),
+  capex_usd: z
+    .number()
+    .finite()
+    .nonnegative("Capital cost cannot be negative.")
+    .nullable()
+    .optional(),
+  revenue_model: nullableText(2000),
+  sponsor: nullableText(200),
+  es_category: z.enum(ES_CATEGORIES).nullable().optional(),
+  summary: nullableText(4000),
+  risks: nullableText(4000),
+  climate_alignment: nullableText(2000),
   feasibility_done: z.boolean().optional(),
   land_secured: z.boolean().optional(),
 });
 
+export type InvestmentContent = z.input<typeof contentSchema>;
+
 export const saveInvestment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => projectSchema.parse(d))
+  .inputValidator((d: unknown) =>
+    parseInput(
+      z.object({
+        code: codeSchema,
+        id: z.string().uuid().optional(),
+        /** The version the editor opened; a mismatch means someone else saved first. */
+        expectedVersion: z.number().int().positive().optional(),
+        content: contentSchema,
+      }),
+      d,
+    ),
+  )
   .handler(async ({ data, context }) => {
-    const { code, id, ...rest } = data;
-    const row = { ...rest, country_code: code };
-    const q = id
-      ? context.supabase.from("investment_projects").update(row).eq("id", id)
-      : context.supabase.from("investment_projects").insert(row);
-    const { error } = await q;
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
+    const c = db(context.supabase);
+    // Content fields only. Governance columns, beneficial owners and AML are
+    // set by the database and the compliance record, never from here.
+    const content = {
+      ...data.content,
+      capex_usd: data.content.capex_usd ?? null,
+      es_category: data.content.es_category ?? null,
+    };
 
-export const approveInvestment = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
-  .handler(async ({ data, context }) => {
-    const { data: p, error } = await context.supabase.from("investment_projects").select("*").eq("id", data.id).single();
-    if (error) throw new Error(error.message);
-    if (readinessChecks(p).some((c) => !c.ok)) throw new Error("All readiness checks must pass before approval for syndication");
-    const { error: e2 } = await context.supabase
+    if (!data.id) {
+      const { data: row, error } = await c
+        .from("investment_projects")
+        .insert({ ...content, country_code: data.code })
+        .select("id,approval_status,version")
+        .single();
+      if (error) throw governanceError(error);
+      return {
+        id: (row as { id: string }).id,
+        reopened: false,
+        version: 1,
+        approval_status: "draft" as ApprovalStatus,
+      };
+    }
+
+    const { data: before, error: e0 } = await c
       .from("investment_projects")
-      .update({ approval_status: "approved", approved_by: context.userId })
-      .eq("id", data.id);
-    if (e2) throw new Error(e2.message);
+      .select("approval_status,version")
+      .eq("id", data.id)
+      .eq("country_code", data.code)
+      .maybeSingle();
+    if (e0) throw governanceError(e0);
+    if (!before) throw new Error("This project does not exist or you do not have access to it.");
+    const prev = before as { approval_status: ApprovalStatus; version: number };
+    if (data.expectedVersion && prev.version !== data.expectedVersion) {
+      throw new Error(
+        "Someone else saved this project after you opened it. Reload to see their changes, then edit again.",
+      );
+    }
+
+    let q = c
+      .from("investment_projects")
+      .update(content)
+      .eq("id", data.id)
+      .eq("country_code", data.code);
+    if (data.expectedVersion) q = q.eq("version", data.expectedVersion);
+    const { data: row, error } = await q.select("id,approval_status,version").maybeSingle();
+    if (error) throw governanceError(error);
+    if (!row)
+      throw new Error(
+        "Someone else saved this project after you opened it. Reload to see their changes, then edit again.",
+      );
+    const after = row as { id: string; approval_status: ApprovalStatus; version: number };
+    return {
+      id: after.id,
+      version: after.version,
+      approval_status: after.approval_status,
+      reopened:
+        (prev.approval_status === "approved" || prev.approval_status === "submitted") &&
+        after.approval_status === "draft",
+    };
+  });
+
+export const TRANSITIONS = ["submitted", "approved", "returned", "draft", "withdrawn"] as const;
+
+export const transitionInvestment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    parseInput(
+      z.object({
+        code: codeSchema,
+        id: z.string().uuid(),
+        to: z.enum(TRANSITIONS),
+        note: z.string().trim().max(2000).optional(),
+      }),
+      d,
+    ),
+  )
+  .handler(async ({ data, context }) => {
+    if (data.to === "returned" && !data.note) {
+      throw new Error("Say what needs to change when returning a project.");
+    }
+    const patch: Record<string, unknown> = { approval_status: data.to };
+    if (data.to === "returned") patch.returned_note = data.note;
+    const { data: row, error } = await db(context.supabase)
+      .from("investment_projects")
+      .update(patch)
+      .eq("id", data.id)
+      .eq("country_code", data.code)
+      .select("id,approval_status,version")
+      .maybeSingle();
+    if (error) throw governanceError(error);
+    if (!row) throw new Error("This project does not exist or you do not have access to it.");
+    return row as { id: string; approval_status: ApprovalStatus; version: number };
+  });
+
+export const deleteInvestment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    parseInput(z.object({ code: codeSchema, id: z.string().uuid() }), d),
+  )
+  .handler(async ({ data, context }) => {
+    const c = db(context.supabase);
+    const { data: row, error: e0 } = await c
+      .from("investment_projects")
+      .select("approval_status")
+      .eq("id", data.id)
+      .eq("country_code", data.code)
+      .maybeSingle();
+    if (e0) throw governanceError(e0);
+    if (!row) throw new Error("This project does not exist or you do not have access to it.");
+    const status = (row as { approval_status: ApprovalStatus }).approval_status;
+    if (status === "submitted" || status === "approved") {
+      throw new Error("An approved or submitted project cannot be deleted. Withdraw it first.");
+    }
+    const { error } = await c
+      .from("investment_projects")
+      .delete()
+      .eq("id", data.id)
+      .eq("country_code", data.code);
+    if (error) throw governanceError(error);
     return { ok: true };
   });
 
-/** OC4IDS-style export of approved projects only; private fields excluded. */
+/**
+ * OC4IDS project package of approved projects only. Returns the package and
+ * validation warnings; the UI shows the warnings before the user downloads.
+ */
 export const exportInvestmentsOc4ids = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ code: z.string().min(2).max(3) }).parse(d))
+  .inputValidator((d: unknown) => parseInput(z.object({ code: codeSchema }), d))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
-      .from("investment_projects")
-      .select("id,title,sector,structure,stage,capex_usd,summary,es_category,climate_alignment,updated_at")
-      .eq("country_code", data.code)
-      .eq("approval_status", "approved");
-    if (error) throw new Error(error.message);
-    return {
-      version: "0.9",
-      publishedDate: new Date().toISOString(),
-      projects: (rows ?? []).map((r) => ({
-        id: r.id,
-        title: r.title,
-        description: r.summary,
-        sector: r.sector ? [r.sector] : [],
-        type: r.structure,
-        status: r.stage,
-        budget: { amount: { amount: r.capex_usd, currency: "USD" } },
-        environment: { impactCategories: r.es_category ? [r.es_category] : [], climateMeasures: r.climate_alignment },
-        updated: r.updated_at,
-      })),
-    };
+    const c = db(context.supabase);
+    const [{ data: rows, error }, { data: country }] = await Promise.all([
+      c
+        .from("investment_projects")
+        .select("id,title,summary,sector,stage,capex_usd,es_category,climate_alignment,updated_at")
+        .eq("country_code", data.code)
+        .eq("approval_status", "approved")
+        .order("title"),
+      c.from("countries").select("name").eq("code", data.code).maybeSingle(),
+    ]);
+    if (error) throw governanceError(error);
+
+    // Registered prefix, if an admin has set one: app setting "oc4ids_prefix.<cc>".
+    let prefix = defaultOc4idsPrefix(data.code);
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: setting } = await supabaseAdmin
+        .from("app_settings")
+        .select("value")
+        .eq("key", `oc4ids_prefix.${data.code.toLowerCase()}`)
+        .maybeSingle();
+      if (setting?.value && setting.value.trim()) prefix = setting.value.trim();
+    } catch {
+      // Fall back to the placeholder prefix; the validator flags it.
+    }
+
+    const countryName = (country as { name?: string } | null)?.name ?? data.code;
+    const pkg = buildOc4idsPackage((rows ?? []) as Oc4idsSourceProject[], {
+      countryCode: data.code,
+      publisherName: `Government of ${countryName}`,
+      prefix,
+    });
+    return { package: pkg, warnings: validateOc4idsPackage(pkg), prefix };
   });

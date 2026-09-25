@@ -23,6 +23,8 @@ import {
 import { cn } from "@/lib/utils";
 import "@/lib/explain/caricom-entries";
 
+export type BlocSummaryTab = BlocKey | "compare";
+
 export function BlocSummaryButton({
   bloc,
   onOpen,
@@ -54,9 +56,9 @@ export function BlocEconomicSummaryModal({
   onBlocChange,
 }: {
   open: boolean;
-  activeBloc: BlocKey;
+  activeBloc: BlocSummaryTab;
   onOpenChange: (open: boolean) => void;
-  onBlocChange: (bloc: BlocKey) => void;
+  onBlocChange: (bloc: BlocSummaryTab) => void;
 }) {
   const fetchSummary = useServerFn(getBlocEconomicSummary);
   const { data, isPending, error } = useQuery({
@@ -90,9 +92,9 @@ export function BlocEconomicSummaryModal({
         ) : error || !data ? (
           <SummaryError />
         ) : (
-          <Tabs value={activeBloc} onValueChange={(value) => onBlocChange(value as BlocKey)}>
+          <Tabs value={activeBloc} onValueChange={(value) => onBlocChange(value as BlocSummaryTab)}>
             <div className="sticky top-0 z-10 border-b border-line-200 bg-paper-0 px-6 py-3 sm:px-8">
-              <TabsList className="grid h-11 w-full grid-cols-2 rounded-none bg-paper-100 p-1">
+              <TabsList className="grid h-11 w-full grid-cols-3 rounded-none bg-paper-100 p-1">
                 {(["caricom", "oecs"] as BlocKey[]).map((key) => (
                   <TabsTrigger
                     key={key}
@@ -105,6 +107,12 @@ export function BlocEconomicSummaryModal({
                     </span>
                   </TabsTrigger>
                 ))}
+                <TabsTrigger
+                  value="compare"
+                  className="rounded-none font-mono text-[10px] uppercase tracking-[0.18em] data-[state=active]:shadow-none"
+                >
+                  Compare
+                </TabsTrigger>
               </TabsList>
             </div>
             {(["caricom", "oecs"] as BlocKey[]).map((key) => (
@@ -116,10 +124,136 @@ export function BlocEconomicSummaryModal({
                 />
               </TabsContent>
             ))}
+            <TabsContent value="compare" className="m-0 p-6 sm:p-8">
+              <BlocComparisonView caricom={data.blocs.caricom} oecs={data.blocs.oecs} />
+            </TabsContent>
           </Tabs>
         )}
       </SheetContent>
     </Sheet>
+  );
+}
+
+function BlocComparisonView({ caricom, oecs }: { caricom: BlocSummary; oecs: BlocSummary }) {
+  const oecsByKey = new Map(oecs.metrics.map((metric) => [metric.key, metric]));
+
+  return (
+    <div className="space-y-8">
+      <section className="border-b border-line-200 pb-5">
+        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
+          Side-by-side comparison
+        </p>
+        <h2 className="mt-1 font-serif text-3xl text-ink-950">Economic categories</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-500">
+          Each row uses one shared scale, making the two bloc readings directly comparable.
+        </p>
+      </section>
+
+      <div className="grid grid-cols-[minmax(120px,1fr)_minmax(110px,0.8fr)_minmax(110px,0.8fr)] border border-line-200">
+        <div className="bg-paper-50 p-3 font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">
+          Category
+        </div>
+        <div className="border-l border-line-200 bg-paper-50 p-3 text-center">
+          <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-bloc-caricom">
+            CARICOM
+          </span>
+          <span className="ml-1 text-[9px] text-ink-500">{caricom.memberCount}</span>
+        </div>
+        <div className="border-l border-line-200 bg-paper-50 p-3 text-center">
+          <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-bloc-oecs">
+            OECS
+          </span>
+          <span className="ml-1 text-[9px] text-ink-500">{oecs.memberCount}</span>
+        </div>
+
+        {caricom.metrics.map((caricomMetric) => {
+          const oecsMetric = oecsByKey.get(caricomMetric.key);
+          if (!oecsMetric) return null;
+          const maximum = Math.max(
+            Math.abs(caricomMetric.value ?? 0),
+            Math.abs(oecsMetric.value ?? 0),
+            1,
+          );
+          return (
+            <ComparisonCategoryRow
+              key={caricomMetric.key}
+              caricom={caricomMetric}
+              oecs={oecsMetric}
+              maximum={maximum}
+            />
+          );
+        })}
+      </div>
+
+      <section className="border-l-2 border-gold-500 bg-paper-50 p-5">
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
+          Reading the table
+        </p>
+        <Explain id="caricom.bloc-gap" className="mt-2 block">
+          <p className="text-sm leading-relaxed text-ink-700">
+            Compare scale measures separately from rates and burdens. A longer bar is not always
+            stronger: lower debt and unemployment may be preferable, while larger GDP mainly
+            indicates economic scale.
+          </p>
+        </Explain>
+      </section>
+    </div>
+  );
+}
+
+function ComparisonCategoryRow({
+  caricom,
+  oecs,
+  maximum,
+}: {
+  caricom: BlocMetric;
+  oecs: BlocMetric;
+  maximum: number;
+}) {
+  return (
+    <>
+      <div className="border-t border-line-200 p-3 sm:p-4">
+        <p className="text-xs font-medium text-ink-950 sm:text-sm">{caricom.label}</p>
+        <p className="mt-1 font-mono text-[8px] uppercase tracking-[0.12em] text-ink-500 sm:text-[9px]">
+          {caricom.method}
+        </p>
+      </div>
+      <ComparisonValueCell metric={caricom} maximum={maximum} bloc="caricom" />
+      <ComparisonValueCell metric={oecs} maximum={maximum} bloc="oecs" />
+    </>
+  );
+}
+
+function ComparisonValueCell({
+  metric,
+  maximum,
+  bloc,
+}: {
+  metric: BlocMetric;
+  maximum: number;
+  bloc: BlocKey;
+}) {
+  const width = metric.value == null ? 0 : Math.max(2, (Math.abs(metric.value) / maximum) * 100);
+  return (
+    <div className="min-w-0 border-l border-t border-line-200 p-3 text-center sm:p-4">
+      <Explain id="caricom.bloc-summary" ctx={{ metric }}>
+        <strong
+          className="block font-serif text-base font-normal text-ink-950 sm:text-xl"
+          data-numeric
+        >
+          {metric.available ? formatMetric(metric.value, metric.unit) : "—"}
+        </strong>
+      </Explain>
+      <div className="mx-auto mt-2 h-1.5 max-w-40 bg-paper-100" aria-hidden>
+        <div
+          className={cn("h-full", bloc === "caricom" ? "bloc-fill-caricom" : "bloc-fill-oecs")}
+          style={{ width: `${width}%` }}
+        />
+      </div>
+      <p className="mt-2 font-mono text-[8px] uppercase tracking-[0.1em] text-ink-500">
+        {metric.coverage}/{metric.eligible} · {metric.period}
+      </p>
+    </div>
   );
 }
 

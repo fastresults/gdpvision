@@ -661,6 +661,71 @@ export type Database = {
           },
         ]
       }
+      collection_protocols: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          cadence: string
+          country_code: string
+          created_at: string
+          due_date: string | null
+          id: string
+          method: string
+          notes: string | null
+          owner_agency: string | null
+          requirement_id: string
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          updated_at: string
+          validation_rules: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          cadence?: string
+          country_code: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          method?: string
+          notes?: string | null
+          owner_agency?: string | null
+          requirement_id: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+          validation_rules?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          cadence?: string
+          country_code?: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          method?: string
+          notes?: string | null
+          owner_agency?: string | null
+          requirement_id?: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+          validation_rules?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_protocols_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "standard_requirements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commitments: {
         Row: {
           agenda_item_id: string | null
@@ -4107,6 +4172,81 @@ export type Database = {
           },
         ]
       }
+      investment_projects: {
+        Row: {
+          aml_cleared: boolean
+          approval_status: string
+          approved_by: string | null
+          beneficial_owners: string | null
+          capex_usd: number | null
+          climate_alignment: string | null
+          country_code: string
+          created_at: string
+          created_by: string | null
+          es_category: string | null
+          feasibility_done: boolean
+          id: string
+          land_secured: boolean
+          revenue_model: string | null
+          risks: string | null
+          sector: string | null
+          sponsor: string | null
+          stage: string
+          structure: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          aml_cleared?: boolean
+          approval_status?: string
+          approved_by?: string | null
+          beneficial_owners?: string | null
+          capex_usd?: number | null
+          climate_alignment?: string | null
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          es_category?: string | null
+          feasibility_done?: boolean
+          id?: string
+          land_secured?: boolean
+          revenue_model?: string | null
+          risks?: string | null
+          sector?: string | null
+          sponsor?: string | null
+          stage?: string
+          structure?: string | null
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          aml_cleared?: boolean
+          approval_status?: string
+          approved_by?: string | null
+          beneficial_owners?: string | null
+          capex_usd?: number | null
+          climate_alignment?: string | null
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          es_category?: string | null
+          feasibility_done?: boolean
+          id?: string
+          land_secured?: boolean
+          revenue_model?: string | null
+          risks?: string | null
+          sector?: string | null
+          sponsor?: string | null
+          stage?: string
+          structure?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           accepted_at: string | null
@@ -7231,6 +7371,39 @@ export type Database = {
         }
         Relationships: []
       }
+      reporting_standards: {
+        Row: {
+          body: string
+          category: string
+          code: string
+          created_at: string
+          name: string
+          summary: string | null
+          url: string | null
+          version: string | null
+        }
+        Insert: {
+          body: string
+          category: string
+          code: string
+          created_at?: string
+          name: string
+          summary?: string | null
+          url?: string | null
+          version?: string | null
+        }
+        Update: {
+          body?: string
+          category?: string
+          code?: string
+          created_at?: string
+          name?: string
+          summary?: string | null
+          url?: string | null
+          version?: string | null
+        }
+        Relationships: []
+      }
       research_briefs: {
         Row: {
           created_at: string
@@ -8469,6 +8642,53 @@ export type Database = {
             columns: ["country_code"]
             isOneToOne: false
             referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      standard_requirements: {
+        Row: {
+          clause: string | null
+          created_at: string
+          frequency: string
+          id: string
+          impact: string
+          kpi_codes: string[]
+          label: string
+          max_lag_months: number
+          req_key: string
+          standard_code: string
+        }
+        Insert: {
+          clause?: string | null
+          created_at?: string
+          frequency?: string
+          id?: string
+          impact?: string
+          kpi_codes?: string[]
+          label: string
+          max_lag_months?: number
+          req_key: string
+          standard_code: string
+        }
+        Update: {
+          clause?: string | null
+          created_at?: string
+          frequency?: string
+          id?: string
+          impact?: string
+          kpi_codes?: string[]
+          label?: string
+          max_lag_months?: number
+          req_key?: string
+          standard_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "standard_requirements_standard_code_fkey"
+            columns: ["standard_code"]
+            isOneToOne: false
+            referencedRelation: "reporting_standards"
             referencedColumns: ["code"]
           },
         ]

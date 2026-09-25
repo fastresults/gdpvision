@@ -2817,6 +2817,269 @@ export type Database = {
           },
         ]
       }
+      egov_prd_citations: {
+        Row: {
+          confidence: number | null
+          country_code: string
+          created_at: string
+          excerpt: string | null
+          id: string
+          label: string
+          section_id: string
+          source_kind: string
+          source_ref: string
+        }
+        Insert: {
+          confidence?: number | null
+          country_code: string
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          label: string
+          section_id: string
+          source_kind: string
+          source_ref: string
+        }
+        Update: {
+          confidence?: number | null
+          country_code?: string
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          label?: string
+          section_id?: string
+          source_kind?: string
+          source_ref?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "egov_prd_citations_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "egov_prd_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      egov_prd_sections: {
+        Row: {
+          authored_at: string | null
+          body_md: string
+          context: Json
+          context_hash: string | null
+          country_code: string
+          created_at: string
+          edited_at: string | null
+          edited_by: string | null
+          heading: string
+          id: string
+          model: string | null
+          ordinal: number
+          prd_id: string
+          stage_key: string
+          status: string
+        }
+        Insert: {
+          authored_at?: string | null
+          body_md?: string
+          context?: Json
+          context_hash?: string | null
+          country_code: string
+          created_at?: string
+          edited_at?: string | null
+          edited_by?: string | null
+          heading: string
+          id?: string
+          model?: string | null
+          ordinal: number
+          prd_id: string
+          stage_key: string
+          status?: string
+        }
+        Update: {
+          authored_at?: string | null
+          body_md?: string
+          context?: Json
+          context_hash?: string | null
+          country_code?: string
+          created_at?: string
+          edited_at?: string | null
+          edited_by?: string | null
+          heading?: string
+          id?: string
+          model?: string | null
+          ordinal?: number
+          prd_id?: string
+          stage_key?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "egov_prd_sections_prd_id_fkey"
+            columns: ["prd_id"]
+            isOneToOne: false
+            referencedRelation: "egov_prds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      egov_prd_share_links: {
+        Row: {
+          country_code: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          label: string
+          last_viewed_at: string | null
+          max_views: number | null
+          prd_id: string
+          revoked_at: string | null
+          revoked_by: string | null
+          token_hash: string
+          token_hint: string
+          view_count: number
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          label: string
+          last_viewed_at?: string | null
+          max_views?: number | null
+          prd_id: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          token_hash: string
+          token_hint: string
+          view_count?: number
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          label?: string
+          last_viewed_at?: string | null
+          max_views?: number | null
+          prd_id?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          token_hash?: string
+          token_hint?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "egov_prd_share_links_prd_id_fkey"
+            columns: ["prd_id"]
+            isOneToOne: false
+            referencedRelation: "egov_prds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      egov_prd_snapshots: {
+        Row: {
+          country_code: string
+          id: string
+          prd_id: string
+          reason: string
+          sections: Json
+          taken_at: string
+        }
+        Insert: {
+          country_code: string
+          id?: string
+          prd_id: string
+          reason: string
+          sections: Json
+          taken_at?: string
+        }
+        Update: {
+          country_code?: string
+          id?: string
+          prd_id?: string
+          reason?: string
+          sections?: Json
+          taken_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "egov_prd_snapshots_prd_id_fkey"
+            columns: ["prd_id"]
+            isOneToOne: false
+            referencedRelation: "egov_prds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      egov_prds: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          brand: Json
+          country_code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          model: string | null
+          returned_at: string | null
+          returned_by: string | null
+          returned_note: string | null
+          scope: Json
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          brand?: Json
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          model?: string | null
+          returned_at?: string | null
+          returned_by?: string | null
+          returned_note?: string | null
+          scope?: Json
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          brand?: Json
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          model?: string | null
+          returned_at?: string | null
+          returned_by?: string | null
+          returned_note?: string | null
+          scope?: Json
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
       exports_documents: {
         Row: {
           html: string
@@ -9782,6 +10045,10 @@ export type Database = {
         Args: { _email: string; _user_id: string }
         Returns: boolean
       }
+      can_approve_egov: {
+        Args: { _country_code: string; _user_id: string }
+        Returns: boolean
+      }
       can_approve_investment: {
         Args: { _country_code: string; _user_id: string }
         Returns: boolean
@@ -9873,6 +10140,10 @@ export type Database = {
           _target_type: string
         }
         Returns: undefined
+      }
+      record_egov_prd_view: {
+        Args: { _link_id: string; _user_agent: string; _visitor_hash: string }
+        Returns: boolean
       }
       record_investment_share_view: {
         Args: {

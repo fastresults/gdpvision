@@ -11,7 +11,7 @@ const entries: Array<Rationale<never>> = [
     short:
       "Totals, weighted averages and medians use current, comparable public readings with at least 70% member coverage.",
     formula:
-      "Additive measures are summed. GDP growth is GDP-weighted; GDP per person is total implied GDP divided by covered population. Ratios use the median.",
+      "Population is summed. Comparable GDP is implied from each member's normalized population and GDP-per-person readings, then summed. GDP growth is GDP-weighted; GDP per person is population-weighted. Ratios use the median.",
     basis:
       "Membership follows the GDPVision CARICOM/OECS registry. Projected, blank, incompatible-unit and materially stale readings are excluded by the same scrub used for Caribbean peer comparisons.",
     caveat:

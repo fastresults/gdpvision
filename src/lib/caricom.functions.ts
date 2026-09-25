@@ -66,8 +66,6 @@ type NormalizedRow = {
 type CountryRow = {
   code: string;
   name: string;
-  gdp_current_usd: number | string | null;
-  gdp_year: number | null;
 };
 
 type KpiRow = {
@@ -154,7 +152,6 @@ function makeSummary(
   const memberSet = new Set(memberCodes);
   const names = new Map(countries.map((country) => [country.code, country.name]));
   const sourceByKpi = new Map(kpis.map((kpi) => [kpi.id, kpi.source_url]));
-  const countryByCode = new Map(countries.map((country) => [country.code, country]));
   const rows = normalized.filter(
     (row) =>
       memberSet.has(row.country_code) && row.excluded_reason == null && row.value_std != null,
@@ -164,10 +161,16 @@ function makeSummary(
       .filter((row) => row.kpi_code === "population")
       .map((row) => [row.country_code, Number(row.value_std)]),
   );
+  const perCapitaByCode = new Map(
+    rows
+      .filter((row) => row.kpi_code === "gdp_per_capita_current_usd")
+      .map((row) => [row.country_code, row]),
+  );
   const gdpByCode = new Map(
     memberCodes.flatMap((code) => {
-      const country = countryByCode.get(code);
-      const value = Number(country?.gdp_current_usd);
+      const population = populationByCode.get(code);
+      const perCapita = perCapitaByCode.get(code);
+      const value = Number(population) * Number(perCapita?.value_std);
       return Number.isFinite(value) && value > 0 ? [[code, value] as const] : [];
     }),
   );
@@ -175,19 +178,17 @@ function makeSummary(
   const metrics: BlocMetric[] = METRICS.map((definition) => {
     if (definition.key === "gdp") {
       const distribution = memberCodes.flatMap((code) => {
-        const country = countryByCode.get(code);
         const value = gdpByCode.get(code);
+        const perCapita = perCapitaByCode.get(code);
         return value == null
           ? []
-          : [
-              {
-                code,
-                name: country?.name ?? code,
-                value,
-                period: String(country?.gdp_year ?? "Current"),
-                sourceUrl: null,
-              },
-            ];
+          : [{
+              code,
+              name: names.get(code) ?? code,
+              value,
+              period: String(perCapita?.ref_year ?? "Current"),
+              sourceUrl: perCapita ? sourceByKpi.get(perCapita.source_kpi_id) ?? null : null,
+            }];
       });
       const available = distribution.length / memberCodes.length >= MIN_COVERAGE;
       return {
@@ -304,7 +305,7 @@ export const getBlocEconomicSummary = createServerFn({ method: "GET" })
         .select(
           "country_code,kpi_code,value_std,unit_std,ref_year,excluded_reason,source_kpi_id,updated_at",
         ),
-      context.supabase.from("countries").select("code,name,gdp_current_usd,gdp_year"),
+      context.supabase.from("countries").select("code,name"),
       context.supabase
         .from("country_kpis")
         .select("id,country_code,kpi_code,source_url,visibility")

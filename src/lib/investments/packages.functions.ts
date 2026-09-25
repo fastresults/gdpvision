@@ -273,7 +273,10 @@ function coerce(schema: z.ZodTypeAny, v: unknown): unknown {
       : v == null || v === ""
         ? []
         : typeof v === "string"
-          ? v.split(/\n+/).map((x) => x.replace(/^\s*[-*•\d.)]+\s*/, "")).filter(Boolean)
+          ? v
+              .split(/\n+/)
+              .map((x) => x.replace(/^\s*[-*•\d.)]+\s*/, ""))
+              .filter(Boolean)
           : [v];
     return arr.map((x) => coerce(el, x));
   }
@@ -284,7 +287,8 @@ function coerce(schema: z.ZodTypeAny, v: unknown): unknown {
     // Unwrap { "teaser": { ...fields } } style wrappers.
     if (!keys.some((k) => k in o)) {
       const inner = Object.values(o).find(
-        (x) => x && typeof x === "object" && !Array.isArray(x) && keys.some((k) => k in (x as object)),
+        (x) =>
+          x && typeof x === "object" && !Array.isArray(x) && keys.some((k) => k in (x as object)),
       );
       if (inner) o = inner as Record<string, unknown>;
     }
@@ -345,7 +349,9 @@ async function draft<T>(apiKey: string, schema: z.ZodType<T>, prompt: string): P
     }
   }
   const msg = (lastErr as { message?: string })?.message ?? String(lastErr);
-  throw new Error(`The draft could not be generated after two attempts. Please try again. (${msg})`);
+  throw new Error(
+    `The draft could not be generated after two attempts. Please try again. (${msg})`,
+  );
 }
 
 const clean = (s: string | null | undefined) => (s ?? "").replace(/\s+/g, " ").trim();

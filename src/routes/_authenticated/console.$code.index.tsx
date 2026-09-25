@@ -57,8 +57,8 @@ function RequestLanes({ code }: { code: string }) {
           Your requests
         </span>
         <span className="mt-1 block font-serif text-[17px] text-ink-950">
-          <span data-numeric>{inFlight}</span> in flight ·{" "}
-          <span data-numeric>{delivered}</span> delivered
+          <span data-numeric>{inFlight}</span> in flight · <span data-numeric>{delivered}</span>{" "}
+          delivered
         </span>
       </span>
       <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.2em] text-ink-500">

@@ -131,6 +131,6 @@ export const saveProtocol = createServerFn({ method: "POST" })
     }
     const { error } = await sb.from("collection_protocols").upsert(row as never, { onConflict: "country_code,requirement_id" });
     if (error) throw new Error(error.message);
-    await sb.from("audit_log").insert({ action: `protocol_${data.action}`, entity: "collection_protocols", entity_id: data.requirementId } as never);
+    await sb.from("audit_log").insert({ action: `protocol_${data.action}`, actor_id: context.userId, scope_key: data.code, target_type: "collection_protocols", target_id: data.requirementId });
     return { ok: true };
   });

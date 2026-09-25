@@ -668,17 +668,22 @@ export type Database = {
           cadence: string
           country_code: string
           created_at: string
+          created_by: string | null
           due_date: string | null
           id: string
           method: string
           notes: string | null
           owner_agency: string | null
           requirement_id: string
+          returned_at: string | null
+          returned_by: string | null
+          returned_note: string | null
           status: string
           submitted_at: string | null
           submitted_by: string | null
           updated_at: string
           validation_rules: string | null
+          version: number
         }
         Insert: {
           approved_at?: string | null
@@ -686,17 +691,22 @@ export type Database = {
           cadence?: string
           country_code: string
           created_at?: string
+          created_by?: string | null
           due_date?: string | null
           id?: string
           method?: string
           notes?: string | null
           owner_agency?: string | null
           requirement_id: string
+          returned_at?: string | null
+          returned_by?: string | null
+          returned_note?: string | null
           status?: string
           submitted_at?: string | null
           submitted_by?: string | null
           updated_at?: string
           validation_rules?: string | null
+          version?: number
         }
         Update: {
           approved_at?: string | null
@@ -704,17 +714,22 @@ export type Database = {
           cadence?: string
           country_code?: string
           created_at?: string
+          created_by?: string | null
           due_date?: string | null
           id?: string
           method?: string
           notes?: string | null
           owner_agency?: string | null
           requirement_id?: string
+          returned_at?: string | null
+          returned_by?: string | null
+          returned_note?: string | null
           status?: string
           submitted_at?: string | null
           submitted_by?: string | null
           updated_at?: string
           validation_rules?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -4172,12 +4187,123 @@ export type Database = {
           },
         ]
       }
+      investment_packages: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          content: Json
+          country_code: string
+          created_at: string
+          created_by: string | null
+          facts: Json
+          id: string
+          kind: string
+          model: string | null
+          project_id: string
+          project_version: number
+          status: string
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          content: Json
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          facts?: Json
+          id?: string
+          kind: string
+          model?: string | null
+          project_id: string
+          project_version: number
+          status?: string
+          version: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          content?: Json
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          facts?: Json
+          id?: string
+          kind?: string
+          model?: string | null
+          project_id?: string
+          project_version?: number
+          status?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investment_packages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "investment_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investment_project_compliance: {
+        Row: {
+          aml_cleared_at: string | null
+          aml_cleared_by: string | null
+          aml_reference: string | null
+          aml_status: string
+          beneficial_owners: Json
+          country_code: string
+          created_at: string
+          notes: string | null
+          project_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          aml_cleared_at?: string | null
+          aml_cleared_by?: string | null
+          aml_reference?: string | null
+          aml_status?: string
+          beneficial_owners?: Json
+          country_code: string
+          created_at?: string
+          notes?: string | null
+          project_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          aml_cleared_at?: string | null
+          aml_cleared_by?: string | null
+          aml_reference?: string | null
+          aml_status?: string
+          beneficial_owners?: Json
+          country_code?: string
+          created_at?: string
+          notes?: string | null
+          project_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investment_project_compliance_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "investment_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       investment_projects: {
         Row: {
           aml_cleared: boolean
           approval_status: string
+          approved_at: string | null
           approved_by: string | null
           beneficial_owners: string | null
+          bo_disclosed: boolean
           capex_usd: number | null
           climate_alignment: string | null
           country_code: string
@@ -4187,21 +4313,29 @@ export type Database = {
           feasibility_done: boolean
           id: string
           land_secured: boolean
+          returned_at: string | null
+          returned_by: string | null
+          returned_note: string | null
           revenue_model: string | null
           risks: string | null
           sector: string | null
           sponsor: string | null
           stage: string
           structure: string | null
+          submitted_at: string | null
+          submitted_by: string | null
           summary: string | null
           title: string
           updated_at: string
+          version: number
         }
         Insert: {
           aml_cleared?: boolean
           approval_status?: string
+          approved_at?: string | null
           approved_by?: string | null
           beneficial_owners?: string | null
+          bo_disclosed?: boolean
           capex_usd?: number | null
           climate_alignment?: string | null
           country_code: string
@@ -4211,21 +4345,29 @@ export type Database = {
           feasibility_done?: boolean
           id?: string
           land_secured?: boolean
+          returned_at?: string | null
+          returned_by?: string | null
+          returned_note?: string | null
           revenue_model?: string | null
           risks?: string | null
           sector?: string | null
           sponsor?: string | null
           stage?: string
           structure?: string | null
+          submitted_at?: string | null
+          submitted_by?: string | null
           summary?: string | null
           title: string
           updated_at?: string
+          version?: number
         }
         Update: {
           aml_cleared?: boolean
           approval_status?: string
+          approved_at?: string | null
           approved_by?: string | null
           beneficial_owners?: string | null
+          bo_disclosed?: boolean
           capex_usd?: number | null
           climate_alignment?: string | null
           country_code?: string
@@ -4235,15 +4377,272 @@ export type Database = {
           feasibility_done?: boolean
           id?: string
           land_secured?: boolean
+          returned_at?: string | null
+          returned_by?: string | null
+          returned_note?: string | null
           revenue_model?: string | null
           risks?: string | null
           sector?: string | null
           sponsor?: string | null
           stage?: string
           structure?: string | null
+          submitted_at?: string | null
+          submitted_by?: string | null
           summary?: string | null
           title?: string
           updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      investment_share_links: {
+        Row: {
+          allow_interest: boolean
+          country_code: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          include_packages: string[]
+          label: string
+          last_viewed_at: string | null
+          max_views: number | null
+          project_id: string
+          revoked_at: string | null
+          revoked_by: string | null
+          token_hash: string
+          token_hint: string
+          view_count: number
+        }
+        Insert: {
+          allow_interest?: boolean
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          include_packages?: string[]
+          label: string
+          last_viewed_at?: string | null
+          max_views?: number | null
+          project_id: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          token_hash: string
+          token_hint: string
+          view_count?: number
+        }
+        Update: {
+          allow_interest?: boolean
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          include_packages?: string[]
+          label?: string
+          last_viewed_at?: string | null
+          max_views?: number | null
+          project_id?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          token_hash?: string
+          token_hint?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investment_share_links_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "investment_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investment_share_views: {
+        Row: {
+          country_code: string
+          event: string
+          id: string
+          link_id: string
+          referrer: string | null
+          user_agent: string | null
+          viewed_at: string
+          visitor_hash: string | null
+        }
+        Insert: {
+          country_code: string
+          event?: string
+          id?: string
+          link_id: string
+          referrer?: string | null
+          user_agent?: string | null
+          viewed_at?: string
+          visitor_hash?: string | null
+        }
+        Update: {
+          country_code?: string
+          event?: string
+          id?: string
+          link_id?: string
+          referrer?: string | null
+          user_agent?: string | null
+          viewed_at?: string
+          visitor_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investment_share_views_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "investment_share_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investor_interests: {
+        Row: {
+          contact_email: string | null
+          contact_name: string | null
+          country_code: string
+          created_at: string
+          id: string
+          indicative_amount_usd: number | null
+          investor_id: string | null
+          lost_reason: string | null
+          message: string | null
+          nda_signed_at: string | null
+          next_step: string | null
+          next_step_due: string | null
+          organisation: string | null
+          owner_id: string | null
+          project_id: string
+          share_link_id: string | null
+          source: string
+          stage: string
+          updated_at: string
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_name?: string | null
+          country_code: string
+          created_at?: string
+          id?: string
+          indicative_amount_usd?: number | null
+          investor_id?: string | null
+          lost_reason?: string | null
+          message?: string | null
+          nda_signed_at?: string | null
+          next_step?: string | null
+          next_step_due?: string | null
+          organisation?: string | null
+          owner_id?: string | null
+          project_id: string
+          share_link_id?: string | null
+          source?: string
+          stage?: string
+          updated_at?: string
+        }
+        Update: {
+          contact_email?: string | null
+          contact_name?: string | null
+          country_code?: string
+          created_at?: string
+          id?: string
+          indicative_amount_usd?: number | null
+          investor_id?: string | null
+          lost_reason?: string | null
+          message?: string | null
+          nda_signed_at?: string | null
+          next_step?: string | null
+          next_step_due?: string | null
+          organisation?: string | null
+          owner_id?: string | null
+          project_id?: string
+          share_link_id?: string | null
+          source?: string
+          stage?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investor_interests_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "investors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investor_interests_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "investment_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investor_interests_share_link_id_fkey"
+            columns: ["share_link_id"]
+            isOneToOne: false
+            referencedRelation: "investment_share_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investors: {
+        Row: {
+          contact_email: string | null
+          contact_name: string | null
+          country_code: string
+          created_at: string
+          created_by: string | null
+          hq_country: string | null
+          id: string
+          kind: string
+          kyc_status: string
+          name: string
+          notes: string | null
+          sectors: string[]
+          ticket_max_usd: number | null
+          ticket_min_usd: number | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_name?: string | null
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          hq_country?: string | null
+          id?: string
+          kind?: string
+          kyc_status?: string
+          name: string
+          notes?: string | null
+          sectors?: string[]
+          ticket_max_usd?: number | null
+          ticket_min_usd?: number | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          contact_email?: string | null
+          contact_name?: string | null
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          hq_country?: string | null
+          id?: string
+          kind?: string
+          kyc_status?: string
+          name?: string
+          notes?: string | null
+          sectors?: string[]
+          ticket_max_usd?: number | null
+          ticket_min_usd?: number | null
+          updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -8646,6 +9045,56 @@ export type Database = {
           },
         ]
       }
+      standard_kpi_mappings: {
+        Row: {
+          confidence: number | null
+          country_code: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          kpi_code: string
+          rationale: string | null
+          requirement_id: string
+          status: string
+          suggested_by: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          country_code: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          kpi_code: string
+          rationale?: string | null
+          requirement_id: string
+          status?: string
+          suggested_by?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          country_code?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          kpi_code?: string
+          rationale?: string | null
+          requirement_id?: string
+          status?: string
+          suggested_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "standard_kpi_mappings_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "standard_requirements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       standard_requirements: {
         Row: {
           clause: string | null
@@ -8692,6 +9141,42 @@ export type Database = {
             referencedColumns: ["code"]
           },
         ]
+      }
+      standards_audit_snapshots: {
+        Row: {
+          by_standard: Json
+          computed_at: string
+          country_code: string
+          counts: Json
+          coverage_pct: number
+          id: string
+          period_label: string
+          rows: Json
+          weighted_pct: number
+        }
+        Insert: {
+          by_standard: Json
+          computed_at?: string
+          country_code: string
+          counts: Json
+          coverage_pct: number
+          id?: string
+          period_label: string
+          rows: Json
+          weighted_pct: number
+        }
+        Update: {
+          by_standard?: Json
+          computed_at?: string
+          country_code?: string
+          counts?: Json
+          coverage_pct?: number
+          id?: string
+          period_label?: string
+          rows?: Json
+          weighted_pct?: number
+        }
+        Relationships: []
       }
       strategy_statements: {
         Row: {
@@ -9241,6 +9726,18 @@ export type Database = {
         Args: { _email: string; _user_id: string }
         Returns: boolean
       }
+      can_approve_investment: {
+        Args: { _country_code: string; _user_id: string }
+        Returns: boolean
+      }
+      can_approve_protocol: {
+        Args: { _country_code: string; _user_id: string }
+        Returns: boolean
+      }
+      can_manage_compliance: {
+        Args: { _country_code: string; _user_id: string }
+        Returns: boolean
+      }
       country_chunks_search: {
         Args: {
           _country_code: string
@@ -9266,18 +9763,39 @@ export type Database = {
           story_key: string
         }[]
       }
+      gdpv_has_content: { Args: { _v: string }; Returns: boolean }
+      governance_history: {
+        Args: { _target_id: string; _target_type: string }
+        Returns: {
+          action: string
+          actor_id: string
+          actor_label: string
+          created_at: string
+          id: string
+          metadata: Json
+        }[]
+      }
       has_country_access: {
         Args: { _country_code: string; _user_id: string }
         Returns: boolean
       }
-      has_country_role: {
-        Args: {
-          _country_code: string
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      has_country_role:
+        | {
+            Args: {
+              _country_code: string
+              _roles: Database["public"]["Enums"]["app_role"][]
+              _user_id: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              _country_code: string
+              _role: Database["public"]["Enums"]["app_role"]
+              _user_id: string
+            }
+            Returns: boolean
+          }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -9285,7 +9803,32 @@ export type Database = {
         }
         Returns: boolean
       }
+      investment_readiness: {
+        Args: { p: Database["public"]["Tables"]["investment_projects"]["Row"] }
+        Returns: number
+      }
       is_admin_or_steward: { Args: { _user_id: string }; Returns: boolean }
+      log_governance: {
+        Args: {
+          _action: string
+          _meta: Json
+          _scope: string
+          _target_id: string
+          _target_type: string
+        }
+        Returns: undefined
+      }
+      record_investment_share_view: {
+        Args: {
+          _count: boolean
+          _event: string
+          _link_id: string
+          _referrer: string
+          _user_agent: string
+          _visitor_hash: string
+        }
+        Returns: boolean
+      }
       replace_country_sectors: {
         Args: { _country_code: string; _rows: Json }
         Returns: number

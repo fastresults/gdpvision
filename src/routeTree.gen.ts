@@ -108,6 +108,7 @@ import { Route as AuthenticatedConsoleCodeRequestNewRouteImport } from './routes
 import { Route as AuthenticatedConsoleCodeChamberChamberRouteImport } from './routes/_authenticated/console.$code.chamber.$chamber'
 import { Route as AuthenticatedAdminCountriesCodeVizRouteImport } from './routes/_authenticated/admin/countries.$code.viz'
 import { Route as AuthenticatedAdminCountriesCodeStudioRouteImport } from './routes/_authenticated/admin/countries.$code.studio'
+import { Route as AuthenticatedAdminCountriesCodeStandardsRouteImport } from './routes/_authenticated/admin/countries.$code.standards'
 import { Route as AuthenticatedAdminCountriesCodeScenariosRouteImport } from './routes/_authenticated/admin/countries.$code.scenarios'
 import { Route as AuthenticatedAdminCountriesCodePortfolioRouteImport } from './routes/_authenticated/admin/countries.$code.portfolio'
 import { Route as AuthenticatedAdminCountriesCodePersonasRouteImport } from './routes/_authenticated/admin/countries.$code.personas'
@@ -115,6 +116,7 @@ import { Route as AuthenticatedAdminCountriesCodeOnboardRouteImport } from './ro
 import { Route as AuthenticatedAdminCountriesCodeNarrativeRouteImport } from './routes/_authenticated/admin/countries.$code.narrative'
 import { Route as AuthenticatedAdminCountriesCodeMandateCompactRouteImport } from './routes/_authenticated/admin/countries.$code.mandate-compact'
 import { Route as AuthenticatedAdminCountriesCodeLedgerRouteImport } from './routes/_authenticated/admin/countries.$code.ledger'
+import { Route as AuthenticatedAdminCountriesCodeInvestmentsRouteImport } from './routes/_authenticated/admin/countries.$code.investments'
 import { Route as AuthenticatedAdminCountriesCodeGodseyeRouteImport } from './routes/_authenticated/admin/countries.$code.godseye'
 import { Route as AuthenticatedAdminCountriesCodeGlobalRouteImport } from './routes/_authenticated/admin/countries.$code.global'
 import { Route as AuthenticatedAdminCountriesCodeExecutiveRouteImport } from './routes/_authenticated/admin/countries.$code.executive'
@@ -711,6 +713,12 @@ const AuthenticatedAdminCountriesCodeStudioRoute =
     path: '/countries/$code/studio',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeStandardsRoute =
+  AuthenticatedAdminCountriesCodeStandardsRouteImport.update({
+    id: '/countries/$code/standards',
+    path: '/countries/$code/standards',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminCountriesCodeScenariosRoute =
   AuthenticatedAdminCountriesCodeScenariosRouteImport.update({
     id: '/countries/$code/scenarios',
@@ -751,6 +759,12 @@ const AuthenticatedAdminCountriesCodeLedgerRoute =
   AuthenticatedAdminCountriesCodeLedgerRouteImport.update({
     id: '/countries/$code/ledger',
     path: '/countries/$code/ledger',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminCountriesCodeInvestmentsRoute =
+  AuthenticatedAdminCountriesCodeInvestmentsRouteImport.update({
+    id: '/countries/$code/investments',
+    path: '/countries/$code/investments',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminCountriesCodeGodseyeRoute =
@@ -1037,6 +1051,7 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
   '/admin/countries/$code/global': typeof AuthenticatedAdminCountriesCodeGlobalRoute
   '/admin/countries/$code/godseye': typeof AuthenticatedAdminCountriesCodeGodseyeRoute
+  '/admin/countries/$code/investments': typeof AuthenticatedAdminCountriesCodeInvestmentsRoute
   '/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/admin/countries/$code/mandate-compact': typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   '/admin/countries/$code/narrative': typeof AuthenticatedAdminCountriesCodeNarrativeRouteWithChildren
@@ -1044,6 +1059,7 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/personas': typeof AuthenticatedAdminCountriesCodePersonasRouteWithChildren
   '/admin/countries/$code/portfolio': typeof AuthenticatedAdminCountriesCodePortfolioRouteWithChildren
   '/admin/countries/$code/scenarios': typeof AuthenticatedAdminCountriesCodeScenariosRouteWithChildren
+  '/admin/countries/$code/standards': typeof AuthenticatedAdminCountriesCodeStandardsRoute
   '/admin/countries/$code/studio': typeof AuthenticatedAdminCountriesCodeStudioRouteWithChildren
   '/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
   '/console/$code/chamber/$chamber': typeof AuthenticatedConsoleCodeChamberChamberRoute
@@ -1171,9 +1187,11 @@ export interface FileRoutesByTo {
   '/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
   '/admin/countries/$code/global': typeof AuthenticatedAdminCountriesCodeGlobalRoute
   '/admin/countries/$code/godseye': typeof AuthenticatedAdminCountriesCodeGodseyeRoute
+  '/admin/countries/$code/investments': typeof AuthenticatedAdminCountriesCodeInvestmentsRoute
   '/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/admin/countries/$code/mandate-compact': typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   '/admin/countries/$code/onboard': typeof AuthenticatedAdminCountriesCodeOnboardRoute
+  '/admin/countries/$code/standards': typeof AuthenticatedAdminCountriesCodeStandardsRoute
   '/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
   '/console/$code/chamber/$chamber': typeof AuthenticatedConsoleCodeChamberChamberRoute
   '/console/$code/request/new': typeof AuthenticatedConsoleCodeRequestNewRoute
@@ -1306,6 +1324,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
   '/_authenticated/admin/countries/$code/global': typeof AuthenticatedAdminCountriesCodeGlobalRoute
   '/_authenticated/admin/countries/$code/godseye': typeof AuthenticatedAdminCountriesCodeGodseyeRoute
+  '/_authenticated/admin/countries/$code/investments': typeof AuthenticatedAdminCountriesCodeInvestmentsRoute
   '/_authenticated/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
   '/_authenticated/admin/countries/$code/mandate-compact': typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   '/_authenticated/admin/countries/$code/narrative': typeof AuthenticatedAdminCountriesCodeNarrativeRouteWithChildren
@@ -1313,6 +1332,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/personas': typeof AuthenticatedAdminCountriesCodePersonasRouteWithChildren
   '/_authenticated/admin/countries/$code/portfolio': typeof AuthenticatedAdminCountriesCodePortfolioRouteWithChildren
   '/_authenticated/admin/countries/$code/scenarios': typeof AuthenticatedAdminCountriesCodeScenariosRouteWithChildren
+  '/_authenticated/admin/countries/$code/standards': typeof AuthenticatedAdminCountriesCodeStandardsRoute
   '/_authenticated/admin/countries/$code/studio': typeof AuthenticatedAdminCountriesCodeStudioRouteWithChildren
   '/_authenticated/admin/countries/$code/viz': typeof AuthenticatedAdminCountriesCodeVizRoute
   '/_authenticated/console/$code/chamber/$chamber': typeof AuthenticatedConsoleCodeChamberChamberRoute
@@ -1446,6 +1466,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/executive'
     | '/admin/countries/$code/global'
     | '/admin/countries/$code/godseye'
+    | '/admin/countries/$code/investments'
     | '/admin/countries/$code/ledger'
     | '/admin/countries/$code/mandate-compact'
     | '/admin/countries/$code/narrative'
@@ -1453,6 +1474,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/personas'
     | '/admin/countries/$code/portfolio'
     | '/admin/countries/$code/scenarios'
+    | '/admin/countries/$code/standards'
     | '/admin/countries/$code/studio'
     | '/admin/countries/$code/viz'
     | '/console/$code/chamber/$chamber'
@@ -1580,9 +1602,11 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/executive'
     | '/admin/countries/$code/global'
     | '/admin/countries/$code/godseye'
+    | '/admin/countries/$code/investments'
     | '/admin/countries/$code/ledger'
     | '/admin/countries/$code/mandate-compact'
     | '/admin/countries/$code/onboard'
+    | '/admin/countries/$code/standards'
     | '/admin/countries/$code/viz'
     | '/console/$code/chamber/$chamber'
     | '/console/$code/request/new'
@@ -1714,6 +1738,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/countries/$code/executive'
     | '/_authenticated/admin/countries/$code/global'
     | '/_authenticated/admin/countries/$code/godseye'
+    | '/_authenticated/admin/countries/$code/investments'
     | '/_authenticated/admin/countries/$code/ledger'
     | '/_authenticated/admin/countries/$code/mandate-compact'
     | '/_authenticated/admin/countries/$code/narrative'
@@ -1721,6 +1746,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/countries/$code/personas'
     | '/_authenticated/admin/countries/$code/portfolio'
     | '/_authenticated/admin/countries/$code/scenarios'
+    | '/_authenticated/admin/countries/$code/standards'
     | '/_authenticated/admin/countries/$code/studio'
     | '/_authenticated/admin/countries/$code/viz'
     | '/_authenticated/console/$code/chamber/$chamber'
@@ -2477,6 +2503,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeStudioRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/countries/$code/standards': {
+      id: '/_authenticated/admin/countries/$code/standards'
+      path: '/countries/$code/standards'
+      fullPath: '/admin/countries/$code/standards'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeStandardsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/countries/$code/scenarios': {
       id: '/_authenticated/admin/countries/$code/scenarios'
       path: '/countries/$code/scenarios'
@@ -2524,6 +2557,13 @@ declare module '@tanstack/react-router' {
       path: '/countries/$code/ledger'
       fullPath: '/admin/countries/$code/ledger'
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeLedgerRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/countries/$code/investments': {
+      id: '/_authenticated/admin/countries/$code/investments'
+      path: '/countries/$code/investments'
+      fullPath: '/admin/countries/$code/investments'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeInvestmentsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/countries/$code/godseye': {
@@ -2917,6 +2957,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminCountriesCodeExecutiveRoute: typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
   AuthenticatedAdminCountriesCodeGlobalRoute: typeof AuthenticatedAdminCountriesCodeGlobalRoute
   AuthenticatedAdminCountriesCodeGodseyeRoute: typeof AuthenticatedAdminCountriesCodeGodseyeRoute
+  AuthenticatedAdminCountriesCodeInvestmentsRoute: typeof AuthenticatedAdminCountriesCodeInvestmentsRoute
   AuthenticatedAdminCountriesCodeLedgerRoute: typeof AuthenticatedAdminCountriesCodeLedgerRoute
   AuthenticatedAdminCountriesCodeMandateCompactRoute: typeof AuthenticatedAdminCountriesCodeMandateCompactRoute
   AuthenticatedAdminCountriesCodeNarrativeRoute: typeof AuthenticatedAdminCountriesCodeNarrativeRouteWithChildren
@@ -2924,6 +2965,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminCountriesCodePersonasRoute: typeof AuthenticatedAdminCountriesCodePersonasRouteWithChildren
   AuthenticatedAdminCountriesCodePortfolioRoute: typeof AuthenticatedAdminCountriesCodePortfolioRouteWithChildren
   AuthenticatedAdminCountriesCodeScenariosRoute: typeof AuthenticatedAdminCountriesCodeScenariosRouteWithChildren
+  AuthenticatedAdminCountriesCodeStandardsRoute: typeof AuthenticatedAdminCountriesCodeStandardsRoute
   AuthenticatedAdminCountriesCodeStudioRoute: typeof AuthenticatedAdminCountriesCodeStudioRouteWithChildren
   AuthenticatedAdminCountriesCodeVizRoute: typeof AuthenticatedAdminCountriesCodeVizRoute
   AuthenticatedAdminCountriesCodeCabinetIndexRoute: typeof AuthenticatedAdminCountriesCodeCabinetIndexRoute
@@ -2956,6 +2998,8 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
       AuthenticatedAdminCountriesCodeGlobalRoute,
     AuthenticatedAdminCountriesCodeGodseyeRoute:
       AuthenticatedAdminCountriesCodeGodseyeRoute,
+    AuthenticatedAdminCountriesCodeInvestmentsRoute:
+      AuthenticatedAdminCountriesCodeInvestmentsRoute,
     AuthenticatedAdminCountriesCodeLedgerRoute:
       AuthenticatedAdminCountriesCodeLedgerRoute,
     AuthenticatedAdminCountriesCodeMandateCompactRoute:
@@ -2970,6 +3014,8 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
       AuthenticatedAdminCountriesCodePortfolioRouteWithChildren,
     AuthenticatedAdminCountriesCodeScenariosRoute:
       AuthenticatedAdminCountriesCodeScenariosRouteWithChildren,
+    AuthenticatedAdminCountriesCodeStandardsRoute:
+      AuthenticatedAdminCountriesCodeStandardsRoute,
     AuthenticatedAdminCountriesCodeStudioRoute:
       AuthenticatedAdminCountriesCodeStudioRouteWithChildren,
     AuthenticatedAdminCountriesCodeVizRoute:

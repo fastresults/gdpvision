@@ -76,6 +76,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/_authenticated/admin/countries/$code/executive` | `src/routes/_authenticated/admin/countries.$code.executive.tsx` |
 | `/_authenticated/admin/countries/$code/global` | `src/routes/_authenticated/admin/countries.$code.global.tsx` |
 | `/_authenticated/admin/countries/$code/godseye` | `src/routes/_authenticated/admin/countries.$code.godseye.tsx` |
+| `/_authenticated/admin/countries/$code/investments` | `src/routes/_authenticated/admin/countries.$code.investments.tsx` |
 | `/_authenticated/admin/countries/$code/ledger` | `src/routes/_authenticated/admin/countries.$code.ledger.tsx` |
 | `/_authenticated/admin/countries/$code/mandate-compact` | `src/routes/_authenticated/admin/countries.$code.mandate-compact.tsx` |
 | `/_authenticated/admin/countries/$code/narrative` | `src/routes/_authenticated/admin/countries.$code.narrative.tsx` |
@@ -99,6 +100,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/_authenticated/admin/countries/$code/scenarios/$id` | `src/routes/_authenticated/admin/countries.$code.scenarios.$id.tsx` |
 | `/_authenticated/admin/countries/$code/scenarios/compare` | `src/routes/_authenticated/admin/countries.$code.scenarios.compare.tsx` |
 | `/_authenticated/admin/countries/$code/scenarios/new` | `src/routes/_authenticated/admin/countries.$code.scenarios.new.tsx` |
+| `/_authenticated/admin/countries/$code/standards` | `src/routes/_authenticated/admin/countries.$code.standards.tsx` |
 | `/_authenticated/admin/countries/$code/studio` | `src/routes/_authenticated/admin/countries.$code.studio.tsx` |
 | `/_authenticated/admin/countries/$code/studio/` | `src/routes/_authenticated/admin/countries.$code.studio.index.tsx` |
 | `/_authenticated/admin/countries/$code/studio/sectors/$sectorCode` | `src/routes/_authenticated/admin/countries.$code.studio.sectors.$sectorCode.tsx` |

@@ -47,6 +47,7 @@ are lifted from the top-of-file docblock — add them to any module missing them
 | `src/lib/github/repo-health.functions.ts` | getGithubRepoHealth | core | none | src/routes/_authenticated/admin/github.tsx |
 | `src/lib/goalseek.functions.ts` | solveForTarget | core | kpis,levers | — |
 | `src/lib/idle-images.functions.ts` | listIdleImages, addIdleImage, updateIdleImage, removeIdleImage, moveIdleImage | core | idle_images | src/routes/kiosk.admin.tsx |
+| `src/lib/investments/pipeline.functions.ts` | listInvestments, saveInvestment, approveInvestment, exportInvestmentsOc4ids | investments | investment_projects | src/routes/_authenticated/admin/countries.$code.investments.tsx |
 | `src/lib/invitations.functions.ts` | createInvitation, listInvitations, revokeInvitation, getInvitationByToken, acceptInvitation, checkAccessAllowed | core | invitations,user_roles | src/routes/_authenticated/admin/invitations.tsx; src/routes/_authenticated/home.tsx; src/routes/auth.invite.tsx |
 | `src/lib/items.functions.ts` | uploadEventVideo, listItems, createItem, updateItem, refreshFavicons, deleteItem, moveItem, generateItemThumbnail, refreshAllThumbnails | core | categories,items,presentations,thumbnails | src/components/admin/GalleryManager.tsx; src/routes/kiosk.admin.tsx |
 | `src/lib/ledger-qa/backfill.functions.ts` | backfillCapitalFlows, backfillSectors, backfillMinistryProfiles, backfillKpiSeries, getRecentCorpusAttempts | ledger-qa | corpus_fetch_attempts,country_capital_flows,country_kpis,country_sectors,ledger_qa_actions,ministries,ministry_profiles | src/routes/_authenticated/admin/ledger-qa.tsx |
@@ -118,4 +119,5 @@ are lifted from the top-of-file docblock — add them to any module missing them
 | `src/lib/sovereign-eye/global-feeds.functions.ts` | getGlobalHazards | sovereign-eye | none | src/components/sovereign-eye/GlobeView.tsx |
 | `src/lib/sovereign-eye/partner-backfill.functions.ts` | getPartnerCoverage, stepPartnerBackfill | sovereign-eye | peer_analysis_runs, country_capital_flow_partners, countries | src/components/sovereign-eye/PartnerCoverageControl.tsx |
 | `src/lib/sovereign-eye/peer-benchmark.functions.ts` | refreshPeerAnalysis, getPeerAnalysisStatus | sovereign-eye | peer_analysis_runs | src/components/sovereign-eye/SovereignEyeWorkspace.tsx |
+| `src/lib/standards/audit.functions.ts` | getStandardsAudit, saveProtocol | standards | reporting_standards,standard_requirements,country_kpis,collection_protocols | src/routes/_authenticated/admin/countries.$code.standards.tsx |
 | `src/lib/traceability.functions.ts` | linkArtifactToSignal, getTrace | core | comms_artifacts,counsel_answers,intake_items,narrative_lineage,strategy_statements | src/routes/_authenticated/narrative/trace.$id.tsx |

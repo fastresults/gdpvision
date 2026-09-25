@@ -57,6 +57,13 @@
       "when": 1790293810716,
       "tag": "0007_peer_benchmarks",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790299333538,
+      "tag": "0008_standards_audit_and_investments",
+      "breakpoints": true
     }
   ]
 }

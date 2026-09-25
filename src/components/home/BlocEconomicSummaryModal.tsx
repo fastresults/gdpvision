@@ -220,9 +220,8 @@ function ComparisonCategoryRow({
   const perspective = metricPerspective(caricom, oecs, "caricom", "comparison");
   const interaction = useExecutivePerspective(perspective);
   return (
-    <>
+    <div {...interaction} className="contents">
       <div
-        {...interaction}
         className="border-t border-line-200 p-3 outline-none transition-colors data-[perspective-active=true]:bg-paper-100 sm:p-4"
       >
         <p className="text-xs font-medium text-ink-950 sm:text-sm">{caricom.label}</p>
@@ -232,7 +231,7 @@ function ComparisonCategoryRow({
       </div>
       <ComparisonValueCell metric={caricom} maximum={maximum} bloc="caricom" />
       <ComparisonValueCell metric={oecs} maximum={maximum} bloc="oecs" />
-    </>
+    </div>
   );
 }
 
@@ -603,14 +602,14 @@ function TrendChart({
 }
 
 function Distribution({ metric, active }: { metric: BlocMetric; active: BlocKey }) {
-  if (!metric.distribution.length) return null;
   const values = metric.distribution.map((point) => point.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const middle = [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
+  const min = values.length ? Math.min(...values) : 0;
+  const max = values.length ? Math.max(...values) : 0;
+  const middle = [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)] ?? 0;
   const position = (value: number) => (max === min ? 50 : ((value - min) / (max - min)) * 100);
-  const perspective = distributionPerspective(metric, active, middle ?? 0, min, max);
+  const perspective = distributionPerspective(metric, active, middle, min, max);
   const interaction = useExecutivePerspective(perspective);
+  if (!metric.distribution.length) return null;
   return (
     <article
       {...interaction}
@@ -693,6 +692,120 @@ function Interpretation({ active, reference }: { active: BlocSummary; reference:
       </Explain>
     </section>
   );
+}
+
+const BURDEN_KEYS = new Set(["debt_gdp", "unemployment_rate"]);
+
+function blocLabel(bloc: BlocKey): string {
+  return bloc === "caricom" ? "CARICOM" : "OECS";
+}
+
+function metricRelevance(metric: BlocMetric): string {
+  const relevance: Record<string, string> = {
+    gdp: "Economic scale shapes market capacity and the resources potentially available to governments and firms.",
+    population: "Population indicates the size of the shared labour, consumer and public-service base.",
+    exports_of_goods_and_services:
+      "Export intensity shows exposure to external demand and the importance of foreign earnings.",
+    real_gdp_growth:
+      "Growth indicates current economic momentum, but should be read alongside volatility and the member distribution.",
+    gdp_per_capita_current_usd:
+      "GDP per person is a broad capacity measure, not a direct measure of household income or inclusion.",
+    debt_gdp: "Debt burden can constrain fiscal room, although financing terms and maturity also matter.",
+    fdi_net_inflows_gdp:
+      "FDI inflows indicate external investment relative to economic size and may expand productive capacity.",
+    current_account_gdp:
+      "The current account reflects the balance between external receipts and payments and can signal financing pressure.",
+    unemployment_rate:
+      "Unemployment indicates unused labour capacity and pressure on household welfare and public finances.",
+  };
+  return relevance[metric.key] ?? "Use this measure with its period, coverage and member spread when assessing the bloc.";
+}
+
+function comparisonText(metric: BlocMetric, reference: BlocMetric | undefined, active: BlocKey): string {
+  if (metric.value == null || reference?.value == null) {
+    return "A reliable side-by-side bloc comparison is unavailable at the current coverage threshold.";
+  }
+  const difference = metric.value - reference.value;
+  const denominator = Math.max(Math.abs(reference.value), 0.01);
+  const percentage = Math.abs((difference / denominator) * 100);
+  const direction = Math.abs(difference) < 0.005 ? "approximately level with" : difference > 0 ? "above" : "below";
+  const preference = BURDEN_KEYS.has(metric.key)
+    ? " For this burden measure, a lower reading is generally preferable."
+    : " A higher reading is not automatically a stronger outcome without context.";
+  return `${blocLabel(active)} is ${percentage.toFixed(0)}% ${direction} ${blocLabel(active === "caricom" ? "oecs" : "caricom")} on the covered reading.${preference}`;
+}
+
+function memberText(metric: BlocMetric): string {
+  if (!metric.distribution.length) return "No member-level distribution is available for this measure.";
+  const values = metric.distribution.map((point) => point.value).sort((a, b) => a - b);
+  const medianValue = values[Math.floor(values.length / 2)] ?? 0;
+  const min = values[0] ?? 0;
+  const max = values.at(-1) ?? 0;
+  return `${metric.distribution.length} member readings span ${formatMetric(min, metric.unit)} to ${formatMetric(max, metric.unit)}, with a median of ${formatMetric(medianValue, metric.unit)}.`;
+}
+
+function metricPerspective(
+  metric: BlocMetric,
+  reference: BlocMetric | undefined,
+  active: BlocKey,
+  surface: "headline" | "performance" | "comparison",
+): ExecutivePerspective {
+  const current = metric.available ? formatMetric(metric.value, metric.unit) : "unavailable";
+  return {
+    id: `${surface}-${active}-${metric.key}`,
+    title: metric.label,
+    summary: `${blocLabel(active)} records ${current} for ${metric.label.toLowerCase()} using the displayed ${metric.method}.`,
+    comparison: comparisonText(metric, reference, active),
+    trend: "This visual is a current comparison. Use the dedicated trend chart where comparable historical observations are available.",
+    members: memberText(metric),
+    relevance: metricRelevance(metric),
+    caution: `${metric.coverage} of ${metric.eligible} eligible members are covered for ${metric.period}. The bloc reading uses a ${metric.method} and should not be treated as uniform across members.`,
+  };
+}
+
+function trendPerspective(
+  trend: BlocTrend,
+  reference: BlocTrend | undefined,
+  active: BlocKey,
+): ExecutivePerspective {
+  const first = trend.points[0];
+  const latest = trend.points.at(-1);
+  const change = first && latest ? latest.value - first.value : null;
+  const direction = change == null ? "unavailable" : Math.abs(change) < 0.005 ? "broadly stable" : change > 0 ? "rising" : "falling";
+  const referenceLatest = reference?.points.at(-1);
+  const referenceText = latest && referenceLatest
+    ? `${blocLabel(active)}'s latest reading is ${formatMetric(Math.abs(latest.value - referenceLatest.value), trend.unit)} ${latest.value >= referenceLatest.value ? "above" : "below"} the other bloc.`
+    : "The other bloc does not have a comparable latest trend reading.";
+  const metric = { key: trend.key } as BlocMetric;
+  return {
+    id: `trend-${active}-${trend.key}`,
+    title: `${trend.label} trend`,
+    summary: latest ? `${blocLabel(active)}'s latest median is ${formatMetric(latest.value, trend.unit)} in ${latest.year}.` : "No comparable historical trend is available.",
+    comparison: referenceText,
+    trend: first && latest ? `The covered median is ${direction}, changing by ${formatMetric(Math.abs(change ?? 0), trend.unit)} from ${first.year} to ${latest.year}.` : "Fewer than three comparable observations are available, so no direction is asserted.",
+    members: latest ? `${latest.coverage} of ${latest.eligible} members contribute to the latest point.` : "Member coverage is insufficient for a trend reading.",
+    relevance: metricRelevance(metric),
+    caution: "The line joins annual bloc medians. It describes observed direction, not a forecast, and its member mix can change between years.",
+  };
+}
+
+function distributionPerspective(
+  metric: BlocMetric,
+  active: BlocKey,
+  medianValue: number,
+  minimum: number,
+  maximum: number,
+): ExecutivePerspective {
+  return {
+    id: `distribution-${active}-${metric.key}`,
+    title: `${metric.label} member distribution`,
+    summary: `${blocLabel(active)} member readings range from ${formatMetric(minimum, metric.unit)} to ${formatMetric(maximum, metric.unit)}.`,
+    comparison: "This strip compares members within the selected bloc; use the Compare tab for the direct CARICOM–OECS reading.",
+    trend: "The strip is a cross-section of current readings and does not imply movement over time.",
+    members: `The median is ${formatMetric(medianValue, metric.unit)} across ${metric.distribution.length} covered members. Wider spacing signals greater variation within the bloc.`,
+    relevance: metricRelevance(metric),
+    caution: `${metric.coverage} of ${metric.eligible} eligible members are covered for ${metric.period}. Small and large economies have equal visual weight in this distribution.`,
+  };
 }
 
 function SummarySkeleton() {

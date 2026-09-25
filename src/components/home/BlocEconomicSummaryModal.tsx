@@ -192,8 +192,8 @@ function BlocComparisonView({ caricom, oecs }: { caricom: BlocSummary; oecs: Blo
         <Explain id="caricom.bloc-gap" className="mt-2 block">
           <p className="text-sm leading-relaxed text-ink-700">
             Compare scale measures separately from rates and burdens. A longer bar is not always
-            stronger: lower debt and unemployment may be preferable, while larger GDP mainly indicates
-            economic scale.
+            stronger: lower debt and unemployment may be preferable, while larger GDP mainly
+            indicates economic scale.
           </p>
         </Explain>
       </section>
@@ -237,7 +237,10 @@ function ComparisonValueCell({
   return (
     <div className="min-w-0 border-l border-t border-line-200 p-3 text-center sm:p-4">
       <Explain id="caricom.bloc-summary" ctx={{ metric }}>
-        <strong className="block font-serif text-base font-normal text-ink-950 sm:text-xl" data-numeric>
+        <strong
+          className="block font-serif text-base font-normal text-ink-950 sm:text-xl"
+          data-numeric
+        >
           {metric.available ? formatMetric(metric.value, metric.unit) : "—"}
         </strong>
       </Explain>

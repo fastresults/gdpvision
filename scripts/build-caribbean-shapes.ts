@@ -20,7 +20,7 @@ const simplify = (ring: number[][]) => {
   for (const [x, y] of ring) {
     const p = [Math.round(x * 1000) / 1000, Math.round(y * 1000) / 1000];
     const l = out[out.length - 1];
-    if (!l || Math.abs(l[0] - p[0]) + Math.abs(l[1] - p[1]) >= 0.004) out.push(p);
+    if (!l || Math.abs(l[0] - p[0]) + Math.abs(l[1] - p[1]) >= 0.012) out.push(p);
   }
   return out.length >= 4 ? out : ring.map(([x, y]) => [Math.round(x * 1000) / 1000, Math.round(y * 1000) / 1000]);
 };

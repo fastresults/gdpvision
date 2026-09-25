@@ -160,16 +160,6 @@ export function ProjectMediaPanel({
                   >
                     View
                   </button>
-                  {m.url && (
-                    <a
-                      href={m.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn-secondary px-3 py-1.5 text-xs"
-                    >
-                      Download
-                    </a>
-                  )}
                 </div>
               </li>
             ))}
@@ -224,15 +214,22 @@ export function ProjectMediaPanel({
                 className="h-[75vh] w-full border border-line-200"
               />
             ))}
-          {canEdit && open && (
-            <div>
-              <button
-                type="button"
-                className="btn-ghost px-3 py-1.5 text-xs"
-                onClick={() => onDelete(open)}
-              >
-                Remove
-              </button>
+          {open && (
+            <div className="flex gap-2">
+              {open.url && (
+                <a href={open.url} download className="btn-secondary px-3 py-1.5 text-xs">
+                  Download
+                </a>
+              )}
+              {canEdit && (
+                <button
+                  type="button"
+                  className="btn-ghost px-3 py-1.5 text-xs"
+                  onClick={() => onDelete(open)}
+                >
+                  Remove
+                </button>
+              )}
             </div>
           )}
         </DialogContent>

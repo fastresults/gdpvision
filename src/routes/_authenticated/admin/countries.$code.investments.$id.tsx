@@ -80,7 +80,8 @@ const TAB_LABEL: Record<Tab, string> = {
 };
 
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/investments/$id")({
-  validateSearch: (s: Record<string, unknown>): { tab?: Tab } => ({
+  validateSearch: (s: Record<string, unknown>): { tab?: Tab; view?: string } => ({
+    view: typeof s.view === "string" && /^[0-9a-f-]{36}$/i.test(s.view) ? s.view : undefined,
     tab:
       typeof s.tab === "string" && (TABS as readonly string[]).includes(s.tab)
         ? (s.tab as Tab)
@@ -116,7 +117,7 @@ type Data = Awaited<ReturnType<typeof getInvestment>>;
 
 function ProjectWorkspace() {
   const { code, id } = Route.useParams();
-  const { tab: tabParam } = Route.useSearch();
+  const { tab: tabParam, view: viewParam } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const fetchP = useServerFn(getInvestment);
   const qc = useQueryClient();
@@ -228,6 +229,17 @@ function ProjectWorkspace() {
                 projectApproved={p.approval_status === "approved"}
                 projectVersion={p.version}
                 canApprove={q.data.capabilities.approveInvestments}
+                viewId={viewParam ?? null}
+                onView={(v) =>
+                  navigate({
+                    search: (prev: { tab?: Tab; view?: string }) => ({
+                      ...prev,
+                      tab: "materials",
+                      view: v ?? undefined,
+                    }),
+                    replace: v === null,
+                  })
+                }
               />
             </TabsContent>
             <TabsContent value="share" className="pt-6">

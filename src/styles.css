@@ -460,3 +460,15 @@
     display: block !important;
   }
 }
+
+/* Print only the open investor-package viewer, not the page beneath it. */
+@media print {
+  body.print-viewer > *:not(:has(.pkg-viewer-dialog)) { display: none !important; }
+  body.print-viewer *:has(> .pkg-viewer-dialog) > *:not(.pkg-viewer-dialog) { display: none !important; }
+  body.print-viewer .pkg-viewer-dialog,
+  body.print-viewer .pkg-viewer-body {
+    position: static !important; transform: none !important; height: auto !important;
+    max-height: none !important; width: auto !important; max-width: none !important;
+    overflow: visible !important; border: 0 !important; box-shadow: none !important; display: block !important;
+  }
+}

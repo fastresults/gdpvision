@@ -1,3 +1,4 @@
+import { CARIBBEAN_POINTS } from "@/lib/sovereign-eye/caribbean-geo";
 import type { KpiPeer } from "@/lib/sovereign-eye/peer-stats";
 import { ChevronDown, CloudSun, Database, Globe2, GripVertical, Landmark, ListTree, Maximize2, Minus, Plus, Waves } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
@@ -26,16 +27,7 @@ export type MapFeature = {
   peerNote?: string;
 };
 
-const POINTS: GeoPoint[] = [
-  { code: "BHS", name: "The Bahamas", lat: 25.0343, lon: -77.3963 }, { code: "BLZ", name: "Belize", lat: 17.1899, lon: -88.4976 },
-  { code: "JAM", name: "Jamaica", lat: 18.1096, lon: -77.2975 }, { code: "HTI", name: "Haiti", lat: 18.9712, lon: -72.2852 },
-  { code: "KNA", name: "St. Kitts & Nevis", lat: 17.3578, lon: -62.783 }, { code: "AIA", name: "Anguilla", lat: 18.2206, lon: -63.0686 },
-  { code: "ATG", name: "Antigua & Barbuda", lat: 17.0608, lon: -61.7964 }, { code: "DMA", name: "Dominica", lat: 15.415, lon: -61.371 },
-  { code: "LCA", name: "Saint Lucia", lat: 13.9094, lon: -60.9789 }, { code: "VCT", name: "St. Vincent", lat: 13.2528, lon: -61.1971 },
-  { code: "GRD", name: "Grenada", lat: 12.1165, lon: -61.679 }, { code: "BRB", name: "Barbados", lat: 13.1939, lon: -59.5432 },
-  { code: "TTO", name: "Trinidad & Tobago", lat: 10.6918, lon: -61.2225 }, { code: "GUY", name: "Guyana", lat: 6.8013, lon: -58.1551 },
-  { code: "SUR", name: "Suriname", lat: 5.852, lon: -55.2038 }, { code: "BMU", name: "Bermuda", lat: 32.3078, lon: -64.7505 },
-];
+const POINTS: GeoPoint[] = CARIBBEAN_POINTS;
 const BOUNDS = { minLon: -90, maxLon: -54, minLat: 4, maxLat: 34 };
 const project = (lon: number, lat: number) => ({ x: ((lon - BOUNDS.minLon) / (BOUNDS.maxLon - BOUNDS.minLon)) * 100, y: 100 - ((lat - BOUNDS.minLat) / (BOUNDS.maxLat - BOUNDS.minLat)) * 100 });
 // Whole-world equirectangular schematic for the Global flows view. Same

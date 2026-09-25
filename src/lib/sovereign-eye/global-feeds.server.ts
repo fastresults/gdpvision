@@ -3,8 +3,10 @@
 // never written to the corpus.
 import { assertPublicHttpUrl } from "@/lib/net/safe-url";
 
-export type GlobalStorm = { id: string; name: string; classification: string; intensityKt: number | null; pressureMb: number | null; lat: number; lon: number; movement: string | null; advisoryAt: string | null; distanceKm: number | null };
-export type GlobalQuake = { id: string; place: string; magnitude: number; lat: number; lon: number; time: string; distanceKm: number | null };
+import { exposureFor, quakeRadii, stormRadii, type Exposure } from "./hazard-exposure";
+
+export type GlobalStorm = { id: string; name: string; classification: string; intensityKt: number | null; pressureMb: number | null; lat: number; lon: number; movement: string | null; advisoryAt: string | null; distanceKm: number | null; exposed: Exposure[] };
+export type GlobalQuake = { id: string; place: string; magnitude: number; lat: number; lon: number; time: string; depthKm: number | null; distanceKm: number | null; exposed: Exposure[] };
 export type FeedStatus = { ok: boolean; source: string; licence: string; checkedAt: string; error?: string };
 export type GlobalHazards = { storms: GlobalStorm[]; quakes: GlobalQuake[]; status: { storms: FeedStatus; quakes: FeedStatus } };
 
@@ -47,6 +49,7 @@ export async function loadGlobalHazards(center: { lat: number; lon: number } | n
         intensityKt: Number.isFinite(Number(s.intensity)) ? Number(s.intensity) : null, pressureMb: Number.isFinite(Number(s.pressure)) ? Number(s.pressure) : null,
         lat, lon, movement: s.movementDir != null && s.movementSpeed != null ? `${s.movementDir}° at ${s.movementSpeed} mph` : null,
         advisoryAt: s.lastUpdate ? String(s.lastUpdate) : null, distanceKm: dist(lat, lon),
+        exposed: exposureFor(lat, lon, stormRadii(Number.isFinite(Number(s.intensity)) ? Number(s.intensity) : null)),
       });
     }
   }
@@ -55,10 +58,11 @@ export async function loadGlobalHazards(center: { lat: number; lon: number } | n
   if (quakeRes.status === "fulfilled") {
     const features = (quakeRes.value as { features?: any[] })?.features ?? [];
     for (const f of features.slice(0, 250)) {
-      const [lon, lat] = f?.geometry?.coordinates ?? [];
+      const [lon, lat, depth] = f?.geometry?.coordinates ?? [];
+      const depthKm = Number.isFinite(Number(depth)) ? Number(depth) : null;
       const mag = Number(f?.properties?.mag);
       if (!Number.isFinite(lat) || !Number.isFinite(lon) || !Number.isFinite(mag)) continue;
-      quakes.push({ id: String(f.id), place: String(f.properties.place ?? "Unlocated"), magnitude: mag, lat, lon, time: new Date(Number(f.properties.time)).toISOString(), distanceKm: dist(lat, lon) });
+      quakes.push({ id: String(f.id), place: String(f.properties.place ?? "Unlocated"), magnitude: mag, lat, lon, time: new Date(Number(f.properties.time)).toISOString(), depthKm, distanceKm: dist(lat, lon), exposed: exposureFor(lat, lon, quakeRadii(mag, depthKm)) });
     }
   }
 

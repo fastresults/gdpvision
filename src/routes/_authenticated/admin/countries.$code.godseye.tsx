@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
+import { PartnerCoverageControl } from "@/components/sovereign-eye/PartnerCoverageControl";
 import { PeerAnalysisControl } from "@/components/sovereign-eye/PeerAnalysisControl";
 import { SovereignEyeWorkspace, sovereignEyeQuery } from "@/components/sovereign-eye/SovereignEyeWorkspace";
 
@@ -45,6 +46,7 @@ function SovereignEyeRoute() {
     >
       <div className="mb-3 flex flex-wrap items-center justify-end gap-3">
         <PeerAnalysisControl code={code} />
+        <PartnerCoverageControl code={code} />
         <Link to="/admin/countries/$code/global" params={{ code }} className="btn-secondary min-h-9 px-3 font-mono text-[10px] uppercase tracking-[0.16em]">
           Open Global view
         </Link>

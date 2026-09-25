@@ -6,7 +6,11 @@ import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } fro
 import { feature } from "topojson-client";
 import landTopo from "world-atlas/land-110m.json";
 
+import { CARIBBEAN_POINTS } from "@/lib/sovereign-eye/caribbean-geo";
 import { getGlobalHazards } from "@/lib/sovereign-eye/global-feeds.functions";
+import type { Exposure } from "@/lib/sovereign-eye/hazard-exposure";
+import { Explain } from "@/components/explain/Explain";
+import "@/lib/explain/sovereign-eye-entries";
 import type { SovereignEyeFlowPartner } from "@/lib/sovereign-eye.functions";
 
 import type { MapFeature } from "./RegionMap";
@@ -14,6 +18,9 @@ import type { MapFeature } from "./RegionMap";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const LAND = feature(landTopo as any, (landTopo as any).objects.land) as unknown as GeoPermissibleObjects;
 const GRATICULE = geoGraticule10();
+const BASIN = { lat: 17, lon: -70 };
+const gradeRank = { Direct: 3, Near: 2, Watch: 1 } as const;
+const describeExposure = (ex: Exposure[]) => ex.length ? ex.slice(0, 6).map((e) => `${e.name} (${e.grade}, ${e.distanceKm.toLocaleString()} km)`).join("; ") + (ex.length > 6 ? `; +${ex.length - 6} more` : "") : "No Caribbean nation inside the exposure radius.";
 const CARIBBEAN: GeoPermissibleObjects = { type: "Polygon", coordinates: [[[-90, 8], [-58, 8], [-58, 28], [-90, 28], [-90, 8]]] } as GeoPermissibleObjects;
 
 export type GlobeLayers = { flows: boolean; storms: boolean; quakes: boolean };
@@ -33,6 +40,7 @@ type Props = {
 export function GlobeView({ code, countryName, center, partners, sideOf, flowLabel, interaction, makeFeature, highlightId }: Props) {
   const [rotate, setRotate] = useState<[number, number]>([-center.lon, -center.lat]);
   const [zoom, setZoom] = useState(1);
+  const [view, setView] = useState<"country" | "region">("country");
   const [layers, setLayers] = useState<GlobeLayers>({ flows: true, storms: true, quakes: true });
   const dragRef = useRef<{ id: number; x: number; y: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -67,6 +75,19 @@ export function GlobeView({ code, countryName, center, partners, sideOf, flowLab
 
   const home = pt(center.lon, center.lat);
   const data = hazards.data;
+  const nationExposure = useMemo(() => {
+    const m = new Map<string, { grade: Exposure["grade"]; events: string[] }>();
+    const add = (ex: Exposure[], label: string) => ex.forEach((e) => {
+      const cur = m.get(e.iso3);
+      if (!cur) m.set(e.iso3, { grade: e.grade, events: [label] });
+      else { cur.events.push(label); if (gradeRank[e.grade] > gradeRank[cur.grade]) cur.grade = e.grade; }
+    });
+    data?.storms.forEach((s) => add(s.exposed ?? [], s.name));
+    data?.quakes.forEach((q) => add(q.exposed ?? [], `M${q.magnitude.toFixed(1)}`));
+    return m;
+  }, [data]);
+  const selfExposure = nationExposure.get(code.toUpperCase());
+  const goTo = (v: "country" | "region") => { setView(v); const c = v === "region" ? BASIN : center; setRotate([-c.lon, -c.lat]); setZoom(v === "region" ? 2.2 : 1); };
   const toggles: Array<{ key: keyof GlobeLayers; label: string; note: string }> = [
     { key: "flows", label: "Capital partners", note: `${partners.length} cited` },
     { key: "storms", label: "Hurricanes · NOAA", note: data ? (data.status.storms.ok ? `${data.storms.length} active` : "Feed unavailable") : hazards.isError ? "Feed unavailable" : "Loading…" },
@@ -84,7 +105,7 @@ export function GlobeView({ code, countryName, center, partners, sideOf, flowLab
 
         {layers.quakes && data?.quakes.filter((q) => facing(q.lon, q.lat)).map((q) => {
           const [x, y] = pt(q.lon, q.lat);
-          const f = makeFeature({ id: `quake-${q.id}`, kind: "live", title: `M${q.magnitude.toFixed(1)} earthquake`, value: q.place, meta: `${new Date(q.time).toLocaleString()}${q.distanceKm != null ? ` · ${q.distanceKm.toLocaleString()} km from ${countryName}` : ""}`, evidenceCount: 1, provenance: "USGS Earthquake Hazards Program · U.S. public domain · live context, not corpus evidence", signal: "A recorded earthquake of magnitude 4.5 or greater in the past seven days.", trend: "A single event is not a trend; the ring size shows magnitude only.", impact: q.distanceKm != null && q.distanceKm < 800 ? "Close enough to matter for infrastructure, insurance and tourism confidence; check official damage reports." : "Distant from the selected country; relevant mainly to regional trade and insurance markets." });
+          const f = makeFeature({ id: `quake-${q.id}`, kind: "live", title: `M${q.magnitude.toFixed(1)} earthquake`, value: q.place, meta: `${new Date(q.time).toLocaleString()}${q.distanceKm != null ? ` · ${q.distanceKm.toLocaleString()} km from ${countryName}` : ""}`, evidenceCount: 1, provenance: "USGS Earthquake Hazards Program · U.S. public domain · live context, not corpus evidence", signal: "A recorded earthquake of magnitude 4.5 or greater in the past seven days.", trend: "A single event is not a trend; the ring size shows magnitude only.", impact: `Caribbean exposure (proximity, not damage): ${describeExposure(q.exposed ?? [])}${q.depthKm != null ? ` Depth ${Math.round(q.depthKm)} km.` : ""}` });
           return <g key={f.id} {...interaction(f)}><circle cx={x} cy={y} r="2" className="fill-transparent" /><circle cx={x} cy={y} r={Math.max(0.4, (q.magnitude - 4) * 0.55)} className="fill-signal-caution/30 stroke-signal-caution" strokeWidth={highlightId === f.id ? 0.4 : 0.18} /></g>;
         })}
 
@@ -106,11 +127,22 @@ export function GlobeView({ code, countryName, center, partners, sideOf, flowLab
 
         {layers.storms && data?.storms.filter((s) => facing(s.lon, s.lat)).map((s) => {
           const [x, y] = pt(s.lon, s.lat);
-          const f = makeFeature({ id: `storm-${s.id}`, kind: "live", title: `${s.classification} ${s.name}`, value: s.intensityKt != null ? `${s.intensityKt} kt sustained winds` : "Intensity not reported", meta: `${s.movement ?? "Movement not reported"}${s.distanceKm != null ? ` · ${s.distanceKm.toLocaleString()} km from ${countryName}` : ""}`, evidenceCount: 1, provenance: `NOAA National Hurricane Center · U.S. public domain${s.advisoryAt ? ` · advisory ${new Date(s.advisoryAt).toLocaleString()}` : ""} · live context`, signal: "The current centre of an active tropical system from the latest official advisory.", trend: s.movement ? `Moving ${s.movement}. Use the official NHC cone for forecast track; this marker is the current position only.` : "Current position only; consult the official NHC forecast cone.", forecast: "Official forecast tracks and cones are published by NOAA NHC; GDPVision does not generate storm forecasts.", impact: s.distanceKm != null && s.distanceKm < 1000 ? "Within 1,000 km — tourism, ports, insurance and fiscal contingency exposure should be reviewed now." : "Outside the immediate vicinity; monitor for track changes." });
+          const f = makeFeature({ id: `storm-${s.id}`, kind: "live", title: `${s.classification} ${s.name}`, value: s.intensityKt != null ? `${s.intensityKt} kt sustained winds` : "Intensity not reported", meta: `${s.movement ?? "Movement not reported"}${s.distanceKm != null ? ` · ${s.distanceKm.toLocaleString()} km from ${countryName}` : ""}`, evidenceCount: 1, provenance: `NOAA National Hurricane Center · U.S. public domain${s.advisoryAt ? ` · advisory ${new Date(s.advisoryAt).toLocaleString()}` : ""} · live context`, signal: "The current centre of an active tropical system from the latest official advisory.", trend: s.movement ? `Moving ${s.movement}. Use the official NHC cone for forecast track; this marker is the current position only.` : "Current position only; consult the official NHC forecast cone.", forecast: "Official forecast tracks and cones are published by NOAA NHC; GDPVision does not generate storm forecasts.", impact: `Caribbean exposure (proximity, not damage): ${describeExposure(s.exposed ?? [])} Exposed economies should review tourism, ports, agriculture and fiscal contingency lines.` });
           return <g key={f.id} {...interaction(f)}><circle cx={x} cy={y} r="2.4" className="fill-transparent" /><circle cx={x} cy={y} r="1.6" className="fill-paper-0 stroke-signal-negative" strokeWidth="0.35" /><path d={`M ${x - 1} ${y} a 1 1 0 0 1 2 0 M ${x + 1} ${y} a 1 1 0 0 1 -2 0`} className="fill-none stroke-signal-negative" strokeWidth="0.3" transform={`rotate(35 ${x} ${y})`} /><text x={x + 2} y={y + 0.5} className="fill-ink-950 font-mono text-[1.6px]">{s.name}</text></g>;
         })}
 
-        {facing(center.lon, center.lat) ? <g {...interaction(makeFeature({ id: "globe-country", kind: "place", title: countryName, value: "Selected country", meta: `${center.lat.toFixed(2)}°, ${center.lon.toFixed(2)}° · dotted box marks the Caribbean basin` }))}>
+        {CARIBBEAN_POINTS.filter((n) => n.code !== code.toUpperCase() && facing(n.lon, n.lat)).map((n) => {
+          const [x, y] = pt(n.lon, n.lat); const ex = nationExposure.get(n.code);
+          const f = makeFeature({ id: `globe-nation-${n.code}`, kind: "place", title: n.name, value: ex ? `${ex.grade} hazard exposure` : "No active hazard exposure", meta: ex ? `Near: ${ex.events.join(", ")}` : "Caribbean peer nation" });
+          return <g key={f.id} {...interaction(f)}>
+            <circle cx={x} cy={y} r="1.6" className="fill-transparent" />
+            {ex ? <circle cx={x} cy={y} r={ex.grade === "Direct" ? 1.8 : ex.grade === "Near" ? 1.4 : 1.1} className="fill-none stroke-signal-negative" strokeWidth={ex.grade === "Direct" ? 0.4 : 0.22} /> : null}
+            <circle cx={x} cy={y} r="0.55" className="fill-ink-700" />
+            {view === "region" ? <text x={x + 1} y={y - 0.6} className="fill-ink-700 font-mono text-[1.2px]">{n.code}</text> : null}
+          </g>;
+        })}
+
+        {facing(center.lon, center.lat) ? <g {...interaction(makeFeature({ id: "globe-country", kind: "place", title: countryName, value: selfExposure ? `${selfExposure.grade} hazard exposure` : "Selected country · no active hazard nearby", meta: `${center.lat.toFixed(2)}°, ${center.lon.toFixed(2)}° · dotted box marks the Caribbean basin` }))}>
           <circle cx={home[0]} cy={home[1]} r="2.6" className="fill-none stroke-gold-500" strokeWidth="0.35" />
           <circle cx={home[0]} cy={home[1]} r="1" className="fill-gold-500 stroke-ink-950" strokeWidth="0.3" />
           <text x={home[0] + 3} y={home[1] + 0.6} className="fill-ink-950 font-mono text-[1.9px]">{countryName}</text>
@@ -120,11 +152,14 @@ export function GlobeView({ code, countryName, center, partners, sideOf, flowLab
       <div className="absolute right-4 top-4 z-20 flex flex-col border border-line-200 bg-paper-0/95 shadow-sm" role="group" aria-label="Globe controls">
         <button type="button" className="btn-ghost h-9 w-9 justify-center p-0" aria-label="Zoom in" title="Zoom in" onClick={() => setZoom((z) => Math.min(6, z * 1.3))}><Plus className="h-4 w-4" /></button>
         <button type="button" className="btn-ghost h-9 w-9 justify-center border-t border-line-200 p-0" aria-label="Zoom out" title="Zoom out" onClick={() => setZoom((z) => Math.max(0.8, z / 1.3))}><Minus className="h-4 w-4" /></button>
-        <button type="button" className="btn-ghost h-9 w-9 justify-center border-t border-line-200 p-0" aria-label="Return to island" title="Return to island" onClick={() => { setRotate([-center.lon, -center.lat]); setZoom(1); }}><Crosshair className="h-4 w-4" /></button>
+        <button type="button" className="btn-ghost h-9 w-9 justify-center border-t border-line-200 p-0" aria-label="Return to island" title="Return to island" onClick={() => goTo("country")}><Crosshair className="h-4 w-4" /></button>
         <span className="border-t border-line-200 py-1 text-center font-mono text-[10px] tabular-nums text-ink-500">{Math.round(zoom * 100)}%</span>
       </div>
 
       <div className="absolute left-5 top-40 z-20 w-56 border border-line-200 bg-paper-0/95 p-3 shadow-sm" role="group" aria-label="Globe layers">
+        <div className="mb-2 grid grid-cols-2 border border-line-200" role="group" aria-label="Globe centre">
+          {(["country", "region"] as const).map((v) => <button key={v} type="button" aria-pressed={view === v} onClick={() => goTo(v)} className={`${view === v ? "btn-primary" : "btn-ghost"} min-h-7 justify-center border-0 px-1 font-mono text-[9px] uppercase tracking-[0.14em]`}>{v === "country" ? "Island" : "Region"}</button>)}
+        </div>
         <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">Globe layers</p>
         <ul className="mt-2 space-y-1">
           {toggles.map((t) => (
@@ -136,7 +171,11 @@ export function GlobeView({ code, countryName, center, partners, sideOf, flowLab
             </li>
           ))}
         </ul>
-        <p className="mt-2 text-[10px] leading-snug text-ink-500">Live public-domain feeds (NOAA, USGS). Reference context only — not saved as evidence.</p>
+        <p className="mt-2 text-[10px] text-ink-700">{selfExposure ? `Active hazards nearby: ${selfExposure.events.join(", ")} (${selfExposure.grade})` : "Active hazards nearby: none"}</p>
+        {nationExposure.size ? <details className="mt-1 text-[10px] text-ink-700"><summary className="cursor-pointer font-mono text-[9px] uppercase tracking-[0.14em] text-ink-500">Exposed nations · {nationExposure.size}</summary>
+          <ul className="mt-1 max-h-32 space-y-0.5 overflow-auto">{[...nationExposure.entries()].sort((a, b) => gradeRank[b[1].grade] - gradeRank[a[1].grade]).map(([iso, e]) => <li key={iso} className="flex justify-between gap-2"><span>{CARIBBEAN_POINTS.find((p) => p.code === iso)?.name ?? iso}</span><span className="font-mono text-ink-500">{e.grade}</span></li>)}</ul>
+        </details> : null}
+        <p className="mt-2 text-[10px] leading-snug text-ink-500"><Explain id="sovereign-eye.hazard-exposure">Rings mark proximity to live hazards, not damage.</Explain> Live public-domain feeds (NOAA, USGS). Reference context only — not saved as evidence.</p>
       </div>
     </>
   );

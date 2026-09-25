@@ -27,6 +27,16 @@ const entries: Array<Rationale<never>> = [
     caveat:
       "A larger value is not always better. Debt and unemployment are burdens, while growth and GDP per person generally describe positive capacity.",
   },
+  {
+    key: "caricom.executive-perspective",
+    title: "How the executive perspective is produced",
+    short:
+      "The perspective translates the selected chart into a consistent reading of its current value, bloc comparison, trend, member spread and decision relevance.",
+    basis:
+      "Every statement is derived from the same loaded public readings, aggregation method, coverage, comparable history and member distribution shown in the economic summary.",
+    caveat:
+      "The perspective is deterministic, not a new forecast or causal claim. Missing history is reported as unavailable, and a larger value is not assumed to be better for burdens such as debt or unemployment.",
+  },
 ];
 
 registerRationales(entries);

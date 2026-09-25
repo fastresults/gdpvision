@@ -887,33 +887,8 @@ export const researchCapitalFlowPartners = createServerFn({ method: "POST" })
       _role: "admin",
     });
     if (!isAdmin) throw new Error("Forbidden: admin only");
-    const { searchCapitalFlowPartners } = await import("@/lib/corpus/searchers/flow-partners.server");
-    const { upsertCapitalFlowPartner } = await import("@/lib/corpus/writers.server");
-
-    const result = await searchCapitalFlowPartners({ countryCode });
-    if (!result) {
-      return { written: 0, tier: null as string | null, message: "No cited partner geography found for this country yet." };
-    }
-    let written = 0;
-    for (const partner of result.data.partners) {
-      const partnerCitations = partner.source_url
-        ? result.citations.filter((c) => c.url === partner.source_url)
-        : result.citations.slice(0, 3);
-      await upsertCapitalFlowPartner({
-        country_code: countryCode,
-        node_key: partner.node_key,
-        period: result.data.period,
-        partner_name: partner.partner_name,
-        partner_iso3: partner.partner_iso3 ?? null,
-        share_pct: partner.share_pct ?? null,
-        value_usd_m: partner.value_usd_m ?? null,
-        confidence_grade: partner.confidence_grade ?? "C",
-        visibility: "public",
-        citations: partnerCitations.length ? partnerCitations : result.citations.slice(0, 3),
-      });
-      written += 1;
-    }
-    return { written, tier: result.tier, message: null as string | null };
+    const { researchAndStorePartners } = await import("@/lib/sovereign-eye/partner-backfill.server");
+    return researchAndStorePartners(countryCode);
   });
 
 export const getPublicSovereignEyeScene = createServerFn({ method: "GET" })

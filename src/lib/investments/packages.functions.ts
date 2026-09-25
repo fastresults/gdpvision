@@ -281,8 +281,16 @@ function coerce(schema: z.ZodTypeAny, v: unknown): unknown {
     return arr.map((x) => coerce(el, x));
   }
   if (s instanceof z.ZodObject) {
-    let o = v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
     const shape = s.shape as Record<string, z.ZodTypeAny>;
+    // A bare array (e.g. the slide list without its wrapper) goes into the
+    // object's first array field.
+    if (Array.isArray(v)) {
+      const arrKey = Object.keys(shape).find(
+        (k) => unwrapOptional(shape[k]!) instanceof z.ZodArray,
+      );
+      v = arrKey ? { [arrKey]: v } : {};
+    }
+    let o = v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
     const keys = Object.keys(shape);
     // Unwrap { "teaser": { ...fields } } style wrappers.
     if (!keys.some((k) => k in o)) {
@@ -318,12 +326,18 @@ function parseFallback<T>(schema: z.ZodType<T>, text: string | undefined): T | n
     .replace(/^\s*```(?:json)?/i, "")
     .replace(/```\s*$/, "")
     .trim();
-  const start = cleaned.indexOf("{");
-  const end = cleaned.lastIndexOf("}");
+  const ob = cleaned.indexOf("{");
+  const ab = cleaned.indexOf("[");
+  const isArray = ab !== -1 && (ob === -1 || ab < ob);
+  const start = isArray ? ab : ob;
+  const end = cleaned.lastIndexOf(isArray ? "]" : "}");
   if (start === -1 || end <= start) return null;
   try {
-    return parseLenient(schema, JSON.parse(cleaned.slice(start, end + 1)));
-  } catch {
+    const res = parseLenient(schema, JSON.parse(cleaned.slice(start, end + 1)));
+    if (!res) console.warn("[packages] lenient parse rejected draft");
+    return res;
+  } catch (err) {
+    console.warn("[packages] draft JSON unreadable:", (err as Error).message);
     return null;
   }
 }
@@ -337,6 +351,7 @@ async function draft<T>(apiKey: string, schema: z.ZodType<T>, prompt: string): P
         model: gateway(MODEL),
         system: SYSTEM_PROMPT,
         output: Output.object({ schema }),
+        maxOutputTokens: 16000,
         prompt,
       });
       return output as T;
@@ -345,7 +360,22 @@ async function draft<T>(apiKey: string, schema: z.ZodType<T>, prompt: string): P
       const e = err as { text?: string };
       const parsed = parseFallback(schema, e?.text);
       if (parsed) return parsed;
-      console.warn("[packages] draft attempt failed", attempt + 1, (err as Error)?.message);
+      const cause = (err as { cause?: unknown }).cause;
+      console.warn(
+        "[packages] draft attempt failed",
+        attempt + 1,
+        (err as Error)?.message,
+        "| finish:",
+        (err as { finishReason?: string }).finishReason,
+        "| textLen:",
+        e?.text?.length,
+        "| head:",
+        e?.text?.slice(0, 300),
+        "| tail:",
+        e?.text?.slice(-200),
+        "| cause:",
+        cause instanceof Error ? cause.message.slice(0, 600) : String(cause).slice(0, 600),
+      );
     }
   }
   const msg = (lastErr as { message?: string })?.message ?? String(lastErr);

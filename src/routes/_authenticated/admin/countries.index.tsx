@@ -211,6 +211,10 @@ function CountriesQueue() {
                       {lastAt ? new Date(lastAt).toLocaleDateString() : "—"}
                       {" · "}
                       <Link to="/admin/countries/$code/data" params={{ code: c.code }} className="underline hover:text-ink-950">Data</Link>
+                      {" · "}
+                      <Link to="/admin/countries/$code/standards" params={{ code: c.code }} className="underline hover:text-ink-950">Standards</Link>
+                      {" · "}
+                      <Link to="/admin/countries/$code/investments" params={{ code: c.code }} className="underline hover:text-ink-950">Investments</Link>
                     </td>
                   </tr>
                 );

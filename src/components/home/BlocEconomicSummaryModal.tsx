@@ -5,6 +5,11 @@ import { BarChart3 } from "lucide-react";
 
 import { Explain } from "@/components/explain/Explain";
 import {
+  ExecutivePerspectiveProvider,
+  type ExecutivePerspective,
+  useExecutivePerspective,
+} from "@/components/home/ExecutivePerspective";
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -92,42 +97,47 @@ export function BlocEconomicSummaryModal({
         ) : error || !data ? (
           <SummaryError />
         ) : (
-          <Tabs value={activeBloc} onValueChange={(value) => onBlocChange(value as BlocSummaryTab)}>
-            <div className="sticky top-0 z-10 border-b border-line-200 bg-paper-0 px-6 py-3 sm:px-8">
-              <TabsList className="grid h-11 w-full grid-cols-3 rounded-none bg-paper-100 p-1">
-                {(["caricom", "oecs"] as BlocKey[]).map((key) => (
+          <ExecutivePerspectiveProvider>
+            <Tabs
+              value={activeBloc}
+              onValueChange={(value) => onBlocChange(value as BlocSummaryTab)}
+            >
+              <div className="sticky top-0 z-10 border-b border-line-200 bg-paper-0 px-6 py-3 sm:px-8">
+                <TabsList className="grid h-11 w-full grid-cols-3 rounded-none bg-paper-100 p-1">
+                  {(["caricom", "oecs"] as BlocKey[]).map((key) => (
+                    <TabsTrigger
+                      key={key}
+                      value={key}
+                      className="rounded-none font-mono text-[10px] uppercase tracking-[0.18em] data-[state=active]:shadow-none"
+                    >
+                      {data.blocs[key].label}
+                      <span className="ml-2 text-ink-500" data-numeric>
+                        {data.blocs[key].memberCount}
+                      </span>
+                    </TabsTrigger>
+                  ))}
                   <TabsTrigger
-                    key={key}
-                    value={key}
+                    value="compare"
                     className="rounded-none font-mono text-[10px] uppercase tracking-[0.18em] data-[state=active]:shadow-none"
                   >
-                    {data.blocs[key].label}
-                    <span className="ml-2 text-ink-500" data-numeric>
-                      {data.blocs[key].memberCount}
-                    </span>
+                    Compare
                   </TabsTrigger>
-                ))}
-                <TabsTrigger
-                  value="compare"
-                  className="rounded-none font-mono text-[10px] uppercase tracking-[0.18em] data-[state=active]:shadow-none"
-                >
-                  Compare
-                </TabsTrigger>
-              </TabsList>
-            </div>
-            {(["caricom", "oecs"] as BlocKey[]).map((key) => (
-              <TabsContent key={key} value={key} className="m-0 p-6 sm:p-8">
-                <BlocSummaryView
-                  active={data.blocs[key]}
-                  reference={data.blocs[key === "caricom" ? "oecs" : "caricom"]}
-                  data={data}
-                />
+                </TabsList>
+              </div>
+              {(["caricom", "oecs"] as BlocKey[]).map((key) => (
+                <TabsContent key={key} value={key} className="m-0 p-6 sm:p-8">
+                  <BlocSummaryView
+                    active={data.blocs[key]}
+                    reference={data.blocs[key === "caricom" ? "oecs" : "caricom"]}
+                    data={data}
+                  />
+                </TabsContent>
+              ))}
+              <TabsContent value="compare" className="m-0 p-6 sm:p-8">
+                <BlocComparisonView caricom={data.blocs.caricom} oecs={data.blocs.oecs} />
               </TabsContent>
-            ))}
-            <TabsContent value="compare" className="m-0 p-6 sm:p-8">
-              <BlocComparisonView caricom={data.blocs.caricom} oecs={data.blocs.oecs} />
-            </TabsContent>
-          </Tabs>
+            </Tabs>
+          </ExecutivePerspectiveProvider>
         )}
       </SheetContent>
     </Sheet>
@@ -210,9 +220,14 @@ function ComparisonCategoryRow({
   oecs: BlocMetric;
   maximum: number;
 }) {
+  const perspective = metricPerspective(caricom, oecs, "caricom", "comparison");
+  const interaction = useExecutivePerspective(perspective);
   return (
-    <>
-      <div className="border-t border-line-200 p-3 sm:p-4">
+    <div
+      {...interaction}
+      className="col-span-3 grid grid-cols-subgrid outline-none transition-colors data-[perspective-active=true]:bg-paper-100"
+    >
+      <div className="border-t border-line-200 p-3 outline-none transition-colors data-[perspective-active=true]:bg-paper-100 sm:p-4">
         <p className="text-xs font-medium text-ink-950 sm:text-sm">{caricom.label}</p>
         <p className="mt-1 font-mono text-[8px] uppercase tracking-[0.12em] text-ink-500 sm:text-[9px]">
           {caricom.method}
@@ -220,7 +235,7 @@ function ComparisonCategoryRow({
       </div>
       <ComparisonValueCell metric={caricom} maximum={maximum} bloc="caricom" />
       <ComparisonValueCell metric={oecs} maximum={maximum} bloc="oecs" />
-    </>
+    </div>
   );
 }
 
@@ -384,8 +399,13 @@ function HeadlineMetric({
   active: BlocKey;
 }) {
   const max = Math.max(metric.value ?? 0, reference?.value ?? 0, 1);
+  const perspective = metricPerspective(metric, reference, active, "headline");
+  const interaction = useExecutivePerspective(perspective);
   return (
-    <article className="min-w-0 bg-paper-0 p-5">
+    <article
+      {...interaction}
+      className="min-w-0 bg-paper-0 p-5 outline-none transition-colors data-[perspective-active=true]:bg-paper-100"
+    >
       <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
         {metric.label}
       </p>
@@ -421,8 +441,13 @@ function BulletMetric({
   const start = ((0 - min) / span) * 100;
   const end = metric.value == null ? start : ((metric.value - min) / span) * 100;
   const ref = reference?.value == null ? null : ((reference.value - min) / span) * 100;
+  const perspective = metricPerspective(metric, reference, active, "performance");
+  const interaction = useExecutivePerspective(perspective);
   return (
-    <div className="grid gap-3 py-5 md:grid-cols-[190px_minmax(0,1fr)_130px] md:items-center">
+    <div
+      {...interaction}
+      className="grid gap-3 px-2 py-5 outline-none transition-colors data-[perspective-active=true]:bg-paper-100 md:grid-cols-[190px_minmax(0,1fr)_130px] md:items-center"
+    >
       <div>
         <p className="text-sm font-medium text-ink-950">{metric.label}</p>
         <MetricMeta metric={metric} />
@@ -508,9 +533,14 @@ function TrendChart({
   active: BlocKey;
 }) {
   const all = [...trend.points, ...(reference?.points ?? [])];
+  const perspective = trendPerspective(trend, reference, active);
+  const interaction = useExecutivePerspective(perspective);
   if (trend.points.length < 3)
     return (
-      <article className="border border-line-200 p-4">
+      <article
+        {...interaction}
+        className="border border-line-200 p-4 outline-none transition-colors data-[perspective-active=true]:bg-paper-100"
+      >
         <p className="text-sm font-medium text-ink-950">{trend.label}</p>
         <p className="mt-8 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
           Current reading only
@@ -532,7 +562,10 @@ function TrendChart({
       })
       .join(" ");
   return (
-    <article className="border border-line-200 p-4">
+    <article
+      {...interaction}
+      className="border border-line-200 p-4 outline-none transition-colors data-[perspective-active=true]:bg-paper-100"
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-ink-950">{trend.label}</p>
@@ -573,14 +606,19 @@ function TrendChart({
 }
 
 function Distribution({ metric, active }: { metric: BlocMetric; active: BlocKey }) {
-  if (!metric.distribution.length) return null;
   const values = metric.distribution.map((point) => point.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const middle = [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
+  const min = values.length ? Math.min(...values) : 0;
+  const max = values.length ? Math.max(...values) : 0;
+  const middle = [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)] ?? 0;
   const position = (value: number) => (max === min ? 50 : ((value - min) / (max - min)) * 100);
+  const perspective = distributionPerspective(metric, active, middle, min, max);
+  const interaction = useExecutivePerspective(perspective);
+  if (!metric.distribution.length) return null;
   return (
-    <article>
+    <article
+      {...interaction}
+      className="px-2 py-1 outline-none transition-colors data-[perspective-active=true]:bg-paper-100"
+    >
       <div className="flex items-baseline justify-between gap-3">
         <p className="text-sm font-medium text-ink-950">{metric.label}</p>
         <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-ink-500">
@@ -604,7 +642,6 @@ function Distribution({ metric, active }: { metric: BlocMetric; active: BlocKey 
             )}
             style={{ left: `${position(point.value)}%` }}
             aria-label={`${point.name}: ${formatMetric(point.value, metric.unit)}, ${point.period}`}
-            title={`${point.name} · ${formatMetric(point.value, metric.unit)} · ${point.period}`}
           />
         ))}
       </div>
@@ -659,6 +696,150 @@ function Interpretation({ active, reference }: { active: BlocSummary; reference:
       </Explain>
     </section>
   );
+}
+
+const BURDEN_KEYS = new Set(["debt_gdp", "unemployment_rate"]);
+
+function blocLabel(bloc: BlocKey): string {
+  return bloc === "caricom" ? "CARICOM" : "OECS";
+}
+
+function metricRelevance(metric: BlocMetric): string {
+  const relevance: Record<string, string> = {
+    gdp: "Economic scale shapes market capacity and the resources potentially available to governments and firms.",
+    population:
+      "Population indicates the size of the shared labour, consumer and public-service base.",
+    exports_of_goods_and_services:
+      "Export intensity shows exposure to external demand and the importance of foreign earnings.",
+    real_gdp_growth:
+      "Growth indicates current economic momentum, but should be read alongside volatility and the member distribution.",
+    gdp_per_capita_current_usd:
+      "GDP per person is a broad capacity measure, not a direct measure of household income or inclusion.",
+    debt_gdp:
+      "Debt burden can constrain fiscal room, although financing terms and maturity also matter.",
+    fdi_net_inflows_gdp:
+      "FDI inflows indicate external investment relative to economic size and may expand productive capacity.",
+    current_account_gdp:
+      "The current account reflects the balance between external receipts and payments and can signal financing pressure.",
+    unemployment_rate:
+      "Unemployment indicates unused labour capacity and pressure on household welfare and public finances.",
+  };
+  return (
+    relevance[metric.key] ??
+    "Use this measure with its period, coverage and member spread when assessing the bloc."
+  );
+}
+
+function comparisonText(
+  metric: BlocMetric,
+  reference: BlocMetric | undefined,
+  active: BlocKey,
+): string {
+  if (metric.value == null || reference?.value == null) {
+    return "A reliable side-by-side bloc comparison is unavailable at the current coverage threshold.";
+  }
+  const difference = metric.value - reference.value;
+  const denominator = Math.max(Math.abs(reference.value), 0.01);
+  const percentage = Math.abs((difference / denominator) * 100);
+  const direction =
+    Math.abs(difference) < 0.005 ? "approximately level with" : difference > 0 ? "above" : "below";
+  const preference = BURDEN_KEYS.has(metric.key)
+    ? " For this burden measure, a lower reading is generally preferable."
+    : " A higher reading is not automatically a stronger outcome without context.";
+  return `${blocLabel(active)} is ${percentage.toFixed(0)}% ${direction} ${blocLabel(active === "caricom" ? "oecs" : "caricom")} on the covered reading.${preference}`;
+}
+
+function memberText(metric: BlocMetric): string {
+  if (!metric.distribution.length)
+    return "No member-level distribution is available for this measure.";
+  const values = metric.distribution.map((point) => point.value).sort((a, b) => a - b);
+  const medianValue = values[Math.floor(values.length / 2)] ?? 0;
+  const min = values[0] ?? 0;
+  const max = values.at(-1) ?? 0;
+  return `${metric.distribution.length} member readings span ${formatMetric(min, metric.unit)} to ${formatMetric(max, metric.unit)}, with a median of ${formatMetric(medianValue, metric.unit)}.`;
+}
+
+function metricPerspective(
+  metric: BlocMetric,
+  reference: BlocMetric | undefined,
+  active: BlocKey,
+  surface: "headline" | "performance" | "comparison",
+): ExecutivePerspective {
+  const current = metric.available ? formatMetric(metric.value, metric.unit) : "unavailable";
+  return {
+    id: `${surface}-${active}-${metric.key}`,
+    title: metric.label,
+    summary: `${blocLabel(active)} records ${current} for ${metric.label.toLowerCase()} using the displayed ${metric.method}.`,
+    comparison: comparisonText(metric, reference, active),
+    trend:
+      "This visual is a current comparison. Use the dedicated trend chart where comparable historical observations are available.",
+    members: memberText(metric),
+    relevance: metricRelevance(metric),
+    caution: `${metric.coverage} of ${metric.eligible} eligible members are covered for ${metric.period}. The bloc reading uses a ${metric.method} and should not be treated as uniform across members.`,
+  };
+}
+
+function trendPerspective(
+  trend: BlocTrend,
+  reference: BlocTrend | undefined,
+  active: BlocKey,
+): ExecutivePerspective {
+  const first = trend.points[0];
+  const latest = trend.points.at(-1);
+  const change = first && latest ? latest.value - first.value : null;
+  const direction =
+    change == null
+      ? "unavailable"
+      : Math.abs(change) < 0.005
+        ? "broadly stable"
+        : change > 0
+          ? "rising"
+          : "falling";
+  const referenceLatest = reference?.points.at(-1);
+  const referenceText =
+    latest && referenceLatest
+      ? `${blocLabel(active)}'s latest reading is ${formatMetric(Math.abs(latest.value - referenceLatest.value), trend.unit)} ${latest.value >= referenceLatest.value ? "above" : "below"} the other bloc.`
+      : "The other bloc does not have a comparable latest trend reading.";
+  const metric = { key: trend.key } as BlocMetric;
+  return {
+    id: `trend-${active}-${trend.key}`,
+    title: `${trend.label} trend`,
+    summary: latest
+      ? `${blocLabel(active)}'s latest median is ${formatMetric(latest.value, trend.unit)} in ${latest.year}.`
+      : "No comparable historical trend is available.",
+    comparison: referenceText,
+    trend:
+      first && latest
+        ? `The covered median is ${direction}, changing by ${formatMetric(Math.abs(change ?? 0), trend.unit)} from ${first.year} to ${latest.year}.`
+        : "Fewer than three comparable observations are available, so no direction is asserted.",
+    members: latest
+      ? `${latest.coverage} of ${latest.eligible} members contribute to the latest point.`
+      : "Member coverage is insufficient for a trend reading.",
+    relevance: metricRelevance(metric),
+    caution:
+      "The line joins annual bloc medians. It describes observed direction, not a forecast, and its member mix can change between years.",
+  };
+}
+
+function distributionPerspective(
+  metric: BlocMetric,
+  active: BlocKey,
+  medianValue: number,
+  minimum: number,
+  maximum: number,
+): ExecutivePerspective {
+  return {
+    id: `distribution-${active}-${metric.key}`,
+    title: `${metric.label} member distribution`,
+    summary: `${blocLabel(active)} member readings range from ${formatMetric(minimum, metric.unit)} to ${formatMetric(maximum, metric.unit)}.`,
+    comparison:
+      "This strip compares members within the selected bloc; use the Compare tab for the direct CARICOM–OECS reading.",
+    trend:
+      "The strip is a cross-section of current readings and does not imply movement over time.",
+    members: `The median is ${formatMetric(medianValue, metric.unit)} across ${metric.distribution.length} covered members. Wider spacing signals greater variation within the bloc.`,
+    relevance: metricRelevance(metric),
+    caution: `${metric.coverage} of ${metric.eligible} eligible members are covered for ${metric.period}. Small and large economies have equal visual weight in this distribution.`,
+  };
 }
 
 function SummarySkeleton() {

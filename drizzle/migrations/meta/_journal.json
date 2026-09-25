@@ -85,6 +85,13 @@
       "when": 1790351762060,
       "tag": "0011_investment_project_media",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790358414433,
+      "tag": "0012_egov_studio",
+      "breakpoints": true
     }
   ]
 }

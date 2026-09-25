@@ -165,7 +165,12 @@ function PerspectivePanel({
           <h3 className="mt-1 font-serif text-2xl font-normal text-ink-950">{perspective.title}</h3>
         </div>
         {pinned ? (
-          <button type="button" className="btn-ghost h-8 w-8 p-0" onClick={onClose} aria-label="Close executive perspective">
+          <button
+            type="button"
+            className="btn-ghost h-8 w-8 p-0"
+            onClick={onClose}
+            aria-label="Close executive perspective"
+          >
             <X size={14} aria-hidden />
           </button>
         ) : null}
@@ -189,7 +194,15 @@ function PerspectivePanel({
   );
 }
 
-function PerspectiveRow({ label, value, wide = false }: { label: string; value: string; wide?: boolean }) {
+function PerspectiveRow({
+  label,
+  value,
+  wide = false,
+}: {
+  label: string;
+  value: string;
+  wide?: boolean;
+}) {
   return (
     <div className={wide ? "sm:col-span-2" : undefined}>
       <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-ink-500">{label}</p>

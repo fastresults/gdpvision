@@ -226,7 +226,7 @@ const STEP_PAGES = 12;
 export const crawlSource = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ id: z.string().uuid(), limit: z.number().int().min(1).max(500).default(100) }).parse(d),
+    z.object({ id: z.string().uuid(), limit: z.number().int().min(1).max(500).default(500) }).parse(d),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);

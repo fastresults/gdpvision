@@ -341,7 +341,10 @@ function SiteReadPanel({
         <ul className="max-h-64 overflow-y-auto text-xs divide-y divide-line-100">
           {(pages.data ?? []).map((p: any) => (
             <li key={p.id} className="py-1 flex justify-between gap-2">
-              <span className="truncate" title={p.page_url ?? ""}>{p.page_title || p.page_url || "(single page)"}</span>
+              <span className="min-w-0">
+                <span className="block truncate">{p.page_title || "(untitled page)"}</span>
+                <span className="block truncate text-ink-500">{p.page_url ? p.page_url.replace(/^https?:\/\//, "") : "(single page)"}</span>
+              </span>
               <span className="shrink-0 tabular-nums text-ink-500">{p.chunk_count ?? 0} passages</span>
             </li>
           ))}

@@ -29,7 +29,7 @@ All searchers wrap `runWithFallbacks` from `src/lib/country-onboarding/fallback.
 The "no duplicates" contract (core memory rule) covers:
 
 - `country_sources` — dedup on `(country_code, normalized_url)`; go through `upsertCountrySource`.
-- `country_source_documents` — dedup on `(source_id, storage_path)`.
+- `country_source_documents` — dedup on `(country_source_id, page_key)` (normalized page address; one row per page, so a source can hold a whole website) plus `(country_source_id, content_hash)`.
 - `country_source_chunks` — dedup on `(document_id, chunk_index)`.
 - `memory_objects` — dedup on `(country_code, kind, normalized_key)` via `memory-dedup.server.ts`.
 - `country_kpis` / `country_kpi_points` — dedup on `(country_code, kpi_code)` / `(kpi_id, period)`.

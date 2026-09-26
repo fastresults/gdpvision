@@ -36,6 +36,7 @@ export interface PrdRow {
   submitted_at: string | null;
   approved_by: string | null;
   approved_at: string | null;
+  approval_mode: "two_person" | "sole_admin" | null;
   returned_by: string | null;
   returned_at: string | null;
   returned_note: string | null;

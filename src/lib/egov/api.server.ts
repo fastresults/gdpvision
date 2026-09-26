@@ -163,7 +163,7 @@ async function countryName(sb: Admin, code: string): Promise<string> {
 async function approvedPrd(sb: Admin, code: string) {
   const { data } = await db(sb)
     .from("egov_prds")
-    .select("id,version,status,title,approved_at,updated_at,brand,scope")
+    .select("id,version,status,title,approved_at,approval_mode,updated_at,brand,scope")
     .eq("country_code", code)
     .eq("status", "approved")
     .order("version", { ascending: false })
@@ -175,6 +175,7 @@ async function approvedPrd(sb: Admin, code: string) {
     status: string;
     title: string;
     approved_at: string | null;
+    approval_mode: string | null;
     updated_at: string;
     brand: unknown;
     scope: { platform_name?: string };
@@ -597,6 +598,7 @@ export async function serveHandshake(request: Request, identity: ApiIdentity): P
             title: prd.title,
             platform_name: prd.scope?.platform_name ?? null,
             approved_at: prd.approved_at,
+            approval_mode: prd.approval_mode,
           }
         : null,
       brand: brandPayload(identity.country, prd?.brand),

@@ -43,11 +43,16 @@ export type {
 } from "./db";
 
 const PRD_COLS =
-  "id,country_code,version,title,status,scope,brand,model,created_by,submitted_by,submitted_at,approved_by,approved_at,returned_by,returned_at,returned_note,created_at,updated_at";
+  "id,country_code,version,title,status,scope,brand,model,created_by,submitted_by,submitted_at,approved_by,approved_at,approval_mode,returned_by,returned_at,returned_note,created_at,updated_at";
 const SECTION_COLS =
   "id,prd_id,country_code,stage_key,ordinal,heading,body_md,status,context_hash,context,model,authored_at,edited_by,edited_at,created_at";
 
-export type Capabilities = { approve: boolean; isAdmin: boolean };
+export type Capabilities = {
+  approve: boolean;
+  isAdmin: boolean;
+  /** Global admin with no other approver bound to the country: may approve own submission. */
+  soleApprove: boolean;
+};
 
 async function loadCaps(
   sb: Parameters<typeof db>[0],
@@ -55,11 +60,12 @@ async function loadCaps(
   code: string,
 ): Promise<Capabilities> {
   const c = db(sb);
-  const [a, b] = await Promise.all([
+  const [a, b, s] = await Promise.all([
     c.rpc("can_approve_egov", { _user_id: userId, _country_code: code }),
     c.rpc("has_role", { _user_id: userId, _role: "admin" }),
+    c.rpc("can_sole_approve_egov", { _user_id: userId, _country_code: code }),
   ]);
-  return { approve: !!a.data, isAdmin: !!b.data };
+  return { approve: !!a.data, isAdmin: !!b.data, soleApprove: !!s.data };
 }
 
 // ------------------------------------------------------------------ list
@@ -183,6 +189,7 @@ export type HistoryItem = {
   to: string | null;
   note: string | null;
   section: string | null;
+  mode: string | null;
   at: string;
 };
 
@@ -197,6 +204,7 @@ function toHistoryItem(h: HistoryEntry): HistoryItem {
     to: str(m.to),
     note: str(m.note),
     section: str(m.section),
+    mode: str(m.mode),
     at: h.created_at,
   };
 }

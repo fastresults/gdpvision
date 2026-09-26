@@ -5,7 +5,7 @@ import type { BrandTokens } from "./brand";
 import type { PrdRow, SectionRow } from "./db";
 
 export function prdToMarkdown(
-  prd: Pick<PrdRow, "title" | "country_code" | "version" | "status" | "approved_at" | "scope">,
+  prd: Pick<PrdRow, "title" | "country_code" | "version" | "status" | "approved_at" | "approval_mode" | "scope">,
   countryName: string,
   sections: Array<Pick<SectionRow, "ordinal" | "heading" | "body_md" | "status" | "stage_key">>,
   brand: BrandTokens | null,
@@ -15,7 +15,7 @@ export function prdToMarkdown(
     "",
     `**Country:** ${countryName} (${prd.country_code})`,
     `**Version:** ${prd.version}`,
-    `**Status:** ${prd.status}${prd.approved_at ? ` (approved ${prd.approved_at.slice(0, 10)})` : ""}`,
+    `**Status:** ${prd.status}${prd.approved_at ? ` (approved ${prd.approved_at.slice(0, 10)}${prd.approval_mode === "sole_admin" ? ", sole approver, not counter-signed" : ""})` : ""}`,
     `**Platform:** ${prd.scope.platform_name || "To be confirmed"}`,
     `**Audiences:** ${prd.scope.audiences.join(", ") || "all"}`,
     "",

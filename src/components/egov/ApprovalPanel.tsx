@@ -38,7 +38,11 @@ export function ApprovalPanel({
   const [error, setError] = useState<string | null>(null);
 
   const isSubmitter = prd.submitted_by === userId;
-  const canApprove = capabilities.approve && prd.status === "submitted" && !isSubmitter;
+  // Two-person rule, with the sole-approver exception the database enforces
+  // (global admin, nobody else holds an approver role for this country).
+  const soleApproval = isSubmitter && capabilities.soleApprove;
+  const canApprove =
+    capabilities.approve && prd.status === "submitted" && (!isSubmitter || soleApproval);
   const canSubmit = (prd.status === "draft" || prd.status === "returned") && allDrafted;
   const canWithdraw = prd.status === "submitted" && (isSubmitter || capabilities.approve);
   const canReopen = prd.status === "approved" && capabilities.approve;
@@ -76,12 +80,17 @@ export function ApprovalPanel({
       {prd.status === "submitted" && (
         <p className="mt-2 text-xs text-ink-500">
           Submitted {formatWhen(prd.submitted_at)}.{" "}
-          {isSubmitter ? "A second person must approve it." : ""}
+          {isSubmitter && !soleApproval ? "A second person must approve it." : ""}
+          {soleApproval
+            ? "No second approver is bound to this country, so as global admin you may approve your own submission. The approval is recorded as not counter-signed."
+            : ""}
         </p>
       )}
       {prd.status === "approved" && (
         <p className="mt-2 text-xs text-ink-500">
-          Approved {formatWhen(prd.approved_at)}. Share links can now be issued.
+          Approved {formatWhen(prd.approved_at)}
+          {prd.approval_mode === "sole_admin" ? " by the submitter (sole approver, not counter-signed)" : ""}
+          . Share links can now be issued.
         </p>
       )}
       {(prd.status === "draft" || prd.status === "returned") && !allDrafted && (
@@ -115,7 +124,7 @@ export function ApprovalPanel({
               disabled={busy}
               onClick={() => go("approved")}
             >
-              Approve
+              {soleApproval ? "Approve as sole approver" : "Approve"}
             </button>
             <button
               type="button"
@@ -178,6 +187,9 @@ export function ApprovalPanel({
               <div className="text-ink-950">
                 {HISTORY_LABEL[h.action] ?? h.action}
                 {h.section ? <span className="text-ink-500"> · {h.section}</span> : null}
+                {h.mode === "sole_admin" ? (
+                  <span className="text-ink-500"> · sole approver, not counter-signed</span>
+                ) : null}
               </div>
               <div className="text-ink-500">
                 {h.actorLabel ?? "System"} · {formatWhen(h.at)}

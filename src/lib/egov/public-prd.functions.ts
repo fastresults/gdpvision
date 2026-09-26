@@ -92,12 +92,12 @@ export const getPublicPrd = createServerFn({ method: "POST" })
 
     const { data: prdRow } = await c
       .from("egov_prds")
-      .select("id,country_code,version,title,status,scope,brand,approved_at")
+      .select("id,country_code,version,title,status,scope,brand,approved_at,approval_mode")
       .eq("id", l.prd_id)
       .maybeSingle();
     const prd = prdRow as Pick<
       PrdRow,
-      "id" | "country_code" | "version" | "title" | "status" | "scope" | "brand" | "approved_at"
+      "id" | "country_code" | "version" | "title" | "status" | "scope" | "brand" | "approved_at" | "approval_mode"
     > | null;
     if (!prd || prd.status !== "approved") throw new Error(NOT_AVAILABLE);
 

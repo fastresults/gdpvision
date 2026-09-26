@@ -99,6 +99,13 @@
       "when": 1790379819689,
       "tag": "0013_lov_database_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790400000000,
+      "tag": "0014_egov_sole_approver",
+      "breakpoints": true
     }
   ]
 }

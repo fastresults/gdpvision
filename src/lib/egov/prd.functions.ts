@@ -151,12 +151,22 @@ export const createPrd = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<{ id: string; version: number }> => {
     const c = db(context.supabase);
     const brand = buildBrandTokens(data.code);
+    // A blank platform name defaults to the government of the country.
+    const scope = { ...data.scope };
+    if (!scope.platform_name) {
+      const { data: country } = await c
+        .from("countries")
+        .select("name")
+        .eq("code", data.code)
+        .maybeSingle();
+      scope.platform_name = `Government of ${(country as { name?: string } | null)?.name ?? data.code}`;
+    }
     const { data: row, error } = await c
       .from("egov_prds")
       .insert({
         country_code: data.code,
         title: data.title,
-        scope: data.scope,
+        scope,
         brand,
         status: "draft",
       })

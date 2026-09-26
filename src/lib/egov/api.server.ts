@@ -596,7 +596,8 @@ export async function serveHandshake(request: Request, identity: ApiIdentity): P
             id: prd.id,
             version: prd.version,
             title: prd.title,
-            platform_name: prd.scope?.platform_name ?? null,
+            // The platform is named for the government unless the PRD says otherwise.
+            platform_name: prd.scope?.platform_name?.trim() || `Government of ${name}`,
             approved_at: prd.approved_at,
             approval_mode: prd.approval_mode,
           }

@@ -26,7 +26,7 @@ export function NewPrdPanel({
 }) {
   const create = useServerFn(createPrd);
   const [title, setTitle] = useState(`${countryName} e-government platform`);
-  const [platform, setPlatform] = useState("");
+  const [platform, setPlatform] = useState(`Government of ${countryName}`);
   const [audiences, setAudiences] = useState<string[]>(AUDIENCE_OPTIONS.map((a) => a.key));
   const [priorities, setPriorities] = useState<string[]>(["services", "governance"]);
   const [hosting, setHosting] = useState("");
@@ -84,7 +84,7 @@ export function NewPrdPanel({
             className={cn(field, "mt-1")}
             value={platform}
             onChange={(e) => setPlatform(e.target.value)}
-            placeholder="e.g. gov.ag"
+            placeholder={`Government of ${countryName}`}
             maxLength={120}
           />
         </label>

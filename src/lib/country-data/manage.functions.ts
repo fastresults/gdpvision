@@ -190,53 +190,13 @@ export const reingestSource = createServerFn({ method: "POST" })
       .single();
     if (error || !src) throw new Error("Source not found");
 
-    const { fetchFirecrawl, chunkText, embedBatch } = await import(
-      "@/lib/country-onboarding/ingest.server"
-    );
+    const { fetchFirecrawl } = await import("@/lib/country-onboarding/ingest.server");
+    const { upsertPage } = await import("@/lib/country-data/site-crawl.server");
 
     try {
       const doc = await fetchFirecrawl(src.url);
-      // Replace any prior document + chunks for this source
-      const { data: existing } = await supabaseAdmin
-        .from("country_source_documents")
-        .select("id")
-        .eq("country_source_id", src.id);
-      const eIds = (existing ?? []).map((d) => d.id);
-      if (eIds.length) {
-        await supabaseAdmin.from("country_source_chunks").delete().in("document_id", eIds);
-        await supabaseAdmin.from("country_source_documents").delete().in("id", eIds);
-      }
-
-      const chunks = chunkText(doc.markdown);
-      const { data: docRow, error: dErr } = await supabaseAdmin
-        .from("country_source_documents")
-        .insert({
-          country_source_id: src.id,
-          raw_text: doc.markdown,
-          chunk_count: chunks.length,
-          char_count: doc.markdown.length,
-        })
-        .select("id")
-        .single();
-      if (dErr || !docRow) throw dErr ?? new Error("insert doc failed");
-
-      // Embed in batches of 64
-      for (let i = 0; i < chunks.length; i += 64) {
-        const batch = chunks.slice(i, i + 64);
-        const embs = await embedBatch(batch);
-        const rows = batch.map((content, idx) => ({
-          country_code: src.country_code,
-          document_id: docRow.id,
-          chunk_index: i + idx,
-          content,
-          embedding: `[${embs[idx].join(",")}]` as unknown as string,
-        }));
-        const { error: cErr } = await supabaseAdmin
-          .from("country_source_chunks")
-          .insert(rows);
-        if (cErr) throw cErr;
-      }
-
+      // Upsert this one page by its normalized address — never wipes other pages of a site-wide read.
+      const r = await upsertPage(supabaseAdmin, src as any, { url: src.url, title: doc.title, markdown: doc.markdown });
       await supabaseAdmin
         .from("country_sources")
         .update({
@@ -245,7 +205,7 @@ export const reingestSource = createServerFn({ method: "POST" })
           fetch_error: null,
         })
         .eq("id", src.id);
-      return { ok: true, chunks: chunks.length, chars: doc.markdown.length };
+      return { ok: true, chunks: r.chunks, chars: doc.markdown.length, result: r.result };
     } catch (err) {
       await supabaseAdmin
         .from("country_sources")
@@ -257,6 +217,89 @@ export const reingestSource = createServerFn({ method: "POST" })
         .eq("id", src.id);
       throw err;
     }
+  });
+
+// Whole-site reading: start a crawl job, then the client calls crawlSourceStep
+// repeatedly; each step files up to STEP_PAGES finished pages.
+const STEP_PAGES = 12;
+
+export const crawlSource = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), limit: z.number().int().min(1).max(500).default(100) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: src } = await supabaseAdmin.from("country_sources").select("*").eq("id", data.id).single();
+    if (!src?.url || !/^https:\/\//i.test(src.url)) throw new Error("This source has no web address to read.");
+    const { startCrawl } = await import("@/lib/country-data/site-crawl.server");
+    const jobId = await startCrawl(src.url, data.limit);
+    const progress = { limit: data.limit, done: [] as string[], added: 0, updated: 0, unchanged: 0, skipped: 0, failed: [] as Array<{ url: string; error: string }>, chunks: 0, total: 0, started_at: new Date().toISOString() };
+    await supabaseAdmin
+      .from("country_sources")
+      .update({ crawl_status: "running", crawl_job_id: jobId, crawl_progress: progress as any })
+      .eq("id", src.id);
+    return { jobId };
+  });
+
+export const crawlSourceStep = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: src } = await supabaseAdmin.from("country_sources").select("*").eq("id", data.id).single();
+    if (!src?.crawl_job_id) throw new Error("No site-wide read is running for this source.");
+    const { getCrawl, upsertPage, normalizePageKey, sameSite } = await import("@/lib/country-data/site-crawl.server");
+    const p: any = { done: [], failed: [], added: 0, updated: 0, unchanged: 0, skipped: 0, chunks: 0, ...(src.crawl_progress as any) };
+    const job = await getCrawl(src.crawl_job_id);
+    p.total = job.total;
+    p.crawled = job.completed;
+    const doneSet = new Set<string>(p.done);
+    const pending = job.pages.filter((pg) => pg.url && !doneSet.has(normalizePageKey(pg.url)));
+    for (const pg of pending.slice(0, STEP_PAGES)) {
+      const k = normalizePageKey(pg.url);
+      doneSet.add(k);
+      if (!sameSite(pg.url, src.url)) { p.skipped++; continue; }
+      try {
+        const r = await upsertPage(supabaseAdmin, src as any, pg);
+        p[r.result] = (p[r.result] ?? 0) + 1;
+        p.chunks += r.chunks;
+      } catch (e) {
+        p.failed.push({ url: pg.url, error: (e as Error).message.slice(0, 200) });
+      }
+    }
+    p.done = [...doneSet];
+    const remaining = pending.length - Math.min(pending.length, STEP_PAGES);
+    const jobOver = job.status === "completed" || job.status === "failed" || job.status === "cancelled";
+    const finished = jobOver && remaining === 0;
+    const status = finished ? (job.status === "completed" ? "done" : "error") : "running";
+    await supabaseAdmin
+      .from("country_sources")
+      .update({
+        crawl_status: status,
+        crawl_progress: p,
+        ...(finished ? { last_fetched_at: new Date().toISOString(), fetch_status: status === "done" ? "ok" : "error", fetch_error: status === "done" ? null : `Site read ${job.status}` } : {}),
+      })
+      .eq("id", src.id);
+    const { done: _d, ...summary } = p;
+    return { status, jobStatus: job.status, filed: p.done.length, ...summary };
+  });
+
+export const listSourcePages = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { data: rows, error } = await context.supabase
+      .from("country_source_documents")
+      .select("id, page_url, page_title, char_count, chunk_count, fetched_at")
+      .eq("country_source_id", data.id)
+      .order("page_url")
+      .limit(1000);
+    if (error) throw error;
+    return rows ?? [];
   });
 
 // ============================================================

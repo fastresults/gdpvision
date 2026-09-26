@@ -8790,6 +8790,320 @@ export type Database = {
         }
         Relationships: []
       }
+      sector_plan_citations: {
+        Row: {
+          confidence: number | null
+          country_code: string
+          created_at: string
+          excerpt: string | null
+          id: string
+          label: string
+          section_id: string
+          source_kind: string
+          source_ref: string
+        }
+        Insert: {
+          confidence?: number | null
+          country_code: string
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          label: string
+          section_id: string
+          source_kind: string
+          source_ref: string
+        }
+        Update: {
+          confidence?: number | null
+          country_code?: string
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          label?: string
+          section_id?: string
+          source_kind?: string
+          source_ref?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sector_plan_citations_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "sector_plan_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sector_plan_sections: {
+        Row: {
+          audit: Json
+          authored_at: string | null
+          body_md: string
+          context: Json
+          context_hash: string | null
+          country_code: string
+          created_at: string
+          edited_at: string | null
+          edited_by: string | null
+          heading: string
+          id: string
+          model: string | null
+          ordinal: number
+          plan_id: string
+          stage_key: string
+          status: string
+        }
+        Insert: {
+          audit?: Json
+          authored_at?: string | null
+          body_md?: string
+          context?: Json
+          context_hash?: string | null
+          country_code: string
+          created_at?: string
+          edited_at?: string | null
+          edited_by?: string | null
+          heading: string
+          id?: string
+          model?: string | null
+          ordinal: number
+          plan_id: string
+          stage_key: string
+          status?: string
+        }
+        Update: {
+          audit?: Json
+          authored_at?: string | null
+          body_md?: string
+          context?: Json
+          context_hash?: string | null
+          country_code?: string
+          created_at?: string
+          edited_at?: string | null
+          edited_by?: string | null
+          heading?: string
+          id?: string
+          model?: string | null
+          ordinal?: number
+          plan_id?: string
+          stage_key?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sector_plan_sections_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "sector_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sector_plan_snapshots: {
+        Row: {
+          country_code: string
+          id: string
+          plan_id: string
+          reason: string
+          sections: Json
+          taken_at: string
+        }
+        Insert: {
+          country_code: string
+          id?: string
+          plan_id: string
+          reason: string
+          sections: Json
+          taken_at?: string
+        }
+        Update: {
+          country_code?: string
+          id?: string
+          plan_id?: string
+          reason?: string
+          sections?: Json
+          taken_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sector_plan_snapshots_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "sector_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sector_plans: {
+        Row: {
+          approval_mode: string | null
+          approved_at: string | null
+          approved_by: string | null
+          commitment_id: string | null
+          country_code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          model: string | null
+          returned_at: string | null
+          returned_by: string | null
+          returned_note: string | null
+          scope: Json
+          sector_code: string
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approval_mode?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          commitment_id?: string | null
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          model?: string | null
+          returned_at?: string | null
+          returned_by?: string | null
+          returned_note?: string | null
+          scope?: Json
+          sector_code: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          approval_mode?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          commitment_id?: string | null
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          model?: string | null
+          returned_at?: string | null
+          returned_by?: string | null
+          returned_note?: string | null
+          scope?: Json
+          sector_code?: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sector_plans_commitment_id_fkey"
+            columns: ["commitment_id"]
+            isOneToOne: false
+            referencedRelation: "commitments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sector_priorities: {
+        Row: {
+          chosen_at: string | null
+          chosen_by: string | null
+          country_code: string
+          created_at: string
+          exit_rule: string
+          id: string
+          rationale: string
+          retired_at: string | null
+          retired_by: string | null
+          retired_note: string | null
+          sector_code: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          chosen_at?: string | null
+          chosen_by?: string | null
+          country_code: string
+          created_at?: string
+          exit_rule?: string
+          id?: string
+          rationale?: string
+          retired_at?: string | null
+          retired_by?: string | null
+          retired_note?: string | null
+          sector_code: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          chosen_at?: string | null
+          chosen_by?: string | null
+          country_code?: string
+          created_at?: string
+          exit_rule?: string
+          id?: string
+          rationale?: string
+          retired_at?: string | null
+          retired_by?: string | null
+          retired_note?: string | null
+          sector_code?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sector_shortlists: {
+        Row: {
+          brief_md: string
+          citations: Json
+          context_hash: string | null
+          country_code: string
+          generated_at: string
+          generated_by: string | null
+          headline: string
+          id: string
+          model: string | null
+          recommendation: string
+          score: number
+          sector_code: string
+        }
+        Insert: {
+          brief_md?: string
+          citations?: Json
+          context_hash?: string | null
+          country_code: string
+          generated_at?: string
+          generated_by?: string | null
+          headline?: string
+          id?: string
+          model?: string | null
+          recommendation: string
+          score?: number
+          sector_code: string
+        }
+        Update: {
+          brief_md?: string
+          citations?: Json
+          context_hash?: string | null
+          country_code?: string
+          generated_at?: string
+          generated_by?: string | null
+          headline?: string
+          id?: string
+          model?: string | null
+          recommendation?: string
+          score?: number
+          sector_code?: string
+        }
+        Relationships: []
+      }
       sectors: {
         Row: {
           code: string
@@ -10122,11 +10436,19 @@ export type Database = {
         Args: { _country_code: string; _user_id: string }
         Returns: boolean
       }
+      can_approve_sector: {
+        Args: { _country_code: string; _user_id: string }
+        Returns: boolean
+      }
       can_manage_compliance: {
         Args: { _country_code: string; _user_id: string }
         Returns: boolean
       }
       can_sole_approve_egov: {
+        Args: { _country_code: string; _user_id: string }
+        Returns: boolean
+      }
+      can_sole_approve_sector: {
         Args: { _country_code: string; _user_id: string }
         Returns: boolean
       }
@@ -10263,6 +10585,10 @@ export type Database = {
         | "cabinet_secretary"
         | "data_steward"
         | "country_admin"
+        | "sector_minister"
+        | "sector_council_chair"
+        | "sector_council_member"
+        | "delivery_lead"
       scenario_status: "draft" | "shared" | "adopted" | "archived"
       service_request_chamber:
         | "ledger"
@@ -10421,6 +10747,10 @@ export const Constants = {
         "cabinet_secretary",
         "data_steward",
         "country_admin",
+        "sector_minister",
+        "sector_council_chair",
+        "sector_council_member",
+        "delivery_lead",
       ],
       scenario_status: ["draft", "shared", "adopted", "archived"],
       service_request_chamber: [

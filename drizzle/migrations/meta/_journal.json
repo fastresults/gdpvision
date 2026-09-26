@@ -134,6 +134,13 @@
       "when": 1790420000000,
       "tag": "0018_sector_studio",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790388195993,
+      "tag": "0019_sector_studio_apply",
+      "breakpoints": true
     }
   ]
 }

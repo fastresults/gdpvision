@@ -244,7 +244,7 @@ function SiteReadPanel({
   const start = useServerFn(crawlSource);
   const step = useServerFn(crawlSourceStep);
   const listPages = useServerFn(listSourcePages);
-  const [limit, setLimit] = useState(100);
+  const [limit, setLimit] = useState(500);
   const [running, setRunning] = useState(false);
   const [prog, setProg] = useState<any>(initialProgress && Object.keys(initialProgress).length ? initialProgress : null);
   const [status, setStatus] = useState<string | null>(initialStatus);

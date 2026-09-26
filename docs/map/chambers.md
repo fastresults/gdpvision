@@ -78,6 +78,7 @@ Each of the 7 chambers = a route surface + component tree + server-fn module(s) 
 - **Drafting**: one stage per call (`draftSection`), in `EGOV_STAGES` order; the model sees only the stage's context pack (corpus rows + scope + brand tokens + the bundled `AGENTS.md`/chamber map for the architecture stage) and must cite pack keys; unsupported sections are recorded as gaps
 - **Staleness**: `checkStale` re-hashes each pack's corpus lines and marks changed sections `stale`
 - **Platform connection**: public API v1 for the country's e-government platform — `src/routes/api/public/v1/{handshake,countries.$code.$resource}.ts`, contract in `src/lib/egov/api.server.ts`, keys in `egov/api-keys.functions.ts` (`egov_api_keys`, migration 0013), UI `components/egov/ConnectionPanel.tsx`; brand payload carries flag-as-logo/favicon (`MARKS_USAGE`) and the imagery plan (`IMAGERY_SPEC`) from `egov/brand.ts`
+- **Government record** (drizzle 0022): stage 5 "Government, Cabinet and statutory bodies" drafts from `government_offices` + `statutory_bodies` (verified rows) via `readGovernment`; PRDs written before the stage existed get the section added as pending by `ensureSections` in `getPrd`; the API `government` resource serves the verified + public record (`extra.directory`), and `ministries` carries each minister's office and the bodies under the ministry
 - **Explain**: `src/lib/explain/egov-entries.ts` (`egov.*`)
 - **Next phases** (see `prds/PRD-digital-government-studio.md` in the working folder): live repo reads + PRD commits to `content/egov/<CODE>/`, daily staleness hook, public v1 API, scaffold of the country's own `egov-<code>` repository
 
@@ -94,6 +95,15 @@ Each of the 7 chambers = a route surface + component tree + server-fn module(s) 
 - **Public API**: `GET /api/public/v1/countries/<CODE>/sectors` carries `extra.priorities` and `extra.plans` (approved plans with their sections) under the existing `sectors` scope
 - **Roles added** (Phase 2 use): `sector_minister`, `sector_council_chair`, `sector_council_member`, `delivery_lead`
 - **Next phases**: Phase 2 operating system (project register, scorecard with baselines, decision and unblock ledger, Compact signing, scheduled packs); Phase 3 nation loop (public scorecard on the eGov platform, sensitisation toolkit, annual report, nightly Auditor)
+
+## Government record (machinery of government)
+
+- **Route**: `admin/countries.$code.government.tsx` — offices of state and Cabinet, statutory bodies; back-fill, research, edit, verify, publish, retire
+- **Components**: `src/components/government/MachineryTables.tsx`
+- **Server fns**: `src/lib/government/{machinery,research}.functions.ts`; row shapes and the public directory builder in `government/db.ts`
+- **Tables**: `government_offices`, `statutory_bodies` (drizzle/migrations/0022); `machinery_guard` allows public only when verified and returns an edited verified row to draft; history via `log_governance`
+- **Filling**: `backfillGovernment` (Prime Minister from the onboarding profile, a Cabinet office per ministry profile with a minister, office contacts only); `researchOffices` and `researchStatutoryBodies` (one `runWithFallbacks` call each, cited); verified rows are never overwritten by research
+- **Consumers**: PRD stage `government_structure` and service catalogue (chamber 09), Sector Studio pillars/projects/enablers/Compact/Council (chamber 10), public API v1 `government` resource (scope added to new keys by default; active keys granted once in 0022, logged as `egov_api_key.scope_granted`)
 
 ## Strategic workspace · Sovereign Eye
 

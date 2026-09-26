@@ -70,7 +70,7 @@ export function prdToMarkdown(
         "|---|---|",
         "| Base URL | https://gdpvision.com/api/public/v1 |",
         "| Handshake | GET /handshake |",
-        `| Resources | GET /countries/${prd.country_code}/{brand, kpis, commitments, ministries, sectors, datasets, procurement, projects, brain, sources} |`,
+        `| Resources | GET /countries/${prd.country_code}/{brand, kpis, commitments, ministries, government, sectors, datasets, procurement, projects, brain, sources} |`,
         "| Auth | Authorization: Bearer <key from the PRD's Platform connection panel> |",
         "| Incremental | ?since=<next_since from the previous response> |",
         "| Environment | GDPVISION_BASE_URL, GDPVISION_COUNTRY, GDPVISION_API_KEY (server only) |",

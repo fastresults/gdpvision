@@ -191,6 +191,66 @@ const readSectorMinistries: SectorReader = async (sb, code, sector) => {
   return mine.length ? mine : all.slice(0, 20);
 };
 
+/**
+ * Offices and statutory bodies that touch this sector (drizzle 0022): the
+ * head of government and deputy, the ministers of the owning ministries, and
+ * every verified body that serves the sector or sits under an owning
+ * ministry — so owners and Council seats name real institutions.
+ */
+const readSectorGovernment: SectorReader = async (sb, code, sector) => {
+  const c = db(sb);
+  const { data: ministries } = await c
+    .from("ministries")
+    .select("id,slug,name")
+    .eq("country_code", code);
+  const ms = (ministries ?? []) as Array<{ id: string; slug: string; name: string }>;
+  const { data: weights } = ms.length
+    ? await c
+        .from("ministry_sectors")
+        .select("ministry_id,weight")
+        .eq("sector_code", sector)
+        .in(
+          "ministry_id",
+          ms.map((m) => m.id),
+        )
+    : { data: [] as unknown[] };
+  const owning = new Set(
+    ((weights ?? []) as Array<{ ministry_id: string; weight: number }>)
+      .filter((w) => w.weight > 0)
+      .map((w) => ms.find((m) => m.id === w.ministry_id)?.slug)
+      .filter(Boolean) as string[],
+  );
+  const lines = await CORPUS_READERS.government(sb, code);
+  const { data: bodies } = await c
+    .from("statutory_bodies")
+    .select("id,sector_code,parent_ministry_slug")
+    .eq("country_code", code)
+    .eq("status", "verified");
+  const relevantBodies = new Set(
+    (
+      (bodies ?? []) as Array<{
+        id: string;
+        sector_code: string | null;
+        parent_ministry_slug: string | null;
+      }>
+    )
+      .filter(
+        (b) =>
+          b.sector_code === sector ||
+          (b.parent_ministry_slug && owning.has(b.parent_ministry_slug)),
+      )
+      .map((b) => `body.${b.id}`),
+  );
+  const mNames = ms.filter((m) => owning.has(m.slug)).map((m) => m.name);
+  return lines.filter((l) => {
+    if (l.key.startsWith("body.")) return relevantBodies.has(l.key);
+    if (l.key === "office.head_of_government" || l.key === "government.pending") return true;
+    if (l.key.startsWith("office."))
+      return /deputy/i.test(l.text) || mNames.some((n) => l.text.includes(n));
+    return false;
+  });
+};
+
 const readSectorMemory: SectorReader = async (sb, code, sector) => {
   const { data } = await db(sb)
     .from("memory_objects")
@@ -375,25 +435,33 @@ const READERS: Record<SectorStage, SectorReader[]> = {
     country(C.country),
     readSectorCore,
     readSectorMinistries,
+    readSectorGovernment,
     readSectorMemory,
     country(C.standardsGaps),
   ],
   projects: [
     country(C.country),
     readSectorMinistries,
+    readSectorGovernment,
     readSectorProjects,
     readSectorCommitments,
     country(C.commitments),
   ],
-  enablers: [country(C.country), readSectorMinistries, readSectorMemory, country(C.sources)],
+  enablers: [
+    country(C.country),
+    readSectorMinistries,
+    readSectorGovernment,
+    readSectorMemory,
+    country(C.sources),
+  ],
   measurement: [
     country(C.country),
     country(C.kpis),
     country(C.standardsGaps),
     readSectorCommitments,
   ],
-  compact: [country(C.country), readSectorMinistries, country(C.commitments)],
-  council: [country(C.country), readSectorMinistries, readSectorMemory],
+  compact: [country(C.country), readSectorMinistries, readSectorGovernment, country(C.commitments)],
+  council: [country(C.country), readSectorMinistries, readSectorGovernment, readSectorMemory],
   sensitisation: [country(C.country), country(C.personas), readSectorCore],
   roadmap: [country(C.country), readSectorMinistries, country(C.kpis), readSectorProjects],
 };

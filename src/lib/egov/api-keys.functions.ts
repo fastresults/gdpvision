@@ -20,6 +20,7 @@ export const API_SCOPES = [
   "kpis",
   "commitments",
   "ministries",
+  "government",
   "sectors",
   "datasets",
   "procurement",
@@ -34,6 +35,8 @@ export const API_SCOPE_LABEL: Record<ApiScope, string> = {
   kpis: "Country indicators with citations",
   commitments: "Cabinet commitments and Mandate Compact pledges",
   ministries: "Ministries, mandates and portfolios",
+  government:
+    "Head of State, Prime Minister, Cabinet in order of precedence, and statutory bodies (verified, public)",
   sectors: "Sector dossiers (public), priority sectors and approved Sector Development Plans",
   datasets: "Open-data register: standards coverage per requirement",
   procurement: "OC4IDS procurement package (approved projects)",

@@ -82,6 +82,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/_authenticated/admin/countries/$code/executive/chamber/$chamber` | `src/routes/_authenticated/admin/countries.$code.executive.chamber.$chamber.tsx` |
 | `/_authenticated/admin/countries/$code/global` | `src/routes/_authenticated/admin/countries.$code.global.tsx` |
 | `/_authenticated/admin/countries/$code/godseye` | `src/routes/_authenticated/admin/countries.$code.godseye.tsx` |
+| `/_authenticated/admin/countries/$code/government` | `src/routes/_authenticated/admin/countries.$code.government.tsx` |
 | `/_authenticated/admin/countries/$code/investments` | `src/routes/_authenticated/admin/countries.$code.investments.tsx` |
 | `/_authenticated/admin/countries/$code/investments/$id` | `src/routes/_authenticated/admin/countries.$code.investments.$id.tsx` |
 | `/_authenticated/admin/countries/$code/investments/$id/package/$packageId` | `src/routes/_authenticated/admin/countries.$code.investments.$id.package.$packageId.tsx` |

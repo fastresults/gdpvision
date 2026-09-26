@@ -122,6 +122,7 @@ import { Route as AuthenticatedAdminCountriesCodeMandateCompactRouteImport } fro
 import { Route as AuthenticatedAdminCountriesCodeLedgerRouteImport } from './routes/_authenticated/admin/countries.$code.ledger'
 import { Route as AuthenticatedAdminCountriesCodeInvestorsRouteImport } from './routes/_authenticated/admin/countries.$code.investors'
 import { Route as AuthenticatedAdminCountriesCodeInvestmentsRouteImport } from './routes/_authenticated/admin/countries.$code.investments'
+import { Route as AuthenticatedAdminCountriesCodeGovernmentRouteImport } from './routes/_authenticated/admin/countries.$code.government'
 import { Route as AuthenticatedAdminCountriesCodeGodseyeRouteImport } from './routes/_authenticated/admin/countries.$code.godseye'
 import { Route as AuthenticatedAdminCountriesCodeGlobalRouteImport } from './routes/_authenticated/admin/countries.$code.global'
 import { Route as AuthenticatedAdminCountriesCodeExecutiveRouteImport } from './routes/_authenticated/admin/countries.$code.executive'
@@ -807,6 +808,12 @@ const AuthenticatedAdminCountriesCodeInvestmentsRoute =
     path: '/countries/$code/investments',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminCountriesCodeGovernmentRoute =
+  AuthenticatedAdminCountriesCodeGovernmentRouteImport.update({
+    id: '/countries/$code/government',
+    path: '/countries/$code/government',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminCountriesCodeGodseyeRoute =
   AuthenticatedAdminCountriesCodeGodseyeRouteImport.update({
     id: '/countries/$code/godseye',
@@ -1145,6 +1152,7 @@ export interface FileRoutesByFullPath {
   '/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
   '/admin/countries/$code/global': typeof AuthenticatedAdminCountriesCodeGlobalRoute
   '/admin/countries/$code/godseye': typeof AuthenticatedAdminCountriesCodeGodseyeRoute
+  '/admin/countries/$code/government': typeof AuthenticatedAdminCountriesCodeGovernmentRoute
   '/admin/countries/$code/investments': typeof AuthenticatedAdminCountriesCodeInvestmentsRouteWithChildren
   '/admin/countries/$code/investors': typeof AuthenticatedAdminCountriesCodeInvestorsRoute
   '/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
@@ -1294,6 +1302,7 @@ export interface FileRoutesByTo {
   '/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
   '/admin/countries/$code/global': typeof AuthenticatedAdminCountriesCodeGlobalRoute
   '/admin/countries/$code/godseye': typeof AuthenticatedAdminCountriesCodeGodseyeRoute
+  '/admin/countries/$code/government': typeof AuthenticatedAdminCountriesCodeGovernmentRoute
   '/admin/countries/$code/investments': typeof AuthenticatedAdminCountriesCodeInvestmentsRouteWithChildren
   '/admin/countries/$code/investors': typeof AuthenticatedAdminCountriesCodeInvestorsRoute
   '/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
@@ -1444,6 +1453,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/countries/$code/executive': typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
   '/_authenticated/admin/countries/$code/global': typeof AuthenticatedAdminCountriesCodeGlobalRoute
   '/_authenticated/admin/countries/$code/godseye': typeof AuthenticatedAdminCountriesCodeGodseyeRoute
+  '/_authenticated/admin/countries/$code/government': typeof AuthenticatedAdminCountriesCodeGovernmentRoute
   '/_authenticated/admin/countries/$code/investments': typeof AuthenticatedAdminCountriesCodeInvestmentsRouteWithChildren
   '/_authenticated/admin/countries/$code/investors': typeof AuthenticatedAdminCountriesCodeInvestorsRoute
   '/_authenticated/admin/countries/$code/ledger': typeof AuthenticatedAdminCountriesCodeLedgerRoute
@@ -1599,6 +1609,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/executive'
     | '/admin/countries/$code/global'
     | '/admin/countries/$code/godseye'
+    | '/admin/countries/$code/government'
     | '/admin/countries/$code/investments'
     | '/admin/countries/$code/investors'
     | '/admin/countries/$code/ledger'
@@ -1748,6 +1759,7 @@ export interface FileRouteTypes {
     | '/admin/countries/$code/executive'
     | '/admin/countries/$code/global'
     | '/admin/countries/$code/godseye'
+    | '/admin/countries/$code/government'
     | '/admin/countries/$code/investments'
     | '/admin/countries/$code/investors'
     | '/admin/countries/$code/ledger'
@@ -1897,6 +1909,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/countries/$code/executive'
     | '/_authenticated/admin/countries/$code/global'
     | '/_authenticated/admin/countries/$code/godseye'
+    | '/_authenticated/admin/countries/$code/government'
     | '/_authenticated/admin/countries/$code/investments'
     | '/_authenticated/admin/countries/$code/investors'
     | '/_authenticated/admin/countries/$code/ledger'
@@ -2773,6 +2786,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCountriesCodeInvestmentsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/countries/$code/government': {
+      id: '/_authenticated/admin/countries/$code/government'
+      path: '/countries/$code/government'
+      fullPath: '/admin/countries/$code/government'
+      preLoaderRoute: typeof AuthenticatedAdminCountriesCodeGovernmentRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/countries/$code/godseye': {
       id: '/_authenticated/admin/countries/$code/godseye'
       path: '/countries/$code/godseye'
@@ -3251,6 +3271,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminCountriesCodeExecutiveRoute: typeof AuthenticatedAdminCountriesCodeExecutiveRouteWithChildren
   AuthenticatedAdminCountriesCodeGlobalRoute: typeof AuthenticatedAdminCountriesCodeGlobalRoute
   AuthenticatedAdminCountriesCodeGodseyeRoute: typeof AuthenticatedAdminCountriesCodeGodseyeRoute
+  AuthenticatedAdminCountriesCodeGovernmentRoute: typeof AuthenticatedAdminCountriesCodeGovernmentRoute
   AuthenticatedAdminCountriesCodeInvestmentsRoute: typeof AuthenticatedAdminCountriesCodeInvestmentsRouteWithChildren
   AuthenticatedAdminCountriesCodeInvestorsRoute: typeof AuthenticatedAdminCountriesCodeInvestorsRoute
   AuthenticatedAdminCountriesCodeLedgerRoute: typeof AuthenticatedAdminCountriesCodeLedgerRoute
@@ -3300,6 +3321,8 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
       AuthenticatedAdminCountriesCodeGlobalRoute,
     AuthenticatedAdminCountriesCodeGodseyeRoute:
       AuthenticatedAdminCountriesCodeGodseyeRoute,
+    AuthenticatedAdminCountriesCodeGovernmentRoute:
+      AuthenticatedAdminCountriesCodeGovernmentRoute,
     AuthenticatedAdminCountriesCodeInvestmentsRoute:
       AuthenticatedAdminCountriesCodeInvestmentsRouteWithChildren,
     AuthenticatedAdminCountriesCodeInvestorsRoute:

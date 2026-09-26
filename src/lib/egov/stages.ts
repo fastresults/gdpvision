@@ -7,6 +7,7 @@ export type EgovStage =
   | "audiences"
   | "service_catalogue"
   | "governance_layer"
+  | "government_structure"
   | "outward_layer"
   | "identity_payments_interop"
   | "brand_system"
@@ -73,9 +74,20 @@ export const EGOV_STAGES: EgovStageMeta[] = [
     after: ["country_context"],
   },
   {
-    key: "outward_layer",
+    key: "government_structure",
     ordinal: 5,
-    label: "5. Outward-facing",
+    label: "5. Government, Cabinet and statutory bodies",
+    short: "Government",
+    heading: "Government, Cabinet and statutory bodies",
+    desc: "Offices of state, Cabinet, ministries and statutory bodies — the site's directory.",
+    brief:
+      "Specify how the platform presents the machinery of government, from the government lines provided. Cover: the Head of State and Governor-General; the Office of the Prime Minister (a page with the Prime Minister's role, portfolio responsibilities and the office's services); the Cabinet (a page listing every member in order of precedence with title, portfolio, portrait and office contact, and how Cabinet decisions are published); a page for every ministry (minister, mandate, programmes, the statutory bodies under it, and its services); and a page for every statutory body (its enabling Act, mandate, head, board, services, website and contact). Then specify the directory and organisation chart, search across ministries and bodies, and a table mapping each statutory body to the public services it owns in the service catalogue. State that this content is fed by GDPVision's government resource, refreshed on every sync, and that nothing here is typed by hand into the platform. List every ministry and body named in the context; where the context names none, say so in the Gaps list and name the source that would supply it (the government portal, the Laws of the country, the Gazette).",
+    after: ["country_context"],
+  },
+  {
+    key: "outward_layer",
+    ordinal: 6,
+    label: "6. Outward-facing",
     short: "Outward",
     heading: "Outward-facing layer: invest, visit, relocate",
     desc: "Investment pipeline, sector dossiers, narrative signals.",
@@ -85,8 +97,8 @@ export const EGOV_STAGES: EgovStageMeta[] = [
   },
   {
     key: "identity_payments_interop",
-    ordinal: 6,
-    label: "6. Identity, payments, interoperability",
+    ordinal: 7,
+    label: "7. Identity, payments, interoperability",
     short: "Identity",
     heading: "Identity, payments, interoperability and data protection",
     desc: "Research waterfall, CARICOM registry.",
@@ -96,8 +108,8 @@ export const EGOV_STAGES: EgovStageMeta[] = [
   },
   {
     key: "brand_system",
-    ordinal: 7,
-    label: "7. Brand system",
+    ordinal: 8,
+    label: "8. Brand system",
     short: "Brand",
     heading: "Brand system, marks and imagery",
     desc: "Flag tokens, logo and favicon, photography plan.",
@@ -107,19 +119,25 @@ export const EGOV_STAGES: EgovStageMeta[] = [
   },
   {
     key: "architecture",
-    ordinal: 8,
-    label: "8. Architecture",
+    ordinal: 9,
+    label: "9. Architecture",
     short: "Architecture",
     heading: "Architecture, tenancy and the GDPVision connection",
     desc: "Repository index, maps and the public API contract.",
     brief:
-      "Specify the platform architecture as a separate product in its own repository: stack, hosting, environments, tenancy, content management, observability and security baseline. Then specify the GDPVision connection exactly as the API contract lines describe it: the handshake, the keyed read-only endpoints per resource, the incremental sync with ?since, the sync interval, the last-good-copy rule when GDPVision is unreachable, which page or feature of the platform each resource feeds (indicators to the national figures, commitments to the commitments tracker, datasets to the open-data portal, procurement to tenders, projects to the invest journey, brand to the chrome), and the environment variables the platform needs. State what never leaves GDPVision. Ground the rest of the section in the repository index provided.",
-    after: ["service_catalogue", "governance_layer", "outward_layer", "identity_payments_interop"],
+      "Specify the platform architecture as a separate product in its own repository: stack, hosting, environments, tenancy, content management, observability and security baseline. Then specify the GDPVision connection exactly as the API contract lines describe it: the handshake, the keyed read-only endpoints per resource, the incremental sync with ?since, the sync interval, the last-good-copy rule when GDPVision is unreachable, which page or feature of the platform each resource feeds (indicators to the national figures, commitments to the commitments tracker, government to the Office of the Prime Minister, Cabinet, ministry and statutory-body pages, ministries to the ministry pages, datasets to the open-data portal, procurement to tenders, projects to the invest journey, sectors to the sector pages, brand to the chrome), and the environment variables the platform needs. State what never leaves GDPVision. Ground the rest of the section in the repository index provided.",
+    after: [
+      "service_catalogue",
+      "governance_layer",
+      "government_structure",
+      "outward_layer",
+      "identity_payments_interop",
+    ],
   },
   {
     key: "roadmap_proforma",
-    ordinal: 9,
-    label: "9. Roadmap",
+    ordinal: 10,
+    label: "10. Roadmap",
     short: "Roadmap",
     heading: "Roadmap, staffing and cost envelope",
     desc: "Phases and a cost envelope.",
@@ -129,14 +147,14 @@ export const EGOV_STAGES: EgovStageMeta[] = [
   },
   {
     key: "acceptance_kpis",
-    ordinal: 10,
-    label: "10. Acceptance",
+    ordinal: 11,
+    label: "11. Acceptance",
     short: "Acceptance",
     heading: "Acceptance criteria and outcome indicators",
     desc: "Country indicators.",
     brief:
-      "Define acceptance criteria for launch and outcome indicators per audience: what is measured, the baseline where the ledger holds one, the target direction, and who owns each. Prefer indicators the country already publishes.",
-    after: ["service_catalogue", "governance_layer"],
+      "Define acceptance criteria for launch and outcome indicators per audience. Launch criteria must include: every office, ministry and statutory body in GDPVision's government record has its page, and every page is fed by the API rather than typed in. Then the outcome indicators: what is measured, the baseline where the ledger holds one, the target direction, and who owns each. Prefer indicators the country already publishes.",
+    after: ["service_catalogue", "governance_layer", "government_structure"],
   },
 ];
 

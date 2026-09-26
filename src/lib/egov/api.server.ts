@@ -25,6 +25,13 @@ import { db } from "@/lib/syndication/db";
 import { API_SCOPES, type ApiScope } from "./api-keys.functions";
 import { IMAGERY_SPEC, MARKS_USAGE, buildBrandTokens, type BrandTokens } from "./brand";
 import { brandOf } from "./db";
+import {
+  buildDirectory,
+  toPublicBody,
+  toPublicOffice,
+  type BodyRow,
+  type OfficeRow,
+} from "@/lib/government/db";
 
 export const API_VERSION = "v1";
 
@@ -350,6 +357,23 @@ const RESOURCES: Record<ApiScope, Handler> = {
         .eq("visibility", "public"),
       c.from("sectors").select("code,label"),
     ]);
+    // Verified, public machinery-of-government rows (drizzle 0022).
+    const [{ data: offices }, { data: bodies }] = await Promise.all([
+      c
+        .from("government_offices")
+        .select("*")
+        .eq("country_code", id.country)
+        .eq("status", "verified")
+        .eq("visibility", "public"),
+      c
+        .from("statutory_bodies")
+        .select("*")
+        .eq("country_code", id.country)
+        .eq("status", "verified")
+        .eq("visibility", "public"),
+    ]);
+    const officeList = ((offices ?? []) as OfficeRow[]).map(toPublicOffice);
+    const bodyList = ((bodies ?? []) as BodyRow[]).map(toPublicBody);
     const ms = (ministries ?? []) as Array<{
       id: string;
       name: string;
@@ -378,6 +402,12 @@ const RESOURCES: Record<ApiScope, Handler> = {
         slug: m.slug,
         name: m.name,
         minister: p?.minister ?? null,
+        minister_office:
+          officeList.find(
+            (o) =>
+              o.ministry_slug === m.slug &&
+              (o.office === "cabinet_minister" || o.office === "head_of_government"),
+          ) ?? null,
         mandate: p?.mandate ?? null,
         programmes: p?.programmes ?? [],
         sectors: (
@@ -389,9 +419,53 @@ const RESOURCES: Record<ApiScope, Handler> = {
             label: label.get(w.sector_code) ?? w.sector_code,
             weight: w.weight,
           })),
+        statutory_bodies: bodyList
+          .filter((b) => b.parent_ministry_slug === m.slug)
+          .map((b) => ({ slug: b.slug, name: b.name, acronym: b.acronym, kind: b.kind })),
         updated_at: p?.updated_at ?? null,
       };
     });
+  },
+
+  government: async (sb, id, req) => {
+    // The machinery of government: offices of state, Cabinet and statutory
+    // bodies. Verified + public rows only. `data` is the flat list (honours
+    // ?since); `extra.directory` is the whole structure, always complete.
+    const c = db(sb);
+    const [{ data: offices }, { data: bodies }, { data: ministries }] = await Promise.all([
+      c
+        .from("government_offices")
+        .select("*")
+        .eq("country_code", id.country)
+        .eq("status", "verified")
+        .eq("visibility", "public")
+        .order("precedence"),
+      c
+        .from("statutory_bodies")
+        .select("*")
+        .eq("country_code", id.country)
+        .eq("status", "verified")
+        .eq("visibility", "public")
+        .order("name"),
+      c.from("ministries").select("slug,name").eq("country_code", id.country).order("sort_order"),
+    ]);
+    const o = (offices ?? []) as OfficeRow[];
+    const b = (bodies ?? []) as BodyRow[];
+    const s = since(req);
+    const after = (r: { updated_at: string }) => !s || r.updated_at > s;
+    return {
+      data: [
+        ...o.filter(after).map((x) => ({ type: "office", ...toPublicOffice(x) })),
+        ...b.filter(after).map((x) => ({ type: "statutory_body", ...toPublicBody(x) })),
+      ],
+      extra: {
+        directory: buildDirectory(
+          o,
+          b,
+          (ministries ?? []) as Array<{ slug: string; name: string }>,
+        ),
+      },
+    };
   },
 
   sectors: async (sb, id, req) => {

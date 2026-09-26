@@ -461,12 +461,86 @@ const readSources: Reader = async (sb, code) => {
   );
 };
 
+/**
+ * The machinery of government (drizzle 0022): offices of state, Cabinet and
+ * statutory bodies. Verified rows only, so the PRD describes exactly what the
+ * API will serve; a count line says how many still await verification.
+ */
+const readGovernment: Reader = async (sb, code) => {
+  const c = db(sb);
+  const [{ data: offices }, { data: bodies }, { data: ministries }] = await Promise.all([
+    c
+      .from("government_offices")
+      .select("id,office_key,title,holder_name,ministry_slug,portfolio,precedence,party,status")
+      .eq("country_code", code)
+      .neq("status", "retired")
+      .order("precedence")
+      .limit(80),
+    c
+      .from("statutory_bodies")
+      .select(
+        "id,name,acronym,kind,parent_ministry_slug,enabling_act,act_year,mandate,head_name,head_title,services,website,status",
+      )
+      .eq("country_code", code)
+      .neq("status", "retired")
+      .order("name")
+      .limit(120),
+    c.from("ministries").select("slug,name").eq("country_code", code),
+  ]);
+  const mName = new Map(
+    ((ministries ?? []) as Array<{ slug: string; name: string }>).map((m) => [m.slug, m.name]),
+  );
+  const os = (offices ?? []) as Array<Record<string, unknown>>;
+  const bs = (bodies ?? []) as Array<Record<string, unknown>>;
+  const vo = os.filter((o) => o.status === "verified");
+  const vb = bs.filter((b) => b.status === "verified");
+  const out: ContextLine[] = vo.map((o) =>
+    line(
+      o.office_key === "head_of_government" ||
+        o.office_key === "governor_general" ||
+        o.office_key === "head_of_state"
+        ? `office.${o.office_key}`
+        : `office.${o.id}`,
+      `${o.title}${o.holder_name ? `: ${o.holder_name}` : ""}${o.portfolio ? ` — portfolio: ${clip(o.portfolio, 160)}` : ""}${o.ministry_slug ? ` (heads ${mName.get(String(o.ministry_slug)) ?? o.ministry_slug})` : ""}${o.party ? `; ${o.party}` : ""} [precedence ${o.precedence}]`,
+      "corpus_row",
+      `government_offices:${o.id}`,
+      `Government — ${clip(o.title, 60)}`,
+    ),
+  );
+  for (const b of vb) {
+    const services = Array.isArray(b.services) ? (b.services as string[]).slice(0, 6) : [];
+    out.push(
+      line(
+        `body.${b.id}`,
+        `Statutory body: ${b.name}${b.acronym ? ` (${b.acronym})` : ""} — ${String(b.kind).replace(/_/g, " ")}${b.parent_ministry_slug ? `, under ${mName.get(String(b.parent_ministry_slug)) ?? b.parent_ministry_slug}` : ""}${b.enabling_act ? `; ${b.enabling_act}${b.act_year ? ` (${b.act_year})` : ""}` : ""}${b.mandate ? `; mandate: ${clip(b.mandate, 220)}` : ""}${b.head_name ? `; head: ${b.head_name}${b.head_title ? `, ${b.head_title}` : ""}` : ""}${services.length ? `; services: ${services.join(", ")}` : ""}${b.website ? `; ${b.website}` : ""}`,
+        "corpus_row",
+        `statutory_bodies:${b.id}`,
+        `Statutory body — ${clip(b.name, 60)}`,
+      ),
+    );
+  }
+  const pendingO = os.length - vo.length;
+  const pendingB = bs.length - vb.length;
+  if (pendingO || pendingB)
+    out.push(
+      line(
+        "government.pending",
+        `Government record: ${pendingO} office(s) and ${pendingB} statutory bod${pendingB === 1 ? "y" : "ies"} are still awaiting verification in GDPVision and are not yet published.`,
+        "corpus_row",
+        `government_record:${code}`,
+        "Government record — review status",
+      ),
+    );
+  return out;
+};
+
 /** The corpus readers, shared with the Sector Studio's context packs (src/lib/sector/context.server.ts). */
 export const CORPUS_READERS = {
   country: readCountry,
   kpis: readKpis,
   summaries: readSummaries,
   ministries: readMinistries,
+  government: readGovernment,
   sectors: readSectors,
   personas: readPersonas,
   commitments: readCommitments,
@@ -514,7 +588,7 @@ function repoLines(): ContextLine[] {
     ),
     line(
       "repo.interface",
-      "GDPVision exposes to a country platform, read-only and only once approved: country indicators with citations; Mandate Compact and Cabinet commitments with status; procurement records in OC4IDS form; approved investor teasers; ministry profiles and mandates. Never exposed: drafts, compliance records, beneficial owners, persona data, narrative signals.",
+      "GDPVision exposes to a country platform, read-only and only once approved: country indicators with citations; Mandate Compact and Cabinet commitments with status; procurement records in OC4IDS form; approved investor teasers; ministry profiles and mandates; the machinery of government (head of state, Prime Minister, Cabinet, statutory bodies) once verified. Never exposed: drafts, compliance records, beneficial owners, persona data, narrative signals.",
       "repo_file",
       "prds/PRD-digital-government-studio.md#8",
       "GDPVision interface contract",
@@ -567,7 +641,7 @@ function apiContractLines(code: string): ContextLine[] {
     ),
     src(
       "api.envelope",
-      "Envelope: { country, resource, version, generated_at, count, next_since, data }; kpis, commitments, sectors, projects, brain and sources accept ?since=<next_since> for incremental sync.",
+      "Envelope: { country, resource, version, generated_at, count, next_since, data }; kpis, commitments, government, sectors, projects, brain and sources accept ?since=<next_since> for incremental sync. The government resource also returns extra.directory: head of state, head of government, deputy, Cabinet in order of precedence, ministries with their statutory bodies, and every statutory body.",
     ),
     src(
       "api.sync",
@@ -633,8 +707,9 @@ function scopeLines(scope: PrdScope): ContextLine[] {
 const READERS: Record<EgovStage, Reader[]> = {
   country_context: [readCountry, readSummaries, readKpis, readSources],
   audiences: [readCountry, readPersonas, readMemory],
-  service_catalogue: [readCountry, readMinistries, readSectors, readPersonas],
+  service_catalogue: [readCountry, readMinistries, readGovernment, readSectors, readPersonas],
   governance_layer: [readCountry, readCommitments, readStandardsGaps],
+  government_structure: [readCountry, readGovernment, readMinistries],
   outward_layer: [readCountry, readSectors, readProjects, readMemory],
   identity_payments_interop: [readCountry, readMinistries, readSources],
   brand_system: [readCountry],
@@ -651,6 +726,11 @@ const EXPECTS: Partial<Record<EgovStage, Array<{ prefix: string; label: string }
   governance_layer: [
     { prefix: "commitment.", label: "Cabinet commitments" },
     { prefix: "compact.", label: "a Mandate Compact" },
+  ],
+  government_structure: [
+    { prefix: "office.head_of_government", label: "a verified Prime Minister record" },
+    { prefix: "office.", label: "verified Cabinet offices" },
+    { prefix: "body.", label: "verified statutory bodies" },
   ],
   outward_layer: [{ prefix: "sector.", label: "sector dossiers" }],
   acceptance_kpis: [{ prefix: "kpi.", label: "headline indicators" }],

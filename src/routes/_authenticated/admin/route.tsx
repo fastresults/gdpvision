@@ -30,6 +30,7 @@ const COUNTRY_SURFACES = new Set([
   "investors",
   "egov",
   "sector",
+  "government",
 ]);
 
 /** `/admin/countries/KNA/ledger/...` → `{ code: "KNA", surface: "ledger" }` */

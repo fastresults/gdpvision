@@ -191,6 +191,45 @@ export const createPrd = createServerFn({ method: "POST" })
 
 // ------------------------------------------------------------------ read one
 
+/**
+ * PRDs written before a stage was added lack its section; add it as pending
+ * and bring ordinals and headings in line with EGOV_STAGES. Content is never
+ * touched, so an approved PRD stays approved until someone drafts the new
+ * section (which reopens it, as any edit does).
+ */
+async function ensureSections(c: ReturnType<typeof db>, prdId: string, code: string) {
+  const { data } = await c
+    .from("egov_prd_sections")
+    .select("id,stage_key,ordinal,heading")
+    .eq("prd_id", prdId);
+  const have = new Map(
+    (
+      (data ?? []) as Array<{ id: string; stage_key: string; ordinal: number; heading: string }>
+    ).map((s) => [s.stage_key, s]),
+  );
+  const missing = EGOV_STAGES.filter((s) => !have.has(s.key));
+  if (missing.length)
+    await c.from("egov_prd_sections").insert(
+      missing.map((s) => ({
+        prd_id: prdId,
+        country_code: code,
+        stage_key: s.key,
+        ordinal: s.ordinal,
+        heading: s.heading,
+        body_md: "",
+        status: "pending",
+      })),
+    );
+  for (const s of EGOV_STAGES) {
+    const cur = have.get(s.key);
+    if (cur && (cur.ordinal !== s.ordinal || cur.heading !== s.heading))
+      await c
+        .from("egov_prd_sections")
+        .update({ ordinal: s.ordinal, heading: s.heading })
+        .eq("id", cur.id);
+  }
+}
+
 export type HistoryItem = {
   id: string;
   action: string;
@@ -247,6 +286,7 @@ export const getPrd = createServerFn({ method: "POST" })
     if (error) throw governanceError(error);
     if (!row) throw new Error("That PRD was not found, or you don't have access to it.");
     const prd = row as PrdRow;
+    await ensureSections(c, prd.id, data.code);
     const [{ data: sections, error: sErr }, history, caps, { data: country }] = await Promise.all([
       c.from("egov_prd_sections").select(SECTION_COLS).eq("prd_id", prd.id).order("ordinal"),
       loadHistory(context.supabase, "egov_prd", prd.id),

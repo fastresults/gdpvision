@@ -51,6 +51,8 @@ are lifted from the top-of-file docblock — add them to any module missing them
 | `src/lib/galleries.functions.ts` | listGalleries, listAllGalleryItems, createGallery, updateGallery, deleteGallery, moveGallery, addGalleryItem, updateGalleryItem, deleteGalleryItem, moveGalleryItem | core | galleries,gallery_items | src/components/admin/GalleryManager.tsx |
 | `src/lib/github/repo-health.functions.ts` | getGithubRepoHealth | core | none | src/routes/_authenticated/admin/github.tsx |
 | `src/lib/goalseek.functions.ts` | solveForTarget | core | kpis,levers | — |
+| `src/lib/government/machinery.functions.ts` | getGovernment, setMachineryStatus, deleteMachineryRow, saveOffice, saveBody | government | government_offices,statutory_bodies,ministries,sectors,countries | src/routes/_authenticated/admin/countries.$code.government.tsx |
+| `src/lib/government/research.functions.ts` | backfillGovernment, researchOffices, researchStatutoryBodies | government | government_offices,statutory_bodies,ministries,ministry_profiles,onboarding_drafts,countries,sectors | src/routes/_authenticated/admin/countries.$code.government.tsx |
 | `src/lib/idle-images.functions.ts` | listIdleImages, addIdleImage, updateIdleImage, removeIdleImage, moveIdleImage | core | idle_images | src/routes/kiosk.admin.tsx |
 | `src/lib/investments/compliance.functions.ts` | getCompliance, saveCompliance | investments | investment_project_compliance,investment_projects | src/routes/_authenticated/admin/countries.$code.investments.$id.tsx |
 | `src/lib/investments/investors.functions.ts` | listInvestors, saveInvestor, setKyc, listInterests, saveInterest | investments | investors,investor_interests,investment_projects,profiles | src/routes/_authenticated/admin/countries.$code.investors.tsx |

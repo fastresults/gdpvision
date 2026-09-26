@@ -102,7 +102,8 @@ const SYNDICATION: Array<{
     | "/admin/countries/$code/investments"
     | "/admin/countries/$code/investors"
     | "/admin/countries/$code/egov"
-    | "/admin/countries/$code/sector";
+    | "/admin/countries/$code/sector"
+    | "/admin/countries/$code/government";
 }> = [
   {
     title: "Data standards audit",
@@ -126,6 +127,12 @@ const SYNDICATION: Array<{
     blurb:
       "The product requirements for a national e-government platform, written from this country's corpus and approved by a second person.",
     to: "/admin/countries/$code/egov",
+  },
+  {
+    title: "Government record",
+    blurb:
+      "Head of State, Prime Minister, Cabinet and statutory bodies — researched, verified and published to the PRD and the country's platform.",
+    to: "/admin/countries/$code/government",
   },
   {
     title: "Sector Studio",

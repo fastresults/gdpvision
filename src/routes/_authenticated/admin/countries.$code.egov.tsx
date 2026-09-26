@@ -74,6 +74,13 @@ function EgovPage() {
         </div>
         <div className="flex items-center gap-2">
           <Link
+            to="/admin/countries/$code/government"
+            params={{ code }}
+            className="btn-ghost px-3 py-2 text-xs"
+          >
+            Government record
+          </Link>
+          <Link
             to="/admin/countries/$code/standards"
             params={{ code }}
             className="btn-ghost px-3 py-2 text-xs"

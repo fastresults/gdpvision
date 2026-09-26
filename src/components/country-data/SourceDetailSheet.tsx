@@ -102,6 +102,11 @@ export function SourceDetailSheet({
               </a>
             )}
 
+            {/^https:\/\//i.test(src.url ?? "") && (
+              <SiteReadPanel sourceId={src.id} initialStatus={src.crawl_status} initialProgress={src.crawl_progress} onChange={() => { refetch(); qc.invalidateQueries({ queryKey: ["data"] }); }} />
+            )}
+
+
             <section className="space-y-2">
               <div className="flex items-center justify-between">
                 <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">

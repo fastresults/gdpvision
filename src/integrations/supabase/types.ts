@@ -3081,6 +3081,7 @@ export type Database = {
       }
       egov_prds: {
         Row: {
+          approval_mode: string | null
           approved_at: string | null
           approved_by: string | null
           brand: Json
@@ -3101,6 +3102,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          approval_mode?: string | null
           approved_at?: string | null
           approved_by?: string | null
           brand?: Json
@@ -3121,6 +3123,7 @@ export type Database = {
           version?: number
         }
         Update: {
+          approval_mode?: string | null
           approved_at?: string | null
           approved_by?: string | null
           brand?: Json
@@ -10123,6 +10126,10 @@ export type Database = {
         Args: { _country_code: string; _user_id: string }
         Returns: boolean
       }
+      can_sole_approve_egov: {
+        Args: { _country_code: string; _user_id: string }
+        Returns: boolean
+      }
       country_chunks_search: {
         Args: {
           _country_code: string
@@ -10139,6 +10146,10 @@ export type Database = {
           source_title: string
           source_url: string
         }[]
+      }
+      egov_other_approver_exists: {
+        Args: { _country_code: string; _user_id: string }
+        Returns: boolean
       }
       find_story_cluster: {
         Args: { _country: string; _norm_title: string; _since: string }

@@ -9,7 +9,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { getSourceDetail, summarizeSource } from "@/lib/country-data/manage.functions";
+import { crawlSource, crawlSourceStep, getSourceDetail, listSourcePages, summarizeSource } from "@/lib/country-data/manage.functions";
 
 export function SourceDetailSheet({
   sourceId,
@@ -101,6 +101,11 @@ export function SourceDetailSheet({
                 {src.url}
               </a>
             )}
+
+            {/^https:\/\//i.test(src.url ?? "") && (
+              <SiteReadPanel sourceId={src.id} initialStatus={src.crawl_status} initialProgress={src.crawl_progress} onChange={() => { refetch(); qc.invalidateQueries({ queryKey: ["data"] }); }} />
+            )}
+
 
             <section className="space-y-2">
               <div className="flex items-center justify-between">
@@ -222,5 +227,130 @@ export function SourceDetailSheet({
         )}
       </SheetContent>
     </Sheet>
+  );
+}
+
+function SiteReadPanel({
+  sourceId,
+  initialStatus,
+  initialProgress,
+  onChange,
+}: {
+  sourceId: string;
+  initialStatus: string | null;
+  initialProgress: any;
+  onChange: () => void;
+}) {
+  const start = useServerFn(crawlSource);
+  const step = useServerFn(crawlSourceStep);
+  const listPages = useServerFn(listSourcePages);
+  const [limit, setLimit] = useState(100);
+  const [running, setRunning] = useState(false);
+  const [prog, setProg] = useState<any>(initialProgress && Object.keys(initialProgress).length ? initialProgress : null);
+  const [status, setStatus] = useState<string | null>(initialStatus);
+  const [err, setErr] = useState<string | null>(null);
+  const [showPages, setShowPages] = useState(false);
+  const pages = useQuery({
+    queryKey: ["source-pages", sourceId],
+    queryFn: () => listPages({ data: { id: sourceId } }),
+    enabled: showPages,
+  });
+
+  async function loop() {
+    setRunning(true);
+    setErr(null);
+    try {
+      for (let i = 0; i < 400; i++) {
+        const r: any = await step({ data: { id: sourceId } });
+        setProg(r);
+        setStatus(r.status);
+        if (r.status !== "running") break;
+        await new Promise((res) => setTimeout(res, 3000));
+      }
+    } catch (e: any) {
+      setErr(e?.message ?? String(e));
+    } finally {
+      setRunning(false);
+      pages.refetch();
+      onChange();
+    }
+  }
+
+  async function begin() {
+    if (!confirm(`Read up to ${limit} pages from this website? Pages already filed and unchanged are skipped.`)) return;
+    setErr(null);
+    try {
+      await start({ data: { id: sourceId, limit } });
+      setStatus("running");
+      setProg(null);
+      await loop();
+    } catch (e: any) {
+      setErr(e?.message ?? String(e));
+    }
+  }
+
+  const filed = (prog?.added ?? 0) + (prog?.updated ?? 0) + (prog?.unchanged ?? 0);
+  return (
+    <section className="space-y-2 border border-line-200 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Whole-site reading</h3>
+        <div className="flex items-center gap-2">
+          <select
+            value={limit}
+            onChange={(e) => setLimit(Number(e.target.value))}
+            disabled={running}
+            className="border border-line-200 px-1 py-1 text-xs bg-paper-0"
+            aria-label="Page limit"
+          >
+            {[25, 50, 100, 250, 500].map((n) => <option key={n} value={n}>{n} pages</option>)}
+          </select>
+          {status === "running" && !running ? (
+            <button onClick={loop} className="btn-secondary">Resume</button>
+          ) : (
+            <button onClick={begin} disabled={running} className="btn-primary">
+              {running ? "Reading…" : "Read whole site"}
+            </button>
+          )}
+        </div>
+      </div>
+      <p className="text-xs text-ink-500">Stays on this website. Each page is filed once; re-running skips unchanged pages.</p>
+      {prog && (
+        <p className="text-xs text-ink-700">
+          {status === "running"
+            ? `Reading… ${prog.filed ?? filed} of ${prog.total || prog.limit || "?"} pages`
+            : `Read ${filed} pages · ${prog.chunks ?? 0} passages · ${prog.skipped ?? 0} skipped`}
+          {" "}· {prog.added ?? 0} new · {prog.updated ?? 0} updated · {prog.unchanged ?? 0} unchanged
+          {(prog.failed?.length ?? 0) > 0 && ` · ${prog.failed.length} failed`}
+        </p>
+      )}
+      {(prog?.failed?.length ?? 0) > 0 && (
+        <details className="text-xs">
+          <summary className="cursor-pointer text-ink-500">Failed pages</summary>
+          <ul className="mt-1 space-y-1">
+            {prog.failed.map((f: any, i: number) => (
+              <li key={i} className="break-all">{f.url} — {f.error}</li>
+            ))}
+          </ul>
+        </details>
+      )}
+      {err && <p className="text-xs text-signal-negative">{err}</p>}
+      <button onClick={() => setShowPages((v) => !v)} className="btn-ghost">
+        {showPages ? "Hide pages" : "Show filed pages"}
+      </button>
+      {showPages && (
+        <ul className="max-h-64 overflow-y-auto text-xs divide-y divide-line-100">
+          {(pages.data ?? []).map((p: any) => (
+            <li key={p.id} className="py-1 flex justify-between gap-2">
+              <span className="min-w-0">
+                <span className="block truncate">{p.page_title || "(untitled page)"}</span>
+                <span className="block truncate text-ink-500">{p.page_url ? p.page_url.replace(/^https?:\/\//, "") : "(single page)"}</span>
+              </span>
+              <span className="shrink-0 tabular-nums text-ink-500">{p.chunk_count ?? 0} passages</span>
+            </li>
+          ))}
+          {pages.data && pages.data.length === 0 && <li className="py-1 text-ink-500">No pages filed yet.</li>}
+        </ul>
+      )}
+    </section>
   );
 }

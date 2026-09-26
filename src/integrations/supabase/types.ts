@@ -2502,6 +2502,9 @@ export type Database = {
           fetched_at: string
           id: string
           owner_country_code: string | null
+          page_key: string | null
+          page_title: string | null
+          page_url: string | null
           raw_text: string
           uploaded_by: string | null
           visibility: string
@@ -2515,6 +2518,9 @@ export type Database = {
           fetched_at?: string
           id?: string
           owner_country_code?: string | null
+          page_key?: string | null
+          page_title?: string | null
+          page_url?: string | null
           raw_text: string
           uploaded_by?: string | null
           visibility?: string
@@ -2528,6 +2534,9 @@ export type Database = {
           fetched_at?: string
           id?: string
           owner_country_code?: string | null
+          page_key?: string | null
+          page_title?: string | null
+          page_url?: string | null
           raw_text?: string
           uploaded_by?: string | null
           visibility?: string
@@ -2547,6 +2556,9 @@ export type Database = {
           active: boolean
           connection_kind: string | null
           country_code: string
+          crawl_job_id: string | null
+          crawl_progress: Json
+          crawl_status: string | null
           created_at: string
           created_by: string | null
           fetch_error: string | null
@@ -2572,6 +2584,9 @@ export type Database = {
           active?: boolean
           connection_kind?: string | null
           country_code: string
+          crawl_job_id?: string | null
+          crawl_progress?: Json
+          crawl_status?: string | null
           created_at?: string
           created_by?: string | null
           fetch_error?: string | null
@@ -2597,6 +2612,9 @@ export type Database = {
           active?: boolean
           connection_kind?: string | null
           country_code?: string
+          crawl_job_id?: string | null
+          crawl_progress?: Json
+          crawl_status?: string | null
           created_at?: string
           created_by?: string | null
           fetch_error?: string | null

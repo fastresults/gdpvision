@@ -481,3 +481,113 @@ export async function resolveEgov(sb: Db, cc: string): Promise<ChamberSummary> {
     return base;
   }
 }
+
+/**
+ * Chamber 10 — Sector Studio. Priorities chosen, the state of their plans,
+ * and what is waiting on a person: approval, out-of-date sections, sectors
+ * chosen without a plan.
+ */
+export async function resolveSector(sb: Db, cc: string): Promise<ChamberSummary> {
+  const base = emptyChamber("10", "Sector Studio", "/admin/countries/$code/sector", "Office of the Head of Government", [
+    "Priority sectors",
+    "Plans approved",
+    "Awaiting approval",
+  ]);
+  try {
+    const [priRes, planRes, secRes] = await Promise.all([
+      sb.from("sector_priorities").select("sector_code,status,chosen_at,updated_at").eq("country_code", cc).limit(50),
+      sb
+        .from("sector_plans")
+        .select("id,sector_code,version,status,created_at,updated_at,submitted_at,approved_at")
+        .eq("country_code", cc)
+        .order("version", { ascending: false })
+        .limit(100),
+      sb
+        .from("sector_plan_sections")
+        .select("plan_id,stage_key,status,authored_at,edited_at")
+        .eq("country_code", cc)
+        .limit(2000),
+    ]);
+    const priorities = (priRes.data ?? []).filter((p: any) => p.status === "priority");
+    const plans = planRes.data ?? [];
+    const sections = secRes.data ?? [];
+    if (priorities.length === 0 && plans.length === 0) return base;
+
+    const liveBySector = new Map<string, any>();
+    for (const p of plans) if (p.status !== "superseded" && !liveBySector.has(p.sector_code)) liveBySector.set(p.sector_code, p);
+    const approved = priorities.filter((p: any) => liveBySector.get(p.sector_code)?.status === "approved").length;
+    const submitted = plans.filter((p: any) => p.status === "submitted").length;
+    const withoutPlan = priorities.filter((p: any) => !liveBySector.has(p.sector_code)).length;
+    const liveIds = new Set(Array.from(liveBySector.values()).map((p: any) => p.id));
+    const liveSecs = sections.filter((s: any) => liveIds.has(s.plan_id));
+    const stale = liveSecs.filter((s: any) => s.status === "stale").length;
+    const gaps = liveSecs.filter((s: any) => s.status === "gap").length;
+    const stamps = [
+      ...priorities.map((p: any) => p.chosen_at ?? p.updated_at),
+      ...plans.map((p: any) => p.updated_at ?? p.created_at),
+      ...liveSecs.map((s: any) => s.edited_at ?? s.authored_at).filter(Boolean),
+    ];
+
+    return {
+      ...base,
+      kpis: [
+        { label: "Priority sectors", value: `${priorities.length}/4`, tone: priorities.length ? "neutral" : "quiet" },
+        {
+          label: "Plans approved",
+          value: `${approved}/${priorities.length || 0}`,
+          tone: priorities.length && approved === priorities.length ? "positive" : approved ? "neutral" : "quiet",
+        },
+        { label: "Awaiting approval", value: num(submitted), tone: submitted ? "caution" : "quiet" },
+      ],
+      tempo: bucketTempo(stamps),
+      last_activity_at: newest(stamps),
+      next_due: null,
+      recent: [...liveSecs]
+        .filter((s: any) => s.edited_at ?? s.authored_at)
+        .sort((a: any, b: any) => Date.parse(b.edited_at ?? b.authored_at) - Date.parse(a.edited_at ?? a.authored_at))
+        .slice(0, 10)
+        .map((s: any) => ({ at: s.edited_at ?? s.authored_at, text: `${s.stage_key} · ${s.status}` })),
+      alerts: [
+        ...(submitted > 0
+          ? [
+              {
+                chamber: "10",
+                text: `${submitted} sector plan${submitted === 1 ? "" : "s"} awaiting a second person's approval`,
+                severity: 45,
+                because: [`${submitted} submitted`],
+              },
+            ]
+          : []),
+        ...(withoutPlan > 0
+          ? [
+              {
+                chamber: "10",
+                text: `${withoutPlan} priority sector${withoutPlan === 1 ? " has" : "s have"} no plan yet`,
+                severity: 40,
+                because: [`${withoutPlan} without a plan`],
+              },
+            ]
+          : []),
+        ...(stale > 0
+          ? [
+              {
+                chamber: "10",
+                text: `${stale} sector plan section${stale === 1 ? "" : "s"} out of date with the corpus`,
+                severity: 35,
+                because: [`${stale} stale`],
+              },
+            ]
+          : []),
+      ],
+      health: (stale || gaps || withoutPlan
+        ? "caution"
+        : priorities.length && approved === priorities.length
+          ? "positive"
+          : plans.length
+            ? "neutral"
+            : "quiet") as Tone,
+    };
+  } catch {
+    return base;
+  }
+}

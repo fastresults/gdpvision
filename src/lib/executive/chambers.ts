@@ -23,6 +23,7 @@ export const CHAMBER_SLUGS: ChamberSlugEntry[] = [
   { slug: "personas", index: "07", to: "/admin/countries/$code/personas" },
   { slug: "mandate-compact", index: "08", to: "/admin/countries/$code/mandate-compact" },
   { slug: "egov", index: "09", to: "/admin/countries/$code/egov" },
+  { slug: "sector", index: "10", to: "/admin/countries/$code/sector" },
 ];
 
 export function slugForIndex(index: string): string {

@@ -403,8 +403,67 @@ const RESOURCES: Record<ApiScope, Handler> = {
       .limit(LIMIT);
     const s = since(req);
     if (s) q = q.gt("updated_at", s);
-    const { data } = await q;
-    return data ?? [];
+    const c = db(sb);
+    const [{ data }, { data: priorities }, { data: plans }] = await Promise.all([
+      q,
+      c
+        .from("sector_priorities")
+        .select("sector_code,chosen_at")
+        .eq("country_code", id.country)
+        .eq("status", "priority"),
+      // Approved Sector Development Plans only (chamber 10); drafts never leave GDPVision.
+      c
+        .from("sector_plans")
+        .select("id,sector_code,version,title,scope,approved_at,approval_mode,updated_at")
+        .eq("country_code", id.country)
+        .eq("status", "approved"),
+    ]);
+    const approved = (plans ?? []) as Array<
+      Record<string, unknown> & { id: string; scope: Record<string, unknown> }
+    >;
+    const { data: sections } = approved.length
+      ? await c
+          .from("sector_plan_sections")
+          .select("plan_id,stage_key,ordinal,heading,body_md,status")
+          .in(
+            "plan_id",
+            approved.map((p) => p.id),
+          )
+          .order("ordinal")
+      : { data: [] as unknown[] };
+    const secs = (sections ?? []) as Array<{
+      plan_id: string;
+      stage_key: string;
+      ordinal: number;
+      heading: string;
+      body_md: string;
+      status: string;
+    }>;
+    return {
+      data: data ?? [],
+      extra: {
+        priorities: priorities ?? [],
+        plans: approved.map((p) => ({
+          id: p.id,
+          sector_code: p.sector_code,
+          version: p.version,
+          title: p.title,
+          lead_ministry: p.scope?.lead_ministry ?? null,
+          horizon_years: p.scope?.horizon_years ?? null,
+          approved_at: p.approved_at,
+          approval_mode: p.approval_mode,
+          updated_at: p.updated_at,
+          sections: secs
+            .filter((x) => x.plan_id === p.id && x.status !== "pending")
+            .map((x) => ({
+              key: x.stage_key,
+              ordinal: x.ordinal,
+              heading: x.heading,
+              body_md: x.body_md,
+            })),
+        })),
+      },
+    };
   },
 
   datasets: async (sb, id) => {

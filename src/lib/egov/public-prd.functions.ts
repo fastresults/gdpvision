@@ -97,7 +97,15 @@ export const getPublicPrd = createServerFn({ method: "POST" })
       .maybeSingle();
     const prd = prdRow as Pick<
       PrdRow,
-      "id" | "country_code" | "version" | "title" | "status" | "scope" | "brand" | "approved_at" | "approval_mode"
+      | "id"
+      | "country_code"
+      | "version"
+      | "title"
+      | "status"
+      | "scope"
+      | "brand"
+      | "approved_at"
+      | "approval_mode"
     > | null;
     if (!prd || prd.status !== "approved") throw new Error(NOT_AVAILABLE);
 

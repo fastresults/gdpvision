@@ -101,7 +101,8 @@ const SYNDICATION: Array<{
     | "/admin/countries/$code/standards"
     | "/admin/countries/$code/investments"
     | "/admin/countries/$code/investors"
-    | "/admin/countries/$code/egov";
+    | "/admin/countries/$code/egov"
+    | "/admin/countries/$code/sector";
 }> = [
   {
     title: "Data standards audit",
@@ -125,6 +126,12 @@ const SYNDICATION: Array<{
     blurb:
       "The product requirements for a national e-government platform, written from this country's corpus and approved by a second person.",
     to: "/admin/countries/$code/egov",
+  },
+  {
+    title: "Sector Studio",
+    blurb:
+      "From dossier to delivery: the Scout's shortlist, up to four priority sectors, and a Sector Development Plan for each — Compact, Council charter and national sensitisation included.",
+    to: "/admin/countries/$code/sector",
   },
 ];
 

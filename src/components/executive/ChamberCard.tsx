@@ -10,7 +10,7 @@ import { useExecutiveDetail } from "./DetailModal";
 import { TONE_RULE, TONE_TEXT, relTime, shortDate } from "./tone";
 
 /**
- * One anatomy for all nine chambers: 3 KPIs, tempo, last activity, next due.
+ * One anatomy for all ten chambers: 3 KPIs, tempo, last activity, next due.
  * The card face navigates to the room sheet; every individual figure and
  * activity line opens its own detail modal.
  */

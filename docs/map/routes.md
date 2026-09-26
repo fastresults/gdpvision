@@ -111,6 +111,9 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/_authenticated/admin/countries/$code/scenarios/$id` | `src/routes/_authenticated/admin/countries.$code.scenarios.$id.tsx` |
 | `/_authenticated/admin/countries/$code/scenarios/compare` | `src/routes/_authenticated/admin/countries.$code.scenarios.compare.tsx` |
 | `/_authenticated/admin/countries/$code/scenarios/new` | `src/routes/_authenticated/admin/countries.$code.scenarios.new.tsx` |
+| `/_authenticated/admin/countries/$code/sector` | `src/routes/_authenticated/admin/countries.$code.sector.tsx` |
+| `/_authenticated/admin/countries/$code/sector_/$planId` | `src/routes/_authenticated/admin/countries.$code.sector_.$planId.tsx` |
+| `/_authenticated/admin/countries/$code/sector_/$planId_/document` | `src/routes/_authenticated/admin/countries.$code.sector_.$planId_.document.tsx` |
 | `/_authenticated/admin/countries/$code/standards` | `src/routes/_authenticated/admin/countries.$code.standards.tsx` |
 | `/_authenticated/admin/countries/$code/studio` | `src/routes/_authenticated/admin/countries.$code.studio.tsx` |
 | `/_authenticated/admin/countries/$code/studio/` | `src/routes/_authenticated/admin/countries.$code.studio.index.tsx` |

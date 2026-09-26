@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { CitedMarkdown } from "@/components/citations/CitedMarkdown";
 import { Explain } from "@/components/explain/Explain";
 import type { CitationRow, SectionRow } from "@/lib/egov/db";
-import { EGOV_STAGE_BY_KEY } from "@/lib/egov/stages";
+import { EGOV_STAGE_BY_KEY, type EgovStage } from "@/lib/egov/stages";
 import { cn } from "@/lib/utils";
 
 import { MICRO, SECTION_META, formatWhen } from "./labels";
@@ -15,6 +15,9 @@ import { MICRO, SECTION_META, formatWhen } from "./labels";
 /** Markdown styling for a section body: light surfaces, hierarchy by type and rules only. */
 export const MD_CLASS =
   "mt-6 max-w-none text-[15px] leading-relaxed text-ink-950 [&_h3]:mt-7 [&_h3]:font-display [&_h3]:text-lg [&_h3]:text-ink-950 [&_h4]:mt-5 [&_h4]:font-mono [&_h4]:text-[11px] [&_h4]:uppercase [&_h4]:tracking-[0.15em] [&_h4]:text-ink-500 [&_p]:mt-3 [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-1 [&_table]:mt-4 [&_table]:w-full [&_table]:border-t [&_table]:border-line-200 [&_table]:text-sm [&_th]:border-b [&_th]:border-line-200 [&_th]:py-1.5 [&_th]:pr-3 [&_th]:text-left [&_th]:font-mono [&_th]:text-[10px] [&_th]:uppercase [&_th]:tracking-[0.2em] [&_th]:text-ink-500 [&_td]:border-b [&_td]:border-line-200 [&_td]:py-1.5 [&_td]:pr-3 [&_td]:align-top [&_blockquote]:mt-4 [&_blockquote]:border-l-2 [&_blockquote]:border-signal-negative [&_blockquote]:pl-4 [&_blockquote]:text-ink-700 [&_strong]:text-ink-950 [&_a]:underline [&_a]:decoration-line-200 [&_a]:underline-offset-4";
+
+/** A section of any studio document: chamber 09 PRDs and chamber 10 plans share this shape. */
+export type EditableSection = Omit<SectionRow, "stage_key" | "prd_id"> & { stage_key: string };
 
 export function SectionEditor({
   section,
@@ -25,9 +28,11 @@ export function SectionEditor({
   blockedBy,
   onDraft,
   onSave,
+  desc,
+  noun = "PRD",
 }: {
-  section: SectionRow;
-  citations: CitationRow[];
+  section: EditableSection;
+  citations: Array<Pick<CitationRow, "id" | "label" | "excerpt" | "source_ref">>;
   canDraft: boolean;
   canEdit: boolean;
   busy: boolean;
@@ -35,9 +40,13 @@ export function SectionEditor({
   blockedBy: string[];
   onDraft: () => void;
   onSave: (body: string) => Promise<void>;
+  /** One line under the heading; defaults to the chamber 09 stage description. */
+  desc?: string;
+  /** What the document is called in helper text. */
+  noun?: string;
 }) {
   const meta = SECTION_META[section.status];
-  const stage = EGOV_STAGE_BY_KEY[section.stage_key];
+  const stageDesc = desc ?? EGOV_STAGE_BY_KEY[section.stage_key as EgovStage]?.desc ?? "";
   const [editing, setEditing] = useState(false);
   const [body, setBody] = useState(section.body_md);
   const [saving, setSaving] = useState(false);
@@ -89,7 +98,7 @@ export function SectionEditor({
           <h2 id={`sec-${section.stage_key}`} className="mt-1 font-display text-2xl text-ink-950">
             {section.heading}
           </h2>
-          <p className="mt-1 max-w-2xl text-xs text-ink-500">{stage.desc}</p>
+          <p className="mt-1 max-w-2xl text-xs text-ink-500">{stageDesc}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {section.status !== "pending" && !editing && canEdit && (
@@ -166,7 +175,7 @@ export function SectionEditor({
               Cancel
             </button>
             <span className="ml-auto text-xs text-ink-500">
-              Markdown. Editing a submitted or approved PRD reopens it.
+              Markdown. Editing a submitted or approved {noun} reopens it.
             </span>
           </div>
         </div>

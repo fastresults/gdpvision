@@ -20,7 +20,7 @@ export const getExecutiveDashboard = createServerFn({ method: "GET" })
     const cc = data.country_code.toUpperCase();
     const sb = context.supabase as any;
 
-    const [{ resolveLedger, resolvePortfolios, resolveScenarios, resolveStudio }, { resolveNarrative, resolveCabinet, resolvePersonas, resolveMandate, resolveEgov }] =
+    const [{ resolveLedger, resolvePortfolios, resolveScenarios, resolveStudio }, { resolveNarrative, resolveCabinet, resolvePersonas, resolveMandate, resolveEgov, resolveSector }] =
       await Promise.all([
         import("./resolvers/core.server"),
         import("./resolvers/office.server"),
@@ -44,6 +44,7 @@ export const getExecutiveDashboard = createServerFn({ method: "GET" })
       resolvePersonas(sb, cc),
       resolveMandate(sb, cc),
       resolveEgov(sb, cc),
+      resolveSector(sb, cc),
     ]);
 
     const kpiRows = (kpis.data ?? []).filter((r: any) => r.latest_value !== null && r.latest_value !== undefined);

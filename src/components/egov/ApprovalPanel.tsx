@@ -10,8 +10,21 @@ import { cn } from "@/lib/utils";
 
 import { HISTORY_LABEL, MICRO, PRD_META, formatWhen } from "./labels";
 
+/** The status fields of any studio document under the two-person rule. */
+type Approvable = Pick<
+  PrdRow,
+  | "status"
+  | "version"
+  | "returned_note"
+  | "submitted_by"
+  | "submitted_at"
+  | "approved_at"
+  | "approval_mode"
+>;
+
 export function ApprovalPanel({
   prd,
+  approvedNote = "Share links can now be issued.",
   capabilities,
   userId,
   allDrafted,
@@ -20,7 +33,9 @@ export function ApprovalPanel({
   busy,
   onTransition,
 }: {
-  prd: PrdRow;
+  prd: Approvable;
+  /** What approval unlocks, shown after the approval line. */
+  approvedNote?: string;
   capabilities: Capabilities;
   userId: string;
   allDrafted: boolean;
@@ -89,8 +104,10 @@ export function ApprovalPanel({
       {prd.status === "approved" && (
         <p className="mt-2 text-xs text-ink-500">
           Approved {formatWhen(prd.approved_at)}
-          {prd.approval_mode === "sole_admin" ? " by the submitter (sole approver, not counter-signed)" : ""}
-          . Share links can now be issued.
+          {prd.approval_mode === "sole_admin"
+            ? " by the submitter (sole approver, not counter-signed)"
+            : ""}
+          . {approvedNote}
         </p>
       )}
       {(prd.status === "draft" || prd.status === "returned") && !allDrafted && (

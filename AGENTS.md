@@ -43,6 +43,7 @@ Stack: TanStack Start (React 19, Vite 7) on Cloudflare Workers · Tailwind v4 ·
 | 07  | Persona Lab               | `admin/countries/$code/personas`        | —                  | `StudyWizard/*`, `MultimodalInput`                                                   | `personas/*.functions.ts`                                                        |
 | 08  | Mandate Compact           | `admin/countries/$code/mandate-compact` | —                  | `Stepper`, `IngestPanel`, `CompactList`                                              | `mandate-compact/{ingest,list}.functions.ts`                                     |
 | 09  | Digital Government Studio | `admin/countries/$code/egov`            | public `/e/$token` | `egov/{NewPrdPanel,SectionEditor,ApprovalPanel,BrandPreview,SharePanel,PrdDocument}` | `egov/{prd,draft,share-links,public-prd}.functions.ts`, `egov/context.server.ts` |
+| 10  | Sector Studio | `admin/countries/$code/sector` | — | `sector/{SectorBoard,NewPlanPanel,labels}` (+ `egov/{SectionEditor,ApprovalPanel,PrdDocument}`) | `sector/{plan,draft,scout}.functions.ts`, `sector/context.server.ts`, method in `docs/prd/sector-studio-framework.md` |
 
 Full chamber map: `docs/map/chambers.md`.
 

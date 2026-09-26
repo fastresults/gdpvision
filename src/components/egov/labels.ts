@@ -40,6 +40,15 @@ export const HISTORY_LABEL: Record<string, string> = {
   "egov_prd.deleted": "Deleted",
   "egov_share_link.created": "Share link created",
   "egov_share_link.revoked": "Share link revoked",
+  "sector_plan.created": "Created",
+  "sector_plan.edited": "Scope edited",
+  "sector_plan.submitted": "Submitted for approval",
+  "sector_plan.approved": "Approved · Cabinet commitment raised",
+  "sector_plan.returned": "Returned",
+  "sector_plan.withdrawn": "Withdrawn",
+  "sector_plan.reopened": "Reopened",
+  "sector_plan.superseded": "Superseded",
+  "sector_plan.deleted": "Deleted",
 };
 
 export function formatWhen(iso: string | null | undefined): string {

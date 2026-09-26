@@ -17,6 +17,8 @@ export interface PrdDocumentProps {
   accent: string;
   border: string;
   sections: Array<{ ordinal: number; heading: string; body_md: string; status?: string }>;
+  /** The document type, in the kicker and running head. */
+  kind?: string;
 }
 
 function printCss(runningHead: string): string {
@@ -42,14 +44,17 @@ function printCss(runningHead: string): string {
 
 export function PrdDocument(p: PrdDocumentProps) {
   const numbered = p.sections.map((s) => ({ ...s, n: String(s.ordinal).padStart(2, "0") }));
-  const runningHead = `${p.title} · Product requirements`;
+  const kind = p.kind ?? "Product requirements";
+  const runningHead = `${p.title} · ${kind}`;
   return (
     <div className="prd-doc">
       <style>{printCss(runningHead)}</style>
       <div className="space-y-6 print:space-y-0">
         <Sheet className="prd-cover flex min-h-[9in] flex-col print:min-h-0">
           <div aria-hidden className="h-0 border-t-2" style={{ borderColor: p.accent }} />
-          <Kicker className="mt-5">Product requirements · {p.countryName}</Kicker>
+          <Kicker className="mt-5">
+            {kind} · {p.countryName}
+          </Kicker>
           <h1 className="mt-6 max-w-[20ch] font-display text-[40px] leading-[1.05] tracking-tight text-ink-950 print:text-[30pt]">
             {p.title}
           </h1>
@@ -84,7 +89,7 @@ export function PrdDocument(p: PrdDocumentProps) {
         <Sheet className="prd-body">
           <div className="flex items-baseline justify-between gap-4 border-b border-line-200 pb-2 print:hidden">
             <Kicker className="truncate">{p.title}</Kicker>
-            <Kicker className="shrink-0">Product requirements</Kicker>
+            <Kicker className="shrink-0">{kind}</Kicker>
           </div>
           <div className="mt-8 space-y-10 print:mt-0 print:space-y-7">
             {numbered.map((s) => (

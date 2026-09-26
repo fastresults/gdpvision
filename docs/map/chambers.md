@@ -81,6 +81,20 @@ Each of the 7 chambers = a route surface + component tree + server-fn module(s) 
 - **Explain**: `src/lib/explain/egov-entries.ts` (`egov.*`)
 - **Next phases** (see `prds/PRD-digital-government-studio.md` in the working folder): live repo reads + PRD commits to `content/egov/<CODE>/`, daily staleness hook, public v1 API, scaffold of the country's own `egov-<code>` repository
 
+## Chamber 10 · Sector Studio
+
+- **Routes**: `admin/countries.$code.sector.tsx` (sector board: Scout shortlist, priorities, plans), `admin/countries.$code.sector_.$planId.tsx` (section editor, agent, Auditor notes, approval, Cabinet commitment), `admin/countries.$code.sector_.$planId_.document.tsx` (print view)
+- **Components**: `src/components/sector/{SectorBoard,NewPlanPanel}.tsx`, `labels.ts`; reuses `egov/{SectionEditor,ApprovalPanel,PrdDocument}`
+- **Server fns**: `src/lib/sector/{plan,draft,scout}.functions.ts`; context packs in `sector/context.server.ts` (country readers shared from `egov/context.server.ts` via `CORPUS_READERS`, plus sector readers and the bundled method); stages and agent roles in `sector/stages.ts`; model call in `sector/model.server.ts` (`SECTOR_MODEL`, falls back to `EGOV_MODEL`); Auditor in `sector/audit.ts`; markdown export in `sector/markdown.ts`
+- **Method**: `docs/prd/sector-studio-framework.md` — five layers (Head of Government, minister, Sector Council, implementation plan, national sensitisation), seven ingredients, orchestration; bundled into every pack as `method.*` lines, so editing it marks drafted sections out of date
+- **Tables**: `sector_shortlists`, `sector_priorities`, `sector_plans`, `sector_plan_sections`, `sector_plan_citations`, `sector_plan_snapshots` (drizzle/migrations/0018); history via `log_governance` → `audit_log`
+- **Governance**: `sector_priorities_guard` caps active priorities at four and records the reason; `sector_plans_guard` requires a priority before a plan, enforces the status machine, the two-person rule with the sole-admin exception (`can_approve_sector`, `can_sole_approve_sector`), reopens edited plans, refuses out-of-date sections, supersedes the previous approved plan for the sector, and on approval inserts a Cabinet `commitments` row (sector_code, due at the plan horizon) and stores `commitment_id`
+- **Orchestration**: Scout (`runScout`, one call over every sector) → human choice → per stage one agent role (Diagnostician, Strategist, Planner, Economist, Measurer, Drafter) via `draftPlanSection` → Auditor (deterministic: citations, KPI baseline/source/owner, project owner/funder/date/KPI, target consistency, items to confirm) → two-person approval
+- **Executive Brief**: `resolveSector` in `executive/resolvers/office.server.ts`; chamber slug `sector`, index `10`
+- **Public API**: `GET /api/public/v1/countries/<CODE>/sectors` carries `extra.priorities` and `extra.plans` (approved plans with their sections) under the existing `sectors` scope
+- **Roles added** (Phase 2 use): `sector_minister`, `sector_council_chair`, `sector_council_member`, `delivery_lead`
+- **Next phases**: Phase 2 operating system (project register, scorecard with baselines, decision and unblock ledger, Compact signing, scheduled packs); Phase 3 nation loop (public scorecard on the eGov platform, sensitisation toolkit, annual report, nightly Auditor)
+
 ## Strategic workspace · Sovereign Eye
 
 - **Route**: `admin/countries.$code.godseye.tsx`

@@ -85,7 +85,7 @@ function kpiDisplay(value: number, unit: string | null): string {
 
 // ------------------------------------------------------------------ readers
 
-type Reader = (sb: AnyClient, code: string) => Promise<ContextLine[]>;
+export type Reader = (sb: AnyClient, code: string) => Promise<ContextLine[]>;
 
 const readCountry: Reader = async (sb, code) => {
   const { data } = await db(sb)
@@ -460,6 +460,23 @@ const readSources: Reader = async (sb, code) => {
     ),
   );
 };
+
+/** The corpus readers, shared with the Sector Studio's context packs (src/lib/sector/context.server.ts). */
+export const CORPUS_READERS = {
+  country: readCountry,
+  kpis: readKpis,
+  summaries: readSummaries,
+  ministries: readMinistries,
+  sectors: readSectors,
+  personas: readPersonas,
+  commitments: readCommitments,
+  standardsGaps: readStandardsGaps,
+  projects: readProjects,
+  memory: readMemory,
+  sources: readSources,
+} satisfies Record<string, Reader>;
+
+export { clip as clipText, kpiDisplay, line as contextLine };
 
 function repoLines(): ContextLine[] {
   const section = (md: string, from: RegExp, max: number) => {

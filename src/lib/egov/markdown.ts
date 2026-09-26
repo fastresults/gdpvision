@@ -5,7 +5,10 @@ import type { BrandTokens } from "./brand";
 import type { PrdRow, SectionRow } from "./db";
 
 export function prdToMarkdown(
-  prd: Pick<PrdRow, "title" | "country_code" | "version" | "status" | "approved_at" | "approval_mode" | "scope">,
+  prd: Pick<
+    PrdRow,
+    "title" | "country_code" | "version" | "status" | "approved_at" | "approval_mode" | "scope"
+  >,
   countryName: string,
   sections: Array<Pick<SectionRow, "ordinal" | "heading" | "body_md" | "status" | "stage_key">>,
   brand: BrandTokens | null,

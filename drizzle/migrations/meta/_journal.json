@@ -120,6 +120,13 @@
       "when": 1790404000000,
       "tag": "0016_egov_platform_name",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790384777562,
+      "tag": "0017_egov_platform_name_apply",
+      "breakpoints": true
     }
   ]
 }

@@ -4261,6 +4261,84 @@ export type Database = {
           },
         ]
       }
+      government_offices: {
+        Row: {
+          appointed_on: string | null
+          bio: string | null
+          citations: Json
+          confidence: string
+          contact: Json
+          country_code: string
+          created_at: string
+          holder_name: string | null
+          id: string
+          ministry_slug: string | null
+          office_key: string
+          origin: string
+          party: string | null
+          portfolio: string
+          portrait_url: string | null
+          precedence: number
+          source_url: string | null
+          status: string
+          title: string
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+          visibility: string
+        }
+        Insert: {
+          appointed_on?: string | null
+          bio?: string | null
+          citations?: Json
+          confidence?: string
+          contact?: Json
+          country_code: string
+          created_at?: string
+          holder_name?: string | null
+          id?: string
+          ministry_slug?: string | null
+          office_key: string
+          origin?: string
+          party?: string | null
+          portfolio?: string
+          portrait_url?: string | null
+          precedence?: number
+          source_url?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          visibility?: string
+        }
+        Update: {
+          appointed_on?: string | null
+          bio?: string | null
+          citations?: Json
+          confidence?: string
+          contact?: Json
+          country_code?: string
+          created_at?: string
+          holder_name?: string | null
+          id?: string
+          ministry_slug?: string | null
+          office_key?: string
+          origin?: string
+          party?: string | null
+          portfolio?: string
+          portrait_url?: string | null
+          precedence?: number
+          source_url?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          visibility?: string
+        }
+        Relationships: []
+      }
       grade_alerts: {
         Row: {
           acknowledged_at: string | null
@@ -9891,6 +9969,96 @@ export type Database = {
           period_label?: string
           rows?: Json
           weighted_pct?: number
+        }
+        Relationships: []
+      }
+      statutory_bodies: {
+        Row: {
+          acronym: string | null
+          act_year: number | null
+          board_chair: string | null
+          citations: Json
+          confidence: string
+          contact: Json
+          country_code: string
+          created_at: string
+          enabling_act: string | null
+          head_name: string | null
+          head_title: string | null
+          id: string
+          kind: string
+          mandate: string
+          name: string
+          origin: string
+          parent_ministry_slug: string | null
+          sector_code: string | null
+          services: Json
+          slug: string
+          source_url: string | null
+          status: string
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+          visibility: string
+          website: string | null
+        }
+        Insert: {
+          acronym?: string | null
+          act_year?: number | null
+          board_chair?: string | null
+          citations?: Json
+          confidence?: string
+          contact?: Json
+          country_code: string
+          created_at?: string
+          enabling_act?: string | null
+          head_name?: string | null
+          head_title?: string | null
+          id?: string
+          kind?: string
+          mandate?: string
+          name: string
+          origin?: string
+          parent_ministry_slug?: string | null
+          sector_code?: string | null
+          services?: Json
+          slug: string
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          visibility?: string
+          website?: string | null
+        }
+        Update: {
+          acronym?: string | null
+          act_year?: number | null
+          board_chair?: string | null
+          citations?: Json
+          confidence?: string
+          contact?: Json
+          country_code?: string
+          created_at?: string
+          enabling_act?: string | null
+          head_name?: string | null
+          head_title?: string | null
+          id?: string
+          kind?: string
+          mandate?: string
+          name?: string
+          origin?: string
+          parent_ministry_slug?: string | null
+          sector_code?: string | null
+          services?: Json
+          slug?: string
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          visibility?: string
+          website?: string | null
         }
         Relationships: []
       }

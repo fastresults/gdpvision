@@ -188,6 +188,8 @@ export function SourcesTab({ code }: { code: string }) {
   const reingest = useServerFn(reingestSource);
   const [running, setRunning] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<"newest" | "quality" | "name">("newest");
   const [showAdd, setShowAdd] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -208,20 +210,46 @@ export function SourcesTab({ code }: { code: string }) {
 
   const rows = sources as any[];
   const summarized = rows.filter((s) => s.summary).length;
+  const q = query.trim().toLowerCase();
+  const visible = rows
+    .filter((s) => !q || [s.title, s.org, s.url, s.kind].some((v) => String(v ?? "").toLowerCase().includes(q)))
+    .sort((a, b) => {
+      if (sort === "quality") return (b.quality_score ?? 0) - (a.quality_score ?? 0) || String(a.title).localeCompare(String(b.title));
+      if (sort === "name") return String(a.title).localeCompare(String(b.title));
+      return String(b.created_at ?? "").localeCompare(String(a.created_at ?? ""));
+    });
 
   return (
     <section className="space-y-4">
       {err && <div className="p-2 text-xs text-red-700 border border-red-500/50 bg-red-500/10">{err}</div>}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-wrap justify-between items-center gap-3">
         <div className="text-xs text-ink-500">
-          {rows.length} sources · {rows.filter((s) => s.active).length} active · {summarized} with AI summary · 0 duplicates
+          {q ? `${visible.length} of ${rows.length} sources match · ` : `${rows.length} sources · `}
+          {rows.filter((s) => s.active).length} active · {summarized} with AI summary · 0 duplicates
         </div>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.2em] border border-ink-950 bg-ink-950 text-paper-0"
-        >
-          Add source
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search name, organisation or website"
+            aria-label="Search sources"
+            className="w-64 border border-line-200 px-2 py-1.5 text-sm bg-paper-0"
+          />
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as typeof sort)}
+            aria-label="Sort sources"
+            className="border border-line-200 px-2 py-1.5 text-sm bg-paper-0"
+          >
+            <option value="newest">Newest first</option>
+            <option value="quality">Highest quality</option>
+            <option value="name">Name A–Z</option>
+          </select>
+          <button onClick={() => setShowAdd(true)} className="btn-primary">
+            Add source
+          </button>
+        </div>
       </div>
 
       <div className="border border-line-200 overflow-x-auto">
@@ -238,7 +266,7 @@ export function SourcesTab({ code }: { code: string }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((s) => (
+            {visible.map((s) => (
               <tr key={s.id} className="border-t border-line-200 hover:bg-paper-100/40">
                 <td className="px-3 py-2 text-center">
                   <button
@@ -255,6 +283,11 @@ export function SourcesTab({ code }: { code: string }) {
                   >
                     {s.title}
                   </button>
+                  {s.created_at && Date.now() - new Date(s.created_at).getTime() < 7 * 864e5 && (
+                    <span className="ml-2 align-middle text-[10px] font-mono uppercase tracking-[0.15em] px-1.5 py-0.5 border border-gold-500 text-ink-950">
+                      New
+                    </span>
+                  )}
                   {(s as any).visibility === "private" && (
                     <span
                       className="ml-2 align-middle text-[10px] font-mono uppercase tracking-[0.15em] px-1.5 py-0.5 border border-amber-600 bg-amber-50 text-amber-800"
@@ -302,6 +335,9 @@ export function SourcesTab({ code }: { code: string }) {
             ))}
             {rows.length === 0 && (
               <tr><td colSpan={7} className="px-3 py-6 text-center text-sm text-ink-500">No sources yet. Add one or run the Source registry stage in onboarding.</td></tr>
+            )}
+            {rows.length > 0 && visible.length === 0 && (
+              <tr><td colSpan={7} className="px-3 py-6 text-center text-sm text-ink-500">No sources match “{query}”.</td></tr>
             )}
           </tbody>
         </table>

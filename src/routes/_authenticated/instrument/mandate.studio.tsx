@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { listKpis, qualifyKpi, recordKpiActual, saveKpi } from "@/lib/mandate.functions";
 import { listInstanceBindings } from "@/lib/ledger.functions";
+import { listMinistries } from "@/lib/scenarios.functions";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 
 const bindingsQuery = queryOptions({
@@ -18,6 +19,12 @@ function kpisQuery(code: string) {
     queryFn: () => listKpis({ data: { countryCode: code } }),
   });
 }
+function ministriesQuery(code: string) {
+  return queryOptions({
+    queryKey: ["mandate-ministries", code],
+    queryFn: () => listMinistries({ data: { countryCode: code } }),
+  });
+}
 
 export const Route = createFileRoute("/_authenticated/instrument/mandate/studio")({
   head: () => ({ meta: [{ title: "Mandate Studio — GDPVision" }, { name: "robots", content: "noindex" }] }),
@@ -29,6 +36,7 @@ function MandateStudio() {
   const { data: bindings } = useSuspenseQuery(bindingsQuery);
   const code = bindings.find((b) => b.is_default)?.country_code ?? bindings[0]?.country_code ?? "LCA";
   const { data: kpis } = useSuspenseQuery(kpisQuery(code));
+  const { data: ministries } = useSuspenseQuery(ministriesQuery(code));
   const qc = useQueryClient();
   const save = useServerFn(saveKpi);
   const [form, setForm] = useState({
@@ -43,6 +51,7 @@ function MandateStudio() {
     direction: "up" as "up" | "down" | "flat",
     targetBasis: "policy_commitment" as "policy_commitment" | "peer_benchmark" | "approved_scenario",
     evidenceUrl: "",
+    ministryId: "",
   });
 
   const mut = useMutation({
@@ -64,6 +73,7 @@ function MandateStudio() {
           evidenceUrl: form.evidenceUrl,
           warningTolerancePct: 10,
           criticalTolerancePct: 20,
+          ministryId: form.ministryId,
         },
       }),
     onSuccess: () => {
@@ -86,6 +96,12 @@ function MandateStudio() {
         <Field label="Sector">
           <select value={form.sector} onChange={(e) => setForm((f) => ({ ...f, sector: e.target.value }))} className="input">
             {["TOURISM","AGRICULTURE","FINANCE","DIGITAL","INFRASTRUCTURE","ENERGY","MANUFACTURING","HEALTH","EDUCATION"].map((s) => <option key={s}>{s}</option>)}
+          </select>
+        </Field>
+        <Field label="Accountable ministry" span={2}>
+          <select value={form.ministryId} onChange={(e) => setForm((f) => ({ ...f, ministryId: e.target.value }))} className="input" required>
+            <option value="">Select ministry</option>
+            {ministries.map((ministry) => <option key={ministry.id} value={ministry.id}>{ministry.name}</option>)}
           </select>
         </Field>
         <Field label="Unit">

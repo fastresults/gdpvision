@@ -15,7 +15,7 @@ type DeliveryContext = {
   criticalTolerancePct?: number;
 };
 
-const entries: Array<Rationale<PortfolioExposureContext>> = [
+const entries: Array<Rationale<PortfolioExposureContext | DeliveryContext>> = [
   {
     key: "portfolio.gdp-exposure",
     title: "How portfolio GDP exposure is calculated",
@@ -27,11 +27,11 @@ const entries: Array<Rationale<PortfolioExposureContext>> = [
     caveat:
       "This is exposure under portfolio influence, not legal control, spending power or personal performance. Shared sectors appear under more than one ministry, so minister percentages overlap and must not be added together.",
     derive: (ctx) =>
-      ctx?.points.map((point) => ({
+      "points" in ctx ? ctx.points.map((point) => ({
         label: point.minister ?? point.name,
         value: point.gdp > 0 ? `${point.gdp.toFixed(1)}%` : "Not measured",
         note: `${point.sectorCount} mapped sector${point.sectorCount === 1 ? "" : "s"}`,
-      })) ?? [],
+      })) : [],
   },
   {
     key: "portfolio.delivery-status",
@@ -44,12 +44,12 @@ const entries: Array<Rationale<PortfolioExposureContext>> = [
       "Each KPI must name its ministry, baseline period, target date, direction, cadence, target basis and evidence reference. The latest reported actual must still be current for its cadence.",
     caveat:
       "Unqualified, incomplete or stale KPIs remain Unscored. Scores are not inferred from country macro indicators, synthetic histories or keyword matches.",
-    derive: (context: DeliveryContext) => [
-      { label: "Qualified", value: String(context?.qualified ?? 0) },
-      { label: "Unscored", value: String(context?.unscored ?? 0) },
+    derive: (context) => [
+      { label: "Qualified", value: String("qualified" in context ? context.qualified : 0) },
+      { label: "Unscored", value: String("unscored" in context ? context.unscored : 0) },
       {
         label: "Default bands",
-        value: `${context?.warningTolerancePct ?? 10}% / ${context?.criticalTolerancePct ?? 20}%`,
+        value: `${"warningTolerancePct" in context ? context.warningTolerancePct ?? 10 : 10}% / ${"criticalTolerancePct" in context ? context.criticalTolerancePct ?? 20 : 20}%`,
         note: "Each ratified KPI may set stricter approved tolerances.",
       },
     ],

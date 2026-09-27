@@ -397,7 +397,7 @@ function PortfolioDetail() {
               </thead>
               <tbody>
                 {kpiRows.map((r) => (
-                  <tr key={`${r.sector_code}-${r.kpi_code}`} className="border-b border-line-200/60">
+                  <tr key={r.id} className="border-b border-line-200/60">
                     <td className="py-3">
                       <p className="text-ink-950">{r.metric}</p>
                       <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-ink-500">

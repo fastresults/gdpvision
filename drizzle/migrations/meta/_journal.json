@@ -169,6 +169,13 @@
       "when": 1790443026571,
       "tag": "0023_government_structure_apply",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790541385624,
+      "tag": "0024_qualify_portfolio_kpis",
+      "breakpoints": true
     }
   ]
 }

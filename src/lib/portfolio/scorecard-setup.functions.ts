@@ -6,11 +6,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Json } from "@/integrations/supabase/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Json } from "@/integrations/supabase/types";
 
-type Sb = Parameters<Parameters<ReturnType<typeof createServerFn>["handler"]>[0]>[0] extends never
-  ? never
-  : any; // eslint-disable-line @typescript-eslint/no-explicit-any
+type Sb = SupabaseClient<Database>;
 
 export type Proposal = {
   key: string;

@@ -11,7 +11,7 @@ import { PlanPanel } from "@/components/mandate-compact/plan/PlanPanel";
 import { SuperAdminShell } from "@/components/admin/SuperAdminShell";
 import { listMandateCompacts, type CompactRow } from "@/lib/mandate-compact/list.functions";
 import { ingestManifesto } from "@/lib/mandate-compact/ingest.functions";
-import { extractManifesto, type ExtractManifestoResult } from "@/lib/mandate-compact/extract.functions";
+import { extractManifesto, resolveManifestoLink, type ExtractManifestoResult } from "@/lib/mandate-compact/extract.functions";
 import { getMandateCompactDetail, type CompactDetail } from "@/lib/mandate-compact/detail.functions";
 import { decomposeMandateCompact } from "@/lib/mandate-compact/decompose.functions";
 import { transformMandateCompact } from "@/lib/mandate-compact/transform.functions";
@@ -340,6 +340,11 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
   const [phase, setPhase] = useState<"idle" | "extracting" | "ready" | "error">("idle");
   const [phaseMsg, setPhaseMsg] = useState<string>("");
   const [pastedUrl, setPastedUrl] = useState("");
+  const resolveLink = useServerFn(resolveManifestoLink);
+  const [sourceTab, setSourceTab] = useState<"file" | "link" | "text">("file");
+  const [pastedText, setPastedText] = useState("");
+  const [linkCandidates, setLinkCandidates] = useState<{ url: string; label: string; kind: string; picked: boolean }[] | null>(null);
+  const [linkChecking, setLinkChecking] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [dirtyFields, setDirtyFields] = useState<Set<keyof ExtractedForm>>(new Set());
@@ -403,6 +408,7 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
     mimeType?: string;
     filename?: string;
     sourceUrl?: string;
+    sourceUrls?: string[];
     pastedText?: string;
   }) => {
     setPhase("extracting");
@@ -501,7 +507,45 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
   const handleUrl = async () => {
     const url = pastedUrl.trim();
     if (!url) return;
+    setLinkCandidates(null);
+    setLinkChecking(true);
+    recordUpload("Link received", url);
+    try {
+      const r = await resolveLink({ data: { countryCode, url } });
+      if (r.error) {
+        const msg = `Couldn't read that link: ${r.error}. Upload the file or paste the text instead.`;
+        setPhase("error");
+        setPhaseMsg(msg);
+        toast.error(msg);
+        return;
+      }
+      if (r.chars < 3000 && r.candidates.length > 0) {
+        recordUpload("Short page", `${r.chars} chars · ${r.candidates.length} linked documents found`);
+        setLinkCandidates(r.candidates.map((c) => ({ ...c, picked: c.recommended })));
+        return;
+      }
+      recordUpload("Link readable", `${r.chars.toLocaleString()} chars`);
+    } finally {
+      setLinkChecking(false);
+    }
     await runExtract({ countryCode, sourceUrl: url });
+  };
+
+  const readPicked = async () => {
+    const urls = (linkCandidates ?? []).filter((c) => c.picked).map((c) => c.url);
+    if (!urls.length) return;
+    setLinkCandidates(null);
+    recordUpload("Reading linked documents", `${urls.length} selected`);
+    await runExtract({ countryCode, sourceUrl: pastedUrl.trim(), sourceUrls: urls });
+  };
+
+  const handlePastedText = async () => {
+    const t = pastedText.trim();
+    if (t.length < 200) {
+      toast.error("Paste at least 200 characters of the manifesto.");
+      return;
+    }
+    await runExtract({ countryCode, pastedText: capManifestoText(t).text });
   };
 
   const reset = () => {
@@ -563,7 +607,7 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
           Drop the manifesto
         </h2>
         <p className="mt-4 text-sm leading-relaxed text-ink-500">
-          Drop a PDF, DOCX, or TXT — or paste a URL. AI reads it end-to-end and
+          Upload a PDF, DOCX or TXT, paste a link (web page, PDF, Drive, Dropbox or OneDrive), or paste the text. AI reads it end-to-end and
           fills in the election cycle, title, PM, party, summary, and top
           pillars. You only review and sign off.
         </p>
@@ -585,44 +629,129 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
       </div>
 
       <div className="space-y-10 lg:col-span-8">
-        {/* ─── Drop zone ─────────────────────────────────────────────── */}
-        <DropZone
-          phase={phase}
-          phaseMsg={phaseMsg}
-          dragOver={dragOver}
-          onDragState={setDragOver}
-          onFile={handleFile}
-          onReset={reset}
-          uploadLog={uploadLog}
-        />
-
-
-        {/* URL alternative */}
         {phase !== "ready" && (
-          <div className="mt-4 flex items-center gap-3 border-b border-line-200 pb-2">
-            <Link2 className="h-3.5 w-3.5 shrink-0 text-ink-400" />
-            <input
-              type="url"
-              value={pastedUrl}
-              onChange={(e) => setPastedUrl(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  void handleUrl();
-                }
-              }}
-              placeholder="…or paste a manifesto URL and press Enter"
-              disabled={phase === "extracting"}
-              className="w-full appearance-none border-0 bg-transparent p-0 py-1 text-sm text-ink-950 placeholder:text-ink-300 focus:outline-none focus:ring-0"
+          <div role="tablist" aria-label="Manifesto source" className="flex gap-6 border-b border-line-200">
+            {([
+              ["file", "Upload file", Upload],
+              ["link", "From a link", Link2],
+              ["text", "Paste text", FileText],
+            ] as const).map(([key, label, Icon]) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={sourceTab === key}
+                onClick={() => setSourceTab(key)}
+                className={cn(
+                  "-mb-px flex items-center gap-2 border-b-2 pb-2 font-mono text-[10px] uppercase tracking-[0.2em]",
+                  sourceTab === key ? "border-gold-500 text-ink-950" : "border-transparent text-ink-500 hover:text-ink-950",
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" /> {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {(sourceTab === "file" || phase === "ready" || phase === "extracting") && (
+          <DropZone
+            phase={phase}
+            phaseMsg={phaseMsg}
+            dragOver={dragOver}
+            onDragState={setDragOver}
+            onFile={handleFile}
+            onReset={reset}
+            uploadLog={uploadLog}
+          />
+        )}
+
+        {sourceTab === "link" && phase !== "ready" && phase !== "extracting" && (
+          <div className="space-y-4 border border-dashed border-line-200 p-8">
+            <p className="text-sm text-ink-500">
+              Paste a link to the manifesto — a web page, a PDF, or a Google Drive, Dropbox or OneDrive share link.
+              If the page only links to the manifesto, we&apos;ll show you what we found.
+            </p>
+            <div className="flex items-center gap-3 border-b border-line-200 pb-2">
+              <Link2 className="h-3.5 w-3.5 shrink-0 text-ink-400" />
+              <input
+                type="url"
+                value={pastedUrl}
+                onChange={(e) => setPastedUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void handleUrl();
+                  }
+                }}
+                placeholder="https://… manifesto link"
+                disabled={linkChecking}
+                className="w-full appearance-none border-0 bg-transparent p-0 py-1 text-sm text-ink-950 placeholder:text-ink-300 focus:outline-none focus:ring-0"
+              />
+              <button
+                type="button"
+                onClick={() => void handleUrl()}
+                disabled={linkChecking || !pastedUrl.trim()}
+                className="btn-primary shrink-0"
+              >
+                {linkChecking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Read
+              </button>
+            </div>
+            {phase === "error" && phaseMsg ? <p className="text-[12px] text-ink-800">{phaseMsg}</p> : null}
+            {linkCandidates && (
+              <div className="space-y-3">
+                <p className="text-sm text-ink-950">
+                  That page is short, but it links to {linkCandidates.length} document
+                  {linkCandidates.length === 1 ? "" : "s"}. Pick the manifesto — several chapters are read in order.
+                </p>
+                <ul className="max-h-72 divide-y divide-line-200 overflow-y-auto border-y border-line-200">
+                  {linkCandidates.map((c, i) => (
+                    <li key={c.url}>
+                      <label className="flex cursor-pointer items-start gap-3 py-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={c.picked}
+                          onChange={() =>
+                            setLinkCandidates((prev) => prev!.map((x, j) => (j === i ? { ...x, picked: !x.picked } : x)))
+                          }
+                          className="mt-1"
+                        />
+                        <span className="min-w-0">
+                          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">{c.kind}</span>{" "}
+                          <span className="text-ink-950">{c.label}</span>
+                          <span className="block truncate text-[11px] text-ink-400">{c.url}</span>
+                        </span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex gap-3">
+                  <button type="button" className="btn-primary" onClick={() => void readPicked()} disabled={!linkCandidates.some((c) => c.picked)}>
+                    Read {linkCandidates.filter((c) => c.picked).length} selected
+                  </button>
+                  <button type="button" className="btn-ghost" onClick={() => { setLinkCandidates(null); void runExtract({ countryCode, sourceUrl: pastedUrl.trim() }); }}>
+                    Use the page itself
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {sourceTab === "text" && phase !== "ready" && phase !== "extracting" && (
+          <div className="space-y-3">
+            <textarea
+              value={pastedText}
+              onChange={(e) => setPastedText(e.target.value)}
+              rows={10}
+              placeholder="Paste the manifesto text here…"
+              className="w-full border border-line-200 bg-paper-50 p-3 text-sm text-ink-950 placeholder:text-ink-300 focus:border-gold-500 focus:outline-none"
             />
-            <button
-              type="button"
-              onClick={() => void handleUrl()}
-              disabled={phase === "extracting" || !pastedUrl.trim()}
-              className="shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500 hover:text-gold-500 disabled:cursor-not-allowed disabled:text-ink-300"
-            >
-              Read →
-            </button>
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[10px] text-ink-500">{pastedText.length.toLocaleString()} characters</span>
+              <button type="button" className="btn-primary" onClick={() => void handlePastedText()} disabled={pastedText.trim().length < 200}>
+                Read text
+              </button>
+            </div>
           </div>
         )}
 

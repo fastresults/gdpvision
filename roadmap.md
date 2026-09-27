@@ -7,4 +7,4 @@
 - [ ] OECS-only peer group toggle — waiting on user's answer (all Caribbean vs OECS default)
 - [ ] Admin review list for flagged outliers (23 flagged)
 - [ ] Storm forecast cones; optional satellite / flight / ship globe layers
-- [ ] Sector Plan visual summary: target trajectory, readiness, delivery portfolio, roadmap, evidence, and executive perspectives
+- [x] Sector Plan visual summary: target trajectory, readiness, delivery portfolio, roadmap, evidence, and executive perspectives

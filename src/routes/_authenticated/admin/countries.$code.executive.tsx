@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/exec
       { title: `Executive Brief · ${params.code} — GDPVision` },
       {
         name: "description",
-        content: `One screen for the Principal: what requires a decision today, and the state of all eight chambers for ${params.code}.`,
+        content: `One screen for the Principal: what requires a decision today, and the state of all ten chambers for ${params.code}.`,
       },
       { name: "robots", content: "noindex" },
     ],

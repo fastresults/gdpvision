@@ -7,9 +7,9 @@
 import { useSyncExternalStore } from "react";
 import type { AnyRouter } from "@tanstack/react-router";
 
-export type TrailEntry = { href: string; pathname: string; title: string; at: number };
+export type TrailEntry = { idx: number; href: string; pathname: string; title: string; at: number };
 
-const KEY = "gdpv.nav.trail.v1";
+const KEY = "gdpv.nav.trail.v2";
 const MAX = 50;
 const IGNORE = [/^\/auth(\/|$|\?)/, /^\/reset-password/];
 
@@ -22,7 +22,7 @@ function load() {
   loaded = true;
   try {
     const raw = sessionStorage.getItem(KEY);
-    if (raw) trail = (JSON.parse(raw) as TrailEntry[]).filter((e) => typeof e?.href === "string");
+    if (raw) trail = (JSON.parse(raw) as TrailEntry[]).filter((e) => typeof e?.href === "string" && typeof e?.idx === "number");
   } catch {
     trail = [];
   }
@@ -41,22 +41,25 @@ export function getTrail(): TrailEntry[] {
   return trail;
 }
 
-/** Record a resolved navigation. Detects Back so the trail mirrors real history. */
-export function record(href: string, pathname: string) {
+/**
+ * Record a resolved navigation at the browser's own history position.
+ * Entries at or after this position are dropped (they were replaced or are
+ * forward entries), so the trail mirrors real history — no guessing.
+ */
+export function record(href: string, pathname: string, idx: number) {
   load();
   if (IGNORE.some((r) => r.test(pathname))) return;
-  const last = trail[trail.length - 1];
-  if (last?.href === href) return;
-  const prev = trail[trail.length - 2];
-  if (prev?.href === href) {
-    trail = trail.slice(0, -1); // user went back one step
-  } else if (last && last.pathname === pathname) {
-    // Same page, different address state (tab/step/modal) — replace, don't flood.
-    trail = [...trail.slice(0, -1), { ...last, href, at: Date.now() }];
-  } else {
-    trail = [...trail, { href, pathname, title: "", at: Date.now() }].slice(-MAX);
-  }
+  const cur = trail.find((e) => e.idx === idx);
+  if (cur?.href === href && trail[trail.length - 1] === cur) return;
+  const title = cur && cur.pathname === pathname ? cur.title : "";
+  trail = [...trail.filter((e) => e.idx < idx), { idx, href, pathname, title, at: Date.now() }].slice(-MAX);
   save();
+}
+
+/** Browser history position of a location (TanStack stores it on history state). */
+export function historyIndex(state: unknown): number {
+  const v = (state as { __TSR_index?: unknown } | null)?.__TSR_index;
+  return typeof v === "number" ? v : 0;
 }
 
 export function setCurrentTitle(title: string) {
@@ -64,13 +67,6 @@ export function setCurrentTitle(title: string) {
   const last = trail[trail.length - 1];
   if (!last || !title || last.title === title) return;
   trail = [...trail.slice(0, -1), { ...last, title }];
-  save();
-}
-
-/** Drop entries after index i (used when jumping back several steps). */
-export function truncateTo(i: number) {
-  load();
-  trail = trail.slice(0, i + 1);
   save();
 }
 
@@ -129,11 +125,11 @@ export function startTrail(router: AnyRouter): () => void {
   load();
   const unsub = router.subscribe("onResolved", (evt) => {
     const loc = evt.toLocation;
-    record(loc.href, loc.pathname);
+    record(loc.href, loc.pathname, historyIndex(loc.state ?? router.history.location.state));
     setTimeout(() => setCurrentTitle(document.title.replace(/\s+—\s+GDPVision$/, "")), 120);
   });
   const loc = router.state.location;
-  record(loc.href, loc.pathname);
+  record(loc.href, loc.pathname, historyIndex(router.history.location.state));
   setTimeout(() => setCurrentTitle(document.title.replace(/\s+—\s+GDPVision$/, "")), 300);
   return unsub;
 }

@@ -18,8 +18,30 @@ const ExtractInput = z.object({
   mimeType: z.string().optional(),
   filename: z.string().optional(),
   sourceUrl: z.string().url().optional(),
+  sourceUrls: z.array(z.string().url()).max(20).optional(),
   pastedText: z.string().max(500_000).optional(),
 });
+
+/** Previews a link: how much text it holds and, when thin, candidate PDF/chapter links. */
+export const resolveManifestoLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ countryCode: z.string().min(2).max(3), url: z.string().url() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: allowed } = await context.supabase.rpc("has_country_access", {
+      _user_id: context.userId,
+      _country_code: data.countryCode,
+    });
+    if (!allowed) throw new Error("Forbidden: no access to this country");
+    const { readManifestoLink } = await import("./link-reader.server");
+    try {
+      const r = await readManifestoLink(data.url);
+      return { url: r.url, title: r.title, chars: r.text.length, candidates: r.candidates, error: null as string | null };
+    } catch (e) {
+      return { url: data.url, title: "", chars: 0, candidates: [], error: (e as Error).message };
+    }
+  });
 
 const ExtractedSchema = z.object({
   election_cycle: z.string().describe("e.g. '2025-2030'"),
@@ -110,15 +132,22 @@ export const extractManifesto = createServerFn({ method: "POST" })
         throw new Error(`File parse failed: ${(err as Error).message}`);
       }
 
+    } else if (data.sourceUrls && data.sourceUrls.length > 0) {
+      textSource = "url";
+      const { readManifestoLinks } = await import("./link-reader.server");
+      const r = await readManifestoLinks(data.sourceUrls);
+      if (!r.text) throw new Error(`None of the selected links could be read. ${r.failed[0] ?? ""}`);
+      rawText = r.text;
+      sourceUrl = data.sourceUrl ?? data.sourceUrls[0];
     } else if (data.sourceUrl) {
       textSource = "url";
       try {
-        const { fetchFirecrawl } = await import("@/lib/country-onboarding/ingest.server");
-        const doc = await fetchFirecrawl(data.sourceUrl);
-        rawText = doc.markdown ?? "";
-        sourceUrl = doc.url ?? data.sourceUrl;
+        const { readManifestoLink } = await import("./link-reader.server");
+        const doc = await readManifestoLink(data.sourceUrl);
+        rawText = doc.text;
+        sourceUrl = data.sourceUrl;
       } catch (err) {
-        throw new Error(`URL fetch failed: ${(err as Error).message}`);
+        throw new Error(`Couldn't read that link: ${(err as Error).message}. Try uploading the file or pasting the text.`);
       }
     } else if (data.pastedText) {
       textSource = data.filename || data.mimeType ? "file" : "pasted";

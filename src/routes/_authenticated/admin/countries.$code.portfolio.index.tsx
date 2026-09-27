@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
+import { MinisterGdpExposureCurve } from "@/components/portfolio/MinisterGdpExposureCurve";
 import { listMinistries } from "@/lib/scenarios.functions";
 import { listMinistryProfiles } from "@/lib/country-data/manage.functions";
 import { getVizOverview } from "@/lib/country-viz/viz.functions";
@@ -138,13 +139,15 @@ function PortfolioIndex() {
         </p>
       </div>
 
+      <MinisterGdpExposureCurve code={code} points={rows} />
+
       <div className="mt-8 overflow-x-auto">
         <table className="w-full text-sm" data-numeric>
           <thead>
             <tr className="border-b border-line-200 text-left text-xs uppercase tracking-widest text-ink-500">
               <th className="py-2 font-normal">Portfolio · Minister</th>
               <th className="py-2 text-right font-normal">Sectors</th>
-              <th className="py-2 text-right font-normal">GDP owned</th>
+              <th className="py-2 text-right font-normal">GDP exposure</th>
               <th className="py-2 text-center font-normal">On / At risk / Off</th>
               <th className="py-2 text-right font-normal">Evidence</th>
               <th className="py-2"></th>

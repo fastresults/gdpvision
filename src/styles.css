@@ -403,11 +403,27 @@
   }
 }
 
+@utility portfolio-exposure-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: gdpv-portfolio-exposure-draw var(--dur-signature) var(--ease-draw) forwards;
+}
+
+@keyframes gdpv-portfolio-exposure-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 120ms !important;
     animation-delay: 0ms !important;
     transition-duration: 120ms !important;
+  }
+
+  .portfolio-exposure-draw {
+    stroke-dashoffset: 0;
   }
 }
 

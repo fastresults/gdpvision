@@ -45,6 +45,8 @@ const POOL_RULE: Record<PoolKey, string> = {
   commitment: "Public expenditure × (decisions per quarter ÷ 120), capped at 1 × 5%.",
   fdi: "Nominal GDP × 2%, held deliberately flat rather than scaled to ambition.",
   concentration: "Nominal GDP × (top-sector share − 25 percentage points), floored at zero.",
+  service_friction: "Public expenditure × the share of transactions not completable online × 4%.",
+  sector_drift: "Nominal GDP × the share of output in priority sectors with no approved plan × 3%.",
 };
 
 const POOL_CAVEAT: Record<PoolKey, string> = {
@@ -57,6 +59,10 @@ const POOL_CAVEAT: Record<PoolKey, string> = {
   fdi: "Two per cent of GDP is a conservative addressable pool for a small open economy. Larger pipelines are not modelled.",
   concentration:
     "Concentration below 25 per cent of output is treated as normal specialisation, not exposure.",
+  service_friction:
+    "Four per cent of public spend at full friction is a low ceiling; digital-service programmes report larger savings, but most of it accrues to citizens and firms rather than the Treasury.",
+  sector_drift:
+    "A sector with a plan and an owner is not modelled as drifting. The pool only counts output in sectors named as priorities that have neither.",
 };
 
 function poolEntry(pool: PoolKey): Rationale<CalcCtx> {
@@ -65,7 +71,8 @@ function poolEntry(pool: PoolKey): Rationale<CalcCtx> {
     title: POOL_LABEL[pool],
     short: `An addressable pool the chambers draw against. ${POOL_RULE[pool]}`,
     formula: POOL_RULE[pool],
-    basis: "Pools size the loss. Chambers claim a stated, bounded fraction of them — never the whole pool.",
+    basis:
+      "Pools size the loss. Chambers claim a stated, bounded fraction of them — never the whole pool.",
     caveat: POOL_CAVEAT[pool],
     derive: (ctx) => [
       {
@@ -126,10 +133,13 @@ const QUESTION_ENTRIES: Array<Rationale<CalcCtx>> = [
   {
     key: "calc.q.decisionsPerQuarter",
     title: "GDP-moving decisions per quarter",
-    short: "Sets the follow-through pool: the more a Cabinet decides, the more there is to lose between decision and delivery.",
+    short:
+      "Sets the follow-through pool: the more a Cabinet decides, the more there is to lose between decision and delivery.",
     formula: "Follow-through pool = public expenditure × (decisions ÷ 120), capped at 1 × 5%.",
-    basis: "Cadence is a proxy for exposure. A Cabinet taking 120 GDP-moving decisions a quarter carries the full 5% at risk.",
-    caveat: "Count only decisions that commit capital, change an incentive, or reallocate a programme.",
+    basis:
+      "Cadence is a proxy for exposure. A Cabinet taking 120 GDP-moving decisions a quarter carries the full 5% at risk.",
+    caveat:
+      "Count only decisions that commit capital, change an incentive, or reallocate a programme.",
     derive: (ctx) => [
       { label: "Your answer", value: `${ctx.input.decisionsPerQuarter} per quarter` },
       { label: "Follow-through pool", value: formatUsdExact(ctx.result.pools.commitment) },
@@ -138,10 +148,12 @@ const QUESTION_ENTRIES: Array<Rationale<CalcCtx>> = [
   {
     key: "calc.q.latencyMonths",
     title: "Months from question asked to decision taken",
-    short: "Sets the latency pool — the value held up while numbers are reconciled rather than acted on.",
+    short:
+      "Sets the latency pool — the value held up while numbers are reconciled rather than acted on.",
     formula: "Latency pool = public expenditure × (months − 1) ÷ 17 × 8%.",
     basis: "One month is treated as frictionless. Eighteen months releases the full 8% band.",
-    caveat: "Count reconciliation time, not deliberation time. Deliberation is the job; reconciliation is the tax.",
+    caveat:
+      "Count reconciliation time, not deliberation time. Deliberation is the job; reconciliation is the tax.",
     derive: (ctx) => [
       { label: "Your answer", value: `${ctx.input.latencyMonths} months` },
       { label: "Latency pool", value: formatUsdExact(ctx.result.pools.latency) },
@@ -150,10 +162,12 @@ const QUESTION_ENTRIES: Array<Rationale<CalcCtx>> = [
   {
     key: "calc.q.unmeasuredPct",
     title: "Programme spend with no measured outcome",
-    short: "Sets the reallocation pool. Chambers 02, 07 and 08 claim small, stated fractions of it.",
+    short:
+      "Sets the reallocation pool. Chambers 02, 07 and 08 claim small, stated fractions of it.",
     formula: "Unmeasured pool = public expenditure × your percentage.",
     basis: "Money disbursed and reported, but never scored against a stated result.",
-    caveat: "Unmeasured is not wasted. At most 24% of this pool is ever claimed, across three chambers combined.",
+    caveat:
+      "Unmeasured is not wasted. At most 24% of this pool is ever claimed, across three chambers combined.",
     derive: (ctx) => [
       { label: "Your answer", value: `${ctx.input.unmeasuredPct}% of public spend` },
       { label: "Unmeasured pool", value: formatUsdExact(ctx.result.pools.unmeasured) },
@@ -162,13 +176,44 @@ const QUESTION_ENTRIES: Array<Rationale<CalcCtx>> = [
   {
     key: "calc.q.topSectorSharePct",
     title: "Share of output in your largest sector",
-    short: "Sets the concentration pool — output exposed above a 25 per cent single-sector threshold.",
+    short:
+      "Sets the concentration pool — output exposed above a 25 per cent single-sector threshold.",
     formula: "Concentration pool = GDP × (share − 25pp), floored at zero.",
-    basis: "Below a quarter of output, single-sector weight is specialisation. Above it, it is exposure.",
+    basis:
+      "Below a quarter of output, single-sector weight is specialisation. Above it, it is exposure.",
     caveat: "Only Chamber 04 draws on this, and at 6 per cent — de-risking is slow work.",
     derive: (ctx) => [
       { label: "Your answer", value: `${ctx.input.topSectorSharePct}% of GDP` },
       { label: "Exposed above threshold", value: formatUsdExact(ctx.result.pools.concentration) },
+    ],
+  },
+  {
+    key: "calc.q.servicesOfflinePct",
+    title: "Share of government transactions still on paper or in person",
+    short:
+      "Sets the service-friction pool — the cost to citizens, firms and the state of services that cannot be completed online.",
+    formula: "Service-friction pool = public expenditure × share offline × 4%.",
+    basis:
+      "Digital-service programmes in comparable states report 20–40% lower transaction cost; the model claims a fraction and lets Chamber 09 recover 30% of that.",
+    caveat:
+      "Most of the saving accrues to the public rather than the Treasury; the figure is value released, not revenue.",
+    derive: (ctx) => [
+      { label: "Your answer", value: `${ctx.input.servicesOfflinePct}% of transactions` },
+      { label: "Service-friction pool", value: formatUsdExact(ctx.result.pools.service_friction) },
+    ],
+  },
+  {
+    key: "calc.q.unplannedPrioritySharePct",
+    title: "Share of output in priority sectors with no plan and no owner",
+    short:
+      "Sets the sector-drift pool — output the government has named as a priority but not organised.",
+    formula: "Sector-drift pool = GDP × unplanned priority share × 3%.",
+    basis:
+      "Malaysia's ETP and Singapore's ITMs attribute most of their uplift to named ownership and a project register. Chamber 10 recovers a quarter of the pool.",
+    caveat: "A sector with an approved plan is not counted as drifting, whatever its performance.",
+    derive: (ctx) => [
+      { label: "Your answer", value: `${ctx.input.unplannedPrioritySharePct}% of GDP` },
+      { label: "Sector-drift pool", value: formatUsdExact(ctx.result.pools.sector_drift) },
     ],
   },
 ];
@@ -191,7 +236,9 @@ const CORE_ENTRIES: Array<Rationale<CalcCtx>> = [
       {
         label: `Ceiling (${UPLIFT_CEILING_PCT_OF_GDP}% of GDP × stance)`,
         value: formatUsdExact(
-          ctx.input.gdpUsd * (UPLIFT_CEILING_PCT_OF_GDP / 100) * STANCE_MULTIPLIER[ctx.input.stance],
+          ctx.input.gdpUsd *
+            (UPLIFT_CEILING_PCT_OF_GDP / 100) *
+            STANCE_MULTIPLIER[ctx.input.stance],
         ),
       },
       {
@@ -208,10 +255,13 @@ const CORE_ENTRIES: Array<Rationale<CalcCtx>> = [
   {
     key: "calc.pp",
     title: "Uplift as percentage points of GDP",
-    short: "The same figure expressed against your economy, so it can be compared across countries of any size.",
+    short:
+      "The same figure expressed against your economy, so it can be compared across countries of any size.",
     formula: "pp of GDP = year-three uplift ÷ nominal GDP × 100.",
-    basis: "No configuration may exceed 1.2 percentage points at the central stance. The optimistic stance lifts that ceiling to 1.74.",
-    caveat: "Absolute dollars flatter large economies; percentage points flatter small ones. Read both.",
+    basis:
+      "No configuration may exceed 1.2 percentage points at the central stance. The optimistic stance lifts that ceiling to 1.74.",
+    caveat:
+      "Absolute dollars flatter large economies; percentage points flatter small ones. Read both.",
     derive: (ctx) => [
       { label: "Uplift, year three", value: formatUsdExact(ctx.result.upliftUsd) },
       { label: "Nominal GDP", value: formatUsdExact(ctx.input.gdpUsd) },
@@ -223,8 +273,10 @@ const CORE_ENTRIES: Array<Rationale<CalcCtx>> = [
     title: "Return multiple",
     short: "Year-three uplift divided by the annual cost of the instrument at your adoption level.",
     formula: "Return = year-three uplift ÷ annual cost.",
-    basis: "Compared against the recurring annual cost, not the year-one cost, because the uplift is also recurring.",
-    caveat: "A high multiple on a low base is still a low number. Read it beside the absolute uplift.",
+    basis:
+      "Compared against the recurring annual cost, not the year-one cost, because the uplift is also recurring.",
+    caveat:
+      "A high multiple on a low base is still a low number. Read it beside the absolute uplift.",
     derive: (ctx) => [
       { label: "Uplift, year three", value: formatUsdExact(ctx.result.upliftUsd) },
       { label: "Annual cost", value: formatUsdExact(ctx.result.annualCostUsd) },
@@ -237,9 +289,11 @@ const CORE_ENTRIES: Array<Rationale<CalcCtx>> = [
   {
     key: "calc.payback",
     title: "Payback period",
-    short: "How long the year-one uplift takes to cover the year-one cost, including implementation.",
+    short:
+      "How long the year-one uplift takes to cover the year-one cost, including implementation.",
     formula: "Payback months = year-one cost ÷ (year-one uplift ÷ 12).",
-    basis: "Year one is deliberately the hardest test: the cost carries a 40 per cent implementation uplift while the benefit runs at 35 per cent of maturity.",
+    basis:
+      "Year one is deliberately the hardest test: the cost carries a 40 per cent implementation uplift while the benefit runs at 35 per cent of maturity.",
     caveat: "Shown as '—' beyond ten years, or where nothing is adopted.",
     derive: (ctx) => [
       { label: "Year-one cost", value: formatUsdExact(ctx.result.yearOneCostUsd) },
@@ -260,9 +314,12 @@ const CORE_ENTRIES: Array<Rationale<CalcCtx>> = [
     key: "calc.cost",
     title: "Annual cost of the instrument",
     short: "A base platform charge plus a per-chamber charge for each chamber actually stood up.",
-    formula: "Annual = US$300,000 + US$95,000 × chambers adopted. Year one carries a 40% implementation uplift.",
-    basis: "A chamber counts as adopted at 10 per cent or more. Piloting a chamber costs the same as running it.",
-    caveat: "An indicative band for modelling, not a quotation. Scope, data condition and pace all move it.",
+    formula:
+      "Annual = US$300,000 + US$95,000 × chambers adopted. Year one carries a 40% implementation uplift.",
+    basis:
+      "A chamber counts as adopted at 10 per cent or more. Piloting a chamber costs the same as running it.",
+    caveat:
+      "An indicative band for modelling, not a quotation. Scope, data condition and pace all move it.",
     derive: (ctx) => [
       { label: "Base", value: formatUsdExact(300_000) },
       {
@@ -280,10 +337,13 @@ const CORE_ENTRIES: Array<Rationale<CalcCtx>> = [
   {
     key: "calc.path",
     title: "The three-year path",
-    short: "Chambers land over three years. The ramp is fixed at 35, 75 and 100 per cent of the year-three figure.",
+    short:
+      "Chambers land over three years. The ramp is fixed at 35, 75 and 100 per cent of the year-three figure.",
     formula: `Year n uplift = year-three uplift × ramp[n], ramp = ${RAMP.join(" / ")}.`,
-    basis: "Institutionalisation is slower than installation. The ramp encodes that, rather than assuming day-one maturity.",
-    caveat: "The ramp is not sensitive to how many chambers you adopt — sequencing changes the shape in practice.",
+    basis:
+      "Institutionalisation is slower than installation. The ramp encodes that, rather than assuming day-one maturity.",
+    caveat:
+      "The ramp is not sensitive to how many chambers you adopt — sequencing changes the shape in practice.",
     derive: (ctx) =>
       ctx.result.path.map((p, i) => ({
         label: `Year ${p.year}`,
@@ -294,17 +354,20 @@ const CORE_ENTRIES: Array<Rationale<CalcCtx>> = [
   {
     key: "calc.stance",
     title: "Stance",
-    short: "One multiplier applied to every contribution and to the ceiling: conservative 0.60, central 1.00, optimistic 1.45.",
+    short:
+      "One multiplier applied to every contribution and to the ceiling: conservative 0.60, central 1.00, optimistic 1.45.",
     formula: "Every chamber contribution × stance; ceiling = GDP × 1.2% × stance.",
     basis:
       "Rather than three sets of coefficients, one honest multiplier — so the difference between the cases is visible instead of buried.",
-    caveat: "Present the conservative case. If the conservative case does not carry, the argument is not ready.",
+    caveat:
+      "Present the conservative case. If the conservative case does not carry, the argument is not ready.",
     derive: (ctx) => [
       stanceLine(ctx),
       {
         label: "Conservative would give",
         value: formatUsd(
-          (ctx.result.upliftUsd / STANCE_MULTIPLIER[ctx.input.stance]) * STANCE_MULTIPLIER.conservative,
+          (ctx.result.upliftUsd / STANCE_MULTIPLIER[ctx.input.stance]) *
+            STANCE_MULTIPLIER.conservative,
         ),
         note: "Approximate — the ceiling moves with the stance too.",
       },
@@ -313,8 +376,10 @@ const CORE_ENTRIES: Array<Rationale<CalcCtx>> = [
   {
     key: "calc.ceiling",
     title: "The 1.2 per cent ceiling",
-    short: "No configuration of sliders may claim more than 1.2 per cent of GDP at the central stance. The cap is soft, not a clip.",
-    formula: "Uplift = ceiling × (1 − e^(−raw ÷ ceiling)). Every chamber is then scaled by uplift ÷ raw.",
+    short:
+      "No configuration of sliders may claim more than 1.2 per cent of GDP at the central stance. The cap is soft, not a clip.",
+    formula:
+      "Uplift = ceiling × (1 − e^(−raw ÷ ceiling)). Every chamber is then scaled by uplift ÷ raw.",
     basis:
       "The exponential form keeps the model monotone and continuous: adding adoption always adds value, and no single chamber can be made to dominate by pushing one slider.",
     caveat:
@@ -327,7 +392,10 @@ const CORE_ENTRIES: Array<Rationale<CalcCtx>> = [
         { label: "Ceiling", value: formatUsdExact(ceiling) },
         {
           label: "Scaling applied to every chamber",
-          value: ctx.result.rawUsd > 0 ? `× ${(ctx.result.upliftUsd / ctx.result.rawUsd).toFixed(3)}` : "—",
+          value:
+            ctx.result.rawUsd > 0
+              ? `× ${(ctx.result.upliftUsd / ctx.result.rawUsd).toFixed(3)}`
+              : "—",
         },
         { label: "Capped uplift", value: formatUsdExact(ctx.result.upliftUsd) },
       ];
@@ -335,11 +403,15 @@ const CORE_ENTRIES: Array<Rationale<CalcCtx>> = [
   },
   {
     key: "calc.preset",
-    title: "Reference economy",
-    short: "Order-of-magnitude seeds for GDP, public expenditure and sector concentration. Every one of them is editable.",
-    formula: "Selecting a reference economy sets three sliders. It does nothing else.",
-    basis: "Published national accounts, rounded hard. The model never depends on the preset being exact.",
-    caveat: "If you know your own figures, set them. The verdict follows the sliders, not the country name.",
+    title: "Country",
+    short:
+      "Choosing a country fills the figures from GDPVision's record for it — graded, with sources — and falls back to regional reference values where the record is silent.",
+    formula:
+      "Selecting a country proposes every framing answer the record supports and the chamber sequence it implies. Every proposal is editable.",
+    basis:
+      "Only figures that are public by construction are read: graded macro series, counts of approved or verified rows, standards coverage. Never a draft, never a name.",
+    caveat:
+      "If you know a better figure, set it. The verdict follows the sliders, not the country name.",
     derive: (ctx) => [
       { label: "Selected", value: ctx.countryName },
       { label: "Nominal GDP", value: formatUsdExact(ctx.input.gdpUsd) },
@@ -353,7 +425,8 @@ const CORE_ENTRIES: Array<Rationale<CalcCtx>> = [
     short: "The base every pool and the ceiling are measured against.",
     formula: "Pools scale linearly with GDP; the ceiling is 1.2% of it.",
     basis: "Nominal, current prices, in US dollars — the unit a Principal argues in.",
-    caveat: "Doubling GDP roughly doubles the verdict. Comparison across economies should use the pp-of-GDP figure.",
+    caveat:
+      "Doubling GDP roughly doubles the verdict. Comparison across economies should use the pp-of-GDP figure.",
     derive: (ctx) => [
       { label: "Nominal GDP", value: formatUsdExact(ctx.input.gdpUsd) },
       {
@@ -366,9 +439,12 @@ const CORE_ENTRIES: Array<Rationale<CalcCtx>> = [
     key: "calc.publicSpend",
     title: "Public expenditure",
     short: "General government spending as a share of GDP. It sizes three of the five pools.",
-    formula: "Public expenditure = GDP × your percentage. Latency, unmeasured and follow-through pools all derive from it.",
-    basis: "Clamped to a 5–60 per cent band, because outside it the pool logic stops describing a real fiscal state.",
-    caveat: "Include transfers and programme spend; the model treats all of it as addressable in principle.",
+    formula:
+      "Public expenditure = GDP × your percentage. Latency, unmeasured and follow-through pools all derive from it.",
+    basis:
+      "Clamped to a 5–60 per cent band, because outside it the pool logic stops describing a real fiscal state.",
+    caveat:
+      "Include transfers and programme spend; the model treats all of it as addressable in principle.",
     derive: (ctx) => [
       { label: "Share of GDP", value: `${ctx.input.publicSpendPct}%` },
       {
@@ -385,7 +461,8 @@ const CORE_ENTRIES: Array<Rationale<CalcCtx>> = [
     title: "Attribution by chamber",
     short: "How the capped verdict divides across the chambers you have stood up.",
     formula: "Each chamber's share = its scaled contribution ÷ the capped total.",
-    basis: "Attribution is computed after the ceiling, so the shares always sum to the verdict — never to more than it.",
+    basis:
+      "Attribution is computed after the ceiling, so the shares always sum to the verdict — never to more than it.",
     caveat: "Shares move when you change any slider, not only the chamber's own.",
     derive: (ctx) =>
       ctx.result.chambers
@@ -416,7 +493,8 @@ const CORE_ENTRIES: Array<Rationale<CalcCtx>> = [
         label: "Highest-leverage chamber (computed, not authored)",
         value: ctx.result.highestLeverageIndex
           ? `${ctx.result.highestLeverageIndex} · ${
-              CHAMBER_COEFFICIENTS.find((c) => c.index === ctx.result.highestLeverageIndex)?.short ?? ""
+              CHAMBER_COEFFICIENTS.find((c) => c.index === ctx.result.highestLeverageIndex)
+                ?.short ?? ""
             }`
           : "—",
         note: "Found by probing each chamber one notch (+25) and keeping the largest gain.",

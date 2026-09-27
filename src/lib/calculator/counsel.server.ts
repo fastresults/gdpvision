@@ -38,7 +38,13 @@ export interface CounselFacts {
   unmeasuredPct: number;
   topSectorSharePct: number;
   decisionsPerQuarter: number;
-  chambers: Array<{ index: string; short: string; adoption: number; usd: number; mechanism: string }>;
+  chambers: Array<{
+    index: string;
+    short: string;
+    adoption: number;
+    usd: number;
+    mechanism: string;
+  }>;
   highestLeverage: string | null;
 }
 
@@ -54,9 +60,15 @@ const SYSTEM = [
 function factsBlock(f: CounselFacts): string {
   const adopted = f.chambers
     .filter((c) => c.adoption > 0)
-    .map((c) => `${c.index} ${c.short} at ${c.adoption}% adoption, contributing US$${Math.round(c.usd).toLocaleString("en-US")} (${c.mechanism})`)
+    .map(
+      (c) =>
+        `${c.index} ${c.short} at ${c.adoption}% adoption, contributing US$${Math.round(c.usd).toLocaleString("en-US")} (${c.mechanism})`,
+    )
     .join("; ");
-  const untouched = f.chambers.filter((c) => c.adoption === 0).map((c) => `${c.index} ${c.short}`).join(", ");
+  const untouched = f.chambers
+    .filter((c) => c.adoption === 0)
+    .map((c) => `${c.index} ${c.short}`)
+    .join(", ");
   return [
     `Country or economy: ${f.country}.`,
     `Nominal GDP: US$${Math.round(f.gdpUsd).toLocaleString("en-US")}.`,
@@ -79,9 +91,21 @@ export const FALLBACK_COUNSEL: Counsel = {
   weakest_assumption:
     "The share of programme spend with no measured outcome is the figure most often understated. Test the verdict against a lower value before relying on it.",
   sequencing: [
-    { horizon: "First 30 days", chamber: "01 · The National Ledger", reason: "Nothing else can be trusted until one set of numbers is agreed." },
-    { horizon: "By six months", chamber: "06 · The Cabinet Room", reason: "Follow-through on decisions already taken is the cheapest value in government." },
-    { horizon: "Within the first year", chamber: "08 · The Mandate Compact", reason: "Scoring the mandate quarterly converts intent into completed work." },
+    {
+      horizon: "First 30 days",
+      chamber: "01 · The National Ledger",
+      reason: "Nothing else can be trusted until one set of numbers is agreed.",
+    },
+    {
+      horizon: "By six months",
+      chamber: "06 · The Cabinet Room",
+      reason: "Follow-through on decisions already taken is the cheapest value in government.",
+    },
+    {
+      horizon: "Within the first year",
+      chamber: "08 · The Mandate Compact",
+      reason: "Scoring the mandate quarterly converts intent into completed work.",
+    },
   ],
 };
 

@@ -7,7 +7,7 @@ const ACCENT: Record<string, string> = Object.fromEntries(
 );
 
 /**
- * Attribution of the verdict across the eight chambers. Horizontal on desktop,
+ * Attribution of the verdict across the ten chambers. Horizontal on desktop,
  * a stacked list on mobile — the same numbers either way.
  */
 export function ChamberWaterfall({ chambers }: { chambers: ChamberContribution[] }) {

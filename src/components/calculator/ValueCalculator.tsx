@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
 import { CHAMBERS } from "@/lib/chambers";
@@ -16,6 +17,10 @@ import {
   type ValueInput,
 } from "@/lib/calculator/model";
 import { getValueCounsel } from "@/lib/calculator/counsel.functions";
+import { getBriefCountries, getCountryFacts } from "@/lib/calculator/facts.functions";
+import type { CountryFacts, FactGrade } from "@/lib/calculator/facts.server";
+import { FactRail } from "@/components/brief/FactRail";
+import { FramingCard } from "@/components/brief/FramingCard";
 import type { Counsel } from "@/lib/calculator/counsel.server";
 import { Explain } from "@/components/explain/Explain";
 import { ExplainProvider } from "@/components/explain/ExplainProvider";
@@ -37,6 +42,80 @@ const ACCENT: Record<string, string> = Object.fromEntries(
 );
 const TITLE: Record<string, string> = Object.fromEntries(CHAMBERS.map((c) => [c.index, c.title]));
 
+/**
+ * A first-year sequence proposed from the country's own record: the Ledger
+ * always first; then whichever chamber the evidence says is the weak link.
+ * Adoption levels follow the order (institutionalised → piloted).
+ */
+function proposeSequence(facts: CountryFacts | null): {
+  order: string[];
+  why: Record<string, string>;
+} {
+  const v = (k: string) => facts?.facts.find((f) => f.key === k)?.value ?? null;
+  const g = (k: string) => facts?.facts.find((f) => f.key === k)?.grade ?? "assumption";
+  const scored: Array<{ index: string; score: number; why: string }> = [
+    {
+      index: "01",
+      score: 100,
+      why: "One agreed set of numbers comes first; every other chamber reads from it.",
+    },
+    {
+      index: "06",
+      score: 60 + Math.min(30, (v("follow_through") ?? 35) * 0.6),
+      why: `${v("follow_through") != null ? `${Math.round(v("follow_through")!)}% of open commitments are past due` : "Follow-through is unmeasured"}; a named owner and a standing record is the cheapest recovery of value.`,
+    },
+    {
+      index: "10",
+      score: 55 + Math.min(30, (v("sectors") ?? 30) * 0.8),
+      why:
+        g("sectors") === "assumption"
+          ? "No priority sectors are chosen yet; choosing few and planning them is the next decision."
+          : `${Math.round(v("sectors") ?? 0)}% of output sits in priority sectors without an approved plan.`,
+    },
+    {
+      index: "08",
+      score: 50 + (g("latency") === "assumption" ? 20 : Math.min(30, (v("latency") ?? 6) * 4)),
+      why: "Pledges decomposed to ministry-owned deliverables and scored quarterly turn intent into completed work.",
+    },
+    {
+      index: "02",
+      score: 45 + Math.min(30, (100 - (v("standards") ?? 50)) * 0.5),
+      why: `${v("standards") != null ? `${Math.round(v("standards")!)}% standards coverage` : "Standards coverage unknown"}; ministers who can see their own contribution reallocate at the margin.`,
+    },
+    {
+      index: "09",
+      score: 40 + (g("government") === "assumption" ? 25 : 10),
+      why:
+        g("government") === "assumption"
+          ? "No government record or platform PRD yet; the public site is the citizen's first contact with the state."
+          : "The platform can now be fed from the record rather than typed.",
+    },
+    {
+      index: "04",
+      score: 40 + Math.min(25, ((v("top_sector") ?? 40) - 25) * 0.8),
+      why: `${v("top_sector") != null ? `${Math.round(v("top_sector")!)}% of output in one sector` : "Concentration unknown"}; readiness answered before investors ask.`,
+    },
+    {
+      index: "03",
+      score: 38,
+      why: "Rehearsal before commitment prices the downside while it is still avoidable.",
+    },
+    { index: "05", score: 30, why: "A programme that is explained survives its first bad week." },
+    {
+      index: "07",
+      score: 25,
+      why: "A rehearsal instrument for how policy lands; last because it protects rather than creates value.",
+    },
+  ];
+  scored.sort((a, b) => b.score - a.score);
+  return {
+    order: scored.map((x) => x.index),
+    why: Object.fromEntries(scored.map((x) => [x.index, x.why])),
+  };
+}
+
+const SEQUENCE_ADOPTION = [100, 75, 75, 50, 50, 50, 25, 25, 25, 0];
+
 function StepHeading({ n, title, lede }: { n: string; title: string; lede?: string }) {
   return (
     <header className="mb-6">
@@ -51,9 +130,20 @@ function StepHeading({ n, title, lede }: { n: string; title: string; lede?: stri
   );
 }
 
-export function ValueCalculator() {
-  const [presetCode, setPresetCode] = useState("LCA");
+export function ValueCalculator({ initialCountry }: { initialCountry?: string } = {}) {
+  const fetchCountries = useServerFn(getBriefCountries);
+  const fetchFacts = useServerFn(getCountryFacts);
+  const [presetCode, setPresetCode] = useState(initialCountry ?? "LCA");
   const [input, setInput] = useState<ValueInput>(DEFAULT_INPUT);
+  const [showAdjust, setShowAdjust] = useState(false);
+  const countriesQ = useQuery({ queryKey: ["brief-countries"], queryFn: () => fetchCountries() });
+  const factsQ = useQuery({
+    queryKey: ["brief-facts", presetCode],
+    queryFn: () => fetchFacts({ data: { code: presetCode } }),
+    staleTime: 60 * 60 * 1000,
+  });
+  const facts = factsQ.data ?? null;
+  const sequence = useMemo(() => proposeSequence(facts), [facts]);
   const [traceOpen, setTraceOpen] = useState(false);
   const traceRef = useRef<HTMLDivElement | null>(null);
   const [counsel, setCounsel] = useState<Counsel | null>(null);
@@ -66,7 +156,48 @@ export function ValueCalculator() {
   const result = useMemo(() => computeValue(input), [input]);
 
   const countryName =
-    COUNTRY_PRESETS.find((c) => c.code === presetCode)?.name ?? "A small open economy";
+    facts?.name ??
+    countriesQ.data?.find((c) => c.code === presetCode)?.name ??
+    COUNTRY_PRESETS.find((c) => c.code === presetCode)?.name ??
+    "A small open economy";
+
+  // When the record arrives, propose every framing answer it supports and the
+  // chamber sequence it implies. The visitor corrects from there.
+  useEffect(() => {
+    if (!facts) return;
+    const p = facts.proposed;
+    const seq = proposeSequence(facts);
+    setInput((s) => ({
+      ...s,
+      gdpUsd:
+        p.gdpUsd?.value ?? COUNTRY_PRESETS.find((c) => c.code === facts.code)?.gdpUsd ?? s.gdpUsd,
+      publicSpendPct: p.publicSpendPct?.value ?? s.publicSpendPct,
+      topSectorSharePct: p.topSectorSharePct?.value ?? s.topSectorSharePct,
+      decisionsPerQuarter: p.decisionsPerQuarter?.value ?? s.decisionsPerQuarter,
+      latencyMonths: p.latencyMonths?.value ?? s.latencyMonths,
+      unmeasuredPct: p.unmeasuredPct?.value ?? s.unmeasuredPct,
+      servicesOfflinePct: p.servicesOfflinePct?.value ?? s.servicesOfflinePct,
+      unplannedPrioritySharePct: p.unplannedPrioritySharePct?.value ?? s.unplannedPrioritySharePct,
+      chambers: Object.fromEntries(seq.order.map((idx, i) => [idx, SEQUENCE_ADOPTION[i] ?? 0])),
+    }));
+  }, [facts]);
+
+  const proposedFor = (key: keyof CountryFacts["proposed"]) => {
+    const p = facts?.proposed[key];
+    if (!p) return null;
+    const f = facts?.facts.find((x) => x.key === p.fact);
+    return { value: p.value, source: f?.source ?? p.fact, grade: p.grade as FactGrade };
+  };
+  const regionalFor = (factKey: string) =>
+    facts?.facts.find((f) => f.key === factKey)?.regional?.display ?? null;
+  const REGIONAL_KEY: Record<string, string> = {
+    decisionsPerQuarter: "cabinet",
+    latencyMonths: "latency",
+    unmeasuredPct: "standards",
+    topSectorSharePct: "top_sector",
+    servicesOfflinePct: "government",
+    unplannedPrioritySharePct: "sectors",
+  };
 
   // Debounced counsel — the arithmetic never waits on it.
   const requestRef = useRef(0);
@@ -142,11 +273,21 @@ export function ValueCalculator() {
     setPresetCode(code);
     const p = COUNTRY_PRESETS.find((c) => c.code === code);
     if (!p) return;
+    // Presets seed immediately; the record overrides them when it arrives.
     setInput((s) => ({
       ...s,
       gdpUsd: p.gdpUsd,
       publicSpendPct: p.publicSpendPct,
       topSectorSharePct: p.topSectorSharePct,
+    }));
+  }
+
+  function applySequence() {
+    setInput((s) => ({
+      ...s,
+      chambers: Object.fromEntries(
+        sequence.order.map((idx, i) => [idx, SEQUENCE_ADOPTION[i] ?? 0]),
+      ),
     }));
   }
 
@@ -198,14 +339,14 @@ export function ValueCalculator() {
           <section>
             <StepHeading
               n="01"
-              title="Your economy."
-              lede="Start from a reference economy or set the figures yourself. Nothing here leaves your browser until you ask for the document."
+              title="Your country."
+              lede="Choose a country and GDPVision answers with what it already holds: graded figures, each with its source, and the regional median beside it. Nothing you change here leaves your browser until you ask for the brief."
             />
 
             <label className="block">
               <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
-                <Explain id="calc.preset" label="Reference economy">
-                  Reference economy
+                <Explain id="calc.preset" label="Country">
+                  Country
                 </Explain>
               </span>
               <select
@@ -213,13 +354,21 @@ export function ValueCalculator() {
                 onChange={(e) => applyPreset(e.target.value)}
                 className="mt-2 w-full border border-line-200 bg-paper-0 px-4 py-3 text-[15px] text-ink-950 focus:border-ink-950 focus:outline-none"
               >
-                {COUNTRY_PRESETS.map((c) => (
+                {(countriesQ.data?.length
+                  ? countriesQ.data
+                  : COUNTRY_PRESETS.map((c) => ({ code: c.code, name: c.name, onboarded: false }))
+                ).map((c) => (
                   <option key={c.code} value={c.code}>
                     {c.name}
+                    {c.onboarded ? "" : " — reference figures"}
                   </option>
                 ))}
               </select>
             </label>
+
+            <div className="mt-8">
+              <FactRail facts={facts} loading={factsQ.isLoading} />
+            </div>
 
             <div className="mt-6 divide-y divide-line-100 border-y border-line-100">
               <CalcSlider
@@ -250,21 +399,17 @@ export function ValueCalculator() {
           <section>
             <StepHeading
               n="02"
-              title="Four questions, answered from memory."
-              lede="These set the size of the addressable loss. A Principal can answer all four without opening a file."
+              title="What we know, and what we assume."
+              lede="Six conditions set the size of the addressable loss. Where the record answers, the answer is proposed with its source and grade; where it is silent, the regional figure stands in and is marked as an assumption. Correct any of them."
             />
             <div className="divide-y divide-line-100 border-y border-line-100">
               {FRAMING_QUESTIONS.map((q) => (
-                <CalcSlider
+                <FramingCard
                   key={q.key}
-                  label={q.question}
-                  explainId={`calc.q.${q.key}`}
-                  help={q.help}
+                  q={q}
                   value={input[q.key]}
-                  min={q.min}
-                  max={q.max}
-                  step={q.step}
-                  unit={q.unit}
+                  proposed={proposedFor(q.key)}
+                  regional={regionalFor(REGIONAL_KEY[q.key] ?? "")}
                   onChange={(v) => set(q.key, v)}
                 />
               ))}
@@ -275,10 +420,68 @@ export function ValueCalculator() {
           <section>
             <StepHeading
               n="03"
-              title="How far each chamber is stood up."
-              lede="Not adopted, piloted, in service, embedded, institutionalised. Each slider shows what it is worth on its own."
+              title="Where to start."
+              lede="Ten chambers, in the order the record suggests for the first year, with what each releases. Adjust the depth of any of them; the verdict follows."
             />
-            <div className="divide-y divide-line-100 border-y border-line-100">
+            <ol className="border-y border-line-100">
+              {sequence.order.map((idx, i) => {
+                const c = CHAMBER_COEFFICIENTS.find((x) => x.index === idx)!;
+                const contribution = result.chambers.find((x) => x.index === idx);
+                const level = input.chambers[idx] ?? 0;
+                return (
+                  <li
+                    key={idx}
+                    className="grid grid-cols-[2rem_1fr_auto] items-baseline gap-4 border-b border-line-100 py-3"
+                  >
+                    <span className="font-mono text-[11px] text-ink-400">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-baseline gap-x-3">
+                        <span className="text-[15px] text-ink-950">{TITLE[idx] ?? c.short}</span>
+                        <span
+                          className="font-mono text-[10px] uppercase tracking-[0.14em]"
+                          style={{ color: `var(${ACCENT[idx] ?? "--ink-500"})` }}
+                        >
+                          {adoptionLabel(level)}
+                        </span>
+                      </div>
+                      <p className="mt-1 max-w-xl text-[13px] leading-relaxed text-ink-500">
+                        {sequence.why[idx]}
+                      </p>
+                    </div>
+                    <span className="font-mono text-[12px] tabular-nums text-ink-950">
+                      <Explain id={`calc.chamber.${idx}`} label={`${c.short} contribution`}>
+                        {contribution && contribution.usd > 0
+                          ? `+${formatUsd(contribution.usd)}`
+                          : "—"}
+                      </Explain>
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                className="btn-ghost px-3 py-1.5 text-xs"
+                onClick={() => setShowAdjust((v) => !v)}
+              >
+                {showAdjust ? "Hide the adjustments" : "Adjust each chamber"}
+              </button>
+              <button
+                type="button"
+                className="btn-ghost px-3 py-1.5 text-xs"
+                onClick={applySequence}
+              >
+                Reset to the proposed sequence
+              </button>
+            </div>
+            <div
+              className={
+                showAdjust ? "mt-6 divide-y divide-line-100 border-y border-line-100" : "hidden"
+              }
+            >
               {CHAMBER_COEFFICIENTS.map((c) => {
                 const contribution = result.chambers.find((x) => x.index === c.index);
                 return (
@@ -310,9 +513,11 @@ export function ValueCalculator() {
                 );
               })}
             </div>
-            <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
-              {ADOPTION_STOPS.map((s) => s.label).join(" · ")}
-            </p>
+            {showAdjust ? (
+              <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+                {ADOPTION_STOPS.map((s) => s.label).join(" · ")}
+              </p>
+            ) : null}
           </section>
 
           <div ref={traceRef}>

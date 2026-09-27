@@ -253,9 +253,11 @@ function OpEdPage() {
                   ))}
                 </ul>
               </div>
-              <div className="hidden justify-self-end md:block">
-                <Illustration src={chamber.image} variant="spot" />
-              </div>
+              {chamber.image ? (
+                <div className="hidden justify-self-end md:block">
+                  <Illustration src={chamber.image} variant="spot" />
+                </div>
+              ) : null}
             </div>
           </div>
         </section>

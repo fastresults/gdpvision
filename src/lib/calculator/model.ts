@@ -2,7 +2,10 @@
 // @tables none
 // @ui src/components/calculator/ValueCalculator.tsx
 //
-// The Sovereign Value Instrument — deterministic value model, v1_value.
+// The Sovereign Value Instrument — deterministic value model, v2_value.
+// v2 adds two pools and chambers 09–10 (see docs: claude/calculator-decision-brief-plan.md);
+// with both new chambers at zero adoption and the two new inputs at their
+// defaults, the eight original chambers reproduce v1 exactly.
 // Pure, versioned, no RNG, no I/O. Identical inputs yield identical outputs,
 // and every figure the UI shows can be traced back through `trace`.
 //
@@ -10,7 +13,7 @@
 // bounded, and capped. An over-claiming calculator destroys the argument of
 // the paper it sits beside, so the ceiling matters more than the coefficients.
 
-export const VALUE_MODEL_VERSION = "v1_value" as const;
+export const VALUE_MODEL_VERSION = "v2_value" as const;
 
 export type Stance = "conservative" | "central" | "optimistic";
 
@@ -27,7 +30,14 @@ export const STANCE_LABEL: Record<Stance, string> = {
 };
 
 /** Named pools of addressable value, all in USD per year. */
-export type PoolKey = "latency" | "unmeasured" | "commitment" | "fdi" | "concentration";
+export type PoolKey =
+  | "latency"
+  | "unmeasured"
+  | "commitment"
+  | "fdi"
+  | "concentration"
+  | "service_friction"
+  | "sector_drift";
 
 export const POOL_LABEL: Record<PoolKey, string> = {
   latency: "Value held up by decision latency",
@@ -35,6 +45,8 @@ export const POOL_LABEL: Record<PoolKey, string> = {
   commitment: "Decisions taken but not followed through",
   fdi: "Addressable inbound investment",
   concentration: "Output exposed to a single sector",
+  service_friction: "Cost of public services still transacted on paper",
+  sector_drift: "Output in priority sectors with no owner or plan",
 };
 
 export interface CountryPreset {
@@ -54,27 +66,105 @@ export interface CountryPreset {
  * preset being exact.
  */
 export const COUNTRY_PRESETS: CountryPreset[] = [
-  { code: "ATG", name: "Antigua and Barbuda", gdpUsd: 2_100_000_000, publicSpendPct: 22, topSectorSharePct: 55 },
+  {
+    code: "ATG",
+    name: "Antigua and Barbuda",
+    gdpUsd: 2_100_000_000,
+    publicSpendPct: 22,
+    topSectorSharePct: 55,
+  },
   { code: "AIA", name: "Anguilla", gdpUsd: 350_000_000, publicSpendPct: 24, topSectorSharePct: 58 },
-  { code: "BHS", name: "The Bahamas", gdpUsd: 14_400_000_000, publicSpendPct: 21, topSectorSharePct: 48 },
-  { code: "BRB", name: "Barbados", gdpUsd: 6_400_000_000, publicSpendPct: 30, topSectorSharePct: 40 },
+  {
+    code: "BHS",
+    name: "The Bahamas",
+    gdpUsd: 14_400_000_000,
+    publicSpendPct: 21,
+    topSectorSharePct: 48,
+  },
+  {
+    code: "BRB",
+    name: "Barbados",
+    gdpUsd: 6_400_000_000,
+    publicSpendPct: 30,
+    topSectorSharePct: 40,
+  },
   { code: "BLZ", name: "Belize", gdpUsd: 3_300_000_000, publicSpendPct: 27, topSectorSharePct: 38 },
   { code: "DMA", name: "Dominica", gdpUsd: 680_000_000, publicSpendPct: 34, topSectorSharePct: 34 },
-  { code: "GRD", name: "Grenada", gdpUsd: 1_300_000_000, publicSpendPct: 25, topSectorSharePct: 42 },
-  { code: "GUY", name: "Guyana", gdpUsd: 21_200_000_000, publicSpendPct: 30, topSectorSharePct: 62 },
-  { code: "JAM", name: "Jamaica", gdpUsd: 19_400_000_000, publicSpendPct: 27, topSectorSharePct: 32 },
-  { code: "KNA", name: "St Kitts and Nevis", gdpUsd: 1_100_000_000, publicSpendPct: 32, topSectorSharePct: 45 },
-  { code: "LCA", name: "St Lucia", gdpUsd: 2_500_000_000, publicSpendPct: 26, topSectorSharePct: 47 },
-  { code: "VCT", name: "St Vincent and the Grenadines", gdpUsd: 1_100_000_000, publicSpendPct: 31, topSectorSharePct: 36 },
-  { code: "TTO", name: "Trinidad and Tobago", gdpUsd: 28_000_000_000, publicSpendPct: 30, topSectorSharePct: 35 },
-  { code: "MUS", name: "Mauritius", gdpUsd: 14_400_000_000, publicSpendPct: 27, topSectorSharePct: 25 },
+  {
+    code: "GRD",
+    name: "Grenada",
+    gdpUsd: 1_300_000_000,
+    publicSpendPct: 25,
+    topSectorSharePct: 42,
+  },
+  {
+    code: "GUY",
+    name: "Guyana",
+    gdpUsd: 21_200_000_000,
+    publicSpendPct: 30,
+    topSectorSharePct: 62,
+  },
+  {
+    code: "JAM",
+    name: "Jamaica",
+    gdpUsd: 19_400_000_000,
+    publicSpendPct: 27,
+    topSectorSharePct: 32,
+  },
+  {
+    code: "KNA",
+    name: "St Kitts and Nevis",
+    gdpUsd: 1_100_000_000,
+    publicSpendPct: 32,
+    topSectorSharePct: 45,
+  },
+  {
+    code: "LCA",
+    name: "St Lucia",
+    gdpUsd: 2_500_000_000,
+    publicSpendPct: 26,
+    topSectorSharePct: 47,
+  },
+  {
+    code: "VCT",
+    name: "St Vincent and the Grenadines",
+    gdpUsd: 1_100_000_000,
+    publicSpendPct: 31,
+    topSectorSharePct: 36,
+  },
+  {
+    code: "TTO",
+    name: "Trinidad and Tobago",
+    gdpUsd: 28_000_000_000,
+    publicSpendPct: 30,
+    topSectorSharePct: 35,
+  },
+  {
+    code: "MUS",
+    name: "Mauritius",
+    gdpUsd: 14_400_000_000,
+    publicSpendPct: 27,
+    topSectorSharePct: 25,
+  },
   { code: "FJI", name: "Fiji", gdpUsd: 5_500_000_000, publicSpendPct: 28, topSectorSharePct: 40 },
-  { code: "SYC", name: "Seychelles", gdpUsd: 2_100_000_000, publicSpendPct: 33, topSectorSharePct: 52 },
+  {
+    code: "SYC",
+    name: "Seychelles",
+    gdpUsd: 2_100_000_000,
+    publicSpendPct: 33,
+    topSectorSharePct: 52,
+  },
 ];
 
 /** One framing question. Answered from memory by a Principal, not from a file. */
 export interface FramingQuestion {
-  key: "decisionsPerQuarter" | "latencyMonths" | "unmeasuredPct" | "topSectorSharePct";
+  key:
+    | "decisionsPerQuarter"
+    | "latencyMonths"
+    | "unmeasuredPct"
+    | "topSectorSharePct"
+    | "servicesOfflinePct"
+    | "unplannedPrioritySharePct";
   question: string;
   help: string;
   min: number;
@@ -120,6 +210,25 @@ export const FRAMING_QUESTIONS: FramingQuestion[] = [
     step: 1,
     unit: "% of GDP",
   },
+  {
+    key: "servicesOfflinePct",
+    question: "What share of government transactions still happen on paper or in person?",
+    help: "Applications, licences, certificates and payments that cannot be completed online end to end.",
+    min: 0,
+    max: 100,
+    step: 5,
+    unit: "% of transactions",
+  },
+  {
+    key: "unplannedPrioritySharePct",
+    question:
+      "What share of output sits in priority sectors that have no written plan and no owner?",
+    help: "Sectors the government has named as priorities without a plan, a Compact or a scorecard.",
+    min: 0,
+    max: 80,
+    step: 1,
+    unit: "% of GDP",
+  },
 ];
 
 export interface ChamberCoefficient {
@@ -139,14 +248,16 @@ export const CHAMBER_COEFFICIENTS: ChamberCoefficient[] = [
     index: "01",
     short: "National Ledger",
     mechanism: "Decision latency reduction across the Cabinet cadence",
-    basis: "One agreed set of numbers removes the reconciliation pass. Recovers a quarter of the value held up by latency at full institutionalisation.",
+    basis:
+      "One agreed set of numbers removes the reconciliation pass. Recovers a quarter of the value held up by latency at full institutionalisation.",
     draws: [{ pool: "latency", share: 0.25 }],
   },
   {
     index: "02",
     short: "Portfolios",
     mechanism: "Reallocation yield on programme spend with no measured outcome",
-    basis: "Ministers who can see their own contribution reallocate at the margin. A tenth of unmeasured spend, not the whole of it.",
+    basis:
+      "Ministers who can see their own contribution reallocate at the margin. A tenth of unmeasured spend, not the whole of it.",
     draws: [{ pool: "unmeasured", share: 0.1 }],
   },
   {
@@ -160,7 +271,8 @@ export const CHAMBER_COEFFICIENTS: ChamberCoefficient[] = [
     index: "04",
     short: "FDI Studio",
     mechanism: "Incremental investment capture and concentration de-risking",
-    basis: "Investors withdraw on unanswered readiness questions, not on size. Priced against an addressable inbound pool of two per cent of GDP.",
+    basis:
+      "Investors withdraw on unanswered readiness questions, not on size. Priced against an addressable inbound pool of two per cent of GDP.",
     draws: [
       { pool: "fdi", share: 0.35 },
       { pool: "concentration", share: 0.06 },
@@ -170,14 +282,16 @@ export const CHAMBER_COEFFICIENTS: ChamberCoefficient[] = [
     index: "05",
     short: "Narrative",
     mechanism: "Reduced policy reversal and stalled-programme rate",
-    basis: "A programme that is explained survives its first bad week. Modest by design — this chamber protects value rather than creating it.",
+    basis:
+      "A programme that is explained survives its first bad week. Modest by design — this chamber protects value rather than creating it.",
     draws: [{ pool: "commitment", share: 0.12 }],
   },
   {
     index: "06",
     short: "Cabinet Room",
     mechanism: "Follow-through on decisions already taken",
-    basis: "A named owner and a standing commitments record is the cheapest recovery of value in government.",
+    basis:
+      "A named owner and a standing commitments record is the cheapest recovery of value in government.",
     draws: [{ pool: "commitment", share: 0.22 }],
   },
   {
@@ -191,10 +305,34 @@ export const CHAMBER_COEFFICIENTS: ChamberCoefficient[] = [
     index: "08",
     short: "Mandate Compact",
     mechanism: "Mandate delivery rate across the term",
-    basis: "Pledges decomposed to ministry-owned deliverables and scored quarterly convert intent into completed work.",
+    basis:
+      "Pledges decomposed to ministry-owned deliverables and scored quarterly convert intent into completed work.",
     draws: [
       { pool: "unmeasured", share: 0.08 },
       { pool: "commitment", share: 0.1 },
+    ],
+  },
+  {
+    index: "09",
+    short: "Digital Government Studio",
+    mechanism: "Public services moved online in order of demand, fed from the Ledger",
+    basis:
+      "A cited PRD and a platform fed by the record replace a procurement cycle and a hand-typed site. Digital-service programmes in comparable states report 20–40% lower transaction cost; a modest share of that, plus one fewer reconciliation between ministries and the public record.",
+    draws: [
+      { pool: "service_friction", share: 0.3 },
+      { pool: "latency", share: 0.05 },
+    ],
+  },
+  {
+    index: "10",
+    short: "Sector Studio",
+    mechanism: "Priority sectors given an owner, a plan, a Compact and a scorecard",
+    basis:
+      "Malaysia's ETP and Singapore's ITMs attribute the bulk of their uplift to named ownership and a project register, not to new money. Priced against output in priority sectors that today have neither.",
+    draws: [
+      { pool: "sector_drift", share: 0.25 },
+      { pool: "commitment", share: 0.1 },
+      { pool: "fdi", share: 0.1 },
     ],
   },
 ];
@@ -208,6 +346,19 @@ export const RAMP = [0.35, 0.75, 1.0] as const;
  */
 export const UPLIFT_CEILING_PCT_OF_GDP = 1.2;
 
+/** The numeric inputs the Decision Brief proposes from the country record. */
+export type PublicInput = Pick<
+  ValueInput,
+  | "gdpUsd"
+  | "publicSpendPct"
+  | "decisionsPerQuarter"
+  | "latencyMonths"
+  | "unmeasuredPct"
+  | "topSectorSharePct"
+  | "servicesOfflinePct"
+  | "unplannedPrioritySharePct"
+>;
+
 export interface ValueInput {
   gdpUsd: number;
   publicSpendPct: number;
@@ -215,6 +366,10 @@ export interface ValueInput {
   latencyMonths: number;
   unmeasuredPct: number;
   topSectorSharePct: number;
+  /** Share of government transactions not completable online, 0–100. */
+  servicesOfflinePct: number;
+  /** Share of GDP in priority sectors with no approved plan, 0–100. */
+  unplannedPrioritySharePct: number;
   /** Chamber index → adoption, 0–100. */
   chambers: Record<string, number>;
   stance: Stance;
@@ -263,23 +418,31 @@ function softCap(raw: number, ceiling: number): number {
 
 export function computePools(input: ValueInput): Record<PoolKey, number> {
   const gdp = Math.max(0, input.gdpUsd);
-  const publicSpend = gdp * clamp(input.publicSpendPct, 5, 60) / 100;
+  const publicSpend = (gdp * clamp(input.publicSpendPct, 5, 60)) / 100;
 
   return {
     // Latency bites harder the longer a decision takes, up to 8% of public spend.
     latency: publicSpend * clamp((input.latencyMonths - 1) / 17, 0, 1) * 0.08,
-    unmeasured: publicSpend * clamp(input.unmeasuredPct, 0, 80) / 100,
+    unmeasured: (publicSpend * clamp(input.unmeasuredPct, 0, 80)) / 100,
     // Follow-through pool scales with decision cadence, up to 5% of public spend.
     commitment: publicSpend * clamp(input.decisionsPerQuarter / 120, 0, 1) * 0.05,
     // Addressable inbound investment, held deliberately flat at 2% of GDP.
     fdi: gdp * 0.02,
     // Output exposed above a 25% single-sector threshold.
-    concentration: gdp * clamp(input.topSectorSharePct - 25, 0, 50) / 100,
+    concentration: (gdp * clamp(input.topSectorSharePct - 25, 0, 50)) / 100,
+    // Paper-based transactions cost the public and the state; 4% of public
+    // spend at full friction is a deliberately low ceiling.
+    service_friction: ((publicSpend * clamp(input.servicesOfflinePct, 0, 100)) / 100) * 0.04,
+    // Output that drifts for want of an owner: 3% of the unplanned priority share.
+    sector_drift: ((gdp * clamp(input.unplannedPrioritySharePct, 0, 80)) / 100) * 0.03,
   };
 }
 
 /** Annual instrument cost band. Scales with the number of chambers stood up. */
-export function computeCost(input: ValueInput, adoptedCount: number): { annual: number; yearOne: number } {
+export function computeCost(
+  input: ValueInput,
+  adoptedCount: number,
+): { annual: number; yearOne: number } {
   const annual = 300_000 + adoptedCount * 95_000;
   return { annual, yearOne: Math.round(annual * 1.4) };
 }
@@ -323,7 +486,10 @@ export function computeValue(input: ValueInput): ValueResult {
   for (const c of CHAMBER_COEFFICIENTS) {
     const current = clamp(input.chambers[c.index] ?? 0, 0, 100);
     if (current >= 100) continue;
-    const probe = computeValueRaw({ ...input, chambers: { ...input.chambers, [c.index]: Math.min(100, current + 25) } });
+    const probe = computeValueRaw({
+      ...input,
+      chambers: { ...input.chambers, [c.index]: Math.min(100, current + 25) },
+    });
     const gain = probe - upliftUsd;
     if (gain > bestGain) {
       bestGain = gain;
@@ -350,7 +516,7 @@ export function computeValue(input: ValueInput): ValueResult {
       stance: input.stance,
       stance_multiplier: stance,
       gdp_usd: gdp,
-      public_spend_usd: gdp * input.publicSpendPct / 100,
+      public_spend_usd: (gdp * input.publicSpendPct) / 100,
       addressable_pools_usd: pools,
       raw_sum_usd: Math.round(rawUsd),
       ceiling_usd: Math.round(ceiling),
@@ -366,12 +532,14 @@ export function computeValue(input: ValueInput): ValueResult {
           recoverable_share: d.share,
         })),
         basis: c.basis,
-        contribution_year_3_usd: Math.round((raws.find((r) => r.c.index === c.index)?.usd ?? 0) * scale),
+        contribution_year_3_usd: Math.round(
+          (raws.find((r) => r.c.index === c.index)?.usd ?? 0) * scale,
+        ),
       })),
       cost: {
         annual_usd: cost.annual,
         year_one_usd: cost.yearOne,
-        rule: "US$300,000 base plus US$95,000 per chamber stood up; year one carries a 40% implementation uplift.",
+        rule: "US$300,000 base plus US$95,000 per chamber stood up; year one carries a 40% implementation uplift. The national platform the Digital Government Studio specifies is built and hosted separately and is not in this figure.",
       },
     },
   };
@@ -408,7 +576,20 @@ export const DEFAULT_INPUT: ValueInput = {
   latencyMonths: 6,
   unmeasuredPct: 30,
   topSectorSharePct: 47,
-  chambers: { "01": 100, "02": 50, "03": 50, "04": 50, "05": 25, "06": 50, "07": 0, "08": 50 },
+  servicesOfflinePct: 60,
+  unplannedPrioritySharePct: 30,
+  chambers: {
+    "01": 100,
+    "02": 50,
+    "03": 50,
+    "04": 50,
+    "05": 25,
+    "06": 50,
+    "07": 0,
+    "08": 50,
+    "09": 25,
+    "10": 25,
+  },
   stance: "central",
 };
 

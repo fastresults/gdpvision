@@ -177,7 +177,7 @@ function BusinessCasePage() {
                 the ceiling is stated, and the counsel reads your configuration back to you.
               </p>
               <Link
-                to="/business-case/calculator"
+                to="/business-case/brief"
                 className="btn-primary mt-7 inline-flex items-center gap-2 px-5 py-3 font-mono text-[11px] uppercase tracking-[0.18em]"
               >
                 Model the value →

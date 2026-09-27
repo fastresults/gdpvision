@@ -447,8 +447,8 @@ export function MarketingHome() {
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
           <SectionHeader
             eyebrow="The instrument"
-            title="Eight chambers, each engineered to move GDP."
-            lede="Not a dashboard and not a consulting deliverable. GDPVision is organised as an instrument of state — a live Ledger beneath eight chambers, with the Counsel above them."
+            title="Ten chambers, each engineered to move GDP."
+            lede="Not a dashboard and not a consulting deliverable. GDPVision is organised as an instrument of state — a live Ledger beneath ten chambers, with the Counsel above them."
           />
           <div className="mt-10 grid gap-x-10 gap-y-10 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2">
             {FEATURED_CHAMBERS.map((c) => (

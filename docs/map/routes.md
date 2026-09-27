@@ -8,6 +8,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 |-------|------|
 | `/` | `src/routes/index.tsx` |
 | `/business-case` | `src/routes/business-case.tsx` |
+| `/business-case_/brief` | `src/routes/business-case_.brief.tsx` |
 | `/business-case_/calculator` | `src/routes/business-case_.calculator.tsx` |
 | `/d/$token` | `src/routes/d.$token.tsx` |
 | `/e/$token` | `src/routes/e.$token.tsx` |

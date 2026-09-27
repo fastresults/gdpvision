@@ -259,7 +259,8 @@ export const OPTION_PATHS: OptionPath[] = [
 export const OPTIONS_CLOSE =
   "For a government carrying debt at ninety per cent of GDP, the distinction between recurring expenditure that leaves a residue and recurring expenditure that does not is not philosophical. It is how the estimates are argued.";
 
-export const INSTRUMENT_INTRO = "A live National Ledger beneath eight chambers, with a voice-first Counsel above them.";
+export const INSTRUMENT_INTRO =
+  "A live National Ledger beneath ten chambers, with a voice-first Counsel above them.";
 
 export const CHAMBER_LINES: Record<string, string> = {
   "01": "A twelve-sector ontology with a decade of history, a confidence grade on every series, exposure indices drillable to source, and four-layer sector dossiers. The single source of truth every other chamber reads from.",
@@ -270,6 +271,8 @@ export const CHAMBER_LINES: Record<string, string> = {
   "06": "Session Mode running the meeting itself, decisions recorded live with named owners, a commitments cockpit visible between sessions, and a National Scorecard that moves against constant indicators.",
   "07": "Rehearsing how a policy, incentive or message lands, privately, before announcement. Explicitly a rehearsal instrument and not a substitute for polling.",
   "08": "The manifesto decomposed into pillars, pledges and ministry-owned deliverables; quarterly scorecards and a PM Report Card; a signed, versioned compact whose every revision is diffable; and a transformational plan that hands directly to the Narrative Chamber, so what a government announces is the same object as what it decided.",
+  "09": "The product requirements for the nation's e-government platform, written from its own record in eleven cited sections and approved by a second person; a keyed, read-only API that feeds the platform indicators, commitments, government structure, open data, procurement and approved projects, so the public site is never typed by hand.",
+  "10": "Sector development as an operating system: a Scout that ranks every sector from the record, up to four national priorities with a written exit rule, and a ten-section plan per sector — diagnostic, targets, pillars, Entry Point Projects, enablers, scorecard, Sector Compact, Council charter, sensitisation, roadmap — approved by two people and carried to Cabinet as a commitment.",
 };
 
 export const CORPUS_FOOTNOTE =
@@ -387,7 +390,11 @@ export const SOURCES: Array<{ figure: string; grade: string; source: string }> =
     grade: "B",
     source: "IMF Article IV consultations, 2022–2024.",
   },
-  { figure: "Debt-to-GDP, upper band — 90%", grade: "A", source: "IMF World Economic Outlook, 2024." },
+  {
+    figure: "Debt-to-GDP, upper band — 90%",
+    grade: "A",
+    source: "IMF World Economic Outlook, 2024.",
+  },
   {
     figure: "Interest as a share of revenue, high-debt cases — c. 25%",
     grade: "B",

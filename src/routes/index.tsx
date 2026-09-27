@@ -5,7 +5,7 @@ import ogImage from "@/assets/gdpvision-og.jpg";
 const SITE_URL = "https://gdpvision.com";
 const TITLE = "GDPVision — the sovereign instrument for Cabinet decisions";
 const DESCRIPTION =
-  "Purpose-built for Presidents, Prime Ministers and Cabinets. One graded Ledger of a nation's public and private evidence, eight chambers, and one isolated deployment per nation — so a decision can be rehearsed before it is taken.";
+  "Purpose-built for Presidents, Prime Ministers and Cabinets. One graded Ledger of a nation's public and private evidence, ten chambers, and one isolated deployment per nation — so a decision can be rehearsed before it is taken.";
 
 
 export const Route = createFileRoute("/")({

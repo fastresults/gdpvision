@@ -71,22 +71,100 @@ export const REPRESENTATIVE_COUNTRY: Record<Exclude<CohortKey, "caribbean">, Mar
 
 /** Fallback Caribbean market if the countries table carries no GDP yet. */
 export const CARIBBEAN_FALLBACK: MarketCountry[] = [
-  { code: "ATG", name: "Antigua and Barbuda", gdpUsd: 2_100_000_000, publicSpendPct: 22, topSectorSharePct: 55 },
+  {
+    code: "ATG",
+    name: "Antigua and Barbuda",
+    gdpUsd: 2_100_000_000,
+    publicSpendPct: 22,
+    topSectorSharePct: 55,
+  },
   { code: "AIA", name: "Anguilla", gdpUsd: 350_000_000, publicSpendPct: 24, topSectorSharePct: 58 },
-  { code: "BHS", name: "The Bahamas", gdpUsd: 14_400_000_000, publicSpendPct: 21, topSectorSharePct: 48 },
-  { code: "BRB", name: "Barbados", gdpUsd: 6_400_000_000, publicSpendPct: 30, topSectorSharePct: 40 },
+  {
+    code: "BHS",
+    name: "The Bahamas",
+    gdpUsd: 14_400_000_000,
+    publicSpendPct: 21,
+    topSectorSharePct: 48,
+  },
+  {
+    code: "BRB",
+    name: "Barbados",
+    gdpUsd: 6_400_000_000,
+    publicSpendPct: 30,
+    topSectorSharePct: 40,
+  },
   { code: "BLZ", name: "Belize", gdpUsd: 3_300_000_000, publicSpendPct: 27, topSectorSharePct: 38 },
   { code: "DMA", name: "Dominica", gdpUsd: 680_000_000, publicSpendPct: 34, topSectorSharePct: 34 },
-  { code: "GRD", name: "Grenada", gdpUsd: 1_300_000_000, publicSpendPct: 25, topSectorSharePct: 42 },
-  { code: "GUY", name: "Guyana", gdpUsd: 21_200_000_000, publicSpendPct: 30, topSectorSharePct: 62 },
-  { code: "JAM", name: "Jamaica", gdpUsd: 19_400_000_000, publicSpendPct: 27, topSectorSharePct: 32 },
-  { code: "KNA", name: "St Kitts and Nevis", gdpUsd: 1_100_000_000, publicSpendPct: 32, topSectorSharePct: 45 },
-  { code: "LCA", name: "St Lucia", gdpUsd: 2_500_000_000, publicSpendPct: 26, topSectorSharePct: 47 },
-  { code: "VCT", name: "St Vincent and the Grenadines", gdpUsd: 1_100_000_000, publicSpendPct: 31, topSectorSharePct: 36 },
-  { code: "TTO", name: "Trinidad and Tobago", gdpUsd: 28_000_000_000, publicSpendPct: 30, topSectorSharePct: 35 },
-  { code: "SUR", name: "Suriname", gdpUsd: 4_100_000_000, publicSpendPct: 26, topSectorSharePct: 44 },
-  { code: "VGB", name: "British Virgin Islands", gdpUsd: 1_500_000_000, publicSpendPct: 20, topSectorSharePct: 60 },
-  { code: "MSR", name: "Montserrat", gdpUsd: 70_000_000, publicSpendPct: 40, topSectorSharePct: 50 },
+  {
+    code: "GRD",
+    name: "Grenada",
+    gdpUsd: 1_300_000_000,
+    publicSpendPct: 25,
+    topSectorSharePct: 42,
+  },
+  {
+    code: "GUY",
+    name: "Guyana",
+    gdpUsd: 21_200_000_000,
+    publicSpendPct: 30,
+    topSectorSharePct: 62,
+  },
+  {
+    code: "JAM",
+    name: "Jamaica",
+    gdpUsd: 19_400_000_000,
+    publicSpendPct: 27,
+    topSectorSharePct: 32,
+  },
+  {
+    code: "KNA",
+    name: "St Kitts and Nevis",
+    gdpUsd: 1_100_000_000,
+    publicSpendPct: 32,
+    topSectorSharePct: 45,
+  },
+  {
+    code: "LCA",
+    name: "St Lucia",
+    gdpUsd: 2_500_000_000,
+    publicSpendPct: 26,
+    topSectorSharePct: 47,
+  },
+  {
+    code: "VCT",
+    name: "St Vincent and the Grenadines",
+    gdpUsd: 1_100_000_000,
+    publicSpendPct: 31,
+    topSectorSharePct: 36,
+  },
+  {
+    code: "TTO",
+    name: "Trinidad and Tobago",
+    gdpUsd: 28_000_000_000,
+    publicSpendPct: 30,
+    topSectorSharePct: 35,
+  },
+  {
+    code: "SUR",
+    name: "Suriname",
+    gdpUsd: 4_100_000_000,
+    publicSpendPct: 26,
+    topSectorSharePct: 44,
+  },
+  {
+    code: "VGB",
+    name: "British Virgin Islands",
+    gdpUsd: 1_500_000_000,
+    publicSpendPct: 20,
+    topSectorSharePct: 60,
+  },
+  {
+    code: "MSR",
+    name: "Montserrat",
+    gdpUsd: 70_000_000,
+    publicSpendPct: 40,
+    topSectorSharePct: 50,
+  },
 ];
 
 export interface ProformaInput {
@@ -107,7 +185,7 @@ export interface ProformaInput {
   /** Delivery gross margin, percent. */
   grossMarginPct: number;
 
-  /** How many of the eight chambers a typical adopter stands up. */
+  /** How many of the ten chambers a typical adopter stands up. */
   chamberDepth: number;
   /** Adoption intensity within each stood-up chamber, 0–100. */
   chamberIntensityPct: number;
@@ -255,6 +333,8 @@ export function countryUplift(country: MarketCountry, input: ProformaInput) {
     latencyMonths: 6,
     unmeasuredPct: 35,
     topSectorSharePct: country.topSectorSharePct,
+    servicesOfflinePct: 60,
+    unplannedPrioritySharePct: 30,
     chambers: chamberMap(input),
     stance: input.stance,
   });
@@ -301,7 +381,11 @@ export function runProforma(input: ProformaInput, caribbean: MarketCountry[]): P
     const rep = REPRESENTATIVE_COUNTRY[key];
     for (let i = 0; i < Math.max(0, Math.round(setting.ceiling)); i += 1) {
       universe.push({
-        country: { ...rep, code: `${rep.code}-${i + 1}`, name: `${COHORT_LABEL[key]} state ${i + 1}` },
+        country: {
+          ...rep,
+          code: `${rep.code}-${i + 1}`,
+          name: `${COHORT_LABEL[key]} state ${i + 1}`,
+        },
         cohort: key,
         arpuMultiplier: setting.arpuMultiplier,
       });
@@ -337,9 +421,7 @@ export function runProforma(input: ProformaInput, caribbean: MarketCountry[]): P
     carry += paceForMonth(input, m);
     let newCount = 0;
     while (carry >= 1) {
-      const idx = remaining.findIndex(
-        (r) => (cohortOf.get(r.cohort)?.startMonth ?? 1) <= m,
-      );
+      const idx = remaining.findIndex((r) => (cohortOf.get(r.cohort)?.startMonth ?? 1) <= m);
       if (idx === -1) break;
       const [pick] = remaining.splice(idx, 1);
       const u = upliftFor(pick.country);
@@ -504,7 +586,8 @@ export function runProforma(input: ProformaInput, caribbean: MarketCountry[]): P
 
 export function formatUsdShort(v: number): string {
   const abs = Math.abs(v);
-  if (abs >= 1_000_000_000) return `US$${(v / 1_000_000_000).toFixed(abs >= 10_000_000_000 ? 0 : 1)}bn`;
+  if (abs >= 1_000_000_000)
+    return `US$${(v / 1_000_000_000).toFixed(abs >= 10_000_000_000 ? 0 : 1)}bn`;
   if (abs >= 1_000_000) return `US$${(v / 1_000_000).toFixed(abs >= 10_000_000 ? 0 : 1)}m`;
   if (abs >= 1_000) return `US$${(v / 1_000).toFixed(0)}k`;
   return `US$${Math.round(v)}`;

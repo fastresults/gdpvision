@@ -38,8 +38,7 @@ const inputSchema = z.object({
 });
 
 export type CounselResponse =
-  | { ok: true; counsel: Counsel; degraded?: boolean }
-  | { ok: false; error: string };
+  { ok: true; counsel: Counsel; degraded?: boolean } | { ok: false; error: string };
 
 export const getValueCounsel = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => inputSchema.parse(input))
@@ -52,8 +51,16 @@ export const getValueCounsel = createServerFn({ method: "POST" })
       return { ok: true, counsel };
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
-      if (message.includes("429")) return { ok: false, error: "The counsel service is busy. The arithmetic below is unaffected." };
-      if (message.includes("402")) return { ok: false, error: "The counsel service is unavailable. The arithmetic below is unaffected." };
+      if (message.includes("429"))
+        return {
+          ok: false,
+          error: "The counsel service is busy. The arithmetic below is unaffected.",
+        };
+      if (message.includes("402"))
+        return {
+          ok: false,
+          error: "The counsel service is unavailable. The arithmetic below is unaffected.",
+        };
       console.error("[calculator] counsel failed", error);
       return { ok: true, counsel: FALLBACK_COUNSEL, degraded: true };
     }

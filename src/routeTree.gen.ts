@@ -26,6 +26,7 @@ import { Route as FTokenRouteImport } from './routes/f.$token'
 import { Route as ETokenRouteImport } from './routes/e.$token'
 import { Route as DTokenRouteImport } from './routes/d.$token'
 import { Route as BusinessCaseCalculatorRouteImport } from './routes/business-case_.calculator'
+import { Route as BusinessCaseBriefRouteImport } from './routes/business-case_.brief'
 import { Route as AuthInviteRouteImport } from './routes/auth.invite'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as AuthenticatedConsoleRouteImport } from './routes/_authenticated/console'
@@ -246,6 +247,11 @@ const DTokenRoute = DTokenRouteImport.update({
 const BusinessCaseCalculatorRoute = BusinessCaseCalculatorRouteImport.update({
   id: '/business-case_/calculator',
   path: '/business-case/calculator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BusinessCaseBriefRoute = BusinessCaseBriefRouteImport.update({
+  id: '/business-case_/brief',
+  path: '/business-case/brief',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthInviteRoute = AuthInviteRouteImport.update({
@@ -1070,6 +1076,7 @@ export interface FileRoutesByFullPath {
   '/console': typeof AuthenticatedConsoleRouteWithChildren
   '/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
+  '/business-case/brief': typeof BusinessCaseBriefRoute
   '/business-case/calculator': typeof BusinessCaseCalculatorRoute
   '/d/$token': typeof DTokenRoute
   '/e/$token': typeof ETokenRoute
@@ -1221,6 +1228,7 @@ export interface FileRoutesByTo {
   '/console': typeof AuthenticatedConsoleRouteWithChildren
   '/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
+  '/business-case/brief': typeof BusinessCaseBriefRoute
   '/business-case/calculator': typeof BusinessCaseCalculatorRoute
   '/d/$token': typeof DTokenRoute
   '/e/$token': typeof ETokenRoute
@@ -1373,6 +1381,7 @@ export interface FileRoutesById {
   '/_authenticated/console': typeof AuthenticatedConsoleRouteWithChildren
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
+  '/business-case_/brief': typeof BusinessCaseBriefRoute
   '/business-case_/calculator': typeof BusinessCaseCalculatorRoute
   '/d/$token': typeof DTokenRoute
   '/e/$token': typeof ETokenRoute
@@ -1530,6 +1539,7 @@ export interface FileRouteTypes {
     | '/console'
     | '/home'
     | '/auth/invite'
+    | '/business-case/brief'
     | '/business-case/calculator'
     | '/d/$token'
     | '/e/$token'
@@ -1681,6 +1691,7 @@ export interface FileRouteTypes {
     | '/console'
     | '/home'
     | '/auth/invite'
+    | '/business-case/brief'
     | '/business-case/calculator'
     | '/d/$token'
     | '/e/$token'
@@ -1832,6 +1843,7 @@ export interface FileRouteTypes {
     | '/_authenticated/console'
     | '/_authenticated/home'
     | '/auth/invite'
+    | '/business-case_/brief'
     | '/business-case_/calculator'
     | '/d/$token'
     | '/e/$token'
@@ -1983,6 +1995,7 @@ export interface RootRouteChildren {
   BusinessCaseRoute: typeof BusinessCaseRoute
   KioskRoute: typeof KioskRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
+  BusinessCaseBriefRoute: typeof BusinessCaseBriefRoute
   BusinessCaseCalculatorRoute: typeof BusinessCaseCalculatorRoute
   DTokenRoute: typeof DTokenRoute
   ETokenRoute: typeof ETokenRoute
@@ -2125,6 +2138,13 @@ declare module '@tanstack/react-router' {
       path: '/business-case/calculator'
       fullPath: '/business-case/calculator'
       preLoaderRoute: typeof BusinessCaseCalculatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/business-case_/brief': {
+      id: '/business-case_/brief'
+      path: '/business-case/brief'
+      fullPath: '/business-case/brief'
+      preLoaderRoute: typeof BusinessCaseBriefRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/invite': {
@@ -3618,6 +3638,7 @@ const rootRouteChildren: RootRouteChildren = {
   BusinessCaseRoute: BusinessCaseRoute,
   KioskRoute: KioskRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
+  BusinessCaseBriefRoute: BusinessCaseBriefRoute,
   BusinessCaseCalculatorRoute: BusinessCaseCalculatorRoute,
   DTokenRoute: DTokenRoute,
   ETokenRoute: ETokenRoute,

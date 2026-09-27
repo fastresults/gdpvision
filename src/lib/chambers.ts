@@ -2,7 +2,7 @@
 // @tables none
 // @ui src/components/marketing/MarketingHome.tsx, src/routes/op-eds.$slug.tsx
 //
-// Canonical public-facing description of the eight chambers. Single source of
+// Canonical public-facing description of the ten chambers. Single source of
 // truth — the marketing home page and the op-ed landing pages both read it.
 
 import ch01 from "@/assets/chambers/chamber-01.jpg.asset.json";
@@ -19,7 +19,7 @@ export interface Chamber {
   title: string;
   /** CSS custom property registered in @theme inline of src/styles.css. */
   accentVar: string;
-  image: string;
+  image?: string;
   purpose: string;
   bullets: string[];
 }
@@ -100,7 +100,7 @@ export const CHAMBERS: Chamber[] = [
   },
   {
     index: "07",
-    title: "The Research Chamber",
+    title: "The Persona Lab",
     accentVar: "--sector-06",
     image: ch07.url,
     purpose:
@@ -122,6 +122,30 @@ export const CHAMBERS: Chamber[] = [
       "Ingest the manifesto and decompose it into pillars, pledges, and ministry-owned deliverables.",
       "Quarterly scorecards and a PM Report Card that grade every ministry from delivered to broken.",
       "Signed, versioned compact with a full audit trail — every revision snapshotted and diffable.",
+    ],
+  },
+  {
+    index: "09",
+    title: "The Digital Government Studio",
+    accentVar: "--sector-09",
+    purpose:
+      "Write the product requirements for the nation's e-government platform from the country's own record, approve them, and feed the platform live from the Ledger.",
+    bullets: [
+      "Eleven sections drafted from the corpus with citations — audiences, services, governance, government structure, brand from the flag.",
+      "Approved by a second person; the platform reads GDPVision through a keyed, read-only API.",
+      "Cabinet, ministries and statutory bodies published once, verified, to every surface.",
+    ],
+  },
+  {
+    index: "10",
+    title: "The Sector Studio",
+    accentVar: "--sector-10",
+    purpose:
+      "Choose the few sectors that will move GDP, and run each against a plan with an owner, a Compact, a Council and a scorecard.",
+    bullets: [
+      "A Scout ranks every sector from the record; the Head of Government chooses up to four.",
+      "A ten-section Sector Development Plan per priority: diagnostic to roadmap, drafted with citations.",
+      "Approval raises a Cabinet commitment; the plan reaches the country's platform through the API.",
     ],
   },
 ];

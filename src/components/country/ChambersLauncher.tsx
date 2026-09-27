@@ -1,9 +1,11 @@
-// Sovereign switchboard: Chamber 01 gets a hero row; 02–08 fill the grid.
+// Sovereign switchboard: Chamber 01 gets a hero row; 02–10 fill the grid.
 // Numeric monogram is the visual anchor; icon is a small mark, not a headline.
 
 import { Link } from "@tanstack/react-router";
 import {
   Activity,
+  Factory,
+  Monitor,
   ArrowUpRight,
   BookOpen,
   Landmark,
@@ -30,6 +32,8 @@ type Chamber = {
     | "/admin/countries/$code/cabinet"
     | "/admin/countries/$code/personas"
     | "/admin/countries/$code/mandate-compact"
+    | "/admin/countries/$code/egov"
+    | "/admin/countries/$code/sector"
     | "/admin/countries/$code/godseye";
 };
 
@@ -92,6 +96,20 @@ const REST: Chamber[] = [
     blurb: "Manifesto to delivery — pledges tracked to the ministry.",
     to: "/admin/countries/$code/mandate-compact",
   },
+  {
+    n: "09",
+    icon: Monitor,
+    title: "Digital Government Studio",
+    blurb: "Requirements for the national e-government platform, drawn from the corpus.",
+    to: "/admin/countries/$code/egov",
+  },
+  {
+    n: "10",
+    icon: Factory,
+    title: "Sector Studio",
+    blurb: "Priority sectors, from the Scout's shortlist to a signed development plan.",
+    to: "/admin/countries/$code/sector",
+  },
 ];
 
 const SYNDICATION: Array<{
@@ -101,8 +119,6 @@ const SYNDICATION: Array<{
     | "/admin/countries/$code/standards"
     | "/admin/countries/$code/investments"
     | "/admin/countries/$code/investors"
-    | "/admin/countries/$code/egov"
-    | "/admin/countries/$code/sector"
     | "/admin/countries/$code/government";
 }> = [
   {
@@ -123,29 +139,17 @@ const SYNDICATION: Array<{
     to: "/admin/countries/$code/investors",
   },
   {
-    title: "Digital Government Studio",
-    blurb:
-      "The product requirements for a national e-government platform, written from this country's corpus and approved by a second person.",
-    to: "/admin/countries/$code/egov",
-  },
-  {
     title: "Government record",
     blurb:
       "Head of State, Prime Minister, Cabinet and statutory bodies — researched, verified and published to the PRD and the country's platform.",
     to: "/admin/countries/$code/government",
-  },
-  {
-    title: "Sector Studio",
-    blurb:
-      "From dossier to delivery: the Scout's shortlist, up to four priority sectors, and a Sector Development Plan for each — Compact, Council charter and national sensitisation included.",
-    to: "/admin/countries/$code/sector",
   },
 ];
 
 export function ChambersLauncher({ code }: { code: string }) {
   return (
     <section className="space-y-5">
-      {/* The roof over the eight chambers. */}
+      {/* The roof over the ten chambers. */}
       <Link
         to="/admin/countries/$code/executive"
         params={{ code }}
@@ -159,7 +163,7 @@ export function ChambersLauncher({ code }: { code: string }) {
             The Executive Brief
           </span>
           <span className="mt-0.5 block truncate text-[13px] text-ink-500">
-            What requires a decision today, and the standing of all eight chambers on one screen.
+            What requires a decision today, and the standing of all ten chambers on one screen.
           </span>
         </span>
         <ArrowUpRight
@@ -203,14 +207,14 @@ export function ChambersLauncher({ code }: { code: string }) {
           <h2 className="mt-2 font-serif text-3xl text-ink-950">Enter a chamber</h2>
         </div>
         <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Eight sovereign chambers · one country
+          Ten sovereign chambers · one country
         </span>
       </div>
 
       {/* Hero chamber (01) */}
       <HeroTile code={code} chamber={HERO} />
 
-      {/* Grid for 02–08 */}
+      {/* Grid for 02–10 */}
       <div className="grid grid-cols-1 gap-0 border-t border-line-200 md:grid-cols-2 lg:grid-cols-3">
         {REST.map((c, i) => (
           <Tile key={c.n} code={code} chamber={c} index={i} />

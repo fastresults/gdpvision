@@ -197,12 +197,29 @@ function TargetTrajectory({
         </button>
       </div>
       {targets.length ? (
-        <svg
-          viewBox={`0 0 ${W} ${H}`}
-          className="mt-3 h-[218px] w-full overflow-visible"
-          role="img"
-          aria-label="Planned outcome target trajectories"
-        >
+        <>
+          <div className="mt-4 grid gap-x-5 gap-y-2 sm:grid-cols-3" aria-label="Target legend">
+            {targets.map((target, i) => (
+              <div key={target.label} className="flex min-w-0 items-start gap-2 text-[10px] leading-snug text-ink-600">
+                <span
+                  className="mt-1 h-2 w-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: `var(--sector-${String(i + 3).padStart(2, "0")})` }}
+                />
+                <span className="min-w-0">
+                  <span className="block line-clamp-2">{target.label}</span>
+                  <strong className="font-mono font-normal text-ink-950">
+                    {target.values.at(-1)?.raw ?? "—"}
+                  </strong>
+                </span>
+              </div>
+            ))}
+          </div>
+          <svg
+            viewBox={`0 0 ${W} ${H}`}
+            className="mt-1 h-auto max-h-[218px] min-h-[150px] w-full"
+            role="img"
+            aria-label="Planned outcome target trajectories"
+          >
           <defs>
             {[0, 1, 2].map((i) => (
               <linearGradient key={i} id={`sector-target-area-${i}`} x1="0" y1="0" x2="0" y2="1">
@@ -266,16 +283,6 @@ function TargetTrajectory({
                         stroke={color}
                         strokeWidth="2"
                       />
-                      {index === target.values.length - 1 ? (
-                        <text
-                          x={x - 4}
-                          y={y - 9 + i * 3}
-                          textAnchor="end"
-                          className="fill-ink-700 text-[9px]"
-                        >
-                          {target.label}: {point.raw}
-                        </text>
-                      ) : null}
                     </g>
                   );
                 })}
@@ -295,7 +302,8 @@ function TargetTrajectory({
               {point.period}
             </text>
           ))}
-        </svg>
+          </svg>
+        </>
       ) : (
         <button
           type="button"
@@ -381,7 +389,7 @@ export function PlanVisualSummary({
             stale={summary.staleStages.includes("ambition")}
             onOpen={() => onOpenStage("ambition")}
           />
-          <div className="border-l border-line-200 pl-6">
+          <div className="border-t border-line-200 pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
             <div className={MICRO}>
               <Explain id="sector.plan-readiness" ctx={summary.readiness}>
                 Plan readiness

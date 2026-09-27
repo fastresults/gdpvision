@@ -111,7 +111,22 @@ function phaseSummary(body: string): PlanPhase[] {
       achievement: row[delivery]?.trim() || "Planned achievement",
     }));
   }
-  return [];
+  const prosePhases = Array.from(
+    body.matchAll(
+      /(?:^|\n)#{0,6}\s*\*{0,2}(Phase\s+\d+\s*:[^\n*]+)\*{0,2}\s*\n([\s\S]*?)(?=\n#{0,6}\s*\*{0,2}Phase\s+\d+\s*:|\n#{1,6}\s+|\n[A-Z][A-Z ]{5,}\s*\n|$)/gi,
+    ),
+  );
+  return prosePhases.slice(0, 4).map((match) => {
+    const phaseBody = match[2] ?? "";
+    const deliverables = phaseBody.match(/(?:^|\n)\s*\*{0,2}Deliverables\s*:\*{0,2}\s*([^\n]+)/i);
+    const focus = phaseBody.match(/(?:^|\n)\s*\*{0,2}Focus\s*:\*{0,2}\s*([^\n]+)/i);
+    return {
+      label: (match[1] ?? "Phase").replace(/\*+/g, "").trim(),
+      achievement: (deliverables?.[1] ?? focus?.[1] ?? "Planned achievement")
+        .replace(/\*+/g, "")
+        .trim(),
+    };
+  });
 }
 
 function namedFlagship(body: string, projects: PlanProject[]): string | null {

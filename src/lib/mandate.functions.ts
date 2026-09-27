@@ -135,7 +135,7 @@ export const listKpis = createServerFn({ method: "GET" })
       .order("sector_code", { ascending: true });
     if (error) throw new Error(error.message);
     const ids = (kpis ?? []).map((k) => k.id);
-    let latestByKpi = new Map<string, { period: string; value: number | null; status: string }>();
+    const latestByKpi = new Map<string, { period: string; value: number | null; status: string }>();
     if (ids.length) {
       const { data: cycles } = await context.supabase
         .from("goal_cycles")

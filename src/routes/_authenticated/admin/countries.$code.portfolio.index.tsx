@@ -61,10 +61,9 @@ function PortfolioIndex() {
   const { data: viz } = useSuspenseQuery(vizQuery(code));
   const { data: deliveryKpis } = useSuspenseQuery(deliveryQuery(code));
 
-  const profileBySlug = new Map(profiles.map((p) => [p.ministry_slug, p]));
-  const compBySector = new Map(viz.sectors.map((s) => [s.code, s.share_pct]));
-
   const rows = useMemo(() => {
+    const profileBySlug = new Map(profiles.map((p) => [p.ministry_slug, p]));
+    const compBySector = new Map(viz.sectors.map((s) => [s.code, s.share_pct]));
     return ministries
       .map((m) => {
         const scoped = deliveryKpis.filter((kpi) => kpi.ministry_id === m.id);
@@ -93,7 +92,7 @@ function PortfolioIndex() {
         };
       })
       .sort((a, b) => b.riskScore - a.riskScore || b.gdp - a.gdp);
-  }, [ministries, deliveryKpis, profileBySlug, compBySector]);
+  }, [ministries, deliveryKpis, profiles, viz.sectors]);
 
   if (ministries.length === 0) {
     return (

@@ -254,7 +254,7 @@ function Curve({ items, code, hover, setHover, n50, n80, ctx }: VP & { n50: numb
             </circle>
             {n <= 14 && (
               <text x={px(i + 1)} y={H - 14} textAnchor="middle" fontSize={10} fill={hover === s.code ? "var(--color-ink-950)" : "var(--color-ink-500)"} fontFamily="monospace">
-                {s.code}
+                {s.code.split("-")[0].slice(0, 9)}
               </text>
             )}
           </Link>

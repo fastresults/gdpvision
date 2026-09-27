@@ -54,7 +54,11 @@ export function NavControls({ className = "" }: { className?: string }) {
 
   const hasHistory = trail.length >= 2;
   const previous = hasHistory ? trail[trail.length - 2] : null;
-  const recent = trail.slice(0, -1).map((e, i) => ({ e, i })).reverse().slice(0, 10);
+  const recent = trail
+    .slice(0, -1)
+    .map((e, i) => ({ e, i }))
+    .reverse()
+    .slice(0, 10);
 
   function jump(i: number) {
     const steps = trail.length - 1 - i;
@@ -73,7 +77,9 @@ export function NavControls({ className = "" }: { className?: string }) {
         type="button"
         onClick={back}
         className="flex h-8 items-center gap-1.5 border border-line-200 px-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500 hover:border-ink-950 hover:text-ink-950"
-        aria-label={previous ? `Back to ${previous.title || previous.pathname}` : "Up to parent page"}
+        aria-label={
+          previous ? `Back to ${previous.title || previous.pathname}` : "Up to parent page"
+        }
         title={previous ? `Back to ${previous.title || previous.pathname}` : "Up to parent page"}
       >
         <ArrowLeft size={12} />
@@ -107,7 +113,9 @@ export function NavControls({ className = "" }: { className?: string }) {
               className="block w-full px-3 py-2 text-left hover:bg-paper-100"
             >
               <span className="block truncate text-sm text-ink-950">{e.title || e.pathname}</span>
-              <span className="block truncate font-mono text-[10px] text-ink-500">{e.pathname}</span>
+              <span className="block truncate font-mono text-[10px] text-ink-500">
+                {e.pathname}
+              </span>
             </button>
           ))}
         </div>

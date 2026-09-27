@@ -3,29 +3,13 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 import { MinisterGdpExposureCurve } from "@/components/portfolio/MinisterGdpExposureCurve";
+import { Explain } from "@/components/explain/Explain";
 import { listMinistries } from "@/lib/scenarios.functions";
 import { listMinistryProfiles } from "@/lib/country-data/manage.functions";
 import { getVizOverview } from "@/lib/country-viz/viz.functions";
-
-const ON_TRACK_PCT = 5;
-const NEAR_TRACK_PCT = 15;
-
-type TrackStatus = "on" | "near" | "off" | "no-target";
-
-function classifyTrack(
-  latest: number | null | undefined,
-  target: number | null | undefined,
-  direction?: string | null,
-): TrackStatus {
-  if (latest == null || target == null || target === 0) return "no-target";
-  const dir = (direction ?? "higher").toLowerCase();
-  const raw = ((latest - target) / Math.abs(target)) * 100;
-  const signed = dir.startsWith("lower") ? -raw : raw;
-  const absv = Math.abs(signed);
-  if (signed >= 0 || absv <= ON_TRACK_PCT) return "on";
-  if (absv <= NEAR_TRACK_PCT) return "near";
-  return "off";
-}
+import { assessDelivery } from "@/lib/portfolio/accountability";
+import { listPortfolioDeliveryKpis } from "@/lib/portfolio/accountability.functions";
+import "@/lib/explain/portfolio-entries";
 
 function ministriesQuery(code: string) {
   return queryOptions({
@@ -45,6 +29,12 @@ function vizQuery(code: string) {
     queryFn: () => getVizOverview({ data: { countryCode: code } }),
   });
 }
+function deliveryQuery(code: string) {
+  return queryOptions({
+    queryKey: ["portfolio-delivery-kpis", code],
+    queryFn: () => listPortfolioDeliveryKpis({ data: { countryCode: code } }),
+  });
+}
 
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/portfolio/")({
   head: ({ params }) => ({
@@ -58,6 +48,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/port
       context.queryClient.ensureQueryData(ministriesQuery(params.code)),
       context.queryClient.ensureQueryData(profilesQuery(params.code)),
       context.queryClient.ensureQueryData(vizQuery(params.code)),
+      context.queryClient.ensureQueryData(deliveryQuery(params.code)),
     ]);
   },
   component: PortfolioIndex,
@@ -68,32 +59,25 @@ function PortfolioIndex() {
   const { data: ministries } = useSuspenseQuery(ministriesQuery(code));
   const { data: profiles } = useSuspenseQuery(profilesQuery(code));
   const { data: viz } = useSuspenseQuery(vizQuery(code));
-
-  const kpiIndex = new Map(viz.allKpis.map((k) => [k.kpi_code, k]));
-  const profileBySlug = new Map(profiles.map((p) => [p.ministry_slug, p]));
-  const compBySector = new Map(viz.sectors.map((s) => [s.code, s.share_pct]));
+  const { data: deliveryKpis } = useSuspenseQuery(deliveryQuery(code));
 
   const rows = useMemo(() => {
+    const profileBySlug = new Map(profiles.map((p) => [p.ministry_slug, p]));
+    const compBySector = new Map(viz.sectors.map((s) => [s.code, s.share_pct]));
     return ministries
       .map((m) => {
-        const sectorCodes = new Set(m.sectors.map((s) => s.sector_code));
-        const scoped = viz.sectorKpiSeries.filter((s) => sectorCodes.has(s.sector_code));
-        const counts = { on: 0, near: 0, off: 0, "no-target": 0 } as Record<TrackStatus, number>;
-        let withSource = 0;
-        for (const s of scoped) {
-          const meta = kpiIndex.get(s.kpi_code);
-          const t = classifyTrack(s.latest, s.target, meta?.direction);
-          counts[t]++;
-          if (meta?.provenance && meta.provenance !== "unknown") withSource++;
-        }
+        const scoped = deliveryKpis.filter((kpi) => kpi.ministry_id === m.id);
+        const counts = { on: 0, risk: 0, off: 0, unscored: 0 };
+        for (const kpi of scoped) counts[assessDelivery(kpi).status]++;
         const gdp = m.sectors.reduce((sum, s) => sum + (compBySector.get(s.sector_code) ?? 0), 0);
         const prof = profileBySlug.get(m.slug) as
           | { minister?: string | null; minister_profile?: { name?: string } | null }
           | undefined;
         const ministerName = prof?.minister_profile?.name ?? prof?.minister ?? null;
         const total = scoped.length;
-        const evidence = total ? Math.round((withSource / total) * 100) : 0;
-        const riskScore = counts.off * 3 + counts.near;
+        const qualified = counts.on + counts.risk + counts.off;
+        const readiness = total ? Math.round((qualified / total) * 100) : 0;
+        const riskScore = counts.off * 3 + counts.risk;
         return {
           slug: m.slug,
           name: m.name,
@@ -102,12 +86,13 @@ function PortfolioIndex() {
           gdp,
           counts,
           total,
-          evidence,
+          qualified,
+          readiness,
           riskScore,
         };
       })
       .sort((a, b) => b.riskScore - a.riskScore || b.gdp - a.gdp);
-  }, [ministries, viz, kpiIndex, profileBySlug, compBySector]);
+  }, [ministries, deliveryKpis, profiles, viz.sectors]);
 
   if (ministries.length === 0) {
     return (
@@ -150,8 +135,21 @@ function PortfolioIndex() {
               <th className="py-2 font-normal">Portfolio · Minister</th>
               <th className="py-2 text-right font-normal">Sectors</th>
               <th className="py-2 text-right font-normal">GDP exposure</th>
-              <th className="py-2 text-center font-normal">On / At risk / Off</th>
-              <th className="py-2 text-right font-normal">Evidence</th>
+              <th className="py-2 text-center font-normal">
+                <Explain
+                  id="portfolio.delivery-status"
+                  ctx={{
+                    qualified:
+                      deliveryKpis.length -
+                      deliveryKpis.filter((k) => assessDelivery(k).status === "unscored").length,
+                    unscored: deliveryKpis.filter((k) => assessDelivery(k).status === "unscored")
+                      .length,
+                  }}
+                >
+                  On / At risk / Off
+                </Explain>
+              </th>
+              <th className="py-2 text-right font-normal">Readiness</th>
               <th className="py-2"></th>
             </tr>
           </thead>
@@ -170,21 +168,41 @@ function PortfolioIndex() {
                 <td className="py-3 text-right font-mono tabular-nums">
                   {r.gdp > 0 ? `${r.gdp.toFixed(1)}%` : "—"}
                 </td>
-                <td className="py-3">
-                  <div className="flex items-center justify-center gap-1 font-mono text-[11px] tabular-nums">
-                    <span className="min-w-[28px] rounded-sm bg-emerald-50 px-1.5 py-0.5 text-center text-emerald-700">
-                      {r.counts.on}
+                <td className="py-3 text-center">
+                  {r.total ? (
+                    <div className="flex items-center justify-center gap-1 font-mono text-[11px] tabular-nums">
+                      <span className="min-w-[28px] rounded-sm bg-emerald-50 px-1.5 py-0.5 text-center text-emerald-700">
+                        {r.counts.on}
+                      </span>
+                      <span className="min-w-[28px] rounded-sm bg-amber-50 px-1.5 py-0.5 text-center text-amber-700">
+                        {r.counts.risk}
+                      </span>
+                      <span className="min-w-[28px] rounded-sm bg-red-50 px-1.5 py-0.5 text-center text-red-700">
+                        {r.counts.off}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-500">
+                      Not measured
                     </span>
-                    <span className="min-w-[28px] rounded-sm bg-amber-50 px-1.5 py-0.5 text-center text-amber-700">
-                      {r.counts.near}
-                    </span>
-                    <span className="min-w-[28px] rounded-sm bg-red-50 px-1.5 py-0.5 text-center text-red-700">
-                      {r.counts.off}
-                    </span>
-                  </div>
+                  )}
+                  {r.total > 0 && r.counts.unscored > 0 && (
+                    <p className="mt-1 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-ink-500">
+                      {r.counts.unscored} unscored
+                    </p>
+                  )}
                 </td>
                 <td className="py-3 text-right font-mono tabular-nums text-ink-500">
-                  {r.total ? `${r.evidence}%` : "—"}
+                  {r.total ? (
+                    `${r.qualified}/${r.total} · ${r.readiness}%`
+                  ) : (
+                    <Link
+                      to="/instrument/mandate/studio"
+                      className="underline decoration-line-200 underline-offset-4 hover:decoration-ink-950"
+                    >
+                      Set up KPIs
+                    </Link>
+                  )}
                 </td>
                 <td className="py-3 text-right">
                   <Link

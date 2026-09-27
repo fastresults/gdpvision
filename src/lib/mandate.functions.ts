@@ -69,7 +69,9 @@ const PackageSaveInput = z.object({
   name: z.string().min(1).max(160),
   summary: z.string().max(2000).optional(),
   gates: z.array(z.object({ label: z.string(), passed: z.boolean() })).default([]),
-  enablingActions: z.array(z.object({ label: z.string(), owner: z.string().optional() })).default([]),
+  enablingActions: z
+    .array(z.object({ label: z.string(), owner: z.string().optional() }))
+    .default([]),
   targetGapPct: z.number().min(0).max(100).optional(),
   status: z.enum(["draft", "proposed", "approved", "active", "complete"]).default("draft"),
 });
@@ -110,6 +112,13 @@ export interface KpiRow {
   cadence: string;
   classification: string;
   ministry_id: string | null;
+  baseline_period: string | null;
+  direction: string;
+  target_basis: string | null;
+  evidence_url: string | null;
+  warning_tolerance_pct: number;
+  critical_tolerance_pct: number;
+  verification_status: string;
   latest?: { period: string; value: number | null; status: string } | null;
 }
 
@@ -119,12 +128,14 @@ export const listKpis = createServerFn({ method: "GET" })
   .handler(async ({ data, context }): Promise<KpiRow[]> => {
     const { data: kpis, error } = await context.supabase
       .from("kpis")
-      .select("id,sector_code,metric,unit,baseline,target,target_period,cadence,classification,ministry_id")
+      .select(
+        "id,sector_code,metric,unit,baseline,target,target_period,cadence,classification,ministry_id,baseline_period,direction,target_basis,evidence_url,warning_tolerance_pct,critical_tolerance_pct,verification_status",
+      )
       .eq("country_code", data.countryCode)
       .order("sector_code", { ascending: true });
     if (error) throw new Error(error.message);
     const ids = (kpis ?? []).map((k) => k.id);
-    let latestByKpi = new Map<string, { period: string; value: number | null; status: string }>();
+    const latestByKpi = new Map<string, { period: string; value: number | null; status: string }>();
     if (ids.length) {
       const { data: cycles } = await context.supabase
         .from("goal_cycles")
@@ -152,6 +163,13 @@ export const listKpis = createServerFn({ method: "GET" })
       cadence: k.cadence,
       classification: k.classification,
       ministry_id: k.ministry_id,
+      baseline_period: k.baseline_period,
+      direction: k.direction,
+      target_basis: k.target_basis,
+      evidence_url: k.evidence_url,
+      warning_tolerance_pct: Number(k.warning_tolerance_pct),
+      critical_tolerance_pct: Number(k.critical_tolerance_pct),
+      verification_status: k.verification_status,
       latest: latestByKpi.get(k.id) ?? null,
     }));
   });
@@ -168,6 +186,12 @@ const KpiSaveInput = z.object({
   classification: z.enum(["public", "internal", "restricted"]).default("internal"),
   ministryId: z.string().uuid().optional(),
   planScenarioId: z.string().uuid().optional(),
+  baselinePeriod: z.string().min(4),
+  direction: z.enum(["up", "down", "flat"]),
+  targetBasis: z.enum(["policy_commitment", "peer_benchmark", "approved_scenario"]),
+  evidenceUrl: z.string().url(),
+  warningTolerancePct: z.number().min(0).max(100).default(10),
+  criticalTolerancePct: z.number().min(0).max(100).default(20),
 });
 
 export const saveKpi = createServerFn({ method: "POST" })
@@ -189,11 +213,75 @@ export const saveKpi = createServerFn({ method: "POST" })
         ministry_id: data.ministryId ?? null,
         plan_scenario_id: data.planScenarioId ?? null,
         owner_id: context.userId,
+        baseline_period: data.baselinePeriod,
+        direction: data.direction,
+        target_basis: data.targetBasis,
+        evidence_url: data.evidenceUrl,
+        warning_tolerance_pct: data.warningTolerancePct,
+        critical_tolerance_pct: data.criticalTolerancePct,
+        verification_status: "submitted",
       })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
     return { id: row.id };
+  });
+
+const RecordActualInput = z.object({
+  kpiId: z.string().uuid(),
+  period: z.string().min(4).max(40),
+  actual: z.number(),
+  commentary: z.string().max(2000).optional(),
+});
+
+export const recordKpiActual = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => RecordActualInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("goal_cycles").upsert(
+      {
+        kpi_id: data.kpiId,
+        period: data.period,
+        figures: { actual: data.actual } as Json,
+        commentary: data.commentary ?? null,
+        status: "reported",
+        created_by: context.userId,
+      },
+      { onConflict: "kpi_id,period" },
+    );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const QualifyKpiInput = z.object({
+  kpiId: z.string().uuid(),
+  note: z.string().max(1000).optional(),
+});
+
+export const qualifyKpi = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => QualifyKpiInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: current, error: readError } = await context.supabase
+      .from("kpis")
+      .select("owner_id,verification_status")
+      .eq("id", data.kpiId)
+      .single();
+    if (readError) throw new Error(readError.message);
+    if (current.owner_id === context.userId)
+      throw new Error("A second authorised person must qualify this KPI");
+    const { error } = await context.supabase
+      .from("kpis")
+      .update({
+        verification_status: "qualified",
+        verified_by: context.userId,
+        verified_at: new Date().toISOString(),
+        qualification_notes: data.note ?? null,
+      })
+      .eq("id", data.kpiId)
+      .eq("verification_status", "submitted");
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 // ─── Cabinet Room: sessions, decisions, commitments ──────────────────────────

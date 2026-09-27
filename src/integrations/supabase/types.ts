@@ -5260,6 +5260,44 @@ export type Database = {
         }
         Relationships: []
       }
+      kpi_qualification_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          kpi_id: string
+          next_status: string
+          note: string | null
+          previous_status: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          kpi_id: string
+          next_status: string
+          note?: string | null
+          previous_status?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          kpi_id?: string
+          next_status?: string
+          note?: string | null
+          previous_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpi_qualification_history_kpi_id_fkey"
+            columns: ["kpi_id"]
+            isOneToOne: false
+            referencedRelation: "kpis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kpi_research_attempts: {
         Row: {
           country_code: string
@@ -5429,54 +5467,84 @@ export type Database = {
       kpis: {
         Row: {
           baseline: number | null
+          baseline_period: string | null
           cadence: string
           classification: string
           country_code: string
           created_at: string
+          critical_tolerance_pct: number
+          direction: string
+          evidence_url: string | null
           id: string
           metric: string
           ministry_id: string | null
           owner_id: string | null
           plan_scenario_id: string | null
+          qualification_notes: string | null
           sector_code: string
           target: number
+          target_basis: string | null
           target_period: string | null
           unit: string
           updated_at: string
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
+          warning_tolerance_pct: number
         }
         Insert: {
           baseline?: number | null
+          baseline_period?: string | null
           cadence?: string
           classification?: string
           country_code: string
           created_at?: string
+          critical_tolerance_pct?: number
+          direction?: string
+          evidence_url?: string | null
           id?: string
           metric: string
           ministry_id?: string | null
           owner_id?: string | null
           plan_scenario_id?: string | null
+          qualification_notes?: string | null
           sector_code: string
           target: number
+          target_basis?: string | null
           target_period?: string | null
           unit: string
           updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          warning_tolerance_pct?: number
         }
         Update: {
           baseline?: number | null
+          baseline_period?: string | null
           cadence?: string
           classification?: string
           country_code?: string
           created_at?: string
+          critical_tolerance_pct?: number
+          direction?: string
+          evidence_url?: string | null
           id?: string
           metric?: string
           ministry_id?: string | null
           owner_id?: string | null
           plan_scenario_id?: string | null
+          qualification_notes?: string | null
           sector_code?: string
           target?: number
+          target_basis?: string | null
           target_period?: string | null
           unit?: string
           updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          warning_tolerance_pct?: number
         }
         Relationships: [
           {

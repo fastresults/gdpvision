@@ -197,7 +197,7 @@ function PortfolioIndex() {
                     `${r.qualified}/${r.total} · ${r.readiness}%`
                   ) : (
                     <Link
-                      to="/_authenticated/instrument/mandate/studio"
+                      to="/instrument/mandate/studio"
                       className="underline decoration-line-200 underline-offset-4 hover:decoration-ink-950"
                     >
                       Set up KPIs

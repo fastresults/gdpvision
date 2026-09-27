@@ -121,9 +121,7 @@ function phaseSummary(body: string): PlanPhase[] {
     const deliverables = phaseBody.match(
       /(?:^|\n)\s*\*{0,2}Deliverables\*{0,2}\s*:\s*\*{0,2}\s*([^\n]+)/i,
     );
-    const focus = phaseBody.match(
-      /(?:^|\n)\s*\*{0,2}Focus\*{0,2}\s*:\s*\*{0,2}\s*([^\n]+)/i,
-    );
+    const focus = phaseBody.match(/(?:^|\n)\s*\*{0,2}Focus\*{0,2}\s*:\s*\*{0,2}\s*([^\n]+)/i);
     return {
       label: (match[1] ?? "Phase").replace(/\*+/g, "").trim(),
       achievement: (deliverables?.[1] ?? focus?.[1] ?? "Planned achievement")

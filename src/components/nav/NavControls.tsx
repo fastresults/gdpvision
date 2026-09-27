@@ -2,7 +2,21 @@ import { useEffect, useRef, useState } from "react";
 import { useBlocker, useRouter } from "@tanstack/react-router";
 import { ArrowLeft, History } from "lucide-react";
 
-import { getTrail, parentPath, startTrail, truncateTo, useTrail } from "@/lib/nav/trail";
+import { getTrail, parentPath, startTrail, useTrail, type TrailEntry } from "@/lib/nav/trail";
+
+/** One row per page: collapse consecutive same-page entries (tab/step changes), keeping the latest. */
+function pagesBefore(trail: TrailEntry[]): TrailEntry[] {
+  const cur = trail[trail.length - 1];
+  if (!cur) return [];
+  let end = trail.length - 1;
+  while (end > 0 && trail[end - 1].pathname === cur.pathname) end--;
+  const out: TrailEntry[] = [];
+  for (let i = 0; i < end; i++) {
+    if (i + 1 < end && trail[i + 1].pathname === trail[i].pathname) continue;
+    out.push(trail[i]);
+  }
+  return out;
+}
 import { clearUnsavedWork, hasUnsavedWork } from "@/lib/nav/unsaved";
 
 /** Mount once in the root: starts the journey trail and the unsaved-work guard. */
@@ -54,21 +68,14 @@ export function NavControls({ className = "" }: { className?: string }) {
 
   const hasHistory = trail.length >= 2;
   const previous = hasHistory ? trail[trail.length - 2] : null;
-  const recent = trail
-    .slice(0, -1)
-    .map((e, i) => ({ e, i }))
-    .reverse()
-    .slice(0, 10);
+  const recent = pagesBefore(trail).reverse().slice(0, 10);
 
-  function jump(i: number) {
-    const steps = trail.length - 1 - i;
+  function jump(target: TrailEntry) {
     setOpen(false);
-    if (steps <= 0) return;
+    const cur = getTrail()[getTrail().length - 1];
+    const delta = cur ? target.idx - cur.idx : 0;
     // Step through real browser history so Forward still works.
-    router.history.go(-steps);
-    setTimeout(() => {
-      if (getTrail().length > i + 1) truncateTo(i);
-    }, 400);
+    if (delta < 0) router.history.go(delta);
   }
 
   return (
@@ -104,12 +111,12 @@ export function NavControls({ className = "" }: { className?: string }) {
           <p className="px-3 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
             Where I’ve been
           </p>
-          {recent.map(({ e, i }) => (
+          {recent.map((e) => (
             <button
-              key={`${e.href}-${i}`}
+              key={e.idx}
               type="button"
               role="menuitem"
-              onClick={() => jump(i)}
+              onClick={() => jump(e)}
               className="block w-full px-3 py-2 text-left hover:bg-paper-100"
             >
               <span className="block truncate text-sm text-ink-950">{e.title || e.pathname}</span>

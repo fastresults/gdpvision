@@ -18,12 +18,17 @@ export const listPortfolioDeliveryKpis = createServerFn({ method: "POST" })
       _user_id: context.userId,
       _country_code: data.countryCode,
     });
-    const { data: admin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    const { data: admin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
     if (!allowed && !admin) throw new Error("Forbidden: no access to this country");
 
     const { data: rows, error } = await context.supabase
       .from("kpis")
-      .select("id,ministry_id,sector_code,metric,unit,baseline,baseline_period,target,target_period,direction,target_basis,evidence_url,cadence,warning_tolerance_pct,critical_tolerance_pct,verification_status")
+      .select(
+        "id,ministry_id,sector_code,metric,unit,baseline,baseline_period,target,target_period,direction,target_basis,evidence_url,cadence,warning_tolerance_pct,critical_tolerance_pct,verification_status",
+      )
       .eq("country_code", data.countryCode)
       .order("metric");
     if (error) throw new Error(error.message);

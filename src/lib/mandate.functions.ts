@@ -69,7 +69,9 @@ const PackageSaveInput = z.object({
   name: z.string().min(1).max(160),
   summary: z.string().max(2000).optional(),
   gates: z.array(z.object({ label: z.string(), passed: z.boolean() })).default([]),
-  enablingActions: z.array(z.object({ label: z.string(), owner: z.string().optional() })).default([]),
+  enablingActions: z
+    .array(z.object({ label: z.string(), owner: z.string().optional() }))
+    .default([]),
   targetGapPct: z.number().min(0).max(100).optional(),
   status: z.enum(["draft", "proposed", "approved", "active", "complete"]).default("draft"),
 });
@@ -126,7 +128,9 @@ export const listKpis = createServerFn({ method: "GET" })
   .handler(async ({ data, context }): Promise<KpiRow[]> => {
     const { data: kpis, error } = await context.supabase
       .from("kpis")
-      .select("id,sector_code,metric,unit,baseline,target,target_period,cadence,classification,ministry_id,baseline_period,direction,target_basis,evidence_url,warning_tolerance_pct,critical_tolerance_pct,verification_status")
+      .select(
+        "id,sector_code,metric,unit,baseline,target,target_period,cadence,classification,ministry_id,baseline_period,direction,target_basis,evidence_url,warning_tolerance_pct,critical_tolerance_pct,verification_status",
+      )
       .eq("country_code", data.countryCode)
       .order("sector_code", { ascending: true });
     if (error) throw new Error(error.message);
@@ -264,7 +268,8 @@ export const qualifyKpi = createServerFn({ method: "POST" })
       .eq("id", data.kpiId)
       .single();
     if (readError) throw new Error(readError.message);
-    if (current.owner_id === context.userId) throw new Error("A second authorised person must qualify this KPI");
+    if (current.owner_id === context.userId)
+      throw new Error("A second authorised person must qualify this KPI");
     const { error } = await context.supabase
       .from("kpis")
       .update({

@@ -137,7 +137,16 @@ function PortfolioIndex() {
               <th className="py-2 text-right font-normal">Sectors</th>
               <th className="py-2 text-right font-normal">GDP exposure</th>
               <th className="py-2 text-center font-normal">
-                <Explain id="portfolio.delivery-status" ctx={{ qualified: deliveryKpis.length - deliveryKpis.filter((k) => assessDelivery(k).status === "unscored").length, unscored: deliveryKpis.filter((k) => assessDelivery(k).status === "unscored").length }}>
+                <Explain
+                  id="portfolio.delivery-status"
+                  ctx={{
+                    qualified:
+                      deliveryKpis.length -
+                      deliveryKpis.filter((k) => assessDelivery(k).status === "unscored").length,
+                    unscored: deliveryKpis.filter((k) => assessDelivery(k).status === "unscored")
+                      .length,
+                  }}
+                >
                   On / At risk / Off
                 </Explain>
               </th>

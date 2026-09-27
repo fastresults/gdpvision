@@ -27,11 +27,13 @@ const entries: Array<Rationale<PortfolioExposureContext | DeliveryContext>> = [
     caveat:
       "This is exposure under portfolio influence, not legal control, spending power or personal performance. Shared sectors appear under more than one ministry, so minister percentages overlap and must not be added together.",
     derive: (ctx) =>
-      "points" in ctx ? ctx.points.map((point) => ({
-        label: point.minister ?? point.name,
-        value: point.gdp > 0 ? `${point.gdp.toFixed(1)}%` : "Not measured",
-        note: `${point.sectorCount} mapped sector${point.sectorCount === 1 ? "" : "s"}`,
-      })) : [],
+      "points" in ctx
+        ? ctx.points.map((point) => ({
+            label: point.minister ?? point.name,
+            value: point.gdp > 0 ? `${point.gdp.toFixed(1)}%` : "Not measured",
+            note: `${point.sectorCount} mapped sector${point.sectorCount === 1 ? "" : "s"}`,
+          }))
+        : [],
   },
   {
     key: "portfolio.delivery-status",
@@ -49,7 +51,7 @@ const entries: Array<Rationale<PortfolioExposureContext | DeliveryContext>> = [
       { label: "Unscored", value: String("unscored" in context ? context.unscored : 0) },
       {
         label: "Default bands",
-        value: `${"warningTolerancePct" in context ? context.warningTolerancePct ?? 10 : 10}% / ${"criticalTolerancePct" in context ? context.criticalTolerancePct ?? 20 : 20}%`,
+        value: `${"warningTolerancePct" in context ? (context.warningTolerancePct ?? 10) : 10}% / ${"criticalTolerancePct" in context ? (context.criticalTolerancePct ?? 20) : 20}%`,
         note: "Each ratified KPI may set stricter approved tolerances.",
       },
     ],

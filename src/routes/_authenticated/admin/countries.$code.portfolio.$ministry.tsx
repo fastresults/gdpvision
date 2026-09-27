@@ -90,10 +90,22 @@ type Programme = { name?: string; objective?: string; status?: string };
 type Citation = { title?: string; url?: string; domain?: string };
 
 const TRACK_META: Record<DeliveryStatus, { label: string; cls: string; dot: string }> = {
-  on: { label: "On track", cls: "text-emerald-700 border-emerald-300 bg-emerald-50", dot: "bg-emerald-500" },
-  risk: { label: "At risk", cls: "text-amber-700 border-amber-300 bg-amber-50", dot: "bg-amber-500" },
+  on: {
+    label: "On track",
+    cls: "text-emerald-700 border-emerald-300 bg-emerald-50",
+    dot: "bg-emerald-500",
+  },
+  risk: {
+    label: "At risk",
+    cls: "text-amber-700 border-amber-300 bg-amber-50",
+    dot: "bg-amber-500",
+  },
   off: { label: "Off track", cls: "text-red-700 border-red-300 bg-red-50", dot: "bg-red-500" },
-  unscored: { label: "Unscored", cls: "text-ink-500 border-line-200 bg-paper-100", dot: "bg-ink-500/40" },
+  unscored: {
+    label: "Unscored",
+    cls: "text-ink-500 border-line-200 bg-paper-100",
+    dot: "bg-ink-500/40",
+  },
 };
 
 function TrackPill({ status }: { status: DeliveryStatus }) {
@@ -108,15 +120,7 @@ function TrackPill({ status }: { status: DeliveryStatus }) {
   );
 }
 
-function ScorecardTile({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
+function ScorecardTile({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="border border-line-200 bg-paper-0 p-5">
       <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">{label}</p>
@@ -136,7 +140,12 @@ function CitedText({ text, citations }: { text: string; citations: Citation[] })
         if (!m) return <span key={i}>{p}</span>;
         const n = Number(m[1]);
         const c = citations[n - 1];
-        if (!c?.url) return <sup key={i} className="text-ink-500">[{n}]</sup>;
+        if (!c?.url)
+          return (
+            <sup key={i} className="text-ink-500">
+              [{n}]
+            </sup>
+          );
         return (
           <a
             key={i}
@@ -172,32 +181,37 @@ function PortfolioDetail() {
 
   const minister = (profileRow?.minister_profile ?? {}) as MinisterProfile;
   const mandate = (profileRow?.mandate ?? "").trim();
-  const programmes = Array.isArray(profileRow?.programmes) ? (profileRow!.programmes as Programme[]) : [];
-  const citations = Array.isArray(profileRow?.citations) ? (profileRow!.citations as Citation[]) : [];
+  const programmes = Array.isArray(profileRow?.programmes)
+    ? (profileRow!.programmes as Programme[])
+    : [];
+  const citations = Array.isArray(profileRow?.citations)
+    ? (profileRow!.citations as Citation[])
+    : [];
 
   // Delivery rows for the KPI performance panel.
   const kpiRows = useMemo(() => {
-    return deliveryKpis.filter((kpi) => kpi.ministry_id === data.ministry.id).map((kpi) => {
-      const assessment = assessDelivery(kpi);
-      return {
-        ...kpi,
-        assessment,
-        track: assessment.status,
-      };
-    }).sort((a, b) => {
-      const order: Record<DeliveryStatus, number> = { off: 0, risk: 1, unscored: 2, on: 3 };
-      if (order[a.track] !== order[b.track]) return order[a.track] - order[b.track];
-      return (b.assessment.gapPct ?? 0) - (a.assessment.gapPct ?? 0);
-    });
+    return deliveryKpis
+      .filter((kpi) => kpi.ministry_id === data.ministry.id)
+      .map((kpi) => {
+        const assessment = assessDelivery(kpi);
+        return {
+          ...kpi,
+          assessment,
+          track: assessment.status,
+        };
+      })
+      .sort((a, b) => {
+        const order: Record<DeliveryStatus, number> = { off: 0, risk: 1, unscored: 2, on: 3 };
+        if (order[a.track] !== order[b.track]) return order[a.track] - order[b.track];
+        return (b.assessment.gapPct ?? 0) - (a.assessment.gapPct ?? 0);
+      });
   }, [deliveryKpis, data.ministry.id]);
 
   // Aggregate for scorecard.
   const trackCounts = { on: 0, risk: 0, off: 0, unscored: 0 } as Record<DeliveryStatus, number>;
   kpiRows.forEach((r) => trackCounts[r.track]++);
   const kpiTotal = kpiRows.length;
-  const withCitedSource = kpiRows.filter(
-    (r) => Boolean(r.evidence_url),
-  ).length;
+  const withCitedSource = kpiRows.filter((r) => Boolean(r.evidence_url)).length;
   const evidenceCoverage = kpiTotal > 0 ? Math.round((withCitedSource / kpiTotal) * 100) : 0;
   const gdpShareTotal = data.composition.reduce((sum, c) => sum + c.share_pct, 0);
 
@@ -249,9 +263,7 @@ function PortfolioDetail() {
           <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
             Minister {minister.appointed_at ? `· Appointed ${minister.appointed_at}` : ""}
           </p>
-          <p className="mt-1 font-serif text-xl text-ink-950">
-            {minister.name ?? "Not on record"}
-          </p>
+          <p className="mt-1 font-serif text-xl text-ink-950">{minister.name ?? "Not on record"}</p>
           {(minister.title || minister.party) && (
             <p className="mt-1 text-xs text-ink-500">
               {[minister.title, minister.party].filter(Boolean).join(" · ")}
@@ -267,7 +279,10 @@ function PortfolioDetail() {
           )}
           <div className="mt-4 flex flex-wrap gap-4 font-mono text-[11px] text-ink-500">
             {minister.contact?.email && (
-              <a href={`mailto:${minister.contact.email}`} className="inline-flex items-center gap-1 hover:text-ink-950">
+              <a
+                href={`mailto:${minister.contact.email}`}
+                className="inline-flex items-center gap-1 hover:text-ink-950"
+              >
                 <Mail size={12} /> {minister.contact.email}
               </a>
             )}
@@ -277,17 +292,32 @@ function PortfolioDetail() {
               </span>
             )}
             {minister.contact?.website && (
-              <a href={minister.contact.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-ink-950">
+              <a
+                href={minister.contact.website}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 hover:text-ink-950"
+              >
                 <Globe size={12} /> Website
               </a>
             )}
             {minister.socials?.twitter && (
-              <a href={minister.socials.twitter} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-ink-950">
+              <a
+                href={minister.socials.twitter}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 hover:text-ink-950"
+              >
                 <Twitter size={12} /> Twitter
               </a>
             )}
             {minister.socials?.linkedin && (
-              <a href={minister.socials.linkedin} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-ink-950">
+              <a
+                href={minister.socials.linkedin}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 hover:text-ink-950"
+              >
                 <Linkedin size={12} /> LinkedIn
               </a>
             )}
@@ -309,11 +339,7 @@ function PortfolioDetail() {
         />
         <ScorecardTile
           label="Delivery"
-          value={
-            kpiTotal
-              ? `${trackCounts.on}/${trackCounts.risk}/${trackCounts.off}`
-              : "—"
-          }
+          value={kpiTotal ? `${trackCounts.on}/${trackCounts.risk}/${trackCounts.off}` : "—"}
           hint={`${trackCounts.unscored} unscored · On / At risk / Off`}
         />
         <ScorecardTile
@@ -345,7 +371,7 @@ function PortfolioDetail() {
               {data.ministry.sectors.map((s) => {
                 const meta = CANONICAL_SECTORS.find((c) => c.slug === s.sector_code);
                 const comp = data.composition.find((c) => c.sector_code === s.sector_code);
-                 const track = sectorTrack.get(s.sector_code) ?? "unscored";
+                const track = sectorTrack.get(s.sector_code) ?? "unscored";
                 return (
                   <tr key={s.sector_code} className="border-b border-line-200/60">
                     <td className="py-3">
@@ -355,7 +381,9 @@ function PortfolioDetail() {
                       />
                       {meta?.label ?? s.sector_code}
                     </td>
-                    <td className="py-3"><TrackPill status={track} /></td>
+                    <td className="py-3">
+                      <TrackPill status={track} />
+                    </td>
                     <td className="py-3 text-right font-mono">
                       {comp ? `${comp.share_pct.toFixed(1)}%` : "—"}
                     </td>
@@ -376,12 +404,20 @@ function PortfolioDetail() {
       {/* KPI delivery panel */}
       {kpiRows.length > 0 && (
         <section className="mt-12">
-            <h3 className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
-             <Explain id="portfolio.delivery-status" ctx={{ qualified: kpiRows.length - trackCounts.unscored, unscored: trackCounts.unscored }}>
-               KPI performance ({kpiRows.length})
-             </Explain>
+          <h3 className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
+            <Explain
+              id="portfolio.delivery-status"
+              ctx={{
+                qualified: kpiRows.length - trackCounts.unscored,
+                unscored: trackCounts.unscored,
+              }}
+            >
+              KPI performance ({kpiRows.length})
+            </Explain>
           </h3>
-          <p className="mt-1 text-xs text-ink-500">Sorted by delivery risk. Off- and at-risk KPIs float to the top.</p>
+          <p className="mt-1 text-xs text-ink-500">
+            Sorted by delivery risk. Off- and at-risk KPIs float to the top.
+          </p>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-sm" data-numeric>
               <thead>
@@ -404,19 +440,38 @@ function PortfolioDetail() {
                         {r.sector_code} · {r.direction}
                       </p>
                     </td>
-                    <td className="py-3"><TrackPill status={r.track} /></td>
+                    <td className="py-3">
+                      <TrackPill status={r.track} />
+                    </td>
                     <td className="py-3 text-right font-mono tabular-nums">
-                      {r.latest?.value != null ? `${r.latest.value.toFixed(2)}${r.unit ? " " + r.unit : ""}` : "—"}
+                      {r.latest?.value != null
+                        ? `${r.latest.value.toFixed(2)}${r.unit ? " " + r.unit : ""}`
+                        : "—"}
                     </td>
                     <td className="py-3 text-right font-mono tabular-nums text-ink-500">
                       {r.target.toFixed(2)}
                     </td>
                     <td className="py-3 text-right font-mono tabular-nums">
-                      {r.assessment.gapPct != null ? `${r.assessment.gapPct.toFixed(1)}%` : r.assessment.reason ?? "—"}
+                      {r.assessment.gapPct != null
+                        ? `${r.assessment.gapPct.toFixed(1)}%`
+                        : (r.assessment.reason ?? "—")}
                     </td>
-                    <td className="py-3 font-mono text-[11px] text-ink-500">{r.latest?.period ?? "—"}</td>
                     <td className="py-3 font-mono text-[11px] text-ink-500">
-                      {r.evidence_url ? <a href={r.evidence_url} target="_blank" rel="noreferrer" className="underline underline-offset-2">Open</a> : "missing"}
+                      {r.latest?.period ?? "—"}
+                    </td>
+                    <td className="py-3 font-mono text-[11px] text-ink-500">
+                      {r.evidence_url ? (
+                        <a
+                          href={r.evidence_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline underline-offset-2"
+                        >
+                          Open
+                        </a>
+                      ) : (
+                        "missing"
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -436,7 +491,9 @@ function PortfolioDetail() {
             {programmes.map((p, i) => (
               <li key={i} className="border border-line-200 bg-paper-0 p-4">
                 <div className="flex items-baseline justify-between gap-3">
-                  <p className="font-serif text-base text-ink-950">{p.name ?? "Untitled programme"}</p>
+                  <p className="font-serif text-base text-ink-950">
+                    {p.name ?? "Untitled programme"}
+                  </p>
                   {p.status && (
                     <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
                       {p.status}
@@ -470,13 +527,20 @@ function PortfolioDetail() {
                 <li key={i} className="flex gap-2 text-ink-700">
                   <span className="font-mono text-[10px] text-ink-500">[{i + 1}]</span>
                   {c.url ? (
-                    <a href={c.url} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-ink-950">
+                    <a
+                      href={c.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline underline-offset-2 hover:text-ink-950"
+                    >
                       {c.title ?? c.url}
                     </a>
                   ) : (
                     <span>{c.title ?? "(no title)"}</span>
                   )}
-                  {c.domain && <span className="ml-auto font-mono text-[10px] text-ink-500">{c.domain}</span>}
+                  {c.domain && (
+                    <span className="ml-auto font-mono text-[10px] text-ink-500">{c.domain}</span>
+                  )}
                 </li>
               ))}
             </ol>
@@ -491,7 +555,8 @@ function PortfolioDetail() {
             Want to test a change?
           </p>
           <p className="mt-1 text-sm text-ink-700">
-            Chamber 02 is the record of what <em>is</em>. Model what <em>could be</em> in the Scenario Engine.
+            Chamber 02 is the record of what <em>is</em>. Model what <em>could be</em> in the
+            Scenario Engine.
           </p>
         </div>
         <Link

@@ -84,7 +84,7 @@ async function loadContext(sb: Sb, countryCode: string, ministrySlug: string) {
     share_pct: shares.get(r.sector_code) ?? null,
   }));
   const peers = new Map<string, { median: number; n: number }>(
-    (pb.data ?? []).map((p: { kpi_code: string; median: number; n: number }) => [p.kpi_code, { median: Number(p.median), n: p.n }]),
+    (pb.data ?? []).map((p: { kpi_code: string; median: number | null; n: number }) => [p.kpi_code, { median: Number(p.median), n: p.n }]),
   );
   const indicators = (ck.data ?? []).map((k: Record<string, unknown>) => ({
     kpi_code: k.kpi_code as string,
@@ -293,7 +293,7 @@ Propose 3 to 6 KPIs this ministry can plausibly be held accountable for. Prefer 
         peer_median: ind?.peer_median ?? null,
         inferred,
         checks,
-        decision: "pending",
+        decision: "pending" as const,
         actual: ind?.latest_value ?? null,
         actual_period: ind?.latest_period ?? "",
       };

@@ -5417,6 +5417,50 @@ export type Database = {
         }
         Relationships: []
       }
+      kpi_setup_sessions: {
+        Row: {
+          country_code: string
+          created_at: string
+          created_by: string | null
+          draft: Json
+          id: string
+          ministry_id: string
+          status: string
+          step: number
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          draft?: Json
+          id?: string
+          ministry_id: string
+          status?: string
+          step?: number
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          draft?: Json
+          id?: string
+          ministry_id?: string
+          status?: string
+          step?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpi_setup_sessions_ministry_id_fkey"
+            columns: ["ministry_id"]
+            isOneToOne: false
+            referencedRelation: "ministries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kpi_snapshots: {
         Row: {
           captured_at: string
@@ -5466,6 +5510,7 @@ export type Database = {
       }
       kpis: {
         Row: {
+          ai_rationale: string | null
           baseline: number | null
           baseline_period: string | null
           cadence: string
@@ -5476,12 +5521,17 @@ export type Database = {
           direction: string
           evidence_url: string | null
           id: string
+          inferred: boolean
           metric: string
           ministry_id: string | null
           owner_id: string | null
+          peer_median: number | null
           plan_scenario_id: string | null
           qualification_notes: string | null
+          review_note: string | null
           sector_code: string
+          source: string
+          source_kpi_code: string | null
           target: number
           target_basis: string | null
           target_period: string | null
@@ -5493,6 +5543,7 @@ export type Database = {
           warning_tolerance_pct: number
         }
         Insert: {
+          ai_rationale?: string | null
           baseline?: number | null
           baseline_period?: string | null
           cadence?: string
@@ -5503,12 +5554,17 @@ export type Database = {
           direction?: string
           evidence_url?: string | null
           id?: string
+          inferred?: boolean
           metric: string
           ministry_id?: string | null
           owner_id?: string | null
+          peer_median?: number | null
           plan_scenario_id?: string | null
           qualification_notes?: string | null
+          review_note?: string | null
           sector_code: string
+          source?: string
+          source_kpi_code?: string | null
           target: number
           target_basis?: string | null
           target_period?: string | null
@@ -5520,6 +5576,7 @@ export type Database = {
           warning_tolerance_pct?: number
         }
         Update: {
+          ai_rationale?: string | null
           baseline?: number | null
           baseline_period?: string | null
           cadence?: string
@@ -5530,12 +5587,17 @@ export type Database = {
           direction?: string
           evidence_url?: string | null
           id?: string
+          inferred?: boolean
           metric?: string
           ministry_id?: string | null
           owner_id?: string | null
+          peer_median?: number | null
           plan_scenario_id?: string | null
           qualification_notes?: string | null
+          review_note?: string | null
           sector_code?: string
+          source?: string
+          source_kpi_code?: string | null
           target?: number
           target_basis?: string | null
           target_period?: string | null

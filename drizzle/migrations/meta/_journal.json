@@ -176,6 +176,13 @@
       "when": 1790541385624,
       "tag": "0024_qualify_portfolio_kpis",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790543564769,
+      "tag": "0025_kpi_setup_sessions",
+      "breakpoints": true
     }
   ]
 }

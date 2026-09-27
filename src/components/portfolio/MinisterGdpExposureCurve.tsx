@@ -6,7 +6,7 @@ import "@/lib/explain/portfolio-entries";
 
 export type MinisterExposurePoint = {
   slug: string;
-  portfolio: string;
+  name: string;
   minister: string | null;
   sectorCount: number;
   gdp: number;
@@ -51,7 +51,7 @@ export function MinisterGdpExposureCurve({
   points: MinisterExposurePoint[];
 }) {
   const ordered = useMemo(
-    () => [...points].sort((a, b) => a.gdp - b.gdp || a.portfolio.localeCompare(b.portfolio)),
+    () => [...points].sort((a, b) => a.gdp - b.gdp || a.name.localeCompare(b.name)),
     [points],
   );
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
@@ -135,7 +135,7 @@ export function MinisterGdpExposureCurve({
                 </g>
               );
             })}
-            <path d={area} fill="url(#portfolioExposureFill)" opacity="0.42" />
+            <path d={area} fill="url(#portfolioExposureFill)" />
             <path
               d={line}
               fill="none"
@@ -189,7 +189,7 @@ export function MinisterGdpExposureCurve({
               onMouseEnter={() => setActiveSlug(point.slug)}
               onFocus={() => setActiveSlug(point.slug)}
               onBlur={() => setActiveSlug(null)}
-              aria-label={`Open ${point.portfolio}, ${point.gdp.toFixed(1)} percent GDP exposure`}
+              aria-label={`Open ${point.name}, ${point.gdp.toFixed(1)} percent GDP exposure`}
               className="btn-ghost absolute h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full border-transparent p-0"
               style={{ left: `${(point.x / WIDTH) * 100}%`, top: `${(point.y / HEIGHT) * 100}%` }}
             >
@@ -208,7 +208,7 @@ export function MinisterGdpExposureCurve({
               <p className="mt-1 text-sm font-medium text-ink-950">
                 {active.minister ?? "Minister not on record"}
               </p>
-              <p className="mt-1 text-xs leading-relaxed text-ink-500">{active.portfolio}</p>
+              <p className="mt-1 text-xs leading-relaxed text-ink-500">{active.name}</p>
               <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.14em] text-ink-500">
                 {active.sectorCount} mapped sector{active.sectorCount === 1 ? "" : "s"} · Select to
                 open dossier

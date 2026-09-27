@@ -5,7 +5,7 @@
 import { registerRationales, type Rationale } from "@/lib/explain/registry";
 
 type PortfolioExposureContext = {
-  points: Array<{ portfolio: string; minister: string | null; sectorCount: number; gdp: number }>;
+  points: Array<{ name: string; minister: string | null; sectorCount: number; gdp: number }>;
 };
 
 const entries: Array<Rationale<PortfolioExposureContext>> = [
@@ -21,7 +21,7 @@ const entries: Array<Rationale<PortfolioExposureContext>> = [
       "This is exposure under portfolio influence, not legal control, spending power or personal performance. Shared sectors appear under more than one ministry, so minister percentages overlap and must not be added together.",
     derive: (ctx) =>
       ctx?.points.map((point) => ({
-        label: point.minister ?? point.portfolio,
+        label: point.minister ?? point.name,
         value: point.gdp > 0 ? `${point.gdp.toFixed(1)}%` : "Not measured",
         note: `${point.sectorCount} mapped sector${point.sectorCount === 1 ? "" : "s"}`,
       })) ?? [],

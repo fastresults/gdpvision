@@ -118,10 +118,8 @@ function phaseSummary(body: string): PlanPhase[] {
   );
   return prosePhases.slice(0, 4).map((match) => {
     const phaseBody = match[2] ?? "";
-    const deliverables = phaseBody.match(
-      /(?:^|\n)\s*\*{0,2}Deliverables\*{0,2}\s*:\s*\*{0,2}\s*([^\n]+)/i,
-    );
-    const focus = phaseBody.match(/(?:^|\n)\s*\*{0,2}Focus\*{0,2}\s*:\s*\*{0,2}\s*([^\n]+)/i);
+    const deliverables = phaseBody.match(/Deliverables\*{0,2}\s*:\s*\*{0,2}\s*([^\n]+)/i);
+    const focus = phaseBody.match(/Focus\*{0,2}\s*:\s*\*{0,2}\s*([^\n]+)/i);
     return {
       label: (match[1] ?? "Phase").replace(/\*+/g, "").trim(),
       achievement: (deliverables?.[1] ?? focus?.[1] ?? "Planned achievement")

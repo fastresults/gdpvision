@@ -1,5 +1,5 @@
 // @domain print
-// @ui src/components/personas/field/briefing/PrintableBriefing.tsx, src/components/personas/field/deck/DeckModal.tsx, src/components/mandate-compact/plan/PrintablePlan.tsx, src/components/calculator/PrintableValueCase.tsx
+// @ui src/components/personas/field/briefing/PrintableBriefing.tsx, src/components/personas/field/deck/DeckModal.tsx, src/components/mandate-compact/plan/PrintablePlan.tsx, src/components/brief/PrintableBrief.tsx
 //
 // One print surface at a time.
 //

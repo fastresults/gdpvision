@@ -14,7 +14,10 @@ const DESCRIPTION =
   "Choose a country and GDPVision answers from its own record: the value held up by late decisions, unmeasured spend, sectors without an owner — and what each of ten chambers releases. Capped, cited, printable.";
 
 export const Route = createFileRoute("/business-case_/brief")({
-  validateSearch: z.object({ country: z.string().length(3).optional() }),
+  validateSearch: z.object({
+    country: z.string().length(3).optional(),
+    cfg: z.string().max(120).optional(),
+  }),
   head: () => ({
     meta: [
       { title: TITLE },
@@ -33,7 +36,7 @@ export const Route = createFileRoute("/business-case_/brief")({
 });
 
 function BriefPage() {
-  const { country } = Route.useSearch();
+  const { country, cfg } = Route.useSearch();
   return (
     <MarketingShell>
       <section className="border-b border-line-200 print:hidden">
@@ -69,7 +72,7 @@ function BriefPage() {
         </div>
       </section>
 
-      <ValueCalculator initialCountry={country?.toUpperCase()} />
+      <ValueCalculator initialCountry={country?.toUpperCase()} initialConfig={cfg} />
       <FloatingBackToTop />
     </MarketingShell>
   );

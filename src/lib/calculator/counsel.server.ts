@@ -111,7 +111,7 @@ export const FALLBACK_COUNSEL: Counsel = {
 
 export async function generateCounsel(apiKey: string, facts: CounselFacts): Promise<Counsel> {
   const gateway = createLovableAiGatewayProvider(apiKey, { structuredOutputs: true });
-  const model = gateway("openai/gpt-5.6-sol");
+  const model = gateway(process.env.BRIEF_MODEL?.trim() || "openai/gpt-5.6-sol");
 
   try {
     const { output } = await generateText({

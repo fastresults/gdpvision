@@ -9,6 +9,8 @@ import {
   CHAMBER_COEFFICIENTS,
   COUNTRY_PRESETS,
   DEFAULT_INPUT,
+  STANCE_MULTIPLIER,
+  UPLIFT_CEILING_PCT_OF_GDP,
   FRAMING_QUESTIONS,
   adoptionLabel,
   computeValue,
@@ -19,7 +21,16 @@ import {
 import { getValueCounsel } from "@/lib/calculator/counsel.functions";
 import { getBriefCountries, getCountryFacts } from "@/lib/calculator/facts.functions";
 import type { CountryFacts, FactGrade } from "@/lib/calculator/facts.server";
+import { AdviserBox } from "@/components/brief/AdviserBox";
 import { FactRail } from "@/components/brief/FactRail";
+import { PrintableBrief, BRIEF_PRINT_SURFACE } from "@/components/brief/PrintableBrief";
+import { HeldUp } from "@/components/brief/figures/HeldUp";
+import { Peers } from "@/components/brief/figures/Peers";
+import { Term, termMonths } from "@/components/brief/figures/Term";
+import { Waterfall } from "@/components/brief/figures/Waterfall";
+import { briefPalette } from "@/components/brief/figures/shared";
+import { briefUrl, decodeBrief, encodeBrief } from "@/lib/calculator/brief-link";
+import type { AdviserContext } from "@/lib/calculator/adviser.server";
 import { FramingCard } from "@/components/brief/FramingCard";
 import type { Counsel } from "@/lib/calculator/counsel.server";
 import { Explain } from "@/components/explain/Explain";
@@ -33,7 +44,6 @@ import { CalcSlider } from "./CalcSlider";
 import { CounselPanel } from "./CounselPanel";
 import { LeadDialog } from "./LeadDialog";
 import { printSurface } from "@/components/print/PrintSurface";
-import { PrintableValueCase, VALUE_CASE_PRINT_SURFACE } from "./PrintableValueCase";
 
 import { VerdictRail } from "./VerdictRail";
 
@@ -130,12 +140,19 @@ function StepHeading({ n, title, lede }: { n: string; title: string; lede?: stri
   );
 }
 
-export function ValueCalculator({ initialCountry }: { initialCountry?: string } = {}) {
+export function ValueCalculator({
+  initialCountry,
+  initialConfig,
+}: { initialCountry?: string; initialConfig?: string } = {}) {
   const fetchCountries = useServerFn(getBriefCountries);
   const fetchFacts = useServerFn(getCountryFacts);
   const [presetCode, setPresetCode] = useState(initialCountry ?? "LCA");
   const [input, setInput] = useState<ValueInput>(DEFAULT_INPUT);
   const [showAdjust, setShowAdjust] = useState(false);
+  // A reopen link restores the configuration once, over the proposal.
+  const restoreRef = useRef(decodeBrief(initialConfig));
+  const [copied, setCopied] = useState(false);
+  const palette = useMemo(() => briefPalette(presetCode), [presetCode]);
   const countriesQ = useQuery({ queryKey: ["brief-countries"], queryFn: () => fetchCountries() });
   const factsQ = useQuery({
     queryKey: ["brief-facts", presetCode],
@@ -165,6 +182,12 @@ export function ValueCalculator({ initialCountry }: { initialCountry?: string } 
   // chamber sequence it implies. The visitor corrects from there.
   useEffect(() => {
     if (!facts) return;
+    const restored = restoreRef.current;
+    if (restored) {
+      restoreRef.current = null;
+      setInput(restored);
+      return;
+    }
     const p = facts.proposed;
     const seq = proposeSequence(facts);
     setInput((s) => ({
@@ -270,6 +293,7 @@ export function ValueCalculator({ initialCountry }: { initialCountry?: string } 
   }
 
   function applyPreset(code: string) {
+    restoreRef.current = null;
     setPresetCode(code);
     const p = COUNTRY_PRESETS.find((c) => c.code === code);
     if (!p) return;
@@ -293,15 +317,92 @@ export function ValueCalculator({ initialCountry }: { initialCountry?: string } 
 
   function onDownload() {
     if (granted) {
-      printSurface(VALUE_CASE_PRINT_SURFACE);
+      printSurface(BRIEF_PRINT_SURFACE);
       return;
     }
     setLeadOpen(true);
   }
 
+  // Keep the address bar reopenable: the configuration rides in ?cfg=.
+  const cfg = encodeBrief(input);
+  const [origin, setOrigin] = useState("https://gdpvision.com");
+  useEffect(() => setOrigin(window.location.origin), []);
+  const reopenUrl = briefUrl(origin, presetCode, input);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const u = new URL(window.location.href);
+      u.searchParams.set("country", presetCode);
+      u.searchParams.set("cfg", cfg);
+      window.history.replaceState(window.history.state, "", u.toString());
+    }, 600);
+    return () => clearTimeout(t);
+  }, [cfg, presetCode]);
+
+  async function copyReopen() {
+    try {
+      await navigator.clipboard.writeText(reopenUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  const termView = termMonths(facts?.termMonthsRemaining);
+  const adviserContext = (): AdviserContext => ({
+    country: countryName,
+    region: facts?.region ?? "reference",
+    facts: (facts?.facts ?? []).map((f) => ({
+      key: f.key,
+      label: f.label,
+      display: f.display.slice(0, 200),
+      grade: f.grade,
+      source: f.source.slice(0, 120),
+      regional: f.regional?.display ?? null,
+    })),
+    inputs: {
+      stance: input.stance,
+      gdpUsd: Math.round(input.gdpUsd),
+      publicSpendPct: input.publicSpendPct,
+      decisionsPerQuarter: input.decisionsPerQuarter,
+      latencyMonths: input.latencyMonths,
+      unmeasuredPct: input.unmeasuredPct,
+      topSectorSharePct: input.topSectorSharePct,
+      servicesOfflinePct: input.servicesOfflinePct,
+      unplannedPrioritySharePct: input.unplannedPrioritySharePct,
+    },
+    verdict: {
+      uplift_usd: result.upliftUsd,
+      pp_of_gdp: result.upliftPpOfGdp,
+      ceiling_usd:
+        input.gdpUsd * (UPLIFT_CEILING_PCT_OF_GDP / 100) * STANCE_MULTIPLIER[input.stance],
+      raw_usd: result.rawUsd,
+      return_multiple: result.returnMultiple,
+      payback_months: result.paybackMonths,
+      annual_cost_usd: result.annualCostUsd,
+      year_one_cost_usd: result.yearOneCostUsd,
+      term_months: termView,
+    },
+    sequence: sequence.order.map((idx) => ({
+      index: idx,
+      title: TITLE[idx] ?? idx,
+      adoption: input.chambers[idx] ?? 0,
+      usd: result.chambers.find((c) => c.index === idx)?.usd ?? 0,
+      why: (sequence.why[idx] ?? "").slice(0, 400),
+    })),
+  });
+  const factLabel = (k: string) =>
+    k === "arithmetic"
+      ? "the arithmetic"
+      : k === "assumption"
+        ? "an assumption"
+        : (facts?.facts.find((f) => f.key === k)?.label ?? k);
+
   const configuration = {
     model_version: result.model_version,
     country: countryName,
+    country_code: presetCode,
+    reopen_url: reopenUrl,
     input,
     verdict: {
       uplift_year_3_usd: Math.round(result.upliftUsd),
@@ -520,6 +621,49 @@ export function ValueCalculator({ initialCountry }: { initialCountry?: string } 
             ) : null}
           </section>
 
+          {/* Step 4 */}
+          <section>
+            <StepHeading
+              n="04"
+              title="The picture."
+              lede="Four figures, drawn in the country's own colours from the same arithmetic as the verdict: where value is held up, how the chambers add to the capped total, what the remaining term holds, and how the same choices read across the region."
+            />
+            <div className="space-y-10">
+              <HeldUp input={input} facts={facts} palette={palette} n={1} />
+              <Waterfall
+                input={input}
+                result={result}
+                order={sequence.order}
+                palette={palette}
+                n={2}
+              />
+              <Term
+                input={input}
+                result={result}
+                termMonthsRemaining={facts?.termMonthsRemaining ?? null}
+                palette={palette}
+                n={3}
+              />
+              <Peers input={input} facts={facts} palette={palette} n={4} />
+            </div>
+            <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line-100 pt-4">
+              <button type="button" className="btn-ghost px-3 py-1.5 text-xs" onClick={copyReopen}>
+                {copied ? "Link copied" : "Copy the reopen link"}
+              </button>
+              <span className="text-[12px] text-ink-500">
+                The link carries this configuration and nothing else; the record is re-read when it
+                is opened.
+              </span>
+            </div>
+          </section>
+
+          <AdviserBox
+            input={input}
+            context={adviserContext}
+            factLabel={factLabel}
+            onApply={(patch) => setInput((s) => ({ ...s, ...patch }))}
+          />
+
           <div ref={traceRef}>
             <ArithmeticDrawer trace={result.trace} open={traceOpen} onOpenChange={setTraceOpen} />
           </div>
@@ -545,15 +689,20 @@ export function ValueCalculator({ initialCountry }: { initialCountry?: string } 
         configuration={configuration}
         onGranted={() => {
           setGranted(true);
-          setTimeout(() => printSurface(VALUE_CASE_PRINT_SURFACE), 250);
+          setTimeout(() => printSurface(BRIEF_PRINT_SURFACE), 250);
         }}
       />
 
-      <PrintableValueCase
+      <PrintableBrief
         input={input}
         result={result}
+        facts={facts}
         countryName={countryName}
         counsel={counsel}
+        palette={palette}
+        order={sequence.order}
+        why={sequence.why}
+        reopenUrl={reopenUrl}
       />
     </ExplainProvider>
   );

@@ -38,6 +38,8 @@ export interface CountryFacts {
   /** The framing inputs the record supports, each with the fact behind it. */
   proposed: Partial<Record<keyof PublicInput, { value: number; fact: string; grade: FactGrade }>>;
   termMonthsRemaining: number | null;
+  /** Same-region peers with the two figures the model scales by. Public macro figures only. */
+  peers: Array<{ code: string; name: string; gdpUsd: number; topSectorSharePct: number | null }>;
   generatedAt: string;
 }
 
@@ -214,7 +216,7 @@ export async function computeCountryFacts(code: string): Promise<CountryFacts | 
     peers.length
       ? sb
           .from("countries")
-          .select("gdp_current_usd")
+          .select("code,name,gdp_current_usd")
           .in("code", peers)
           .not("gdp_current_usd", "is", null)
       : Promise.resolve({ data: [] as unknown[] }),
@@ -490,6 +492,15 @@ export async function computeCountryFacts(code: string): Promise<CountryFacts | 
     facts,
     proposed,
     termMonthsRemaining,
+    peers: ((peerGdp ?? []) as Array<{ code: string; name: string; gdp_current_usd: number }>)
+      .map((p) => ({
+        code: p.code,
+        name: p.name,
+        gdpUsd: Number(p.gdp_current_usd),
+        topSectorSharePct: peerTop.get(p.code) ?? null,
+      }))
+      .filter((p) => Number.isFinite(p.gdpUsd) && p.gdpUsd > 0)
+      .sort((a, b) => b.gdpUsd - a.gdpUsd),
     generatedAt: new Date().toISOString(),
   };
   cache.set(code, { at: Date.now(), facts: out });

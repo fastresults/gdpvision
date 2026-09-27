@@ -48,6 +48,7 @@ import {
   updateKpi,
   updateMinisterProfile,
 } from "@/lib/country-data/manage.functions";
+import { useUrlState } from "@/lib/nav/url-state";
 
 type TabKey = "sources" | "kpis" | "dossiers" | "ministries" | "corpus" | "memory" | "viz";
 
@@ -119,7 +120,8 @@ function DataDashboard() {
   const { data: status } = useSuspenseQuery(statusQuery(code));
   const country: any = (status as any).country;
   const initialTab: TabKey = TABS.some((t) => t.key === search.tab) ? (search.tab as TabKey) : "sources";
-  const [tab, setTab] = useState<TabKey>(initialTab);
+  const [tabRaw, setTab] = useUrlState<TabKey>("tab", "sources");
+  const tab: TabKey = TABS.some((t) => t.key === tabRaw) ? tabRaw : initialTab;
 
 
   return (

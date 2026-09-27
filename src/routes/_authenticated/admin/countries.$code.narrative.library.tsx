@@ -28,6 +28,7 @@ import { UnifiedTimeline } from "@/components/narrative/comms/UnifiedTimeline";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useUrlState } from "@/lib/nav/url-state";
 
 const STATES = ["draft", "review", "approved", "released"] as const;
 type DraftState = (typeof STATES)[number];
@@ -69,7 +70,7 @@ type TabKey = "drafts" | "templates";
 
 function LibraryPage() {
   const { code } = Route.useParams();
-  const [tab, setTab] = useState<TabKey>("drafts");
+  const [tab, setTab] = useUrlState<TabKey>("tab", "drafts");
   const [smart, setSmart] = useState<SmartView>(null);
   const [q, setQ] = useState("");
   const [states, setStates] = useState<DraftState[]>([]);

@@ -18,6 +18,7 @@ import { SituationBoard } from "@/components/cabinet/SituationBoard";
 import { DecisionQueue, decisionQueueQuery } from "@/components/cabinet/DecisionQueue";
 import { MinistryReadinessMatrix, readinessQuery } from "@/components/cabinet/MinistryReadinessMatrix";
 import { CommitmentsCockpit, cockpitQuery } from "@/components/cabinet/CommitmentsCockpit";
+import { useUrlState } from "@/lib/nav/url-state";
 
 function overviewQuery(code: string) {
   return queryOptions({
@@ -62,7 +63,7 @@ type TabKey = "room" | "signals" | "register" | "sessions";
 
 function CabinetRoomPage() {
   const { code } = Route.useParams();
-  const [tab, setTab] = useState<TabKey>("room");
+  const [tab, setTab] = useUrlState<TabKey>("tab", "room");
   return (
     <SuperAdminShell
       crumbs={[

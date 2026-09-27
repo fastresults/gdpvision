@@ -15,6 +15,7 @@ import {
   type SetupDraft,
 } from "@/lib/portfolio/scorecard-setup.functions";
 import "@/lib/explain/portfolio-entries";
+import { useUrlState } from "@/lib/nav/url-state";
 
 const STEPS = ["Context", "AI proposal", "Review", "Actuals", "Submit"] as const;
 
@@ -41,7 +42,10 @@ export function KpiSetupModal({
   });
   const ctx = ctxQ.data;
 
-  const [step, setStep] = useState(1);
+  const [stepStr, setStepStr] = useUrlState<string>("sstep", "1");
+  const [, replaceStepStr] = useUrlState<string>("sstep", "1", { replace: true });
+  const step = Math.max(1, Math.min(5, Number(stepStr) || 1));
+  const setStep = (n: number) => setStepStr(String(n));
   const [draft, setDraft] = useState<SetupDraft>({ proposals: [] });
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -49,10 +53,9 @@ export function KpiSetupModal({
     if (!ctx) return;
     if (ctx.session?.draft?.proposals) {
       setDraft(ctx.session.draft);
-      setStep(ctx.session.status === "submitted" ? 5 : Math.max(1, Math.min(4, ctx.session.step)));
+      if (step === 1) replaceStepStr(String(ctx.session.status === "submitted" ? 5 : Math.max(1, Math.min(4, ctx.session.step))));
     } else {
       setDraft({ proposals: [] });
-      setStep(1);
     }
   }, [ctx]);
 

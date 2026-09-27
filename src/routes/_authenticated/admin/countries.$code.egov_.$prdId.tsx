@@ -22,6 +22,7 @@ import {
 import { EGOV_STAGES, EGOV_STAGE_BY_KEY, type EgovStage } from "@/lib/egov/stages";
 import { cn } from "@/lib/utils";
 import "@/lib/explain/egov-entries";
+import { useUrlState } from "@/lib/nav/url-state";
 
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/egov_/$prdId")({
   head: ({ params }) => ({
@@ -49,7 +50,7 @@ function PrdPage() {
   const key = ["egov-prd", code, prdId];
   const q = useQuery({ queryKey: key, queryFn: () => fetchPrd({ data: { code, prdId } }) });
 
-  const [view, setView] = useState<View>("country_context");
+  const [view, setView] = useUrlState<View>("section", "country_context");
   const [busyStage, setBusyStage] = useState<EgovStage | "all" | "check" | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

@@ -12,6 +12,7 @@ import {
   type QueueRow,
 } from "@/lib/portfolio/scorecard-queue.functions";
 import "@/lib/explain/portfolio-entries";
+import { useUrlState } from "@/lib/nav/url-state";
 
 export const Route = createFileRoute("/_authenticated/admin/scorecards")({
   head: () => ({
@@ -38,8 +39,10 @@ const TABS = [
 function ScorecardsPage() {
   const list = useServerFn(listScorecardQueue);
   const q = useQuery({ queryKey: ["scorecard-queue"], queryFn: () => list() });
-  const [tab, setTab] = useState<QueueRow["state"]>("in_review");
-  const [country, setCountry] = useState<string>("");
+  const [tab, setTab] = useUrlState<QueueRow["state"]>("tab", "in_review");
+  const [countryQ, setCountryQ] = useUrlState<string>("country", null, { replace: true });
+  const country = countryQ ?? "";
+  const setCountry = (v: string) => setCountryQ(v || null);
 
   const rows = (q.data?.rows ?? []).filter((r) => r.state === tab && (!country || r.country_code === country));
 

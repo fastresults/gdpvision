@@ -11,6 +11,7 @@ import { getVizOverview } from "@/lib/country-viz/viz.functions";
 import { assessDelivery } from "@/lib/portfolio/accountability";
 import { listPortfolioDeliveryKpis } from "@/lib/portfolio/accountability.functions";
 import "@/lib/explain/portfolio-entries";
+import { useUrlState } from "@/lib/nav/url-state";
 
 function ministriesQuery(code: string) {
   return queryOptions({
@@ -67,7 +68,14 @@ function PortfolioIndex() {
   const { setup } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const openSetup = (slug?: string) =>
-    navigate({ search: (prev) => ({ ...prev, setup: slug }), replace: true });
+    navigate({
+      search: (prev) => {
+        const next: Record<string, unknown> = { ...prev, setup: slug };
+        if (!slug) delete next.sstep;
+        return next as { setup?: string };
+      },
+      replace: !slug ? false : false,
+    });
 
   const rows = useMemo(() => {
     const profileBySlug = new Map(profiles.map((p) => [p.ministry_slug, p]));

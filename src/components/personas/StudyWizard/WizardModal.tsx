@@ -11,6 +11,7 @@ import {
 import { MultimodalInput, type WizardUpload } from "./MultimodalInput";
 import { PrettyJson } from "@/components/data/PrettyJson";
 import { AutoRunConsole } from "./AutoRunConsole";
+import { useUrlState } from "@/lib/nav/url-state";
 
 type Step = "brief" | "outcome" | "cast" | "preview" | "launch";
 const STEPS: { id: Step; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
@@ -31,7 +32,8 @@ type Props = {
 
 export function StudyWizardModal({ open, onClose, countryCode, draftId: initialDraftId, initialAutorun }: Props) {
   const [draftId, setDraftId] = useState<string | undefined>(initialDraftId);
-  const [step, setStep] = useState<Step>("brief");
+  const [step, setStep] = useUrlState<Step>("wstep", "brief");
+  const [, replaceStep] = useUrlState<Step>("wstep", "brief", { replace: true });
   const [autorun, setAutorun] = useState<boolean>(!!initialAutorun);
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -53,7 +55,7 @@ export function StudyWizardModal({ open, onClose, countryCode, draftId: initialD
   });
 
   useEffect(() => {
-    if (!autorun && draftQ.data?.step) setStep(draftQ.data.step as Step);
+    if (!autorun && draftQ.data?.step) replaceStep(draftQ.data.step as Step);
   }, [draftQ.data?.step, autorun]);
 
   const refreshDraft = () => qc.invalidateQueries({ queryKey: ["study-draft", draftId] });

@@ -9,10 +9,10 @@ import { Explain } from "@/components/explain/Explain";
 import type { CompactProgress, RunInfo, StepState } from "@/lib/mandate-compact/progress.functions";
 import { cn } from "@/lib/utils";
 
-export function progressQuery(compactId: string, fetcher: (a: { data: { compactId: string } }) => Promise<CompactProgress>) {
+export function progressQuery(compactId: string, fetcher: (a: { data: { compactId: string } }) => Promise<unknown>) {
   return queryOptions({
     queryKey: ["mandate-compact-progress", compactId],
-    queryFn: () => fetcher({ data: { compactId } }),
+    queryFn: () => fetcher({ data: { compactId } }) as Promise<CompactProgress>,
     refetchInterval: (q) => (q.state.data?.active ? 2000 : 30000),
   });
 }

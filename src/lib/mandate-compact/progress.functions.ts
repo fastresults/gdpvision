@@ -23,7 +23,7 @@ export type RunInfo = {
   heartbeat_at: string;
   finished_at: string | null;
   error: string | null;
-  result: Record<string, unknown> | null;
+  result: { [k: string]: string | number | null } | null;
 };
 export type CompactProgress = {
   steps: Record<string, { state: StepState; reason: string }>;

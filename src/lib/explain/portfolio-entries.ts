@@ -8,6 +8,13 @@ type PortfolioExposureContext = {
   points: Array<{ name: string; minister: string | null; sectorCount: number; gdp: number }>;
 };
 
+type DeliveryContext = {
+  qualified: number;
+  unscored: number;
+  warningTolerancePct?: number;
+  criticalTolerancePct?: number;
+};
+
 const entries: Array<Rationale<PortfolioExposureContext>> = [
   {
     key: "portfolio.gdp-exposure",
@@ -25,6 +32,27 @@ const entries: Array<Rationale<PortfolioExposureContext>> = [
         value: point.gdp > 0 ? `${point.gdp.toFixed(1)}%` : "Not measured",
         note: `${point.sectorCount} mapped sector${point.sectorCount === 1 ? "" : "s"}`,
       })) ?? [],
+  },
+  {
+    key: "portfolio.delivery-status",
+    title: "How delivery status is qualified",
+    short:
+      "Only independently qualified ministry KPIs with current evidence, an actual result and a governed target receive a delivery status.",
+    formula:
+      "Expected now = baseline + (target − baseline) × elapsed share of target period. Direction-adjusted gap is compared with the KPI’s approved warning and critical tolerances.",
+    basis:
+      "Each KPI must name its ministry, baseline period, target date, direction, cadence, target basis and evidence reference. The latest reported actual must still be current for its cadence.",
+    caveat:
+      "Unqualified, incomplete or stale KPIs remain Unscored. Scores are not inferred from country macro indicators, synthetic histories or keyword matches.",
+    derive: (context: DeliveryContext) => [
+      { label: "Qualified", value: String(context?.qualified ?? 0) },
+      { label: "Unscored", value: String(context?.unscored ?? 0) },
+      {
+        label: "Default bands",
+        value: `${context?.warningTolerancePct ?? 10}% / ${context?.criticalTolerancePct ?? 20}%`,
+        note: "Each ratified KPI may set stricter approved tolerances.",
+      },
+    ],
   },
 ];
 

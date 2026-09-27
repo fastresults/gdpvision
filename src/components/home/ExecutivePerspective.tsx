@@ -24,6 +24,7 @@ export type ExecutivePerspective = {
   members: string;
   relevance: string;
   caution: string;
+  labels?: Partial<Record<"comparison" | "trend" | "members" | "relevance" | "caution", string>>;
 };
 
 type PerspectiveContextValue = {
@@ -178,11 +179,24 @@ function PerspectivePanel({
       <Explain id="caricom.executive-perspective" ctx={perspective} mark={false} className="block">
         <div className="grid gap-4 px-5 py-4 text-sm leading-relaxed text-ink-700 sm:grid-cols-2">
           <PerspectiveRow label="Executive summary" value={perspective.summary} wide />
-          <PerspectiveRow label="Bloc perspective" value={perspective.comparison} />
-          <PerspectiveRow label="Trend" value={perspective.trend} />
-          <PerspectiveRow label="Member perspective" value={perspective.members} />
-          <PerspectiveRow label="Decision relevance" value={perspective.relevance} />
-          <PerspectiveRow label="Coverage & caution" value={perspective.caution} wide />
+          <PerspectiveRow
+            label={perspective.labels?.comparison ?? "Bloc perspective"}
+            value={perspective.comparison}
+          />
+          <PerspectiveRow label={perspective.labels?.trend ?? "Trend"} value={perspective.trend} />
+          <PerspectiveRow
+            label={perspective.labels?.members ?? "Member perspective"}
+            value={perspective.members}
+          />
+          <PerspectiveRow
+            label={perspective.labels?.relevance ?? "Decision relevance"}
+            value={perspective.relevance}
+          />
+          <PerspectiveRow
+            label={perspective.labels?.caution ?? "Coverage & caution"}
+            value={perspective.caution}
+            wide
+          />
         </div>
       </Explain>
       {!pinned ? (

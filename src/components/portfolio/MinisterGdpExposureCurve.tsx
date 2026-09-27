@@ -23,11 +23,13 @@ function shortMinisterName(name: string | null): string {
   if (!name) return "Not on record";
   const cleaned = name
     .replace(/\b(hon\.?|honourable|dr\.?|sir|dame|mr\.?|mrs\.?|ms\.?)\b/gi, "")
+    .replace(/\b(jr\.?|sr\.?|ii|iii|iv)\b/gi, "")
     .replace(/[“”"]/g, "")
     .replace(/\s+/g, " ")
     .trim();
   const parts = cleaned.split(" ").filter(Boolean);
-  return parts.at(-1) ?? cleaned;
+  if (parts.length < 2) return parts[0] ?? cleaned;
+  return `${parts[0].charAt(0)}. ${parts.at(-1)}`;
 }
 
 function smoothPath(points: Array<{ x: number; y: number }>): string {
@@ -111,7 +113,7 @@ export function MinisterGdpExposureCurve({
                 <stop offset="100%" stopColor="var(--signal-positive)" stopOpacity="0.3" />
               </linearGradient>
             </defs>
-            {[0, 0.25, 0.5, 0.75, 1].map((tick) => {
+            {[0, 0.5, 1].map((tick) => {
               const y = BASELINE - tick * (BASELINE - TOP);
               return (
                 <g key={tick}>
@@ -190,7 +192,7 @@ export function MinisterGdpExposureCurve({
               onFocus={() => setActiveSlug(point.slug)}
               onBlur={() => setActiveSlug(null)}
               aria-label={`Open ${point.name}, ${point.gdp.toFixed(1)} percent GDP exposure`}
-              className="btn-ghost absolute h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full border-transparent p-0"
+              className="btn-ghost absolute h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full border-transparent p-0 opacity-0"
               style={{ left: `${(point.x / WIDTH) * 100}%`, top: `${(point.y / HEIGHT) * 100}%` }}
             >
               <span className="sr-only">Open portfolio</span>

@@ -200,7 +200,10 @@ function TargetTrajectory({
         <>
           <div className="mt-4 grid gap-x-5 gap-y-2 sm:grid-cols-3" aria-label="Target legend">
             {targets.map((target, i) => (
-              <div key={target.label} className="flex min-w-0 items-start gap-2 text-[10px] leading-snug text-ink-600">
+              <div
+                key={target.label}
+                className="flex min-w-0 items-start gap-2 text-[10px] leading-snug text-ink-600"
+              >
                 <span
                   className="mt-1 h-2 w-2 shrink-0 rounded-full"
                   style={{ backgroundColor: `var(--sector-${String(i + 3).padStart(2, "0")})` }}
@@ -220,88 +223,88 @@ function TargetTrajectory({
             role="img"
             aria-label="Planned outcome target trajectories"
           >
-          <defs>
-            {[0, 1, 2].map((i) => (
-              <linearGradient key={i} id={`sector-target-area-${i}`} x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="0%"
-                  stopColor={`var(--sector-${String(i + 3).padStart(2, "0")})`}
-                  stopOpacity="0.3"
-                />
-                <stop offset="100%" stopColor="var(--paper-0)" stopOpacity="0" />
-              </linearGradient>
+            <defs>
+              {[0, 1, 2].map((i) => (
+                <linearGradient key={i} id={`sector-target-area-${i}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset="0%"
+                    stopColor={`var(--sector-${String(i + 3).padStart(2, "0")})`}
+                    stopOpacity="0.3"
+                  />
+                  <stop offset="100%" stopColor="var(--paper-0)" stopOpacity="0" />
+                </linearGradient>
+              ))}
+            </defs>
+            {[0, 1, 2, 3].map((i) => (
+              <line
+                key={i}
+                x1={18 + (i * (W - 36)) / 3}
+                x2={18 + (i * (W - 36)) / 3}
+                y1="20"
+                y2={H - 22}
+                stroke="var(--line-100)"
+              />
             ))}
-          </defs>
-          {[0, 1, 2, 3].map((i) => (
-            <line
-              key={i}
-              x1={18 + (i * (W - 36)) / 3}
-              x2={18 + (i * (W - 36)) / 3}
-              y1="20"
-              y2={H - 22}
-              stroke="var(--line-100)"
-            />
-          ))}
-          {targets.map((target, i) => {
-            const points = linePoints(target, W, H);
-            if (!points) return null;
-            const coords = points.split(" ");
-            const first = coords[0];
-            const last = coords.at(-1);
-            const area =
-              first && last
-                ? `M${first} L${coords.slice(1).join(" L")} L${last.split(",")[0]},${H - 22} L${first.split(",")[0]},${H - 22} Z`
-                : "";
-            const color = `var(--sector-${String(i + 3).padStart(2, "0")})`;
-            return (
-              <g key={target.label}>
-                <path d={area} fill={`url(#sector-target-area-${i})`} />
-                <polyline
-                  points={points}
-                  fill="none"
-                  stroke={color}
-                  strokeWidth="2.5"
-                  strokeLinejoin="round"
-                />
-                {target.values.map((point, index) => {
-                  const known = target.values
-                    .filter((p) => p.value != null)
-                    .map((p) => p.value as number);
-                  if (point.value == null || known.length < 2) return null;
-                  const min = Math.min(...known),
-                    max = Math.max(...known),
-                    span = max - min || 1,
-                    x = 18 + (index * (W - 36)) / Math.max(1, target.values.length - 1),
-                    y = H - 22 - ((point.value - min) / span) * (H - 52);
-                  return (
-                    <g key={point.period}>
-                      <circle
-                        cx={x}
-                        cy={y}
-                        r="4"
-                        fill="var(--paper-0)"
-                        stroke={color}
-                        strokeWidth="2"
-                      />
-                    </g>
-                  );
-                })}
-              </g>
-            );
-          })}
-          {(targets[0]?.values ?? []).map((point, i) => (
-            <text
-              key={point.period}
-              x={18 + (i * (W - 36)) / Math.max(1, (targets[0]?.values.length ?? 1) - 1)}
-              y={H - 4}
-              textAnchor={
-                i === 0 ? "start" : i === (targets[0]?.values.length ?? 1) - 1 ? "end" : "middle"
-              }
-              className="fill-ink-500 font-mono text-[9px] uppercase"
-            >
-              {point.period}
-            </text>
-          ))}
+            {targets.map((target, i) => {
+              const points = linePoints(target, W, H);
+              if (!points) return null;
+              const coords = points.split(" ");
+              const first = coords[0];
+              const last = coords.at(-1);
+              const area =
+                first && last
+                  ? `M${first} L${coords.slice(1).join(" L")} L${last.split(",")[0]},${H - 22} L${first.split(",")[0]},${H - 22} Z`
+                  : "";
+              const color = `var(--sector-${String(i + 3).padStart(2, "0")})`;
+              return (
+                <g key={target.label}>
+                  <path d={area} fill={`url(#sector-target-area-${i})`} />
+                  <polyline
+                    points={points}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth="2.5"
+                    strokeLinejoin="round"
+                  />
+                  {target.values.map((point, index) => {
+                    const known = target.values
+                      .filter((p) => p.value != null)
+                      .map((p) => p.value as number);
+                    if (point.value == null || known.length < 2) return null;
+                    const min = Math.min(...known),
+                      max = Math.max(...known),
+                      span = max - min || 1,
+                      x = 18 + (index * (W - 36)) / Math.max(1, target.values.length - 1),
+                      y = H - 22 - ((point.value - min) / span) * (H - 52);
+                    return (
+                      <g key={point.period}>
+                        <circle
+                          cx={x}
+                          cy={y}
+                          r="4"
+                          fill="var(--paper-0)"
+                          stroke={color}
+                          strokeWidth="2"
+                        />
+                      </g>
+                    );
+                  })}
+                </g>
+              );
+            })}
+            {(targets[0]?.values ?? []).map((point, i) => (
+              <text
+                key={point.period}
+                x={18 + (i * (W - 36)) / Math.max(1, (targets[0]?.values.length ?? 1) - 1)}
+                y={H - 4}
+                textAnchor={
+                  i === 0 ? "start" : i === (targets[0]?.values.length ?? 1) - 1 ? "end" : "middle"
+                }
+                className="fill-ink-500 font-mono text-[9px] uppercase"
+              >
+                {point.period}
+              </text>
+            ))}
           </svg>
         </>
       ) : (

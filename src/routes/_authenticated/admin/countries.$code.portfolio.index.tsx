@@ -1,9 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 import { MinisterGdpExposureCurve } from "@/components/portfolio/MinisterGdpExposureCurve";
 import { Explain } from "@/components/explain/Explain";
+import { KpiSetupModal } from "@/components/portfolio/KpiSetupModal";
 import { listMinistries } from "@/lib/scenarios.functions";
 import { listMinistryProfiles } from "@/lib/country-data/manage.functions";
 import { getVizOverview } from "@/lib/country-viz/viz.functions";
@@ -43,6 +44,9 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/port
       { name: "robots", content: "noindex" },
     ],
   }),
+  validateSearch: (s: Record<string, unknown>): { setup?: string } => ({
+    setup: typeof s.setup === "string" ? s.setup : undefined,
+  }),
   loader: async ({ context, params }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(ministriesQuery(params.code)),
@@ -60,6 +64,10 @@ function PortfolioIndex() {
   const { data: profiles } = useSuspenseQuery(profilesQuery(code));
   const { data: viz } = useSuspenseQuery(vizQuery(code));
   const { data: deliveryKpis } = useSuspenseQuery(deliveryQuery(code));
+  const { setup } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
+  const openSetup = (slug?: string) =>
+    navigate({ search: (prev) => ({ ...prev, setup: slug }), replace: true });
 
   const rows = useMemo(() => {
     const profileBySlug = new Map(profiles.map((p) => [p.ministry_slug, p]));
@@ -112,6 +120,12 @@ function PortfolioIndex() {
 
   return (
     <div className="px-8 py-10">
+      <KpiSetupModal code={code} ministrySlug={setup ?? null} onClose={() => openSetup(undefined)} />
+      <div className="flex justify-end">
+        <Link to="/admin/scorecards" className="btn-ghost">
+          Delivery scorecards queue →
+        </Link>
+      </div>
       <div className="max-w-3xl">
         <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
           Cabinet accountability grid
@@ -194,14 +208,22 @@ function PortfolioIndex() {
                 </td>
                 <td className="py-3 text-right font-mono tabular-nums text-ink-500">
                   {r.total ? (
-                    `${r.qualified}/${r.total} · ${r.readiness}%`
+                    <button
+                      type="button"
+                      onClick={() => openSetup(r.slug)}
+                      className="underline decoration-line-200 underline-offset-4 hover:decoration-ink-950"
+                      title="Open scorecard setup"
+                    >
+                      {`${r.qualified}/${r.total} · ${r.readiness}%`}
+                    </button>
                   ) : (
-                    <Link
-                      to="/instrument/mandate/studio"
+                    <button
+                      type="button"
+                      onClick={() => openSetup(r.slug)}
                       className="underline decoration-line-200 underline-offset-4 hover:decoration-ink-950"
                     >
                       Set up KPIs
-                    </Link>
+                    </button>
                   )}
                 </td>
                 <td className="py-3 text-right">

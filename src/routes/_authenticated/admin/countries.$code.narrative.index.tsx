@@ -9,6 +9,7 @@ import { RadarHeatStrip } from "@/components/narrative/RadarHeatStrip";
 import { SignalSourcesPanel } from "@/components/narrative/SignalSourcesPanel";
 import { cn } from "@/lib/utils";
 import { countsByPriority, PRIORITY_META, PRIORITY_ORDER } from "@/lib/narrative-priority";
+import { useUrlState } from "@/lib/nav/url-state";
 
 function signalsQuery(code: string) {
   return queryOptions({
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/narr
 function SignalRadarPage() {
   const { code } = Route.useParams();
   const { data: signals } = useSuspenseQuery(signalsQuery(code));
-  const [tab, setTab] = useState<"radar" | "sources">("radar");
+  const [tab, setTab] = useUrlState<"radar" | "sources">("tab", "radar");
 
   const byScope = {
     local: signals.filter((s) => s.scope === "local").length,

@@ -16,8 +16,9 @@ import { VoiceMicButton } from "@/components/console/VoiceMicButton";
 import { AttachmentChip } from "@/components/console/AttachmentChip";
 import { WizardStepper } from "@/components/console/WizardStepper";
 import { useConsoleUploads } from "@/hooks/useConsoleUploads";
+import { useUrlState } from "@/lib/nav/url-state";
 
-const searchSchema = z.object({ seed: z.string().optional() });
+const searchSchema = z.object({ seed: z.string().optional(), step: z.coerce.string().optional() });
 
 export const Route = createFileRoute("/_authenticated/console/$code/request/new")({
   head: () => ({
@@ -59,7 +60,9 @@ function RequestWizard() {
     queryFn: () => getConsoleStudy({ data: { country_code: code } }),
   });
 
-  const [step, setStep] = useState(1);
+  const [stepStr, setStepStr] = useUrlState<string>("step", "1");
+  const step = Math.max(1, Number(stepStr) || 1);
+  const setStep = (n: number) => setStepStr(String(n));
   const [text, setText] = useState(seed ?? "");
   const [ministry, setMinistry] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<OutcomeChoice | null>(null);

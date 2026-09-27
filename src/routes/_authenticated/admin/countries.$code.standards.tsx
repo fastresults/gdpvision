@@ -15,6 +15,7 @@ import { getStandardsAudit, snapshotNow, type PlanSummary } from "@/lib/standard
 import { gapOrder, STATUS_ORDER, type AuditRow, type ReqStatus } from "@/lib/standards/scoring";
 import { cn } from "@/lib/utils";
 import "@/lib/explain/standards-entries";
+import { useUrlState } from "@/lib/nav/url-state";
 
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/standards")({
   head: ({ params }) => ({
@@ -55,12 +56,12 @@ function StandardsPage() {
     queryFn: () => fetchAudit({ data: { code } }),
   });
 
-  const [tab, setTab] = useState<Tab>("gaps");
+  const [tab, setTab] = useUrlState<Tab>("tab", "gaps");
   const [standard, setStandard] = useState<string | null>(null);
   const [status, setStatus] = useState<ReqStatus | "">("");
   const [impact, setImpact] = useState("");
   const [search, setSearch] = useState("");
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useUrlState<string>("open", null);
   const [recording, setRecording] = useState(false);
   const [recordError, setRecordError] = useState<string | null>(null);
 

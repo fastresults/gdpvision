@@ -11,6 +11,7 @@ import { getVizOverview } from "@/lib/country-viz/viz.functions";
 import { assessDelivery } from "@/lib/portfolio/accountability";
 import { listPortfolioDeliveryKpis } from "@/lib/portfolio/accountability.functions";
 import "@/lib/explain/portfolio-entries";
+import { useUrlState } from "@/lib/nav/url-state";
 
 function ministriesQuery(code: string) {
   return queryOptions({
@@ -44,8 +45,9 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/port
       { name: "robots", content: "noindex" },
     ],
   }),
-  validateSearch: (s: Record<string, unknown>): { setup?: string } => ({
+  validateSearch: (s: Record<string, unknown>): { setup?: string; sstep?: string } => ({
     setup: typeof s.setup === "string" ? s.setup : undefined,
+    sstep: s.sstep == null ? undefined : String(s.sstep),
   }),
   loader: async ({ context, params }) => {
     await Promise.all([
@@ -67,7 +69,13 @@ function PortfolioIndex() {
   const { setup } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const openSetup = (slug?: string) =>
-    navigate({ search: (prev) => ({ ...prev, setup: slug }), replace: true });
+    navigate({
+      search: (prev) => {
+        const next: Record<string, unknown> = { ...prev, setup: slug };
+        if (!slug) delete next.sstep;
+        return next as { setup?: string };
+      },
+    });
 
   const rows = useMemo(() => {
     const profileBySlug = new Map(profiles.map((p) => [p.ministry_slug, p]));

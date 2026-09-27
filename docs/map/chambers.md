@@ -123,3 +123,8 @@ Each of the 7 chambers = a route surface + component tree + server-fn module(s) 
 - **Country Home / Landing** (per country): `country.$code.tsx` · `country-home/summary.functions.ts` · `components/country/*`
 - **Second brain viewer**: `admin/brain.tsx` · `narrative/brain.tsx` · `components/country-data/BrainConstellation.tsx`, `MemoryVisual.tsx`
 - **Marketing**: `routes/index.tsx` · `components/marketing/*`
+
+## Delivery scorecards (Chamber 02 back office)
+- Setup modal: `src/components/portfolio/KpiSetupModal.tsx` opened via `?setup=<ministry>` on `admin/countries/$code/portfolio`.
+- Server fns: `src/lib/portfolio/scorecard-setup.functions.ts` (context, AI draft, save, submit), `scorecard-queue.functions.ts` (all-country queue, qualify/return).
+- Queue route: `admin/scorecards`. Tables: `kpis`, `kpi_setup_sessions`, `goal_cycles`.

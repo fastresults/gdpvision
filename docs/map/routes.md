@@ -128,6 +128,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/_authenticated/admin/invitations` | `src/routes/_authenticated/admin/invitations.tsx` |
 | `/_authenticated/admin/ledger-qa` | `src/routes/_authenticated/admin/ledger-qa.tsx` |
 | `/_authenticated/admin/proforma` | `src/routes/_authenticated/admin/proforma.tsx` |
+| `/_authenticated/admin/scorecards` | `src/routes/_authenticated/admin/scorecards.tsx` |
 
 ## instrument
 

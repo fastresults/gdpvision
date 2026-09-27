@@ -8,6 +8,8 @@ import { ApprovalPanel } from "@/components/egov/ApprovalPanel";
 import { SectionEditor } from "@/components/egov/SectionEditor";
 import { Explain } from "@/components/explain/Explain";
 import { MICRO, PLAN_META, SECTION_META, formatWhen } from "@/components/sector/labels";
+import { PlanVisualSummary } from "@/components/sector/PlanVisualSummary";
+import { useUrlState } from "@/lib/nav/url-state";
 import { draftPlanSection } from "@/lib/sector/draft.functions";
 import {
   checkPlanStale,
@@ -25,8 +27,17 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/sect
     meta: [
       { title: `Sector plan · ${params.code} — GDPVision` },
       { name: "description", content: `Sector Development Plan for ${params.code}.` },
+      { property: "og:title", content: `Sector plan · ${params.code} — GDPVision` },
+      { property: "og:description", content: `Sector Development Plan for ${params.code}.` },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
     ],
+  }),
+  validateSearch: (search: Record<string, unknown>): { section?: SectorStage } => ({
+    section: SECTOR_STAGES.some((stage) => stage.key === search.section)
+      ? (search.section as SectorStage)
+      : undefined,
   }),
   component: PlanPage,
 });
@@ -53,7 +64,9 @@ function PlanPage() {
   const key = ["sector-plan", code, planId];
   const q = useQuery({ queryKey: key, queryFn: () => fetchPlan({ data: { code, planId } }) });
 
-  const [view, setView] = useState<SectorStage>("diagnostic");
+  const [view, setView] = useUrlState<SectorStage>("section", "diagnostic", {
+    allowed: SECTOR_STAGES.map((stage) => stage.key),
+  });
   const [busyStage, setBusyStage] = useState<SectorStage | "all" | "check" | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -266,6 +279,8 @@ function PlanPage() {
               Drafting is unavailable on this server; sections can be written by hand.
             </p>
           )}
+
+          <PlanVisualSummary sections={sections} citations={data.citations} onOpenStage={setView} />
 
           <div className="grid gap-8 lg:grid-cols-[15rem_minmax(0,1fr)_17rem]">
             <nav aria-label="Sections" className="lg:sticky lg:top-6 lg:self-start">

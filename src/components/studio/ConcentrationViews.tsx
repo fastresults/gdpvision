@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { useRef, useState, type ReactNode } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
 
 import { sectorColor } from "@/components/viz/sector-color";
 import { Explain } from "@/components/explain/Explain";
@@ -15,15 +15,30 @@ const VIEWS: { id: View; label: string }[] = [
   { id: "curve", label: "Curve" },
 ];
 
-type Item = Sector & { color: string };
+type Item = Sector & { color: string; rank: number; cum: number };
+type Tip =
+  | { kind: "sector"; code: string; x: number; y: number }
+  | { kind: "marker"; k: number; pct: number; x: number; y: number }
+  | { kind: "diagonal" | "axis"; x: number; y: number };
+
+const SHORT: Record<string, string> = {
+  "public administration": "Public admin",
+  "transport & logistics": "Transport",
+  "agriculture & fisheries": "Agriculture",
+  "financial services": "Finance",
+  "digital economy": "Digital",
+  "other services": "Other services",
+  "real estate": "Real estate",
+};
+function shortLabel(label: string) {
+  const k = label.toLowerCase();
+  if (SHORT[k]) return SHORT[k];
+  return label.length > 14 ? label.split(/[\s&,]+/)[0] : label;
+}
 
 function sectorsNeeded(items: Item[], target: number) {
-  let sum = 0;
-  for (let i = 0; i < items.length; i++) {
-    sum += items[i].share_pct;
-    if (sum >= target) return i + 1;
-  }
-  return items.length;
+  const i = items.findIndex((s) => s.cum >= target);
+  return i === -1 ? items.length : i + 1;
 }
 
 export function ConcentrationPanel({ code, sectors, hhi }: { code: string; sectors: Sector[]; hhi: number }) {
@@ -31,14 +46,30 @@ export function ConcentrationPanel({ code, sectors, hhi }: { code: string; secto
     allowed: VIEWS.map((v) => v.id),
     replace: true,
   });
-  const [hover, setHover] = useState<string | null>(null);
+  const [tip, setTip] = useState<Tip | null>(null);
+  const wrap = useRef<HTMLDivElement>(null);
+  let run = 0;
   const items: Item[] = [...sectors]
     .sort((a, b) => b.share_pct - a.share_pct)
-    .map((s) => ({ ...s, color: sectorColor(s.hue_token, sectors.indexOf(s)) }));
+    .map((s, i) => {
+      run += s.share_pct;
+      return { ...s, color: sectorColor(s.hue_token, sectors.indexOf(s)), rank: i + 1, cum: run };
+    });
   const n50 = sectorsNeeded(items, 50);
   const n80 = sectorsNeeded(items, 80);
   const top = items[0];
   const ctx = { hhi, n50, n80, total: items.length, top: top?.label, topPct: top?.share_pct };
+
+  /** Position a tip from a pointer event or a focused element, relative to the chart wrapper. */
+  const at = (e: { clientX?: number; clientY?: number; currentTarget: Element }) => {
+    const r = wrap.current?.getBoundingClientRect();
+    if (!r) return { x: 0, y: 0 };
+    if (e.clientX != null && e.clientY != null && (e.clientX || e.clientY)) return { x: e.clientX - r.left, y: e.clientY - r.top };
+    const b = e.currentTarget.getBoundingClientRect();
+    return { x: b.left + b.width / 2 - r.left, y: b.top - r.top };
+  };
+  const hoverCode = tip?.kind === "sector" ? tip.code : null;
+  const vp: VP = { items, code, hoverCode, setTip, at };
 
   return (
     <section>
@@ -53,7 +84,10 @@ export function ConcentrationPanel({ code, sectors, hhi }: { code: string; secto
               role="tab"
               type="button"
               aria-selected={view === v.id}
-              onClick={() => setView(v.id)}
+              onClick={() => {
+                setTip(null);
+                setView(v.id);
+              }}
               className={cn(
                 "px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] transition-colors",
                 view === v.id ? "bg-paper-100 text-ink-950" : "text-ink-500 hover:text-ink-950",
@@ -65,16 +99,21 @@ export function ConcentrationPanel({ code, sectors, hhi }: { code: string; secto
         </div>
       </div>
 
-      <div className="mt-3 border border-line-200 bg-paper-0 p-4">
+      <div
+        ref={wrap}
+        className="relative mt-3 border border-line-200 bg-paper-0 p-4"
+        onMouseLeave={() => setTip(null)}
+      >
         {items.length === 0 ? (
           <p className="text-sm text-ink-500">No sector GDP shares recorded yet.</p>
         ) : view === "bars" ? (
-          <RankedBars items={items} code={code} hover={hover} setHover={setHover} />
+          <RankedBars {...vp} />
         ) : view === "treemap" ? (
-          <Treemap items={items} code={code} hover={hover} setHover={setHover} />
+          <Treemap {...vp} />
         ) : (
-          <Curve items={items} code={code} hover={hover} setHover={setHover} n50={n50} n80={n80} ctx={ctx} />
+          <Curve {...vp} n50={n50} n80={n80} ctx={ctx} />
         )}
+        {tip && <ChartTip tip={tip} items={items} wrap={wrap.current} />}
       </div>
 
       {top && (
@@ -87,9 +126,126 @@ export function ConcentrationPanel({ code, sectors, hhi }: { code: string; secto
   );
 }
 
-type VP = { items: Item[]; code: string; hover: string | null; setHover: (c: string | null) => void };
+function ChartTip({ tip, items, wrap }: { tip: Tip; items: Item[]; wrap: HTMLDivElement | null }) {
+  const n = items.length;
+  const even = 100 / Math.max(n, 1);
+  let title = "";
+  let body: ReactNode = null;
+  let accent: string | undefined;
+  if (tip.kind === "sector") {
+    const s = items.find((i) => i.code === tip.code);
+    if (!s) return null;
+    accent = s.color;
+    title = `#${s.rank} ${s.label}`;
+    const diff = s.share_pct - even;
+    body = (
+      <>
+        <Row k="Share of GDP" v={`${s.share_pct.toFixed(1)}%`} />
+        <Row k={`Top ${s.rank} combined`} v={`${s.cum.toFixed(1)}%`} />
+        <Row k={`Even split (1 of ${n})`} v={`${even.toFixed(1)}%`} />
+        <p className="mt-2 text-ink-700">
+          {Math.abs(diff) < 0.5
+            ? "About the size it would be in a perfectly even economy."
+            : diff > 0
+              ? `${(s.share_pct / even).toFixed(1)}× its even-split size — a load-bearing sector.`
+              : `Below its even-split size — room to grow its weight in the economy.`}
+        </p>
+        <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">Click to open sector</p>
+      </>
+    );
+  } else if (tip.kind === "marker") {
+    const names = items.slice(0, tip.k).map((s) => s.label);
+    title = `${tip.pct}% of GDP in ${tip.k} of ${n} sectors`;
+    body = (
+      <>
+        <p className="text-ink-700">
+          {names.slice(0, 4).join(", ")}
+          {names.length > 4 ? ` and ${names.length - 4} more` : ""}.
+        </p>
+        <p className="mt-2 text-ink-700">
+          {tip.k / n <= 0.35
+            ? "A shock to these few sectors would move most of the economy — diversifying FDI beyond them lowers that exposure."
+            : "Output is spread across many sectors, so a single-sector shock is cushioned."}
+        </p>
+      </>
+    );
+  } else if (tip.kind === "diagonal") {
+    title = "Perfectly even economy";
+    body = (
+      <p className="text-ink-700">
+        If every sector were the same size, the curve would follow this line. The wider the gold area above it, the more
+        concentrated the economy.
+      </p>
+    );
+  } else {
+    title = "Cumulative share of GDP";
+    body = <p className="text-ink-700">Running total of GDP as sectors are added, largest first.</p>;
+  }
+  const W = wrap?.clientWidth ?? 800;
+  const flip = tip.x > W - 280;
+  const below = tip.y < 140;
+  return (
+    <div
+      role="tooltip"
+      className="pointer-events-none absolute z-20 w-64 border border-line-200 bg-paper-0 p-3 text-xs shadow-lg"
+      style={{
+        left: flip ? tip.x - 16 - 256 : tip.x + 16,
+        top: below ? tip.y + 16 : tip.y - 16,
+        transform: below ? undefined : "translateY(-100%)",
+        borderTop: accent ? `3px solid ${accent}` : undefined,
+      }}
+    >
+      <p className="font-medium text-ink-950">{title}</p>
+      <div className="mt-1.5">{body}</div>
+    </div>
+  );
+}
 
-function RankedBars({ items, code, hover, setHover }: VP) {
+function Row({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="flex justify-between gap-3 py-0.5">
+      <span className="text-ink-500">{k}</span>
+      <span className="tabular-nums text-ink-950">{v}</span>
+    </div>
+  );
+}
+
+type AtFn = (e: { clientX?: number; clientY?: number; currentTarget: Element }) => { x: number; y: number };
+type VP = {
+  items: Item[];
+  code: string;
+  hoverCode: string | null;
+  setTip: (t: Tip | null) => void;
+  at: AtFn;
+};
+
+/** Hover/focus/touch handlers shared by every sector target. Touch: first tap explains, second opens. */
+function useSectorHandlers({ setTip, at, hoverCode, code }: VP) {
+  const navigate = useNavigate();
+  const lastPointer = useRef<string>("mouse");
+  return (s: Item) => ({
+    onPointerDown: (e: React.PointerEvent) => {
+      lastPointer.current = e.pointerType;
+    },
+    onMouseMove: (e: React.MouseEvent) => setTip({ kind: "sector", code: s.code, ...at(e) }),
+    onFocus: (e: React.FocusEvent) => setTip({ kind: "sector", code: s.code, ...at(e) }),
+    onBlur: () => setTip(null),
+    onClick: (e: React.MouseEvent) => {
+      if (lastPointer.current === "touch" && hoverCode !== s.code) {
+        e.preventDefault();
+        setTip({ kind: "sector", code: s.code, ...at(e) });
+        return;
+      }
+      if (e.currentTarget.tagName.toLowerCase() !== "a") {
+        navigate({ to: "/admin/countries/$code/studio/sectors/$sectorCode", params: { code, sectorCode: s.code } });
+      }
+    },
+  });
+}
+
+function RankedBars(vp: VP) {
+  const { items, code, hoverCode } = vp;
+  const h = useSectorHandlers(vp);
   const max = Math.max(...items.map((i) => i.share_pct), 1);
   return (
     <ul className="space-y-1.5">
@@ -98,13 +254,11 @@ function RankedBars({ items, code, hover, setHover }: VP) {
           <Link
             to="/admin/countries/$code/studio/sectors/$sectorCode"
             params={{ code, sectorCode: s.code }}
-            onMouseEnter={() => setHover(s.code)}
-            onMouseLeave={() => setHover(null)}
-            onFocus={() => setHover(s.code)}
-            onBlur={() => setHover(null)}
+            aria-label={`${s.label}, ${s.share_pct.toFixed(1)}% of GDP`}
+            {...h(s)}
             className={cn(
               "grid grid-cols-[minmax(0,10rem)_1fr_3.5rem] items-center gap-3 text-xs transition-opacity sm:grid-cols-[minmax(0,14rem)_1fr_4rem]",
-              hover && hover !== s.code && "opacity-40",
+              hoverCode && hoverCode !== s.code && "opacity-40",
             )}
           >
             <span className="truncate text-ink-700">{s.label}</span>
@@ -167,28 +321,29 @@ function squarify(items: Item[], x: number, y: number, w: number, h: number): Re
   return out;
 }
 
-function Treemap({ items, code, hover, setHover }: VP) {
+function Treemap(vp: VP) {
+  const { items, code, hoverCode } = vp;
+  const h = useSectorHandlers(vp);
   const W = 1000, H = 380;
   const rects = squarify(items, 0, 0, W, H);
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="Treemap of sector GDP shares">
-      {rects.map(({ item, x, y, w, h }) => {
-        const fits = w > 90 && h > 40;
+      {rects.map(({ item, x, y, w, h: rh }) => {
+        const fits = w > 90 && rh > 40;
         return (
           <Link
             key={item.code}
             to="/admin/countries/$code/studio/sectors/$sectorCode"
             params={{ code, sectorCode: item.code }}
-            onMouseEnter={() => setHover(item.code)}
-            onMouseLeave={() => setHover(null)}
+            aria-label={`${item.label}, ${item.share_pct.toFixed(1)}% of GDP`}
+            {...h(item)}
           >
-            <g opacity={hover && hover !== item.code ? 0.4 : 1}>
-              <title>{`${item.label} · ${item.share_pct.toFixed(1)}%`}</title>
-              <rect x={x} y={y} width={w} height={h} fill={item.color} stroke="var(--color-paper-0)" strokeWidth={2} />
+            <g opacity={hoverCode && hoverCode !== item.code ? 0.4 : 1}>
+              <rect x={x} y={y} width={w} height={rh} fill={item.color} stroke="var(--color-paper-0)" strokeWidth={2} />
               {fits && (
                 <>
                   <text x={x + 10} y={y + 22} fill="var(--color-paper-0)" fontSize={15} fontWeight={500}>
-                    {item.label.length > w / 9 ? item.label.slice(0, Math.floor(w / 9) - 1) + "…" : item.label}
+                    {item.label.length > w / 9 ? shortLabel(item.label) : item.label}
                   </text>
                   <text x={x + 10} y={y + 42} fill="var(--color-paper-0)" fontSize={13} fontFamily="monospace">
                     {item.share_pct.toFixed(1)}%
@@ -203,16 +358,20 @@ function Treemap({ items, code, hover, setHover }: VP) {
   );
 }
 
-function Curve({ items, code, hover, setHover, n50, n80, ctx }: VP & { n50: number; n80: number; ctx: object }) {
-  const W = 1000, H = 320, L = 44, R = 16, T = 16, B = 36;
+function Curve(vp: VP & { n50: number; n80: number; ctx: object }) {
+  const { items, hoverCode, setTip, at, n50, n80, ctx } = vp;
+  const h = useSectorHandlers(vp);
   const n = items.length;
+  const tilt = n > 8;
+  const W = 1000, H = tilt ? 350 : 320, L = 50, R = 20, T = 30, B = tilt ? 70 : 40;
   const px = (k: number) => L + (k / n) * (W - L - R);
   const py = (v: number) => T + (1 - Math.min(v, 100) / 100) * (H - T - B);
-  const cum: number[] = [0];
-  items.forEach((s, i) => cum.push(cum[i] + s.share_pct));
-  const pts = cum.map((v, k) => `${px(k)},${py(v)}`);
-  const line = `M${pts.join(" L")}`;
+  const cum = [0, ...items.map((s) => s.cum)];
+  const line = `M${cum.map((v, k) => `${px(k)},${py(v)}`).join(" L")}`;
   const area = `${line} L${px(n)},${py(0)} L${px(0)},${py(0)} Z`;
+  const colW = (W - L - R) / n;
+  const hoverIdx = hoverCode ? items.findIndex((s) => s.code === hoverCode) : -1;
+
   return (
     <div className="overflow-x-auto">
       <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full min-w-[560px]" role="img" aria-label="Cumulative concentration curve">
@@ -222,46 +381,123 @@ function Curve({ items, code, hover, setHover, n50, n80, ctx }: VP & { n50: numb
             <stop offset="100%" stopColor="var(--color-gold-500)" stopOpacity={0.3} />
           </linearGradient>
         </defs>
-        {[0, 25, 50, 75, 100].map((v) => (
-          <g key={v}>
-            <line x1={L} x2={W - R} y1={py(v)} y2={py(v)} stroke="var(--color-line-100)" />
-            <text x={L - 8} y={py(v) + 4} textAnchor="end" fontSize={11} fill="var(--color-ink-500)" fontFamily="monospace">
+        <g
+          onMouseMove={(e) => setTip({ kind: "axis", ...at(e) })}
+          style={{ cursor: "help" }}
+        >
+          <rect x={0} y={T - 10} width={L - 4} height={H - T - B + 20} fill="transparent" />
+          {[0, 25, 50, 75, 100].map((v) => (
+            <text key={v} x={L - 8} y={py(v) + 4} textAnchor="end" fontSize={11} fill="var(--color-ink-500)" fontFamily="monospace">
               {v}%
             </text>
-          </g>
+          ))}
+        </g>
+        {[0, 25, 50, 75, 100].map((v) => (
+          <line key={v} x1={L} x2={W - R} y1={py(v)} y2={py(v)} stroke="var(--color-line-100)" />
         ))}
-        <line x1={px(0)} y1={py(0)} x2={px(n)} y2={py(100)} stroke="var(--color-ink-300)" strokeDasharray="4 4" />
         <path d={area} fill="url(#conc-fill)" />
-        <path d={line} fill="none" stroke="var(--color-gold-500)" strokeWidth={2.5} />
-        {[{ k: n50, l: "50%" }, { k: n80, l: "80%" }].map((m) => (
-          <g key={m.l}>
-            <line x1={px(m.k)} x2={px(m.k)} y1={py(cum[m.k])} y2={py(0)} stroke="var(--color-ink-700)" strokeDasharray="2 3" />
-            <text x={px(m.k) + 6} y={py(cum[m.k]) + 16} fontSize={11} fill="var(--color-ink-950)" fontFamily="monospace">
-              {m.l} in {m.k}
-            </text>
-          </g>
-        ))}
+        <line x1={px(0)} y1={py(0)} x2={px(n)} y2={py(100)} stroke="var(--color-ink-300)" strokeDasharray="4 4" />
+
+        {/* Sector column hit zones (behind markers/diagonal hit line) */}
         {items.map((s, i) => (
-          <Link
-            key={s.code}
-            to="/admin/countries/$code/studio/sectors/$sectorCode"
-            params={{ code, sectorCode: s.code }}
-            onMouseEnter={() => setHover(s.code)}
-            onMouseLeave={() => setHover(null)}
-          >
-            <circle cx={px(i + 1)} cy={py(cum[i + 1])} r={hover === s.code ? 7 : 5} fill={s.color} stroke="var(--color-paper-0)" strokeWidth={2}>
-              <title>{`${i + 1}. ${s.label} · ${s.share_pct.toFixed(1)}% (cumulative ${cum[i + 1].toFixed(1)}%)`}</title>
-            </circle>
-            {n <= 14 && (
-              <text x={px(i + 1)} y={H - 14} textAnchor="middle" fontSize={10} fill={hover === s.code ? "var(--color-ink-950)" : "var(--color-ink-500)"} fontFamily="monospace">
-                {s.code.split("-")[0].slice(0, 9)}
-              </text>
-            )}
-          </Link>
+          <rect
+            key={`hit-${s.code}`}
+            x={px(i + 1) - colW / 2}
+            y={T - 10}
+            width={colW}
+            height={H - T + 10}
+            fill={hoverIdx === i ? "var(--color-ink-950)" : "transparent"}
+            fillOpacity={hoverIdx === i ? 0.04 : 0}
+            tabIndex={0}
+            role="link"
+            aria-label={`#${s.rank} ${s.label}, ${s.share_pct.toFixed(1)}% of GDP, cumulative ${s.cum.toFixed(1)}%`}
+            style={{ cursor: "pointer", outline: "none" }}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                e.preventDefault();
+                const sib = (e.currentTarget.parentNode as SVGElement).querySelectorAll<SVGRectElement>("rect[role=link]");
+                sib[Math.max(0, Math.min(n - 1, i + (e.key === "ArrowRight" ? 1 : -1)))]?.focus();
+              } else if (e.key === "Enter") {
+                (e.currentTarget as unknown as HTMLElement).dispatchEvent(new MouseEvent("click", { bubbles: true }));
+              }
+            }}
+            {...h(s)}
+          />
         ))}
+
+        {/* Diagonal hit line */}
+        <line
+          x1={px(0)} y1={py(0)} x2={px(n)} y2={py(100)}
+          stroke="transparent" strokeWidth={14}
+          style={{ cursor: "help" }}
+          onMouseMove={(e) => setTip({ kind: "diagonal", ...at(e) })}
+        />
+
+        <path d={line} fill="none" stroke="var(--color-gold-500)" strokeWidth={2.5} pointerEvents="none" />
+
+        {hoverIdx >= 0 && (
+          <line
+            x1={px(hoverIdx + 1)} x2={px(hoverIdx + 1)}
+            y1={py(cum[hoverIdx + 1])} y2={H - B + 4}
+            stroke="var(--color-ink-700)" strokeWidth={1} pointerEvents="none"
+          />
+        )}
+
+        {[{ k: n50, pct: 50 }, { k: n80, pct: 80 }].map((m) => {
+          const x = px(m.k), y = py(cum[m.k]);
+          const label = `${m.pct}% in ${m.k}`;
+          const lw = label.length * 7 + 12;
+          const lx = Math.min(x - lw / 2, W - R - lw);
+          return (
+            <g
+              key={m.pct}
+              style={{ cursor: "help" }}
+              onMouseMove={(e) => setTip({ kind: "marker", k: m.k, pct: m.pct, ...at(e) })}
+            >
+              <line x1={x} x2={x} y1={y} y2={py(0)} stroke="var(--color-ink-700)" strokeDasharray="2 3" />
+              <rect x={lx} y={y - 30} width={lw} height={18} fill="var(--color-paper-0)" stroke="var(--color-line-200)" />
+              <text x={lx + lw / 2} y={y - 17} textAnchor="middle" fontSize={11} fill="var(--color-ink-950)" fontFamily="monospace">
+                {label}
+              </text>
+            </g>
+          );
+        })}
+
+        {items.map((s, i) => (
+          <circle
+            key={s.code}
+            cx={px(i + 1)} cy={py(s.cum)}
+            r={hoverIdx === i ? 7 : 5}
+            fill={s.color} stroke="var(--color-paper-0)" strokeWidth={2}
+            pointerEvents="none"
+          />
+        ))}
+
+        {items.map((s, i) => {
+          const x = px(i + 1), y = H - B + 18;
+          const active = hoverIdx === i;
+          const dim = hoverIdx >= 0 && !active;
+          const text = n > 12 ? String(s.rank) : shortLabel(s.label);
+          return (
+            <text
+              key={`lbl-${s.code}`}
+              x={x} y={y}
+              textAnchor={tilt && n <= 12 ? "end" : "middle"}
+              transform={tilt && n <= 12 ? `rotate(-30 ${x} ${y})` : undefined}
+              fontSize={11}
+              fontWeight={active ? 600 : 400}
+              fill={active ? "var(--color-ink-950)" : "var(--color-ink-500)"}
+              opacity={dim ? 0.45 : 1}
+              fontFamily="monospace"
+              pointerEvents="none"
+            >
+              {text}
+            </text>
+          );
+        })}
       </svg>
       <p className="mt-1 text-xs text-ink-500">
-        Sectors ordered largest first; dashed diagonal = perfectly even economy.{" "}
+        Point at any sector, marker or the dashed line for detail.{" "}
         <Explain id="fdi.concentration-curve" ctx={ctx}>How to read this</Explain>
       </p>
     </div>

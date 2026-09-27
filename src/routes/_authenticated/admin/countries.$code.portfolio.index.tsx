@@ -45,8 +45,9 @@ export const Route = createFileRoute("/_authenticated/admin/countries/$code/port
       { name: "robots", content: "noindex" },
     ],
   }),
-  validateSearch: (s: Record<string, unknown>): { setup?: string } => ({
+  validateSearch: (s: Record<string, unknown>): { setup?: string; sstep?: string } => ({
     setup: typeof s.setup === "string" ? s.setup : undefined,
+    sstep: s.sstep == null ? undefined : String(s.sstep),
   }),
   loader: async ({ context, params }) => {
     await Promise.all([
@@ -74,7 +75,6 @@ function PortfolioIndex() {
         if (!slug) delete next.sstep;
         return next as { setup?: string };
       },
-      replace: !slug ? false : false,
     });
 
   const rows = useMemo(() => {

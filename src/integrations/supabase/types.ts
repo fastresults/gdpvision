@@ -1420,6 +1420,62 @@ export type Database = {
           },
         ]
       }
+      compact_runs: {
+        Row: {
+          compact_id: string
+          country_code: string
+          created_by: string | null
+          error: string | null
+          finished_at: string | null
+          heartbeat_at: string
+          id: string
+          result: Json | null
+          stage: string | null
+          stage_detail: string | null
+          started_at: string
+          status: string
+          step: string
+        }
+        Insert: {
+          compact_id: string
+          country_code: string
+          created_by?: string | null
+          error?: string | null
+          finished_at?: string | null
+          heartbeat_at?: string
+          id?: string
+          result?: Json | null
+          stage?: string | null
+          stage_detail?: string | null
+          started_at?: string
+          status?: string
+          step: string
+        }
+        Update: {
+          compact_id?: string
+          country_code?: string
+          created_by?: string | null
+          error?: string | null
+          finished_at?: string | null
+          heartbeat_at?: string
+          id?: string
+          result?: Json | null
+          stage?: string | null
+          stage_detail?: string | null
+          started_at?: string
+          status?: string
+          step?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compact_runs_compact_id_fkey"
+            columns: ["compact_id"]
+            isOneToOne: false
+            referencedRelation: "mandate_compacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compact_scorecards: {
         Row: {
           at_risk_pct: number

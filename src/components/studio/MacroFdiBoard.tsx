@@ -7,6 +7,7 @@ import { getFdiPosture, type PostureView } from "@/lib/fdi-studio/posture.functi
 import { generatePlaybook, listPlaybooks } from "@/lib/fdi-studio/playbook.functions";
 import { sectorColor } from "@/components/viz/sector-color";
 import { PlaybookTimeline } from "./PlaybookTimeline";
+import { ConcentrationPanel } from "./ConcentrationViews";
 
 function fmtUsd(n: number | null | undefined): string {
   if (n == null) return "—";
@@ -143,31 +144,7 @@ export function MacroFdiBoard({ code }: { code: string }) {
       </section>
 
       {/* CONCENTRATION MAP */}
-      <section>
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Concentration map · GDP share
-        </p>
-        <div className="mt-3 flex h-16 w-full overflow-hidden border border-line-200">
-          {p.sectors.map((s, i) => {
-            const color = sectorColor(s.hue_token, i);
-            const w = Math.max(2, s.share_pct);
-            return (
-              <Link
-                key={s.code}
-                to="/admin/countries/$code/studio/sectors/$sectorCode"
-                params={{ code, sectorCode: s.code }}
-                title={`${s.label} · ${s.share_pct.toFixed(1)}%`}
-                className="group relative border-r border-paper-0/40 last:border-r-0"
-                style={{ width: `${w}%`, background: color }}
-              >
-                <span className="absolute inset-0 hidden items-end p-1 font-mono text-[9px] uppercase tracking-wider text-paper-0 group-hover:flex">
-                  {s.code} {s.share_pct.toFixed(0)}%
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
+      <ConcentrationPanel code={code} sectors={p.sectors} hhi={p.components.hhi} />
 
       {/* ACTIVE TRANSITIONS */}
       {p.active_transitions.length > 0 && (

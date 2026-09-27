@@ -168,26 +168,41 @@ function PortfolioIndex() {
                 <td className="py-3 text-right font-mono tabular-nums">
                   {r.gdp > 0 ? `${r.gdp.toFixed(1)}%` : "—"}
                 </td>
-                <td className="py-3">
-                  <div className="flex items-center justify-center gap-1 font-mono text-[11px] tabular-nums">
-                    <span className="min-w-[28px] rounded-sm bg-emerald-50 px-1.5 py-0.5 text-center text-emerald-700">
-                      {r.counts.on}
+                <td className="py-3 text-center">
+                  {r.total ? (
+                    <div className="flex items-center justify-center gap-1 font-mono text-[11px] tabular-nums">
+                      <span className="min-w-[28px] rounded-sm bg-emerald-50 px-1.5 py-0.5 text-center text-emerald-700">
+                        {r.counts.on}
+                      </span>
+                      <span className="min-w-[28px] rounded-sm bg-amber-50 px-1.5 py-0.5 text-center text-amber-700">
+                        {r.counts.risk}
+                      </span>
+                      <span className="min-w-[28px] rounded-sm bg-red-50 px-1.5 py-0.5 text-center text-red-700">
+                        {r.counts.off}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-500">
+                      Not measured
                     </span>
-                    <span className="min-w-[28px] rounded-sm bg-amber-50 px-1.5 py-0.5 text-center text-amber-700">
-                      {r.counts.risk}
-                    </span>
-                    <span className="min-w-[28px] rounded-sm bg-red-50 px-1.5 py-0.5 text-center text-red-700">
-                      {r.counts.off}
-                    </span>
-                  </div>
-                  {r.counts.unscored > 0 && (
+                  )}
+                  {r.total > 0 && r.counts.unscored > 0 && (
                     <p className="mt-1 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-ink-500">
                       {r.counts.unscored} unscored
                     </p>
                   )}
                 </td>
                 <td className="py-3 text-right font-mono tabular-nums text-ink-500">
-                  {r.total ? `${r.qualified}/${r.total} · ${r.readiness}%` : "Not set up"}
+                  {r.total ? (
+                    `${r.qualified}/${r.total} · ${r.readiness}%`
+                  ) : (
+                    <Link
+                      to="/_authenticated/instrument/mandate/studio"
+                      className="underline decoration-line-200 underline-offset-4 hover:decoration-ink-950"
+                    >
+                      Set up KPIs
+                    </Link>
+                  )}
                 </td>
                 <td className="py-3 text-right">
                   <Link

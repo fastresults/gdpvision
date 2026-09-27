@@ -11,6 +11,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { callGeminiJson } from "@/lib/country-onboarding/gemini.server";
+import { startRun, withHeartbeat, type RunTracker } from "./runs.server";
 
 const Input = z.object({ compactId: z.string().uuid() });
 
@@ -58,7 +59,11 @@ export const transformMandateCompact = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => Input.parse(raw))
   .handler(async ({ data, context }): Promise<TransformResult> => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    const { data: cRow } = await supabase.from("mandate_compacts").select("country_code").eq("id", data.compactId).maybeSingle();
+    const run: RunTracker = await startRun(supabase, data.compactId, cRow?.country_code ?? "", "transform", userId);
+    try {
+    await run.stage("Loading pledges", "Reading pledges and ministries");
 
     const { data: compact, error: cErr } = await supabase
       .from("mandate_compacts")
@@ -106,11 +111,12 @@ export const transformMandateCompact = createServerFn({ method: "POST" })
       })),
     };
 
-    const { parsed, content, model } = await callGeminiJson<TransformedShape>({
+    const { parsed, content, model } = await withHeartbeat(run, "Asking AI", `Assigning ${pledges.length} pledges across ${ministries.length} ministries`, () => callGeminiJson<TransformedShape>({
       system: SYSTEM,
       user: `Design the ministry-owned delivery plan for the ${compact.election_cycle} Mandate Compact.\n\nINPUT (JSON):\n${JSON.stringify(promptPayload, null, 2)}`,
       schemaHint: schemaHint(compact.election_cycle),
-    });
+    }));
+    await run.stage("Saving deliverables", `${parsed?.deliverables?.length ?? 0} deliverables returned`);
 
     if (!parsed?.deliverables?.length) {
       throw new Error(`Transform failed to return deliverables (${model}): ${content.slice(0, 200)}`);
@@ -148,10 +154,16 @@ export const transformMandateCompact = createServerFn({ method: "POST" })
       if (insErr) throw new Error(`Deliverable insert failed: ${insErr.message}`);
     }
 
-    return {
+    const result = {
       compact_id: data.compactId,
       deliverables_created: rows.length,
       unassigned,
       model,
     };
+    await run.succeed(result);
+    return result;
+    } catch (e) {
+      await run.fail(e);
+      throw e;
+    }
   });

@@ -17,7 +17,7 @@ Each of the 7 chambers = a route surface + component tree + server-fn module(s) 
 
 - **Route**: `admin/countries.$code.portfolio.{index,$ministry}.tsx`
 - **Instrument surface**: `_authenticated/instrument/portfolio.{index,$ministry}.tsx`
-- **Components**: `src/components/viz/MinistrySectorHeatmap.tsx`, `SectorProfilingMatrix.tsx`, `SectorSparkstrip.tsx`, `SectorTrendBars.tsx`, `sector/SectorDossierDrawer.tsx`
+- **Components**: `src/components/portfolio/MinisterGdpExposureCurve.tsx`, `src/components/viz/MinistrySectorHeatmap.tsx`, `SectorProfilingMatrix.tsx`, `SectorSparkstrip.tsx`, `SectorTrendBars.tsx`, `sector/SectorDossierDrawer.tsx`
 - **Server fns**: `src/lib/mandate.functions.ts`, `src/lib/sector-dossier/{prewarm,build}.functions.ts`, `src/lib/country-viz/{viz,flows}.functions.ts`
 - **Tables**: `ministry_profiles`, `ministry_sectors`, `sector_profiles`, `sector_dossiers`
 

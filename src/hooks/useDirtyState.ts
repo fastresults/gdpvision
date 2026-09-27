@@ -7,6 +7,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useUnsavedWork } from "@/lib/nav/unsaved";
+
 function stable(v: unknown): string {
   try {
     return JSON.stringify(v ?? null);
@@ -85,5 +87,6 @@ export function useDirtyState<T>(server: T | undefined): DirtyState<T> {
     setConflict(false);
   }, []);
 
+  useUnsavedWork(dirty);
   return { value, set, dirty, conflict, takeServer, keepMine, markSaved, savedAt };
 }

@@ -8,6 +8,7 @@ import { FileText, Home, MessageCircle, Radar, Send } from "lucide-react";
 import { getMyCountryStatus } from "@/lib/country-admin.functions";
 import { CARICOM_OECS_REGISTRY } from "@/lib/caricom-registry";
 import { Wordmark } from "@/components/marketing/Wordmark";
+import { NavControls } from "@/components/nav/NavControls";
 import { CountrySwitcher } from "@/components/console/CountrySwitcher";
 import { useImpersonation } from "@/lib/impersonation";
 import { scrollToTop } from "@/lib/utils";
@@ -106,6 +107,7 @@ function ConsoleLayout() {
             >
               <Wordmark className="text-ink-950" />
             </Link>
+            <NavControls />
             {code && (
               <CountrySwitcher
                 code={code}

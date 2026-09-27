@@ -11,6 +11,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { listInstanceBindings } from "@/lib/ledger.functions";
 import { getMyCountryStatus } from "@/lib/country-admin.functions";
 import { Wordmark } from "@/components/marketing/Wordmark";
+import { NavControls } from "@/components/nav/NavControls";
 import { supabase } from "@/integrations/supabase/client";
 import { scrollToTop } from "@/lib/utils";
 
@@ -64,6 +65,7 @@ function InstrumentShell() {
           <Link to="/instrument" onClick={() => scrollToTop()}>
             <Wordmark />
           </Link>
+          <NavControls />
           <nav className="flex items-center gap-6 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-500">
             {nav.map((n) => (
               <Link

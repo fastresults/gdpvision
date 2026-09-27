@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { type ReactNode } from "react";
 
 import { Wordmark } from "@/components/marketing/Wordmark";
+import { NavControls } from "@/components/nav/NavControls";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyCountryStatus } from "@/lib/country-admin.functions";
 import { scrollToTop } from "@/lib/utils";
@@ -56,6 +57,7 @@ export function SuperAdminShell({ eyebrow, crumbs, wide, children }: Props) {
           <Link to={homeTo} params={homeParams as never} onClick={() => scrollToTop()}>
             <Wordmark />
           </Link>
+          <NavControls />
           {audience === "agency" && (
             <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
               Super admin

@@ -5,12 +5,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { Illustration } from "@/components/marketing/Illustration";
+import { lastVisited, safeReturnPath } from "@/lib/nav/trail";
 import illLamp from "@/assets/illustrations/section-lamp.jpg.asset.json";
 
 
 
-async function postSignInRedirect(): Promise<"/home"> {
-  return "/home";
+// Return the user to the page they were on before sign-in was required.
+async function postSignInRedirect(): Promise<string> {
+  return safeReturnPath(lastVisited()) ?? "/home";
 }
 
 type Mode = "sign-in" | "forgot";
@@ -48,7 +50,7 @@ function AuthPage() {
   // If already signed in, get out of the way.
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
-      if (data.user) navigate({ to: await postSignInRedirect() });
+      if (data.user) navigate({ href: await postSignInRedirect() });
     });
   }, [navigate]);
 
@@ -68,7 +70,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         router.invalidate();
-        navigate({ to: await postSignInRedirect() });
+        navigate({ href: await postSignInRedirect() });
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,

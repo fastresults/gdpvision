@@ -15,6 +15,7 @@ import appCss from "../styles.css?url";
 import faviconAsset from "../assets/favicon-seal.png.asset.json";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ViewAsBanner } from "../lib/impersonation";
+import { NavRuntime } from "@/components/nav/NavControls";
 import { Toaster } from "@/components/ui/sonner";
 
 
@@ -151,6 +152,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <RouteScrollTop />
+      <NavRuntime />
       <ViewAsBanner />
       <Toaster position="top-right" richColors closeButton />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}

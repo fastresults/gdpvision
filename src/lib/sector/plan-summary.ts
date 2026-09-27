@@ -29,7 +29,13 @@ export interface SectorPlanSummary {
     label: "Ready for review" | "Needs evidence" | "Incomplete";
     checks: Array<{ label: string; passed: boolean }>;
   };
-  evidence: { grounded: number; needsConfirmation: number; gaps: number; citations: number; findings: number };
+  evidence: {
+    grounded: number;
+    needsConfirmation: number;
+    gaps: number;
+    citations: number;
+    findings: number;
+  };
   staleStages: SectorStage[];
 }
 
@@ -51,7 +57,8 @@ function targetSummary(body: string): PlanTarget[] {
     const year3 = table.header.findIndex((h) => /year\s*3|3[- ]?year/.test(h));
     const year5 = table.header.findIndex((h) => /year\s*5|5[- ]?year/.test(h));
     const year10 = table.header.findIndex((h) => /year\s*10|10[- ]?year/.test(h));
-    if (metric < 0 || baseline < 0 || [year3, year5, year10].filter((i) => i >= 0).length < 2) continue;
+    if (metric < 0 || baseline < 0 || [year3, year5, year10].filter((i) => i >= 0).length < 2)
+      continue;
     return table.rows.slice(0, 3).map((row) => {
       const cells: Array<[string, number]> = [
         ["Baseline", baseline],
@@ -63,7 +70,11 @@ function targetSummary(body: string): PlanTarget[] {
         label: row[metric]?.replace(/\*\*/g, "").trim() || "Outcome target",
         values: cells
           .filter(([, index]) => index >= 0)
-          .map(([period, index]) => ({ period, raw: row[index]?.trim() || "—", value: numberIn(row[index] ?? "") })),
+          .map(([period, index]) => ({
+            period,
+            raw: row[index]?.trim() || "—",
+            value: numberIn(row[index] ?? ""),
+          })),
       };
     });
   }
@@ -91,7 +102,9 @@ function projectSummary(body: string): PlanProject[] {
 function phaseSummary(body: string): PlanPhase[] {
   for (const table of markdownTables(body)) {
     const phase = table.header.findIndex((h) => /phase|period|stage/.test(h));
-    const delivery = table.header.findIndex((h) => /deliver|achievement|output|milestone|gate/.test(h));
+    const delivery = table.header.findIndex((h) =>
+      /deliver|achievement|output|milestone|gate/.test(h),
+    );
     if (phase < 0 || delivery < 0) continue;
     return table.rows.slice(0, 4).map((row) => ({
       label: row[phase]?.trim() || "Phase",
@@ -118,16 +131,25 @@ export function summarizeSectorPlan(
   const projects = projectSummary(projectsBody);
   const phases = phaseSummary(roadmapBody);
   const drafted = sections.filter((item) => item.status !== "pending").length;
-  const current = sections.filter((item) => item.status !== "pending" && item.status !== "stale").length;
+  const current = sections.filter(
+    (item) => item.status !== "pending" && item.status !== "stale",
+  ).length;
   const citedSectionIds = new Set(citations.map((citation) => citation.section_id));
   const cited = sections.filter((item) => citedSectionIds.has(item.id)).length;
-  const measurementSound = !(section(sections, "measurement")?.audit ?? []).some((f) => f.kind === "kpi");
-  const projectsSound = projects.length > 0 && !(section(sections, "projects")?.audit ?? []).some((f) => f.kind === "project");
+  const measurementSound = !(section(sections, "measurement")?.audit ?? []).some(
+    (f) => f.kind === "kpi",
+  );
+  const projectsSound =
+    projects.length > 0 &&
+    !(section(sections, "projects")?.audit ?? []).some((f) => f.kind === "project");
   const checks = [
     { label: "All sections drafted", passed: drafted === sections.length && sections.length > 0 },
     { label: "Every section current", passed: current === sections.length && sections.length > 0 },
     { label: "Every drafted section cited", passed: cited === drafted && drafted > 0 },
-    { label: "KPIs fully specified", passed: measurementSound && !!section(sections, "measurement")?.body_md },
+    {
+      label: "KPIs fully specified",
+      passed: measurementSound && !!section(sections, "measurement")?.body_md,
+    },
     { label: "Projects fully specified", passed: projectsSound },
   ];
   const pct = Math.round((checks.filter((check) => check.passed).length / checks.length) * 100);
@@ -149,7 +171,12 @@ export function summarizeSectorPlan(
     flagship: namedFlagship(projectsBody, projects),
     readiness: {
       pct,
-      label: pct === 100 ? "Ready for review" : drafted < sections.length ? "Incomplete" : "Needs evidence",
+      label:
+        pct === 100
+          ? "Ready for review"
+          : drafted < sections.length
+            ? "Incomplete"
+            : "Needs evidence",
       checks,
     },
     evidence: { ...evidenceStates, citations: citations.length, findings },

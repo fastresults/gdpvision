@@ -100,7 +100,15 @@ export function parentPath(router: AnyRouter, pathname: string): string {
     if (p === "/") break;
     try {
       const { foundRoute } = router.getMatchedRoutes(p);
-      if (foundRoute && !String(foundRoute.id).endsWith("$") && foundRoute.id !== "__root__") return p;
+      const full = String(foundRoute?.fullPath ?? "").replace(/\/+$/, "");
+      const segs = full.split("/").filter(Boolean);
+      if (
+        foundRoute &&
+        foundRoute.id !== "__root__" &&
+        !full.endsWith("$") &&
+        segs.length === parts.length // exact page, not a loose/partial match
+      )
+        return p;
     } catch {
       /* keep climbing */
     }

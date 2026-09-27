@@ -56,6 +56,38 @@ const entries: Array<Rationale<PortfolioExposureContext | DeliveryContext>> = [
       },
     ],
   },
+  {
+    key: "portfolio.scorecard-proposal",
+    title: "How an AI-drafted KPI is checked",
+    short: "Proposals are drafted only from this country’s stored indicators, mapped sectors and mandate, then checked in code.",
+    formula: "Baseline = stored latest value of the linked indicator (AI value overwritten if different). Peer median = Caribbean peer benchmark for the same indicator.",
+    basis: "Indicators come from the national ledger; peer medians from the monthly regional benchmark run.",
+    caveat: "Proposals without a linked indicator or source link are labelled Inferred. Nothing is scored until a second authorised person qualifies it.",
+    derive: (ctx) => {
+      const p = ctx as unknown as { source_kpi_code?: string | null; baseline?: number | null; peer_median?: number | null; inferred?: boolean };
+      return [
+        { label: "Linked indicator", value: p.source_kpi_code ?? "None" },
+        { label: "Baseline", value: p.baseline == null ? "—" : String(p.baseline) },
+        { label: "Peer median", value: p.peer_median == null ? "—" : p.peer_median.toFixed(2) },
+        { label: "Inferred", value: p.inferred ? "Yes" : "No" },
+      ];
+    },
+  },
+  {
+    key: "portfolio.scorecard-coverage",
+    title: "Measurement coverage",
+    short: "Share of a country’s ministries that have at least one qualified delivery KPI.",
+    formula: "Coverage = ministries with ≥1 qualified KPI ÷ all ministries. Stale = qualified KPIs whose latest actual is overdue for its cadence.",
+    basis: "Computed live from the KPI register and reported actuals.",
+    caveat: "Coverage measures readiness to be scored, not performance.",
+    derive: (ctx) => {
+      const c = ctx as unknown as { qualifiedMinistries?: number; ministries?: number; stale?: number };
+      return [
+        { label: "Covered ministries", value: `${c.qualifiedMinistries ?? 0} / ${c.ministries ?? 0}` },
+        { label: "Stale KPIs", value: String(c.stale ?? 0) },
+      ];
+    },
+  },
 ];
 
 registerRationales(entries);

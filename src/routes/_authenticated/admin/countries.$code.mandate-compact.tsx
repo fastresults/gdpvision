@@ -28,6 +28,11 @@ import {
   concludeMandateCompact,
 } from "@/lib/mandate-compact/publish.functions";
 import { cn } from "@/lib/utils";
+import { useUrlState } from "@/lib/nav/url-state";
+import { getCompactProgress, type CompactProgress } from "@/lib/mandate-compact/progress.functions";
+import { progressQuery, RunProgressCard, StepBadge } from "@/components/mandate-compact/RunProgress";
+import "@/lib/explain/mandate-compact-entries";
+import { Explain } from "@/components/explain/Explain";
 
 function compactsQuery(code: string) {
   return queryOptions({
@@ -61,12 +66,29 @@ const STEPS = [
 function MandateCompactPage() {
   const { code } = Route.useParams();
   const { data: compacts } = useSuspenseQuery(compactsQuery(code));
-  const [activeStep, setActiveStep] = useState<(typeof STEPS)[number]["key"]>("ingest");
+  const [activeStep, setActiveStep] = useUrlState<(typeof STEPS)[number]["key"]>("step", "ingest", {
+    allowed: STEPS.map((s) => s.key),
+  });
   const [selectedCompactId, setSelectedCompactId] = useState<string | null>(compacts[0]?.id ?? null);
   const selectedCompact = useMemo(
     () => compacts.find((c) => c.id === selectedCompactId) ?? compacts[0] ?? null,
     [compacts, selectedCompactId],
   );
+
+  const fetchProgress = useServerFn(getCompactProgress);
+  const progress = useQuery({
+    ...progressQuery(selectedCompact?.id ?? "none", fetchProgress),
+    enabled: !!selectedCompact,
+  });
+  const qc = useQueryClient();
+  const wasActive = useRef(false);
+  useEffect(() => {
+    const active = !!progress.data?.active;
+    if (wasActive.current && !active && selectedCompact) {
+      qc.invalidateQueries({ queryKey: ["mandate-compact-detail", selectedCompact.id] });
+    }
+    wasActive.current = active;
+  }, [progress.data?.active, qc, selectedCompact]);
 
   return (
     <SuperAdminShell
@@ -110,7 +132,16 @@ function MandateCompactPage() {
           />
         )}
 
-        <Stepper active={activeStep} onSelect={setActiveStep} />
+        <Stepper active={activeStep} onSelect={setActiveStep} progress={progress.data} />
+        {selectedCompact && (
+          <NextStepBar
+            countryCode={code}
+            compact={selectedCompact}
+            active={activeStep}
+            progress={progress.data}
+            onGo={setActiveStep}
+          />
+        )}
 
         {activeStep === "ingest" && (
           <IngestPanel
@@ -161,7 +192,97 @@ function MandateCompactPage() {
   );
 }
 
-function Stepper({ active, onSelect }: { active: string; onSelect: (k: (typeof STEPS)[number]["key"]) => void }) {
+type StepKey = (typeof STEPS)[number]["key"];
+
+function NextStepBar({
+  countryCode,
+  compact,
+  active,
+  progress,
+  onGo,
+}: {
+  countryCode: string;
+  compact: CompactRow;
+  active: StepKey;
+  progress?: CompactProgress;
+  onGo: (k: StepKey) => void;
+}) {
+  const qc = useQueryClient();
+  const decompose = useServerFn(decomposeMandateCompact);
+  const transform = useServerFn(transformMandateCompact);
+  const [chain, setChain] = useState(false);
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["mandate-compact-progress", compact.id] });
+    qc.invalidateQueries({ queryKey: ["mandate-compact-detail", compact.id] });
+    qc.invalidateQueries({ queryKey: ["mandate-compacts", countryCode] });
+  };
+  const runRemaining = async () => {
+    setChain(true);
+    try {
+      const st = progress?.steps ?? {};
+      if (st.decompose?.state !== "done") {
+        onGo("decompose");
+        const p = decompose({ data: { compactId: compact.id } });
+        setTimeout(refresh, 800);
+        await p;
+        refresh();
+      }
+      onGo("transform");
+      const t = transform({ data: { compactId: compact.id } });
+      setTimeout(refresh, 800);
+      await t;
+      refresh();
+      toast.success("Decompose and Transform finished. Review before publishing.");
+      onGo("track");
+    } catch (e) {
+      toast.error((e as Error).message);
+      refresh();
+    } finally {
+      setChain(false);
+    }
+  };
+
+  const idx = STEPS.findIndex((s) => s.key === active);
+  const next = STEPS[idx + 1];
+  const cur = progress?.steps[active];
+  const nextState = next ? progress?.steps[next.key]?.state : undefined;
+  const aiPending =
+    progress && (progress.steps.decompose?.state !== "done" || progress.steps.transform?.state !== "done");
+  const busy = chain || !!progress?.active;
+
+  return (
+    <div className="-mt-10 flex flex-wrap items-center justify-between gap-3 border-y border-line-200 py-3 text-sm">
+      <p className="text-ink-600">
+        <Explain id="compact.step-state">
+          <span className="font-semibold text-ink-950">{STEPS[idx]?.label}:</span>
+        </Explain>{" "}
+        {cur?.reason ?? "Checking…"}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {aiPending && (
+          <button type="button" className="btn-secondary" disabled={busy} onClick={runRemaining}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Run remaining AI steps
+          </button>
+        )}
+        {next && cur?.state === "done" && nextState !== "blocked" && (
+          <button type="button" className="btn-primary" onClick={() => onGo(next.key)}>
+            Continue to Step {String(idx + 2).padStart(2, "0")} · {next.label}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Stepper({
+  active,
+  onSelect,
+  progress,
+}: {
+  active: string;
+  onSelect: (k: (typeof STEPS)[number]["key"]) => void;
+  progress?: CompactProgress;
+}) {
   return (
     <nav aria-label="Mandate Compact workflow">
       <ol className="grid grid-cols-4 gap-x-3 gap-y-6 md:grid-cols-8 md:gap-x-4">
@@ -198,6 +319,7 @@ function Stepper({ active, onSelect }: { active: string; onSelect: (k: (typeof S
                 >
                   {step.label}
                 </span>
+                <StepBadge state={progress?.steps[step.key]?.state} />
                 <span className="mt-1 hidden text-[11px] leading-snug text-ink-400 md:block">
                   {step.hint}
                 </span>
@@ -1359,10 +1481,19 @@ function DecomposePanel({ countryCode, compact }: { countryCode: string; compact
     onSuccess: (r) => {
       toast.success(`Decomposed · ${r.pillars_created} pillars · ${r.pledges_created} pledges (${r.model})`);
       qc.invalidateQueries({ queryKey: ["mandate-compact-detail", compact.id] });
+      qc.invalidateQueries({ queryKey: ["mandate-compact-progress", compact.id] });
       qc.invalidateQueries({ queryKey: ["mandate-compacts", countryCode] });
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => { toast.error(err.message); qc.invalidateQueries({ queryKey: ["mandate-compact-progress", compact.id] }); },
   });
+  const fetchProgress = useServerFn(getCompactProgress);
+  const prog = useQuery(progressQuery(compact.id, fetchProgress));
+  const run = prog.data?.runs.decompose;
+  const running = mutation.isPending || run?.status === "running";
+  const start = () => {
+    mutation.mutate();
+    setTimeout(() => qc.invalidateQueries({ queryKey: ["mandate-compact-progress", compact.id] }), 800);
+  };
   const d = detail.data;
 
   return (
@@ -1377,16 +1508,17 @@ function DecomposePanel({ countryCode, compact }: { countryCode: string; compact
         <button
           type="button"
           className="btn-primary"
-          disabled={mutation.isPending}
-          onClick={() => mutation.mutate()}
+          disabled={running}
+          onClick={start}
         >
-          {mutation.isPending ? (
+          {running ? (
             <><Loader2 className="h-4 w-4 animate-spin" /> Decomposing…</>
           ) : (
             <><Wand2 className="h-4 w-4" /> {d?.pillars.length ? "Re-run decompose" : "Run decompose"}</>
           )}
         </button>
       </header>
+      <RunProgressCard run={run} pendingLocal={mutation.isPending} onRetry={start} />
 
       {detail.isLoading && <p className="text-sm text-ink-500">Loading…</p>}
       {d && d.pillars.length === 0 && (
@@ -1408,10 +1540,19 @@ function TransformPanel({ countryCode, compact }: { countryCode: string; compact
         `Transformed · ${r.deliverables_created} deliverables (${r.unassigned} unassigned) · ${r.model}`,
       );
       qc.invalidateQueries({ queryKey: ["mandate-compact-detail", compact.id] });
+      qc.invalidateQueries({ queryKey: ["mandate-compact-progress", compact.id] });
       qc.invalidateQueries({ queryKey: ["mandate-compacts", countryCode] });
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => { toast.error(err.message); qc.invalidateQueries({ queryKey: ["mandate-compact-progress", compact.id] }); },
   });
+  const fetchProgress = useServerFn(getCompactProgress);
+  const prog = useQuery(progressQuery(compact.id, fetchProgress));
+  const run = prog.data?.runs.transform;
+  const running = mutation.isPending || run?.status === "running";
+  const start = () => {
+    mutation.mutate();
+    setTimeout(() => qc.invalidateQueries({ queryKey: ["mandate-compact-progress", compact.id] }), 800);
+  };
   const d = detail.data;
   const pledgeCount = d?.pillars.reduce((s, p) => s + p.pledges.length, 0) ?? 0;
   const delivCount =
@@ -1429,16 +1570,17 @@ function TransformPanel({ countryCode, compact }: { countryCode: string; compact
         <button
           type="button"
           className="btn-primary"
-          disabled={mutation.isPending || pledgeCount === 0}
-          onClick={() => mutation.mutate()}
+          disabled={running || pledgeCount === 0}
+          onClick={start}
         >
-          {mutation.isPending ? (
+          {running ? (
             <><Loader2 className="h-4 w-4 animate-spin" /> Transforming…</>
           ) : (
             <><Sparkles className="h-4 w-4" /> {delivCount ? "Re-run transform" : "Run transform"}</>
           )}
         </button>
       </header>
+      <RunProgressCard run={run} pendingLocal={mutation.isPending} onRetry={start} />
 
       {pledgeCount === 0 && (
         <EmptyState body="No pledges to transform. Run Decompose first." />

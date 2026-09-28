@@ -74,7 +74,7 @@ function StudioLayout() {
       ]}
     >
       <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
-        <aside className="space-y-4 border-r border-line-200 pr-6">
+        <aside className="sticky top-0 z-10 max-h-dvh self-start space-y-4 overflow-y-auto border-r border-line-200 bg-paper-0 pr-6">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
               FDI Transition Studio

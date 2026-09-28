@@ -57,16 +57,15 @@ function SignalRadarPage() {
         ]}
       />
 
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Act 1 · Monitor</p>
-          <h2 className="mt-1 font-serif text-3xl text-ink-950">Signal Radar</h2>
-          <p className="mt-2 max-w-xl text-sm text-ink-700">
-            A live map of every narrative touching {code} today — local, regional, international. The harvester
-            runs automatically twice a day; use <span className="font-mono uppercase tracking-widest">Run now</span> for an on-demand refresh.
-          </p>
-        </div>
-        <SignalRadarScope signals={signals} />
+      <SignalRadarScope signals={signals} />
+
+      <div>
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">Act 1 · Monitor</p>
+        <h2 className="mt-1 font-serif text-3xl text-ink-950">Signal Radar</h2>
+        <p className="mt-2 max-w-xl text-sm text-ink-700">
+          A live map of every narrative touching {code} today — local, regional, international. The harvester
+          runs automatically twice a day; use <span className="font-mono uppercase tracking-widest">Run now</span> for an on-demand refresh.
+        </p>
       </div>
 
       <nav className="flex gap-1 border-b border-line-200">

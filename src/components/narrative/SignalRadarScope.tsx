@@ -66,9 +66,9 @@ export function SignalRadarScope({ signals }: { signals: SignalRow[] }) {
   const active = dots.find((d) => d.s.id === hover);
 
   return (
-    <div className="flex items-center gap-6">
-      <div className="relative">
-        <svg viewBox={`0 0 ${size} ${size}`} className="h-60 w-60" role="img" aria-label={`Signal radar: ${dots.length} signals, ${urgent} urgent`}>
+    <div className="flex flex-col gap-6 border border-line-200 bg-paper-0/40 p-5 lg:flex-row lg:items-center lg:gap-8">
+      <div className="relative mx-auto w-full max-w-[300px] shrink-0 lg:mx-0">
+        <svg viewBox={`0 0 ${size} ${size}`} className="h-auto w-full" role="img" aria-label={`Signal radar: ${dots.length} signals, ${urgent} urgent`}>
           <defs>
             <radialGradient id="radar-bg" cx="50%" cy="50%" r="50%">
               <stop offset="0%" stopColor="var(--gold-500)" stopOpacity="0.10" />
@@ -116,7 +116,7 @@ export function SignalRadarScope({ signals }: { signals: SignalRow[] }) {
         </svg>
       </div>
 
-      <div className="w-56 space-y-3">
+      <div className="min-w-0 flex-1 space-y-3">
         {active ? (
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">{active.p.label} · {active.s.scope}</p>
@@ -131,12 +131,16 @@ export function SignalRadarScope({ signals }: { signals: SignalRow[] }) {
             <Stat label="P1–P2 urgent" value={urgent} tone={urgent > 0 ? "alert" : undefined} />
           </div>
         )}
-        <ul className="space-y-1 border-t border-line-200 pt-3">
+        <ul className="grid grid-cols-5 gap-2 border-t border-line-200 pt-3">
           {([1, 2, 3, 4, 5] as PriorityLevel[]).map((l) => (
-            <li key={l} className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
-              <span className="h-2 w-2 rounded-full" style={{ background: PRIORITY_FILL[l] }} />
-              P{l}
-              <span className="ml-auto tabular-nums text-ink-950">{dots.filter((d) => d.p.level === l).length}</span>
+            <li key={l} className="border border-line-200 px-2 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full" style={{ background: PRIORITY_FILL[l] }} />
+                P{l}
+              </span>
+              <span className="mt-1 block font-serif text-lg tabular-nums text-ink-950">
+                {dots.filter((d) => d.p.level === l).length}
+              </span>
             </li>
           ))}
         </ul>

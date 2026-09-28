@@ -11,6 +11,16 @@ import { Check, Clock, Loader2, Users2, Wand2 } from "lucide-react";
 import { setProjectTrack } from "@/lib/personas/projects.functions";
 import { RESEARCH_TRACKS, TRACK_META, type ResearchTrack } from "@/lib/personas/tracks";
 import { cn } from "@/lib/utils";
+import { Illustration } from "@/components/marketing/Illustration";
+import artSynthetic from "@/assets/illustrations/track-synthetic.jpg.asset.json";
+import artField from "@/assets/illustrations/track-field.jpg.asset.json";
+import artBlended from "@/assets/illustrations/track-blended.jpg.asset.json";
+
+const TRACK_ART: Record<ResearchTrack, { url: string }> = {
+  synthetic: artSynthetic,
+  field: artField,
+  blended: artBlended,
+};
 
 export function TrackPicker({
   code,
@@ -59,6 +69,12 @@ export function TrackPicker({
           const pending = choose.isPending && choose.variables === key;
           return (
             <article key={key} className="flex flex-col bg-paper-0 p-5">
+              <Illustration
+                src={TRACK_ART[key].url}
+                alt=""
+                variant="spot"
+                className="mx-auto mb-4 w-full max-w-[240px]"
+              />
               <div className="flex items-center gap-2">
                 <span className="grid h-7 w-7 place-items-center border border-ink-950 bg-ink-950 text-paper-0">
                   <Icon size={13} />

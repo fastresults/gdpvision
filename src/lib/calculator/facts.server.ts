@@ -115,6 +115,15 @@ async function kpi(sb: Admin, code: string, codes: string[]) {
   }>;
 }
 
+/**
+ * No OECS or CARICOM economy is within an order of magnitude of US$200 bn.
+ * A stored GDP above it is a unit error (thousands entered as units, say),
+ * so it is held back from the brief rather than scaled into a verdict.
+ */
+const REGIONAL_GDP_CEILING_USD = 200e9;
+const plausibleGdp = (v: number | null, region: boolean): v is number =>
+  v != null && Number.isFinite(v) && v > 0 && (!region || v <= REGIONAL_GDP_CEILING_USD);
+
 const SPEND_CODES = [
   "gov_expenditure_gdp",
   "public_spend_gdp",
@@ -224,14 +233,25 @@ export async function computeCountryFacts(code: string): Promise<CountryFacts | 
 
   const facts: Fact[] = [];
   const proposed: CountryFacts["proposed"] = {};
-  const gdp = c.gdp_current_usd != null ? Number(c.gdp_current_usd) : null;
-  const gdpMed = median(
-    ((peerGdp ?? []) as Array<{ gdp_current_usd: number }>).map((x) => Number(x.gdp_current_usd)),
-  );
+  const inRegion = !!(c.is_oecs || c.is_caricom);
+  const storedGdp = c.gdp_current_usd != null ? Number(c.gdp_current_usd) : null;
+  const gdp = plausibleGdp(storedGdp, inRegion) ? storedGdp : null;
+  const misScaled = storedGdp != null && gdp == null;
+  if (misScaled)
+    console.warn(`[brief] ${code} gdp_current_usd ${storedGdp} looks mis-scaled; held back`);
+  const peerRows = (
+    (peerGdp ?? []) as Array<{ code: string; name: string; gdp_current_usd: number }>
+  ).filter((p) => plausibleGdp(Number(p.gdp_current_usd), true));
+  const gdpMed = median(peerRows.map((x) => Number(x.gdp_current_usd)));
   facts.push({
     key: "gdp",
     label: "Nominal GDP",
-    display: gdp != null ? `${usd(gdp)}${c.gdp_year ? ` (${c.gdp_year})` : ""}` : "Not recorded",
+    display:
+      gdp != null
+        ? `${usd(gdp)}${c.gdp_year ? ` (${c.gdp_year})` : ""}`
+        : misScaled
+          ? "Stored figure looks mis-scaled — held back"
+          : "Not recorded",
     value: gdp,
     unit: "USD",
     grade: gdp != null ? (c.gdp_committed_at ? "A" : "B") : "assumption",
@@ -492,7 +512,7 @@ export async function computeCountryFacts(code: string): Promise<CountryFacts | 
     facts,
     proposed,
     termMonthsRemaining,
-    peers: ((peerGdp ?? []) as Array<{ code: string; name: string; gdp_current_usd: number }>)
+    peers: peerRows
       .map((p) => ({
         code: p.code,
         name: p.name,

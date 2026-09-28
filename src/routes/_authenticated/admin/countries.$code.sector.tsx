@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Illustration } from "@/components/marketing/Illustration";
+import chamber_10Art from "@/assets/illustrations/chamber-10.jpg.asset.json";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -109,6 +111,7 @@ function SectorStudioPage() {
             sensitisation — approved by a second person and carried to Cabinet as a commitment.
           </p>
         </div>
+        <Illustration src={chamber_10Art.url} alt="Engraving of a drafting table with a sector development plan" variant="spot" className="hidden w-full max-w-[260px] md:block" />
         <div className="flex items-center gap-2">
           <Link
             to="/admin/countries/$code/investments"

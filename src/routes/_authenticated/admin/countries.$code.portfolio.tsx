@@ -1,4 +1,6 @@
 import { createFileRoute, Link, Outlet, useParams, useRouter } from "@tanstack/react-router";
+import { Illustration } from "@/components/marketing/Illustration";
+import chamber_02Art from "@/assets/chambers/chamber-02.jpg.asset.json";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
@@ -95,7 +97,8 @@ function PortfolioLayout() {
       ]}
     >
       <div className="min-h-dvh bg-paper-0 text-ink-950">
-        <header className="border-b border-line-200 px-8 py-8">
+        <header className="flex items-end justify-between gap-6 border-b border-line-200 px-8 py-8">
+          <div className="min-w-0">
           <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
             {code} · Chamber 02
           </p>
@@ -104,6 +107,8 @@ function PortfolioLayout() {
             One workspace per ministerial portfolio. Select a ministry to open its minister,
             sectors, KPIs and scenarios.
           </p>
+          </div>
+          <Illustration src={chamber_02Art.url} alt="Engraving for Portfolio Workspaces" variant="spot" className="hidden shrink-0 md:block" />
         </header>
 
         {ministries.length === 0 ? (

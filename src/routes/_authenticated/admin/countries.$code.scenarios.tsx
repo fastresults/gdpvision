@@ -1,4 +1,6 @@
 import { createFileRoute, Link, Outlet, useParams, useRouter } from "@tanstack/react-router";
+import { Illustration } from "@/components/marketing/Illustration";
+import chamber_03Art from "@/assets/chambers/chamber-03.jpg.asset.json";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
@@ -99,7 +101,7 @@ function ScenariosLayout() {
       ]}
     >
       <div className="min-h-dvh bg-paper-0 text-ink-950">
-        <header className="mx-auto flex max-w-[1440px] flex-wrap items-baseline justify-between gap-4 border-b border-line-200 px-8 py-8">
+        <header className="mx-auto flex max-w-6xl flex-wrap items-end justify-between gap-4 border-b border-line-200 px-8 py-8">
           <div className="min-w-0">
             <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
               {code} · Chamber 03
@@ -109,6 +111,7 @@ function ScenariosLayout() {
               Consequence-free rehearsal. Every lever change re-runs the pinned engine live.
             </p>
           </div>
+          <Illustration src={chamber_03Art.url} alt="Engraving for the Scenario Engine" variant="spot" className="hidden md:block" />
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-500">
               engine v1_macro

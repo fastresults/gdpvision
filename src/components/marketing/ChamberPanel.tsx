@@ -1,4 +1,9 @@
-import type { ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
 import { cn } from "@/lib/utils";
 import { Illustration } from "./Illustration";
 
@@ -33,6 +38,30 @@ export function ChamberPanel({
   screenshot,
   className,
 }: ChamberPanelProps) {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const finePointer = useRef(false);
+
+  // The zoom follows the cursor only on a mouse-like pointer; on touch the
+  // image simply scales from its centre.
+  useEffect(() => {
+    finePointer.current = window.matchMedia(
+      "(hover: hover) and (pointer: fine)",
+    ).matches;
+  }, []);
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!finePointer.current) return;
+    const frame = frameRef.current;
+    const img = imgRef.current;
+    if (!frame || !img) return;
+    const rect = frame.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+    img.style.transformOrigin = `${x.toFixed(1)}% ${y.toFixed(1)}%`;
+  };
+
   return (
     <article
       className={cn(
@@ -59,15 +88,32 @@ export function ChamberPanel({
         </div>
 
         {screenshot ? (
-          <div className="mt-5 aspect-video w-full overflow-hidden rounded-md border border-line-200 bg-paper-50 shadow-sm">
+          <div
+            ref={frameRef}
+            onPointerMove={handlePointerMove}
+            className="group/media relative mt-5 aspect-video w-full overflow-hidden rounded-md border border-line-200 bg-paper-50 shadow-sm"
+          >
             <img
+              ref={imgRef}
               src={screenshot}
               alt={`${title} product view`}
               width={1280}
               height={720}
               loading="lazy"
               decoding="async"
-              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.012] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+              draggable={false}
+              className={cn(
+                "h-full w-full origin-center object-cover will-change-transform",
+                "transition-transform duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+                "group-hover/media:scale-[1.07]",
+                "motion-reduce:transition-none motion-reduce:group-hover/media:scale-100",
+              )}
+            />
+            {/* Chamber-hue hairline appears with the zoom, tying the image to its identity. */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-md opacity-0 transition-opacity duration-500 group-hover/media:opacity-100 motion-reduce:transition-none"
+              style={{ boxShadow: `inset 0 0 0 1px var(${accentVar})` }}
             />
           </div>
         ) : null}

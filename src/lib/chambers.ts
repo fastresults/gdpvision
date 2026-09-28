@@ -32,6 +32,12 @@ export interface Chamber {
   accentVar: string;
   image?: string;
   screenshot?: string;
+  /**
+   * Command-length outcome shown directly beneath the chamber's header image —
+   * imperative verb, one object, under eight words, full stop. The line a
+   * Principal reads while scrolling; `purpose` remains the explanation.
+   */
+  outcome: string;
   purpose: string;
   bullets: string[];
 }
@@ -43,6 +49,7 @@ export const CHAMBERS: Chamber[] = [
     accentVar: "--sector-01",
     image: ch01.url,
     screenshot: screen01.url,
+    outcome: "Know what your nation can prove.",
     purpose: "Know which national figures Cabinet can trust before a decision is framed.",
     bullets: [
       "National and sector evidence, organised over time with confidence grades and sources.",
@@ -55,6 +62,7 @@ export const CHAMBERS: Chamber[] = [
     accentVar: "--sector-03",
     image: ch02.url,
     screenshot: screen02.url,
+    outcome: "Make every minister accountable for growth.",
     purpose: "Show each minister where the portfolio influences growth and what delivery requires.",
     bullets: [
       "Portfolio exposure, sector dependencies, delivery measures, and evidence strength in one view.",
@@ -67,6 +75,7 @@ export const CHAMBERS: Chamber[] = [
     accentVar: "--sector-09",
     image: ch03.url,
     screenshot: screen03.url,
+    outcome: "Rehearse the consequences before you commit.",
     purpose: "Test the economic and delivery consequences of a decision before it is taken.",
     bullets: [
       "Compare credible choices against GDP, debt, foreign exchange, fiscal balance, and confidence.",
@@ -79,6 +88,7 @@ export const CHAMBERS: Chamber[] = [
     accentVar: "--sector-07",
     image: ch04.url,
     screenshot: screen04.url,
+    outcome: "Increase foreign direct investment.",
     purpose:
       "Replace exposed revenue with investment propositions capable of creating durable growth.",
     bullets: [
@@ -92,6 +102,7 @@ export const CHAMBERS: Chamber[] = [
     accentVar: "--sector-04",
     image: ch05.url,
     screenshot: screen05.url,
+    outcome: "Manage national perceptions.",
     purpose: "Reach a defensible national position quickly when events threaten confidence or growth.",
     bullets: [
       "Signals, context, and prior government knowledge assembled into a cited strategic position.",
@@ -104,6 +115,7 @@ export const CHAMBERS: Chamber[] = [
     accentVar: "--sector-10",
     image: ch06.url,
     screenshot: screen06.url,
+    outcome: "Empower cabinet members.",
     purpose: "Turn Cabinet choices into owned commitments that remain visible between sessions.",
     bullets: [
       "Place approved options side by side and record the decision, conditions, and owner.",
@@ -116,6 +128,7 @@ export const CHAMBERS: Chamber[] = [
     accentVar: "--sector-06",
     image: ch07.url,
     screenshot: screen07.url,
+    outcome: "Conduct synthetic and field research.",
     purpose:
       "Test whether a policy or proposition will be understood and accepted before it is released.",
     bullets: [
@@ -129,6 +142,7 @@ export const CHAMBERS: Chamber[] = [
     accentVar: "--sector-02",
     image: ch08.url,
     screenshot: screen08.url,
+    outcome: "Turn the mandate into delivered results.",
     purpose:
       "Turn the government’s mandate into a ministry-owned delivery compact that can be judged each quarter.",
     bullets: [
@@ -141,6 +155,7 @@ export const CHAMBERS: Chamber[] = [
     title: "The Digital Government Studio",
     accentVar: "--sector-09",
     screenshot: screen09.url,
+    outcome: "Build e-government platforms.",
     purpose:
       "Define the nation’s digital government platform from the country’s own needs and approved record.",
     bullets: [
@@ -153,6 +168,7 @@ export const CHAMBERS: Chamber[] = [
     title: "The Sector Studio",
     accentVar: "--sector-10",
     screenshot: screen10.url,
+    outcome: "Build insightful sector development plans.",
     purpose:
       "Choose the sectors most capable of moving growth and govern each through an accountable plan.",
     bullets: [

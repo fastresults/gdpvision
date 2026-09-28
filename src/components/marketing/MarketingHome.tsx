@@ -510,6 +510,7 @@ export function MarketingHome() {
                 <ChamberPanel
                   index={c.index}
                   title={c.title}
+                  outcome={c.outcome}
                   purpose={c.purpose}
                   bullets={c.bullets}
                   accentVar={c.accentVar}

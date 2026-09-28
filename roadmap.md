@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Cabinet Room (Chamber 06) header: add engraved pen-and-hatch cabinet-table illustration left of the title block
+
 - [x] CARICOM/OECS summary economic data: right-side modal, bloc tabs, side-by-side comparison, charts, coverage, Explain entries, and delayed executive perspectives
 - [x] Standards audit visual impact: radial audit pulse, monthly momentum and moving average, gap composition, ranking, priority matrix, and delayed executive perspectives
 - [x] Caribbean peer comparison: data scrub, statistics, AI gap explanations, monthly refresh (1st, 02:00 UTC), panel row

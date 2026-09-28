@@ -140,6 +140,7 @@ export const CHAMBERS: Chamber[] = [
     index: "09",
     title: "The Digital Government Studio",
     accentVar: "--sector-09",
+    image: ch09.url,
     screenshot: screen09.url,
     purpose:
       "Define the nation’s digital government platform from the country’s own needs and approved record.",

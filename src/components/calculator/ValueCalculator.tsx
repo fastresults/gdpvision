@@ -288,6 +288,16 @@ export function ValueCalculator({
     });
   }, [facts, input, presetCode]);
   const evidenceCounts = useMemo(() => countEvidence(evidenceEntries), [evidenceEntries]);
+  const evidenceFor = (key: string): EvidenceEntry =>
+    evidenceEntries.find((entry) => entry.key === key) ?? {
+      key,
+      label: INPUT_LABEL[key] ?? key,
+      display: "Not available",
+      state: "reference",
+      grade: "assumption",
+      source: "No public record available",
+      replacement: REPLACEMENT[key] ?? "Authorised administrative data with a named custodian and reporting period.",
+    };
   const inspectEvidence = (key: string | null = null) => {
     setEvidenceKey(key);
     setEvidenceOpen(true);
@@ -555,7 +565,7 @@ export function ValueCalculator({
                 help="In hundreds of millions of US dollars. Adjust freely — the model scales with it."
                 onChange={(v) => set("gdpUsd", v * 100_000_000)}
               />
-              <EvidenceStatus entry={evidenceEntries.find((entry) => entry.key === "gdpUsd")!} onInspect={inspectEvidence} />
+              <EvidenceStatus entry={evidenceFor("gdpUsd")} onInspect={inspectEvidence} />
               <CalcSlider
                 label="Public expenditure"
                 explainId="calc.publicSpend"
@@ -566,7 +576,7 @@ export function ValueCalculator({
                 help="General government spending. This sets the size of every pool the instrument can act on."
                 onChange={(v) => set("publicSpendPct", v)}
               />
-              <EvidenceStatus entry={evidenceEntries.find((entry) => entry.key === "publicSpendPct")!} onInspect={inspectEvidence} />
+              <EvidenceStatus entry={evidenceFor("publicSpendPct")} onInspect={inspectEvidence} />
             </div>
           </section>
 
@@ -585,7 +595,7 @@ export function ValueCalculator({
                   value={input[q.key]}
                   proposed={proposedFor(q.key)}
                   regional={regionalFor(REGIONAL_KEY[q.key] ?? "")}
-                  evidence={evidenceEntries.find((entry) => entry.key === q.key)!}
+                  evidence={evidenceFor(q.key)}
                   onInspectEvidence={inspectEvidence}
                   onChange={(v) => set(q.key, v)}
                 />

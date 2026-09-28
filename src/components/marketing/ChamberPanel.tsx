@@ -72,13 +72,13 @@ export function ChamberPanel({
           </div>
         ) : null}
 
-        <div className="mt-5">
+        <div className="mt-6">
           <span
             aria-hidden
             className="block h-[2px] w-8"
             style={{ background: `var(${accentVar})` }}
           />
-          <p className="mt-3 font-serif text-[19px] leading-snug text-ink-950 sm:text-[21px]">
+          <p className="mt-3.5 font-serif text-[19px] leading-snug text-ink-950 sm:text-[21px]">
             {outcome}
           </p>
         </div>

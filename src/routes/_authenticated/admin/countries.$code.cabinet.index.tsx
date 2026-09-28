@@ -19,6 +19,8 @@ import { DecisionQueue, decisionQueueQuery } from "@/components/cabinet/Decision
 import { MinistryReadinessMatrix, readinessQuery } from "@/components/cabinet/MinistryReadinessMatrix";
 import { CommitmentsCockpit, cockpitQuery } from "@/components/cabinet/CommitmentsCockpit";
 import { useUrlState } from "@/lib/nav/url-state";
+import { Illustration } from "@/components/marketing/Illustration";
+import cabinetArt from "@/assets/chambers/chamber-06-header.jpg.asset.json";
 
 function overviewQuery(code: string) {
   return queryOptions({
@@ -116,12 +118,15 @@ function Header({ code }: { code: string }) {
             Chamber 06 · The Cabinet Room
           </div>
         </div>
-        <div className="mt-6">
-          <h1 className="font-serif text-4xl leading-tight md:text-5xl">The Cabinet Room</h1>
-          <p className="mt-2 max-w-2xl text-sm text-ink-500">
-            One place to prepare, hold, and follow through on cabinet business — signal-linked agendas,
-            evidence-anchored briefs, live decision capture, and a tracked commitments register.
-          </p>
+        <div className="mt-6 flex flex-wrap items-center gap-8">
+          <Illustration src={cabinetArt.url} variant="spot" className="shrink-0" />
+          <div className="min-w-0 flex-1">
+            <h1 className="font-serif text-4xl leading-tight md:text-5xl">The Cabinet Room</h1>
+            <p className="mt-2 max-w-2xl text-sm text-ink-500">
+              One place to prepare, hold, and follow through on cabinet business — signal-linked agendas,
+              evidence-anchored briefs, live decision capture, and a tracked commitments register.
+            </p>
+          </div>
         </div>
       </div>
     </header>

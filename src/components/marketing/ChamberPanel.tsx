@@ -1,4 +1,9 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
 import { cn } from "@/lib/utils";
 import { Illustration } from "./Illustration";
 
@@ -45,7 +50,7 @@ export function ChamberPanel({
     ).matches;
   }, []);
 
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!finePointer.current) return;
     const frame = frameRef.current;
     const img = imgRef.current;

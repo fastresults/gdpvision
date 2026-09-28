@@ -3,7 +3,8 @@
 // so the input primitive stays the calculator's.
 
 import { CalcSlider } from "@/components/calculator/CalcSlider";
-import { EvidenceStatus, type EvidenceEntry } from "@/components/brief/EvidenceAssurance";
+import { EvidenceStatus } from "@/components/brief/EvidenceAssurance";
+import type { EvidenceEntry } from "@/lib/calculator/evidence";
 import type { FactGrade } from "@/lib/calculator/facts.server";
 import type { FramingQuestion } from "@/lib/calculator/model";
 

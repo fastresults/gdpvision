@@ -36,9 +36,8 @@ import {
   EvidenceAssuranceStrip,
   EvidencePathwayModal,
   EvidenceStatus,
-  countEvidence,
-  type EvidenceEntry,
 } from "@/components/brief/EvidenceAssurance";
+import { countEvidence, type EvidenceEntry } from "@/lib/calculator/evidence";
 import type { Counsel } from "@/lib/calculator/counsel.server";
 import { Explain } from "@/components/explain/Explain";
 import { ExplainProvider } from "@/components/explain/ExplainProvider";
@@ -264,7 +263,7 @@ export function ValueCalculator({
       "Approved priority-sector list matched to current plans, named owners and sector shares of output.",
   };
 
-  const evidenceEntries = useMemo<EvidenceEntry[]>(() => {
+  const evidenceEntries: EvidenceEntry[] = (() => {
     const keys = ["gdpUsd", "publicSpendPct", ...FRAMING_QUESTIONS.map((q) => q.key)] as Array<
       keyof Pick<
         ValueInput,
@@ -313,8 +312,8 @@ export function ValueCalculator({
           "Authorised administrative data with a named custodian and reporting period.",
       };
     });
-  }, [facts, input, presetCode]);
-  const evidenceCounts = useMemo(() => countEvidence(evidenceEntries), [evidenceEntries]);
+  })();
+  const evidenceCounts = countEvidence(evidenceEntries);
   const evidenceFor = (key: string): EvidenceEntry =>
     evidenceEntries.find((entry) => entry.key === key) ?? {
       key,

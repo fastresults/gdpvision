@@ -11,7 +11,7 @@ import { PrintSurface } from "@/components/print/PrintSurface";
 import { APPROVALS } from "@/lib/business-case";
 import type { Counsel } from "@/lib/calculator/counsel.server";
 import type { CountryFacts } from "@/lib/calculator/facts.server";
-import type { EvidenceCounts, EvidenceEntry } from "@/components/brief/EvidenceAssurance";
+import type { EvidenceCounts, EvidenceEntry } from "@/lib/calculator/evidence";
 import {
   CHAMBER_COEFFICIENTS,
   FRAMING_QUESTIONS,

@@ -1,7 +1,7 @@
 import { Download, Loader2 } from "lucide-react";
 
 import { Explain } from "@/components/explain/Explain";
-import type { EvidenceCounts } from "@/components/brief/EvidenceAssurance";
+import type { EvidenceCounts } from "@/lib/calculator/evidence";
 
 import { ChamberWaterfall } from "./ChamberWaterfall";
 import { STANCE_LABEL, formatUsd, type Stance, type ValueResult } from "@/lib/calculator/model";

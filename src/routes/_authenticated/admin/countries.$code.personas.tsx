@@ -1,4 +1,6 @@
 import { createFileRoute, Link, Outlet, useSearch } from "@tanstack/react-router";
+import { Illustration } from "@/components/marketing/Illustration";
+import chamber_07Art from "@/assets/chambers/chamber-07.jpg.asset.json";
 import { useQuery } from "@tanstack/react-query";
 import { Users, Layers, FlaskConical, Wand2 } from "lucide-react";
 
@@ -111,6 +113,7 @@ function PersonasLayout() {
       <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
         <aside className="min-w-0 space-y-5 border-r border-line-200 pr-6">
           <div>
+            <Illustration src={chamber_07Art.url} alt="Engraving for the Research Chamber" variant="mark" className="mb-3" />
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
               The Research Chamber
             </p>

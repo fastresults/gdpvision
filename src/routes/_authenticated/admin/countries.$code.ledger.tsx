@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Illustration } from "@/components/marketing/Illustration";
+import chamber_01Art from "@/assets/chambers/chamber-01.jpg.asset.json";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Suspense, useEffect, useState } from "react";
@@ -107,6 +109,7 @@ function CeremonialHeader({ overview, code }: { overview: InstanceOverview; code
           </div>
 
           <div className="flex flex-col items-start gap-2 md:items-end">
+            <Illustration src={chamber_01Art.url} alt="Engraving for the National Ledger" variant="mark" className="hidden md:block" />
             <HeadlineStat
               label="GDP"
               value={formatUsd(overview.country.countryPack?.gdp_current_usd as number | undefined)}

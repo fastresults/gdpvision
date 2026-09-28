@@ -1,4 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate, useParams } from "@tanstack/react-router";
+import { Illustration } from "@/components/marketing/Illustration";
+import chamber_04Art from "@/assets/chambers/chamber-04.jpg.asset.json";
 import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -75,6 +77,7 @@ function StudioLayout() {
       <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
         <aside className="sticky top-0 z-10 max-h-dvh self-start space-y-4 overflow-y-auto border-r border-line-200 bg-paper-0 pr-6">
           <div>
+            <Illustration src={chamber_04Art.url} alt="Engraving for the FDI Transition Studio" variant="mark" className="mb-3" />
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
               FDI Transition Studio
             </p>

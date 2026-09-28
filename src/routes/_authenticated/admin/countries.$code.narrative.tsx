@@ -1,4 +1,6 @@
 import { createFileRoute, Link, Outlet, useParams, useRouterState } from "@tanstack/react-router";
+import { Illustration } from "@/components/marketing/Illustration";
+import chamber_05Art from "@/assets/chambers/chamber-05.jpg.asset.json";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { Radar, FolderOpen, ShieldAlert } from "lucide-react";
 
@@ -68,6 +70,7 @@ function NarrativeLayout() {
       <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
         <aside className="min-w-0 space-y-4 border-r border-line-200 pr-6">
           <div>
+            <Illustration src={chamber_05Art.url} alt="Engraving for the Narrative Chamber" variant="mark" className="mb-3" />
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
               Narrative Chamber
             </p>

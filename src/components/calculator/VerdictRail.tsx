@@ -1,6 +1,7 @@
 import { Download, Loader2 } from "lucide-react";
 
 import { Explain } from "@/components/explain/Explain";
+import type { EvidenceCounts } from "@/components/brief/EvidenceAssurance";
 
 import { ChamberWaterfall } from "./ChamberWaterfall";
 import { STANCE_LABEL, formatUsd, type Stance, type ValueResult } from "@/lib/calculator/model";
@@ -18,12 +19,16 @@ export function VerdictRail({
   onStance,
   onDownload,
   busy,
+  evidence,
+  onEvidence,
 }: {
   result: ValueResult;
   stance: Stance;
   onStance: (s: Stance) => void;
   onDownload: () => void;
   busy?: boolean;
+  evidence: EvidenceCounts;
+  onEvidence: () => void;
 }) {
   const peak = Math.max(...result.path.map((p) => p.usd), 1);
 
@@ -43,6 +48,19 @@ export function VerdictRail({
             {result.upliftPpOfGdp.toFixed(2)} pp of GDP
           </Explain>
         </div>
+        <button
+          type="button"
+          onClick={onEvidence}
+          className="btn-ghost mt-4 w-full border-t border-line-100 px-0 pt-3 text-left"
+        >
+          <span className="block font-mono text-[9.5px] uppercase tracking-[0.16em] text-ink-500">
+            Public indicative model · review evidence
+          </span>
+          <span className="mt-1.5 block text-[12px] leading-relaxed text-ink-700">
+            {evidence.record} record-backed · {evidence.reference} reference-based · {evidence.adjusted}{" "}
+            user-adjusted
+          </span>
+        </button>
       </div>
 
       <dl className="grid grid-cols-3 divide-x divide-line-200 border-b border-line-200 text-center">

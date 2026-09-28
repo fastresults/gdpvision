@@ -3,6 +3,7 @@
 // so the input primitive stays the calculator's.
 
 import { CalcSlider } from "@/components/calculator/CalcSlider";
+import { EvidenceStatus, type EvidenceEntry } from "@/components/brief/EvidenceAssurance";
 import type { FactGrade } from "@/lib/calculator/facts.server";
 import type { FramingQuestion } from "@/lib/calculator/model";
 
@@ -13,12 +14,16 @@ export function FramingCard({
   value,
   proposed,
   regional,
+  evidence,
+  onInspectEvidence,
   onChange,
 }: {
   q: FramingQuestion;
   value: number;
   proposed: { value: number; source: string; grade: FactGrade } | null;
   regional: string | null;
+  evidence: EvidenceEntry;
+  onInspectEvidence: (key: string) => void;
   onChange: (v: number) => void;
 }) {
   const overridden = proposed ? Math.round(proposed.value) !== Math.round(value) : false;
@@ -36,21 +41,8 @@ export function FramingCard({
         onChange={onChange}
       />
       <div className="-mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1 pb-4 font-mono text-[10px] text-ink-500">
-        {proposed ? (
-          <>
-            <GradeMark grade={proposed.grade} />
-            <span>
-              {proposed.grade === "assumption" ? "proposed from" : "from the record ·"}{" "}
-              {proposed.source}
-              {overridden ? ` · you set ${value}` : ""}
-            </span>
-          </>
-        ) : (
-          <>
-            <GradeMark grade="assumption" />
-            <span>no record — choose a country to fill this in</span>
-          </>
-        )}
+        <EvidenceStatus entry={evidence} onInspect={onInspectEvidence} />
+        {proposed && !overridden ? <GradeMark grade={proposed.grade} /> : null}
         {regional ? <span className="ml-auto">region {regional}</span> : null}
       </div>
     </div>

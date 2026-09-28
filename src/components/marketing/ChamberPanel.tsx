@@ -6,6 +6,8 @@ import { Illustration } from "./Illustration";
 interface ChamberPanelProps {
   index: string; // "01" .. "10"
   title: string;
+  /** Command-length outcome shown beneath the header image. */
+  outcome: string;
   purpose: string;
   bullets: string[];
   /** CSS variable name for the leading accent bar hue, e.g. "--sector-03". */
@@ -23,6 +25,7 @@ interface ChamberPanelProps {
 export function ChamberPanel({
   index,
   title,
+  outcome,
   purpose,
   bullets,
   accentVar,
@@ -69,7 +72,18 @@ export function ChamberPanel({
           </div>
         ) : null}
 
-        <h3 className="mt-3 font-serif text-[23px] leading-tight text-ink-950 sm:text-[27px]">
+        <div className="mt-5">
+          <span
+            aria-hidden
+            className="block h-[2px] w-8"
+            style={{ background: `var(${accentVar})` }}
+          />
+          <p className="mt-3 font-serif text-[19px] leading-snug text-ink-950 sm:text-[21px]">
+            {outcome}
+          </p>
+        </div>
+
+        <h3 className="mt-4 font-serif text-[23px] leading-tight text-ink-950 sm:text-[27px]">
           {title}
         </h3>
 

@@ -22,9 +22,9 @@ const STATE_LABEL: Record<EvidenceState, string> = {
 };
 
 const STATE_CLASS: Record<EvidenceState, string> = {
-  record: "text-signal-positive border-signal-positive",
-  reference: "text-signal-caution border-signal-caution",
-  adjusted: "text-ink-700 border-ink-700",
+  record: "text-signal-positive",
+  reference: "text-signal-caution",
+  adjusted: "text-ink-700",
 };
 
 export function EvidenceStatus({
@@ -48,7 +48,7 @@ export function EvidenceStatus({
       type="button"
       onClick={() => onInspect(entry.key)}
       className={cn(
-        "btn-ghost inline-flex min-h-8 items-center gap-2 border-b px-0 py-1 text-left font-mono text-[9.5px] uppercase tracking-[0.14em]",
+        "btn-ghost inline-flex h-auto min-h-0 items-center gap-2 border-0 px-0 py-0 text-left font-mono text-[9.5px] uppercase tracking-[0.14em] hover:border-0 hover:bg-transparent hover:underline hover:decoration-current hover:underline-offset-4 focus-visible:border-0 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-current",
         STATE_CLASS[entry.state],
         className,
       )}

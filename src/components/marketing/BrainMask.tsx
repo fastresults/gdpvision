@@ -220,10 +220,11 @@ export function BrainMask({ size }: BrainMaskProps) {
 
 function buildScene(size: number) {
   const rand = rng(0x51d3);
-  const cx = size / 2;
-  const cy = size / 2;
-  const rMax = size * 0.42;
-  const orbits = [rMax * 0.32, rMax * 0.6, rMax * 0.88];
+  const q = (value: number) => Number(value.toFixed(6));
+  const cx = q(size / 2);
+  const cy = q(size / 2);
+  const rMax = q(size * 0.42);
+  const orbits = [q(rMax * 0.32), q(rMax * 0.6), q(rMax * 0.88)];
 
   const palette = CANONICAL_SECTORS.map((s) => `var(${s.cssVar})`);
   const pick = () => palette[Math.floor(rand() * palette.length)];
@@ -235,8 +236,8 @@ function buildScene(size: number) {
   for (let i = 0; i < 4; i++) {
     const a = hubOffset + (i / 4) * Math.PI * 2;
     nodes.push({
-      x: cx + Math.cos(a) * orbits[0],
-      y: cy + Math.sin(a) * orbits[0],
+      x: q(cx + Math.cos(a) * orbits[0]),
+      y: q(cy + Math.sin(a) * orbits[0]),
       r: 3.2,
       halo: 7.5,
       color: pick(),
@@ -252,8 +253,8 @@ function buildScene(size: number) {
     const a = midOffset + (i / 12) * Math.PI * 2 + (rand() - 0.5) * 0.12;
     const jitter = 1 + (rand() - 0.5) * 0.1;
     nodes.push({
-      x: cx + Math.cos(a) * orbits[1] * jitter,
-      y: cy + Math.sin(a) * orbits[1] * jitter,
+      x: q(cx + Math.cos(a) * orbits[1] * jitter),
+      y: q(cy + Math.sin(a) * orbits[1] * jitter),
       r: 2.0,
       halo: 4.5,
       color: pick(),
@@ -269,9 +270,9 @@ function buildScene(size: number) {
     const a = leafOffset + (i / 18) * Math.PI * 2 + (rand() - 0.5) * 0.24;
     const jitter = 1 + (rand() - 0.5) * 0.14;
     nodes.push({
-      x: cx + Math.cos(a) * orbits[2] * jitter,
-      y: cy + Math.sin(a) * orbits[2] * jitter,
-      r: 1.1 + rand() * 0.6,
+      x: q(cx + Math.cos(a) * orbits[2] * jitter),
+      y: q(cy + Math.sin(a) * orbits[2] * jitter),
+      r: q(1.1 + rand() * 0.6),
       halo: 0,
       color: pick(),
       tier: "leaf",
@@ -289,12 +290,12 @@ function buildScene(size: number) {
   // Center-anchored (4)
   for (let i = 0; i < 4; i++) {
     const target = i < hubs.length ? hubs[i] : mids[i];
-    const mx = (cx + target.x) / 2 + (rand() - 0.5) * size * 0.06;
-    const my = (cy + target.y) / 2 + (rand() - 0.5) * size * 0.06;
+    const mx = q((cx + target.x) / 2 + (rand() - 0.5) * size * 0.06);
+    const my = q((cy + target.y) / 2 + (rand() - 0.5) * size * 0.06);
     links.push({
       d: `M ${cx} ${cy} Q ${mx} ${my} ${target.x} ${target.y}`,
       id: `gdpv-link-c${i}`,
-      dur: 4 + rand() * 3,
+      dur: q(4 + rand() * 3),
       delay: i * 900,
       color: target.color,
     });
@@ -305,12 +306,12 @@ function buildScene(size: number) {
     const a = hubs[i % hubs.length];
     const b = mids[Math.floor(rand() * mids.length)];
     if (!a || !b) continue;
-    const mx = (a.x + b.x) / 2 + (rand() - 0.5) * size * 0.14;
-    const my = (a.y + b.y) / 2 + (rand() - 0.5) * size * 0.14;
+    const mx = q((a.x + b.x) / 2 + (rand() - 0.5) * size * 0.14);
+    const my = q((a.y + b.y) / 2 + (rand() - 0.5) * size * 0.14);
     links.push({
       d: `M ${a.x} ${a.y} Q ${mx} ${my} ${b.x} ${b.y}`,
       id: `gdpv-link-h${i}`,
-      dur: 5 + rand() * 2.5,
+      dur: q(5 + rand() * 2.5),
       delay: 500 + i * 750,
       color: a.color,
     });

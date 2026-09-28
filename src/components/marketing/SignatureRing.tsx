@@ -148,7 +148,10 @@ export function SignatureRing({ size = 520, animate = true, showBrain = true, cl
 
 function polar(cx: number, cy: number, r: number, deg: number) {
   const rad = (deg * Math.PI) / 180;
-  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  return {
+    x: Number((cx + r * Math.cos(rad)).toFixed(6)),
+    y: Number((cy + r * Math.sin(rad)).toFixed(6)),
+  };
 }
 
 function ringSegmentPath(

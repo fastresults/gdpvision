@@ -92,7 +92,7 @@ export function OpEdGate({ slug, title, accentVar, attribution, onEvent }: OpEdG
             onClick={() => onEvent("op_ed_briefing_click")}
             className="btn-secondary px-6 py-3 font-mono text-[12px] uppercase tracking-[0.18em] mt-5 inline-flex"
           >
-            Request a Cabinet briefing
+            Request your national decision briefing
           </a>
         </div>
       </div>

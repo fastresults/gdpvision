@@ -3,9 +3,9 @@ import { MarketingHome } from "@/components/marketing/MarketingHome";
 import ogImage from "@/assets/gdpvision-og.jpg";
 
 const SITE_URL = "https://gdpvision.com";
-const TITLE = "GDPVision — the sovereign instrument for Cabinet decisions";
+const TITLE = "GDPVision — rehearse the decisions that shape a nation";
 const DESCRIPTION =
-  "Purpose-built for Presidents, Prime Ministers and Cabinets. One graded Ledger of a nation's public and private evidence, ten chambers, and one isolated deployment per nation — so a decision can be rehearsed before it is taken.";
+  "A sovereign decision capability for Presidents, Prime Ministers and Cabinets: bring national evidence together, rehearse choices before they are taken, and carry decisions into accountable delivery.";
 
 
 export const Route = createFileRoute("/")({
@@ -17,10 +17,12 @@ export const Route = createFileRoute("/")({
         { name: "description", content: DESCRIPTION },
         { property: "og:title", content: TITLE },
         { property: "og:description", content: DESCRIPTION },
+        { property: "og:type", content: "website" },
         { property: "og:url", content: SITE_URL + "/" },
         { property: "og:image", content: absoluteOg },
         { name: "twitter:title", content: TITLE },
         { name: "twitter:description", content: DESCRIPTION },
+        { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:image", content: absoluteOg },
       ],
       links: [{ rel: "canonical", href: SITE_URL + "/" }],

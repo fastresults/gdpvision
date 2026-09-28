@@ -33,6 +33,8 @@ import { getCompactProgress, type CompactProgress } from "@/lib/mandate-compact/
 import { progressQuery, RunProgressCard, StepBadge } from "@/components/mandate-compact/RunProgress";
 import "@/lib/explain/mandate-compact-entries";
 import { Explain } from "@/components/explain/Explain";
+import { Illustration } from "@/components/marketing/Illustration";
+import mandateHero from "@/assets/illustrations/mandate-compact-hero.jpg.asset.json";
 
 function compactsQuery(code: string) {
   return queryOptions({
@@ -100,7 +102,7 @@ function MandateCompactPage() {
       ]}
     >
       <div className="mx-auto max-w-6xl space-y-16 px-4 py-10 sm:px-6 lg:px-10 lg:py-14">
-        <header className="flex items-baseline justify-between gap-6 border-b border-line-200 pb-6">
+        <header className="flex items-center justify-between gap-6 border-b border-line-200 pb-6">
           <div className="min-w-0 space-y-1.5">
             <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">
               Chamber 08 · Mandate Compact
@@ -112,6 +114,12 @@ function MandateCompactPage() {
               The covenant that turns the ruling party's manifesto into a signed, ministry-by-ministry delivery plan.
             </p>
           </div>
+          <Illustration
+            src={mandateHero.url}
+            alt="Engraving of a manifesto scroll, a wax-sealed compact and bound ministry ledgers"
+            variant="aside"
+            className="hidden w-full max-w-[380px] shrink md:block"
+          />
           <div className="shrink-0 text-right">
             <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-500">Status</p>
             <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-950">

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Illustration } from "./Illustration";
 
@@ -59,15 +59,32 @@ export function ChamberPanel({
         </div>
 
         {screenshot ? (
-          <div className="mt-5 aspect-video w-full overflow-hidden rounded-md border border-line-200 bg-paper-50 shadow-sm">
+          <div
+            ref={frameRef}
+            onPointerMove={handlePointerMove}
+            className="group/media relative mt-5 aspect-video w-full overflow-hidden rounded-md border border-line-200 bg-paper-50 shadow-sm"
+          >
             <img
+              ref={imgRef}
               src={screenshot}
               alt={`${title} product view`}
               width={1280}
               height={720}
               loading="lazy"
               decoding="async"
-              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.012] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+              draggable={false}
+              className={cn(
+                "h-full w-full origin-center object-cover will-change-transform",
+                "transition-transform duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+                "group-hover/media:scale-[1.07]",
+                "motion-reduce:transition-none motion-reduce:group-hover/media:scale-100",
+              )}
+            />
+            {/* Chamber-hue hairline appears with the zoom, tying the image to its identity. */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-md opacity-0 transition-opacity duration-500 group-hover/media:opacity-100 motion-reduce:transition-none"
+              style={{ boxShadow: `inset 0 0 0 1px var(${accentVar})` }}
             />
           </div>
         ) : null}

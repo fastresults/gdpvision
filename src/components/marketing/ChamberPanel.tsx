@@ -4,7 +4,7 @@ import { Illustration } from "./Illustration";
 
 
 interface ChamberPanelProps {
-  index: string; // "01" .. "07"
+  index: string; // "01" .. "10"
   title: string;
   purpose: string;
   bullets: string[];
@@ -12,6 +12,8 @@ interface ChamberPanelProps {
   accentVar: string;
   /** Optional CDN URL for a real product screenshot rendered as the panel header. */
   image?: string;
+  /** Curated 16:9 capture of the chamber's strongest product view. */
+  screenshot?: string;
   children?: ReactNode;
   className?: string;
 }
@@ -25,12 +27,13 @@ export function ChamberPanel({
   bullets,
   accentVar,
   image,
+  screenshot,
   className,
 }: ChamberPanelProps) {
   return (
     <article
       className={cn(
-        "relative overflow-hidden bg-paper-0 min-h-[240px]",
+        "group relative overflow-hidden bg-paper-0 min-h-[240px]",
         "border-t border-b border-line-200",
         className,
       )}
@@ -51,6 +54,20 @@ export function ChamberPanel({
             />
           ) : null}
         </div>
+
+        {screenshot ? (
+          <div className="mt-5 aspect-video w-full overflow-hidden rounded-md border border-line-200 bg-paper-50 shadow-sm">
+            <img
+              src={screenshot}
+              alt={`${title} product view`}
+              width={1280}
+              height={720}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.012] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+            />
+          </div>
+        ) : null}
 
         <h3 className="mt-3 font-serif text-[23px] leading-tight text-ink-950 sm:text-[27px]">
           {title}

@@ -13,6 +13,16 @@ import ch05 from "@/assets/chambers/chamber-05.jpg.asset.json";
 import ch06 from "@/assets/chambers/chamber-06.jpg.asset.json";
 import ch07 from "@/assets/chambers/chamber-07.jpg.asset.json";
 import ch08 from "@/assets/chambers/chamber-08.jpg.asset.json";
+import screen01 from "@/assets/chamber-screens/chamber-01.webp.asset.json";
+import screen02 from "@/assets/chamber-screens/chamber-02.webp.asset.json";
+import screen03 from "@/assets/chamber-screens/chamber-03.webp.asset.json";
+import screen04 from "@/assets/chamber-screens/chamber-04.webp.asset.json";
+import screen05 from "@/assets/chamber-screens/chamber-05.webp.asset.json";
+import screen06 from "@/assets/chamber-screens/chamber-06.webp.asset.json";
+import screen07 from "@/assets/chamber-screens/chamber-07.webp.asset.json";
+import screen08 from "@/assets/chamber-screens/chamber-08.webp.asset.json";
+import screen09 from "@/assets/chamber-screens/chamber-09.webp.asset.json";
+import screen10 from "@/assets/chamber-screens/chamber-10.webp.asset.json";
 
 export interface Chamber {
   index: string;
@@ -20,6 +30,7 @@ export interface Chamber {
   /** CSS custom property registered in @theme inline of src/styles.css. */
   accentVar: string;
   image?: string;
+  screenshot?: string;
   purpose: string;
   bullets: string[];
 }
@@ -30,6 +41,7 @@ export const CHAMBERS: Chamber[] = [
     title: "The National Ledger",
     accentVar: "--sector-01",
     image: ch01.url,
+    screenshot: screen01.url,
     purpose: "Know which national figures Cabinet can trust before a decision is framed.",
     bullets: [
       "National and sector evidence, organised over time with confidence grades and sources.",
@@ -41,6 +53,7 @@ export const CHAMBERS: Chamber[] = [
     title: "Portfolio Workspaces",
     accentVar: "--sector-03",
     image: ch02.url,
+    screenshot: screen02.url,
     purpose: "Show each minister where the portfolio influences growth and what delivery requires.",
     bullets: [
       "Portfolio exposure, sector dependencies, delivery measures, and evidence strength in one view.",
@@ -52,6 +65,7 @@ export const CHAMBERS: Chamber[] = [
     title: "The Scenario Engine",
     accentVar: "--sector-09",
     image: ch03.url,
+    screenshot: screen03.url,
     purpose: "Test the economic and delivery consequences of a decision before it is taken.",
     bullets: [
       "Compare credible choices against GDP, debt, foreign exchange, fiscal balance, and confidence.",
@@ -63,6 +77,7 @@ export const CHAMBERS: Chamber[] = [
     title: "The FDI Transition Studio",
     accentVar: "--sector-07",
     image: ch04.url,
+    screenshot: screen04.url,
     purpose:
       "Replace exposed revenue with investment propositions capable of creating durable growth.",
     bullets: [
@@ -75,6 +90,7 @@ export const CHAMBERS: Chamber[] = [
     title: "The Narrative Chamber",
     accentVar: "--sector-04",
     image: ch05.url,
+    screenshot: screen05.url,
     purpose: "Reach a defensible national position quickly when events threaten confidence or growth.",
     bullets: [
       "Signals, context, and prior government knowledge assembled into a cited strategic position.",
@@ -86,6 +102,7 @@ export const CHAMBERS: Chamber[] = [
     title: "The Cabinet Room",
     accentVar: "--sector-10",
     image: ch06.url,
+    screenshot: screen06.url,
     purpose: "Turn Cabinet choices into owned commitments that remain visible between sessions.",
     bullets: [
       "Place approved options side by side and record the decision, conditions, and owner.",
@@ -97,6 +114,7 @@ export const CHAMBERS: Chamber[] = [
     title: "The Persona Lab",
     accentVar: "--sector-06",
     image: ch07.url,
+    screenshot: screen07.url,
     purpose:
       "Test whether a policy or proposition will be understood and accepted before it is released.",
     bullets: [
@@ -109,6 +127,7 @@ export const CHAMBERS: Chamber[] = [
     title: "The Mandate Compact",
     accentVar: "--sector-02",
     image: ch08.url,
+    screenshot: screen08.url,
     purpose:
       "Turn the government’s mandate into a ministry-owned delivery compact that can be judged each quarter.",
     bullets: [
@@ -120,6 +139,7 @@ export const CHAMBERS: Chamber[] = [
     index: "09",
     title: "The Digital Government Studio",
     accentVar: "--sector-09",
+    screenshot: screen09.url,
     purpose:
       "Define the nation’s digital government platform from the country’s own needs and approved record.",
     bullets: [
@@ -131,6 +151,7 @@ export const CHAMBERS: Chamber[] = [
     index: "10",
     title: "The Sector Studio",
     accentVar: "--sector-10",
+    screenshot: screen10.url,
     purpose:
       "Choose the sectors most capable of moving growth and govern each through an accountable plan.",
     bullets: [

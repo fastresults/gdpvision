@@ -1344,7 +1344,6 @@ function ElectionsIndex({
   const covers = useManifestoCovers(
     compacts.map((c) => c.manifesto_id).filter((x): x is string => !!x),
   );
-  const selected = compacts.find((c) => c.id === selectedId) ?? null;
   return (
     <section aria-label="Elections & manifestos on file" className="space-y-4">
       <div className="flex items-baseline justify-between gap-4">
@@ -1373,59 +1372,63 @@ function ElectionsIndex({
               : 0;
           return (
             <li key={c.id}>
-              <button
-                type="button"
-                onClick={() => onSelect(c.id)}
-                aria-current={active ? "true" : undefined}
+              <div
                 className={cn(
-                  "group grid w-full grid-cols-12 items-center gap-3 border px-4 py-3 text-left transition-colors",
+                  "w-full transition-colors",
                   active
-                    ? "border-gold-500 bg-gold-500/5"
-                    : "border-line-200 bg-paper-0 hover:border-ink-300",
+                    ? "border border-gold-500 bg-gold-500/5"
+                    : "border border-line-200 bg-paper-0 hover:border-ink-300",
                 )}
               >
-                <span className="col-span-2 flex items-center gap-3 font-mono text-[11px] tracking-[0.14em] text-ink-950">
-                  <ManifestoCover
-                    info={c.manifesto_id ? covers.data?.get(c.manifesto_id) : undefined}
-                    fallbackTitle={c.title}
-                    fallbackYear={c.election_cycle}
-                    className="w-10 text-[9px]"
-                  />
-                  {c.election_cycle}
-                </span>
-                <span className="col-span-4 min-w-0">
-                  <span className="block truncate font-serif text-sm text-ink-950">
-                    {c.title ?? `${c.election_cycle} Compact`}
+                <button
+                  type="button"
+                  onClick={() => onSelect(c.id)}
+                  aria-current={active ? "true" : undefined}
+                  className="group grid w-full grid-cols-12 items-center gap-3 px-4 py-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-500"
+                >
+                  <span className="col-span-2 flex items-center gap-3 font-mono text-[11px] tracking-[0.14em] text-ink-950">
+                    <ManifestoCover
+                      info={c.manifesto_id ? covers.data?.get(c.manifesto_id) : undefined}
+                      fallbackTitle={c.title}
+                      fallbackYear={c.election_cycle}
+                      className="w-10 text-[9px]"
+                    />
+                    {c.election_cycle}
                   </span>
-                  {c.pm_name && (
-                    <span className="mt-0.5 block truncate text-[11px] text-ink-500">
-                      PM {c.pm_name}
+                  <span className="col-span-4 min-w-0">
+                    <span className="block truncate font-serif text-sm text-ink-950">
+                      {c.title ?? `${c.election_cycle} Compact`}
                     </span>
-                  )}
-                </span>
-                <span className="col-span-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
-                  {c.pledge_count} pledges
-                </span>
-                <span className="col-span-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
-                  {coverage}% owned
-                </span>
-                <span className="col-span-2 flex justify-end">
-                  <StatusPill status={c.status} />
-                </span>
-              </button>
+                    {c.pm_name && (
+                      <span className="mt-0.5 block truncate text-[11px] text-ink-500">
+                        PM {c.pm_name}
+                      </span>
+                    )}
+                  </span>
+                  <span className="col-span-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
+                    {c.pledge_count} pledges
+                  </span>
+                  <span className="col-span-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">
+                    {coverage}% owned
+                  </span>
+                  <span className="col-span-2 flex justify-end">
+                    <StatusPill status={c.status} />
+                  </span>
+                </button>
+                {active && c.manifesto_id && (
+                  <div className="border-t border-line-200 px-4 py-4">
+                    <ManifestoCoverPanel
+                      manifestoId={c.manifesto_id}
+                      info={covers.data?.get(c.manifesto_id)}
+                      title={c.title}
+                    />
+                  </div>
+                )}
+              </div>
             </li>
           );
         })}
       </ul>
-      {selected?.manifesto_id && (
-        <div className="border border-line-200 bg-paper-0 p-4">
-          <ManifestoCoverPanel
-            manifestoId={selected.manifesto_id}
-            info={covers.data?.get(selected.manifesto_id)}
-            title={selected.title}
-          />
-        </div>
-      )}
     </section>
   );
 }

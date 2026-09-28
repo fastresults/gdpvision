@@ -2271,6 +2271,9 @@ export type Database = {
           source_url: string | null
           summary: string | null
           themes: Json
+          thumbnail_path: string | null
+          thumbnail_source: string
+          thumbnail_updated_at: string | null
           title: string | null
           updated_at: string
           uploaded_by: string | null
@@ -2290,6 +2293,9 @@ export type Database = {
           source_url?: string | null
           summary?: string | null
           themes?: Json
+          thumbnail_path?: string | null
+          thumbnail_source?: string
+          thumbnail_updated_at?: string | null
           title?: string | null
           updated_at?: string
           uploaded_by?: string | null
@@ -2309,6 +2315,9 @@ export type Database = {
           source_url?: string | null
           summary?: string | null
           themes?: Json
+          thumbnail_path?: string | null
+          thumbnail_source?: string
+          thumbnail_updated_at?: string | null
           title?: string | null
           updated_at?: string
           uploaded_by?: string | null

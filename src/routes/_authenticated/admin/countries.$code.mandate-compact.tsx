@@ -35,6 +35,13 @@ import "@/lib/explain/mandate-compact-entries";
 import { Explain } from "@/components/explain/Explain";
 import { Illustration } from "@/components/marketing/Illustration";
 import mandateHero from "@/assets/illustrations/mandate-compact-hero.jpg.asset.json";
+import {
+  ManifestoCover,
+  ManifestoCoverPanel,
+  renderPdfFirstPage,
+  useManifestoCovers,
+  useUploadCover,
+} from "@/components/mandate-compact/ManifestoCover";
 
 function compactsQuery(code: string) {
   return queryOptions({
@@ -464,6 +471,8 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
   const qc = useQueryClient();
   const ingest = useServerFn(ingestManifesto);
   const extract = useServerFn(extractManifesto);
+  const uploadCover = useUploadCover();
+  const sourcePdfRef = useRef<File | null>(null);
 
   const [form, setForm] = useState<ExtractedForm>(EMPTY_FORM);
   const [visibility, setVisibility] = useState<"public" | "private">("public");
@@ -587,6 +596,7 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
       return;
     }
 
+    sourcePdfRef.current = /pdf$/i.test(file.type) || /\.pdf$/i.test(file.name) ? file : null;
     setPhase("extracting");
     setPhaseMsg(`Preparing ${file.name}…`);
     setManualOpen(false);
@@ -704,6 +714,15 @@ function IngestPanel({ countryCode, compacts, editingCompact }: { countryCode: s
         },
       }),
     onSuccess: (res) => {
+      const pdf = sourcePdfRef.current;
+      if (pdf && res.manifesto_id) {
+        const mid = res.manifesto_id;
+        renderPdfFirstPage(pdf)
+          .then((blob) => uploadCover.mutateAsync({ manifestoId: mid, blob, source: "first_page" }))
+          .then(() => toast.success("Cover taken from the first page"))
+          .catch(() => toast.message("Cover stand-in in use — add the real cover from the Elections index."));
+      }
+      sourcePdfRef.current = null;
       toast.success(
         res.existed
           ? `Compact updated · ${res.chunks_indexed} chunks indexed`
@@ -1322,6 +1341,10 @@ function ElectionsIndex({
   onSelect: (id: string) => void;
   onNew: () => void;
 }) {
+  const covers = useManifestoCovers(
+    compacts.map((c) => c.manifesto_id).filter((x): x is string => !!x),
+  );
+  const selected = compacts.find((c) => c.id === selectedId) ?? null;
   return (
     <section aria-label="Elections & manifestos on file" className="space-y-4">
       <div className="flex items-baseline justify-between gap-4">
@@ -1361,7 +1384,13 @@ function ElectionsIndex({
                     : "border-line-200 bg-paper-0 hover:border-ink-300",
                 )}
               >
-                <span className="col-span-2 font-mono text-[11px] tracking-[0.14em] text-ink-950">
+                <span className="col-span-2 flex items-center gap-3 font-mono text-[11px] tracking-[0.14em] text-ink-950">
+                  <ManifestoCover
+                    info={c.manifesto_id ? covers.data?.get(c.manifesto_id) : undefined}
+                    fallbackTitle={c.title}
+                    fallbackYear={c.election_cycle}
+                    className="w-10 text-[9px]"
+                  />
                   {c.election_cycle}
                 </span>
                 <span className="col-span-4 min-w-0">
@@ -1388,6 +1417,15 @@ function ElectionsIndex({
           );
         })}
       </ul>
+      {selected?.manifesto_id && (
+        <div className="border border-line-200 bg-paper-0 p-4">
+          <ManifestoCoverPanel
+            manifestoId={selected.manifesto_id}
+            info={covers.data?.get(selected.manifesto_id)}
+            title={selected.title}
+          />
+        </div>
+      )}
     </section>
   );
 }

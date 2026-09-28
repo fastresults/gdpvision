@@ -190,6 +190,13 @@
       "when": 1790548110120,
       "tag": "0026_compact_runs",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1790616643473,
+      "tag": "0027_manifesto_thumbnails",
+      "breakpoints": true
     }
   ]
 }

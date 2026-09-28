@@ -13,6 +13,7 @@ import ch05 from "@/assets/chambers/chamber-05.jpg.asset.json";
 import ch06 from "@/assets/chambers/chamber-06.jpg.asset.json";
 import ch07 from "@/assets/chambers/chamber-07.jpg.asset.json";
 import ch08 from "@/assets/chambers/chamber-08.jpg.asset.json";
+import ch09 from "@/assets/chambers/chamber-09.jpg.asset.json";
 import screen01 from "@/assets/chamber-screens/chamber-01-new.jpg.asset.json";
 import screen02 from "@/assets/chamber-screens/chamber-02-new.jpg.asset.json";
 import screen03 from "@/assets/chamber-screens/chamber-03.webp.asset.json";
@@ -139,6 +140,7 @@ export const CHAMBERS: Chamber[] = [
     index: "09",
     title: "The Digital Government Studio",
     accentVar: "--sector-09",
+    image: ch09.url,
     screenshot: screen09.url,
     purpose:
       "Define the nation’s digital government platform from the country’s own needs and approved record.",

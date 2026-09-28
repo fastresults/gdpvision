@@ -11,6 +11,7 @@ import { PrintSurface } from "@/components/print/PrintSurface";
 import { APPROVALS } from "@/lib/business-case";
 import type { Counsel } from "@/lib/calculator/counsel.server";
 import type { CountryFacts } from "@/lib/calculator/facts.server";
+import type { EvidenceCounts, EvidenceEntry } from "@/lib/calculator/evidence";
 import {
   CHAMBER_COEFFICIENTS,
   FRAMING_QUESTIONS,
@@ -92,6 +93,8 @@ export function PrintableBrief({
   order,
   why,
   reopenUrl,
+  evidenceEntries,
+  evidenceCounts,
 }: {
   input: ValueInput;
   result: ValueResult;
@@ -102,6 +105,8 @@ export function PrintableBrief({
   order: string[];
   why: Record<string, string>;
   reopenUrl: string;
+  evidenceEntries: EvidenceEntry[];
+  evidenceCounts: EvidenceCounts;
 }) {
   const [today, setToday] = useState("");
   useEffect(() => {
@@ -137,6 +142,15 @@ export function PrintableBrief({
             : ""}
           . Capped at 1.2% of GDP × stance. A decision-framing model, not a forecast.
         </p>
+        <div style={{ border: "0.6pt solid #999", padding: "3mm", marginTop: "4mm" }}>
+          <div className="mono">Evidence status · public indicative model</div>
+          <p style={{ margin: "1.5mm 0 0" }}>
+            {evidenceCounts.record} record-backed · {evidenceCounts.reference} reference-based ·{" "}
+            {evidenceCounts.adjusted} user-adjusted. Reference assumptions and user adjustments
+            require validation against authorised administrative data before this brief is relied
+            upon for a formal government decision.
+          </p>
+        </div>
         <Waterfall input={input} result={result} order={order} palette={palette} n={1} />
         <Term
           input={input}
@@ -311,6 +325,40 @@ export function PrintableBrief({
           {facts?.generatedAt?.slice(0, 10) ?? "—"}): only graded public figures and counts of
           approved, verified or published rows. Tables consulted: {sources.join(", ") || "none"}.
           Figures marked “Assumption” are regional medians standing in where the record is silent.
+        </p>
+        <h2>Evidence status and validation requirement</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Input</th>
+              <th>Status</th>
+              <th>Current basis</th>
+              <th>Evidence required</th>
+            </tr>
+          </thead>
+          <tbody>
+            {evidenceEntries.map((entry) => (
+              <tr key={entry.key}>
+                <td>{entry.label}</td>
+                <td>
+                  {entry.state === "record"
+                    ? `National record · Grade ${entry.grade}`
+                    : entry.state === "reference"
+                      ? "Reference assumption"
+                      : "User-adjusted · unvalidated"}
+                </td>
+                <td>{entry.source}</td>
+                <td>
+                  {entry.state === "record" ? "Confirm period and custodian" : entry.replacement}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p>
+          Government engagement reconciles these inputs, records the source period and accountable
+          custodian, and locks the approved evidence baseline and model version. User adjustments
+          remain scenarios until that validation is complete.
         </p>
         <p className="mono" style={{ letterSpacing: 0, textTransform: "none", marginTop: "3mm" }}>
           Reopen this brief exactly as configured: {reopenUrl}

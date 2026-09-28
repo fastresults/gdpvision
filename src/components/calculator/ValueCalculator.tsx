@@ -32,6 +32,12 @@ import { briefPalette } from "@/components/brief/figures/shared";
 import { briefUrl, decodeBrief, encodeBrief } from "@/lib/calculator/brief-link";
 import type { AdviserContext } from "@/lib/calculator/adviser.server";
 import { FramingCard } from "@/components/brief/FramingCard";
+import {
+  EvidenceAssuranceStrip,
+  EvidencePathwayModal,
+  EvidenceStatus,
+} from "@/components/brief/EvidenceAssurance";
+import { countEvidence, type EvidenceEntry } from "@/lib/calculator/evidence";
 import type { Counsel } from "@/lib/calculator/counsel.server";
 import { Explain } from "@/components/explain/Explain";
 import { ExplainProvider } from "@/components/explain/ExplainProvider";
@@ -167,6 +173,8 @@ export function ValueCalculator({
   const [counselError, setCounselError] = useState<string | null>(null);
   const [counselLoading, setCounselLoading] = useState(false);
   const [leadOpen, setLeadOpen] = useState(false);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
+  const [evidenceKey, setEvidenceKey] = useState<string | null>(null);
   const [granted, setGranted] = useState(false);
 
   const askCounsel = useServerFn(getValueCounsel);
@@ -220,6 +228,107 @@ export function ValueCalculator({
     topSectorSharePct: "top_sector",
     servicesOfflinePct: "government",
     unplannedPrioritySharePct: "sectors",
+  };
+  const INPUT_FACT: Record<string, string> = {
+    gdpUsd: "gdp",
+    publicSpendPct: "public_spend",
+    decisionsPerQuarter: "cabinet",
+    latencyMonths: "latency",
+    unmeasuredPct: "standards",
+    topSectorSharePct: "top_sector",
+    servicesOfflinePct: "government",
+    unplannedPrioritySharePct: "sectors",
+  };
+  const INPUT_LABEL: Record<string, string> = {
+    gdpUsd: "Nominal GDP",
+    publicSpendPct: "Public expenditure",
+    ...Object.fromEntries(FRAMING_QUESTIONS.map((q) => [q.key, q.question])),
+  };
+  const REPLACEMENT: Record<string, string> = {
+    gdpUsd:
+      "Latest authorised national accounts release, with reporting year and responsible statistical authority.",
+    publicSpendPct:
+      "Approved fiscal outturn or general-government expenditure series for the same reporting period.",
+    decisionsPerQuarter:
+      "Cabinet decision register, filtered to decisions that commit capital, change incentives or reallocate programmes.",
+    latencyMonths:
+      "Dated decision and first-progress records across a representative set of priority decisions.",
+    unmeasuredPct:
+      "Programme expenditure mapped to approved outcomes, indicators, baselines and reporting coverage.",
+    topSectorSharePct:
+      "Current national accounts value-added by sector, reconciled to the selected GDP period.",
+    servicesOfflinePct:
+      "Government service inventory with transaction volumes and verified end-to-end digital completion status.",
+    unplannedPrioritySharePct:
+      "Approved priority-sector list matched to current plans, named owners and sector shares of output.",
+  };
+
+  const evidenceEntries: EvidenceEntry[] = (() => {
+    const keys = ["gdpUsd", "publicSpendPct", ...FRAMING_QUESTIONS.map((q) => q.key)] as Array<
+      keyof Pick<
+        ValueInput,
+        | "gdpUsd"
+        | "publicSpendPct"
+        | "decisionsPerQuarter"
+        | "latencyMonths"
+        | "unmeasuredPct"
+        | "topSectorSharePct"
+        | "servicesOfflinePct"
+        | "unplannedPrioritySharePct"
+      >
+    >;
+    return keys.map((key) => {
+      const factKey = INPUT_FACT[key];
+      const fact = facts?.facts.find((item) => item.key === factKey);
+      const proposal = facts?.proposed[key];
+      const value = input[key];
+      const baseline =
+        proposal?.value ??
+        (key === "gdpUsd"
+          ? COUNTRY_PRESETS.find((country) => country.code === presetCode)?.gdpUsd
+          : key === "publicSpendPct"
+            ? COUNTRY_PRESETS.find((country) => country.code === presetCode)?.publicSpendPct
+            : DEFAULT_INPUT[key]);
+      const tolerance = key === "gdpUsd" ? 50_000_000 : 0.001;
+      const adjusted = baseline != null && Math.abs(value - baseline) > tolerance;
+      const grade = proposal?.grade ?? fact?.grade ?? "assumption";
+      const state = adjusted ? "adjusted" : grade === "assumption" ? "reference" : "record";
+      const question = FRAMING_QUESTIONS.find((item) => item.key === key);
+      return {
+        key,
+        label: INPUT_LABEL[key] ?? key,
+        display:
+          key === "gdpUsd"
+            ? formatUsd(value)
+            : `${value}${question?.unit ? ` ${question.unit}` : key === "publicSpendPct" ? "% of GDP" : ""}`,
+        state,
+        grade,
+        source: adjusted
+          ? "Scenario adjustment in this browser"
+          : (fact?.source ?? "regional reference value"),
+        benchmark: fact?.regional?.display ?? null,
+        replacement:
+          REPLACEMENT[key] ??
+          "Authorised administrative data with a named custodian and reporting period.",
+      };
+    });
+  })();
+  const evidenceCounts = countEvidence(evidenceEntries);
+  const evidenceFor = (key: string): EvidenceEntry =>
+    evidenceEntries.find((entry) => entry.key === key) ?? {
+      key,
+      label: INPUT_LABEL[key] ?? key,
+      display: "Not available",
+      state: "reference",
+      grade: "assumption",
+      source: "No public record available",
+      replacement:
+        REPLACEMENT[key] ??
+        "Authorised administrative data with a named custodian and reporting period.",
+    };
+  const inspectEvidence = (key: string | null = null) => {
+    setEvidenceKey(key);
+    setEvidenceOpen(true);
   };
 
   // Debounced counsel — the arithmetic never waits on it.
@@ -434,6 +543,7 @@ export function ValueCalculator({
         },
       }}
     >
+      <EvidenceAssuranceStrip entries={evidenceEntries} onOpen={() => inspectEvidence()} />
       <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-10 sm:px-6 md:px-10 md:py-16 lg:grid-cols-[1fr_380px] lg:gap-14 print:hidden">
         <div className="min-w-0 space-y-14">
           {/* Step 1 */}
@@ -483,6 +593,7 @@ export function ValueCalculator({
                 help="In hundreds of millions of US dollars. Adjust freely — the model scales with it."
                 onChange={(v) => set("gdpUsd", v * 100_000_000)}
               />
+              <EvidenceStatus entry={evidenceFor("gdpUsd")} onInspect={inspectEvidence} />
               <CalcSlider
                 label="Public expenditure"
                 explainId="calc.publicSpend"
@@ -493,6 +604,7 @@ export function ValueCalculator({
                 help="General government spending. This sets the size of every pool the instrument can act on."
                 onChange={(v) => set("publicSpendPct", v)}
               />
+              <EvidenceStatus entry={evidenceFor("publicSpendPct")} onInspect={inspectEvidence} />
             </div>
           </section>
 
@@ -511,6 +623,8 @@ export function ValueCalculator({
                   value={input[q.key]}
                   proposed={proposedFor(q.key)}
                   regional={regionalFor(REGIONAL_KEY[q.key] ?? "")}
+                  evidence={evidenceFor(q.key)}
+                  onInspectEvidence={inspectEvidence}
                   onChange={(v) => set(q.key, v)}
                 />
               ))}
@@ -678,6 +792,8 @@ export function ValueCalculator({
             stance={input.stance}
             onStance={(s: Stance) => set("stance", s)}
             onDownload={onDownload}
+            evidence={evidenceCounts}
+            onEvidence={() => inspectEvidence()}
           />
         </aside>
       </div>
@@ -693,6 +809,13 @@ export function ValueCalculator({
         }}
       />
 
+      <EvidencePathwayModal
+        entries={evidenceEntries}
+        selectedKey={evidenceKey}
+        open={evidenceOpen}
+        onOpenChange={setEvidenceOpen}
+      />
+
       <PrintableBrief
         input={input}
         result={result}
@@ -703,6 +826,8 @@ export function ValueCalculator({
         order={sequence.order}
         why={sequence.why}
         reopenUrl={reopenUrl}
+        evidenceEntries={evidenceEntries}
+        evidenceCounts={evidenceCounts}
       />
     </ExplainProvider>
   );

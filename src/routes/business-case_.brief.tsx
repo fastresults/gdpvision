@@ -58,11 +58,12 @@ function BriefPage() {
                 What is a decision worth when it is taken on time?
               </h1>
               <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-ink-700">
-                Choose a country. GDPVision answers with what it already holds — graded figures,
-                each with its source — proposes the six conditions that size the loss, and sets out
-                ten chambers in the order the record suggests. The verdict is on screen from the
-                first choice, every figure is traceable, and total claimed uplift is capped at 1.2
-                per cent of GDP. A decision-framing model, not a forecast.
+                Choose a country. GDPVision answers with graded public records and clearly
+                identified reference assumptions, then sets out ten chambers in the order the
+                evidence suggests. Every figure is traceable and total claimed uplift is capped at
+                1.2 per cent of GDP. Government engagement replaces assumptions with authorised
+                administrative data and a controlled evidence baseline. This is a decision-framing
+                model, not a forecast.
               </p>
             </div>
             <div className="hidden justify-self-end md:block">

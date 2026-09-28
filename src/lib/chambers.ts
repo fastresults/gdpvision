@@ -13,16 +13,16 @@ import ch05 from "@/assets/chambers/chamber-05.jpg.asset.json";
 import ch06 from "@/assets/chambers/chamber-06.jpg.asset.json";
 import ch07 from "@/assets/chambers/chamber-07.jpg.asset.json";
 import ch08 from "@/assets/chambers/chamber-08.jpg.asset.json";
-import screen01 from "@/assets/chamber-screens/chamber-01.webp.asset.json";
-import screen02 from "@/assets/chamber-screens/chamber-02.webp.asset.json";
+import screen01 from "@/assets/chamber-screens/chamber-01-new.jpg.asset.json";
+import screen02 from "@/assets/chamber-screens/chamber-02-new.jpg.asset.json";
 import screen03 from "@/assets/chamber-screens/chamber-03.webp.asset.json";
-import screen04 from "@/assets/chamber-screens/chamber-04.webp.asset.json";
-import screen05 from "@/assets/chamber-screens/chamber-05.webp.asset.json";
-import screen06 from "@/assets/chamber-screens/chamber-06.webp.asset.json";
-import screen07 from "@/assets/chamber-screens/chamber-07.webp.asset.json";
-import screen08 from "@/assets/chamber-screens/chamber-08.webp.asset.json";
+import screen04 from "@/assets/chamber-screens/chamber-04-new.jpg.asset.json";
+import screen05 from "@/assets/chamber-screens/chamber-05-new.jpg.asset.json";
+import screen06 from "@/assets/chamber-screens/chamber-06-new.jpg.asset.json";
+import screen07 from "@/assets/chamber-screens/chamber-07-new.jpg.asset.json";
+import screen08 from "@/assets/chamber-screens/chamber-08-new.jpg.asset.json";
 import screen09 from "@/assets/chamber-screens/chamber-09.webp.asset.json";
-import screen10 from "@/assets/chamber-screens/chamber-10.webp.asset.json";
+import screen10 from "@/assets/chamber-screens/chamber-10-new.jpg.asset.json";
 
 export interface Chamber {
   index: string;

@@ -30,11 +30,10 @@ export const CHAMBERS: Chamber[] = [
     title: "The National Ledger",
     accentVar: "--sector-01",
     image: ch01.url,
-    purpose: "The single source of GDP truth every other decision reads from.",
+    purpose: "Know which national figures Cabinet can trust before a decision is framed.",
     bullets: [
-      "A 12-sector ontology with a decade of history and a data-confidence grade on every series.",
-      "Exposure indices — single, methodologically-documented numbers, drillable to source.",
-      "Four-layer sector dossiers: economic, policy, comms, and regional.",
+      "National and sector evidence, organised over time with confidence grades and sources.",
+      "Material exposures and ministry briefings that remain traceable to the underlying record.",
     ],
   },
   {
@@ -42,11 +41,10 @@ export const CHAMBERS: Chamber[] = [
     title: "Portfolio Workspaces",
     accentVar: "--sector-03",
     image: ch02.url,
-    purpose: "Every minister sees their contribution to GDP — and the levers that raise it.",
+    purpose: "Show each minister where the portfolio influences growth and what delivery requires.",
     bullets: [
-      "Sector position, dependency web, and the portfolio's share of national exposure.",
-      "A shelf of the minister's scenarios, from draft through Cabinet-adopted.",
-      "Play-of-the-day cards derived from live lever values.",
+      "Portfolio exposure, sector dependencies, delivery measures, and evidence strength in one view.",
+      "Ministerial options carried from early analysis through Cabinet adoption and review.",
     ],
   },
   {
@@ -54,11 +52,10 @@ export const CHAMBERS: Chamber[] = [
     title: "The Scenario Engine",
     accentVar: "--sector-09",
     image: ch03.url,
-    purpose: "Rehearse every GDP-moving decision before it costs a cent.",
+    purpose: "Test the economic and delivery consequences of a decision before it is taken.",
     bullets: [
-      "Sovereign Vitals — real GDP, debt-to-GDP, FX retention, primary balance, public confidence — live.",
-      "Ripple propagation through the inter-sector dependency web.",
-      "Goal-seek: set the target, discover the levers that reach it.",
+      "Compare credible choices against GDP, debt, foreign exchange, fiscal balance, and confidence.",
+      "Set the result Cabinet needs and identify the combination of policy levers most likely to reach it.",
     ],
   },
   {
@@ -67,11 +64,10 @@ export const CHAMBERS: Chamber[] = [
     accentVar: "--sector-07",
     image: ch04.url,
     purpose:
-      "Replace fragile revenue with durable GDP through an assembled book of investment packages.",
+      "Replace exposed revenue with investment propositions capable of creating durable growth.",
     bullets: [
-      "The Gap: the revenue and GDP hole under the selected wind-down glide-path, year by year.",
-      "Investment package builder with capital-to-GDP conversion and time-to-impact lags.",
-      "Readiness scoring across legal, land, workforce, incentives, and institutional capacity.",
+      "Price the revenue gap and the time available to replace it, year by year.",
+      "Prepare investment packages and test readiness across law, land, workforce, incentives, and institutions.",
     ],
   },
   {
@@ -79,11 +75,10 @@ export const CHAMBERS: Chamber[] = [
     title: "The Narrative Chamber",
     accentVar: "--sector-04",
     image: ch05.url,
-    purpose: "Protect GDP by reaching a defensible national position inside a working day.",
+    purpose: "Reach a defensible national position quickly when events threaten confidence or growth.",
     bullets: [
-      "Signal Desk, Context Dossiers, and a persistent Second Brain that never starts from a blank page.",
-      "Doctorate-grade strategy statements with a message architecture that carries across every channel.",
-      "Human-command doctrine: the chamber drafts, principals decide, nothing releases autonomously.",
+      "Signals, context, and prior government knowledge assembled into a cited strategic position.",
+      "GDPVision drafts; authorised principals review, decide, and approve every release.",
     ],
   },
   {
@@ -91,11 +86,10 @@ export const CHAMBERS: Chamber[] = [
     title: "The Cabinet Room",
     accentVar: "--sector-10",
     image: ch06.url,
-    purpose: "Convert Cabinet time into recorded, tracked commitments that move the GDP dial.",
+    purpose: "Turn Cabinet choices into owned commitments that remain visible between sessions.",
     bullets: [
-      "Session Mode: agenda of promoted scenarios, full-bleed comparisons, decisions recorded live.",
-      "National Scorecard — every ratified KPI, current pace, movement since last session.",
-      "Commitments roll-up: what was adopted, who owns it, where it stands.",
+      "Place approved options side by side and record the decision, conditions, and owner.",
+      "Track ratified measures, delivery pace, and intervention needs until the next review.",
     ],
   },
   {
@@ -104,11 +98,10 @@ export const CHAMBERS: Chamber[] = [
     accentVar: "--sector-06",
     image: ch07.url,
     purpose:
-      "Test resonance with citizens and investors before policies, incentives, or narratives ship.",
+      "Test whether a policy or proposition will be understood and accepted before it is released.",
     bullets: [
-      "Synthetic personas and segments modelled from the sovereign corpus and public evidence.",
-      "Studies that stress-test policy, incentive, and narrative options against real audience logic.",
-      "Every finding cited, exportable, and traceable back to the Ledger.",
+      "Guided studies for citizens, diaspora, investors, and other priority audiences.",
+      "Findings remain bounded by the approved brief and traceable to the evidence collected.",
     ],
   },
   {
@@ -117,11 +110,10 @@ export const CHAMBERS: Chamber[] = [
     accentVar: "--sector-02",
     image: ch08.url,
     purpose:
-      "Turn the ruling party's manifesto into a signed, ministry-by-ministry delivery plan the PM can score every quarter.",
+      "Turn the government’s mandate into a ministry-owned delivery compact that can be judged each quarter.",
     bullets: [
-      "Ingest the manifesto and decompose it into pillars, pledges, and ministry-owned deliverables.",
-      "Quarterly scorecards and a PM Report Card that grade every ministry from delivered to broken.",
-      "Signed, versioned compact with a full audit trail — every revision snapshotted and diffable.",
+      "Translate pledges into pillars, measures, deliverables, owners, and review dates.",
+      "Preserve approvals, revisions, evidence, and quarterly performance in one accountable record.",
     ],
   },
   {
@@ -129,11 +121,10 @@ export const CHAMBERS: Chamber[] = [
     title: "The Digital Government Studio",
     accentVar: "--sector-09",
     purpose:
-      "Write the product requirements for the nation's e-government platform from the country's own record, approve them, and feed the platform live from the Ledger.",
+      "Define the nation’s digital government platform from the country’s own needs and approved record.",
     bullets: [
-      "Eleven sections drafted from the corpus with citations — audiences, services, governance, government structure, brand from the flag.",
-      "Approved by a second person; the platform reads GDPVision through a keyed, read-only API.",
-      "Cabinet, ministries and statutory bodies published once, verified, to every surface.",
+      "Prepare cited requirements covering audiences, services, governance, institutions, and national identity.",
+      "Require independent approval before verified government information reaches public services.",
     ],
   },
   {
@@ -141,11 +132,10 @@ export const CHAMBERS: Chamber[] = [
     title: "The Sector Studio",
     accentVar: "--sector-10",
     purpose:
-      "Choose the few sectors that will move GDP, and run each against a plan with an owner, a Compact, a Council and a scorecard.",
+      "Choose the sectors most capable of moving growth and govern each through an accountable plan.",
     bullets: [
-      "A Scout ranks every sector from the record; the Head of Government chooses up to four.",
-      "A ten-section Sector Development Plan per priority: diagnostic to roadmap, drafted with citations.",
-      "Approval raises a Cabinet commitment; the plan reaches the country's platform through the API.",
+      "Rank sectors from the national evidence while preserving the Head of Government’s choice.",
+      "Carry each priority from cited diagnosis to roadmap, Cabinet commitment, and public accountability.",
     ],
   },
 ];

@@ -74,7 +74,7 @@ export function MarketingShell({ children }: MarketingShellProps) {
               hash="briefing"
               className="hover:text-ink-950 text-ink-950 border-l-2 border-gold-500 pl-3"
             >
-              Request briefing
+              Request national briefing
             </Link>
             <AuthEntry signedIn={signedIn} />
           </nav>
@@ -132,7 +132,7 @@ export function MarketingShell({ children }: MarketingShellProps) {
                 onClick={() => setMenuOpen(false)}
                 className="border-b border-line-100 py-3 text-ink-950 hover:text-ink-950"
               >
-                Request briefing
+                Request national briefing
               </Link>
               <div className="py-3">
                 <AuthEntry signedIn={signedIn} onNavigate={() => setMenuOpen(false)} />
@@ -148,9 +148,8 @@ export function MarketingShell({ children }: MarketingShellProps) {
             <div>
               <Wordmark className="h-8" />
               <p className="mt-4 max-w-xl text-[13.5px] leading-relaxed text-ink-700">
-                An OPEN Interactive product. Sovereign instances of the GDPVision instrument are
-                provisioned by invitation, under a confidential engagement with the government of
-                the day.
+                A sovereign decision capability delivered by OPEN Interactive through a
+                confidential engagement with the authorised government of the day.
               </p>
             </div>
             <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500 flex flex-wrap gap-6">

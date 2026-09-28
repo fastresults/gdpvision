@@ -48,11 +48,12 @@ export function BriefingForm() {
           Received
         </div>
         <p className="mt-4 font-serif text-[27px] leading-tight text-ink-950 max-w-xl">
-          Received. OPEN Interactive will respond within one working day.
+          Your request has been received.
         </p>
         <p className="mt-4 text-[15px] text-ink-700 max-w-xl">
-          Every request is reviewed by a named principal. Nothing about your
-          enquiry is shared outside OPEN Interactive.
+          A principal from OPEN Interactive will review the national decision you identified and
+          respond through your official email within one working day to agree the participants,
+          preparation, and confidential briefing format.
         </p>
       </div>
     );
@@ -63,18 +64,22 @@ export function BriefingForm() {
   return (
     <form onSubmit={onSubmit} className="bg-paper-0 border-t border-b border-line-200 py-8 px-8">
       <div className="grid gap-6 md:grid-cols-2">
-        <Field name="name" label="Your name" required autoComplete="name" />
-        <Field name="role" label="Role or title" required placeholder="e.g. Cabinet Secretary" />
+        <Field name="name" label="Full name" required autoComplete="name" />
+        <Field name="role" label="Official role" required placeholder="e.g. Cabinet Secretary" />
         <Field
           name="government"
-          label="Government or ministry"
+          label="Government office or ministry"
           required
           placeholder="e.g. Office of the Prime Minister"
         />
         <NationField />
         <Field name="email" label="Official email" required type="email" autoComplete="email" />
         <div className="md:col-span-2">
-          <TextArea name="message" label="Context (optional)" placeholder="One or two sentences on what you would like the briefing to cover." />
+          <TextArea
+            name="message"
+            label="The national decision under consideration (optional)"
+            placeholder="In one or two sentences, identify the decision, exposure, or delivery question Cabinet is considering."
+          />
         </div>
       </div>
 
@@ -107,10 +112,10 @@ export function BriefingForm() {
             "disabled:opacity-60 disabled:cursor-not-allowed",
           )}
         >
-          {submitting ? "Sending…" : "Request a briefing"}
+          {submitting ? "Sending…" : "Request my national briefing"}
         </button>
         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-500">
-          Confidential — government use
+          Confidential enquiry · Official government use
         </p>
       </div>
     </form>

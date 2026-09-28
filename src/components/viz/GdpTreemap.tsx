@@ -62,7 +62,7 @@ export function GdpTreemap({
                   width={Math.max(0, t.w - 4)}
                   height={Math.max(0, t.h - 4)}
                   fill={t.color}
-                  fillOpacity={isSel ? 0.85 : 0.55}
+                  fillOpacity={1}
                   stroke={t.color}
                   strokeOpacity={0.9}
                   strokeWidth={isSel ? 2 : 1}

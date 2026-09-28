@@ -90,7 +90,6 @@ function ScenariosLayout() {
 
   return (
     <SuperAdminShell
-      wide
       eyebrow="Chamber 03 · Scenario Engine"
 
       crumbs={[

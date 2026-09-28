@@ -66,7 +66,6 @@ function StudioLayout() {
   const { data: ctx } = useSuspenseQuery(ctxQuery(code));
   return (
     <SuperAdminShell
-      wide
       crumbs={[
         { label: "Countries", to: "/admin/countries" },
         { label: code, to: "/admin/countries/$code/onboard", params: { code } },

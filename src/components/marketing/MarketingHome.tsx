@@ -514,6 +514,7 @@ export function MarketingHome() {
                   bullets={c.bullets}
                   accentVar={c.accentVar}
                   image={c.image}
+                  screenshot={c.screenshot}
                 />
               </div>
             ))}

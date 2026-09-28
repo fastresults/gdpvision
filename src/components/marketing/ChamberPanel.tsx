@@ -33,6 +33,30 @@ export function ChamberPanel({
   screenshot,
   className,
 }: ChamberPanelProps) {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const finePointer = useRef(false);
+
+  // The zoom follows the cursor only on a mouse-like pointer; on touch the
+  // image simply scales from its centre.
+  useEffect(() => {
+    finePointer.current = window.matchMedia(
+      "(hover: hover) and (pointer: fine)",
+    ).matches;
+  }, []);
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!finePointer.current) return;
+    const frame = frameRef.current;
+    const img = imgRef.current;
+    if (!frame || !img) return;
+    const rect = frame.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+    img.style.transformOrigin = `${x.toFixed(1)}% ${y.toFixed(1)}%`;
+  };
+
   return (
     <article
       className={cn(

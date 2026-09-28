@@ -146,9 +146,9 @@ export function PrintableBrief({
           <div className="mono">Evidence status · public indicative model</div>
           <p style={{ margin: "1.5mm 0 0" }}>
             {evidenceCounts.record} record-backed · {evidenceCounts.reference} reference-based ·{" "}
-            {evidenceCounts.adjusted} user-adjusted. Reference assumptions and user adjustments require
-            validation against authorised administrative data before this brief is relied upon for a formal
-            government decision.
+            {evidenceCounts.adjusted} user-adjusted. Reference assumptions and user adjustments
+            require validation against authorised administrative data before this brief is relied
+            upon for a formal government decision.
           </p>
         </div>
         <Waterfall input={input} result={result} order={order} palette={palette} n={1} />
@@ -348,15 +348,17 @@ export function PrintableBrief({
                       : "User-adjusted · unvalidated"}
                 </td>
                 <td>{entry.source}</td>
-                <td>{entry.state === "record" ? "Confirm period and custodian" : entry.replacement}</td>
+                <td>
+                  {entry.state === "record" ? "Confirm period and custodian" : entry.replacement}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
         <p>
           Government engagement reconciles these inputs, records the source period and accountable
-          custodian, and locks the approved evidence baseline and model version. User adjustments remain
-          scenarios until that validation is complete.
+          custodian, and locks the approved evidence baseline and model version. User adjustments
+          remain scenarios until that validation is complete.
         </p>
         <p className="mono" style={{ letterSpacing: 0, textTransform: "none", marginTop: "3mm" }}>
           Reopen this brief exactly as configured: {reopenUrl}

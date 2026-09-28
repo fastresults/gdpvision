@@ -57,15 +57,17 @@ export function VerdictRail({
             Public indicative model · review evidence
           </span>
           <span className="mt-1.5 block text-[12px] leading-relaxed text-ink-700">
-            {evidence.record} record-backed · {evidence.reference} reference-based · {evidence.adjusted}{" "}
-            user-adjusted
+            {evidence.record} record-backed · {evidence.reference} reference-based ·{" "}
+            {evidence.adjusted} user-adjusted
           </span>
         </button>
       </div>
 
       <dl className="grid grid-cols-3 divide-x divide-line-200 border-b border-line-200 text-center">
         <div className="px-2 py-4">
-          <dt className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink-500">Return</dt>
+          <dt className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink-500">
+            Return
+          </dt>
           <dd className="mt-2 font-serif text-[20px] text-ink-950 tabular-nums">
             <Explain id="calc.return" label="Return multiple">
               {result.returnMultiple >= 1 ? `${result.returnMultiple.toFixed(1)}×` : "—"}
@@ -73,7 +75,9 @@ export function VerdictRail({
           </dd>
         </div>
         <div className="px-2 py-4">
-          <dt className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink-500">Payback</dt>
+          <dt className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink-500">
+            Payback
+          </dt>
           <dd className="mt-2 font-serif text-[20px] text-ink-950 tabular-nums">
             <Explain id="calc.payback" label="Payback period">
               {result.paybackMonths === null || result.paybackMonths >= 120
@@ -83,7 +87,9 @@ export function VerdictRail({
           </dd>
         </div>
         <div className="px-2 py-4">
-          <dt className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink-500">Cost / yr</dt>
+          <dt className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink-500">
+            Cost / yr
+          </dt>
           <dd className="mt-2 font-serif text-[20px] text-ink-950 tabular-nums">
             <Explain id="calc.cost" label="Annual cost">
               {formatUsd(result.annualCostUsd)}
@@ -167,7 +173,11 @@ export function VerdictRail({
           disabled={busy}
           className="btn-primary inline-flex w-full items-center justify-center gap-2 px-5 py-3 font-mono text-[11px] uppercase tracking-[0.18em] disabled:opacity-50"
         >
-          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+          {busy ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Download className="h-3.5 w-3.5" />
+          )}
           Download the justification
         </button>
       </div>

@@ -246,30 +246,50 @@ export function ValueCalculator({
     ...Object.fromEntries(FRAMING_QUESTIONS.map((q) => [q.key, q.question])),
   };
   const REPLACEMENT: Record<string, string> = {
-    gdpUsd: "Latest authorised national accounts release, with reporting year and responsible statistical authority.",
-    publicSpendPct: "Approved fiscal outturn or general-government expenditure series for the same reporting period.",
-    decisionsPerQuarter: "Cabinet decision register, filtered to decisions that commit capital, change incentives or reallocate programmes.",
-    latencyMonths: "Dated decision and first-progress records across a representative set of priority decisions.",
-    unmeasuredPct: "Programme expenditure mapped to approved outcomes, indicators, baselines and reporting coverage.",
-    topSectorSharePct: "Current national accounts value-added by sector, reconciled to the selected GDP period.",
-    servicesOfflinePct: "Government service inventory with transaction volumes and verified end-to-end digital completion status.",
-    unplannedPrioritySharePct: "Approved priority-sector list matched to current plans, named owners and sector shares of output.",
+    gdpUsd:
+      "Latest authorised national accounts release, with reporting year and responsible statistical authority.",
+    publicSpendPct:
+      "Approved fiscal outturn or general-government expenditure series for the same reporting period.",
+    decisionsPerQuarter:
+      "Cabinet decision register, filtered to decisions that commit capital, change incentives or reallocate programmes.",
+    latencyMonths:
+      "Dated decision and first-progress records across a representative set of priority decisions.",
+    unmeasuredPct:
+      "Programme expenditure mapped to approved outcomes, indicators, baselines and reporting coverage.",
+    topSectorSharePct:
+      "Current national accounts value-added by sector, reconciled to the selected GDP period.",
+    servicesOfflinePct:
+      "Government service inventory with transaction volumes and verified end-to-end digital completion status.",
+    unplannedPrioritySharePct:
+      "Approved priority-sector list matched to current plans, named owners and sector shares of output.",
   };
 
   const evidenceEntries = useMemo<EvidenceEntry[]>(() => {
     const keys = ["gdpUsd", "publicSpendPct", ...FRAMING_QUESTIONS.map((q) => q.key)] as Array<
-      keyof Pick<ValueInput, "gdpUsd" | "publicSpendPct" | "decisionsPerQuarter" | "latencyMonths" | "unmeasuredPct" | "topSectorSharePct" | "servicesOfflinePct" | "unplannedPrioritySharePct">
+      keyof Pick<
+        ValueInput,
+        | "gdpUsd"
+        | "publicSpendPct"
+        | "decisionsPerQuarter"
+        | "latencyMonths"
+        | "unmeasuredPct"
+        | "topSectorSharePct"
+        | "servicesOfflinePct"
+        | "unplannedPrioritySharePct"
+      >
     >;
     return keys.map((key) => {
       const factKey = INPUT_FACT[key];
       const fact = facts?.facts.find((item) => item.key === factKey);
       const proposal = facts?.proposed[key];
       const value = input[key];
-      const baseline = proposal?.value ?? (key === "gdpUsd"
-        ? COUNTRY_PRESETS.find((country) => country.code === presetCode)?.gdpUsd
-        : key === "publicSpendPct"
-          ? COUNTRY_PRESETS.find((country) => country.code === presetCode)?.publicSpendPct
-          : DEFAULT_INPUT[key]);
+      const baseline =
+        proposal?.value ??
+        (key === "gdpUsd"
+          ? COUNTRY_PRESETS.find((country) => country.code === presetCode)?.gdpUsd
+          : key === "publicSpendPct"
+            ? COUNTRY_PRESETS.find((country) => country.code === presetCode)?.publicSpendPct
+            : DEFAULT_INPUT[key]);
       const tolerance = key === "gdpUsd" ? 50_000_000 : 0.001;
       const adjusted = baseline != null && Math.abs(value - baseline) > tolerance;
       const grade = proposal?.grade ?? fact?.grade ?? "assumption";
@@ -278,12 +298,19 @@ export function ValueCalculator({
       return {
         key,
         label: INPUT_LABEL[key] ?? key,
-        display: key === "gdpUsd" ? formatUsd(value) : `${value}${question?.unit ? ` ${question.unit}` : key === "publicSpendPct" ? "% of GDP" : ""}`,
+        display:
+          key === "gdpUsd"
+            ? formatUsd(value)
+            : `${value}${question?.unit ? ` ${question.unit}` : key === "publicSpendPct" ? "% of GDP" : ""}`,
         state,
         grade,
-        source: adjusted ? "Scenario adjustment in this browser" : fact?.source ?? "regional reference value",
+        source: adjusted
+          ? "Scenario adjustment in this browser"
+          : (fact?.source ?? "regional reference value"),
         benchmark: fact?.regional?.display ?? null,
-        replacement: REPLACEMENT[key] ?? "Authorised administrative data with a named custodian and reporting period.",
+        replacement:
+          REPLACEMENT[key] ??
+          "Authorised administrative data with a named custodian and reporting period.",
       };
     });
   }, [facts, input, presetCode]);
@@ -296,7 +323,9 @@ export function ValueCalculator({
       state: "reference",
       grade: "assumption",
       source: "No public record available",
-      replacement: REPLACEMENT[key] ?? "Authorised administrative data with a named custodian and reporting period.",
+      replacement:
+        REPLACEMENT[key] ??
+        "Authorised administrative data with a named custodian and reporting period.",
     };
   const inspectEvidence = (key: string | null = null) => {
     setEvidenceKey(key);

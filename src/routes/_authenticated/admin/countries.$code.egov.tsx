@@ -9,6 +9,8 @@ import { NewPrdPanel } from "@/components/egov/NewPrdPanel";
 import { Explain } from "@/components/explain/Explain";
 import { deletePrd, listPrds, type PrdSummary } from "@/lib/egov/prd.functions";
 import { cn } from "@/lib/utils";
+import { Illustration } from "@/components/marketing/Illustration";
+import egovHero from "@/assets/illustrations/egov-hero.jpg.asset.json";
 import "@/lib/explain/egov-entries";
 
 export const Route = createFileRoute("/_authenticated/admin/countries/$code/egov")({
@@ -55,7 +57,6 @@ function EgovPage() {
 
   return (
     <SuperAdminShell
-      wide
       crumbs={[
         { label: "Countries", to: "/admin/countries" },
         { label: code, to: "/admin/countries/$code/onboard", params: { code } },
@@ -72,6 +73,12 @@ function EgovPage() {
             scaffold the platform's own repository.
           </p>
         </div>
+        <Illustration
+          src={egovHero.url}
+          alt="Engraving of a government portico becoming screens, with a pen and official seal"
+          variant="spot"
+          className="hidden w-full max-w-[260px] md:block"
+        />
         <div className="flex items-center gap-2">
           <Link
             to="/admin/countries/$code/government"

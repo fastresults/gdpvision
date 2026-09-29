@@ -2,7 +2,7 @@
 chamber: "02"
 chamber_name: Portfolio Workspaces
 accent: "#b98a2f"
-title: Ask a minister what their portfolio contributes.
+title: Show every minister how their portfolio moves growth.
 standfirst: In most governments that question starts a procurement. Weeks later a consultant returns a figure and the Ministry of Finance disputes it. Meanwhile one sector carries most of the economy and every other ministry is arguing blind.
 byline: Adam Anderson
 byline_role: OPEN Interactive

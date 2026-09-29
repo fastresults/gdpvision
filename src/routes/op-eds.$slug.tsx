@@ -155,7 +155,7 @@ function OpEdPage() {
         <div className="mx-auto max-w-[1280px] px-6 py-16 md:px-10 md:py-20">
           <div className="max-w-[680px]">
             <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-              The opening
+              Why this matters
             </div>
             <div className="mt-6 space-y-6">
               {op.excerpt.map((para, i) => (
@@ -230,7 +230,7 @@ function OpEdPage() {
         <section className="border-b border-line-200">
           <div className="mx-auto max-w-[1280px] px-6 py-16 md:px-10">
             <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-              Where this lives in the instrument
+              How GDPVision addresses this
             </div>
             <div className="mt-6 grid gap-8 md:grid-cols-[1fr_280px] md:items-center">
               <div>
@@ -268,7 +268,7 @@ function OpEdPage() {
         <div className="mx-auto max-w-[1280px] px-6 py-14 md:px-10">
           <div className="max-w-[680px]">
             <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-              The author
+              About the author
             </div>
             <p className="mt-4 text-[15px] leading-relaxed text-ink-700">{OP_ED_AUTHOR.note}</p>
           </div>
@@ -280,7 +280,7 @@ function OpEdPage() {
         <section>
           <div className="mx-auto max-w-[1280px] px-6 py-16 md:px-10">
             <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-              The rest of the series
+              Continue with the other arguments
             </div>
             <div className="mt-8 grid gap-x-8 gap-y-8 border-t border-line-200 pt-8 md:grid-cols-2 lg:grid-cols-3">
               {others.map((o) => (

@@ -2,7 +2,7 @@
 chamber: "00"
 chamber_name: The Instrument
 accent: "#a86a2f"
-title: The region is being asked to replace half its revenue with the instruments of the last century.
+title: Replace exposed national revenue before the deadline arrives.
 standfirst: Citizenship by Investment reaches half of government revenue in the upper band of five OECS states, and its phase-out has a date. The harder problem is that the region is being asked to engineer that transition using evidence that arrives eighteen months late.
 byline: Adam Anderson
 byline_role: OPEN Interactive

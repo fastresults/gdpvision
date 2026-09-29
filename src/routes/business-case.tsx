@@ -50,7 +50,7 @@ import artBriefingRoom from "@/assets/illustrations/bc-briefing-room.jpg.asset.j
 import ogImage from "@/assets/gdpvision-og.jpg";
 
 const SITE_URL = "https://gdpvision.com";
-const TITLE = "The business case for GDPVision — a decision paper";
+const TITLE = "Should government procure GDPVision? — a decision paper";
 const DESCRIPTION =
   "Why national economic decisions need a governed, government-controlled system: the stakes, the required standard, the available options, the approvals, and the recommended path.";
 

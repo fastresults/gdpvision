@@ -2,7 +2,7 @@
 chamber: "05"
 chamber_name: The Narrative Chamber
 accent: "#8e2f3c"
-title: Zero seats.
+title: Prepare the national position before outside rules take effect.
 standfirst: The OECS holds no votes on the body setting the global minimum tax. When the rules that price your economy are written elsewhere, the one thing still within your control is whether you arrive at the argument prepared.
 byline: Adam Anderson
 byline_role: OPEN Interactive

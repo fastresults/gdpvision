@@ -30,7 +30,11 @@ import { Term, termMonths } from "@/components/brief/figures/Term";
 import { Waterfall } from "@/components/brief/figures/Waterfall";
 import { briefPalette } from "@/components/brief/figures/shared";
 import { briefUrl, decodeBrief, encodeBrief } from "@/lib/calculator/brief-link";
-import { proposedInputForCountry, proposeSequence } from "@/lib/calculator/proposal";
+import {
+  proposedInputForCountry,
+  proposeSequence,
+  SEQUENCE_ADOPTION,
+} from "@/lib/calculator/proposal";
 import type { AdviserContext } from "@/lib/calculator/adviser.server";
 import { FramingCard } from "@/components/brief/FramingCard";
 import {

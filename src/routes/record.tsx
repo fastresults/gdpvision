@@ -20,6 +20,7 @@ import {
   EffortBars,
   FigureJourney,
   GradeRing,
+  SovereignIntelligenceFlywheel,
   TrustScale,
 } from "@/components/record/RecordVisuals";
 
@@ -260,6 +261,25 @@ function RecordPage() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* SOVEREIGN INTELLIGENCE FLYWHEEL */}
+      <section className={SECTION}>
+        <div className={WRAP}>
+          <SectionHeader
+            eyebrow="How the system works"
+            title="Three systems combine to turn scattered national evidence into stronger economic decisions."
+            lede="The Corpus gathers and grades public evidence. The Sovereign Vault protects the records that must remain in government. The Second Brain connects both into a national memory that helps leaders act faster, prepare stronger investments and improve delivery."
+          />
+          <SovereignIntelligenceFlywheel
+            country={facts.data?.name ?? code}
+            stats={stats.data ?? null}
+          />
+          <p className="mt-7 max-w-3xl border-l-2 border-gold-500 pl-4 text-[14px] leading-relaxed text-ink-700">
+            Better evidence does not guarantee growth. It improves the decisions, delivery and
+            investor confidence that make durable growth more achievable.
+          </p>
         </div>
       </section>
 

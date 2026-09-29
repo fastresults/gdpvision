@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Archive, BrainCircuit, Landmark, LockKeyhole, RotateCcw, TrendingUp } from "lucide-react";
 
 import { Explain } from "@/components/explain/Explain";
 import type { CountryFacts, FactGrade } from "@/lib/calculator/facts.server";
@@ -9,6 +10,294 @@ import { useCountUp, useInView } from "./useInView";
 
 const MICRO = "font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500";
 const nf = (n: number) => n.toLocaleString("en-GB");
+
+type FlywheelStage = "corpus" | "vault" | "brain" | "record" | "growth";
+
+const FLYWHEEL_DETAIL: Record<
+  FlywheelStage,
+  { label: string; title: string; body: string; governance: string }
+> = {
+  corpus: {
+    label: "01 · Gather and grade",
+    title: "The Corpus",
+    body: "Public statistics, budgets, reports and measures are read, cited, graded and kept current. Duplicate evidence is merged rather than counted twice.",
+    governance: "Only public evidence enters this stream; every figure keeps its source and grade.",
+  },
+  vault: {
+    label: "02 · Protect and approve",
+    title: "The Sovereign Vault",
+    body: "Sensitive national records remain under government control. Approved findings can inform a decision without exposing the records beneath them.",
+    governance: "Named officials control what may leave the secure boundary, and every access is recorded.",
+  },
+  brain: {
+    label: "03 · Connect and remember",
+    title: "The Second Brain",
+    body: "Evidence is connected across countries, ministries, sectors, programmes and past decisions so the state can find what it knows and see what is missing.",
+    governance: "Relationships add context; they never remove the source, grade or access rules of the underlying evidence.",
+  },
+  record: {
+    label: "04 · Govern once",
+    title: "One National Record",
+    body: "Public evidence, approved findings and institutional memory resolve into one governed view for briefings, scenarios, investments and delivery.",
+    governance: "The view shows which evidence is public, restricted or approved, so unlike records are never confused.",
+  },
+  growth: {
+    label: "05 · Act with confidence",
+    title: "Conditions for durable growth",
+    body: "Leaders can prepare stronger investments, improve delivery, identify risks earlier and make productivity decisions from a shared evidence base.",
+    governance: "This is a pathway to better decisions—not a forecast or a promise that technology alone raises GDP.",
+  },
+};
+
+function FlywheelNode({
+  stage,
+  active,
+  onActive,
+  eyebrow,
+  title,
+  meta,
+  icon,
+  delay,
+}: {
+  stage: FlywheelStage;
+  active: FlywheelStage;
+  onActive: (stage: FlywheelStage) => void;
+  eyebrow: string;
+  title: string;
+  meta: string;
+  icon: React.ReactNode;
+  delay: number;
+}) {
+  return (
+    <button
+      type="button"
+      onMouseEnter={() => onActive(stage)}
+      onFocus={() => onActive(stage)}
+      onClick={() => onActive(stage)}
+      aria-pressed={active === stage}
+      className={`record-flywheel-stage btn-ghost group relative flex min-h-[146px] w-full flex-col items-start border p-5 text-left ${
+        active === stage ? "border-gold-500 bg-paper-50" : "border-line-200 bg-paper-0"
+      }`}
+      style={{ "--stage-delay": `${delay}ms` } as React.CSSProperties}
+    >
+      <span
+        className={`flex h-9 w-9 items-center justify-center border transition-colors ${
+          active === stage ? "border-gold-500 text-gold-500" : "border-line-200 text-ink-700"
+        }`}
+        aria-hidden
+      >
+        {icon}
+      </span>
+      <span className="mt-5 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
+        {eyebrow}
+      </span>
+      <span className="mt-1 font-serif text-[20px] leading-tight text-ink-950">{title}</span>
+      <span className="mt-2 text-[12px] leading-relaxed text-ink-500">{meta}</span>
+      <span
+        className={`absolute inset-x-0 bottom-0 h-0.5 transition-colors ${active === stage ? "bg-gold-500" : "bg-transparent"}`}
+        aria-hidden
+      />
+    </button>
+  );
+}
+
+/** Explains how the three governed systems combine before any economic outcome is claimed. */
+export function SovereignIntelligenceFlywheel({
+  country,
+  stats,
+}: {
+  country: string;
+  stats: CorpusStats | null;
+}) {
+  const { ref, seen } = useInView<HTMLDivElement>(0.18);
+  const [active, setActive] = useState<FlywheelStage>("brain");
+  const [paused, setPaused] = useState(false);
+  const [run, setRun] = useState(0);
+  const detail = FLYWHEEL_DETAIL[active];
+  const corpusMeta = stats
+    ? `${nf(stats.sources)} sources · ${nf(stats.passages)} passages`
+    : "Cited public evidence";
+
+  const choose = (stage: FlywheelStage) => {
+    setActive(stage);
+    setPaused(true);
+  };
+
+  return (
+    <div ref={ref} className="mt-12">
+      <div className="flex items-center justify-between gap-5 border-b border-line-200 pb-4">
+        <div className={MICRO}>Sovereign intelligence system · {country}</div>
+        <button
+          type="button"
+          onClick={() => {
+            setRun((value) => value + 1);
+            setPaused(false);
+            setActive("brain");
+          }}
+          className="btn-ghost inline-flex items-center gap-2 px-3 py-1.5 text-[10px]"
+        >
+          <RotateCcw className="h-3.5 w-3.5" aria-hidden /> Replay
+        </button>
+      </div>
+
+      <div
+        key={run}
+        className={`record-flywheel relative py-8 ${seen ? "record-flywheel-run" : ""} ${paused ? "record-flywheel-paused" : ""}`}
+        onMouseLeave={() => setPaused(false)}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false);
+        }}
+      >
+        <svg
+          viewBox="0 0 1000 410"
+          className="pointer-events-none absolute inset-0 hidden h-full w-full lg:block"
+          aria-hidden
+        >
+          <path d="M170 112 C250 112 260 205 386 205" className="record-flywheel-line" />
+          <path d="M830 112 C750 112 740 205 614 205" className="record-flywheel-line" />
+          <path d="M500 112 L500 160" className="record-flywheel-line" />
+          <path d="M500 250 L500 304" className="record-flywheel-line record-flywheel-line-gold" />
+          <path d="M500 352 C610 352 650 326 790 326" className="record-flywheel-line record-flywheel-line-gold" />
+          {[0, 1, 2].map((index) => (
+            <circle
+              key={`left-${index}`}
+              cx="170"
+              cy="112"
+              r="4"
+              className="record-flywheel-particle fill-gold-500"
+              style={{ animationDelay: `${index * 1.1}s` }}
+            />
+          ))}
+          {[0, 1, 2].map((index) => (
+            <circle
+              key={`right-${index}`}
+              cx="830"
+              cy="112"
+              r="4"
+              className="record-flywheel-particle record-flywheel-particle-reverse fill-ink-700"
+              style={{ animationDelay: `${index * 1.1 + 0.5}s` }}
+            />
+          ))}
+        </svg>
+
+        <div className="relative grid gap-4 lg:grid-cols-3">
+          <FlywheelNode
+            stage="corpus"
+            active={active}
+            onActive={choose}
+            eyebrow="Public evidence"
+            title="Corpus"
+            meta={corpusMeta}
+            icon={<Archive className="h-4 w-4" />}
+            delay={0}
+          />
+          <FlywheelNode
+            stage="brain"
+            active={active}
+            onActive={choose}
+            eyebrow="Connected memory"
+            title="Second Brain"
+            meta="Country · ministry · sector · decision"
+            icon={<BrainCircuit className="h-4 w-4" />}
+            delay={500}
+          />
+          <FlywheelNode
+            stage="vault"
+            active={active}
+            onActive={choose}
+            eyebrow="State-owned records"
+            title="Sovereign Vault"
+            meta="Protected in government · findings approved"
+            icon={<LockKeyhole className="h-4 w-4" />}
+            delay={1000}
+          />
+        </div>
+
+        <div className="relative mx-auto mt-14 max-w-[520px]">
+          <FlywheelNode
+            stage="record"
+            active={active}
+            onActive={choose}
+            eyebrow="Governed national memory"
+            title={`One ${country} record`}
+            meta="One view for briefings, scenarios, investments and delivery"
+            icon={<Landmark className="h-4 w-4" />}
+            delay={1700}
+          />
+        </div>
+
+        <div className="relative mt-14 grid gap-5 border-t border-line-200 pt-7 lg:grid-cols-[1fr_1.35fr] lg:items-end">
+          <div>
+            <div className={MICRO}>Decisions strengthened</div>
+            <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 text-[13px] text-ink-700">
+              {[
+                "Stronger investment cases",
+                "Faster public delivery",
+                "Risks found earlier",
+                "Better productivity choices",
+              ].map((label, index) => (
+                <div
+                  key={label}
+                  className="record-flywheel-outcome flex items-start gap-2 border-l border-gold-500 pl-3"
+                  style={{ "--stage-delay": `${2300 + index * 250}ms` } as React.CSSProperties}
+                >
+                  {label}
+                </div>
+              ))}
+            </div>
+          </div>
+          <button
+            type="button"
+            onMouseEnter={() => choose("growth")}
+            onFocus={() => choose("growth")}
+            onClick={() => choose("growth")}
+            aria-pressed={active === "growth"}
+            className={`record-flywheel-growth btn-ghost relative min-h-[118px] w-full overflow-hidden border p-5 text-left ${
+              active === "growth" ? "border-gold-500 bg-paper-50" : "border-line-200 bg-paper-0"
+            }`}
+          >
+            <TrendingUp className="absolute right-5 top-5 h-5 w-5 text-gold-500" aria-hidden />
+            <svg viewBox="0 0 420 70" className="absolute inset-x-0 bottom-0 w-full" aria-hidden>
+              <path
+                d="M0 62 C65 61 90 53 138 55 S220 42 260 44 S330 28 420 8"
+                className="record-growth-path fill-none stroke-gold-500"
+                strokeWidth="2"
+              />
+              <path
+                d="M0 68 C65 67 90 59 138 61 S220 48 260 50 S330 34 420 14 L420 70 L0 70 Z"
+                className="fill-paper-100 opacity-60"
+              />
+            </svg>
+            <span className="relative font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
+              Potential economic effect · not a forecast
+            </span>
+            <span className="relative mt-2 block max-w-sm font-serif text-[21px] leading-tight text-ink-950">
+              Conditions for higher, durable GDP
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div aria-live="polite" className="grid gap-3 border-y border-line-200 py-5 sm:grid-cols-[190px_1fr] sm:gap-8">
+        <div>
+          <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-gold-500">
+            {detail.label}
+          </div>
+          <h3 className="mt-2 font-serif text-[22px] leading-tight text-ink-950">{detail.title}</h3>
+        </div>
+        <div>
+          <p className="text-[14px] leading-relaxed text-ink-700">{detail.body}</p>
+          <p className="mt-2 text-[12px] leading-relaxed text-ink-500">{detail.governance}</p>
+          {active === "growth" ? (
+            <div className="mt-3 text-[12px] text-ink-500">
+              <Explain id="record.growth-pathway">Why this is not a GDP forecast</Explain>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /* 1. Hero constellation                                               */

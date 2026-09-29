@@ -37,6 +37,18 @@ const entries: Array<Rationale<Record<string, never>>> = [
     caveat: "Actual gains depend on how complete the country's record is.",
     derive: () => [],
   },
+  {
+    key: "record.growth-pathway",
+    title: "Why this is not a GDP forecast",
+    short: "The line shows a decision pathway, not a predicted rate of economic growth.",
+    formula:
+      "Trusted evidence → better-targeted decisions → stronger investment, delivery, resilience and productivity conditions.",
+    basis:
+      "GDPVision supports the quality and speed of decisions; economic results still depend on policy, execution and outside conditions.",
+    caveat:
+      "No uplift, timetable or causal effect is claimed. A quantified forecast belongs in a country-specific Decision Brief with stated assumptions.",
+    derive: () => [],
+  },
 ];
 
 registerRationales(entries as never);

@@ -41,7 +41,7 @@ export const OP_EDS: OpEd[] = [
     chamberName: "The Instrument",
     accent: "#a86a2f",
     status: "published",
-    title: "The region is being asked to replace half its revenue with the instruments of the last century.",
+    title: "Replace exposed national revenue before the deadline arrives.",
     standfirst: "Citizenship by Investment reaches half of government revenue in the upper band of five OECS states, and its phase-out has a date. The harder problem is that the region is being asked to engineer that transition using evidence that arrives eighteen months late.",
     promise: "One argument, twelve minutes, every figure sourced.",
     excerpt: [
@@ -69,7 +69,7 @@ export const OP_EDS: OpEd[] = [
     chamberName: "The National Ledger",
     accent: "#1e3350",
     status: "published",
-    title: "Governing from a photograph.",
+    title: "Cabinet needs current evidence, not an old picture.",
     standfirst: "Authoritative sector data reaches a Caribbean Cabinet roughly eighteen months after the period it describes. We ask governments to steer an economy using a picture of where it used to be — and then to defend the picture as though it were a window.",
     promise: "One argument, twelve minutes, every figure sourced.",
     excerpt: [
@@ -91,7 +91,7 @@ export const OP_EDS: OpEd[] = [
     chamberName: "Portfolio Workspaces",
     accent: "#b98a2f",
     status: "published",
-    title: "Ask a minister what their portfolio contributes.",
+    title: "Show every minister how their portfolio moves growth.",
     standfirst: "In most governments that question starts a procurement. Weeks later a consultant returns a figure and the Ministry of Finance disputes it. Meanwhile one sector carries most of the economy and every other ministry is arguing blind.",
     promise: "One argument, twelve minutes, every figure sourced.",
     excerpt: [
@@ -114,7 +114,7 @@ export const OP_EDS: OpEd[] = [
     chamberName: "The Scenario Engine",
     accent: "#5b4fa8",
     status: "published",
-    title: "Two hundred and twenty-six per cent, in a single night.",
+    title: "Rehearse every fiscal plan against the next major storm.",
     standfirst: "Hurricane Maria cost Dominica more than two years of national output in one evening. Every fiscal plan in this region is written inside a hurricane corridor. Almost none of them is rehearsed against one.",
     promise: "One argument, twelve minutes, every figure sourced.",
     excerpt: [
@@ -138,7 +138,7 @@ export const OP_EDS: OpEd[] = [
     chamberName: "The FDI Transition Studio",
     accent: "#a86a2f",
     status: "published",
-    title: "The date is set. The replacement is not.",
+    title: "Price the revenue gap before the deadline arrives.",
     standfirst: "Five OECS states built a revenue pillar that Brussels has now scheduled for demolition. The question is no longer whether to diversify. It is whether anyone has priced the hole.",
     promise: "One argument, twelve minutes, every figure sourced.",
     excerpt: [
@@ -161,7 +161,7 @@ export const OP_EDS: OpEd[] = [
     chamberName: "The Narrative Chamber",
     accent: "#8e2f3c",
     status: "published",
-    title: "Zero seats.",
+    title: "Prepare the national position before outside rules take effect.",
     standfirst: "The OECS holds no votes on the body setting the global minimum tax. When the rules that price your economy are written elsewhere, the one thing still within your control is whether you arrive at the argument prepared.",
     promise: "One argument, twelve minutes, every figure sourced.",
     excerpt: [
@@ -185,7 +185,7 @@ export const OP_EDS: OpEd[] = [
     chamberName: "The Cabinet Room",
     accent: "#7a4a6b",
     status: "published",
-    title: "What happened to the decision?",
+    title: "Track every Cabinet decision through delivery.",
     standfirst: "Minutes record what was said. They do not record what was decided, who carries it, or whether it landed. In economies where a quarter of revenue is spoken for before Cabinet sits, that gap is not untidiness. It is money.",
     promise: "One argument, twelve minutes, every figure sourced.",
     excerpt: [
@@ -208,7 +208,7 @@ export const OP_EDS: OpEd[] = [
     chamberName: "Persona Lab",
     accent: "#6f8a3a",
     status: "published",
-    title: "We are exporting the people we need, and guessing at how to keep them.",
+    title: "Test retention policy with the people it must keep.",
     standfirst: "Up to seventy per cent of tertiary-educated citizens have left the upper band of Caribbean states. Retention policy is written, announced, and only then discovered to have missed the people it was written for.",
     promise: "One argument, twelve minutes, every figure sourced.",
     excerpt: [
@@ -232,7 +232,7 @@ export const OP_EDS: OpEd[] = [
     chamberName: "The Mandate Compact",
     accent: "#2e7d5b",
     status: "published",
-    title: "Someone will grade your manifesto. It should be you.",
+    title: "Track the manifesto before someone else grades it.",
     standfirst: "Every government publishes a programme and then loses track of it. The scorecard gets built regardless — by a journalist, an NGO, or the opposition. The only real choice is whose numbers the public sees first.",
     promise: "One argument, twelve minutes, every figure sourced.",
     excerpt: [

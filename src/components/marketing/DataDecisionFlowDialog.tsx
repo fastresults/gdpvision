@@ -66,10 +66,10 @@ export function DataDecisionFlowDialog() {
               <div>
                 <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">The National Decision Engine</div>
                 <DialogPrimitive.Title className="mt-1 font-display text-2xl text-ink-950 md:text-3xl">
-                  How evidence becomes better decisions — and more GDP
+                  How a nation decides faster — and why that raises GDP
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Description className="mt-1 max-w-2xl text-[14px] text-ink-700">
-                  Every part of the platform, and how it moves the economy forward.
+                  One flow, five steps: evidence in, protected, worked, decided, GDP up.
                 </DialogPrimitive.Description>
               </div>
               <DialogPrimitive.Close className="btn-ghost shrink-0" aria-label="Close">

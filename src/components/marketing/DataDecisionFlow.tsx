@@ -463,10 +463,28 @@ export function DataDecisionFlow() {
           </div>
         ) : (
           <div className="text-[14px] leading-relaxed text-ink-700">
-            <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">How to read this map</div>
-            <p className="mt-2">Evidence enters on the left, is checked and protected in the Second Brain, worked by ten Chambers, and becomes decisions that lift output on the right.</p>
-            <p className="mt-3">Select any box to pause and see what it does and why it matters. Use the path buttons to follow one thread.</p>
+            <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">How this flow works</div>
+            <ol className="mt-2 space-y-2.5">
+              {[
+                ["Evidence in.", "Real national data enters: statistics, ministries, KPIs, capital flows, peer benchmarks — and private records too."],
+                ["Protected.", "Every source is checked, cited and graded in the Second Brain. Private data stays on state-owned servers in the Vault."],
+                ["Worked.", "Ten Chambers understand, rehearse, decide and deliver — every option tested before it is announced."],
+                ["Decided.", "Costed, cited briefs; tracked commitments; investor packages ready to fund the plan."],
+                ["GDP rises.", "Less decision delay, better-targeted spending, new investment — results published, and each cycle decides faster."],
+              ].map(([head, body], i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="font-mono text-[11px] font-semibold text-gold-500">{String(i + 1).padStart(2, "0")}</span>
+                  <span>
+                    <strong className="font-semibold text-ink-950">{head}</strong> {body}
+                  </span>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-4 border-l-2 border-gold-500 pl-3 font-display text-[14px] italic leading-relaxed text-ink-950">
+              This is the loop that elevates GDP — and GDPVision runs it end to end: every number cited, every decision traceable, every record under national control. No other platform does this for a sovereign state.
+            </p>
             <p className="mt-3 text-ink-500">A pathway, never a forecast. Private data never leaves national control.</p>
+            <p className="mt-3 text-[13px] text-ink-500">Select any box to pause and see what it does. Use the path buttons to follow one thread.</p>
           </div>
         )}
       </aside>

@@ -109,7 +109,7 @@ export function SovereignIntelligenceFlywheel({
   country: string;
   stats: CorpusStats | null;
 }) {
-  const { ref, seen } = useInView<HTMLDivElement>(0.18);
+  const { ref, seen } = useInView<HTMLDivElement>(0.05);
   const [active, setActive] = useState<FlywheelStage>("brain");
   const [paused, setPaused] = useState(false);
   const [run, setRun] = useState(0);

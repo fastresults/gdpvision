@@ -43,9 +43,9 @@ const NAV_LINKS: Array<{
   { to: "/", hash: "instrument", label: "How it works", maxCh: 8 },
   { to: "/", hash: "sovereignty", label: "Sovereignty", maxCh: 13.5 },
   { to: "/vault", label: "The Vault", maxCh: 7 },
-  { to: "/record", label: "The National Record", maxCh: 15 },
-  { to: "/business-case", label: "The business case", maxCh: 15 },
-  { to: "/business-case/brief", label: "The Decision Brief", maxCh: 15 },
+  { to: "/record", label: "The National Record", maxCh: 16 },
+  { to: "/business-case", label: "The business case", maxCh: 16 },
+  { to: "/business-case/brief", label: "The Decision Brief", maxCh: 16 },
   { to: "/op-eds", label: "The writing", maxCh: 10 },
   { to: "/", hash: "briefing", label: "Request a Cabinet briefing", maxCh: 21, accent: true },
 ];

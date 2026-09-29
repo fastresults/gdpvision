@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
+import { SCENARIOS, CHAMBER_NAMES } from "./dataDecisionScenarios";
 
 type Path = "evidence" | "safeguards" | "money" | "delivery";
 type Band = 0 | 1 | 2 | 3 | 4;
@@ -62,79 +63,7 @@ const EDGES: [string, string][] = [
   ["brief", "cabinet"], ["cabinet", "commit"],
   ["cabinet", "delay"], ["commit", "delay"], ["brief", "spend"], ["commit", "spend"], ["invest", "capital"], ["commit", "record"],
   ["safeguards", "c07"], ["c07", "c05"], ["cabinet", "spend"], ["c02", "commit"], ["c09", "c06"], ["c06", "commit"], ["c01", "c03"],
-];
-
-interface Scenario {
-  title: string;
-  question: string;
-  steps: { edges: [string, string][]; text: string }[];
-  outcome: string;
-  loop?: boolean;
-}
-
-const SCENARIOS: Scenario[] = [
-  {
-    title: "Revenue shock",
-    question: "If Citizenship by Investment receipts fall, what replaces the revenue?",
-    steps: [
-      { edges: [["flows", "corpus"], ["stats", "corpus"]], text: "Capital flows and public statistics → Corpus: the revenue exposure is measured and cited." },
-      { edges: [["corpus", "c01"]], text: "Corpus → National Ledger: the gap is priced year by year." },
-      { edges: [["c01", "c03"]], text: "Ledger → Scenarios: replacement options are rehearsed against GDP." },
-      { edges: [["c03", "brief"]], text: "Scenarios → Decision Brief: the best options are costed on one page." },
-      { edges: [["brief", "cabinet"]], text: "Brief → Cabinet: ministers choose with the full picture." },
-      { edges: [["cabinet", "spend"]], text: "Cabinet → spending redirected to the highest-return replacements." },
-    ],
-    outcome: "Revenue gap closed before it becomes a crisis.",
-  },
-  {
-    title: "Attracting investment",
-    question: "Which sector can attract new investment, and what package wins it?",
-    steps: [
-      { edges: [["peers", "corpus"], ["flows", "corpus"]], text: "Peer benchmarks and capital flows → Corpus: what neighbours achieve, and where money leaks." },
-      { edges: [["corpus", "c10"], ["corpus", "c04"]], text: "Corpus → Sector Studio and FDI Studio: the growth plan and exposure are built together." },
-      { edges: [["c10", "invest"], ["c04", "invest"]], text: "Both → Investor packages: open-standard projects ready for investors." },
-      { edges: [["invest", "capital"]], text: "Packages → capital committed to national priorities." },
-    ],
-    outcome: "New capacity and jobs in a chosen sector.",
-  },
-  {
-    title: "Sensitive policy, tested first",
-    question: "Will citizens accept a sensitive reform — without exposing private data?",
-    steps: [
-      { edges: [["private", "vault"]], text: "Private records → Sovereign Vault: analysed on state-owned servers, never exported." },
-      { edges: [["vault", "safeguards"]], text: "Vault → approved findings only, each graded and explainable." },
-      { edges: [["safeguards", "c07"]], text: "Findings → Persona Lab: the reform is tested with simulated citizens and firms." },
-      { edges: [["c07", "c05"]], text: "Persona Lab → Narrative: the explanation is shaped before launch." },
-      { edges: [["c05", "cabinet"]], text: "Narrative → Cabinet: decided with public reaction already understood." },
-      { edges: [["cabinet", "delay"]], text: "Cabinet → fewer reversals and delays." },
-    ],
-    outcome: "Reform adopted faster; private data stayed in the country.",
-  },
-  {
-    title: "Mandate into delivery",
-    question: "How do election promises become tracked, delivered results?",
-    steps: [
-      { edges: [["manifestos", "corpus"], ["ministries", "corpus"]], text: "Manifestos and ministries → Corpus: promises matched to the ministries that own them." },
-      { edges: [["corpus", "c08"], ["corpus", "c02"]], text: "Corpus → Mandate Compact and Portfolios: promises become commitments with owners." },
-      { edges: [["c08", "commit"], ["c02", "commit"]], text: "Both → Tracked commitments: deadlines and KPIs for every one." },
-      { edges: [["commit", "record"]], text: "Commitments → results published on the National Record." },
-    ],
-    outcome: "Delivery on the record — and fed back as new evidence.",
-    loop: true,
-  },
-  {
-    title: "A digital service",
-    question: "Which digital service removes the most friction for citizens and business?",
-    steps: [
-      { edges: [["kpis", "corpus"], ["ministries", "corpus"]], text: "KPIs and ministries → Corpus: where time and cost are lost today." },
-      { edges: [["corpus", "c09"]], text: "Corpus → Digital Government: the service is designed and approved." },
-      { edges: [["c09", "c06"]], text: "Digital Government → Cabinet Room: rollout decided and scheduled." },
-      { edges: [["c06", "commit"]], text: "Cabinet Room → Tracked commitments: owners and dates." },
-      { edges: [["commit", "delay"], ["commit", "record"]], text: "Commitments → less friction, recorded publicly." },
-    ],
-    outcome: "Hours saved for every business and citizen who uses it.",
-    loop: true,
-  },
+  ["vault", "c05"], ["c04", "c03"], ["c08", "c02"], ["safeguards", "c09"],
 ];
 
 if (import.meta.env.DEV) {
@@ -188,6 +117,8 @@ function edgePath(a: string, b: string) {
 
 export function DataDecisionFlow() {
   const pos = POS;
+  const [chamber, setChamber] = useState<string>("all");
+  const playlist = useMemo(() => (chamber === "all" ? SCENARIOS : SCENARIOS.filter((x) => x.chamber === chamber)), [chamber]);
   const [scn, setScn] = useState(0);
   const [step, setStep] = useState(-1); // -1 = drawing
   const [playing, setPlaying] = useState(true);
@@ -200,7 +131,7 @@ export function DataDecisionFlow() {
     setReduce(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, []);
 
-  const S = SCENARIOS[scn];
+  const S = playlist[scn] ?? playlist[0];
   useEffect(() => {
     if (reduce) {
       setStep(S.steps.length);
@@ -213,21 +144,27 @@ export function DataDecisionFlow() {
     else if (step >= S.steps.length) {
       ms = HOLD_MS + (S.loop ? 1400 : 0);
       next = () => {
-        setScn((i) => (i + 1) % SCENARIOS.length);
+        setScn((i) => (i + 1) % playlist.length);
         setStep(0);
       };
     }
     const t = window.setTimeout(next, ms);
     return () => window.clearTimeout(t);
-  }, [step, scn, paused, playing, reduce, S]);
+  }, [step, scn, paused, playing, reduce, S, playlist.length]);
 
-  const jump = (i: number) => {
+  const jump = (i: number, list = playlist) => {
     setFilter(null);
     setSelected(null);
     setPlaying(true);
     setScn(i);
-    setStep(reduce ? SCENARIOS[i].steps.length : 0);
+    setStep(reduce ? list[i].steps.length : 0);
   };
+  const pickChamber = (c: string) => {
+    setChamber(c);
+    const list = c === "all" ? SCENARIOS : SCENARIOS.filter((x) => x.chamber === c);
+    jump(0, list);
+  };
+  const chamberScenarios = chamber === "all" ? [] : playlist;
 
   const running = step >= 0;
   const doneSteps = running ? S.steps.slice(0, Math.min(step + 1, S.steps.length)) : [];
@@ -278,18 +215,18 @@ export function DataDecisionFlow() {
     <div className="flex h-full min-h-0 flex-col gap-4 lg:flex-row">
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="mb-3 flex flex-wrap items-center gap-3">
-          <div className="flex gap-1" role="tablist" aria-label="Scenarios">
-            {SCENARIOS.map((sc, i) => (
+          <div className="-mx-1 flex max-w-full gap-1 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Chambers">
+            {["all", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10"].map((c) => (
               <button
-                key={sc.title}
+                key={c}
                 type="button"
                 role="tab"
-                aria-selected={i === scn && running}
-                aria-label={`Scenario ${i + 1}: ${sc.title}`}
-                onClick={() => jump(i)}
-                className={cn("card-choice h-9 w-9 font-mono text-[12px]", i === scn && running && "card-choice-active")}
+                aria-selected={chamber === c}
+                aria-label={c === "all" ? "All scenarios" : `Chamber ${c} ${CHAMBER_NAMES[c]}`}
+                onClick={() => pickChamber(c)}
+                className={cn("card-choice h-9 shrink-0 px-2.5 font-mono text-[12px]", chamber === c && "card-choice-active")}
               >
-                {i + 1}
+                {c === "all" ? "All" : c}
               </button>
             ))}
           </div>
@@ -301,6 +238,25 @@ export function DataDecisionFlow() {
             {playing && mode === "scenario" ? "Pause" : "Play"}
           </button>
         </div>
+        {chamberScenarios.length > 0 && (
+          <div className="mb-3 grid gap-2 sm:grid-cols-2">
+            <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500 sm:col-span-2">
+              Chamber {chamber} · {CHAMBER_NAMES[chamber]} — choose a scenario to run
+            </div>
+            {chamberScenarios.map((sc, i) => (
+              <button
+                key={sc.title}
+                type="button"
+                aria-pressed={i === scn && running}
+                onClick={() => jump(i)}
+                className={cn("card-choice px-3 py-2 text-left text-[13px]", i === scn && running ? "card-choice-active" : "text-ink-950")}
+              >
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] opacity-70">Scenario {i + 1} · {sc.title}</span>
+                <span className="mt-0.5 block">{sc.question}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <div className="mb-3 min-h-[64px] border-l-2 border-gold-500 pl-3" aria-live="polite">
           {mode !== "scenario" ? (
             <div className="pt-2 text-[14px] text-ink-700">
@@ -309,7 +265,7 @@ export function DataDecisionFlow() {
           ) : running ? (
             <>
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-                Scenario {scn + 1} of {SCENARIOS.length} — {S.title}
+                Chamber {S.chamber} · {CHAMBER_NAMES[S.chamber]} · Scenario {scn + 1} of {playlist.length} — {S.title}
               </div>
               <div className="font-display text-lg text-ink-950 md:text-xl">{S.question}</div>
               <div className="text-[14px] text-ink-700">

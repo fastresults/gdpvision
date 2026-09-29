@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Replace the homepage Sovereignty engraving with the animated Sovereign Custody Seal
+- [x] Replace the homepage Sovereignty engraving with the animated Sovereign Custody Seal
 
 - [x] Replace the Vault hardware photograph with the animated Sovereign Decision Circuit
 

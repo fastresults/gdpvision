@@ -39,7 +39,7 @@ import {
   WORTH,
   WORTH_INTRO,
 } from "@/lib/business-case";
-import artInstrument from "@/assets/illustrations/bc-instrument.jpg.asset.json";
+import { CorpusChamberRing } from "@/components/marketing/CorpusChamberRing";
 import artCliff from "@/assets/illustrations/bc-cliff.jpg.asset.json";
 import artLag from "@/assets/illustrations/bc-lag.jpg.asset.json";
 import artComponent from "@/assets/illustrations/bc-component.jpg.asset.json";
@@ -118,7 +118,7 @@ function BusinessCasePage() {
       {/* Masthead */}
       <section className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-28">
-          <div className="grid gap-10 md:grid-cols-[1fr_320px] md:items-center">
+          <div className="grid gap-10 md:grid-cols-[1fr_360px] md:items-center">
             <div className="min-w-0">
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
                 {BUSINESS_CASE_META.eyebrow}
@@ -145,7 +145,7 @@ function BusinessCasePage() {
               </div>
             </div>
             <div className="hidden justify-self-end md:block">
-              <Illustration src={artInstrument.url} variant="spot" />
+              <CorpusChamberRing />
             </div>
           </div>
         </div>

@@ -578,3 +578,33 @@
   .record-flywheel-stage, .record-flywheel-outcome, .record-flywheel-growth { opacity: 1; transform: none; }
   .record-growth-path { stroke-dashoffset: 0; }
 }
+
+/* Business Case hero — Corpus + ten Chambers ring */
+.ccr .ccr-piece { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(-8deg); }
+.ccr .ccr-draw { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.ccr .ccr-frag { opacity: 0; }
+.ccr .ccr-rise { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.ccr .ccr-caption { opacity: 0; }
+.ccr .ccr-glow { opacity: 0; }
+.ccr-on .ccr-draw { animation: ccr-draw 1.2s ease-out forwards; }
+.ccr-on .ccr-frag { animation: ccr-frag 1.4s ease-in forwards; }
+.ccr-on .ccr-piece { animation: ccr-click .55s cubic-bezier(.2,.9,.3,1.2) forwards; animation-delay: calc(1.1s + var(--i) * .38s); }
+.ccr-on .ccr-glow { animation: ccr-flash .7s ease-out calc(1.5s + var(--i) * .38s), ccr-idle 30s ease-in-out calc(6s + var(--i) * 3s) infinite; }
+.ccr-on .ccr-rise { animation: ccr-draw 1.4s ease-out 5s forwards; }
+.ccr-on .ccr-caption { animation: ccr-fade .8s ease-out 5.4s forwards; }
+.ccr-on .ccr-core { animation: ccr-breath 5s ease-in-out 1.2s infinite; }
+.ccr-on .ccr-spin { animation: ccr-spin 90s linear 6s infinite; }
+.ccr:hover .ccr-spin, .ccr:focus-within .ccr-spin { animation-play-state: paused; }
+@keyframes ccr-draw { to { stroke-dashoffset: 0; } }
+@keyframes ccr-frag { 0% { opacity: 0; transform: translate(var(--fx), var(--fy)); } 30% { opacity: .8; } 100% { opacity: 0; transform: translate(0, 0); } }
+@keyframes ccr-click { to { opacity: 1; transform: translate(0, 0) rotate(0); } }
+@keyframes ccr-flash { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes ccr-idle { 0%, 94%, 100% { opacity: 0; } 97% { opacity: .7; } }
+@keyframes ccr-fade { to { opacity: 1; } }
+@keyframes ccr-breath { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.025); } }
+@keyframes ccr-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .ccr .ccr-piece, .ccr .ccr-caption { opacity: 1; transform: none; animation: none !important; }
+  .ccr .ccr-draw, .ccr .ccr-rise { stroke-dashoffset: 0; animation: none !important; }
+  .ccr .ccr-frag, .ccr .ccr-glow, .ccr .ccr-core, .ccr .ccr-spin { animation: none !important; }
+}

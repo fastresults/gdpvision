@@ -47,6 +47,7 @@ import artLedgerCost from "@/assets/illustrations/bc-ledger-cost.jpg.asset.json"
 import artPaths from "@/assets/illustrations/bc-paths.jpg.asset.json";
 import artSeal from "@/assets/illustrations/bc-seal.jpg.asset.json";
 import artBriefingRoom from "@/assets/illustrations/bc-briefing-room.jpg.asset.json";
+import adamAndersonPortrait from "@/assets/illustrations/adam-anderson-engraved-profile.jpg.asset.json";
 import ogImage from "@/assets/gdpvision-og.jpg";
 
 const SITE_URL = "https://gdpvision.com";
@@ -130,8 +131,17 @@ function BusinessCasePage() {
               <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-ink-700">
                 {BUSINESS_CASE_META.standfirst}
               </p>
-              <div className="mt-8 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
-                {BUSINESS_CASE_META.author} · {BUSINESS_CASE_META.org}
+              <div className="mt-8 flex items-center gap-4">
+                <Illustration
+                  src={adamAndersonPortrait.url}
+                  alt="Graphite portrait of Adam Anderson"
+                  variant="mark"
+                  className="w-[72px] shrink-0 overflow-hidden rounded-full border border-line-200 bg-paper-0 md:w-[84px] [&>img]:aspect-square [&>img]:object-cover"
+                />
+                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
+                  <div className="font-semibold text-ink-950">{BUSINESS_CASE_META.author}</div>
+                  <div className="mt-1">{BUSINESS_CASE_META.org}</div>
+                </div>
               </div>
             </div>
             <div className="hidden justify-self-end md:block">

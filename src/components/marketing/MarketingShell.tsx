@@ -54,43 +54,37 @@ export function MarketingShell({ children }: MarketingShellProps) {
             <Wordmark className="h-[2.17rem] md:h-[2.89rem]" />
           </Link>
 
-          <nav className="hidden min-w-0 flex-1 items-stretch justify-between gap-3 px-4 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500 md:flex">
+          <nav className="hidden min-w-0 flex-1 items-center justify-between gap-3 px-4 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500 md:flex">
             {SECTION_LINKS.map((s) => (
               <Link
                 key={s.hash}
                 to="/"
                 hash={s.hash}
-                className="flex min-w-0 items-center py-1 hover:text-ink-950"
+                className="min-w-0 py-1 hover:text-ink-950"
               >
                 {s.label}
               </Link>
             ))}
-            <Link to="/vault" className="flex min-w-0 items-center py-1 hover:text-ink-950">
+            <Link to="/vault" className="min-w-0 py-1 hover:text-ink-950">
               The Vault
             </Link>
-            <Link to="/record" className="flex min-w-0 items-center py-1 hover:text-ink-950">
+            <Link to="/record" className="min-w-0 py-1 hover:text-ink-950">
               The National Record
             </Link>
-            <Link
-              to="/business-case"
-              className="flex min-w-0 items-center py-1 hover:text-ink-950"
-            >
+            <Link to="/business-case" className="min-w-0 py-1 hover:text-ink-950">
               The business case
             </Link>
-            <Link
-              to="/business-case/brief"
-              className="flex min-w-0 items-center py-1 hover:text-ink-950"
-            >
+            <Link to="/business-case/brief" className="min-w-0 py-1 hover:text-ink-950">
               The Decision Brief
             </Link>
 
-            <Link to="/op-eds" className="flex min-w-0 items-center py-1 hover:text-ink-950">
+            <Link to="/op-eds" className="min-w-0 py-1 hover:text-ink-950">
               The writing
             </Link>
             <Link
               to="/"
               hash="briefing"
-              className="flex min-w-0 items-center border-l-2 border-gold-500 py-1 pl-3 text-ink-950 hover:text-ink-950"
+              className="min-w-0 border-l-2 border-gold-500 py-1 pl-3 text-ink-950 hover:text-ink-950"
             >
               Request a Cabinet briefing
             </Link>

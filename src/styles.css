@@ -499,3 +499,28 @@
     display: block !important;
   }
 }
+
+/* /record — National Record visuals */
+@keyframes record-drift {
+  from { transform: translate(var(--dx), var(--dy)); opacity: 0; }
+  30% { opacity: 1; }
+  to { transform: translate(0, 0); opacity: 0; }
+}
+@keyframes record-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+@keyframes record-ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes record-spin { to { transform: rotate(360deg); } }
+.record-drift { animation: record-drift 5.5s ease-in infinite; }
+.record-pulse { animation: record-pulse 3.2s ease-in-out infinite; }
+.record-ticker { animation: record-ticker 60s linear infinite; }
+.record-ticker:hover { animation-play-state: paused; }
+.record-spin { animation: record-spin 90s linear infinite; transform-origin: center; transform-box: fill-box; }
+@media (prefers-reduced-motion: reduce) {
+  .record-drift, .record-pulse, .record-ticker, .record-spin { animation: none !important; }
+  .record-drift { opacity: 0; }
+}

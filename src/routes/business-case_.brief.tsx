@@ -51,7 +51,7 @@ function BriefPage() {
           <div className="mt-8 grid gap-10 md:grid-cols-[1fr_300px] md:items-center">
             <div className="min-w-0">
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-                 Guided public estimate · The Decision Brief
+                Guided public estimate · The Decision Brief
               </div>
               <div className="mt-4 h-px w-12 bg-ink-700" aria-hidden />
               <h1 className="mt-5 max-w-3xl font-serif text-[30px] leading-[1.08] tracking-tight text-ink-950 sm:text-[40px] sm:leading-[1.05] md:text-[52px]">

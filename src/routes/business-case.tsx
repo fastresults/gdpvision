@@ -169,10 +169,10 @@ function BusinessCasePage() {
           <div className="grid gap-8 p-7 sm:p-10 md:grid-cols-[1fr_240px] md:items-center">
             <div className="min-w-0">
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-                 Interactive · The Decision Brief
+                Interactive · The Decision Brief
               </div>
               <h3 className="mt-4 font-serif text-[26px] leading-tight tracking-tight text-ink-950 md:text-[32px]">
-                 Estimate the value for your own economy.
+                Estimate the value for your own economy.
               </h3>
               <p className="mt-4 max-w-2xl text-[15.5px] leading-relaxed text-ink-700">
                 Answer four questions, adjust the depth of each Chamber, and see an updated view in

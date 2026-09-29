@@ -410,30 +410,47 @@ export function MarketingHome() {
             title="Ten Chambers connect national evidence to delivery."
             lede="Each Chamber is a dedicated working area for one government responsibility. Together, the ten Chambers connect national evidence, Cabinet choices, ministry delivery, public understanding, and accountability."
           />
-          <div className="mt-8 flex flex-col gap-4 border-y border-line-200 py-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <label
-                htmlFor="chamber-estimate-country"
-                className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500"
-              >
-                Estimate for
-              </label>
-              <p className="mt-1 text-[13px] leading-relaxed text-ink-500">
-                Public records where available; clearly marked reference assumptions elsewhere.
-              </p>
+          <div className="relative mt-10 overflow-hidden border border-ink-950 bg-ink-950 px-5 py-6 shadow-sm sm:px-8 sm:py-8">
+            <div aria-hidden className="absolute inset-x-0 top-0 h-[3px] bg-gold-500" />
+            <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(280px,380px)] md:items-end md:gap-12">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-300">
+                  Country value estimate
+                </p>
+                <h3 className="mt-3 max-w-2xl font-serif text-[27px] leading-tight text-paper-0 sm:text-[34px]">
+                  See what each Chamber could deliver in your country.
+                </h3>
+                <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-ink-300 sm:text-[15px]">
+                  Choose a country to update all ten year-three estimates below. Public records are
+                  used where available; reference assumptions are clearly marked.
+                </p>
+              </div>
+              <div>
+                <label
+                  htmlFor="chamber-estimate-country"
+                  className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold-300"
+                >
+                  Select country
+                </label>
+                <select
+                  id="chamber-estimate-country"
+                  value={estimateCountry}
+                  onChange={(event) => setEstimateCountry(event.target.value)}
+                  className="mt-2 min-h-14 w-full border border-paper-0 bg-paper-0 px-4 py-3 font-serif text-[19px] text-ink-950 shadow-sm focus:border-gold-500 focus:outline-none"
+                >
+                  {(estimateCountriesQ.data ?? [{ code: "LCA", name: "St Lucia" }]).map(
+                    (country) => (
+                      <option key={country.code} value={country.code}>
+                        {country.name}
+                      </option>
+                    ),
+                  )}
+                </select>
+                <p className="mt-2 font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink-300">
+                  All ten Chamber values update together
+                </p>
+              </div>
             </div>
-            <select
-              id="chamber-estimate-country"
-              value={estimateCountry}
-              onChange={(event) => setEstimateCountry(event.target.value)}
-              className="min-h-11 w-full border border-line-200 bg-paper-0 px-4 py-2.5 text-[15px] text-ink-950 focus:border-ink-950 focus:outline-none sm:w-[300px]"
-            >
-              {(estimateCountriesQ.data ?? [{ code: "LCA", name: "St Lucia" }]).map((country) => (
-                <option key={country.code} value={country.code}>
-                  {country.name}
-                </option>
-              ))}
-            </select>
           </div>
           <ExplainProvider value={{ ctx: estimateContext }}>
             <div className="mt-10 grid gap-x-10 gap-y-10 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2">

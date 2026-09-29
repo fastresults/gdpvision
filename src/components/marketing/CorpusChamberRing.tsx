@@ -62,6 +62,28 @@ export function CorpusChamberRing() {
     return () => io.disconnect();
   }, []);
 
+  const [rot, setRot] = useState(0);
+  const pausedRef = useRef(false);
+  pausedRef.current = active !== null;
+
+  useEffect(() => {
+    if (!on || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let raf = 0;
+    let last = 0;
+    const start = window.setTimeout(() => {
+      const tick = (t: number) => {
+        if (last && !pausedRef.current) setRot((r) => (r + ((t - last) / 1000) * 4) % 360);
+        last = t;
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    }, 6000);
+    return () => {
+      window.clearTimeout(start);
+      cancelAnimationFrame(raf);
+    };
+  }, [on]);
+
   const ch = typeof active === "number" ? CHAMBERS[active] : null;
 
   return (
@@ -78,7 +100,7 @@ export function CorpusChamberRing() {
         </defs>
 
         {/* Ring of ten Chambers */}
-        <g className="ccr-spin" style={{ transformOrigin: `${C}px ${C}px` }}>
+        <g transform={`rotate(${rot} ${C} ${C})`}>
           {CHAMBERS.map((c, i) => {
             const mid = i * STEP + STEP / 2;
             const [ox, oy] = pt(40, mid).map((v) => v - C);
@@ -111,14 +133,17 @@ export function CorpusChamberRing() {
               </g>
             );
           })}
+
+        </g>
+
         {/* Chamber names (static, outside the ring) */}
         {CHAMBERS.map((c, i) => {
-          const mid = i * STEP + STEP / 2;
+          const mid = (((i * STEP + STEP / 2 + rot) % 360) + 360) % 360;
           const [x, y] = pt(R_OUT + 12, mid);
-          const anchor = mid < 170 ? "start" : mid > 190 ? "end" : "middle";
+          const anchor = mid > 12 && mid < 168 ? "start" : mid > 192 && mid < 348 ? "end" : "middle";
           const dim = active !== null && active !== i;
           return (
-            <g key={`n-${c.index}`} className="ccr-counter">
+            <g key={`n-${c.index}`}>
             <text
               className="ccr-name font-mono"
               x={x}
@@ -135,9 +160,6 @@ export function CorpusChamberRing() {
             </g>
           );
         })}
-
-        </g>
-
         {/* Rising GDP line */}
         <path className="ccr-rise" d={`M ${C} ${C - 30} C ${C + 6} 70, ${C - 4} 30, ${C + 10} 4`} fill="none" stroke="var(--color-gold-500)" strokeWidth="1.2" pathLength={1} />
 

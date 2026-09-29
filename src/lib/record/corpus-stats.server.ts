@@ -27,7 +27,10 @@ export async function computeCorpusStats(code: string | null): Promise<CorpusSta
   if (hit && Date.now() - hit.at < TTL) return hit.v;
   const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
 
-  const count = async (table: "country_sources" | "country_source_chunks" | "country_kpis", extra?: Record<string, string>) => {
+  const count = async (
+    table: "country_sources" | "country_source_chunks" | "country_kpis",
+    extra?: Record<string, string>,
+  ) => {
     let q = db.from(table).select("id", { count: "exact", head: true }).eq("visibility", "public");
     if (code) q = q.eq("country_code", code);
     for (const [k, v] of Object.entries(extra ?? {})) q = q.eq(k, v);

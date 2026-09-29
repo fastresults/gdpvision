@@ -25,7 +25,13 @@ const SOURCES = [
   "Published reports",
 ];
 
-export function CorpusConstellation({ stats, scopeLabel }: { stats: CorpusStats | null; scopeLabel: string }) {
+export function CorpusConstellation({
+  stats,
+  scopeLabel,
+}: {
+  stats: CorpusStats | null;
+  scopeLabel: string;
+}) {
   const { ref, seen } = useInView<HTMLDivElement>(0.2);
   const sources = useCountUp(stats?.sources ?? 0, seen && !!stats);
   const passages = useCountUp(stats?.passages ?? 0, seen && !!stats);
@@ -37,34 +43,78 @@ export function CorpusConstellation({ stats, scopeLabel }: { stats: CorpusStats 
   });
   return (
     <div ref={ref} className="w-full">
-      <svg viewBox="0 0 400 400" className="mx-auto block w-full max-w-[420px]" role="img" aria-label="Sources flowing through a cited and graded gate into one national record">
+      <svg
+        viewBox="0 0 400 400"
+        className="mx-auto block w-full max-w-[420px]"
+        role="img"
+        aria-label="Sources flowing through a cited and graded gate into one national record"
+      >
         {/* outer orbit */}
         <circle cx={C} cy={C} r={168} className="fill-none stroke-line-200" strokeDasharray="2 5" />
         {/* gate ring */}
         <g className="record-spin">
-          <circle cx={C} cy={C} r={96} className="fill-none stroke-gold-500" strokeWidth={1} strokeDasharray="10 6" />
+          <circle
+            cx={C}
+            cy={C}
+            r={96}
+            className="fill-none stroke-gold-500"
+            strokeWidth={1}
+            strokeDasharray="10 6"
+          />
         </g>
-        <text x={C} y={C - 104} textAnchor="middle" className="fill-gold-500 font-mono text-[8px] uppercase tracking-[0.2em]">
+        <text
+          x={C}
+          y={C - 104}
+          textAnchor="middle"
+          className="fill-gold-500 font-mono text-[8px] uppercase tracking-[0.2em]"
+        >
           cited · graded
         </text>
         {/* ledger core */}
         <circle cx={C} cy={C} r={52} className="fill-paper-50 stroke-ink-950" strokeWidth={1.25} />
         {[0, 1, 2, 3].map((i) => (
-          <line key={i} x1={C - 26} x2={C + 26} y1={C - 12 + i * 8} y2={C - 12 + i * 8} className="stroke-ink-300" strokeWidth={0.8} />
+          <line
+            key={i}
+            x1={C - 26}
+            x2={C + 26}
+            y1={C - 12 + i * 8}
+            y2={C - 12 + i * 8}
+            className="stroke-ink-300"
+            strokeWidth={0.8}
+          />
         ))}
-        <circle cx={C} cy={C} r={56} className="record-pulse fill-none stroke-gold-500" strokeWidth={0.8} />
-        <text x={C} y={C + 30} textAnchor="middle" className="fill-ink-950 font-mono text-[7px] uppercase tracking-[0.2em]">
+        <circle
+          cx={C}
+          cy={C}
+          r={56}
+          className="record-pulse fill-none stroke-gold-500"
+          strokeWidth={0.8}
+        />
+        <text
+          x={C}
+          y={C + 30}
+          textAnchor="middle"
+          className="fill-ink-950 font-mono text-[7px] uppercase tracking-[0.2em]"
+        >
           one record
         </text>
         {/* spokes + nodes */}
         {nodes.map((n, i) => (
           <g key={n.label}>
             <line x1={n.x} y1={n.y} x2={C} y2={C} className="stroke-line-200" strokeWidth={0.6} />
-            <circle cx={n.x} cy={n.y} r={4.5} className="fill-paper-0 stroke-ink-700" strokeWidth={1} />
+            <circle
+              cx={n.x}
+              cy={n.y}
+              r={4.5}
+              className="fill-paper-0 stroke-ink-700"
+              strokeWidth={1}
+            />
             <text
               x={n.x + Math.cos(n.a) * 10}
               y={n.y + Math.sin(n.a) * 12 + 3}
-              textAnchor={Math.abs(Math.cos(n.a)) < 0.2 ? "middle" : Math.cos(n.a) > 0 ? "start" : "end"}
+              textAnchor={
+                Math.abs(Math.cos(n.a)) < 0.2 ? "middle" : Math.cos(n.a) > 0 ? "start" : "end"
+              }
               className="fill-ink-500 font-mono text-[7.5px] uppercase tracking-[0.12em]"
             >
               {n.label}
@@ -134,7 +184,15 @@ export function gradeCounts(facts: CountryFacts | null) {
   return c;
 }
 
-export function GradeRing({ facts, active, onActive }: { facts: CountryFacts | null; active: FactGrade | null; onActive: (g: FactGrade | null) => void }) {
+export function GradeRing({
+  facts,
+  active,
+  onActive,
+}: {
+  facts: CountryFacts | null;
+  active: FactGrade | null;
+  onActive: (g: FactGrade | null) => void;
+}) {
   const counts = gradeCounts(facts);
   const total = GRADE_ORDER.reduce((s, g) => s + counts[g], 0);
   const R = 70;
@@ -143,7 +201,12 @@ export function GradeRing({ facts, active, onActive }: { facts: CountryFacts | n
   const own = counts.A + counts.B + counts.C;
   return (
     <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:gap-10">
-      <svg viewBox="0 0 180 180" className="h-[180px] w-[180px] shrink-0 -rotate-90" role="img" aria-label="Share of figures at each confidence grade">
+      <svg
+        viewBox="0 0 180 180"
+        className="h-[180px] w-[180px] shrink-0 -rotate-90"
+        role="img"
+        aria-label="Share of figures at each confidence grade"
+      >
         <circle cx={90} cy={90} r={R} className="fill-none stroke-paper-100" strokeWidth={16} />
         {GRADE_ORDER.map((g) => {
           const len = total ? (counts[g] / total) * CIRC : 0;
@@ -169,7 +232,12 @@ export function GradeRing({ facts, active, onActive }: { facts: CountryFacts | n
           <text x={90} y={88} textAnchor="middle" className="fill-ink-950 font-serif text-[30px]">
             {total ? `${own}/${total}` : "—"}
           </text>
-          <text x={90} y={108} textAnchor="middle" className="fill-ink-500 font-mono text-[8px] uppercase tracking-[0.18em]">
+          <text
+            x={90}
+            y={108}
+            textAnchor="middle"
+            className="fill-ink-500 font-mono text-[8px] uppercase tracking-[0.18em]"
+          >
             own record
           </text>
         </g>
@@ -209,7 +277,13 @@ export function GradeRing({ facts, active, onActive }: { facts: CountryFacts | n
 
 const TOKENS = ["", "source tag", "Grade A", "copy merged", "3 uses", "new period"];
 
-export function FigureJourney({ steps, figure }: { steps: Array<{ head: string; body: string }>; figure: string }) {
+export function FigureJourney({
+  steps,
+  figure,
+}: {
+  steps: Array<{ head: string; body: string }>;
+  figure: string;
+}) {
   const { ref, seen, replay } = useInView<HTMLDivElement>(0.3);
   return (
     <div ref={ref}>
@@ -236,7 +310,9 @@ export function FigureJourney({ steps, figure }: { steps: Array<{ head: string; 
               transitionDelay: `${i * 600}ms`,
             }}
           >
-            <div className={`mx-auto mt-3 h-6 w-6 rounded-full border-2 ${seen ? "border-gold-500 bg-paper-0" : "border-line-200 bg-paper-0"}`} />
+            <div
+              className={`mx-auto mt-3 h-6 w-6 rounded-full border-2 ${seen ? "border-gold-500 bg-paper-0" : "border-line-200 bg-paper-0"}`}
+            />
             {TOKENS[i] ? (
               <div className="mt-1 whitespace-nowrap font-mono text-[9px] uppercase tracking-[0.14em] text-gold-500">
                 {TOKENS[i]}
@@ -274,16 +350,32 @@ export function FigureJourney({ steps, figure }: { steps: Array<{ head: string; 
 /* 4. Concentric custody                                               */
 /* ------------------------------------------------------------------ */
 
-export function CustodyRings({ active, onActive }: { active: number | null; onActive: (i: number | null) => void }) {
+export function CustodyRings({
+  active,
+  onActive,
+}: {
+  active: number | null;
+  onActive: (i: number | null) => void;
+}) {
   const rings = [
     { r: 150, label: "Public evidence" },
     { r: 104, label: "Government records" },
     { r: 58, label: "State-owned data" },
   ];
   return (
-    <svg viewBox="0 0 320 320" className="mx-auto block w-full max-w-[340px]" role="img" aria-label="Three nested rings of evidence with state-owned data at the core">
+    <svg
+      viewBox="0 0 320 320"
+      className="mx-auto block w-full max-w-[340px]"
+      role="img"
+      aria-label="Three nested rings of evidence with state-owned data at the core"
+    >
       {rings.map((ring, i) => (
-        <g key={ring.label} onMouseEnter={() => onActive(i)} onMouseLeave={() => onActive(null)} className="cursor-default">
+        <g
+          key={ring.label}
+          onMouseEnter={() => onActive(i)}
+          onMouseLeave={() => onActive(null)}
+          className="cursor-default"
+        >
           <circle
             cx={160}
             cy={160}
@@ -292,24 +384,65 @@ export function CustodyRings({ active, onActive }: { active: number | null; onAc
             strokeWidth={active === i ? 2 : 1}
             strokeDasharray={i === 0 ? "3 4" : undefined}
           />
-          <text x={160} y={160 - ring.r + 14} textAnchor="middle" className={`font-mono text-[8px] uppercase tracking-[0.16em] ${active === i ? "fill-gold-500" : "fill-ink-500"}`}>
+          <text
+            x={160}
+            y={160 - ring.r + 14}
+            textAnchor="middle"
+            className={`font-mono text-[8px] uppercase tracking-[0.16em] ${active === i ? "fill-gold-500" : "fill-ink-500"}`}
+          >
             {ring.label}
           </text>
         </g>
       ))}
       {/* vault lock */}
       <rect x={148} y={160} width={24} height={18} rx={2} className="fill-ink-950" />
-      <path d="M152 160 v-6 a8 8 0 0 1 16 0 v6" className="fill-none stroke-ink-950" strokeWidth={2.5} />
+      <path
+        d="M152 160 v-6 a8 8 0 0 1 16 0 v6"
+        className="fill-none stroke-ink-950"
+        strokeWidth={2.5}
+      />
       {/* approved findings rising out */}
-      <line x1={160} y1={140} x2={160} y2={10} className="stroke-gold-500" strokeWidth={1} strokeDasharray="2 3" />
-      <rect x={146} y={96} width={28} height={10} className="fill-paper-0 stroke-gold-500" strokeWidth={1} />
-      <text x={180} y={104} className="fill-gold-500 font-mono text-[7px] uppercase tracking-[0.14em]">
+      <line
+        x1={160}
+        y1={140}
+        x2={160}
+        y2={10}
+        className="stroke-gold-500"
+        strokeWidth={1}
+        strokeDasharray="2 3"
+      />
+      <rect
+        x={146}
+        y={96}
+        width={28}
+        height={10}
+        className="fill-paper-0 stroke-gold-500"
+        strokeWidth={1}
+      />
+      <text
+        x={180}
+        y={104}
+        className="fill-gold-500 font-mono text-[7px] uppercase tracking-[0.14em]"
+      >
         approved by named officials
       </text>
       {[0, 1, 2].map((k) => (
-        <circle key={k} cx={160} cy={140} r={2.5} className="record-drift fill-gold-500" style={{ "--dx": "0px", "--dy": "0px", animationName: "none" } as React.CSSProperties}>
-          <animate attributeName="cy" from="140" to="12" dur="4.5s" begin={`${k * 1.5}s`} repeatCount="indefinite" />
-          <animate attributeName="opacity" values="0;1;1;0" dur="4.5s" begin={`${k * 1.5}s`} repeatCount="indefinite" />
+        <circle key={k} cx={160} cy={140} r={2.5} className="fill-gold-500">
+          <animate
+            attributeName="cy"
+            from="140"
+            to="12"
+            dur="4.5s"
+            begin={`${k * 1.5}s`}
+            repeatCount="indefinite"
+          />
+          <animate
+            attributeName="opacity"
+            values="0;1;1;0"
+            dur="4.5s"
+            begin={`${k * 1.5}s`}
+            repeatCount="indefinite"
+          />
         </circle>
       ))}
     </svg>
@@ -320,7 +453,13 @@ export function CustodyRings({ active, onActive }: { active: number | null; onAc
 /* 5. Before / after bars                                              */
 /* ------------------------------------------------------------------ */
 
-export function BeforeAfter({ index, children }: { index: number; children: (seen: boolean, delay: number) => React.ReactNode }) {
+export function BeforeAfter({
+  index,
+  children,
+}: {
+  index: number;
+  children: (seen: boolean, delay: number) => React.ReactNode;
+}) {
   const { ref, seen } = useInView<HTMLDivElement>(0.4);
   return <div ref={ref}>{children(seen, index * 150)}</div>;
 }
@@ -329,10 +468,16 @@ export function EffortBars({ seen, delay }: { seen: boolean; delay: number }) {
   return (
     <div className="mt-3 space-y-1.5" aria-hidden>
       <div className="h-1.5 bg-paper-100">
-        <div className="h-1.5 bg-ink-300 transition-[width] duration-1000 ease-out" style={{ width: seen ? "92%" : "0%", transitionDelay: `${delay}ms` }} />
+        <div
+          className="h-1.5 bg-ink-300 transition-[width] duration-1000 ease-out"
+          style={{ width: seen ? "92%" : "0%", transitionDelay: `${delay}ms` }}
+        />
       </div>
       <div className="h-1.5 bg-paper-100">
-        <div className="h-1.5 bg-gold-500 transition-[width] duration-1000 ease-out" style={{ width: seen ? "18%" : "0%", transitionDelay: `${delay + 400}ms` }} />
+        <div
+          className="h-1.5 bg-gold-500 transition-[width] duration-1000 ease-out"
+          style={{ width: seen ? "18%" : "0%", transitionDelay: `${delay + 400}ms` }}
+        />
       </div>
     </div>
   );
@@ -355,7 +500,10 @@ export function TrustScale({ facts }: { facts: CountryFacts | null }) {
             <div className="flex h-24 w-full items-end justify-center">
               <div
                 className={`w-full max-w-[64px] ${GRADE_DOT[g]} transition-[height] duration-700 ease-out`}
-                style={{ height: seen ? `${Math.max(4, (counts[g] / max) * 100)}%` : "0%", transitionDelay: `${i * 150}ms` }}
+                style={{
+                  height: seen ? `${Math.max(4, (counts[g] / max) * 100)}%` : "0%",
+                  transitionDelay: `${i * 150}ms`,
+                }}
               />
             </div>
             <div className="mt-2 font-mono text-[11px] tabular-nums text-ink-950">{counts[g]}</div>
@@ -382,19 +530,35 @@ export function CorpusPulse({ stats }: { stats: CorpusStats | null }) {
   if (!items.length) return null;
   const row = [...items, ...items];
   return (
-    <section className="border-b border-line-200 bg-paper-50" aria-label="Recently refreshed public figures">
+    <section
+      className="border-b border-line-200 bg-paper-50"
+      aria-label="Recently refreshed public figures"
+    >
       <div className="mx-auto flex max-w-[1280px] items-center gap-4 px-5 py-4 sm:px-6 md:px-10">
         <div className="flex shrink-0 items-center gap-2">
           <span className="record-pulse h-2 w-2 rounded-full bg-gold-500" aria-hidden />
           <span className={MICRO}>Kept current</span>
         </div>
-        <div className="relative min-w-0 flex-1 overflow-hidden" onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
-          <ul className="record-ticker flex w-max gap-10" style={paused ? { animationPlayState: "paused" } : undefined}>
+        <div
+          className="relative min-w-0 flex-1 overflow-hidden"
+          onFocus={() => setPaused(true)}
+          onBlur={() => setPaused(false)}
+        >
+          <ul
+            className="record-ticker flex w-max gap-10"
+            style={paused ? { animationPlayState: "paused" } : undefined}
+          >
             {row.map((p, i) => (
-              <li key={i} className="whitespace-nowrap text-[13px] text-ink-700" aria-hidden={i >= items.length}>
+              <li
+                key={i}
+                className="whitespace-nowrap text-[13px] text-ink-700"
+                aria-hidden={i >= items.length}
+              >
                 <span className="font-mono text-[11px] text-ink-500">{p.country}</span> · {p.label}
                 {p.period ? ` · ${p.period}` : ""} ·{" "}
-                <span className={p.grade === "A" ? "text-gold-500" : "text-ink-950"}>{gradeLabel(p.grade)}</span>
+                <span className={p.grade === "A" ? "text-gold-500" : "text-ink-950"}>
+                  {gradeLabel(p.grade)}
+                </span>
               </li>
             ))}
           </ul>

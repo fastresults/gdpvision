@@ -44,8 +44,8 @@ export function CorpusConstellation({
   return (
     <div ref={ref} className="w-full">
       <svg
-        viewBox="0 0 400 400"
-        className="mx-auto block w-full max-w-[420px]"
+        viewBox="-70 -6 540 412"
+        className="mx-auto block w-full max-w-[480px]"
         role="img"
         aria-label="Sources flowing through a cited and graded gate into one national record"
       >

@@ -515,12 +515,66 @@
   to { transform: translateX(-50%); }
 }
 @keyframes record-spin { to { transform: rotate(360deg); } }
+@keyframes record-flywheel-dash { to { stroke-dashoffset: -48; } }
+@keyframes record-flywheel-particle {
+  0% { transform: translate(0, 0); opacity: 0; }
+  15%, 75% { opacity: 1; }
+  100% { transform: translate(216px, 93px); opacity: 0; }
+}
+@keyframes record-flywheel-particle-reverse {
+  0% { transform: translate(0, 0); opacity: 0; }
+  15%, 75% { opacity: 1; }
+  100% { transform: translate(-216px, 93px); opacity: 0; }
+}
+@keyframes record-flywheel-reveal {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes record-growth-draw { from { stroke-dashoffset: 520; } to { stroke-dashoffset: 0; } }
 .record-drift { animation: record-drift 5.5s ease-in infinite; }
 .record-pulse { animation: record-pulse 3.2s ease-in-out infinite; }
 .record-ticker { animation: record-ticker 60s linear infinite; }
 .record-ticker:hover { animation-play-state: paused; }
 .record-spin { animation: record-spin 90s linear infinite; transform-origin: center; transform-box: fill-box; }
+.record-flywheel-line {
+  fill: none;
+  stroke: var(--line-200);
+  stroke-width: 1;
+  stroke-dasharray: 5 7;
+  animation: record-flywheel-dash 3s linear infinite;
+}
+.record-flywheel-line-gold { stroke: var(--gold-500); }
+.record-flywheel-particle { animation: record-flywheel-particle 4s ease-in-out infinite; }
+.record-flywheel-particle-reverse { animation-name: record-flywheel-particle-reverse; }
+.record-flywheel-stage,
+.record-flywheel-outcome,
+.record-flywheel-growth { opacity: 1; }
+.record-flywheel-run .record-flywheel-stage,
+.record-flywheel-run .record-flywheel-outcome,
+.record-flywheel-run .record-flywheel-growth {
+  animation: record-flywheel-reveal 600ms ease-out both;
+  animation-delay: var(--stage-delay, 3000ms);
+}
+.record-flywheel-run .record-flywheel-growth { --stage-delay: 3400ms; }
+.record-growth-path { stroke-dasharray: 520; stroke-dashoffset: 0; }
+.record-flywheel-run .record-growth-path { animation: record-growth-draw 1600ms ease-out 3600ms both; }
+.record-flywheel-paused *,
+.record-flywheel-paused *::before,
+.record-flywheel-paused *::after { animation-play-state: paused !important; }
+@media (max-width: 1023px) {
+  .record-flywheel-stage,
+  .record-flywheel-outcome,
+  .record-flywheel-growth {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+  .record-growth-path { animation: none !important; stroke-dashoffset: 0; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .record-drift, .record-pulse, .record-ticker, .record-spin { animation: none !important; }
+  .record-drift, .record-pulse, .record-ticker, .record-spin,
+  .record-flywheel *, .record-flywheel *::before, .record-flywheel *::after { animation: none !important; }
   .record-drift { opacity: 0; }
+  .record-flywheel-stage, .record-flywheel-outcome, .record-flywheel-growth { opacity: 1; transform: none; }
+  .record-growth-path { stroke-dashoffset: 0; }
 }

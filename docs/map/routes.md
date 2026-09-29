@@ -19,6 +19,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/p/$token` | `src/routes/p.$token.tsx` |
 | `/reset-password` | `src/routes/reset-password.tsx` |
 | `/s/$token` | `src/routes/s.$token.tsx` |
+| `/vault` | `src/routes/vault.tsx` |
 
 ## auth
 

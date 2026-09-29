@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VaultRouteImport } from './routes/vault'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as KioskRouteImport } from './routes/kiosk'
 import { Route as BusinessCaseRouteImport } from './routes/business-case'
@@ -165,6 +166,11 @@ import { Route as AuthenticatedAdminCountriesCodeCabinetMinutesSidRouteImport } 
 import { Route as AuthenticatedAdminCountriesCodeCabinetAgendaSidRouteImport } from './routes/_authenticated/admin/countries.$code.cabinet.agenda.$sid'
 import { Route as AuthenticatedAdminCountriesCodeInvestmentsIdPackagePackageIdRouteImport } from './routes/_authenticated/admin/countries.$code.investments.$id.package.$packageId'
 
+const VaultRoute = VaultRouteImport.update({
+  id: '/vault',
+  path: '/vault',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -1070,6 +1076,7 @@ export interface FileRoutesByFullPath {
   '/business-case': typeof BusinessCaseRoute
   '/kiosk': typeof KioskRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/vault': typeof VaultRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
   '/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
@@ -1225,6 +1232,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/business-case': typeof BusinessCaseRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/vault': typeof VaultRoute
   '/console': typeof AuthenticatedConsoleRouteWithChildren
   '/home': typeof AuthenticatedHomeRoute
   '/auth/invite': typeof AuthInviteRoute
@@ -1375,6 +1383,7 @@ export interface FileRoutesById {
   '/business-case': typeof BusinessCaseRoute
   '/kiosk': typeof KioskRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/vault': typeof VaultRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_authenticated/instrument': typeof AuthenticatedInstrumentRouteRouteWithChildren
   '/_authenticated/narrative': typeof AuthenticatedNarrativeRouteRouteWithChildren
@@ -1533,6 +1542,7 @@ export interface FileRouteTypes {
     | '/business-case'
     | '/kiosk'
     | '/reset-password'
+    | '/vault'
     | '/admin'
     | '/instrument'
     | '/narrative'
@@ -1688,6 +1698,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/business-case'
     | '/reset-password'
+    | '/vault'
     | '/console'
     | '/home'
     | '/auth/invite'
@@ -1837,6 +1848,7 @@ export interface FileRouteTypes {
     | '/business-case'
     | '/kiosk'
     | '/reset-password'
+    | '/vault'
     | '/_authenticated/admin'
     | '/_authenticated/instrument'
     | '/_authenticated/narrative'
@@ -1995,6 +2007,7 @@ export interface RootRouteChildren {
   BusinessCaseRoute: typeof BusinessCaseRoute
   KioskRoute: typeof KioskRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
+  VaultRoute: typeof VaultRoute
   BusinessCaseBriefRoute: typeof BusinessCaseBriefRoute
   BusinessCaseCalculatorRoute: typeof BusinessCaseCalculatorRoute
   DTokenRoute: typeof DTokenRoute
@@ -2021,6 +2034,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/vault': {
+      id: '/vault'
+      path: '/vault'
+      fullPath: '/vault'
+      preLoaderRoute: typeof VaultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -3638,6 +3658,7 @@ const rootRouteChildren: RootRouteChildren = {
   BusinessCaseRoute: BusinessCaseRoute,
   KioskRoute: KioskRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
+  VaultRoute: VaultRoute,
   BusinessCaseBriefRoute: BusinessCaseBriefRoute,
   BusinessCaseCalculatorRoute: BusinessCaseCalculatorRoute,
   DTokenRoute: DTokenRoute,

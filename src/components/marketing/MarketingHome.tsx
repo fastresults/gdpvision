@@ -585,6 +585,12 @@ export function MarketingHome() {
                 <p className="mt-3 text-[15px] leading-relaxed text-ink-700 max-w-2xl">{p.body}</p>
               </div>
             ))}
+            <Link
+              to="/vault"
+              className="border-l-2 border-gold-500 pl-4 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-950 hover:text-ink-700"
+            >
+              The Sovereign Vault: in-country hardware for the records that must never leave →
+            </Link>
           </div>
         </div>
       </section>

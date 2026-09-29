@@ -10,7 +10,8 @@ type State =
   | { kind: "ok" }
   | { kind: "error"; message: string };
 
-export function BriefingForm() {
+/** `topic` tags the request (e.g. "vault") so it is routed to the right principal. */
+export function BriefingForm({ topic }: { topic?: string } = {}) {
   const submit = useServerFn(submitBriefingRequest);
   const [state, setState] = useState<State>({ kind: "idle" });
 
@@ -23,7 +24,9 @@ export function BriefingForm() {
       government: String(fd.get("government") ?? ""),
       nation: String(fd.get("nation") ?? ""),
       email: String(fd.get("email") ?? ""),
-      message: String(fd.get("message") ?? ""),
+      message: topic
+        ? `[${topic}] ${String(fd.get("message") ?? "")}`.trim()
+        : String(fd.get("message") ?? ""),
       website: String(fd.get("website") ?? ""),
     };
     setState({ kind: "submitting" });

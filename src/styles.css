@@ -307,6 +307,46 @@
 }
 
 /*
+ * btn-flow-lens — engraved plate for the homepage "Data & Decision Flow"
+ * feature button. Same button contract (colors, border, hover, focus) as the
+ * btn-* utilities, but lifted off the paper as an etched instrument plate:
+ * graphite offset shadow that shifts to a gold shadow on hover.
+ */
+@utility btn-flow-lens {
+  @apply btn-base;
+  background-color: var(--paper-0);
+  color: var(--ink-950);
+  border-color: var(--ink-950);
+  box-shadow: 4px 4px 0 0 var(--ink-950);
+  transition:
+    box-shadow var(--dur-base) var(--ease-instrument),
+    transform var(--dur-base) var(--ease-instrument),
+    background-color var(--dur-fast) var(--ease-instrument);
+  &:hover:not(:disabled):not([aria-disabled="true"]) {
+    background-color: var(--paper-0);
+    box-shadow: 8px 8px 0 0 var(--gold-500);
+    transform: translate(-2px, -2px);
+  }
+  &:active:not(:disabled):not([aria-disabled="true"]) {
+    box-shadow: 2px 2px 0 0 var(--ink-950);
+    transform: translate(1px, 1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-flow-lens {
+    transition: none;
+    &:hover:not(:disabled):not([aria-disabled="true"]) {
+      transform: none;
+      box-shadow: 4px 4px 0 0 var(--gold-500);
+    }
+    &:active:not(:disabled):not([aria-disabled="true"]) {
+      transform: none;
+    }
+  }
+}
+
+/*
  * Selectable "card as button" pattern for wizards. Toggles between a
  * paper card and an inverse ink card; both states have a real hover.
  */

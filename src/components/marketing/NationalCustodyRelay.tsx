@@ -93,7 +93,7 @@ export function NationalCustodyRelay() {
             <circle cx={stage.x} cy={stage.y} r="17" fill="var(--color-paper-0)" stroke="var(--color-ink-950)" strokeWidth="0.9" />
             <circle className="ncr-authorised" cx={stage.x} cy={stage.y} r="12" fill="var(--color-paper-0)" stroke="var(--color-gold-500)" strokeWidth="1.1" />
             <text x={stage.x} y={stage.y + 2.5} textAnchor="middle" className="font-mono" fontSize="7" fill="var(--color-ink-950)">{stage.number}</text>
-            <text x={stage.x} y={stage.y + (index === 3 ? 30 : index === 0 || index === 1 ? -25 : 30)} textAnchor="middle" className="font-mono" fontSize="6.2" fill="var(--color-ink-700)">{stage.title.toUpperCase()}</text>
+            <text x={stage.x} y={stage.y + (index === 3 ? -27 : index === 0 || index === 1 ? -25 : 30)} textAnchor="middle" className="font-mono" fontSize="6.2" fill="var(--color-ink-700)">{stage.title.toUpperCase()}</text>
             <path className="ncr-custody-mark" d={`M${stage.x - 4} ${stage.y} l3 3 6 -7`} fill="none" stroke="var(--color-gold-500)" strokeWidth="1.2" />
           </g>
         ))}

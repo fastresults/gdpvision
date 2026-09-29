@@ -548,16 +548,16 @@
 .record-flywheel-particle-reverse { animation-name: record-flywheel-particle-reverse; }
 .record-flywheel-stage,
 .record-flywheel-outcome,
-.record-flywheel-growth { opacity: 0; }
+.record-flywheel-growth { opacity: 1; }
 .record-flywheel-run .record-flywheel-stage,
 .record-flywheel-run .record-flywheel-outcome,
 .record-flywheel-run .record-flywheel-growth {
-  animation: record-flywheel-reveal 600ms ease-out forwards;
+  animation: record-flywheel-reveal 600ms ease-out both;
   animation-delay: var(--stage-delay, 3000ms);
 }
 .record-flywheel-run .record-flywheel-growth { --stage-delay: 3400ms; }
-.record-growth-path { stroke-dasharray: 520; stroke-dashoffset: 520; }
-.record-flywheel-run .record-growth-path { animation: record-growth-draw 1600ms ease-out 3600ms forwards; }
+.record-growth-path { stroke-dasharray: 520; stroke-dashoffset: 0; }
+.record-flywheel-run .record-growth-path { animation: record-growth-draw 1600ms ease-out 3600ms both; }
 .record-flywheel-paused *,
 .record-flywheel-paused *::before,
 .record-flywheel-paused *::after { animation-play-state: paused !important; }

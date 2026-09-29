@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VaultRouteImport } from './routes/vault'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as RecordRouteImport } from './routes/record'
 import { Route as KioskRouteImport } from './routes/kiosk'
 import { Route as BusinessCaseRouteImport } from './routes/business-case'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -174,6 +175,11 @@ const VaultRoute = VaultRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecordRoute = RecordRouteImport.update({
+  id: '/record',
+  path: '/record',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KioskRoute = KioskRouteImport.update({
@@ -1075,6 +1081,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteWithChildren
   '/business-case': typeof BusinessCaseRoute
   '/kiosk': typeof KioskRouteWithChildren
+  '/record': typeof RecordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/vault': typeof VaultRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
@@ -1231,6 +1238,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/business-case': typeof BusinessCaseRoute
+  '/record': typeof RecordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/vault': typeof VaultRoute
   '/console': typeof AuthenticatedConsoleRouteWithChildren
@@ -1382,6 +1390,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteWithChildren
   '/business-case': typeof BusinessCaseRoute
   '/kiosk': typeof KioskRouteWithChildren
+  '/record': typeof RecordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/vault': typeof VaultRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
@@ -1541,6 +1550,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/business-case'
     | '/kiosk'
+    | '/record'
     | '/reset-password'
     | '/vault'
     | '/admin'
@@ -1697,6 +1707,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/business-case'
+    | '/record'
     | '/reset-password'
     | '/vault'
     | '/console'
@@ -1847,6 +1858,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/business-case'
     | '/kiosk'
+    | '/record'
     | '/reset-password'
     | '/vault'
     | '/_authenticated/admin'
@@ -2006,6 +2018,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   BusinessCaseRoute: typeof BusinessCaseRoute
   KioskRoute: typeof KioskRouteWithChildren
+  RecordRoute: typeof RecordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   VaultRoute: typeof VaultRoute
   BusinessCaseBriefRoute: typeof BusinessCaseBriefRoute
@@ -2046,6 +2059,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/record': {
+      id: '/record'
+      path: '/record'
+      fullPath: '/record'
+      preLoaderRoute: typeof RecordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/kiosk': {
@@ -3657,6 +3677,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   BusinessCaseRoute: BusinessCaseRoute,
   KioskRoute: KioskRouteWithChildren,
+  RecordRoute: RecordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   VaultRoute: VaultRoute,
   BusinessCaseBriefRoute: BusinessCaseBriefRoute,

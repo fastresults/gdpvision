@@ -519,6 +519,12 @@ export function MarketingHome() {
               </div>
             ))}
           </div>
+          <Link
+            to="/record"
+            className="mt-10 inline-block border-l-2 border-gold-500 pl-4 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-950 hover:text-ink-700"
+          >
+            How the national record works, with a live example →
+          </Link>
         </div>
       </section>
 

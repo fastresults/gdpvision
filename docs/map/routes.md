@@ -17,6 +17,7 @@ Regenerate with `bun run map`. Do not hand-edit.
 | `/op-eds/` | `src/routes/op-eds.index.tsx` |
 | `/op-eds/$slug` | `src/routes/op-eds.$slug.tsx` |
 | `/p/$token` | `src/routes/p.$token.tsx` |
+| `/record` | `src/routes/record.tsx` |
 | `/reset-password` | `src/routes/reset-password.tsx` |
 | `/s/$token` | `src/routes/s.$token.tsx` |
 | `/vault` | `src/routes/vault.tsx` |

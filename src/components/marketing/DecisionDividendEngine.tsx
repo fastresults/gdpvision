@@ -40,6 +40,7 @@ export function DecisionDividendEngine() {
   const stageProps = (stage: Stage) => ({
     tabIndex: 0,
     role: "button" as const,
+    "aria-label": `${STAGE_COPY[stage].title}. ${STAGE_COPY[stage].body}`,
     onMouseEnter: () => setActive(stage),
     onMouseLeave: () => setActive(null),
     onFocus: () => setActive(stage),
@@ -60,7 +61,8 @@ export function DecisionDividendEngine() {
       className={`dde w-[330px] max-w-full select-none ${started ? "dde-on" : ""} ${active ? "dde-paused" : ""}`}
       aria-label="The Decision Dividend Engine shows evidence becoming a faster governed decision and a qualified estimate of national value."
     >
-      <svg viewBox="0 0 360 276" className="block h-auto w-full overflow-visible" aria-hidden="true">
+      <svg viewBox="0 0 360 276" className="block h-auto w-full overflow-visible">
+        <title>Evidence becomes a faster governed decision and a qualified estimate of national value</title>
         <defs>
           <pattern id="dde-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
             <line x1="0" y1="0" x2="0" y2="5" stroke="var(--color-ink-700)" strokeWidth="0.55" opacity="0.32" />

@@ -561,6 +561,16 @@
 .record-flywheel-paused *,
 .record-flywheel-paused *::before,
 .record-flywheel-paused *::after { animation-play-state: paused !important; }
+@media (max-width: 1023px) {
+  .record-flywheel-stage,
+  .record-flywheel-outcome,
+  .record-flywheel-growth {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+  .record-growth-path { animation: none !important; stroke-dashoffset: 0; }
+}
 @media (prefers-reduced-motion: reduce) {
   .record-drift, .record-pulse, .record-ticker, .record-spin,
   .record-flywheel *, .record-flywheel *::before, .record-flywheel *::after { animation: none !important; }

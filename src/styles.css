@@ -823,3 +823,16 @@
   .ncr .ncr-authorised, .ncr .ncr-custody-mark { opacity: 1; transform: none; animation: none !important; }
   .ncr .ncr-relay-path { stroke-dashoffset: 0; animation: none !important; }
 }
+
+/* Data & Decision Flow */
+@keyframes ddf-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes ddf-draw { from { stroke-dashoffset: 1 } to { stroke-dashoffset: 0 } }
+@keyframes ddf-rise { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+.ddf .ddf-fade { animation: ddf-fade 0.8s ease-out both; }
+.ddf .ddf-rise > * { animation: ddf-rise 0.7s ease-out both; animation-delay: inherit; }
+.ddf .ddf-draw:not(.ddf-loop) { stroke-dasharray: 1; animation: ddf-draw 1.4s ease-in-out both; }
+.ddf .ddf-loop { animation: ddf-fade 1.2s ease-out both; }
+.ddf .ddf-node:focus-visible rect { stroke: var(--gold-500); stroke-width: 2.5; }
+.ddf-paused *, .ddf-paused { animation-play-state: paused !important; }
+.ddf-static *, .ddf-static { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .ddf * { animation: none !important; } }

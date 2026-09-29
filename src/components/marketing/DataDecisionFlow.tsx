@@ -214,7 +214,7 @@ export function DataDecisionFlow() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 lg:flex-row">
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="mb-3 flex flex-wrap items-center gap-3">
+        <div className="mb-3 flex flex-wrap items-center gap-3 shrink-0">
           <div className="-mx-1 flex max-w-full gap-1 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Chambers">
             {["all", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10"].map((c) => (
               <button
@@ -239,7 +239,7 @@ export function DataDecisionFlow() {
           </button>
         </div>
         {chamberScenarios.length > 0 && (
-          <div className="mb-3 grid gap-2 sm:grid-cols-2">
+          <div className="mb-3 grid gap-2 sm:grid-cols-2 shrink-0">
             <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500 sm:col-span-2">
               Chamber {chamber} · {CHAMBER_NAMES[chamber]} — choose a scenario to run
             </div>
@@ -257,7 +257,7 @@ export function DataDecisionFlow() {
             ))}
           </div>
         )}
-        <div className="mb-3 min-h-[64px] border-l-2 border-gold-500 pl-3" aria-live="polite">
+        <div className="mb-3 min-h-[64px] border-l-2 border-gold-500 pl-3 shrink-0" aria-live="polite">
           {mode !== "scenario" ? (
             <div className="pt-2 text-[14px] text-ink-700">
               {mode === "path" ? `Showing the ${PATH_LABEL[filter!]} path` : `Showing ${sel?.label}'s connections`} — press Play or pick a scenario to resume.
@@ -276,7 +276,7 @@ export function DataDecisionFlow() {
             <div className="pt-2 text-[14px] text-ink-500">Drawing the national decision engine…</div>
           )}
         </div>
-        <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="mb-3 flex flex-wrap items-center gap-2 shrink-0">
           <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">Show the path of</span>
           {(Object.keys(PATH_LABEL) as Path[]).map((p) => (
             <button

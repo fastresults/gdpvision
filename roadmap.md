@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Replace the homepage Sovereignty engraving with the animated Sovereign Custody Seal
+
 - [x] Replace the Vault hardware photograph with the animated Sovereign Decision Circuit
 
 - [x] Replace the Decision Brief calculator engraving with an animated evidence-to-decision-to-national-value instrument

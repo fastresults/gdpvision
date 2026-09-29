@@ -134,6 +134,30 @@ const GRADES: Array<{ grade: FactGrade; body: string }> = [
   },
 ];
 
+function CountryPicker({ code, setCode }: { code: string; setCode: (c: string) => void }) {
+  const fetchCountries = useServerFn(getBriefCountries);
+  const countries = useQuery({ queryKey: ["brief-countries"], queryFn: () => fetchCountries() });
+  return (
+    <label className="block max-w-sm">
+      <span className={MICRO}>Country</span>
+      <select
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+        className="mt-2 w-full border border-line-200 bg-paper-0 px-4 py-3 text-[15px] text-ink-950 focus:border-ink-950 focus:outline-none"
+      >
+        {(countries.data ?? [{ code: "ATG", name: "Antigua and Barbuda", onboarded: true }]).map(
+          (c) => (
+            <option key={c.code} value={c.code}>
+              {c.name}
+              {c.onboarded ? "" : " — reference figures"}
+            </option>
+          ),
+        )}
+      </select>
+    </label>
+  );
+}
+
 function LiveRecord({
   code,
   setCode,
@@ -143,29 +167,10 @@ function LiveRecord({
   setCode: (c: string) => void;
   facts: { data: CountryFacts | null | undefined; isLoading: boolean; isError: boolean };
 }) {
-  const fetchCountries = useServerFn(getBriefCountries);
-  const countries = useQuery({ queryKey: ["brief-countries"], queryFn: () => fetchCountries() });
   const [active, setActive] = useState<FactGrade | null>(null);
 
   return (
     <div>
-      <label className="block max-w-sm">
-        <span className={MICRO}>Country</span>
-        <select
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          className="mt-2 w-full border border-line-200 bg-paper-0 px-4 py-3 text-[15px] text-ink-950 focus:border-ink-950 focus:outline-none"
-        >
-          {(countries.data ?? [{ code: "ATG", name: "Antigua and Barbuda", onboarded: true }]).map(
-            (c) => (
-              <option key={c.code} value={c.code}>
-                {c.name}
-                {c.onboarded ? "" : " — reference figures"}
-              </option>
-            ),
-          )}
-        </select>
-      </label>
       <div className="mt-10 border border-line-200 bg-paper-50 p-6 sm:p-8">
         <GradeRing facts={facts.data ?? null} active={active} onActive={setActive} />
       </div>
@@ -245,7 +250,15 @@ function RecordPage() {
                 </a>
               </div>
             </div>
-            <CorpusConstellation stats={stats.data ?? null} scopeLabel={facts.data?.name ?? code} />
+            <div>
+              <CountryPicker code={code} setCode={setCode} />
+              <div className="mt-8">
+                <CorpusConstellation
+                  stats={stats.data ?? null}
+                  scopeLabel={facts.data?.name ?? code}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </section>

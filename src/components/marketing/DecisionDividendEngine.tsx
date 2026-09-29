@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 type Stage = "evidence" | "decision" | "value";
 
@@ -46,7 +46,7 @@ export function DecisionDividendEngine() {
     onFocus: () => setActive(stage),
     onBlur: () => setActive(null),
     onClick: () => setActive((current) => (current === stage ? null : stage)),
-    onKeyDown: (event: React.KeyboardEvent<SVGGElement>) => {
+    onKeyDown: (event: KeyboardEvent<SVGGElement>) => {
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
       setActive((current) => (current === stage ? null : stage));

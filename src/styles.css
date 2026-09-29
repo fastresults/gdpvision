@@ -834,5 +834,7 @@
 .ddf .ddf-loop { animation: ddf-fade 1.2s ease-out both; }
 .ddf .ddf-node:focus-visible rect { stroke: var(--gold-500); stroke-width: 2.5; }
 .ddf-paused *, .ddf-paused { animation-play-state: paused !important; }
-.ddf-static *, .ddf-static { animation: none !important; }
 @media (prefers-reduced-motion: reduce) { .ddf * { animation: none !important; } }
+@keyframes ddf-travel { from { offset-distance: 0%; opacity: 0 } 10% { opacity: 1 } 90% { opacity: 1 } to { offset-distance: 100%; opacity: 0 } }
+.ddf-dot { fill: var(--gold-500); offset-rotate: 0deg; animation: ddf-travel 1.2s ease-in-out both; }
+.ddf-dot-slow { animation-duration: 1.4s; }

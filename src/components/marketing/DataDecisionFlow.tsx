@@ -61,7 +61,85 @@ const EDGES: [string, string][] = [
   ["c01", "brief"], ["c03", "brief"], ["c04", "invest"], ["c07", "brief"], ["c02", "cabinet"], ["c06", "cabinet"], ["c05", "cabinet"], ["c08", "commit"], ["c09", "commit"], ["c10", "invest"], ["c10", "commit"],
   ["brief", "cabinet"], ["cabinet", "commit"],
   ["cabinet", "delay"], ["commit", "delay"], ["brief", "spend"], ["commit", "spend"], ["invest", "capital"], ["commit", "record"],
+  ["safeguards", "c07"], ["c07", "c05"], ["cabinet", "spend"], ["c02", "commit"], ["c09", "c06"], ["c06", "commit"], ["c01", "c03"],
 ];
+
+interface Scenario {
+  title: string;
+  question: string;
+  steps: { edges: [string, string][]; text: string }[];
+  outcome: string;
+  loop?: boolean;
+}
+
+const SCENARIOS: Scenario[] = [
+  {
+    title: "Revenue shock",
+    question: "If Citizenship by Investment receipts fall, what replaces the revenue?",
+    steps: [
+      { edges: [["flows", "corpus"], ["stats", "corpus"]], text: "Capital flows and public statistics → Corpus: the revenue exposure is measured and cited." },
+      { edges: [["corpus", "c01"]], text: "Corpus → National Ledger: the gap is priced year by year." },
+      { edges: [["c01", "c03"]], text: "Ledger → Scenarios: replacement options are rehearsed against GDP." },
+      { edges: [["c03", "brief"]], text: "Scenarios → Decision Brief: the best options are costed on one page." },
+      { edges: [["brief", "cabinet"]], text: "Brief → Cabinet: ministers choose with the full picture." },
+      { edges: [["cabinet", "spend"]], text: "Cabinet → spending redirected to the highest-return replacements." },
+    ],
+    outcome: "Revenue gap closed before it becomes a crisis.",
+  },
+  {
+    title: "Attracting investment",
+    question: "Which sector can attract new investment, and what package wins it?",
+    steps: [
+      { edges: [["peers", "corpus"], ["flows", "corpus"]], text: "Peer benchmarks and capital flows → Corpus: what neighbours achieve, and where money leaks." },
+      { edges: [["corpus", "c10"], ["corpus", "c04"]], text: "Corpus → Sector Studio and FDI Studio: the growth plan and exposure are built together." },
+      { edges: [["c10", "invest"], ["c04", "invest"]], text: "Both → Investor packages: open-standard projects ready for investors." },
+      { edges: [["invest", "capital"]], text: "Packages → capital committed to national priorities." },
+    ],
+    outcome: "New capacity and jobs in a chosen sector.",
+  },
+  {
+    title: "Sensitive policy, tested first",
+    question: "Will citizens accept a sensitive reform — without exposing private data?",
+    steps: [
+      { edges: [["private", "vault"]], text: "Private records → Sovereign Vault: analysed on state-owned servers, never exported." },
+      { edges: [["vault", "safeguards"]], text: "Vault → approved findings only, each graded and explainable." },
+      { edges: [["safeguards", "c07"]], text: "Findings → Persona Lab: the reform is tested with simulated citizens and firms." },
+      { edges: [["c07", "c05"]], text: "Persona Lab → Narrative: the explanation is shaped before launch." },
+      { edges: [["c05", "cabinet"]], text: "Narrative → Cabinet: decided with public reaction already understood." },
+      { edges: [["cabinet", "delay"]], text: "Cabinet → fewer reversals and delays." },
+    ],
+    outcome: "Reform adopted faster; private data stayed in the country.",
+  },
+  {
+    title: "Mandate into delivery",
+    question: "How do election promises become tracked, delivered results?",
+    steps: [
+      { edges: [["manifestos", "corpus"], ["ministries", "corpus"]], text: "Manifestos and ministries → Corpus: promises matched to the ministries that own them." },
+      { edges: [["corpus", "c08"], ["corpus", "c02"]], text: "Corpus → Mandate Compact and Portfolios: promises become commitments with owners." },
+      { edges: [["c08", "commit"], ["c02", "commit"]], text: "Both → Tracked commitments: deadlines and KPIs for every one." },
+      { edges: [["commit", "record"]], text: "Commitments → results published on the National Record." },
+    ],
+    outcome: "Delivery on the record — and fed back as new evidence.",
+    loop: true,
+  },
+  {
+    title: "A digital service",
+    question: "Which digital service removes the most friction for citizens and business?",
+    steps: [
+      { edges: [["kpis", "corpus"], ["ministries", "corpus"]], text: "KPIs and ministries → Corpus: where time and cost are lost today." },
+      { edges: [["corpus", "c09"]], text: "Corpus → Digital Government: the service is designed and approved." },
+      { edges: [["c09", "c06"]], text: "Digital Government → Cabinet Room: rollout decided and scheduled." },
+      { edges: [["c06", "commit"]], text: "Cabinet Room → Tracked commitments: owners and dates." },
+      { edges: [["commit", "delay"], ["commit", "record"]], text: "Commitments → less friction, recorded publicly." },
+    ],
+    outcome: "Hours saved for every business and citizen who uses it.",
+    loop: true,
+  },
+];
+
+const STEP_MS = 1400;
+const HOLD_MS = 3000;
+const DRAW_MS = 9000;
 
 const PATH_LABEL: Record<Path, string> = { evidence: "Evidence", safeguards: "Safeguards", money: "Money", delivery: "Delivery" };
 
@@ -86,11 +164,26 @@ function layout() {
   return pos;
 }
 
-const CYCLE_MS = 12_000; // ~9s build + 3s hold
+
+const POS = layout();
+const LOOP_D = `M ${COLX[4] + BOXW[4] / 2} ${H - 56} C ${COLX[4]} ${H - 14}, ${COLX[1] + 200} ${H - 14}, ${COLX[1] + BOXW[1] / 2} ${H - 56}`;
+function edgePath(a: string, b: string) {
+  const A = POS[a], B = POS[b];
+  const sameBand = NODES.find((n) => n.id === a)!.band === NODES.find((n) => n.id === b)!.band;
+  if (sameBand) {
+    const x = A.x + A.w;
+    return `M ${x} ${A.y + BOXH / 2} C ${x + 24} ${A.y + BOXH / 2}, ${x + 24} ${B.y + BOXH / 2}, ${x} ${B.y + BOXH / 2}`;
+  }
+  const x1 = A.x + A.w, y1 = A.y + BOXH / 2, x2 = B.x, y2 = B.y + BOXH / 2;
+  const mx = (x1 + x2) / 2;
+  return `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
+}
 
 export function DataDecisionFlow() {
-  const pos = useMemo(layout, []);
-  const [cycle, setCycle] = useState(0);
+  const pos = POS;
+  const [scn, setScn] = useState(0);
+  const [step, setStep] = useState(-1); // -1 = drawing
+  const [playing, setPlaying] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
   const [filter, setFilter] = useState<Path | null>(null);
   const [reduce, setReduce] = useState(false);
@@ -100,11 +193,37 @@ export function DataDecisionFlow() {
     setReduce(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, []);
 
+  const S = SCENARIOS[scn];
   useEffect(() => {
-    if (reduce || paused) return;
-    const t = window.setTimeout(() => setCycle((c) => c + 1), CYCLE_MS);
+    if (reduce) {
+      setStep(S.steps.length);
+      return;
+    }
+    if (paused || !playing) return;
+    let ms = STEP_MS;
+    let next: () => void = () => setStep((x) => x + 1);
+    if (step === -1) ms = DRAW_MS;
+    else if (step >= S.steps.length) {
+      ms = HOLD_MS + (S.loop ? 1400 : 0);
+      next = () => {
+        setScn((i) => (i + 1) % SCENARIOS.length);
+        setStep(0);
+      };
+    }
+    const t = window.setTimeout(next, ms);
     return () => window.clearTimeout(t);
-  }, [cycle, paused, reduce]);
+  }, [step, scn, paused, playing, reduce, S]);
+
+  const jump = (i: number) => {
+    setScn(i);
+    setStep(reduce ? SCENARIOS[i].steps.length : 0);
+  };
+
+  const running = step >= 0;
+  const doneSteps = running ? S.steps.slice(0, Math.min(step + 1, S.steps.length)) : [];
+  const litNodes = new Set<string>(doneSteps.flatMap((st) => st.edges.flat()));
+  const litEdges = new Set<string>(doneSteps.flatMap((st) => st.edges.map(([a, b]) => a + ">" + b)));
+  const curStep = running && step < S.steps.length ? S.steps[step] : null;
 
   const sel = NODES.find((n) => n.id === selected) ?? null;
   const linked = useMemo(() => {
@@ -117,9 +236,11 @@ export function DataDecisionFlow() {
     return s;
   }, [selected]);
 
+  const scenarioMode = running && !selected && !filter;
   const nodeActive = (n: FlowNode) =>
-    (linked ? linked.has(n.id) : true) && (filter ? n.paths.includes(filter) : true);
+    scenarioMode ? litNodes.has(n.id) : (linked ? linked.has(n.id) : true) && (filter ? n.paths.includes(filter) : true);
   const edgeActive = (a: string, b: string) => {
+    if (scenarioMode) return litEdges.has(a + ">" + b);
     if (selected) return a === selected || b === selected;
     if (filter) {
       const na = NODES.find((n) => n.id === a)!;
@@ -134,6 +255,41 @@ export function DataDecisionFlow() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 lg:flex-row">
       <div className="flex min-h-0 flex-1 flex-col">
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <div className="flex gap-1" role="tablist" aria-label="Scenarios">
+            {SCENARIOS.map((sc, i) => (
+              <button
+                key={sc.title}
+                type="button"
+                role="tab"
+                aria-selected={i === scn && running}
+                aria-label={`Scenario ${i + 1}: ${sc.title}`}
+                onClick={() => jump(i)}
+                className={cn("card-choice h-9 w-9 font-mono text-[12px]", i === scn && running && "card-choice-active")}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+          <button type="button" className="btn-ghost" onClick={() => { setPlaying((v) => !v); if (step === -1) setStep(0); }}>
+            {playing ? "Pause" : "Play"}
+          </button>
+        </div>
+        <div className="mb-3 min-h-[64px] border-l-2 border-gold-500 pl-3" aria-live="polite">
+          {running ? (
+            <>
+              <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+                Scenario {scn + 1} of {SCENARIOS.length} — {S.title}
+              </div>
+              <div className="font-display text-lg text-ink-950 md:text-xl">{S.question}</div>
+              <div className="text-[14px] text-ink-700">
+                {curStep ? curStep.text : <span className="text-ink-950">Outcome: {S.outcome} <span className="text-ink-500">(a pathway, never a forecast)</span></span>}
+              </div>
+            </>
+          ) : (
+            <div className="pt-2 text-[14px] text-ink-500">Drawing the national decision engine…</div>
+          )}
+        </div>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">Show the path of</span>
           {(Object.keys(PATH_LABEL) as Path[]).map((p) => (
@@ -152,9 +308,8 @@ export function DataDecisionFlow() {
         {/* Desktop map */}
         <div className="hidden min-h-0 flex-1 overflow-auto md:block">
           <svg
-            key={cycle}
             viewBox={`0 0 ${W} ${H}`}
-            className={cn("ddf h-full min-h-[520px] w-full", paused && "ddf-paused", reduce && "ddf-static")}
+            className={cn("ddf h-full min-h-[520px] w-full", (paused || !playing) && "ddf-paused")}
             role="group"
             aria-label="Data and decision flow map"
           >
@@ -174,17 +329,7 @@ export function DataDecisionFlow() {
             ))}
 
             {EDGES.map(([a, b], i) => {
-              const A = pos[a], B = pos[b];
-              const sameBand = NODES.find((n) => n.id === a)!.band === NODES.find((n) => n.id === b)!.band;
-              let d: string;
-              if (sameBand) {
-                const x = A.x + A.w;
-                d = `M ${x} ${A.y + BOXH / 2} C ${x + 24} ${A.y + BOXH / 2}, ${x + 24} ${B.y + BOXH / 2}, ${x} ${B.y + BOXH / 2}`;
-              } else {
-                const x1 = A.x + A.w, y1 = A.y + BOXH / 2, x2 = B.x, y2 = B.y + BOXH / 2;
-                const mx = (x1 + x2) / 2;
-                d = `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
-              }
+              const d = edgePath(a, b);
               const band = NODES.find((n) => n.id === a)!.band;
               const gold = band >= 2 && ["cabinet", "commit", "delay", "spend", "capital", "record", "brief", "invest"].includes(b);
               const on = edgeActive(a, b);
@@ -195,17 +340,32 @@ export function DataDecisionFlow() {
                   pathLength={1}
                   fill="none"
                   className="ddf-draw"
-                  stroke={gold ? "var(--gold-500)" : "var(--ink-500)"}
+                  stroke={gold || (scenarioMode && on) ? "var(--gold-500)" : "var(--ink-500)"}
                   strokeWidth={gold ? 1.6 : 0.9}
-                  opacity={on ? (gold ? 0.95 : 0.55) : 0.08}
+                  opacity={on ? (gold || scenarioMode ? 0.95 : 0.55) : 0.08}
                   style={{ animationDelay: `${0.8 + band * 1.6 + (i % 7) * 0.08}s` }}
                 />
               );
             })}
 
+            {curStep && !reduce && !paused && playing &&
+              curStep.edges.map(([a, b]) =>
+                [0, 1, 2].map((k) => (
+                  <circle
+                    key={`${scn}-${step}-${a}-${b}-${k}`}
+                    r={k === 0 ? 4.5 : 3}
+                    className="ddf-dot"
+                    style={{ offsetPath: `path('${edgePath(a, b)}')`, animationDelay: `${k * 0.18}s` }}
+                  />
+                )),
+              )}
+            {running && step >= S.steps.length && S.loop && !reduce && playing && !paused && (
+              <circle key={`loop-${scn}`} r={4} className="ddf-dot ddf-dot-slow" style={{ offsetPath: `path('${LOOP_D}')` }} />
+            )}
+
             {/* Feedback loop */}
             <path
-              d={`M ${COLX[4] + BOXW[4] / 2} ${H - 56} C ${COLX[4]} ${H - 14}, ${COLX[1] + 200} ${H - 14}, ${COLX[1] + BOXW[1] / 2} ${H - 56}`}
+              d={LOOP_D}
               pathLength={1}
               fill="none"
               stroke="var(--gold-500)"
@@ -248,8 +408,8 @@ export function DataDecisionFlow() {
                     height={BOXH}
                     rx={3}
                     fill={isSel ? "var(--ink-950)" : "var(--paper-0)"}
-                    stroke={outcome || isSel ? "var(--gold-500)" : "var(--ink-700)"}
-                    strokeWidth={outcome || isSel ? 1.6 : 0.9}
+                    stroke={outcome || isSel || (scenarioMode && litNodes.has(n.id)) ? "var(--gold-500)" : "var(--ink-700)"}
+                    strokeWidth={outcome || isSel || (scenarioMode && litNodes.has(n.id)) ? 1.8 : 0.9}
                   />
                   <text
                     x={p.x + 10}
@@ -284,7 +444,7 @@ export function DataDecisionFlow() {
                     type="button"
                     onClick={() => toggle(n.id)}
                     aria-pressed={selected === n.id}
-                    className={cn("card-choice px-2 py-2 text-left text-[13px]", selected === n.id && "card-choice-active", !nodeActive(n) && "opacity-30")}
+                    className={cn("card-choice px-2 py-2 text-left text-[13px]", selected === n.id && "card-choice-active", !nodeActive(n) && "opacity-30", scenarioMode && litNodes.has(n.id) && "border-gold-500")}
                   >
                     {n.label}
                   </button>

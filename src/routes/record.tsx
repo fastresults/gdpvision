@@ -10,7 +10,18 @@ import { FloatingBackToTop } from "@/components/marketing/FloatingBackToTop";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { getBriefCountries, getCountryFacts } from "@/lib/calculator/facts.functions";
-import type { FactGrade } from "@/lib/calculator/facts.server";
+import type { CountryFacts, FactGrade } from "@/lib/calculator/facts.server";
+import { getCorpusStats } from "@/lib/record/corpus-stats.functions";
+import {
+  BeforeAfter,
+  CorpusConstellation,
+  CorpusPulse,
+  CustodyRings,
+  EffortBars,
+  FigureJourney,
+  GradeRing,
+  TrustScale,
+} from "@/components/record/RecordVisuals";
 
 const SITE_URL = "https://gdpvision.com";
 const TITLE = "The National Record — every figure Cabinet relies on, with its source and grade";
@@ -123,16 +134,18 @@ const GRADES: Array<{ grade: FactGrade; body: string }> = [
   },
 ];
 
-function LiveRecord() {
+function LiveRecord({
+  code,
+  setCode,
+  facts,
+}: {
+  code: string;
+  setCode: (c: string) => void;
+  facts: { data: CountryFacts | null | undefined; isLoading: boolean; isError: boolean };
+}) {
   const fetchCountries = useServerFn(getBriefCountries);
-  const fetchFacts = useServerFn(getCountryFacts);
-  const [code, setCode] = useState("ATG");
   const countries = useQuery({ queryKey: ["brief-countries"], queryFn: () => fetchCountries() });
-  const facts = useQuery({
-    queryKey: ["brief-facts", code],
-    queryFn: () => fetchFacts({ data: { code } }),
-    staleTime: 60 * 60 * 1000,
-  });
+  const [active, setActive] = useState<FactGrade | null>(null);
 
   return (
     <div>
@@ -153,6 +166,9 @@ function LiveRecord() {
           )}
         </select>
       </label>
+      <div className="mt-10 border border-line-200 bg-paper-50 p-6 sm:p-8">
+        <GradeRing facts={facts.data ?? null} active={active} onActive={setActive} />
+      </div>
       <div className="mt-8">
         {facts.isError || (!facts.isLoading && !facts.data) ? (
           <p className="border-l-2 border-line-200 py-2 pl-4 text-[14px] text-ink-500">
@@ -177,6 +193,22 @@ function LiveRecord() {
 }
 
 function RecordPage() {
+  const fetchFacts = useServerFn(getCountryFacts);
+  const fetchStats = useServerFn(getCorpusStats);
+  const [code, setCode] = useState("ATG");
+  const facts = useQuery({
+    queryKey: ["brief-facts", code],
+    queryFn: () => fetchFacts({ data: { code } }),
+    staleTime: 60 * 60 * 1000,
+  });
+  const stats = useQuery({
+    queryKey: ["corpus-stats", code],
+    queryFn: () => fetchStats({ data: { code } }),
+    staleTime: 10 * 60 * 1000,
+  });
+  const [ring, setRing] = useState<number | null>(null);
+  const gdp = facts.data?.facts.find((f) => /gdp/i.test(f.key))?.display;
+  const figure = gdp ? `${facts.data?.name ?? ""} GDP ${gdp}` : "GDP";
   return (
     <MarketingShell>
       {/* HERO */}
@@ -189,28 +221,31 @@ function RecordPage() {
           >
             <ArrowLeft className="h-3.5 w-3.5" /> One trusted national record
           </Link>
-          <div className="mt-8 max-w-4xl">
-            <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-              Instrument · The National Record
+          <div className="mt-8 grid items-center gap-12 lg:grid-cols-[1.25fr_1fr]">
+            <div className="max-w-4xl">
+              <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
+                Instrument · The National Record
+              </div>
+              <div className="mt-4 h-px w-12 bg-ink-700" aria-hidden />
+              <h1 className="mt-5 font-serif text-[30px] leading-[1.08] tracking-tight text-ink-950 sm:text-[40px] sm:leading-[1.05] md:text-[52px]">
+                Every figure Cabinet relies on, with its source, its date and its grade.
+              </h1>
+              <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-ink-700">
+                An economy cannot be managed faster than its evidence can be found and trusted.
+                GDPVision keeps one national record: public evidence and government data, each
+                figure sourced and graded, restricted records kept apart, and the whole record
+                carried forward from one decision to the next.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <a href="#live" className="btn-primary px-5 py-2.5 text-xs">
+                  See a live record
+                </a>
+                <a href="#record-briefing" className="btn-ghost px-5 py-2.5 text-xs">
+                  Request a briefing
+                </a>
+              </div>
             </div>
-            <div className="mt-4 h-px w-12 bg-ink-700" aria-hidden />
-            <h1 className="mt-5 font-serif text-[30px] leading-[1.08] tracking-tight text-ink-950 sm:text-[40px] sm:leading-[1.05] md:text-[52px]">
-              Every figure Cabinet relies on, with its source, its date and its grade.
-            </h1>
-            <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-ink-700">
-              An economy cannot be managed faster than its evidence can be found and trusted.
-              GDPVision keeps one national record: public evidence and government data, each figure
-              sourced and graded, restricted records kept apart, and the whole record carried
-              forward from one decision to the next.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <a href="#live" className="btn-primary px-5 py-2.5 text-xs">
-                See a live record
-              </a>
-              <a href="#record-briefing" className="btn-ghost px-5 py-2.5 text-xs">
-                Request a briefing
-              </a>
-            </div>
+            <CorpusConstellation stats={stats.data ?? null} scopeLabel={facts.data?.name ?? code} />
           </div>
         </div>
       </section>
@@ -224,7 +259,7 @@ function RecordPage() {
             lede="Public figures only, drawn from the record as it stands today. Each carries its source and a confidence grade; where the record is silent, the figure is marked as an assumption rather than presented as fact."
           />
           <div className="mt-12">
-            <LiveRecord />
+            <LiveRecord code={code} setCode={setCode} facts={facts} />
           </div>
         </div>
       </section>
@@ -236,15 +271,9 @@ function RecordPage() {
             eyebrow="The life of a figure"
             title="Six steps between a published number and a Cabinet decision."
           />
-          <ol className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {LIFE.map((s, i) => (
-              <li key={s.head} className="border-t-2 border-gold-500 pt-5">
-                <div className={MICRO}>{String(i + 1).padStart(2, "0")}</div>
-                <h3 className="mt-3 font-serif text-[22px] leading-snug text-ink-950">{s.head}</h3>
-                <p className="mt-3 text-[15px] leading-relaxed text-ink-700">{s.body}</p>
-              </li>
-            ))}
-          </ol>
+          <div className="mt-12">
+            <FigureJourney steps={LIFE} figure={figure} />
+          </div>
         </div>
       </section>
 
@@ -256,23 +285,31 @@ function RecordPage() {
             title="Three kinds of evidence. One view for a decision. No confusion between them."
             lede="Visibility is recorded on every item. A briefing can draw on all three, and always shows which is which."
           />
-          <div className="mt-12 grid gap-8 md:grid-cols-3">
-            {RECORDS.map((r) => (
-              <div key={r.head} className="border-t border-line-200 pt-6">
-                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold-500">
-                  {r.head}
+          <div className="mt-12 grid items-center gap-10 lg:grid-cols-[340px_1fr]">
+            <CustodyRings active={ring} onActive={setRing} />
+            <div className="grid gap-8 md:grid-cols-3">
+              {RECORDS.map((r, i) => (
+                <div
+                  key={r.head}
+                  onMouseEnter={() => setRing(i)}
+                  onMouseLeave={() => setRing(null)}
+                  className={`border-t pt-6 transition-colors ${ring === i ? "border-gold-500" : "border-line-200"}`}
+                >
+                  <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold-500">
+                    {r.head}
+                  </div>
+                  <p className="mt-4 text-[15px] leading-relaxed text-ink-700">{r.body}</p>
+                  {r.link ? (
+                    <Link
+                      to="/vault"
+                      className="mt-4 inline-block font-mono text-[11px] uppercase tracking-[0.16em] text-ink-950 underline decoration-line-200 underline-offset-4 hover:decoration-ink-950"
+                    >
+                      The Sovereign Vault →
+                    </Link>
+                  ) : null}
                 </div>
-                <p className="mt-4 text-[15px] leading-relaxed text-ink-700">{r.body}</p>
-                {r.link ? (
-                  <Link
-                    to="/vault"
-                    className="mt-4 inline-block font-mono text-[11px] uppercase tracking-[0.16em] text-ink-950 underline decoration-line-200 underline-offset-4 hover:decoration-ink-950"
-                  >
-                    The Sovereign Vault →
-                  </Link>
-                ) : null}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -290,30 +327,35 @@ function RecordPage() {
               <span className={MICRO}>Without a record</span>
               <span className={MICRO}>With the record</span>
             </div>
-            {CHANGES.map((c) => (
-              <div
-                key={c.q}
-                className="grid gap-2 border-b border-line-200 py-5 md:grid-cols-[1.1fr_1fr_1fr] md:gap-8"
-              >
-                <p className="font-serif text-[18px] leading-snug text-ink-950">{c.q}</p>
-                <p className="text-[15px] leading-relaxed text-ink-500">
-                  <span className="mr-2 font-mono text-[10px] uppercase tracking-[0.14em] md:hidden">
-                    Without:
-                  </span>
-                  {c.before}
-                </p>
-                <p className="border-l-2 border-gold-500 pl-4 text-[15px] leading-relaxed text-ink-950">
-                  <span className="mr-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500 md:hidden">
-                    With:
-                  </span>
-                  {c.after}
-                </p>
-              </div>
+            {CHANGES.map((c, ci) => (
+              <BeforeAfter key={c.q} index={ci}>
+                {(seen, delay) => (
+                  <div className="grid gap-2 border-b border-line-200 py-5 md:grid-cols-[1.1fr_1fr_1fr] md:gap-8">
+                    <p className="font-serif text-[18px] leading-snug text-ink-950">{c.q}</p>
+                    <p className="text-[15px] leading-relaxed text-ink-500">
+                      <span className="mr-2 font-mono text-[10px] uppercase tracking-[0.14em] md:hidden">
+                        Without:
+                      </span>
+                      {c.before}
+                    </p>
+                    <p className="border-l-2 border-gold-500 pl-4 text-[15px] leading-relaxed text-ink-950">
+                      <span className="mr-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500 md:hidden">
+                        With:
+                      </span>
+                      {c.after}
+                    </p>
+                    <div className="md:col-start-2 md:col-span-2">
+                      <EffortBars seen={seen} delay={delay} />
+                    </div>
+                  </div>
+                )}
+              </BeforeAfter>
             ))}
           </div>
           <p className="mt-6 max-w-2xl text-[14px] leading-relaxed text-ink-500">
-            It is also the foundation the rest of GDPVision stands on: the chambers, the Decision
-            Brief and the global measures on the home page all read from the same record.
+            Bars are illustrative of relative effort, not measurements. It is also the foundation
+            the rest of GDPVision stands on: the chambers, the Decision Brief and the global
+            measures on the home page all read from the same record.
           </p>
         </div>
       </section>
@@ -325,6 +367,9 @@ function RecordPage() {
             eyebrow="Confidence grades"
             title="A reader can see how far to trust a figure before relying on it."
           />
+          <div className="mt-12 max-w-3xl">
+            <TrustScale facts={facts.data ?? null} />
+          </div>
           <dl className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {GRADES.map((g) => (
               <div key={g.grade} className="border-t border-line-200 pt-5">
@@ -337,6 +382,8 @@ function RecordPage() {
           </dl>
         </div>
       </section>
+
+      <CorpusPulse stats={stats.data ?? null} />
 
       {/* BRIEFING */}
       <section id="record-briefing" className={SECTION}>

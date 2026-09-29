@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
+import { SCENARIOS, CHAMBER_NAMES } from "./dataDecisionScenarios";
 
 type Path = "evidence" | "safeguards" | "money" | "delivery";
 type Band = 0 | 1 | 2 | 3 | 4;
@@ -116,6 +117,8 @@ function edgePath(a: string, b: string) {
 
 export function DataDecisionFlow() {
   const pos = POS;
+  const [chamber, setChamber] = useState<string>("all");
+  const playlist = useMemo(() => (chamber === "all" ? SCENARIOS : SCENARIOS.filter((x) => x.chamber === chamber)), [chamber]);
   const [scn, setScn] = useState(0);
   const [step, setStep] = useState(-1); // -1 = drawing
   const [playing, setPlaying] = useState(true);
@@ -128,7 +131,7 @@ export function DataDecisionFlow() {
     setReduce(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, []);
 
-  const S = SCENARIOS[scn];
+  const S = playlist[scn] ?? playlist[0];
   useEffect(() => {
     if (reduce) {
       setStep(S.steps.length);
@@ -141,21 +144,27 @@ export function DataDecisionFlow() {
     else if (step >= S.steps.length) {
       ms = HOLD_MS + (S.loop ? 1400 : 0);
       next = () => {
-        setScn((i) => (i + 1) % SCENARIOS.length);
+        setScn((i) => (i + 1) % playlist.length);
         setStep(0);
       };
     }
     const t = window.setTimeout(next, ms);
     return () => window.clearTimeout(t);
-  }, [step, scn, paused, playing, reduce, S]);
+  }, [step, scn, paused, playing, reduce, S, playlist.length]);
 
-  const jump = (i: number) => {
+  const jump = (i: number, list = playlist) => {
     setFilter(null);
     setSelected(null);
     setPlaying(true);
     setScn(i);
-    setStep(reduce ? SCENARIOS[i].steps.length : 0);
+    setStep(reduce ? list[i].steps.length : 0);
   };
+  const pickChamber = (c: string) => {
+    setChamber(c);
+    const list = c === "all" ? SCENARIOS : SCENARIOS.filter((x) => x.chamber === c);
+    jump(0, list);
+  };
+  const chamberScenarios = chamber === "all" ? [] : playlist;
 
   const running = step >= 0;
   const doneSteps = running ? S.steps.slice(0, Math.min(step + 1, S.steps.length)) : [];
@@ -206,18 +215,18 @@ export function DataDecisionFlow() {
     <div className="flex h-full min-h-0 flex-col gap-4 lg:flex-row">
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="mb-3 flex flex-wrap items-center gap-3">
-          <div className="flex gap-1" role="tablist" aria-label="Scenarios">
-            {SCENARIOS.map((sc, i) => (
+          <div className="-mx-1 flex max-w-full gap-1 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Chambers">
+            {["all", ...Object.keys(CHAMBER_NAMES)].map((c) => (
               <button
-                key={sc.title}
+                key={c}
                 type="button"
                 role="tab"
-                aria-selected={i === scn && running}
-                aria-label={`Scenario ${i + 1}: ${sc.title}`}
-                onClick={() => jump(i)}
-                className={cn("card-choice h-9 w-9 font-mono text-[12px]", i === scn && running && "card-choice-active")}
+                aria-selected={chamber === c}
+                title={c === "all" ? "Run all 20 scenarios" : `${c} ${CHAMBER_NAMES[c]}`}
+                onClick={() => pickChamber(c)}
+                className={cn("card-choice h-9 shrink-0 px-2.5 font-mono text-[12px]", chamber === c && "card-choice-active")}
               >
-                {i + 1}
+                {c === "all" ? "All" : c}
               </button>
             ))}
           </div>
@@ -229,6 +238,25 @@ export function DataDecisionFlow() {
             {playing && mode === "scenario" ? "Pause" : "Play"}
           </button>
         </div>
+        {chamberScenarios.length > 0 && (
+          <div className="mb-3 grid gap-2 sm:grid-cols-2">
+            <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500 sm:col-span-2">
+              Chamber {chamber} · {CHAMBER_NAMES[chamber]} — choose a scenario to run
+            </div>
+            {chamberScenarios.map((sc, i) => (
+              <button
+                key={sc.title}
+                type="button"
+                aria-pressed={i === scn && running}
+                onClick={() => jump(i)}
+                className={cn("card-choice px-3 py-2 text-left text-[13px] text-ink-950", i === scn && running && "card-choice-active")}
+              >
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">Scenario {i + 1} · {sc.title}</span>
+                <span className="mt-0.5 block">{sc.question}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <div className="mb-3 min-h-[64px] border-l-2 border-gold-500 pl-3" aria-live="polite">
           {mode !== "scenario" ? (
             <div className="pt-2 text-[14px] text-ink-700">
@@ -237,7 +265,7 @@ export function DataDecisionFlow() {
           ) : running ? (
             <>
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-                Scenario {scn + 1} of {SCENARIOS.length} — {S.title}
+                Chamber {S.chamber} · {CHAMBER_NAMES[S.chamber]} · Scenario {scn + 1} of {playlist.length} — {S.title}
               </div>
               <div className="font-display text-lg text-ink-950 md:text-xl">{S.question}</div>
               <div className="text-[14px] text-ink-700">

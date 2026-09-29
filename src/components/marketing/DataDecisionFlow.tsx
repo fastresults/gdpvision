@@ -137,6 +137,13 @@ const SCENARIOS: Scenario[] = [
   },
 ];
 
+if (import.meta.env.DEV) {
+  const known = new Set(EDGES.map(([a, b]) => a + ">" + b));
+  SCENARIOS.forEach((sc) => sc.steps.forEach((st) => st.edges.forEach(([a, b]) => {
+    if (!known.has(a + ">" + b)) console.warn(`[DataDecisionFlow] scenario "${sc.title}" uses undrawn edge ${a}>${b}`);
+  })));
+}
+
 const STEP_MS = 1400;
 const HOLD_MS = 3000;
 const DRAW_MS = 9000;
@@ -215,15 +222,29 @@ export function DataDecisionFlow() {
   }, [step, scn, paused, playing, reduce, S]);
 
   const jump = (i: number) => {
+    setFilter(null);
+    setSelected(null);
+    setPlaying(true);
     setScn(i);
     setStep(reduce ? SCENARIOS[i].steps.length : 0);
   };
 
   const running = step >= 0;
   const doneSteps = running ? S.steps.slice(0, Math.min(step + 1, S.steps.length)) : [];
-  const litNodes = new Set<string>(doneSteps.flatMap((st) => st.edges.flat()));
-  const litEdges = new Set<string>(doneSteps.flatMap((st) => st.edges.map(([a, b]) => a + ">" + b)));
   const curStep = running && step < S.steps.length ? S.steps[step] : null;
+  const [landed, setLanded] = useState(false);
+  useEffect(() => {
+    setLanded(reduce);
+    if (!curStep || reduce) return;
+    const t = window.setTimeout(() => setLanded(true), 1200);
+    return () => window.clearTimeout(t);
+  }, [scn, step, reduce]); // eslint-disable-line react-hooks/exhaustive-deps
+  const completed = curStep ? S.steps.slice(0, step) : doneSteps;
+  const litNodes = new Set<string>(completed.flatMap((st) => st.edges.flat()));
+  if (curStep) curStep.edges.forEach(([a, b]) => { litNodes.add(a); if (landed) litNodes.add(b); });
+  const litEdges = new Set<string>(completed.flatMap((st) => st.edges.map(([a, b]) => a + ">" + b)));
+  if (curStep && landed) curStep.edges.forEach(([a, b]) => litEdges.add(a + ">" + b));
+  const activeEdges = new Set<string>(curStep ? curStep.edges.map(([a, b]) => a + ">" + b) : []);
 
   const sel = NODES.find((n) => n.id === selected) ?? null;
   const linked = useMemo(() => {
@@ -236,11 +257,12 @@ export function DataDecisionFlow() {
     return s;
   }, [selected]);
 
-  const scenarioMode = running && !selected && !filter;
+  const mode: "scenario" | "path" | "node" = selected ? "node" : filter ? "path" : "scenario";
+  const scenarioMode = running && mode === "scenario";
   const nodeActive = (n: FlowNode) =>
     scenarioMode ? litNodes.has(n.id) : (linked ? linked.has(n.id) : true) && (filter ? n.paths.includes(filter) : true);
   const edgeActive = (a: string, b: string) => {
-    if (scenarioMode) return litEdges.has(a + ">" + b);
+    if (scenarioMode) return litEdges.has(a + ">" + b) || activeEdges.has(a + ">" + b);
     if (selected) return a === selected || b === selected;
     if (filter) {
       const na = NODES.find((n) => n.id === a)!;
@@ -271,12 +293,20 @@ export function DataDecisionFlow() {
               </button>
             ))}
           </div>
-          <button type="button" className="btn-ghost" onClick={() => { setPlaying((v) => !v); if (step === -1) setStep(0); }}>
-            {playing ? "Pause" : "Play"}
+          <button type="button" className="btn-ghost" onClick={() => {
+            if (mode !== "scenario") { setFilter(null); setSelected(null); setPlaying(true); }
+            else setPlaying((v) => !v);
+            if (step === -1) setStep(0);
+          }}>
+            {playing && mode === "scenario" ? "Pause" : "Play"}
           </button>
         </div>
         <div className="mb-3 min-h-[64px] border-l-2 border-gold-500 pl-3" aria-live="polite">
-          {running ? (
+          {mode !== "scenario" ? (
+            <div className="pt-2 text-[14px] text-ink-700">
+              {mode === "path" ? `Showing the ${PATH_LABEL[filter!]} path` : `Showing ${sel?.label}'s connections`} — press Play or pick a scenario to resume.
+            </div>
+          ) : running ? (
             <>
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
                 Scenario {scn + 1} of {SCENARIOS.length} — {S.title}
@@ -331,8 +361,10 @@ export function DataDecisionFlow() {
             {EDGES.map(([a, b], i) => {
               const d = edgePath(a, b);
               const band = NODES.find((n) => n.id === a)!.band;
-              const gold = band >= 2 && ["cabinet", "commit", "delay", "spend", "capital", "record", "brief", "invest"].includes(b);
               const on = edgeActive(a, b);
+              const key = a + ">" + b;
+              const gold = (scenarioMode && litEdges.has(key)) || (mode === "node" && on);
+              const active = scenarioMode && activeEdges.has(key) && !litEdges.has(key);
               return (
                 <path
                   key={i}
@@ -340,15 +372,15 @@ export function DataDecisionFlow() {
                   pathLength={1}
                   fill="none"
                   className="ddf-draw"
-                  stroke={gold || (scenarioMode && on) ? "var(--gold-500)" : "var(--ink-500)"}
-                  strokeWidth={gold ? 1.6 : 0.9}
-                  opacity={on ? (gold || scenarioMode ? 0.95 : 0.55) : 0.08}
+                  stroke={gold ? "var(--gold-500)" : active ? "var(--ink-950)" : "var(--ink-500)"}
+                  strokeWidth={gold || active ? 1.6 : 0.9}
+                  opacity={on ? (gold || active ? 0.95 : 0.55) : 0.08}
                   style={{ animationDelay: `${0.8 + band * 1.6 + (i % 7) * 0.08}s` }}
                 />
               );
             })}
 
-            {curStep && !reduce && !paused && playing &&
+            {curStep && !reduce && mode === "scenario" && playing &&
               curStep.edges.map(([a, b]) =>
                 [0, 1, 2].map((k) => (
                   <circle
@@ -359,7 +391,7 @@ export function DataDecisionFlow() {
                   />
                 )),
               )}
-            {running && step >= S.steps.length && S.loop && !reduce && playing && !paused && (
+            {running && step >= S.steps.length && S.loop && !reduce && playing && mode === "scenario" && (
               <circle key={`loop-${scn}`} r={4} className="ddf-dot ddf-dot-slow" style={{ offsetPath: `path('${LOOP_D}')` }} />
             )}
 
@@ -373,7 +405,7 @@ export function DataDecisionFlow() {
               strokeDasharray="0.01 0.012"
               className="ddf-draw ddf-loop"
               style={{ animationDelay: "8s" }}
-              opacity={selected || filter ? 0.25 : 0.9}
+              opacity={mode !== "scenario" ? 0.25 : 0.9}
             />
             <text x={(COLX[1] + COLX[4]) / 2 + 110} y={H - 2} textAnchor="middle" className="ddf-fade fill-ink-700 font-mono" fontSize={10} letterSpacing="2" style={{ animationDelay: "8.4s" }}>
               RESULTS RETURN AS EVIDENCE — EACH CYCLE DECIDES FASTER
@@ -408,9 +440,12 @@ export function DataDecisionFlow() {
                     height={BOXH}
                     rx={3}
                     fill={isSel ? "var(--ink-950)" : "var(--paper-0)"}
-                    stroke={outcome || isSel || (scenarioMode && litNodes.has(n.id)) ? "var(--gold-500)" : "var(--ink-700)"}
-                    strokeWidth={outcome || isSel || (scenarioMode && litNodes.has(n.id)) ? 1.8 : 0.9}
+                    stroke={isSel || (scenarioMode && litNodes.has(n.id)) || (!scenarioMode && outcome) ? "var(--gold-500)" : "var(--ink-700)"}
+                    strokeWidth={isSel || (scenarioMode && litNodes.has(n.id)) || (!scenarioMode && outcome) ? 1.8 : 0.9}
                   />
+                  {scenarioMode && litNodes.has(n.id) && !reduce && (
+                    <rect key={`land-${scn}`} x={p.x} y={p.y} width={p.w} height={BOXH} rx={3} fill="none" stroke="var(--gold-500)" className="ddf-land" />
+                  )}
                   <text
                     x={p.x + 10}
                     y={p.y + BOXH / 2 + 4}

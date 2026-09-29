@@ -296,11 +296,7 @@ export function MarketingHome() {
             className="animate-in fade-in duration-500 motion-reduce:animate-none"
           >
             <div className="flex items-center gap-2 sm:gap-4">
-              <MomentArrow
-                direction="prev"
-                onClick={goPrev}
-                className="shrink-0 self-center"
-              />
+              <MomentArrow direction="prev" onClick={goPrev} className="shrink-0 self-center" />
               <div className="grid min-w-0 flex-1 items-center gap-6 md:grid-cols-[320px_minmax(0,1fr)] md:gap-10 lg:grid-cols-[384px_minmax(0,1fr)] lg:gap-12">
                 <Illustration
                   key={moment.id}
@@ -317,11 +313,7 @@ export function MarketingHome() {
                   />
                 </div>
               </div>
-              <MomentArrow
-                direction="next"
-                onClick={goNext}
-                className="shrink-0 self-center"
-              />
+              <MomentArrow direction="next" onClick={goNext} className="shrink-0 self-center" />
             </div>
 
             <div className="mt-10 grid gap-10 border-t border-line-200 pt-10 sm:mt-16 sm:gap-12 sm:pt-12 md:grid-cols-3">
@@ -374,15 +366,15 @@ export function MarketingHome() {
             {[
               {
                 head: "Public evidence",
-                 body: "National, regional, and international sources are organised by ministry. Each is dated, cited, and graded for confidence.",
+                body: "National, regional, and international sources are organised by ministry. Each is dated, cited, and graded for confidence.",
               },
               {
                 head: "Government evidence",
-                 body: "Authorised contracts, memoranda, agreements, and briefings follow the same checking standard. Only approved country users can see them.",
+                body: "Authorised contracts, memoranda, agreements, and briefings follow the same checking standard. Only approved country users can see them.",
               },
               {
-                 head: "One clear view for a decision",
-                 body: "Briefings and scenarios can use both records without confusing public evidence with restricted information. Every access and change can be reviewed.",
+                head: "One clear view for a decision",
+                body: "Briefings and scenarios can use both records without confusing public evidence with restricted information. Every access and change can be reviewed.",
               },
             ].map((p) => (
               <div key={p.head} className="border-t border-line-200 pt-6">
@@ -441,12 +433,12 @@ export function MarketingHome() {
               {
                 step: "01",
                 head: "Review the evidence",
-                 body: "A confidential review of the national evidence, how reliable it is, and which gaps could alter the decision.",
+                body: "A confidential review of the national evidence, how reliable it is, and which gaps could alter the decision.",
               },
               {
                 step: "02",
                 head: "Rehearse the choice",
-                 body: "A country-specific comparison of credible options, likely consequences, assumptions, and practical limits on delivery.",
+                body: "A country-specific comparison of credible options, likely consequences, assumptions, and practical limits on delivery.",
               },
               {
                 step: "03",
@@ -456,7 +448,7 @@ export function MarketingHome() {
               {
                 step: "04",
                 head: "Establish the capability",
-                 body: "A government-controlled working environment and decision method that remain available to authorised teams.",
+                body: "A government-controlled working environment and decision method that remain available to authorised teams.",
               },
             ].map((item) => (
               <div key={item.step} className="border-t border-line-200 pt-6">
@@ -521,7 +513,10 @@ export function MarketingHome() {
           </div>
           <div className="grid gap-6 border-t border-line-200 pt-8 md:mt-2">
             {[
-              { head: "Voice-first", body: "Ask aloud when reading a report or navigating a schedule. No dashboard required." },
+              {
+                head: "Voice-first",
+                body: "Ask aloud when reading a report or navigating a schedule. No dashboard required.",
+              },
               {
                 head: "Two to four sentences",
                 body: "A concise answer for an immediate executive judgement, not another report.",
@@ -559,24 +554,24 @@ export function MarketingHome() {
           <div className="grid gap-8 border-t border-line-200 pt-10">
             {[
               {
-                 head: "A separate system for each country",
-                 body: "Each country operates in its own protected environment. Regional comparisons use approved public evidence, never another government’s restricted records.",
+                head: "A separate system for each country",
+                body: "Each country operates in its own protected environment. Regional comparisons use approved public evidence, never another government’s restricted records.",
               },
               {
                 head: "Data ownership",
-                 body: "Government agrees where its data is held, who may export it, how long it is kept, and when it must be deleted. Those terms are reflected in the deployed system.",
+                body: "Government agrees where its data is held, who may export it, how long it is kept, and when it must be deleted. Those terms are reflected in the deployed system.",
               },
               {
                 head: "Public and private, separated by design",
-                 body: "Restricted government records are kept separate from public evidence. Every access and important change is recorded for review.",
+                body: "Restricted government records are kept separate from public evidence. Every access and important change is recorded for review.",
               },
               {
-                 head: "Controlled access and a full record",
-                 body: "Officials see only what their role permits. Strong sign-in, approval controls, and permanent activity records support the government’s own rules.",
+                head: "Controlled access and a full record",
+                body: "Officials see only what their role permits. Strong sign-in, approval controls, and permanent activity records support the government’s own rules.",
               },
               {
                 head: "Works with the government’s record",
-                 body: "The first engagement strengthens existing evidence and ways of working. Government does not need to replace every current system before value can be demonstrated.",
+                body: "The first engagement strengthens existing evidence and ways of working. Government does not need to replace every current system before value can be demonstrated.",
               },
             ].map((p) => (
               <div key={p.head} className="border-b border-line-200 pb-8 last:border-b-0">
@@ -610,7 +605,7 @@ export function MarketingHome() {
               {
                 year: "2009 →",
                 head: "Caribbean Investment Summit",
-                 body: "A leading regional forum connecting investment opportunities with capital, now a route to market for packages prepared through GDPVision.",
+                body: "A leading regional forum connecting investment opportunities with capital, now a route to market for packages prepared through GDPVision.",
               },
               {
                 year: "2018 →",
@@ -620,7 +615,7 @@ export function MarketingHome() {
               {
                 year: "2026",
                 head: "SEDE — the Saint Lucia prototype",
-                 body: "A working government-controlled system combining economic modelling, sourced advice, national evidence, and secure document intake.",
+                body: "A working government-controlled system combining economic modelling, sourced advice, national evidence, and secure document intake.",
               },
               {
                 year: "Today",
@@ -646,8 +641,9 @@ export function MarketingHome() {
               Read the business case →
             </Link>
             <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-ink-700">
-              A decision paper for Cabinet Secretaries, ministries of finance, and procurement teams:
-              the stakes, the required standard, the available options, and the recommended path.
+              A decision paper for Cabinet Secretaries, ministries of finance, and procurement
+              teams: the stakes, the required standard, the available options, and the recommended
+              path.
             </p>
           </div>
         </div>
@@ -661,13 +657,13 @@ export function MarketingHome() {
               <SectionHeader
                 eyebrow="A confidential first conversation"
                 title="Your national decision briefing."
-                 lede="Bring one priority decision. We will prepare a country-specific view of the supporting evidence, the gaps that could change the answer, and a practical route forward."
+                lede="Bring one priority decision. We will prepare a country-specific view of the supporting evidence, the gaps that could change the answer, and a practical route forward."
               />
               <div className="mt-10 flex items-start justify-between gap-8">
                 <div className="space-y-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
                   <div>— Your priority decision, framed clearly</div>
                   <div>— The evidence and material gaps</div>
-                   <div>— A live test using national data</div>
+                  <div>— A live test using national data</div>
                   <div>— A practical next-step recommendation</div>
                 </div>
                 <Illustration
@@ -677,7 +673,7 @@ export function MarketingHome() {
                 />
               </div>
               <p className="mt-8 max-w-md text-[15px] leading-relaxed text-ink-700">
-                 Prepared from your nation’s public evidence and the context you authorise. The
+                Prepared from your nation’s public evidence and the context you authorise. The
                 conversation is confidential, country-specific, and designed to produce a useful
                 next decision—not a generic product demonstration.
               </p>

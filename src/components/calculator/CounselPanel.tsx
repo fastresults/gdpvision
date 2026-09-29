@@ -68,7 +68,10 @@ export function CounselPanel({
                 </div>
                 <ol className="mt-4 divide-y divide-line-100 border-t border-line-100">
                   {counsel.sequencing.map((s, i) => (
-                    <li key={`${s.horizon}-${i}`} className="grid gap-2 py-4 md:grid-cols-[160px_1fr_2fr] md:gap-6">
+                    <li
+                      key={`${s.horizon}-${i}`}
+                      className="grid gap-2 py-4 md:grid-cols-[160px_1fr_2fr] md:gap-6"
+                    >
                       <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-500">
                         {s.horizon}
                       </div>

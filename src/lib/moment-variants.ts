@@ -29,8 +29,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
     id: "cbi-cliff",
     illustration: ill_cbi_cliff.url,
     title: "A revenue cliff, without a decision-ready view of the ground it sits on.",
-    lede:
-      "Five Caribbean states rely heavily on Citizenship by Investment (CBI) for national income and government revenue. Yet national statistics arrive in annual reports, and IMF assessments may describe conditions from twelve to eighteen months earlier. Cabinet lacks one current view of the economy.",
+    lede: "Five Caribbean states rely heavily on Citizenship by Investment (CBI) for national income and government revenue. Yet national statistics arrive in annual reports, and IMF assessments may describe conditions from twelve to eighteen months earlier. Cabinet lacks one current view of the economy.",
     stats: [
       {
         value: 50,
@@ -59,8 +58,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
     id: "one-storm",
     illustration: ill_one_storm.url,
     title: "One storm can erase a generation of growth in a single night.",
-    lede:
-      "The Caribbean sits inside the world’s most concentrated hurricane corridor. Storms are intensifying while insurers retreat. When one event can erase several years of economic output, every national budget needs a current view of climate risk.",
+    lede: "The Caribbean sits inside the world’s most concentrated hurricane corridor. Storms are intensifying while insurers retreat. When one event can erase several years of economic output, every national budget needs a current view of climate risk.",
     stats: [
       {
         value: 226,
@@ -89,8 +87,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
     id: "tourism-trap",
     illustration: ill_tourism_trap.url,
     title: "An economy that is really a single product, priced by someone else.",
-    lede:
-      "When tourism drives most of GDP, one recession, one cut in air service, or one pandemic can stop income overnight. COVID showed how little protection the region has against such a shock. Cabinet needs to see and price that risk before the next one arrives.",
+    lede: "When tourism drives most of GDP, one recession, one cut in air service, or one pandemic can stop income overnight. COVID showed how little protection the region has against such a shock. Cabinet needs to see and price that risk before the next one arrives.",
     stats: [
       {
         value: 80,
@@ -119,8 +116,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
     id: "cut-off",
     illustration: ill_cut_off.url,
     title: "Quietly severed from the financial system that moves the money.",
-    lede:
-      "Global banks are cutting the relationships that allow Caribbean banks to move money internationally, often because small markets do not justify the compliance cost. Every lost relationship slows remittances, raises the cost of trade finance, and makes payments harder. The region cannot attract capital it cannot receive.",
+    lede: "Global banks are cutting the relationships that allow Caribbean banks to move money internationally, often because small markets do not justify the compliance cost. Every lost relationship slows remittances, raises the cost of trade finance, and makes payments harder. The region cannot attract capital it cannot receive.",
     stats: [
       {
         value: 30,
@@ -149,8 +145,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
     id: "debt-ceiling",
     illustration: ill_debt_ceiling.url,
     title: "Debt service crowding out the future the region is trying to build.",
-    lede:
-      "Caribbean debt levels are among the highest in the developing world. At the same time, middle-income status blocks access to some low-interest development loans despite severe climate risk. High debt leaves less room in the budget for the infrastructure that attracts investment.",
+    lede: "Caribbean debt levels are among the highest in the developing world. At the same time, middle-income status blocks access to some low-interest development loans despite severe climate risk. High debt leaves less room in the budget for the infrastructure that attracts investment.",
     stats: [
       {
         value: 90,
@@ -179,8 +174,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
     id: "power-cost",
     illustration: ill_power_cost.url,
     title: "Priced out of competitive investment before negotiations begin.",
-    lede:
-      "Caribbean electricity can cost three to four times the US rate. That can rule out manufacturing, data infrastructure, and food processing before an incentive is offered. Dependence on imported diesel also drains foreign currency whenever oil prices rise. Lower-cost energy is essential to compete.",
+    lede: "Caribbean electricity can cost three to four times the US rate. That can rule out manufacturing, data infrastructure, and food processing before an incentive is offered. Dependence on imported diesel also drains foreign currency whenever oil prices rise. Lower-cost energy is essential to compete.",
     stats: [
       {
         value: 40,
@@ -209,8 +203,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
     id: "regulated-out",
     illustration: ill_regulated_out.url,
     title: "Repriced from outside, with no seat at the table setting the rules.",
-    lede:
-      "International tax and financial-crime rules are changing the terms on which Caribbean countries access the global economy. EU lists, OECD tax rules, the global minimum tax, and the risk of FATF increased monitoring are set elsewhere and applied on external timetables.",
+    lede: "International tax and financial-crime rules are changing the terms on which Caribbean countries access the global economy. EU lists, OECD tax rules, the global minimum tax, and the risk of FATF increased monitoring are set elsewhere and applied on external timetables.",
     stats: [
       {
         value: 15,
@@ -239,8 +232,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
     id: "talent-drain",
     illustration: ill_talent_drain.url,
     title: "Exporting the people who would build the future the region needs.",
-    lede:
-      "Nurses, teachers, and engineers leave faster than economies can replace them, hollowing out the skilled labor base investors require. Remittances flow back — stable but stagnant, and vulnerable to diaspora aging and shifting immigration policy abroad. A nation cannot build what it keeps sending away.",
+    lede: "Nurses, teachers, and engineers leave faster than economies can replace them, hollowing out the skilled labor base investors require. Remittances flow back — stable but stagnant, and vulnerable to diaspora aging and shifting immigration policy abroad. A nation cannot build what it keeps sending away.",
     stats: [
       {
         value: 70,

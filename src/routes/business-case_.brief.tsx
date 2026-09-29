@@ -58,12 +58,12 @@ function BriefPage() {
                 What is a decision worth when it is taken on time?
               </h1>
               <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-ink-700">
-                 Choose a country. GDPVision begins with sourced public records and clearly marked
-                 reference assumptions. It then suggests an order for the ten working areas. Every
-                 figure can be checked, and the total estimated benefit cannot exceed 1.2 per cent of
-                 GDP. During a government engagement, authorised national records replace assumptions
-                 and create an approved starting point. This tool helps frame a decision; it does not
-                 predict the future.
+                Choose a country. GDPVision begins with sourced public records and clearly marked
+                reference assumptions. It then suggests an order for the ten working areas. Every
+                figure can be checked, and the total estimated benefit cannot exceed 1.2 per cent of
+                GDP. During a government engagement, authorised national records replace assumptions
+                and create an approved starting point. This tool helps frame a decision; it does not
+                predict the future.
               </p>
             </div>
             <div className="hidden justify-self-end md:block">

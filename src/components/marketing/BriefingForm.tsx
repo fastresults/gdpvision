@@ -147,7 +147,10 @@ function Field(props: {
 }) {
   return (
     <label className="block">
-      <span className={labelClass()}>{props.label}{props.required ? " *" : ""}</span>
+      <span className={labelClass()}>
+        {props.label}
+        {props.required ? " *" : ""}
+      </span>
       <input
         name={props.name}
         type={props.type ?? "text"}
@@ -185,29 +188,34 @@ function NationField() {
           </option>
           <optgroup label="CARICOM full members">
             {CARICOM_OECS_REGISTRY.filter((n) => n.tier === "caricom-full").map((n) => (
-              <option key={n.code} value={n.code}>{n.name}</option>
+              <option key={n.code} value={n.code}>
+                {n.name}
+              </option>
             ))}
           </optgroup>
           <optgroup label="CARICOM associate members">
             {CARICOM_OECS_REGISTRY.filter((n) => n.tier === "caricom-associate").map((n) => (
-              <option key={n.code} value={n.code}>{n.name}</option>
+              <option key={n.code} value={n.code}>
+                {n.name}
+              </option>
             ))}
           </optgroup>
           <optgroup label="OECS associate members">
             {CARICOM_OECS_REGISTRY.filter((n) => n.tier === "oecs-associate").map((n) => (
-              <option key={n.code} value={n.code}>{n.name}</option>
+              <option key={n.code} value={n.code}>
+                {n.name}
+              </option>
             ))}
           </optgroup>
           <option value="OTHER">Another government — not listed</option>
         </select>
       </label>
       <p className="mt-3 text-[13px] leading-relaxed text-ink-500">
-        Governments outside CARICOM—including Pacific and Indian Ocean
-        small-island states—should write to us directly. Select{" "}
-        <span className="text-ink-700">Another government — not listed</span> and
-        name your nation in the context field below.
+        Governments outside CARICOM—including Pacific and Indian Ocean small-island states—should
+        write to us directly. Select{" "}
+        <span className="text-ink-700">Another government — not listed</span> and name your nation
+        in the context field below.
       </p>
     </div>
   );
 }
-

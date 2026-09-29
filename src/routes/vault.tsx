@@ -100,9 +100,9 @@ function VaultPage() {
               </h1>
               <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-ink-700">
                 Every GDPVision deployment includes a Vault: secure hardware installed in-country
-                and held by the government. Tax, customs, treasury, registry, health,
-                crime and employment records stay inside it. Public evidence comes to them. Only
-                findings that a named official approves ever leave.
+                and held by the government. Tax, customs, treasury, registry, health, crime and
+                employment records stay inside it. Public evidence comes to them. Only findings that
+                a named official approves ever leave.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <a href="#vault-briefing" className="btn-primary px-5 py-2.5 text-xs">
@@ -140,9 +140,9 @@ function VaultPage() {
           <div className="space-y-5 border-t border-line-200 pt-8 text-[16px] leading-relaxed text-ink-700 md:border-t-0 md:pt-0">
             <p>
               The Vault combines computing and storage in one secure system. It is configured before
-              delivery and installed on government premises by the St. Kitts team or a named local partner. It holds the
-              private record: the figures too sensitive for any cloud and too valuable to leave in
-              spreadsheets.
+              delivery and installed on government premises by the St. Kitts team or a named local
+              partner. It holds the private record: the figures too sensitive for any cloud and too
+              valuable to leave in spreadsheets.
             </p>
             <p>
               It runs its own AI models on the premises, so a question about private data is
@@ -188,8 +188,8 @@ function VaultPage() {
             </p>
             <p>
               The Vault lets them be used within days rather than months, without being exposed. In
-               the Decision Brief, figures that began as <em>assumptions</em> can become <em>Grade A evidence</em>,
-              and the verdict rests on the country's own record.
+              the Decision Brief, figures that began as <em>assumptions</em> can become{" "}
+              <em>Grade A evidence</em>, and the verdict rests on the country's own record.
             </p>
           </div>
         </div>

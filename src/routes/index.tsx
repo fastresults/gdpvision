@@ -7,7 +7,6 @@ const TITLE = "GDPVision — rehearse the decisions that shape a nation";
 const DESCRIPTION =
   "A government-controlled decision system for Presidents, Prime Ministers and Cabinets: bring national evidence together, test choices before committing, and follow decisions through delivery.";
 
-
 export const Route = createFileRoute("/")({
   head: () => {
     const absoluteOg = ogImage.startsWith("http") ? ogImage : `${SITE_URL}${ogImage}`;

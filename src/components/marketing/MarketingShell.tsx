@@ -158,8 +158,8 @@ export function MarketingShell({ children }: MarketingShellProps) {
             <div>
               <Wordmark className="h-8" />
               <p className="mt-4 max-w-xl text-[13.5px] leading-relaxed text-ink-700">
-                 A government-controlled decision system delivered by OPEN Interactive through a
-                 confidential engagement with the authorised government of the day.
+                A government-controlled decision system delivered by OPEN Interactive through a
+                confidential engagement with the authorised government of the day.
               </p>
             </div>
             <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500 flex flex-wrap gap-6">

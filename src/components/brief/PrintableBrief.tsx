@@ -140,15 +140,16 @@ export function PrintableBrief({
           {result.paybackMonths != null && result.paybackMonths < 120
             ? ` · payback in ${Math.round(result.paybackMonths)} months`
             : ""}
-          . Capped at 1.2% of GDP, adjusted by the selected outlook. This model helps frame a decision; it does not predict the future.
+          . Capped at 1.2% of GDP, adjusted by the selected outlook. This model helps frame a
+          decision; it does not predict the future.
         </p>
         <div style={{ border: "0.6pt solid #999", padding: "3mm", marginTop: "4mm" }}>
           <div className="mono">Evidence status · public estimate</div>
           <p style={{ margin: "1.5mm 0 0" }}>
-            {evidenceCounts.record} supported by national records · {evidenceCounts.reference} reference assumptions ·{" "}
-            {evidenceCounts.adjusted} adjusted by the user. Reference assumptions and user changes
-            must be checked against authorised government records before this brief is used for a
-            formal government decision.
+            {evidenceCounts.record} supported by national records · {evidenceCounts.reference}{" "}
+            reference assumptions · {evidenceCounts.adjusted} adjusted by the user. Reference
+            assumptions and user changes must be checked against authorised government records
+            before this brief is used for a formal government decision.
           </p>
         </div>
         <Waterfall input={input} result={result} order={order} palette={palette} n={1} />
@@ -167,7 +168,7 @@ export function PrintableBrief({
           country={countryName}
           today={today}
           accent={palette.band}
-           title="What the evidence shows, and where assumptions remain"
+          title="What the evidence shows, and where assumptions remain"
         />
         <table>
           <thead>
@@ -251,7 +252,7 @@ export function PrintableBrief({
           country={countryName}
           today={today}
           accent={palette.band}
-           title="The calculations and their sources"
+          title="The calculations and their sources"
         />
         <div className="grid2">
           <div>
@@ -278,7 +279,7 @@ export function PrintableBrief({
             </table>
           </div>
           <div>
-             <h2>Areas of value assessed by the model</h2>
+            <h2>Areas of value assessed by the model</h2>
             <table>
               <tbody>
                 {(Object.keys(POOL_LABEL) as PoolKey[]).map((k) => (
@@ -293,7 +294,7 @@ export function PrintableBrief({
                 </tr>
                 <tr>
                   <td>
-                     <strong>Year-three estimated gain after the limit</strong>
+                    <strong>Year-three estimated gain after the limit</strong>
                   </td>
                   <td className="num">
                     <strong>{formatUsd(result.upliftUsd)}</strong>
@@ -303,9 +304,9 @@ export function PrintableBrief({
             </table>
             <p style={{ marginTop: "2mm" }}>
               Cost: US$300,000 a year plus US$95,000 per chamber stood up; year one carries a 40%
-               implementation cost ({formatUsdExact(result.yearOneCostUsd)}). The national platform
-               specified through the Digital Government Studio is built and hosted separately. Adoption rises
-              35 / 75 / 100 per cent over three years.
+              implementation cost ({formatUsdExact(result.yearOneCostUsd)}). The national platform
+              specified through the Digital Government Studio is built and hosted separately.
+              Adoption rises 35 / 75 / 100 per cent over three years.
             </p>
           </div>
         </div>
@@ -321,10 +322,11 @@ export function PrintableBrief({
 
         <h2>Sources</h2>
         <p>
-           Figures are read from GDPVision’s national evidence record for {countryName} at the time of printing (
-          {facts?.generatedAt?.slice(0, 10) ?? "—"}): only graded public figures and counts of
-          approved, verified or published rows. Tables consulted: {sources.join(", ") || "none"}.
-           Figures marked “Assumption” use a typical regional value where national evidence is unavailable.
+          Figures are read from GDPVision’s national evidence record for {countryName} at the time
+          of printing ({facts?.generatedAt?.slice(0, 10) ?? "—"}): only graded public figures and
+          counts of approved, verified or published rows. Tables consulted:{" "}
+          {sources.join(", ") || "none"}. Figures marked “Assumption” use a typical regional value
+          where national evidence is unavailable.
         </p>
         <h2>Evidence status and validation requirement</h2>
         <table>
@@ -356,9 +358,10 @@ export function PrintableBrief({
           </tbody>
         </table>
         <p>
-           During a government engagement, these inputs are brought into agreement. The reporting
-           period and responsible official are recorded, and the approved starting evidence and model
-           version are fixed for formal use. User adjustments remain scenarios until that checking is complete.
+          During a government engagement, these inputs are brought into agreement. The reporting
+          period and responsible official are recorded, and the approved starting evidence and model
+          version are fixed for formal use. User adjustments remain scenarios until that checking is
+          complete.
         </p>
         <p className="mono" style={{ letterSpacing: 0, textTransform: "none", marginTop: "3mm" }}>
           Reopen this brief exactly as configured: {reopenUrl}

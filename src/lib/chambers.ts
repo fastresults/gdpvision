@@ -103,7 +103,8 @@ export const CHAMBERS: Chamber[] = [
     image: ch05.url,
     screenshot: screen05.url,
     outcome: "Manage national perceptions.",
-    purpose: "Reach a defensible national position quickly when events threaten confidence or growth.",
+    purpose:
+      "Reach a defensible national position quickly when events threaten confidence or growth.",
     bullets: [
       "New developments, context, and prior government knowledge assembled into a sourced national position.",
       "GDPVision drafts; authorised principals review, decide, and approve every release.",

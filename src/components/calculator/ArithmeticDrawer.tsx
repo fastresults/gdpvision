@@ -25,7 +25,9 @@ export function ArithmeticDrawer({
       >
         <span>{open ? "Hide the calculations" : "Show the calculations"}</span>
         <ChevronDown
-          className={open ? "h-4 w-4 rotate-180 transition-transform" : "h-4 w-4 transition-transform"}
+          className={
+            open ? "h-4 w-4 rotate-180 transition-transform" : "h-4 w-4 transition-transform"
+          }
         />
       </button>
 

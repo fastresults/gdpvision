@@ -82,8 +82,8 @@ export function EvidenceAssuranceStrip({
           </div>
           <p className="mt-2 max-w-4xl text-[14px] leading-relaxed text-ink-700">
             This open brief combines sourced national records with clearly marked reference
-            assumptions. During a government engagement, authorised data replaces assumptions.
-            A named official takes responsibility for each source, and the evidence is reviewed and
+            assumptions. During a government engagement, authorised data replaces assumptions. A
+            named official takes responsibility for each source, and the evidence is reviewed and
             approved before recommendations are used for a formal decision.
           </p>
           <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[10px] uppercase tracking-[0.14em]">
@@ -130,7 +130,8 @@ export function EvidencePathwayModal({
           </DialogTitle>
           <DialogDescription className="mt-3 max-w-2xl text-[14.5px] leading-relaxed text-ink-700">
             This public tool provides an open starting point. A formal engagement replaces uncertain
-            inputs, confirms responsibility for each source, and produces an approved government brief.
+            inputs, confirms responsibility for each source, and produces an approved government
+            brief.
           </DialogDescription>
         </DialogHeader>
 

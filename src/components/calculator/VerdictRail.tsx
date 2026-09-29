@@ -57,8 +57,8 @@ export function VerdictRail({
             Public estimate · review the evidence
           </span>
           <span className="mt-1.5 block text-[12px] leading-relaxed text-ink-700">
-            {evidence.record} supported by national records · {evidence.reference} based on reference assumptions ·{" "}
-            {evidence.adjusted} adjusted by you
+            {evidence.record} supported by national records · {evidence.reference} based on
+            reference assumptions · {evidence.adjusted} adjusted by you
           </span>
         </button>
       </div>
@@ -157,8 +157,8 @@ export function VerdictRail({
           ))}
         </div>
         <p className="mt-4 text-[12px] leading-relaxed text-ink-500">
-          This model helps frame a decision; it does not predict the future. Every factor is stated, limited, and capped
-          at{" "}
+          This model helps frame a decision; it does not predict the future. Every factor is stated,
+          limited, and capped at{" "}
           <Explain id="calc.ceiling" label="The ceiling">
             1.2 per cent of GDP
           </Explain>

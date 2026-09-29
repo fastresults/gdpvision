@@ -43,7 +43,9 @@ function Tile({ f }: { f: Fact }) {
       <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <GradeMark grade={f.grade} />
         {f.regional ? (
-          <span className="font-mono text-[10px] text-ink-500">regional typical value {f.regional.display}</span>
+          <span className="font-mono text-[10px] text-ink-500">
+            regional typical value {f.regional.display}
+          </span>
         ) : null}
       </div>
       <div className="mt-1 truncate font-mono text-[9.5px] text-ink-400" title={f.source}>
@@ -70,13 +72,15 @@ export function FactRail({ facts, loading }: { facts: CountryFacts | null; loadi
         <p className="text-[13px] text-ink-700">
           {facts.onboarded ? (
             <>
-               GDPVision holds national evidence for {facts.name}: {fromRecord} of {facts.facts.length}{" "}
-               figures below come from it and carry confidence grades. The rest are regional assumptions you can correct.
+              GDPVision holds national evidence for {facts.name}: {fromRecord} of{" "}
+              {facts.facts.length} figures below come from it and carry confidence grades. The rest
+              are regional assumptions you can correct.
             </>
           ) : (
             <>
-               National records for {facts.name} have not yet been added to GDPVision. The figures
-               below are general regional estimates; a government engagement replaces them with the country’s own evidence.
+              National records for {facts.name} have not yet been added to GDPVision. The figures
+              below are general regional estimates; a government engagement replaces them with the
+              country’s own evidence.
             </>
           )}
         </p>

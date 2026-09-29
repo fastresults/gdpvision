@@ -166,15 +166,15 @@ function BusinessCasePage() {
           <div className="grid gap-8 p-7 sm:p-10 md:grid-cols-[1fr_240px] md:items-center">
             <div className="min-w-0">
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-                 Interactive · Public decision tool
+                Interactive · Public decision tool
               </div>
               <h3 className="mt-4 font-serif text-[26px] leading-tight tracking-tight text-ink-950 md:text-[32px]">
                 Put your own economy through the model.
               </h3>
               <p className="mt-4 max-w-2xl text-[15.5px] leading-relaxed text-ink-700">
-                 Answer four questions, adjust the depth of each Chamber, and see an updated view in
-                 dollars, share of GDP, and return against cost. Every calculation is open, the maximum
-                 estimate is stated, and the Counsel responds to your selections.
+                Answer four questions, adjust the depth of each Chamber, and see an updated view in
+                dollars, share of GDP, and return against cost. Every calculation is open, the
+                maximum estimate is stated, and the Counsel responds to your selections.
               </p>
               <Link
                 to="/business-case/brief"
@@ -190,13 +190,12 @@ function BusinessCasePage() {
         </div>
       </Section>
 
-
       {/* 1 · What is at stake */}
       <Section>
         <SectionHeader
           eyebrow="01 · What is at stake"
           title="Six figures, each carrying its source and its grade."
-           lede="This is a working standard, not decoration. Every important claim should remain linked to a source that can be checked. This paper follows the same rule."
+          lede="This is a working standard, not decoration. Every important claim should remain linked to a source that can be checked. This paper follows the same rule."
         />
         <div className="mt-14 grid gap-x-10 gap-y-14 md:grid-cols-2 lg:grid-cols-3">
           {STAKES.map((s) => (
@@ -224,7 +223,10 @@ function BusinessCasePage() {
       <Section>
         <div className="grid gap-12 md:grid-cols-[1fr_300px] md:items-center">
           <div>
-            <SectionHeader eyebrow="02 · The problem" title="The problem is the tools, not the effort." />
+            <SectionHeader
+              eyebrow="02 · The problem"
+              title="The problem is the tools, not the effort."
+            />
             <div className="mt-8 space-y-5 max-w-2xl">
               {INSTRUMENTATION_INTRO.map((p) => (
                 <p key={p.slice(0, 24)} className="text-[16.5px] leading-relaxed text-ink-700">
@@ -349,7 +351,7 @@ function BusinessCasePage() {
         <div className="mt-12 hidden overflow-hidden border border-line-200 md:block">
           <table className="w-full border-collapse text-left">
             <caption className="sr-only">
-               Tests for a critical national system: a chat subscription compared with GDPVision
+              Tests for a critical national system: a chat subscription compared with GDPVision
             </caption>
             <thead>
               <tr className="border-b border-line-200 bg-paper-50">

@@ -719,3 +719,61 @@
   .sdc .sdc-growth-path { stroke-dashoffset: 0; animation: none !important; }
   .sdc .sdc-needle { transform: rotate(8deg); animation: none !important; }
 }
+
+/* Homepage sovereignty — national evidence, governed access, authorised release. */
+.scs .scs-boundary,
+.scs .scs-evidence,
+.scs .scs-access,
+.scs .scs-custody,
+.scs .scs-release,
+.scs .scs-resolution { opacity: 0; }
+.scs .scs-document { opacity: 0; transform: translateX(-14px); }
+.scs .scs-entry-path,
+.scs .scs-seal-line,
+.scs .scs-release-path { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.scs .scs-authorised,
+.scs .scs-denied,
+.scs .scs-custody-mark,
+.scs .scs-approval-mark,
+.scs .scs-finding { opacity: 0; transform-box: fill-box; transform-origin: center; }
+.scs-on .scs-boundary { animation: scs-fade .6s ease-out forwards; }
+.scs-on .scs-evidence { animation: scs-fade .4s ease-out .45s forwards; }
+.scs-on .scs-document { animation: scs-arrive .45s ease-out forwards; animation-delay: calc(.55s + var(--i) * .16s); }
+.scs-on .scs-entry-path { animation: scs-draw .7s ease-out 1.05s forwards; }
+.scs-on .scs-entry-arrow { animation: scs-fade .3s ease-out 1.55s both; }
+.scs-on .scs-access { animation: scs-fade .5s ease-out 1.5s forwards; }
+.scs-on .scs-authorised { animation: scs-mark .45s cubic-bezier(.2,.9,.3,1.2) 2.25s forwards; }
+.scs-on .scs-denied { animation: scs-fade .45s ease-out 2.55s forwards; }
+.scs-on .scs-custody { animation: scs-fade .5s ease-out 2.85s forwards; }
+.scs-on .scs-seal-line { animation: scs-draw .7s ease-out 3.2s forwards; }
+.scs-on .scs-custody-mark { animation: scs-mark .4s cubic-bezier(.2,.9,.3,1.2) forwards; animation-delay: calc(3.45s + var(--i) * .2s); }
+.scs-on .scs-release { animation: scs-fade .35s ease-out 4.55s forwards; }
+.scs-on .scs-release-path { animation: scs-draw .8s ease-out 4.65s forwards; }
+.scs-on .scs-approval-mark { animation: scs-mark .45s cubic-bezier(.2,.9,.3,1.2) 5.25s forwards; }
+.scs-on .scs-finding { animation: scs-mark .5s cubic-bezier(.2,.9,.3,1.12) 5.65s forwards; }
+.scs-on .scs-resolution { animation: scs-fade .65s ease-out 6.25s forwards; }
+.scs [role="button"] { cursor: help; outline: none; transition: opacity .25s ease; }
+.scs [role="button"]:focus-visible { filter: drop-shadow(0 0 3px var(--color-gold-300)); }
+.scs:has([role="button"]:hover) [role="button"]:not(:hover),
+.scs:has([role="button"]:focus) [role="button"]:not(:focus) { opacity: .25; }
+.scs-paused *, .scs-paused *::before, .scs-paused *::after { animation-play-state: paused !important; }
+@keyframes scs-fade { to { opacity: 1; } }
+@keyframes scs-arrive { to { opacity: 1; transform: translateX(0); } }
+@keyframes scs-draw { to { stroke-dashoffset: 0; } }
+@keyframes scs-mark {
+  0% { opacity: 0; transform: scale(.25); }
+  70% { opacity: 1; transform: scale(1.35); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@media (max-width: 639px) {
+  .scs { max-width: 360px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scs .scs-boundary, .scs .scs-evidence, .scs .scs-access, .scs .scs-custody,
+  .scs .scs-release, .scs .scs-resolution, .scs .scs-document, .scs .scs-authorised,
+  .scs .scs-denied, .scs .scs-custody-mark, .scs .scs-approval-mark,
+  .scs .scs-finding { opacity: 1; transform: none; animation: none !important; }
+  .scs .scs-entry-path, .scs .scs-seal-line, .scs .scs-release-path {
+    stroke-dashoffset: 0; animation: none !important;
+  }
+}

@@ -130,7 +130,7 @@ export function CorpusChamberRing() {
               y={y}
               textAnchor={anchor}
               dominantBaseline="central"
-              fontSize="9"
+              fontSize="11"
               fill={active === i ? "var(--color-ink-950)" : "var(--color-ink-700)"}
               style={{ ["--i" as string]: i, letterSpacing: "0.06em", opacity: dim ? 0.35 : undefined, fontWeight: active === i ? 600 : 400 }}
               aria-hidden

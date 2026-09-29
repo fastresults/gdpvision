@@ -36,12 +36,12 @@ import { SectionHeader } from "./SectionHeader";
 import { BriefingForm } from "./BriefingForm";
 import { Wordmark } from "./Wordmark";
 import { Illustration } from "./Illustration";
+import { SovereignCustodySeal } from "./SovereignCustodySeal";
 import { FloatingBackToTop } from "./FloatingBackToTop";
 import illMoment from "@/assets/illustrations/section-moment.jpg.asset.json";
 import illCorpus from "@/assets/illustrations/section-corpus.jpg.asset.json";
 import illLoop from "@/assets/illustrations/section-loop.jpg.asset.json";
 import illCounsel from "@/assets/illustrations/section-counsel.jpg.asset.json";
-import illSovereignty from "@/assets/illustrations/section-sovereignty.jpg.asset.json";
 import illProvenance from "@/assets/illustrations/section-provenance.jpg.asset.json";
 import illBriefing from "@/assets/illustrations/section-briefing.jpg.asset.json";
 import { CHAMBERS } from "@/lib/chambers";
@@ -654,7 +654,7 @@ export function MarketingHome() {
               title="National evidence remains under national control."
               lede="Government decides where its information stays, who may see it, and what may leave. Those rules are built into both the system and the engagement."
             />
-            <Illustration src={illSovereignty.url} variant="spot" className="mt-12" />
+            <SovereignCustodySeal />
           </div>
           <div className="grid gap-8 border-t border-line-200 pt-10">
             {[

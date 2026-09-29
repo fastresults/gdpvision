@@ -53,7 +53,7 @@ export const CHAMBERS: Chamber[] = [
     purpose: "Know which national figures Cabinet can trust before a decision is framed.",
     bullets: [
       "National and sector evidence, organised over time with confidence grades and sources.",
-      "Material exposures and ministry briefings that remain traceable to the underlying record.",
+      "Major risks and ministry briefings that remain linked to the evidence behind them.",
     ],
   },
   {
@@ -65,7 +65,7 @@ export const CHAMBERS: Chamber[] = [
     outcome: "Make every minister accountable for growth.",
     purpose: "Show each minister where the portfolio influences growth and what delivery requires.",
     bullets: [
-      "Portfolio exposure, sector dependencies, delivery measures, and evidence strength in one view.",
+      "Each portfolio’s influence on growth, its links to other sectors, delivery measures, and evidence strength in one view.",
       "Ministerial options carried from early analysis through Cabinet adoption and review.",
     ],
   },
@@ -78,8 +78,8 @@ export const CHAMBERS: Chamber[] = [
     outcome: "Rehearse the consequences before you commit.",
     purpose: "Test the economic and delivery consequences of a decision before it is taken.",
     bullets: [
-      "Compare credible choices against GDP, debt, foreign exchange, fiscal balance, and confidence.",
-      "Set the result Cabinet needs and identify the combination of policy levers most likely to reach it.",
+      "Compare credible choices against GDP, debt, foreign exchange, the budget balance, and confidence.",
+      "Set the result Cabinet needs and identify the combination of policy actions most likely to reach it.",
     ],
   },
   {
@@ -105,7 +105,7 @@ export const CHAMBERS: Chamber[] = [
     outcome: "Manage national perceptions.",
     purpose: "Reach a defensible national position quickly when events threaten confidence or growth.",
     bullets: [
-      "Signals, context, and prior government knowledge assembled into a cited strategic position.",
+      "New developments, context, and prior government knowledge assembled into a sourced national position.",
       "GDPVision drafts; authorised principals review, decide, and approve every release.",
     ],
   },
@@ -144,10 +144,10 @@ export const CHAMBERS: Chamber[] = [
     screenshot: screen08.url,
     outcome: "Turn the mandate into delivered results.",
     purpose:
-      "Turn the government’s mandate into a ministry-owned delivery compact that can be judged each quarter.",
+      "Turn the government’s mandate into a delivery plan that each ministry owns and reports on every quarter.",
     bullets: [
       "Translate pledges into pillars, measures, deliverables, owners, and review dates.",
-      "Preserve approvals, revisions, evidence, and quarterly performance in one accountable record.",
+      "Keep approvals, changes, evidence, and quarterly performance in one accountable record.",
     ],
   },
   {

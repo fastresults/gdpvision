@@ -55,8 +55,8 @@ export function BriefingForm({ topic }: { topic?: string } = {}) {
         </p>
         <p className="mt-4 text-[15px] text-ink-700 max-w-xl">
           A principal from OPEN Interactive will review the national decision you identified and
-          respond through your official email within one working day to agree the participants,
-          preparation, and confidential briefing format.
+          respond through your official email within one working day to agree who should attend,
+          what should be prepared, and how the confidential briefing will be held.
         </p>
       </div>
     );
@@ -81,7 +81,7 @@ export function BriefingForm({ topic }: { topic?: string } = {}) {
           <TextArea
             name="message"
             label="The national decision under consideration (optional)"
-            placeholder="In one or two sentences, identify the decision, exposure, or delivery question Cabinet is considering."
+            placeholder="In one or two sentences, describe the decision, risk, or delivery question Cabinet is considering."
           />
         </div>
       </div>
@@ -202,8 +202,8 @@ function NationField() {
         </select>
       </label>
       <p className="mt-3 text-[13px] leading-relaxed text-ink-500">
-        Governments outside CARICOM — including Pacific and Indian Ocean
-        small-island states — should write to us directly. Select{" "}
+        Governments outside CARICOM—including Pacific and Indian Ocean
+        small-island states—should write to us directly. Select{" "}
         <span className="text-ink-700">Another government — not listed</span> and
         name your nation in the context field below.
       </p>

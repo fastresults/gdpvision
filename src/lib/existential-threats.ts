@@ -35,7 +35,7 @@ export const EXISTENTIAL_THREATS: ExistentialThreat[] = [
     id: "cut-off",
     title: "Cut Off from the System",
     body:
-      "If another correspondent bank withdraws, which payments, investments, and remittance flows are exposed—and what evidence strengthens the national response?",
+      "If another global bank cuts the relationship that moves money internationally, which payments, investments, and remittances are exposed—and what evidence strengthens the national response?",
     response:
       "Keep the exposure visible, assemble the cited negotiating position, and connect financial access to the investment and household activity it enables.",
   },
@@ -43,7 +43,7 @@ export const EXISTENTIAL_THREATS: ExistentialThreat[] = [
     id: "debt-ceiling",
     title: "The Debt Ceiling",
     body:
-      "What combination of revenue, spending, investment, and growth restores fiscal space without weakening the services and infrastructure the country needs?",
+      "What combination of revenue, spending, investment, and growth creates room in the budget without weakening the services and infrastructure the country needs?",
     response:
       "Start with the debt path Cabinet requires, identify the credible policy combinations, and convert the chosen path into owned, reviewable commitments.",
   },

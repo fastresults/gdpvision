@@ -11,7 +11,7 @@ import { MarketingShell } from "@/components/marketing/MarketingShell";
 const SITE_URL = "https://gdpvision.com";
 const TITLE = "The Decision Brief — what a decision is worth when it is taken on time | GDPVision";
 const DESCRIPTION =
-  "Choose a country and GDPVision answers from its own record: the value held up by late decisions, unmeasured spend, sectors without an owner — and what each of ten chambers releases. Capped, cited, printable.";
+  "Choose a country and review the value held back by late decisions, unmeasured spending, and sectors without an owner. Every figure is capped, sourced, and ready to print.";
 
 export const Route = createFileRoute("/business-case_/brief")({
   validateSearch: z.object({
@@ -51,19 +51,19 @@ function BriefPage() {
           <div className="mt-8 grid gap-10 md:grid-cols-[1fr_300px] md:items-center">
             <div className="min-w-0">
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-                Instrument · The Decision Brief · Value model v2
+                Public decision tool · The Decision Brief
               </div>
               <div className="mt-4 h-px w-12 bg-ink-700" aria-hidden />
               <h1 className="mt-5 max-w-3xl font-serif text-[30px] leading-[1.08] tracking-tight text-ink-950 sm:text-[40px] sm:leading-[1.05] md:text-[52px]">
                 What is a decision worth when it is taken on time?
               </h1>
               <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-ink-700">
-                Choose a country. GDPVision answers with graded public records and clearly
-                identified reference assumptions, then sets out ten chambers in the order the
-                evidence suggests. Every figure is traceable and total claimed uplift is capped at
-                1.2 per cent of GDP. Government engagement replaces assumptions with authorised
-                administrative data and a controlled evidence baseline. This is a decision-framing
-                model, not a forecast.
+                 Choose a country. GDPVision begins with sourced public records and clearly marked
+                 reference assumptions. It then suggests an order for the ten working areas. Every
+                 figure can be checked, and the total estimated benefit cannot exceed 1.2 per cent of
+                 GDP. During a government engagement, authorised national records replace assumptions
+                 and create an approved starting point. This tool helps frame a decision; it does not
+                 predict the future.
               </p>
             </div>
             <div className="hidden justify-self-end md:block">

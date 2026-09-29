@@ -271,21 +271,33 @@ export function MarketingHome() {
             key={moment.id}
             className="animate-in fade-in duration-500 motion-reduce:animate-none"
           >
-            <div className="grid items-center gap-6 md:grid-cols-[320px_minmax(0,1fr)] md:gap-12 lg:grid-cols-[384px_minmax(0,1fr)]">
-              <Illustration
-                key={moment.id}
-                src={moment.illustration ?? illMoment.url}
-                alt={moment.title}
-                variant="spot"
-                className="mx-auto shrink-0 !w-[232px] md:mx-0 md:!w-[320px] lg:!w-[384px]"
+            <div className="flex items-center gap-2 sm:gap-4">
+              <MomentArrow
+                direction="prev"
+                onClick={goPrev}
+                className="shrink-0 self-center"
               />
-              <div className="min-w-0">
-                <SectionHeader
-                  eyebrow="The moment · Eight regional exposures, graded and cited"
-                  title={moment.title}
-                  lede={moment.lede}
+              <div className="grid min-w-0 flex-1 items-center gap-6 md:grid-cols-[320px_minmax(0,1fr)] md:gap-10 lg:grid-cols-[384px_minmax(0,1fr)] lg:gap-12">
+                <Illustration
+                  key={moment.id}
+                  src={moment.illustration ?? illMoment.url}
+                  alt={moment.title}
+                  variant="spot"
+                  className="mx-auto shrink-0 !w-[200px] sm:!w-[232px] md:mx-0 md:!w-[320px] lg:!w-[384px]"
                 />
+                <div className="min-w-0">
+                  <SectionHeader
+                    eyebrow="The moment · Eight regional exposures, graded and cited"
+                    title={moment.title}
+                    lede={moment.lede}
+                  />
+                </div>
               </div>
+              <MomentArrow
+                direction="next"
+                onClick={goNext}
+                className="shrink-0 self-center"
+              />
             </div>
 
             <div className="mt-10 grid gap-10 border-t border-line-200 pt-10 sm:mt-16 sm:gap-12 sm:pt-12 md:grid-cols-3">

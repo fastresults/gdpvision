@@ -111,11 +111,6 @@ export function CorpusChamberRing() {
               </g>
             );
           })}
-        </g>
-
-        {/* Rising GDP line */}
-        <path className="ccr-rise" d={`M ${C} ${C - 30} C ${C + 6} 70, ${C - 4} 30, ${C + 10} 4`} fill="none" stroke="var(--color-gold-500)" strokeWidth="1.2" pathLength={1} />
-
         {/* Chamber names (static, outside the ring) */}
         {CHAMBERS.map((c, i) => {
           const mid = i * STEP + STEP / 2;
@@ -123,8 +118,8 @@ export function CorpusChamberRing() {
           const anchor = mid < 170 ? "start" : mid > 190 ? "end" : "middle";
           const dim = active !== null && active !== i;
           return (
+            <g key={`n-${c.index}`} className="ccr-counter">
             <text
-              key={`n-${c.index}`}
               className="ccr-name font-mono"
               x={x}
               y={y}
@@ -137,8 +132,14 @@ export function CorpusChamberRing() {
             >
               {c.title.replace(/^The /, "")}
             </text>
+            </g>
           );
         })}
+
+        </g>
+
+        {/* Rising GDP line */}
+        <path className="ccr-rise" d={`M ${C} ${C - 30} C ${C + 6} 70, ${C - 4} 30, ${C + 10} 4`} fill="none" stroke="var(--color-gold-500)" strokeWidth="1.2" pathLength={1} />
 
         {/* Corpus core */}
         <g

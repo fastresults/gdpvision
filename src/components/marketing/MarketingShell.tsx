@@ -31,6 +31,25 @@ const SECTION_LINKS = [
   { hash: "sovereignty", label: "Sovereignty" },
 ] as const;
 
+// Desktop nav labels are capped at two wrapped rows: maxCh is the widest a
+// row may run (in ch) so the label breaks at the intended word boundary.
+const NAV_LINKS: Array<{
+  to: string;
+  hash?: string;
+  label: string;
+  maxCh: number;
+  accent?: boolean;
+}> = [
+  { to: "/", hash: "instrument", label: "How it works", maxCh: 8 },
+  { to: "/", hash: "sovereignty", label: "Sovereignty", maxCh: 13.5 },
+  { to: "/vault", label: "The Vault", maxCh: 7 },
+  { to: "/record", label: "The National Record", maxCh: 15 },
+  { to: "/business-case", label: "The business case", maxCh: 15 },
+  { to: "/business-case/brief", label: "The Decision Brief", maxCh: 15 },
+  { to: "/op-eds", label: "The writing", maxCh: 10 },
+  { to: "/", hash: "briefing", label: "Request a Cabinet briefing", maxCh: 21, accent: true },
+];
+
 export function MarketingShell({ children }: MarketingShellProps) {
   const signedIn = useSignedIn();
   const [menuOpen, setMenuOpen] = useState(false);

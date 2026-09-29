@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { MarketingShell } from "./MarketingShell";
 
 /**
@@ -81,6 +82,29 @@ const LOOP_STEPS = [
     body: "Judge delivery against the government’s mandate and approved measures. Every revision and result remains traceable to the decision that created it.",
   },
 ];
+
+/** Large, unmistakable prev/next arrow for the regional-exposures slider. */
+function MomentArrow({
+  direction,
+  onClick,
+  className,
+}: {
+  direction: "prev" | "next";
+  onClick: () => void;
+  className?: string;
+}) {
+  const Icon = direction === "prev" ? ArrowLeft : ArrowRight;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={direction === "prev" ? "Previous exposure" : "Next exposure"}
+      className={`btn-primary h-11 w-11 shrink-0 !rounded-full !p-0 sm:h-14 sm:w-14 ${className ?? ""}`}
+    >
+      <Icon strokeWidth={1.75} className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden />
+    </button>
+  );
+}
 
 function shuffleTail() {
   const tail = EXISTENTIAL_THREATS.slice(1);

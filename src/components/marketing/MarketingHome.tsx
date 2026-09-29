@@ -402,6 +402,69 @@ export function MarketingHome() {
         </div>
       </section>
 
+      {/* INSTRUMENT — CHAMBERS ------------------------------------------- */}
+      <section id="instrument" className="border-b border-line-200 bg-paper-100/40">
+        <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
+          <SectionHeader
+            eyebrow="Ten working areas for government decisions"
+            title="Ten Chambers connect national evidence to delivery."
+            lede="Each Chamber is a dedicated working area for one government responsibility. Together, the ten Chambers connect national evidence, Cabinet choices, ministry delivery, public understanding, and accountability."
+          />
+          <div className="mt-8 flex flex-col gap-4 border-y border-line-200 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <label
+                htmlFor="chamber-estimate-country"
+                className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500"
+              >
+                Estimate for
+              </label>
+              <p className="mt-1 text-[13px] leading-relaxed text-ink-500">
+                Public records where available; clearly marked reference assumptions elsewhere.
+              </p>
+            </div>
+            <select
+              id="chamber-estimate-country"
+              value={estimateCountry}
+              onChange={(event) => setEstimateCountry(event.target.value)}
+              className="min-h-11 w-full border border-line-200 bg-paper-0 px-4 py-2.5 text-[15px] text-ink-950 focus:border-ink-950 focus:outline-none sm:w-[300px]"
+            >
+              {(estimateCountriesQ.data ?? [{ code: "LCA", name: "St Lucia" }]).map((country) => (
+                <option key={country.code} value={country.code}>
+                  {country.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <ExplainProvider value={{ ctx: estimateContext }}>
+            <div className="mt-10 grid gap-x-10 gap-y-10 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2">
+              {FEATURED_CHAMBERS.map((c) => (
+                <div key={c.index}>
+                  <div className="mb-4 font-mono text-[12px] uppercase tracking-[0.18em] text-gold-500">
+                    {c.featureLabel}
+                  </div>
+                  <ChamberPanel
+                    index={c.index}
+                    title={c.title}
+                    outcome={c.outcome}
+                    purpose={c.purpose}
+                    bullets={c.bullets}
+                    accentVar={c.accentVar}
+                    image={c.image}
+                    screenshot={c.screenshot}
+                    valueEstimate={chamberValue(c.index)}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="mt-10 grid gap-x-8 gap-y-6 sm:mt-16 md:grid-cols-2 lg:grid-cols-3">
+              {GRID_CHAMBERS.map((c) => (
+                <ChamberPanel key={c.index} {...c} valueEstimate={chamberValue(c.index)} />
+              ))}
+            </div>
+          </ExplainProvider>
+        </div>
+      </section>
+
       {/* CORPUS ----------------------------------------------------------- */}
       <section id="corpus" className="border-b border-line-200">
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
@@ -517,69 +580,6 @@ export function MarketingHome() {
             This is not a report handed over at the end of an assignment. It is a practical way for
             government to keep using its own evidence, officials, and authority to make decisions.
           </p>
-        </div>
-      </section>
-
-      {/* INSTRUMENT — CHAMBERS ------------------------------------------- */}
-      <section id="instrument" className="border-b border-line-200 bg-paper-100/40">
-        <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
-          <SectionHeader
-            eyebrow="Ten working areas for government decisions"
-            title="Ten Chambers connect national evidence to delivery."
-            lede="Each Chamber is a dedicated working area for one government responsibility. Together, the ten Chambers connect national evidence, Cabinet choices, ministry delivery, public understanding, and accountability."
-          />
-          <div className="mt-8 flex flex-col gap-4 border-y border-line-200 py-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <label
-                htmlFor="chamber-estimate-country"
-                className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500"
-              >
-                Estimate for
-              </label>
-              <p className="mt-1 text-[13px] leading-relaxed text-ink-500">
-                Public records where available; clearly marked reference assumptions elsewhere.
-              </p>
-            </div>
-            <select
-              id="chamber-estimate-country"
-              value={estimateCountry}
-              onChange={(event) => setEstimateCountry(event.target.value)}
-              className="min-h-11 w-full border border-line-200 bg-paper-0 px-4 py-2.5 text-[15px] text-ink-950 focus:border-ink-950 focus:outline-none sm:w-[300px]"
-            >
-              {(estimateCountriesQ.data ?? [{ code: "LCA", name: "St Lucia" }]).map((country) => (
-                <option key={country.code} value={country.code}>
-                  {country.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <ExplainProvider value={{ ctx: estimateContext }}>
-            <div className="mt-10 grid gap-x-10 gap-y-10 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2">
-              {FEATURED_CHAMBERS.map((c) => (
-                <div key={c.index}>
-                  <div className="mb-4 font-mono text-[12px] uppercase tracking-[0.18em] text-gold-500">
-                    {c.featureLabel}
-                  </div>
-                  <ChamberPanel
-                    index={c.index}
-                    title={c.title}
-                    outcome={c.outcome}
-                    purpose={c.purpose}
-                    bullets={c.bullets}
-                    accentVar={c.accentVar}
-                    image={c.image}
-                    screenshot={c.screenshot}
-                    valueEstimate={chamberValue(c.index)}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="mt-10 grid gap-x-8 gap-y-6 sm:mt-16 md:grid-cols-2 lg:grid-cols-3">
-              {GRID_CHAMBERS.map((c) => (
-                <ChamberPanel key={c.index} {...c} valueEstimate={chamberValue(c.index)} />
-              ))}
-            </div>
-          </ExplainProvider>
         </div>
       </section>
 

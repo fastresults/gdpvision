@@ -100,9 +100,9 @@ function VaultPage() {
               </h1>
               <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-ink-700">
                 Every GDPVision deployment arrives with a Vault: sovereign hardware installed
-                in-country and held by the government. Tax, customs, treasury and registry records
-                stay inside it. Public evidence comes to them. Only findings that a named official
-                approves ever leave.
+                in-country and held by the government. Tax, customs, treasury, registry, health,
+                crime and employment records stay inside it. Public evidence comes to them. Only
+                findings that a named official approves ever leave.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <a href="#vault-briefing" className="btn-primary px-5 py-2.5 text-xs">

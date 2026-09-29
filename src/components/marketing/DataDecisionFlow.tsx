@@ -215,7 +215,7 @@ export function DataDecisionFlow() {
               style={{ animationDelay: "8s" }}
               opacity={selected || filter ? 0.25 : 0.9}
             />
-            <text x={(COLX[1] + COLX[4]) / 2 + 110} y={H - 18} textAnchor="middle" className="ddf-fade fill-ink-700 font-mono" fontSize={10} letterSpacing="2" style={{ animationDelay: "8.4s" }}>
+            <text x={(COLX[1] + COLX[4]) / 2 + 110} y={H - 2} textAnchor="middle" className="ddf-fade fill-ink-700 font-mono" fontSize={10} letterSpacing="2" style={{ animationDelay: "8.4s" }}>
               RESULTS RETURN AS EVIDENCE — EACH CYCLE DECIDES FASTER
             </text>
 

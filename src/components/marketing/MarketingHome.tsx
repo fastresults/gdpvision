@@ -336,7 +336,7 @@ export function MarketingHome() {
           </div>
           <div className="relative flex flex-col items-center justify-center">
             <SignatureRing size={480} />
-            <div className="-mt-[6%] flex justify-center">
+            <div className="-mt-24 flex justify-center">
               <DataDecisionFlowDialog />
             </div>
           </div>

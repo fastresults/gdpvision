@@ -226,9 +226,11 @@ function AuthEntry({ signedIn, onNavigate }: { signedIn: boolean; onNavigate?: (
       to="/auth"
       search={{ mode: "sign-in" }}
       onClick={onNavigate}
-      className="hover:text-ink-950"
+      className="min-w-0 py-1 hover:text-ink-950"
     >
-      Sign in
+      <span className="block" style={{ maxWidth: "6ch" }}>
+        Sign in
+      </span>
     </Link>
   );
 }

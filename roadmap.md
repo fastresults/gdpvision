@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Replace the Vault hardware photograph with the animated Sovereign Decision Circuit
+
 - [x] Replace the Decision Brief calculator engraving with an animated evidence-to-decision-to-national-value instrument
 
 - [x] Explain how the Corpus, Sovereign Vault and Second Brain combine into stronger economic decisions through an interactive National Record animation

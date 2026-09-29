@@ -654,3 +654,68 @@
   .dde .dde-value-wash { opacity: .08; animation: none !important; }
   .dde .dde-needle { transform: rotate(8deg); animation: none !important; }
 }
+
+/* Sovereign Vault hero — public evidence in, private records protected, approved findings out. */
+.sdc .sdc-corpus,
+.sdc .sdc-vault,
+.sdc .sdc-analysis,
+.sdc .sdc-approval,
+.sdc .sdc-value { opacity: 0; }
+.sdc .sdc-paper { opacity: 0; transform: translateX(-16px); }
+.sdc .sdc-public-path,
+.sdc .sdc-approved-path,
+.sdc .sdc-decision-path,
+.sdc .sdc-growth-path { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.sdc .sdc-public-particle,
+.sdc .sdc-approval-mark,
+.sdc .sdc-finding,
+.sdc .sdc-growth-node { opacity: 0; }
+.sdc .sdc-server { opacity: 0; transform: translateY(12px); }
+.sdc-on .sdc-corpus { animation: sdc-fade .5s ease-out forwards; }
+.sdc-on .sdc-paper { animation: sdc-arrive .5s ease-out forwards; animation-delay: calc(.15s + var(--i) * .13s); }
+.sdc-on .sdc-public-path { animation: sdc-draw .8s ease-out .7s forwards; }
+.sdc-on .sdc-public-particle { animation: sdc-public-flow 2.4s ease-in-out calc(1s + var(--i) * .65s) infinite; }
+.sdc-on .sdc-vault { animation: sdc-fade .6s ease-out 1.2s forwards; }
+.sdc-on .sdc-server { animation: sdc-server-rise .55s cubic-bezier(.2,.85,.25,1) forwards; animation-delay: calc(1.45s + var(--i) * .16s); transform-box: fill-box; transform-origin: center; }
+.sdc-on .sdc-server-light { animation: sdc-light 3s ease-in-out calc(2.2s + var(--i) * .32s) infinite; }
+.sdc-on .sdc-private { animation: sdc-breathe 4.5s ease-in-out 2.3s infinite; transform-box: fill-box; transform-origin: center; }
+.sdc-on .sdc-analysis { animation: sdc-fade .5s ease-out 2.5s forwards; }
+.sdc-on .sdc-needle { animation: sdc-calibrate 1.5s cubic-bezier(.2,.8,.2,1) 2.8s forwards, sdc-measure 4.5s ease-in-out 5.4s infinite; transform-origin: 276px 155px; }
+.sdc-on .sdc-approval { animation: sdc-fade .4s ease-out 4s forwards; }
+.sdc-on .sdc-approved-path { animation: sdc-draw .8s ease-out 4.1s forwards; }
+.sdc-on .sdc-approval-mark { animation: sdc-mark .45s cubic-bezier(.2,.9,.3,1.25) forwards; animation-delay: calc(4.55s + var(--i) * .35s); transform-box: fill-box; transform-origin: center; }
+.sdc-on .sdc-finding { animation: sdc-fade .45s ease-out 5.4s forwards; }
+.sdc-on .sdc-value { animation: sdc-fade .35s ease-out 5.6s forwards; }
+.sdc-on .sdc-decision-path { animation: sdc-draw .8s ease-out 5.7s forwards; }
+.sdc-on .sdc-growth-path { animation: sdc-draw 1.4s ease-out 6.5s forwards; }
+.sdc-on .sdc-growth-node { animation: sdc-mark .4s cubic-bezier(.2,.9,.3,1.2) forwards; animation-delay: calc(6.8s + var(--i) * .18s); transform-box: fill-box; transform-origin: center; }
+.sdc [role="button"] { cursor: help; outline: none; transition: opacity .25s ease; }
+.sdc [role="button"]:focus-visible { filter: drop-shadow(0 0 3px var(--color-gold-300)); }
+.sdc:has([role="button"]:hover) [role="button"]:not(:hover),
+.sdc:has([role="button"]:focus) [role="button"]:not(:focus) { opacity: .25; }
+.sdc-paused *, .sdc-paused *::before, .sdc-paused *::after { animation-play-state: paused !important; }
+@keyframes sdc-fade { to { opacity: 1; } }
+@keyframes sdc-arrive { to { opacity: 1; transform: translateX(0); } }
+@keyframes sdc-draw { to { stroke-dashoffset: 0; } }
+@keyframes sdc-server-rise { to { opacity: 1; transform: translateY(0); } }
+@keyframes sdc-light { 0%, 82%, 100% { opacity: .25; } 90% { opacity: 1; fill: var(--color-gold-500); } }
+@keyframes sdc-breathe { 0%, 100% { opacity: .65; } 50% { opacity: 1; } }
+@keyframes sdc-calibrate { 0% { transform: rotate(-45deg); } 70% { transform: rotate(24deg); } 100% { transform: rotate(8deg); } }
+@keyframes sdc-measure { 0%, 100% { transform: rotate(8deg); } 50% { transform: rotate(16deg); } }
+@keyframes sdc-mark { 0% { opacity: 0; transform: scale(.25); } 70% { opacity: 1; transform: scale(1.35); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes sdc-public-flow {
+  0% { opacity: 0; transform: translate(0, 0); }
+  15%, 72% { opacity: 1; }
+  100% { opacity: 0; transform: translate(88px, 30px); }
+}
+@media (max-width: 639px) {
+  .sdc { max-width: 430px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sdc .sdc-corpus, .sdc .sdc-vault, .sdc .sdc-analysis, .sdc .sdc-approval, .sdc .sdc-value,
+  .sdc .sdc-paper, .sdc .sdc-public-particle, .sdc .sdc-approval-mark, .sdc .sdc-finding,
+  .sdc .sdc-growth-node, .sdc .sdc-server { opacity: 1; transform: none; animation: none !important; }
+  .sdc .sdc-public-path, .sdc .sdc-approved-path, .sdc .sdc-decision-path,
+  .sdc .sdc-growth-path { stroke-dashoffset: 0; animation: none !important; }
+  .sdc .sdc-needle { transform: rotate(8deg); animation: none !important; }
+}

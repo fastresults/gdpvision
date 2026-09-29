@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 
-import vaultArt from "@/assets/vault/vault-reference-build.jpg";
 import { BriefingForm } from "@/components/marketing/BriefingForm";
 import { FloatingBackToTop } from "@/components/marketing/FloatingBackToTop";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
+import { SovereignDecisionCircuit } from "@/components/marketing/SovereignDecisionCircuit";
 
 const SITE_URL = "https://gdpvision.com";
 const TITLE = "The Sovereign Vault — use sensitive national data without surrendering control";
@@ -112,19 +112,9 @@ function VaultPage() {
                 </Link>
               </div>
             </div>
-            <figure className="min-w-0">
-              <img
-                src={vaultArt}
-                alt="Three sovereign compute units stacked, the reference build of the GDPVision Vault."
-                width={1100}
-                height={937}
-                loading="eager"
-                className="h-auto w-full border border-line-200"
-              />
-              <figcaption className="mt-3 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
-                The standard configuration · three units, installed on government premises
-              </figcaption>
-            </figure>
+            <div className="flex min-w-0 justify-center md:justify-end">
+              <SovereignDecisionCircuit />
+            </div>
           </div>
         </div>
       </section>

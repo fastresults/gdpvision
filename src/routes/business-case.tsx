@@ -52,7 +52,7 @@ import ogImage from "@/assets/gdpvision-og.jpg";
 const SITE_URL = "https://gdpvision.com";
 const TITLE = "The business case for GDPVision — a decision paper";
 const DESCRIPTION =
-  "Why sovereign economic decision-making should be instrumented as a governed system of record: the stakes, the tier-one test, an options appraisal, the five approvals, and the recommended path.";
+  "Why national economic decisions need a governed, government-controlled system: the stakes, the required standard, the available options, the approvals, and the recommended path.";
 
 export const Route = createFileRoute("/business-case")({
   head: () => {
@@ -166,15 +166,15 @@ function BusinessCasePage() {
           <div className="grid gap-8 p-7 sm:p-10 md:grid-cols-[1fr_240px] md:items-center">
             <div className="min-w-0">
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-                Interactive · Sovereign value instrument
+                 Interactive · Public decision tool
               </div>
               <h3 className="mt-4 font-serif text-[26px] leading-tight tracking-tight text-ink-950 md:text-[32px]">
                 Put your own economy through the model.
               </h3>
               <p className="mt-4 max-w-2xl text-[15.5px] leading-relaxed text-ink-700">
-                Four questions answered from memory, one slider per chamber, and a running verdict
-                in dollars, basis points of GDP, and return against cost. The arithmetic is open,
-                the ceiling is stated, and the counsel reads your configuration back to you.
+                 Answer four questions, adjust the depth of each Chamber, and see an updated view in
+                 dollars, share of GDP, and return against cost. Every calculation is open, the maximum
+                 estimate is stated, and the Counsel responds to your selections.
               </p>
               <Link
                 to="/business-case/brief"
@@ -196,7 +196,7 @@ function BusinessCasePage() {
         <SectionHeader
           eyebrow="01 · What is at stake"
           title="Six figures, each carrying its source and its grade."
-          lede="That is a habit rather than a flourish: the argument of this paper is that provenance survives scrutiny, and a document making that argument should meet the standard it sets."
+           lede="This is a working standard, not decoration. Every important claim should remain linked to a source that can be checked. This paper follows the same rule."
         />
         <div className="mt-14 grid gap-x-10 gap-y-14 md:grid-cols-2 lg:grid-cols-3">
           {STAKES.map((s) => (
@@ -220,11 +220,11 @@ function BusinessCasePage() {
         </div>
       </Section>
 
-      {/* 2 · Instrumentation, not effort */}
+      {/* 2 · Better tools, not more effort */}
       <Section>
         <div className="grid gap-12 md:grid-cols-[1fr_300px] md:items-center">
           <div>
-            <SectionHeader eyebrow="02 · The problem" title="It is instrumentation, not effort." />
+            <SectionHeader eyebrow="02 · The problem" title="The problem is the tools, not the effort." />
             <div className="mt-8 space-y-5 max-w-2xl">
               {INSTRUMENTATION_INTRO.map((p) => (
                 <p key={p.slice(0, 24)} className="text-[16.5px] leading-relaxed text-ink-700">
@@ -238,8 +238,8 @@ function BusinessCasePage() {
               ))}
             </div>
             <p className="mt-8 max-w-2xl text-[16.5px] leading-relaxed text-ink-950">
-              None of this is a failure of will. It is a failure of instrumentation, and unlike the
-              external deadline it is entirely within the region's power to fix.
+              None of this is a failure of will. The information and decision tools are not fit for
+              the task—and, unlike the external deadline, that is within the region’s power to fix.
             </p>
           </div>
           <div className="hidden justify-self-end md:block">
@@ -314,7 +314,7 @@ function BusinessCasePage() {
       {/* 5 · Tier one */}
       <Section>
         <SectionHeader
-          eyebrow="05 · The decision"
+          eyebrow="05 · The required standard"
           title="What class of system is this?"
           lede={TIER_ONE_INTRO[0]}
         />
@@ -349,7 +349,7 @@ function BusinessCasePage() {
         <div className="mt-12 hidden overflow-hidden border border-line-200 md:block">
           <table className="w-full border-collapse text-left">
             <caption className="sr-only">
-              Tier-one tests: a chat subscription compared with GDPVision
+               Tests for a critical national system: a chat subscription compared with GDPVision
             </caption>
             <thead>
               <tr className="border-b border-line-200 bg-paper-50">
@@ -414,9 +414,13 @@ function BusinessCasePage() {
         </div>
       </Section>
 
-      {/* 7 · What the instrument is */}
+      {/* 7 · What GDPVision is */}
       <Section>
-        <SectionHeader eyebrow="07 · What the instrument actually is" title={INSTRUMENT_INTRO} />
+        <SectionHeader
+          eyebrow="07 · What GDPVision actually is"
+          title={INSTRUMENT_INTRO}
+          lede="Each Chamber is a dedicated working area for one government responsibility. Together they move evidence, decisions, delivery, and public accountability through one connected system."
+        />
         <div className="mt-12 grid gap-x-10 gap-y-8 md:grid-cols-2">
           {CHAMBERS.map((c) => (
             <div key={c.index} className="relative border-t border-line-200 pt-5 pl-5">

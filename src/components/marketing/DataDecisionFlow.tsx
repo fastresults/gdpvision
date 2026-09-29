@@ -222,7 +222,7 @@ export function DataDecisionFlow() {
                 type="button"
                 role="tab"
                 aria-selected={chamber === c}
-                title={c === "all" ? "Run all 20 scenarios" : `${c} ${CHAMBER_NAMES[c]}`}
+                aria-label={c === "all" ? "All scenarios" : `Chamber ${c} ${CHAMBER_NAMES[c]}`}
                 onClick={() => pickChamber(c)}
                 className={cn("card-choice h-9 shrink-0 px-2.5 font-mono text-[12px]", chamber === c && "card-choice-active")}
               >

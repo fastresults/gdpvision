@@ -434,8 +434,6 @@ export function DataDecisionFlow() {
                   style={{ animationDelay: `${n.band * 1.6 + 0.3}s`, opacity: on ? 1 : 0.25 }}
                 >
                   <rect
-                    key={scenarioMode && litNodes.has(n.id) ? `lit-${scn}` : "off"}
-                    className={scenarioMode && litNodes.has(n.id) ? "ddf-land" : undefined}
                     x={p.x}
                     y={p.y}
                     width={p.w}
@@ -445,6 +443,9 @@ export function DataDecisionFlow() {
                     stroke={isSel || (scenarioMode && litNodes.has(n.id)) || (!scenarioMode && outcome) ? "var(--gold-500)" : "var(--ink-700)"}
                     strokeWidth={isSel || (scenarioMode && litNodes.has(n.id)) || (!scenarioMode && outcome) ? 1.8 : 0.9}
                   />
+                  {scenarioMode && litNodes.has(n.id) && !reduce && (
+                    <rect key={`land-${scn}`} x={p.x} y={p.y} width={p.w} height={BOXH} rx={3} fill="none" stroke="var(--gold-500)" className="ddf-land" />
+                  )}
                   <text
                     x={p.x + 10}
                     y={p.y + BOXH / 2 + 4}

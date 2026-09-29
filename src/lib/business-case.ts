@@ -9,7 +9,7 @@ export const BUSINESS_CASE_META = {
   eyebrow: "A decision paper",
   title: "The business case for GDPVision",
   standfirst:
-    "On instrumenting sovereign economic decision-making — prepared for heads of government, Cabinet Secretaries, ministries of finance, and the officials who must satisfy themselves that this is the right class of system before it is procured.",
+    "Why national economic decisions need a governed, government-controlled system—prepared for heads of government, Cabinet Secretaries, ministries of finance, and officials responsible for deciding whether GDPVision should be procured.",
   author: "Adam Anderson",
   org: "OPEN Interactive",
 };
@@ -22,23 +22,23 @@ export interface LabelledPara {
 export const EXECUTIVE_SUMMARY: LabelledPara[] = [
   {
     label: "The decision",
-    body: "Whether to instrument national economic decision-making as a governed, sovereign system of record — or to continue carrying it on arrangements built for statistical record-keeping and, increasingly, on uncontrolled personal use of consumer AI inside the ministries.",
+    body: "Whether to manage national economic decisions through a governed system under government control—or continue relying on arrangements built only to publish statistics and on uncontrolled personal use of consumer AI inside ministries.",
   },
   {
     label: "Why now",
-    body: "Three pressures now arrive at once: Citizenship by Investment at half of government revenue faces a scheduled end with no priced replacement; the tariff regime is being rewritten in capitals the region does not control; and the hurricane corridor is re-arming after a single storm cost 226 per cent of GDP. The response must be engineered against debt at ninety per cent of GDP, with a quarter of revenue already committed to interest, and using authoritative data that arrives roughly eighteen months after the period it describes.",
+    body: "Three pressures now arrive at once. Citizenship by Investment, which can provide half of government revenue, faces a scheduled end without a costed replacement. Trade rules are being rewritten in capitals the region does not control. The hurricane threat is rising after one storm cost 226 per cent of GDP. Government must respond while debt can reach ninety per cent of GDP, interest already takes a quarter of revenue, and official data may arrive eighteen months late.",
   },
   {
     label: "The central argument",
-    body: "A government's capacity to act on its economy is bounded by the quality of its instrumentation. The region's instrumentation was built to keep a record, not to govern from. It is now being asked to carry the largest economic transition in its modern history, and it cannot.",
+    body: "A government can act only as well as the information and decision tools available to it. The region’s existing systems were built to publish a record of the past, not to guide live decisions. They are not enough for the economic transition now under way.",
   },
   {
     label: "On the obvious cheap answer",
-    body: "A capable official with a frontier language model can draft a note, summarise a report and compare two options. That is true and worth conceding. But a language model is a component, not a system. It holds no shared corpus, cannot reproduce its own answer, has one actor and no roles, produces text rather than a record, and cannot lawfully receive Cabinet material. The choice is not whether a government uses AI — that is settled, and it is already happening on personal accounts. The choice is whether that use is governed.",
+    body: "A capable official using a leading AI model can draft a note, summarise a report, and compare two options. But an AI model is only one part of a government system. It keeps no shared national evidence record, may answer the same question differently, cannot enforce official roles, and should not receive Cabinet material through a personal account. Government is already using AI. The decision is whether that use will be governed.",
   },
   {
     label: "What is recommended",
-    body: "A confidential Cabinet briefing, then a time-boxed pilot against one live decision with agreed conversion criteria, then national deployment: one isolated instance per nation, owned outright by the government, with contracted export, escrow and exit.",
+    body: "Begin with a confidential Cabinet briefing. Then run a time-limited pilot against one live decision, with agreed tests for moving to national use. If those tests are met, deploy a separate system for the country, owned by government, with written rights to export its data and leave the service.",
   },
 ];
 
@@ -106,12 +106,12 @@ export const STAKES: StakeFigure[] = [
 ];
 
 export const STAKES_CLOSE =
-  "Set those figures together and the problem becomes unmistakable. Three sovereign pressures are now running on the same deadline: the revenue model that pays for half the state is ending; the trade rules that shape competitiveness are being written elsewhere; and the hurricane corridor is no longer a seasonal worry — it is a structural fiscal risk. A government facing all three at once has no fiscal slack, a shrinking pool of people who can do the work, and an evidence base that describes the country as it was two years ago. The challenge is not a lack of effort. It is a lack of instrumentation fit for the transition ahead.";
+  "Taken together, the problem is clear. A revenue model that can fund half the state is ending. Trade rules that shape competitiveness are being written elsewhere. Hurricanes are now a permanent risk to national finances, not a seasonal concern. Government faces all three with little room in the budget, fewer skilled people, and evidence that may describe the country as it was two years ago. The problem is not a lack of effort. It is a lack of decision tools fit for the transition ahead.";
 
 export const INSTRUMENTATION_INTRO = [
   "It would be easy to attribute the gap to capacity or to will. In my experience that is both wrong and unfair.",
   "Officials in these ministries are capable and overworked. The analysis has not been done because the underlying evidence does not exist in a usable form. Ministries hold fragments in incompatible formats. The dependency relationships between sectors — what happens to construction when tourism moves, what happens to public revenue when construction moves — live in the heads of a small number of people, some of them close to retirement.",
-  "So when a Cabinet asks what happens if half the revenue goes, the honest answer from the ministry is: give us some months, and we will commission something. The commissioned study arrives after the decision window has closed, describing a situation that has already moved.",
+  "When Cabinet asks what happens if half the revenue disappears, a ministry may need months to commission an answer. The study can arrive after the decision window has closed, describing conditions that have already changed.",
 ];
 
 export const THREE_FAILURES: LabelledPara[] = [
@@ -130,15 +130,15 @@ export const THREE_FAILURES: LabelledPara[] = [
 ];
 
 export const CHEAP_ANSWER_INTRO = [
-  "Frontier language models are extraordinary. A competent permanent secretary with a consumer subscription can summarise an Article IV consultation, draft a Cabinet note, compare two policy options, sketch an investment case and produce a press line — in an afternoon, for the price of a monthly fee. Why procure anything?",
+  "Leading AI models are powerful. With a consumer subscription, a competent permanent secretary can summarise an IMF review, draft a Cabinet note, compare two policy options, outline an investment case, and prepare a press line in an afternoon. Why procure anything more?",
   "Most of that is true, and any vendor who denies it should be treated with suspicion. An official who is not using these tools is at a disadvantage to one who is.",
-  "But the objection contains a category error worth naming precisely. A language model is a component. It is not a system. GDPVision itself uses language models — several, behind a gateway, with a documented fallback order and provenance recorded on every fact they return. The question was never model versus system. It is ungoverned model use against governed model use.",
+  "The comparison misses an important distinction. An AI model is one component, not a complete government system. GDPVision uses several models through a controlled service, records the source and history of returned facts, and has a documented backup order. The real choice is between ungoverned and governed AI use.",
 ];
 
 export const CANNOTS: LabelledPara[] = [
   {
     label: "It cannot hold what your government knows",
-    body: "It has a context window you must refill from scratch every time, which vanishes when the tab closes. Nothing accumulates, nothing is shared, and fifteen officials each holding a private conversation produce fifteen unreconciled views faster than before.",
+    body: "A personal chat starts again each time and disappears when the session closes. Nothing builds into a shared government record. Fifteen officials can quickly produce fifteen different, unreconciled views.",
   },
   {
     label: "It cannot lawfully receive your Cabinet material",
@@ -146,23 +146,23 @@ export const CANNOTS: LabelledPara[] = [
   },
   {
     label: "It cannot reproduce its own answer",
-    body: "Ask the same fiscal question twice and you get two answers. GDPVision separates the two things a chat session conflates: the model proposes, and a deterministic engine computes — pure, versioned, containing no randomness, with the engine version pinned to every scenario artefact. A projection made in March re-runs identically in September.",
+    body: "Ask the same fiscal question twice and a chat tool may give two answers. GDPVision separates advice from calculation: AI proposes, while a fixed, versioned calculation produces the numbers. A projection made in March can be run again with the same inputs in September and return the same result.",
   },
   {
     label: "It has one actor",
-    body: "Government work is irreducibly multi-actor and differently permissioned: a steward maintains a series, a minister reads a portfolio, a principal decides, a secretary records. A session has no concept of role, ministry or country access. GDPVision enforces access at the database layer through row-level security, not in the interface where a hidden button is not access control.",
+    body: "Government work involves many people with different authority: one official maintains a data series, a minister reviews a portfolio, a principal decides, and a secretary records. A personal chat does not understand those roles. GDPVision enforces each person’s access in the underlying data system, not merely by hiding buttons on a screen.",
   },
   {
     label: "It produces text, not a record",
-    body: "A session's output is a message. The instrument's output is a row, in a system of record every chamber reads. A scenario becomes an artefact with pinned assumptions; a Cabinet decision becomes a commitment with a named owner; the commitment is scored against the mandate at quarter end. Work moves between chambers rather than being retyped — and that carrying by hand is where government work is actually lost.",
+    body: "A chat session produces a message. GDPVision produces a permanent government record. A scenario keeps its assumptions; a Cabinet decision becomes a commitment with a named owner; and delivery is measured against the mandate each quarter. Work moves between the ten Chambers without being retyped, reducing the handoffs where government work is often lost.",
   },
   {
     label: "It waits to be asked",
-    body: "Coverage builds overnight; a source goes unreachable; a research stage fails at three in the morning. The instrument runs continuously — press discovery and clustering across entity feeds, watchlists refreshed on schedule, source health retried, stale locks reclaimed on an eight-minute heartbeat, failed stages redriven with escalating fallback.",
+    body: "A source may become unavailable or an overnight research task may fail. GDPVision keeps working: it gathers and groups new reporting, refreshes watchlists, retries unavailable sources, and restarts failed work through a documented backup process.",
   },
   {
     label: "And it cannot be governed",
-    body: "It has no doctrine, no approval gate, no register discipline, and no record of what it advised. GDPVision holds a doctrine enforced in code — the chamber drafts, principals decide, nothing releases autonomously — with no path from a detected signal to a public statement that does not pass through a named, accountable human being.",
+    body: "A personal chat has no approval process and no permanent record of its advice. GDPVision applies a clear rule: the system drafts, authorised principals decide, and nothing is released automatically. Every route from a new signal to a public statement passes through a named, accountable official.",
   },
 ];
 
@@ -194,7 +194,7 @@ export const SHADOW_CLOSE =
   "So the choice is not “spend money or spend nothing”. It is: continue carrying an uncontrolled liability at no visible cost, or convert it into a governed capability at a visible one. Finance ministries make that trade in every other domain. It is the same argument as moving from informal borrowing to a documented facility.";
 
 export const TIER_ONE_INTRO = [
-  "Every government runs a small number of tier-one systems: treasury and financial management, revenue collection, the national identity register, settlement infrastructure.",
+  "Every government runs a small number of tier-one systems—systems important enough to require formal control, continuity, and senior approval. These include treasury and financial management, revenue collection, the national identity register, and payment infrastructure.",
   "Nobody evaluates a treasury system against a spreadsheet. Not because spreadsheets are bad at arithmetic, but because the two objects are in different classes — and the class is determined by consequence, not capability.",
 ];
 
@@ -203,13 +203,13 @@ export const TIER_ONE_TESTS: Array<{ test: string; chat: string; instrument: str
   {
     test: "Multi-actor, permissioned, enforced",
     chat: "No",
-    instrument: "Yes — row-level, database-enforced",
+    instrument: "Yes — enforced for each record in the data system",
   },
   { test: "Outputs auditable after the fact", chat: "No", instrument: "Yes — immutable audit log" },
   {
     test: "Outputs reproducible",
     chat: "No",
-    instrument: "Yes — deterministic engine, pinned version",
+    instrument: "Yes — fixed calculation, recorded version",
   },
   {
     test: "Holds sovereign data lawfully",
@@ -226,7 +226,7 @@ export const TIER_ONE_TESTS: Array<{ test: string; chat: string; instrument: str
 ];
 
 export const TIER_ONE_CLOSE =
-  "The relevant question is therefore not whether GDPVision beats a subscription. It is whether the evidence base beneath half of government revenue is a tier-one system or not. A government answering “not” has made a decision, whether or not it intended to.";
+  "The question is not whether GDPVision beats the price of a subscription. It is whether the evidence behind decisions affecting half of government revenue requires the same formal control as other critical national systems. Answering “no” is itself a decision, whether intended or not.";
 
 export interface OptionPath {
   key: string;
@@ -239,20 +239,20 @@ export const OPTION_PATHS: OptionPath[] = [
   {
     key: "A",
     title: "Subscriptions and capable officials",
-    owns: ["Seats", "Sessions", "Prose"],
-    body: "Recurring per-seat cost. At the end of three years the government owns nothing: no corpus, no decision record, no scored mandate, nothing that transfers to a successor. Stop paying and the capability stops that afternoon, leaving no residue, because the work lived in individual sessions that were never institutional. It is genuinely cheap, and it is cheap precisely because it accumulates nothing. You are renting cognition; you are not buying an asset.",
+    owns: ["Accounts", "Sessions", "Drafts"],
+    body: "This has a low recurring cost per person. After three years, however, government owns no shared evidence record, decision history, or measured mandate that can transfer to a successor. Stop paying and the capability ends because the work remained in individual sessions. Government is renting assistance, not building a national asset.",
   },
   {
     key: "B",
     title: "Build it internally",
     owns: ["Code", "Staffing", "Liability"],
-    body: "Significant capital and permanent staffing. What would be commissioned is not a chat interface over a document store — that is a quarter's work. It is a governed schema with grants, row-level security and policies; scores of server-function modules of domain logic; a twelve-sector ontology with a decade of history; a deterministic projection engine; a corpus gateway with deduplication on normalised keys; a twenty-stage country onboarding pipeline including a capital-flows stage that refuses to commit unless the draft balances within ten per cent; an immutable audit log; and cross-chamber promotion paths. Then permanent maintenance, in a labour market already losing skilled people. And the harder part is not the code — it is the judgement encoded in it, which a from-scratch build gets wrong on the first attempt.",
+    body: "This requires major upfront investment and permanent specialist staff. The work goes far beyond adding chat to a document library. It requires secure access rules, economic methods, a shared structure for national data, repeatable calculations, duplicate controls, a twenty-stage country setup process, checks that reject unbalanced capital-flow drafts, permanent activity records, and reliable movement of work between Chambers. It also requires continuing maintenance in a labour market already losing skilled people. The hardest part is not writing software; it is encoding sound government and economic judgement.",
   },
   {
     key: "C",
     title: "Procure the instrument",
-    owns: ["Corpus", "Record", "Mandate"],
-    body: "A deployment the government owns outright, contractually and technically, with full export and verified deletion on termination. At the end of three years it holds a structured corpus of its own economy, a decision record spanning two or three Cabinets, a mandate scored quarter by quarter, and a modelled dependency map — all of which transfer to the next administration.",
+    owns: ["Evidence", "Decisions", "Mandate"],
+    body: "Government owns the deployment in both contract and practice, with full data export and verified deletion when the service ends. After three years, it holds a structured record of its economy, a decision history spanning several Cabinets, quarterly results against the mandate, and a map of how sectors depend on one another. All can transfer to the next administration.",
   },
 ];
 
@@ -260,23 +260,23 @@ export const OPTIONS_CLOSE =
   "For a government carrying debt at ninety per cent of GDP, the distinction between recurring expenditure that leaves a residue and recurring expenditure that does not is not philosophical. It is how the estimates are argued.";
 
 export const INSTRUMENT_INTRO =
-  "A live National Ledger beneath ten chambers, with a voice-first Counsel above them.";
+  "One National Ledger supports ten working Chambers, with concise, sourced Counsel available by voice.";
 
 export const CHAMBER_LINES: Record<string, string> = {
-  "01": "A twelve-sector ontology with a decade of history, a confidence grade on every series, exposure indices drillable to source, and four-layer sector dossiers. The single source of truth every other chamber reads from.",
+  "01": "A shared structure for twelve sectors, with a decade of history, a confidence grade on every data series, major risks linked to their sources, and detailed sector records. It is the trusted evidence base used by every other Chamber.",
   "02": "Every minister's contribution to GDP as a standing figure, their dependency web, and their levers ranked by effect with the cost of each attached.",
-  "03": "Rehearsal before commitment. Ripple propagation through the inter-sector web, goal-seek that runs the decision backwards from a target, sensitivity views, and a compensation ledger showing what each gain costs elsewhere.",
-  "04": "The Gap priced year by year under the actual glide-path; an investment package builder with capital-to-GDP conversion and honest time-to-impact lags; readiness scored across legal framework, land, workforce, incentives and institutional capacity; and the book sequenced across years.",
+  "03": "Test a decision before committing. See how effects move between sectors, work backwards from the result Cabinet needs, compare which assumptions matter most, and show what each gain may cost elsewhere.",
+  "04": "Price the revenue gap year by year under the planned transition. Build investment packages with realistic links between capital and GDP, make time to impact clear, assess readiness across law, land, workforce, incentives, and institutions, and sequence the investment pipeline across years.",
   "05": "Monitoring, response and syndication in one place. Entity feeds and watchlists refreshed on schedule, a signal desk ordered by economic consequence, structured strategy, channel drafts, an explicit approval workflow, scheduled publication, and a retained archive of what was issued.",
-  "06": "Session Mode running the meeting itself, decisions recorded live with named owners, a commitments cockpit visible between sessions, and a National Scorecard that moves against constant indicators.",
+  "06": "Support the Cabinet meeting itself, record decisions live with named owners, keep commitments visible between sessions, and update a National Scorecard against consistent measures.",
   "07": "Rehearsing how a policy, incentive or message lands, privately, before announcement. Explicitly a rehearsal instrument and not a substitute for polling.",
-  "08": "The manifesto decomposed into pillars, pledges and ministry-owned deliverables; quarterly scorecards and a PM Report Card; a signed, versioned compact whose every revision is diffable; and a transformational plan that hands directly to the Narrative Chamber, so what a government announces is the same object as what it decided.",
-  "09": "The product requirements for the nation's e-government platform, written from its own record in eleven cited sections and approved by a second person; a keyed, read-only API that feeds the platform indicators, commitments, government structure, open data, procurement and approved projects, so the public site is never typed by hand.",
-  "10": "Sector development as an operating system: a Scout that ranks every sector from the record, up to four national priorities with a written exit rule, and a ten-section plan per sector — diagnostic, targets, pillars, Entry Point Projects, enablers, scorecard, Sector Compact, Council charter, sensitisation, roadmap — approved by two people and carried to Cabinet as a commitment.",
+  "08": "Turn the manifesto into priorities, pledges, and ministry-owned deliverables. Use quarterly scorecards and a Prime Minister’s Report Card, keep a signed record of every change, and pass the approved plan directly to the Narrative Chamber so public statements match government decisions.",
+  "09": "Define the nation’s e-government platform from its own evidence in eleven sourced sections, with independent approval. A secure, read-only connection supplies approved indicators, commitments, government structure, open data, procurement, and projects so the public site is not maintained by retyping records.",
+  "10": "Run sector development as a continuing government programme. Rank every sector from the evidence, choose up to four national priorities with a written rule for ending support, and prepare a complete plan for each sector. Two people approve the plan before it goes to Cabinet as a commitment.",
 };
 
 export const CORPUS_FOOTNOTE =
-  "Underneath all of it, one sovereign corpus: public evidence and private Cabinet material held apart and read together, deduplicated, chunked, embedded, with visibility and ownership on every row.";
+  "Underneath all of it is one national evidence record. Public evidence and private Cabinet material remain separate but can be considered together. Duplicate information is removed, and every record states who owns it and who may see it.";
 
 export const WORTH_INTRO =
   "These are mechanisms, not measured results. We publish no outcome figures and will not until one is cleared.";
@@ -308,7 +308,7 @@ export const WORTH: LabelledPara[] = [
   },
   {
     label: "Institutional memory retained",
-    body: "Against seven-in-ten skilled emigration, a corpus does not resign.",
+    body: "When seven in ten highly educated citizens have emigrated, a national evidence record helps preserve knowledge when officials leave.",
   },
   {
     label: "And an asset that survives an election",
@@ -327,7 +327,7 @@ export const APPROVALS: LabelledPara[] = [
   },
   {
     label: "The Technical Validator — Ministry of Finance or central bank",
-    body: "Buying method they can interrogate: documented confidence grading, reproducible projections, sensitivity views, provenance to source. This is the person a chat session loses fastest, because they will ask the same question twice and notice the answers differ.",
+    body: "Buying a method they can examine: documented confidence grades, repeatable projections, views showing which assumptions matter, and a clear link to every source. They will ask the same question twice and notice if the answers differ.",
   },
   {
     label: "Procurement",
@@ -344,9 +344,9 @@ export const APPROVALS_CLOSE =
 
 export const PROVENANCE_PARAS = [
   "A reasonable technologist will ask why a competent team could not assemble this in two quarters.",
-  "Some of it they could. The hard parts are not the screens. They are the ontology that lets figures from different ministries occupy one picture; the confidence-grading method; the deduplication contract that keeps a corpus trustworthy in year three; the reconciliation gate that knows when a capital-flow draft is not yet commit-worthy; the decision that scenarios must be deterministic and the model may only propose; and the judgement that a minister's realistic unit of use is ninety seconds on a phone between engagements, not an afternoon at a dashboard.",
+  "Some of it they could. The hard parts are not the screens. They are the shared structure that lets figures from different ministries appear in one picture; the confidence-grading method; the rules that prevent duplicate evidence; the checks that reject an unbalanced capital-flow draft; the separation between AI advice and repeatable calculation; and the judgement that a minister may have ninety seconds on a phone between engagements, not an afternoon at a dashboard.",
   "Those do not come from software experience. They come from having been in the room.",
-  "OPEN Interactive has convened the Caribbean Investment Summit since 2009, delivered digital government infrastructure at national scale under confidential engagement with the Office of the Prime Minister of St. Kitts & Nevis, and maintained head-of-government relationships across the OECS for seventeen years. SEDE — the Saint Lucia prototype, a working sovereign decision engine with a live macro model, voice console, dossier corpus and ingest pipeline — is the interaction-proven core that GDPVision v1 absorbs.",
+  "OPEN Interactive has convened the Caribbean Investment Summit since 2009, delivered national digital government infrastructure through a confidential engagement with the Office of the Prime Minister of St. Kitts & Nevis, and maintained relationships with heads of government across the OECS for seventeen years. SEDE, the Saint Lucia prototype, proved the core approach through a live economic model, voice access, detailed evidence records, and a controlled process for adding documents and data.",
   "This is not a global product adapted downward. It is an instrument designed against the exposures small island states actually carry.",
 ];
 
@@ -363,7 +363,7 @@ export const STAGES: LabelledPara[] = [
   },
   {
     label: "Stage 2 — Time-boxed pilot",
-    body: "Against one live decision, with the Ledger instrumented underneath from day one and agreed criteria for what converts it. A pilot without conversion criteria becomes a free consulting engagement that ends when the sponsor changes job; we would rather name that in advance.",
+    body: "Test GDPVision against one live decision, with the National Ledger in place from day one and agreed tests for moving to national use. Without those tests, a pilot can become an open-ended exercise that ends when its sponsor changes role. The path should be agreed in advance.",
   },
   {
     label: "Stage 3 — National deployment",

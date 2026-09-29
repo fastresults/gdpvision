@@ -16,7 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const STATE_LABEL: Record<EvidenceState, string> = {
-  record: "From the national record",
+  record: "Supported by national records",
   reference: "Reference assumption",
   adjusted: "Adjusted by you",
 };
@@ -78,18 +78,18 @@ export function EvidenceAssuranceStrip({
       <div className="mx-auto grid max-w-[1280px] gap-5 px-5 py-5 sm:px-6 md:grid-cols-[1fr_auto] md:items-center md:px-10">
         <div>
           <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            Public indicative model · evidence status
+            Public estimate · evidence status
           </div>
           <p className="mt-2 max-w-4xl text-[14px] leading-relaxed text-ink-700">
-            This open brief combines graded national records with clearly marked reference
-            assumptions. Government engagement replaces assumptions with authorised data, named
-            custodians and a dated, approved evidence baseline before recommendations are relied
-            upon.
+            This open brief combines sourced national records with clearly marked reference
+            assumptions. During a government engagement, authorised data replaces assumptions. A
+            named official takes responsibility for each source, and the evidence is reviewed and
+            approved before recommendations are used for a formal decision.
           </p>
           <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[10px] uppercase tracking-[0.14em]">
-            <span className="text-signal-positive">{counts.record} record-backed</span>
-            <span className="text-signal-caution">{counts.reference} reference-based</span>
-            <span className="text-ink-700">{counts.adjusted} user-adjusted</span>
+            <span className="text-signal-positive">{counts.record} supported by records</span>
+            <span className="text-signal-caution">{counts.reference} reference assumptions</span>
+            <span className="text-ink-700">{counts.adjusted} adjusted by you</span>
           </div>
         </div>
         <button
@@ -97,7 +97,7 @@ export function EvidenceAssuranceStrip({
           onClick={onOpen}
           className="btn-secondary inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs"
         >
-          How this becomes decision-grade <ArrowRight className="h-3.5 w-3.5" />
+          How government verifies this <ArrowRight className="h-3.5 w-3.5" />
         </button>
       </div>
     </section>
@@ -123,14 +123,15 @@ export function EvidencePathwayModal({
       <DialogContent className="max-h-[90vh] w-[calc(100vw-24px)] max-w-3xl gap-0 overflow-y-auto rounded-none border-line-200 bg-paper-0 p-0 sm:rounded-none">
         <DialogHeader className="space-y-0 border-b border-line-200 px-5 py-5 text-left sm:px-7">
           <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-            Evidence assurance pathway
+            Government verification process
           </div>
           <DialogTitle className="mt-3 font-serif text-[26px] font-normal leading-tight text-ink-950 md:text-[32px]">
-            From public estimate to decision-grade brief
+            From public estimate to an approved government brief
           </DialogTitle>
           <DialogDescription className="mt-3 max-w-2xl text-[14.5px] leading-relaxed text-ink-700">
-            The public instrument is designed to frame the decision openly. Formal engagement turns
-            that starting point into a controlled government evidence product.
+            This public tool provides an open starting point. A formal engagement replaces uncertain
+            inputs, confirms responsibility for each source, and produces an approved government
+            brief.
           </DialogDescription>
         </DialogHeader>
 
@@ -164,29 +165,29 @@ export function EvidencePathwayModal({
 
           <section>
             <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-              Government assurance sequence
+              Government verification steps
             </div>
             <ol className="mt-4 divide-y divide-line-100 border-y border-line-100">
               {[
                 [
                   "01",
                   "Establish the baseline",
-                  "Reconcile current national statistics, approved records and reporting periods.",
+                  "Bring current national statistics and approved records into agreement for the same reporting periods.",
                 ],
                 [
                   "02",
                   "Replace assumptions",
-                  "Ingest the administrative datasets identified against each reference value.",
+                  "Replace each reference value with the authorised government records identified for it.",
                 ],
                 [
                   "03",
                   "Validate and assign accountability",
-                  "Record the source, period, custodian and authorised reviewer for every input.",
+                  "Record the source, period, responsible official, and authorised reviewer for every input.",
                 ],
                 [
                   "04",
                   "Issue the controlled brief",
-                  "Lock the evidence date, model version, approvals and audit trail for formal use.",
+                  "Fix the evidence date and model version, record the approvals, and preserve the full history for formal use.",
                 ],
               ].map(([n, title, body]) => (
                 <li key={n} className="grid gap-2 py-4 sm:grid-cols-[44px_190px_1fr] sm:gap-5">

@@ -59,27 +59,27 @@ const LOOP_STEPS = [
   {
     step: "01",
     head: "Understand",
-    body: "Bring the national evidence into one cited view. See what is known, what is stale, and which gaps could change the decision.",
+    body: "Bring the national evidence into one sourced view. See what is known, what is out of date, and which gaps could change the decision.",
   },
   {
     step: "02",
     head: "Rehearse",
-    body: "Test the choice against GDP, jobs, ministries, fiscal space, and public confidence before public money or political capital is committed.",
+    body: "Test the choice against GDP, jobs, ministries, the room in the budget, and public confidence before committing public money or political capital.",
   },
   {
     step: "03",
     head: "Decide",
-    body: "Put credible options side by side on the same assumptions. Record the Cabinet decision, its conditions, and its accountable owner.",
+    body: "Compare credible options using the same assumptions. Record what Cabinet decided, any conditions, and who is responsible.",
   },
   {
     step: "04",
     head: "Deliver",
-    body: "Carry the decision into a ministry-owned plan. Keep milestones, evidence, risks, and interventions visible between Cabinet sessions.",
+    body: "Turn the decision into a plan owned by the responsible ministry. Keep milestones, evidence, risks, and required action visible between Cabinet sessions.",
   },
   {
     step: "05",
     head: "Account",
-    body: "Judge delivery against the government’s mandate and approved measures. Every revision and result remains traceable to the decision that created it.",
+    body: "Measure delivery against the government’s mandate and approved targets. Keep every change and result linked to the decision that created it.",
   },
 ];
 
@@ -169,17 +169,17 @@ export function MarketingHome() {
         <div className="mx-auto grid max-w-[1280px] items-center gap-10 px-5 py-12 sm:px-6 sm:py-16 md:grid-cols-[1.15fr_1fr] md:gap-16 md:px-10 md:py-24">
           <div className="min-w-0">
             <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500">
-              GDPVision · A sovereign decision capability
+              GDPVision · A national decision system under government control
             </div>
             <div className="mt-6 h-px w-16 bg-gold-500" aria-hidden />
             <h1 className="mt-6 font-serif text-[42px] leading-[1.08] tracking-tight text-ink-950 sm:mt-8 sm:text-[56px] sm:leading-[1.05] md:text-[88px]">
               Rehearse the decisions that will shape your nation’s economy.
             </h1>
             <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-ink-700 sm:mt-6 md:text-[17px]">
-              GDPVision gives Presidents, Prime Ministers and Cabinets one trusted view of the
-              national evidence, a disciplined way to test choices before they are taken, and a
-              clear line from decision to delivery. Each country operates in its own sovereign
-              environment, under government control.
+              GDPVision gives Presidents, Prime Ministers and Cabinets one trusted picture of the
+              country’s evidence. Leaders can test a choice before committing to it, then follow the
+              decision through delivery. Each country operates in a separate, government-controlled
+              environment.
             </p>
 
             <div
@@ -296,11 +296,7 @@ export function MarketingHome() {
             className="animate-in fade-in duration-500 motion-reduce:animate-none"
           >
             <div className="flex items-center gap-2 sm:gap-4">
-              <MomentArrow
-                direction="prev"
-                onClick={goPrev}
-                className="shrink-0 self-center"
-              />
+              <MomentArrow direction="prev" onClick={goPrev} className="shrink-0 self-center" />
               <div className="grid min-w-0 flex-1 items-center gap-6 md:grid-cols-[320px_minmax(0,1fr)] md:gap-10 lg:grid-cols-[384px_minmax(0,1fr)] lg:gap-12">
                 <Illustration
                   key={moment.id}
@@ -317,11 +313,7 @@ export function MarketingHome() {
                   />
                 </div>
               </div>
-              <MomentArrow
-                direction="next"
-                onClick={goNext}
-                className="shrink-0 self-center"
-              />
+              <MomentArrow direction="next" onClick={goNext} className="shrink-0 self-center" />
             </div>
 
             <div className="mt-10 grid gap-10 border-t border-line-200 pt-10 sm:mt-16 sm:gap-12 sm:pt-12 md:grid-cols-3">
@@ -338,8 +330,9 @@ export function MarketingHome() {
             </div>
           </div>
           <p className="mt-12 max-w-2xl text-[15px] leading-relaxed text-ink-700">
-            The figures shown here carry a confidence grade and source. The same evidence discipline
-            follows material figures presented for a Cabinet decision.
+            Every figure carries a source and a confidence grade. Grade A means an official or
+            directly verified source; lower grades show where further checking is needed. GDPVision
+            applies the same standard to figures prepared for Cabinet.
           </p>
 
           <nav
@@ -362,7 +355,7 @@ export function MarketingHome() {
             <SectionHeader
               eyebrow="One trusted national record"
               title="What does Cabinet know—and how confidently can it act?"
-              lede="GDPVision brings public evidence and authorised government records into one decision view while keeping their permissions distinct. Every material claim retains its source, date, and confidence grade."
+              lede="GDPVision brings public evidence and authorised government records into one clear view. Restricted records remain protected. Every important claim keeps its source, date, and confidence grade."
             />
             <div className="flex justify-center md:justify-end">
               <Illustration src={illCorpus.url} variant="spot" className="md:hidden" />
@@ -373,15 +366,15 @@ export function MarketingHome() {
             {[
               {
                 head: "Public evidence",
-                body: "National, regional, and international sources are organised by ministry, dated, cited, and graded for confidence.",
+                body: "National, regional, and international sources are organised by ministry. Each is dated, cited, and graded for confidence.",
               },
               {
                 head: "Government evidence",
-                body: "Authorised contracts, memoranda, agreements, and briefings follow the same evidence discipline while remaining restricted to approved country users.",
+                body: "Authorised contracts, memoranda, agreements, and briefings follow the same checking standard. Only approved country users can see them.",
               },
               {
-                head: "One decision surface",
-                body: "Briefings and scenarios can draw on both records without confusing what is public with what is restricted. Access and changes remain traceable.",
+                head: "One clear view for a decision",
+                body: "Briefings and scenarios can use both records without confusing public evidence with restricted information. Every access and change can be reviewed.",
               },
             ].map((p) => (
               <div key={p.head} className="border-t border-line-200 pt-6">
@@ -402,7 +395,7 @@ export function MarketingHome() {
             <SectionHeader
               eyebrow="From question to accountable delivery"
               title="Understand. Rehearse. Decide. Deliver. Account."
-              lede="Most systems report what has already happened. GDPVision helps government carry a live decision from the evidence before Cabinet to the result for which a ministry is accountable."
+              lede="Most systems report what has already happened. GDPVision helps government move a live decision from the evidence placed before Cabinet to the result a ministry must deliver."
             />
             <Illustration
               src={illLoop.url}
@@ -432,20 +425,20 @@ export function MarketingHome() {
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-28">
           <SectionHeader
             eyebrow="The first engagement"
-            title="Begin with one consequential national decision. Leave with a capability."
-            lede="The engagement starts with the decision already demanding Cabinet attention. We prepare the evidence, rehearse the credible choices, identify what must be strengthened, and establish the operating discipline government can continue to use."
+            title="Begin with one major national decision. Leave with a lasting capability."
+            lede="The engagement starts with a decision already demanding Cabinet attention. We prepare the evidence, test credible choices, identify what must improve, and establish a method government can continue to use."
           />
           <div className="mt-10 grid gap-8 border-t border-line-200 pt-10 sm:mt-14 md:grid-cols-2 lg:grid-cols-4">
             {[
               {
                 step: "01",
                 head: "Review the evidence",
-                body: "A confidential assessment of the national record, its confidence, and the gaps that could alter the decision.",
+                body: "A confidential review of the national evidence, how reliable it is, and which gaps could alter the decision.",
               },
               {
                 step: "02",
                 head: "Rehearse the choice",
-                body: "A country-specific comparison of credible options, consequences, assumptions, and implementation constraints.",
+                body: "A country-specific comparison of credible options, likely consequences, assumptions, and practical limits on delivery.",
               },
               {
                 step: "03",
@@ -455,7 +448,7 @@ export function MarketingHome() {
               {
                 step: "04",
                 head: "Establish the capability",
-                body: "A sovereign working environment and decision method that remain available to authorised government teams.",
+                body: "A government-controlled working environment and decision method that remain available to authorised teams.",
               },
             ].map((item) => (
               <div key={item.step} className="border-t border-line-200 pt-6">
@@ -467,8 +460,8 @@ export function MarketingHome() {
             ))}
           </div>
           <p className="mt-10 max-w-3xl font-serif text-[21px] leading-snug text-ink-950">
-            This is not a report handed over at the end of an assignment. It is a decision discipline
-            installed around the government’s own evidence, officials, and authority.
+            This is not a report handed over at the end of an assignment. It is a practical way for
+            government to keep using its own evidence, officials, and authority to make decisions.
           </p>
         </div>
       </section>
@@ -477,9 +470,9 @@ export function MarketingHome() {
       <section id="instrument" className="border-b border-line-200 bg-paper-100/40">
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
           <SectionHeader
-            eyebrow="Ten decision chambers"
+            eyebrow="Ten working areas for government decisions"
             title="What must government know, decide, deliver, and defend?"
-            lede="Each chamber supports a distinct responsibility of government. Together they connect the national evidence, Cabinet choices, ministry delivery, public understanding, and accountability."
+            lede="Each Chamber is a dedicated working area for one government responsibility. Together, the ten Chambers connect national evidence, Cabinet choices, ministry delivery, public understanding, and accountability."
           />
           <div className="mt-10 grid gap-x-10 gap-y-10 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2">
             {FEATURED_CHAMBERS.map((c) => (
@@ -514,20 +507,23 @@ export function MarketingHome() {
           <div>
             <SectionHeader
               eyebrow="Counsel between engagements"
-              title="A cited answer when a principal needs one."
-              lede="The Counsel gives a President, Prime Minister, or authorised adviser a concise answer drawn from the national evidence. It is designed for the question asked between meetings—and preserves the source behind the answer."
+              title="A sourced answer when a national leader needs one."
+              lede="The Counsel gives a President, Prime Minister, or authorised adviser a concise answer drawn from the national evidence record. It is designed for questions asked between meetings and keeps the source behind every important claim."
             />
           </div>
           <div className="grid gap-6 border-t border-line-200 pt-8 md:mt-2">
             {[
-              { head: "Voice-first", body: "Ask aloud when reading a report or navigating a schedule. No dashboard required." },
+              {
+                head: "Voice-first",
+                body: "Ask aloud when reading a report or navigating a schedule. No dashboard required.",
+              },
               {
                 head: "Two to four sentences",
-                body: "A concise answer sized for an immediate executive judgement, not another report.",
+                body: "A concise answer for an immediate executive judgement, not another report.",
               },
               {
                 head: "Always cited",
-                body: "Material claims retain their source and confidence grade from the national record.",
+                body: "Important claims retain their source and confidence grade from the national evidence record.",
               },
             ].map((p) => (
               <div key={p.head} className="flex items-start gap-5">
@@ -551,31 +547,31 @@ export function MarketingHome() {
             <SectionHeader
               eyebrow="Sovereignty"
               title="National evidence remains under national control."
-              lede="Sovereignty, confidentiality, and accountable human authority are addressed in both the operating design and the government engagement."
+              lede="Government decides where its information stays, who may see it, and what may leave. Those rules are built into both the system and the engagement."
             />
             <Illustration src={illSovereignty.url} variant="spot" className="mt-12" />
           </div>
           <div className="grid gap-8 border-t border-line-200 pt-10">
             {[
               {
-                head: "Sovereign instance",
-                body: "Each country operates in a separate environment. Regional comparisons use approved public evidence rather than another government’s restricted records.",
+                head: "A separate system for each country",
+                body: "Each country operates in its own protected environment. Regional comparisons use approved public evidence, never another government’s restricted records.",
               },
               {
                 head: "Data ownership",
-                body: "Data rights, export, retention, deletion, and hosting location are agreed with the government as part of the engagement and reflected in the deployed environment.",
+                body: "Government agrees where its data is held, who may export it, how long it is kept, and when it must be deleted. Those terms are reflected in the deployed system.",
               },
               {
                 head: "Public and private, separated by design",
-                body: "Restricted government records are permissioned separately from public evidence. Access and material changes are logged for review.",
+                body: "Restricted government records are kept separate from public evidence. Every access and important change is recorded for review.",
               },
               {
-                head: "Access & audit",
-                body: "Role-based access, strong authentication, approval controls, and audit records support the government’s own governance requirements.",
+                head: "Controlled access and a full record",
+                body: "Officials see only what their role permits. Strong sign-in, approval controls, and permanent activity records support the government’s own rules.",
               },
               {
                 head: "Works with the government’s record",
-                body: "The first engagement strengthens existing evidence and workflows rather than requiring a wholesale systems replacement before value can be demonstrated.",
+                body: "The first engagement strengthens existing evidence and ways of working. Government does not need to replace every current system before value can be demonstrated.",
               },
             ].map((p) => (
               <div key={p.head} className="border-b border-line-200 pb-8 last:border-b-0">
@@ -599,9 +595,9 @@ export function MarketingHome() {
       <section id="provenance" className="border-b border-line-200 bg-paper-100/40">
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
           <SectionHeader
-            eyebrow="Provenance"
+            eyebrow="Experience and proof"
             title="Regional experience. Working capability. A clear standard of proof."
-            lede="OPEN Interactive brings experience in Caribbean investment, national digital infrastructure, and head-of-government engagements. GDPVision turns that experience into a working sovereign decision capability whose claims can be examined at source."
+            lede="OPEN Interactive brings experience in Caribbean investment, national digital infrastructure, and work with heads of government. GDPVision turns that experience into a working national decision system whose claims can be checked at source."
           />
           <Illustration src={illProvenance.url} variant="rule" className="mt-10" />
           <div className="mt-10 grid gap-8 sm:mt-16 md:grid-cols-2 lg:grid-cols-4">
@@ -609,7 +605,7 @@ export function MarketingHome() {
               {
                 year: "2009 →",
                 head: "Caribbean Investment Summit",
-                body: "The region's premier FDI deal-flow franchise, now the summit channel for the investment packages GDPVision produces.",
+                body: "A leading regional forum connecting investment opportunities with capital, now a route to market for packages prepared through GDPVision.",
               },
               {
                 year: "2018 →",
@@ -619,7 +615,7 @@ export function MarketingHome() {
               {
                 year: "2026",
                 head: "SEDE — the Saint Lucia prototype",
-                body: "A working sovereign decision environment combining economic modelling, cited counsel, national evidence, and controlled document intake.",
+                body: "A working government-controlled system combining economic modelling, sourced advice, national evidence, and secure document intake.",
               },
               {
                 year: "Today",
@@ -645,8 +641,9 @@ export function MarketingHome() {
               Read the business case →
             </Link>
             <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-ink-700">
-              A decision paper for Cabinet Secretaries, ministries of finance and procurement — the
-              stakes, the tier-one test, the options appraisal and the recommended path.
+              A decision paper for Cabinet Secretaries, ministries of finance, and procurement
+              teams: the stakes, the required standard, the available options, and the recommended
+              path.
             </p>
           </div>
         </div>
@@ -660,13 +657,13 @@ export function MarketingHome() {
               <SectionHeader
                 eyebrow="A confidential first conversation"
                 title="Your national decision briefing."
-                lede="Bring one priority decision. We will prepare a country-specific view of the evidence supporting it, the gaps that could change it, and the route to a decision-ready national capability."
+                lede="Bring one priority decision. We will prepare a country-specific view of the supporting evidence, the gaps that could change the answer, and a practical route forward."
               />
               <div className="mt-10 flex items-start justify-between gap-8">
                 <div className="space-y-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
                   <div>— Your priority decision, framed clearly</div>
                   <div>— The evidence and material gaps</div>
-                  <div>— A live rehearsal using national data</div>
+                  <div>— A live test using national data</div>
                   <div>— A practical next-step recommendation</div>
                 </div>
                 <Illustration
@@ -676,7 +673,7 @@ export function MarketingHome() {
                 />
               </div>
               <p className="mt-8 max-w-md text-[15px] leading-relaxed text-ink-700">
-                Prepared against your nation’s public record and the context you authorise. The
+                Prepared from your nation’s public evidence and the context you authorise. The
                 conversation is confidential, country-specific, and designed to produce a useful
                 next decision—not a generic product demonstration.
               </p>

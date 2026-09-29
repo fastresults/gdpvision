@@ -27,7 +27,7 @@ function useSignedIn() {
 }
 
 const SECTION_LINKS = [
-  { hash: "instrument", label: "The Instrument" },
+  { hash: "instrument", label: "How it works" },
   { hash: "sovereignty", label: "Sovereignty" },
 ] as const;
 
@@ -158,7 +158,7 @@ export function MarketingShell({ children }: MarketingShellProps) {
             <div>
               <Wordmark className="h-8" />
               <p className="mt-4 max-w-xl text-[13.5px] leading-relaxed text-ink-700">
-                A sovereign decision capability delivered by OPEN Interactive through a
+                A government-controlled decision system delivered by OPEN Interactive through a
                 confidential engagement with the authorised government of the day.
               </p>
             </div>

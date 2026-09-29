@@ -381,7 +381,7 @@ export function ValueCalculator({
       } catch {
         if (id === requestRef.current) {
           setCounselError(
-            "The counsel service is unavailable. The arithmetic below is unaffected.",
+            "The Counsel service is unavailable. The calculations below are unaffected.",
           );
         }
       } finally {
@@ -502,7 +502,7 @@ export function ValueCalculator({
   });
   const factLabel = (k: string) =>
     k === "arithmetic"
-      ? "the arithmetic"
+      ? "the calculation"
       : k === "assumption"
         ? "an assumption"
         : (facts?.facts.find((f) => f.key === k)?.label ?? k);
@@ -533,7 +533,7 @@ export function ValueCalculator({
     <ExplainProvider
       value={{
         ctx: explainCtx,
-        traceLabel: "Open the arithmetic",
+        traceLabel: "Show the calculations",
         onTrace: () => {
           setTraceOpen(true);
           setTimeout(
@@ -551,7 +551,7 @@ export function ValueCalculator({
             <StepHeading
               n="01"
               title="Your country."
-              lede="Choose a country and GDPVision answers with what it already holds: graded figures, each with its source, and the regional median beside it. Nothing you change here leaves your browser until you ask for the brief."
+              lede="Choose a country and GDPVision begins with the figures it already holds. Each shows its source, confidence grade, and the typical value for the region. Nothing you change here leaves your browser until you request the brief."
             />
 
             <label className="block">
@@ -601,7 +601,7 @@ export function ValueCalculator({
                 min={10}
                 max={55}
                 unit="% of GDP"
-                help="General government spending. This sets the size of every pool the instrument can act on."
+                help="General government spending. This sets the scale of the opportunities the model can assess."
                 onChange={(v) => set("publicSpendPct", v)}
               />
               <EvidenceStatus entry={evidenceFor("publicSpendPct")} onInspect={inspectEvidence} />
@@ -612,8 +612,8 @@ export function ValueCalculator({
           <section>
             <StepHeading
               n="02"
-              title="What we know, and what we assume."
-              lede="Six conditions set the size of the addressable loss. Where the record answers, the answer is proposed with its source and grade; where it is silent, the regional figure stands in and is marked as an assumption. Correct any of them."
+              title="What the evidence shows, and where assumptions remain."
+              lede="Six conditions shape the size of the opportunity. Where national evidence provides an answer, the figure appears with its source and confidence grade. Where it does not, a typical regional value is used and clearly marked as an assumption. You can correct any figure."
             />
             <div className="divide-y divide-line-100 border-y border-line-100">
               {FRAMING_QUESTIONS.map((q) => (
@@ -636,7 +636,7 @@ export function ValueCalculator({
             <StepHeading
               n="03"
               title="Where to start."
-              lede="Ten chambers, in the order the record suggests for the first year, with what each releases. Adjust the depth of any of them; the verdict follows."
+              lede="The ten Chambers are shown in the order the evidence suggests for the first year, with the estimated value each could release. Adjust the depth of any Chamber and the result updates."
             />
             <ol className="border-y border-line-100">
               {sequence.order.map((idx, i) => {
@@ -739,8 +739,8 @@ export function ValueCalculator({
           <section>
             <StepHeading
               n="04"
-              title="The picture."
-              lede="Four figures, drawn in the country's own colours from the same arithmetic as the verdict: where value is held up, how the chambers add to the capped total, what the remaining term holds, and how the same choices read across the region."
+              title="The national picture."
+              lede="Four views use the same calculations as the summary: where value is being lost, how the Chambers add to the stated maximum, what could be achieved during the remaining term, and how the same choices compare across the region."
             />
             <div className="space-y-10">
               <HeldUp input={input} facts={facts} palette={palette} n={1} />

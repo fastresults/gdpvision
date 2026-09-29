@@ -11,7 +11,7 @@ const SITE_URL = "https://gdpvision.com";
 const TITLE =
   "The Sovereign Vault — the data a nation must never share, working for it | GDPVision";
 const DESCRIPTION =
-  "Every GDPVision deployment arrives with a Vault: sovereign hardware installed in-country and held by the government. Private records stay inside it; public evidence comes to them; only findings a named official approves ever leave.";
+  "Every GDPVision deployment includes government-held hardware installed in-country. Private records stay inside it; public evidence comes to them; only findings approved by named officials may leave.";
 
 export const Route = createFileRoute("/vault")({
   head: () => ({
@@ -40,17 +40,17 @@ const RULES = [
   },
   {
     head: "Public evidence comes in",
-    body: "The national corpus, regional figures and published statistics flow into the Vault, so private and public data are read together where the private data lives.",
+    body: "The national evidence record, regional figures and published statistics flow into the Vault. Public and private information can then be analysed together where the private data already lives.",
   },
   {
     head: "Only approved findings go out",
-    body: "A result leaves as an aggregate, cleared against disclosure rules and signed off by the data custodian and a second approver, with its source marked. It then strengthens the country's figures in GDPVision.",
+    body: "Only a combined result—not a person’s or organisation’s private record—may leave. It must pass disclosure checks and be approved by the data custodian and a second official, with its source marked. It then strengthens the country’s figures in GDPVision.",
   },
 ];
 
 const SECURITY = [
   "Encrypted storage, with keys held by the government, not by OPEN Interactive.",
-  "No inbound connections: the Vault reaches out for work over an encrypted, mutually authenticated channel, and can run fully disconnected.",
+  "No outside system can connect into the Vault. It reaches out for authorised work through an encrypted channel that verifies both ends, and it can run fully disconnected.",
   "Every job, approval and export is logged, and the log cannot be edited.",
   "Two-person approval for anything that leaves, matching GDPVision's governance.",
   "Its AI models run on the premises. No private text is ever sent to an outside AI service.",
@@ -59,20 +59,20 @@ const SECURITY = [
 
 const SERVICE = [
   {
-    head: "Catalogue",
-    body: "Every dataset described — owner, classification, freshness — without its rows.",
+    head: "Data register",
+    body: "Every dataset is listed with its owner, security level, and last update—without exposing the records inside it.",
   },
   {
-    head: "Requests",
-    body: "An official asks a question; the Vault pulls it as a job and answers on the premises.",
+    head: "Analysis requests",
+    body: "An official asks a question. The Vault receives the approved request and answers it on government premises.",
   },
   {
-    head: "Release queue",
-    body: "What passed the disclosure check waits for two signatures before it leaves.",
+    head: "Approval queue",
+    body: "A result that passes the privacy check still waits for two approvals before it leaves.",
   },
   {
     head: "Released figures",
-    body: "Approved aggregates join the country record, marked as derived from private data.",
+    body: "Approved combined figures join the national evidence record, clearly marked as results derived from private data.",
   },
 ];
 
@@ -92,17 +92,17 @@ function VaultPage() {
           <div className="mt-8 grid gap-10 md:grid-cols-[1.15fr_1fr] md:items-center md:gap-14">
             <div className="min-w-0">
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-                Instrument · The Sovereign Vault
+                Government-controlled system · The Sovereign Vault
               </div>
               <div className="mt-4 h-px w-12 bg-ink-700" aria-hidden />
               <h1 className="mt-5 max-w-3xl font-serif text-[30px] leading-[1.08] tracking-tight text-ink-950 sm:text-[40px] sm:leading-[1.05] md:text-[50px]">
                 The data a nation must never share, working for the decisions it must take.
               </h1>
               <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-ink-700">
-                Every GDPVision deployment arrives with a Vault: sovereign hardware installed
-                in-country and held by the government. Tax, customs, treasury, registry, health,
-                crime and employment records stay inside it. Public evidence comes to them. Only
-                findings that a named official approves ever leave.
+                Every GDPVision deployment includes a Vault: secure hardware installed in-country
+                and held by the government. Tax, customs, treasury, registry, health, crime and
+                employment records stay inside it. Public evidence comes to them. Only findings that
+                a named official approves ever leave.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <a href="#vault-briefing" className="btn-primary px-5 py-2.5 text-xs">
@@ -123,7 +123,7 @@ function VaultPage() {
                 className="h-auto w-full border border-line-200"
               />
               <figcaption className="mt-3 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
-                The reference build · three units, installed on government premises
+                The standard configuration · three units, installed on government premises
               </figcaption>
             </figure>
           </div>
@@ -135,19 +135,19 @@ function VaultPage() {
         <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-14 sm:px-6 sm:py-20 md:grid-cols-[1fr_1.2fr] md:gap-16 md:px-10 md:py-24">
           <SectionHeader
             eyebrow="What arrives"
-            title="A compact cluster, held by the government, that answers on the premises."
+            title="A compact group of secure computers, held by the government, that answers on the premises."
           />
           <div className="space-y-5 border-t border-line-200 pt-8 text-[16px] leading-relaxed text-ink-700 md:border-t-0 md:pt-0">
             <p>
-              A compute and storage cluster, configured before it ships and installed on government
-              premises by the St. Kitts ground team or a named in-country partner. It holds the
-              private record: the figures too sensitive for any cloud and too valuable to leave in
-              spreadsheets.
+              The Vault combines computing and storage in one secure system. It is configured before
+              delivery and installed on government premises by the St. Kitts team or a named local
+              partner. It holds the private record: the figures too sensitive for any cloud and too
+              valuable to leave in spreadsheets.
             </p>
             <p>
               It runs its own AI models on the premises, so a question about private data is
               answered without the data going anywhere. Production sites add an encrypted storage
-              array, a firewall, backup power and an offline copy at a second government site.
+              system, a firewall, backup power, and an offline copy at a second government site.
             </p>
           </div>
         </div>
@@ -188,8 +188,8 @@ function VaultPage() {
             </p>
             <p>
               The Vault lets them be used within days rather than months, without being exposed. In
-              the Decision Brief, figures that were <em>assumptions</em> become <em>Grade A</em>,
-              and the verdict rests on the country's own record.
+              the Decision Brief, figures that began as <em>assumptions</em> can become{" "}
+              <em>Grade A evidence</em>, and the verdict rests on the country's own record.
             </p>
           </div>
         </div>
@@ -218,8 +218,8 @@ function VaultPage() {
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-24">
           <SectionHeader
             eyebrow="Managed from GDPVision"
-            title="The machine stays in the government's building. The service makes it usable by a small team."
-            lede="The Data Analysis Service inside GDPVision is where officials request an analysis, see its status, approve what leaves and read the result beside the public record. It sees descriptions, jobs and approved figures — never private rows."
+            title="The Vault stays in the government's building. A small authorised team can use it through GDPVision."
+            lede="Officials request an analysis, follow its progress, approve what may leave, and read the result beside the public evidence. GDPVision sees descriptions, requests, and approved findings—never the private records themselves."
           />
           <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {SERVICE.map((s) => (
@@ -247,7 +247,7 @@ function VaultPage() {
       <div className="mx-auto max-w-[1280px] px-5 py-8 sm:px-6 md:px-10">
         <p className="max-w-3xl font-mono text-[10px] uppercase leading-relaxed tracking-[0.14em] text-ink-500">
           The Vault reference build uses NVIDIA DGX Spark systems. Specifications vary by deployment
-          and are confirmed in each country's statement of work.
+          and are confirmed in each country’s agreed project specification.
         </p>
       </div>
       <FloatingBackToTop />

@@ -40,13 +40,13 @@ export type PoolKey =
   | "sector_drift";
 
 export const POOL_LABEL: Record<PoolKey, string> = {
-  latency: "Value held up by decision latency",
-  unmeasured: "Programme spend with no measured outcome",
+  latency: "Value lost to decision delays",
+  unmeasured: "Programme spending with no measured result",
   commitment: "Decisions taken but not followed through",
-  fdi: "Addressable inbound investment",
-  concentration: "Output exposed to a single sector",
-  service_friction: "Cost of public services still transacted on paper",
-  sector_drift: "Output in priority sectors with no owner or plan",
+  fdi: "Potential foreign investment",
+  concentration: "Economy reliant on one sector",
+  service_friction: "Cost of public services still handled on paper",
+  sector_drift: "Priority sectors with no owner or plan",
 };
 
 export interface CountryPreset {
@@ -176,7 +176,7 @@ export interface FramingQuestion {
 export const FRAMING_QUESTIONS: FramingQuestion[] = [
   {
     key: "decisionsPerQuarter",
-    question: "How many GDP-moving decisions does Cabinet take in a quarter?",
+    question: "How many major economic decisions does Cabinet take each quarter?",
     help: "Anything that commits capital, changes an incentive, or reallocates a programme.",
     min: 4,
     max: 120,
@@ -186,7 +186,7 @@ export const FRAMING_QUESTIONS: FramingQuestion[] = [
   {
     key: "latencyMonths",
     question: "From question asked to decision taken — how many months?",
-    help: "Count the time spent reconciling numbers, not the time spent deliberating.",
+    help: "Include time spent bringing conflicting figures into agreement, but not time spent considering the choice.",
     min: 1,
     max: 18,
     step: 1,
@@ -194,8 +194,8 @@ export const FRAMING_QUESTIONS: FramingQuestion[] = [
   },
   {
     key: "unmeasuredPct",
-    question: "What share of programme spend has no measured outcome attached?",
-    help: "Money that is disbursed and reported, but never scored against a stated result.",
+    question: "What share of programme spending has no measured result?",
+    help: "Money that is spent and reported but never measured against an agreed result.",
     min: 0,
     max: 80,
     step: 1,
@@ -247,9 +247,9 @@ export const CHAMBER_COEFFICIENTS: ChamberCoefficient[] = [
   {
     index: "01",
     short: "National Ledger",
-    mechanism: "Decision latency reduction across the Cabinet cadence",
+    mechanism: "Faster decisions across the Cabinet cycle",
     basis:
-      "One agreed set of numbers removes the reconciliation pass. Recovers a quarter of the value held up by latency at full institutionalisation.",
+      "One agreed set of numbers removes the need to reconcile conflicting figures. At full adoption, the model assigns it one quarter of the value lost to delays.",
     draws: [{ pool: "latency", share: 0.25 }],
   },
   {

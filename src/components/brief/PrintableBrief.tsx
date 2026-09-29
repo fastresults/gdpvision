@@ -130,25 +130,26 @@ export function PrintableBrief({
           title={`What a decision taken on time is worth — ${countryName}`}
         />
         <div className="mono" style={{ marginTop: "5mm" }}>
-          Modelled uplift, year three · {STANCE_LABEL[input.stance]} stance
+          Estimated economic gain, year three · {STANCE_LABEL[input.stance]} outlook
         </div>
         <div className="verdict">{formatUsd(result.upliftUsd)}</div>
         <p>
           {result.upliftPpOfGdp.toFixed(2)} percentage points of GDP ·{" "}
-          {result.returnMultiple.toFixed(1)}× the annual instrument cost of{" "}
+          {result.returnMultiple.toFixed(1)}× the annual GDPVision cost of{" "}
           {formatUsdExact(result.annualCostUsd)}
           {result.paybackMonths != null && result.paybackMonths < 120
             ? ` · payback in ${Math.round(result.paybackMonths)} months`
             : ""}
-          . Capped at 1.2% of GDP × stance. A decision-framing model, not a forecast.
+          . Capped at 1.2% of GDP, adjusted by the selected outlook. This model helps frame a
+          decision; it does not predict the future.
         </p>
         <div style={{ border: "0.6pt solid #999", padding: "3mm", marginTop: "4mm" }}>
-          <div className="mono">Evidence status · public indicative model</div>
+          <div className="mono">Evidence status · public estimate</div>
           <p style={{ margin: "1.5mm 0 0" }}>
-            {evidenceCounts.record} record-backed · {evidenceCounts.reference} reference-based ·{" "}
-            {evidenceCounts.adjusted} user-adjusted. Reference assumptions and user adjustments
-            require validation against authorised administrative data before this brief is relied
-            upon for a formal government decision.
+            {evidenceCounts.record} supported by national records · {evidenceCounts.reference}{" "}
+            reference assumptions · {evidenceCounts.adjusted} adjusted by the user. Reference
+            assumptions and user changes must be checked against authorised government records
+            before this brief is used for a formal government decision.
           </p>
         </div>
         <Waterfall input={input} result={result} order={order} palette={palette} n={1} />
@@ -167,7 +168,7 @@ export function PrintableBrief({
           country={countryName}
           today={today}
           accent={palette.band}
-          title="What we know, and what we assume"
+          title="What the evidence shows, and where assumptions remain"
         />
         <table>
           <thead>
@@ -251,7 +252,7 @@ export function PrintableBrief({
           country={countryName}
           today={today}
           accent={palette.band}
-          title="The arithmetic, and its sources"
+          title="The calculations and their sources"
         />
         <div className="grid2">
           <div>
@@ -278,7 +279,7 @@ export function PrintableBrief({
             </table>
           </div>
           <div>
-            <h2>Pools the model acts on</h2>
+            <h2>Areas of value assessed by the model</h2>
             <table>
               <tbody>
                 {(Object.keys(POOL_LABEL) as PoolKey[]).map((k) => (
@@ -293,7 +294,7 @@ export function PrintableBrief({
                 </tr>
                 <tr>
                   <td>
-                    <strong>Year-three uplift after the ceiling</strong>
+                    <strong>Year-three estimated gain after the limit</strong>
                   </td>
                   <td className="num">
                     <strong>{formatUsd(result.upliftUsd)}</strong>
@@ -303,9 +304,9 @@ export function PrintableBrief({
             </table>
             <p style={{ marginTop: "2mm" }}>
               Cost: US$300,000 a year plus US$95,000 per chamber stood up; year one carries a 40%
-              implementation uplift ({formatUsdExact(result.yearOneCostUsd)}). The national platform
-              the Digital Government Studio specifies is built and hosted separately. Adoption ramps
-              35 / 75 / 100 per cent over three years.
+              implementation cost ({formatUsdExact(result.yearOneCostUsd)}). The national platform
+              specified through the Digital Government Studio is built and hosted separately.
+              Adoption rises 35 / 75 / 100 per cent over three years.
             </p>
           </div>
         </div>
@@ -321,10 +322,11 @@ export function PrintableBrief({
 
         <h2>Sources</h2>
         <p>
-          Figures are read from the GDPVision record for {countryName} at the time of printing (
-          {facts?.generatedAt?.slice(0, 10) ?? "—"}): only graded public figures and counts of
-          approved, verified or published rows. Tables consulted: {sources.join(", ") || "none"}.
-          Figures marked “Assumption” are regional medians standing in where the record is silent.
+          Figures are read from GDPVision’s national evidence record for {countryName} at the time
+          of printing ({facts?.generatedAt?.slice(0, 10) ?? "—"}): only graded public figures and
+          counts of approved, verified or published rows. Tables consulted:{" "}
+          {sources.join(", ") || "none"}. Figures marked “Assumption” use a typical regional value
+          where national evidence is unavailable.
         </p>
         <h2>Evidence status and validation requirement</h2>
         <table>
@@ -356,9 +358,10 @@ export function PrintableBrief({
           </tbody>
         </table>
         <p>
-          Government engagement reconciles these inputs, records the source period and accountable
-          custodian, and locks the approved evidence baseline and model version. User adjustments
-          remain scenarios until that validation is complete.
+          During a government engagement, these inputs are brought into agreement. The reporting
+          period and responsible official are recorded, and the approved starting evidence and model
+          version are fixed for formal use. User adjustments remain scenarios until that checking is
+          complete.
         </p>
         <p className="mono" style={{ letterSpacing: 0, textTransform: "none", marginTop: "3mm" }}>
           Reopen this brief exactly as configured: {reopenUrl}

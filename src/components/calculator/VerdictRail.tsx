@@ -36,16 +36,16 @@ export function VerdictRail({
     <div className="border border-line-200 bg-paper-0">
       <div className="border-b border-line-200 px-5 py-5 sm:px-6">
         <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          Modelled uplift · year three
+          Estimated economic gain · year three
         </div>
         <div className="mt-3 font-serif text-[38px] leading-[1] tracking-tight text-ink-950 tabular-nums md:text-[46px]">
-          <Explain id="calc.uplift" label="Modelled uplift">
+          <Explain id="calc.uplift" label="Estimated economic gain">
             {formatUsd(result.upliftUsd)}
           </Explain>
         </div>
         <div className="mt-3 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-700">
           <Explain id="calc.pp" label="Uplift as a share of GDP">
-            {result.upliftPpOfGdp.toFixed(2)} pp of GDP
+            {result.upliftPpOfGdp.toFixed(2)} percentage points of GDP
           </Explain>
         </div>
         <button
@@ -54,11 +54,11 @@ export function VerdictRail({
           className="btn-ghost mt-4 w-full border-t border-line-100 px-0 pt-3 text-left"
         >
           <span className="block font-mono text-[9.5px] uppercase tracking-[0.16em] text-ink-500">
-            Public indicative model · review evidence
+            Public estimate · review the evidence
           </span>
           <span className="mt-1.5 block text-[12px] leading-relaxed text-ink-700">
-            {evidence.record} record-backed · {evidence.reference} reference-based ·{" "}
-            {evidence.adjusted} user-adjusted
+            {evidence.record} supported by national records · {evidence.reference} based on
+            reference assumptions · {evidence.adjusted} adjusted by you
           </span>
         </button>
       </div>
@@ -76,7 +76,7 @@ export function VerdictRail({
         </div>
         <div className="px-2 py-4">
           <dt className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink-500">
-            Payback
+            Cost recovered
           </dt>
           <dd className="mt-2 font-serif text-[20px] text-ink-950 tabular-nums">
             <Explain id="calc.payback" label="Payback period">
@@ -124,7 +124,7 @@ export function VerdictRail({
 
       <div className="border-b border-line-200 px-5 py-5 sm:px-6">
         <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          <Explain id="calc.waterfall" label="Attribution by chamber">
+          <Explain id="calc.waterfall" label="Estimated gain by Chamber">
             By chamber
           </Explain>
         </div>
@@ -135,8 +135,8 @@ export function VerdictRail({
 
       <div className="border-b border-line-200 px-5 py-5 sm:px-6">
         <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
-          <Explain id="calc.stance" label="Stance">
-            Stance
+          <Explain id="calc.stance" label="Planning outlook">
+            Planning outlook
           </Explain>
         </div>
         <div className="mt-3 flex border border-line-200">
@@ -157,12 +157,12 @@ export function VerdictRail({
           ))}
         </div>
         <p className="mt-4 text-[12px] leading-relaxed text-ink-500">
-          A decision-framing model, not a forecast. Every coefficient is stated, bounded, and capped
-          at{" "}
+          This model helps frame a decision; it does not predict the future. Every factor is stated,
+          limited, and capped at{" "}
           <Explain id="calc.ceiling" label="The ceiling">
             1.2 per cent of GDP
           </Explain>
-          . Open the arithmetic to inspect all of it.
+          . Show the calculations to inspect all of it.
         </p>
       </div>
 

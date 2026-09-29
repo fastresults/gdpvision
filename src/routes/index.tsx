@@ -5,8 +5,7 @@ import ogImage from "@/assets/gdpvision-og.jpg";
 const SITE_URL = "https://gdpvision.com";
 const TITLE = "GDPVision — rehearse the decisions that shape a nation";
 const DESCRIPTION =
-  "A sovereign decision capability for Presidents, Prime Ministers and Cabinets: bring national evidence together, rehearse choices before they are taken, and carry decisions into accountable delivery.";
-
+  "A government-controlled decision system for Presidents, Prime Ministers and Cabinets: bring national evidence together, test choices before committing, and follow decisions through delivery.";
 
 export const Route = createFileRoute("/")({
   head: () => {

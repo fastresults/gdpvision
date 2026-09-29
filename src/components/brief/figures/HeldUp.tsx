@@ -78,8 +78,8 @@ export function HeldUp({
   return (
     <Figure
       n={n}
-      title="Where value is held up"
-      caption={`Each pool is value the state already loses, as a share of GDP. The tick is the ${regionName} median where the region's figures are on record; pools with no regional record carry no tick. The uplift is a bounded fraction of these pools, not their sum.`}
+      title="Where value is lost or delayed"
+      caption={`Each bar shows value the state may already be losing, as a share of GDP. The tick is the typical ${regionName} value where regional data is available; bars without regional data have no tick. The estimated gain is limited to a portion of these values, not their total.`}
       legend={
         <>
           <Key colour={palette.accent} label={facts?.name ?? "This country"} />
@@ -91,7 +91,7 @@ export function HeldUp({
         viewBox={`0 0 ${W} ${H}`}
         className="h-auto w-full"
         role="img"
-        aria-label="Pools of held-up value as a share of GDP"
+        aria-label="Areas of lost or delayed value as a share of GDP"
       >
         <line x1={LABEL} y1={0} x2={LABEL} y2={H - 14} stroke={palette.rule} />
         {rows.map((r, i) => {

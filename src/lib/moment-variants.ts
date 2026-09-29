@@ -29,13 +29,12 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
     id: "cbi-cliff",
     illustration: ill_cbi_cliff.url,
     title: "A revenue cliff, without a decision-ready view of the ground it sits on.",
-    lede:
-      "Five Caribbean states operate CBI as a primary GDP and government-revenue driver. National statistics arrive in annual digests, IMF assessments are twelve to eighteen months stale, and no Cabinet in the region has a single, current view of its own economy.",
+    lede: "Five Caribbean states rely heavily on Citizenship by Investment (CBI) for national income and government revenue. Yet national statistics arrive in annual reports, and IMF assessments may describe conditions from twelve to eighteen months earlier. Cabinet lacks one current view of the economy.",
     stats: [
       {
         value: 50,
         unit: "%",
-        label: "CBI receipts as share of government revenue, upper band",
+        label: "Citizenship by Investment receipts as a share of government revenue, upper band",
         grade: "B",
         citation: "IMF Article IV consultations, 2022–2024. Range across the five OECS CBI states.",
       },
@@ -49,7 +48,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
       {
         value: 5,
         unit: "nations",
-        label: "OECS states operating a CBI programme today",
+        label: "OECS states operating a Citizenship by Investment programme today",
         grade: "A",
         citation: "St. Kitts & Nevis, Dominica, Antigua & Barbuda, Grenada, Saint Lucia.",
       },
@@ -59,8 +58,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
     id: "one-storm",
     illustration: ill_one_storm.url,
     title: "One storm can erase a generation of growth in a single night.",
-    lede:
-      "The Caribbean sits inside the world's most concentrated hurricane corridor, and each new season arrives with intensifying storms and retreating insurers. When a single event can wipe out multiple years of GDP, every fiscal plan without a live climate view is a plan written on sand.",
+    lede: "The Caribbean sits inside the world’s most concentrated hurricane corridor. Storms are intensifying while insurers retreat. When one event can erase several years of economic output, every national budget needs a current view of climate risk.",
     stats: [
       {
         value: 226,
@@ -89,8 +87,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
     id: "tourism-trap",
     illustration: ill_tourism_trap.url,
     title: "An economy that is really a single product, priced by someone else.",
-    lede:
-      "When tourism drives most of GDP, one recession, one airlift cut, or one pandemic-class event stops the inflows overnight. COVID demonstrated the region has no shock absorber, and no Cabinet dashboard capable of pricing the exposure before the next shock lands.",
+    lede: "When tourism drives most of GDP, one recession, one cut in air service, or one pandemic can stop income overnight. COVID showed how little protection the region has against such a shock. Cabinet needs to see and price that risk before the next one arrives.",
     stats: [
       {
         value: 80,
@@ -119,13 +116,12 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
     id: "cut-off",
     illustration: ill_cut_off.url,
     title: "Quietly severed from the financial system that moves the money.",
-    lede:
-      "Global banks are withdrawing correspondent relationships across the Caribbean, judging small markets not worth the compliance cost. Every lost relationship makes remittances slower, trade finance costlier, and settlement harder. A region cannot attract capital it cannot receive — and the exposure is invisible without a live view.",
+    lede: "Global banks are cutting the relationships that allow Caribbean banks to move money internationally, often because small markets do not justify the compliance cost. Every lost relationship slows remittances, raises the cost of trade finance, and makes payments harder. The region cannot attract capital it cannot receive.",
     stats: [
       {
         value: 30,
         unit: "% loss",
-        label: "Decline in correspondent banking relationships across the Caribbean since 2011",
+        label: "Decline in international banking relationships across the Caribbean since 2011",
         grade: "B",
         citation: "IMF / World Bank de-risking surveys, 2015–2022.",
       },
@@ -149,8 +145,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
     id: "debt-ceiling",
     illustration: ill_debt_ceiling.url,
     title: "Debt service crowding out the future the region is trying to build.",
-    lede:
-      "Caribbean debt-to-GDP ratios sit among the highest in the developing world, while middle-income status blocks concessional financing despite acute climate exposure. High debt starves the very infrastructure that attracts investment — a self-reinforcing trap that shrinks fiscal space precisely when transformation demands it.",
+    lede: "Caribbean debt levels are among the highest in the developing world. At the same time, middle-income status blocks access to some low-interest development loans despite severe climate risk. High debt leaves less room in the budget for the infrastructure that attracts investment.",
     stats: [
       {
         value: 90,
@@ -168,8 +163,8 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
       },
       {
         value: 0,
-        unit: "IDA access",
-        label: "OECS states eligible for concessional IDA financing today",
+        unit: "with IDA access",
+        label: "OECS states eligible for low-interest IDA development finance today",
         grade: "A",
         citation: "World Bank IDA eligibility list, FY2025.",
       },
@@ -179,8 +174,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
     id: "power-cost",
     illustration: ill_power_cost.url,
     title: "Priced out of competitive investment before negotiations begin.",
-    lede:
-      "Caribbean electricity costs run three to four times US rates, pricing out manufacturing, data infrastructure, and agro-processing before an incentive is even offered. Diesel dependence turns every oil spike into a balance-of-payments drain. Energy transition here is not climate policy — it is the price of admission.",
+    lede: "Caribbean electricity can cost three to four times the US rate. That can rule out manufacturing, data infrastructure, and food processing before an incentive is offered. Dependence on imported diesel also drains foreign currency whenever oil prices rise. Lower-cost energy is essential to compete.",
     stats: [
       {
         value: 40,
@@ -209,13 +203,12 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
     id: "regulated-out",
     illustration: ill_regulated_out.url,
     title: "Repriced from outside, with no seat at the table setting the rules.",
-    lede:
-      "EU blacklists, OECD tax rules, and the global minimum tax are dismantling the offshore financial services model that once diversified Caribbean inflows, while FATF grey-listing looms as a constant threat. External actors keep repricing the region's access to the global economy — unilaterally, and on their timetable.",
+    lede: "International tax and financial-crime rules are changing the terms on which Caribbean countries access the global economy. EU lists, OECD tax rules, the global minimum tax, and the risk of FATF increased monitoring are set elsewhere and applied on external timetables.",
     stats: [
       {
         value: 15,
         unit: "% minimum",
-        label: "OECD Pillar Two global minimum corporate tax rate now in force",
+        label: "OECD global minimum corporate tax rate now in force",
         grade: "A",
         citation: "OECD/G20 Inclusive Framework, 2024 implementation.",
       },
@@ -239,8 +232,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
     id: "talent-drain",
     illustration: ill_talent_drain.url,
     title: "Exporting the people who would build the future the region needs.",
-    lede:
-      "Nurses, teachers, and engineers leave faster than economies can replace them, hollowing out the skilled labor base investors require. Remittances flow back — stable but stagnant, and vulnerable to diaspora aging and shifting immigration policy abroad. A nation cannot build what it keeps sending away.",
+    lede: "Nurses, teachers, and engineers leave faster than economies can replace them, hollowing out the skilled labor base investors require. Remittances flow back — stable but stagnant, and vulnerable to diaspora aging and shifting immigration policy abroad. A nation cannot build what it keeps sending away.",
     stats: [
       {
         value: 70,

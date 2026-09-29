@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Add country-specific, explainable Chamber value estimates to all ten homepage cards, linked to an exact Decision Brief configuration
+- [x] Add country-specific, explainable Chamber value estimates to all ten homepage cards, linked to an exact Decision Brief configuration
 
 - [x] Make every public editorial headline direct, aligned, and guided while preserving claims and page structure
 

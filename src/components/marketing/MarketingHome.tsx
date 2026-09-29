@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { MarketingShell } from "./MarketingShell";
 
 /**
@@ -82,6 +83,29 @@ const LOOP_STEPS = [
   },
 ];
 
+/** Large, unmistakable prev/next arrow for the regional-exposures slider. */
+function MomentArrow({
+  direction,
+  onClick,
+  className,
+}: {
+  direction: "prev" | "next";
+  onClick: () => void;
+  className?: string;
+}) {
+  const Icon = direction === "prev" ? ArrowLeft : ArrowRight;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={direction === "prev" ? "Previous exposure" : "Next exposure"}
+      className={`btn-primary h-11 w-11 shrink-0 !rounded-full !p-0 sm:h-14 sm:w-14 ${className ?? ""}`}
+    >
+      <Icon strokeWidth={1.75} className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden />
+    </button>
+  );
+}
+
 function shuffleTail() {
   const tail = EXISTENTIAL_THREATS.slice(1);
   for (let i = tail.length - 1; i > 0; i--) {
@@ -99,14 +123,6 @@ export function MarketingHome() {
   const [momentIndex, setMomentIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [stopped, setStopped] = useState(false);
-  const [momentStopped, setMomentStopped] = useState(false);
-  useEffect(() => {
-    if (momentStopped) return;
-    const id = setInterval(() => {
-      setMomentIndex((i) => (i + 1) % MOMENT_VARIANTS.length);
-    }, 4000);
-    return () => clearInterval(id);
-  }, [momentStopped]);
   useEffect(() => {
     setTail(shuffleTail());
     setMomentIndex(1 + Math.floor(Math.random() * (MOMENT_VARIANTS.length - 1)));
@@ -128,11 +144,9 @@ export function MarketingHome() {
   const total = MOMENT_VARIANTS.length;
   const threatTotal = EXISTENTIAL_THREATS.length;
   const goPrev = () => {
-    setMomentStopped(true);
     setMomentIndex((i) => (i - 1 + total) % total);
   };
   const goNext = () => {
-    setMomentStopped(true);
     setMomentIndex((i) => (i + 1) % total);
   };
   const goPrevThreat = () => {
@@ -281,21 +295,33 @@ export function MarketingHome() {
             key={moment.id}
             className="animate-in fade-in duration-500 motion-reduce:animate-none"
           >
-            <div className="grid items-center gap-6 md:grid-cols-[320px_minmax(0,1fr)] md:gap-12 lg:grid-cols-[384px_minmax(0,1fr)]">
-              <Illustration
-                key={moment.id}
-                src={moment.illustration ?? illMoment.url}
-                alt={moment.title}
-                variant="spot"
-                className="mx-auto shrink-0 !w-[232px] md:mx-0 md:!w-[320px] lg:!w-[384px]"
+            <div className="flex items-center gap-2 sm:gap-4">
+              <MomentArrow
+                direction="prev"
+                onClick={goPrev}
+                className="shrink-0 self-center"
               />
-              <div className="min-w-0">
-                <SectionHeader
-                  eyebrow="The moment · Eight regional exposures, graded and cited"
-                  title={moment.title}
-                  lede={moment.lede}
+              <div className="grid min-w-0 flex-1 items-center gap-6 md:grid-cols-[320px_minmax(0,1fr)] md:gap-10 lg:grid-cols-[384px_minmax(0,1fr)] lg:gap-12">
+                <Illustration
+                  key={moment.id}
+                  src={moment.illustration ?? illMoment.url}
+                  alt={moment.title}
+                  variant="spot"
+                  className="mx-auto shrink-0 !w-[200px] sm:!w-[232px] md:mx-0 md:!w-[320px] lg:!w-[384px]"
                 />
+                <div className="min-w-0">
+                  <SectionHeader
+                    eyebrow="The moment · Eight regional exposures, graded and cited"
+                    title={moment.title}
+                    lede={moment.lede}
+                  />
+                </div>
               </div>
+              <MomentArrow
+                direction="next"
+                onClick={goNext}
+                className="shrink-0 self-center"
+              />
             </div>
 
             <div className="mt-10 grid gap-10 border-t border-line-200 pt-10 sm:mt-16 sm:gap-12 sm:pt-12 md:grid-cols-3">
@@ -317,60 +343,14 @@ export function MarketingHome() {
           </p>
 
           <nav
-            aria-label="Cycle through economic impact scenarios"
+            aria-label="Position in the regional exposures"
             className="mt-10 flex items-center justify-end gap-5 border-t border-line-200 pt-4 sm:mt-16 sm:gap-6 sm:pt-6"
           >
-            <button
-              type="button"
-              onClick={goPrev}
-              aria-label="Previous scenario"
-              className="group -mx-2 flex min-h-[44px] items-center gap-3 px-2 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
-            >
-              <svg
-                width="44"
-                height="10"
-                viewBox="0 0 44 10"
-                fill="none"
-                aria-hidden
-                className="w-[28px] shrink-0 transition-transform duration-300 group-hover:-translate-x-1 sm:w-[44px]"
-              >
-                <path
-                  d="M43 5H1M1 5L5 1M1 5L5 9"
-                  stroke="currentColor"
-                  strokeWidth="1"
-                  strokeLinecap="square"
-                />
-              </svg>
-              <span>Prev</span>
-            </button>
             <span className="font-mono text-[11px] tabular-nums tracking-[0.22em] text-ink-950">
               {String(momentIndex + 1).padStart(2, "0")}
               <span className="mx-2 text-ink-300">/</span>
               {String(total).padStart(2, "0")}
             </span>
-            <button
-              type="button"
-              onClick={goNext}
-              aria-label="Next scenario"
-              className="group -mx-2 flex min-h-[44px] items-center gap-3 px-2 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
-            >
-              <span>Next</span>
-              <svg
-                width="44"
-                height="10"
-                viewBox="0 0 44 10"
-                fill="none"
-                aria-hidden
-                className="w-[28px] shrink-0 transition-transform duration-300 group-hover:translate-x-1 sm:w-[44px]"
-              >
-                <path
-                  d="M1 5H43M43 5L39 1M43 5L39 9"
-                  stroke="currentColor"
-                  strokeWidth="1"
-                  strokeLinecap="square"
-                />
-              </svg>
-            </button>
           </nav>
         </div>
       </section>

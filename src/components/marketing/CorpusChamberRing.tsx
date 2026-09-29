@@ -106,7 +106,7 @@ export function CorpusChamberRing() {
                     <path d={piecePath(i)} fill="var(--color-paper-0)" stroke="var(--color-ink-700)" strokeWidth="0.9" />
                     <path d={piecePath(i)} fill="url(#ccr-hatch)" />
                     <path className="ccr-glow" style={{ ["--i" as string]: i }} d={piecePath(i)} fill="none" stroke="var(--color-gold-500)" strokeWidth="1.4" />
-                    <text x={tx} y={ty} textAnchor="middle" dominantBaseline="central" transform={`rotate(${mid} ${tx} ${ty})`} className="font-mono" fontSize="10" fill="var(--color-ink-950)" style={{ letterSpacing: "0.08em" }}>
+                    <text x={tx} y={ty} textAnchor="middle" dominantBaseline="central" transform={`rotate(${mid > 90 && mid < 270 ? mid + 180 : mid} ${tx} ${ty})`} className="font-mono" fontSize="10" fill="var(--color-ink-950)" style={{ letterSpacing: "0.08em" }}>
                       {c.index}
                     </text>
                   </g>

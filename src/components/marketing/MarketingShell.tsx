@@ -31,6 +31,25 @@ const SECTION_LINKS = [
   { hash: "sovereignty", label: "Sovereignty" },
 ] as const;
 
+// Desktop nav labels are capped at two wrapped rows: maxCh is the widest a
+// row may run (in ch) so the label breaks at the intended word boundary.
+const NAV_LINKS: Array<{
+  to: string;
+  hash?: string;
+  label: string;
+  maxCh: number;
+  accent?: boolean;
+}> = [
+  { to: "/", hash: "instrument", label: "How it works", maxCh: 8 },
+  { to: "/", hash: "sovereignty", label: "Sovereignty", maxCh: 13.5 },
+  { to: "/vault", label: "The Vault", maxCh: 7 },
+  { to: "/record", label: "The National Record", maxCh: 16 },
+  { to: "/business-case", label: "The business case", maxCh: 16 },
+  { to: "/business-case/brief", label: "The Decision Brief", maxCh: 16 },
+  { to: "/op-eds", label: "The writing", maxCh: 10 },
+  { to: "/", hash: "briefing", label: "Request a Cabinet briefing", maxCh: 21, accent: true },
+];
+
 export function MarketingShell({ children }: MarketingShellProps) {
   const signedIn = useSignedIn();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -55,39 +74,22 @@ export function MarketingShell({ children }: MarketingShellProps) {
           </Link>
 
           <nav className="hidden min-w-0 flex-1 items-center justify-between gap-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500 md:flex">
-            {SECTION_LINKS.map((s) => (
+            {NAV_LINKS.map((link) => (
               <Link
-                key={s.hash}
-                to="/"
-                hash={s.hash}
-                className="min-w-0 py-1 hover:text-ink-950"
+                key={link.label}
+                to={link.to}
+                hash={link.hash}
+                className={
+                  link.accent
+                    ? "min-w-0 border-l-2 border-gold-500 py-1 pl-3 text-ink-950 hover:text-ink-950"
+                    : "min-w-0 py-1 hover:text-ink-950"
+                }
               >
-                {s.label}
+                <span className="block" style={{ maxWidth: `${link.maxCh}ch` }}>
+                  {link.label}
+                </span>
               </Link>
             ))}
-            <Link to="/vault" className="min-w-0 py-1 hover:text-ink-950">
-              The Vault
-            </Link>
-            <Link to="/record" className="min-w-0 py-1 hover:text-ink-950">
-              The National Record
-            </Link>
-            <Link to="/business-case" className="min-w-0 py-1 hover:text-ink-950">
-              The business case
-            </Link>
-            <Link to="/business-case/brief" className="min-w-0 py-1 hover:text-ink-950">
-              The Decision Brief
-            </Link>
-
-            <Link to="/op-eds" className="min-w-0 py-1 hover:text-ink-950">
-              The writing
-            </Link>
-            <Link
-              to="/"
-              hash="briefing"
-              className="min-w-0 border-l-2 border-gold-500 py-1 pl-3 text-ink-950 hover:text-ink-950"
-            >
-              Request a Cabinet briefing
-            </Link>
             <AuthEntry signedIn={signedIn} />
           </nav>
 
@@ -224,9 +226,11 @@ function AuthEntry({ signedIn, onNavigate }: { signedIn: boolean; onNavigate?: (
       to="/auth"
       search={{ mode: "sign-in" }}
       onClick={onNavigate}
-      className="hover:text-ink-950"
+      className="min-w-0 py-1 hover:text-ink-950"
     >
-      Sign in
+      <span className="block" style={{ maxWidth: "6ch" }}>
+        Sign in
+      </span>
     </Link>
   );
 }

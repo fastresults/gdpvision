@@ -58,24 +58,24 @@ export function IndexBand() {
               GDPVision tracks them and shows which decisions move them.
             </h2>
           </div>
-          <div className="hidden items-center gap-2 md:flex">
+          <div className="flex items-center gap-3">
             <button
               type="button"
-              className="btn-ghost h-10 w-10 p-0"
+              className="btn-primary h-12 w-12 rounded-full p-0 hover-scale"
               onClick={() => page(-1)}
               disabled={edge.start}
               aria-label="Previous measures"
             >
-              <ChevronLeft className="mx-auto h-4 w-4" />
+              <ChevronLeft className="mx-auto h-6 w-6" strokeWidth={2.5} />
             </button>
             <button
               type="button"
-              className="btn-ghost h-10 w-10 p-0"
+              className="btn-primary h-12 w-12 rounded-full p-0 hover-scale"
               onClick={() => page(1)}
               disabled={edge.end}
               aria-label="Next measures"
             >
-              <ChevronRight className="mx-auto h-4 w-4" />
+              <ChevronRight className="mx-auto h-6 w-6" strokeWidth={2.5} />
             </button>
           </div>
         </div>

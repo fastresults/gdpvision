@@ -29,6 +29,7 @@ function useHashScroll() {
 import { EXISTENTIAL_THREATS } from "@/lib/existential-threats";
 import { MOMENT_VARIANTS } from "@/lib/moment-variants";
 import { SignatureRing } from "./SignatureRing";
+import { DataDecisionFlowDialog } from "./DataDecisionFlowDialog";
 import { NumberTile } from "./NumberTile";
 import { ChamberPanel } from "./ChamberPanel";
 import { IndexBand } from "./IndexBand";
@@ -333,8 +334,11 @@ export function MarketingHome() {
               </a>
             </div>
           </div>
-          <div className="relative flex items-center justify-center">
+          <div className="relative flex flex-col items-center justify-center">
             <SignatureRing size={480} />
+            <div className="-mt-24 flex justify-center">
+              <DataDecisionFlowDialog />
+            </div>
           </div>
         </div>
       </section>

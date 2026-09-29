@@ -67,10 +67,10 @@ export function CorpusChamberRing() {
   return (
     <figure
       ref={ref}
-      className={`ccr relative w-[360px] select-none ${on ? "ccr-on" : ""}`}
+      className={`ccr relative w-[460px] select-none ${on ? "ccr-on" : ""}`}
       aria-label="The Corpus at the centre, with the ten GDPVision Chambers assembled around it as interlocking pieces, elevating GDP."
     >
-      <svg viewBox="0 0 320 320" className="block h-auto w-full overflow-visible">
+      <svg viewBox="-120 -6 560 332" className="block h-auto w-full overflow-visible">
         <defs>
           <pattern id="ccr-hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="4" stroke="var(--color-ink-700)" strokeWidth="0.5" opacity="0.35" />
@@ -115,6 +115,30 @@ export function CorpusChamberRing() {
 
         {/* Rising GDP line */}
         <path className="ccr-rise" d={`M ${C} ${C - 30} C ${C + 6} 70, ${C - 4} 30, ${C + 10} 4`} fill="none" stroke="var(--color-gold-500)" strokeWidth="1.2" pathLength={1} />
+
+        {/* Chamber names (static, outside the ring) */}
+        {CHAMBERS.map((c, i) => {
+          const mid = i * STEP + STEP / 2;
+          const [x, y] = pt(R_OUT + 12, mid);
+          const anchor = mid < 170 ? "start" : mid > 190 ? "end" : "middle";
+          const dim = active !== null && active !== i;
+          return (
+            <text
+              key={`n-${c.index}`}
+              className="ccr-name font-mono"
+              x={x}
+              y={y}
+              textAnchor={anchor}
+              dominantBaseline="central"
+              fontSize="9"
+              fill={active === i ? "var(--color-ink-950)" : "var(--color-ink-700)"}
+              style={{ ["--i" as string]: i, letterSpacing: "0.06em", opacity: dim ? 0.35 : undefined, fontWeight: active === i ? 600 : 400 }}
+              aria-hidden
+            >
+              {c.title.replace(/^The /, "")}
+            </text>
+          );
+        })}
 
         {/* Corpus core */}
         <g

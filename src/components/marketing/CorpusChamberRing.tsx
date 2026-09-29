@@ -77,9 +77,6 @@ export function CorpusChamberRing() {
           </pattern>
         </defs>
 
-        {/* Rising GDP line */}
-        <path className="ccr-rise" d={`M ${C} ${C - 30} C ${C + 6} 70, ${C - 4} 30, ${C + 10} 4`} fill="none" stroke="var(--color-gold-500)" strokeWidth="1.2" pathLength={1} />
-
         {/* Ring of ten Chambers */}
         <g className="ccr-spin" style={{ transformOrigin: `${C}px ${C}px` }}>
           {CHAMBERS.map((c, i) => {
@@ -115,6 +112,9 @@ export function CorpusChamberRing() {
             );
           })}
         </g>
+
+        {/* Rising GDP line */}
+        <path className="ccr-rise" d={`M ${C} ${C - 30} C ${C + 6} 70, ${C - 4} 30, ${C + 10} 4`} fill="none" stroke="var(--color-gold-500)" strokeWidth="1.2" pathLength={1} />
 
         {/* Corpus core */}
         <g

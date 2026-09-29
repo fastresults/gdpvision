@@ -21,6 +21,7 @@ export function DecisionDividendEngine() {
   const ref = useRef<HTMLElement>(null);
   const [started, setStarted] = useState(false);
   const [active, setActive] = useState<Stage | null>(null);
+  const [cycle, setCycle] = useState(0);
 
   useEffect(() => {
     const node = ref.current;
@@ -36,6 +37,12 @@ export function DecisionDividendEngine() {
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (!started || active || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setTimeout(() => setCycle((current) => current + 1), 8_000);
+    return () => window.clearTimeout(timer);
+  }, [started, active, cycle]);
 
   const stageProps = (stage: Stage) => ({
     tabIndex: 0,
@@ -61,7 +68,7 @@ export function DecisionDividendEngine() {
       className={`dde w-[330px] max-w-full select-none ${started ? "dde-on" : ""} ${active ? "dde-paused" : ""}`}
       aria-label="The Decision Dividend Engine shows evidence becoming a faster governed decision and a qualified estimate of national value."
     >
-      <svg viewBox="0 0 360 276" className="block h-auto w-full overflow-visible">
+      <svg key={cycle} viewBox="0 0 360 276" className="block h-auto w-full overflow-visible">
         <title>Evidence becomes a faster governed decision and a qualified estimate of national value</title>
         <defs>
           <pattern id="dde-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">

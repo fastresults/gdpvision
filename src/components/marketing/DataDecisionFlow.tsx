@@ -216,7 +216,7 @@ export function DataDecisionFlow() {
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="mb-3 flex flex-wrap items-center gap-3">
           <div className="-mx-1 flex max-w-full gap-1 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Chambers">
-            {["all", ...Object.keys(CHAMBER_NAMES)].map((c) => (
+            {["all", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10"].map((c) => (
               <button
                 key={c}
                 type="button"
@@ -249,9 +249,9 @@ export function DataDecisionFlow() {
                 type="button"
                 aria-pressed={i === scn && running}
                 onClick={() => jump(i)}
-                className={cn("card-choice px-3 py-2 text-left text-[13px] text-ink-950", i === scn && running && "card-choice-active")}
+                className={cn("card-choice px-3 py-2 text-left text-[13px]", i === scn && running ? "card-choice-active" : "text-ink-950")}
               >
-                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">Scenario {i + 1} · {sc.title}</span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] opacity-70">Scenario {i + 1} · {sc.title}</span>
                 <span className="mt-0.5 block">{sc.question}</span>
               </button>
             ))}

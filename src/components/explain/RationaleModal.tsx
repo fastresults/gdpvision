@@ -31,6 +31,7 @@ export function RationaleModal({
   onOpenChange,
   onTrace,
   traceLabel = "See the full arithmetic",
+  action,
 }: {
   rationale: Rationale<never>;
   ctx: unknown;
@@ -38,6 +39,7 @@ export function RationaleModal({
   onOpenChange: (v: boolean) => void;
   onTrace?: () => void;
   traceLabel?: string;
+  action?: React.ReactNode;
 }) {
   const [showRaw, setShowRaw] = useState(false);
 
@@ -113,6 +115,7 @@ export function RationaleModal({
           ) : null}
 
           <div className="flex flex-wrap items-center gap-3 border-t border-line-200 pt-6">
+            {action}
             {onTrace ? (
               <button
                 type="button"

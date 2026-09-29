@@ -44,7 +44,8 @@ export function MarketingShell({ children }: MarketingShellProps) {
         Skip to content
       </a>
       <header className="sticky top-0 z-40 border-b border-line-200 bg-paper-0/95 backdrop-blur supports-[backdrop-filter]:bg-paper-0/80">
-        <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-6 px-6 py-2 md:px-10 md:py-3">
+        {/* Full-width nav row: 16px buffer from the viewport edges, links spread across the span. */}
+        <div className="flex items-center justify-between gap-6 px-4 py-2 md:py-3">
           <Link
             to={signedIn ? "/home" : "/"}
             onClick={() => scrollToTop()}
@@ -53,32 +54,37 @@ export function MarketingShell({ children }: MarketingShellProps) {
             <Wordmark className="h-[2.17rem] md:h-[2.89rem]" />
           </Link>
 
-          <nav className="hidden items-center gap-6 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500 md:flex md:gap-8">
+          <nav className="hidden min-w-0 flex-1 items-center justify-between gap-3 font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500 md:flex">
             {SECTION_LINKS.map((s) => (
-              <Link key={s.hash} to="/" hash={s.hash} className="hover:text-ink-950">
+              <Link
+                key={s.hash}
+                to="/"
+                hash={s.hash}
+                className="min-w-0 py-1 hover:text-ink-950"
+              >
                 {s.label}
               </Link>
             ))}
-            <Link to="/vault" className="hover:text-ink-950">
+            <Link to="/vault" className="min-w-0 py-1 hover:text-ink-950">
               The Vault
             </Link>
-            <Link to="/record" className="hover:text-ink-950">
+            <Link to="/record" className="min-w-0 py-1 hover:text-ink-950">
               The National Record
             </Link>
-            <Link to="/business-case" className="hover:text-ink-950">
+            <Link to="/business-case" className="min-w-0 py-1 hover:text-ink-950">
               The business case
             </Link>
-            <Link to="/business-case/brief" className="hover:text-ink-950">
+            <Link to="/business-case/brief" className="min-w-0 py-1 hover:text-ink-950">
               The Decision Brief
             </Link>
 
-            <Link to="/op-eds" className="hover:text-ink-950">
+            <Link to="/op-eds" className="min-w-0 py-1 hover:text-ink-950">
               The writing
             </Link>
             <Link
               to="/"
               hash="briefing"
-              className="hover:text-ink-950 text-ink-950 border-l-2 border-gold-500 pl-3"
+              className="min-w-0 border-l-2 border-gold-500 py-1 pl-3 text-ink-950 hover:text-ink-950"
             >
               Request a Cabinet briefing
             </Link>

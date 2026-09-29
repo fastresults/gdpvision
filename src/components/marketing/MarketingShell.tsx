@@ -77,7 +77,7 @@ export function MarketingShell({ children }: MarketingShellProps) {
               hash="briefing"
               className="hover:text-ink-950 text-ink-950 border-l-2 border-gold-500 pl-3"
             >
-              Request national briefing
+              Request a Cabinet briefing
             </Link>
             <AuthEntry signedIn={signedIn} />
           </nav>
@@ -142,7 +142,7 @@ export function MarketingShell({ children }: MarketingShellProps) {
                 onClick={() => setMenuOpen(false)}
                 className="border-b border-line-100 py-3 text-ink-950 hover:text-ink-950"
               >
-                Request national briefing
+                Request a Cabinet briefing
               </Link>
               <div className="py-3">
                 <AuthEntry signedIn={signedIn} onNavigate={() => setMenuOpen(false)} />

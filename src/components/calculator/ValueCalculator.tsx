@@ -550,7 +550,7 @@ export function ValueCalculator({
           <section>
             <StepHeading
               n="01"
-              title="Your country."
+              title="Choose the country to assess."
               lede="Choose a country and GDPVision begins with the figures it already holds. Each shows its source, confidence grade, and the typical value for the region. Nothing you change here leaves your browser until you request the brief."
             />
 
@@ -612,7 +612,7 @@ export function ValueCalculator({
           <section>
             <StepHeading
               n="02"
-              title="What the evidence shows, and where assumptions remain."
+              title="Review the evidence and replace assumptions."
               lede="Six conditions shape the size of the opportunity. Where national evidence provides an answer, the figure appears with its source and confidence grade. Where it does not, a typical regional value is used and clearly marked as an assumption. You can correct any figure."
             />
             <div className="divide-y divide-line-100 border-y border-line-100">
@@ -635,7 +635,7 @@ export function ValueCalculator({
           <section>
             <StepHeading
               n="03"
-              title="Where to start."
+              title="Set the first-year priorities."
               lede="The ten Chambers are shown in the order the evidence suggests for the first year, with the estimated value each could release. Adjust the depth of any Chamber and the result updates."
             />
             <ol className="border-y border-line-100">
@@ -739,7 +739,7 @@ export function ValueCalculator({
           <section>
             <StepHeading
               n="04"
-              title="The national picture."
+              title="Compare the estimated national result."
               lede="Four views use the same calculations as the summary: where value is being lost, how the Chambers add to the stated maximum, what could be achieved during the remaining term, and how the same choices compare across the region."
             />
             <div className="space-y-10">

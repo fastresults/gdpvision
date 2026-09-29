@@ -7,7 +7,7 @@
 
 export const BUSINESS_CASE_META = {
   eyebrow: "A decision paper",
-  title: "The business case for GDPVision",
+  title: "Decide whether GDPVision belongs in government.",
   standfirst:
     "Why national economic decisions need a governed, government-controlled system—prepared for heads of government, Cabinet Secretaries, ministries of finance, and officials responsible for deciding whether GDPVision should be procured.",
   author: "Adam Anderson",
@@ -260,7 +260,7 @@ export const OPTIONS_CLOSE =
   "For a government carrying debt at ninety per cent of GDP, the distinction between recurring expenditure that leaves a residue and recurring expenditure that does not is not philosophical. It is how the estimates are argued.";
 
 export const INSTRUMENT_INTRO =
-  "One National Ledger supports ten working Chambers, with concise, sourced Counsel available by voice.";
+  "Ten Chambers connect national evidence, decisions, delivery, and accountability.";
 
 export const CHAMBER_LINES: Record<string, string> = {
   "01": "A shared structure for twelve sectors, with a decade of history, a confidence grade on every data series, major risks linked to their sources, and detailed sector records. It is the trusted evidence base used by every other Chamber.",

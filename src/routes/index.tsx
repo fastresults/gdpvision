@@ -3,7 +3,7 @@ import { MarketingHome } from "@/components/marketing/MarketingHome";
 import ogImage from "@/assets/gdpvision-og.jpg";
 
 const SITE_URL = "https://gdpvision.com";
-const TITLE = "GDPVision — rehearse the decisions that shape a nation";
+const TITLE = "GDPVision — test national economic decisions before committing";
 const DESCRIPTION =
   "A government-controlled decision system for Presidents, Prime Ministers and Cabinets: bring national evidence together, test choices before committing, and follow decisions through delivery.";
 

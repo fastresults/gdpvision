@@ -115,7 +115,7 @@ export function BriefingForm({ topic }: { topic?: string } = {}) {
             "disabled:opacity-60 disabled:cursor-not-allowed",
           )}
         >
-          {submitting ? "Sending…" : "Request my national briefing"}
+          {submitting ? "Sending…" : "Request a Cabinet briefing"}
         </button>
         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-500">
           Confidential enquiry · Official government use

@@ -9,7 +9,7 @@ import { Illustration } from "@/components/marketing/Illustration";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
 
 const SITE_URL = "https://gdpvision.com";
-const TITLE = "The Decision Brief — what a decision is worth when it is taken on time | GDPVision";
+const TITLE = "The Decision Brief — estimate the value of faster government decisions | GDPVision";
 const DESCRIPTION =
   "Choose a country and review the value held back by late decisions, unmeasured spending, and sectors without an owner. Every figure is capped, sourced, and ready to print.";
 
@@ -51,11 +51,11 @@ function BriefPage() {
           <div className="mt-8 grid gap-10 md:grid-cols-[1fr_300px] md:items-center">
             <div className="min-w-0">
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-                Public decision tool · The Decision Brief
+                 Guided public estimate · The Decision Brief
               </div>
               <div className="mt-4 h-px w-12 bg-ink-700" aria-hidden />
               <h1 className="mt-5 max-w-3xl font-serif text-[30px] leading-[1.08] tracking-tight text-ink-950 sm:text-[40px] sm:leading-[1.05] md:text-[52px]">
-                What is a decision worth when it is taken on time?
+                Estimate what faster, better-governed decisions could be worth.
               </h1>
               <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-ink-700">
                 Choose a country. GDPVision begins with sourced public records and clearly marked

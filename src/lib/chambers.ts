@@ -62,7 +62,7 @@ export const CHAMBERS: Chamber[] = [
     accentVar: "--sector-03",
     image: ch02.url,
     screenshot: screen02.url,
-    outcome: "Make every minister accountable for growth.",
+    outcome: "Show where each portfolio moves growth.",
     purpose: "Show each minister where the portfolio influences growth and what delivery requires.",
     bullets: [
       "Each portfolio’s influence on growth, its links to other sectors, delivery measures, and evidence strength in one view.",
@@ -102,7 +102,7 @@ export const CHAMBERS: Chamber[] = [
     accentVar: "--sector-04",
     image: ch05.url,
     screenshot: screen05.url,
-    outcome: "Manage national perceptions.",
+    outcome: "Defend national confidence with evidence.",
     purpose:
       "Reach a defensible national position quickly when events threaten confidence or growth.",
     bullets: [
@@ -116,7 +116,7 @@ export const CHAMBERS: Chamber[] = [
     accentVar: "--sector-10",
     image: ch06.url,
     screenshot: screen06.url,
-    outcome: "Empower cabinet members.",
+    outcome: "Turn Cabinet choices into owned commitments.",
     purpose: "Turn Cabinet choices into owned commitments that remain visible between sessions.",
     bullets: [
       "Place approved options side by side and record the decision, conditions, and owner.",
@@ -129,7 +129,7 @@ export const CHAMBERS: Chamber[] = [
     accentVar: "--sector-06",
     image: ch07.url,
     screenshot: screen07.url,
-    outcome: "Conduct synthetic and field research.",
+    outcome: "Test policy before it reaches the public.",
     purpose:
       "Test whether a policy or proposition will be understood and accepted before it is released.",
     bullets: [
@@ -156,7 +156,7 @@ export const CHAMBERS: Chamber[] = [
     title: "The Digital Government Studio",
     accentVar: "--sector-09",
     screenshot: screen09.url,
-    outcome: "Build e-government platforms.",
+    outcome: "Launch government services people can trust.",
     purpose:
       "Define the nation’s digital government platform from the country’s own needs and approved record.",
     bullets: [
@@ -169,7 +169,7 @@ export const CHAMBERS: Chamber[] = [
     title: "The Sector Studio",
     accentVar: "--sector-10",
     screenshot: screen10.url,
-    outcome: "Build insightful sector development plans.",
+    outcome: "Turn priority sectors into accountable growth plans.",
     purpose:
       "Choose the sectors most capable of moving growth and govern each through an accountable plan.",
     bullets: [

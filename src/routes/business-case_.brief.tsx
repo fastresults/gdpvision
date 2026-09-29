@@ -2,10 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { z } from "zod";
 
-import artArithmometer from "@/assets/illustrations/bc-arithmometer.jpg.asset.json";
 import { ValueCalculator } from "@/components/calculator/ValueCalculator";
+import { DecisionDividendEngine } from "@/components/marketing/DecisionDividendEngine";
 import { FloatingBackToTop } from "@/components/marketing/FloatingBackToTop";
-import { Illustration } from "@/components/marketing/Illustration";
 import { MarketingShell } from "@/components/marketing/MarketingShell";
 
 const SITE_URL = "https://gdpvision.com";
@@ -67,7 +66,7 @@ function BriefPage() {
               </p>
             </div>
             <div className="hidden justify-self-end md:block">
-              <Illustration src={artArithmometer.url} variant="spot" />
+              <DecisionDividendEngine />
             </div>
           </div>
         </div>

@@ -48,7 +48,7 @@ export function SovereignDecisionCircuit() {
 
   useEffect(() => {
     if (!started || active || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = window.setTimeout(() => setCycle((current) => current + 1), 10_500);
+    const timer = window.setTimeout(() => setCycle((current) => current + 1), 11_000);
     return () => window.clearTimeout(timer);
   }, [started, active, cycle]);
 

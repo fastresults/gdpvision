@@ -173,13 +173,13 @@ export function MarketingHome() {
             </div>
             <div className="mt-6 h-px w-16 bg-gold-500" aria-hidden />
             <h1 className="mt-6 font-serif text-[42px] leading-[1.08] tracking-tight text-ink-950 sm:mt-8 sm:text-[56px] sm:leading-[1.05] md:text-[88px]">
-              Rehearse the decisions that will shape your nation’s economy.
+              Test a national economic decision before you commit.
             </h1>
             <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-ink-700 sm:mt-6 md:text-[17px]">
               GDPVision gives Presidents, Prime Ministers and Cabinets one trusted picture of the
-              country’s evidence. Leaders can test a choice before committing to it, then follow the
-              decision through delivery. Each country operates in a separate, government-controlled
-              environment.
+              country’s evidence. Rehearse means comparing credible choices before committing, then
+              following the chosen course through delivery. Each country operates in a separate,
+              government-controlled environment.
             </p>
 
             <div
@@ -272,7 +272,7 @@ export function MarketingHome() {
                 href="#briefing"
                 className="inline-flex min-h-[48px] items-center justify-center bg-ink-950 px-6 py-3 font-mono text-[12px] uppercase tracking-[0.18em] text-paper-0 transition-colors duration-200 hover:bg-gold-500"
               >
-                Request your national decision briefing
+                Request a Cabinet briefing
               </a>
               <a
                 href="#loop"
@@ -354,7 +354,7 @@ export function MarketingHome() {
           <div className="grid items-end gap-8 md:grid-cols-[1.3fr_1fr] md:gap-10">
             <SectionHeader
               eyebrow="One trusted national record"
-              title="What does Cabinet know—and how confidently can it act?"
+              title="Give Cabinet one trusted view of the evidence."
               lede="GDPVision brings public evidence and authorised government records into one clear view. Restricted records remain protected. Every important claim keeps its source, date, and confidence grade."
             />
             <div className="flex justify-center md:justify-end">
@@ -394,7 +394,7 @@ export function MarketingHome() {
           <div className="grid items-end gap-8 md:grid-cols-[1fr_auto]">
             <SectionHeader
               eyebrow="From question to accountable delivery"
-              title="Understand. Rehearse. Decide. Deliver. Account."
+              title="Move every decision from evidence to accountable delivery."
               lede="Most systems report what has already happened. GDPVision helps government move a live decision from the evidence placed before Cabinet to the result a ministry must deliver."
             />
             <Illustration
@@ -425,7 +425,7 @@ export function MarketingHome() {
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-28">
           <SectionHeader
             eyebrow="The first engagement"
-            title="Begin with one major national decision. Leave with a lasting capability."
+            title="Start with one urgent decision. Build a capability government keeps."
             lede="The engagement starts with a decision already demanding Cabinet attention. We prepare the evidence, test credible choices, identify what must improve, and establish a method government can continue to use."
           />
           <div className="mt-10 grid gap-8 border-t border-line-200 pt-10 sm:mt-14 md:grid-cols-2 lg:grid-cols-4">
@@ -471,7 +471,7 @@ export function MarketingHome() {
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
           <SectionHeader
             eyebrow="Ten working areas for government decisions"
-            title="What must government know, decide, deliver, and defend?"
+            title="Ten Chambers connect national evidence to delivery."
             lede="Each Chamber is a dedicated working area for one government responsibility. Together, the ten Chambers connect national evidence, Cabinet choices, ministry delivery, public understanding, and accountability."
           />
           <div className="mt-10 grid gap-x-10 gap-y-10 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2">
@@ -507,7 +507,7 @@ export function MarketingHome() {
           <div>
             <SectionHeader
               eyebrow="Counsel between engagements"
-              title="A sourced answer when a national leader needs one."
+              title="Give national leaders a sourced answer when they need it."
               lede="The Counsel gives a President, Prime Minister, or authorised adviser a concise answer drawn from the national evidence record. It is designed for questions asked between meetings and keeps the source behind every important claim."
             />
           </div>
@@ -596,7 +596,7 @@ export function MarketingHome() {
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-32">
           <SectionHeader
             eyebrow="Experience and proof"
-            title="Regional experience. Working capability. A clear standard of proof."
+            title="Proven regional experience supports a system government can verify."
             lede="OPEN Interactive brings experience in Caribbean investment, national digital infrastructure, and work with heads of government. GDPVision turns that experience into a working national decision system whose claims can be checked at source."
           />
           <Illustration src={illProvenance.url} variant="rule" className="mt-10" />
@@ -638,7 +638,7 @@ export function MarketingHome() {
               to="/business-case"
               className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-950 hover:text-ink-700"
             >
-              Read the business case →
+              See the procurement case →
             </Link>
             <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-ink-700">
               A decision paper for Cabinet Secretaries, ministries of finance, and procurement
@@ -656,7 +656,7 @@ export function MarketingHome() {
             <div>
               <SectionHeader
                 eyebrow="A confidential first conversation"
-                title="Your national decision briefing."
+                title="Bring one national decision. Leave with a clear next step."
                 lede="Bring one priority decision. We will prepare a country-specific view of the supporting evidence, the gaps that could change the answer, and a practical route forward."
               />
               <div className="mt-10 flex items-start justify-between gap-8">

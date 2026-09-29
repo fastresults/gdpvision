@@ -2,7 +2,7 @@
 chamber: "06"
 chamber_name: The Cabinet Room
 accent: "#7a4a6b"
-title: What happened to the decision?
+title: Track every Cabinet decision through delivery.
 standfirst: Minutes record what was said. They do not record what was decided, who carries it, or whether it landed. In economies where a quarter of revenue is spoken for before Cabinet sits, that gap is not untidiness. It is money.
 byline: Adam Anderson
 byline_role: OPEN Interactive

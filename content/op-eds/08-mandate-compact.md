@@ -2,7 +2,7 @@
 chamber: "08"
 chamber_name: The Mandate Compact
 accent: "#2e7d5b"
-title: Someone will grade your manifesto. It should be you.
+title: Track the manifesto before someone else grades it.
 standfirst: Every government publishes a programme and then loses track of it. The scorecard gets built regardless — by a journalist, an NGO, or the opposition. The only real choice is whose numbers the public sees first.
 byline: Adam Anderson
 byline_role: OPEN Interactive

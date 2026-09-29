@@ -8,8 +8,7 @@ import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 
 const SITE_URL = "https://gdpvision.com";
-const TITLE =
-  "The Sovereign Vault — the data a nation must never share, working for it | GDPVision";
+const TITLE = "The Sovereign Vault — use sensitive national data without surrendering control";
 const DESCRIPTION =
   "Every GDPVision deployment includes government-held hardware installed in-country. Private records stay inside it; public evidence comes to them; only findings approved by named officials may leave.";
 
@@ -96,7 +95,7 @@ function VaultPage() {
               </div>
               <div className="mt-4 h-px w-12 bg-ink-700" aria-hidden />
               <h1 className="mt-5 max-w-3xl font-serif text-[30px] leading-[1.08] tracking-tight text-ink-950 sm:text-[40px] sm:leading-[1.05] md:text-[50px]">
-                The data a nation must never share, working for the decisions it must take.
+                Use sensitive national data without surrendering government control.
               </h1>
               <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-ink-700">
                 Every GDPVision deployment includes a Vault: secure hardware installed in-country
@@ -135,7 +134,7 @@ function VaultPage() {
         <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-14 sm:px-6 sm:py-20 md:grid-cols-[1fr_1.2fr] md:gap-16 md:px-10 md:py-24">
           <SectionHeader
             eyebrow="What arrives"
-            title="A compact group of secure computers, held by the government, that answers on the premises."
+            title="Analyse sensitive records inside government premises."
           />
           <div className="space-y-5 border-t border-line-200 pt-8 text-[16px] leading-relaxed text-ink-700 md:border-t-0 md:pt-0">
             <p>
@@ -158,7 +157,7 @@ function VaultPage() {
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-24">
           <SectionHeader
             eyebrow="Three rules, built into the machine"
-            title="Private stays in. Public comes in. Only what is approved goes out."
+            title="Keep private records in. Bring public evidence in. Release only approved findings."
           />
           <div className="mt-12 grid gap-8 md:grid-cols-3">
             {RULES.map((r, i) => (
@@ -177,7 +176,7 @@ function VaultPage() {
         <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-14 sm:px-6 sm:py-20 md:grid-cols-[1fr_1.2fr] md:gap-16 md:px-10 md:py-24">
           <SectionHeader
             eyebrow="Why it moves GDP"
-            title="The most decisive figures are the ones a government cannot share."
+            title="Use the records that can answer government’s hardest questions."
           />
           <div className="space-y-5 border-t border-line-200 pt-8 text-[16px] leading-relaxed text-ink-700 md:border-t-0 md:pt-0">
             <p>
@@ -200,7 +199,7 @@ function VaultPage() {
         <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-14 sm:px-6 sm:py-20 md:grid-cols-[1fr_1.2fr] md:gap-16 md:px-10 md:py-24">
           <SectionHeader
             eyebrow="Security you can inspect"
-            title="Designed so that custody never changes hands."
+            title="Keep custody of national data in government hands."
             lede="No system is beyond attack. The Vault is built so that private data stays in the government's custody, and every attempt to move it is either impossible by design or recorded and approved."
           />
           <ul className="divide-y divide-line-200 border-y border-line-200">
@@ -218,7 +217,7 @@ function VaultPage() {
         <div className="mx-auto max-w-[1280px] px-5 py-14 sm:px-6 sm:py-20 md:px-10 md:py-24">
           <SectionHeader
             eyebrow="Managed from GDPVision"
-            title="The Vault stays in the government's building. A small authorised team can use it through GDPVision."
+            title="Run approved analysis without moving the private records."
             lede="Officials request an analysis, follow its progress, approve what may leave, and read the result beside the public evidence. GDPVision sees descriptions, requests, and approved findings—never the private records themselves."
           />
           <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -237,7 +236,7 @@ function VaultPage() {
         <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-14 sm:px-6 sm:py-20 md:grid-cols-[1fr_1.2fr] md:gap-16 md:px-10 md:py-24">
           <SectionHeader
             eyebrow="Request a briefing"
-            title="A confidential briefing on the Vault for your government."
+            title="Assess how the Vault could serve your government."
             lede="Tell us which ministry holds the data and the decision it should inform. A principal from OPEN Interactive will respond through your official email."
           />
           <BriefingForm topic="vault" />

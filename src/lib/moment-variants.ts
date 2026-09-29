@@ -28,7 +28,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
   {
     id: "cbi-cliff",
     illustration: ill_cbi_cliff.url,
-    title: "A revenue cliff, without a decision-ready view of the ground it sits on.",
+    title: "Price the revenue gap before it reaches the national budget.",
     lede: "Five Caribbean states rely heavily on Citizenship by Investment (CBI) for national income and government revenue. Yet national statistics arrive in annual reports, and IMF assessments may describe conditions from twelve to eighteen months earlier. Cabinet lacks one current view of the economy.",
     stats: [
       {
@@ -57,7 +57,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
   {
     id: "one-storm",
     illustration: ill_one_storm.url,
-    title: "One storm can erase a generation of growth in a single night.",
+    title: "Build every national budget against the next major storm.",
     lede: "The Caribbean sits inside the world’s most concentrated hurricane corridor. Storms are intensifying while insurers retreat. When one event can erase several years of economic output, every national budget needs a current view of climate risk.",
     stats: [
       {
@@ -86,7 +86,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
   {
     id: "tourism-trap",
     illustration: ill_tourism_trap.url,
-    title: "An economy that is really a single product, priced by someone else.",
+    title: "Reduce dependence before the next tourism shock.",
     lede: "When tourism drives most of GDP, one recession, one cut in air service, or one pandemic can stop income overnight. COVID showed how little protection the region has against such a shock. Cabinet needs to see and price that risk before the next one arrives.",
     stats: [
       {
@@ -115,7 +115,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
   {
     id: "cut-off",
     illustration: ill_cut_off.url,
-    title: "Quietly severed from the financial system that moves the money.",
+    title: "Protect the banking links that keep money moving.",
     lede: "Global banks are cutting the relationships that allow Caribbean banks to move money internationally, often because small markets do not justify the compliance cost. Every lost relationship slows remittances, raises the cost of trade finance, and makes payments harder. The region cannot attract capital it cannot receive.",
     stats: [
       {
@@ -144,7 +144,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
   {
     id: "debt-ceiling",
     illustration: ill_debt_ceiling.url,
-    title: "Debt service crowding out the future the region is trying to build.",
+    title: "Protect national investment from the cost of debt.",
     lede: "Caribbean debt levels are among the highest in the developing world. At the same time, middle-income status blocks access to some low-interest development loans despite severe climate risk. High debt leaves less room in the budget for the infrastructure that attracts investment.",
     stats: [
       {
@@ -173,7 +173,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
   {
     id: "power-cost",
     illustration: ill_power_cost.url,
-    title: "Priced out of competitive investment before negotiations begin.",
+    title: "Lower power costs before they rule out investment.",
     lede: "Caribbean electricity can cost three to four times the US rate. That can rule out manufacturing, data infrastructure, and food processing before an incentive is offered. Dependence on imported diesel also drains foreign currency whenever oil prices rise. Lower-cost energy is essential to compete.",
     stats: [
       {
@@ -202,7 +202,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
   {
     id: "regulated-out",
     illustration: ill_regulated_out.url,
-    title: "Repriced from outside, with no seat at the table setting the rules.",
+    title: "Prepare before global rules reprice the economy.",
     lede: "International tax and financial-crime rules are changing the terms on which Caribbean countries access the global economy. EU lists, OECD tax rules, the global minimum tax, and the risk of FATF increased monitoring are set elsewhere and applied on external timetables.",
     stats: [
       {
@@ -231,7 +231,7 @@ export const MOMENT_VARIANTS: MomentVariant[] = [
   {
     id: "talent-drain",
     illustration: ill_talent_drain.url,
-    title: "Exporting the people who would build the future the region needs.",
+    title: "Retain the skilled people national growth depends on.",
     lede: "Nurses, teachers, and engineers leave faster than economies can replace them, hollowing out the skilled labor base investors require. Remittances flow back — stable but stagnant, and vulnerable to diaspora aging and shifting immigration policy abroad. A nation cannot build what it keeps sending away.",
     stats: [
       {

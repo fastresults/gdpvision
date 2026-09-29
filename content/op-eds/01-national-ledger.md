@@ -2,7 +2,7 @@
 chamber: "01"
 chamber_name: The National Ledger
 accent: "#1e3350"
-title: Governing from a photograph.
+title: Cabinet needs current evidence, not an old picture.
 standfirst: Authoritative sector data reaches a Caribbean Cabinet roughly eighteen months after the period it describes. We ask governments to steer an economy using a picture of where it used to be — and then to defend the picture as though it were a window.
 byline: Adam Anderson
 byline_role: OPEN Interactive

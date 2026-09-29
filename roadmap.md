@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Make every public editorial headline direct, aligned, and guided while preserving claims and page structure
+
 - [x] Simplify the core public journey in clear executive English without changing claims, safeguards, calculations, or page structure
 
 - [x] Cabinet Room (Chamber 06) header: add engraved pen-and-hatch cabinet-table illustration left of the title block

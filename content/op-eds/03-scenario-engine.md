@@ -2,7 +2,7 @@
 chamber: "03"
 chamber_name: The Scenario Engine
 accent: "#5b4fa8"
-title: Two hundred and twenty-six per cent, in a single night.
+title: Rehearse every fiscal plan against the next major storm.
 standfirst: Hurricane Maria cost Dominica more than two years of national output in one evening. Every fiscal plan in this region is written inside a hurricane corridor. Almost none of them is rehearsed against one.
 byline: Adam Anderson
 byline_role: OPEN Interactive

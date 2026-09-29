@@ -2,7 +2,7 @@
 chamber: "04"
 chamber_name: The FDI Transition Studio
 accent: "#a86a2f"
-title: The date is set. The replacement is not.
+title: Price the revenue gap before the deadline arrives.
 standfirst: Five OECS states built a revenue pillar that Brussels has now scheduled for demolition. The question is no longer whether to diversify. It is whether anyone has priced the hole.
 byline: Adam Anderson
 byline_role: OPEN Interactive

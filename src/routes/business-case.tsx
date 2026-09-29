@@ -50,7 +50,7 @@ import artBriefingRoom from "@/assets/illustrations/bc-briefing-room.jpg.asset.j
 import ogImage from "@/assets/gdpvision-og.jpg";
 
 const SITE_URL = "https://gdpvision.com";
-const TITLE = "The business case for GDPVision — a decision paper";
+const TITLE = "Should government procure GDPVision? — a decision paper";
 const DESCRIPTION =
   "Why national economic decisions need a governed, government-controlled system: the stakes, the required standard, the available options, the approvals, and the recommended path.";
 
@@ -143,7 +143,10 @@ function BusinessCasePage() {
 
       {/* Executive summary */}
       <Section>
-        <SectionHeader eyebrow="Executive summary" title="The decision in one page." />
+        <SectionHeader
+          eyebrow="Executive summary"
+          title="Why government needs a governed decision system."
+        />
         <div className="mt-10 grid gap-8 md:grid-cols-2">
           <div className="space-y-6">
             {EXECUTIVE_SUMMARY.slice(0, 3).map((p) => (
@@ -166,10 +169,10 @@ function BusinessCasePage() {
           <div className="grid gap-8 p-7 sm:p-10 md:grid-cols-[1fr_240px] md:items-center">
             <div className="min-w-0">
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">
-                Interactive · Public decision tool
+                Interactive · The Decision Brief
               </div>
               <h3 className="mt-4 font-serif text-[26px] leading-tight tracking-tight text-ink-950 md:text-[32px]">
-                Put your own economy through the model.
+                Estimate the value for your own economy.
               </h3>
               <p className="mt-4 max-w-2xl text-[15.5px] leading-relaxed text-ink-700">
                 Answer four questions, adjust the depth of each Chamber, and see an updated view in
@@ -194,7 +197,7 @@ function BusinessCasePage() {
       <Section>
         <SectionHeader
           eyebrow="01 · What is at stake"
-          title="Six figures, each carrying its source and its grade."
+          title="The pressures are measurable—and already material."
           lede="This is a working standard, not decoration. Every important claim should remain linked to a source that can be checked. This paper follows the same rule."
         />
         <div className="mt-14 grid gap-x-10 gap-y-14 md:grid-cols-2 lg:grid-cols-3">
@@ -225,7 +228,7 @@ function BusinessCasePage() {
           <div>
             <SectionHeader
               eyebrow="02 · The problem"
-              title="The problem is the tools, not the effort."
+              title="Government needs decision-ready evidence, not more effort."
             />
             <div className="mt-8 space-y-5 max-w-2xl">
               {INSTRUMENTATION_INTRO.map((p) => (
@@ -288,7 +291,7 @@ function BusinessCasePage() {
       <Section>
         <SectionHeader
           eyebrow="04 · The alternative is not free"
-          title="Because it is already running."
+          title="Ungoverned AI is already creating government risk."
         />
         <div className="mt-8 max-w-2xl space-y-5">
           {SHADOW_AI_INTRO.map((p) => (
@@ -317,7 +320,7 @@ function BusinessCasePage() {
       <Section>
         <SectionHeader
           eyebrow="05 · The required standard"
-          title="What class of system is this?"
+          title="National decisions require a controlled, accountable system."
           lede={TIER_ONE_INTRO[0]}
         />
         <p className="mt-6 max-w-2xl text-[16.5px] leading-relaxed text-ink-700">
@@ -385,7 +388,7 @@ function BusinessCasePage() {
       <Section>
         <SectionHeader
           eyebrow="06 · Options appraisal"
-          title="Three paths, and what the government owns after three years."
+          title="Choose what government should own after three years."
         />
         <div className="mt-12 grid gap-8 md:grid-cols-3">
           {OPTION_PATHS.map((p) => (
@@ -420,7 +423,7 @@ function BusinessCasePage() {
       <Section>
         <SectionHeader
           eyebrow="07 · What GDPVision actually is"
-          title={INSTRUMENT_INTRO}
+          title="Ten Chambers connect evidence, decisions, and delivery."
           lede="Each Chamber is a dedicated working area for one government responsibility. Together they move evidence, decisions, delivery, and public accountability through one connected system."
         />
         <div className="mt-12 grid gap-x-10 gap-y-8 md:grid-cols-2">
@@ -450,7 +453,7 @@ function BusinessCasePage() {
       <Section>
         <SectionHeader
           eyebrow="08 · What this is worth to a sovereign economy"
-          title="Mechanisms, not measured results."
+          title="The case rests on clear mechanisms, not unproven results."
           lede={WORTH_INTRO}
         />
         <div className="mt-10 grid gap-x-10 gap-y-7 md:grid-cols-2">
@@ -469,7 +472,7 @@ function BusinessCasePage() {
           <div>
             <SectionHeader
               eyebrow="09 · The five approvals"
-              title="Sovereign procurement has no single buyer."
+              title="Five officials must be satisfied before government can proceed."
               lede="Five people must each be satisfied, by different things."
             />
             <div className="mt-10 space-y-6 max-w-2xl">
@@ -488,7 +491,7 @@ function BusinessCasePage() {
       <Section>
         <SectionHeader
           eyebrow="10 · Who built it, and why that matters"
-          title="The hard parts are not the screens."
+          title="Government judgement—not screens—is the difficult capability."
         />
         <div className="mt-8 max-w-2xl space-y-5">
           {PROVENANCE_PARAS.map((p) => (
@@ -501,7 +504,10 @@ function BusinessCasePage() {
 
       {/* 11 · Risks */}
       <Section>
-        <SectionHeader eyebrow="11 · Risks, in both directions" title="Stated plainly." />
+        <SectionHeader
+          eyebrow="11 · Risks, in both directions"
+          title="Proceeding and waiting both carry risk."
+        />
         <div className="mt-10 grid gap-10 md:grid-cols-2">
           <div className="border-t-2 border-ink-950 pt-5">
             <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-500">
@@ -520,7 +526,10 @@ function BusinessCasePage() {
 
       {/* 12 · Recommended path */}
       <Section>
-        <SectionHeader eyebrow="12 · Recommended path" title="Briefing, pilot, deployment." />
+        <SectionHeader
+          eyebrow="12 · Recommended path"
+          title="Start with a briefing. Prove it in a pilot. Then decide on national deployment."
+        />
         <ol className="mt-10 grid gap-8 md:grid-cols-3">
           {STAGES.map((s, i) => (
             <li key={s.label} className="border-t-2 border-ink-950 pt-5">
@@ -538,7 +547,7 @@ function BusinessCasePage() {
       <Section>
         <SectionHeader
           eyebrow="13 · The test to run before deciding"
-          title="Put these to any AI tool a government is considering — including ours."
+          title="Use seven tests before choosing any government AI system."
         />
         <ol className="mt-10 max-w-3xl divide-y divide-line-200 border-y border-line-200">
           {SEVEN_QUESTIONS.map((q, i) => (
@@ -560,7 +569,7 @@ function BusinessCasePage() {
       <Section>
         <SectionHeader
           eyebrow="Sources and confidence grades"
-          title="Every figure, with the grade we assign it."
+          title="Every major figure states its source and confidence grade."
           lede={SOURCES_NOTE}
         />
         <ul className="mt-10 max-w-3xl divide-y divide-line-200 border-y border-line-200">
@@ -591,7 +600,7 @@ function BusinessCasePage() {
                 Cabinet briefing
               </div>
               <h2 className="mt-5 font-serif text-[34px] leading-[1.1] tracking-tight text-ink-950 md:text-[43px]">
-                Request a confidential briefing.
+                Bring one Cabinet decision to a confidential briefing.
               </h2>
               <p className="mt-5 max-w-xl text-[16.5px] leading-relaxed text-ink-700">
                 A short, dignified enquiry from a member of a sitting government or their designated
@@ -608,7 +617,7 @@ function BusinessCasePage() {
                   to="/op-eds"
                   className="btn-secondary inline-flex px-6 py-3 font-mono text-[12px] uppercase tracking-[0.18em]"
                 >
-                  Read the writing
+                  Read the arguments
                 </Link>
               </div>
             </div>

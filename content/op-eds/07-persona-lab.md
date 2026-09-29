@@ -2,7 +2,7 @@
 chamber: "07"
 chamber_name: Persona Lab
 accent: "#6f8a3a"
-title: We are exporting the people we need, and guessing at how to keep them.
+title: Test retention policy with the people it must keep.
 standfirst: Up to seventy per cent of tertiary-educated citizens have left the upper band of Caribbean states. Retention policy is written, announced, and only then discovered to have missed the people it was written for.
 byline: Adam Anderson
 byline_role: OPEN Interactive

@@ -319,60 +319,14 @@ export function MarketingHome() {
           </p>
 
           <nav
-            aria-label="Cycle through economic impact scenarios"
+            aria-label="Position in the regional exposures"
             className="mt-10 flex items-center justify-end gap-5 border-t border-line-200 pt-4 sm:mt-16 sm:gap-6 sm:pt-6"
           >
-            <button
-              type="button"
-              onClick={goPrev}
-              aria-label="Previous scenario"
-              className="group -mx-2 flex min-h-[44px] items-center gap-3 px-2 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
-            >
-              <svg
-                width="44"
-                height="10"
-                viewBox="0 0 44 10"
-                fill="none"
-                aria-hidden
-                className="w-[28px] shrink-0 transition-transform duration-300 group-hover:-translate-x-1 sm:w-[44px]"
-              >
-                <path
-                  d="M43 5H1M1 5L5 1M1 5L5 9"
-                  stroke="currentColor"
-                  strokeWidth="1"
-                  strokeLinecap="square"
-                />
-              </svg>
-              <span>Prev</span>
-            </button>
             <span className="font-mono text-[11px] tabular-nums tracking-[0.22em] text-ink-950">
               {String(momentIndex + 1).padStart(2, "0")}
               <span className="mx-2 text-ink-300">/</span>
               {String(total).padStart(2, "0")}
             </span>
-            <button
-              type="button"
-              onClick={goNext}
-              aria-label="Next scenario"
-              className="group -mx-2 flex min-h-[44px] items-center gap-3 px-2 font-mono text-[11px] uppercase tracking-[0.22em] text-ink-500 transition-colors duration-200 hover:text-ink-950 focus:outline-none focus-visible:text-gold-500"
-            >
-              <span>Next</span>
-              <svg
-                width="44"
-                height="10"
-                viewBox="0 0 44 10"
-                fill="none"
-                aria-hidden
-                className="w-[28px] shrink-0 transition-transform duration-300 group-hover:translate-x-1 sm:w-[44px]"
-              >
-                <path
-                  d="M1 5H43M43 5L39 1M43 5L39 9"
-                  stroke="currentColor"
-                  strokeWidth="1"
-                  strokeLinecap="square"
-                />
-              </svg>
-            </button>
           </nav>
         </div>
       </section>

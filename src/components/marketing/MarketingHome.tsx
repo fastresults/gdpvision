@@ -29,6 +29,7 @@ import { MOMENT_VARIANTS } from "@/lib/moment-variants";
 import { SignatureRing } from "./SignatureRing";
 import { NumberTile } from "./NumberTile";
 import { ChamberPanel } from "./ChamberPanel";
+import { IndexBand } from "./IndexBand";
 import { SectionHeader } from "./SectionHeader";
 import { BriefingForm } from "./BriefingForm";
 import { Wordmark } from "./Wordmark";
@@ -287,6 +288,9 @@ export function MarketingHome() {
           </div>
         </div>
       </section>
+
+      {/* MEASURES --------------------------------------------------------- */}
+      <IndexBand />
 
       {/* PROBLEM ---------------------------------------------------------- */}
       <section id="problem" className="border-b border-line-200">

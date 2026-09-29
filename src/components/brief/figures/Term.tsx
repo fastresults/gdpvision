@@ -68,12 +68,12 @@ export function Term({
     <Figure
       n={n}
       title={fromCycle ? "Within the remaining term" : "Over five years"}
-      caption={`${fromCycle ? `${months} months remain in the current term, from the Mandate Compact's election cycle.` : "No election cycle is on record, so the view runs five years."} By the end of it, cumulative uplift of ${formatUsd(endUp)} against cumulative instrument cost of ${formatUsd(endCost)}, each year counted when it is committed${central.breakEven ? `; the lines cross in month ${central.breakEven}` : "; the lines do not cross in this window"}${showCons && cons.breakEven ? ` (month ${cons.breakEven} at the conservative stance)` : ""}. The national platform build is costed separately.`}
+      caption={`${fromCycle ? `${months} months remain in the current term, based on the Mandate Compact’s election cycle.` : "No election cycle is on record, so the view covers five years."} By the end of that period, the estimated total gain is ${formatUsd(endUp)} against a total GDPVision cost of ${formatUsd(endCost)}, with each year’s cost counted when it begins${central.breakEven ? `; the estimated gain recovers the cost in month ${central.breakEven}` : "; the estimated gain does not recover the cost within this period"}${showCons && cons.breakEven ? ` (month ${cons.breakEven} under the conservative outlook)` : ""}. The national platform build is costed separately.`}
       legend={
         <>
-          <Key colour={palette.accent} label="Cumulative uplift" />
+          <Key colour={palette.accent} label="Total estimated gain" />
           {showCons ? <Key colour={palette.accent} label="Conservative" dashed /> : null}
-          <Key colour={palette.compare} label="Cumulative cost" />
+          <Key colour={palette.compare} label="Total cost" />
         </>
       }
     >
@@ -81,7 +81,7 @@ export function Term({
         viewBox={`0 0 ${W} ${H}`}
         className="h-auto w-full"
         role="img"
-        aria-label={`Cumulative uplift against cost over ${months} months`}
+        aria-label={`Total estimated gain against cost over ${months} months`}
       >
         <line x1={L} x2={W - R} y1={BASE} y2={BASE} stroke={palette.rule} />
         {Array.from({ length: Math.floor(months / 12) }, (_, i) => (i + 1) * 12).map((m) => (

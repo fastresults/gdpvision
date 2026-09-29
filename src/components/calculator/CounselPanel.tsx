@@ -21,7 +21,7 @@ export function CounselPanel({
       <div className="flex items-center justify-between border-b border-line-200 px-5 py-4 sm:px-6">
         <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">
           <Explain id="calc.counsel" label="Counsel">
-            Counsel · read against your configuration
+            Counsel · based on your selections
           </Explain>
         </div>
         {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin text-ink-500" /> : null}
@@ -32,7 +32,7 @@ export function CounselPanel({
           <p className="text-[14px] leading-relaxed text-ink-500">{error}</p>
         ) : !counsel ? (
           <p className="text-[14px] leading-relaxed text-ink-500">
-            Move a slider and the counsel will read the configuration back to you.
+            Move a slider and the Counsel will update its reading of your selections.
           </p>
         ) : (
           <div className="space-y-7">
@@ -45,7 +45,7 @@ export function CounselPanel({
             <div className="grid gap-8 md:grid-cols-2">
               <div className="border-l-2 border-gold-500 pl-5">
                 <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
-                  Highest leverage
+                  Greatest potential impact
                 </div>
                 <p className="mt-3 text-[14.5px] leading-relaxed text-ink-700">
                   {counsel.highest_leverage}
@@ -53,7 +53,7 @@ export function CounselPanel({
               </div>
               <div className="border-l-2 border-line-200 pl-5">
                 <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
-                  Weakest assumption
+                  Least certain input
                 </div>
                 <p className="mt-3 text-[14.5px] leading-relaxed text-ink-700">
                   {counsel.weakest_assumption}
@@ -64,7 +64,7 @@ export function CounselPanel({
             {counsel.sequencing.length > 0 ? (
               <div>
                 <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
-                  Sequencing
+                  Recommended order
                 </div>
                 <ol className="mt-4 divide-y divide-line-100 border-t border-line-100">
                   {counsel.sequencing.map((s, i) => (

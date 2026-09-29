@@ -62,6 +62,28 @@ export function CorpusChamberRing() {
     return () => io.disconnect();
   }, []);
 
+  const [rot, setRot] = useState(0);
+  const pausedRef = useRef(false);
+  pausedRef.current = active !== null;
+
+  useEffect(() => {
+    if (!on || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let raf = 0;
+    let last = 0;
+    const start = window.setTimeout(() => {
+      const tick = (t: number) => {
+        if (last && !pausedRef.current) setRot((r) => (r + ((t - last) / 1000) * 4) % 360);
+        last = t;
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    }, 6000);
+    return () => {
+      window.clearTimeout(start);
+      cancelAnimationFrame(raf);
+    };
+  }, [on]);
+
   const ch = typeof active === "number" ? CHAMBERS[active] : null;
 
   return (
@@ -78,7 +100,7 @@ export function CorpusChamberRing() {
         </defs>
 
         {/* Ring of ten Chambers */}
-        <g className="ccr-spin" style={{ transformOrigin: `${C}px ${C}px` }}>
+        <g transform={`rotate(${rot} ${C} ${C})`}>
           {CHAMBERS.map((c, i) => {
             const mid = i * STEP + STEP / 2;
             const [ox, oy] = pt(40, mid).map((v) => v - C);
@@ -103,7 +125,7 @@ export function CorpusChamberRing() {
                     <path d={piecePath(i)} fill="var(--color-paper-0)" stroke="var(--color-ink-700)" strokeWidth="0.9" />
                     <path d={piecePath(i)} fill="url(#ccr-hatch)" />
                     <path className="ccr-glow" style={{ ["--i" as string]: i }} d={piecePath(i)} fill="none" stroke="var(--color-gold-500)" strokeWidth="1.4" />
-                    <text x={tx} y={ty} textAnchor="middle" dominantBaseline="central" transform={`rotate(${mid > 90 && mid < 270 ? mid + 180 : mid} ${tx} ${ty})`} className="font-mono" fontSize="10" fill="var(--color-ink-950)" style={{ letterSpacing: "0.08em" }}>
+                    <text x={tx} y={ty} textAnchor="middle" dominantBaseline="central" transform={`rotate(${(((mid + rot) % 360) + 360) % 360 > 90 && (((mid + rot) % 360) + 360) % 360 < 270 ? mid + 180 : mid} ${tx} ${ty})`} className="font-mono" fontSize="10" fill="var(--color-ink-950)" style={{ letterSpacing: "0.08em" }}>
                       {c.index}
                     </text>
                   </g>
@@ -111,20 +133,18 @@ export function CorpusChamberRing() {
               </g>
             );
           })}
-        </g>
 
-        {/* Rising GDP line */}
-        <path className="ccr-rise" d={`M ${C} ${C - 30} C ${C + 6} 70, ${C - 4} 30, ${C + 10} 4`} fill="none" stroke="var(--color-gold-500)" strokeWidth="1.2" pathLength={1} />
+        </g>
 
         {/* Chamber names (static, outside the ring) */}
         {CHAMBERS.map((c, i) => {
-          const mid = i * STEP + STEP / 2;
+          const mid = (((i * STEP + STEP / 2 + rot) % 360) + 360) % 360;
           const [x, y] = pt(R_OUT + 12, mid);
-          const anchor = mid < 170 ? "start" : mid > 190 ? "end" : "middle";
+          const anchor = mid > 12 && mid < 168 ? "start" : mid > 192 && mid < 348 ? "end" : "middle";
           const dim = active !== null && active !== i;
           return (
+            <g key={`n-${c.index}`}>
             <text
-              key={`n-${c.index}`}
               className="ccr-name font-mono"
               x={x}
               y={y}
@@ -137,8 +157,11 @@ export function CorpusChamberRing() {
             >
               {c.title.replace(/^The /, "")}
             </text>
+            </g>
           );
         })}
+        {/* Rising GDP line */}
+        <path className="ccr-rise" d={`M ${C} ${C - 30} C ${C + 6} 70, ${C - 4} 30, ${C + 10} 4`} fill="none" stroke="var(--color-gold-500)" strokeWidth="1.2" pathLength={1} />
 
         {/* Corpus core */}
         <g

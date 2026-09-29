@@ -38,10 +38,7 @@ export function proposeSequence(facts: CountryFacts | null): {
     {
       index: "08",
       score:
-        50 +
-        (grade("latency") === "assumption"
-          ? 20
-          : Math.min(30, (value("latency") ?? 6) * 4)),
+        50 + (grade("latency") === "assumption" ? 20 : Math.min(30, (value("latency") ?? 6) * 4)),
       why: "Pledges decomposed to ministry-owned deliverables and scored quarterly turn intent into completed work.",
     },
     {
@@ -94,7 +91,8 @@ export function proposedInputForCountry(
     ...base,
     stance: "central",
     gdpUsd: proposed?.gdpUsd?.value ?? preset?.gdpUsd ?? base.gdpUsd,
-    publicSpendPct: proposed?.publicSpendPct?.value ?? preset?.publicSpendPct ?? base.publicSpendPct,
+    publicSpendPct:
+      proposed?.publicSpendPct?.value ?? preset?.publicSpendPct ?? base.publicSpendPct,
     topSectorSharePct:
       proposed?.topSectorSharePct?.value ?? preset?.topSectorSharePct ?? base.topSectorSharePct,
     decisionsPerQuarter: proposed?.decisionsPerQuarter?.value ?? base.decisionsPerQuarter,

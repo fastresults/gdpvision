@@ -105,7 +105,9 @@ export function Explain({
             <div className="break-words font-mono text-[9.5px] uppercase tracking-[0.18em] text-ink-500">
               {rationale.title}
             </div>
-            <p className="mt-2 break-words text-[13px] leading-relaxed text-ink-700">{rationale.short}</p>
+            <p className="mt-2 break-words text-[13px] leading-relaxed text-ink-700">
+              {rationale.short}
+            </p>
             <button
               type="button"
               onClick={() => setOpen(true)}

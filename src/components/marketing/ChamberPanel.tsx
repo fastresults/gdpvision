@@ -1,12 +1,6 @@
-import {
-  useEffect,
-  useRef,
-  type PointerEvent as ReactPointerEvent,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Illustration } from "./Illustration";
-
 
 interface ChamberPanelProps {
   index: string; // "01" .. "10"
@@ -47,9 +41,7 @@ export function ChamberPanel({
   // The zoom follows the cursor only on a mouse-like pointer; on touch the
   // image simply scales from its centre.
   useEffect(() => {
-    finePointer.current = window.matchMedia(
-      "(hover: hover) and (pointer: fine)",
-    ).matches;
+    finePointer.current = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
   }, []);
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {

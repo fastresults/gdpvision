@@ -554,31 +554,31 @@ export function MarketingHome() {
             </select>
           </div>
           <ExplainProvider value={{ ctx: estimateContext }}>
-          <div className="mt-10 grid gap-x-10 gap-y-10 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2">
-            {FEATURED_CHAMBERS.map((c) => (
-              <div key={c.index}>
-                <div className="mb-4 font-mono text-[12px] uppercase tracking-[0.18em] text-gold-500">
-                  {c.featureLabel}
+            <div className="mt-10 grid gap-x-10 gap-y-10 border-t border-line-200 pt-10 sm:mt-16 sm:pt-12 md:grid-cols-2">
+              {FEATURED_CHAMBERS.map((c) => (
+                <div key={c.index}>
+                  <div className="mb-4 font-mono text-[12px] uppercase tracking-[0.18em] text-gold-500">
+                    {c.featureLabel}
+                  </div>
+                  <ChamberPanel
+                    index={c.index}
+                    title={c.title}
+                    outcome={c.outcome}
+                    purpose={c.purpose}
+                    bullets={c.bullets}
+                    accentVar={c.accentVar}
+                    image={c.image}
+                    screenshot={c.screenshot}
+                    valueEstimate={chamberValue(c.index)}
+                  />
                 </div>
-                <ChamberPanel
-                  index={c.index}
-                  title={c.title}
-                  outcome={c.outcome}
-                  purpose={c.purpose}
-                  bullets={c.bullets}
-                  accentVar={c.accentVar}
-                  image={c.image}
-                  screenshot={c.screenshot}
-                  valueEstimate={chamberValue(c.index)}
-                />
-              </div>
-            ))}
-          </div>
-          <div className="mt-10 grid gap-x-8 gap-y-6 sm:mt-16 md:grid-cols-2 lg:grid-cols-3">
-            {GRID_CHAMBERS.map((c) => (
-              <ChamberPanel key={c.index} {...c} valueEstimate={chamberValue(c.index)} />
-            ))}
-          </div>
+              ))}
+            </div>
+            <div className="mt-10 grid gap-x-8 gap-y-6 sm:mt-16 md:grid-cols-2 lg:grid-cols-3">
+              {GRID_CHAMBERS.map((c) => (
+                <ChamberPanel key={c.index} {...c} valueEstimate={chamberValue(c.index)} />
+              ))}
+            </div>
           </ExplainProvider>
         </div>
       </section>
